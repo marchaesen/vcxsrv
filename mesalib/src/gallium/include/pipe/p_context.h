@@ -446,11 +446,17 @@ struct pipe_context {
                              enum pipe_shader_type shader,
                              unsigned start_slot, unsigned num_views,
                              unsigned unbind_num_trailing_slots,
+                             bool take_ownership,
                              struct pipe_sampler_view **views);
 
    void (*set_tess_state)(struct pipe_context *,
                           const float default_outer_level[4],
                           const float default_inner_level[2]);
+
+   /**
+    * Set the number of vertices per input patch for tessellation.
+    */
+   void (*set_patch_vertices)(struct pipe_context *ctx, uint8_t patch_vertices);
 
    /**
     * Sets the debug callback. If the pointer is null, then no callback is
@@ -762,14 +768,14 @@ struct pipe_context {
     *
     * out_transfer will contain the transfer object that must be passed
     * to all the other transfer functions. It also contains useful
-    * information (like texture strides).
+    * information (like texture strides for texture_map).
     */
-   void *(*transfer_map)(struct pipe_context *,
-                         struct pipe_resource *resource,
-                         unsigned level,
-                         unsigned usage,  /* a combination of PIPE_MAP_x */
-                         const struct pipe_box *,
-                         struct pipe_transfer **out_transfer);
+   void *(*buffer_map)(struct pipe_context *,
+		       struct pipe_resource *resource,
+		       unsigned level,
+		       unsigned usage,  /* a combination of PIPE_MAP_x */
+		       const struct pipe_box *,
+		       struct pipe_transfer **out_transfer);
 
    /* If transfer was created with WRITE|FLUSH_EXPLICIT, only the
     * regions specified with this call are guaranteed to be written to
@@ -779,8 +785,18 @@ struct pipe_context {
 				  struct pipe_transfer *transfer,
 				  const struct pipe_box *);
 
-   void (*transfer_unmap)(struct pipe_context *,
-                          struct pipe_transfer *transfer);
+   void (*buffer_unmap)(struct pipe_context *,
+			struct pipe_transfer *transfer);
+
+   void *(*texture_map)(struct pipe_context *,
+			struct pipe_resource *resource,
+			unsigned level,
+			unsigned usage,  /* a combination of PIPE_MAP_x */
+			const struct pipe_box *,
+			struct pipe_transfer **out_transfer);
+
+   void (*texture_unmap)(struct pipe_context *,
+			 struct pipe_transfer *transfer);
 
    /* One-shot transfer operation with data supplied in a user
     * pointer.

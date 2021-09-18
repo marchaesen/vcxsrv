@@ -117,8 +117,8 @@ void si_pm4_emit(struct si_context *sctx, struct si_pm4_state *state)
 {
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
 
-   if (state->shader) {
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, state->shader->bo,
+   if (state->is_shader) {
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, ((struct si_shader*)state)->bo,
                                 RADEON_USAGE_READ, RADEON_PRIO_SHADER_BINARY);
    }
 
@@ -139,7 +139,7 @@ void si_pm4_reset_emitted(struct si_context *sctx, bool first_cs)
       for (unsigned i = 0; i < SI_NUM_STATES; i++) {
          struct si_pm4_state *state = sctx->emitted.array[i];
 
-         if (state && state->shader) {
+         if (state && state->is_shader) {
             sctx->emitted.array[i] = NULL;
             sctx->dirty_states |= 1 << i;
          }

@@ -46,12 +46,18 @@ struct set *nir_instr_set_create(void *mem_ctx);
 void nir_instr_set_destroy(struct set *instr_set);
 
 /**
- * Adds an instruction to an instruction set if it doesn't exist, or if it
+ * Adds an instruction to an instruction set if it doesn't exist. If it
  * does already exist, rewrites all uses of it to point to the other
  * already-inserted instruction. Returns 'true' if the uses of the instruction
- * were rewritten.
+ * were rewritten. Otherwise, replaces the already-inserted instruction
+ * with the new one.
+ *
+ * If cond_function() is given, only rewrites uses if
+ * cond_function(old_instr, new_instr) returns true.
  */
-bool nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr);
+bool nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
+                                  bool (*cond_function)(const nir_instr *a,
+                                                        const nir_instr *b));
 
 /**
  * Removes an instruction from an instruction set, so that other instructions

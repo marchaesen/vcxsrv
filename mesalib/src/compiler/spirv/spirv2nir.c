@@ -61,6 +61,10 @@ stage_to_enum(char *stage)
       return MESA_SHADER_COMPUTE;
    else if (!strcmp(stage, "kernel"))
       return MESA_SHADER_KERNEL;
+   else if (!strcmp(stage, "task"))
+      return MESA_SHADER_TASK;
+   else if (!strcmp(stage, "mesh"))
+      return MESA_SHADER_MESH;
    else
       return MESA_SHADER_NONE;
 }
@@ -74,7 +78,7 @@ print_usage(char *exec_name, FILE *f)
 "  -h  --help              Print this help.\n"
 "  -s, --stage <stage>     Specify the shader stage.  Valid stages are:\n"
 "                          vertex, tess-ctrl, tess-eval, geometry, fragment,\n"
-"                          compute, and kernel (OpenCL-style compute).\n"
+"                          task, mesh, compute, and kernel (OpenCL-style compute).\n"
 "  -e, --entry <name>      Specify the entry-point name.\n"
 "  -g, --opengl            Use OpenGL environment instead of Vulkan for\n"
 "                          graphics stages.\n"

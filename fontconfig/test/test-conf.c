@@ -207,35 +207,58 @@ build_pattern (json_object *obj)
 		    }
 		}
 	    } else if (type == json_type_double || type == json_type_int) {
+		const FcObjectType *fc_o = FcNameGetObjectType (iter.key);
 		double values[4];
-		if (n != 2 && n != 4) {
-		    fprintf (stderr, "E: array starting with number not range or matrix\n");
+
+		if (fc_o && fc_o->type == FcTypeDouble) {
+		    for (i = 0; i < n; i++)
+		    {
+			o = json_object_array_get_idx (iter.val, i);
+			type = json_object_get_type (o);
+			if (type == json_type_double) {
+			    v.type = FcTypeDouble;
+			    v.u.d = json_object_get_double (o);
+			} else if (type == json_type_int) {
+			    v.type = FcTypeInteger;
+			    v.u.i = json_object_get_int (o);
+			} else {
+			    fprintf (stderr, "E: unable to convert to double\n");
+			    continue;
+			}
+			FcPatternAdd (pat, iter.key, v, FcTrue);
+			v.type = FcTypeVoid;
+		    }
 		    continue;
-		}
-		for (i = 0; i < n; i++) {
-		    o = json_object_array_get_idx (iter.val, i);
-		    type = json_object_get_type (o);
-		    if (type != json_type_double && type != json_type_int) {
-			fprintf (stderr, "E: numeric array entry not a number\n");
-			continue;
-		    }
-		    values[i] = json_object_get_double (o);
-		}
-		if (n == 2) {
-		    v.type = FcTypeRange;
-		    v.u.r = FcRangeCreateDouble (values[0], values[1]);
-		    if (!v.u.r) {
-			fprintf (stderr, "E: failed to create range\n");
-			continue;
-		    }
-		    destroy_v = FcTrue;
 		} else {
-		    v.type = FcTypeMatrix;
-		    v.u.m = &matrix;
-		    matrix.xx = values[0];
-		    matrix.xy = values[1];
-		    matrix.yx = values[2];
-		    matrix.yy = values[3];
+		    if (n != 2 && n != 4) {
+			fprintf (stderr, "E: array starting with number not range or matrix\n");
+			continue;
+		    }
+		    for (i = 0; i < n; i++) {
+			o = json_object_array_get_idx (iter.val, i);
+			type = json_object_get_type (o);
+			if (type != json_type_double && type != json_type_int) {
+			    fprintf (stderr, "E: numeric array entry not a number\n");
+			    continue;
+			}
+			values[i] = json_object_get_double (o);
+		    }
+		    if (n == 2) {
+			v.type = FcTypeRange;
+			v.u.r = FcRangeCreateDouble (values[0], values[1]);
+			if (!v.u.r) {
+			    fprintf (stderr, "E: failed to create range\n");
+			    continue;
+			}
+			destroy_v = FcTrue;
+		    } else {
+			v.type = FcTypeMatrix;
+			v.u.m = &matrix;
+			matrix.xx = values[0];
+			matrix.xy = values[1];
+			matrix.yx = values[2];
+			matrix.yy = values[3];
+		    }
 		}
 	    } else {
 		fprintf (stderr, "E: array format not recognized\n");

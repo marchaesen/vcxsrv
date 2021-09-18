@@ -139,6 +139,7 @@ void driParseOptionInfo(driOptionCache *info,
 void driParseConfigFiles(driOptionCache *cache, const driOptionCache *info,
                          int screenNum, const char *driverName,
                          const char *kernelDriverName,
+                         const char *deviceName,
                          const char *applicationName, uint32_t applicationVersion,
                          const char *engineName, uint32_t engineVersion);
 /** \brief Destroy option info

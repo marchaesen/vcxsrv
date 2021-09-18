@@ -147,10 +147,9 @@ resolve_image_views(struct iris_context *ice,
                                       aux_usage, false);
       }
 
-      iris_emit_buffer_barrier_for(batch, res->bo, IRIS_DOMAIN_OTHER_READ);
+      iris_emit_buffer_barrier_for(batch, res->bo, IRIS_DOMAIN_DATA_WRITE);
    }
 }
-
 
 /**
  * \brief Resolve buffers before drawing.
@@ -370,6 +369,50 @@ iris_cache_flush_for_render(struct iris_batch *batch,
                                    PIPE_CONTROL_CS_STALL);
       entry->data = v_aux_usage;
    }
+}
+
+static void
+flush_ubos(struct iris_batch *batch,
+            struct iris_shader_state *shs)
+{
+   uint32_t cbufs = shs->dirty_cbufs & shs->bound_cbufs;
+
+   while (cbufs) {
+      const int i = u_bit_scan(&cbufs);
+      struct pipe_shader_buffer *cbuf = &shs->constbuf[i];
+      struct iris_resource *res = (void *)cbuf->buffer;
+      iris_emit_buffer_barrier_for(batch, res->bo, IRIS_DOMAIN_OTHER_READ);
+   }
+
+   shs->dirty_cbufs = 0;
+}
+
+static void
+flush_ssbos(struct iris_batch *batch,
+            struct iris_shader_state *shs)
+{
+   uint32_t ssbos = shs->bound_ssbos;
+
+   while (ssbos) {
+      const int i = u_bit_scan(&ssbos);
+      struct pipe_shader_buffer *ssbo = &shs->ssbo[i];
+      struct iris_resource *res = (void *)ssbo->buffer;
+      iris_emit_buffer_barrier_for(batch, res->bo, IRIS_DOMAIN_DATA_WRITE);
+   }
+}
+
+void
+iris_predraw_flush_buffers(struct iris_context *ice,
+                           struct iris_batch *batch,
+                           gl_shader_stage stage)
+{
+   struct iris_shader_state *shs = &ice->state.shaders[stage];
+
+   if (ice->state.stage_dirty & (IRIS_STAGE_DIRTY_CONSTANTS_VS << stage))
+      flush_ubos(batch, shs);
+
+   if (ice->state.stage_dirty & (IRIS_STAGE_DIRTY_BINDINGS_VS << stage))
+      flush_ssbos(batch, shs);
 }
 
 static void
@@ -646,7 +689,7 @@ iris_has_invalid_primary(const struct iris_resource *res,
                          unsigned start_level, unsigned num_levels,
                          unsigned start_layer, unsigned num_layers)
 {
-   if (!res->aux.bo)
+   if (res->aux.usage == ISL_AUX_USAGE_NONE)
       return false;
 
    /* Clamp the level range to fit the resource */
@@ -675,7 +718,7 @@ iris_resource_prepare_access(struct iris_context *ice,
                              enum isl_aux_usage aux_usage,
                              bool fast_clear_supported)
 {
-   if (!res->aux.bo)
+   if (res->aux.usage == ISL_AUX_USAGE_NONE)
       return;
 
    /* We can't do resolves on the compute engine, so awkwardly, we have to
@@ -729,7 +772,7 @@ iris_resource_finish_write(struct iris_context *ice,
                            uint32_t start_layer, uint32_t num_layers,
                            enum isl_aux_usage aux_usage)
 {
-   if (!res->aux.bo)
+   if (res->aux.usage == ISL_AUX_USAGE_NONE)
       return;
 
    const uint32_t level_layers =
@@ -885,6 +928,24 @@ iris_image_view_aux_usage(struct iris_context *ice,
    return ISL_AUX_USAGE_NONE;
 }
 
+bool
+iris_can_sample_mcs_with_clear(const struct intel_device_info *devinfo,
+                               const struct iris_resource *res)
+{
+   assert(isl_aux_usage_has_mcs(res->aux.usage));
+
+   /* On TGL, the sampler has an issue with some 8 and 16bpp MSAA fast clears.
+    * See HSD 1707282275, wa_14013111325. Due to the use of
+    * format-reinterpretation, a simplified workaround is implemented.
+    */
+   if (devinfo->ver >= 12 &&
+       isl_format_get_layout(res->surf.format)->bpb <= 16) {
+      return false;
+   }
+
+   return true;
+}
+
 static bool
 isl_formats_are_fast_clear_compatible(enum isl_format a, enum isl_format b)
 {
@@ -909,6 +970,9 @@ iris_resource_prepare_texture(struct iris_context *ice,
                               uint32_t start_level, uint32_t num_levels,
                               uint32_t start_layer, uint32_t num_layers)
 {
+   const struct iris_screen *screen = (void *) ice->ctx.screen;
+   const struct intel_device_info *devinfo = &screen->devinfo;
+
    enum isl_aux_usage aux_usage =
       iris_resource_texture_aux_usage(ice, res, view_format);
 
@@ -921,6 +985,11 @@ iris_resource_prepare_texture(struct iris_context *ice,
    if (!isl_formats_are_fast_clear_compatible(res->surf.format, view_format))
       clear_supported = false;
 
+   if (isl_aux_usage_has_mcs(aux_usage) &&
+       !iris_can_sample_mcs_with_clear(devinfo, res)) {
+      clear_supported = false;
+   }
+
    iris_resource_prepare_access(ice, res, start_level, num_levels,
                                 start_layer, num_layers,
                                 aux_usage, clear_supported);
@@ -931,13 +1000,15 @@ iris_resource_prepare_texture(struct iris_context *ice,
  */
 bool
 iris_render_formats_color_compatible(enum isl_format a, enum isl_format b,
-                                     union isl_color_value color)
+                                     union isl_color_value color,
+                                     bool clear_color_unknown)
 {
    if (a == b)
       return true;
 
    /* A difference in color space doesn't matter for 0/1 values. */
-   if (isl_format_srgb_to_linear(a) == isl_format_srgb_to_linear(b) &&
+   if (!clear_color_unknown &&
+       isl_format_srgb_to_linear(a) == isl_format_srgb_to_linear(b) &&
        isl_color_value_is_zero_one(color, a)) {
       return true;
    }
@@ -988,7 +1059,8 @@ iris_resource_render_aux_usage(struct iris_context *ice,
        */
       if (!iris_render_formats_color_compatible(render_format,
                                                 res->surf.format,
-                                                res->aux.clear_color)) {
+                                                res->aux.clear_color,
+                                                res->aux.clear_color_unknown)) {
          return ISL_AUX_USAGE_NONE;
       }
 

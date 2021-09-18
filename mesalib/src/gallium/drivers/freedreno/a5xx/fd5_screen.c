@@ -115,6 +115,19 @@ fd5_screen_is_format_supported(struct pipe_screen *pscreen,
    return retval == usage;
 }
 
+/* clang-format off */
+static const uint8_t primtypes[] = {
+   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST,
+   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
+   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
+   [PIPE_PRIM_LINE_LOOP]      = DI_PT_LINELOOP,
+   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
+   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
+   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
+   [PIPE_PRIM_MAX]            = DI_PT_RECTLIST,  /* internal clear blits */
+};
+/* clang-format on */
+
 void
 fd5_screen_init(struct pipe_screen *pscreen)
 {
@@ -129,4 +142,6 @@ fd5_screen_init(struct pipe_screen *pscreen)
 
    fd5_emit_init_screen(pscreen);
    ir3_screen_init(pscreen);
+
+   screen->primtypes = primtypes;
 }

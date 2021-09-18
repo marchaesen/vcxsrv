@@ -1986,7 +1986,7 @@
     <src start="0" mask="0xfb"/>
   </ins>
 
-  <ins name="*NOP.i32" mask="0x7fffff" exact="0x701963"/>
+  <ins name="*NOP" mask="0x7fffff" exact="0x701963"/>
 
   <ins name="*POPCOUNT.i32" mask="0x7ffff8" exact="0x73c6d8">
     <src start="0" mask="0xfb"/>
@@ -3694,7 +3694,7 @@
     <src start="3"/>
   </ins>
 
-  <ins name="+CLPER_V7.i32" mask="0xfc000" exact="0x7c000">
+  <ins name="+CLPER.i32" mask="0xfc000" exact="0x7c000">
     <src start="0" mask="0x7"/>
     <src start="3"/>
     <mod name="lane_op" start="6" size="2">
@@ -7395,7 +7395,7 @@
     </mod>
   </ins>
 
-  <ins name="+NOP.i32" mask="0xfffff" exact="0x3d964"/>
+  <ins name="+NOP" mask="0xfffff" exact="0x3d964"/>
 
   <ins name="+QUIET.f32" mask="0xffff8" exact="0x3d970">
     <src start="0"/>
@@ -7653,7 +7653,7 @@
     </mod>
   </ins>
 
-  <ins name="+ST_TILE" staging="r=vecsize" mask="0xff800" exact="0xcb800" message="tile" dests="0">
+  <ins name="+ST_TILE" staging="r=format" mask="0xff800" exact="0xcb800" message="tile" dests="0">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
@@ -7696,6 +7696,10 @@
     <mod name="skip" start="9" size="1" opt="skip"/>
     <!-- not actually encoded, but used for IR -->
     <immediate name="sr_count" size="4" pseudo="true"/>
+    <mod name="lod_mode" start="13" size="1" default="zero_lod" pseudo="true">
+      <opt>computed_lod</opt>
+      <opt>zero_lod</opt>
+    </mod>
   </ins>
 
   <ins name="+TEXS_2D.f16" staging="w=2" mask="0xfc000" exact="0xd8000" message="tex">
@@ -8229,6 +8233,113 @@
     <mod name="neg0" size="1" opt="neg"/>
     <mod name="neg1" size="1" opt="neg"/>
     <mod name="neg2" size="1" opt="neg"/>
+  </ins>
+
+  <ins name="+IADD_IMM.i32" pseudo="true">
+    <src start="0"/>
+    <immediate name="index" size="32"/>
+  </ins>
+
+  <ins name="+IADD_IMM.v2i16" pseudo="true">
+    <src start="0"/>
+    <immediate name="index" size="32"/>
+  </ins>
+
+  <ins name="+IADD_IMM.v4i8" pseudo="true">
+    <src start="0"/>
+    <immediate name="index" size="32"/>
+  </ins>
+
+  <ins name="+FADD_IMM.f32" pseudo="true">
+    <src start="0"/>
+    <immediate name="index" size="32"/>
+  </ins>
+
+  <ins name="+FADD_IMM.v2f16" pseudo="true">
+    <src start="0"/>
+    <immediate name="index" size="32"/>
+  </ins>
+
+  <ins name="+FRSCALE.f32" pseudo="true">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="clamp" size="2">
+      <opt>none</opt>
+      <opt>clamp_0_inf</opt>
+      <opt>clamp_m1_1</opt>
+      <opt>clamp_0_1</opt>
+    </mod>
+    <mod name="neg0" size="1" opt="neg"/>
+    <mod name="neg1" size="1" opt="neg"/>
+    <mod name="abs0" start="15" size="1" opt="abs"/>
+    <mod name="abs1" start="15" size="1" opt="abs"/>
+  </ins>
+
+  <ins name="+FRSCALE.v2f16" pseudo="true">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="clamp" size="2">
+      <opt>none</opt>
+      <opt>clamp_0_inf</opt>
+      <opt>clamp_m1_1</opt>
+      <opt>clamp_0_1</opt>
+    </mod>
+    <mod name="neg0" size="1" opt="neg"/>
+    <mod name="neg1" size="1" opt="neg"/>
+    <mod name="abs0" start="15" size="1" opt="abs"/>
+    <mod name="abs1" start="15" size="1" opt="abs"/>
+  </ins>
+
+  <ins name="*FABSNEG.f32" pseudo="true">
+    <src start="0" mask="0xfb"/>
+    <mod name="neg0" start="7" size="1" opt="neg"/>
+    <mod name="abs0" start="12" size="1" opt="abs"/>
+    <mod name="widen0" size="2">
+      <opt>none</opt>
+      <opt>h0</opt>
+      <opt>h1</opt>
+    </mod>
+  </ins>
+
+  <ins name="*FABSNEG.v2f16" pseudo="true">
+    <src start="0" mask="0xfb"/>
+    <mod name="abs0" size="1" opt="abs"/>
+    <mod name="neg0" start="7" size="1" opt="neg"/>
+    <mod name="swz0" start="9" size="2" default="h01">
+      <opt>h00</opt>
+      <opt>h10</opt>
+      <opt>h01</opt>
+      <opt>h11</opt>
+    </mod>
+  </ins>
+
+  <ins name="*FCLAMP.f32" pseudo="true">
+    <src start="0" mask="0xfb"/>
+    <mod name="clamp" start="15" size="2">
+      <opt>none</opt>
+      <opt>clamp_0_inf</opt>
+      <opt>clamp_m1_1</opt>
+      <opt>clamp_0_1</opt>
+    </mod>
+  </ins>
+
+  <ins name="*FCLAMP.v2f16" pseudo="true">
+    <src start="0" mask="0xfb"/>
+    <mod name="clamp" start="15" size="2">
+      <opt>none</opt>
+      <opt>clamp_0_inf</opt>
+      <opt>clamp_m1_1</opt>
+      <opt>clamp_0_1</opt>
+    </mod>
+  </ins>
+
+  <ins name="+DISCARD.b32" pseudo="true" dests="0">
+    <src start="0"/>
+    <mod name="widen0" size="2">
+      <opt>none</opt>
+      <opt>h0</opt>
+      <opt>h1</opt>
+    </mod>
   </ins>
 
 </bifrost>

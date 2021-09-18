@@ -57,8 +57,12 @@ struct u_vbuf_caps {
    /* Maximum number of vertex buffers */
    unsigned max_vertex_buffers:6;
 
+   uint16_t supported_restart_modes;
+   uint16_t supported_prim_modes;
    bool fallback_always;
    bool fallback_only_for_user_vbuffers;
+   bool rewrite_ubyte_ibs;
+   bool rewrite_restart_index;
 };
 
 
@@ -71,6 +75,7 @@ u_vbuf_create(struct pipe_context *pipe, struct u_vbuf_caps *caps);
 void u_vbuf_destroy(struct u_vbuf *mgr);
 
 /* State and draw functions. */
+void u_vbuf_set_flatshade_first(struct u_vbuf *mgr, bool flatshade_first);
 void u_vbuf_set_vertex_elements(struct u_vbuf *mgr,
                                 const struct cso_velems_state *velems);
 void u_vbuf_unset_vertex_elements(struct u_vbuf *mgr);

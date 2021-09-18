@@ -141,10 +141,6 @@ stw_pixelformat_add(struct stw_device *stw_dev,
 {
    struct stw_pixelformat_info *pfi;
 
-   assert(stw_dev->pixelformat_extended_count < STW_MAX_PIXELFORMATS);
-   if (stw_dev->pixelformat_extended_count >= STW_MAX_PIXELFORMATS)
-      return;
-
    assert(util_format_get_component_bits(color->format, UTIL_FORMAT_COLORSPACE_RGB, 0) == color->bits.red);
    assert(util_format_get_component_bits(color->format, UTIL_FORMAT_COLORSPACE_RGB, 1) == color->bits.green);
    assert(util_format_get_component_bits(color->format, UTIL_FORMAT_COLORSPACE_RGB, 2) == color->bits.blue);
@@ -152,10 +148,13 @@ stw_pixelformat_add(struct stw_device *stw_dev,
    assert(util_format_get_component_bits(depth->format, UTIL_FORMAT_COLORSPACE_ZS, 0) == depth->bits.depth);
    assert(util_format_get_component_bits(depth->format, UTIL_FORMAT_COLORSPACE_ZS, 1) == depth->bits.stencil);
 
-   pfi = &stw_dev->pixelformats[stw_dev->pixelformat_extended_count];
+   pfi = util_dynarray_grow(&stw_dev->pixelformats,
+                            struct stw_pixelformat_info,
+                            1);
 
    memset(pfi, 0, sizeof *pfi);
 
+   pfi->iPixelFormat = util_dynarray_num_elements(&stw_dev->pixelformats, struct stw_pixelformat_info);
    pfi->pfd.nSize = sizeof pfi->pfd;
    pfi->pfd.nVersion = 1;
 
@@ -216,7 +215,6 @@ stw_pixelformat_add(struct stw_device *stw_dev,
       PIPE_FORMAT_R16G16B16A16_SNORM : PIPE_FORMAT_NONE;
 
    pfi->stvis.samples = samples;
-   pfi->stvis.render_buffer = ST_ATTACHMENT_INVALID;
 
    /* WGL_ARB_render_texture */
    if (color->bits.alpha)
@@ -224,11 +222,11 @@ stw_pixelformat_add(struct stw_device *stw_dev,
 
    pfi->bindToTextureRGB = TRUE;
 
-   ++stw_dev->pixelformat_extended_count;
-
    if (!extended) {
       ++stw_dev->pixelformat_count;
-      assert(stw_dev->pixelformat_count == stw_dev->pixelformat_extended_count);
+      assert(stw_dev->pixelformat_count ==
+             util_dynarray_num_elements(&stw_dev->pixelformats,
+                                        struct stw_pixelformat_info));
    }
 }
 
@@ -315,7 +313,8 @@ stw_pixelformat_init(void)
    unsigned num_formats;
 
    assert(!stw_dev->pixelformat_count);
-   assert(!stw_dev->pixelformat_extended_count);
+
+   util_dynarray_init(&stw_dev->pixelformats, NULL);
 
    /* normal, displayable formats */
    num_formats = add_color_format_variants(stw_pf_color,
@@ -326,8 +325,9 @@ stw_pixelformat_init(void)
    add_color_format_variants(stw_pf_color_extended,
                              ARRAY_SIZE(stw_pf_color_extended), TRUE);
 
-   assert(stw_dev->pixelformat_count <= stw_dev->pixelformat_extended_count);
-   assert(stw_dev->pixelformat_extended_count <= STW_MAX_PIXELFORMATS);
+   assert(stw_dev->pixelformat_count <=
+          util_dynarray_num_elements(&stw_dev->pixelformats,
+                                     struct stw_pixelformat_info));
 }
 
 
@@ -347,7 +347,8 @@ stw_pixelformat_get_extended_count(HDC hdc)
    if (!stw_init_screen(hdc))
       return 0;
 
-   return stw_dev->pixelformat_extended_count;
+   return util_dynarray_num_elements(&stw_dev->pixelformats,
+                                     struct stw_pixelformat_info);
 }
 
 
@@ -361,11 +362,14 @@ stw_pixelformat_get_info(int iPixelFormat)
    }
 
    index = iPixelFormat - 1;
-   if (index >= stw_dev->pixelformat_extended_count) {
+   if (index >= util_dynarray_num_elements(&stw_dev->pixelformats,
+                                           struct stw_pixelformat_info)) {
       return NULL;
    }
 
-   return &stw_dev->pixelformats[index];
+   return util_dynarray_element(&stw_dev->pixelformats,
+                                struct stw_pixelformat_info,
+                                index);
 }
 
 

@@ -49,12 +49,20 @@ clGetPlatformIDs(cl_uint num_entries, cl_platform_id *rd_platforms,
    return CL_SUCCESS;
 }
 
+platform &clover::find_platform(cl_platform_id d_platform)
+{
+   /* this error is only added in CL2.0 */
+   if (d_platform != desc(_clover_platform))
+      throw error(CL_INVALID_PLATFORM);
+   return obj(d_platform);
+}
+
 cl_int
 clover::GetPlatformInfo(cl_platform_id d_platform, cl_platform_info param,
                         size_t size, void *r_buf, size_t *r_size) try {
    property_buffer buf { r_buf, size, r_size };
 
-   auto &platform = obj(d_platform);
+   auto &platform = find_platform(d_platform);
 
    switch (param) {
    case CL_PLATFORM_PROFILE:

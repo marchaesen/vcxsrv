@@ -130,9 +130,9 @@ build_occlusion_query_shader(struct radv_device *device)
     * }
     */
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "occlusion_query");
-   b.shader->info.cs.local_size[0] = 64;
-   b.shader->info.cs.local_size[1] = 1;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 64;
+   b.shader->info.workgroup_size[1] = 1;
+   b.shader->info.workgroup_size[2] = 1;
 
    nir_variable *result = nir_local_variable_create(b.impl, glsl_uint64_t_type(), "result");
    nir_variable *outer_counter =
@@ -149,10 +149,10 @@ build_occlusion_query_shader(struct radv_device *device)
    nir_ssa_def *src_buf = radv_meta_load_descriptor(&b, 0, 1);
 
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
    global_id = nir_channel(&b, global_id, 0); // We only care about x here.
 
@@ -275,9 +275,9 @@ build_pipeline_statistics_query_shader(struct radv_device *device)
     */
    nir_builder b =
       nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "pipeline_statistics_query");
-   b.shader->info.cs.local_size[0] = 64;
-   b.shader->info.cs.local_size[1] = 1;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 64;
+   b.shader->info.workgroup_size[1] = 1;
+   b.shader->info.workgroup_size[2] = 1;
 
    nir_variable *output_offset =
       nir_local_variable_create(b.impl, glsl_int_type(), "output_offset");
@@ -290,10 +290,10 @@ build_pipeline_statistics_query_shader(struct radv_device *device)
    nir_ssa_def *src_buf = radv_meta_load_descriptor(&b, 0, 1);
 
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
    global_id = nir_channel(&b, global_id, 0); // We only care about x here.
 
@@ -421,9 +421,9 @@ build_tfb_query_shader(struct radv_device *device)
     * }
     */
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "tfb_query");
-   b.shader->info.cs.local_size[0] = 64;
-   b.shader->info.cs.local_size[1] = 1;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 64;
+   b.shader->info.workgroup_size[1] = 1;
+   b.shader->info.workgroup_size[2] = 1;
 
    /* Create and initialize local variables. */
    nir_variable *result =
@@ -441,10 +441,10 @@ build_tfb_query_shader(struct radv_device *device)
 
    /* Compute global ID. */
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
    global_id = nir_channel(&b, global_id, 0); // We only care about x here.
 
@@ -552,9 +552,9 @@ build_timestamp_query_shader(struct radv_device *device)
     * }
     */
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "timestamp_query");
-   b.shader->info.cs.local_size[0] = 64;
-   b.shader->info.cs.local_size[1] = 1;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 64;
+   b.shader->info.workgroup_size[1] = 1;
+   b.shader->info.workgroup_size[2] = 1;
 
    /* Create and initialize local variables. */
    nir_variable *result = nir_local_variable_create(b.impl, glsl_uint64_t_type(), "result");
@@ -571,10 +571,10 @@ build_timestamp_query_shader(struct radv_device *device)
 
    /* Compute global ID. */
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
    global_id = nir_channel(&b, global_id, 0); // We only care about x here.
 
@@ -854,7 +854,8 @@ radv_query_shader(struct radv_cmd_buffer *cmd_buffer, VkPipeline *pipeline,
    old_predicating = cmd_buffer->state.predicating;
    cmd_buffer->state.predicating = false;
 
-   struct radv_buffer dst_buffer = {.bo = dst_bo, .offset = dst_offset, .size = dst_stride * count};
+   uint64_t dst_buffer_size = count == 1 ? src_stride : dst_stride * count;
+   struct radv_buffer dst_buffer = {.bo = dst_bo, .offset = dst_offset, .size = dst_buffer_size};
 
    struct radv_buffer src_buffer = {
       .bo = src_bo,
@@ -976,12 +977,12 @@ radv_CreateQueryPool(VkDevice _device, const VkQueryPoolCreateInfo *pCreateInfo,
    if (pCreateInfo->queryType == VK_QUERY_TYPE_PIPELINE_STATISTICS)
       pool->size += 4 * pCreateInfo->queryCount;
 
-   pool->bo =
-      device->ws->buffer_create(device->ws, pool->size, 64, RADEON_DOMAIN_GTT,
-                                RADEON_FLAG_NO_INTERPROCESS_SHARING, RADV_BO_PRIORITY_QUERY_POOL);
-   if (!pool->bo) {
+   VkResult result = device->ws->buffer_create(device->ws, pool->size, 64, RADEON_DOMAIN_GTT,
+                                               RADEON_FLAG_NO_INTERPROCESS_SHARING,
+                                               RADV_BO_PRIORITY_QUERY_POOL, 0, &pool->bo);
+   if (result != VK_SUCCESS) {
       radv_destroy_query_pool(device, pAllocator, pool);
-      return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+      return vk_error(device->instance, result);
    }
 
    pool->ptr = device->ws->buffer_map(pool->bo);

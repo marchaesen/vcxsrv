@@ -42,6 +42,7 @@ preferred_hinting = 'slight'
 conf_links = [
   '10-hinting-@0@.conf'.format(preferred_hinting),
   '10-scale-bitmap-fonts.conf',
+  '11-lcdfilter-default.conf',
   '20-unhint-small-vera.conf',
   '30-metric-aliases.conf',
   '40-nonlatin.conf',

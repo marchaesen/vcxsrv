@@ -23,13 +23,16 @@
  *
  */
 
-#include "aco_ir.h"
 #include "aco_builder.h"
-#include "sid.h"
+#include "aco_ir.h"
+
+#include "common/sid.h"
 
 #include <map>
 #include <set>
 #include <stack>
+#include <unordered_set>
+#include <vector>
 
 /*
  * Implements the spilling algorithm on SSA-form from
@@ -42,7 +45,7 @@ namespace aco {
 namespace {
 
 struct remat_info {
-   Instruction *instr;
+   Instruction* instr;
 };
 
 struct spill_ctx {
@@ -60,15 +63,16 @@ struct spill_ctx {
    std::vector<std::vector<uint32_t>> affinities;
    std::vector<bool> is_reloaded;
    std::map<Temp, remat_info> remat;
-   std::map<Instruction *, bool> remat_used;
+   std::map<Instruction*, bool> remat_used;
    unsigned wave_size;
 
    spill_ctx(const RegisterDemand target_pressure_, Program* program_,
              std::vector<std::vector<RegisterDemand>> register_demand_)
-      : target_pressure(target_pressure_), program(program_),
-        register_demand(std::move(register_demand_)), renames(program->blocks.size()),
-        spills_entry(program->blocks.size()), spills_exit(program->blocks.size()),
-        processed(program->blocks.size(), false), wave_size(program->wave_size) {}
+       : target_pressure(target_pressure_), program(program_),
+         register_demand(std::move(register_demand_)), renames(program->blocks.size()),
+         spills_entry(program->blocks.size()), spills_exit(program->blocks.size()),
+         processed(program->blocks.size(), false), wave_size(program->wave_size)
+   {}
 
    void add_affinity(uint32_t first, uint32_t second)
    {
@@ -91,7 +95,9 @@ struct spill_ctx {
          affinities[found_second].push_back(first);
       } else if (found_first != found_second) {
          /* merge second into first */
-         affinities[found_first].insert(affinities[found_first].end(), affinities[found_second].begin(), affinities[found_second].end());
+         affinities[found_first].insert(affinities[found_first].end(),
+                                        affinities[found_second].begin(),
+                                        affinities[found_second].end());
          affinities.erase(std::next(affinities.begin(), found_second));
       } else {
          assert(found_first == found_second);
@@ -118,7 +124,8 @@ struct spill_ctx {
    uint32_t next_spill_id = 0;
 };
 
-int32_t get_dominator(int idx_a, int idx_b, Program* program, bool is_linear)
+int32_t
+get_dominator(int idx_a, int idx_b, Program* program, bool is_linear)
 {
 
    if (idx_a == -1)
@@ -144,21 +151,23 @@ int32_t get_dominator(int idx_a, int idx_b, Program* program, bool is_linear)
    return idx_a;
 }
 
-void next_uses_per_block(spill_ctx& ctx, unsigned block_idx, std::set<uint32_t>& worklist)
+void
+next_uses_per_block(spill_ctx& ctx, unsigned block_idx, std::set<uint32_t>& worklist)
 {
    Block* block = &ctx.program->blocks[block_idx];
    std::map<Temp, std::pair<uint32_t, uint32_t>> next_uses = ctx.next_use_distances_end[block_idx];
 
-   /* to compute the next use distance at the beginning of the block, we have to add the block's size */
-   for (std::map<Temp, std::pair<uint32_t, uint32_t>>::iterator it = next_uses.begin(); it != next_uses.end(); ++it)
+   /* to compute the next use distance at the beginning of the block, we have to add the block's
+    * size */
+   for (std::map<Temp, std::pair<uint32_t, uint32_t>>::iterator it = next_uses.begin();
+        it != next_uses.end(); ++it)
       it->second.second = it->second.second + block->instructions.size();
 
    int idx = block->instructions.size() - 1;
    while (idx >= 0) {
       aco_ptr<Instruction>& instr = block->instructions[idx];
 
-      if (instr->opcode == aco_opcode::p_linear_phi ||
-          instr->opcode == aco_opcode::p_phi)
+      if (instr->opcode == aco_opcode::p_linear_phi || instr->opcode == aco_opcode::p_phi)
          break;
 
       for (const Definition& def : instr->definitions) {
@@ -184,25 +193,26 @@ void next_uses_per_block(spill_ctx& ctx, unsigned block_idx, std::set<uint32_t>&
       aco_ptr<Instruction>& instr = block->instructions[idx];
       assert(instr->opcode == aco_opcode::p_linear_phi || instr->opcode == aco_opcode::p_phi);
 
-      if (!instr->definitions[0].isTemp()) {
-         idx--;
-         continue;
+      std::pair<uint32_t, uint32_t> distance{block_idx, 0};
+
+      auto it = instr->definitions[0].isTemp() ? next_uses.find(instr->definitions[0].getTemp())
+                                               : next_uses.end();
+      if (it != next_uses.end()) {
+         distance = it->second;
+         next_uses.erase(it);
       }
 
-      auto it = next_uses.find(instr->definitions[0].getTemp());
-      std::pair<uint32_t, uint32_t> distance = it == next_uses.end() ? std::make_pair(block_idx, 0u) : it->second;
       for (unsigned i = 0; i < instr->operands.size(); i++) {
-         unsigned pred_idx = instr->opcode == aco_opcode::p_phi ?
-                             block->logical_preds[i] :
-                             block->linear_preds[i];
+         unsigned pred_idx =
+            instr->opcode == aco_opcode::p_phi ? block->logical_preds[i] : block->linear_preds[i];
          if (instr->operands[i].isTemp()) {
-            if (ctx.next_use_distances_end[pred_idx].find(instr->operands[i].getTemp()) == ctx.next_use_distances_end[pred_idx].end() ||
+            if (ctx.next_use_distances_end[pred_idx].find(instr->operands[i].getTemp()) ==
+                   ctx.next_use_distances_end[pred_idx].end() ||
                 ctx.next_use_distances_end[pred_idx][instr->operands[i].getTemp()] != distance)
                worklist.insert(pred_idx);
             ctx.next_use_distances_end[pred_idx][instr->operands[i].getTemp()] = distance;
          }
       }
-      next_uses.erase(instr->definitions[0].getTemp());
       idx--;
    }
 
@@ -215,19 +225,22 @@ void next_uses_per_block(spill_ctx& ctx, unsigned block_idx, std::set<uint32_t>&
       for (unsigned pred_idx : preds) {
          if (ctx.program->blocks[pred_idx].loop_nest_depth > block->loop_nest_depth)
             distance += 0xFFFF;
-         if (ctx.next_use_distances_end[pred_idx].find(temp) != ctx.next_use_distances_end[pred_idx].end()) {
-            dom = get_dominator(dom, ctx.next_use_distances_end[pred_idx][temp].first, ctx.program, temp.is_linear());
+         if (ctx.next_use_distances_end[pred_idx].find(temp) !=
+             ctx.next_use_distances_end[pred_idx].end()) {
+            dom = get_dominator(dom, ctx.next_use_distances_end[pred_idx][temp].first, ctx.program,
+                                temp.is_linear());
             distance = std::min(ctx.next_use_distances_end[pred_idx][temp].second, distance);
          }
-         if (ctx.next_use_distances_end[pred_idx][temp] != std::pair<uint32_t, uint32_t>{dom, distance})
+         if (ctx.next_use_distances_end[pred_idx][temp] !=
+             std::pair<uint32_t, uint32_t>{dom, distance})
             worklist.insert(pred_idx);
          ctx.next_use_distances_end[pred_idx][temp] = {dom, distance};
       }
    }
-
 }
 
-void compute_global_next_uses(spill_ctx& ctx)
+void
+compute_global_next_uses(spill_ctx& ctx)
 {
    ctx.next_use_distances_start.resize(ctx.program->blocks.size());
    ctx.next_use_distances_end.resize(ctx.program->blocks.size());
@@ -243,12 +256,15 @@ void compute_global_next_uses(spill_ctx& ctx)
    }
 }
 
-bool should_rematerialize(aco_ptr<Instruction>& instr)
+bool
+should_rematerialize(aco_ptr<Instruction>& instr)
 {
    /* TODO: rematerialization is only supported for VOP1, SOP1 and PSEUDO */
-   if (instr->format != Format::VOP1 && instr->format != Format::SOP1 && instr->format != Format::PSEUDO && instr->format != Format::SOPK)
+   if (instr->format != Format::VOP1 && instr->format != Format::SOP1 &&
+       instr->format != Format::PSEUDO && instr->format != Format::SOPK)
       return false;
-   /* TODO: pseudo-instruction rematerialization is only supported for p_create_vector/p_parallelcopy */
+   /* TODO: pseudo-instruction rematerialization is only supported for
+    * p_create_vector/p_parallelcopy */
    if (instr->isPseudo() && instr->opcode != aco_opcode::p_create_vector &&
        instr->opcode != aco_opcode::p_parallelcopy)
       return false;
@@ -268,24 +284,32 @@ bool should_rematerialize(aco_ptr<Instruction>& instr)
    return true;
 }
 
-aco_ptr<Instruction> do_reload(spill_ctx& ctx, Temp tmp, Temp new_name, uint32_t spill_id)
+aco_ptr<Instruction>
+do_reload(spill_ctx& ctx, Temp tmp, Temp new_name, uint32_t spill_id)
 {
    std::map<Temp, remat_info>::iterator remat = ctx.remat.find(tmp);
    if (remat != ctx.remat.end()) {
-      Instruction *instr = remat->second.instr;
-      assert((instr->isVOP1() || instr->isSOP1() || instr->isPseudo() || instr->isSOPK()) && "unsupported");
-      assert((instr->format != Format::PSEUDO || instr->opcode == aco_opcode::p_create_vector || instr->opcode == aco_opcode::p_parallelcopy) && "unsupported");
+      Instruction* instr = remat->second.instr;
+      assert((instr->isVOP1() || instr->isSOP1() || instr->isPseudo() || instr->isSOPK()) &&
+             "unsupported");
+      assert((instr->format != Format::PSEUDO || instr->opcode == aco_opcode::p_create_vector ||
+              instr->opcode == aco_opcode::p_parallelcopy) &&
+             "unsupported");
       assert(instr->definitions.size() == 1 && "unsupported");
 
       aco_ptr<Instruction> res;
       if (instr->isVOP1()) {
-         res.reset(create_instruction<VOP1_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+         res.reset(create_instruction<VOP1_instruction>(
+            instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
       } else if (instr->isSOP1()) {
-         res.reset(create_instruction<SOP1_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+         res.reset(create_instruction<SOP1_instruction>(
+            instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
       } else if (instr->isPseudo()) {
-         res.reset(create_instruction<Pseudo_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+         res.reset(create_instruction<Pseudo_instruction>(
+            instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
       } else if (instr->isSOPK()) {
-         res.reset(create_instruction<SOPK_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+         res.reset(create_instruction<SOPK_instruction>(
+            instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
          res->sopk().imm = instr->sopk().imm;
       }
       for (unsigned i = 0; i < instr->operands.size(); i++) {
@@ -299,15 +323,17 @@ aco_ptr<Instruction> do_reload(spill_ctx& ctx, Temp tmp, Temp new_name, uint32_t
       res->definitions[0] = Definition(new_name);
       return res;
    } else {
-      aco_ptr<Pseudo_instruction> reload{create_instruction<Pseudo_instruction>(aco_opcode::p_reload, Format::PSEUDO, 1, 1)};
-      reload->operands[0] = Operand(spill_id);
+      aco_ptr<Pseudo_instruction> reload{
+         create_instruction<Pseudo_instruction>(aco_opcode::p_reload, Format::PSEUDO, 1, 1)};
+      reload->operands[0] = Operand::c32(spill_id);
       reload->definitions[0] = Definition(new_name);
       ctx.is_reloaded[spill_id] = true;
       return reload;
    }
 }
 
-void get_rematerialize_info(spill_ctx& ctx)
+void
+get_rematerialize_info(spill_ctx& ctx)
 {
    for (Block& block : ctx.program->blocks) {
       bool logical = false;
@@ -328,12 +354,14 @@ void get_rematerialize_info(spill_ctx& ctx)
    }
 }
 
-std::vector<std::map<Temp, uint32_t>> local_next_uses(spill_ctx& ctx, Block* block)
+std::vector<std::map<Temp, uint32_t>>
+local_next_uses(spill_ctx& ctx, Block* block)
 {
    std::vector<std::map<Temp, uint32_t>> local_next_uses(block->instructions.size());
 
    std::map<Temp, uint32_t> next_uses;
-   for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair : ctx.next_use_distances_end[block->index])
+   for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair :
+        ctx.next_use_distances_end[block->index])
       next_uses[pair.first] = pair.second.second + block->instructions.size();
 
    for (int idx = block->instructions.size() - 1; idx >= 0; idx--) {
@@ -360,7 +388,8 @@ std::vector<std::map<Temp, uint32_t>> local_next_uses(spill_ctx& ctx, Block* blo
    return local_next_uses;
 }
 
-RegisterDemand get_demand_before(spill_ctx& ctx, unsigned block_idx, unsigned idx)
+RegisterDemand
+get_demand_before(spill_ctx& ctx, unsigned block_idx, unsigned idx)
 {
    if (idx == 0) {
       RegisterDemand demand = ctx.register_demand[block_idx][idx];
@@ -372,7 +401,8 @@ RegisterDemand get_demand_before(spill_ctx& ctx, unsigned block_idx, unsigned id
    }
 }
 
-RegisterDemand get_live_in_demand(spill_ctx& ctx, unsigned block_idx)
+RegisterDemand
+get_live_in_demand(spill_ctx& ctx, unsigned block_idx)
 {
    unsigned idx = 0;
    RegisterDemand reg_pressure = RegisterDemand();
@@ -396,12 +426,14 @@ RegisterDemand get_live_in_demand(spill_ctx& ctx, unsigned block_idx)
    /* Consider register pressure from linear predecessors. This can affect
     * reg_pressure if the branch instructions define sgprs. */
    for (unsigned pred : block.linear_preds)
-      reg_pressure.sgpr = std::max<int16_t>(reg_pressure.sgpr, ctx.register_demand[pred].back().sgpr);
+      reg_pressure.sgpr =
+         std::max<int16_t>(reg_pressure.sgpr, ctx.register_demand[pred].back().sgpr);
 
    return reg_pressure;
 }
 
-RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_idx)
+RegisterDemand
+init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_idx)
 {
    RegisterDemand spilled_registers;
 
@@ -459,7 +491,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
          Temp to_spill;
          for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair : next_use_distances) {
             if (pair.first.type() == type &&
-                (pair.second.first >= loop_end || (ctx.remat.count(pair.first) && type == RegType::sgpr)) &&
+                (pair.second.first >= loop_end ||
+                 (ctx.remat.count(pair.first) && type == RegType::sgpr)) &&
                 pair.second.second > distance &&
                 ctx.spills_entry[block_idx].find(pair.first) == ctx.spills_entry[block_idx].end()) {
                to_spill = pair.first;
@@ -476,7 +509,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
          }
 
          uint32_t spill_id;
-         if (ctx.spills_exit[block_idx - 1].find(to_spill) == ctx.spills_exit[block_idx - 1].end()) {
+         if (ctx.spills_exit[block_idx - 1].find(to_spill) ==
+             ctx.spills_exit[block_idx - 1].end()) {
             spill_id = ctx.allocate_spill_id(to_spill.regClass());
          } else {
             spill_id = ctx.spills_exit[block_idx - 1][to_spill];
@@ -500,8 +534,7 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
          type = reg_pressure.vgpr > ctx.target_pressure.vgpr ? RegType::vgpr : RegType::sgpr;
 
          for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair : next_use_distances) {
-            if (pair.first.type() == type &&
-                pair.second.second > distance &&
+            if (pair.first.type() == type && pair.second.second > distance &&
                 ctx.spills_entry[block_idx].find(pair.first) == ctx.spills_entry[block_idx].end()) {
                to_spill = pair.first;
                distance = pair.second.second;
@@ -540,7 +573,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
          }
       }
 
-      /* if register demand is still too high, we just keep all spilled live vars and process the block */
+      /* if register demand is still too high, we just keep all spilled live vars
+       * and process the block */
       if (block->register_demand.sgpr - spilled_registers.sgpr > ctx.target_pressure.sgpr) {
          pred_idx = block->linear_preds[0];
          for (std::pair<Temp, uint32_t> pair : ctx.spills_exit[pred_idx]) {
@@ -551,7 +585,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
             }
          }
       }
-      if (block->register_demand.vgpr - spilled_registers.vgpr > ctx.target_pressure.vgpr && block->logical_preds.size() == 1) {
+      if (block->register_demand.vgpr - spilled_registers.vgpr > ctx.target_pressure.vgpr &&
+          block->logical_preds.size() == 1) {
          pred_idx = block->logical_preds[0];
          for (std::pair<Temp, uint32_t> pair : ctx.spills_exit[pred_idx]) {
             if (pair.first.type() == RegType::vgpr &&
@@ -570,17 +605,21 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
 
    /* keep variables spilled on all incoming paths */
    for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair : next_use_distances) {
-      std::vector<unsigned>& preds = pair.first.is_linear() ? block->linear_preds : block->logical_preds;
-      /* If it can be rematerialized, keep the variable spilled if all predecessors do not reload it.
-       * Otherwise, if any predecessor reloads it, ensure it's reloaded on all other predecessors.
-       * The idea is that it's better in practice to rematerialize redundantly than to create lots of phis. */
-      /* TODO: test this idea with more than Dawn of War III shaders (the current pipeline-db doesn't seem to exercise this path much) */
+      std::vector<unsigned>& preds =
+         pair.first.is_linear() ? block->linear_preds : block->logical_preds;
+      /* If it can be rematerialized, keep the variable spilled if all predecessors do not reload
+       * it. Otherwise, if any predecessor reloads it, ensure it's reloaded on all other
+       * predecessors. The idea is that it's better in practice to rematerialize redundantly than to
+       * create lots of phis. */
+      /* TODO: test this idea with more than Dawn of War III shaders (the current pipeline-db
+       * doesn't seem to exercise this path much) */
       bool remat = ctx.remat.count(pair.first);
       bool spill = !remat;
       uint32_t spill_id = 0;
       for (unsigned pred_idx : preds) {
          /* variable is not even live at the predecessor: probably from a phi */
-         if (ctx.next_use_distances_end[pred_idx].find(pair.first) == ctx.next_use_distances_end[pred_idx].end()) {
+         if (ctx.next_use_distances_end[pred_idx].find(pair.first) ==
+             ctx.next_use_distances_end[pred_idx].end()) {
             spill = false;
             break;
          }
@@ -589,7 +628,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
                spill = false;
          } else {
             partial_spills.insert(pair.first);
-            /* it might be that on one incoming path, the variable has a different spill_id, but add_couple_code() will take care of that. */
+            /* it might be that on one incoming path, the variable has a different spill_id, but
+             * add_couple_code() will take care of that. */
             spill_id = ctx.spills_exit[pred_idx][pair.first];
             if (remat)
                spill = true;
@@ -609,7 +649,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
       if (!phi->definitions[0].isTemp())
          continue;
 
-      std::vector<unsigned>& preds = phi->opcode == aco_opcode::p_phi ? block->logical_preds : block->linear_preds;
+      std::vector<unsigned>& preds =
+         phi->opcode == aco_opcode::p_phi ? block->logical_preds : block->linear_preds;
       bool spill = true;
 
       for (unsigned i = 0; i < phi->operands.size(); i++) {
@@ -619,13 +660,15 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
             continue;
          }
 
-         if (ctx.spills_exit[preds[i]].find(phi->operands[i].getTemp()) == ctx.spills_exit[preds[i]].end())
+         if (ctx.spills_exit[preds[i]].find(phi->operands[i].getTemp()) ==
+             ctx.spills_exit[preds[i]].end())
             spill = false;
          else
             partial_spills.insert(phi->definitions[0].getTemp());
       }
       if (spill) {
-         ctx.spills_entry[block_idx][phi->definitions[0].getTemp()] = ctx.allocate_spill_id(phi->definitions[0].regClass());
+         ctx.spills_entry[block_idx][phi->definitions[0].getTemp()] =
+            ctx.allocate_spill_id(phi->definitions[0].regClass());
          partial_spills.erase(phi->definitions[0].getTemp());
          spilled_registers += phi->definitions[0].getTemp();
       }
@@ -662,7 +705,8 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
    return spilled_registers;
 }
 
-void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
+void
+add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 {
    /* no coupling code necessary */
    if (block->linear_preds.size() == 0)
@@ -670,14 +714,16 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 
    std::vector<aco_ptr<Instruction>> instructions;
    /* branch block: TODO take other branch into consideration */
-   if (block->linear_preds.size() == 1 && !(block->kind & (block_kind_loop_exit | block_kind_loop_header))) {
+   if (block->linear_preds.size() == 1 &&
+       !(block->kind & (block_kind_loop_exit | block_kind_loop_header))) {
       assert(ctx.processed[block->linear_preds[0]]);
       assert(ctx.register_demand[block_idx].size() == block->instructions.size());
       std::vector<RegisterDemand> reg_demand;
       unsigned insert_idx = 0;
       RegisterDemand demand_before = get_demand_before(ctx, block_idx, 0);
 
-      for (std::pair<Temp, std::pair<uint32_t, uint32_t>> live : ctx.next_use_distances_start[block_idx]) {
+      for (std::pair<Temp, std::pair<uint32_t, uint32_t>> live :
+           ctx.next_use_distances_start[block_idx]) {
          const unsigned pred_idx = block->linear_preds[0];
 
          if (!live.first.is_linear())
@@ -696,7 +742,8 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 
          /* variable is spilled at predecessor and live at current block: create reload instruction */
          Temp new_name = ctx.program->allocateTmp(live.first.regClass());
-         aco_ptr<Instruction> reload = do_reload(ctx, live.first, new_name, ctx.spills_exit[pred_idx][live.first]);
+         aco_ptr<Instruction> reload =
+            do_reload(ctx, live.first, new_name, ctx.spills_exit[pred_idx][live.first]);
          instructions.emplace_back(std::move(reload));
          reg_demand.push_back(demand_before);
          ctx.renames[block_idx][live.first] = new_name;
@@ -711,7 +758,8 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
          } while (instructions.back()->opcode != aco_opcode::p_logical_start);
 
          unsigned pred_idx = block->logical_preds[0];
-         for (std::pair<Temp, std::pair<uint32_t, uint32_t>> live : ctx.next_use_distances_start[block_idx]) {
+         for (std::pair<Temp, std::pair<uint32_t, uint32_t>> live :
+              ctx.next_use_distances_start[block_idx]) {
             if (live.first.is_linear())
                continue;
             /* still spilled */
@@ -726,9 +774,11 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
                continue;
             }
 
-            /* variable is spilled at predecessor and live at current block: create reload instruction */
+            /* variable is spilled at predecessor and live at current block:
+             * create reload instruction */
             Temp new_name = ctx.program->allocateTmp(live.first.regClass());
-            aco_ptr<Instruction> reload = do_reload(ctx, live.first, new_name, ctx.spills_exit[pred_idx][live.first]);
+            aco_ptr<Instruction> reload =
+               do_reload(ctx, live.first, new_name, ctx.spills_exit[pred_idx][live.first]);
             instructions.emplace_back(std::move(reload));
             reg_demand.emplace_back(reg_demand.back());
             ctx.renames[block_idx][live.first] = new_name;
@@ -737,12 +787,15 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 
       /* combine new reload instructions with original block */
       if (!instructions.empty()) {
-         reg_demand.insert(reg_demand.end(), std::next(ctx.register_demand[block->index].begin(), insert_idx),
+         reg_demand.insert(reg_demand.end(),
+                           std::next(ctx.register_demand[block->index].begin(), insert_idx),
                            ctx.register_demand[block->index].end());
          ctx.register_demand[block_idx] = std::move(reg_demand);
          instructions.insert(instructions.end(),
-                             std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(std::next(block->instructions.begin(), insert_idx)),
-                             std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(block->instructions.end()));
+                             std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(
+                                std::next(block->instructions.begin(), insert_idx)),
+                             std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(
+                                block->instructions.end()));
          block->instructions = std::move(instructions);
       }
       return;
@@ -759,12 +812,14 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 
       /* if the phi is not spilled, add to instructions */
       if (!phi->definitions[0].isTemp() ||
-          ctx.spills_entry[block_idx].find(phi->definitions[0].getTemp()) == ctx.spills_entry[block_idx].end()) {
+          ctx.spills_entry[block_idx].find(phi->definitions[0].getTemp()) ==
+             ctx.spills_entry[block_idx].end()) {
          instructions.emplace_back(std::move(phi));
          continue;
       }
 
-      std::vector<unsigned>& preds = phi->opcode == aco_opcode::p_phi ? block->logical_preds : block->linear_preds;
+      std::vector<unsigned>& preds =
+         phi->opcode == aco_opcode::p_phi ? block->logical_preds : block->linear_preds;
       uint32_t def_spill_id = ctx.spills_entry[block_idx][phi->definitions[0].getTemp()];
 
       for (unsigned i = 0; i < phi->operands.size(); i++) {
@@ -805,15 +860,17 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
             ctx.add_interference(spill_id, pair.second);
          ctx.add_affinity(def_spill_id, spill_id);
 
-         aco_ptr<Pseudo_instruction> spill{create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 2, 0)};
+         aco_ptr<Pseudo_instruction> spill{
+            create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 2, 0)};
          spill->operands[0] = spill_op;
-         spill->operands[1] = Operand(spill_id);
+         spill->operands[1] = Operand::c32(spill_id);
          Block& pred = ctx.program->blocks[pred_idx];
          unsigned idx = pred.instructions.size();
          do {
             assert(idx != 0);
             idx--;
-         } while (phi->opcode == aco_opcode::p_phi && pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
+         } while (phi->opcode == aco_opcode::p_phi &&
+                  pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
          std::vector<aco_ptr<Instruction>>::iterator it = std::next(pred.instructions.begin(), idx);
          pred.instructions.insert(it, std::move(spill));
          if (spill_op.isTemp())
@@ -827,7 +884,8 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
    /* iterate all (other) spilled variables for which to spill at the predecessor */
    // TODO: would be better to have them sorted: first vgprs and first with longest distance
    for (std::pair<Temp, uint32_t> pair : ctx.spills_entry[block_idx]) {
-      std::vector<unsigned> preds = pair.first.is_linear() ? block->linear_preds : block->logical_preds;
+      std::vector<unsigned> preds =
+         pair.first.is_linear() ? block->linear_preds : block->logical_preds;
 
       for (unsigned pred_idx : preds) {
          /* variable is already spilled at predecessor */
@@ -839,7 +897,8 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
          }
 
          /* variable is dead at predecessor, it must be from a phi: this works because of CSSA form */
-         if (ctx.next_use_distances_end[pred_idx].find(pair.first) == ctx.next_use_distances_end[pred_idx].end())
+         if (ctx.next_use_distances_end[pred_idx].find(pair.first) ==
+             ctx.next_use_distances_end[pred_idx].end())
             continue;
 
          /* add interferences between spilled variable and predecessors exit spills */
@@ -858,15 +917,17 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
             ctx.renames[pred_idx].erase(rename_it);
          }
 
-         aco_ptr<Pseudo_instruction> spill{create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 2, 0)};
+         aco_ptr<Pseudo_instruction> spill{
+            create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 2, 0)};
          spill->operands[0] = Operand(var);
-         spill->operands[1] = Operand(pair.second);
+         spill->operands[1] = Operand::c32(pair.second);
          Block& pred = ctx.program->blocks[pred_idx];
          unsigned idx = pred.instructions.size();
          do {
             assert(idx != 0);
             idx--;
-         } while (pair.first.type() == RegType::vgpr && pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
+         } while (pair.first.type() == RegType::vgpr &&
+                  pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
          std::vector<aco_ptr<Instruction>>::iterator it = std::next(pred.instructions.begin(), idx);
          pred.instructions.insert(it, std::move(spill));
          ctx.spills_exit[pred.index][pair.first] = pair.second;
@@ -876,17 +937,22 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
    /* iterate phis for which operands to reload */
    for (aco_ptr<Instruction>& phi : instructions) {
       assert(phi->opcode == aco_opcode::p_phi || phi->opcode == aco_opcode::p_linear_phi);
-      assert(!phi->definitions[0].isTemp() || ctx.spills_entry[block_idx].find(phi->definitions[0].getTemp()) == ctx.spills_entry[block_idx].end());
+      assert(!phi->definitions[0].isTemp() ||
+             ctx.spills_entry[block_idx].find(phi->definitions[0].getTemp()) ==
+                ctx.spills_entry[block_idx].end());
 
-      std::vector<unsigned>& preds = phi->opcode == aco_opcode::p_phi ? block->logical_preds : block->linear_preds;
+      std::vector<unsigned>& preds =
+         phi->opcode == aco_opcode::p_phi ? block->logical_preds : block->linear_preds;
       for (unsigned i = 0; i < phi->operands.size(); i++) {
          if (!phi->operands[i].isTemp())
             continue;
          unsigned pred_idx = preds[i];
 
          /* if the operand was reloaded, rename */
-         if (ctx.spills_exit[pred_idx].find(phi->operands[i].getTemp()) == ctx.spills_exit[pred_idx].end()) {
-            std::map<Temp, Temp>::iterator it = ctx.renames[pred_idx].find(phi->operands[i].getTemp());
+         if (ctx.spills_exit[pred_idx].find(phi->operands[i].getTemp()) ==
+             ctx.spills_exit[pred_idx].end()) {
+            std::map<Temp, Temp>::iterator it =
+               ctx.renames[pred_idx].find(phi->operands[i].getTemp());
             if (it != ctx.renames[pred_idx].end())
                phi->operands[i].setTemp(it->second);
             /* prevent the definining instruction from being DCE'd if it could be rematerialized */
@@ -904,9 +970,11 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
          do {
             assert(idx != 0);
             idx--;
-         } while (phi->opcode == aco_opcode::p_phi && pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
+         } while (phi->opcode == aco_opcode::p_phi &&
+                  pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
          std::vector<aco_ptr<Instruction>>::iterator it = std::next(pred.instructions.begin(), idx);
-         aco_ptr<Instruction> reload = do_reload(ctx, tmp, new_name, ctx.spills_exit[pred_idx][tmp]);
+         aco_ptr<Instruction> reload =
+            do_reload(ctx, tmp, new_name, ctx.spills_exit[pred_idx][tmp]);
 
          /* reload spilled exec mask directly to exec */
          if (!phi->definitions[0].isTemp()) {
@@ -925,16 +993,19 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 
    /* iterate live variables for which to reload */
    // TODO: reload at current block if variable is spilled on all predecessors
-   for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair : ctx.next_use_distances_start[block_idx]) {
+   for (std::pair<Temp, std::pair<uint32_t, uint32_t>> pair :
+        ctx.next_use_distances_start[block_idx]) {
       /* skip spilled variables */
       if (ctx.spills_entry[block_idx].find(pair.first) != ctx.spills_entry[block_idx].end())
          continue;
-      std::vector<unsigned> preds = pair.first.is_linear() ? block->linear_preds : block->logical_preds;
+      std::vector<unsigned> preds =
+         pair.first.is_linear() ? block->linear_preds : block->logical_preds;
 
       /* variable is dead at predecessor, it must be from a phi */
       bool is_dead = false;
       for (unsigned pred_idx : preds) {
-         if (ctx.next_use_distances_end[pred_idx].find(pair.first) == ctx.next_use_distances_end[pred_idx].end())
+         if (ctx.next_use_distances_end[pred_idx].find(pair.first) ==
+             ctx.next_use_distances_end[pred_idx].end())
             is_dead = true;
       }
       if (is_dead)
@@ -951,10 +1022,12 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
          do {
             assert(idx != 0);
             idx--;
-         } while (pair.first.type() == RegType::vgpr && pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
+         } while (pair.first.type() == RegType::vgpr &&
+                  pred.instructions[idx]->opcode != aco_opcode::p_logical_end);
          std::vector<aco_ptr<Instruction>>::iterator it = std::next(pred.instructions.begin(), idx);
 
-         aco_ptr<Instruction> reload = do_reload(ctx, pair.first, new_name, ctx.spills_exit[pred.index][pair.first]);
+         aco_ptr<Instruction> reload =
+            do_reload(ctx, pair.first, new_name, ctx.spills_exit[pred.index][pair.first]);
          pred.instructions.insert(it, std::move(reload));
 
          ctx.spills_exit[pred.index].erase(pair.first);
@@ -984,7 +1057,8 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
       if (!is_same) {
          /* the variable was renamed differently in the predecessors: we have to create a phi */
          aco_opcode opcode = pair.first.is_linear() ? aco_opcode::p_linear_phi : aco_opcode::p_phi;
-         aco_ptr<Pseudo_instruction> phi{create_instruction<Pseudo_instruction>(opcode, Format::PSEUDO, preds.size(), 1)};
+         aco_ptr<Pseudo_instruction> phi{
+            create_instruction<Pseudo_instruction>(opcode, Format::PSEUDO, preds.size(), 1)};
          rename = ctx.program->allocateTmp(pair.first.regClass());
          for (unsigned i = 0; i < phi->operands.size(); i++) {
             Temp tmp;
@@ -1018,18 +1092,22 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
    if (!ctx.processed[block_idx]) {
       assert(!(block->kind & block_kind_loop_header));
       RegisterDemand demand_before = get_demand_before(ctx, block_idx, idx);
-      ctx.register_demand[block->index].erase(ctx.register_demand[block->index].begin(), ctx.register_demand[block->index].begin() + idx);
-      ctx.register_demand[block->index].insert(ctx.register_demand[block->index].begin(), instructions.size(), demand_before);
+      ctx.register_demand[block->index].erase(ctx.register_demand[block->index].begin(),
+                                              ctx.register_demand[block->index].begin() + idx);
+      ctx.register_demand[block->index].insert(ctx.register_demand[block->index].begin(),
+                                               instructions.size(), demand_before);
    }
 
    std::vector<aco_ptr<Instruction>>::iterator start = std::next(block->instructions.begin(), idx);
-   instructions.insert(instructions.end(), std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(start),
-               std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(block->instructions.end()));
+   instructions.insert(
+      instructions.end(), std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(start),
+      std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(block->instructions.end()));
    block->instructions = std::move(instructions);
 }
 
-void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
-                   std::map<Temp, uint32_t> &current_spills, RegisterDemand spilled_registers)
+void
+process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
+              std::map<Temp, uint32_t>& current_spills, RegisterDemand spilled_registers)
 {
    assert(!ctx.processed[block_idx]);
 
@@ -1097,7 +1175,8 @@ void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
                if (((pair.second > distance && can_rematerialize == do_rematerialize) ||
                     (can_rematerialize && !do_rematerialize && pair.second > idx)) &&
                    current_spills.find(pair.first) == current_spills.end() &&
-                   ctx.spills_exit[block_idx].find(pair.first) == ctx.spills_exit[block_idx].end()) {
+                   ctx.spills_exit[block_idx].find(pair.first) ==
+                      ctx.spills_exit[block_idx].end()) {
                   to_spill = pair.first;
                   distance = pair.second;
                   do_rematerialize = can_rematerialize;
@@ -1122,16 +1201,18 @@ void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
             }
 
             /* add spill to new instructions */
-            aco_ptr<Pseudo_instruction> spill{create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 2, 0)};
+            aco_ptr<Pseudo_instruction> spill{
+               create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 2, 0)};
             spill->operands[0] = Operand(to_spill);
-            spill->operands[1] = Operand(spill_id);
+            spill->operands[1] = Operand::c32(spill_id);
             instructions.emplace_back(std::move(spill));
          }
       }
 
       /* add reloads and instruction to new instructions */
       for (std::pair<Temp, std::pair<Temp, uint32_t>> pair : reloads) {
-         aco_ptr<Instruction> reload = do_reload(ctx, pair.second.first, pair.first, pair.second.second);
+         aco_ptr<Instruction> reload =
+            do_reload(ctx, pair.second.first, pair.first, pair.second.second);
          instructions.emplace_back(std::move(reload));
       }
       instructions.emplace_back(std::move(instr));
@@ -1142,7 +1223,8 @@ void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
    ctx.spills_exit[block_idx].insert(current_spills.begin(), current_spills.end());
 }
 
-void spill_block(spill_ctx& ctx, unsigned block_idx)
+void
+spill_block(spill_ctx& ctx, unsigned block_idx)
 {
    Block* block = &ctx.program->blocks[block_idx];
 
@@ -1150,7 +1232,8 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
    RegisterDemand spilled_registers = init_live_in_vars(ctx, block, block_idx);
 
    /* add interferences for spilled variables */
-   for (auto it = ctx.spills_entry[block_idx].begin(); it != ctx.spills_entry[block_idx].end(); ++it) {
+   for (auto it = ctx.spills_entry[block_idx].begin(); it != ctx.spills_entry[block_idx].end();
+        ++it) {
       for (auto it2 = std::next(it); it2 != ctx.spills_entry[block_idx].end(); ++it2)
          ctx.add_interference(it->second, it2->second);
    }
@@ -1165,8 +1248,7 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
 
    /* check conditions to process this block */
    bool process = (block->register_demand - spilled_registers).exceeds(ctx.target_pressure) ||
-                  !ctx.renames[block_idx].empty() ||
-                  ctx.remat_used.size();
+                  !ctx.renames[block_idx].empty() || ctx.remat_used.size();
 
    for (auto it = current_spills.begin(); !process && it != current_spills.end(); ++it) {
       if (ctx.next_use_distances_start[block_idx][it->first].first == block_idx)
@@ -1181,7 +1263,8 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
    ctx.processed[block_idx] = true;
 
    /* check if the next block leaves the current loop */
-   if (block->loop_nest_depth == 0 || ctx.program->blocks[block_idx + 1].loop_nest_depth >= block->loop_nest_depth)
+   if (block->loop_nest_depth == 0 ||
+       ctx.program->blocks[block_idx + 1].loop_nest_depth >= block->loop_nest_depth)
       return;
 
    Block* loop_header = ctx.loop_header.top();
@@ -1204,7 +1287,8 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
             aco_ptr<Instruction>& phi = *instr_it;
             if (phi->opcode != aco_opcode::p_phi && phi->opcode != aco_opcode::p_linear_phi)
                break;
-            /* no need to rename the loop header phis once again. this happened in add_coupling_code() */
+            /* no need to rename the loop header phis once again. this happened in
+             * add_coupling_code() */
             if (idx == loop_header->index) {
                instr_it++;
                continue;
@@ -1238,7 +1322,7 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
                   op.setTemp(rename.second);
                   /* we can stop with this block as soon as the variable is spilled */
                   if (instr->opcode == aco_opcode::p_spill)
-                    renamed = true;
+                     renamed = true;
                }
             }
             instr_it++;
@@ -1250,9 +1334,10 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
    ctx.loop_header.pop();
 }
 
-Temp load_scratch_resource(spill_ctx& ctx, Temp& scratch_offset,
-                           std::vector<aco_ptr<Instruction>>& instructions,
-                           unsigned offset, bool is_top_level)
+Temp
+load_scratch_resource(spill_ctx& ctx, Temp& scratch_offset,
+                      std::vector<aco_ptr<Instruction>>& instructions, unsigned offset,
+                      bool is_top_level)
 {
    Builder bld(ctx.program);
    if (is_top_level) {
@@ -1267,19 +1352,21 @@ Temp load_scratch_resource(spill_ctx& ctx, Temp& scratch_offset,
 
    Temp private_segment_buffer = ctx.program->private_segment_buffer;
    if (ctx.program->stage != compute_cs)
-      private_segment_buffer = bld.smem(aco_opcode::s_load_dwordx2, bld.def(s2), private_segment_buffer, Operand(0u));
+      private_segment_buffer =
+         bld.smem(aco_opcode::s_load_dwordx2, bld.def(s2), private_segment_buffer, Operand::zero());
 
    if (offset)
-      scratch_offset = bld.sop2(aco_opcode::s_add_u32, bld.def(s1), bld.def(s1, scc), scratch_offset, Operand(offset));
+      scratch_offset = bld.sop2(aco_opcode::s_add_u32, bld.def(s1), bld.def(s1, scc),
+                                scratch_offset, Operand::c32(offset));
 
-   uint32_t rsrc_conf = S_008F0C_ADD_TID_ENABLE(1) |
-                        S_008F0C_INDEX_STRIDE(ctx.program->wave_size == 64 ? 3 : 2);
+   uint32_t rsrc_conf =
+      S_008F0C_ADD_TID_ENABLE(1) | S_008F0C_INDEX_STRIDE(ctx.program->wave_size == 64 ? 3 : 2);
 
    if (ctx.program->chip_class >= GFX10) {
       rsrc_conf |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
-                   S_008F0C_RESOURCE_LEVEL(1);
-   } else if (ctx.program->chip_class <= GFX7) { /* dfmt modifies stride on GFX8/GFX9 when ADD_TID_EN=1 */
+                   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
+   } else if (ctx.program->chip_class <= GFX7) {
+      /* dfmt modifies stride on GFX8/GFX9 when ADD_TID_EN=1 */
       rsrc_conf |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
                    S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
    }
@@ -1287,14 +1374,13 @@ Temp load_scratch_resource(spill_ctx& ctx, Temp& scratch_offset,
    if (ctx.program->chip_class <= GFX8)
       rsrc_conf |= S_008F0C_ELEMENT_SIZE(1);
 
-   return bld.pseudo(aco_opcode::p_create_vector, bld.def(s4),
-                     private_segment_buffer, Operand(-1u),
-                     Operand(rsrc_conf));
+   return bld.pseudo(aco_opcode::p_create_vector, bld.def(s4), private_segment_buffer,
+                     Operand::c32(-1u), Operand::c32(rsrc_conf));
 }
 
-void add_interferences(spill_ctx& ctx, std::vector<bool>& is_assigned,
-                       std::vector<uint32_t>& slots, std::vector<bool>& slots_used,
-                       unsigned id)
+void
+add_interferences(spill_ctx& ctx, std::vector<bool>& is_assigned, std::vector<uint32_t>& slots,
+                  std::vector<bool>& slots_used, unsigned id)
 {
    for (unsigned other : ctx.interferences[id].second) {
       if (!is_assigned[other])
@@ -1306,8 +1392,9 @@ void add_interferences(spill_ctx& ctx, std::vector<bool>& is_assigned,
    }
 }
 
-unsigned find_available_slot(std::vector<bool>& used, unsigned wave_size,
-                             unsigned size, bool is_sgpr, unsigned *num_slots)
+unsigned
+find_available_slot(std::vector<bool>& used, unsigned wave_size, unsigned size, bool is_sgpr,
+                    unsigned* num_slots)
 {
    unsigned wave_size_minus_one = wave_size - 1;
    unsigned slot = 0;
@@ -1339,10 +1426,9 @@ unsigned find_available_slot(std::vector<bool>& used, unsigned wave_size,
    }
 }
 
-void assign_spill_slots_helper(spill_ctx& ctx, RegType type,
-                               std::vector<bool>& is_assigned,
-                               std::vector<uint32_t>& slots,
-                               unsigned *num_slots)
+void
+assign_spill_slots_helper(spill_ctx& ctx, RegType type, std::vector<bool>& is_assigned,
+                          std::vector<uint32_t>& slots, unsigned* num_slots)
 {
    std::vector<bool> slots_used(*num_slots);
 
@@ -1358,9 +1444,9 @@ void assign_spill_slots_helper(spill_ctx& ctx, RegType type,
          add_interferences(ctx, is_assigned, slots, slots_used, id);
       }
 
-      unsigned slot = find_available_slot(slots_used, ctx.wave_size,
-                                          ctx.interferences[vec[0]].first.size(),
-                                          type == RegType::sgpr, num_slots);
+      unsigned slot =
+         find_available_slot(slots_used, ctx.wave_size, ctx.interferences[vec[0]].first.size(),
+                             type == RegType::sgpr, num_slots);
 
       for (unsigned id : vec) {
          assert(!is_assigned[id]);
@@ -1379,9 +1465,9 @@ void assign_spill_slots_helper(spill_ctx& ctx, RegType type,
 
       add_interferences(ctx, is_assigned, slots, slots_used, id);
 
-      unsigned slot = find_available_slot(slots_used, ctx.wave_size,
-                                          ctx.interferences[id].first.size(),
-                                          type == RegType::sgpr, num_slots);
+      unsigned slot =
+         find_available_slot(slots_used, ctx.wave_size, ctx.interferences[id].first.size(),
+                             type == RegType::sgpr, num_slots);
 
       slots[id] = slot;
       is_assigned[id] = true;
@@ -1390,7 +1476,9 @@ void assign_spill_slots_helper(spill_ctx& ctx, RegType type,
    *num_slots = slots_used.size();
 }
 
-void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
+void
+assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr)
+{
    std::vector<uint32_t> slots(ctx.interferences.size());
    std::vector<bool> is_assigned(ctx.interferences.size());
 
@@ -1424,7 +1512,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
             if (!is_assigned[vec[i]])
                continue;
             assert(ctx.is_reloaded[vec[i]] == ctx.is_reloaded[vec[j]]);
-            assert(ctx.interferences[vec[i]].first.type() == ctx.interferences[vec[j]].first.type());
+            assert(ctx.interferences[vec[i]].first.type() ==
+                   ctx.interferences[vec[j]].first.type());
             assert(slots[vec[i]] == slots[vec[j]]);
          }
       }
@@ -1449,7 +1538,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
          }
 
          if (end_vgprs > 0) {
-            aco_ptr<Instruction> destr{create_instruction<Pseudo_instruction>(aco_opcode::p_end_linear_vgpr, Format::PSEUDO, end_vgprs, 0)};
+            aco_ptr<Instruction> destr{create_instruction<Pseudo_instruction>(
+               aco_opcode::p_end_linear_vgpr, Format::PSEUDO, end_vgprs, 0)};
             int k = 0;
             for (unsigned i = 0; i < vgpr_spill_temps.size(); i++) {
                if (reload_in_loop[i])
@@ -1503,17 +1593,25 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                /* spill vgpr */
                ctx.program->config->spilled_vgprs += (*it)->operands[0].size();
                uint32_t spill_slot = slots[spill_id];
-               bool add_offset_to_sgpr = ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size + vgpr_spill_slots * 4 > 4096;
-               unsigned base_offset = add_offset_to_sgpr ? 0 : ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size;
+               bool add_offset_to_sgpr =
+                  ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size +
+                     vgpr_spill_slots * 4 >
+                  4096;
+               unsigned base_offset =
+                  add_offset_to_sgpr
+                     ? 0
+                     : ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size;
 
                /* check if the scratch resource descriptor already exists */
                if (scratch_rsrc == Temp()) {
-                  unsigned offset = add_offset_to_sgpr ? ctx.program->config->scratch_bytes_per_wave : 0;
-                  scratch_rsrc = load_scratch_resource(ctx, scratch_offset,
-                                                       last_top_level_block_idx == block.index ?
-                                                       instructions : ctx.program->blocks[last_top_level_block_idx].instructions,
-                                                       offset,
-                                                       last_top_level_block_idx == block.index);
+                  unsigned offset =
+                     add_offset_to_sgpr ? ctx.program->config->scratch_bytes_per_wave : 0;
+                  scratch_rsrc = load_scratch_resource(
+                     ctx, scratch_offset,
+                     last_top_level_block_idx == block.index
+                        ? instructions
+                        : ctx.program->blocks[last_top_level_block_idx].instructions,
+                     offset, last_top_level_block_idx == block.index);
                }
 
                unsigned offset = base_offset + spill_slot * 4;
@@ -1522,17 +1620,21 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                Temp temp = (*it)->operands[0].getTemp();
                assert(temp.type() == RegType::vgpr && !temp.is_linear());
                if (temp.size() > 1) {
-                  Instruction* split{create_instruction<Pseudo_instruction>(aco_opcode::p_split_vector, Format::PSEUDO, 1, temp.size())};
+                  Instruction* split{create_instruction<Pseudo_instruction>(
+                     aco_opcode::p_split_vector, Format::PSEUDO, 1, temp.size())};
                   split->operands[0] = Operand(temp);
                   for (unsigned i = 0; i < temp.size(); i++)
                      split->definitions[i] = bld.def(v1);
                   bld.insert(split);
                   for (unsigned i = 0; i < temp.size(); i++) {
-                     Instruction *instr = bld.mubuf(opcode, scratch_rsrc, Operand(v1), scratch_offset, split->definitions[i].getTemp(), offset + i * 4, false, true);
+                     Instruction* instr =
+                        bld.mubuf(opcode, scratch_rsrc, Operand(v1), scratch_offset,
+                                  split->definitions[i].getTemp(), offset + i * 4, false, true);
                      instr->mubuf().sync = memory_sync_info(storage_vgpr_spill, semantic_private);
                   }
                } else {
-                  Instruction *instr = bld.mubuf(opcode, scratch_rsrc, Operand(v1), scratch_offset, temp, offset, false, true);
+                  Instruction* instr = bld.mubuf(opcode, scratch_rsrc, Operand(v1), scratch_offset,
+                                                 temp, offset, false, true);
                   instr->mubuf().sync = memory_sync_info(storage_vgpr_spill, semantic_private);
                }
             } else {
@@ -1544,7 +1646,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                if (vgpr_spill_temps[spill_slot / ctx.wave_size] == Temp()) {
                   Temp linear_vgpr = ctx.program->allocateTmp(v1.as_linear());
                   vgpr_spill_temps[spill_slot / ctx.wave_size] = linear_vgpr;
-                  aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
+                  aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(
+                     aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
                   create->definitions[0] = Definition(linear_vgpr);
                   /* find the right place to insert this definition */
                   if (last_top_level_block_idx == block.index) {
@@ -1553,15 +1656,17 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                   } else {
                      assert(last_top_level_block_idx < block.index);
                      /* insert before the branch at last top level block */
-                     std::vector<aco_ptr<Instruction>>& block_instrs = ctx.program->blocks[last_top_level_block_idx].instructions;
+                     std::vector<aco_ptr<Instruction>>& block_instrs =
+                        ctx.program->blocks[last_top_level_block_idx].instructions;
                      block_instrs.insert(std::prev(block_instrs.end()), std::move(create));
                   }
                }
 
                /* spill sgpr: just add the vgpr temp to operands */
-               Pseudo_instruction* spill = create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 3, 0);
+               Pseudo_instruction* spill =
+                  create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 3, 0);
                spill->operands[0] = Operand(vgpr_spill_temps[spill_slot / ctx.wave_size]);
-               spill->operands[1] = Operand(spill_slot % ctx.wave_size);
+               spill->operands[1] = Operand::c32(spill_slot % ctx.wave_size);
                spill->operands[2] = (*it)->operands[0];
                instructions.emplace_back(aco_ptr<Instruction>(spill));
             }
@@ -1575,34 +1680,46 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
             } else if (ctx.interferences[spill_id].first.type() == RegType::vgpr) {
                /* reload vgpr */
                uint32_t spill_slot = slots[spill_id];
-               bool add_offset_to_sgpr = ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size + vgpr_spill_slots * 4 > 4096;
-               unsigned base_offset = add_offset_to_sgpr ? 0 : ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size;
+               bool add_offset_to_sgpr =
+                  ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size +
+                     vgpr_spill_slots * 4 >
+                  4096;
+               unsigned base_offset =
+                  add_offset_to_sgpr
+                     ? 0
+                     : ctx.program->config->scratch_bytes_per_wave / ctx.program->wave_size;
 
                /* check if the scratch resource descriptor already exists */
                if (scratch_rsrc == Temp()) {
-                  unsigned offset = add_offset_to_sgpr ? ctx.program->config->scratch_bytes_per_wave : 0;
-                  scratch_rsrc = load_scratch_resource(ctx, scratch_offset,
-                                                       last_top_level_block_idx == block.index ?
-                                                       instructions : ctx.program->blocks[last_top_level_block_idx].instructions,
-                                                       offset,
-                                                       last_top_level_block_idx == block.index);
+                  unsigned offset =
+                     add_offset_to_sgpr ? ctx.program->config->scratch_bytes_per_wave : 0;
+                  scratch_rsrc = load_scratch_resource(
+                     ctx, scratch_offset,
+                     last_top_level_block_idx == block.index
+                        ? instructions
+                        : ctx.program->blocks[last_top_level_block_idx].instructions,
+                     offset, last_top_level_block_idx == block.index);
                }
 
                unsigned offset = base_offset + spill_slot * 4;
                aco_opcode opcode = aco_opcode::buffer_load_dword;
                Definition def = (*it)->definitions[0];
                if (def.size() > 1) {
-                  Instruction* vec{create_instruction<Pseudo_instruction>(aco_opcode::p_create_vector, Format::PSEUDO, def.size(), 1)};
+                  Instruction* vec{create_instruction<Pseudo_instruction>(
+                     aco_opcode::p_create_vector, Format::PSEUDO, def.size(), 1)};
                   vec->definitions[0] = def;
                   for (unsigned i = 0; i < def.size(); i++) {
                      Temp tmp = bld.tmp(v1);
                      vec->operands[i] = Operand(tmp);
-                     Instruction *instr = bld.mubuf(opcode, Definition(tmp), scratch_rsrc, Operand(v1), scratch_offset, offset + i * 4, false, true);
+                     Instruction* instr =
+                        bld.mubuf(opcode, Definition(tmp), scratch_rsrc, Operand(v1),
+                                  scratch_offset, offset + i * 4, false, true);
                      instr->mubuf().sync = memory_sync_info(storage_vgpr_spill, semantic_private);
                   }
                   bld.insert(vec);
                } else {
-                  Instruction *instr = bld.mubuf(opcode, def, scratch_rsrc, Operand(v1), scratch_offset, offset, false, true);
+                  Instruction* instr = bld.mubuf(opcode, def, scratch_rsrc, Operand(v1),
+                                                 scratch_offset, offset, false, true);
                   instr->mubuf().sync = memory_sync_info(storage_vgpr_spill, semantic_private);
                }
             } else {
@@ -1613,7 +1730,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                if (vgpr_spill_temps[spill_slot / ctx.wave_size] == Temp()) {
                   Temp linear_vgpr = ctx.program->allocateTmp(v1.as_linear());
                   vgpr_spill_temps[spill_slot / ctx.wave_size] = linear_vgpr;
-                  aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
+                  aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(
+                     aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
                   create->definitions[0] = Definition(linear_vgpr);
                   /* find the right place to insert this definition */
                   if (last_top_level_block_idx == block.index) {
@@ -1622,28 +1740,30 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                   } else {
                      assert(last_top_level_block_idx < block.index);
                      /* insert before the branch at last top level block */
-                     std::vector<aco_ptr<Instruction>>& block_instrs = ctx.program->blocks[last_top_level_block_idx].instructions;
+                     std::vector<aco_ptr<Instruction>>& block_instrs =
+                        ctx.program->blocks[last_top_level_block_idx].instructions;
                      block_instrs.insert(std::prev(block_instrs.end()), std::move(create));
                   }
                }
 
                /* reload sgpr: just add the vgpr temp to operands */
-               Pseudo_instruction* reload = create_instruction<Pseudo_instruction>(aco_opcode::p_reload, Format::PSEUDO, 2, 1);
+               Pseudo_instruction* reload = create_instruction<Pseudo_instruction>(
+                  aco_opcode::p_reload, Format::PSEUDO, 2, 1);
                reload->operands[0] = Operand(vgpr_spill_temps[spill_slot / ctx.wave_size]);
-               reload->operands[1] = Operand(spill_slot % ctx.wave_size);
+               reload->operands[1] = Operand::c32(spill_slot % ctx.wave_size);
                reload->definitions[0] = (*it)->definitions[0];
                instructions.emplace_back(aco_ptr<Instruction>(reload));
             }
          } else if (!ctx.remat_used.count(it->get()) || ctx.remat_used[it->get()]) {
             instructions.emplace_back(std::move(*it));
          }
-
       }
       block.instructions = std::move(instructions);
    }
 
    /* update required scratch memory */
-   ctx.program->config->scratch_bytes_per_wave += align(vgpr_spill_slots * 4 * ctx.program->wave_size, 1024);
+   ctx.program->config->scratch_bytes_per_wave +=
+      align(vgpr_spill_slots * 4 * ctx.program->wave_size, 1024);
 
    /* SSA elimination inserts copies for logical phis right before p_logical_end
     * So if a linear vgpr is used between that p_logical_end and the branch,
@@ -1684,7 +1804,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
       if (!vgprs.size())
          continue;
 
-      aco_ptr<Instruction> destr{create_instruction<Pseudo_instruction>(aco_opcode::p_end_linear_vgpr, Format::PSEUDO, vgprs.size(), 0)};
+      aco_ptr<Instruction> destr{create_instruction<Pseudo_instruction>(
+         aco_opcode::p_end_linear_vgpr, Format::PSEUDO, vgprs.size(), 0)};
       int k = 0;
       for (Temp tmp : vgprs) {
          destr->operands[k++] = Operand(tmp);
@@ -1699,8 +1820,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
 
 } /* end namespace */
 
-
-void spill(Program* program, live& live_vars)
+void
+spill(Program* program, live& live_vars)
 {
    program->config->spilled_vgprs = 0;
    program->config->spilled_sgprs = 0;
@@ -1715,20 +1836,31 @@ void spill(Program* program, live& live_vars)
    lower_to_cssa(program, live_vars);
 
    /* calculate target register demand */
-   RegisterDemand register_target = program->max_reg_demand;
-   uint16_t sgpr_limit = get_addr_sgpr_from_waves(program, program->min_waves);
-   uint16_t vgpr_limit = get_addr_vgpr_from_waves(program, program->min_waves);
-   if (register_target.sgpr > sgpr_limit)
-      register_target.vgpr += (register_target.sgpr - sgpr_limit + program->wave_size - 1 + 32) / program->wave_size;
-   register_target.sgpr = sgpr_limit;
+   const RegisterDemand demand = program->max_reg_demand; /* current max */
+   const uint16_t sgpr_limit = get_addr_sgpr_from_waves(program, program->min_waves);
+   const uint16_t vgpr_limit = get_addr_vgpr_from_waves(program, program->min_waves);
+   uint16_t extra_vgprs = 0;
+   uint16_t extra_sgprs = 0;
 
-   if (register_target.vgpr > vgpr_limit)
-      register_target.sgpr = sgpr_limit - 5;
-   int spills_to_vgpr = (program->max_reg_demand.sgpr - register_target.sgpr + program->wave_size - 1 + 32) / program->wave_size;
-   register_target.vgpr = vgpr_limit - spills_to_vgpr;
+   /* calculate extra VGPRs required for spilling SGPRs */
+   if (demand.sgpr > sgpr_limit) {
+      unsigned sgpr_spills = demand.sgpr - sgpr_limit;
+      extra_vgprs = DIV_ROUND_UP(sgpr_spills, program->wave_size) + 1;
+   }
+   /* add extra SGPRs required for spilling VGPRs */
+   if (demand.vgpr + extra_vgprs > vgpr_limit) {
+      extra_sgprs = 5; /* scratch_resource (s4) + scratch_offset (s1) */
+      if (demand.sgpr + extra_sgprs > sgpr_limit) {
+         /* re-calculate in case something has changed */
+         unsigned sgpr_spills = demand.sgpr + extra_sgprs - sgpr_limit;
+         extra_vgprs = DIV_ROUND_UP(sgpr_spills, program->wave_size) + 1;
+      }
+   }
+   /* the spiller has to target the following register demand */
+   const RegisterDemand target(vgpr_limit - extra_vgprs, sgpr_limit - extra_sgprs);
 
    /* initialize ctx */
-   spill_ctx ctx(register_target, program, live_vars.register_demand);
+   spill_ctx ctx(target, program, live_vars.register_demand);
    compute_global_next_uses(ctx);
    get_rematerialize_info(ctx);
 
@@ -1737,7 +1869,7 @@ void spill(Program* program, live& live_vars)
       spill_block(ctx, i);
 
    /* assign spill slots and DCE rematerialized code */
-   assign_spill_slots(ctx, spills_to_vgpr);
+   assign_spill_slots(ctx, extra_vgprs);
 
    /* update live variable information */
    live_vars = live_var_analysis(program);
@@ -1745,5 +1877,4 @@ void spill(Program* program, live& live_vars)
    assert(program->num_waves > 0);
 }
 
-}
-
+} // namespace aco

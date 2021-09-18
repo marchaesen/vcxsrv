@@ -593,6 +593,8 @@ extern _X_EXPORT Bool RRScreenInit(ScreenPtr pScreen);
 
 extern _X_EXPORT RROutputPtr RRFirstOutput(ScreenPtr pScreen);
 
+extern _X_EXPORT RRCrtcPtr RRFirstEnabledCrtc(ScreenPtr pScreen);
+
 extern _X_EXPORT Bool RROutputSetNonDesktop(RROutputPtr output, Bool non_desktop);
 
 extern _X_EXPORT CARD16

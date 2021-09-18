@@ -68,6 +68,8 @@ static const nir_shader_compiler_options midgard_nir_options = {
         .lower_bitfield_extract_to_shifts = true,
         .lower_extract_byte = true,
         .lower_extract_word = true,
+        .lower_insert_byte = true,
+        .lower_insert_word = true,
         .lower_rotate = true,
 
         .lower_pack_half_2x16 = true,
@@ -85,14 +87,17 @@ static const nir_shader_compiler_options midgard_nir_options = {
         .lower_doubles_options = nir_lower_dmod,
 
         .lower_bitfield_extract_to_shifts = true,
+        .lower_uniforms_to_ubo = true,
         .has_fsub = true,
         .has_isub = true,
         .vectorize_io = true,
         .use_interpolated_input_intrinsics = true,
 
+        .vertex_id_zero_based = true,
         .has_cs_global_id = true,
         .lower_cs_local_index_from_id = true,
         .max_unroll_iterations = 32,
+        .force_indirect_unrolling = (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
 };
 
 #endif

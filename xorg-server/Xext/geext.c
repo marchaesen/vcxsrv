@@ -138,9 +138,15 @@ ProcGEDispatch(ClientPtr client)
 static int _X_COLD
 SProcGEDispatch(ClientPtr client)
 {
+    GEClientInfoPtr pGEClient = GEGetClient(client);
+
     REQUEST(xGEReq);
-    if (stuff->ReqType >= GENumberRequests)
+
+    if (pGEClient->major_version >= ARRAY_SIZE(version_requests))
         return BadRequest;
+    if (stuff->ReqType > version_requests[pGEClient->major_version])
+        return BadRequest;
+
     return (*SProcGEVector[stuff->ReqType]) (client);
 }
 

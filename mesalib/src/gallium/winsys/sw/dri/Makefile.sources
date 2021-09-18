@@ -1,3 +1,0 @@
-C_SOURCES := \
-	dri_sw_winsys.c \
-	dri_sw_winsys.h

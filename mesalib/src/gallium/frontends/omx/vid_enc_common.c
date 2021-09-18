@@ -147,7 +147,7 @@ void vid_enc_BufferEncoded_common(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
    /* ------------- map result buffer ----------------- */
 
    if (outp->transfer)
-      pipe_transfer_unmap(priv->t_pipe, outp->transfer);
+      pipe_buffer_unmap(priv->t_pipe, outp->transfer);
 
    pipe_resource_reference(&outp->bitstream, task->bitstream);
    pipe_resource_reference(&task->bitstream, NULL);
@@ -156,7 +156,7 @@ void vid_enc_BufferEncoded_common(vid_enc_PrivateType * priv, OMX_BUFFERHEADERTY
    box.height = outp->bitstream->height0;
    box.depth = outp->bitstream->depth0;
 
-   output->pBuffer = priv->t_pipe->transfer_map(priv->t_pipe, outp->bitstream, 0,
+   output->pBuffer = priv->t_pipe->buffer_map(priv->t_pipe, outp->bitstream, 0,
                                                 PIPE_MAP_READ_WRITE,
                                                 &box, &outp->transfer);
 
@@ -247,7 +247,7 @@ void enc_ScaleInput_common(vid_enc_PrivateType * priv, OMX_VIDEO_PORTDEFINITIONT
 
 void enc_ControlPicture_common(vid_enc_PrivateType * priv, struct pipe_h264_enc_picture_desc *picture)
 {
-   struct pipe_h264_enc_rate_control *rate_ctrl = &picture->rate_ctrl;
+   struct pipe_h264_enc_rate_control *rate_ctrl = &picture->rate_ctrl[0];
 
    /* Get bitrate from port */
    switch (priv->bitrate.eControlRate) {
@@ -302,7 +302,7 @@ void enc_ControlPicture_common(vid_enc_PrivateType * priv, struct pipe_h264_enc_
    picture->frame_num = priv->frame_num;
    picture->ref_idx_l0 = priv->ref_idx_l0;
    picture->ref_idx_l1 = priv->ref_idx_l1;
-   picture->enable_vui = (picture->rate_ctrl.frame_rate_num != 0);
+   picture->enable_vui = (picture->rate_ctrl[0].frame_rate_num != 0);
    enc_GetPictureParamPreset(picture);
 }
 
@@ -425,7 +425,7 @@ OMX_ERRORTYPE enc_LoadImage_common(vid_enc_PrivateType * priv, OMX_VIDEO_PORTDEF
    } else {
       struct vl_video_buffer *dst_buf = (struct vl_video_buffer *)vbuf;
 
-      pipe_transfer_unmap(pipe, inp->transfer);
+      pipe_texture_unmap(pipe, inp->transfer);
 
       /* inp->resource uses PIPE_FORMAT_I8 and the layout looks like this:
        *
@@ -545,7 +545,7 @@ OMX_ERRORTYPE enc_LoadImage_common(vid_enc_PrivateType * priv, OMX_VIDEO_PORTDEF
       box.width = inp->resource->width0;
       box.height = inp->resource->height0;
       box.depth = inp->resource->depth0;
-      buf->pBuffer = pipe->transfer_map(pipe, inp->resource, 0,
+      buf->pBuffer = pipe->texture_map(pipe, inp->resource, 0,
                                         PIPE_MAP_WRITE, &box,
                                         &inp->transfer);
    }

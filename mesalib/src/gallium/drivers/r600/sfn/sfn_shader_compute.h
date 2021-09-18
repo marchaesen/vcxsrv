@@ -50,7 +50,7 @@ private:
    void do_finalize() override;
 
    bool emit_load_3vec(nir_intrinsic_instr* instr, const std::array<PValue,3>& src);
-   bool emit_load_num_work_groups(nir_intrinsic_instr* instr);
+   bool emit_load_num_workgroups(nir_intrinsic_instr* instr);
 
    int m_reserved_registers;
    std::array<PValue,3> m_workgroup_id;

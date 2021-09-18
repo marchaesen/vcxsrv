@@ -36,7 +36,6 @@
  * one.  It is basically anything that is not SSA.
  */
 
-
 /**
  * Check if any instruction before `use` and after `src` writes to the
  * specified array.  If `offset` is negative, it is a relative (a0.x)
@@ -48,186 +47,184 @@
  * the correct array write.
  */
 static bool
-has_conflicting_write(struct ir3_instruction *src,
-		struct ir3_instruction *use,
-		struct ir3_instruction **def,
-		unsigned id, int offset)
+has_conflicting_write(struct ir3_instruction *src, struct ir3_instruction *use,
+                      struct ir3_register **def, unsigned id, int offset)
 {
-	assert(src->block == use->block);
-	bool last_write = true;
+   assert(src->block == use->block);
+   bool last_write = true;
 
-	/* NOTE that since src and use are in the same block, src by
-	 * definition appears in the block's instr_list before use:
-	 */
-	foreach_instr_rev (instr, &use->node) {
-		if (instr == src)
-			break;
+   /* NOTE that since src and use are in the same block, src by
+    * definition appears in the block's instr_list before use:
+    */
+   foreach_instr_rev (instr, &use->node) {
+      if (instr == src)
+         break;
 
-		/* if we are looking at a RELATIV read, we can't move
-		 * it past an a0.x write:
-		 */
-		if ((offset < 0) && (dest_regs(instr) > 0) &&
-				(instr->regs[0]->num == regid(REG_A0, 0)))
-			return true;
+      /* if we are looking at a RELATIV read, we can't move
+       * it past an a0.x write:
+       */
+      if ((offset < 0) && (dest_regs(instr) > 0) &&
+          (instr->dsts[0]->num == regid(REG_A0, 0)))
+         return true;
 
-		if (!writes_gpr(instr))
-			continue;
+      if (!writes_gpr(instr))
+         continue;
 
-		struct ir3_register *dst = instr->regs[0];
-		if (!(dst->flags & IR3_REG_ARRAY))
-			continue;
+      struct ir3_register *dst = instr->dsts[0];
+      if (!(dst->flags & IR3_REG_ARRAY))
+         continue;
 
-		if (dst->array.id != id)
-			continue;
+      if (dst->array.id != id)
+         continue;
 
-		/*
-		 * At this point, we have narrowed down an instruction
-		 * that writes to the same array.. check if it the write
-		 * is to an array element that we care about:
-		 */
+      /*
+       * At this point, we have narrowed down an instruction
+       * that writes to the same array.. check if it the write
+       * is to an array element that we care about:
+       */
 
-		/* is write to an unknown array element? */
-		if (dst->flags & IR3_REG_RELATIV)
-			return true;
+      /* is write to an unknown array element? */
+      if (dst->flags & IR3_REG_RELATIV)
+         return true;
 
-		/* is read from an unknown array element? */
-		if (offset < 0)
-			return true;
+      /* is read from an unknown array element? */
+      if (offset < 0)
+         return true;
 
-		/* is write to same array element? */
-		if (dst->array.offset == offset)
-			return true;
+      /* is write to same array element? */
+      if (dst->array.offset == offset)
+         return true;
 
-		if (last_write)
-			*def = instr;
+      if (last_write)
+         *def = dst;
 
-		last_write = false;
-	}
+      last_write = false;
+   }
 
-	return false;
+   return false;
 }
 
 /* Can we fold the mov src into use without invalid flags? */
 static bool
 valid_flags(struct ir3_instruction *use, struct ir3_instruction *mov)
 {
-	struct ir3_register *src = mov->regs[1];
+   struct ir3_register *src = mov->srcs[0];
 
-	foreach_src_n (reg, n, use) {
-		if (ssa(reg) != mov)
-			continue;
+   foreach_src_n (reg, n, use) {
+      if (ssa(reg) != mov)
+         continue;
 
-		if (!ir3_valid_flags(use, n, reg->flags | src->flags))
-			return false;
-	}
+      if (!ir3_valid_flags(use, n, reg->flags | src->flags))
+         return false;
+   }
 
-	return true;
+   return true;
 }
 
 static bool
 instr_cp_postsched(struct ir3_instruction *mov)
 {
-	struct ir3_register *src = mov->regs[1];
+   struct ir3_register *src = mov->srcs[0];
 
-	/* only consider mov's from "arrays", other cases we have
-	 * already considered already:
-	 */
-	if (!(src->flags & IR3_REG_ARRAY))
-		return false;
+   /* only consider mov's from "arrays", other cases we have
+    * already considered already:
+    */
+   if (!(src->flags & IR3_REG_ARRAY))
+      return false;
 
-	int offset = (src->flags & IR3_REG_RELATIV) ? -1 : src->array.offset;
+   int offset = (src->flags & IR3_REG_RELATIV) ? -1 : src->array.offset;
 
-	/* Once we move the array read directly into the consuming
-	 * instruction(s), we will also need to update instructions
-	 * that had a false-dep on the original mov to have deps
-	 * on the consuming instructions:
-	 */
-	struct util_dynarray newdeps;
-	util_dynarray_init(&newdeps, mov->uses);
+   /* Once we move the array read directly into the consuming
+    * instruction(s), we will also need to update instructions
+    * that had a false-dep on the original mov to have deps
+    * on the consuming instructions:
+    */
+   struct util_dynarray newdeps;
+   util_dynarray_init(&newdeps, mov->uses);
 
-	foreach_ssa_use (use, mov) {
-		if (use->block != mov->block)
-			continue;
+   foreach_ssa_use (use, mov) {
+      if (use->block != mov->block)
+         continue;
 
-		if (is_meta(use))
-			continue;
+      if (is_meta(use))
+         continue;
 
-		struct ir3_instruction *def = src->instr;
-		if (has_conflicting_write(mov, use, &def, src->array.id, offset))
-			continue;
+      struct ir3_register *def = src->def;
+      if (has_conflicting_write(mov, use, &def, src->array.id, offset))
+         continue;
 
-		if (conflicts(mov->address, use->address))
-			continue;
+      if (conflicts(mov->address, use->address))
+         continue;
 
-		if (!valid_flags(use, mov))
-			continue;
+      if (!valid_flags(use, mov))
+         continue;
 
-		/* Ok, we've established that it is safe to remove this copy: */
+      /* Ok, we've established that it is safe to remove this copy: */
 
-		bool removed = false;
-		foreach_src_n (reg, n, use) {
-			if (ssa(reg) != mov)
-				continue;
+      bool removed = false;
+      foreach_src_n (reg, n, use) {
+         if (ssa(reg) != mov)
+            continue;
 
-			use->regs[n + 1] = ir3_reg_clone(mov->block->shader, src);
+         use->srcs[n] = ir3_reg_clone(mov->block->shader, src);
 
-			/* preserve (abs)/etc modifiers: */
-			use->regs[n + 1]-> flags |= reg->flags;
+         /* preserve (abs)/etc modifiers: */
+         use->srcs[n]->flags |= reg->flags;
 
-			/* If we're sinking the array read past any writes, make
-			 * sure to update it to point to the new previous write:
-			 */
-			use->regs[n + 1]->instr = def;
+         /* If we're sinking the array read past any writes, make
+          * sure to update it to point to the new previous write:
+          */
+         use->srcs[n]->def = def;
 
-			removed = true;
-		}
+         removed = true;
+      }
 
-		/* the use could have been only a false-dep, only add to the newdeps
-		 * array and update the address if we've actually updated a real src
-		 * reg for the use:
-		 */
-		if (removed) {
-			if (src->flags & IR3_REG_RELATIV)
-				ir3_instr_set_address(use, mov->address);
+      /* the use could have been only a false-dep, only add to the newdeps
+       * array and update the address if we've actually updated a real src
+       * reg for the use:
+       */
+      if (removed) {
+         if (src->flags & IR3_REG_RELATIV)
+            ir3_instr_set_address(use, mov->address->def->instr);
 
-			util_dynarray_append(&newdeps, struct ir3_instruction *, use);
+         util_dynarray_append(&newdeps, struct ir3_instruction *, use);
 
-			/* Remove the use from the src instruction: */
-			_mesa_set_remove_key(mov->uses, use);
-		}
-	}
+         /* Remove the use from the src instruction: */
+         _mesa_set_remove_key(mov->uses, use);
+      }
+   }
 
-	/* Once we have the complete set of instruction(s) that are are now
-	 * directly reading from the array, update any false-dep uses to
-	 * now depend on these instructions.  The only remaining uses at
-	 * this point should be false-deps:
-	 */
-	foreach_ssa_use (use, mov) {
-		util_dynarray_foreach(&newdeps, struct ir3_instruction *, instrp) {
-			struct ir3_instruction *newdep = *instrp;
-			ir3_instr_add_dep(use, newdep);
-		}
-	}
+   /* Once we have the complete set of instruction(s) that are are now
+    * directly reading from the array, update any false-dep uses to
+    * now depend on these instructions.  The only remaining uses at
+    * this point should be false-deps:
+    */
+   foreach_ssa_use (use, mov) {
+      util_dynarray_foreach (&newdeps, struct ir3_instruction *, instrp) {
+         struct ir3_instruction *newdep = *instrp;
+         ir3_instr_add_dep(use, newdep);
+      }
+   }
 
-	return util_dynarray_num_elements(&newdeps, struct ir3_instruction **) > 0;
+   return util_dynarray_num_elements(&newdeps, struct ir3_instruction **) > 0;
 }
 
 bool
 ir3_cp_postsched(struct ir3 *ir)
 {
-	void *mem_ctx = ralloc_context(NULL);
-	bool progress = false;
+   void *mem_ctx = ralloc_context(NULL);
+   bool progress = false;
 
-	ir3_find_ssa_uses(ir, mem_ctx, false);
+   ir3_find_ssa_uses(ir, mem_ctx, false);
 
-	foreach_block (block, &ir->block_list) {
-		foreach_instr_safe (instr, &block->instr_list) {
-			if (is_same_type_mov(instr))
-				progress |= instr_cp_postsched(instr);
-		}
-	}
+   foreach_block (block, &ir->block_list) {
+      foreach_instr_safe (instr, &block->instr_list) {
+         if (is_same_type_mov(instr))
+            progress |= instr_cp_postsched(instr);
+      }
+   }
 
-	ralloc_free(mem_ctx);
+   ralloc_free(mem_ctx);
 
-	return progress;
+   return progress;
 }

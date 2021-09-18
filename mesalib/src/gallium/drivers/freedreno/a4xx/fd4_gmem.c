@@ -482,7 +482,7 @@ fd4_emit_tile_mem2gmem(struct fd_batch *batch,
             fd4_gmem_emit_set_prog(ctx, &emit, &ctx->blit_zs);
 
          OUT_PKT0(ring, REG_A4XX_RB_DEPTH_CONTROL, 1);
-         OUT_RING(ring, A4XX_RB_DEPTH_CONTROL_Z_ENABLE |
+         OUT_RING(ring, A4XX_RB_DEPTH_CONTROL_Z_TEST_ENABLE |
                            A4XX_RB_DEPTH_CONTROL_Z_WRITE_ENABLE |
                            A4XX_RB_DEPTH_CONTROL_ZFUNC(FUNC_ALWAYS) |
                            A4XX_RB_DEPTH_CONTROL_EARLY_Z_DISABLE);

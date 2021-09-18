@@ -3,16 +3,19 @@
 set -e
 set -o xtrace
 
-VERSION=`cat install/VERSION`
+VERSION=`head -1 install/VERSION`
+ROOTDIR=`pwd`
 
-rm -rf results
+if [ -d results ]; then
+    cd results && rm -rf ..?* .[!.]* *
+fi
 cd /piglit
 
-export OCL_ICD_VENDORS=$OLDPWD/install/etc/OpenCL/vendors/
+export OCL_ICD_VENDORS=$ROOTDIR/install/etc/OpenCL/vendors/
 
 set +e
 unset DISPLAY
-export LD_LIBRARY_PATH=$OLDPWD/install/lib
+export LD_LIBRARY_PATH=$ROOTDIR/install/lib
 clinfo
 
 # If the job is parallel at the gitlab job level, will take the corresponding
@@ -34,7 +37,7 @@ if [ -n "$USE_CASELIST" ]; then
     PIGLIT_TESTS="--test-list /tmp/case-list.txt"
 fi
 
-./piglit run -c -j${FDO_CI_CONCURRENT:-4} $PIGLIT_OPTIONS $PIGLIT_TESTS $PIGLIT_PROFILES $OLDPWD/results
+./piglit run -c -j${FDO_CI_CONCURRENT:-4} $PIGLIT_OPTIONS $PIGLIT_TESTS $PIGLIT_PROFILES $ROOTDIR/results
 retVal=$?
 if [ $retVal -ne 0 ]; then
     echo "Found $(cat /tmp/version.txt), expected $VERSION"
@@ -43,7 +46,7 @@ set -e
 
 PIGLIT_RESULTS=${PIGLIT_RESULTS:-$PIGLIT_PROFILES}
 mkdir -p .gitlab-ci/piglit
-./piglit summary console $OLDPWD/results \
+./piglit summary console $ROOTDIR/results \
   | tee ".gitlab-ci/piglit/$PIGLIT_RESULTS.txt.orig" \
   | head -n -1 \
   | grep -v ": pass" \
@@ -55,17 +58,17 @@ if [ -n "$USE_CASELIST" ]; then
     # executed, and switch to the version with no summary
     cat .gitlab-ci/piglit/$PIGLIT_RESULTS.txt.orig | sed '/^summary:/Q' | rev \
          | cut -f2- -d: | rev | sed "s/$/:/g" > /tmp/executed.txt
-    grep -F -f /tmp/executed.txt $OLDPWD/install/$PIGLIT_RESULTS.txt \
+    grep -F -f /tmp/executed.txt $ROOTDIR/install/$PIGLIT_RESULTS.txt \
          > .gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline || true
 else
-    cp $OLDPWD/install/$PIGLIT_RESULTS.txt .gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline
+    cp $ROOTDIR/install/$PIGLIT_RESULTS.txt .gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline
 fi
 
 if diff -q .gitlab-ci/piglit/$PIGLIT_RESULTS.txt{.baseline,}; then
     exit 0
 fi
 
-./piglit summary html --exclude-details=pass $OLDPWD/results/summary $OLDPWD/results
+./piglit summary html --exclude-details=pass $ROOTDIR/results/summary $ROOTDIR/results
 
 echo Unexpected change in results:
 diff -u .gitlab-ci/piglit/$PIGLIT_RESULTS.txt{.baseline,}

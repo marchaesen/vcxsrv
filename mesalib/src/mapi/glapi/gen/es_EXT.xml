@@ -1295,6 +1295,32 @@
 
 </category>
 
+<category name="GL_EXT_clear_texture" number="269">
+
+    <function name ="ClearTexImageEXT" es2="3.1" alias="ClearTexImage">
+        <param name="texture" type="GLuint"/>
+        <param name="level" type="GLint"/>
+        <param name="format" type="GLenum"/>
+        <param name="type" type="GLenum"/>
+        <param name="data" type="const GLvoid *"/>
+    </function>
+
+    <function name ="ClearTexSubImageEXT" es2="3.1" alias="ClearTexSubImage">
+        <param name="texture" type="GLuint"/>
+        <param name="level" type="GLint"/>
+        <param name="xoffset" type="GLint"/>
+        <param name="yoffset" type="GLint"/>
+        <param name="zoffset" type="GLint"/>
+        <param name="width" type="GLsizei"/>
+        <param name="height" type="GLsizei"/>
+        <param name="depth" type="GLsizei"/>
+        <param name="format" type="GLenum"/>
+        <param name="type" type="GLenum"/>
+        <param name="data" type="const GLvoid *"/>
+    </function>
+
+</category>
+
 <category name="GL_EXT_clip_control" number="290">
 
     <enum name="LOWER_LEFT_EXT" value = "0x8CA1"/>

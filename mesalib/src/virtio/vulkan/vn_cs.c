@@ -5,7 +5,7 @@
 
 #include "vn_cs.h"
 
-#include "vn_device.h"
+#include "vn_instance.h"
 #include "vn_renderer.h"
 
 static void

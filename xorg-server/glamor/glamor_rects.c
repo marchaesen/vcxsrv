@@ -69,7 +69,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
             glamor_bounds_union_rect(&bounds, &prect[i]);
     }
 
-    if (glamor_priv->glsl_version >= 130) {
+    if (glamor_glsl_has_ints(glamor_priv)) {
         prog = glamor_use_program_fill(pixmap, gc,
                                        &glamor_priv->poly_fill_rect_program,
                                        &glamor_facet_polyfillrect_130);
@@ -151,7 +151,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
                       scissor.y1 + off_y,
                       scissor.x2 - scissor.x1,
                       scissor.y2 - scissor.y1);
-            if (glamor_priv->glsl_version >= 130)
+            if (glamor_glsl_has_ints(glamor_priv))
                 glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, nrect);
             else {
                 glamor_glDrawArrays_GL_QUADS(glamor_priv, nrect);
@@ -163,7 +163,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
 
 bail:
     glDisable(GL_SCISSOR_TEST);
-    if (glamor_priv->glsl_version >= 130) {
+    if (glamor_glsl_has_ints(glamor_priv)) {
         glVertexAttribDivisor(GLAMOR_VERTEX_SOURCE, 0);
         glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);

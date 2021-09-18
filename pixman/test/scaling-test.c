@@ -45,6 +45,35 @@ get_format (int bpp)
     }
 }
 
+/* sets up "some kind of separable convolution" using prng values */
+void setup_separable_convulution(pixman_image_t* image, pixman_fixed_t scale_x, pixman_fixed_t scale_y, int verbose) {
+  int num_filters = PIXMAN_KERNEL_LANCZOS3_STRETCHED + 1;
+  int max_subsample_bits = 4;
+  struct Params {
+    pixman_fixed_t scale_x, scale_y;
+    pixman_kernel_t reconstruct_x, reconstruct_y;
+    pixman_kernel_t sample_x, sample_y;
+    int subsample_bits_x, subsample_bits_y;
+  } params = {
+      scale_x, scale_y,
+      prng_rand_n(num_filters), prng_rand_n(num_filters),
+      prng_rand_n(num_filters), prng_rand_n(num_filters),
+      prng_rand_n(max_subsample_bits + 1), prng_rand_n(max_subsample_bits + 1),
+  };
+  int num_params;
+  pixman_fixed_t *filter;
+  if(verbose) {
+    printf("separable convolution kernels=%d %d %d %d subsample_bits=%d %d\n", params.reconstruct_x, params.reconstruct_y, params.sample_x, params.sample_y, params.subsample_bits_x, params.subsample_bits_y);
+  }
+  filter = pixman_filter_create_separable_convolution(&num_params,
+                                                      params.scale_x, params.scale_y,
+                                                      params.reconstruct_x, params.reconstruct_y,
+                                                      params.sample_x, params.sample_y,
+                                                      params.subsample_bits_x, params.subsample_bits_y);
+  pixman_image_set_filter(image, PIXMAN_FILTER_SEPARABLE_CONVOLUTION, filter, num_params);
+  free(filter);
+}
+
 uint32_t
 test_composite (int      testnum,
 		int      verbose)
@@ -246,15 +275,23 @@ test_composite (int      testnum,
     }
     pixman_image_set_repeat (src_img, repeat);
 
-    if (prng_rand_n (2))
-	pixman_image_set_filter (src_img, PIXMAN_FILTER_NEAREST, NULL, 0);
-    else
-	pixman_image_set_filter (src_img, PIXMAN_FILTER_BILINEAR, NULL, 0);
+    switch (prng_rand_n (5)) {
+    case 0: pixman_image_set_filter(src_img, PIXMAN_FILTER_BILINEAR, NULL, 0); break;
+    case 1: pixman_image_set_filter(src_img, PIXMAN_FILTER_NEAREST, NULL, 0); break;
+    default:
+      /* this gets a larger range as samples distribute over quite a few possible settings */
+      setup_separable_convulution(src_img, scale_x, scale_y, verbose);
+      break;
+    }
 
-    if (prng_rand_n (2))
-	pixman_image_set_filter (mask_img, PIXMAN_FILTER_NEAREST, NULL, 0);
-    else
-	pixman_image_set_filter (mask_img, PIXMAN_FILTER_BILINEAR, NULL, 0);
+    switch (prng_rand_n (5)) {
+    case 0: pixman_image_set_filter(mask_img, PIXMAN_FILTER_BILINEAR, NULL, 0); break;
+    case 1: pixman_image_set_filter(mask_img, PIXMAN_FILTER_NEAREST, NULL, 0); break;
+    default:
+      /* this gets a larger range as samples distribute over quite a few possible settings */
+      setup_separable_convulution(mask_img, scale_x, scale_y, verbose);
+      break;
+    }
 
     if (prng_rand_n (8) == 0)
     {
@@ -380,7 +417,7 @@ test_composite (int      testnum,
                             src_x, src_y, mask_x, mask_y, dst_x, dst_y, w, h);
 
     crc32 = compute_crc32_for_image (0, dst_img);
-    
+
     if (verbose)
 	print_image (dst_img);
 
@@ -407,9 +444,9 @@ test_composite (int      testnum,
 }
 
 #if BILINEAR_INTERPOLATION_BITS == 7
-#define CHECKSUM 0x92E0F068
+#define CHECKSUM 0xD3589272
 #elif BILINEAR_INTERPOLATION_BITS == 4
-#define CHECKSUM 0x8EFFA1E5
+#define CHECKSUM 0x0FD4B248
 #else
 #define CHECKSUM 0x00000000
 #endif

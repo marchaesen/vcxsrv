@@ -205,7 +205,11 @@ vlVdpDecoderQueryCapabilities(VdpDevice device, VdpDecoderProfile profile,
                                              PIPE_VIDEO_CAP_MAX_HEIGHT);
       *max_level = pscreen->get_video_param(pscreen, p_profile, PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
                                             PIPE_VIDEO_CAP_MAX_LEVEL);
-      *max_macroblocks = (*max_width/16)*(*max_height/16);
+      *max_macroblocks = pscreen->get_video_param(pscreen, p_profile, PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
+                                            PIPE_VIDEO_CAP_MAX_MACROBLOCKS);
+      if (*max_macroblocks == 0) {
+         *max_macroblocks = (*max_width/16)*(*max_height/16);
+      }
    } else {
       *max_width = 0;
       *max_height = 0;

@@ -55,4 +55,4 @@ $cffdump --script $base/decode/scripts/parse-submits.lua $traces/shadow.rd.gz | 
 $crashdec -sf $traces/crash.devcore | filter $output/crash.log
 
 $asm -g 6 $traces/afuc_test.asm $output/afuc_test.fw
-$disasm -g 6 $reference/afuc_test.fw | filter $output/afuc_test.asm
+$disasm -g 630 $reference/afuc_test.fw | filter $output/afuc_test.asm

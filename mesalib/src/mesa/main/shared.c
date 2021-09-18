@@ -356,6 +356,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
    if (shared->DisplayList) {
       _mesa_HashDeleteAll(shared->DisplayList, delete_displaylist_cb, ctx);
       _mesa_DeleteHashTable(shared->DisplayList);
+      free(shared->small_dlist_store.ptr);
    }
 
    if (shared->BitmapAtlas) {

@@ -24,8 +24,6 @@
 # Authors:
 #    Chia-I Wu <olv@lunarg.com>
 
-from __future__ import print_function
-
 import sys
 # make it possible to import glapi
 import os

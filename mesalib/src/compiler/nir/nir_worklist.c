@@ -136,3 +136,20 @@ nir_block_worklist_pop_tail(nir_block_worklist *w)
    BITSET_CLEAR(w->blocks_present, w->blocks[tail]->index);
    return w->blocks[tail];
 }
+
+static bool
+nir_instr_worklist_add_srcs_cb(nir_src *src, void *state)
+{
+   nir_instr_worklist *wl = state;
+
+   if (src->is_ssa)
+      nir_instr_worklist_push_tail(wl, src->ssa->parent_instr);
+
+   return true;
+}
+
+void
+nir_instr_worklist_add_ssa_srcs(nir_instr_worklist *wl, nir_instr *instr)
+{
+   nir_foreach_src(instr, nir_instr_worklist_add_srcs_cb, wl);
+}

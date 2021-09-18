@@ -31,7 +31,11 @@ subdir('shared')
 subdir('util')
 subdir('midgard')
 subdir('bifrost')
-subdir('lib')
+
+if with_gallium_panfrost or with_panfrost_vk
+   subdir('lib')
+   subdir('perf')
+endif
 
 files_bifrost = files(
   'bifrost/cmdline.c',
@@ -39,7 +43,7 @@ files_bifrost = files(
 
 bifrost_compiler = executable(
   'bifrost_compiler',
-  [files_bifrost, midgard_pack],
+  [files_bifrost],
   include_directories : [
     inc_mapi,
     inc_mesa,
@@ -59,9 +63,18 @@ bifrost_compiler = executable(
   link_with : [
     libglsl_standalone,
     libpanfrost_bifrost,
-    libpanfrost_decode,
-    libpanfrost_lib,
-    libpanfrost_midgard_disasm, # references disassemble_midgard...
   ],
   build_by_default : with_tools.contains('panfrost')
 )
+
+if with_panfrost_vk
+  subdir('vulkan')
+endif
+
+if with_perfetto and (with_datasources.contains('panfrost') or with_datasources.contains('auto'))
+  subdir('ds')
+endif
+
+if with_tools.contains('drm-shim')
+  subdir('drm-shim')
+endif

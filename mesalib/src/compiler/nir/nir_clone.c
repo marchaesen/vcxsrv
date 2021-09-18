@@ -212,7 +212,6 @@ clone_register(clone_state *state, const nir_register *reg)
    nreg->bit_size = reg->bit_size;
    nreg->num_array_elems = reg->num_array_elems;
    nreg->index = reg->index;
-   nreg->name = ralloc_strdup(nreg, reg->name);
 
    /* reconstructing uses/defs/if_uses handled by nir_instr_insert() */
    list_inithead(&nreg->uses);
@@ -244,7 +243,7 @@ __clone_src(clone_state *state, void *ninstr_or_if,
    } else {
       nsrc->reg.reg = remap_reg(state, src->reg.reg);
       if (src->reg.indirect) {
-         nsrc->reg.indirect = ralloc(ninstr_or_if, nir_src);
+         nsrc->reg.indirect = malloc(sizeof(nir_src));
          __clone_src(state, ninstr_or_if, nsrc->reg.indirect, src->reg.indirect);
       }
       nsrc->reg.base_offset = src->reg.base_offset;
@@ -258,13 +257,13 @@ __clone_dst(clone_state *state, nir_instr *ninstr,
    ndst->is_ssa = dst->is_ssa;
    if (dst->is_ssa) {
       nir_ssa_dest_init(ninstr, ndst, dst->ssa.num_components,
-                        dst->ssa.bit_size, dst->ssa.name);
+                        dst->ssa.bit_size, NULL);
       if (likely(state->remap_table))
          add_remap(state, &ndst->ssa, &dst->ssa);
    } else {
       ndst->reg.reg = remap_reg(state, dst->reg.reg);
       if (dst->reg.indirect) {
-         ndst->reg.indirect = ralloc(ninstr, nir_src);
+         ndst->reg.indirect = malloc(sizeof(nir_src));
          __clone_src(state, ninstr, ndst->reg.indirect, dst->reg.indirect);
       }
       ndst->reg.base_offset = dst->reg.base_offset;
@@ -449,23 +448,12 @@ clone_phi(clone_state *state, const nir_phi_instr *phi, nir_block *nblk)
    nir_instr_insert_after_block(nblk, &nphi->instr);
 
    foreach_list_typed(nir_phi_src, src, node, &phi->srcs) {
-      nir_phi_src *nsrc = ralloc(nphi, nir_phi_src);
-
-      /* Just copy the old source for now. */
-      memcpy(nsrc, src, sizeof(*src));
-
-      /* Since we're not letting nir_insert_instr handle use/def stuff for us,
-       * we have to set the parent_instr manually.  It doesn't really matter
-       * when we do it, so we might as well do it here.
-       */
-      nsrc->src.parent_instr = &nphi->instr;
+      nir_phi_src *nsrc = nir_phi_instr_add_src(nphi, src->pred, src->src);
 
       /* Stash it in the list of phi sources.  We'll walk this list and fix up
        * sources at the very end of clone_function_impl.
        */
       list_add(&nsrc->src.use_link, &state->phi_srcs);
-
-      exec_list_push_tail(&nphi->srcs, &nsrc->node);
    }
 
    return nphi;
@@ -802,6 +790,10 @@ nir_shader_replace(nir_shader *dst, nir_shader *src)
    ralloc_adopt(dead_ctx, dst);
    ralloc_free(dead_ctx);
 
+   list_for_each_entry_safe(nir_instr, instr, &dst->gc_list, gc_node) {
+      nir_instr_free(instr);
+   }
+
    /* Re-parent all of src's ralloc children to dst */
    ralloc_adopt(dst, src);
 
@@ -810,6 +802,8 @@ nir_shader_replace(nir_shader *dst, nir_shader *src)
    /* We have to move all the linked lists over separately because we need the
     * pointers in the list elements to point to the lists in dst and not src.
     */
+   list_replace(&src->gc_list, &dst->gc_list);
+   list_inithead(&src->gc_list);
    exec_list_move_nodes_to(&src->variables, &dst->variables);
 
    /* Now move the functions over.  This takes a tiny bit more work */

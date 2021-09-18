@@ -38,7 +38,7 @@ void agxdecode_dump_file_open(void);
 
 void agxdecode_track_alloc(struct agx_bo *alloc);
 
-void agxdecode_dump_mappings(void);
+void agxdecode_dump_mappings(unsigned map_index);
 
 void agxdecode_track_free(struct agx_bo *bo);
 

@@ -1599,10 +1599,10 @@ dd_context_clear_texture(struct pipe_context *_pipe,
  */
 
 static void *
-dd_context_transfer_map(struct pipe_context *_pipe,
-                        struct pipe_resource *resource, unsigned level,
-                        unsigned usage, const struct pipe_box *box,
-                        struct pipe_transfer **transfer)
+dd_context_buffer_map(struct pipe_context *_pipe,
+                      struct pipe_resource *resource, unsigned level,
+                      unsigned usage, const struct pipe_box *box,
+                      struct pipe_transfer **transfer)
 {
    struct dd_context *dctx = dd_context(_pipe);
    struct pipe_context *pipe = dctx->pipe;
@@ -1614,7 +1614,41 @@ dd_context_transfer_map(struct pipe_context *_pipe,
 
       dd_before_draw(dctx, record);
    }
-   void *ptr = pipe->transfer_map(pipe, resource, level, usage, box, transfer);
+   void *ptr = pipe->buffer_map(pipe, resource, level, usage, box, transfer);
+   if (record) {
+      record->call.info.transfer_map.transfer_ptr = *transfer;
+      record->call.info.transfer_map.ptr = ptr;
+      if (*transfer) {
+         record->call.info.transfer_map.transfer = **transfer;
+         record->call.info.transfer_map.transfer.resource = NULL;
+         pipe_resource_reference(&record->call.info.transfer_map.transfer.resource,
+                                 (*transfer)->resource);
+      } else {
+         memset(&record->call.info.transfer_map.transfer, 0, sizeof(struct pipe_transfer));
+      }
+
+      dd_after_draw(dctx, record);
+   }
+   return ptr;
+}
+
+static void *
+dd_context_texture_map(struct pipe_context *_pipe,
+                       struct pipe_resource *resource, unsigned level,
+                       unsigned usage, const struct pipe_box *box,
+                       struct pipe_transfer **transfer)
+{
+   struct dd_context *dctx = dd_context(_pipe);
+   struct pipe_context *pipe = dctx->pipe;
+   struct dd_draw_record *record =
+      dd_screen(dctx->base.screen)->transfers ? dd_create_record(dctx) : NULL;
+
+   if (record) {
+      record->call.type = CALL_TRANSFER_MAP;
+
+      dd_before_draw(dctx, record);
+   }
+   void *ptr = pipe->texture_map(pipe, resource, level, usage, box, transfer);
    if (record) {
       record->call.info.transfer_map.transfer_ptr = *transfer;
       record->call.info.transfer_map.ptr = ptr;
@@ -1660,7 +1694,7 @@ dd_context_transfer_flush_region(struct pipe_context *_pipe,
 }
 
 static void
-dd_context_transfer_unmap(struct pipe_context *_pipe,
+dd_context_buffer_unmap(struct pipe_context *_pipe,
                           struct pipe_transfer *transfer)
 {
    struct dd_context *dctx = dd_context(_pipe);
@@ -1679,7 +1713,32 @@ dd_context_transfer_unmap(struct pipe_context *_pipe,
 
       dd_before_draw(dctx, record);
    }
-   pipe->transfer_unmap(pipe, transfer);
+   pipe->buffer_unmap(pipe, transfer);
+   if (record)
+      dd_after_draw(dctx, record);
+}
+
+static void
+dd_context_texture_unmap(struct pipe_context *_pipe,
+                          struct pipe_transfer *transfer)
+{
+   struct dd_context *dctx = dd_context(_pipe);
+   struct pipe_context *pipe = dctx->pipe;
+   struct dd_draw_record *record =
+      dd_screen(dctx->base.screen)->transfers ? dd_create_record(dctx) : NULL;
+
+   if (record) {
+      record->call.type = CALL_TRANSFER_UNMAP;
+      record->call.info.transfer_unmap.transfer_ptr = transfer;
+      record->call.info.transfer_unmap.transfer = *transfer;
+      record->call.info.transfer_unmap.transfer.resource = NULL;
+      pipe_resource_reference(
+            &record->call.info.transfer_unmap.transfer.resource,
+            transfer->resource);
+
+      dd_before_draw(dctx, record);
+   }
+   pipe->texture_unmap(pipe, transfer);
    if (record)
       dd_after_draw(dctx, record);
 }
@@ -1759,9 +1818,11 @@ dd_init_draw_functions(struct dd_context *dctx)
    CTX_INIT(flush_resource);
    CTX_INIT(generate_mipmap);
    CTX_INIT(get_query_result_resource);
-   CTX_INIT(transfer_map);
+   CTX_INIT(buffer_map);
+   CTX_INIT(texture_map);
    CTX_INIT(transfer_flush_region);
-   CTX_INIT(transfer_unmap);
+   CTX_INIT(buffer_unmap);
+   CTX_INIT(texture_unmap);
    CTX_INIT(buffer_subdata);
    CTX_INIT(texture_subdata);
 }

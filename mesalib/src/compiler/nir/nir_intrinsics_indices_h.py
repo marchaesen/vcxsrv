@@ -86,8 +86,8 @@ def main():
     args = parser.parse_args()
 
     path = os.path.join(args.outdir, 'nir_intrinsics_indices.h')
-    with open(path, 'wb') as f:
-        f.write(Template(template, output_encoding='utf-8').render(INTR_INDICES=INTR_INDICES))
+    with open(path, 'w') as f:
+        f.write(Template(template).render(INTR_INDICES=INTR_INDICES))
 
 if __name__ == '__main__':
     main()

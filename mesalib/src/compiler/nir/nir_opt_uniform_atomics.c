@@ -169,7 +169,7 @@ is_atomic_already_optimized(nir_shader *shader, nir_intrinsic_instr *instr)
 
    unsigned dims_needed = 0;
    for (unsigned i = 0; i < 3; i++)
-      dims_needed |= (shader->info.cs.local_size[i] > 1) << i;
+      dims_needed |= (shader->info.workgroup_size[i] > 1) << i;
 
    return (dims & dims_needed) == dims_needed || dims & 0x8;
 }
@@ -306,9 +306,10 @@ nir_opt_uniform_atomics(nir_shader *shader)
    /* A 1x1x1 workgroup only ever has one active lane, so there's no point in
     * optimizing any atomics.
     */
-   if (shader->info.stage == MESA_SHADER_COMPUTE && !shader->info.cs.local_size_variable &&
-       shader->info.cs.local_size[0] == 1 && shader->info.cs.local_size[1] == 1 &&
-       shader->info.cs.local_size[2] == 1)
+   if (gl_shader_stage_uses_workgroup(shader->info.stage) &&
+       !shader->info.workgroup_size_variable &&
+       shader->info.workgroup_size[0] == 1 && shader->info.workgroup_size[1] == 1 &&
+       shader->info.workgroup_size[2] == 1)
       return false;
 
    nir_foreach_function(function, shader) {

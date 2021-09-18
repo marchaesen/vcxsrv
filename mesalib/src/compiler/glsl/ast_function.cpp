@@ -2047,10 +2047,18 @@ ast_function_expression::handle_method(exec_list *instructions,
                                 "length called on unsized array"
                                 " only available with"
                                 " ARB_shader_storage_buffer_object");
+               goto fail;
+            } else if (op->variable_referenced()->is_in_shader_storage_block()) {
+               /* Calculate length of an unsized array in run-time */
+               result = new(ctx)
+                  ir_expression(ir_unop_ssbo_unsized_array_length, op);
+            } else {
+               /* When actual size is known at link-time, this will be
+                * replaced with a constant expression.
+                */
+               result = new (ctx)
+                  ir_expression(ir_unop_implicitly_sized_array_length, op);
             }
-            /* Calculate length of an unsized array in run-time */
-            result = new(ctx) ir_expression(ir_unop_ssbo_unsized_array_length,
-                                            op);
          } else {
             result = new(ctx) ir_constant(op->type->array_size());
          }

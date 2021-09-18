@@ -68,6 +68,22 @@ mesa_log_v(enum mesa_log_level, const char *tag, const char *format,
 #define mesa_logd_v(fmt, va) __mesa_log_use_args((fmt), (va))
 #endif
 
+struct log_stream {
+   char *msg;
+   const char *tag;
+   size_t pos;
+   enum mesa_log_level level;
+};
+
+struct log_stream *_mesa_log_stream_create(enum mesa_log_level level, char *tag);
+#define mesa_log_streame() _mesa_log_stream_create(MESA_LOG_ERROR, (MESA_LOG_TAG))
+#define mesa_log_streamw() _mesa_log_stream_create(MESA_LOG_WARN, (MESA_LOG_TAG))
+#define mesa_log_streami() _mesa_log_stream_create(MESA_LOG_INFO, (MESA_LOG_TAG))
+void mesa_log_stream_destroy(struct log_stream *stream);
+void mesa_log_stream_printf(struct log_stream *stream, const char *format, ...);
+
+void _mesa_log_multiline(enum mesa_log_level level, const char *tag, const char *lines);
+#define mesa_log_multiline(level, lines) _mesa_log_multiline(level, (MESA_LOG_TAG), lines)
 
 #ifndef DEBUG
 /* Suppres -Wunused */

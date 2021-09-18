@@ -60,7 +60,7 @@ PUBLIC struct hwvulkan_module_t HAL_MODULE_INFO_SYM = {
        .module_api_version = HWVULKAN_MODULE_API_VERSION_0_1,
        .hal_api_version = HARDWARE_MAKE_API_VERSION(1, 0),
        .id = HWVULKAN_HARDWARE_MODULE_ID,
-       .name = "AMD Vulkan HAL",
+       .name = "Turnip Vulkan HAL",
        .author = "Google",
        .methods =
          &(hw_module_methods_t){
@@ -116,11 +116,11 @@ tu_hal_close(struct hw_device_t *dev)
 }
 
 /* get dma-buf and modifier from gralloc info */
-VkResult
-tu_gralloc_info(struct tu_device *device,
-                const VkNativeBufferANDROID *gralloc_info,
-                int *dma_buf,
-                uint64_t *modifier)
+static VkResult
+tu_gralloc_info_other(struct tu_device *device,
+                      const VkNativeBufferANDROID *gralloc_info,
+                      int *dma_buf,
+                      uint64_t *modifier)
 
 {
    const uint32_t *handle_fds = (uint32_t *)gralloc_info->handle->data;
@@ -172,8 +172,87 @@ tu_gralloc_info(struct tu_device *device,
 
    *modifier = ubwc ? DRM_FORMAT_MOD_QCOM_COMPRESSED : DRM_FORMAT_MOD_LINEAR;
    return VK_SUCCESS;
+}
 
+static const char cros_gralloc_module_name[] = "CrOS Gralloc";
 
+#define CROS_GRALLOC_DRM_GET_BUFFER_INFO 4
+#define CROS_GRALLOC_DRM_GET_USAGE 5
+#define CROS_GRALLOC_DRM_GET_USAGE_FRONT_RENDERING_BIT 0x1
+
+struct cros_gralloc0_buffer_info {
+   uint32_t drm_fourcc;
+   int num_fds;
+   int fds[4];
+   uint64_t modifier;
+   int offset[4];
+   int stride[4];
+};
+
+static VkResult
+tu_gralloc_info_cros(struct tu_device *device,
+                     const VkNativeBufferANDROID *gralloc_info,
+                     int *dma_buf,
+                     uint64_t *modifier)
+
+{
+   const gralloc_module_t *gralloc = device->gralloc;
+   struct cros_gralloc0_buffer_info info;
+   int ret;
+
+   ret = gralloc->perform(gralloc, CROS_GRALLOC_DRM_GET_BUFFER_INFO,
+                          gralloc_info->handle, &info);
+   if (ret)
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+
+   *dma_buf = info.fds[0];
+   *modifier = info.modifier;
+
+   return VK_SUCCESS;
+}
+
+VkResult
+tu_gralloc_info(struct tu_device *device,
+                const VkNativeBufferANDROID *gralloc_info,
+                int *dma_buf,
+                uint64_t *modifier)
+
+{
+   if (!device->gralloc) {
+      /* get gralloc module for gralloc buffer info query */
+      int ret = hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
+                              (const hw_module_t **)&device->gralloc);
+
+      if (ret) {
+         /* This is *slightly* awkward, but if we are asked to import
+          * a gralloc handle, and there is no gralloc, it is some sort
+          * of invalid handle.
+          */
+         return vk_startup_errorf(device->instance,
+                                  VK_ERROR_INVALID_EXTERNAL_HANDLE,
+                                  "Could not open gralloc\n");
+      }
+
+      const gralloc_module_t *gralloc = device->gralloc;
+
+      mesa_logi("opened gralloc module name: %s", gralloc->common.name);
+
+      /* TODO not sure qcom gralloc module name, but we should check
+       * for it here and move the special gmsm handling out of
+       * tu_gralloc_info_other()
+       */
+      if (!strcmp(gralloc->common.name, cros_gralloc_module_name) && gralloc->perform) {
+         device->gralloc_type = TU_GRALLOC_CROS;
+      } else {
+         device->gralloc_type = TU_GRALLOC_OTHER;
+      }
+   }
+
+   if (device->gralloc_type == TU_GRALLOC_CROS) {
+      return tu_gralloc_info_cros(device, gralloc_info, dma_buf, modifier);
+   } else {
+      return tu_gralloc_info_other(device, gralloc_info, dma_buf, modifier);
+   }
 }
 
 /**
@@ -329,7 +408,7 @@ setup_gralloc0_usage(struct tu_device *device, VkFormat format,
    return VK_SUCCESS;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
                                    VkFormat format,
                                    VkImageUsageFlags imageUsage,
@@ -347,7 +426,7 @@ tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
 }
 
 #if ANDROID_API_LEVEL >= 26
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h,
                                     VkFormat format,
                                     VkImageUsageFlags imageUsage,
@@ -393,7 +472,7 @@ tu_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h,
 }
 #endif
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_AcquireImageANDROID(VkDevice device,
                        VkImage image_h,
                        int nativeFenceFd,
@@ -409,6 +488,7 @@ tu_AcquireImageANDROID(VkDevice device,
          device, &(VkImportSemaphoreFdInfoKHR) {
                     .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR,
                     .flags = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT,
+                    .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
                     .fd = semaphore_fd,
                     .semaphore = semaphore,
                  });

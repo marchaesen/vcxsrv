@@ -86,6 +86,7 @@ incompatible versions of the libs and dlls.
 In general the naming format used is:
     pthread[VG]{SE,CE,C}[c][E].dll
     pthread[VG]{SE,CE,C}[c][E].lib
+    libpthread[VG]{SE,CE,C}[c][E].lib (static linked lib)
 
 where:
     [VG] indicates the compiler
@@ -104,7 +105,7 @@ where:
         E	- EXTRAVERSION suffix.
 
 The name may also be suffixed by a 'd' to indicate a debugging version
-of the library. E.g. pthreadVC2d.lib. These will be created e.g. when
+of the library. E.g. libpthreadVC2d.lib. These will be created e.g. when
 the *-debug makefile targets are used.
 
 Examples:
@@ -329,7 +330,7 @@ Building with MS Visual Studio (C, VC++ using C++ EH, or Structured EH)
 -----------------------------------------------------------------------
 
 NOTE: A VS project/solution/whatever file is included as a contributed
-work and is not used of maintained in development. All building and
+work and is not used or maintained in development. All building and
 testing is done using makefiles. We use the native make system for each
 toolchain, which is 'nmake' in this case.
 
@@ -338,28 +339,27 @@ help information. E.g.
 
 $ nmake
 
-As examples, as at Release 2.10 the pre-built DLLs and static libraries
-can be built using one of the following command-lines:
+To just build all possible versions and install them in ..\PTHREADS-BUILT
+nmake all install
+------------------------------------------
+Or run one of the following command lines:
+nmake clean all-tests
+nmake -DEXHAUSTIVE clean all-tests
+nmake clean all-tests-md
+nmake clean all-tests-mt
+nmake clean VC
+nmake clean VC-debug
+nmake clean VC-static
+nmake clean VC-static-debug
+nmake clean VCE
+nmake clean VCE-debug
+nmake clean VCE-static
+nmake clean VCE-static-debug
+nmake clean VSE
+nmake clean VSE-debug
+nmake clean VSE-static
+nmake clean VSE-static-debug
 
-[Note: "setenv" comes with the SDK which is not required to build the library.
-I use it to build and test both 64 and 32 bit versions of the library.
-"/2003" is used to override my build system which is Win7 (at the time of
-writing) for backwards compatibility.]
-
-$ setenv /x64 /2003 /Release
-$ nmake realclean VC
-$ nmake realclean VCE
-$ nmake realclean VSE
-$ nmake realclean VC-static
-$ nmake realclean VCE-static
-$ nmake realclean VSE-static
-$ setenv /x86 /2003 /Release
-$ nmake realclean VC
-$ nmake realclean VCE
-$ nmake realclean VSE
-$ nmake realclean VC-static
-$ nmake realclean VCE-static
-$ nmake realclean VSE-static
 
 If you want to differentiate or customise library naming you can use,
 e.g.:
@@ -371,12 +371,6 @@ and .lib library names, e.g.:
 
 pthreadVC2-w64.dll
 pthreadVC2-w64.lib
-
-To build and test all DLLs and static lib compatibility versions
-(VC, VCE, VSE):
-
-$ setenv /x64 /2003 /release
-$ nmake all-tests
 
 You can run the testsuite by changing to the "tests" directory and
 running nmake. E.g.:
@@ -509,20 +503,24 @@ at the URL above).
 Building the library as a statically linkable library
 -----------------------------------------------------
 
-General:  __PTW32_STATIC_LIB must be defined for both the library build and the
-application build. The makefiles supplied and used by the following 'make'
-command lines will define this for you.
-
-MSVC (creates pthreadVCn.lib as a static link lib):
+MSVC
+Create libpthreadVCn.lib, the static linked library:
 
 nmake clean VC-static
 
+Run the testsuite using the static library just created:
+cd tests
+nmake clean VC-static
 
-MinGW32 (creates libpthreadGCn.a as a static link lib):
+MinGW32
+Creates libpthreadGCn.a. the static linked library):
 
 make clean GC-static
 
-Define  __PTW32_STATIC_LIB also when building your application.
+Run the testsuite using the static library just created:
+cd tests
+make clean GC-static
+
 
 Building the library under Cygwin
 ---------------------------------

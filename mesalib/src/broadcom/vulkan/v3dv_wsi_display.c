@@ -24,7 +24,7 @@
 #include "v3dv_private.h"
 #include "wsi_common_display.h"
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_GetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physical_device,
                                            uint32_t *property_count,
                                            VkDisplayPropertiesKHR *properties)
@@ -39,6 +39,21 @@ v3dv_GetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physical_device,
 }
 
 VkResult
+v3dv_GetPhysicalDeviceDisplayProperties2KHR(
+    VkPhysicalDevice physical_device,
+    uint32_t *pPropertyCount,
+    VkDisplayProperties2KHR *pProperties)
+{
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physical_device);
+
+   return wsi_display_get_physical_device_display_properties2(
+      physical_device,
+      &pdevice->wsi_device,
+      pPropertyCount,
+      pProperties);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_GetPhysicalDeviceDisplayPlanePropertiesKHR(
    VkPhysicalDevice physical_device,
    uint32_t *property_count,
@@ -54,6 +69,21 @@ v3dv_GetPhysicalDeviceDisplayPlanePropertiesKHR(
 }
 
 VkResult
+v3dv_GetPhysicalDeviceDisplayPlaneProperties2KHR(
+    VkPhysicalDevice physical_device,
+    uint32_t *pPropertyCount,
+    VkDisplayPlaneProperties2KHR *pProperties)
+{
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physical_device);
+
+   return wsi_display_get_physical_device_display_plane_properties2(
+      physical_device,
+      &pdevice->wsi_device,
+      pPropertyCount,
+      pProperties);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_GetDisplayPlaneSupportedDisplaysKHR(VkPhysicalDevice physical_device,
                                          uint32_t plane_index,
                                          uint32_t *display_count,
@@ -69,7 +99,7 @@ v3dv_GetDisplayPlaneSupportedDisplaysKHR(VkPhysicalDevice physical_device,
       displays);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_GetDisplayModePropertiesKHR(VkPhysicalDevice physical_device,
                                  VkDisplayKHR display,
                                  uint32_t *property_count,
@@ -85,6 +115,21 @@ v3dv_GetDisplayModePropertiesKHR(VkPhysicalDevice physical_device,
 }
 
 VkResult
+v3dv_GetDisplayModeProperties2KHR(VkPhysicalDevice physical_device,
+                                  VkDisplayKHR display,
+                                  uint32_t *pPropertyCount,
+                                  VkDisplayModeProperties2KHR *pProperties)
+{
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physical_device);
+
+   return wsi_display_get_display_mode_properties2(physical_device,
+                                                   &pdevice->wsi_device,
+                                                   display,
+                                                   pPropertyCount,
+                                                   pProperties);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_CreateDisplayModeKHR(VkPhysicalDevice physical_device,
                           VkDisplayKHR display,
                           const VkDisplayModeCreateInfoKHR *create_info,
@@ -101,7 +146,7 @@ v3dv_CreateDisplayModeKHR(VkPhysicalDevice physical_device,
                                           mode);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physical_device,
                                     VkDisplayModeKHR mode_khr,
                                     uint32_t plane_index,
@@ -117,6 +162,20 @@ v3dv_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physical_device,
 }
 
 VkResult
+v3dv_GetDisplayPlaneCapabilities2KHR(
+   VkPhysicalDevice physical_device,
+   const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
+   VkDisplayPlaneCapabilities2KHR *pCapabilities)
+{
+   V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, physical_device);
+
+   return wsi_get_display_plane_capabilities2(physical_device,
+                                              &pdevice->wsi_device,
+                                              pDisplayPlaneInfo,
+                                              pCapabilities);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_CreateDisplayPlaneSurfaceKHR(
     VkInstance _instance,
     const VkDisplaySurfaceCreateInfoKHR *create_info,

@@ -328,7 +328,9 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
 {
    struct lower_io_state state;
 
-   if (shader->info.stage == MESA_SHADER_TESS_CTRL)
+   if (shader->info.stage == MESA_SHADER_TESS_CTRL ||
+       shader->info.stage == MESA_SHADER_TASK ||
+       shader->info.stage == MESA_SHADER_MESH)
       return;
 
    state.shader = shader;

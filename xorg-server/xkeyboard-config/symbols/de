@@ -27,9 +27,6 @@ xkb_symbols "basic" {
     key <BKSL>	{ [numbersign, apostrophe, rightsinglequotemark,   dead_breve ]	};
     key <AB01>	{ [         y,          Y,       guillemotright,    U203A 	] };
     key <AB02>	{ [         x,          X,        guillemotleft,    U2039 	] };
-    key <AB04>	{ [         v,          V,   doublelowquotemark, singlelowquotemark ]	};
-    key <AB05>	{ [         b,          B,  leftdoublequotemark, leftsinglequotemark ] };
-    key <AB06>	{ [         n,          N, rightdoublequotemark, rightsinglequotemark ]	};
     key <AB08>  { [     comma,  semicolon,       periodcentered,     multiply	] };
     key <AB09>	{ [    period,      colon,                U2026,     division 	] };
     key <AB10>	{ [     minus, underscore,               endash,     emdash	] };
@@ -668,7 +665,7 @@ xkb_symbols "qwerty" {
     name[Group1] = "German (QWERTY)";
 
     key <AB01>	{ [         z,          Z,     leftarrow,         yen ]	};
-    key <AD06>	{ [         y,          Y, guillemotleft,        less ]	};
+    key <AD06>	{ [         y,          Y, guillemotleft,       U2039 ]	};
 };
 
 // layout for Russian letters on an german keyboard
@@ -907,7 +904,7 @@ xkb_symbols "hu" {
     include "de(basic)"
     name[Group1]="German (with Hungarian letters, no dead keys)";
 
-    key <AB01> { [         y,          Y,        guillemotleft,         less ] };
+    key <AB01> { [         y,          Y,        guillemotleft,        U2039 ] };
     key <AC10> { [odiaeresis, Odiaeresis,               eacute,       Eacute ] };
     key <AC11> { [adiaeresis, Adiaeresis,               aacute,        Aacute] };
     key <AD03> { [         e,          E,             EuroSign,     EuroSign ] };

@@ -68,7 +68,7 @@
  * - unique sequence numbers are generated for every new thread.
  *
  * Fail Criteria:
- * - 
+ * -
  */
 
 #include "test.h"
@@ -77,7 +77,7 @@
  */
 
 enum {
-	NUMTHREADS = PTHREAD_THREADS_MAX
+	NUMTHREADS = PTHREAD_THREADS_MAX - 2
 };
 
 
@@ -86,7 +86,7 @@ static long done = 0;
  * seqmap should have 1 in every element except [0]
  * Thread sequence numbers start at 1 and we will also
  * include this main thread so we need NUMTHREADS+2
- * elements. 
+ * elements.
  */
 static UINT64 seqmap[NUMTHREADS+2];
 
@@ -96,9 +96,9 @@ void * func(void * arg)
   seqmap[(int)pthread_getunique_np(pthread_self())] = 1;
   InterlockedIncrement(&done);
 
-  return (void *) 0; 
+  return (void *) 0;
 }
- 
+
 int
 main()
 {

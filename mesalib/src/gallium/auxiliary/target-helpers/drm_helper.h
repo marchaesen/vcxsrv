@@ -112,6 +112,26 @@ DRM_DRIVER_DESCRIPTOR(iris, iris_driconf, ARRAY_SIZE(iris_driconf))
 DRM_DRIVER_DESCRIPTOR_STUB(iris)
 #endif
 
+#ifdef GALLIUM_CROCUS
+#include "crocus/drm/crocus_drm_public.h"
+
+static struct pipe_screen *
+pipe_crocus_create_screen(int fd, const struct pipe_screen_config *config)
+{
+   struct pipe_screen *screen;
+
+   screen = crocus_drm_screen_create(fd, config);
+   return screen ? debug_screen_wrap(screen) : NULL;
+}
+
+const driOptionDescription crocus_driconf[] = {
+      #include "crocus/driinfo_crocus.h"
+};
+DRM_DRIVER_DESCRIPTOR(crocus, crocus_driconf, ARRAY_SIZE(crocus_driconf))
+#else
+DRM_DRIVER_DESCRIPTOR_STUB(crocus)
+#endif
+
 #ifdef GALLIUM_NOUVEAU
 #include "nouveau/drm/nouveau_drm_public.h"
 
@@ -245,7 +265,7 @@ pipe_msm_create_screen(int fd, const struct pipe_screen_config *config)
 {
    struct pipe_screen *screen;
 
-   screen = fd_drm_screen_create(fd, NULL);
+   screen = fd_drm_screen_create(fd, NULL, config);
    return screen ? debug_screen_wrap(screen) : NULL;
 }
 DRM_DRIVER_DESCRIPTOR(msm, NULL, 0)

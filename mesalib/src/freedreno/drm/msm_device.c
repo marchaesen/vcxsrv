@@ -70,7 +70,28 @@ msm_device_new(int fd, drmVersionPtr version)
        * thread's comm truncating the interesting part of the
        * process name.
        */
-      util_queue_init(&msm_dev->submit_queue, "sq", 8, 1, 0);
+      util_queue_init(&msm_dev->submit_queue, "sq", 8, 1, 0, NULL);
+   }
+
+   if (version->version_minor >= FD_VERSION_CACHED_COHERENT) {
+      struct drm_msm_gem_new new_req = {
+         .size = 0x1000,
+         .flags = MSM_BO_CACHED_COHERENT,
+      };
+
+      /* The kernel is new enough to support MSM_BO_CACHED_COHERENT,
+       * but that is not a guarantee that the device we are running
+       * on supports it.  So do a test allocation to find out.
+       */
+      if (!drmCommandWriteRead(fd, DRM_MSM_GEM_NEW,
+                               &new_req, sizeof(new_req))) {
+         struct drm_gem_close close_req = {
+            .handle = new_req.handle,
+         };
+         drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close_req);
+
+         dev->has_cached_coherent = true;
+      }
    }
 
    dev->bo_size = sizeof(struct msm_bo);

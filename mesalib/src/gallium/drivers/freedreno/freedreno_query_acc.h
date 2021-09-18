@@ -89,8 +89,6 @@ struct fd_acc_query {
 
    struct list_head node; /* list-node in ctx->active_acc_queries */
 
-   int no_wait_cnt; /* see fd_acc_get_query_result() */
-
    void *query_data; /* query specific data */
 };
 

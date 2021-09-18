@@ -139,8 +139,6 @@ static void
 rewrite_compare_instruction(nir_builder *bld, nir_alu_instr *orig_cmp,
                             nir_alu_instr *orig_add, bool zero_on_left)
 {
-   void *const mem_ctx = ralloc_parent(orig_cmp);
-
    bld->cursor = nir_before_instr(&orig_cmp->instr);
 
    /* This is somewhat tricky.  The compare instruction may be something like
@@ -174,7 +172,7 @@ rewrite_compare_instruction(nir_builder *bld, nir_alu_instr *orig_cmp,
     * will clean these up.  This is similar to nir_replace_instr (in
     * nir_search.c).
     */
-   nir_alu_instr *mov_add = nir_alu_instr_create(mem_ctx, nir_op_mov);
+   nir_alu_instr *mov_add = nir_alu_instr_create(bld->shader, nir_op_mov);
    mov_add->dest.write_mask = orig_add->dest.write_mask;
    nir_ssa_dest_init(&mov_add->instr, &mov_add->dest.dest,
                      orig_add->dest.dest.ssa.num_components,
@@ -183,7 +181,7 @@ rewrite_compare_instruction(nir_builder *bld, nir_alu_instr *orig_cmp,
 
    nir_builder_instr_insert(bld, &mov_add->instr);
 
-   nir_alu_instr *mov_cmp = nir_alu_instr_create(mem_ctx, nir_op_mov);
+   nir_alu_instr *mov_cmp = nir_alu_instr_create(bld->shader, nir_op_mov);
    mov_cmp->dest.write_mask = orig_cmp->dest.write_mask;
    nir_ssa_dest_init(&mov_cmp->instr, &mov_cmp->dest.dest,
                      orig_cmp->dest.dest.ssa.num_components,

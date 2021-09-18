@@ -155,7 +155,7 @@ driCreateNewScreen2(int scrn, int fd,
     driParseOptionInfo(&psp->optionInfo,
                        __dri2ConfigOptions, ARRAY_SIZE(__dri2ConfigOptions));
     driParseConfigFiles(&psp->optionCache, &psp->optionInfo, psp->myNum,
-                        "dri2", NULL, NULL, 0, NULL, 0);
+                        "dri2", NULL, NULL, NULL, 0, NULL, 0);
 
     *driver_configs = psp->driver->InitScreen(psp);
     if (*driver_configs == NULL) {

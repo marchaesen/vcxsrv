@@ -26,6 +26,7 @@
  */
 
 #include "freedreno_query_acc.h"
+#include "freedreno_state.h"
 
 #include "fd6_blend.h"
 #include "fd6_blitter.h"
@@ -38,6 +39,7 @@
 #include "fd6_program.h"
 #include "fd6_query.h"
 #include "fd6_rasterizer.h"
+#include "fd6_resource.h"
 #include "fd6_texture.h"
 #include "fd6_zsa.h"
 
@@ -48,6 +50,9 @@ fd6_context_destroy(struct pipe_context *pctx) in_dt
 
    u_upload_destroy(fd6_ctx->border_color_uploader);
    pipe_resource_reference(&fd6_ctx->border_color_buf, NULL);
+
+   if (fd6_ctx->streamout_disable_stateobj)
+      fd_ringbuffer_del(fd6_ctx->streamout_disable_stateobj);
 
    fd_context_destroy(pctx);
 
@@ -63,24 +68,6 @@ fd6_context_destroy(struct pipe_context *pctx) in_dt
 
    free(fd6_ctx);
 }
-
-/* clang-format off */
-static const uint8_t primtypes[] = {
-   [PIPE_PRIM_POINTS]                      = DI_PT_POINTLIST,
-   [PIPE_PRIM_LINES]                       = DI_PT_LINELIST,
-   [PIPE_PRIM_LINE_STRIP]                  = DI_PT_LINESTRIP,
-   [PIPE_PRIM_LINE_LOOP]                   = DI_PT_LINELOOP,
-   [PIPE_PRIM_TRIANGLES]                   = DI_PT_TRILIST,
-   [PIPE_PRIM_TRIANGLE_STRIP]              = DI_PT_TRISTRIP,
-   [PIPE_PRIM_TRIANGLE_FAN]                = DI_PT_TRIFAN,
-   [PIPE_PRIM_LINES_ADJACENCY]             = DI_PT_LINE_ADJ,
-   [PIPE_PRIM_LINE_STRIP_ADJACENCY]        = DI_PT_LINESTRIP_ADJ,
-   [PIPE_PRIM_TRIANGLES_ADJACENCY]         = DI_PT_TRI_ADJ,
-   [PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY]    = DI_PT_TRISTRIP_ADJ,
-   [PIPE_PRIM_PATCHES]                     = DI_PT_PATCHES0,
-   [PIPE_PRIM_MAX]                         = DI_PT_RECTLIST,  /* internal clear blits */
-};
-/* clang-format on */
 
 static void *
 fd6_vertex_state_create(struct pipe_context *pctx, unsigned num_elements,
@@ -126,6 +113,32 @@ fd6_vertex_state_delete(struct pipe_context *pctx, void *hwcso)
    fd_ringbuffer_del(so->stateobj);
    FREE(hwcso);
 }
+
+static void
+validate_surface(struct pipe_context *pctx, struct pipe_surface *psurf)
+   assert_dt
+{
+   fd6_validate_format(fd_context(pctx), fd_resource(psurf->texture),
+                       psurf->format);
+}
+
+static void
+fd6_set_framebuffer_state(struct pipe_context *pctx,
+                          const struct pipe_framebuffer_state *pfb)
+   in_dt
+{
+   if (pfb->zsbuf)
+      validate_surface(pctx, pfb->zsbuf);
+
+   for (unsigned i = 0; i < pfb->nr_cbufs; i++) {
+      if (!pfb->cbufs[i])
+         continue;
+      validate_surface(pctx, pfb->cbufs[i]);
+   }
+
+   fd_set_framebuffer_state(pctx, pfb);
+}
+
 
 static void
 setup_state_map(struct fd_context *ctx)
@@ -217,9 +230,11 @@ fd6_context_create(struct pipe_screen *pscreen, void *priv,
 
    setup_state_map(&fd6_ctx->base);
 
-   pctx = fd_context_init(&fd6_ctx->base, pscreen, primtypes, priv, flags);
+   pctx = fd_context_init(&fd6_ctx->base, pscreen, priv, flags);
    if (!pctx)
       return NULL;
+
+   pctx->set_framebuffer_state = fd6_set_framebuffer_state;
 
    /* after fd_context_init() to override set_shader_images() */
    fd6_image_init(pctx);

@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -46,6 +47,25 @@ extern "C" {
  * Android kernels.
  */
 #include <android/sync.h>
+
+/**
+ * Check if the fd represents a valid fence-fd.
+ *
+ * The android variant of this debug helper is implemented on top of the
+ * system's libsync for compatibility with pre-4.7 android kernels.
+ */
+static inline bool
+sync_valid_fd(int fd)
+{
+	/* sync_file_info() only available in SDK 26. */
+#if ANDROID_API_LEVEL >= 26
+	struct sync_file_info *info = sync_file_info(fd);
+	if (!info)
+		return false;
+	sync_file_info_free(info);
+#endif
+	return true;
+}
 #else
 
 #ifndef SYNC_IOC_MERGE
@@ -61,8 +81,20 @@ struct sync_merge_data {
 	uint32_t	flags;
 	uint32_t	pad;
 };
+
+struct sync_file_info {
+	char	name[32];
+	int32_t	status;
+	uint32_t	flags;
+	uint32_t	num_fences;
+	uint32_t	pad;
+
+	uint64_t	sync_fence_info;
+};
+
 #define SYNC_IOC_MAGIC		'>'
 #define SYNC_IOC_MERGE		_IOWR(SYNC_IOC_MAGIC, 3, struct sync_merge_data)
+#define SYNC_IOC_FILE_INFO	_IOWR(SYNC_IOC_MAGIC, 4, struct sync_file_info)
 #endif
 
 
@@ -107,6 +139,16 @@ static inline int sync_merge(const char *name, int fd1, int fd2)
 		return ret;
 
 	return data.fence;
+}
+
+/**
+ * Check if the fd represents a valid fence-fd.
+ */
+static inline bool
+sync_valid_fd(int fd)
+{
+	struct sync_file_info info = {{0}};
+	return ioctl(fd, SYNC_IOC_FILE_INFO, &info) >= 0;
 }
 
 #endif /* !ANDROID */

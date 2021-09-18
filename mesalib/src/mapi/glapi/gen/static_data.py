@@ -1689,8 +1689,8 @@ offsets = {
     "VertexAttribs2hvNV": 1653,
     "VertexAttribs3hvNV": 1654,
     "VertexAttribs4hvNV": 1655,
-    "GetVisualConfigs": 1656,
-    "Render": 1657,
+    "ClearTexImageEXT": 1656,
+    "ClearTexSubImageEXT": 1657,
     "RenderLarge": 1658,
     "CreateContext": 1659,
     "DestroyContext": 1660,
@@ -1737,6 +1737,8 @@ offsets = {
     "SetClientInfoARB": 1701,
     "CreateContextAttribsARB": 1702,
     "SetClientInfo2ARB": 1703,
+    "GetVisualConfigs": 1704,
+    "Render": 1705,
 }
 
 functions = [

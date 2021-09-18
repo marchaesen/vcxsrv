@@ -209,9 +209,11 @@ xf86AutoConfigOutputDevices(void)
     if (!xf86Info.autoBindGPU)
         return;
 
-    for (i = 0; i < xf86NumGPUScreens; i++)
+    for (i = 0; i < xf86NumGPUScreens; i++) {
+        int scrnum = xf86GPUScreens[i]->confScreen->screennum;
         RRProviderAutoConfigGpuScreen(xf86ScrnToScreen(xf86GPUScreens[i]),
-                                      xf86ScrnToScreen(xf86Screens[0]));
+                                      xf86ScrnToScreen(xf86Screens[scrnum]));
+    }
 }
 
 static void
@@ -689,8 +691,10 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         }
     }
 
-    for (i = 0; i < xf86NumGPUScreens; i++)
-        AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
+    for (i = 0; i < xf86NumGPUScreens; i++) {
+        int scrnum = xf86GPUScreens[i]->confScreen->screennum;
+        AttachUnboundGPU(xf86Screens[scrnum]->pScreen, xf86GPUScreens[i]->pScreen);
+    }
 
     xf86AutoConfigOutputDevices();
 

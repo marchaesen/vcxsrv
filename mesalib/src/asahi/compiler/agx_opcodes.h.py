@@ -36,6 +36,14 @@ enum agx_opcode {
    AGX_NUM_OPCODES
 };
 
+% for name in enums:
+enum agx_${name} {
+% for k in enums[name]:
+   AGX_${name.upper()}_${enums[name][k].replace('.', '_').upper()} = ${k},
+% endfor
+};
+% endfor
+
 /* Runtime accessible info on each defined opcode */
 
 <% assert(len(immediates) < 32); %>
@@ -69,6 +77,7 @@ extern const struct agx_opcode_info agx_opcodes_info[AGX_NUM_OPCODES];
 """
 
 from mako.template import Template
-from agx_opcodes import opcodes, immediates
+from agx_opcodes import opcodes, immediates, enums
 
-print(Template(template).render(opcodes=opcodes, immediates=immediates))
+print(Template(template).render(opcodes=opcodes, immediates=immediates,
+         enums=enums))

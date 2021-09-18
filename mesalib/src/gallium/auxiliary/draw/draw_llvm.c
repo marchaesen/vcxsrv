@@ -219,7 +219,8 @@ create_jit_sampler_type(struct gallivm_state *gallivm, const char *struct_name)
 
    elem_types[DRAW_JIT_SAMPLER_MIN_LOD] =
    elem_types[DRAW_JIT_SAMPLER_MAX_LOD] =
-   elem_types[DRAW_JIT_SAMPLER_LOD_BIAS] = LLVMFloatTypeInContext(gallivm->context);
+   elem_types[DRAW_JIT_SAMPLER_LOD_BIAS] =
+   elem_types[DRAW_JIT_SAMPLER_MAX_ANISO] = LLVMFloatTypeInContext(gallivm->context);
    elem_types[DRAW_JIT_SAMPLER_BORDER_COLOR] =
       LLVMArrayType(LLVMFloatTypeInContext(gallivm->context), 4);
 
@@ -239,6 +240,9 @@ create_jit_sampler_type(struct gallivm_state *gallivm, const char *struct_name)
    LP_CHECK_MEMBER_OFFSET(struct draw_jit_sampler, border_color,
                           target, sampler_type,
                           DRAW_JIT_SAMPLER_BORDER_COLOR);
+   LP_CHECK_MEMBER_OFFSET(struct draw_jit_sampler, max_aniso,
+                          target, sampler_type,
+                          DRAW_JIT_SAMPLER_MAX_ANISO);
 
    LP_CHECK_STRUCT_SIZE(struct draw_jit_sampler, target, sampler_type);
 
@@ -332,6 +336,7 @@ create_jit_context_type(struct gallivm_state *gallivm,
                                  LP_MAX_TGSI_SHADER_BUFFERS);
    elem_types[8] = LLVMArrayType(int_type, /* num_vs_ssbos */
                                  LP_MAX_TGSI_SHADER_BUFFERS);
+   elem_types[9] = LLVMPointerType(float_type, 0); /* aniso table */
    context_type = LLVMStructTypeInContext(gallivm->context, elem_types,
                                           ARRAY_SIZE(elem_types), 0);
 
@@ -356,6 +361,8 @@ create_jit_context_type(struct gallivm_state *gallivm,
                           target, context_type, DRAW_JIT_CTX_SSBOS);
    LP_CHECK_MEMBER_OFFSET(struct draw_jit_context, num_vs_ssbos,
                           target, context_type, DRAW_JIT_CTX_NUM_SSBOS);
+   LP_CHECK_MEMBER_OFFSET(struct draw_jit_context, aniso_filter_table,
+                          target, context_type, DRAW_JIT_CTX_ANISO_FILTER_TABLE);
    LP_CHECK_STRUCT_SIZE(struct draw_jit_context,
                         target, context_type);
 
@@ -403,7 +410,7 @@ create_gs_jit_context_type(struct gallivm_state *gallivm,
                                  LP_MAX_TGSI_SHADER_BUFFERS);
    elem_types[11] = LLVMArrayType(int_type, /* num_ssbos */
                                  LP_MAX_TGSI_SHADER_BUFFERS);
-
+   elem_types[12] = LLVMPointerType(float_type, 0); /* aniso table */
    context_type = LLVMStructTypeInContext(gallivm->context, elem_types,
                                           ARRAY_SIZE(elem_types), 0);
 
@@ -437,6 +444,8 @@ create_gs_jit_context_type(struct gallivm_state *gallivm,
                           target, context_type, DRAW_GS_JIT_CTX_NUM_SSBOS);
    LP_CHECK_MEMBER_OFFSET(struct draw_gs_jit_context, images,
                           target, context_type, DRAW_GS_JIT_CTX_IMAGES);
+   LP_CHECK_MEMBER_OFFSET(struct draw_gs_jit_context, aniso_filter_table,
+                          target, context_type, DRAW_GS_JIT_CTX_ANISO_FILTER_TABLE);
    LP_CHECK_STRUCT_SIZE(struct draw_gs_jit_context,
                         target, context_type);
 
@@ -575,7 +584,7 @@ create_tcs_jit_context_type(struct gallivm_state *gallivm,
                                  LP_MAX_TGSI_SHADER_BUFFERS);
    elem_types[8] = LLVMArrayType(int_type, /* num_ssbos */
                                  LP_MAX_TGSI_SHADER_BUFFERS);
-
+   elem_types[9] = LLVMPointerType(float_type, 0); /* aniso table */
    context_type = LLVMStructTypeInContext(gallivm->context, elem_types,
                                           ARRAY_SIZE(elem_types), 0);
 
@@ -596,6 +605,8 @@ create_tcs_jit_context_type(struct gallivm_state *gallivm,
                           target, context_type, DRAW_TCS_JIT_CTX_NUM_SSBOS);
    LP_CHECK_MEMBER_OFFSET(struct draw_tcs_jit_context, images,
                           target, context_type, DRAW_TCS_JIT_CTX_IMAGES);
+   LP_CHECK_MEMBER_OFFSET(struct draw_tcs_jit_context, aniso_filter_table,
+                          target, context_type, DRAW_TCS_JIT_CTX_ANISO_FILTER_TABLE);
    LP_CHECK_STRUCT_SIZE(struct draw_tcs_jit_context,
                         target, context_type);
 
@@ -675,7 +686,7 @@ create_tes_jit_context_type(struct gallivm_state *gallivm,
                                  LP_MAX_TGSI_SHADER_BUFFERS);
    elem_types[8] = LLVMArrayType(int_type, /* num_ssbos */
                                  LP_MAX_TGSI_SHADER_BUFFERS);
-
+   elem_types[9] = LLVMPointerType(float_type, 0); /* aniso table */
    context_type = LLVMStructTypeInContext(gallivm->context, elem_types,
                                           ARRAY_SIZE(elem_types), 0);
 
@@ -696,6 +707,8 @@ create_tes_jit_context_type(struct gallivm_state *gallivm,
                           target, context_type, DRAW_TCS_JIT_CTX_NUM_SSBOS);
    LP_CHECK_MEMBER_OFFSET(struct draw_tes_jit_context, images,
                           target, context_type, DRAW_TCS_JIT_CTX_IMAGES);
+   LP_CHECK_MEMBER_OFFSET(struct draw_tcs_jit_context, aniso_filter_table,
+                          target, context_type, DRAW_TCS_JIT_CTX_ANISO_FILTER_TABLE);
    LP_CHECK_STRUCT_SIZE(struct draw_tes_jit_context,
                         target, context_type);
 
@@ -927,6 +940,33 @@ draw_llvm_create_variant(struct draw_llvm *llvm,
    return variant;
 }
 
+static void
+do_clamp_vertex_color(struct gallivm_state *gallivm,
+                      struct lp_type type,
+                      const struct tgsi_shader_info *info,
+                      LLVMValueRef (*outputs)[TGSI_NUM_CHANNELS])
+{
+   LLVMBuilderRef builder = gallivm->builder;
+   LLVMValueRef out;
+   unsigned chan, attrib;
+   struct lp_build_context bld;
+   lp_build_context_init(&bld, gallivm, type);
+
+   for (attrib = 0; attrib < info->num_outputs; ++attrib) {
+      for (chan = 0; chan < TGSI_NUM_CHANNELS; ++chan) {
+         if (outputs[attrib][chan]) {
+            switch (info->output_semantic_name[attrib]) {
+            case TGSI_SEMANTIC_COLOR:
+            case TGSI_SEMANTIC_BCOLOR:
+               out = LLVMBuildLoad(builder, outputs[attrib][chan], "");
+               out = lp_build_clamp(&bld, out, bld.zero, bld.one);
+               LLVMBuildStore(builder, out, outputs[attrib][chan]);
+               break;
+            }
+         }
+      }
+   }
+}
 
 static void
 generate_vs(struct draw_llvm_variant *variant,
@@ -967,6 +1007,7 @@ generate_vs(struct draw_llvm_variant *variant,
    params.ssbo_ptr = ssbos_ptr;
    params.ssbo_sizes_ptr = num_ssbos_ptr;
    params.image = draw_image;
+   params.aniso_filter_table = draw_jit_context_aniso_filter_table(variant->gallivm, context_ptr);
 
    if (llvm->draw->vs.vertex_shader->state.ir.nir &&
        llvm->draw->vs.vertex_shader->state.type == PIPE_SHADER_IR_NIR)
@@ -980,29 +1021,11 @@ generate_vs(struct draw_llvm_variant *variant,
                         &params,
                         outputs);
 
-   {
-      LLVMValueRef out;
-      unsigned chan, attrib;
-      struct lp_build_context bld;
-      struct tgsi_shader_info* info = &llvm->draw->vs.vertex_shader->info;
-      lp_build_context_init(&bld, variant->gallivm, vs_type);
-
-      for (attrib = 0; attrib < info->num_outputs; ++attrib) {
-         for (chan = 0; chan < TGSI_NUM_CHANNELS; ++chan) {
-            if (outputs[attrib][chan]) {
-               switch (info->output_semantic_name[attrib]) {
-               case TGSI_SEMANTIC_COLOR:
-               case TGSI_SEMANTIC_BCOLOR:
-                  if (clamp_vertex_color) {
-                     out = LLVMBuildLoad(builder, outputs[attrib][chan], "");
-                     out = lp_build_clamp(&bld, out, bld.zero, bld.one);
-                     LLVMBuildStore(builder, out, outputs[attrib][chan]);
-                  }
-                  break;
-               }
-            }
-         }
-      }
+   if (clamp_vertex_color) {
+      const struct tgsi_shader_info *info = &llvm->draw->vs.vertex_shader->info;
+      do_clamp_vertex_color(variant->gallivm,
+                            vs_type, info,
+                            outputs);
    }
 }
 
@@ -1818,6 +1841,10 @@ draw_gs_llvm_emit_vertex(const struct lp_build_gs_iface *gs_base,
    lp_build_if(&if_ctx, gallivm, cnd);
    io = lp_build_pointer_get(builder, io, LLVMBuildExtractElement(builder, stream_id, lp_build_const_int32(gallivm, 0), ""));
 
+   if (variant->key.clamp_vertex_color) {
+      do_clamp_vertex_color(gallivm, gs_type,
+                            gs_info, outputs);
+   }
    convert_to_aos(gallivm, io, indices,
                   outputs, clipmask,
                   gs_info->num_outputs, gs_type,
@@ -2363,7 +2390,6 @@ draw_llvm_make_variant_key(struct draw_llvm *llvm, char *store)
 
    memset(key, 0, offsetof(struct draw_llvm_variant_key, vertex_element[0]));
 
-   key->clamp_vertex_color = llvm->draw->rasterizer->clamp_vertex_color; /**/
 
    /* will have to rig this up properly later */
    key->clip_xy = llvm->draw->clip_xy;
@@ -2376,6 +2402,9 @@ draw_llvm_make_variant_key(struct draw_llvm *llvm, char *store)
    key->ucp_enable = llvm->draw->rasterizer->clip_plane_enable;
    key->has_gs_or_tes = llvm->draw->gs.geometry_shader != NULL || llvm->draw->tes.tess_eval_shader != NULL;
    key->num_outputs = draw_total_vs_outputs(llvm->draw);
+
+   key->clamp_vertex_color = !key->has_gs_or_tes &&
+      llvm->draw->rasterizer->clamp_vertex_color;
 
    /* All variants of this shader will have the same value for
     * nr_samplers.  Not yet trying to compact away holes in the
@@ -2591,6 +2620,7 @@ draw_llvm_set_sampler_state(struct draw_context *draw,
             jit_sam->min_lod = s->min_lod;
             jit_sam->max_lod = s->max_lod;
             jit_sam->lod_bias = s->lod_bias;
+            jit_sam->max_aniso = s->max_anisotropy;
             COPY_4V(jit_sam->border_color, s->border_color.f);
          }
       }
@@ -2605,6 +2635,7 @@ draw_llvm_set_sampler_state(struct draw_context *draw,
             jit_sam->min_lod = s->min_lod;
             jit_sam->max_lod = s->max_lod;
             jit_sam->lod_bias = s->lod_bias;
+            jit_sam->max_aniso = s->max_anisotropy;
             COPY_4V(jit_sam->border_color, s->border_color.f);
          }
       }
@@ -2619,6 +2650,7 @@ draw_llvm_set_sampler_state(struct draw_context *draw,
             jit_sam->min_lod = s->min_lod;
             jit_sam->max_lod = s->max_lod;
             jit_sam->lod_bias = s->lod_bias;
+            jit_sam->max_aniso = s->max_anisotropy;
             COPY_4V(jit_sam->border_color, s->border_color.f);
          }
       }
@@ -2633,6 +2665,7 @@ draw_llvm_set_sampler_state(struct draw_context *draw,
             jit_sam->min_lod = s->min_lod;
             jit_sam->max_lod = s->max_lod;
             jit_sam->lod_bias = s->lod_bias;
+            jit_sam->max_aniso = s->max_anisotropy;
             COPY_4V(jit_sam->border_color, s->border_color.f);
          }
       }
@@ -2869,6 +2902,7 @@ draw_gs_llvm_generate(struct draw_llvm *llvm,
    params.ssbo_sizes_ptr = num_ssbos_ptr;
    params.image = image;
    params.gs_vertex_streams = variant->shader->base.num_vertex_streams;
+   params.aniso_filter_table = draw_gs_jit_context_aniso_filter_table(gallivm, context_ptr);
 
    if (llvm->draw->gs.geometry_shader->state.type == PIPE_SHADER_IR_TGSI)
       lp_build_tgsi_soa(variant->gallivm,
@@ -2994,6 +3028,8 @@ draw_gs_llvm_make_variant_key(struct draw_llvm *llvm, char *store)
 
    key->num_outputs = draw_total_gs_outputs(llvm->draw);
 
+   key->clamp_vertex_color = llvm->draw->rasterizer->clamp_vertex_color;
+
    /* All variants of this shader will have the same value for
     * nr_samplers.  Not yet trying to compact away holes in the
     * sampler array.
@@ -3038,6 +3074,8 @@ draw_gs_llvm_dump_variant_key(struct draw_gs_llvm_variant_key *key)
    unsigned i;
    struct draw_sampler_static_state *sampler = key->samplers;
    struct draw_image_static_state *image = draw_gs_llvm_variant_key_images(key);
+
+   debug_printf("clamp_vertex_color = %u\n", key->clamp_vertex_color);
    for (i = 0 ; i < key->nr_sampler_views; i++) {
       debug_printf("sampler[%i].src_format = %s\n", i,
                    util_format_name(sampler[i].texture_state.format));
@@ -3523,6 +3561,7 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
       params.image = image;
       params.coro = &coro_info;
       params.tcs_iface = &tcs_iface.base;
+      params.aniso_filter_table = draw_tcs_jit_context_aniso_filter_table(gallivm, context_ptr);
 
       lp_build_nir_soa(variant->gallivm,
                        llvm->draw->tcs.tess_ctrl_shader->state.ir.nir,
@@ -3992,6 +4031,14 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    system_values.view_index = view_index;
 
    system_values.vertices_in = lp_build_broadcast_scalar(&bldvec, patch_vertices_in);
+
+   if (variant->key.primid_needed) {
+      int slot = variant->key.primid_output;
+      for (unsigned i = 0; i < 4; i++) {
+         outputs[slot][i] = lp_build_alloca(gallivm, lp_build_int_vec_type(gallivm, tes_type), "primid");
+         LLVMBuildStore(builder, system_values.prim_id, outputs[slot][i]);
+      }
+   }
    struct lp_build_loop_state lp_loop;
    lp_build_loop_begin(&lp_loop, gallivm, bld.zero);
    {
@@ -4037,6 +4084,7 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
       params.ssbo_sizes_ptr = num_ssbos_ptr;
       params.image = image;
       params.tes_iface = &tes_iface.base;
+      params.aniso_filter_table = draw_tes_jit_context_aniso_filter_table(variant->gallivm, context_ptr);
 
       lp_build_nir_soa(variant->gallivm,
                        llvm->draw->tes.tess_eval_shader->state.ir.nir,
@@ -4044,11 +4092,18 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
                        outputs);
 
       lp_build_mask_end(&mask);
+
+      if (variant->key.clamp_vertex_color) {
+         const struct tgsi_shader_info *info = &llvm->draw->tes.tess_eval_shader->info;
+         do_clamp_vertex_color(variant->gallivm,
+                               tes_type, info,
+                               outputs);
+      }
       LLVMValueRef clipmask = lp_build_const_int_vec(gallivm,
                                                      lp_int_type(tes_type), 0);
 
       convert_to_aos(gallivm, io, NULL, outputs, clipmask,
-                     params.info->num_outputs, tes_type, FALSE);
+                     draw_total_tes_outputs(llvm->draw), tes_type, FALSE);
    }
    lp_build_loop_end_cond(&lp_loop, num_tess_coord, step, LLVMIntUGE);
    sampler->destroy(sampler);
@@ -4161,6 +4216,15 @@ draw_tes_llvm_make_variant_key(struct draw_llvm *llvm, char *store)
 
    memset(key, 0, offsetof(struct draw_tes_llvm_variant_key, samplers[0]));
 
+   int primid_output = draw_find_shader_output(llvm->draw, TGSI_SEMANTIC_PRIMID, 0);
+   if (primid_output >= 0) {
+      key->primid_output = primid_output;
+      key->primid_needed = true;
+   }
+
+   key->clamp_vertex_color = llvm->draw->rasterizer->clamp_vertex_color &&
+      llvm->draw->gs.geometry_shader == NULL;
+
    /* All variants of this shader will have the same value for
     * nr_samplers.  Not yet trying to compact away holes in the
     * sampler array.
@@ -4205,6 +4269,10 @@ draw_tes_llvm_dump_variant_key(struct draw_tes_llvm_variant_key *key)
    unsigned i;
    struct draw_sampler_static_state *sampler = key->samplers;
    struct draw_image_static_state *image = draw_tes_llvm_variant_key_images(key);
+
+   if (key->primid_needed)
+      debug_printf("prim id output %d\n", key->primid_output);
+   debug_printf("clamp_vertex_color = %u\n", key->clamp_vertex_color);
    for (i = 0 ; i < key->nr_sampler_views; i++) {
       debug_printf("sampler[%i].src_format = %s\n", i,
                    util_format_name(sampler[i].texture_state.format));

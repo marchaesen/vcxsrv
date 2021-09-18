@@ -328,7 +328,8 @@ void draw_vbo(struct draw_context *draw,
               unsigned drawid_offset,
               const struct pipe_draw_indirect_info *indirect,
               const struct pipe_draw_start_count_bias *draws,
-              unsigned num_draws);
+              unsigned num_draws,
+              uint8_t patch_vertices);
 
 
 /*******************************************************************************
@@ -343,10 +344,6 @@ void draw_set_driver_clipping( struct draw_context *draw,
                                boolean bypass_clip_z,
                                boolean guard_band_xy,
                                boolean bypass_clip_points);
-
-void draw_set_force_passthrough( struct draw_context *draw, 
-                                 boolean enable );
-
 
 /*******************************************************************************
  * Draw statistics

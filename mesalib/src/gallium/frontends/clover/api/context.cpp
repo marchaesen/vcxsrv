@@ -40,7 +40,7 @@ clCreateContext(const cl_context_properties *d_props, cl_uint num_devs,
 
    for (auto &prop : props) {
       if (prop.first == CL_CONTEXT_PLATFORM)
-         obj(prop.second.as<cl_platform_id>());
+         find_platform(prop.second.as<cl_platform_id>());
       else
          throw error(CL_INVALID_PROPERTY);
    }

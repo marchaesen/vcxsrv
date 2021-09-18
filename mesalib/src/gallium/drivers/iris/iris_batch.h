@@ -56,8 +56,6 @@ enum iris_batch_name {
    IRIS_BATCH_COMPUTE,
 };
 
-#define IRIS_BATCH_COUNT 2
-
 struct iris_batch {
    struct iris_context *ice;
    struct iris_screen *screen;
@@ -83,11 +81,12 @@ struct iris_batch {
 
    uint32_t hw_ctx_id;
 
-   /** The validation list */
-   struct drm_i915_gem_exec_object2 *validation_list;
+   /** A list of all BOs referenced by this batch */
    struct iris_bo **exec_bos;
    int exec_count;
    int exec_array_size;
+   /** Bitset of whether this batch writes to BO `i'. */
+   BITSET_WORD *bos_written;
 
    /** Whether INTEL_BLACKHOLE_RENDER is enabled in the batch (aka first
     * instruction is a MI_BATCH_BUFFER_END).
@@ -269,7 +268,7 @@ iris_batch_reference_signal_syncobj(struct iris_batch *batch,
                                    struct iris_syncobj **out_syncobj)
 {
    struct iris_syncobj *syncobj = iris_batch_get_signal_syncobj(batch);
-   iris_syncobj_reference(batch->screen, out_syncobj, syncobj);
+   iris_syncobj_reference(batch->screen->bufmgr, out_syncobj, syncobj);
 }
 
 /**

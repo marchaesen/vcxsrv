@@ -27,7 +27,6 @@ files_libradeonsi = files(
   'si_build_pm4.h',
   'si_clear.c',
   'si_compute.c',
-  'si_compute_prim_discard.c',
   'si_compute.h',
   'si_compute_blit.c',
   'si_cp_dma.c',
@@ -46,6 +45,7 @@ files_libradeonsi = files(
   'si_public.h',
   'si_query.c',
   'si_query.h',
+  'si_nir_optim.c',
   'si_shader.c',
   'si_shader.h',
   'si_shader_internal.h',
@@ -62,7 +62,6 @@ files_libradeonsi = files(
   'si_state.c',
   'si_state.h',
   'si_state_binning.c',
-  'si_state_draw.cpp',
   'si_state_msaa.c',
   'si_state_shaders.c',
   'si_state_streamout.c',
@@ -95,21 +94,33 @@ files_libradeonsi = files(
   '../radeon/radeon_winsys.h',
 )
 
+radeonsi_include_dirs = [inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_amd_common,
+                         inc_amd_common_llvm, inc_gallium_drivers]
+radeonsi_deps = [dep_llvm, dep_clock, dep_libdrm_radeon, idep_nir_headers, idep_amdgfxregs_h, idep_mesautil]
+
+radeonsi_gfx_libs = []
+foreach ver : ['6', '7', '8', '9', '10', '103']
+  radeonsi_gfx_libs += static_library(
+    'radeonsi_gfx@0@'.format(ver),
+    ['si_state_draw.cpp'],
+    include_directories : radeonsi_include_dirs,
+    cpp_args : ['-DGFX_VER=@0@'.format(ver)],
+    gnu_symbol_visibility : 'hidden',
+    dependencies : radeonsi_deps,
+  )
+endforeach
+
 libradeonsi = static_library(
   'radeonsi',
   [files_libradeonsi, sid_tables_h],
-  include_directories : [
-    inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_amd_common, inc_amd_common_llvm,
-    inc_gallium_drivers,
-  ],
-  c_args : ['-Wstrict-overflow=0'],
+  include_directories : radeonsi_include_dirs,
   gnu_symbol_visibility : 'hidden',
-  dependencies : [dep_llvm, dep_clock, dep_libdrm_radeon, idep_nir_headers, idep_amdgfxregs_h, idep_mesautil],
+  dependencies : radeonsi_deps,
 )
 
 driver_radeonsi = declare_dependency(
   compile_args : '-DGALLIUM_RADEONSI',
-  link_with : [
+  link_with : radeonsi_gfx_libs + [
     libradeonsi, libradeonwinsys, libamdgpuwinsys, libamd_common, libamd_common_llvm, libgalliumvl
   ],
   dependencies : idep_nir,

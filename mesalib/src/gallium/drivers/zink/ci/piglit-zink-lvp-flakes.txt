@@ -1,0 +1,4 @@
+spec@khr_debug@push-pop-group_gl.*
+# I can't reproduce these crashes locally
+# even after running them in loops for 4+ hours, so disable for now
+spec@arb_shader_texture_lod@execution@tex-miplevel-selection*

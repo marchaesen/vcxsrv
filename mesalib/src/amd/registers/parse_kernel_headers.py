@@ -804,7 +804,12 @@ def generate_json(gfx_version, amd_headers_path):
 
         if len(type['fields']) > 0:
             reg_types[name] = type
-            reg['type_ref'] = name
+
+            # Don't define types that have only one field covering all bits
+            field0_bits = type['fields'][0]['bits'];
+            if len(type['fields']) > 1 or field0_bits[0] != 0 or field0_bits[1] != 31:
+                reg['type_ref'] = name
+
             reg_mappings.append(reg)
 
 

@@ -42,6 +42,8 @@
 #include <assert.h>
 #include <inttypes.h>
 
+DEBUG_GET_ONCE_BOOL_OPTION(color, "AMD_COLOR", true);
+
 /* Parsed IBs are difficult to read without colors. Use "less -R file" to
  * read them, or use "aha -b -f file" to convert them to html.
  */
@@ -50,6 +52,12 @@
 #define COLOR_GREEN  "\033[1;32m"
 #define COLOR_YELLOW "\033[1;33m"
 #define COLOR_CYAN   "\033[1;36m"
+
+#define O_COLOR_RESET  (debug_get_option_color() ? COLOR_RESET : "")
+#define O_COLOR_RED    (debug_get_option_color() ? COLOR_RED : "")
+#define O_COLOR_GREEN  (debug_get_option_color() ? COLOR_GREEN : "")
+#define O_COLOR_YELLOW (debug_get_option_color() ? COLOR_YELLOW : "")
+#define O_COLOR_CYAN   (debug_get_option_color() ? COLOR_CYAN : "")
 
 #define INDENT_PKT 8
 
@@ -95,7 +103,9 @@ static void print_value(FILE *file, uint32_t value, int bits)
 static void print_named_value(FILE *file, const char *name, uint32_t value, int bits)
 {
    print_spaces(file, INDENT_PKT);
-   fprintf(file, COLOR_YELLOW "%s" COLOR_RESET " <- ", name);
+   fprintf(file, "%s%s%s <- ",
+           O_COLOR_YELLOW, name,
+           O_COLOR_RESET);
    print_value(file, value, bits);
 }
 
@@ -157,7 +167,9 @@ void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset, uint32
       bool first_field = true;
 
       print_spaces(file, INDENT_PKT);
-      fprintf(file, COLOR_YELLOW "%s" COLOR_RESET " <- ", reg_name);
+      fprintf(file, "%s%s%s <- ",
+              O_COLOR_YELLOW, reg_name,
+              O_COLOR_RESET);
 
       if (!reg->num_fields) {
          print_value(file, value, 32);
@@ -190,7 +202,9 @@ void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset, uint32
    }
 
    print_spaces(file, INDENT_PKT);
-   fprintf(file, COLOR_YELLOW "0x%05x" COLOR_RESET " <- 0x%08x\n", offset, value);
+   fprintf(file, "%s0x%05x%s <- 0x%08x\n",
+           O_COLOR_YELLOW, offset,
+           O_COLOR_RESET, value);
 }
 
 static uint32_t ac_ib_get(struct ac_ib_parser *ib)
@@ -208,7 +222,8 @@ static uint32_t ac_ib_get(struct ac_ib_parser *ib)
        * and radeon_emit is performance sensitive...
        */
       if (VALGRIND_CHECK_VALUE_IS_DEFINED(v))
-         fprintf(ib->f, COLOR_RED "Valgrind: The next DWORD is garbage" COLOR_RESET "\n");
+         fprintf(ib->f, "%sValgrind: The next DWORD is garbage%s\n",
+                 debug_get_option_color() ? COLOR_RED : "", O_COLOR_RESET);
 #endif
       fprintf(ib->f, "\n\035#%08x ", v);
    } else {
@@ -255,11 +270,11 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 
       if (op == PKT3_SET_CONTEXT_REG || op == PKT3_SET_CONFIG_REG || op == PKT3_SET_UCONFIG_REG ||
           op == PKT3_SET_UCONFIG_REG_INDEX || op == PKT3_SET_SH_REG)
-         fprintf(f, COLOR_CYAN "%s%s" COLOR_CYAN ":\n", name, predicate);
+         fprintf(f, "%s%s%s%s:\n", O_COLOR_CYAN, name, predicate, O_COLOR_RESET);
       else
-         fprintf(f, COLOR_GREEN "%s%s" COLOR_RESET ":\n", name, predicate);
+         fprintf(f, "%s%s%s%s:\n", O_COLOR_GREEN, name, predicate, O_COLOR_RESET);
    } else
-      fprintf(f, COLOR_RED "PKT3_UNKNOWN 0x%x%s" COLOR_RESET ":\n", op, predicate);
+      fprintf(f, "%sPKT3_UNKNOWN 0x%x%s%s:\n", O_COLOR_RED, op, predicate, O_COLOR_RESET);
 
    /* Print the contents. */
    switch (op) {
@@ -459,7 +474,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
          unsigned packet_id = AC_GET_TRACE_POINT_ID(ib->ib[ib->cur_dw]);
 
          print_spaces(f, INDENT_PKT);
-         fprintf(f, COLOR_RED "Trace point ID: %u\n", packet_id);
+         fprintf(f, "%sTrace point ID: %u%s\n", O_COLOR_RED, packet_id, O_COLOR_RESET);
 
          if (!ib->trace_id_count)
             break; /* tracing was disabled */
@@ -467,17 +482,22 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
          *current_trace_id = packet_id;
 
          print_spaces(f, INDENT_PKT);
-         if (packet_id < *ib->trace_ids)
-            fprintf(f, COLOR_RED "This trace point was reached by the CP." COLOR_RESET "\n");
-         else if (packet_id == *ib->trace_ids)
-            fprintf(f, COLOR_RED "!!!!! This is the last trace point that "
-                                 "was reached by the CP !!!!!" COLOR_RESET "\n");
-         else if (packet_id + 1 == *ib->trace_ids)
-            fprintf(f, COLOR_RED "!!!!! This is the first trace point that "
-                                 "was NOT been reached by the CP !!!!!" COLOR_RESET "\n");
-         else
-            fprintf(f, COLOR_RED "!!!!! This trace point was NOT reached "
-                                 "by the CP !!!!!" COLOR_RESET "\n");
+         if (packet_id < *ib->trace_ids) {
+            fprintf(f, "%sThis trace point was reached by the CP.%s\n",
+                    O_COLOR_RED, O_COLOR_RESET);
+         } else if (packet_id == *ib->trace_ids) {
+            fprintf(f, "%s!!!!! This is the last trace point that "
+                                 "was reached by the CP !!!!!%s\n",
+                    O_COLOR_RED, O_COLOR_RESET);
+         } else if (packet_id + 1 == *ib->trace_ids) {
+            fprintf(f, "%s!!!!! This is the first trace point that "
+                                 "was NOT been reached by the CP !!!!!%s\n",
+                    O_COLOR_RED, O_COLOR_RESET);
+         } else {
+            fprintf(f, "%s!!!!! This trace point was NOT reached "
+                                 "by the CP !!!!!%s\n",
+                    O_COLOR_RED, O_COLOR_RESET);
+         }
          break;
       }
       break;
@@ -488,7 +508,8 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
       ac_ib_get(ib);
 
    if (ib->cur_dw > first_dw + count + 1)
-      fprintf(f, COLOR_RED "\n!!!!! count in header too low !!!!!" COLOR_RESET "\n");
+      fprintf(f, "%s !!!!! count in header too low !!!!!%s\n",
+              O_COLOR_RED, O_COLOR_RESET);
 }
 
 /**
@@ -509,7 +530,8 @@ static void ac_do_parse_ib(FILE *f, struct ac_ib_parser *ib)
       case 2:
          /* type-2 nop */
          if (header == 0x80000000) {
-            fprintf(f, COLOR_GREEN "NOP (type 2)" COLOR_RESET "\n");
+            fprintf(f, "%sNOP (type 2)%s\n",
+                    O_COLOR_GREEN, O_COLOR_RESET);
             break;
          }
          FALLTHROUGH;

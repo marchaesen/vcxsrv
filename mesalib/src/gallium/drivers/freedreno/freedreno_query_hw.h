@@ -124,8 +124,6 @@ struct fd_hw_query {
    struct fd_hw_sample_period *period;
 
    struct list_head list; /* list-node in batch->active_queries */
-
-   int no_wait_cnt; /* see fd_hw_get_query_result */
 };
 
 static inline struct fd_hw_query *

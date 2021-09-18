@@ -43,6 +43,17 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<doc>
 		Writing to this triggers a register write and auto-increments
 		REG_WRITE_ADDR.
+
+		Note that there seems to be some upper bits that are possilby
+		flags, ie:
+
+		 l284:  0d12: 8a8c0003  mov $0c, 0x0003 &lt;&lt; 20
+		              GPR:  $0c: 00300000
+		        0d13: 318c9e0b  or $0c, $0c, 0x9e0b
+		              GPR:  $0c: 00309e0b
+		        0d14: a80c0024  cwrite $0c, [$00 + @REG_WRITE_ADDR], 0x0
+		              CTRL: @REG_WRITE_ADDR: 00309e0b
+
 	</doc>
 	<reg32 name="REG_WRITE" offset="0x025"/>
 
@@ -62,7 +73,38 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 name="QUERY_PEND_CTR" offset="0x039"/>
 	<reg32 name="CACHE_FLUSH_PEND_CTR" offset="0x03a"/>
 
-	<reg32 name="DRAW_STATE_SEL" offset="0x041"/>
+	<reg32 name="DRAW_STATE_SEL" offset="0x041">
+		<doc>
+			SQE writes DRAW_STATE_SEL to select the SDS state group, and
+			then reads out the SDS header (DRAW_STATE_HDR), ie. the first
+			dword in the state group entry (see CP_SET_DRAW_STATE), and
+			base address of the state group cmdstream (DRAW_STATE_BASE)
+		</doc>
+	</reg32>
+	<reg64 name="SDS_BASE" offset="0x042">
+		<doc>
+			base address for executing draw state group when IB_LEVEL
+			is set to 3 (ie. it's a bit like IB3 equiv of IBn_BASE)
+
+			Note that SDS_BASE/SDS_DWORDS seem to be per-state-group,
+			the values reflected switch when DRAW_STATE_SEL is written.
+		</doc>
+	</reg64>
+	<reg32 name="SDS_DWORDS" offset="0x044">
+		<doc>
+			state group equiv of IBn_DWORDS
+		</doc>
+	</reg32>
+
+	<reg64 name="DRAW_STATE_BASE" offset="0x045"/>
+	<reg32 name="DRAW_STATE_HDR" offset="0x047">
+		<doc>
+			Contains information from the first dword of the state group
+			entry in CP_SET_DRAW_STATE, but format isn't exactly the
+			same.  The # of dwords is in low 16b, and mode mask is in
+			high 16 bits
+		</doc>
+	</reg32>
 	<reg32 name="DRAW_STATE_ACTIVE_BITMASK" offset="0x049"/>
 	<reg32 name="DRAW_STATE_SET" offset="0x04a"/>
 
@@ -111,6 +153,11 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	</doc>
 
 	<reg32 name="PREEMPTION_INFO" offset="0x126"/>
+
+	<doc>
+		Seems to be a shadow for PC_MARKER
+	</doc>
+	<reg32 name="MARKER" offset="0x12a"/>
 
 	<doc>
 		Set by SET_MARKER, used to conditionally execute

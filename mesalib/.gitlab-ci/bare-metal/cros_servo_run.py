@@ -139,7 +139,7 @@ class CrosServoRun:
                 self.print_error("Detected cheza power management bus error, restarting run...")
                 return 2
 
-            result = re.search("bare-metal result: (\S*)", line)
+            result = re.search("hwci: mesa: (\S*)", line)
             if result:
                 if result.group(1) == "pass":
                     return 0

@@ -1,467 +1,1165 @@
 /*
- * dialog.c - a reasonably platform-independent mechanism for
- * describing dialog boxes.
+ * windlg.c - dialogs for PuTTY(tel), including the configuration dialog.
  */
 
-#include <assert.h>
-#include <limits.h>
-#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
-
-#define DEFINE_INTORPTR_FNS
+#include <limits.h>
+#include <assert.h>
+#include <ctype.h>
+#include <time.h>
 
 #include "putty.h"
+#include "ssh.h"
+#include "putty-rc.h"
+#include "win-gui-seat.h"
+#include "storage.h"
 #include "dialog.h"
+#include "licence.h"
 
-int ctrl_path_elements(const char *path)
+#include <commctrl.h>
+#include <commdlg.h>
+#include <shellapi.h>
+
+#ifdef MSVC4
+#define TVINSERTSTRUCT  TV_INSERTSTRUCT
+#define TVITEM          TV_ITEM
+#define ICON_BIG        1
+#endif
+
+/*
+ * These are the various bits of data required to handle the
+ * portable-dialog stuff in the config box. Having them at file
+ * scope in here isn't too bad a place to put them; if we were ever
+ * to need more than one config box per process we could always
+ * shift them to a per-config-box structure stored in GWL_USERDATA.
+ */
+static struct controlbox *ctrlbox;
+/*
+ * ctrls_base holds the OK and Cancel buttons: the controls which
+ * are present in all dialog panels. ctrls_panel holds the ones
+ * which change from panel to panel.
+ */
+static struct winctrls ctrls_base, ctrls_panel;
+static struct dlgparam dp;
+
+#define LOGEVENT_INITIAL_MAX 128
+#define LOGEVENT_CIRCULAR_MAX 128
+
+static char *events_initial[LOGEVENT_INITIAL_MAX];
+static char *events_circular[LOGEVENT_CIRCULAR_MAX];
+static int ninitial = 0, ncircular = 0, circular_first = 0;
+
+#define PRINTER_DISABLED_STRING "None (printing disabled)"
+
+void force_normal(HWND hwnd)
 {
-    int i = 1;
-    while (*path) {
-        if (*path == '/') i++;
-        path++;
+    static bool recurse = false;
+
+    WINDOWPLACEMENT wp;
+
+    if (recurse)
+        return;
+    recurse = true;
+
+    wp.length = sizeof(wp);
+    if (GetWindowPlacement(hwnd, &wp) && wp.showCmd == SW_SHOWMAXIMIZED) {
+        wp.showCmd = SW_SHOWNORMAL;
+        SetWindowPlacement(hwnd, &wp);
     }
-    return i;
+    recurse = false;
 }
 
-/* Return the number of matching path elements at the starts of p1 and p2,
- * or INT_MAX if the paths are identical. */
-int ctrl_path_compare(const char *p1, const char *p2)
+static char *getevent(int i)
 {
-    int i = 0;
-    while (*p1 || *p2) {
-        if ((*p1 == '/' || *p1 == '\0') &&
-            (*p2 == '/' || *p2 == '\0'))
-            i++;                       /* a whole element matches, ooh */
-        if (*p1 != *p2)
-            return i;                  /* mismatch */
-        p1++, p2++;
-    }
-    return INT_MAX;                    /* exact match */
+    if (i < ninitial)
+        return events_initial[i];
+    if ((i -= ninitial) < ncircular)
+        return events_circular[(circular_first + i) % LOGEVENT_CIRCULAR_MAX];
+    return NULL;
 }
 
-struct controlbox *ctrl_new_box(void)
-{
-    struct controlbox *ret = snew(struct controlbox);
+static HWND logbox;
+HWND event_log_window(void) { return logbox; }
 
-    ret->nctrlsets = ret->ctrlsetsize = 0;
-    ret->ctrlsets = NULL;
-    ret->nfrees = ret->freesize = 0;
-    ret->frees = NULL;
-    ret->freefuncs = NULL;
+static INT_PTR CALLBACK LogProc(HWND hwnd, UINT msg,
+                                WPARAM wParam, LPARAM lParam)
+{
+    int i;
+
+    switch (msg) {
+      case WM_INITDIALOG: {
+        char *str = dupprintf("%s Event Log", appname);
+        SetWindowText(hwnd, str);
+        sfree(str);
+
+        static int tabs[4] = { 78, 108 };
+        SendDlgItemMessage(hwnd, IDN_LIST, LB_SETTABSTOPS, 2,
+                           (LPARAM) tabs);
+
+        for (i = 0; i < ninitial; i++)
+            SendDlgItemMessage(hwnd, IDN_LIST, LB_ADDSTRING,
+                               0, (LPARAM) events_initial[i]);
+        for (i = 0; i < ncircular; i++)
+            SendDlgItemMessage(hwnd, IDN_LIST, LB_ADDSTRING,
+                               0, (LPARAM) events_circular[(circular_first + i) % LOGEVENT_CIRCULAR_MAX]);
+        return 1;
+      }
+      case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+          case IDOK:
+          case IDCANCEL:
+            logbox = NULL;
+            SetActiveWindow(GetParent(hwnd));
+            DestroyWindow(hwnd);
+            return 0;
+          case IDN_COPY:
+            if (HIWORD(wParam) == BN_CLICKED ||
+                HIWORD(wParam) == BN_DOUBLECLICKED) {
+                int selcount;
+                int *selitems;
+                selcount = SendDlgItemMessage(hwnd, IDN_LIST,
+                                              LB_GETSELCOUNT, 0, 0);
+                if (selcount == 0) {   /* don't even try to copy zero items */
+                    MessageBeep(0);
+                    break;
+                }
+
+                selitems = snewn(selcount, int);
+                if (selitems) {
+                    int count = SendDlgItemMessage(hwnd, IDN_LIST,
+                                                   LB_GETSELITEMS,
+                                                   selcount,
+                                                   (LPARAM) selitems);
+                    int i;
+                    int size;
+                    char *clipdata;
+                    static unsigned char sel_nl[] = SEL_NL;
+
+                    if (count == 0) {  /* can't copy zero stuff */
+                        MessageBeep(0);
+                        break;
+                    }
+
+                    size = 0;
+                    for (i = 0; i < count; i++)
+                        size +=
+                            strlen(getevent(selitems[i])) + sizeof(sel_nl);
+
+                    clipdata = snewn(size, char);
+                    if (clipdata) {
+                        char *p = clipdata;
+                        for (i = 0; i < count; i++) {
+                            char *q = getevent(selitems[i]);
+                            int qlen = strlen(q);
+                            memcpy(p, q, qlen);
+                            p += qlen;
+                            memcpy(p, sel_nl, sizeof(sel_nl));
+                            p += sizeof(sel_nl);
+                        }
+                        write_aclip(CLIP_SYSTEM, clipdata, size, true);
+                        sfree(clipdata);
+                    }
+                    sfree(selitems);
+
+                    for (i = 0; i < (ninitial + ncircular); i++)
+                        SendDlgItemMessage(hwnd, IDN_LIST, LB_SETSEL,
+                                           false, i);
+                }
+            }
+            return 0;
+        }
+        return 0;
+      case WM_CLOSE:
+        logbox = NULL;
+        SetActiveWindow(GetParent(hwnd));
+        DestroyWindow(hwnd);
+        return 0;
+    }
+    return 0;
+}
+
+static INT_PTR CALLBACK LicenceProc(HWND hwnd, UINT msg,
+                                    WPARAM wParam, LPARAM lParam)
+{
+    switch (msg) {
+      case WM_INITDIALOG: {
+        char *str = dupprintf("%s Licence", appname);
+        SetWindowText(hwnd, str);
+        sfree(str);
+        SetDlgItemText(hwnd, IDA_TEXT, LICENCE_TEXT("\r\n\r\n"));
+        return 1;
+      }
+      case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+          case IDOK:
+          case IDCANCEL:
+            EndDialog(hwnd, 1);
+            return 0;
+        }
+        return 0;
+      case WM_CLOSE:
+        EndDialog(hwnd, 1);
+        return 0;
+    }
+    return 0;
+}
+
+static INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg,
+                                  WPARAM wParam, LPARAM lParam)
+{
+    char *str;
+
+    switch (msg) {
+      case WM_INITDIALOG: {
+        str = dupprintf("About %s", appname);
+        SetWindowText(hwnd, str);
+        sfree(str);
+        char *buildinfo_text = buildinfo("\r\n");
+        char *text = dupprintf
+            ("%s\r\n\r\n%s\r\n\r\n%s\r\n\r\n%s",
+             appname, ver, buildinfo_text,
+             "\251 " SHORT_COPYRIGHT_DETAILS ". All rights reserved.");
+        sfree(buildinfo_text);
+        SetDlgItemText(hwnd, IDA_TEXT, text);
+        MakeDlgItemBorderless(hwnd, IDA_TEXT);
+        sfree(text);
+        return 1;
+      }
+      case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+          case IDOK:
+          case IDCANCEL:
+            EndDialog(hwnd, true);
+            return 0;
+          case IDA_LICENCE:
+            EnableWindow(hwnd, 0);
+            DialogBox(hinst, MAKEINTRESOURCE(IDD_LICENCEBOX),
+                      hwnd, LicenceProc);
+            EnableWindow(hwnd, 1);
+            SetActiveWindow(hwnd);
+            return 0;
+
+          case IDA_WEB:
+            /* Load web browser */
+            ShellExecute(hwnd, "open",
+                         "https://www.chiark.greenend.org.uk/~sgtatham/putty/",
+                         0, 0, SW_SHOWDEFAULT);
+            return 0;
+        }
+        return 0;
+      case WM_CLOSE:
+        EndDialog(hwnd, true);
+        return 0;
+    }
+    return 0;
+}
+
+static int SaneDialogBox(HINSTANCE hinst,
+                         LPCTSTR tmpl,
+                         HWND hwndparent,
+                         DLGPROC lpDialogFunc)
+{
+    WNDCLASS wc;
+    HWND hwnd;
+    MSG msg;
+    int flags;
+    int ret;
+    int gm;
+
+    wc.style = CS_DBLCLKS | CS_SAVEBITS | CS_BYTEALIGNWINDOW;
+    wc.lpfnWndProc = DefDlgProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = DLGWINDOWEXTRA + 2*sizeof(LONG_PTR);
+    wc.hInstance = hinst;
+    wc.hIcon = NULL;
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH) (COLOR_BACKGROUND +1);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = "PuTTYConfigBox";
+    RegisterClass(&wc);
+
+    hwnd = CreateDialog(hinst, tmpl, hwndparent, lpDialogFunc);
+
+    SetWindowLongPtr(hwnd, BOXFLAGS, 0); /* flags */
+    SetWindowLongPtr(hwnd, BOXRESULT, 0); /* result from SaneEndDialog */
+
+    while ((gm=GetMessage(&msg, NULL, 0, 0)) > 0) {
+        flags=GetWindowLongPtr(hwnd, BOXFLAGS);
+        if (!(flags & DF_END) && !IsDialogMessage(hwnd, &msg))
+            DispatchMessage(&msg);
+        if (flags & DF_END)
+            break;
+    }
+
+    if (gm == 0)
+        PostQuitMessage(msg.wParam); /* We got a WM_QUIT, pass it on */
+
+    ret=GetWindowLongPtr(hwnd, BOXRESULT);
+    DestroyWindow(hwnd);
+    return ret;
+}
+
+static void SaneEndDialog(HWND hwnd, int ret)
+{
+    SetWindowLongPtr(hwnd, BOXRESULT, ret);
+    SetWindowLongPtr(hwnd, BOXFLAGS, DF_END);
+}
+
+/*
+ * Null dialog procedure.
+ */
+static INT_PTR CALLBACK NullDlgProc(HWND hwnd, UINT msg,
+                                    WPARAM wParam, LPARAM lParam)
+{
+    return 0;
+}
+
+enum {
+    IDCX_ABOUT = IDC_ABOUT,
+    IDCX_TVSTATIC,
+    IDCX_TREEVIEW,
+    IDCX_STDBASE,
+    IDCX_PANELBASE = IDCX_STDBASE + 32
+};
+
+struct treeview_faff {
+    HWND treeview;
+    HTREEITEM lastat[4];
+};
+
+static HTREEITEM treeview_insert(struct treeview_faff *faff,
+                                 int level, char *text, char *path)
+{
+    TVINSERTSTRUCT ins;
+    int i;
+    HTREEITEM newitem;
+    ins.hParent = (level > 0 ? faff->lastat[level - 1] : TVI_ROOT);
+    ins.hInsertAfter = faff->lastat[level];
+#if _WIN32_IE >= 0x0400 && defined NONAMELESSUNION
+#define INSITEM DUMMYUNIONNAME.item
+#else
+#define INSITEM item
+#endif
+    ins.INSITEM.mask = TVIF_TEXT | TVIF_PARAM;
+    ins.INSITEM.pszText = text;
+    ins.INSITEM.cchTextMax = strlen(text)+1;
+    ins.INSITEM.lParam = (LPARAM)path;
+    newitem = TreeView_InsertItem(faff->treeview, &ins);
+    if (level > 0)
+        TreeView_Expand(faff->treeview, faff->lastat[level - 1],
+                        (level > 1 ? TVE_COLLAPSE : TVE_EXPAND));
+    faff->lastat[level] = newitem;
+    for (i = level + 1; i < 4; i++)
+        faff->lastat[i] = NULL;
+    return newitem;
+}
+
+/*
+ * Create the panelfuls of controls in the configuration box.
+ */
+static void create_controls(HWND hwnd, char *path)
+{
+    struct ctlpos cp;
+    int index;
+    int base_id;
+    struct winctrls *wc;
+
+    if (!path[0]) {
+        /*
+         * Here we must create the basic standard controls.
+         */
+        ctlposinit(&cp, hwnd, 3, 3, 235);
+        wc = &ctrls_base;
+        base_id = IDCX_STDBASE;
+    } else {
+        /*
+         * Otherwise, we're creating the controls for a particular
+         * panel.
+         */
+        ctlposinit(&cp, hwnd, 100, 3, 13);
+        wc = &ctrls_panel;
+        base_id = IDCX_PANELBASE;
+    }
+
+    for (index=-1; (index = ctrl_find_path(ctrlbox, path, index)) >= 0 ;) {
+        struct controlset *s = ctrlbox->ctrlsets[index];
+        winctrl_layout(&dp, wc, &cp, s, &base_id);
+    }
+}
+
+/*
+ * This function is the configuration box.
+ * (Being a dialog procedure, in general it returns 0 if the default
+ * dialog processing should be performed, and 1 if it should not.)
+ */
+static INT_PTR CALLBACK GenericMainDlgProc(HWND hwnd, UINT msg,
+                                           WPARAM wParam, LPARAM lParam)
+{
+    HWND hw, treeview;
+    struct treeview_faff tvfaff;
+    int ret;
+
+    switch (msg) {
+      case WM_INITDIALOG:
+        dp.hwnd = hwnd;
+        create_controls(hwnd, "");     /* Open and Cancel buttons etc */
+        SetWindowText(hwnd, dp.wintitle);
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
+        if (has_help())
+            SetWindowLongPtr(hwnd, GWL_EXSTYLE,
+                             GetWindowLongPtr(hwnd, GWL_EXSTYLE) |
+                             WS_EX_CONTEXTHELP);
+        else {
+            HWND item = GetDlgItem(hwnd, IDC_HELPBTN);
+            if (item)
+                DestroyWindow(item);
+        }
+        SendMessage(hwnd, WM_SETICON, (WPARAM) ICON_BIG,
+                    (LPARAM) LoadIcon(hinst, MAKEINTRESOURCE(IDI_CFGICON)));
+        /*
+         * Centre the window.
+         */
+        {                              /* centre the window */
+            RECT rs, rd;
+
+            hw = GetDesktopWindow();
+            if (GetWindowRect(hw, &rs) && GetWindowRect(hwnd, &rd))
+                MoveWindow(hwnd,
+                           (rs.right + rs.left + rd.left - rd.right) / 2,
+                           (rs.bottom + rs.top + rd.top - rd.bottom) / 2,
+                           rd.right - rd.left, rd.bottom - rd.top, true);
+        }
+
+        /*
+         * Create the tree view.
+         */
+        {
+            RECT r;
+            WPARAM font;
+            HWND tvstatic;
+
+            r.left = 3;
+            r.right = r.left + 95;
+            r.top = 3;
+            r.bottom = r.top + 10;
+            MapDialogRect(hwnd, &r);
+            tvstatic = CreateWindowEx(0, "STATIC", "Cate&gory:",
+                                      WS_CHILD | WS_VISIBLE,
+                                      r.left, r.top,
+                                      r.right - r.left, r.bottom - r.top,
+                                      hwnd, (HMENU) IDCX_TVSTATIC, hinst,
+                                      NULL);
+            font = SendMessage(hwnd, WM_GETFONT, 0, 0);
+            SendMessage(tvstatic, WM_SETFONT, font, MAKELPARAM(true, 0));
+
+            r.left = 3;
+            r.right = r.left + 95;
+            r.top = 13;
+            r.bottom = r.top + 219;
+            MapDialogRect(hwnd, &r);
+            treeview = CreateWindowEx(WS_EX_CLIENTEDGE, WC_TREEVIEW, "",
+                                      WS_CHILD | WS_VISIBLE |
+                                      WS_TABSTOP | TVS_HASLINES |
+                                      TVS_DISABLEDRAGDROP | TVS_HASBUTTONS
+                                      | TVS_LINESATROOT |
+                                      TVS_SHOWSELALWAYS, r.left, r.top,
+                                      r.right - r.left, r.bottom - r.top,
+                                      hwnd, (HMENU) IDCX_TREEVIEW, hinst,
+                                      NULL);
+            font = SendMessage(hwnd, WM_GETFONT, 0, 0);
+            SendMessage(treeview, WM_SETFONT, font, MAKELPARAM(true, 0));
+            tvfaff.treeview = treeview;
+            memset(tvfaff.lastat, 0, sizeof(tvfaff.lastat));
+        }
+
+        /*
+         * Set up the tree view contents.
+         */
+        {
+            HTREEITEM hfirst = NULL;
+            int i;
+            char *path = NULL;
+            char *firstpath = NULL;
+
+            for (i = 0; i < ctrlbox->nctrlsets; i++) {
+                struct controlset *s = ctrlbox->ctrlsets[i];
+                HTREEITEM item;
+                int j;
+                char *c;
+
+                if (!s->pathname[0])
+                    continue;
+                j = path ? ctrl_path_compare(s->pathname, path) : 0;
+                if (j == INT_MAX)
+                    continue;          /* same path, nothing to add to tree */
+
+                /*
+                 * We expect never to find an implicit path
+                 * component. For example, we expect never to see
+                 * A/B/C followed by A/D/E, because that would
+                 * _implicitly_ create A/D. All our path prefixes
+                 * are expected to contain actual controls and be
+                 * selectable in the treeview; so we would expect
+                 * to see A/D _explicitly_ before encountering
+                 * A/D/E.
+                 */
+                assert(j == ctrl_path_elements(s->pathname) - 1);
+
+                c = strrchr(s->pathname, '/');
+                if (!c)
+                        c = s->pathname;
+                else
+                        c++;
+
+                item = treeview_insert(&tvfaff, j, c, s->pathname);
+                if (!hfirst) {
+                    hfirst = item;
+                    firstpath = s->pathname;
+                }
+
+                path = s->pathname;
+            }
+
+            /*
+             * Put the treeview selection on to the first panel in the
+             * ctrlbox.
+             */
+            TreeView_SelectItem(treeview, hfirst);
+
+            /*
+             * And create the actual control set for that panel, to
+             * match the initial treeview selection.
+             */
+            assert(firstpath);   /* config.c must have given us _something_ */
+            create_controls(hwnd, firstpath);
+            dlg_refresh(NULL, &dp);    /* and set up control values */
+        }
+
+        /*
+         * Set focus into the first available control.
+         */
+        {
+            int i;
+            struct winctrl *c;
+
+            for (i = 0; (c = winctrl_findbyindex(&ctrls_panel, i)) != NULL;
+                 i++) {
+                if (c->ctrl) {
+                    dlg_set_focus(c->ctrl, &dp);
+                    break;
+                }
+            }
+        }
+
+        /*
+         * Now we've finished creating our initial set of controls,
+         * it's safe to actually show the window without risking setup
+         * flicker.
+         */
+        ShowWindow(hwnd, SW_SHOWNORMAL);
+
+        /*
+         * Set the flag that activates a couple of the other message
+         * handlers below, which were disabled until now to avoid
+         * spurious firing during the above setup procedure.
+         */
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, 1);
+        return 0;
+      case WM_LBUTTONUP:
+        /*
+         * Button release should trigger WM_OK if there was a
+         * previous double click on the session list.
+         */
+        ReleaseCapture();
+        if (dp.ended)
+            SaneEndDialog(hwnd, dp.endresult ? 1 : 0);
+        break;
+      case WM_NOTIFY:
+        if (LOWORD(wParam) == IDCX_TREEVIEW &&
+            ((LPNMHDR) lParam)->code == TVN_SELCHANGED) {
+            /*
+             * Selection-change events on the treeview cause us to do
+             * a flurry of control deletion and creation - but only
+             * after WM_INITDIALOG has finished. The initial
+             * selection-change event(s) during treeview setup are
+             * ignored.
+             */
+            HTREEITEM i;
+            TVITEM item;
+            char buffer[64];
+
+            if (GetWindowLongPtr(hwnd, GWLP_USERDATA) != 1)
+                return 0;
+
+            i = TreeView_GetSelection(((LPNMHDR) lParam)->hwndFrom);
+
+            SendMessage (hwnd, WM_SETREDRAW, false, 0);
+
+            item.hItem = i;
+            item.pszText = buffer;
+            item.cchTextMax = sizeof(buffer);
+            item.mask = TVIF_TEXT | TVIF_PARAM;
+            TreeView_GetItem(((LPNMHDR) lParam)->hwndFrom, &item);
+            {
+                /* Destroy all controls in the currently visible panel. */
+                int k;
+                HWND item;
+                struct winctrl *c;
+
+                while ((c = winctrl_findbyindex(&ctrls_panel, 0)) != NULL) {
+                    for (k = 0; k < c->num_ids; k++) {
+                        item = GetDlgItem(hwnd, c->base_id + k);
+                        if (item)
+                            DestroyWindow(item);
+                    }
+                    winctrl_rem_shortcuts(&dp, c);
+                    winctrl_remove(&ctrls_panel, c);
+                    sfree(c->data);
+                    sfree(c);
+                }
+            }
+            create_controls(hwnd, (char *)item.lParam);
+
+            dlg_refresh(NULL, &dp);    /* set up control values */
+
+            SendMessage (hwnd, WM_SETREDRAW, true, 0);
+            InvalidateRect (hwnd, NULL, true);
+
+            SetFocus(((LPNMHDR) lParam)->hwndFrom);     /* ensure focus stays */
+            return 0;
+        }
+        break;
+      case WM_COMMAND:
+      case WM_DRAWITEM:
+      default:                         /* also handle drag list msg here */
+        /*
+         * Only process WM_COMMAND once the dialog is fully formed.
+         */
+        if (GetWindowLongPtr(hwnd, GWLP_USERDATA) == 1) {
+            ret = winctrl_handle_command(&dp, msg, wParam, lParam);
+            if (dp.ended && GetCapture() != hwnd)
+                SaneEndDialog(hwnd, dp.endresult ? 1 : 0);
+        } else
+            ret = 0;
+        return ret;
+      case WM_HELP:
+        if (!winctrl_context_help(&dp, hwnd,
+                                 ((LPHELPINFO)lParam)->iCtrlId))
+            MessageBeep(0);
+        break;
+      case WM_CLOSE:
+        quit_help(hwnd);
+        SaneEndDialog(hwnd, 0);
+        return 0;
+
+        /* Grrr Explorer will maximize Dialogs! */
+      case WM_SIZE:
+        if (wParam == SIZE_MAXIMIZED)
+            force_normal(hwnd);
+        return 0;
+
+    }
+    return 0;
+}
+
+void modal_about_box(HWND hwnd)
+{
+    EnableWindow(hwnd, 0);
+    DialogBox(hinst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, AboutProc);
+    EnableWindow(hwnd, 1);
+    SetActiveWindow(hwnd);
+}
+
+void show_help(HWND hwnd)
+{
+    launch_help(hwnd, NULL);
+}
+
+void defuse_showwindow(void)
+{
+    /*
+     * Work around the fact that the app's first call to ShowWindow
+     * will ignore the default in favour of the shell-provided
+     * setting.
+     */
+    {
+        HWND hwnd;
+        hwnd = CreateDialog(hinst, MAKEINTRESOURCE(IDD_ABOUTBOX),
+                            NULL, NullDlgProc);
+        ShowWindow(hwnd, SW_HIDE);
+        SetActiveWindow(hwnd);
+        DestroyWindow(hwnd);
+    }
+}
+
+bool do_config(Conf *conf)
+{
+    bool ret;
+
+    ctrlbox = ctrl_new_box();
+    setup_config_box(ctrlbox, false, 0, 0);
+    win_setup_config_box(ctrlbox, &dp.hwnd, has_help(), false, 0);
+    dp_init(&dp);
+    winctrl_init(&ctrls_base);
+    winctrl_init(&ctrls_panel);
+    dp_add_tree(&dp, &ctrls_base);
+    dp_add_tree(&dp, &ctrls_panel);
+    dp.wintitle = dupprintf("%s Configuration", appname);
+    dp.errtitle = dupprintf("%s Error", appname);
+    dp.data = conf;
+    dlg_auto_set_fixed_pitch_flag(&dp);
+    dp.shortcuts['g'] = true;          /* the treeview: `Cate&gory' */
+
+    ret =
+        SaneDialogBox(hinst, MAKEINTRESOURCE(IDD_MAINBOX), NULL,
+                  GenericMainDlgProc);
+
+    ctrl_free_box(ctrlbox);
+    winctrl_cleanup(&ctrls_panel);
+    winctrl_cleanup(&ctrls_base);
+    dp_cleanup(&dp);
 
     return ret;
 }
 
-void ctrl_free_box(struct controlbox *b)
+bool do_reconfig(HWND hwnd, Conf *conf, int protcfginfo)
 {
-    int i;
+    Conf *backup_conf;
+    bool ret;
+    int protocol;
 
-    for (i = 0; i < b->nctrlsets; i++) {
-        ctrl_free_set(b->ctrlsets[i]);
-    }
-    for (i = 0; i < b->nfrees; i++)
-        b->freefuncs[i](b->frees[i]);
-    sfree(b->ctrlsets);
-    sfree(b->frees);
-    sfree(b->freefuncs);
-    sfree(b);
+    backup_conf = conf_copy(conf);
+
+    ctrlbox = ctrl_new_box();
+    protocol = conf_get_int(conf, CONF_protocol);
+    setup_config_box(ctrlbox, true, protocol, protcfginfo);
+    win_setup_config_box(ctrlbox, &dp.hwnd, has_help(), true, protocol);
+    dp_init(&dp);
+    winctrl_init(&ctrls_base);
+    winctrl_init(&ctrls_panel);
+    dp_add_tree(&dp, &ctrls_base);
+    dp_add_tree(&dp, &ctrls_panel);
+    dp.wintitle = dupprintf("%s Reconfiguration", appname);
+    dp.errtitle = dupprintf("%s Error", appname);
+    dp.data = conf;
+    dlg_auto_set_fixed_pitch_flag(&dp);
+    dp.shortcuts['g'] = true;          /* the treeview: `Cate&gory' */
+
+    ret = SaneDialogBox(hinst, MAKEINTRESOURCE(IDD_MAINBOX), NULL,
+                  GenericMainDlgProc);
+
+    ctrl_free_box(ctrlbox);
+    winctrl_cleanup(&ctrls_base);
+    winctrl_cleanup(&ctrls_panel);
+    dp_cleanup(&dp);
+
+    if (!ret)
+        conf_copy_into(conf, backup_conf);
+
+    conf_free(backup_conf);
+
+    return ret;
 }
 
-void ctrl_free_set(struct controlset *s)
+static void win_gui_eventlog(LogPolicy *lp, const char *string)
 {
-    int i;
+    char timebuf[40];
+    char **location;
+    struct tm tm;
 
-    sfree(s->pathname);
-    sfree(s->boxname);
-    sfree(s->boxtitle);
-    for (i = 0; i < s->ncontrols; i++) {
-        ctrl_free(s->ctrls[i]);
+    tm=ltime();
+    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S\t", &tm);
+
+    if (ninitial < LOGEVENT_INITIAL_MAX)
+        location = &events_initial[ninitial];
+    else
+        location = &events_circular[(circular_first + ncircular) % LOGEVENT_CIRCULAR_MAX];
+
+    if (*location)
+        sfree(*location);
+    *location = dupcat(timebuf, string);
+    if (logbox) {
+        int count;
+        SendDlgItemMessage(logbox, IDN_LIST, LB_ADDSTRING,
+                           0, (LPARAM) *location);
+        count = SendDlgItemMessage(logbox, IDN_LIST, LB_GETCOUNT, 0, 0);
+        SendDlgItemMessage(logbox, IDN_LIST, LB_SETTOPINDEX, count - 1, 0);
     }
-    sfree(s->ctrls);
-    sfree(s);
+    if (ninitial < LOGEVENT_INITIAL_MAX) {
+        ninitial++;
+    } else if (ncircular < LOGEVENT_CIRCULAR_MAX) {
+        ncircular++;
+    } else if (ncircular == LOGEVENT_CIRCULAR_MAX) {
+        circular_first = (circular_first + 1) % LOGEVENT_CIRCULAR_MAX;
+        sfree(events_circular[circular_first]);
+        events_circular[circular_first] = dupstr("..");
+    }
+}
+
+static void win_gui_logging_error(LogPolicy *lp, const char *event)
+{
+    WinGuiSeat *wgs = container_of(lp, WinGuiSeat, logpolicy);
+
+    /* Send 'can't open log file' errors to the terminal window.
+     * (Marked as stderr, although terminal.c won't care.) */
+    seat_stderr_pl(&wgs->seat, ptrlen_from_asciz(event));
+    seat_stderr_pl(&wgs->seat, PTRLEN_LITERAL("\r\n"));
+}
+
+void showeventlog(HWND hwnd)
+{
+    if (!logbox) {
+        logbox = CreateDialog(hinst, MAKEINTRESOURCE(IDD_LOGBOX),
+                              hwnd, LogProc);
+        ShowWindow(logbox, SW_SHOWNORMAL);
+    }
+    SetActiveWindow(logbox);
+}
+
+void showabout(HWND hwnd)
+{
+    DialogBox(hinst, MAKEINTRESOURCE(IDD_ABOUTBOX), hwnd, AboutProc);
+}
+
+struct hostkey_dialog_ctx {
+    const char *const *keywords;
+    const char *const *values;
+    const char *host;
+    int port;
+    FingerprintType fptype_default;
+    char **fingerprints;
+    const char *keydisp;
+    LPCTSTR iconid;
+    const char *helpctx;
+};
+
+static INT_PTR CALLBACK HostKeyMoreInfoProc(HWND hwnd, UINT msg,
+                                            WPARAM wParam, LPARAM lParam)
+{
+    switch (msg) {
+      case WM_INITDIALOG: {
+        const struct hostkey_dialog_ctx *ctx =
+            (const struct hostkey_dialog_ctx *)lParam;
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, (INT_PTR)ctx);
+
+        if (ctx->fingerprints[SSH_FPTYPE_SHA256])
+            SetDlgItemText(hwnd, IDC_HKI_SHA256,
+                           ctx->fingerprints[SSH_FPTYPE_SHA256]);
+        if (ctx->fingerprints[SSH_FPTYPE_MD5])
+            SetDlgItemText(hwnd, IDC_HKI_MD5,
+                           ctx->fingerprints[SSH_FPTYPE_MD5]);
+
+        SetDlgItemText(hwnd, IDA_TEXT, ctx->keydisp);
+
+        return 1;
+      }
+      case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+          case IDOK:
+            EndDialog(hwnd, 0);
+            return 0;
+        }
+        return 0;
+      case WM_CLOSE:
+        EndDialog(hwnd, 0);
+        return 0;
+    }
+    return 0;
+}
+
+static INT_PTR CALLBACK HostKeyDialogProc(HWND hwnd, UINT msg,
+                                          WPARAM wParam, LPARAM lParam)
+{
+    switch (msg) {
+      case WM_INITDIALOG: {
+        strbuf *sb = strbuf_new();
+        const struct hostkey_dialog_ctx *ctx =
+            (const struct hostkey_dialog_ctx *)lParam;
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, (INT_PTR)ctx);
+        for (int id = 100;; id++) {
+            char buf[256];
+
+            if (!GetDlgItemText(hwnd, id, buf, (int)lenof(buf)))
+                break;
+
+            strbuf_clear(sb);
+            for (const char *p = buf; *p ;) {
+                if (*p == '{') {
+                    for (size_t i = 0; ctx->keywords[i]; i++) {
+                        if (strstartswith(p, ctx->keywords[i])) {
+                            p += strlen(ctx->keywords[i]);
+                            put_datapl(sb, ptrlen_from_asciz(ctx->values[i]));
+                            goto matched;
+                        }
+                    }
+                } else {
+                    put_byte(sb, *p++);
+                }
+              matched:;
+            }
+
+            SetDlgItemText(hwnd, id, sb->s);
+        }
+        strbuf_free(sb);
+
+        char *hostport = dupprintf("%s (port %d)", ctx->host, ctx->port);
+        SetDlgItemText(hwnd, IDC_HK_HOST, hostport);
+        sfree(hostport);
+        MakeDlgItemBorderless(hwnd, IDC_HK_HOST);
+
+        SetDlgItemText(hwnd, IDC_HK_FINGERPRINT,
+                       ctx->fingerprints[ctx->fptype_default]);
+        MakeDlgItemBorderless(hwnd, IDC_HK_FINGERPRINT);
+
+        HANDLE icon = LoadImage(
+            NULL, ctx->iconid, IMAGE_ICON,
+            GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON),
+            LR_SHARED);
+        SendDlgItemMessage(hwnd, IDC_HK_ICON, STM_SETICON, (WPARAM)icon, 0);
+
+        if (!has_help()) {
+            HWND item = GetDlgItem(hwnd, IDHELP);
+            if (item)
+                DestroyWindow(item);
+        }
+
+        return 1;
+      }
+      case WM_CTLCOLORSTATIC: {
+        HDC hdc = (HDC)wParam;
+        HWND control = (HWND)lParam;
+
+        if (GetWindowLongPtr(control, GWLP_ID) == IDC_HK_TITLE) {
+            SetBkMode(hdc, TRANSPARENT);
+            HFONT prev_font = (HFONT)SelectObject(
+                hdc, (HFONT)GetStockObject(SYSTEM_FONT));
+            LOGFONT lf;
+            if (GetObject(prev_font, sizeof(lf), &lf)) { 
+                lf.lfWeight = FW_BOLD;
+                lf.lfHeight = lf.lfHeight * 3 / 2;
+                HFONT bold_font = CreateFontIndirect(&lf);
+                if (bold_font)
+                    SelectObject(hdc, bold_font);
+            }
+            return (INT_PTR)GetSysColorBrush(COLOR_BTNFACE);
+        }
+        return 0;
+      }
+      case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+          case IDC_HK_ACCEPT:
+          case IDC_HK_ONCE:
+          case IDCANCEL:
+            EndDialog(hwnd, LOWORD(wParam));
+            return 0;
+          case IDHELP: {
+            const struct hostkey_dialog_ctx *ctx =
+                (const struct hostkey_dialog_ctx *)
+                GetWindowLongPtr(hwnd, GWLP_USERDATA);
+            launch_help(hwnd, ctx->helpctx);
+            return 0;
+          }
+          case IDC_HK_MOREINFO: {
+            const struct hostkey_dialog_ctx *ctx =
+                (const struct hostkey_dialog_ctx *)
+                GetWindowLongPtr(hwnd, GWLP_USERDATA);
+            DialogBoxParam(hinst, MAKEINTRESOURCE(IDD_HK_MOREINFO),
+                           hwnd, HostKeyMoreInfoProc, (LPARAM)ctx);
+          }
+        }
+        return 0;
+      case WM_CLOSE:
+        EndDialog(hwnd, IDCANCEL);
+        return 0;
+    }
+    return 0;
+}
+
+int win_seat_verify_ssh_host_key(
+    Seat *seat, const char *host, int port, const char *keytype,
+    char *keystr, const char *keydisp, char **fingerprints,
+    void (*callback)(void *ctx, int result), void *ctx)
+{
+    int ret;
+
+    WinGuiSeat *wgs = container_of(seat, WinGuiSeat, seat);
+
+    /*
+     * Verify the key against the registry.
+     */
+    ret = verify_host_key(host, port, keytype, keystr);
+
+    if (ret == 0)                      /* success - key matched OK */
+        return 1;
+    else {
+        static const char *const keywords[] =
+            { "{KEYTYPE}", "{APPNAME}", NULL };
+
+        const char *values[2];
+        values[0] = keytype;
+        values[1] = appname;
+
+        struct hostkey_dialog_ctx ctx[1];
+        ctx->keywords = keywords;
+        ctx->values = values;
+        ctx->fingerprints = fingerprints;
+        ctx->fptype_default = ssh2_pick_default_fingerprint(fingerprints);
+        ctx->keydisp = keydisp;
+        ctx->iconid = (ret == 2 ? IDI_WARNING : IDI_QUESTION);
+        ctx->helpctx = (ret == 2 ? WINHELP_CTX_errors_hostkey_changed :
+                        WINHELP_CTX_errors_hostkey_absent);
+        ctx->host = host;
+        ctx->port = port;
+        int dlgid = (ret == 2 ? IDD_HK_WRONG : IDD_HK_ABSENT);
+        int mbret = DialogBoxParam(
+            hinst, MAKEINTRESOURCE(dlgid), wgs->term_hwnd,
+            HostKeyDialogProc, (LPARAM)ctx);
+        assert(mbret==IDC_HK_ACCEPT || mbret==IDC_HK_ONCE || mbret==IDCANCEL);
+        if (mbret == IDC_HK_ACCEPT) {
+            store_host_key(host, port, keytype, keystr);
+            return 1;
+        } else if (mbret == IDC_HK_ONCE)
+            return 1;
+    }
+    return 0;   /* abandon the connection */
 }
 
 /*
- * Find the index of first controlset in a controlbox for a given
- * path. If that path doesn't exist, return the index where it
- * should be inserted.
+ * Ask whether the selected algorithm is acceptable (since it was
+ * below the configured 'warn' threshold).
  */
-static int ctrl_find_set(struct controlbox *b, const char *path, bool start)
+int win_seat_confirm_weak_crypto_primitive(
+    Seat *seat, const char *algtype, const char *algname,
+    void (*callback)(void *ctx, int result), void *ctx)
 {
-    int i, last, thisone;
+    static const char mbtitle[] = "%s Security Alert";
+    static const char msg[] =
+        "The first %s supported by the server\n"
+        "is %s, which is below the configured\n"
+        "warning threshold.\n"
+        "Do you want to continue with this connection?\n";
+    char *message, *title;
+    int mbret;
 
-    last = 0;
-    for (i = 0; i < b->nctrlsets; i++) {
-        thisone = ctrl_path_compare(path, b->ctrlsets[i]->pathname);
-        /*
-         * If `start' is true and there exists a controlset with
-         * exactly the path we've been given, we should return the
-         * index of the first such controlset we find. Otherwise,
-         * we should return the index of the first entry in which
-         * _fewer_ path elements match than they did last time.
-         */
-        if ((start && thisone == INT_MAX) || thisone < last)
-            return i;
-        last = thisone;
-    }
-    return b->nctrlsets;               /* insert at end */
+    message = dupprintf(msg, algtype, algname);
+    title = dupprintf(mbtitle, appname);
+    mbret = MessageBox(NULL, message, title,
+                       MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2);
+    socket_reselect_all();
+    sfree(message);
+    sfree(title);
+    if (mbret == IDYES)
+        return 1;
+    else
+        return 0;
+}
+
+int win_seat_confirm_weak_cached_hostkey(
+    Seat *seat, const char *algname, const char *betteralgs,
+    void (*callback)(void *ctx, int result), void *ctx)
+{
+    static const char mbtitle[] = "%s Security Alert";
+    static const char msg[] =
+        "The first host key type we have stored for this server\n"
+        "is %s, which is below the configured warning threshold.\n"
+        "The server also provides the following types of host key\n"
+        "above the threshold, which we do not have stored:\n"
+        "%s\n"
+        "Do you want to continue with this connection?\n";
+    char *message, *title;
+    int mbret;
+
+    message = dupprintf(msg, algname, betteralgs);
+    title = dupprintf(mbtitle, appname);
+    mbret = MessageBox(NULL, message, title,
+                       MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2);
+    socket_reselect_all();
+    sfree(message);
+    sfree(title);
+    if (mbret == IDYES)
+        return 1;
+    else
+        return 0;
 }
 
 /*
- * Find the index of next controlset in a controlbox for a given
- * path, or -1 if no such controlset exists. If -1 is passed as
- * input, finds the first.
+ * Ask whether to wipe a session log file before writing to it.
+ * Returns 2 for wipe, 1 for append, 0 for cancel (don't log).
  */
-int ctrl_find_path(struct controlbox *b, const char *path, int index)
+static int win_gui_askappend(LogPolicy *lp, Filename *filename,
+                             void (*callback)(void *ctx, int result),
+                             void *ctx)
 {
-    if (index < 0)
-        index = ctrl_find_set(b, path, true);
+    static const char msgtemplate[] =
+        "The session log file \"%.*s\" already exists.\n"
+        "You can overwrite it with a new session log,\n"
+        "append your session log to the end of it,\n"
+        "or disable session logging for this session.\n"
+        "Hit Yes to wipe the file, No to append to it,\n"
+        "or Cancel to disable logging.";
+    char *message;
+    char *mbtitle;
+    int mbret;
+
+    message = dupprintf(msgtemplate, FILENAME_MAX, filename->path);
+    mbtitle = dupprintf("%s Log to File", appname);
+
+    mbret = MessageBox(NULL, message, mbtitle,
+                       MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3);
+
+    socket_reselect_all();
+
+    sfree(message);
+    sfree(mbtitle);
+
+    if (mbret == IDYES)
+        return 2;
+    else if (mbret == IDNO)
+        return 1;
     else
-        index++;
-
-    if (index < b->nctrlsets && !strcmp(path, b->ctrlsets[index]->pathname))
-        return index;
-    else
-        return -1;
+        return 0;
 }
 
-/* Set up a panel title. */
-struct controlset *ctrl_settitle(struct controlbox *b,
-                                 const char *path, const char *title)
-{
-
-    struct controlset *s = snew(struct controlset);
-    int index = ctrl_find_set(b, path, true);
-    s->pathname = dupstr(path);
-    s->boxname = NULL;
-    s->boxtitle = dupstr(title);
-    s->ncontrols = s->ctrlsize = 0;
-    s->ncolumns = 0;                   /* this is a title! */
-    s->ctrls = NULL;
-    sgrowarray(b->ctrlsets, b->ctrlsetsize, b->nctrlsets);
-    if (index < b->nctrlsets)
-        memmove(&b->ctrlsets[index+1], &b->ctrlsets[index],
-                (b->nctrlsets-index) * sizeof(*b->ctrlsets));
-    b->ctrlsets[index] = s;
-    b->nctrlsets++;
-    return s;
-}
-
-/* Retrieve a pointer to a controlset, creating it if absent. */
-struct controlset *ctrl_getset(struct controlbox *b, const char *path,
-                               const char *name, const char *boxtitle)
-{
-    struct controlset *s;
-    int index = ctrl_find_set(b, path, true);
-    while (index < b->nctrlsets &&
-           !strcmp(b->ctrlsets[index]->pathname, path)) {
-        if (b->ctrlsets[index]->boxname &&
-            !strcmp(b->ctrlsets[index]->boxname, name))
-            return b->ctrlsets[index];
-        index++;
-    }
-    s = snew(struct controlset);
-    s->pathname = dupstr(path);
-    s->boxname = dupstr(name);
-    s->boxtitle = boxtitle ? dupstr(boxtitle) : NULL;
-    s->ncolumns = 1;
-    s->ncontrols = s->ctrlsize = 0;
-    s->ctrls = NULL;
-    sgrowarray(b->ctrlsets, b->ctrlsetsize, b->nctrlsets);
-    if (index < b->nctrlsets)
-        memmove(&b->ctrlsets[index+1], &b->ctrlsets[index],
-                (b->nctrlsets-index) * sizeof(*b->ctrlsets));
-    b->ctrlsets[index] = s;
-    b->nctrlsets++;
-    return s;
-}
-
-/* Allocate some private data in a controlbox. */
-void *ctrl_alloc_with_free(struct controlbox *b, size_t size,
-                           ctrl_freefn_t freefunc)
-{
-    void *p;
-    /*
-     * This is an internal allocation routine, so it's allowed to
-     * use smalloc directly.
-     */
-    p = smalloc(size);
-    sgrowarray(b->frees, b->freesize, b->nfrees);
-    b->freefuncs = sresize(b->freefuncs, b->freesize, ctrl_freefn_t);
-    b->frees[b->nfrees] = p;
-    b->freefuncs[b->nfrees] = freefunc;
-    b->nfrees++;
-    return p;
-}
-
-static void ctrl_default_free(void *p)
-{
-    sfree(p);
-}
-
-void *ctrl_alloc(struct controlbox *b, size_t size)
-{
-    return ctrl_alloc_with_free(b, size, ctrl_default_free);
-}
-
-static union control *ctrl_new(struct controlset *s, int type,
-                               intorptr helpctx, handler_fn handler,
-                               intorptr context)
-{
-    union control *c = snew(union control);
-    sgrowarray(s->ctrls, s->ctrlsize, s->ncontrols);
-    s->ctrls[s->ncontrols++] = c;
-    /*
-     * Fill in the standard fields.
-     */
-    c->generic.type = type;
-    c->generic.tabdelay = false;
-    c->generic.column = COLUMN_FIELD(0, s->ncolumns);
-    c->generic.helpctx = helpctx;
-    c->generic.handler = handler;
-    c->generic.context = context;
-    c->generic.label = NULL;
-    c->generic.align_next_to = NULL;
-    return c;
-}
-
-/* `ncolumns' is followed by that many percentages, as integers. */
-union control *ctrl_columns(struct controlset *s, int ncolumns, ...)
-{
-    union control *c = ctrl_new(s, CTRL_COLUMNS, P(NULL), NULL, P(NULL));
-    assert(s->ncolumns == 1 || ncolumns == 1);
-    c->columns.ncols = ncolumns;
-    s->ncolumns = ncolumns;
-    if (ncolumns == 1) {
-        c->columns.percentages = NULL;
-    } else {
-        va_list ap;
-        int i;
-        c->columns.percentages = snewn(ncolumns, int);
-        va_start(ap, ncolumns);
-        for (i = 0; i < ncolumns; i++)
-            c->columns.percentages[i] = va_arg(ap, int);
-        va_end(ap);
-    }
-    return c;
-}
-
-union control *ctrl_editbox(struct controlset *s, const char *label,
-                            char shortcut, int percentage,
-                            intorptr helpctx, handler_fn handler,
-                            intorptr context, intorptr context2)
-{
-    union control *c = ctrl_new(s, CTRL_EDITBOX, helpctx, handler, context);
-    c->editbox.label = label ? dupstr(label) : NULL;
-    c->editbox.shortcut = shortcut;
-    c->editbox.percentwidth = percentage;
-    c->editbox.password = false;
-    c->editbox.has_list = false;
-    c->editbox.context2 = context2;
-    return c;
-}
-
-union control *ctrl_combobox(struct controlset *s, const char *label,
-                             char shortcut, int percentage,
-                             intorptr helpctx, handler_fn handler,
-                             intorptr context, intorptr context2)
-{
-    union control *c = ctrl_new(s, CTRL_EDITBOX, helpctx, handler, context);
-    c->editbox.label = label ? dupstr(label) : NULL;
-    c->editbox.shortcut = shortcut;
-    c->editbox.percentwidth = percentage;
-    c->editbox.password = false;
-    c->editbox.has_list = true;
-    c->editbox.context2 = context2;
-    return c;
-}
+const LogPolicyVtable win_gui_logpolicy_vt = {
+    .eventlog = win_gui_eventlog,
+    .askappend = win_gui_askappend,
+    .logging_error = win_gui_logging_error,
+    .verbose = null_lp_verbose_yes,
+};
 
 /*
- * `ncolumns' is followed by (alternately) radio button titles and
- * intorptrs, until a NULL in place of a title string is seen. Each
- * title is expected to be followed by a shortcut _iff_ `shortcut'
- * is NO_SHORTCUT.
+ * Warn about the obsolescent key file format.
+ *
+ * Uniquely among these functions, this one does _not_ expect a
+ * frontend handle. This means that if PuTTY is ported to a
+ * platform which requires frontend handles, this function will be
+ * an anomaly. Fortunately, the problem it addresses will not have
+ * been present on that platform, so it can plausibly be
+ * implemented as an empty function.
  */
-union control *ctrl_radiobuttons(struct controlset *s, const char *label,
-                                 char shortcut, int ncolumns, intorptr helpctx,
-                                 handler_fn handler, intorptr context, ...)
+void old_keyfile_warning(void)
 {
-    va_list ap;
-    int i;
-    union control *c = ctrl_new(s, CTRL_RADIO, helpctx, handler, context);
-    c->radio.label = label ? dupstr(label) : NULL;
-    c->radio.shortcut = shortcut;
-    c->radio.ncolumns = ncolumns;
-    /*
-     * Initial pass along variable argument list to count the
-     * buttons.
-     */
-    va_start(ap, context);
-    i = 0;
-    while (va_arg(ap, char *) != NULL) {
-        i++;
-        if (c->radio.shortcut == NO_SHORTCUT)
-            (void)va_arg(ap, int);     /* char promotes to int in arg lists */
-        (void)va_arg(ap, intorptr);
-    }
-    va_end(ap);
-    c->radio.nbuttons = i;
-    if (c->radio.shortcut == NO_SHORTCUT)
-        c->radio.shortcuts = snewn(c->radio.nbuttons, char);
-    else
-        c->radio.shortcuts = NULL;
-    c->radio.buttons = snewn(c->radio.nbuttons, char *);
-    c->radio.buttondata = snewn(c->radio.nbuttons, intorptr);
-    /*
-     * Second pass along variable argument list to actually fill in
-     * the structure.
-     */
-    va_start(ap, context);
-    for (i = 0; i < c->radio.nbuttons; i++) {
-        c->radio.buttons[i] = dupstr(va_arg(ap, char *));
-        if (c->radio.shortcut == NO_SHORTCUT)
-            c->radio.shortcuts[i] = va_arg(ap, int);
-                                       /* char promotes to int in arg lists */
-        c->radio.buttondata[i] = va_arg(ap, intorptr);
-    }
-    va_end(ap);
-    return c;
-}
+    static const char mbtitle[] = "%s Key File Warning";
+    static const char message[] =
+        "You are loading an SSH-2 private key which has an\n"
+        "old version of the file format. This means your key\n"
+        "file is not fully tamperproof. Future versions of\n"
+        "%s may stop supporting this private key format,\n"
+        "so we recommend you convert your key to the new\n"
+        "format.\n"
+        "\n"
+        "You can perform this conversion by loading the key\n"
+        "into PuTTYgen and then saving it again.";
 
-union control *ctrl_pushbutton(struct controlset *s, const char *label,
-                               char shortcut, intorptr helpctx,
-                               handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_BUTTON, helpctx, handler, context);
-    c->button.label = label ? dupstr(label) : NULL;
-    c->button.shortcut = shortcut;
-    c->button.isdefault = false;
-    c->button.iscancel = false;
-    return c;
-}
+    char *msg, *title;
+    msg = dupprintf(message, appname);
+    title = dupprintf(mbtitle, appname);
 
-union control *ctrl_listbox(struct controlset *s, const char *label,
-                            char shortcut, intorptr helpctx,
-                            handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_LISTBOX, helpctx, handler, context);
-    c->listbox.label = label ? dupstr(label) : NULL;
-    c->listbox.shortcut = shortcut;
-    c->listbox.height = 5;             /* *shrug* a plausible default */
-    c->listbox.draglist = false;
-    c->listbox.multisel = 0;
-    c->listbox.percentwidth = 100;
-    c->listbox.ncols = 0;
-    c->listbox.percentages = NULL;
-    c->listbox.hscroll = true;
-    return c;
-}
+    MessageBox(NULL, msg, title, MB_OK);
 
-union control *ctrl_droplist(struct controlset *s, const char *label,
-                             char shortcut, int percentage, intorptr helpctx,
-                             handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_LISTBOX, helpctx, handler, context);
-    c->listbox.label = label ? dupstr(label) : NULL;
-    c->listbox.shortcut = shortcut;
-    c->listbox.height = 0;             /* means it's a drop-down list */
-    c->listbox.draglist = false;
-    c->listbox.multisel = 0;
-    c->listbox.percentwidth = percentage;
-    c->listbox.ncols = 0;
-    c->listbox.percentages = NULL;
-    c->listbox.hscroll = false;
-    return c;
-}
+    socket_reselect_all();
 
-union control *ctrl_draglist(struct controlset *s, const char *label,
-                             char shortcut, intorptr helpctx,
-                             handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_LISTBOX, helpctx, handler, context);
-    c->listbox.label = label ? dupstr(label) : NULL;
-    c->listbox.shortcut = shortcut;
-    c->listbox.height = 5;             /* *shrug* a plausible default */
-    c->listbox.draglist = true;
-    c->listbox.multisel = 0;
-    c->listbox.percentwidth = 100;
-    c->listbox.ncols = 0;
-    c->listbox.percentages = NULL;
-    c->listbox.hscroll = false;
-    return c;
-}
-
-union control *ctrl_filesel(struct controlset *s, const char *label,
-                            char shortcut, const char *filter, bool write,
-                            const char *title, intorptr helpctx,
-                            handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_FILESELECT, helpctx, handler, context);
-    c->fileselect.label = label ? dupstr(label) : NULL;
-    c->fileselect.shortcut = shortcut;
-    c->fileselect.filter = filter;
-    c->fileselect.for_writing = write;
-    c->fileselect.title = dupstr(title);
-    return c;
-}
-
-union control *ctrl_fontsel(struct controlset *s, const char *label,
-                            char shortcut, intorptr helpctx,
-                            handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_FONTSELECT, helpctx, handler, context);
-    c->fontselect.label = label ? dupstr(label) : NULL;
-    c->fontselect.shortcut = shortcut;
-    return c;
-}
-
-union control *ctrl_tabdelay(struct controlset *s, union control *ctrl)
-{
-    union control *c = ctrl_new(s, CTRL_TABDELAY, P(NULL), NULL, P(NULL));
-    c->tabdelay.ctrl = ctrl;
-    return c;
-}
-
-union control *ctrl_text(struct controlset *s, const char *text,
-                         intorptr helpctx)
-{
-    union control *c = ctrl_new(s, CTRL_TEXT, helpctx, NULL, P(NULL));
-    c->text.label = dupstr(text);
-    return c;
-}
-
-union control *ctrl_checkbox(struct controlset *s, const char *label,
-                             char shortcut, intorptr helpctx,
-                             handler_fn handler, intorptr context)
-{
-    union control *c = ctrl_new(s, CTRL_CHECKBOX, helpctx, handler, context);
-    c->checkbox.label = label ? dupstr(label) : NULL;
-    c->checkbox.shortcut = shortcut;
-    return c;
-}
-
-void ctrl_free(union control *ctrl)
-{
-    int i;
-
-    sfree(ctrl->generic.label);
-    switch (ctrl->generic.type) {
-      case CTRL_RADIO:
-        for (i = 0; i < ctrl->radio.nbuttons; i++)
-            sfree(ctrl->radio.buttons[i]);
-        sfree(ctrl->radio.buttons);
-        sfree(ctrl->radio.shortcuts);
-        sfree(ctrl->radio.buttondata);
-        break;
-      case CTRL_COLUMNS:
-        sfree(ctrl->columns.percentages);
-        break;
-      case CTRL_LISTBOX:
-        sfree(ctrl->listbox.percentages);
-        break;
-      case CTRL_FILESELECT:
-        sfree(ctrl->fileselect.title);
-        break;
-    }
-    sfree(ctrl);
+    sfree(msg);
+    sfree(title);
 }

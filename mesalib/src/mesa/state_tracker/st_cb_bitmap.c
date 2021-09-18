@@ -143,7 +143,7 @@ make_bitmap_texture(struct gl_context *ctx, GLsizei width, GLsizei height,
       return NULL;
    }
 
-   dest = pipe_transfer_map(st->pipe, pt, 0, 0,
+   dest = pipe_texture_map(st->pipe, pt, 0, 0,
                             PIPE_MAP_WRITE,
                             0, 0, width, height, &transfer);
 
@@ -155,7 +155,7 @@ make_bitmap_texture(struct gl_context *ctx, GLsizei width, GLsizei height,
    _mesa_unmap_pbo_source(ctx, unpack);
 
    /* Release transfer */
-   pipe_transfer_unmap(pipe, transfer);
+   pipe_texture_unmap(pipe, transfer);
    return pt;
 }
 
@@ -242,15 +242,15 @@ setup_render_state(struct gl_context *ctx,
    /* user textures, plus the bitmap texture */
    {
       struct pipe_sampler_view *sampler_views[PIPE_MAX_SAMPLERS];
-      uint num = MAX2(fpv->bitmap_sampler + 1,
-                      st->state.num_sampler_views[PIPE_SHADER_FRAGMENT]);
-      memcpy(sampler_views, st->state.frag_sampler_views,
-             sizeof(sampler_views));
+      unsigned num_views =
+         st_get_sampler_views(st, PIPE_SHADER_FRAGMENT,
+                              ctx->FragmentProgram._Current, sampler_views);
+
+      num_views = MAX2(fpv->bitmap_sampler + 1, num_views);
       sampler_views[fpv->bitmap_sampler] = sv;
-      pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, num, 0,
-                              sampler_views);
-      st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] =
-         MAX2(st->state.num_sampler_views[PIPE_SHADER_FRAGMENT], num);
+      pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, num_views, 0,
+                              true, sampler_views);
+      st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = num_views;
    }
 
    /* viewport state: viewport matching window dims */
@@ -273,16 +273,11 @@ restore_render_state(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
    struct cso_context *cso = st->cso_context;
-   struct pipe_context *pipe = st->pipe;
-
-   cso_restore_state(cso);
 
    /* Unbind all because st/mesa won't do it if the current shader doesn't
     * use them.
     */
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0,
-                           st->state.num_sampler_views[PIPE_SHADER_FRAGMENT],
-                           NULL);
+   cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEWS);
    st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = 0;
 
    st->dirty |= ST_NEW_VERTEX_ARRAYS |
@@ -406,7 +401,7 @@ create_cache_trans(struct st_context *st)
    /* Map the texture transfer.
     * Subsequent glBitmap calls will write into the texture image.
     */
-   cache->buffer = pipe_transfer_map(pipe, cache->texture, 0, 0,
+   cache->buffer = pipe_texture_map(pipe, cache->texture, 0, 0,
                                      PIPE_MAP_WRITE, 0, 0,
                                      BITMAP_CACHE_WIDTH,
                                      BITMAP_CACHE_HEIGHT, &cache->trans);
@@ -442,7 +437,7 @@ st_flush_bitmap_cache(struct st_context *st)
       if (cache->trans && cache->buffer) {
          if (0)
             print_cache(cache);
-         pipe_transfer_unmap(pipe, cache->trans);
+         pipe_texture_unmap(pipe, cache->trans);
          cache->buffer = NULL;
          cache->trans = NULL;
       }
@@ -456,8 +451,6 @@ st_flush_bitmap_cache(struct st_context *st)
                           BITMAP_CACHE_WIDTH, BITMAP_CACHE_HEIGHT,
                           sv,
                           cache->color);
-
-         pipe_sampler_view_reference(&sv, NULL);
       }
 
       /* release/free the texture */
@@ -643,8 +636,6 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
       if (sv) {
          draw_bitmap_quad(ctx, x, y, ctx->Current.RasterPos[2],
                           width, height, sv, ctx->Current.RasterColor);
-
-         pipe_sampler_view_reference(&sv, NULL);
       }
 
       /* release/free the texture */
@@ -785,8 +776,6 @@ out:
 
    pipe_resource_reference(&vb.buffer.resource, NULL);
 
-   pipe_sampler_view_reference(&sv, NULL);
-
    /* We uploaded modified constants, need to invalidate them. */
    st->dirty |= ST_NEW_FS_CONSTANTS;
 }
@@ -810,7 +799,7 @@ st_destroy_bitmap(struct st_context *st)
    struct st_bitmap_cache *cache = &st->bitmap.cache;
 
    if (cache->trans && cache->buffer) {
-      pipe_transfer_unmap(pipe, cache->trans);
+      pipe_texture_unmap(pipe, cache->trans);
    }
    pipe_resource_reference(&st->bitmap.cache.texture, NULL);
 }

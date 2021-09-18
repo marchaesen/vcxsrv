@@ -70,11 +70,6 @@
 
 
 /**
- * Max bytes per scene.  This may be replaced by a runtime parameter.
- */
-#define LP_MAX_SCENE_SIZE (512 * 1024 * 1024)
-
-/**
  * Max number of shader variants (for all shaders combined,
  * per context) that will be kept around.
  */

@@ -112,11 +112,6 @@ enum tgsi_interpolate_loc {
    TGSI_INTERPOLATE_LOC_COUNT,
 };
 
-#define TGSI_CYLINDRICAL_WRAP_X (1 << 0)
-#define TGSI_CYLINDRICAL_WRAP_Y (1 << 1)
-#define TGSI_CYLINDRICAL_WRAP_Z (1 << 2)
-#define TGSI_CYLINDRICAL_WRAP_W (1 << 3)
-
 enum tgsi_memory_type {
    TGSI_MEMORY_TYPE_GLOBAL,         /* OpenCL global              */
    TGSI_MEMORY_TYPE_SHARED,         /* OpenCL local / GLSL shared */
@@ -158,8 +153,7 @@ struct tgsi_declaration_interp
 {
    unsigned Interpolate : 4;   /**< one of TGSI_INTERPOLATE_x */
    unsigned Location    : 2;   /**< one of TGSI_INTERPOLATE_LOC_x */
-   unsigned CylindricalWrap:4; /**< TGSI_CYLINDRICAL_WRAP_x flags */
-   unsigned Padding     : 22;
+   unsigned Padding     : 26;
 };
 
 enum tgsi_semantic {

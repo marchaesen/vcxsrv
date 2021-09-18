@@ -197,8 +197,6 @@ batch_draw_tracking(struct fd_batch *batch, const struct pipe_draw_info *info,
     * Figure out the buffers/features we need:
     */
 
-   fd_screen_lock(ctx->screen);
-
    if (ctx->dirty & FD_DIRTY_RESOURCE)
       batch_draw_tracking_for_dirty_bits(batch);
 
@@ -220,8 +218,6 @@ batch_draw_tracking(struct fd_batch *batch, const struct pipe_draw_info *info,
 
    list_for_each_entry (struct fd_acc_query, aq, &ctx->acc_active_queries, node)
       resource_written(batch, aq->prsc);
-
-   fd_screen_unlock(ctx->screen);
 }
 
 static void
@@ -231,7 +227,7 @@ update_draw_stats(struct fd_context *ctx, const struct pipe_draw_info *info,
 {
    ctx->stats.draw_calls++;
 
-   if (ctx->screen->gpu_id < 600) {
+   if (ctx->screen->gen < 6) {
       /* Counting prims in sw doesn't work for GS and tesselation. For older
        * gens we don't have those stages and don't have the hw counters enabled,
        * so keep the count accurate for non-patch geometry.
@@ -286,16 +282,6 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
    if (!fd_render_condition_check(pctx))
       return;
 
-   /* emulate unsupported primitives: */
-   if (!fd_supported_prim(ctx, info->mode)) {
-      if (ctx->streamout.num_targets > 0)
-         mesa_loge("stream-out with emulated prims");
-      util_primconvert_save_rasterizer_state(ctx->primconvert, ctx->rasterizer);
-      util_primconvert_draw_vbo(ctx->primconvert, info, drawid_offset, indirect, draws,
-                                num_draws);
-      return;
-   }
-
    /* Upload a user index buffer. */
    struct pipe_resource *indexbuf = NULL;
    unsigned index_offset = 0;
@@ -325,11 +311,6 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
 
    struct fd_batch *batch = fd_context_batch(ctx);
 
-   if (ctx->in_discard_blit) {
-      fd_batch_reset(batch);
-      fd_context_all_dirty(ctx);
-   }
-
    batch_draw_tracking(batch, info, indirect);
 
    while (unlikely(!fd_batch_lock_submit(batch))) {
@@ -343,8 +324,6 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
       assert(ctx->batch == batch);
    }
 
-   batch->blit = ctx->in_discard_blit;
-   batch->back_blit = ctx->in_shadow;
    batch->num_draws++;
 
    /* Marking the batch as needing flush must come after the batch
@@ -377,6 +356,8 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
 
    if (FD_DBG(DDRAW))
       fd_context_all_dirty(ctx);
+
+   debug_assert(!batch->flushed);
 
    fd_batch_unlock_submit(batch);
    fd_batch_check_size(batch);
@@ -414,8 +395,6 @@ batch_clear_tracking(struct fd_batch *batch, unsigned buffers) assert_dt
 
    batch->resolve |= buffers;
 
-   fd_screen_lock(ctx->screen);
-
    if (buffers & PIPE_CLEAR_COLOR)
       for (unsigned i = 0; i < pfb->nr_cbufs; i++)
          if (buffers & (PIPE_CLEAR_COLOR0 << i))
@@ -430,8 +409,6 @@ batch_clear_tracking(struct fd_batch *batch, unsigned buffers) assert_dt
 
    list_for_each_entry (struct fd_acc_query, aq, &ctx->acc_active_queries, node)
       resource_written(batch, aq->prsc);
-
-   fd_screen_unlock(ctx->screen);
 }
 
 static void
@@ -447,11 +424,6 @@ fd_clear(struct pipe_context *pctx, unsigned buffers,
       return;
 
    struct fd_batch *batch = fd_context_batch(ctx);
-
-   if (ctx->in_discard_blit) {
-      fd_batch_reset(batch);
-      fd_context_all_dirty(ctx);
-   }
 
    batch_clear_tracking(batch, buffers);
 
@@ -494,6 +466,8 @@ fd_clear(struct pipe_context *pctx, unsigned buffers,
       }
    }
 
+   debug_assert(!batch->flushed);
+
    fd_batch_unlock_submit(batch);
    fd_batch_check_size(batch);
 
@@ -532,12 +506,10 @@ fd_launch_grid(struct pipe_context *pctx,
       &ctx->shaderbuf[PIPE_SHADER_COMPUTE];
    struct fd_batch *batch, *save_batch = NULL;
 
-   batch = fd_bc_alloc_batch(&ctx->screen->batch_cache, ctx, true);
+   batch = fd_bc_alloc_batch(ctx, true);
    fd_batch_reference(&save_batch, ctx->batch);
    fd_batch_reference(&ctx->batch, batch);
    fd_context_all_dirty(ctx);
-
-   fd_screen_lock(ctx->screen);
 
    /* Mark SSBOs */
    u_foreach_bit (i, so->enabled_mask & so->writable_mask)
@@ -570,8 +542,6 @@ fd_launch_grid(struct pipe_context *pctx,
 
    if (info->indirect)
       resource_read(batch, info->indirect);
-
-   fd_screen_unlock(ctx->screen);
 
    DBG("%p: work_dim=%u, block=%ux%ux%u, grid=%ux%ux%u",
        batch, info->work_dim,

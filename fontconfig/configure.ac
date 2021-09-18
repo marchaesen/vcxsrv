@@ -663,6 +663,22 @@ dnl ===========================================================================
 # Thread-safety primitives
 #
 
+AC_CACHE_CHECK([stdatomic.h atomic primitives], fc_cv_have_stdatomic_atomic_primitives, [
+	fc_cv_have_stdatomic_atomic_primitives=false
+	AC_TRY_LINK([
+		#include <stdatomic.h>
+
+		void memory_barrier (void) { atomic_thread_fence (memory_order_acq_rel); }
+		int atomic_add (atomic_int *i) { return atomic_fetch_add_explicit (i, 1, memory_order_relaxed); }
+		int mutex_trylock (atomic_flag *m) { return atomic_flag_test_and_set_explicit (m, memory_order_acquire); }
+		void mutex_unlock (atomic_flag *m) { atomic_flag_clear_explicit (m, memory_order_release); }
+		], [], fc_cv_have_stdatomic_atomic_primitives=true
+	)
+])
+if $fc_cv_have_stdatomic_atomic_primitives; then
+	AC_DEFINE(HAVE_STDATOMIC_PRIMITIVES, 1, [Have Intel __sync_* atomic primitives])
+fi
+
 AC_CACHE_CHECK([for Intel atomic primitives], fc_cv_have_intel_atomic_primitives, [
 	fc_cv_have_intel_atomic_primitives=false
 	AC_TRY_LINK([

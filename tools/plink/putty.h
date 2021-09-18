@@ -21,14 +21,14 @@
  * Fingerprints of the current and previous PGP master keys, to
  * establish a trust path between an executable and other files.
  */
-#define PGP_MASTER_KEY_YEAR "2018"
-#define PGP_MASTER_KEY_DETAILS "RSA, 4096-bit"
-#define PGP_MASTER_KEY_FP                                       \
-    "24E1 B1C5 75EA 3C9F F752  A922 76BC 7FE4 EBFD 2D9E"
-#define PGP_PREV_MASTER_KEY_YEAR "2015"
+#define PGP_MASTER_KEY_YEAR "2021"
+#define PGP_MASTER_KEY_DETAILS "RSA, 3072-bit"
+#define PGP_MASTER_KEY_FP                                  \
+    "A872 D42F 1660 890F 0E05  223E DD43 55EA AC11 19DE"
+#define PGP_PREV_MASTER_KEY_YEAR "2018"
 #define PGP_PREV_MASTER_KEY_DETAILS "RSA, 4096-bit"
 #define PGP_PREV_MASTER_KEY_FP                                  \
-    "440D E3B5 B7A1 CA85 B3CC  1718 AB58 5DC6 0467 6F7C"
+    "24E1 B1C5 75EA 3C9F F752  A922 76BC 7FE4 EBFD 2D9E"
 
 /*
  * Definitions of three separate indexing schemes for colour palette
@@ -620,6 +620,8 @@ enum {
 #define BACKEND_NEEDS_TERMINAL      0x02   /* Backend must have terminal */
 #define BACKEND_SUPPORTS_NC_HOST    0x04   /* Backend can honour
                                               CONF_ssh_nc_host */
+#define BACKEND_NOTIFIES_SESSION_START 0x08 /* Backend will call
+                                               seat_notify_session_started */
 
 /* In (no)sshproxy.c */
 extern const bool ssh_proxy_supported;
@@ -636,9 +638,8 @@ struct BackendVtable {
     void (*free) (Backend *be);
     /* Pass in a replacement configuration. */
     void (*reconfig) (Backend *be, Conf *conf);
-    /* send() returns the current amount of buffered data. */
-    size_t (*send) (Backend *be, const char *buf, size_t len);
-    /* sendbuffer() does the same thing but without attempting a send */
+    void (*send) (Backend *be, const char *buf, size_t len);
+    /* sendbuffer() returns the current amount of buffered data */
     size_t (*sendbuffer) (Backend *be);
     void (*size) (Backend *be, int width, int height);
     void (*special) (Backend *be, SessionSpecialCode code, int arg);
@@ -647,7 +648,14 @@ struct BackendVtable {
     int (*exitcode) (Backend *be);
     /* If back->sendok() returns false, the backend doesn't currently
      * want input data, so the frontend should avoid acquiring any if
-     * possible (passing back-pressure on to its sender). */
+     * possible (passing back-pressure on to its sender).
+     *
+     * Policy rule: no backend shall return true from sendok() while
+     * its network connection attempt is still ongoing. This ensures
+     * that if making the network connection involves a proxy type
+     * which wants to interact with the user via the terminal, the
+     * proxy implementation and the backend itself won't fight over
+     * who gets the terminal input. */
     bool (*sendok) (Backend *be);
     bool (*ldisc_option_state) (Backend *be, int);
     void (*provide_ldisc) (Backend *be, Ldisc *ldisc);
@@ -687,8 +695,8 @@ static inline void backend_free(Backend *be)
 { be->vt->free(be); }
 static inline void backend_reconfig(Backend *be, Conf *conf)
 { be->vt->reconfig(be, conf); }
-static inline size_t backend_send(Backend *be, const char *buf, size_t len)
-{ return be->vt->send(be, buf, len); }
+static inline void backend_send(Backend *be, const char *buf, size_t len)
+{ be->vt->send(be, buf, len); }
 static inline size_t backend_sendbuffer(Backend *be)
 { return be->vt->sendbuffer(be); }
 static inline void backend_size(Backend *be, int width, int height)
@@ -734,6 +742,11 @@ extern const int be_default_protocol;
 extern const char *const appname;
 
 /*
+ * Used by callback.c; declared up here so that prompts_t can use it
+ */
+typedef void (*toplevel_callback_fn_t)(void *ctx);
+
+/*
  * Mechanism for getting text strings such as usernames and passwords
  * from the front-end.
  * The fields are mostly modelled after SSH's keyboard-interactive auth.
@@ -754,7 +767,8 @@ typedef struct {
     bool echo;
     strbuf *result;
 } prompt_t;
-typedef struct {
+typedef struct prompts_t prompts_t;
+struct prompts_t {
     /*
      * Indicates whether the information entered is to be used locally
      * (for instance a key passphrase prompt), or is destined for the wire.
@@ -782,7 +796,25 @@ typedef struct {
     prompt_t **prompts;
     void *data;         /* slot for housekeeping data, managed by
                          * seat_get_userpass_input(); initially NULL */
-} prompts_t;
+    int idata;          /* another slot private to the implementation */
+
+    /*
+     * Callback you can fill in to be notified when all the prompts'
+     * responses are available. After you receive this notification, a
+     * further call to the get_userpass_input function will return the
+     * final state of the prompts system, which is guaranteed not to
+     * be negative for 'still ongoing'.
+     */
+    toplevel_callback_fn_t callback;
+    void *callback_ctx;
+
+    /*
+     * When this prompts_t is known to an Ldisc, we might need to
+     * break the connection if things get freed in an emergency. So
+     * this is a pointer to the Ldisc's pointer to us.
+     */
+    prompts_t **ldisc_ptr_to_us;
+};
 prompts_t *new_prompts(void);
 void add_prompt(prompts_t *p, char *promptstr, bool echo);
 void prompt_set_result(prompt_t *pr, const char *newstr);
@@ -857,6 +889,10 @@ typedef enum SeatInteractionContext {
     SIC_BANNER, SIC_KI_PROMPTS
 } SeatInteractionContext;
 
+typedef enum SeatOutputType {
+    SEAT_OUTPUT_STDOUT, SEAT_OUTPUT_STDERR, SEAT_OUTPUT_AUTH_BANNER
+} SeatOutputType;
+
 /*
  * Data type 'Seat', which is an API intended to contain essentially
  * everything that a back end might need to talk to its client for:
@@ -869,14 +905,17 @@ struct Seat {
 };
 struct SeatVtable {
     /*
-     * Provide output from the remote session. 'is_stderr' indicates
-     * that the output should be sent to a separate error message
-     * channel, if the seat has one. But combining both channels into
-     * one is OK too; that's what terminal-window based seats do.
+     * Provide output from the remote session. 'type' indicates the
+     * type of the output (stdout, stderr or SSH auth banner), which
+     * can be used to split the output into separate message channels,
+     * if the seat wants to handle them differently. But combining the
+     * channels into one is OK too; that's what terminal-window based
+     * seats do.
      *
      * The return value is the current size of the output backlog.
      */
-    size_t (*output)(Seat *seat, bool is_stderr, const void *data, size_t len);
+    size_t (*output)(Seat *seat, SeatOutputType type,
+                     const void *data, size_t len);
 
     /*
      * Called when the back end wants to indicate that EOF has arrived
@@ -899,13 +938,7 @@ struct SeatVtable {
 
     /*
      * Try to get answers from a set of interactive login prompts. The
-     * prompts are provided in 'p'; the bufchain 'input' holds the
-     * data currently outstanding in the session's normal standard-
-     * input channel. Seats may implement this function by consuming
-     * data from 'input' (e.g. password prompts in GUI PuTTY,
-     * displayed in the same terminal as the subsequent session), or
-     * by doing something entirely different (e.g. directly
-     * interacting with standard I/O, or putting up a dialog box).
+     * prompts are provided in 'p'.
      *
      * A positive return value means that all prompts have had answers
      * filled in. A zero return means that the user performed a
@@ -931,7 +964,18 @@ struct SeatVtable {
      * ever do want to move password prompts into a dialog box, I'll
      * want a backend method for sending that notification.)
      */
-    int (*get_userpass_input)(Seat *seat, prompts_t *p, bufchain *input);
+    int (*get_userpass_input)(Seat *seat, prompts_t *p);
+
+    /*
+     * Notify the seat that the main session channel has been
+     * successfully set up.
+     *
+     * This is only used as part of the SSH proxying system, so it's
+     * not necessary to implement it in all backends. A backend must
+     * call this if it advertises the BACKEND_NOTIFIES_SESSION_START
+     * flag, and otherwise, doesn't have to.
+     */
+    void (*notify_session_started)(Seat *seat);
 
     /*
      * Notify the seat that the process running at the other end of
@@ -1097,13 +1141,19 @@ struct SeatVtable {
      * (and hence, can be trusted if it's asking you for secrets such
      * as your passphrase); false means output is coming from the
      * server.
+     */
+    void (*set_trust_status)(Seat *seat, bool trusted);
+
+    /*
+     * Query whether this Seat can do anything user-visible in
+     * response to set_trust_status.
      *
      * Returns true if the seat has a way to indicate this
      * distinction. Returns false if not, in which case the backend
      * should use a fallback defence against spoofing of PuTTY's local
      * prompts by malicious servers.
      */
-    bool (*set_trust_status)(Seat *seat, bool trusted);
+    bool (*can_set_trust_status)(Seat *seat);
 
     /*
      * Ask the seat whether it would like verbose messages.
@@ -1124,15 +1174,16 @@ struct SeatVtable {
 };
 
 static inline size_t seat_output(
-    Seat *seat, bool err, const void *data, size_t len)
-{ return seat->vt->output(seat, err, data, len); }
+    Seat *seat, SeatOutputType type, const void *data, size_t len)
+{ return seat->vt->output(seat, type, data, len); }
 static inline bool seat_eof(Seat *seat)
 { return seat->vt->eof(seat); }
 static inline void seat_sent(Seat *seat, size_t bufsize)
 { seat->vt->sent(seat, bufsize); }
-static inline int seat_get_userpass_input(
-    Seat *seat, prompts_t *p, bufchain *input)
-{ return seat->vt->get_userpass_input(seat, p, input); }
+static inline int seat_get_userpass_input(Seat *seat, prompts_t *p)
+{ return seat->vt->get_userpass_input(seat, p); }
+static inline void seat_notify_session_started(Seat *seat)
+{ seat->vt->notify_session_started(seat); }
 static inline void seat_notify_remote_exit(Seat *seat)
 { seat->vt->notify_remote_exit(seat); }
 static inline void seat_notify_remote_disconnect(Seat *seat)
@@ -1169,8 +1220,10 @@ static inline bool seat_get_window_pixel_size(Seat *seat, int *w, int *h)
 static inline StripCtrlChars *seat_stripctrl_new(
     Seat *seat, BinarySink *bs, SeatInteractionContext sic)
 { return seat->vt->stripctrl_new(seat, bs, sic); }
-static inline bool seat_set_trust_status(Seat *seat, bool trusted)
-{ return  seat->vt->set_trust_status(seat, trusted); }
+static inline void seat_set_trust_status(Seat *seat, bool trusted)
+{ seat->vt->set_trust_status(seat, trusted); }
+static inline bool seat_can_set_trust_status(Seat *seat)
+{ return seat->vt->can_set_trust_status(seat); }
 static inline bool seat_verbose(Seat *seat)
 { return seat->vt->verbose(seat); }
 static inline bool seat_interactive(Seat *seat)
@@ -1185,13 +1238,21 @@ void seat_connection_fatal(Seat *seat, const char *fmt, ...) PRINTF_LIKE(2, 3);
 
 /* Handy aliases for seat_output which set is_stderr to a fixed value. */
 static inline size_t seat_stdout(Seat *seat, const void *data, size_t len)
-{ return seat_output(seat, false, data, len); }
+{ return seat_output(seat, SEAT_OUTPUT_STDOUT, data, len); }
 static inline size_t seat_stdout_pl(Seat *seat, ptrlen data)
-{ return seat_output(seat, false, data.ptr, data.len); }
+{ return seat_output(seat, SEAT_OUTPUT_STDOUT, data.ptr, data.len); }
 static inline size_t seat_stderr(Seat *seat, const void *data, size_t len)
-{ return seat_output(seat, true, data, len); }
+{ return seat_output(seat, SEAT_OUTPUT_STDERR, data, len); }
 static inline size_t seat_stderr_pl(Seat *seat, ptrlen data)
-{ return seat_output(seat, true, data.ptr, data.len); }
+{ return seat_output(seat, SEAT_OUTPUT_STDERR, data.ptr, data.len); }
+static inline size_t seat_banner(Seat *seat, const void *data, size_t len)
+{ return seat_output(seat, SEAT_OUTPUT_AUTH_BANNER, data, len); }
+static inline size_t seat_banner_pl(Seat *seat, ptrlen data)
+{ return seat_output(seat, SEAT_OUTPUT_AUTH_BANNER, data.ptr, data.len); }
+
+/* In the utils subdir: print a message to the Seat which can't be
+ * spoofed by server-supplied auth-time output such as SSH banners */
+void seat_antispoof_msg(Seat *seat, const char *msg);
 
 /*
  * Stub methods for seat implementations that want to use the obvious
@@ -1201,10 +1262,11 @@ static inline size_t seat_stderr_pl(Seat *seat, ptrlen data)
  * plausibly want to return either fixed answer 'no' or 'yes'.
  */
 size_t nullseat_output(
-    Seat *seat, bool is_stderr, const void *data, size_t len);
+    Seat *seat, SeatOutputType type, const void *data, size_t len);
 bool nullseat_eof(Seat *seat);
 void nullseat_sent(Seat *seat, size_t bufsize);
-int nullseat_get_userpass_input(Seat *seat, prompts_t *p, bufchain *input);
+int nullseat_get_userpass_input(Seat *seat, prompts_t *p);
+void nullseat_notify_session_started(Seat *seat);
 void nullseat_notify_remote_exit(Seat *seat);
 void nullseat_notify_remote_disconnect(Seat *seat);
 void nullseat_connection_fatal(Seat *seat, const char *message);
@@ -1229,8 +1291,9 @@ bool nullseat_get_windowid(Seat *seat, long *id_out);
 bool nullseat_get_window_pixel_size(Seat *seat, int *width, int *height);
 StripCtrlChars *nullseat_stripctrl_new(
         Seat *seat, BinarySink *bs_out, SeatInteractionContext sic);
-bool nullseat_set_trust_status(Seat *seat, bool trusted);
-bool nullseat_set_trust_status_vacuously(Seat *seat, bool trusted);
+void nullseat_set_trust_status(Seat *seat, bool trusted);
+bool nullseat_can_set_trust_status_yes(Seat *seat);
+bool nullseat_can_set_trust_status_no(Seat *seat);
 bool nullseat_verbose_no(Seat *seat);
 bool nullseat_verbose_yes(Seat *seat);
 bool nullseat_interactive_no(Seat *seat);
@@ -1255,13 +1318,39 @@ int console_confirm_weak_cached_hostkey(
     void (*callback)(void *ctx, int result), void *ctx);
 StripCtrlChars *console_stripctrl_new(
         Seat *seat, BinarySink *bs_out, SeatInteractionContext sic);
-bool console_set_trust_status(Seat *seat, bool trusted);
+void console_set_trust_status(Seat *seat, bool trusted);
+bool console_can_set_trust_status(Seat *seat);
 
 /*
  * Other centralised seat functions.
  */
-int filexfer_get_userpass_input(Seat *seat, prompts_t *p, bufchain *input);
+int filexfer_get_userpass_input(Seat *seat, prompts_t *p);
 bool cmdline_seat_verbose(Seat *seat);
+
+/*
+ * TempSeat: a seat implementation that can be given to a backend
+ * temporarily while network proxy setup is using the real seat.
+ * Buffers output and trust-status changes until the real seat is
+ * available again.
+ */
+
+/* Called by the proxy code to make a TempSeat. */
+Seat *tempseat_new(Seat *real);
+
+/* Query functions to tell if a Seat _is_ temporary, and if so, to
+ * return the underlying real Seat. */
+bool is_tempseat(Seat *seat);
+Seat *tempseat_get_real(Seat *seat);
+
+/* Called by the backend once the proxy connection has finished
+ * setting up (or failed), to pass on any buffered stuff to the real
+ * seat. */
+void tempseat_flush(Seat *ts);
+
+/* Frees a TempSeat, without flushing anything it has buffered. (Call
+ * this after tempseat_flush, or alternatively, when you were going to
+ * abandon the whole connection anyway.) */
+void tempseat_free(Seat *ts);
 
 typedef struct rgb {
     uint8_t r, g, b;
@@ -1647,6 +1736,7 @@ NORETURN void cleanup_exit(int);
     X(INT, NONE, sshbug_oldgex2) \
     X(INT, NONE, sshbug_winadj) \
     X(INT, NONE, sshbug_chanreq) \
+    X(INT, NONE, sshbug_dropstart) \
     /*                                                                \
      * ssh_simple means that we promise never to open any channel     \
      * other than the main one, which means it can safely use a very  \
@@ -1825,12 +1915,12 @@ void term_reconfig(Terminal *, Conf *);
 void term_request_copy(Terminal *, const int *clipboards, int n_clipboards);
 void term_request_paste(Terminal *, int clipboard);
 void term_seen_key_event(Terminal *);
-size_t term_data(Terminal *, bool is_stderr, const void *data, size_t len);
+size_t term_data(Terminal *, const void *data, size_t len);
 void term_provide_backend(Terminal *term, Backend *backend);
 void term_provide_logctx(Terminal *term, LogContext *logctx);
 void term_set_focus(Terminal *term, bool has_focus);
 char *term_get_ttymode(Terminal *term, const char *mode);
-int term_get_userpass_input(Terminal *term, prompts_t *p, bufchain *input);
+int term_get_userpass_input(Terminal *term, prompts_t *p);
 void term_set_trust_status(Terminal *term, bool trusted);
 void term_keyinput(Terminal *, int codepage, const void *buf, int len);
 void term_keyinputw(Terminal *, const wchar_t * widebuf, int len);
@@ -1929,6 +2019,7 @@ void logfopen(LogContext *logctx);
 void logfclose(LogContext *logctx);
 void logtraffic(LogContext *logctx, unsigned char c, int logmode);
 void logflush(LogContext *logctx);
+LogPolicy *log_get_policy(LogContext *logctx);
 void logevent(LogContext *logctx, const char *event);
 void logeventf(LogContext *logctx, const char *fmt, ...) PRINTF_LIKE(2, 3);
 void logeventvf(LogContext *logctx, const char *fmt, va_list ap);
@@ -1996,6 +2087,29 @@ void ldisc_configure(Ldisc *, Conf *);
 void ldisc_free(Ldisc *);
 void ldisc_send(Ldisc *, const void *buf, int len, bool interactive);
 void ldisc_echoedit_update(Ldisc *);
+typedef struct LdiscInputToken {
+    /*
+     * Structure that encodes any single item of data that Ldisc can
+     * buffer: either a single character of raw data, or a session
+     * special.
+     */
+    bool is_special;
+    union {
+        struct {
+            /* if is_special == false */
+            char chr;
+        };
+        struct {
+            /* if is_special == true */
+            SessionSpecialCode code;
+            int arg;
+        };
+    };
+} LdiscInputToken;
+bool ldisc_has_input_buffered(Ldisc *);
+LdiscInputToken ldisc_get_input_token(Ldisc *); /* asserts there is input */
+void ldisc_enable_prompt_callback(Ldisc *, prompts_t *);
+void ldisc_check_sendok(Ldisc *);
 
 /*
  * Exports from sshrand.c.
@@ -2412,7 +2526,6 @@ unsigned long timing_last_clock(void);
  * loop, as in PSFTP, for example - if a callback has run then perhaps
  * it might have done whatever the loop's caller was waiting for.
  */
-typedef void (*toplevel_callback_fn_t)(void *ctx);
 void queue_toplevel_callback(toplevel_callback_fn_t fn, void *ctx);
 bool run_toplevel_callbacks(void);
 bool toplevel_callback_pending(void);

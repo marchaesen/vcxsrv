@@ -102,13 +102,9 @@ iris_init_batch_measure(struct iris_context *ice, struct iris_batch *batch)
    memset(batch->measure, 0, batch_bytes);
    struct iris_measure_batch *measure = batch->measure;
 
-   measure->bo = iris_bo_alloc_tiled(bufmgr, "measure",
-                                     config->batch_size * sizeof(uint64_t),
-                                     1,  /* alignment */
-                                     IRIS_MEMZONE_OTHER,
-                                     I915_TILING_NONE,
-                                     0, /* pitch */
-                                     BO_ALLOC_ZEROED);
+   measure->bo = iris_bo_alloc(bufmgr, "measure",
+                               config->batch_size * sizeof(uint64_t), 1,
+                               IRIS_MEMZONE_OTHER, BO_ALLOC_ZEROED);
    measure->base.timestamps = iris_bo_map(NULL, measure->bo, MAP_READ);
    measure->base.framebuffer =
       (uintptr_t)util_hash_crc32(&ice->state.framebuffer,

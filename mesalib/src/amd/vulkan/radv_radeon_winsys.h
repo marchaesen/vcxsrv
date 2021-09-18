@@ -63,6 +63,7 @@ enum radeon_bo_flag { /* bitfield */
                       RADEON_FLAG_32BIT = (1 << 8),
                       RADEON_FLAG_PREFER_LOCAL_BO = (1 << 9),
                       RADEON_FLAG_ZERO_VRAM = (1 << 10),
+                      RADEON_FLAG_REPLAYABLE = (1 << 11),
 };
 
 enum radeon_ctx_priority {
@@ -222,18 +223,18 @@ struct radeon_winsys {
 
    const char *(*get_chip_name)(struct radeon_winsys *ws);
 
-   struct radeon_winsys_bo *(*buffer_create)(struct radeon_winsys *ws, uint64_t size,
-                                             unsigned alignment, enum radeon_bo_domain domain,
-                                             enum radeon_bo_flag flags, unsigned priority);
+   VkResult (*buffer_create)(struct radeon_winsys *ws, uint64_t size, unsigned alignment,
+                             enum radeon_bo_domain domain, enum radeon_bo_flag flags,
+                             unsigned priority, uint64_t address, struct radeon_winsys_bo **out_bo);
 
    void (*buffer_destroy)(struct radeon_winsys *ws, struct radeon_winsys_bo *bo);
    void *(*buffer_map)(struct radeon_winsys_bo *bo);
 
-   struct radeon_winsys_bo *(*buffer_from_ptr)(struct radeon_winsys *ws, void *pointer,
-                                               uint64_t size, unsigned priority);
+   VkResult (*buffer_from_ptr)(struct radeon_winsys *ws, void *pointer, uint64_t size,
+                               unsigned priority, struct radeon_winsys_bo **out_bo);
 
-   struct radeon_winsys_bo *(*buffer_from_fd)(struct radeon_winsys *ws, int fd, unsigned priority,
-                                              uint64_t *alloc_size);
+   VkResult (*buffer_from_fd)(struct radeon_winsys *ws, int fd, unsigned priority,
+                              struct radeon_winsys_bo **out_bo, uint64_t *alloc_size);
 
    bool (*buffer_get_fd)(struct radeon_winsys *ws, struct radeon_winsys_bo *bo, int *fd);
 
@@ -280,7 +281,8 @@ struct radeon_winsys {
 
    void (*cs_add_buffer)(struct radeon_cmdbuf *cs, struct radeon_winsys_bo *bo);
 
-   void (*cs_execute_secondary)(struct radeon_cmdbuf *parent, struct radeon_cmdbuf *child);
+   void (*cs_execute_secondary)(struct radeon_cmdbuf *parent, struct radeon_cmdbuf *child,
+                                bool allow_ib2);
 
    void (*cs_dump)(struct radeon_cmdbuf *cs, FILE *file, const int *trace_ids, int trace_id_count);
 

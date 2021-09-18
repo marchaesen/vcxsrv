@@ -368,7 +368,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
       case nir_type_uint:
       case nir_type_bool: {
          unsigned bit_size = nir_src_bit_size(instr->src[src].src);
-         uint64_t mask = bit_size == 64 ? UINT64_MAX : (1ull << bit_size) - 1;
+         uint64_t mask = u_uintN_max(bit_size);
          for (unsigned i = 0; i < num_components; ++i) {
             uint64_t val = nir_src_comp_as_uint(instr->src[src].src,
                                                 new_swizzle[i]);
@@ -524,8 +524,7 @@ construct_value(nir_builder *build,
       assert(state->variables_seen & (1 << var->variable));
 
       nir_alu_src val = { NIR_SRC_INIT };
-      nir_alu_src_copy(&val, &state->variables[var->variable],
-                       (void *)build->shader);
+      nir_alu_src_copy(&val, &state->variables[var->variable]);
       assert(!var->is_constant);
 
       for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)

@@ -115,7 +115,8 @@ svga_swtnl_draw_vbo(struct svga_context *svga,
          svga->curr.constbufs[PIPE_SHADER_VERTEX][i].buffer->width0);
    }
 
-   draw_vbo(draw, info, drawid_offset, indirect, draw_one, 1);
+   draw_vbo(draw, info, drawid_offset, indirect, draw_one, 1,
+	    svga->patch_vertices);
 
    draw_flush(svga->swtnl.draw);
 

@@ -236,6 +236,11 @@ bool r600_is_format_supported(struct pipe_screen *screen,
 		retval |= PIPE_BIND_VERTEX_BUFFER;
 	}
 
+	if (usage & PIPE_BIND_INDEX_BUFFER &&
+	    r600_is_index_format_supported(format)) {
+		retval |= PIPE_BIND_INDEX_BUFFER;
+	}
+
 	if ((usage & PIPE_BIND_LINEAR) &&
 	    !util_format_is_compressed(format) &&
 	    !(usage & PIPE_BIND_DEPTH_STENCIL))

@@ -1,4 +1,3 @@
-fast_color_clear/fcc-clear-tex: skip
 glx/glx-buffer-age: skip
 glx/glx-buffer-age vblank_mode=0: skip
 glx/glx-copy-sub-buffer: fail
@@ -28,6 +27,7 @@ glx/glx-visuals-stencil: fail
 glx/glx-visuals-stencil -pixmap: fail
 glx/glx_arb_create_context/invalid flag: fail
 glx/glx_arb_create_context_es2_profile/invalid opengl es version: fail
+glx/glx_arb_create_context_no_error/no error: fail
 glx/glx_arb_create_context_robustness/invalid reset notification strategy: skip
 glx/glx_arb_create_context_robustness/require gl_arb_robustness: skip
 glx/glx_arb_sync_control/glxgetmscrateoml: skip
@@ -78,8 +78,6 @@ shaders/activeprogram-bad-program: skip
 shaders/activeprogram-get: skip
 shaders/createshaderprogram-attached-shaders: skip
 shaders/createshaderprogram-bad-type: skip
-shaders/glsl-fs-fogscale/gs-out and fs: skip
-shaders/glsl-fs-fogscale/vs, gs and fs: skip
 shaders/sso-simple: skip
 shaders/sso-uniforms-01: skip
 shaders/sso-uniforms-02: skip
@@ -89,13 +87,8 @@ shaders/useshaderprogram-bad-program: skip
 shaders/useshaderprogram-bad-type: skip
 shaders/useshaderprogram-flushverts-1: skip
 spec/!opengl 1.0/gl-1.0-swapbuffers-behavior: fail
-spec/!opengl 1.0/rasterpos/glsl_vs_gs_linked: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_gs_sso: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_image1d: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_image_bo: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_ssbo: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_tes_linked: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_tes_sso: skip
+spec/!opengl 1.0/rasterpos/glsl_vs_gs_linked: fail
+spec/!opengl 1.0/rasterpos/glsl_vs_tes_linked: fail
 spec/!opengl 1.1/depthstencil-default_fb-blit samples=16: skip
 spec/!opengl 1.1/depthstencil-default_fb-blit samples=32: skip
 spec/!opengl 1.1/depthstencil-default_fb-blit samples=6: skip
@@ -138,12 +131,7 @@ spec/!opengl 1.1/draw-pixels samples=32: skip
 spec/!opengl 1.1/draw-pixels samples=4: skip
 spec/!opengl 1.1/draw-pixels samples=6: skip
 spec/!opengl 1.1/draw-pixels samples=8: skip
-spec/!opengl 1.1/linestipple/line strip: fail
 spec/!opengl 1.1/polygon-mode-facing: fail
-spec/!opengl 1.1/polygon-mode-offset/config 0: expected white pixel on bottom edge: fail
-spec/!opengl 1.1/polygon-mode-offset/config 0: expected white pixel on left edge: fail
-spec/!opengl 1.1/polygon-mode-offset/config 0: expected white pixel on right edge: fail
-spec/!opengl 1.1/polygon-mode-offset/config 0: expected white pixel on top edge: fail
 spec/!opengl 1.1/polygon-mode-offset/config 3: expected white pixel on bottom edge: fail
 spec/!opengl 1.1/polygon-mode-offset/config 3: expected white pixel on left edge: fail
 spec/!opengl 1.1/polygon-mode-offset/config 3: expected white pixel on right edge: fail
@@ -152,6 +140,7 @@ spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on bottom ed
 spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on left edge: fail
 spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on right edge: fail
 spec/!opengl 1.1/polygon-mode-offset/config 4: expected white pixel on top edge: fail
+spec/!opengl 1.1/quad-invariance: warn
 spec/!opengl 1.1/read-front: fail
 spec/!opengl 1.1/read-front clear-front-first: fail
 spec/!opengl 1.1/read-front clear-front-first samples=16: skip
@@ -204,168 +193,7 @@ spec/!opengl 1.4/copy-pixels samples=32: skip
 spec/!opengl 1.4/copy-pixels samples=4: skip
 spec/!opengl 1.4/copy-pixels samples=6: skip
 spec/!opengl 1.4/copy-pixels samples=8: skip
-spec/!opengl 1.4/gl-1.4-polygon-offset: fail
 spec/!opengl 1.4/gl-1.4-rgba-mipmap-texture-with-rgb-visual: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/gs-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/vs, gs and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/vs, tcs, tes and fs: skip
 spec/!opengl 3.0/clearbuffer-depth-cs-probe: fail
 spec/!opengl 3.1/draw-buffers-errors: skip
 spec/!opengl 3.2/gl-3.2-adj-prims cull-back pv-first: fail
@@ -383,12 +211,6 @@ spec/amd_framebuffer_multisample_advanced/api-gles3: skip
 spec/amd_performance_monitor/api: skip
 spec/amd_performance_monitor/measure: skip
 spec/amd_performance_monitor/vc4: skip
-spec/amd_pinned_memory/decrement-offset: skip
-spec/amd_pinned_memory/increment-offset: skip
-spec/amd_pinned_memory/map-buffer decrement-offset: skip
-spec/amd_pinned_memory/map-buffer increment-offset: skip
-spec/amd_pinned_memory/map-buffer offset=0: skip
-spec/amd_pinned_memory/offset=0: skip
 spec/apple_object_purgeable/object_purgeable-api-pbo: skip
 spec/apple_object_purgeable/object_purgeable-api-texture: skip
 spec/apple_object_purgeable/object_purgeable-api-vbo: skip
@@ -404,7 +226,6 @@ spec/arb_bindless_texture/legal: skip
 spec/arb_bindless_texture/limit: skip
 spec/arb_bindless_texture/uint64_attribs: skip
 spec/arb_bindless_texture/uniform: skip
-spec/arb_compute_shader/display-list: skip
 spec/arb_compute_variable_group_size/errors: skip
 spec/arb_compute_variable_group_size/local-size: skip
 spec/arb_compute_variable_group_size/minmax: skip
@@ -465,18 +286,11 @@ spec/arb_geometry_shader4/arb_geometry_shader4-program-parameter-vertices-out ma
 spec/arb_geometry_shader4/arb_geometry_shader4-program-parameter-vertices-out tf 1: skip
 spec/arb_geometry_shader4/arb_geometry_shader4-program-parameter-vertices-out tf max: skip
 spec/arb_geometry_shader4/arb_geometry_shader4-vertices-in: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-dlist-uniforms: skip
 spec/arb_internalformat_query/minmax: skip
 spec/arb_internalformat_query/misc. api error checks: skip
 spec/arb_pipeline_statistics_query/arb_pipeline_statistics_query-frag: fail
 spec/arb_post_depth_coverage/arb_post_depth_coverage-multisampling: fail
 spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceindex/'vs_input2[1][0]' on gl_program_input: fail
-spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-async_cpu_read_before-gl_int: fail
-spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-async_cpu_read_before-gl_unsigned_int: fail
-spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-async_cpu_read_before-gl_unsigned_int64_arb: fail
-spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-sync_cpu_read_after_cache_test-gl_int: fail
-spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-sync_cpu_read_after_cache_test-gl_unsigned_int: fail
-spec/arb_query_buffer_object/qbo/query-gl_time_elapsed-sync_cpu_read_after_cache_test-gl_unsigned_int64_arb: fail
 spec/arb_sample_locations/test: skip
 spec/arb_sample_shading/builtin-gl-num-samples 16: skip
 spec/arb_sample_shading/builtin-gl-num-samples 32: skip
@@ -509,69 +323,14 @@ spec/arb_sample_shading/interpolate-at-sample-position 8: skip
 spec/arb_sample_shading/samplemask 0 all: skip
 spec/arb_sample_shading/samplemask 16: skip
 spec/arb_sample_shading/samplemask 16 all: skip
-spec/arb_sample_shading/samplemask 2 all/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/noms fix: fail
-spec/arb_sample_shading/samplemask 2 all/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 2 all/noms partition: fail
-spec/arb_sample_shading/samplemask 2 all/sample mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/noms fix: fail
-spec/arb_sample_shading/samplemask 2/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 2/noms partition: fail
-spec/arb_sample_shading/samplemask 2/sample mask_in_one: fail
 spec/arb_sample_shading/samplemask 32: skip
 spec/arb_sample_shading/samplemask 32 all: skip
-spec/arb_sample_shading/samplemask 4 all/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/noms fix: fail
-spec/arb_sample_shading/samplemask 4 all/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 4 all/noms partition: fail
-spec/arb_sample_shading/samplemask 4 all/sample mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/0.250000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/0.500000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/1.000000 mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/noms fix: fail
-spec/arb_sample_shading/samplemask 4/noms mask_in_one: fail
-spec/arb_sample_shading/samplemask 4/noms partition: fail
-spec/arb_sample_shading/samplemask 4/sample mask_in_one: fail
 spec/arb_sample_shading/samplemask 6: skip
 spec/arb_sample_shading/samplemask 6 all: skip
 spec/arb_sample_shading/samplemask 8: skip
 spec/arb_sample_shading/samplemask 8 all: skip
-spec/arb_separate_shader_objects/programuniform coverage/double matrices: skip
-spec/arb_separate_shader_objects/programuniform coverage/double scalar and vectors: skip
 spec/arb_shader_atomic_counters/max-counters/combined test above maximum number of atomic counter buffers: skip
 spec/arb_shader_image_load_store/early-z/occlusion query test/early-z pass: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r11f_g11f_b10f: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16_snorm: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16f: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16i: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r16ui: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r32f: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r32i: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r32ui: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r8: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r8_snorm: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r8i: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/r8ui: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg16: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg16_snorm: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg16f: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg16i: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg16ui: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg32f: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg32i: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg32ui: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8_snorm: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8i: fail
-spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rg8ui: fail
 spec/arb_shader_image_load_store/max-size/image2dmsarray max size test/4x16384x8x8: skip
 spec/arb_shader_image_load_store/max-size/image2dmsarray max size test/4x8x16384x8: skip
 spec/arb_shader_image_load_store/max-size/imagebuffer max size test/134217728x1x1x1: skip
@@ -712,12 +471,9 @@ spec/arb_sparse_buffer/basic: skip
 spec/arb_sparse_buffer/buffer-data: skip
 spec/arb_sparse_buffer/commit: skip
 spec/arb_sparse_buffer/minmax: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-immediate-mode-draw-patches: skip
 spec/arb_texture_buffer_object/negative-unsupported: skip
 spec/arb_texture_cube_map/copyteximage cube samples=16: skip
-spec/arb_texture_cube_map/copyteximage cube samples=2: fail
 spec/arb_texture_cube_map/copyteximage cube samples=32: skip
-spec/arb_texture_cube_map/copyteximage cube samples=4: fail
 spec/arb_texture_cube_map/copyteximage cube samples=6: skip
 spec/arb_texture_cube_map/copyteximage cube samples=8: skip
 spec/arb_texture_float/multisample-formats 16 gl_arb_texture_float: skip
@@ -811,9 +567,7 @@ spec/arb_texture_multisample/texelfetch/8-vs-sampler2dmsarray: skip
 spec/arb_texture_multisample/texelfetch/8-vs-usampler2dms: skip
 spec/arb_texture_multisample/texelfetch/8-vs-usampler2dmsarray: skip
 spec/arb_texture_rectangle/copyteximage rect samples=16: skip
-spec/arb_texture_rectangle/copyteximage rect samples=2: fail
 spec/arb_texture_rectangle/copyteximage rect samples=32: skip
-spec/arb_texture_rectangle/copyteximage rect samples=4: fail
 spec/arb_texture_rectangle/copyteximage rect samples=6: skip
 spec/arb_texture_rectangle/copyteximage rect samples=8: skip
 spec/arb_texture_rg/multisample-formats 16 gl_arb_texture_rg: skip
@@ -829,34 +583,15 @@ spec/arb_texture_rg/multisample-formats 8 gl_arb_texture_rg: skip
 spec/arb_texture_rg/multisample-formats 8 gl_arb_texture_rg-float: skip
 spec/arb_texture_rg/multisample-formats 8 gl_arb_texture_rg-int: skip
 spec/arb_texture_stencil8/fbo-clear-formats/gl_stencil_index8 (fbo incomplete): skip
-spec/arb_texture_view/rendering-formats/clear gl_r8 as gl_r8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_r8 as gl_r8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16f: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_rg8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_rg8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgb8 as gl_rgb8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgb8 as gl_rgb8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_r32f: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_r32i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16f: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8i: fail
 spec/arb_timer_query/query gl_timestamp: fail
-spec/arb_vertex_attrib_64bit/get_double_attribs-display-lists: skip
 spec/arb_vertex_program/vp-address-02: skip
 spec/arb_vertex_program/vp-address-04: skip
-spec/arb_viewport_array/display-list: skip
 spec/ati_envmap_bumpmap/ati_envmap_bumpmap-bump: skip
 spec/egl 1.4/egl-blob-cache: skip
 spec/egl 1.4/egl-context-priority: skip
 spec/egl 1.4/egl-copy-buffers: fail
 spec/egl 1.4/egl-flush-external: skip
 spec/egl 1.4/egl-invalid-attr: skip
-spec/egl 1.4/eglcreatepbuffersurface with egl_samples set: skip
 spec/egl_android_native_fence_sync/egl_khr_fence_sync android_native/eglclientwaitsynckhr_native_zero_timeout: skip
 spec/egl_android_native_fence_sync/egl_khr_fence_sync android_native/eglclientwaitsynckhr_nonzero_timeout: skip
 spec/egl_android_native_fence_sync/egl_khr_fence_sync android_native/eglcreatesynckhr_default_attributes: skip
@@ -891,11 +626,13 @@ spec/ext_external_objects/semaphore-api-errors: skip
 spec/ext_external_objects/vk-buf-exchange: skip
 spec/ext_external_objects/vk-depth-display: skip
 spec/ext_external_objects/vk-image-display: skip
+spec/ext_external_objects/vk-image-display-muliple-textures: skip
 spec/ext_external_objects/vk-image-display-overwrite: skip
 spec/ext_external_objects/vk-image-overwrite: skip
 spec/ext_external_objects/vk-pix-buf-update-errors: skip
 spec/ext_external_objects/vk-semaphores: skip
 spec/ext_external_objects/vk-semaphores-2: skip
+spec/ext_external_objects/vk-stencil-display: skip
 spec/ext_external_objects/vk-vert-buf-reuse: skip
 spec/ext_external_objects/vk-vert-buf-update-errors: skip
 spec/ext_external_objects_fd/memory-object-api-errors: skip
@@ -1098,15 +835,11 @@ spec/ext_framebuffer_multisample/alpha-to-one-dual-src-blend 32: skip
 spec/ext_framebuffer_multisample/alpha-to-one-dual-src-blend 6: skip
 spec/ext_framebuffer_multisample/alpha-to-one-dual-src-blend 8: skip
 spec/ext_framebuffer_multisample/alpha-to-one-msaa-disabled 16: skip
-spec/ext_framebuffer_multisample/alpha-to-one-msaa-disabled 2: fail
 spec/ext_framebuffer_multisample/alpha-to-one-msaa-disabled 32: skip
-spec/ext_framebuffer_multisample/alpha-to-one-msaa-disabled 4: fail
 spec/ext_framebuffer_multisample/alpha-to-one-msaa-disabled 6: skip
 spec/ext_framebuffer_multisample/alpha-to-one-msaa-disabled 8: skip
 spec/ext_framebuffer_multisample/bitmap 16: skip
-spec/ext_framebuffer_multisample/bitmap 2: fail
 spec/ext_framebuffer_multisample/bitmap 32: skip
-spec/ext_framebuffer_multisample/bitmap 4: fail
 spec/ext_framebuffer_multisample/bitmap 6: skip
 spec/ext_framebuffer_multisample/bitmap 8: skip
 spec/ext_framebuffer_multisample/blit-flipped 16 x: skip
@@ -1162,7 +895,6 @@ spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 16: skip
 spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 32: skip
 spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 6: skip
 spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 8: skip
-spec/ext_framebuffer_multisample/enable-flag: fail
 spec/ext_framebuffer_multisample/formats 16: skip
 spec/ext_framebuffer_multisample/formats 32: skip
 spec/ext_framebuffer_multisample/formats 6: skip
@@ -1182,11 +914,7 @@ spec/ext_framebuffer_multisample/interpolation 16 centroid-edges: skip
 spec/ext_framebuffer_multisample/interpolation 16 non-centroid-deriv: skip
 spec/ext_framebuffer_multisample/interpolation 16 non-centroid-deriv-disabled: skip
 spec/ext_framebuffer_multisample/interpolation 16 non-centroid-disabled: skip
-spec/ext_framebuffer_multisample/interpolation 2 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 2 centroid-disabled: fail
 spec/ext_framebuffer_multisample/interpolation 2 centroid-edges: fail
-spec/ext_framebuffer_multisample/interpolation 2 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 2 non-centroid-disabled: fail
 spec/ext_framebuffer_multisample/interpolation 32 centroid-deriv: skip
 spec/ext_framebuffer_multisample/interpolation 32 centroid-deriv-disabled: skip
 spec/ext_framebuffer_multisample/interpolation 32 centroid-disabled: skip
@@ -1194,11 +922,7 @@ spec/ext_framebuffer_multisample/interpolation 32 centroid-edges: skip
 spec/ext_framebuffer_multisample/interpolation 32 non-centroid-deriv: skip
 spec/ext_framebuffer_multisample/interpolation 32 non-centroid-deriv-disabled: skip
 spec/ext_framebuffer_multisample/interpolation 32 non-centroid-disabled: skip
-spec/ext_framebuffer_multisample/interpolation 4 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 4 centroid-disabled: fail
 spec/ext_framebuffer_multisample/interpolation 4 centroid-edges: fail
-spec/ext_framebuffer_multisample/interpolation 4 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 4 non-centroid-disabled: fail
 spec/ext_framebuffer_multisample/interpolation 6 centroid-deriv: skip
 spec/ext_framebuffer_multisample/interpolation 6 centroid-deriv-disabled: skip
 spec/ext_framebuffer_multisample/interpolation 6 centroid-disabled: skip
@@ -1376,6 +1100,107 @@ spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=6: skip
 spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=6 with gl_texture_2d_multisample_array: skip
 spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=8: skip
 spec/ext_framebuffer_multisample_blit_scaled/blit-scaled samples=8 with gl_texture_2d_multisample_array: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture() 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture() 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture() 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture() 2darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture() cubeshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture(bias) 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture(bias) 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture(bias) 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture(bias) 2darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texture(bias) cubeshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 2darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 2drect: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 2drectshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad cube: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad cubearray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegrad cubeshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 2darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 2drect: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 2drectshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturegradoffset 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelod 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelod 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelod 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4texturelodoffset 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 1darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 1darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 2darray: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 2darrayshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 2drect: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 2drectshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureoffset 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 1d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 2d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 2drect: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 2drect_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 2drectshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgrad 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 1d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 2d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 2drect: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 2drect_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 2drectshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojgradoffset 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 1d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 2d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojlodoffset 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 1d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 2d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 2drect: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 2drect_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 2drectshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset 3d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 1d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 1d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 1dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 2d: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 2d_projvec4: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 2dshadow: skip
+spec/ext_gpu_shader4/tex-miplevel-selection gpu4textureprojoffset(bias) 3d: skip
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-export: skip
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-export-tex: skip
 spec/ext_image_dma_buf_import/ext_image_dma_buf_import-intel_external_sampler_only: skip
@@ -1438,15 +1263,11 @@ spec/ext_shader_samples_identical/ext_shader_samples_identical-simple-fs 4: skip
 spec/ext_shader_samples_identical/ext_shader_samples_identical-simple-fs 6: skip
 spec/ext_shader_samples_identical/ext_shader_samples_identical-simple-fs 8: skip
 spec/ext_texture_array/copyteximage 1d_array samples=16: skip
-spec/ext_texture_array/copyteximage 1d_array samples=2: fail
 spec/ext_texture_array/copyteximage 1d_array samples=32: skip
-spec/ext_texture_array/copyteximage 1d_array samples=4: fail
 spec/ext_texture_array/copyteximage 1d_array samples=6: skip
 spec/ext_texture_array/copyteximage 1d_array samples=8: skip
 spec/ext_texture_array/copyteximage 2d_array samples=16: skip
-spec/ext_texture_array/copyteximage 2d_array samples=2: fail
 spec/ext_texture_array/copyteximage 2d_array samples=32: skip
-spec/ext_texture_array/copyteximage 2d_array samples=4: fail
 spec/ext_texture_array/copyteximage 2d_array samples=6: skip
 spec/ext_texture_array/copyteximage 2d_array samples=8: skip
 spec/ext_texture_integer/fbo-integer: fail
@@ -1474,8 +1295,6 @@ spec/ext_window_rectangles/errors: skip
 spec/ext_window_rectangles/errors_gles3: skip
 spec/ext_window_rectangles/render: skip
 spec/ext_window_rectangles/render_gles3: skip
-spec/glsl-1.30/execution/tex-miplevel-selection textureoffset 2darrayshadow: skip
-spec/glsl-1.50/built-in constants compatibility: skip
 spec/intel_blackhole_render/intel_blackhole-blit: skip
 spec/intel_blackhole_render/intel_blackhole-blit_gles2: skip
 spec/intel_blackhole_render/intel_blackhole-blit_gles3: skip
@@ -1584,20 +1403,6 @@ spec/oes_texture_compression_astc/miptree-3d-gl srgb: skip
 spec/oes_texture_compression_astc/miptree-3d-gles hdr: skip
 spec/oes_texture_compression_astc/miptree-3d-gles ldr: skip
 spec/oes_texture_compression_astc/miptree-3d-gles srgb: skip
-spec/oes_texture_view/rendering-formats/clear gl_r8 as gl_r8_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_r8 as gl_r8i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16f: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_rg8_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_rg8i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_r32f: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_r32i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16f: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8i: fail
 spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16ui: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16_snorm as gl_rgb16i: skip

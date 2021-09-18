@@ -228,6 +228,8 @@ fdl_ubwc_enabled(const struct fdl_layout *layout, int level)
    return layout->ubwc;
 }
 
+const char *fdl_tile_mode_desc(const struct fdl_layout *layout, int level);
+
 void fdl_layout_buffer(struct fdl_layout *layout, uint32_t size);
 
 void fdl5_layout(struct fdl_layout *layout, enum pipe_format format,

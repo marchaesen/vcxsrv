@@ -1,5 +1,5 @@
 /*
- * Written by José Fonseca <j_r_fonseca@yahoo.co.uk>
+ * Written by JosÃ© Fonseca <j_r_fonseca@yahoo.co.uk>
  */
 
 

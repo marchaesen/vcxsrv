@@ -736,7 +736,7 @@ d3d12_lower_primitive_id(nir_shader *shader)
       }
    }
 
-   nir_metadata_preserve(impl, 0);
+   nir_metadata_preserve(impl, nir_metadata_none);
 }
 
 static void
@@ -875,6 +875,6 @@ d3d12_lower_triangle_strip(nir_shader *shader)
       }
    }
 
-   nir_metadata_preserve(impl, 0);
+   nir_metadata_preserve(impl, nir_metadata_none);
    NIR_PASS_V(shader, nir_lower_var_copies);
 }

@@ -67,14 +67,24 @@ struct PlugVtable {
      *    addresses to fall back to. When it _is_ fatal, the closing()
      *    function will be called.
      *
-     *  - PLUGLOG_CONNECT_SUCCESS means we have succeeded in
-     *    connecting to address `addr'.
+     *  - PLUGLOG_CONNECT_SUCCESS means we have succeeded in making a
+     *    connection. `addr' gives the address we connected to, if
+     *    available. (But sometimes, in cases of complicated proxy
+     *    setups, it might not be available, so receivers of this log
+     *    event should be prepared to deal with addr==NULL.)
      *
      *  - PLUGLOG_PROXY_MSG means that error_msg contains a line of
      *    logging information from whatever the connection is being
      *    proxied through. This will typically be a wodge of
      *    standard-error output from a local proxy command, so the
      *    receiver should probably prefix it to indicate this.
+     *
+     * Note that sometimes log messages may be sent even to Socket
+     * types that don't involve making an outgoing connection, e.g.
+     * because the same core implementation (such as Windows handle
+     * sockets) is shared between listening and connecting sockets. So
+     * all Plugs must implement this method, even if only to ignore
+     * the logged events.
      */
     void (*closing)
      (Plug *p, const char *error_msg, int error_code, bool calling_back);
@@ -107,13 +117,39 @@ struct PlugVtable {
      */
 };
 
-/* proxy indirection layer */
-/* NB, control of 'addr' is passed via new_connection, which takes
- * responsibility for freeing it */
+/* Proxy indirection layer.
+ *
+ * Calling new_connection transfers ownership of 'addr': the proxy
+ * layer is now responsible for freeing it, and the caller shouldn't
+ * assume it exists any more.
+ *
+ * You can optionally pass a LogPolicy to this function, which will be
+ * passed on in turn to proxy types that can use one (e.g. SSH jump
+ * host proxy). If you don't have one, all proxy types are required to
+ * be able to manage without (and will just degrade their logging
+ * control).
+ *
+ * If calling this from a backend with a Seat, you can also give it a
+ * pointer to your 'Seat *'. In that situation, it might replace the
+ * 'Seat *' with a temporary seat of its own, and give the real Seat
+ * to the proxy system so that it can ask for passwords (and, in the
+ * case of SSH proxying, other prompts like host key checks). If that
+ * happens, then the resulting 'temp seat' is the backend's property,
+ * and it will have to remember to free it when cleaning up, or after
+ * flushing it back into the real seat when the network connection
+ * attempt completes.
+ *
+ * You can free your TempSeat and resume using the real Seat when one
+ * of two things happens: either your Plug's closing() method is
+ * called (indicating failure to connect), or its log() method is
+ * called with PLUGLOG_CONNECT_SUCCESS. In the latter case, you'll
+ * probably want to flush the TempSeat's contents into the real Seat,
+ * of course.
+ */
 Socket *new_connection(SockAddr *addr, const char *hostname,
                        int port, bool privport,
                        bool oobinline, bool nodelay, bool keepalive,
-                       Plug *plug, Conf *conf);
+                       Plug *plug, Conf *conf, LogPolicy *lp, Seat **seat);
 Socket *new_listener(const char *srcaddr, int port, Plug *plug,
                      bool local_host_only, Conf *conf, int addressfamily);
 SockAddr *name_lookup(const char *host, int port, char **canonicalname,
@@ -131,7 +167,8 @@ Socket *platform_new_connection(SockAddr *addr, const char *hostname,
 Socket *sshproxy_new_connection(SockAddr *addr, const char *hostname,
                                 int port, bool privport,
                                 bool oobinline, bool nodelay, bool keepalive,
-                                Plug *plug, Conf *conf);
+                                Plug *plug, Conf *conf,
+                                LogPolicy *clientlp, Seat **clientseat);
 
 /* socket functions */
 
@@ -294,6 +331,20 @@ Socket *new_error_socket_consume_string(Plug *plug, char *errmsg);
  * Trivial plug that does absolutely nothing. Found in nullplug.c.
  */
 extern Plug *const nullplug;
+
+/*
+ * Some trivial no-op plug functions, also in nullplug.c; exposed here
+ * so that other Plug implementations can use them too.
+ *
+ * In particular, nullplug_log is useful to Plugs that don't need to
+ * worry about logging.
+ */
+void nullplug_log(Plug *plug, PlugLogType type, SockAddr *addr,
+                  int port, const char *err_msg, int err_code);
+void nullplug_closing(Plug *plug, const char *error_msg, int error_code,
+                      bool calling_back);
+void nullplug_receive(Plug *plug, int urgent, const char *data, size_t len);
+void nullplug_sent(Plug *plug, size_t bufsize);
 
 /* ----------------------------------------------------------------------
  * Functions defined outside the network code, which have to be

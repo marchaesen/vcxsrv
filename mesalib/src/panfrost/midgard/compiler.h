@@ -183,6 +183,8 @@ typedef struct midgard_instruction {
 
                 midgard_branch branch;
         };
+
+        unsigned bundle_id;
 } midgard_instruction;
 
 typedef struct midgard_block {
@@ -304,6 +306,9 @@ typedef struct compiler_context {
         midgard_instruction *writeout_branch[MIDGARD_NUM_RTS][MIDGARD_MAX_SAMPLE_ITER];
 
         struct hash_table_u64 *sysval_to_id;
+
+        /* Mask of UBOs that need to be uploaded */
+        uint32_t ubo_mask;
 } compiler_context;
 
 /* Per-block live_in/live_out */
@@ -574,7 +579,7 @@ v_load_store_scratch(
                 .load_store = {
                         /* For register spilling - to thread local storage */
                         .arg_reg = REGISTER_LDST_LOCAL_STORAGE_PTR,
-                        .arg_comp = COMPONENT_Z,
+                        .arg_comp = COMPONENT_X,
                         .bitsize_toggle = true,
                         .index_format = midgard_index_address_u32,
                         .index_reg = REGISTER_LDST_ZERO,

@@ -589,7 +589,8 @@ int draw_geometry_shader_run(struct draw_geometry_shader *shader,
       output_verts[i].stride = output_verts[i].vertex_size;
       output_verts[i].verts =
          (struct vertex_header *)MALLOC(output_verts[i].vertex_size *
-                                        total_verts_per_buffer * shader->num_invocations);
+                                        total_verts_per_buffer * shader->num_invocations +
+                                        DRAW_EXTRA_VERTICES_PADDING);
       debug_assert(output_verts[i].verts);
    }
 
@@ -833,18 +834,27 @@ draw_create_geometry_shader(struct draw_context *draw,
    gs->primitive_boundary = gs->max_output_vertices + 1;
 
    gs->position_output = -1;
+   bool found_clipvertex = false;
    for (i = 0; i < gs->info.num_outputs; i++) {
       if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_POSITION &&
           gs->info.output_semantic_index[i] == 0)
          gs->position_output = i;
       if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_VIEWPORT_INDEX)
          gs->viewport_index_output = i;
+      if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_CLIPVERTEX &&
+          gs->info.output_semantic_index[i] == 0) {
+         found_clipvertex = true;
+         gs->clipvertex_output = i;
+      }
       if (gs->info.output_semantic_name[i] == TGSI_SEMANTIC_CLIPDIST) {
          debug_assert(gs->info.output_semantic_index[i] <
                       PIPE_MAX_CLIP_OR_CULL_DISTANCE_ELEMENT_COUNT);
          gs->ccdistance_output[gs->info.output_semantic_index[i]] = i;
       }
    }
+
+   if (!found_clipvertex)
+      gs->clipvertex_output = gs->position_output;
 
    gs->machine = draw->gs.tgsi.machine;
 
@@ -899,6 +909,7 @@ void draw_bind_geometry_shader(struct draw_context *draw,
       draw->gs.geometry_shader = dgs;
       draw->gs.num_gs_outputs = dgs->info.num_outputs;
       draw->gs.position_output = dgs->position_output;
+      draw->gs.clipvertex_output = dgs->clipvertex_output;
       draw_geometry_shader_prepare(dgs, draw);
    }
    else {

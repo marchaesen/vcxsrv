@@ -173,9 +173,14 @@ flush_ring(void)
    if (!dev.submit)
       return;
 
-   ret = fd_submit_flush(dev.submit, -1, NULL);
+   struct fd_submit_fence fence = {};
+   util_queue_fence_init(&fence.ready);
+
+   ret = fd_submit_flush(dev.submit, -1, &fence);
+
    if (ret)
       errx(1, "submit failed: %d", ret);
+   util_queue_fence_wait(&fence.ready);
    fd_ringbuffer_del(dev.ring);
    fd_submit_del(dev.submit);
 
@@ -837,7 +842,10 @@ main(int argc, char **argv)
    find_device();
 
    const struct fd_perfcntr_group *groups;
-   groups = fd_perfcntrs((dev.chipid >> 24) * 100, &dev.ngroups);
+   struct fd_dev_id dev_id = {
+         .gpu_id = (dev.chipid >> 24) * 100,
+   };
+   groups = fd_perfcntrs(&dev_id, &dev.ngroups);
    if (!groups) {
       errx(1, "no perfcntr support");
    }

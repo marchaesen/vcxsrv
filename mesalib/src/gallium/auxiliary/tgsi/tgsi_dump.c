@@ -436,22 +436,6 @@ iter_declaration(
          TXT( ", " );
          ENM( decl->Interp.Location, tgsi_interpolate_locations );
       }
-
-      if (decl->Interp.CylindricalWrap) {
-         TXT(", CYLWRAP_");
-         if (decl->Interp.CylindricalWrap & TGSI_CYLINDRICAL_WRAP_X) {
-            CHR('X');
-         }
-         if (decl->Interp.CylindricalWrap & TGSI_CYLINDRICAL_WRAP_Y) {
-            CHR('Y');
-         }
-         if (decl->Interp.CylindricalWrap & TGSI_CYLINDRICAL_WRAP_Z) {
-            CHR('Z');
-         }
-         if (decl->Interp.CylindricalWrap & TGSI_CYLINDRICAL_WRAP_W) {
-            CHR('W');
-         }
-      }
    }
 
    if (decl->Declaration.Invariant) {

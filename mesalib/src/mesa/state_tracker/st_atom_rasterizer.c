@@ -220,6 +220,8 @@ st_update_rasterizer(struct st_context *st)
       }
 
       raster->point_quad_rasterization = 1;
+
+      raster->point_tri_clip = st->ctx->API == API_OPENGLES2;
    }
 
    /* ST_NEW_VERTEX_PROGRAM
@@ -245,6 +247,8 @@ st_update_rasterizer(struct st_context *st)
                                  ctx->Const.MinLineWidth,
                                  ctx->Const.MaxLineWidth);
    }
+
+   raster->line_rectangular = multisample || ctx->Line.SmoothFlag;
 
    /* When the pattern is all 1's, it means line stippling is disabled */
    raster->line_stipple_enable = ctx->Line.StippleFlag && ctx->Line.StipplePattern != 0xffff;
@@ -296,6 +300,7 @@ st_update_rasterizer(struct st_context *st)
                              !ctx->Transform.DepthClampNear;
    raster->depth_clip_far = st->clamp_frag_depth_in_shader ||
                             !ctx->Transform.DepthClampFar;
+   raster->depth_clamp = !raster->depth_clip_far;
    raster->clip_plane_enable = ctx->Transform.ClipPlanesEnabled;
    raster->clip_halfz = (ctx->Transform.ClipDepthMode == GL_ZERO_TO_ONE);
 

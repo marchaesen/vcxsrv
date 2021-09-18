@@ -391,7 +391,7 @@ struct pipe_h264_enc_picture_desc
 {
    struct pipe_picture_desc base;
 
-   struct pipe_h264_enc_rate_control rate_ctrl;
+   struct pipe_h264_enc_rate_control rate_ctrl[4];
 
    struct pipe_h264_enc_motion_estimation motion_est;
    struct pipe_h264_enc_pic_control pic_ctrl;
@@ -413,6 +413,7 @@ struct pipe_h264_enc_picture_desc
    unsigned ref_idx_l1;
    unsigned gop_size;
    unsigned ref_pic_mode;
+   unsigned num_temporal_layers;
 
    bool not_referenced;
    bool enable_vui;
@@ -583,6 +584,7 @@ struct pipe_h265_pps
    uint8_t lists_modification_present_flag;
    uint8_t log2_parallel_merge_level_minus2;
    uint8_t slice_segment_header_extension_present_flag;
+   uint16_t st_rps_bits;
 };
 
 struct pipe_h265_picture_desc
@@ -611,6 +613,7 @@ struct pipe_h265_picture_desc
    uint8_t RefPicSetLtCurr[8];
    uint8_t RefPicList[2][15];
    bool UseRefPicList;
+   bool UseStRpsBits;
 };
 
 struct pipe_mjpeg_picture_desc

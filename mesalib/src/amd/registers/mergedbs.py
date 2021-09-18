@@ -28,8 +28,6 @@ Helper script to merge register database JSON files.
 Will merge the given JSON files and output the result on stdout.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from collections import defaultdict
 import json
 import re

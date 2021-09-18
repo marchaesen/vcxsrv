@@ -146,7 +146,8 @@ llvmpipe_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
                                      !lp->queries_disabled);
 
    /* draw! */
-   draw_vbo(draw, info, drawid_offset, indirect, draws, num_draws);
+   draw_vbo(draw, info, drawid_offset, indirect, draws, num_draws,
+            lp->patch_vertices);
 
    /*
     * unmap vertex/index buffers
@@ -165,6 +166,16 @@ llvmpipe_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
          draw_vs_reset_so(lp->vs);
       }
    }
+
+   llvmpipe_cleanup_stage_sampling(lp, PIPE_SHADER_VERTEX);
+   llvmpipe_cleanup_stage_sampling(lp, PIPE_SHADER_GEOMETRY);
+   llvmpipe_cleanup_stage_sampling(lp, PIPE_SHADER_TESS_CTRL);
+   llvmpipe_cleanup_stage_sampling(lp, PIPE_SHADER_TESS_EVAL);
+
+   llvmpipe_cleanup_stage_images(lp, PIPE_SHADER_VERTEX);
+   llvmpipe_cleanup_stage_images(lp, PIPE_SHADER_GEOMETRY);
+   llvmpipe_cleanup_stage_images(lp, PIPE_SHADER_TESS_CTRL);
+   llvmpipe_cleanup_stage_images(lp, PIPE_SHADER_TESS_EVAL);
 
    /*
     * TODO: Flush only when a user vertex/index buffer is present

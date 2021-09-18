@@ -55,53 +55,44 @@
 /**
  * Get a pipe_sampler_view object from a texture unit.
  */
-void
+struct pipe_sampler_view *
 st_update_single_texture(struct st_context *st,
-                         struct pipe_sampler_view **sampler_view,
                          GLuint texUnit, bool glsl130_or_later,
-                         bool ignore_srgb_decode)
+                         bool ignore_srgb_decode, bool get_reference)
 {
    struct gl_context *ctx = st->ctx;
-   const struct gl_sampler_object *samp;
    struct gl_texture_object *texObj;
    struct st_texture_object *stObj;
-
-   samp = _mesa_get_samplerobj(ctx, texUnit);
 
    texObj = ctx->Texture.Unit[texUnit]._Current;
    assert(texObj);
 
    stObj = st_texture_object(texObj);
+   GLenum target = texObj->Target;
 
-   if (unlikely(texObj->Target == GL_TEXTURE_BUFFER)) {
-      *sampler_view = st_get_buffer_sampler_view_from_stobj(st, stObj);
-      return;
-   }
+   if (unlikely(target == GL_TEXTURE_BUFFER))
+      return st_get_buffer_sampler_view_from_stobj(st, stObj, get_reference);
 
-   if (!st_finalize_texture(ctx, st->pipe, texObj, 0) ||
-       !stObj->pt) {
-      /* out of mem */
-      *sampler_view = NULL;
-      return;
-   }
+   if (!st_finalize_texture(ctx, st->pipe, texObj, 0) || !stObj->pt)
+      return NULL; /* out of mem */
 
-   if (texObj->TargetIndex == TEXTURE_EXTERNAL_INDEX &&
+   if (target == GL_TEXTURE_EXTERNAL_OES &&
        stObj->pt->screen->resource_changed)
          stObj->pt->screen->resource_changed(stObj->pt->screen, stObj->pt);
 
-   *sampler_view =
-      st_get_texture_sampler_view_from_stobj(st, stObj, samp,
-                                             glsl130_or_later,
-                                             ignore_srgb_decode);
+   return st_get_texture_sampler_view_from_stobj(st, stObj,
+                                                 _mesa_get_samplerobj(ctx, texUnit),
+                                                 glsl130_or_later,
+                                                 ignore_srgb_decode, get_reference);
 }
 
 
 
-static void
-update_textures(struct st_context *st,
-                enum pipe_shader_type shader_stage,
-                const struct gl_program *prog,
-                struct pipe_sampler_view **sampler_views)
+unsigned
+st_get_sampler_views(struct st_context *st,
+                     enum pipe_shader_type shader_stage,
+                     const struct gl_program *prog,
+                     struct pipe_sampler_view **sampler_views)
 {
    struct pipe_context *pipe = st->pipe;
    const GLuint old_max = st->state.num_sampler_views[shader_stage];
@@ -112,54 +103,52 @@ update_textures(struct st_context *st,
    GLuint unit;
 
    if (samplers_used == 0x0 && old_max == 0)
-      return;
+      return 0;
 
-   unsigned num_textures = 0;
+   unsigned num_textures = util_last_bit(samplers_used);
 
    /* prog->sh.data is NULL if it's ARB_fragment_program */
    bool glsl130 = (prog->sh.data ? prog->sh.data->Version : 0) >= 130;
 
    /* loop over sampler units (aka tex image units) */
-   for (unit = 0; samplers_used || unit < old_max;
-        unit++, samplers_used >>= 1, texel_fetch_samplers >>= 1) {
-      struct pipe_sampler_view *sampler_view = NULL;
+   for (unit = 0; unit < num_textures; unit++) {
+      unsigned bit = BITFIELD_BIT(unit);
 
-      if (samplers_used & 1) {
-         const GLuint texUnit = prog->SamplerUnits[unit];
-
-         /* The EXT_texture_sRGB_decode extension says:
-          *
-          *    "The conversion of sRGB color space components to linear color
-          *     space is always performed if the texel lookup function is one
-          *     of the texelFetch builtin functions.
-          *
-          *     Otherwise, if the texel lookup function is one of the texture
-          *     builtin functions or one of the texture gather functions, the
-          *     conversion of sRGB color space components to linear color space
-          *     is controlled by the TEXTURE_SRGB_DECODE_EXT parameter.
-          *
-          *     If the TEXTURE_SRGB_DECODE_EXT parameter is DECODE_EXT, the
-          *     conversion of sRGB color space components to linear color space
-          *     is performed.
-          *
-          *     If the TEXTURE_SRGB_DECODE_EXT parameter is SKIP_DECODE_EXT,
-          *     the value is returned without decoding. However, if the texture
-          *     is also [statically] accessed with a texelFetch function, then
-          *     the result of texture builtin functions and/or texture gather
-          *     functions may be returned with decoding or without decoding."
-          *
-          * Note: the "statically" will be added to the language per
-          *       https://cvs.khronos.org/bugzilla/show_bug.cgi?id=14934
-          *
-          * So we simply ignore the setting entirely for samplers that are
-          * (statically) accessed with a texelFetch function.
-          */
-         st_update_single_texture(st, &sampler_view, texUnit, glsl130,
-                                  texel_fetch_samplers & 1);
-         num_textures = unit + 1;
+      if (!(samplers_used & bit)) {
+         sampler_views[unit] = NULL;
+         continue;
       }
 
-      pipe_sampler_view_reference(&(sampler_views[unit]), sampler_view);
+      /* The EXT_texture_sRGB_decode extension says:
+       *
+       *    "The conversion of sRGB color space components to linear color
+       *     space is always performed if the texel lookup function is one
+       *     of the texelFetch builtin functions.
+       *
+       *     Otherwise, if the texel lookup function is one of the texture
+       *     builtin functions or one of the texture gather functions, the
+       *     conversion of sRGB color space components to linear color space
+       *     is controlled by the TEXTURE_SRGB_DECODE_EXT parameter.
+       *
+       *     If the TEXTURE_SRGB_DECODE_EXT parameter is DECODE_EXT, the
+       *     conversion of sRGB color space components to linear color space
+       *     is performed.
+       *
+       *     If the TEXTURE_SRGB_DECODE_EXT parameter is SKIP_DECODE_EXT,
+       *     the value is returned without decoding. However, if the texture
+       *     is also [statically] accessed with a texelFetch function, then
+       *     the result of texture builtin functions and/or texture gather
+       *     functions may be returned with decoding or without decoding."
+       *
+       * Note: the "statically" will be added to the language per
+       *       https://cvs.khronos.org/bugzilla/show_bug.cgi?id=14934
+       *
+       * So we simply ignore the setting entirely for samplers that are
+       * (statically) accessed with a texelFetch function.
+       */
+      sampler_views[unit] =
+         st_update_single_texture(st, prog->SamplerUnits[unit], glsl130,
+                                  texel_fetch_samplers & bit, true);
    }
 
    /* For any external samplers with multiplaner YUV, stuff the additional
@@ -221,6 +210,10 @@ update_textures(struct st_context *st,
                pipe->create_sampler_view(pipe, stObj->pt->next->next, &tmpl);
          break;
       case PIPE_FORMAT_YUYV:
+         if (stObj->pt->format == PIPE_FORMAT_R8G8_R8B8_UNORM)
+            /* no additional views needed */
+            break;
+
          /* we need one additional BGRA8888 view: */
          tmpl.format = PIPE_FORMAT_BGRA8888_UNORM;
          tmpl.swizzle_b = PIPE_SWIZZLE_Z;
@@ -230,8 +223,23 @@ update_textures(struct st_context *st,
                pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
          break;
       case PIPE_FORMAT_UYVY:
+         if (stObj->pt->format == PIPE_FORMAT_G8R8_B8R8_UNORM)
+            /* no additional views needed */
+            break;
+
          /* we need one additional RGBA8888 view: */
          tmpl.format = PIPE_FORMAT_RGBA8888_UNORM;
+         tmpl.swizzle_b = PIPE_SWIZZLE_Z;
+         tmpl.swizzle_a = PIPE_SWIZZLE_W;
+         extra = u_bit_scan(&free_slots);
+         sampler_views[extra] =
+               pipe->create_sampler_view(pipe, stObj->pt->next, &tmpl);
+         break;
+      case PIPE_FORMAT_Y210:
+      case PIPE_FORMAT_Y212:
+      case PIPE_FORMAT_Y216:
+         /* we need one additional R16G16B16A16 view: */
+         tmpl.format = PIPE_FORMAT_R16G16B16A16_UNORM;
          tmpl.swizzle_b = PIPE_SWIZZLE_Z;
          tmpl.swizzle_a = PIPE_SWIZZLE_W;
          extra = u_bit_scan(&free_slots);
@@ -245,31 +253,26 @@ update_textures(struct st_context *st,
       num_textures = MAX2(num_textures, extra + 1);
    }
 
-   /* Unbind old textures. */
+   return num_textures;
+}
+
+static void
+update_textures(struct st_context *st,
+                enum pipe_shader_type shader_stage,
+                const struct gl_program *prog)
+{
+   struct pipe_sampler_view *sampler_views[PIPE_MAX_SAMPLERS];
+   struct pipe_context *pipe = st->pipe;
+   unsigned num_textures =
+      st_get_sampler_views(st, shader_stage, prog, sampler_views);
+
    unsigned old_num_textures = st->state.num_sampler_views[shader_stage];
    unsigned num_unbind = old_num_textures > num_textures ?
                             old_num_textures - num_textures : 0;
-   for (unsigned i = 0; i < num_unbind; i++)
-      pipe_sampler_view_reference(&sampler_views[num_textures + i], NULL);
 
    pipe->set_sampler_views(pipe, shader_stage, 0, num_textures, num_unbind,
-                           sampler_views);
+                           true, sampler_views);
    st->state.num_sampler_views[shader_stage] = num_textures;
-}
-
-/* Same as update_textures, but don't store the views in st_context. */
-static void
-update_textures_local(struct st_context *st,
-                      enum pipe_shader_type shader_stage,
-                      const struct gl_program *prog)
-{
-   struct pipe_sampler_view *local_views[PIPE_MAX_SAMPLERS] = {0};
-
-   update_textures(st, shader_stage, prog, local_views);
-
-   unsigned num = st->state.num_sampler_views[shader_stage];
-   for (unsigned i = 0; i < num; i++)
-      pipe_sampler_view_reference(&local_views[i], NULL);
 }
 
 void
@@ -278,10 +281,8 @@ st_update_vertex_textures(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
 
    if (ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits > 0) {
-      update_textures(st,
-                      PIPE_SHADER_VERTEX,
-                      ctx->VertexProgram._Current,
-                      st->state.vert_sampler_views);
+      update_textures(st, PIPE_SHADER_VERTEX,
+                            ctx->VertexProgram._Current);
    }
 }
 
@@ -291,10 +292,8 @@ st_update_fragment_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
-   update_textures(st,
-                   PIPE_SHADER_FRAGMENT,
-                   ctx->FragmentProgram._Current,
-                   st->state.frag_sampler_views);
+   update_textures(st, PIPE_SHADER_FRAGMENT,
+                         ctx->FragmentProgram._Current);
 }
 
 
@@ -304,7 +303,7 @@ st_update_geometry_textures(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
 
    if (ctx->GeometryProgram._Current) {
-      update_textures_local(st, PIPE_SHADER_GEOMETRY,
+      update_textures(st, PIPE_SHADER_GEOMETRY,
                             ctx->GeometryProgram._Current);
    }
 }
@@ -316,7 +315,7 @@ st_update_tessctrl_textures(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
 
    if (ctx->TessCtrlProgram._Current) {
-      update_textures_local(st, PIPE_SHADER_TESS_CTRL,
+      update_textures(st, PIPE_SHADER_TESS_CTRL,
                             ctx->TessCtrlProgram._Current);
    }
 }
@@ -328,7 +327,7 @@ st_update_tesseval_textures(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
 
    if (ctx->TessEvalProgram._Current) {
-      update_textures_local(st, PIPE_SHADER_TESS_EVAL,
+      update_textures(st, PIPE_SHADER_TESS_EVAL,
                             ctx->TessEvalProgram._Current);
    }
 }
@@ -340,7 +339,7 @@ st_update_compute_textures(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
 
    if (ctx->ComputeProgram._Current) {
-      update_textures_local(st, PIPE_SHADER_COMPUTE,
+      update_textures(st, PIPE_SHADER_COMPUTE,
                             ctx->ComputeProgram._Current);
    }
 }

@@ -53,7 +53,7 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    context->coded_buf = coded_buf;
 
    _mesa_hash_table_insert(context->desc.h264enc.frame_idx,
-		       UINT_TO_PTR(h264->CurrPic.picture_id),
+		       UINT_TO_PTR(h264->CurrPic.picture_id + 1),
 		       UINT_TO_PTR(h264->frame_num));
 
    if (h264->pic_fields.bits.idr_pic_flag == 1)
@@ -84,12 +84,12 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
       if (h264->RefPicList0[i].picture_id != VA_INVALID_ID) {
          if (context->desc.h264enc.ref_idx_l0 == VA_INVALID_ID)
             context->desc.h264enc.ref_idx_l0 = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-									       UINT_TO_PTR(h264->RefPicList0[i].picture_id)));
+									       UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
       }
       if (h264->RefPicList1[i].picture_id != VA_INVALID_ID && h264->slice_type == 1) {
          if (context->desc.h264enc.ref_idx_l1 == VA_INVALID_ID)
             context->desc.h264enc.ref_idx_l1 = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-									       UINT_TO_PTR(h264->RefPicList1[i].picture_id)));
+									       UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
       }
    }
 
@@ -124,8 +124,8 @@ vlVaHandleVAEncSequenceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *con
    if (context->gop_coeff > VL_VA_ENC_GOP_COEFF)
       context->gop_coeff = VL_VA_ENC_GOP_COEFF;
    context->desc.h264enc.gop_size = h264->intra_idr_period * context->gop_coeff;
-   context->desc.h264enc.rate_ctrl.frame_rate_num = h264->time_scale / 2;
-   context->desc.h264enc.rate_ctrl.frame_rate_den = h264->num_units_in_tick;
+   context->desc.h264enc.rate_ctrl[0].frame_rate_num = h264->time_scale / 2;
+   context->desc.h264enc.rate_ctrl[0].frame_rate_den = h264->num_units_in_tick;
    context->desc.h264enc.pic_order_cnt_type = h264->seq_fields.bits.pic_order_cnt_type;
 
    if (h264->frame_cropping_flag) {
@@ -141,17 +141,33 @@ vlVaHandleVAEncSequenceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *con
 VAStatus
 vlVaHandleVAEncMiscParameterTypeRateControlH264(vlVaContext *context, VAEncMiscParameterBuffer *misc)
 {
+   unsigned temporal_id;
    VAEncMiscParameterRateControl *rc = (VAEncMiscParameterRateControl *)misc->data;
-   if (context->desc.h264enc.rate_ctrl.rate_ctrl_method ==
-         PIPE_H2645_ENC_RATE_CONTROL_METHOD_CONSTANT)
-      context->desc.h264enc.rate_ctrl.target_bitrate = rc->bits_per_second;
+
+   temporal_id = context->desc.h264enc.rate_ctrl[0].rate_ctrl_method !=
+                 PIPE_H2645_ENC_RATE_CONTROL_METHOD_DISABLE ?
+                 rc->rc_flags.bits.temporal_id :
+                 0;
+
+   if (context->desc.h264enc.rate_ctrl[0].rate_ctrl_method ==
+       PIPE_H2645_ENC_RATE_CONTROL_METHOD_CONSTANT)
+      context->desc.h264enc.rate_ctrl[temporal_id].target_bitrate =
+         rc->bits_per_second;
    else
-      context->desc.h264enc.rate_ctrl.target_bitrate = rc->bits_per_second * (rc->target_percentage / 100.0);
-   context->desc.h264enc.rate_ctrl.peak_bitrate = rc->bits_per_second;
-   if (context->desc.h264enc.rate_ctrl.target_bitrate < 2000000)
-      context->desc.h264enc.rate_ctrl.vbv_buffer_size = MIN2((context->desc.h264enc.rate_ctrl.target_bitrate * 2.75), 2000000);
+      context->desc.h264enc.rate_ctrl[temporal_id].target_bitrate =
+         rc->bits_per_second * (rc->target_percentage / 100.0);
+
+   if (context->desc.h264enc.num_temporal_layers > 0 &&
+       temporal_id >= context->desc.h264enc.num_temporal_layers)
+      return VA_STATUS_ERROR_INVALID_PARAMETER;
+
+   context->desc.h264enc.rate_ctrl[temporal_id].peak_bitrate = rc->bits_per_second;
+   if (context->desc.h264enc.rate_ctrl[temporal_id].target_bitrate < 2000000)
+       context->desc.h264enc.rate_ctrl[temporal_id].vbv_buffer_size =
+         MIN2((context->desc.h264enc.rate_ctrl[0].target_bitrate * 2.75), 2000000);
    else
-      context->desc.h264enc.rate_ctrl.vbv_buffer_size = context->desc.h264enc.rate_ctrl.target_bitrate;
+      context->desc.h264enc.rate_ctrl[temporal_id].vbv_buffer_size =
+         context->desc.h264enc.rate_ctrl[0].target_bitrate;
 
    return VA_STATUS_SUCCESS;
 }
@@ -159,14 +175,36 @@ vlVaHandleVAEncMiscParameterTypeRateControlH264(vlVaContext *context, VAEncMiscP
 VAStatus
 vlVaHandleVAEncMiscParameterTypeFrameRateH264(vlVaContext *context, VAEncMiscParameterBuffer *misc)
 {
+   unsigned temporal_id;
    VAEncMiscParameterFrameRate *fr = (VAEncMiscParameterFrameRate *)misc->data;
+
+   temporal_id = context->desc.h264enc.rate_ctrl[0].rate_ctrl_method !=
+                 PIPE_H2645_ENC_RATE_CONTROL_METHOD_DISABLE ?
+                 fr->framerate_flags.bits.temporal_id :
+                 0;
+
+   if (context->desc.h264enc.num_temporal_layers > 0 &&
+       temporal_id >= context->desc.h264enc.num_temporal_layers)
+      return VA_STATUS_ERROR_INVALID_PARAMETER;
+
    if (fr->framerate & 0xffff0000) {
-      context->desc.h264enc.rate_ctrl.frame_rate_num = fr->framerate       & 0xffff;
-      context->desc.h264enc.rate_ctrl.frame_rate_den = fr->framerate >> 16 & 0xffff;
+      context->desc.h264enc.rate_ctrl[temporal_id].frame_rate_num = fr->framerate       & 0xffff;
+      context->desc.h264enc.rate_ctrl[temporal_id].frame_rate_den = fr->framerate >> 16 & 0xffff;
    } else {
-      context->desc.h264enc.rate_ctrl.frame_rate_num = fr->framerate;
-      context->desc.h264enc.rate_ctrl.frame_rate_den = 1;
+      context->desc.h264enc.rate_ctrl[temporal_id].frame_rate_num = fr->framerate;
+      context->desc.h264enc.rate_ctrl[temporal_id].frame_rate_den = 1;
    }
+
+   return VA_STATUS_SUCCESS;
+}
+
+VAStatus
+vlVaHandleVAEncMiscParameterTypeTemporalLayerH264(vlVaContext *context, VAEncMiscParameterBuffer *misc)
+{
+   VAEncMiscParameterTemporalLayerStructure *tl = (VAEncMiscParameterTemporalLayerStructure *)misc->data;
+
+   context->desc.h264enc.num_temporal_layers = tl->number_of_layers;
+
    return VA_STATUS_SUCCESS;
 }
 
@@ -186,25 +224,25 @@ void getEncParamPresetH264(vlVaContext *context)
    context->desc.h264enc.pic_ctrl.enc_constraint_set_flags = 0x00000040;
 
    //rate control
-   context->desc.h264enc.rate_ctrl.vbv_buffer_size = 20000000;
-   context->desc.h264enc.rate_ctrl.vbv_buf_lv = 48;
-   context->desc.h264enc.rate_ctrl.fill_data_enable = 1;
-   context->desc.h264enc.rate_ctrl.enforce_hrd = 1;
+   context->desc.h264enc.rate_ctrl[0].vbv_buffer_size = 20000000;
+   context->desc.h264enc.rate_ctrl[0].vbv_buf_lv = 48;
+   context->desc.h264enc.rate_ctrl[0].fill_data_enable = 1;
+   context->desc.h264enc.rate_ctrl[0].enforce_hrd = 1;
    context->desc.h264enc.enable_vui = false;
-   if (context->desc.h264enc.rate_ctrl.frame_rate_num == 0 ||
-       context->desc.h264enc.rate_ctrl.frame_rate_den == 0) {
-         context->desc.h264enc.rate_ctrl.frame_rate_num = 30;
-         context->desc.h264enc.rate_ctrl.frame_rate_den = 1;
+   if (context->desc.h264enc.rate_ctrl[0].frame_rate_num == 0 ||
+       context->desc.h264enc.rate_ctrl[0].frame_rate_den == 0) {
+         context->desc.h264enc.rate_ctrl[0].frame_rate_num = 30;
+         context->desc.h264enc.rate_ctrl[0].frame_rate_den = 1;
    }
-   context->desc.h264enc.rate_ctrl.target_bits_picture =
-      context->desc.h264enc.rate_ctrl.target_bitrate *
-      ((float)context->desc.h264enc.rate_ctrl.frame_rate_den /
-      context->desc.h264enc.rate_ctrl.frame_rate_num);
-   context->desc.h264enc.rate_ctrl.peak_bits_picture_integer =
-      context->desc.h264enc.rate_ctrl.peak_bitrate *
-      ((float)context->desc.h264enc.rate_ctrl.frame_rate_den /
-      context->desc.h264enc.rate_ctrl.frame_rate_num);
+   context->desc.h264enc.rate_ctrl[0].target_bits_picture =
+      context->desc.h264enc.rate_ctrl[0].target_bitrate *
+      ((float)context->desc.h264enc.rate_ctrl[0].frame_rate_den /
+      context->desc.h264enc.rate_ctrl[0].frame_rate_num);
+   context->desc.h264enc.rate_ctrl[0].peak_bits_picture_integer =
+      context->desc.h264enc.rate_ctrl[0].peak_bitrate *
+      ((float)context->desc.h264enc.rate_ctrl[0].frame_rate_den /
+      context->desc.h264enc.rate_ctrl[0].frame_rate_num);
 
-   context->desc.h264enc.rate_ctrl.peak_bits_picture_fraction = 0;
+   context->desc.h264enc.rate_ctrl[0].peak_bits_picture_fraction = 0;
    context->desc.h264enc.ref_pic_mode = 0x00000201;
 }

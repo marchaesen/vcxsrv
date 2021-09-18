@@ -117,6 +117,9 @@ void
 llvmpipe_update_setup(struct llvmpipe_context *lp);
 
 void
+llvmpipe_update_derived_clear(struct llvmpipe_context *llvmpipe);
+
+void
 llvmpipe_update_derived(struct llvmpipe_context *llvmpipe);
 
 void
@@ -174,6 +177,9 @@ void
 llvmpipe_prepare_tess_eval_sampling(struct llvmpipe_context *ctx,
                                     unsigned num,
                                     struct pipe_sampler_view **views);
+void
+llvmpipe_cleanup_stage_sampling(struct llvmpipe_context *ctx,
+                                enum pipe_shader_type stage);
 
 void
 llvmpipe_prepare_vertex_images(struct llvmpipe_context *lp,
@@ -194,5 +200,9 @@ void
 llvmpipe_prepare_tess_eval_images(struct llvmpipe_context *lp,
                                   unsigned num,
                                   struct pipe_image_view *views);
+
+void
+llvmpipe_cleanup_stage_images(struct llvmpipe_context *ctx,
+                              enum pipe_shader_type stage);
 
 #endif

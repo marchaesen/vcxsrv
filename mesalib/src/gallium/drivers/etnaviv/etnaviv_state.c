@@ -753,6 +753,21 @@ etna_update_zsa(struct etna_context *ctx)
    return true;
 }
 
+static bool
+etna_record_flush_resources(struct etna_context *ctx)
+{
+   struct pipe_framebuffer_state *fb = &ctx->framebuffer_s;
+
+   if (fb->nr_cbufs > 0) {
+      struct etna_surface *surf = etna_surface(fb->cbufs[0]);
+
+      if (!etna_resource(surf->prsc)->explicit_flush)
+         _mesa_set_add(ctx->flush_resources, surf->prsc);
+   }
+
+   return true;
+}
+
 struct etna_state_updater {
    bool (*update)(struct etna_context *ctx);
    uint32_t dirty;
@@ -780,6 +795,9 @@ static const struct etna_state_updater etna_state_updates[] = {
    },
    {
       etna_update_zsa, ETNA_DIRTY_ZSA | ETNA_DIRTY_SHADER,
+   },
+   {
+      etna_record_flush_resources, ETNA_DIRTY_FRAMEBUFFER,
    }
 };
 

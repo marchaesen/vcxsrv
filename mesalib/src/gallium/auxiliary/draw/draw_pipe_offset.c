@@ -97,7 +97,7 @@ static void do_offset_tri( struct draw_stage *stage,
    if (stage->draw->floating_point_depth) {
       float bias;
       union fi maxz;
-      maxz.f = MAX3(v0[2], v1[2], v2[2]);
+      maxz.f = MAX3(fabs(v0[2]), fabs(v1[2]), fabs(v2[2]));
       /* just do the math directly on shifted number */
       maxz.ui &= 0xff << 23;
       maxz.i -= 23 << 23;
@@ -187,7 +187,7 @@ static void offset_first_tri( struct draw_stage *stage,
       if (stage->draw->floating_point_depth) {
          offset->units = (float) rast->offset_units;
       } else {
-         offset->units = (float) (rast->offset_units * stage->draw->mrd);
+         offset->units = (float) (rast->offset_units * stage->draw->mrd * 2);
       }
    }
    else {

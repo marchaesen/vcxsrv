@@ -39,6 +39,14 @@ Here's a list of those requirements:
   * `VK_KHR_maintenance1`_
   * `VK_EXT_custom_border_color`_
   * `VK_EXT_provoking_vertex`_
+  * `VK_EXT_line_rasterization`_, with the following ``VkPhysicalDeviceLineRasterizationFeaturesEXT``:
+
+    * ``rectangularLines``
+    * ``bresenhamLines``
+    * ``smoothLines``
+    * ``stippledRectangularLines``
+    * ``stippledBresenhamLines``
+    * ``stippledSmoothLines``
 
 In addition to this, `VK_KHR_external_memory`_ is required to support the
 DRI code-path.
@@ -219,6 +227,23 @@ are required to be supported
 
   * `VK_KHR_draw_indirect_count`_
 
+Performance
+-----------
+
+If you notice poor performance and high CPU usage while running an application,
+changing the descriptor manager may improve performance:
+
+.. envvar:: ZINK_DESCRIPTORS <mode> ("auto")
+
+``auto``
+   Automatically detect best mode. This is the default.
+``lazy``
+   Disable caching and attempt to use the least amount of CPU.
+``nofallback``
+   Always use caching to try reducing GPU churn.
+``notemplates``
+   The same as `auto`, but disables the use of `VK_KHR_descriptor_templates`.
+
 Debugging
 ---------
 
@@ -254,8 +279,8 @@ IRC
 
 In order to make things a bit easier to follow, we have decided to create our
 own IRC channel. If you're interested in contributing, or have any technical
-questions, don't hesitate to visit `#zink on FreeNode
-<irc://irc.freenode.net/zink>`_ and say hi!
+questions, don't hesitate to visit `#zink on OFTC
+<irc://irc.oftc.net/zink>`__ and say hi!
 
 
 .. _VK_KHR_maintenance1: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_maintenance1.html
@@ -270,3 +295,4 @@ questions, don't hesitate to visit `#zink on FreeNode
 .. _VK_KHR_sampler_mirror_clamp_to_edge: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_sampler_mirror_clamp_to_edge.html
 .. _VK_EXT_custom_border_color: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_custom_border_color.html
 .. _VK_EXT_provoking_vertex: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_provoking_vertex.html
+.. _VK_EXT_line_rasterization: https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_EXT_line_rasterization.html

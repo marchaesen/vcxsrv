@@ -25,6 +25,7 @@
 #include "nir_builder.h"
 #include "d3d12_compiler.h"
 #include "d3d12_nir_passes.h"
+#include "dxil_nir.h"
 #include "program/prog_statevars.h"
 
 struct lower_state {
@@ -274,7 +275,7 @@ d3d12_lower_point_sprite(nir_shader *shader,
    }
    state.num_point_coords = count;
    if (point_coord_enable) {
-      d3d12_reassign_driver_locations(shader, nir_var_shader_out,
+      dxil_reassign_driver_locations(shader, nir_var_shader_out,
                                       next_inputs_read);
    }
 

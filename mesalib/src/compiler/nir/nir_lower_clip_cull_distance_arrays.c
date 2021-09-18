@@ -48,7 +48,7 @@ get_unwrapped_array_length(nir_shader *nir, nir_variable *var)
     * array length.
     */
    const struct glsl_type *type = var->type;
-   if (nir_is_per_vertex_io(var, nir->info.stage))
+   if (nir_is_arrayed_io(var, nir->info.stage))
       type = glsl_get_array_element(type);
 
    assert(glsl_type_is_array(type));

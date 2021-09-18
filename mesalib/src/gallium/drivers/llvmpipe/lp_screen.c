@@ -70,11 +70,15 @@ static const struct debug_named_value lp_debug_flags[] = {
    { "counters", DEBUG_COUNTERS, NULL },
    { "scene", DEBUG_SCENE, NULL },
    { "fence", DEBUG_FENCE, NULL },
+   { "no_fastpath", DEBUG_NO_FASTPATH, NULL },
+   { "linear", DEBUG_LINEAR, NULL },
+   { "linear2", DEBUG_LINEAR2, NULL },
    { "mem", DEBUG_MEM, NULL },
    { "fs", DEBUG_FS, NULL },
    { "cs", DEBUG_CS, NULL },
    { "tgsi_ir", DEBUG_TGSI_IR, NULL },
    { "cache_stats", DEBUG_CACHE_STATS, NULL },
+   { "accurate_a0", DEBUG_ACCURATE_A0 },
    DEBUG_NAMED_VALUE_END
 };
 #endif
@@ -89,6 +93,8 @@ static const struct debug_named_value lp_perf_flags[] = {
    { "no_blend",       PERF_NO_BLEND, NULL },
    { "no_depth",       PERF_NO_DEPTH, NULL },
    { "no_alphatest",   PERF_NO_ALPHATEST, NULL },
+   { "no_rast_linear", PERF_NO_RAST_LINEAR, NULL },
+   { "no_shade",       PERF_NO_SHADE, NULL },
    DEBUG_NAMED_VALUE_END
 };
 
@@ -103,10 +109,8 @@ llvmpipe_get_vendor(struct pipe_screen *screen)
 static const char *
 llvmpipe_get_name(struct pipe_screen *screen)
 {
-   static char buf[100];
-   snprintf(buf, sizeof(buf), "llvmpipe (LLVM " MESA_LLVM_VERSION_STRING ", %u bits)",
-            lp_native_vector_width );
-   return buf;
+   struct llvmpipe_screen *lscreen = llvmpipe_screen(screen);
+   return lscreen->renderer_string;
 }
 
 
@@ -117,6 +121,7 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_NPOT_TEXTURES:
    case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
+   case PIPE_CAP_ANISOTROPIC_FILTER:
       return 1;
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
    case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
@@ -132,6 +137,7 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return PIPE_MAX_COLOR_BUFS;
    case PIPE_CAP_OCCLUSION_QUERY:
    case PIPE_CAP_QUERY_TIMESTAMP:
+   case PIPE_CAP_QUERY_TIME_ELAPSED:
       return 1;
    case PIPE_CAP_QUERY_PIPELINE_STATISTICS:
       return 1;
@@ -163,6 +169,8 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
       return 1;
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
+      return 1;
+   case PIPE_CAP_DEPTH_CLAMP_ENABLE:
       return 1;
    case PIPE_CAP_SHADER_STENCIL_EXPORT:
       return 1;
@@ -201,12 +209,11 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
    case PIPE_CAP_VERTEX_COLOR_CLAMPED:
       return 1;
+   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
    case PIPE_CAP_GLSL_FEATURE_LEVEL: {
       struct llvmpipe_screen *lscreen = llvmpipe_screen(screen);
       return lscreen->use_tgsi ? 330 : 450;
    }
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return 140;
    case PIPE_CAP_COMPUTE:
       return GALLIVM_HAVE_CORO;
    case PIPE_CAP_USER_VERTEX_BUFFERS:
@@ -340,6 +347,7 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
    case PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE:
    case PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL:
+   case PIPE_CAP_RESOURCE_FROM_USER_MEMORY:
       return 1;
    case PIPE_CAP_SAMPLER_REDUCTION_MINMAX:
    case PIPE_CAP_TGSI_TXQS:
@@ -509,7 +517,7 @@ llvmpipe_get_compute_param(struct pipe_screen *_screen,
    case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
       if (ret) {
          uint64_t *max_input = ret;
-         *max_input = 4096;
+         *max_input = 1576;
       }
       return sizeof(uint64_t);
    case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
@@ -560,9 +568,11 @@ static const struct nir_shader_compiler_options gallivm_nir_options = {
    .lower_ffma16 = true,
    .lower_ffma32 = true,
    .lower_ffma64 = true,
+   .lower_flrp16 = true,
    .lower_fmod = true,
    .lower_hadd = true,
-   .lower_add_sat = true,
+   .lower_uadd_sat = true,
+   .lower_iadd_sat = true,
    .lower_ldexp = true,
    .lower_pack_snorm_2x16 = true,
    .lower_pack_snorm_4x8 = true,
@@ -577,6 +587,8 @@ static const struct nir_shader_compiler_options gallivm_nir_options = {
    .lower_unpack_half_2x16 = true,
    .lower_extract_byte = true,
    .lower_extract_word = true,
+   .lower_insert_byte = true,
+   .lower_insert_word = true,
    .lower_rotate = true,
    .lower_uadd_carry = true,
    .lower_usub_borrow = true,
@@ -585,20 +597,20 @@ static const struct nir_shader_compiler_options gallivm_nir_options = {
    .max_unroll_iterations = 32,
    .use_interpolated_input_intrinsics = true,
    .lower_to_scalar = true,
-   .lower_cs_local_index_from_id = true,
    .lower_uniforms_to_ubo = true,
    .lower_vector_cmp = true,
    .lower_device_index_to_zero = true,
    .support_16bit_alu = true,
+   .lower_fisnormal = true,
 };
 
-static void
+static char *
 llvmpipe_finalize_nir(struct pipe_screen *screen,
-                      void *nirptr,
-                      bool optimize)
+                      void *nirptr)
 {
    struct nir_shader *nir = (struct nir_shader *)nirptr;
    lp_build_opt_nir(nir);
+   return NULL;
 }
 
 static inline const void *
@@ -647,7 +659,7 @@ llvmpipe_is_format_supported( struct pipe_screen *_screen,
    if (MAX2(1, sample_count) != MAX2(1, storage_sample_count))
       return false;
 
-   if (bind & PIPE_BIND_RENDER_TARGET) {
+   if (bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_SHADER_IMAGE)) {
       if (format_desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB) {
          /* this is a lie actually other formats COULD exist where we would fail */
          if (format_desc->nr_channels < 3)
@@ -669,6 +681,54 @@ llvmpipe_is_format_supported( struct pipe_screen *_screen,
       if (!format_desc->is_array && !format_desc->is_bitmask &&
           format != PIPE_FORMAT_R11G11B10_FLOAT)
          return false;
+   }
+
+   if (bind & PIPE_BIND_SHADER_IMAGE) {
+      switch (format) {
+         case PIPE_FORMAT_R32G32B32A32_FLOAT:
+         case PIPE_FORMAT_R16G16B16A16_FLOAT:
+         case PIPE_FORMAT_R32G32_FLOAT:
+         case PIPE_FORMAT_R16G16_FLOAT:
+         case PIPE_FORMAT_R11G11B10_FLOAT:
+         case PIPE_FORMAT_R32_FLOAT:
+         case PIPE_FORMAT_R16_FLOAT:
+         case PIPE_FORMAT_R32G32B32A32_UINT:
+         case PIPE_FORMAT_R16G16B16A16_UINT:
+         case PIPE_FORMAT_R10G10B10A2_UINT:
+         case PIPE_FORMAT_R8G8B8A8_UINT:
+         case PIPE_FORMAT_R32G32_UINT:
+         case PIPE_FORMAT_R16G16_UINT:
+         case PIPE_FORMAT_R8G8_UINT:
+         case PIPE_FORMAT_R32_UINT:
+         case PIPE_FORMAT_R16_UINT:
+         case PIPE_FORMAT_R8_UINT:
+         case PIPE_FORMAT_R32G32B32A32_SINT:
+         case PIPE_FORMAT_R16G16B16A16_SINT:
+         case PIPE_FORMAT_R8G8B8A8_SINT:
+         case PIPE_FORMAT_R32G32_SINT:
+         case PIPE_FORMAT_R16G16_SINT:
+         case PIPE_FORMAT_R8G8_SINT:
+         case PIPE_FORMAT_R32_SINT:
+         case PIPE_FORMAT_R16_SINT:
+         case PIPE_FORMAT_R8_SINT:
+         case PIPE_FORMAT_R16G16B16A16_UNORM:
+         case PIPE_FORMAT_R10G10B10A2_UNORM:
+         case PIPE_FORMAT_R8G8B8A8_UNORM:
+         case PIPE_FORMAT_R16G16_UNORM:
+         case PIPE_FORMAT_R8G8_UNORM:
+         case PIPE_FORMAT_R16_UNORM:
+         case PIPE_FORMAT_R8_UNORM:
+         case PIPE_FORMAT_R16G16B16A16_SNORM:
+         case PIPE_FORMAT_R8G8B8A8_SNORM:
+         case PIPE_FORMAT_R16G16_SNORM:
+         case PIPE_FORMAT_R8G8_SNORM:
+         case PIPE_FORMAT_R16_SNORM:
+         case PIPE_FORMAT_R8_SNORM:
+            break;
+
+         default:
+            return false;
+      }
    }
 
    if ((bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW)) &&
@@ -816,6 +876,17 @@ llvmpipe_get_timestamp(struct pipe_screen *_screen)
    return os_time_get_nano();
 }
 
+static void update_cache_sha1_cpu(struct mesa_sha1 *ctx)
+{
+   const struct util_cpu_caps_t *cpu_caps = util_get_cpu_caps();
+   /*
+    * Don't need the cpu cache affinity stuff. The rest
+    * is contained in first 5 dwords.
+    */
+   STATIC_ASSERT(offsetof(struct util_cpu_caps_t, num_L3_caches) == 5 * sizeof(uint32_t));
+   _mesa_sha1_update(ctx, cpu_caps, 5 * sizeof(uint32_t));
+}
+
 static void lp_disk_cache_create(struct llvmpipe_screen *screen)
 {
    struct mesa_sha1 ctx;
@@ -829,6 +900,7 @@ static void lp_disk_cache_create(struct llvmpipe_screen *screen)
       return;
 
    _mesa_sha1_update(&ctx, &gallivm_perf, sizeof(gallivm_perf));
+   update_cache_sha1_cpu(&ctx);
    _mesa_sha1_final(&ctx, sha1);
    disk_cache_format_hex_id(cache_id, sha1, 20 * 2);
 
@@ -963,10 +1035,14 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
    screen->use_tgsi = (LP_DEBUG & DEBUG_TGSI_IR);
    screen->num_threads = util_get_cpu_caps()->nr_cpus > 1 ? util_get_cpu_caps()->nr_cpus : 0;
 #ifdef EMBEDDED_DEVICE
-   screen->num_threads = 0;
+   screen->num_threads = MIN2(screen->num_threads, 2);
 #endif
    screen->num_threads = debug_get_num_option("LP_NUM_THREADS", screen->num_threads);
    screen->num_threads = MIN2(screen->num_threads, LP_MAX_THREADS);
+
+   lp_build_init(); /* get lp_native_vector_width initialised */
+
+   snprintf(screen->renderer_string, sizeof(screen->renderer_string), "llvmpipe (LLVM " MESA_LLVM_VERSION_STRING ", %u bits)", lp_native_vector_width );
 
    (void) mtx_init(&screen->cs_mutex, mtx_plain);
    (void) mtx_init(&screen->rast_mutex, mtx_plain);

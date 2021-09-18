@@ -1566,6 +1566,18 @@ TEST_F(ComputeTest, image_two_reads)
    validate(shader);
 }
 
+TEST_F(ComputeTest, image_read_write)
+{
+   const char *kernel_source =
+   R"(__kernel void main_test(read_write image2d_t image)
+   {
+      int2 coords = (int2)(get_global_id(0), get_global_id(1));
+      write_imagef(image, coords, read_imagef(image, coords) + (float4)(1.0f, 1.0f, 1.0f, 1.0f));
+   })";
+   Shader shader = compile(std::vector<const char*>({ kernel_source }), { "-cl-std=cl3.0" });
+   validate(shader);
+}
+
 TEST_F(ComputeTest, sampler)
 {
    const char* kernel_source =

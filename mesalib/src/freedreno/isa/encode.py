@@ -558,5 +558,5 @@ dst = sys.argv[2]
 isa = ISA(xml)
 s = State(isa)
 
-with open(dst, 'wb') as f:
-    f.write(Template(template, output_encoding='utf-8').render(s=s))
+with open(dst, 'w') as f:
+    f.write(Template(template).render(s=s))

@@ -6,8 +6,12 @@
 //   Vasilis Vasaitis <vvas@hal.csd.auth.gr>
 // Originally converted to single group form by:
 //   Ivan Pascal <pascal@info.tsu.ru>
+// Final modifications for proper support of
+//   the Hellenic language by:
+//   Web Dolphins® <foo@foofootus.eu>
 
-default partial alphanumeric_keys alternate_group
+
+default  partial alphanumeric_keys alternate_group
 xkb_symbols "basic" {
 	include "gr(simple)"
 
@@ -155,7 +159,13 @@ xkb_symbols "extended" {
 
     key.type[Group1] = "THREE_LEVEL";
 
-    key <AE03> { [ NoSymbol, NoSymbol,       sterling ] }; // £
+    key <TLDE> { [ NoSymbol, NoSymbol,  U2015 ] }; // ―
+    key <AB01> { [ NoSymbol, NoSymbol,  U00A7 ] }; // §
+    key <AE02> { [ NoSymbol, NoSymbol,  U00B2 ] }; // ²
+    key <AE03> { [ NoSymbol, NoSymbol,  U00B3 ] }; // ³
+    // for adding cubic sign £ symbol must move (like e.g. AE04 )
+    key <AE04> { [ NoSymbol, NoSymbol,       sterling ] }; // £
+    key <AD06> { [ NoSymbol, NoSymbol,       U00A5 ] }; // ¥
     key <AE10> { [ NoSymbol, NoSymbol,         degree ] }; // °
     key <AE11> { [ NoSymbol, NoSymbol,      plusminus ] }; // ±
 
@@ -182,11 +192,28 @@ xkb_symbols "polytonic" {
 
     key <AD11> { [ dead_tilde, dead_diaeresis, dead_macron ] }; // ~ ¨ ¯
     key <AD12> { [  dead_iota,     VoidSymbol,  dead_breve ] }; // ͺ   ˘
-
+    key <AE05> { type[Group1]="FOUR_LEVEL",
+        [ 5,   percent,    U2030,   U2031 ] }; // ‰ ‱
+    key <AC02> { type[Group1]="FOUR_LEVEL",
+        [ Greek_sigma,    Greek_SIGMA,  U03DB,  U03DA ] }; // Ϛ ϛ STIGMATA
+    key <AC04> { type[Group1]="FOUR_LEVEL",
+        [ Greek_phi,    Greek_PHI,  U03DD,  U03DC ] }; //  ϝ Ϝ 
+    key <AD02> { type[Group1]="FOUR_LEVEL",
+        [ Greek_finalsmallsigma,    Greek_SIGMA, U03D9,  U03D8 ] }; // ϙ Ϙ 
+    key <AC07> { type[Group1]="FOUR_LEVEL",
+        [ Greek_xi,    Greek_XI, U03F3,  U037F ] }; // ϳ Ϳ
+    key <AD10> { type[Group1]="FOUR_LEVEL",
+        [ Greek_pi,    Greek_PI, U03D6,  U03D5 ] }; // ϖ ϕ
+    key <AB05> { type[Group1]="FOUR_LEVEL",
+        [ Greek_beta,    Greek_BETA, U03E1,  U03E0 ] }; // ϡ Ϡ
+    
     key <AC10> { [ dead_acute, dead_psili  ] }; // ´ ̓ 
     key <AC11> { type[Group1]="FOUR_LEVEL",
                  [ dead_grave, dead_dasia, apostrophe, quotedbl  ] };
-                 // ` ̔  ' "
+                  
+    key <AC08> { type[Group1]="FOUR_LEVEL",
+                [ Greek_kappa, Greek_KAPPA,    U03D7,  U03CF ] };
+                 // κ Κ GREEK KAI SYMBOL
 };
 
 partial alphanumeric_keys alternate_group

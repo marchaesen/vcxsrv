@@ -57,27 +57,6 @@ is_swizzleless_move(nir_alu_instr *instr)
 }
 
 static bool
-is_copy(nir_alu_instr *instr)
-{
-   assert(instr->src[0].src.is_ssa);
-
-   /* we handle modifiers in a separate pass */
-   if (instr->op == nir_op_mov) {
-      return !instr->dest.saturate &&
-             !instr->src[0].abs &&
-             !instr->src[0].negate;
-   } else if (nir_op_is_vec(instr->op)) {
-      for (unsigned i = 0; i < instr->dest.dest.ssa.num_components; i++) {
-         if (instr->src[i].abs || instr->src[i].negate)
-            return false;
-      }
-      return !instr->dest.saturate;
-   } else {
-      return false;
-   }
-}
-
-static bool
 rewrite_to_vec(nir_function_impl *impl, nir_alu_instr *mov, nir_alu_instr *vec)
 {
    if (mov->op != nir_op_mov)
@@ -162,7 +141,7 @@ copy_prop_instr(nir_function_impl *impl, nir_instr *instr)
 
    nir_alu_instr *mov = nir_instr_as_alu(instr);
 
-   if (!is_copy(mov))
+   if (!nir_alu_instr_is_copy(mov))
       return false;
 
    bool progress = false;

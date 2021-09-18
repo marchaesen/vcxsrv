@@ -20,9 +20,7 @@
 # IN THE SOFTWARE.
 
 # Python source
-# Compatible with Python2.X and Python3.X
 
-from __future__ import print_function
 import itertools
 import os
 import sys

@@ -151,14 +151,9 @@ struct vbo_exec_context
 #endif
 };
 
-struct vbo_save_copied_vtx {
-   fi_type buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
-   GLuint nr;
-};
 
 struct vbo_save_context {
    GLvertexformat vtxfmt;
-   GLvertexformat vtxfmt_noop;  /**< Used if out_of_memory is true */
 
    GLbitfield64 enabled; /**< mask of enabled vbo arrays. */
    GLubyte attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
@@ -167,32 +162,25 @@ struct vbo_save_context {
    GLuint vertex_size;  /**< size in GLfloats */
    struct gl_vertex_array_object *VAO[VP_MODE_MAX];
 
-   GLboolean out_of_memory;  /**< True if last VBO allocation failed */
-
-   GLbitfield replay_flags;
-
-   struct _mesa_prim *prims;
-   GLuint prim_count, prim_max;
-
-   bool no_current_update;
-
    struct vbo_save_vertex_store *vertex_store;
    struct vbo_save_primitive_store *prim_store;
-   struct gl_buffer_object *previous_ib;
-   unsigned ib_first_free_index;
+   struct gl_buffer_object *current_bo;
+   unsigned current_bo_bytes_used;
 
-   fi_type *buffer_map;            /**< Mapping of vertex_store's buffer */
-   fi_type *buffer_ptr;		   /**< cursor, points into buffer_map */
    fi_type vertex[VBO_ATTRIB_MAX*4];	   /* current values */
    fi_type *attrptr[VBO_ATTRIB_MAX];
-   GLuint vert_count;
-   GLuint max_vert;
-   GLboolean dangling_attr_ref;
 
-   struct vbo_save_copied_vtx copied;
+   struct {
+      fi_type *buffer;
+      GLuint nr;
+   } copied;
 
    fi_type *current[VBO_ATTRIB_MAX]; /* points into ctx->ListState */
    GLubyte *currentsz[VBO_ATTRIB_MAX];
+
+   GLboolean dangling_attr_ref;
+   GLboolean out_of_memory;  /**< True if last VBO allocation failed */
+   bool no_current_update;
 };
 
 GLboolean
@@ -230,13 +218,6 @@ vbo_save_NewList(struct gl_context *ctx, GLuint list, GLenum mode);
 
 void
 vbo_save_EndList(struct gl_context *ctx);
-
-void
-vbo_save_BeginCallList(struct gl_context *ctx, struct gl_display_list *list);
-
-void
-vbo_save_EndCallList(struct gl_context *ctx);
-
 
 void
 vbo_delete_minmax_cache(struct gl_buffer_object *bufferObj);

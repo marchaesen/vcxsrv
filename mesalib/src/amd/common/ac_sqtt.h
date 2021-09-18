@@ -70,6 +70,7 @@ struct ac_thread_trace_se {
 };
 
 struct ac_thread_trace {
+   struct ac_thread_trace_data *data;
    uint32_t num_traces;
    struct ac_thread_trace_se traces[4];
 };
@@ -95,11 +96,6 @@ ac_is_thread_trace_complete(struct radeon_info *rad_info,
 uint32_t
 ac_get_expected_buffer_size(struct radeon_info *rad_info,
                             const struct ac_thread_trace_info *info);
-
-int
-ac_dump_thread_trace(struct radeon_info *info,
-                     const struct ac_thread_trace *thread_trace,
-                     struct ac_thread_trace_data *thread_trace_data);
 
 /**
  * Identifiers for RGP SQ thread-tracing markers (Table 1)

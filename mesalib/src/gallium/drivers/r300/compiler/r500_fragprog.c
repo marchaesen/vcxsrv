@@ -266,7 +266,7 @@ static void r500_swizzle_split(struct rc_src_register src, unsigned int usemask,
 	}
 }
 
-struct rc_swizzle_caps r500_swizzle_caps = {
+const struct rc_swizzle_caps r500_swizzle_caps = {
 	.IsNative = r500_swizzle_is_native,
 	.Split = r500_swizzle_split
 };

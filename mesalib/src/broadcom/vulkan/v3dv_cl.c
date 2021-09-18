@@ -22,6 +22,13 @@
  */
 
 #include "v3dv_private.h"
+
+/* We don't expect that the packets we use in this file change across hw
+ * versions, so we just explicitly set the V3D_VERSION and include v3dx_pack
+ * here
+ */
+#define V3D_VERSION 33
+#include "broadcom/common/v3d_macros.h"
 #include "broadcom/cle/v3dx_pack.h"
 
 void

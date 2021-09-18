@@ -86,19 +86,28 @@ pipe_loader_probe(struct pipe_loader_device **devs, int ndev);
  * Create a pipe_screen for the specified device.
  *
  * \param dev Device the screen will be created for.
+ * \param sw_vk Device is for software vulkan
+ */
+struct pipe_screen *
+pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk);
+
+/**
+ * Create a pipe_screen for the specified device.
+ *
+ * \param dev Device the screen will be created for.
  */
 struct pipe_screen *
 pipe_loader_create_screen(struct pipe_loader_device *dev);
 
 /**
- * Ensure that dev->option_cache is initialized appropriately for the driver.
+ * Ensures that the driconf option cache has been parsed for the driver.
  *
- * This function can be called multiple times.
- *
- * \param dev Device for which options should be loaded.
+ * Drivers may parse during screen creation, but for those that don't (probably
+ * due to not having any driver-specific driconf options), this can be used to
+ * finish the parsing so that general driconf options can be queried.
  */
 void
-pipe_loader_load_options(struct pipe_loader_device *dev);
+pipe_loader_config_options(struct pipe_loader_device *dev);
 
 /**
  * Get the driinfo XML string used by the given driver.

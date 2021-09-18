@@ -201,12 +201,16 @@ u_vertices_per_prim(enum pipe_prim_type primitive)
    case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
       return 6;
 
+   case PIPE_PRIM_QUADS:
+   case PIPE_PRIM_QUAD_STRIP:
+      /* these won't be seen from geometry shaders
+         but prim assembly might for prim id. */
+      return 4;
+
    /* following primitives should never be used
     * with geometry shaders abd their size is
     * undefined */
    case PIPE_PRIM_POLYGON:
-   case PIPE_PRIM_QUADS:
-   case PIPE_PRIM_QUAD_STRIP:
    default:
       debug_printf("Unrecognized geometry shader primitive");
       return 3;

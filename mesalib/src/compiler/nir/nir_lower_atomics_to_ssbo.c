@@ -89,7 +89,7 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
    nir_ssa_def *buffer = nir_imm_int(b, ssbo_offset + nir_intrinsic_base(instr));
    nir_ssa_def *temp = NULL;
    nir_intrinsic_instr *new_instr =
-         nir_intrinsic_instr_create(ralloc_parent(instr), op);
+         nir_intrinsic_instr_create(b->shader, op);
 
    /* a couple instructions need special handling since they don't map
     * 1:1 with ssbo atomics
@@ -99,7 +99,7 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       /* remapped to ssbo_atomic_add: { buffer_idx, offset, +1 } */
       temp = nir_imm_int(b, +1);
       new_instr->src[0] = nir_src_for_ssa(buffer);
-      nir_src_copy(&new_instr->src[1], &instr->src[0], new_instr);
+      nir_src_copy(&new_instr->src[1], &instr->src[0]);
       new_instr->src[2] = nir_src_for_ssa(temp);
       break;
    case nir_intrinsic_atomic_counter_pre_dec:
@@ -108,22 +108,22 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       /* NOTE semantic difference so we adjust the return value below */
       temp = nir_imm_int(b, -1);
       new_instr->src[0] = nir_src_for_ssa(buffer);
-      nir_src_copy(&new_instr->src[1], &instr->src[0], new_instr);
+      nir_src_copy(&new_instr->src[1], &instr->src[0]);
       new_instr->src[2] = nir_src_for_ssa(temp);
       break;
    case nir_intrinsic_atomic_counter_read:
       /* remapped to load_ssbo: { buffer_idx, offset } */
       new_instr->src[0] = nir_src_for_ssa(buffer);
-      nir_src_copy(&new_instr->src[1], &instr->src[0], new_instr);
+      nir_src_copy(&new_instr->src[1], &instr->src[0]);
       break;
    default:
       /* remapped to ssbo_atomic_x: { buffer_idx, offset, data, (compare)? } */
       new_instr->src[0] = nir_src_for_ssa(buffer);
-      nir_src_copy(&new_instr->src[1], &instr->src[0], new_instr);
-      nir_src_copy(&new_instr->src[2], &instr->src[1], new_instr);
+      nir_src_copy(&new_instr->src[1], &instr->src[0]);
+      nir_src_copy(&new_instr->src[2], &instr->src[1]);
       if (op == nir_intrinsic_ssbo_atomic_comp_swap ||
           op == nir_intrinsic_ssbo_atomic_fcomp_swap)
-         nir_src_copy(&new_instr->src[3], &instr->src[2], new_instr);
+         nir_src_copy(&new_instr->src[3], &instr->src[2]);
       break;
    }
 

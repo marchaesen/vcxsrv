@@ -71,6 +71,21 @@ One of \*qglamor\*q or \*qnone\*q.  Default: glamor.
 Enable DRI3 page flipping.  The default is
 .B on.
 .TP
+.BI "Option \*qAsyncFlipSecondaries\*q \*q" boolean \*q
+Use async flips for secondary video outputs on multi-display setups. If a screen
+has multiple displays attached and DRI3 page flipping is used, then only one of
+the displays will have its page flip synchronized to vblank for tear-free
+presentation. This is the display that is used for presentation timing and
+timestamping, usually the one covering the biggest pixel area of the screen.
+All other displays ("Secondaries") will not synchronize their flips. This may
+cause some tearing on these displays, but it prevents a permanent or periodic
+slowdown or irritating judder of animations if not all video outputs are running
+synchronized with each other and with the same refresh rate. There is no perfect
+solution apart from perfectly synchronized outputs, but this option may give
+preferrable results if the displays in a multi-display setup mirror or clone
+each other.  The default is
+.B off.
+.TP
 .BI "Option \*qZaphodHeads\*q \*q" string \*q
 Specify the RandR output(s) to use with zaphod mode for a particular driver
 instance.  If you use this option you must use this option for all instances

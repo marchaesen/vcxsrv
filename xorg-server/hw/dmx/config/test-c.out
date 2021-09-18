@@ -1,2 +1,0 @@
-parse error on line 2 at token " "
-syntax error, unexpected $end, expecting "{" or string or dimension (e.g., 2x2 or 1024x768)

@@ -913,8 +913,6 @@ util_dump_draw_info(FILE *stream, const struct pipe_draw_info *state)
    util_dump_member(stream, uint, state, start_instance);
    util_dump_member(stream, uint, state, instance_count);
 
-   util_dump_member(stream, uint, state, vertices_per_patch);
-
    util_dump_member(stream, uint, state, min_index);
    util_dump_member(stream, uint, state, max_index);
 

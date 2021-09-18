@@ -174,7 +174,7 @@ debuild-dirs: distdir
 DISTCHECK_CONFIGURE_FLAGS =
 
 check-versions:
-	@$(GREP) -e '^\s*version\s*:\s*.'$(VERSION)'.,' $(srcdir)/meson.build >/dev/null || { \
+	@$(GREP) -e "^[[:space:]]*version[[:space:]]*:[[:space:]]*'$(VERSION)'," $(srcdir)/meson.build >/dev/null || { \
 	  echo "======================================================================================"; \
 	  echo "Meson version does not seem to match autotools version $(VERSION), update meson.build!"; \
 	  echo "======================================================================================"; \

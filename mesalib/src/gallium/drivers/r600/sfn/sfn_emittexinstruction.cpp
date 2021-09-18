@@ -422,7 +422,8 @@ bool EmitTexInstruction::emit_tex_tg4(nir_tex_instr* instr, TexInputs& src)
    auto irt = new TexInstruction(tex_op, dst, src.coord, sampler.id,
                                  sampler.id + R600_MAX_CONST_BUFFERS, src.sampler_offset);
 
-   irt->set_dest_swizzle({1,2,0,3});
+   if (get_chip_class() != CAYMAN)
+      irt->set_dest_swizzle({1,2,0,3});
    irt->set_gather_comp(instr->component);
 
    if (instr->is_array)
@@ -585,7 +586,6 @@ bool EmitTexInstruction::get_inputs(const nir_tex_instr& instr, TexInputs &src)
       case nir_tex_src_plane:
       case nir_tex_src_projector:
       case nir_tex_src_min_lod:
-      case nir_tex_src_ms_mcs:
       default:
          sfn_log << SfnLog::tex << "Texture source type " <<  instr.src[i].src_type << " not supported\n";
          retval = false;

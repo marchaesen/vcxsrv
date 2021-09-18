@@ -65,6 +65,40 @@ enum bi_swizzle {
         BI_SWIZZLE_B0022 = 12, /* for b02 lanes */
 };
 
+/* Given a packed i16vec2/i8vec4 constant, apply a swizzle. Useful for constant
+ * folding and Valhall constant optimization. */
+
+static inline uint32_t
+bi_apply_swizzle(uint32_t value, enum bi_swizzle swz)
+{
+   const uint16_t *h = (const uint16_t *) &value;
+   const uint8_t  *b = (const uint8_t *) &value;
+
+#define H(h0, h1) (h[h0] | (h[h1] << 16))
+#define B(b0, b1, b2, b3) (b[b0] | (b[b1] << 8) | (b[b2] << 16) | (b[b3] << 24))
+
+   switch (swz) {
+   case BI_SWIZZLE_H00: return H(0, 0);
+   case BI_SWIZZLE_H01: return H(0, 1);
+   case BI_SWIZZLE_H10: return H(1, 0);
+   case BI_SWIZZLE_H11: return H(1, 1);
+   case BI_SWIZZLE_B0000: return B(0, 0, 0, 0);
+   case BI_SWIZZLE_B1111: return B(1, 1, 1, 1);
+   case BI_SWIZZLE_B2222: return B(2, 2, 2, 2);
+   case BI_SWIZZLE_B3333: return B(3, 3, 3, 3);
+   case BI_SWIZZLE_B0011: return B(0, 0, 1, 1);
+   case BI_SWIZZLE_B2233: return B(2, 2, 3, 3);
+   case BI_SWIZZLE_B1032: return B(1, 0, 3, 2);
+   case BI_SWIZZLE_B3210: return B(3, 2, 1, 0);
+   case BI_SWIZZLE_B0022: return B(0, 0, 2, 2);
+   }
+
+#undef H
+#undef B
+
+   unreachable("Invalid swizzle");
+}
+
 enum bi_index_type {
         BI_INDEX_NULL = 0,
         BI_INDEX_NORMAL = 1,
@@ -82,6 +116,10 @@ typedef struct {
          * applicable, neg plays the role of not */
         bool abs : 1;
         bool neg : 1;
+
+        /* The last use of a value, should be purged from the register cache.
+         * Set by liveness analysis. */
+        bool discard : 1;
 
         /* For a source, the swizzle. For a destination, acts a bit like a
          * write mask. Identity for the full 32-bit, H00 for only caring about
@@ -207,6 +245,13 @@ bi_neg(bi_index idx)
         return idx;
 }
 
+static inline bi_index
+bi_discard(bi_index idx)
+{
+        idx.discard = true;
+        return idx;
+}
+
 /* Additive identity in IEEE 754 arithmetic */
 static inline bi_index
 bi_negzero()
@@ -223,6 +268,20 @@ bi_replace_index(bi_index old, bi_index replacement)
         replacement.neg = old.neg;
         replacement.swizzle = old.swizzle;
         return replacement;
+}
+
+/* Remove any modifiers. This has the property:
+ *
+ *     replace_index(x, strip_index(x)) = x
+ *
+ * This ensures it is suitable to use when lowering sources to moves */
+
+static inline bi_index
+bi_strip_index(bi_index index)
+{
+        index.abs = index.neg = false;
+        index.swizzle = BI_SWIZZLE_H01;
+        return index;
 }
 
 /* For bitwise instructions */
@@ -296,9 +355,6 @@ typedef struct {
         /* Must be first */
         struct list_head link;
 
-        /* Link for the use chain */
-        struct list_head use;
-
         enum bi_opcode op;
 
         /* Data flow */
@@ -327,6 +383,7 @@ typedef struct {
                 enum bi_clamp clamp;
                 bool saturate;
                 bool not_result;
+                unsigned dest_mod;
         };
 
         /* Immediates. All seen alone in an instruction, except for varying/texture
@@ -336,6 +393,7 @@ typedef struct {
                 uint32_t fill;
                 uint32_t index;
                 uint32_t attribute_index;
+                int32_t branch_offset;
 
                 struct {
                         uint32_t varying_index;
@@ -364,11 +422,6 @@ typedef struct {
                 bool format; /* LEA_TEX */
 
                 struct {
-                        bool skip; /* VAR_TEX, TEXS, TEXC */
-                        bool lod_mode; /* TEXS */
-                };
-
-                struct {
                         enum bi_special special; /* FADD_RSCALE, FMA_RSCALE */
                         enum bi_round round; /* FMA, converts, FADD, _RSCALE, etc */
                 };
@@ -390,10 +443,15 @@ typedef struct {
                 };
 
                 struct {
-                        enum bi_sample sample; /* LD_VAR */
-                        enum bi_update update; /* LD_VAR */
+                        enum bi_sample sample; /* VAR_TEX, LD_VAR */
+                        enum bi_update update; /* VAR_TEX, LD_VAR */
                         enum bi_varying_name varying_name; /* LD_VAR_SPECIAL */
+                        bool skip; /* VAR_TEX, TEXS, TEXC */
+                        bool lod_mode; /* VAR_TEX, TEXS, implicitly for TEXC */
                 };
+
+                /* Maximum size, for hashing */
+                unsigned flags[5];
 
                 struct {
                         enum bi_subgroup subgroup; /* WMASK, CLPER */
@@ -516,14 +574,39 @@ typedef struct {
         /* Unique in a clause */
         enum bifrost_message_type message_type;
         bi_instr *message;
+
+        /* Discard helper threads */
+        bool td;
 } bi_clause;
 
 typedef struct bi_block {
-        pan_block base; /* must be first */
+        /* Link to next block. Must be first for mir_get_block */
+        struct list_head link;
+
+        /* List of instructions emitted for the current block */
+        struct list_head instructions;
+
+        /* Index of the block in source order */
+        unsigned name;
+
+        /* Control flow graph */
+        struct bi_block *successors[2];
+        struct set *predecessors;
+        bool unconditional_jumps;
+
+        /* Per 32-bit word live masks for the block indexed by node */
+        uint8_t *live_in;
+        uint8_t *live_out;
 
         /* If true, uses clauses; if false, uses instructions */
         bool scheduled;
         struct list_head clauses; /* list of bi_clause */
+
+        /* Post-RA liveness */
+        uint64_t reg_live_in, reg_live_out;
+
+        /* Flags available for pass-internal use */
+        uint8_t pass_flags;
 } bi_block;
 
 typedef struct {
@@ -550,6 +633,9 @@ typedef struct {
        /* Analysis results */
        bool has_liveness;
 
+       /* Mask of UBOs that need to be uploaded */
+       uint32_t ubo_mask;
+
        /* Stats for shader-db */
        unsigned instruction_count;
        unsigned loop_count;
@@ -566,7 +652,7 @@ bi_remove_instruction(bi_instr *ins)
 enum bir_fau {
         BIR_FAU_ZERO = 0,
         BIR_FAU_LANE_ID = 1,
-        BIR_FAU_WRAP_ID = 2,
+        BIR_FAU_WARP_ID = 2,
         BIR_FAU_CORE_ID = 3,
         BIR_FAU_FB_EXTENT = 4,
         BIR_FAU_ATEST_PARAM = 5,
@@ -574,8 +660,16 @@ enum bir_fau {
         BIR_FAU_BLEND_0 = 8,
         /* blend descs 1 - 7 */
         BIR_FAU_TYPE_MASK = 15,
+
+        /* Valhall only */
+        BIR_FAU_TLS_PTR = 16,
+        BIR_FAU_WLS_PTR = 17,
+        BIR_FAU_PROGRAM_COUNTER = 18,
+
         BIR_FAU_UNIFORM = (1 << 7),
-        BIR_FAU_HI = (1 << 8),
+        /* Look up table on Valhall */
+        BIR_FAU_IMMEDIATE = (1 << 8),
+
 };
 
 static inline bi_index
@@ -656,34 +750,34 @@ bi_node_to_index(unsigned node, unsigned node_count)
 /* Iterators for Bifrost IR */
 
 #define bi_foreach_block(ctx, v) \
-        list_for_each_entry(pan_block, v, &ctx->blocks, link)
+        list_for_each_entry(bi_block, v, &ctx->blocks, link)
 
 #define bi_foreach_block_rev(ctx, v) \
-        list_for_each_entry_rev(pan_block, v, &ctx->blocks, link)
+        list_for_each_entry_rev(bi_block, v, &ctx->blocks, link)
 
 #define bi_foreach_block_from(ctx, from, v) \
-        list_for_each_entry_from(pan_block, v, from, &ctx->blocks, link)
+        list_for_each_entry_from(bi_block, v, from, &ctx->blocks, link)
 
 #define bi_foreach_block_from_rev(ctx, from, v) \
-        list_for_each_entry_from_rev(pan_block, v, from, &ctx->blocks, link)
+        list_for_each_entry_from_rev(bi_block, v, from, &ctx->blocks, link)
 
 #define bi_foreach_instr_in_block(block, v) \
-        list_for_each_entry(bi_instr, v, &(block)->base.instructions, link)
+        list_for_each_entry(bi_instr, v, &(block)->instructions, link)
 
 #define bi_foreach_instr_in_block_rev(block, v) \
-        list_for_each_entry_rev(bi_instr, v, &(block)->base.instructions, link)
+        list_for_each_entry_rev(bi_instr, v, &(block)->instructions, link)
 
 #define bi_foreach_instr_in_block_safe(block, v) \
-        list_for_each_entry_safe(bi_instr, v, &(block)->base.instructions, link)
+        list_for_each_entry_safe(bi_instr, v, &(block)->instructions, link)
 
 #define bi_foreach_instr_in_block_safe_rev(block, v) \
-        list_for_each_entry_safe_rev(bi_instr, v, &(block)->base.instructions, link)
+        list_for_each_entry_safe_rev(bi_instr, v, &(block)->instructions, link)
 
 #define bi_foreach_instr_in_block_from(block, v, from) \
-        list_for_each_entry_from(bi_instr, v, from, &(block)->base.instructions, link)
+        list_for_each_entry_from(bi_instr, v, from, &(block)->instructions, link)
 
 #define bi_foreach_instr_in_block_from_rev(block, v, from) \
-        list_for_each_entry_from_rev(bi_instr, v, from, &(block)->base.instructions, link)
+        list_for_each_entry_from_rev(bi_instr, v, from, &(block)->instructions, link)
 
 #define bi_foreach_clause_in_block(block, v) \
         list_for_each_entry(bi_clause, v, &(block)->clauses, link)
@@ -702,26 +796,42 @@ bi_node_to_index(unsigned node, unsigned node_count)
 
 #define bi_foreach_instr_global(ctx, v) \
         bi_foreach_block(ctx, v_block) \
-                bi_foreach_instr_in_block((bi_block *) v_block, v)
+                bi_foreach_instr_in_block(v_block, v)
+
+#define bi_foreach_instr_global_rev(ctx, v) \
+        bi_foreach_block_rev(ctx, v_block) \
+                bi_foreach_instr_in_block_rev(v_block, v)
 
 #define bi_foreach_instr_global_safe(ctx, v) \
         bi_foreach_block(ctx, v_block) \
-                bi_foreach_instr_in_block_safe((bi_block *) v_block, v)
+                bi_foreach_instr_in_block_safe(v_block, v)
+
+#define bi_foreach_instr_global_rev_safe(ctx, v) \
+        bi_foreach_block_rev(ctx, v_block) \
+                bi_foreach_instr_in_block_rev_safe(v_block, v)
 
 #define bi_foreach_instr_in_tuple(tuple, v) \
-        for (bi_instr *v = tuple->fma ?: tuple->add; \
+        for (bi_instr *v = (tuple)->fma ?: (tuple)->add; \
                         v != NULL; \
-                        v = (v == tuple->add) ? NULL : tuple->add)
+                        v = (v == (tuple)->add) ? NULL : (tuple)->add)
+
+#define bi_foreach_successor(blk, v) \
+        bi_block *v; \
+        bi_block **_v; \
+        for (_v = &blk->successors[0], \
+                v = *_v; \
+                v != NULL && _v < &blk->successors[2]; \
+                _v++, v = *_v) \
 
 /* Based on set_foreach, expanded with automatic type casts */
 
 #define bi_foreach_predecessor(blk, v) \
         struct set_entry *_entry_##v; \
         bi_block *v; \
-        for (_entry_##v = _mesa_set_next_entry(blk->base.predecessors, NULL), \
+        for (_entry_##v = _mesa_set_next_entry(blk->predecessors, NULL), \
                 v = (bi_block *) (_entry_##v ? _entry_##v->key : NULL);  \
                 _entry_##v != NULL; \
-                _entry_##v = _mesa_set_next_entry(blk->base.predecessors, _entry_##v), \
+                _entry_##v = _mesa_set_next_entry(blk->predecessors, _entry_##v), \
                 v = (bi_block *) (_entry_##v ? _entry_##v->key : NULL))
 
 #define bi_foreach_src(ins, v) \
@@ -746,21 +856,30 @@ bi_next_op(bi_instr *ins)
         return list_first_entry(&(ins->link), bi_instr, link);
 }
 
-static inline pan_block *
-pan_next_block(pan_block *block)
+static inline bi_block *
+bi_next_block(bi_block *block)
 {
-        return list_first_entry(&(block->link), pan_block, link);
+        return list_first_entry(&(block->link), bi_block, link);
+}
+
+static inline bi_block *
+bi_entry_block(bi_context *ctx)
+{
+        return list_first_entry(&ctx->blocks, bi_block, link);
 }
 
 /* BIR manipulation */
 
-bool bi_has_arg(bi_instr *ins, bi_index arg);
-unsigned bi_count_read_registers(bi_instr *ins, unsigned src);
-unsigned bi_writemask(bi_instr *ins, unsigned dest);
-bi_clause * bi_next_clause(bi_context *ctx, pan_block *block, bi_clause *clause);
+bool bi_has_arg(const bi_instr *ins, bi_index arg);
+unsigned bi_count_read_registers(const bi_instr *ins, unsigned src);
+unsigned bi_count_write_registers(const bi_instr *ins, unsigned dest);
+bool bi_is_regfmt_16(enum bi_register_format fmt);
+unsigned bi_writemask(const bi_instr *ins, unsigned dest);
+bi_clause * bi_next_clause(bi_context *ctx, bi_block *block, bi_clause *clause);
 bool bi_side_effects(enum bi_opcode op);
+bool bi_reconverge_branches(bi_block *block);
 
-void bi_print_instr(bi_instr *I, FILE *fp);
+void bi_print_instr(const bi_instr *I, FILE *fp);
 void bi_print_slots(bi_registers *regs, FILE *fp);
 void bi_print_tuple(bi_tuple *tuple, FILE *fp);
 void bi_print_clause(bi_clause *clause, FILE *fp);
@@ -769,38 +888,52 @@ void bi_print_shader(bi_context *ctx, FILE *fp);
 
 /* BIR passes */
 
+void bi_analyze_helper_terminate(bi_context *ctx);
+void bi_analyze_helper_requirements(bi_context *ctx);
 void bi_opt_copy_prop(bi_context *ctx);
-void bi_opt_dead_code_eliminate(bi_context *ctx, bool soft);
+void bi_opt_cse(bi_context *ctx);
+void bi_opt_mod_prop_forward(bi_context *ctx);
+void bi_opt_mod_prop_backward(bi_context *ctx);
+void bi_opt_dead_code_eliminate(bi_context *ctx);
+void bi_opt_dce_post_ra(bi_context *ctx);
 void bi_opt_push_ubo(bi_context *ctx);
-void bi_opt_constant_fold(bi_context *ctx);
 void bi_lower_swizzle(bi_context *ctx);
-void bi_schedule(bi_context *ctx);
+void bi_lower_fau(bi_context *ctx);
 void bi_assign_scoreboard(bi_context *ctx);
 void bi_register_allocate(bi_context *ctx);
 
-/* Test suite */
-int bi_test_scheduler(void);
-int bi_test_packing(void);
-int bi_test_packing_formats(void);
+void bi_lower_opt_instruction(bi_instr *I);
 
-bi_clause *
-bi_singleton(void *memctx, bi_instr *ins,
-                bi_block *block,
-                unsigned scoreboard_id,
-                unsigned dependencies,
-                uint64_t combined_constant,
-                bool osrb);
+void bi_schedule(bi_context *ctx);
+bool bi_can_fma(bi_instr *ins);
+bool bi_can_add(bi_instr *ins);
+bool bi_must_message(bi_instr *ins);
+bool bi_reads_zero(bi_instr *ins);
+bool bi_reads_temps(bi_instr *ins, unsigned src);
+bool bi_reads_t(bi_instr *ins, unsigned src);
+
+#ifndef NDEBUG
+bool bi_validate_initialization(bi_context *ctx);
+void bi_validate(bi_context *ctx, const char *after_str);
+#else
+static inline bool bi_validate_initialization(UNUSED bi_context *ctx) { return true; }
+static inline void bi_validate(UNUSED bi_context *ctx, UNUSED const char *after_str) { return; }
+#endif
+
+uint32_t bi_fold_constant(bi_instr *I, bool *unsupported);
+void bi_opt_constant_fold(bi_context *ctx);
 
 /* Liveness */
 
 void bi_compute_liveness(bi_context *ctx);
-void bi_liveness_ins_update(uint16_t *live, bi_instr *ins, unsigned max);
+void bi_liveness_ins_update(uint8_t *live, bi_instr *ins, unsigned max);
 void bi_invalidate_liveness(bi_context *ctx);
+
+void bi_postra_liveness(bi_context *ctx);
+uint64_t bi_postra_liveness_ins(uint64_t live, bi_instr *ins);
 
 /* Layout */
 
-bool bi_can_insert_tuple(bi_clause *clause, bool constant);
-unsigned bi_clause_quadwords(bi_clause *clause);
 signed bi_block_offset(bi_context *ctx, bi_clause *start, bi_block *target);
 bool bi_ec0_packed(unsigned tuple_count);
 
@@ -811,9 +944,9 @@ static inline bool
 bi_is_terminal_block(bi_block *block)
 {
         return (block == NULL) ||
-                (list_is_empty(&block->base.instructions) &&
-                 bi_is_terminal_block((bi_block *) block->base.successors[0]) &&
-                 bi_is_terminal_block((bi_block *) block->base.successors[1]));
+                (list_is_empty(&block->instructions) &&
+                 bi_is_terminal_block(block->successors[0]) &&
+                 bi_is_terminal_block(block->successors[1]));
 }
 
 /* Code emit */
@@ -825,6 +958,26 @@ struct bi_packed_tuple {
         uint64_t lo;
         uint64_t hi;
 };
+
+uint8_t bi_pack_literal(enum bi_clause_subword literal);
+
+uint8_t
+bi_pack_upper(enum bi_clause_subword upper,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count);
+uint64_t
+bi_pack_tuple_bits(enum bi_clause_subword idx,
+                struct bi_packed_tuple *tuples,
+                ASSERTED unsigned tuple_count,
+                unsigned offset, unsigned nbits);
+
+uint8_t
+bi_pack_sync(enum bi_clause_subword t1,
+             enum bi_clause_subword t2,
+             enum bi_clause_subword t3,
+             struct bi_packed_tuple *tuples,
+             ASSERTED unsigned tuple_count,
+             bool z);
 
 void
 bi_pack_format(struct util_dynarray *emission,
@@ -893,13 +1046,17 @@ bi_after_instr(bi_instr *instr)
  * in which case there must exist a nonempty penultimate tuple */
 
 ATTRIBUTE_RETURNS_NONNULL static inline bi_instr *
-bi_first_instr_in_clause(bi_clause *clause)
+bi_first_instr_in_tuple(bi_tuple *tuple)
 {
-        bi_tuple tuple = clause->tuples[0];
-        bi_instr *instr = tuple.fma ?: tuple.add;
-
+        bi_instr *instr = tuple->fma ?: tuple->add;
         assert(instr != NULL);
         return instr;
+}
+
+ATTRIBUTE_RETURNS_NONNULL static inline bi_instr *
+bi_first_instr_in_clause(bi_clause *clause)
+{
+        return bi_first_instr_in_tuple(&clause->tuples[0]);
 }
 
 ATTRIBUTE_RETURNS_NONNULL static inline bi_instr *
@@ -923,13 +1080,13 @@ bi_last_instr_in_clause(bi_clause *clause)
 
 #define bi_foreach_instr_in_clause(block, clause, pos) \
    for (bi_instr *pos = LIST_ENTRY(bi_instr, bi_first_instr_in_clause(clause), link); \
-	(&pos->link != &(block)->base.instructions) \
+	(&pos->link != &(block)->instructions) \
                 && (pos != bi_next_op(bi_last_instr_in_clause(clause))); \
 	pos = LIST_ENTRY(bi_instr, pos->link.next, link))
 
 #define bi_foreach_instr_in_clause_rev(block, clause, pos) \
    for (bi_instr *pos = LIST_ENTRY(bi_instr, bi_last_instr_in_clause(clause), link); \
-	(&pos->link != &(block)->base.instructions) \
+	(&pos->link != &(block)->instructions) \
 	        && pos != bi_prev_op(bi_first_instr_in_clause(clause)); \
 	pos = LIST_ENTRY(bi_instr, pos->link.prev, link))
 
@@ -937,6 +1094,12 @@ static inline bi_cursor
 bi_before_clause(bi_clause *clause)
 {
     return bi_before_instr(bi_first_instr_in_clause(clause));
+}
+
+static inline bi_cursor
+bi_before_tuple(bi_tuple *tuple)
+{
+    return bi_before_instr(bi_first_instr_in_tuple(tuple));
 }
 
 static inline bi_cursor
@@ -973,7 +1136,7 @@ bi_builder_insert(bi_cursor *cursor, bi_instr *I)
         return;
 
     case bi_cursor_after_block:
-        list_addtail(&I->link, &cursor->block->base.instructions);
+        list_addtail(&I->link, &cursor->block->instructions);
         cursor->option = bi_cursor_after_instr;
         cursor->instr = I;
         return;
@@ -987,5 +1150,16 @@ bi_builder_insert(bi_cursor *cursor, bi_instr *I)
 
     unreachable("Invalid cursor option");
 }
+
+static inline unsigned
+bi_word_node(bi_index idx)
+{
+        assert(idx.type == BI_INDEX_NORMAL && !idx.reg);
+        return (idx.value << 2) | idx.offset;
+}
+
+/* NIR passes */
+
+bool bi_lower_divergent_indirects(nir_shader *shader, unsigned lanes);
 
 #endif

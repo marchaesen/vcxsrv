@@ -913,6 +913,8 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
    case STATE_CLIP_INTERNAL:
       return _NEW_TRANSFORM | _NEW_PROJECTION;
 
+   case STATE_TCS_PATCH_VERTICES_IN:
+   case STATE_TES_PATCH_VERTICES_IN:
    case STATE_INTERNAL_DRIVER:
       return 0; /* internal driver state */
 

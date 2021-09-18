@@ -584,7 +584,7 @@ fallback_copy_image(struct st_context *st,
             dst_x, dst_y, dst_w, dst_h,
             GL_MAP_WRITE_BIT, &dst, &dst_stride);
    } else {
-      dst = pipe_transfer_map(st->pipe, dst_res, 0, dst_z,
+      dst = pipe_texture_map(st->pipe, dst_res, 0, dst_z,
                               PIPE_MAP_WRITE,
                               dst_x, dst_y, dst_w, dst_h,
                               &dst_transfer);
@@ -597,7 +597,7 @@ fallback_copy_image(struct st_context *st,
             src_x, src_y, src_w, src_h,
             GL_MAP_READ_BIT, &src, &src_stride);
    } else {
-      src = pipe_transfer_map(st->pipe, src_res, 0, src_z,
+      src = pipe_texture_map(st->pipe, src_res, 0, src_z,
                               PIPE_MAP_READ,
                               src_x, src_y, src_w, src_h,
                               &src_transfer);
@@ -613,13 +613,13 @@ fallback_copy_image(struct st_context *st,
    if (dst_image) {
       st->ctx->Driver.UnmapTextureImage(st->ctx, dst_image, dst_z);
    } else {
-      pipe_transfer_unmap(st->pipe, dst_transfer);
+      pipe_texture_unmap(st->pipe, dst_transfer);
    }
 
    if (src_image) {
       st->ctx->Driver.UnmapTextureImage(st->ctx, src_image, src_z);
    } else {
-      pipe_transfer_unmap(st->pipe, src_transfer);
+      pipe_texture_unmap(st->pipe, src_transfer);
    }
 }
 

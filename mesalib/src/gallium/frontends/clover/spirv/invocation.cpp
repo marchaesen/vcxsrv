@@ -22,6 +22,7 @@
 
 #include "invocation.hpp"
 
+#include <limits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -46,8 +47,14 @@
 
 using namespace clover;
 
+using clover::detokenize;
+
 #ifdef HAVE_CLOVER_SPIRV
 namespace {
+
+   static const std::array<std::string,7> type_strs = {
+      "uchar", "ushort", "uint", "ulong", "half", "float", "double"
+   };
 
    template<typename T>
    T get(const char *source, size_t index) {
@@ -139,6 +146,7 @@ namespace {
 
       module m;
 
+      std::vector<std::string> attributes;
       std::unordered_map<SpvId, std::vector<size_t> > req_local_sizes;
       std::unordered_map<SpvId, std::string> kernels;
       std::unordered_map<SpvId, module::argument> types;
@@ -189,13 +197,47 @@ namespace {
 
          case SpvOpExecutionMode:
             switch (get<SpvExecutionMode>(inst, 2)) {
-            case SpvExecutionModeLocalSize:
+            case SpvExecutionModeLocalSize: {
                req_local_sizes[get<SpvId>(inst, 1)] = {
                   get<uint32_t>(inst, 3),
                   get<uint32_t>(inst, 4),
                   get<uint32_t>(inst, 5)
                };
+               std::string s = "reqd_work_group_size(";
+               s += std::to_string(get<uint32_t>(inst, 3));
+               s += ",";
+               s += std::to_string(get<uint32_t>(inst, 4));
+               s += ",";
+               s += std::to_string(get<uint32_t>(inst, 5));
+               s += ")";
+               attributes.emplace_back(s);
                break;
+            }
+            case SpvExecutionModeLocalSizeHint: {
+               std::string s = "work_group_size_hint(";
+               s += std::to_string(get<uint32_t>(inst, 3));
+               s += ",";
+               s += std::to_string(get<uint32_t>(inst, 4));
+               s += ",";
+               s += std::to_string(get<uint32_t>(inst, 5));
+               s += ")";
+               attributes.emplace_back(s);
+               break;
+            }
+	    case SpvExecutionModeVecTypeHint: {
+               uint32_t val = get<uint32_t>(inst, 3);
+               uint32_t size = val >> 16;
+
+               val &= 0xf;
+               if (val > 6)
+                  val = 0;
+               std::string s = "vec_type_hint(";
+               s += type_strs[val];
+               s += std::to_string(size);
+               s += ")";
+               attributes.emplace_back(s);
+	       break;
+            }
             default:
                break;
             }
@@ -330,9 +372,8 @@ namespace {
 
             const auto elem_size = types_iter->second.size;
             const auto elem_nbs = get<uint32_t>(inst, 3);
-            const auto size = elem_size * elem_nbs;
-            const auto align = elem_size * util_next_power_of_two(elem_nbs);
-            types[id] = { module::argument::scalar, size, size, align,
+            const auto size = elem_size * (elem_nbs != 3 ? elem_nbs : 4);
+            types[id] = { module::argument::scalar, size, size, size,
                           module::argument::zero_ext };
             types[id].info.address_qualifier = CL_KERNEL_ARG_ADDRESS_PRIVATE;
             break;
@@ -350,10 +391,16 @@ namespace {
             if (opcode == SpvOpTypePointer)
                pointer_types[id] = get<SpvId>(inst, 3);
 
+            module::size_t alignment;
+            if (storage_class == SpvStorageClassWorkgroup)
+               alignment = opcode == SpvOpTypePointer ? types[pointer_types[id]].target_align : 0;
+            else
+               alignment = pointer_byte_size;
+
             types[id] = { convert_storage_class(storage_class, err),
                           sizeof(cl_mem),
                           static_cast<module::size_t>(pointer_byte_size),
-                          static_cast<module::size_t>(pointer_byte_size),
+                          alignment,
                           module::argument::zero_ext };
             types[id].info.address_qualifier = convert_storage_class_to_cl(storage_class);
             break;
@@ -451,11 +498,12 @@ namespace {
             for (size_t i = 0; i < param_type_names[kernel_name].size(); i++)
                args[i].info.type_name = param_type_names[kernel_name][i];
 
-            m.syms.emplace_back(kernel_name, std::string(),
+            m.syms.emplace_back(kernel_name, detokenize(attributes, " "),
                                 req_local_size, 0, kernel_nb, args);
             ++kernel_nb;
             kernel_name.clear();
             args.clear();
+            attributes.clear();
             break;
 
          default:
@@ -851,8 +899,12 @@ clover::spirv::is_valid_spirv(const std::string &binary,
    spvtools::SpirvTools spvTool(target_env);
    spvTool.SetMessageConsumer(validator_consumer);
 
+   spvtools::ValidatorOptions validator_options;
+   validator_options.SetUniversalLimit(spv_validator_limit_max_function_args,
+                                       std::numeric_limits<uint32_t>::max());
+
    return spvTool.Validate(reinterpret_cast<const uint32_t *>(binary.data()),
-                           binary.size() / 4u);
+                           binary.size() / 4u, validator_options);
 }
 
 std::string

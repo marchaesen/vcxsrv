@@ -149,7 +149,7 @@ ac_rgp_write_msgpack(FILE *output,
 
                   ac_msgpack_add_fixstr(&msgpack, hw_stage_string[
                                         record->shader_data[i].hw_stage]);
-                  ac_msgpack_add_fixmap_op(&msgpack, 3);
+                  ac_msgpack_add_fixmap_op(&msgpack, 5);
                      ac_msgpack_add_fixstr(&msgpack, ".entry_point");
                      ac_msgpack_add_fixstr(&msgpack, hw_stage_symbol_string[
                                            record->shader_data[i].hw_stage]);
@@ -161,6 +161,14 @@ ac_rgp_write_msgpack(FILE *output,
                      ac_msgpack_add_fixstr(&msgpack, ".vgpr_count");
                      ac_msgpack_add_uint(&msgpack,
                                          record->shader_data[i].vgpr_count);
+
+                     ac_msgpack_add_fixstr(&msgpack, ".scratch_memory_size");
+                     ac_msgpack_add_uint(&msgpack,
+                                         record->shader_data[i].scratch_memory_size);
+
+                     ac_msgpack_add_fixstr(&msgpack, ".wavefront_size");
+                     ac_msgpack_add_uint(&msgpack,
+                                         record->shader_data[i].wavefront_size);
                }
 
             /* 5 */

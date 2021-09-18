@@ -362,7 +362,10 @@ main(int argc, char **argv)
 
    nir_shader *nir;
 
-   compiler = ir3_compiler_create(NULL, gpu_id, false);
+   struct fd_dev_id dev_id = {
+         .gpu_id = gpu_id,
+   };
+   compiler = ir3_compiler_create(NULL, &dev_id, false);
 
    if (from_tgsi) {
       struct tgsi_token toks[65536];

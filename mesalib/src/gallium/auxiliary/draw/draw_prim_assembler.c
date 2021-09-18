@@ -201,6 +201,28 @@ prim_tri(struct draw_assembler *asmblr,
    copy_verts(asmblr, indices, 3);
 }
 
+static void
+prim_quad(struct draw_assembler *asmblr,
+          unsigned i0, unsigned i1,
+          unsigned i2, unsigned i3)
+{
+   unsigned indices[4];
+
+   if (asmblr->needs_primid) {
+      inject_primid(asmblr, i0, asmblr->primid);
+      inject_primid(asmblr, i1, asmblr->primid);
+      inject_primid(asmblr, i2, asmblr->primid);
+      inject_primid(asmblr, i3, asmblr->primid++);
+   }
+   indices[0] = i0;
+   indices[1] = i1;
+   indices[2] = i2;
+   indices[3] = i3;
+
+   add_prim(asmblr, 4);
+   copy_verts(asmblr, indices, 4);
+}
+
 void
 draw_prim_assembler_prepare_outputs(struct draw_assembler *ia)
 {
@@ -244,7 +266,9 @@ draw_prim_assembler_run(struct draw_context *draw,
 {
    struct draw_assembler *asmblr = draw->ia;
    unsigned start, i;
-   unsigned assembled_prim = u_reduced_prim(input_prims->prim);
+   unsigned assembled_prim = (input_prims->prim == PIPE_PRIM_QUADS ||
+                              input_prims->prim == PIPE_PRIM_QUAD_STRIP) ?
+      PIPE_PRIM_QUADS : u_reduced_prim(input_prims->prim);
    unsigned max_primitives = u_decomposed_prims_for_vertices(
       input_prims->prim, input_prims->count);
    unsigned max_verts = u_vertices_per_prim(assembled_prim) * max_primitives;
@@ -268,7 +292,7 @@ draw_prim_assembler_run(struct draw_context *draw,
    output_verts->vertex_size = input_verts->vertex_size;
    output_verts->stride = input_verts->stride;
    output_verts->verts = (struct vertex_header*)MALLOC(
-      input_verts->vertex_size * max_verts);
+      input_verts->vertex_size * max_verts + DRAW_EXTRA_VERTICES_PADDING);
    output_verts->count = 0;
 
 

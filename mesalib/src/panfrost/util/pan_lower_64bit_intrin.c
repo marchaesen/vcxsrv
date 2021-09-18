@@ -44,8 +44,8 @@ nir_lower_64bit_intrin_instr(nir_builder *b, nir_instr *instr, void *data)
         switch (intr->intrinsic) {
         case nir_intrinsic_load_global_invocation_id:
         case nir_intrinsic_load_global_invocation_id_zero_base:
-        case nir_intrinsic_load_work_group_id:
-        case nir_intrinsic_load_num_work_groups:
+        case nir_intrinsic_load_workgroup_id:
+        case nir_intrinsic_load_num_workgroups:
                 break;
 
         default:

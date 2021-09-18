@@ -641,11 +641,10 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
        * so those are excluded from this requirement.
        *
        * Additionally, issue 10 of the OES_EGL_image_external_essl3 spec
-       * states that glBindImageTexture must accept external textures.
+       * states that glBindImageTexture must accept external texture objects.
        */
-      if (_mesa_is_gles(ctx) && !texObj->Immutable &&
-          texObj->Target != GL_TEXTURE_BUFFER &&
-          texObj->Target != GL_TEXTURE_EXTERNAL_OES) {
+      if (_mesa_is_gles(ctx) && !texObj->Immutable && !texObj->External &&
+          texObj->Target != GL_TEXTURE_BUFFER) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glBindImageTexture(!immutable)");
          return;

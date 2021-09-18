@@ -19,7 +19,7 @@ vn_info_wire_format_version(void)
 static inline uint32_t
 vn_info_vk_xml_version(void)
 {
-    return VK_MAKE_VERSION(1, 2, 168);
+    return VK_MAKE_API_VERSION(0, 1, 2, 182);
 }
 
 static inline int
@@ -142,7 +142,7 @@ vn_info_extension_spec_version(const char *name)
         1,
         1,
         3,
-        0,
+        100000,
     };
     const char **found;
 

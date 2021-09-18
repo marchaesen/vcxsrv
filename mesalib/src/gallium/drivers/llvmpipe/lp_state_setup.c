@@ -71,6 +71,7 @@ struct lp_setup_args
    LLVMValueRef a0;
    LLVMValueRef dadx;
    LLVMValueRef dady;
+   LLVMValueRef key;
 
    /* Derived:
     */
@@ -200,7 +201,7 @@ lp_twoside(struct gallivm_state *gallivm,
 
 }
 
-static void
+static LLVMValueRef
 lp_do_offset_tri(struct gallivm_state *gallivm,
                  struct lp_setup_args *args,
                  const struct lp_setup_variant_key *key,
@@ -214,9 +215,7 @@ lp_do_offset_tri(struct gallivm_state *gallivm,
    struct lp_build_context int_scalar_bld;
    struct lp_build_context *bld = &args->bld;
    LLVMValueRef zoffset, mult;
-   LLVMValueRef z0_new, z1_new, z2_new;
    LLVMValueRef dzdxdzdy, dzdx, dzdy, dzxyz20, dyzzx01, dyzzx01_dzxyz20, dzx01_dyz20;
-   LLVMValueRef z0z1, z0z1z2;
    LLVMValueRef max, max_value, res12;
    LLVMValueRef shuffles[4];
    LLVMTypeRef shuf_type = LLVMInt32TypeInContext(gallivm->context);
@@ -267,8 +266,8 @@ lp_do_offset_tri(struct gallivm_state *gallivm,
 
    if (key->floating_point_depth) {
       /*
-       * bias = pgon_offset_units * 2^(exponent(max(z0, z1, z2)) - mantissa_bits) +
-       *           MAX2(dzdx, dzdy) * pgon_offset_scale
+       * bias = pgon_offset_units * 2^(exponent(max(abs(z0), abs(z1), abs(z2))) -
+       *           mantissa_bits) + MAX2(dzdx, dzdy) * pgon_offset_scale
        *
        * NOTE: Assumes IEEE float32.
        */
@@ -281,11 +280,14 @@ lp_do_offset_tri(struct gallivm_state *gallivm,
       exp_mask = lp_build_const_int32(gallivm, 0xff << 23);
 
       maxz0z1_value = lp_build_max(&flt_scalar_bld,
-                         LLVMBuildExtractElement(b, attribv[0], twoi, ""),
-                         LLVMBuildExtractElement(b, attribv[1], twoi, ""));
+                         lp_build_abs(&flt_scalar_bld,
+                            LLVMBuildExtractElement(b, attribv[0], twoi, "")),
+                         lp_build_abs(&flt_scalar_bld,
+                            LLVMBuildExtractElement(b, attribv[1], twoi, "")));
 
       maxz_value = lp_build_max(&flt_scalar_bld,
-                      LLVMBuildExtractElement(b, attribv[2], twoi, ""),
+                      lp_build_abs(&flt_scalar_bld,
+                         LLVMBuildExtractElement(b, attribv[2], twoi, "")),
                       maxz0z1_value);
 
       exp = LLVMBuildBitCast(b, maxz_value, int_scalar_bld.vec_type, "");
@@ -322,34 +324,7 @@ lp_do_offset_tri(struct gallivm_state *gallivm,
                              zoffset);
    }
 
-   /* yuck */
-   shuffles[0] = twoi;
-   shuffles[1] = lp_build_const_int32(gallivm, 6);
-   shuffles[2] = LLVMGetUndef(shuf_type);
-   shuffles[3] = LLVMGetUndef(shuf_type);
-   z0z1 = LLVMBuildShuffleVector(b, attribv[0], attribv[1], LLVMConstVector(shuffles, 4), "");
-   shuffles[0] = zeroi;
-   shuffles[1] = onei;
-   shuffles[2] = lp_build_const_int32(gallivm, 6);
-   shuffles[3] = LLVMGetUndef(shuf_type);
-   z0z1z2 = LLVMBuildShuffleVector(b, z0z1, attribv[2], LLVMConstVector(shuffles, 4), "");
-   zoffset = lp_build_broadcast_scalar(bld, zoffset);
-
-   /* clamp and do offset */
-   /*
-    * FIXME I suspect the clamp (is that even right to always clamp to fixed
-    * 0.0/1.0?) should really be per fragment?
-    */
-   z0z1z2 = lp_build_clamp(bld, LLVMBuildFAdd(b, z0z1z2, zoffset, ""), bld->zero, bld->one);
-
-   /* insert into args->a0.z, a1.z, a2.z:
-    */
-   z0_new = LLVMBuildExtractElement(b, z0z1z2, zeroi, "");
-   z1_new = LLVMBuildExtractElement(b, z0z1z2, onei, "");
-   z2_new = LLVMBuildExtractElement(b, z0z1z2, twoi, "");
-   attribv[0] = LLVMBuildInsertElement(b, attribv[0], z0_new, twoi, "");
-   attribv[1] = LLVMBuildInsertElement(b, attribv[1], z1_new, twoi, "");
-   attribv[2] = LLVMBuildInsertElement(b, attribv[2], z2_new, twoi, "");
+   return zoffset;
 }
 
 static void
@@ -393,12 +368,12 @@ load_attribute(struct gallivm_state *gallivm,
  * which obviously wouldn't work)).
  */
 static void 
-emit_coef4( struct gallivm_state *gallivm,
+calc_coef4( struct gallivm_state *gallivm,
             struct lp_setup_args *args,
-            unsigned slot,
             LLVMValueRef a0,
             LLVMValueRef a1,
-            LLVMValueRef a2)
+            LLVMValueRef a2,
+            LLVMValueRef out[3])
 {
    LLVMBuilderRef b = gallivm->builder;
    LLVMValueRef attr_0;
@@ -430,7 +405,23 @@ emit_coef4( struct gallivm_state *gallivm,
    LLVMValueRef attr_v0    = LLVMBuildFAdd(b, dadx_x0, dady_y0, "attr_v0");
    attr_0                  = LLVMBuildFSub(b, a0, attr_v0, "attr_0");
 
-   store_coef(gallivm, args, slot, attr_0, dadx, dady);
+   out[0] = attr_0;
+   out[1] = dadx;
+   out[2] = dady;
+}
+
+static void
+emit_coef4( struct gallivm_state *gallivm,
+            struct lp_setup_args *args,
+            unsigned slot,
+            LLVMValueRef a0,
+            LLVMValueRef a1,
+            LLVMValueRef a2)
+{
+   LLVMValueRef coeffs[3];
+   calc_coef4(gallivm, args, a0, a1, a2, coeffs);
+   store_coef(gallivm, args, slot,
+              coeffs[0], coeffs[1], coeffs[2]);
 }
 
 
@@ -481,82 +472,6 @@ apply_perspective_corr( struct gallivm_state *gallivm,
 
 
 /**
- * Apply cylindrical wrapping to vertex attributes if enabled.
- * Input coordinates must be in [0, 1] range, otherwise results are undefined.
- *
- * @param cyl_wrap  TGSI_CYLINDRICAL_WRAP_x flags
- */
-static void
-emit_apply_cyl_wrap(struct gallivm_state *gallivm,
-                    struct lp_setup_args *args,
-                    uint cyl_wrap,
-                    LLVMValueRef attribv[3])
-
-{
-   LLVMBuilderRef builder = gallivm->builder;
-   struct lp_type type = args->bld.type;
-   LLVMTypeRef float_vec_type = args->bld.vec_type;
-   LLVMValueRef pos_half;
-   LLVMValueRef neg_half;
-   LLVMValueRef cyl_mask;
-   LLVMValueRef offset;
-   LLVMValueRef delta;
-   LLVMValueRef one;
-
-   if (!cyl_wrap)
-      return;
-
-   /* Constants */
-   pos_half = lp_build_const_vec(gallivm, type, +0.5f);
-   neg_half = lp_build_const_vec(gallivm, type, -0.5f);
-   cyl_mask = lp_build_const_mask_aos(gallivm, type, cyl_wrap, 4);
-
-   one = lp_build_const_vec(gallivm, type, 1.0f);
-   one = LLVMBuildBitCast(builder, one, lp_build_int_vec_type(gallivm, type), "");
-   one = LLVMBuildAnd(builder, one, cyl_mask, "");
-
-   /* Edge v0 -> v1 */
-   delta = LLVMBuildFSub(builder, attribv[1], attribv[0], "");
-
-   offset     = lp_build_compare(gallivm, type, PIPE_FUNC_GREATER, delta, pos_half);
-   offset     = LLVMBuildAnd(builder, offset, one, "");
-   offset     = LLVMBuildBitCast(builder, offset, float_vec_type, "");
-   attribv[0] = LLVMBuildFAdd(builder, attribv[0], offset, "");
-
-   offset     = lp_build_compare(gallivm, type, PIPE_FUNC_LESS, delta, neg_half);
-   offset     = LLVMBuildAnd(builder, offset, one, "");
-   offset     = LLVMBuildBitCast(builder, offset, float_vec_type, "");
-   attribv[1] = LLVMBuildFAdd(builder, attribv[1], offset, "");
-
-   /* Edge v1 -> v2 */
-   delta = LLVMBuildFSub(builder, attribv[2], attribv[1], "");
-
-   offset     = lp_build_compare(gallivm, type, PIPE_FUNC_GREATER, delta, pos_half);
-   offset     = LLVMBuildAnd(builder, offset, one, "");
-   offset     = LLVMBuildBitCast(builder, offset, float_vec_type, "");
-   attribv[1] = LLVMBuildFAdd(builder, attribv[1], offset, "");
-
-   offset     = lp_build_compare(gallivm, type, PIPE_FUNC_LESS, delta, neg_half);
-   offset     = LLVMBuildAnd(builder, offset, one, "");
-   offset     = LLVMBuildBitCast(builder, offset, float_vec_type, "");
-   attribv[2] = LLVMBuildFAdd(builder, attribv[2], offset, "");
-
-   /* Edge v2 -> v0 */
-   delta = LLVMBuildFSub(builder, attribv[0], attribv[2], "");
-
-   offset     = lp_build_compare(gallivm, type, PIPE_FUNC_GREATER, delta, pos_half);
-   offset     = LLVMBuildAnd(builder, offset, one, "");
-   offset     = LLVMBuildBitCast(builder, offset, float_vec_type, "");
-   attribv[2] = LLVMBuildFAdd(builder, attribv[2], offset, "");
-
-   offset     = lp_build_compare(gallivm, type, PIPE_FUNC_LESS, delta, neg_half);
-   offset     = LLVMBuildAnd(builder, offset, one, "");
-   offset     = LLVMBuildBitCast(builder, offset, float_vec_type, "");
-   attribv[0] = LLVMBuildFAdd(builder, attribv[0], offset, "");
-}
-
-
-/**
  * Compute the inputs-> dadx, dady, a0 values.
  */
 static void 
@@ -584,13 +499,11 @@ emit_tri_coef( struct gallivm_state *gallivm,
 
       case LP_INTERP_LINEAR:
          load_attribute(gallivm, args, key, key->inputs[slot].src_index, attribs);
-         emit_apply_cyl_wrap(gallivm, args, key->inputs[slot].cyl_wrap, attribs);
          emit_linear_coef(gallivm, args, slot+1, attribs);
          break;
 
       case LP_INTERP_PERSPECTIVE:
          load_attribute(gallivm, args, key, key->inputs[slot].src_index, attribs);
-         emit_apply_cyl_wrap(gallivm, args, key->inputs[slot].cyl_wrap, attribs);
          apply_perspective_corr(gallivm, args, slot+1, attribs);
          emit_linear_coef(gallivm, args, slot+1, attribs);
          break;
@@ -641,6 +554,7 @@ init_args(struct gallivm_state *gallivm,
    LLVMValueRef e, f, ef, ooa;
    LLVMValueRef shuffles[4], shuf10;
    LLVMValueRef attr_pos[3];
+   LLVMValueRef polygon_offset;
    struct lp_type typef4 = lp_type_float_vec(32, 128);
    struct lp_build_context bld;
 
@@ -681,7 +595,9 @@ init_args(struct gallivm_state *gallivm,
 
    /* tri offset calc shares a lot of arithmetic, do it here */
    if (key->pgon_offset_scale != 0.0f || key->pgon_offset_units != 0.0f) {
-      lp_do_offset_tri(gallivm, args, key, ooa, dxy01, dxy20, attr_pos);
+      polygon_offset = lp_do_offset_tri(gallivm, args, key, ooa, dxy01, dxy20, attr_pos);
+   } else {
+      polygon_offset = lp_build_const_float(gallivm, 0.0f);
    }
 
    dxy20 = LLVMBuildFMul(b, dxy20, ooa, "");
@@ -696,7 +612,22 @@ init_args(struct gallivm_state *gallivm,
    args->x0_center = lp_build_extract_broadcast(gallivm, typef4, typef4, xy0_center, zeroi);
    args->y0_center = lp_build_extract_broadcast(gallivm, typef4, typef4, xy0_center, onei);
 
-   emit_linear_coef(gallivm, args, 0, attr_pos);
+   LLVMValueRef coeffs[3];
+   calc_coef4(gallivm, args,
+              attr_pos[0], attr_pos[1], attr_pos[2],
+              coeffs);
+
+   /* This is a bit sneaky:
+    * Because we observe that the X component of A0 is otherwise unused,
+    * we can overwrite it with the computed polygon-offset value, to make
+    * sure it's available in the fragment shader without having to change
+    * the interface (which is error-prone).
+    */
+   coeffs[0] = LLVMBuildInsertElement(b, coeffs[0], polygon_offset,
+                                      lp_build_const_int32(gallivm, 0), "");
+
+   store_coef(gallivm, args, 0,
+              coeffs[0], coeffs[1], coeffs[2]);
 }
 
 /**
@@ -713,7 +644,7 @@ generate_setup_variant(struct lp_setup_variant_key *key,
    char func_name[64];
    LLVMTypeRef vec4f_type;
    LLVMTypeRef func_type;
-   LLVMTypeRef arg_types[7];
+   LLVMTypeRef arg_types[8];
    LLVMBasicBlockRef block;
    LLVMBuilderRef builder;
    int64_t t0 = 0, t1;
@@ -757,6 +688,7 @@ generate_setup_variant(struct lp_setup_variant_key *key,
    arg_types[4] = LLVMPointerType(vec4f_type, 0);	/* a0, aligned */
    arg_types[5] = LLVMPointerType(vec4f_type, 0);	/* dadx, aligned */
    arg_types[6] = LLVMPointerType(vec4f_type, 0);	/* dady, aligned */
+   arg_types[7] = LLVMPointerType(vec4f_type, 0);	/* key (placeholder) */
 
    func_type = LLVMFunctionType(LLVMVoidTypeInContext(gallivm->context),
                                 arg_types, ARRAY_SIZE(arg_types), 0);
@@ -774,6 +706,7 @@ generate_setup_variant(struct lp_setup_variant_key *key,
    args.a0       = LLVMGetParam(variant->function, 4);
    args.dadx     = LLVMGetParam(variant->function, 5);
    args.dady     = LLVMGetParam(variant->function, 6);
+   args.key      = LLVMGetParam(variant->function, 7);
 
    lp_build_name(args.v0, "in_v0");
    lp_build_name(args.v1, "in_v1");
@@ -782,6 +715,7 @@ generate_setup_variant(struct lp_setup_variant_key *key,
    lp_build_name(args.a0, "out_a0");
    lp_build_name(args.dadx, "out_dadx");
    lp_build_name(args.dady, "out_dady");
+   lp_build_name(args.key, "key");
 
    /*
     * Function body
@@ -864,11 +798,12 @@ lp_make_setup_variant_key(struct llvmpipe_context *lp,
       key->pgon_offset_units = (float) lp->rasterizer->offset_units;
    } else {
       key->pgon_offset_units =
-         (float) (lp->rasterizer->offset_units * lp->mrd);
+         (float) (lp->rasterizer->offset_units * lp->mrd * 2);
    }
 
    key->pgon_offset_scale = lp->rasterizer->offset_scale;
    key->pgon_offset_clamp = lp->rasterizer->offset_clamp;
+   key->uses_constant_interp = 0;
    key->pad = 0;
    memcpy(key->inputs, fs->inputs, key->num_inputs * sizeof key->inputs[0]);
    for (i = 0; i < key->num_inputs; i++) {
@@ -878,8 +813,10 @@ lp_make_setup_variant_key(struct llvmpipe_context *lp,
          else
             key->inputs[i].interp = LP_INTERP_PERSPECTIVE;
       }
+      if (key->inputs[i].interp == LP_INTERP_CONSTANT) {
+         key->uses_constant_interp = 1;
+      }
    }
-
 }
 
 

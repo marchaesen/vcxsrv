@@ -215,7 +215,11 @@ static _X_COLD int
 SProcXFixesDispatch(ClientPtr client)
 {
     REQUEST(xXFixesReq);
-    if (stuff->xfixesReqType >= XFixesNumberRequests)
+    XFixesClientPtr pXFixesClient = GetXFixesClient(client);
+
+    if (pXFixesClient->major_version >= ARRAY_SIZE(version_requests))
+        return BadRequest;
+    if (stuff->xfixesReqType > version_requests[pXFixesClient->major_version])
         return BadRequest;
     return (*SProcXFixesVector[stuff->xfixesReqType]) (client);
 }

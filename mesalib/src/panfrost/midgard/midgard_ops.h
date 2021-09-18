@@ -77,18 +77,6 @@ midgard_is_unsigned_op(int op)
         }
 }
 
-static inline char
-midgard_int_alu_op_prefix(midgard_alu_op op)
-{
-        if (!midgard_is_integer_op(op))
-                return 'f';
-
-        if (midgard_is_unsigned_op(op))
-                return 'u';
-
-        return 'i';
-}
-
 /* Does this opcode *write* an integer? Same as is_integer_op, unless it's a
  * conversion between int<->float in which case we do the opposite */
 

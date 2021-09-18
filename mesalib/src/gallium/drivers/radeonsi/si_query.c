@@ -260,15 +260,6 @@ static bool si_query_sw_begin(struct si_context *sctx, struct si_query *squery)
    case SI_QUERY_DISK_SHADER_CACHE_MISSES:
       query->begin_result = sctx->screen->num_disk_shader_cache_misses;
       break;
-   case SI_QUERY_PD_NUM_PRIMS_ACCEPTED:
-      query->begin_result = sctx->compute_num_verts_accepted;
-      break;
-   case SI_QUERY_PD_NUM_PRIMS_REJECTED:
-      query->begin_result = sctx->compute_num_verts_rejected;
-      break;
-   case SI_QUERY_PD_NUM_PRIMS_INELIGIBLE:
-      query->begin_result = sctx->compute_num_verts_ineligible;
-      break;
    case SI_QUERY_GPIN_ASIC_ID:
    case SI_QUERY_GPIN_NUM_SIMD:
    case SI_QUERY_GPIN_NUM_RB:
@@ -429,15 +420,6 @@ static bool si_query_sw_end(struct si_context *sctx, struct si_query *squery)
    case SI_QUERY_DISK_SHADER_CACHE_MISSES:
       query->end_result = sctx->screen->num_disk_shader_cache_misses;
       break;
-   case SI_QUERY_PD_NUM_PRIMS_ACCEPTED:
-      query->end_result = sctx->compute_num_verts_accepted;
-      break;
-   case SI_QUERY_PD_NUM_PRIMS_REJECTED:
-      query->end_result = sctx->compute_num_verts_rejected;
-      break;
-   case SI_QUERY_PD_NUM_PRIMS_INELIGIBLE:
-      query->end_result = sctx->compute_num_verts_ineligible;
-      break;
    case SI_QUERY_GPIN_ASIC_ID:
    case SI_QUERY_GPIN_NUM_SIMD:
    case SI_QUERY_GPIN_NUM_RB:
@@ -478,11 +460,6 @@ static bool si_query_sw_get_result(struct si_context *sctx, struct si_query *squ
    case SI_QUERY_GALLIUM_THREAD_BUSY:
       result->u64 =
          (query->end_result - query->begin_result) * 100 / (query->end_time - query->begin_time);
-      return true;
-   case SI_QUERY_PD_NUM_PRIMS_ACCEPTED:
-   case SI_QUERY_PD_NUM_PRIMS_REJECTED:
-   case SI_QUERY_PD_NUM_PRIMS_INELIGIBLE:
-      result->u64 = ((unsigned)query->end_result - (unsigned)query->begin_result) / 3;
       return true;
    case SI_QUERY_GPIN_ASIC_ID:
       result->u32 = 0;
@@ -1758,10 +1735,6 @@ static struct pipe_driver_query_info si_driver_query_list[] = {
    X("GPU-surf-sync-busy", GPU_SURF_SYNC_BUSY, UINT64, AVERAGE),
    X("GPU-cp-dma-busy", GPU_CP_DMA_BUSY, UINT64, AVERAGE),
    X("GPU-scratch-ram-busy", GPU_SCRATCH_RAM_BUSY, UINT64, AVERAGE),
-
-   X("pd-num-prims-accepted", PD_NUM_PRIMS_ACCEPTED, UINT64, AVERAGE),
-   X("pd-num-prims-rejected", PD_NUM_PRIMS_REJECTED, UINT64, AVERAGE),
-   X("pd-num-prims-ineligible", PD_NUM_PRIMS_INELIGIBLE, UINT64, AVERAGE),
 };
 
 #undef X
@@ -1828,7 +1801,7 @@ static int si_get_driver_query_info(struct pipe_screen *screen, unsigned index,
    }
 
    if (info->group_id != ~(unsigned)0 && sscreen->perfcounters)
-      info->group_id += sscreen->perfcounters->num_groups;
+      info->group_id += sscreen->perfcounters->base.num_groups;
 
    return 1;
 }
@@ -1844,7 +1817,7 @@ static int si_get_driver_query_group_info(struct pipe_screen *screen, unsigned i
    unsigned num_pc_groups = 0;
 
    if (sscreen->perfcounters)
-      num_pc_groups = sscreen->perfcounters->num_groups;
+      num_pc_groups = sscreen->perfcounters->base.num_groups;
 
    if (!info)
       return num_pc_groups + SI_NUM_SW_QUERY_GROUPS;

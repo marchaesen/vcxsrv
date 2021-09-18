@@ -168,7 +168,7 @@
    __value &= mask; \
    if (((sctx->tracked_regs.reg_saved >> (reg)) & 0x1) != 0x1 || \
        sctx->tracked_regs.reg_value[reg] != __value) { \
-      radeon_set_context_reg_rmw(&sctx->gfx_cs, offset, __value, mask); \
+      radeon_set_context_reg_rmw(cs, offset, __value, mask); \
       sctx->tracked_regs.reg_saved |= 0x1ull << (reg); \
       sctx->tracked_regs.reg_value[reg] = __value; \
    } \
@@ -179,7 +179,7 @@
    unsigned __value = val; \
    if (((sctx->tracked_regs.reg_saved >> (reg)) & 0x1) != 0x1 || \
        sctx->tracked_regs.reg_value[reg] != __value) { \
-      radeon_set_context_reg(&sctx->gfx_cs, offset, __value); \
+      radeon_set_context_reg(cs, offset, __value); \
       sctx->tracked_regs.reg_saved |= 0x1ull << (reg); \
       sctx->tracked_regs.reg_value[reg] = __value; \
    } \
@@ -196,7 +196,7 @@
    if (((sctx->tracked_regs.reg_saved >> (reg)) & 0x3) != 0x3 || \
        sctx->tracked_regs.reg_value[reg] != __value1 || \
        sctx->tracked_regs.reg_value[(reg) + 1] != __value2) { \
-      radeon_set_context_reg_seq(&sctx->gfx_cs, offset, 2); \
+      radeon_set_context_reg_seq(cs, offset, 2); \
       radeon_emit(cs, __value1); \
       radeon_emit(cs, __value2); \
       sctx->tracked_regs.reg_value[reg] = __value1; \
@@ -214,7 +214,7 @@
        sctx->tracked_regs.reg_value[reg] != __value1 || \
        sctx->tracked_regs.reg_value[(reg) + 1] != __value2 || \
        sctx->tracked_regs.reg_value[(reg) + 2] != __value3) { \
-      radeon_set_context_reg_seq(&sctx->gfx_cs, offset, 3); \
+      radeon_set_context_reg_seq(cs, offset, 3); \
       radeon_emit(cs, __value1); \
       radeon_emit(cs, __value2); \
       radeon_emit(cs, __value3); \
@@ -235,7 +235,7 @@
        sctx->tracked_regs.reg_value[(reg) + 1] != __value2 || \
        sctx->tracked_regs.reg_value[(reg) + 2] != __value3 || \
        sctx->tracked_regs.reg_value[(reg) + 3] != __value4) { \
-      radeon_set_context_reg_seq(&sctx->gfx_cs, offset, 4); \
+      radeon_set_context_reg_seq(cs, offset, 4); \
       radeon_emit(cs, __value1); \
       radeon_emit(cs, __value2); \
       radeon_emit(cs, __value3); \
@@ -252,14 +252,30 @@
  * Set consecutive registers if any registers value is different.
  */
 #define radeon_opt_set_context_regn(sctx, offset, value, saved_val, num) do { \
-   for (unsigned i = 0; i < (num); i++) { \
-      if ((saved_val)[i] != (value)[i]) { \
-         radeon_set_context_reg_seq(&(sctx)->gfx_cs, offset, num); \
-         for (unsigned j = 0; j < (num); j++) \
-            radeon_emit(cs, value[j]); \
-         memcpy(saved_val, value, sizeof(uint32_t) * (num)); \
-         break; \
-      } \
+   if (memcmp(value, saved_val, sizeof(uint32_t) * (num))) { \
+      radeon_set_context_reg_seq(&(sctx)->gfx_cs, offset, num); \
+      radeon_emit_array(cs, value, num); \
+      memcpy(saved_val, value, sizeof(uint32_t) * (num)); \
+   } \
+} while (0)
+
+#define radeon_opt_set_sh_reg(sctx, offset, reg, val) do { \
+   unsigned __value = val; \
+   if (((sctx->tracked_regs.reg_saved >> (reg)) & 0x1) != 0x1 || \
+       sctx->tracked_regs.reg_value[reg] != __value) { \
+      radeon_set_sh_reg(cs, offset, __value); \
+      sctx->tracked_regs.reg_saved |= BITFIELD64_BIT(reg); \
+      sctx->tracked_regs.reg_value[reg] = __value; \
+   } \
+} while (0)
+
+#define radeon_opt_set_uconfig_reg(sctx, offset, reg, val) do { \
+   unsigned __value = val; \
+   if (((sctx->tracked_regs.reg_saved >> (reg)) & 0x1) != 0x1 || \
+       sctx->tracked_regs.reg_value[reg] != __value) { \
+      radeon_set_uconfig_reg(cs, offset, __value); \
+      sctx->tracked_regs.reg_saved |= 0x1ull << (reg); \
+      sctx->tracked_regs.reg_value[reg] = __value; \
    } \
 } while (0)
 
@@ -281,7 +297,7 @@
 
 #define radeon_emit_one_32bit_pointer(sctx, desc, sh_base) do { \
    unsigned sh_offset = (sh_base) + (desc)->shader_userdata_offset; \
-   radeon_set_sh_reg_seq(&sctx->gfx_cs, sh_offset, 1); \
+   radeon_set_sh_reg_seq(cs, sh_offset, 1); \
    radeon_emit_32bit_pointer(sctx->screen, cs, (desc)->gpu_address); \
 } while (0)
 

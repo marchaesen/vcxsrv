@@ -41,6 +41,7 @@
 #include "util/os_time.h"
 #include "util/os_socket.h"
 #include "util/simple_mtx.h"
+#include "util/u_math.h"
 
 #include "vk_enum_to_str.h"
 #include "vk_dispatch_table.h"
@@ -962,6 +963,8 @@ static void compute_swapchain_display(struct swapchain_data *data)
 
    for (uint32_t s = 0; s < OVERLAY_PARAM_ENABLED_MAX; s++) {
       if (!instance_data->params.enabled[s] ||
+          s == OVERLAY_PARAM_ENABLED_device ||
+          s == OVERLAY_PARAM_ENABLED_format ||
           s == OVERLAY_PARAM_ENABLED_fps ||
           s == OVERLAY_PARAM_ENABLED_frame)
          continue;
@@ -1215,8 +1218,8 @@ static struct overlay_draw *render_swapchain_display(struct swapchain_data *data
                                           VK_SUBPASS_CONTENTS_INLINE);
 
    /* Create/Resize vertex & index buffers */
-   size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
-   size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
+   size_t vertex_size = ALIGN(draw_data->TotalVtxCount * sizeof(ImDrawVert), device_data->properties.limits.nonCoherentAtomSize);
+   size_t index_size = ALIGN(draw_data->TotalIdxCount * sizeof(ImDrawIdx), device_data->properties.limits.nonCoherentAtomSize);
    if (draw->vertex_buffer_size < vertex_size) {
       CreateOrResizeBuffer(device_data,
                            &draw->vertex_buffer,
@@ -2630,6 +2633,7 @@ static const struct {
    ADD_HOOK(CreateInstance),
    ADD_HOOK(DestroyInstance),
 #undef ADD_HOOK
+#undef ADD_ALIAS_HOOK
 };
 
 static void *find_ptr(const char *name)

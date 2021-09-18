@@ -28,18 +28,22 @@
  * data of the specified size, bind and format.
  */
 static bool
-virgl_resource_cache_entry_is_compatible(struct virgl_resource_cache_entry *entry,
-                                         uint32_t size, uint32_t bind,
-                                         uint32_t format, uint32_t flags)
+virgl_resource_cache_entry_is_compatible(struct virgl_resource_cache_entry *entry, struct virgl_resource_params params)
 {
-   return (entry->bind == bind &&
-           entry->format == format &&
-           entry->size >= size &&
-           entry->flags == flags &&
-           /* We don't want to waste space, so don't reuse resource storage to
-            * hold much smaller (< 50%) sizes.
-            */
-           entry->size <= size * 2);
+   if (entry->params.target == PIPE_BUFFER) {
+         return (entry->params.bind == params.bind &&
+                 entry->params.format == params.format &&
+                 entry->params.size >= params.size &&
+                 entry->params.flags == params.flags &&
+                 /* We don't want to waste space, so don't reuse resource storage to
+                 * hold much smaller (< 50%) sizes.
+                 */
+                 entry->params.size <= params.size * 2 &&
+                 entry->params.width >= params.width &&
+                 entry->params.target == params.target);
+   } else {
+      return memcmp(&entry->params, &params, sizeof(params)) == 0;
+   }
 }
 
 static void
@@ -97,8 +101,7 @@ virgl_resource_cache_add(struct virgl_resource_cache *cache,
 
 struct virgl_resource_cache_entry *
 virgl_resource_cache_remove_compatible(struct virgl_resource_cache *cache,
-                                       uint32_t size, uint32_t bind,
-                                       uint32_t format, uint32_t flags)
+                                       struct virgl_resource_params params)
 {
    const int64_t now = os_time_get();
    struct virgl_resource_cache_entry *compat_entry = NULL;
@@ -110,8 +113,7 @@ virgl_resource_cache_remove_compatible(struct virgl_resource_cache *cache,
    list_for_each_entry_safe(struct virgl_resource_cache_entry,
                             entry, &cache->resources, head) {
       const bool compatible =
-         virgl_resource_cache_entry_is_compatible(entry, size, bind, format,
-						  flags);
+         virgl_resource_cache_entry_is_compatible(entry, params);
 
       if (compatible) {
          if (!cache->entry_is_busy_func(entry, cache->user_data))

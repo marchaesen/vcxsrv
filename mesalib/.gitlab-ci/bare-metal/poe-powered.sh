@@ -5,6 +5,7 @@
 
 # We're run from the root of the repo, make a helper var for our paths
 BM=$CI_PROJECT_DIR/install/bare-metal
+CI_COMMON=$CI_PROJECT_DIR/install/common
 
 # Runner config checks
 if [ -z "$BM_SERIAL" ]; then

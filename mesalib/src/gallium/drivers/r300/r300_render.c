@@ -886,7 +886,7 @@ static void r300_swtcl_draw_vbo(struct pipe_context* pipe,
 
     r300_update_derived_state(r300);
 
-    draw_vbo(r300->draw, info, drawid_offset, NULL, &draw, 1);
+    draw_vbo(r300->draw, info, drawid_offset, NULL, &draw, 1, 0);
     draw_flush(r300->draw);
 }
 

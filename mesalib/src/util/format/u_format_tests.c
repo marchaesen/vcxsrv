@@ -1048,7 +1048,13 @@ util_format_test_cases[] =
    /*
     * Special formats that not fit anywhere else
     */
+   {PIPE_FORMAT_R3G3B2_UNORM, PACKED_1x8(0xff), PACKED_1x8(0x07), UNPACKED_1x1(1.0, 0.0, 0.0, 1.0)},
+   {PIPE_FORMAT_R3G3B2_UNORM, PACKED_1x8(0xff), PACKED_1x8(0x38), UNPACKED_1x1(0.0, 1.0, 0.0, 1.0)},
+   {PIPE_FORMAT_R3G3B2_UNORM, PACKED_1x8(0xff), PACKED_1x8(0xc0), UNPACKED_1x1(0.0, 0.0, 1.0, 1.0)},
 
+   {PIPE_FORMAT_B2G3R3_UNORM, PACKED_1x8(0xff), PACKED_1x8(0x03), UNPACKED_1x1(0.0, 0.0, 1.0, 1.0)},
+   {PIPE_FORMAT_B2G3R3_UNORM, PACKED_1x8(0xff), PACKED_1x8(0x1c), UNPACKED_1x1(0.0, 1.0, 0.0, 1.0)},
+   {PIPE_FORMAT_B2G3R3_UNORM, PACKED_1x8(0xff), PACKED_1x8(0xe0), UNPACKED_1x1(1.0, 0.0, 0.0, 1.0)},
 };
 
 

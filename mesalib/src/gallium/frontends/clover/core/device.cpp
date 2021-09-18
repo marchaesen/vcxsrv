@@ -45,20 +45,124 @@ namespace {
       pipe->get_compute_param(pipe, ir_format, cap, &v.front());
       return v;
    }
+
+   cl_version
+   get_highest_supported_version(const device &dev) {
+      // All the checks below assume that the device supports FULL_PROFILE
+      // (which is the only profile support by clover) and that a device is
+      // not CUSTOM.
+      assert(dev.type() != CL_DEVICE_TYPE_CUSTOM);
+
+      cl_version version = CL_MAKE_VERSION(0, 0, 0);
+
+      const auto has_extension =
+         [extensions = dev.supported_extensions()](const char *extension_name){
+            return std::find_if(extensions.begin(), extensions.end(),
+                  [extension_name](const cl_name_version &extension){
+                     return strcmp(extension.name, extension_name) == 0;
+               }) != extensions.end();
+      };
+      const bool supports_images = dev.image_support();
+
+      // Check requirements for OpenCL 1.0
+      if (dev.max_compute_units() < 1 ||
+          dev.max_block_size().size() < 3 ||
+          // TODO: Check CL_DEVICE_MAX_WORK_ITEM_SIZES
+          dev.max_threads_per_block() < 1 ||
+          (dev.address_bits() != 32 && dev.address_bits() != 64) ||
+          dev.max_mem_alloc_size() < std::max(dev.max_mem_global() / 4,
+                                              (cl_ulong)128 * 1024 * 1024) ||
+          dev.max_mem_input() < 256 ||
+          dev.max_const_buffer_size() < 64 * 1024 ||
+          dev.max_const_buffers() < 8 ||
+          dev.max_mem_local() < 16 * 1024 ||
+          dev.clc_version < CL_MAKE_VERSION(1, 0, 0) ||
+          (supports_images &&
+           (dev.max_images_read() < 128 ||
+            dev.max_images_write() < 8 ||
+            dev.max_image_size() < 8192 ||
+            dev.max_image_size_3d() < 2048 ||
+            dev.max_samplers() < 16))) {
+         return version;
+      }
+      version = CL_MAKE_VERSION(1, 0, 0);
+
+      // Check requirements for OpenCL 1.1
+      if (!has_extension("cl_khr_byte_addressable_store") ||
+          !has_extension("cl_khr_global_int32_base_atomics") ||
+          !has_extension("cl_khr_global_int32_extended_atomics") ||
+          !has_extension("cl_khr_local_int32_base_atomics") ||
+          !has_extension("cl_khr_local_int32_extended_atomics") ||
+          // OpenCL 1.1 increased the minimum value for
+          // CL_DEVICE_MAX_PARAMETER_SIZE to 1024 bytes.
+          dev.max_mem_input() < 1024 ||
+          dev.mem_base_addr_align() < sizeof(cl_long16) ||
+          // OpenCL 1.1 increased the minimum value for
+          // CL_DEVICE_LOCAL_MEM_SIZE to 32 KB.
+          dev.max_mem_local() < 32 * 1024 ||
+          dev.clc_version < CL_MAKE_VERSION(1, 1, 0)) {
+         return version;
+      }
+      version = CL_MAKE_VERSION(1, 1, 0);
+
+      // Check requirements for OpenCL 1.2
+      if ((dev.has_doubles() && !has_extension("cl_khr_fp64")) ||
+          dev.clc_version < CL_MAKE_VERSION(1, 2, 0) ||
+          dev.max_printf_buffer_size() < 1 * 1024 * 1024 ||
+          (supports_images &&
+           (dev.max_image_buffer_size()  < 65536 ||
+            dev.max_image_array_number() < 2048))) {
+         return version;
+      }
+      version = CL_MAKE_VERSION(1, 2, 0);
+
+      // Check requirements for OpenCL 3.0
+      if (dev.max_mem_alloc_size() < std::max(std::min((cl_ulong)1024 * 1024 * 1024,
+                                                       dev.max_mem_global() / 4),
+                                              (cl_ulong)128 * 1024 * 1024) ||
+          // TODO: If pipes are supported, check:
+          //       * CL_DEVICE_MAX_PIPE_ARGS
+          //       * CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS
+          //       * CL_DEVICE_PIPE_MAX_PACKET_SIZE
+          // TODO: If on-device queues are supported, check:
+          //       * CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES
+          //       * CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE
+          //       * CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE
+          //       * CL_DEVICE_MAX_ON_DEVICE_QUEUES
+          //       * CL_DEVICE_MAX_ON_DEVICE_EVENTS
+          dev.clc_version < CL_MAKE_VERSION(3, 0, 0) ||
+          (supports_images &&
+           (dev.max_images_write() < 64 ||
+            dev.max_image_size() < 16384))) {
+         return version;
+      }
+      version = CL_MAKE_VERSION(3, 0, 0);
+
+      return version;
+   }
 }
 
 device::device(clover::platform &platform, pipe_loader_device *ldev) :
    platform(platform), clc_cache(NULL), ldev(ldev) {
-   unsigned major = 1, minor = 1;
-   debug_get_version_option("CLOVER_DEVICE_VERSION_OVERRIDE", &major, &minor);
-   version = CL_MAKE_VERSION(major, minor, 0);
-
-   major = 1, minor = 1;
-   debug_get_version_option("CLOVER_DEVICE_CLC_VERSION_OVERRIDE", &major, &minor);
-   clc_version = CL_MAKE_VERSION(major, minor, 0);
-
    pipe = pipe_loader_create_screen(ldev);
    if (pipe && pipe->get_param(pipe, PIPE_CAP_COMPUTE)) {
+      const bool has_supported_ir = supports_ir(PIPE_SHADER_IR_NATIVE) ||
+                                    supports_ir(PIPE_SHADER_IR_NIR_SERIALIZED);
+      if (has_supported_ir) {
+         unsigned major = 1, minor = 1;
+         debug_get_version_option("CLOVER_DEVICE_CLC_VERSION_OVERRIDE",
+                                  &major, &minor);
+         clc_version = CL_MAKE_VERSION(major, minor, 0);
+
+         version = get_highest_supported_version(*this);
+         major = CL_VERSION_MAJOR(version);
+         minor = CL_VERSION_MINOR(version);
+         debug_get_version_option("CLOVER_DEVICE_VERSION_OVERRIDE", &major,
+                                  &minor);
+         version = CL_MAKE_VERSION(major, minor, 0);
+
+      }
+
       if (supports_ir(PIPE_SHADER_IR_NATIVE))
          return;
 #ifdef HAVE_CLOVER_SPIRV
@@ -336,9 +440,17 @@ device::device_version_as_string() const {
 
 std::string
 device::device_clc_version_as_string() const {
+   int major = CL_VERSION_MAJOR(clc_version);
+   int minor = CL_VERSION_MINOR(clc_version);
+
+   /* for CL 3.0 we need this to be 1.2 until we support 2.0. */
+   if (major == 3) {
+      major = 1;
+      minor = 2;
+   }
    static const std::string version_string =
-      std::to_string(CL_VERSION_MAJOR(clc_version)) + "." +
-      std::to_string(CL_VERSION_MINOR(clc_version));
+      std::to_string(major) + "." +
+      std::to_string(minor);
    return version_string;
 }
 
@@ -406,7 +518,19 @@ device::device_version() const {
 }
 
 cl_version
-device::device_clc_version() const {
+device::device_clc_version(bool api) const {
+   /*
+    * For the API we have to limit this to 1.2,
+    * but internally we want 3.0 if it works.
+    */
+   if (!api)
+      return clc_version;
+
+   int major = CL_VERSION_MAJOR(clc_version);
+   /* for CL 3.0 we need this to be 1.2 until we support 2.0. */
+   if (major == 3) {
+      return CL_MAKE_VERSION(1, 2, 0);
+   }
    return clc_version;
 }
 

@@ -36,10 +36,14 @@ struct zink_render_pass;
 
 struct zink_framebuffer_state {
    uint32_t width;
-   uint16_t height, layers;
-   uint8_t samples;
-   uint8_t num_attachments;
-   VkImageView attachments[PIPE_MAX_COLOR_BUFS + 1];
+   uint16_t height;
+   uint32_t layers:6;
+   uint32_t samples:6;
+   uint32_t num_attachments:4;
+   union {
+      VkImageView attachments[PIPE_MAX_COLOR_BUFS + 1];
+      struct zink_surface_info infos[PIPE_MAX_COLOR_BUFS + 1];
+   };
 };
 
 struct zink_framebuffer {
@@ -49,19 +53,18 @@ struct zink_framebuffer {
    VkFramebuffer fb;
    struct zink_render_pass *rp;
 
-   struct pipe_surface *surfaces[PIPE_MAX_COLOR_BUFS + 1];
-   struct pipe_surface *null_surface; /* for use with unbound attachments */
    struct zink_framebuffer_state state;
+   union {
+      struct pipe_surface *surfaces[PIPE_MAX_COLOR_BUFS + 1];
+      VkFramebufferAttachmentImageInfo infos[PIPE_MAX_COLOR_BUFS + 1];
+   };
    struct hash_table objects;
 };
 
-struct zink_framebuffer *
-zink_create_framebuffer(struct zink_context *ctx,
-                        struct zink_framebuffer_state *fb,
-                        struct pipe_surface **attachments);
-
 void
 zink_init_framebuffer(struct zink_screen *screen, struct zink_framebuffer *fb, struct zink_render_pass *rp);
+void
+zink_init_framebuffer_imageless(struct zink_screen *screen, struct zink_framebuffer *fb, struct zink_render_pass *rp);
 
 void
 zink_destroy_framebuffer(struct zink_screen *screen,
@@ -87,4 +90,9 @@ zink_framebuffer_reference(struct zink_screen *screen,
    return ret;
 }
 
+struct zink_framebuffer *
+zink_get_framebuffer_imageless(struct zink_context *ctx);
+
+struct zink_framebuffer *
+zink_get_framebuffer(struct zink_context *ctx);
 #endif

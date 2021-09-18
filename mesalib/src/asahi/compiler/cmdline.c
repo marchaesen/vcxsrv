@@ -92,7 +92,7 @@ compile_shader(char **argv)
    };
 
    struct standalone_options options = {
-      .glsl_version = 310, /* ES - needed for precision */
+      .glsl_version = 300, /* ES - needed for precision */
       .do_link = true,
       .lower_precision = true
    };

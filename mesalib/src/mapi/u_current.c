@@ -100,18 +100,10 @@ extern void (*__glapi_noop_table[])(void);
 /*@{*/
 #if defined(USE_ELF_TLS)
 
-#ifdef _MSC_VER
-__declspec(thread) struct _glapi_table *u_current_table
-    = (struct _glapi_table *) table_noop_array;
-__declspec(thread) void *u_current_context;
-#else
-__thread struct _glapi_table *u_current_table
-    __attribute__((tls_model("initial-exec")))
+__THREAD_INITIAL_EXEC struct _glapi_table *u_current_table
     = (struct _glapi_table *) table_noop_array;
 
-__thread void *u_current_context
-    __attribute__((tls_model("initial-exec")));
-#endif
+__THREAD_INITIAL_EXEC void *u_current_context;
 
 #else
 

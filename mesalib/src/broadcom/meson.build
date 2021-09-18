@@ -50,6 +50,24 @@ foreach ver : v3d_versions
   )
 endforeach
 
+v3d_args = ['-DV3D_BUILD_NEON']
+
+v3d_neon_c_args = []
+if host_machine.cpu_family() == 'arm'
+    v3d_neon_c_args = '-mfpu=neon'
+endif
+
+libv3d_neon = static_library(
+  'v3d_neon',
+  'common/v3d_tiling.c',
+  include_directories : [
+    inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom,
+  ],
+  c_args : [v3d_args, v3d_neon_c_args],
+  gnu_symbol_visibility : 'hidden',
+  dependencies : [dep_libdrm, dep_valgrind, idep_nir_headers],
+)
+
 libbroadcom_v3d = static_library(
   'libbroadcom_v3d',
   [
@@ -60,6 +78,7 @@ libbroadcom_v3d = static_library(
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
   link_whole : v3d_libs + per_version_libs,
+  link_with: [libv3d_neon],
   build_by_default : false,
   dependencies: [dep_valgrind, dep_thread],
 )

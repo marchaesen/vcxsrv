@@ -103,7 +103,7 @@ init_gl_program(struct gl_program *prog, bool is_arb_asm, gl_shader_stage stage)
 {
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
-   prog->is_arb_asm = is_arb_asm;
+   prog->info.is_arb_asm = is_arb_asm;
    prog->info.stage = stage;
 }
 
@@ -432,7 +432,7 @@ standalone_compile_shader(const struct standalone_options *_options,
    }
 
    if (options->lower_precision) {
-      for (unsigned i = MESA_SHADER_VERTEX; i <= MESA_SHADER_FRAGMENT; i++) {
+      for (unsigned i = MESA_SHADER_VERTEX; i <= MESA_SHADER_COMPUTE; i++) {
          struct gl_shader_compiler_options *options =
             &ctx->Const.ShaderCompilerOptions[i];
          options->LowerPrecisionFloat16 = true;

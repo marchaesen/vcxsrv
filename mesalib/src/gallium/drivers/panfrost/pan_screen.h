@@ -36,17 +36,63 @@
 #include "util/u_dynarray.h"
 #include "util/bitset.h"
 #include "util/set.h"
+#include "util/log.h"
 
 #include "pan_device.h"
-#include "pan_pool.h"
+#include "pan_mempool.h"
 
 struct panfrost_batch;
 struct panfrost_context;
 struct panfrost_resource;
+struct panfrost_shader_state;
+struct pan_fb_info;
+
+/* Virtual table of per-generation (GenXML) functions */
+
+struct panfrost_vtable {
+        /* Prepares the renderer state descriptor for a given compiled shader,
+         * and if desired uploads it as well */
+        void (*prepare_rsd)(struct panfrost_device *,
+                            struct panfrost_shader_state *,
+                            struct panfrost_pool *, bool);
+
+        /* Emits a thread local storage descriptor */
+        void (*emit_tls)(struct panfrost_batch *);
+
+        /* Emits a framebuffer descriptor */
+        void (*emit_fbd)(struct panfrost_batch *, const struct pan_fb_info *);
+
+        /* Emits a fragment job */
+        mali_ptr (*emit_fragment_job)(struct panfrost_batch *, const struct pan_fb_info *);
+
+        /* General destructor */
+        void (*screen_destroy)(struct pipe_screen *);
+
+        /* Preload framebuffer */
+        void (*preload)(struct panfrost_batch *, struct pan_fb_info *);
+
+        /* Initialize a Gallium context */
+        void (*context_init)(struct pipe_context *pipe);
+
+        /* Device-dependent initialization of a panfrost_batch */
+        void (*init_batch)(struct panfrost_batch *batch);
+
+        /* Initialize the polygon list */
+        void (*init_polygon_list)(struct panfrost_batch *);
+};
 
 struct panfrost_screen {
         struct pipe_screen base;
         struct panfrost_device dev;
+        struct {
+                struct panfrost_pool bin_pool;
+                struct panfrost_pool desc_pool;
+        } blitter;
+        struct {
+                struct panfrost_pool bin_pool;
+        } indirect_draw;
+
+        struct panfrost_vtable vtbl;
 };
 
 static inline struct panfrost_screen *
@@ -61,7 +107,21 @@ pan_device(struct pipe_screen *p)
         return &(pan_screen(p)->dev);
 }
 
-struct panfrost_fence *
+struct pipe_fence_handle *
 panfrost_fence_create(struct panfrost_context *ctx);
+
+void panfrost_cmdstream_screen_init_v4(struct panfrost_screen *screen);
+void panfrost_cmdstream_screen_init_v5(struct panfrost_screen *screen);
+void panfrost_cmdstream_screen_init_v6(struct panfrost_screen *screen);
+void panfrost_cmdstream_screen_init_v7(struct panfrost_screen *screen);
+
+#define perf_debug(dev, ...) \
+        do { \
+                if (unlikely((dev)->debug & PAN_DBG_PERF)) \
+                        mesa_logw(__VA_ARGS__); \
+        } while(0)
+
+#define perf_debug_ctx(ctx, ...) \
+        perf_debug(pan_device((ctx)->base.screen), __VA_ARGS__);
 
 #endif /* PAN_SCREEN_H */

@@ -23,7 +23,7 @@ Each SoC has its own separate display engine to control the display
 output. To display the contents rendered by the Mali GPU to a screen, a
 separate `display driver <#display-drivers>`__ is also required, which
 is able to share buffers with the GPU. In Mesa, this is handled by
-enabling the ``kmsro`` driver in addition to Lima.
+``kmsro``.
 
 Supported APIs
 --------------
@@ -234,7 +234,7 @@ seems to be the bottleneck would also be helpful).
 Communication channels
 ----------------------
 
-- `#lima channel <irc://chat.freenode.net#lima>`__ on `irc.freenode.net <https://webchat.freenode.net/>`__
+- `#lima channel <irc://irc.oftc.net/lima>`__ on `irc.oftc.net <https://webchat.oftc.net/>`__
 - `lima mailing list <https://lists.freedesktop.org/mailman/listinfo/lima>`__
 - `dri-devel mailing list <https://lists.freedesktop.org/mailman/listinfo/dri-devel>`__
 

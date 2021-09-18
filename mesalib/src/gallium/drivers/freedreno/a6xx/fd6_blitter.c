@@ -245,7 +245,7 @@ emit_setup(struct fd_batch *batch)
    /* normal BLIT_OP_SCALE operation needs bypass RB_CCU_CNTL */
    OUT_WFI5(ring);
    OUT_PKT4(ring, REG_A6XX_RB_CCU_CNTL, 1);
-   OUT_RING(ring, A6XX_RB_CCU_CNTL_OFFSET(screen->info.a6xx.ccu_offset_bypass));
+   OUT_RING(ring, A6XX_RB_CCU_CNTL_COLOR_OFFSET(screen->ccu_offset_bypass));
 }
 
 static void
@@ -286,14 +286,6 @@ emit_blit_setup(struct fd_ringbuffer *ring, enum pipe_format pfmt,
       A6XX_SP_2D_DST_FORMAT_COLOR_FORMAT(fmt) |
          COND(util_format_is_pure_sint(pfmt), A6XX_SP_2D_DST_FORMAT_SINT) |
          COND(util_format_is_pure_uint(pfmt), A6XX_SP_2D_DST_FORMAT_UINT) |
-         COND(util_format_is_snorm(pfmt),
-              A6XX_SP_2D_DST_FORMAT_SINT | A6XX_SP_2D_DST_FORMAT_NORM) |
-         COND(
-            util_format_is_unorm(pfmt),
-            // TODO sometimes blob uses UINT+NORM but dEQP seems unhappy about
-            // that
-            //A6XX_SP_2D_DST_FORMAT_UINT |
-            A6XX_SP_2D_DST_FORMAT_NORM) |
          COND(is_srgb, A6XX_SP_2D_DST_FORMAT_SRGB) |
          A6XX_SP_2D_DST_FORMAT_MASK(0xf));
 
@@ -420,7 +412,7 @@ emit_blit_buffer(struct fd_context *ctx, struct fd_ringbuffer *ring,
       OUT_WFI5(ring);
 
       OUT_PKT4(ring, REG_A6XX_RB_UNKNOWN_8E04, 1);
-      OUT_RING(ring, ctx->screen->info.a6xx.magic.RB_UNKNOWN_8E04_blit);
+      OUT_RING(ring, ctx->screen->info->a6xx.magic.RB_UNKNOWN_8E04_blit);
 
       OUT_PKT7(ring, CP_BLIT, 1);
       OUT_RING(ring, CP_BLIT_0_OP(BLIT_OP_SCALE));
@@ -515,7 +507,7 @@ fd6_clear_ubwc(struct fd_batch *batch, struct fd_resource *rsc) assert_dt
       OUT_WFI5(ring);
 
       OUT_PKT4(ring, REG_A6XX_RB_UNKNOWN_8E04, 1);
-      OUT_RING(ring, batch->ctx->screen->info.a6xx.magic.RB_UNKNOWN_8E04_blit);
+      OUT_RING(ring, batch->ctx->screen->info->a6xx.magic.RB_UNKNOWN_8E04_blit);
 
       OUT_PKT7(ring, CP_BLIT, 1);
       OUT_RING(ring, CP_BLIT_0_OP(BLIT_OP_SCALE));
@@ -532,6 +524,7 @@ fd6_clear_ubwc(struct fd_batch *batch, struct fd_resource *rsc) assert_dt
    fd6_event_write(batch, ring, PC_CCU_FLUSH_COLOR_TS, true);
    fd6_event_write(batch, ring, PC_CCU_FLUSH_DEPTH_TS, true);
    fd6_event_write(batch, ring, CACHE_FLUSH_TS, true);
+   fd_wfi(batch, ring);
    fd6_cache_inv(batch, ring);
 }
 
@@ -692,7 +685,7 @@ emit_blit_texture(struct fd_context *ctx, struct fd_ringbuffer *ring,
       OUT_WFI5(ring);
 
       OUT_PKT4(ring, REG_A6XX_RB_UNKNOWN_8E04, 1);
-      OUT_RING(ring, ctx->screen->info.a6xx.magic.RB_UNKNOWN_8E04_blit);
+      OUT_RING(ring, ctx->screen->info->a6xx.magic.RB_UNKNOWN_8E04_blit);
 
       OUT_PKT7(ring, CP_BLIT, 1);
       OUT_RING(ring, CP_BLIT_0_OP(BLIT_OP_SCALE));
@@ -820,7 +813,7 @@ fd6_clear_surface(struct fd_context *ctx, struct fd_ringbuffer *ring,
       OUT_WFI5(ring);
 
       OUT_PKT4(ring, REG_A6XX_RB_UNKNOWN_8E04, 1);
-      OUT_RING(ring, ctx->screen->info.a6xx.magic.RB_UNKNOWN_8E04_blit);
+      OUT_RING(ring, ctx->screen->info->a6xx.magic.RB_UNKNOWN_8E04_blit);
 
       OUT_PKT7(ring, CP_BLIT, 1);
       OUT_RING(ring, CP_BLIT_0_OP(BLIT_OP_SCALE));
@@ -901,6 +894,7 @@ fd6_resolve_tile(struct fd_batch *batch, struct fd_ringbuffer *ring,
     * results in sysmem, so we need to flush manually here.
     */
    fd6_event_write(batch, ring, PC_CCU_FLUSH_COLOR_TS, true);
+   fd_wfi(batch, ring);
 }
 
 static bool
@@ -914,14 +908,16 @@ handle_rgba_blit(struct fd_context *ctx,
    if (!can_do_blit(info))
       return false;
 
-   batch = fd_bc_alloc_batch(&ctx->screen->batch_cache, ctx, true);
+   struct fd_resource *src = fd_resource(info->src.resource);
+   struct fd_resource *dst = fd_resource(info->dst.resource);
 
-   fd_screen_lock(ctx->screen);
+   fd6_validate_format(ctx, src, info->src.format);
+   fd6_validate_format(ctx, dst, info->dst.format);
 
-   fd_batch_resource_read(batch, fd_resource(info->src.resource));
-   fd_batch_resource_write(batch, fd_resource(info->dst.resource));
+   batch = fd_bc_alloc_batch(ctx, true);
 
-   fd_screen_unlock(ctx->screen);
+   fd_batch_resource_read(batch, src);
+   fd_batch_resource_write(batch, dst);
 
    ASSERTED bool ret = fd_batch_lock_submit(batch);
    assert(ret);
@@ -936,17 +932,15 @@ handle_rgba_blit(struct fd_context *ctx,
 
    emit_setup(batch);
 
-   DBG("%p: %s (%p) -> %s (%p)", batch,
-       util_str_tex_target(info->src.resource->target, true), info->src.resource,
-       util_str_tex_target(info->dst.resource->target, true), info->dst.resource);
+   DBG_BLIT(info, batch);
 
-   trace_start_blit(&batch->trace, info->src.resource->target,
+   trace_start_blit(&batch->trace, batch->draw, info->src.resource->target,
                     info->dst.resource->target);
 
    if ((info->src.resource->target == PIPE_BUFFER) &&
        (info->dst.resource->target == PIPE_BUFFER)) {
-      assert(fd_resource(info->src.resource)->layout.tile_mode == TILE6_LINEAR);
-      assert(fd_resource(info->dst.resource)->layout.tile_mode == TILE6_LINEAR);
+      assert(src->layout.tile_mode == TILE6_LINEAR);
+      assert(dst->layout.tile_mode == TILE6_LINEAR);
       emit_blit_buffer(ctx, batch->draw, info);
    } else {
       /* I don't *think* we need to handle blits between buffer <-> !buffer */
@@ -955,16 +949,15 @@ handle_rgba_blit(struct fd_context *ctx,
       emit_blit_texture(ctx, batch->draw, info);
    }
 
-   trace_end_blit(&batch->trace);
+   trace_end_blit(&batch->trace, batch->draw);
 
    fd6_event_write(batch, batch->draw, PC_CCU_FLUSH_COLOR_TS, true);
    fd6_event_write(batch, batch->draw, PC_CCU_FLUSH_DEPTH_TS, true);
    fd6_event_write(batch, batch->draw, CACHE_FLUSH_TS, true);
+   fd_wfi(batch, batch->draw);
    fd6_cache_inv(batch, batch->draw);
 
    fd_batch_unlock_submit(batch);
-
-   fd_resource(info->dst.resource)->valid = true;
 
    fd_batch_flush(batch);
    fd_batch_reference(&batch, NULL);
@@ -1068,7 +1061,7 @@ handle_zs_blit(struct fd_context *ctx,
       /* non-UBWC Z24_UNORM_S8_UINT_AS_R8G8B8A8 is broken on a630, fall back to
        * 8888_unorm.
        */
-      if (!ctx->screen->info.a6xx.has_z24uint_s8uint) {
+      if (!ctx->screen->info->a6xx.has_z24uint_s8uint) {
          if (!src->layout.ubwc)
             blit.src.format = PIPE_FORMAT_RGBA8888_UNORM;
          if (!dst->layout.ubwc)
@@ -1129,14 +1122,66 @@ handle_compressed_blit(struct fd_context *ctx,
    return do_rewritten_blit(ctx, &blit);
 }
 
+static enum pipe_format
+snorm_copy_format(enum pipe_format format)
+{
+   switch (format) {
+   case PIPE_FORMAT_R8_SNORM:           return PIPE_FORMAT_R8_UNORM;
+   case PIPE_FORMAT_R16_SNORM:          return PIPE_FORMAT_R16_UNORM;
+   case PIPE_FORMAT_A16_SNORM:          return PIPE_FORMAT_A16_UNORM;
+   case PIPE_FORMAT_L16_SNORM:          return PIPE_FORMAT_L16_UNORM;
+   case PIPE_FORMAT_I16_SNORM:          return PIPE_FORMAT_I16_UNORM;
+   case PIPE_FORMAT_R8G8_SNORM:         return PIPE_FORMAT_R8G8_UNORM;
+   case PIPE_FORMAT_R8G8B8_SNORM:       return PIPE_FORMAT_R8G8B8_UNORM;
+   case PIPE_FORMAT_R32_SNORM:          return PIPE_FORMAT_R32_UNORM;
+   case PIPE_FORMAT_R16G16_SNORM:       return PIPE_FORMAT_R16G16_UNORM;
+   case PIPE_FORMAT_L16A16_SNORM:       return PIPE_FORMAT_L16A16_UNORM;
+   case PIPE_FORMAT_R8G8B8A8_SNORM:     return PIPE_FORMAT_R8G8B8A8_UNORM;
+   case PIPE_FORMAT_R10G10B10A2_SNORM:  return PIPE_FORMAT_R10G10B10A2_UNORM;
+   case PIPE_FORMAT_B10G10R10A2_SNORM:  return PIPE_FORMAT_B10G10R10A2_UNORM;
+   case PIPE_FORMAT_R16G16B16_SNORM:    return PIPE_FORMAT_R16G16B16_UNORM;
+   case PIPE_FORMAT_R16G16B16A16_SNORM: return PIPE_FORMAT_R16G16B16A16_UNORM;
+   case PIPE_FORMAT_R16G16B16X16_SNORM: return PIPE_FORMAT_R16G16B16X16_UNORM;
+   case PIPE_FORMAT_R32G32_SNORM:       return PIPE_FORMAT_R32G32_UNORM;
+   case PIPE_FORMAT_R32G32B32_SNORM:    return PIPE_FORMAT_R32G32B32_UNORM;
+   case PIPE_FORMAT_R32G32B32A32_SNORM: return PIPE_FORMAT_R32G32B32A32_UNORM;
+   default:
+      unreachable("unhandled snorm format");
+      return format;
+   }
+}
+
+/**
+ * For SNORM formats, copy them as the equivalent UNORM format.  If we treat
+ * them as snorm then the 0x80 (-1.0 snorm8) value will get clamped to 0x81
+ * (also -1.0), when we're supposed to be memcpying the bits. See
+ * https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2917 for discussion.
+ */
+static bool
+handle_snorm_copy_blit(struct fd_context *ctx,
+                       const struct pipe_blit_info *info)
+   assert_dt
+{
+   struct pipe_blit_info blit = *info;
+
+   blit.src.format = blit.dst.format = snorm_copy_format(info->src.format);
+
+   return do_rewritten_blit(ctx, &blit);
+}
+
 static bool
 fd6_blit(struct fd_context *ctx, const struct pipe_blit_info *info) assert_dt
 {
    if (info->mask & PIPE_MASK_ZS)
       return handle_zs_blit(ctx, info);
+
    if (util_format_is_compressed(info->src.format) ||
        util_format_is_compressed(info->dst.format))
       return handle_compressed_blit(ctx, info);
+
+   if ((info->src.format == info->dst.format) &&
+       util_format_is_snorm(info->src.format))
+      return handle_snorm_copy_blit(ctx, info);
 
    return handle_rgba_blit(ctx, info);
 }
@@ -1144,12 +1189,15 @@ fd6_blit(struct fd_context *ctx, const struct pipe_blit_info *info) assert_dt
 void
 fd6_blitter_init(struct pipe_context *pctx) disable_thread_safety_analysis
 {
-   fd_context(pctx)->clear_ubwc = fd6_clear_ubwc;
+   struct fd_context *ctx = fd_context(pctx);
+
+   ctx->clear_ubwc = fd6_clear_ubwc;
+   ctx->validate_format = fd6_validate_format;
 
    if (FD_DBG(NOBLIT))
       return;
 
-   fd_context(pctx)->blit = fd6_blit;
+   ctx->blit = fd6_blit;
 }
 
 unsigned

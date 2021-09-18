@@ -28,6 +28,8 @@
 #include "drm-uapi/msm_drm.h"
 #include <sys/ioctl.h>
 
+#include "util/u_math.h"
+
 bool drm_shim_driver_prefers_first_render_node = true;
 
 struct msm_bo {
@@ -69,13 +71,14 @@ msm_ioctl_gem_new(int fd, unsigned long request, void *arg)
    struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
    struct drm_msm_gem_new *create = arg;
    struct msm_bo *bo = calloc(1, sizeof(*bo));
+   size_t size = ALIGN(create->size, 4096);
 
-   drm_shim_bo_init(&bo->base, create->size);
+   drm_shim_bo_init(&bo->base, size);
 
-   assert(UINT_MAX - msm.next_offset > create->size);
+   assert(UINT_MAX - msm.next_offset > size);
 
    bo->offset = msm.next_offset;
-   msm.next_offset += create->size;
+   msm.next_offset += size;
 
    create->handle = drm_shim_bo_get_handle(shim_fd, &bo->base);
 
@@ -292,7 +295,7 @@ drm_shim_driver_init(void)
 
    /* msm uses the DRM version to expose features, instead of getparam. */
    shim_device.version_major = 1;
-   shim_device.version_minor = 5;
+   shim_device.version_minor = 6;
    shim_device.version_patchlevel = 0;
 
    msm_driver_get_device_info();

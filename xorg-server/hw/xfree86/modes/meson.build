@@ -1,7 +1,6 @@
 srcs_xorg_modes = [
     'xf86Crtc.c',
     'xf86Cursors.c',
-    'xf86cvt.c',
     'xf86gtf.c',
     'xf86EdidModes.c',
     'xf86Modes.c',
@@ -15,8 +14,8 @@ endif
 
 xorg_modes = static_library('xorg_modes',
     srcs_xorg_modes,
-    include_directories: [inc, xorg_inc],
-    dependencies: common_dep,
+    include_directories: [ inc, xorg_inc ],
+    dependencies: [ common_dep, libxcvt_dep ],
     c_args: xorg_c_args,
 )
 

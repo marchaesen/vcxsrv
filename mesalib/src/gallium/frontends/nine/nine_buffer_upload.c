@@ -122,7 +122,7 @@ nine_upload_destroy_buffer_group(struct nine_buffer_upload *upload,
     assert(group->refcount == 0);
 
     if (group->transfer)
-        pipe_transfer_unmap(upload->pipe, group->transfer);
+        pipe_buffer_unmap(upload->pipe, group->transfer);
     if (group->resource)
         pipe_resource_reference(&group->resource, NULL);
     group->transfer = NULL;
@@ -276,7 +276,7 @@ nine_upload_release_buffer(struct nine_buffer_upload *upload,
     } else {
         /* lonely buffer */
         if (buf->transfer)
-            pipe_transfer_unmap(upload->pipe, buf->transfer);
+            pipe_buffer_unmap(upload->pipe, buf->transfer);
         pipe_resource_reference(&buf->resource, NULL);
     }
 

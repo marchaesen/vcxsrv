@@ -360,7 +360,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    }
 
    /* Restore pipe state */
-   cso_restore_state(cso);
+   cso_restore_state(cso, 0);
    st->dirty |= ST_NEW_VERTEX_ARRAYS;
 }
 

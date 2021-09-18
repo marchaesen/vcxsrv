@@ -152,14 +152,14 @@ svga_texture_copy_handle_resource(struct svga_context *svga,
       for (j = 0; j < numLayers; j++) {
          if (svga_is_texture_level_defined(src_tex, j+layeroffset, miplevel)) {
             unsigned depth = (zslice_pick < 0 ?
-                              u_minify(src_tex->b.b.depth0, miplevel) : 1);
+                              u_minify(src_tex->b.depth0, miplevel) : 1);
 
-            if (src_tex->b.b.nr_samples > 1) {
+            if (src_tex->b.nr_samples > 1) {
                unsigned subResource = j * numMipLevels + i;
                svga_texture_copy_region(svga, src_tex->handle,
                                         subResource, 0, 0, zoffset,
                                         dst, subResource, 0, 0, 0,
-                                        src_tex->b.b.width0, src_tex->b.b.height0, depth);
+                                        src_tex->b.width0, src_tex->b.height0, depth);
             }
             else {
                svga_texture_copy_handle(svga,
@@ -168,8 +168,8 @@ svga_texture_copy_handle_resource(struct svga_context *svga,
                                         miplevel,
                                         j + layeroffset,
                                         dst, 0, 0, 0, i, j,
-                                        u_minify(src_tex->b.b.width0, miplevel),
-                                        u_minify(src_tex->b.b.height0, miplevel),
+                                        u_minify(src_tex->b.width0, miplevel),
+                                        u_minify(src_tex->b.height0, miplevel),
                                         depth);
             }
          }
@@ -206,26 +206,26 @@ svga_texture_view_surface(struct svga_context *svga,
    key->flags = flags;
    key->format = format;
    key->numMipLevels = num_mip;
-   key->size.width = u_minify(tex->b.b.width0, start_mip);
-   key->size.height = u_minify(tex->b.b.height0, start_mip);
-   key->size.depth = zslice_pick < 0 ? u_minify(tex->b.b.depth0, start_mip) : 1;
+   key->size.width = u_minify(tex->b.width0, start_mip);
+   key->size.height = u_minify(tex->b.height0, start_mip);
+   key->size.depth = zslice_pick < 0 ? u_minify(tex->b.depth0, start_mip) : 1;
    key->cachable = 1;
    key->arraySize = 1;
    key->numFaces = 1;
 
    /* single sample surface can be treated as non-multisamples surface */
-   key->sampleCount = tex->b.b.nr_samples > 1 ? tex->b.b.nr_samples : 0;
+   key->sampleCount = tex->b.nr_samples > 1 ? tex->b.nr_samples : 0;
 
    if (key->sampleCount > 1) {
       assert(ss->sws->have_sm4_1);
       key->flags |= SVGA3D_SURFACE_MULTISAMPLE;
    }
 
-   if (tex->b.b.target == PIPE_TEXTURE_CUBE && layer_pick < 0) {
+   if (tex->b.target == PIPE_TEXTURE_CUBE && layer_pick < 0) {
       key->flags |= SVGA3D_SURFACE_CUBEMAP;
       key->numFaces = 6;
-   } else if (tex->b.b.target == PIPE_TEXTURE_1D_ARRAY ||
-              tex->b.b.target == PIPE_TEXTURE_2D_ARRAY) {
+   } else if (tex->b.target == PIPE_TEXTURE_1D_ARRAY ||
+              tex->b.target == PIPE_TEXTURE_2D_ARRAY) {
       key->arraySize = num_layers;
    }
 
@@ -476,7 +476,7 @@ create_backed_surface_view(struct svga_context *svga, struct svga_surface *s)
                            SVGA_STATS_TIME_CREATEBACKEDSURFACEVIEW);
 
       backed_view = svga_create_surface_view(&svga->pipe,
-                                             &tex->b.b,
+                                             &tex->b,
                                              &s->base,
                                              TRUE);
       if (!backed_view)
@@ -497,7 +497,7 @@ create_backed_surface_view(struct svga_context *svga, struct svga_surface *s)
 
       assert(bs->handle);
 
-      switch (tex->b.b.target) {
+      switch (tex->b.target) {
       case PIPE_TEXTURE_CUBE:
       case PIPE_TEXTURE_CUBE_ARRAY:
       case PIPE_TEXTURE_1D_ARRAY:
@@ -788,11 +788,11 @@ svga_propagate_surface(struct svga_context *svga, struct pipe_surface *surf,
       unsigned zslice, layer;
       unsigned nlayers = 1;
       unsigned i;
-      unsigned numMipLevels = tex->b.b.last_level + 1;
+      unsigned numMipLevels = tex->b.last_level + 1;
       unsigned srcLevel = s->real_level;
       unsigned dstLevel = surf->u.tex.level;
-      unsigned width = u_minify(tex->b.b.width0, dstLevel);
-      unsigned height = u_minify(tex->b.b.height0, dstLevel);
+      unsigned width = u_minify(tex->b.width0, dstLevel);
+      unsigned height = u_minify(tex->b.height0, dstLevel);
 
       if (surf->texture->target == PIPE_TEXTURE_CUBE) {
          zslice = 0;

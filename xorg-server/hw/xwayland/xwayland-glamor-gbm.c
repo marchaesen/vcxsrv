@@ -785,12 +785,12 @@ xwl_glamor_try_big_gl_api(struct xwl_screen *xwl_screen)
     eglBindAPI(EGL_OPENGL_API);
 
     xwl_screen->egl_context =
-        eglCreateContext(xwl_screen->egl_display, NULL,
+        eglCreateContext(xwl_screen->egl_display, EGL_NO_CONFIG_KHR,
                          EGL_NO_CONTEXT, config_attribs_core);
 
     if (xwl_screen->egl_context == EGL_NO_CONTEXT)
         xwl_screen->egl_context =
-            eglCreateContext(xwl_screen->egl_display, NULL,
+            eglCreateContext(xwl_screen->egl_display, EGL_NO_CONFIG_KHR,
                              EGL_NO_CONTEXT, NULL);
 
     if (!xwl_glamor_try_to_make_context_current(xwl_screen)) {
@@ -824,7 +824,8 @@ xwl_glamor_try_gles_api(struct xwl_screen *xwl_screen)
 
     eglBindAPI(EGL_OPENGL_ES_API);
 
-    xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display, NULL,
+    xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display,
+                                               EGL_NO_CONFIG_KHR,
                                                EGL_NO_CONTEXT, gles_attribs);
 
     if (!xwl_glamor_try_to_make_context_current(xwl_screen)) {

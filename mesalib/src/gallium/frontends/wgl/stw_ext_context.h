@@ -32,7 +32,7 @@
 typedef HGLRC (WINAPI *wglCreateContext_t)(HDC hdc);
 typedef BOOL (WINAPI *wglDeleteContext_t)(HGLRC hglrc);
 
-extern wglCreateContext_t wglCreateContext_func;
-extern wglDeleteContext_t wglDeleteContext_func;
+extern void
+stw_override_opengl32_entry_points(wglCreateContext_t create, wglDeleteContext_t delete);
 
 #endif /* STW_EXT_CONTEXT_H */

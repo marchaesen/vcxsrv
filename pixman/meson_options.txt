@@ -54,6 +54,11 @@ option(
   description : 'Use ARM NEON intrinsic optimized paths',
 )
 option(
+  'a64-neon',
+  type : 'feature',
+  description : 'Use ARM A64 NEON intrinsic optimized paths',
+)
+option(
   'iwmmxt',
   type : 'feature',
   description : 'Use ARM IWMMXT intrinsic optimized paths',

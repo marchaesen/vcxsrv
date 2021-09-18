@@ -138,10 +138,14 @@ lvp_render_pass_compile(struct lvp_render_pass *pass)
 static unsigned
 lvp_num_subpass_attachments2(const VkSubpassDescription2 *desc)
 {
+   const VkSubpassDescriptionDepthStencilResolve *ds_resolve =
+      vk_find_struct_const(desc->pNext,
+                           SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
    return desc->inputAttachmentCount +
       desc->colorAttachmentCount +
       (desc->pResolveAttachments ? desc->colorAttachmentCount : 0) +
-      (desc->pDepthStencilAttachment != NULL);
+      (desc->pDepthStencilAttachment != NULL) +
+      (ds_resolve && ds_resolve->pDepthStencilResolveAttachment);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
@@ -185,6 +189,10 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
       att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
       att->final_layout = pCreateInfo->pAttachments[i].finalLayout;
       att->first_subpass_idx = UINT32_MAX;
+
+      bool is_zs = util_format_is_depth_or_stencil(lvp_vk_format_to_pipe_format(att->format));
+      pass->has_zs_attachment |= is_zs;
+      pass->has_color_attachment |= !is_zs;
    }
    uint32_t subpass_attachment_count = 0;
    for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
@@ -257,6 +265,21 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
             .attachment = desc->pDepthStencilAttachment->attachment,
             .layout = desc->pDepthStencilAttachment->layout,
          };
+      }
+
+      const VkSubpassDescriptionDepthStencilResolve *ds_resolve =
+         vk_find_struct_const(desc->pNext, SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
+
+      if (ds_resolve && ds_resolve->pDepthStencilResolveAttachment) {
+         subpass->ds_resolve_attachment = p++;
+
+         *subpass->ds_resolve_attachment = (struct lvp_subpass_attachment){
+            .attachment = ds_resolve->pDepthStencilResolveAttachment->attachment,
+            .layout = ds_resolve->pDepthStencilResolveAttachment->layout,
+         };
+
+         subpass->depth_resolve_mode = ds_resolve->depthResolveMode;
+         subpass->stencil_resolve_mode = ds_resolve->stencilResolveMode;
       }
    }
 

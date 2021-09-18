@@ -78,6 +78,8 @@ class Opcode(object):
       assert 0 <= output_size <= 5 or (output_size == 8) or (output_size == 16)
       for size in input_sizes:
          assert 0 <= size <= 5 or (size == 8) or (size == 16)
+         if output_size == 0:
+            assert size == 0
          if output_size != 0:
             assert size != 0
       self.name = name
@@ -217,8 +219,6 @@ unop("isign", tint, "(src0 == 0) ? 0 : ((src0 > 0) ? 1 : -1)")
 unop("iabs", tint, "(src0 < 0) ? -src0 : src0")
 unop("fabs", tfloat, "fabs(src0)")
 unop("fsat", tfloat, ("fmin(fmax(src0, 0.0), 1.0)"))
-unop("fsat_signed", tfloat, ("fmin(fmax(src0, -1.0), 1.0)"))
-unop("fclamp_pos", tfloat, ("fmax(src0, 0.0)"))
 unop("frcp", tfloat, "bit_size == 64 ? 1.0 / src0 : 1.0f / src0")
 unop("frsq", tfloat, "bit_size == 64 ? 1.0 / sqrt(src0) : 1.0f / sqrtf(src0)")
 unop("fsqrt", tfloat, "bit_size == 64 ? sqrt(src0) : sqrtf(src0)")
@@ -487,9 +487,9 @@ for (int bit = 31; bit >= 0; bit--) {
 }
 """)
 
-unop_convert("ifind_msb_rev", tint32, tuint, """
+unop_convert("ifind_msb_rev", tint32, tint, """
 dst = -1;
-if (src0 != 0 || src0 != -1) {
+if (src0 != 0 && src0 != -1) {
    for (int bit = 0; bit < 31; bit++) {
       /* If src0 < 0, we're looking for the first 0 bit.
        * if src0 >= 0, we're looking for the first 1 bit.
@@ -514,7 +514,7 @@ for (unsigned bit = 0; bit < bit_size; bit++) {
 """)
 
 # AMD_gcn_shader extended instructions
-unop_horiz("cube_face_coord", 2, tfloat32, 3, tfloat32, """
+unop_horiz("cube_face_coord_amd", 2, tfloat32, 3, tfloat32, """
 dst.x = dst.y = 0.0;
 float absX = fabsf(src0.x);
 float absY = fabsf(src0.y);
@@ -536,7 +536,8 @@ dst.x = dst.x * (1.0f / ma) + 0.5f;
 dst.y = dst.y * (1.0f / ma) + 0.5f;
 """)
 
-unop_horiz("cube_face_index", 1, tfloat32, 3, tfloat32, """
+unop_horiz("cube_face_index_amd", 1, tfloat32, 3, tfloat32, """
+dst.x = 0.0;
 float absX = fabsf(src0.x);
 float absY = fabsf(src0.y);
 float absZ = fabsf(src0.z);
@@ -626,18 +627,18 @@ if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
    dst = src0 + src1;
 }
 """)
-binop("iadd", tint, _2src_commutative + associative, "src0 + src1")
+binop("iadd", tint, _2src_commutative + associative, "(uint64_t)src0 + (uint64_t)src1")
 binop("iadd_sat", tint, _2src_commutative, """
       src1 > 0 ?
-         (src0 + src1 < src0 ? (1ull << (bit_size - 1)) - 1 : src0 + src1) :
-         (src0 < src0 + src1 ? (1ull << (bit_size - 1))     : src0 + src1)
+         (src0 + src1 < src0 ? u_intN_max(bit_size) : src0 + src1) :
+         (src0 < src0 + src1 ? u_intN_min(bit_size) : src0 + src1)
 """)
 binop("uadd_sat", tuint, _2src_commutative,
-      "(src0 + src1) < src0 ? MAX_UINT_FOR_SIZE(sizeof(src0) * 8) : (src0 + src1)")
+      "(src0 + src1) < src0 ? u_uintN_max(sizeof(src0) * 8) : (src0 + src1)")
 binop("isub_sat", tint, "", """
       src1 < 0 ?
-         (src0 - src1 < src0 ? (1ull << (bit_size - 1)) - 1 : src0 - src1) :
-         (src0 < src0 - src1 ? (1ull << (bit_size - 1))     : src0 - src1)
+         (src0 - src1 < src0 ? u_intN_max(bit_size) : src0 - src1) :
+         (src0 < src0 - src1 ? u_intN_min(bit_size) : src0 - src1)
 """)
 binop("usub_sat", tuint, "", "src0 < src1 ? 0 : src0 - src1")
 
@@ -770,8 +771,8 @@ binop("uhadd", tuint, _2src_commutative, "(src0 & src1) + ((src0 ^ src1) >> 1)")
 #
 # (x + y + 1) >> 1 = (x | y) + (-(x ^ y) + 1) >> 1)
 #                  = (x | y) -  ((x ^ y)      >> 1)
-binop("irhadd", tint, _2src_commutative, "(src0 | src1) + ((src0 ^ src1) >> 1)")
-binop("urhadd", tuint, _2src_commutative, "(src0 | src1) + ((src0 ^ src1) >> 1)")
+binop("irhadd", tint, _2src_commutative, "(src0 | src1) - ((src0 ^ src1) >> 1)")
+binop("urhadd", tuint, _2src_commutative, "(src0 | src1) - ((src0 ^ src1) >> 1)")
 
 binop("umod", tuint, "", "src1 == 0 ? 0 : src0 % src1")
 
@@ -885,51 +886,6 @@ binop("fmax", tfloat, _2src_commutative + associative, "fmax(src0, src1)")
 binop("imax", tint, _2src_commutative + associative, "src1 > src0 ? src1 : src0")
 binop("umax", tuint, _2src_commutative + associative, "src1 > src0 ? src1 : src0")
 
-# Saturated vector add for 4 8bit ints.
-binop("usadd_4x8", tint32, _2src_commutative + associative, """
-dst = 0;
-for (int i = 0; i < 32; i += 8) {
-   dst |= MIN2(((src0 >> i) & 0xff) + ((src1 >> i) & 0xff), 0xff) << i;
-}
-""")
-
-# Saturated vector subtract for 4 8bit ints.
-binop("ussub_4x8", tint32, "", """
-dst = 0;
-for (int i = 0; i < 32; i += 8) {
-   int src0_chan = (src0 >> i) & 0xff;
-   int src1_chan = (src1 >> i) & 0xff;
-   if (src0_chan > src1_chan)
-      dst |= (src0_chan - src1_chan) << i;
-}
-""")
-
-# vector min for 4 8bit ints.
-binop("umin_4x8", tint32, _2src_commutative + associative, """
-dst = 0;
-for (int i = 0; i < 32; i += 8) {
-   dst |= MIN2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
-}
-""")
-
-# vector max for 4 8bit ints.
-binop("umax_4x8", tint32, _2src_commutative + associative, """
-dst = 0;
-for (int i = 0; i < 32; i += 8) {
-   dst |= MAX2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
-}
-""")
-
-# unorm multiply: (a * b) / 255.
-binop("umul_unorm_4x8", tint32, _2src_commutative + associative, """
-dst = 0;
-for (int i = 0; i < 32; i += 8) {
-   int src0_chan = (src0 >> i) & 0xff;
-   int src1_chan = (src1 >> i) & 0xff;
-   dst |= ((src0_chan * src1_chan) / 255) << i;
-}
-""")
-
 binop("fpow", tfloat, "", "bit_size == 64 ? powf(src0, src1) : pow(src0, src1)")
 
 binop_horiz("pack_half_2x16_split", 1, tuint32, 1, tfloat32, 1, tfloat32,
@@ -940,6 +896,10 @@ binop_convert("pack_64_2x32_split", tuint64, tuint32, "",
 
 binop_convert("pack_32_2x16_split", tuint32, tuint16, "",
               "src0 | ((uint32_t)src1 << 16)")
+
+opcode("pack_32_4x8_split", 0, tuint32, [0, 0, 0, 0], [tuint8, tuint8, tuint8, tuint8],
+       False, "",
+       "src0 | ((uint32_t)src1 << 8) | ((uint32_t)src2 << 16) | ((uint32_t)src3 << 24)")
 
 # bfm implements the behavior of the first operation of the SM5 "bfi" assembly
 # and that of the "bfi1" i965 instruction. That is, the bits and offset values
@@ -972,6 +932,10 @@ binop("extract_i8", tint, "", "(int8_t)(src0 >> (src1 * 8))")
 binop("extract_u16", tuint, "", "(uint16_t)(src0 >> (src1 * 16))")
 binop("extract_i16", tint, "", "(int16_t)(src0 >> (src1 * 16))")
 
+# Byte/word insertion
+binop("insert_u8", tuint, "", "(src0 & 0xff) << (src1 * 8)")
+binop("insert_u16", tuint, "", "(src0 & 0xffff) << (src1 * 16)")
+
 
 def triop(name, ty, alg_props, const_expr):
    opcode(name, 0, ty, [0, 0, 0], [ty, ty, ty], False, alg_props, const_expr)
@@ -997,6 +961,9 @@ if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
 """)
 
 triop("flrp", tfloat, "", "src0 * (1 - src2) + src1 * src2")
+
+# Ternary addition
+triop("iadd3", tint, _2src_commutative + associative, "src0 + src1 + src2")
 
 # Conditional Select
 #
@@ -1091,6 +1058,29 @@ if (bits == 0) {
 } else {
    dst = (base << (32 - offset - bits)) >> offset; /* use sign-extending shift */
 }
+""")
+
+# Sum of absolute differences with accumulation.
+# (Equivalent to AMD's v_sad_u8 instruction.)
+# The first two sources contain packed 8-bit unsigned integers, the instruction
+# will calculate the absolute difference of these, and then add them together.
+# There is also a third source which is a 32-bit unsigned integer and added to the result.
+triop_horiz("sad_u8x4", 1, 1, 1, 1, """
+uint8_t s0_b0 = (src0.x & 0x000000ff) >> 0;
+uint8_t s0_b1 = (src0.x & 0x0000ff00) >> 8;
+uint8_t s0_b2 = (src0.x & 0x00ff0000) >> 16;
+uint8_t s0_b3 = (src0.x & 0xff000000) >> 24;
+
+uint8_t s1_b0 = (src1.x & 0x000000ff) >> 0;
+uint8_t s1_b1 = (src1.x & 0x0000ff00) >> 8;
+uint8_t s1_b2 = (src1.x & 0x00ff0000) >> 16;
+uint8_t s1_b3 = (src1.x & 0xff000000) >> 24;
+
+dst.x = src2.x +
+        (s0_b0 > s1_b0 ? (s0_b0 - s1_b0) : (s1_b0 - s0_b0)) +
+        (s0_b1 > s1_b1 ? (s0_b1 - s1_b1) : (s1_b1 - s0_b1)) +
+        (s0_b2 > s1_b2 ? (s0_b2 - s1_b2) : (s1_b2 - s0_b2)) +
+        (s0_b3 > s1_b3 ? (s0_b3 - s1_b3) : (s1_b3 - s0_b3));
 """)
 
 # Combines the first component of each input to make a 3-component vector.
@@ -1258,8 +1248,65 @@ triop("umad24", tuint32, _2src_commutative,
 binop("umul24", tint32, _2src_commutative + associative,
       "(((uint32_t)src0 << 8) >> 8) * (((uint32_t)src1 << 8) >> 8)")
 
+# relaxed versions of the above, which assume input is in the 24bit range (no clamping)
+binop("imul24_relaxed", tint32, _2src_commutative + associative, "src0 * src1")
+triop("umad24_relaxed", tuint32, _2src_commutative, "src0 * src1 + src2")
+binop("umul24_relaxed", tuint32, _2src_commutative + associative, "src0 * src1")
+
 unop_convert("fisnormal", tbool1, tfloat, "isnormal(src0)")
 unop_convert("fisfinite", tbool1, tfloat, "isfinite(src0)")
+unop_convert("fisfinite32", tint32, tfloat, "isfinite(src0)")
+
+# vc4-specific opcodes
+
+# Saturated vector add for 4 8bit ints.
+binop("usadd_4x8_vc4", tint32, _2src_commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   dst |= MIN2(((src0 >> i) & 0xff) + ((src1 >> i) & 0xff), 0xff) << i;
+}
+""")
+
+# Saturated vector subtract for 4 8bit ints.
+binop("ussub_4x8_vc4", tint32, "", """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   int src0_chan = (src0 >> i) & 0xff;
+   int src1_chan = (src1 >> i) & 0xff;
+   if (src0_chan > src1_chan)
+      dst |= (src0_chan - src1_chan) << i;
+}
+""")
+
+# vector min for 4 8bit ints.
+binop("umin_4x8_vc4", tint32, _2src_commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   dst |= MIN2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
+}
+""")
+
+# vector max for 4 8bit ints.
+binop("umax_4x8_vc4", tint32, _2src_commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   dst |= MAX2((src0 >> i) & 0xff, (src1 >> i) & 0xff) << i;
+}
+""")
+
+# unorm multiply: (a * b) / 255.
+binop("umul_unorm_4x8_vc4", tint32, _2src_commutative + associative, """
+dst = 0;
+for (int i = 0; i < 32; i += 8) {
+   int src0_chan = (src0 >> i) & 0xff;
+   int src1_chan = (src1 >> i) & 0xff;
+   dst |= ((src0_chan * src1_chan) / 255) << i;
+}
+""")
+
+# Mali-specific opcodes
+unop("fsat_signed_mali", tfloat, ("fmin(fmax(src0, -1.0), 1.0)"))
+unop("fclamp_pos_mali", tfloat, ("fmax(src0, 0.0)"))
 
 # DXIL specific double [un]pack
 # DXIL doesn't support generic [un]pack instructions, so we want those
@@ -1272,3 +1319,160 @@ unop_horiz("pack_double_2x32_dxil", 1, tuint64, 2, tuint32,
            "dst.x = src0.x | ((uint64_t)src0.y << 32);")
 unop_horiz("unpack_double_2x32_dxil", 2, tuint32, 1, tuint64,
            "dst.x = src0.x; dst.y = src0.x >> 32;")
+
+# src0 and src1 are i8vec4 packed in an int32, and src2 is an int32.  The int8
+# components are sign-extended to 32-bits, and a dot-product is performed on
+# the resulting vectors.  src2 is added to the result of the dot-product.
+opcode("sdot_4x8_iadd", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, _2src_commutative, """
+   const int32_t v0x = (int8_t)(src0      );
+   const int32_t v0y = (int8_t)(src0 >>  8);
+   const int32_t v0z = (int8_t)(src0 >> 16);
+   const int32_t v0w = (int8_t)(src0 >> 24);
+   const int32_t v1x = (int8_t)(src1      );
+   const int32_t v1y = (int8_t)(src1 >>  8);
+   const int32_t v1z = (int8_t)(src1 >> 16);
+   const int32_t v1w = (int8_t)(src1 >> 24);
+
+   dst = (v0x * v1x) + (v0y * v1y) + (v0z * v1z) + (v0w * v1w) + src2;
+""")
+
+# Like sdot_4x8_iadd, but unsigned.
+opcode("udot_4x8_uadd", 0, tuint32, [0, 0, 0], [tuint32, tuint32, tuint32],
+       False, _2src_commutative, """
+   const uint32_t v0x = (uint8_t)(src0      );
+   const uint32_t v0y = (uint8_t)(src0 >>  8);
+   const uint32_t v0z = (uint8_t)(src0 >> 16);
+   const uint32_t v0w = (uint8_t)(src0 >> 24);
+   const uint32_t v1x = (uint8_t)(src1      );
+   const uint32_t v1y = (uint8_t)(src1 >>  8);
+   const uint32_t v1z = (uint8_t)(src1 >> 16);
+   const uint32_t v1w = (uint8_t)(src1 >> 24);
+
+   dst = (v0x * v1x) + (v0y * v1y) + (v0z * v1z) + (v0w * v1w) + src2;
+""")
+
+# src0 is i8vec4 packed in an int32, src1 is u8vec4 packed in an int32, and
+# src2 is an int32.  The 8-bit components are extended to 32-bits, and a
+# dot-product is performed on the resulting vectors.  src2 is added to the
+# result of the dot-product.
+#
+# NOTE: Unlike many of the other dp4a opcodes, this mixed signs of source 0
+# and source 1 mean that this opcode is not 2-source commutative
+opcode("sudot_4x8_iadd", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, "", """
+   const int32_t v0x = (int8_t)(src0      );
+   const int32_t v0y = (int8_t)(src0 >>  8);
+   const int32_t v0z = (int8_t)(src0 >> 16);
+   const int32_t v0w = (int8_t)(src0 >> 24);
+   const uint32_t v1x = (uint8_t)(src1      );
+   const uint32_t v1y = (uint8_t)(src1 >>  8);
+   const uint32_t v1z = (uint8_t)(src1 >> 16);
+   const uint32_t v1w = (uint8_t)(src1 >> 24);
+
+   dst = (v0x * v1x) + (v0y * v1y) + (v0z * v1z) + (v0w * v1w) + src2;
+""")
+
+# Like sdot_4x8_iadd, but the result is clampled to the range [-0x80000000, 0x7ffffffff].
+opcode("sdot_4x8_iadd_sat", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, _2src_commutative, """
+   const int64_t v0x = (int8_t)(src0      );
+   const int64_t v0y = (int8_t)(src0 >>  8);
+   const int64_t v0z = (int8_t)(src0 >> 16);
+   const int64_t v0w = (int8_t)(src0 >> 24);
+   const int64_t v1x = (int8_t)(src1      );
+   const int64_t v1y = (int8_t)(src1 >>  8);
+   const int64_t v1z = (int8_t)(src1 >> 16);
+   const int64_t v1w = (int8_t)(src1 >> 24);
+
+   const int64_t tmp = (v0x * v1x) + (v0y * v1y) + (v0z * v1z) + (v0w * v1w) + src2;
+
+   dst = tmp >= INT32_MAX ? INT32_MAX : (tmp <= INT32_MIN ? INT32_MIN : tmp);
+""")
+
+# Like udot_4x8_uadd, but the result is clampled to the range [0, 0xfffffffff].
+opcode("udot_4x8_uadd_sat", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, _2src_commutative, """
+   const uint64_t v0x = (uint8_t)(src0      );
+   const uint64_t v0y = (uint8_t)(src0 >>  8);
+   const uint64_t v0z = (uint8_t)(src0 >> 16);
+   const uint64_t v0w = (uint8_t)(src0 >> 24);
+   const uint64_t v1x = (uint8_t)(src1      );
+   const uint64_t v1y = (uint8_t)(src1 >>  8);
+   const uint64_t v1z = (uint8_t)(src1 >> 16);
+   const uint64_t v1w = (uint8_t)(src1 >> 24);
+
+   const uint64_t tmp = (v0x * v1x) + (v0y * v1y) + (v0z * v1z) + (v0w * v1w) + src2;
+
+   dst = tmp >= UINT32_MAX ? UINT32_MAX : tmp;
+""")
+
+# Like sudot_4x8_iadd, but the result is clampled to the range [-0x80000000, 0x7ffffffff].
+#
+# NOTE: Unlike many of the other dp4a opcodes, this mixed signs of source 0
+# and source 1 mean that this opcode is not 2-source commutative
+opcode("sudot_4x8_iadd_sat", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, "", """
+   const int64_t v0x = (int8_t)(src0      );
+   const int64_t v0y = (int8_t)(src0 >>  8);
+   const int64_t v0z = (int8_t)(src0 >> 16);
+   const int64_t v0w = (int8_t)(src0 >> 24);
+   const uint64_t v1x = (uint8_t)(src1      );
+   const uint64_t v1y = (uint8_t)(src1 >>  8);
+   const uint64_t v1z = (uint8_t)(src1 >> 16);
+   const uint64_t v1w = (uint8_t)(src1 >> 24);
+
+   const int64_t tmp = (v0x * v1x) + (v0y * v1y) + (v0z * v1z) + (v0w * v1w) + src2;
+
+   dst = tmp >= INT32_MAX ? INT32_MAX : (tmp <= INT32_MIN ? INT32_MIN : tmp);
+""")
+
+# src0 and src1 are i16vec2 packed in an int32, and src2 is an int32.  The int16
+# components are sign-extended to 32-bits, and a dot-product is performed on
+# the resulting vectors.  src2 is added to the result of the dot-product.
+opcode("sdot_2x16_iadd", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, _2src_commutative, """
+   const int32_t v0x = (int16_t)(src0      );
+   const int32_t v0y = (int16_t)(src0 >> 16);
+   const int32_t v1x = (int16_t)(src1      );
+   const int32_t v1y = (int16_t)(src1 >> 16);
+
+   dst = (v0x * v1x) + (v0y * v1y) + src2;
+""")
+
+# Like sdot_2x16_iadd, but unsigned.
+opcode("udot_2x16_uadd", 0, tuint32, [0, 0, 0], [tuint32, tuint32, tuint32],
+       False, _2src_commutative, """
+   const uint32_t v0x = (uint16_t)(src0      );
+   const uint32_t v0y = (uint16_t)(src0 >> 16);
+   const uint32_t v1x = (uint16_t)(src1      );
+   const uint32_t v1y = (uint16_t)(src1 >> 16);
+
+   dst = (v0x * v1x) + (v0y * v1y) + src2;
+""")
+
+# Like sdot_2x16_iadd, but the result is clampled to the range [-0x80000000, 0x7ffffffff].
+opcode("sdot_2x16_iadd_sat", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, _2src_commutative, """
+   const int64_t v0x = (int16_t)(src0      );
+   const int64_t v0y = (int16_t)(src0 >> 16);
+   const int64_t v1x = (int16_t)(src1      );
+   const int64_t v1y = (int16_t)(src1 >> 16);
+
+   const int64_t tmp = (v0x * v1x) + (v0y * v1y) + src2;
+
+   dst = tmp >= INT32_MAX ? INT32_MAX : (tmp <= INT32_MIN ? INT32_MIN : tmp);
+""")
+
+# Like udot_2x16_uadd, but the result is clampled to the range [0, 0xfffffffff].
+opcode("udot_2x16_uadd_sat", 0, tint32, [0, 0, 0], [tuint32, tuint32, tint32],
+       False, _2src_commutative, """
+   const uint64_t v0x = (uint16_t)(src0      );
+   const uint64_t v0y = (uint16_t)(src0 >> 16);
+   const uint64_t v1x = (uint16_t)(src1      );
+   const uint64_t v1y = (uint16_t)(src1 >> 16);
+
+   const uint64_t tmp = (v0x * v1x) + (v0y * v1y) + src2;
+
+   dst = tmp >= UINT32_MAX ? UINT32_MAX : tmp;
+""")

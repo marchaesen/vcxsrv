@@ -3,6 +3,7 @@ spec@ext_framebuffer_multisample@accuracy
 glx@glx-multithread-texture
 spec@arb_internalformat_query2@all internalformat_<x>_type pname checks
 spec@!opengl 1.1@streaming-texture-leak
+spec@!opengl 1.0@gl-1.0-blend-func
 
 # Extensions not supported
 spec@arb_gpu_shader_fp64.*

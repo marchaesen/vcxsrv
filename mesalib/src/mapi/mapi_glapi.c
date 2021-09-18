@@ -121,7 +121,7 @@ _glapi_add_dispatch( const char * const * function_names,
    const struct mapi_stub *alias = NULL;
    unsigned i;
 
-   (void) memset(function_stubs, 0, sizeof(function_stubs));
+   (void) memset((void*)function_stubs, 0, sizeof(function_stubs));
 
    /* find the missing stubs, and decide the alias */
    for (i = 0; function_names[i] != NULL && i < 8; i++) {

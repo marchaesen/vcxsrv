@@ -239,6 +239,7 @@ static void
 fd5_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
                       unsigned start, unsigned nr,
                       unsigned unbind_num_trailing_slots,
+                      bool take_ownership,
                       struct pipe_sampler_view **views)
 {
    struct fd_context *ctx = fd_context(pctx);
@@ -255,7 +256,7 @@ fd5_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
    }
 
    fd_set_sampler_views(pctx, shader, start, nr, unbind_num_trailing_slots,
-                        views);
+                        take_ownership, views);
 
    if (shader == PIPE_SHADER_FRAGMENT) {
       fd5_ctx->fastc_srgb = astc_srgb;

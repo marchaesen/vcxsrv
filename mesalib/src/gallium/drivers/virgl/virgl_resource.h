@@ -51,7 +51,7 @@ struct virgl_resource_metadata
 };
 
 struct virgl_resource {
-   struct u_resource u;
+   struct pipe_resource b;
    uint16_t clean_mask;
    struct virgl_hw_res *hw_res;
    struct virgl_resource_metadata metadata;
@@ -106,6 +106,13 @@ static inline struct virgl_transfer *virgl_transfer(struct pipe_transfer *trans)
 {
    return (struct virgl_transfer *)trans;
 }
+
+void virgl_buffer_transfer_flush_region(struct pipe_context *ctx,
+                                        struct pipe_transfer *transfer,
+                                        const struct pipe_box *box);
+
+void virgl_buffer_transfer_unmap(struct pipe_context *ctx,
+                                 struct pipe_transfer *transfer);
 
 void virgl_buffer_init(struct virgl_resource *res);
 
@@ -188,9 +195,21 @@ void virgl_resource_destroy(struct pipe_screen *screen,
                             struct pipe_resource *resource);
 
 bool virgl_resource_get_handle(struct pipe_screen *screen,
+                               struct pipe_context *context,
                                struct pipe_resource *resource,
-                               struct winsys_handle *whandle);
+                               struct winsys_handle *whandle,
+                               unsigned usage);
 
 void virgl_resource_dirty(struct virgl_resource *res, uint32_t level);
+
+void *virgl_texture_transfer_map(struct pipe_context *ctx,
+                                 struct pipe_resource *resource,
+                                 unsigned level,
+                                 unsigned usage,
+                                 const struct pipe_box *box,
+                                 struct pipe_transfer **transfer);
+
+void virgl_texture_transfer_unmap(struct pipe_context *ctx,
+                                  struct pipe_transfer *transfer);
 
 #endif

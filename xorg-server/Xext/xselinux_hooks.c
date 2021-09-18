@@ -114,7 +114,7 @@ SELinuxLabelClient(ClientPtr client)
     int fd = XaceGetConnectionNumber(client);
     SELinuxSubjectRec *subj;
     SELinuxObjectRec *obj;
-    security_context_t ctx;
+    char *ctx;
 
     subj = dixLookupPrivate(&client->devPrivates, subjectKey);
     obj = dixLookupPrivate(&client->devPrivates, objectKey);
@@ -169,7 +169,7 @@ SELinuxLabelInitial(void)
     XaceScreenAccessRec srec;
     SELinuxSubjectRec *subj;
     SELinuxObjectRec *obj;
-    security_context_t ctx;
+    char *ctx;
     void *unused;
 
     /* Do the serverClient */
@@ -773,7 +773,7 @@ SELinuxResourceState(CallbackListPtr *pcbl, void *unused, void *calldata)
     subj = dixLookupPrivate(&wClient(pWin)->devPrivates, subjectKey);
 
     if (subj->sid) {
-        security_context_t ctx;
+        char *ctx;
         int rc = avc_sid_to_context_raw(subj->sid, &ctx);
 
         if (rc < 0)
@@ -791,7 +791,7 @@ SELinuxResourceState(CallbackListPtr *pcbl, void *unused, void *calldata)
     obj = dixLookupPrivate(&pWin->devPrivates, objectKey);
 
     if (obj->sid) {
-        security_context_t ctx;
+        char *ctx;
         int rc = avc_sid_to_context_raw(obj->sid, &ctx);
 
         if (rc < 0)
@@ -847,7 +847,7 @@ void
 SELinuxFlaskInit(void)
 {
     struct selinux_opt avc_option = { AVC_OPT_SETENFORCE, (char *) 0 };
-    security_context_t ctx;
+    char *ctx;
     int ret = TRUE;
 
     switch (selinuxEnforcingState) {

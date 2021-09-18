@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_info,
-                       void **compute_state);
+                       void **compute_state, bool half_texel_offset);
 
 #ifdef __cplusplus
 }

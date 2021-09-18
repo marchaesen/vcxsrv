@@ -22,21 +22,23 @@
  *
  */
 
-#include "aco_ir.h"
 #include "aco_builder.h"
-#include <unordered_set>
+#include "aco_ir.h"
+
+#include "common/amdgfxregs.h"
+
 #include <algorithm>
+#include <unordered_set>
+#include <vector>
 
-#include "amdgfxregs.h"
-
-#define SMEM_WINDOW_SIZE (350 - ctx.num_waves * 35)
-#define VMEM_WINDOW_SIZE (1024 - ctx.num_waves * 64)
+#define SMEM_WINDOW_SIZE    (350 - ctx.num_waves * 35)
+#define VMEM_WINDOW_SIZE    (1024 - ctx.num_waves * 64)
 #define POS_EXP_WINDOW_SIZE 512
-#define SMEM_MAX_MOVES (64 - ctx.num_waves * 4)
-#define VMEM_MAX_MOVES (256 - ctx.num_waves * 16)
+#define SMEM_MAX_MOVES      (64 - ctx.num_waves * 4)
+#define VMEM_MAX_MOVES      (256 - ctx.num_waves * 16)
 /* creating clauses decreases def-use distances, so make it less aggressive the lower num_waves is */
 #define VMEM_CLAUSE_MAX_GRAB_DIST (ctx.num_waves * 8)
-#define POS_EXP_MAX_MOVES 512
+#define POS_EXP_MAX_MOVES         512
 
 namespace aco {
 
@@ -47,12 +49,56 @@ enum MoveResult {
    move_fail_pressure,
 };
 
+/**
+ * Cursor for downwards moves, where a single instruction is moved towards
+ * or below a group of instruction that hardware can execute as a clause.
+ */
+struct DownwardsCursor {
+   int source_idx; /* Current instruction to consider for moving */
+
+   int insert_idx_clause; /* First clause instruction */
+   int insert_idx;        /* First instruction *after* the clause */
+
+   /* Maximum demand of all clause instructions,
+    * i.e. from insert_idx_clause (inclusive) to insert_idx (exclusive) */
+   RegisterDemand clause_demand;
+   /* Maximum demand of instructions from source_idx to insert_idx_clause (both exclusive) */
+   RegisterDemand total_demand;
+
+   DownwardsCursor(int current_idx, RegisterDemand initial_clause_demand)
+       : source_idx(current_idx - 1), insert_idx_clause(current_idx), insert_idx(current_idx + 1),
+         clause_demand(initial_clause_demand)
+   {}
+
+   void verify_invariants(const RegisterDemand* register_demand);
+};
+
+/**
+ * Cursor for upwards moves, where a single instruction is moved below
+ * another instruction.
+ */
+struct UpwardsCursor {
+   int source_idx; /* Current instruction to consider for moving */
+   int insert_idx; /* Instruction to move in front of */
+
+   /* Maximum demand of instructions from insert_idx (inclusive) to source_idx (exclusive) */
+   RegisterDemand total_demand;
+
+   UpwardsCursor(int source_idx_) : source_idx(source_idx_)
+   {
+      insert_idx = -1; /* to be initialized later */
+   }
+
+   bool has_insert_idx() const { return insert_idx != -1; }
+   void verify_invariants(const RegisterDemand* register_demand);
+};
+
 struct MoveState {
    RegisterDemand max_registers;
 
-   Block *block;
-   Instruction *current;
-   RegisterDemand *register_demand;
+   Block* block;
+   Instruction* current;
+   RegisterDemand* register_demand; /* demand per instruction */
    bool improved_rar;
 
    std::vector<bool> depends_on;
@@ -62,24 +108,17 @@ struct MoveState {
    std::vector<bool> RAR_dependencies;
    std::vector<bool> RAR_dependencies_clause;
 
-   int source_idx;
-   int insert_idx, insert_idx_clause;
-   RegisterDemand total_demand, total_demand_clause;
-
    /* for moving instructions before the current instruction to after it */
-   void downwards_init(int current_idx, bool improved_rar, bool may_form_clauses);
-   MoveResult downwards_move(bool clause);
-   void downwards_skip();
+   DownwardsCursor downwards_init(int current_idx, bool improved_rar, bool may_form_clauses);
+   MoveResult downwards_move(DownwardsCursor&, bool clause);
+   void downwards_skip(DownwardsCursor&);
 
    /* for moving instructions after the first use of the current instruction upwards */
-   void upwards_init(int source_idx, bool improved_rar);
-   bool upwards_check_deps();
-   void upwards_set_insert_idx(int before);
-   MoveResult upwards_move();
-   void upwards_skip();
-
-private:
-   void downwards_advance_helper();
+   UpwardsCursor upwards_init(int source_idx, bool improved_rar);
+   bool upwards_check_deps(UpwardsCursor&);
+   void upwards_update_insert_idx(UpwardsCursor&);
+   MoveResult upwards_move(UpwardsCursor&);
+   void upwards_skip(UpwardsCursor&);
 };
 
 struct sched_ctx {
@@ -87,6 +126,8 @@ struct sched_ctx {
    int16_t last_SMEM_stall;
    int last_SMEM_dep_idx;
    MoveState mv;
+   bool schedule_pos_exports = true;
+   unsigned schedule_pos_export_div = 1;
 };
 
 /* This scheduler is a simple bottom-up pass based on ideas from
@@ -100,33 +141,45 @@ struct sched_ctx {
  */
 
 template <typename T>
-void move_element(T begin_it, size_t idx, size_t before) {
-    if (idx < before) {
-        auto begin = std::next(begin_it, idx);
-        auto end = std::next(begin_it, before);
-        std::rotate(begin, begin + 1, end);
-    } else if (idx > before) {
-        auto begin = std::next(begin_it, before);
-        auto end = std::next(begin_it, idx + 1);
-        std::rotate(begin, end - 1, end);
-    }
-}
-
-void MoveState::downwards_advance_helper()
+void
+move_element(T begin_it, size_t idx, size_t before)
 {
-   source_idx--;
-   total_demand.update(register_demand[source_idx]);
+   if (idx < before) {
+      auto begin = std::next(begin_it, idx);
+      auto end = std::next(begin_it, before);
+      std::rotate(begin, begin + 1, end);
+   } else if (idx > before) {
+      auto begin = std::next(begin_it, before);
+      auto end = std::next(begin_it, idx + 1);
+      std::rotate(begin, end - 1, end);
+   }
 }
 
-void MoveState::downwards_init(int current_idx, bool improved_rar_, bool may_form_clauses)
+void
+DownwardsCursor::verify_invariants(const RegisterDemand* register_demand)
+{
+   assert(source_idx < insert_idx_clause);
+   assert(insert_idx_clause < insert_idx);
+
+#ifndef NDEBUG
+   RegisterDemand reference_demand;
+   for (int i = source_idx + 1; i < insert_idx_clause; ++i) {
+      reference_demand.update(register_demand[i]);
+   }
+   assert(total_demand == reference_demand);
+
+   reference_demand = {};
+   for (int i = insert_idx_clause; i < insert_idx; ++i) {
+      reference_demand.update(register_demand[i]);
+   }
+   assert(clause_demand == reference_demand);
+#endif
+}
+
+DownwardsCursor
+MoveState::downwards_init(int current_idx, bool improved_rar_, bool may_form_clauses)
 {
    improved_rar = improved_rar_;
-   source_idx = current_idx;
-
-   insert_idx = current_idx + 1;
-   insert_idx_clause = current_idx;
-
-   total_demand = total_demand_clause = register_demand[current_idx];
 
    std::fill(depends_on.begin(), depends_on.end(), false);
    if (improved_rar) {
@@ -143,20 +196,26 @@ void MoveState::downwards_init(int current_idx, bool improved_rar_, bool may_for
       }
    }
 
-   /* update total_demand/source_idx */
-   downwards_advance_helper();
+   DownwardsCursor cursor(current_idx, register_demand[current_idx]);
+   cursor.verify_invariants(register_demand);
+   return cursor;
 }
 
-MoveResult MoveState::downwards_move(bool clause)
+/* If add_to_clause is true, the current clause is extended by moving the
+ * instruction at source_idx in front of the clause. Otherwise, the instruction
+ * is moved past the end of the clause without extending it */
+MoveResult
+MoveState::downwards_move(DownwardsCursor& cursor, bool add_to_clause)
 {
-   aco_ptr<Instruction>& instr = block->instructions[source_idx];
+   aco_ptr<Instruction>& instr = block->instructions[cursor.source_idx];
 
    for (const Definition& def : instr->definitions)
       if (def.isTemp() && depends_on[def.tempId()])
          return move_fail_ssa;
 
    /* check if one of candidate's operands is killed by depending instruction */
-   std::vector<bool>& RAR_deps = improved_rar ? (clause ? RAR_dependencies_clause : RAR_dependencies) : depends_on;
+   std::vector<bool>& RAR_deps =
+      improved_rar ? (add_to_clause ? RAR_dependencies_clause : RAR_dependencies) : depends_on;
    for (const Operand& op : instr->operands) {
       if (op.isTemp() && RAR_deps[op.tempId()]) {
          // FIXME: account for difference in register pressure
@@ -164,7 +223,7 @@ MoveResult MoveState::downwards_move(bool clause)
       }
    }
 
-   if (clause) {
+   if (add_to_clause) {
       for (const Operand& op : instr->operands) {
          if (op.isTemp()) {
             depends_on[op.tempId()] = true;
@@ -174,40 +233,55 @@ MoveResult MoveState::downwards_move(bool clause)
       }
    }
 
-   int dest_insert_idx = clause ? insert_idx_clause : insert_idx;
-   RegisterDemand register_pressure = clause ? total_demand_clause : total_demand;
+   const int dest_insert_idx = add_to_clause ? cursor.insert_idx_clause : cursor.insert_idx;
+   RegisterDemand register_pressure = cursor.total_demand;
+   if (!add_to_clause) {
+      register_pressure.update(cursor.clause_demand);
+   }
 
+   /* Check the new demand of the instructions being moved over */
    const RegisterDemand candidate_diff = get_live_changes(instr);
-   const RegisterDemand temp = get_temp_registers(instr);
    if (RegisterDemand(register_pressure - candidate_diff).exceeds(max_registers))
       return move_fail_pressure;
+
+   /* New demand for the moved instruction */
+   const RegisterDemand temp = get_temp_registers(instr);
    const RegisterDemand temp2 = get_temp_registers(block->instructions[dest_insert_idx - 1]);
    const RegisterDemand new_demand = register_demand[dest_insert_idx - 1] - temp2 + temp;
    if (new_demand.exceeds(max_registers))
       return move_fail_pressure;
 
    /* move the candidate below the memory load */
-   move_element(block->instructions.begin(), source_idx, dest_insert_idx);
+   move_element(block->instructions.begin(), cursor.source_idx, dest_insert_idx);
 
    /* update register pressure */
-   move_element(register_demand, source_idx, dest_insert_idx);
-   for (int i = source_idx; i < dest_insert_idx - 1; i++)
+   move_element(register_demand, cursor.source_idx, dest_insert_idx);
+   for (int i = cursor.source_idx; i < dest_insert_idx - 1; i++)
       register_demand[i] -= candidate_diff;
    register_demand[dest_insert_idx - 1] = new_demand;
-   total_demand_clause -= candidate_diff;
-   insert_idx_clause--;
-   if (!clause) {
-      total_demand -= candidate_diff;
-      insert_idx--;
+   cursor.insert_idx_clause--;
+   if (cursor.source_idx != cursor.insert_idx_clause) {
+      /* Update demand if we moved over any instructions before the clause */
+      cursor.total_demand -= candidate_diff;
+   } else {
+      assert(cursor.total_demand == RegisterDemand{});
+   }
+   if (add_to_clause) {
+      cursor.clause_demand.update(new_demand);
+   } else {
+      cursor.clause_demand -= candidate_diff;
+      cursor.insert_idx--;
    }
 
-   downwards_advance_helper();
+   cursor.source_idx--;
+   cursor.verify_invariants(register_demand);
    return move_success;
 }
 
-void MoveState::downwards_skip()
+void
+MoveState::downwards_skip(DownwardsCursor& cursor)
 {
-   aco_ptr<Instruction>& instr = block->instructions[source_idx];
+   aco_ptr<Instruction>& instr = block->instructions[cursor.source_idx];
 
    for (const Operand& op : instr->operands) {
       if (op.isTemp()) {
@@ -218,17 +292,33 @@ void MoveState::downwards_skip()
          }
       }
    }
-   total_demand_clause.update(register_demand[source_idx]);
-
-   downwards_advance_helper();
+   cursor.total_demand.update(register_demand[cursor.source_idx]);
+   cursor.source_idx--;
+   cursor.verify_invariants(register_demand);
 }
 
-void MoveState::upwards_init(int source_idx_, bool improved_rar_)
+void
+UpwardsCursor::verify_invariants(const RegisterDemand* register_demand)
 {
-   source_idx = source_idx_;
-   improved_rar = improved_rar_;
+#ifndef NDEBUG
+   if (!has_insert_idx()) {
+      return;
+   }
 
-   insert_idx = -1;
+   assert(insert_idx < source_idx);
+
+   RegisterDemand reference_demand;
+   for (int i = insert_idx; i < source_idx; ++i) {
+      reference_demand.update(register_demand[i]);
+   }
+   assert(total_demand == reference_demand);
+#endif
+}
+
+UpwardsCursor
+MoveState::upwards_init(int source_idx, bool improved_rar_)
+{
+   improved_rar = improved_rar_;
 
    std::fill(depends_on.begin(), depends_on.end(), false);
    std::fill(RAR_dependencies.begin(), RAR_dependencies.end(), false);
@@ -237,11 +327,14 @@ void MoveState::upwards_init(int source_idx_, bool improved_rar_)
       if (def.isTemp())
          depends_on[def.tempId()] = true;
    }
+
+   return UpwardsCursor(source_idx);
 }
 
-bool MoveState::upwards_check_deps()
+bool
+MoveState::upwards_check_deps(UpwardsCursor& cursor)
 {
-   aco_ptr<Instruction>& instr = block->instructions[source_idx];
+   aco_ptr<Instruction>& instr = block->instructions[cursor.source_idx];
    for (const Operand& op : instr->operands) {
       if (op.isTemp() && depends_on[op.tempId()])
          return false;
@@ -249,17 +342,19 @@ bool MoveState::upwards_check_deps()
    return true;
 }
 
-void MoveState::upwards_set_insert_idx(int before)
+void
+MoveState::upwards_update_insert_idx(UpwardsCursor& cursor)
 {
-   insert_idx = before;
-   total_demand = register_demand[before - 1];
+   cursor.insert_idx = cursor.source_idx;
+   cursor.total_demand = register_demand[cursor.insert_idx];
 }
 
-MoveResult MoveState::upwards_move()
+MoveResult
+MoveState::upwards_move(UpwardsCursor& cursor)
 {
-   assert(insert_idx >= 0);
+   assert(cursor.has_insert_idx());
 
-   aco_ptr<Instruction>& instr = block->instructions[source_idx];
+   aco_ptr<Instruction>& instr = block->instructions[cursor.source_idx];
    for (const Operand& op : instr->operands) {
       if (op.isTemp() && depends_on[op.tempId()])
          return move_fail_ssa;
@@ -271,38 +366,43 @@ MoveResult MoveState::upwards_move()
          return move_fail_rar;
    }
 
-   /* check if register pressure is low enough: the diff is negative if register pressure is decreased */
+   /* check if register pressure is low enough: the diff is negative if register pressure is
+    * decreased */
    const RegisterDemand candidate_diff = get_live_changes(instr);
    const RegisterDemand temp = get_temp_registers(instr);
-   if (RegisterDemand(total_demand + candidate_diff).exceeds(max_registers))
+   if (RegisterDemand(cursor.total_demand + candidate_diff).exceeds(max_registers))
       return move_fail_pressure;
-   const RegisterDemand temp2 = get_temp_registers(block->instructions[insert_idx - 1]);
-   const RegisterDemand new_demand = register_demand[insert_idx - 1] - temp2 + candidate_diff + temp;
+   const RegisterDemand temp2 = get_temp_registers(block->instructions[cursor.insert_idx - 1]);
+   const RegisterDemand new_demand =
+      register_demand[cursor.insert_idx - 1] - temp2 + candidate_diff + temp;
    if (new_demand.exceeds(max_registers))
       return move_fail_pressure;
 
    /* move the candidate above the insert_idx */
-   move_element(block->instructions.begin(), source_idx, insert_idx);
+   move_element(block->instructions.begin(), cursor.source_idx, cursor.insert_idx);
 
    /* update register pressure */
-   move_element(register_demand, source_idx, insert_idx);
-   for (int i = insert_idx + 1; i <= source_idx; i++)
+   move_element(register_demand, cursor.source_idx, cursor.insert_idx);
+   register_demand[cursor.insert_idx] = new_demand;
+   for (int i = cursor.insert_idx + 1; i <= cursor.source_idx; i++)
       register_demand[i] += candidate_diff;
-   register_demand[insert_idx] = new_demand;
-   total_demand += candidate_diff;
+   cursor.total_demand += candidate_diff;
 
-   insert_idx++;
+   cursor.total_demand.update(register_demand[cursor.source_idx]);
 
-   total_demand.update(register_demand[source_idx]);
-   source_idx++;
+   cursor.insert_idx++;
+   cursor.source_idx++;
+
+   cursor.verify_invariants(register_demand);
 
    return move_success;
 }
 
-void MoveState::upwards_skip()
+void
+MoveState::upwards_skip(UpwardsCursor& cursor)
 {
-   if (insert_idx >= 0) {
-      aco_ptr<Instruction>& instr = block->instructions[source_idx];
+   if (cursor.has_insert_idx()) {
+      aco_ptr<Instruction>& instr = block->instructions[cursor.source_idx];
       for (const Definition& def : instr->definitions) {
          if (def.isTemp())
             depends_on[def.tempId()] = true;
@@ -311,36 +411,41 @@ void MoveState::upwards_skip()
          if (op.isTemp())
             RAR_dependencies[op.tempId()] = true;
       }
-      total_demand.update(register_demand[source_idx]);
+      cursor.total_demand.update(register_demand[cursor.source_idx]);
    }
 
-   source_idx++;
+   cursor.source_idx++;
+
+   cursor.verify_invariants(register_demand);
 }
 
-bool is_gs_or_done_sendmsg(const Instruction *instr)
+bool
+is_gs_or_done_sendmsg(const Instruction* instr)
 {
    if (instr->opcode == aco_opcode::s_sendmsg) {
       uint16_t imm = instr->sopp().imm;
-      return (imm & sendmsg_id_mask) == _sendmsg_gs ||
-             (imm & sendmsg_id_mask) == _sendmsg_gs_done;
+      return (imm & sendmsg_id_mask) == _sendmsg_gs || (imm & sendmsg_id_mask) == _sendmsg_gs_done;
    }
    return false;
 }
 
-bool is_done_sendmsg(const Instruction *instr)
+bool
+is_done_sendmsg(const Instruction* instr)
 {
    if (instr->opcode == aco_opcode::s_sendmsg)
       return (instr->sopp().imm & sendmsg_id_mask) == _sendmsg_gs_done;
    return false;
 }
 
-memory_sync_info get_sync_info_with_hack(const Instruction* instr)
+memory_sync_info
+get_sync_info_with_hack(const Instruction* instr)
 {
    memory_sync_info sync = get_sync_info(instr);
    if (instr->isSMEM() && !instr->operands.empty() && instr->operands[0].bytes() == 16) {
       // FIXME: currently, it doesn't seem beneficial to omit this due to how our scheduler works
       sync.storage = (storage_class)(sync.storage | storage_buffer);
-      sync.semantics = (memory_semantics)((sync.semantics | semantic_private) & ~semantic_can_reorder);
+      sync.semantics =
+         (memory_semantics)((sync.semantics | semantic_private) & ~semantic_can_reorder);
    }
    return sync;
 }
@@ -363,11 +468,13 @@ struct hazard_query {
    bool contains_sendmsg;
    bool uses_exec;
    memory_event_set mem_events;
-   unsigned aliasing_storage; /* storage classes which are accessed (non-SMEM) */
+   unsigned aliasing_storage;      /* storage classes which are accessed (non-SMEM) */
    unsigned aliasing_storage_smem; /* storage classes which are accessed (SMEM) */
 };
 
-void init_hazard_query(hazard_query *query) {
+void
+init_hazard_query(hazard_query* query)
+{
    query->contains_spill = false;
    query->contains_sendmsg = false;
    query->uses_exec = false;
@@ -376,7 +483,8 @@ void init_hazard_query(hazard_query *query) {
    query->aliasing_storage_smem = 0;
 }
 
-void add_memory_event(memory_event_set *set, Instruction *instr, memory_sync_info *sync)
+void
+add_memory_event(memory_event_set* set, Instruction* instr, memory_sync_info* sync)
 {
    set->has_control_barrier |= is_done_sendmsg(instr);
    if (instr->opcode == aco_opcode::p_barrier) {
@@ -406,7 +514,8 @@ void add_memory_event(memory_event_set *set, Instruction *instr, memory_sync_inf
    }
 }
 
-void add_to_hazard_query(hazard_query *query, Instruction *instr)
+void
+add_to_hazard_query(hazard_query* query, Instruction* instr)
 {
    if (instr->opcode == aco_opcode::p_spill || instr->opcode == aco_opcode::p_reload)
       query->contains_spill = true;
@@ -419,7 +528,8 @@ void add_to_hazard_query(hazard_query *query, Instruction *instr)
 
    if (!(sync.semantics & semantic_can_reorder)) {
       unsigned storage = sync.storage;
-      /* images and buffer/global memory can alias */ //TODO: more precisely, buffer images and buffer/global memory can alias
+      /* images and buffer/global memory can alias */ // TODO: more precisely, buffer images and
+                                                      // buffer/global memory can alias
       if (storage & (storage_buffer | storage_image))
          storage |= storage_buffer | storage_image;
       if (instr->isSMEM())
@@ -443,7 +553,8 @@ enum HazardResult {
    hazard_fail_unreorderable,
 };
 
-HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool upwards)
+HazardResult
+perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
 {
    /* don't schedule discards downwards */
    if (!upwards && instr->opcode == aco_opcode::p_exit_early_if)
@@ -461,10 +572,8 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool 
       return hazard_fail_export;
 
    /* don't move non-reorderable instructions */
-   if (instr->opcode == aco_opcode::s_memtime ||
-       instr->opcode == aco_opcode::s_memrealtime ||
-       instr->opcode == aco_opcode::s_setprio ||
-       instr->opcode == aco_opcode::s_getreg_b32)
+   if (instr->opcode == aco_opcode::s_memtime || instr->opcode == aco_opcode::s_memrealtime ||
+       instr->opcode == aco_opcode::s_setprio || instr->opcode == aco_opcode::s_getreg_b32)
       return hazard_fail_unreorderable;
 
    memory_event_set instr_set;
@@ -472,8 +581,8 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool 
    memory_sync_info sync = get_sync_info_with_hack(instr);
    add_memory_event(&instr_set, instr, &sync);
 
-   memory_event_set *first = &instr_set;
-   memory_event_set *second = &query->mem_events;
+   memory_event_set* first = &instr_set;
+   memory_event_set* second = &query->mem_events;
    if (upwards)
       std::swap(first, second);
 
@@ -483,7 +592,8 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool 
    if ((first->has_control_barrier || first->access_atomic) && second->bar_acquire)
       return hazard_fail_barrier;
    if (((first->access_acquire || first->bar_acquire) && second->bar_classes) ||
-       ((first->access_acquire | first->bar_acquire) & (second->access_relaxed | second->access_atomic)))
+       ((first->access_acquire | first->bar_acquire) &
+        (second->access_relaxed | second->access_atomic)))
       return hazard_fail_barrier;
 
    /* everything before barrier(release) happens before the atomics/control_barriers after *
@@ -492,7 +602,8 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool 
    if (first->bar_release && (second->has_control_barrier || second->access_atomic))
       return hazard_fail_barrier;
    if ((first->bar_classes && (second->bar_release || second->access_release)) ||
-       ((first->access_relaxed | first->access_atomic) & (second->bar_release | second->access_release)))
+       ((first->access_relaxed | first->access_atomic) &
+        (second->bar_release | second->access_release)))
       return hazard_fail_barrier;
 
    /* don't move memory barriers around other memory barriers */
@@ -501,14 +612,15 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool 
 
    /* Don't move memory accesses to before control barriers. I don't think
     * this is necessary for the Vulkan memory model, but it might be for GLSL450. */
-   unsigned control_classes = storage_buffer | storage_atomic_counter | storage_image | storage_shared;
-   if (first->has_control_barrier && ((second->access_atomic | second->access_relaxed) & control_classes))
+   unsigned control_classes =
+      storage_buffer | storage_atomic_counter | storage_image | storage_shared;
+   if (first->has_control_barrier &&
+       ((second->access_atomic | second->access_relaxed) & control_classes))
       return hazard_fail_barrier;
 
    /* don't move memory loads/stores past potentially aliasing loads/stores */
-   unsigned aliasing_storage = instr->isSMEM() ?
-                               query->aliasing_storage_smem :
-                               query->aliasing_storage;
+   unsigned aliasing_storage =
+      instr->isSMEM() ? query->aliasing_storage_smem : query->aliasing_storage;
    if ((sync.storage & aliasing_storage) && !(sync.semantics & semantic_can_reorder)) {
       unsigned intersect = sync.storage & aliasing_storage;
       if (intersect & storage_shared)
@@ -526,9 +638,9 @@ HazardResult perform_hazard_query(hazard_query *query, Instruction *instr, bool 
    return hazard_success;
 }
 
-void schedule_SMEM(sched_ctx& ctx, Block* block,
-                   std::vector<RegisterDemand>& register_demand,
-                   Instruction* current, int idx)
+void
+schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& register_demand,
+              Instruction* current, int idx)
 {
    assert(idx != 0);
    int window_size = SMEM_WINDOW_SIZE;
@@ -544,28 +656,39 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
    init_hazard_query(&hq);
    add_to_hazard_query(&hq, current);
 
-   ctx.mv.downwards_init(idx, false, false);
+   DownwardsCursor cursor = ctx.mv.downwards_init(idx, false, false);
 
-   for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int) idx - window_size; candidate_idx--) {
+   for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int)idx - window_size;
+        candidate_idx--) {
       assert(candidate_idx >= 0);
-      assert(candidate_idx == ctx.mv.source_idx);
+      assert(candidate_idx == cursor.source_idx);
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
 
       /* break if we'd make the previous SMEM instruction stall */
-      bool can_stall_prev_smem = idx <= ctx.last_SMEM_dep_idx && candidate_idx < ctx.last_SMEM_dep_idx;
+      bool can_stall_prev_smem =
+         idx <= ctx.last_SMEM_dep_idx && candidate_idx < ctx.last_SMEM_dep_idx;
       if (can_stall_prev_smem && ctx.last_SMEM_stall >= 0)
          break;
 
       /* break when encountering another MEM instruction, logical_start or barriers */
       if (candidate->opcode == aco_opcode::p_logical_start)
          break;
-      if (candidate->isVMEM())
+      /* only move VMEM instructions below descriptor loads. be more aggressive at higher num_waves
+       * to help create more vmem clauses */
+      if (candidate->isVMEM() && (cursor.insert_idx - cursor.source_idx > (ctx.num_waves * 4) ||
+                                  current->operands[0].size() == 4))
+         break;
+      /* don't move descriptor loads below buffer loads */
+      if (candidate->format == Format::SMEM && current->operands[0].size() == 4 &&
+          candidate->operands[0].size() == 2)
          break;
 
       bool can_move_down = true;
 
       HazardResult haz = perform_hazard_query(&hq, candidate.get(), false);
-      if (haz == hazard_fail_reorder_ds || haz == hazard_fail_spill || haz == hazard_fail_reorder_sendmsg || haz == hazard_fail_barrier || haz == hazard_fail_export)
+      if (haz == hazard_fail_reorder_ds || haz == hazard_fail_spill ||
+          haz == hazard_fail_reorder_sendmsg || haz == hazard_fail_barrier ||
+          haz == hazard_fail_export)
          can_move_down = false;
       else if (haz != hazard_success)
          break;
@@ -574,14 +697,14 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
        * significanly worsen LDS scheduling */
       if (candidate->isDS() || !can_move_down) {
          add_to_hazard_query(&hq, candidate.get());
-         ctx.mv.downwards_skip();
+         ctx.mv.downwards_skip(cursor);
          continue;
       }
 
-      MoveResult res = ctx.mv.downwards_move(false);
+      MoveResult res = ctx.mv.downwards_move(cursor, false);
       if (res == move_fail_ssa || res == move_fail_rar) {
          add_to_hazard_query(&hq, candidate.get());
-         ctx.mv.downwards_skip();
+         ctx.mv.downwards_skip(cursor);
          continue;
       } else if (res == move_fail_pressure) {
          break;
@@ -593,20 +716,21 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
    }
 
    /* find the first instruction depending on current or find another MEM */
-   ctx.mv.upwards_init(idx + 1, false);
+   UpwardsCursor up_cursor = ctx.mv.upwards_init(idx + 1, false);
 
    bool found_dependency = false;
    /* second, check if we have instructions after current to move up */
-   for (int candidate_idx = idx + 1; k < max_moves && candidate_idx < (int) idx + window_size; candidate_idx++) {
-      assert(candidate_idx == ctx.mv.source_idx);
-      assert(candidate_idx < (int) block->instructions.size());
+   for (int candidate_idx = idx + 1; k < max_moves && candidate_idx < (int)idx + window_size;
+        candidate_idx++) {
+      assert(candidate_idx == up_cursor.source_idx);
+      assert(candidate_idx < (int)block->instructions.size());
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
 
       if (candidate->opcode == aco_opcode::p_logical_end)
          break;
 
       /* check if candidate depends on current */
-      bool is_dependency = !found_dependency && !ctx.mv.upwards_check_deps();
+      bool is_dependency = !found_dependency && !ctx.mv.upwards_check_deps(up_cursor);
       /* no need to steal from following VMEM instructions */
       if (is_dependency && candidate->isVMEM())
          break;
@@ -623,7 +747,7 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
 
       if (is_dependency) {
          if (!found_dependency) {
-            ctx.mv.upwards_set_insert_idx(candidate_idx);
+            ctx.mv.upwards_update_insert_idx(up_cursor);
             init_hazard_query(&hq);
             found_dependency = true;
          }
@@ -634,17 +758,17 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
             add_to_hazard_query(&hq, candidate.get());
          else
             k++;
-         ctx.mv.upwards_skip();
+         ctx.mv.upwards_skip(up_cursor);
          continue;
       }
 
-      MoveResult res = ctx.mv.upwards_move();
+      MoveResult res = ctx.mv.upwards_move(up_cursor);
       if (res == move_fail_ssa || res == move_fail_rar) {
          /* no need to steal from following VMEM instructions */
          if (res == move_fail_ssa && candidate->isVMEM())
             break;
          add_to_hazard_query(&hq, candidate.get());
-         ctx.mv.upwards_skip();
+         ctx.mv.upwards_skip(up_cursor);
          continue;
       } else if (res == move_fail_pressure) {
          break;
@@ -652,13 +776,13 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
       k++;
    }
 
-   ctx.last_SMEM_dep_idx = found_dependency ? ctx.mv.insert_idx : 0;
+   ctx.last_SMEM_dep_idx = found_dependency ? up_cursor.insert_idx : 0;
    ctx.last_SMEM_stall = 10 - ctx.num_waves - k;
 }
 
-void schedule_VMEM(sched_ctx& ctx, Block* block,
-                   std::vector<RegisterDemand>& register_demand,
-                   Instruction* current, int idx)
+void
+schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& register_demand,
+              Instruction* current, int idx)
 {
    assert(idx != 0);
    int window_size = VMEM_WINDOW_SIZE;
@@ -673,10 +797,11 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
    init_hazard_query(&clause_hq);
    add_to_hazard_query(&indep_hq, current);
 
-   ctx.mv.downwards_init(idx, true, true);
+   DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, true);
 
-   for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int) idx - window_size; candidate_idx--) {
-      assert(candidate_idx == ctx.mv.source_idx);
+   for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int)idx - window_size;
+        candidate_idx--) {
+      assert(candidate_idx == cursor.source_idx);
       assert(candidate_idx >= 0);
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
       bool is_vmem = candidate->isVMEM() || candidate->isFlatLike();
@@ -686,25 +811,25 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
          break;
 
       /* break if we'd make the previous SMEM instruction stall */
-      bool can_stall_prev_smem = idx <= ctx.last_SMEM_dep_idx && candidate_idx < ctx.last_SMEM_dep_idx;
+      bool can_stall_prev_smem =
+         idx <= ctx.last_SMEM_dep_idx && candidate_idx < ctx.last_SMEM_dep_idx;
       if (can_stall_prev_smem && ctx.last_SMEM_stall >= 0)
          break;
 
       bool part_of_clause = false;
       if (current->isVMEM() == candidate->isVMEM()) {
-         bool same_resource = true;
-         if (current->isVMEM())
-            same_resource = candidate->operands[0].tempId() == current->operands[0].tempId();
-         int grab_dist = ctx.mv.insert_idx_clause - candidate_idx;
+         int grab_dist = cursor.insert_idx_clause - candidate_idx;
          /* We can't easily tell how much this will decrease the def-to-use
           * distances, so just use how far it will be moved as a heuristic. */
-         part_of_clause = same_resource && grab_dist < clause_max_grab_dist;
+         part_of_clause =
+            grab_dist < clause_max_grab_dist && should_form_clause(current, candidate.get());
       }
 
       /* if current depends on candidate, add additional dependencies and continue */
-      bool can_move_down = !is_vmem || part_of_clause;
+      bool can_move_down = !is_vmem || part_of_clause || candidate->definitions.empty();
 
-      HazardResult haz = perform_hazard_query(part_of_clause ? &clause_hq : &indep_hq, candidate.get(), false);
+      HazardResult haz =
+         perform_hazard_query(part_of_clause ? &clause_hq : &indep_hq, candidate.get(), false);
       if (haz == hazard_fail_reorder_ds || haz == hazard_fail_spill ||
           haz == hazard_fail_reorder_sendmsg || haz == hazard_fail_barrier ||
           haz == hazard_fail_export)
@@ -715,16 +840,16 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
       if (!can_move_down) {
          add_to_hazard_query(&indep_hq, candidate.get());
          add_to_hazard_query(&clause_hq, candidate.get());
-         ctx.mv.downwards_skip();
+         ctx.mv.downwards_skip(cursor);
          continue;
       }
 
-      Instruction *candidate_ptr = candidate.get();
-      MoveResult res = ctx.mv.downwards_move(part_of_clause);
+      Instruction* candidate_ptr = candidate.get();
+      MoveResult res = ctx.mv.downwards_move(cursor, part_of_clause);
       if (res == move_fail_ssa || res == move_fail_rar) {
          add_to_hazard_query(&indep_hq, candidate.get());
          add_to_hazard_query(&clause_hq, candidate.get());
-         ctx.mv.downwards_skip();
+         ctx.mv.downwards_skip(cursor);
          continue;
       } else if (res == move_fail_pressure) {
          break;
@@ -738,13 +863,14 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
    }
 
    /* find the first instruction depending on current or find another VMEM */
-   ctx.mv.upwards_init(idx + 1, true);
+   UpwardsCursor up_cursor = ctx.mv.upwards_init(idx + 1, true);
 
    bool found_dependency = false;
    /* second, check if we have instructions after current to move up */
-   for (int candidate_idx = idx + 1; k < max_moves && candidate_idx < (int) idx + window_size; candidate_idx++) {
-      assert(candidate_idx == ctx.mv.source_idx);
-      assert(candidate_idx < (int) block->instructions.size());
+   for (int candidate_idx = idx + 1; k < max_moves && candidate_idx < (int)idx + window_size;
+        candidate_idx++) {
+      assert(candidate_idx == up_cursor.source_idx);
+      assert(candidate_idx < (int)block->instructions.size());
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
       bool is_vmem = candidate->isVMEM() || candidate->isFlatLike();
 
@@ -763,10 +889,10 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
             break;
       }
 
-      is_dependency |= !found_dependency && !ctx.mv.upwards_check_deps();
+      is_dependency |= !found_dependency && !ctx.mv.upwards_check_deps(up_cursor);
       if (is_dependency) {
          if (!found_dependency) {
-            ctx.mv.upwards_set_insert_idx(candidate_idx);
+            ctx.mv.upwards_update_insert_idx(up_cursor);
             init_hazard_query(&indep_hq);
             found_dependency = true;
          }
@@ -783,14 +909,14 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
             add_to_hazard_query(&indep_hq, candidate.get());
          else
             k++;
-         ctx.mv.upwards_skip();
+         ctx.mv.upwards_skip(up_cursor);
          continue;
       }
 
-      MoveResult res = ctx.mv.upwards_move();
+      MoveResult res = ctx.mv.upwards_move(up_cursor);
       if (res == move_fail_ssa || res == move_fail_rar) {
          add_to_hazard_query(&indep_hq, candidate.get());
-         ctx.mv.upwards_skip();
+         ctx.mv.upwards_skip(up_cursor);
          continue;
       } else if (res == move_fail_pressure) {
          break;
@@ -799,22 +925,23 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
    }
 }
 
-void schedule_position_export(sched_ctx& ctx, Block* block,
-                              std::vector<RegisterDemand>& register_demand,
-                              Instruction* current, int idx)
+void
+schedule_position_export(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& register_demand,
+                         Instruction* current, int idx)
 {
    assert(idx != 0);
-   int window_size = POS_EXP_WINDOW_SIZE;
-   int max_moves = POS_EXP_MAX_MOVES;
+   int window_size = POS_EXP_WINDOW_SIZE / ctx.schedule_pos_export_div;
+   int max_moves = POS_EXP_MAX_MOVES / ctx.schedule_pos_export_div;
    int16_t k = 0;
 
-   ctx.mv.downwards_init(idx, true, false);
+   DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, false);
 
    hazard_query hq;
    init_hazard_query(&hq);
    add_to_hazard_query(&hq, current);
 
-   for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int) idx - window_size; candidate_idx--) {
+   for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int)idx - window_size;
+        candidate_idx--) {
       assert(candidate_idx >= 0);
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
 
@@ -829,14 +956,14 @@ void schedule_position_export(sched_ctx& ctx, Block* block,
 
       if (haz != hazard_success) {
          add_to_hazard_query(&hq, candidate.get());
-         ctx.mv.downwards_skip();
+         ctx.mv.downwards_skip(cursor);
          continue;
       }
 
-      MoveResult res = ctx.mv.downwards_move(false);
+      MoveResult res = ctx.mv.downwards_move(cursor, false);
       if (res == move_fail_ssa || res == move_fail_rar) {
          add_to_hazard_query(&hq, candidate.get());
-         ctx.mv.downwards_skip();
+         ctx.mv.downwards_skip(cursor);
          continue;
       } else if (res == move_fail_pressure) {
          break;
@@ -845,7 +972,8 @@ void schedule_position_export(sched_ctx& ctx, Block* block,
    }
 }
 
-void schedule_block(sched_ctx& ctx, Program *program, Block* block, live& live_vars)
+void
+schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
 {
    ctx.last_SMEM_dep_idx = 0;
    ctx.last_SMEM_stall = INT16_MIN;
@@ -856,11 +984,12 @@ void schedule_block(sched_ctx& ctx, Program *program, Block* block, live& live_v
    for (unsigned idx = 0; idx < block->instructions.size(); idx++) {
       Instruction* current = block->instructions[idx].get();
 
-      if (block->kind & block_kind_export_end && current->isEXP()) {
+      if (block->kind & block_kind_export_end && current->isEXP() && ctx.schedule_pos_exports) {
          unsigned target = current->exp().dest;
          if (target >= V_008DFC_SQ_EXP_POS && target < V_008DFC_SQ_EXP_PRIM) {
             ctx.mv.current = current;
-            schedule_position_export(ctx, block, live_vars.register_demand[block->index], current, idx);
+            schedule_position_export(ctx, block, live_vars.register_demand[block->index], current,
+                                     idx);
          }
       }
 
@@ -885,8 +1014,8 @@ void schedule_block(sched_ctx& ctx, Program *program, Block* block, live& live_v
    }
 }
 
-
-void schedule_program(Program *program, live& live_vars)
+void
+schedule_program(Program* program, live& live_vars)
 {
    /* don't use program->max_reg_demand because that is affected by max_waves_per_simd */
    RegisterDemand demand;
@@ -901,7 +1030,7 @@ void schedule_program(Program *program, live& live_vars)
    /* Allowing the scheduler to reduce the number of waves to as low as 5
     * improves performance of Thrones of Britannia significantly and doesn't
     * seem to hurt anything else. */
-   //TODO: account for possible uneven num_waves on GFX10+
+   // TODO: account for possible uneven num_waves on GFX10+
    unsigned wave_fac = program->dev.physical_vgprs / 256;
    if (program->num_waves <= 5 * wave_fac)
       ctx.num_waves = program->num_waves;
@@ -918,8 +1047,19 @@ void schedule_program(Program *program, live& live_vars)
    ctx.num_waves = std::max<uint16_t>(ctx.num_waves / wave_fac, 1);
 
    assert(ctx.num_waves > 0);
-   ctx.mv.max_registers = { int16_t(get_addr_vgpr_from_waves(program, ctx.num_waves * wave_fac) - 2),
-                            int16_t(get_addr_sgpr_from_waves(program, ctx.num_waves * wave_fac))};
+   ctx.mv.max_registers = {int16_t(get_addr_vgpr_from_waves(program, ctx.num_waves * wave_fac) - 2),
+                           int16_t(get_addr_sgpr_from_waves(program, ctx.num_waves * wave_fac))};
+
+   /* NGG culling shaders are very sensitive to position export scheduling.
+    * Schedule less aggressively when early primitive export is used, and
+    * keep the position export at the very bottom when late primitive export is used.
+    */
+   if (program->info->has_ngg_culling && program->stage.num_sw_stages() == 1) {
+      if (!program->info->has_ngg_early_prim_export)
+         ctx.schedule_pos_exports = false;
+      else
+         ctx.schedule_pos_export_div = 4;
+   }
 
    for (Block& block : program->blocks)
       schedule_block(ctx, program, &block, live_vars);
@@ -931,8 +1071,8 @@ void schedule_program(Program *program, live& live_vars)
    }
    update_vgpr_sgpr_demand(program, new_demand);
 
-   /* if enabled, this code asserts that register_demand is updated correctly */
-   #if 0
+/* if enabled, this code asserts that register_demand is updated correctly */
+#if 0
    int prev_num_waves = program->num_waves;
    const RegisterDemand prev_max_demand = program->max_reg_demand;
 
@@ -952,7 +1092,7 @@ void schedule_program(Program *program, live& live_vars)
 
    assert(program->max_reg_demand == prev_max_demand);
    assert(program->num_waves == prev_num_waves);
-   #endif
+#endif
 }
 
-}
+} // namespace aco

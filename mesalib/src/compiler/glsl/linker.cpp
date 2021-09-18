@@ -321,6 +321,39 @@ public:
    }
 };
 
+class array_length_to_const_visitor : public ir_rvalue_visitor {
+public:
+   array_length_to_const_visitor()
+   {
+      this->progress = false;
+   }
+
+   virtual ~array_length_to_const_visitor()
+   {
+      /* empty */
+   }
+
+   bool progress;
+
+   virtual void handle_rvalue(ir_rvalue **rvalue)
+   {
+      if (*rvalue == NULL || (*rvalue)->ir_type != ir_type_expression)
+         return;
+
+      ir_expression *expr = (*rvalue)->as_expression();
+      if (expr) {
+         if (expr->operation == ir_unop_implicitly_sized_array_length) {
+            assert(!expr->operands[0]->type->is_unsized_array());
+            ir_constant *constant = new(expr)
+               ir_constant(expr->operands[0]->type->array_size());
+            if (constant) {
+               *rvalue = constant;
+            }
+         }
+      }
+   }
+};
+
 /**
  * Visitor that determines the highest stream id to which a (geometry) shader
  * emits vertices. It also checks whether End{Stream}Primitive is ever called.
@@ -1200,7 +1233,7 @@ static bool
 interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
                                          bool validate_ssbo)
 {
-   int *InterfaceBlockStageIndex[MESA_SHADER_STAGES];
+   int *ifc_blk_stage_idx[MESA_SHADER_STAGES];
    struct gl_uniform_block *blks = NULL;
    unsigned *num_blks = validate_ssbo ? &prog->data->NumShaderStorageBlocks :
       &prog->data->NumUniformBlocks;
@@ -1221,9 +1254,10 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
 
-      InterfaceBlockStageIndex[i] = new int[max_num_buffer_blocks];
+      ifc_blk_stage_idx[i] =
+         (int *) malloc(sizeof(int) * max_num_buffer_blocks);
       for (unsigned int j = 0; j < max_num_buffer_blocks; j++)
-         InterfaceBlockStageIndex[i][j] = -1;
+         ifc_blk_stage_idx[i][j] = -1;
 
       if (sh == NULL)
          continue;
@@ -1247,7 +1281,7 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
                          "definitions\n", sh_blks[j]->Name);
 
             for (unsigned k = 0; k <= i; k++) {
-               delete[] InterfaceBlockStageIndex[k];
+               free(ifc_blk_stage_idx[k]);
             }
 
             /* Reset the block count. This will help avoid various segfaults
@@ -1258,7 +1292,7 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
             return false;
          }
 
-         InterfaceBlockStageIndex[i][index] = j;
+         ifc_blk_stage_idx[i][index] = j;
       }
    }
 
@@ -1267,7 +1301,7 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
     */
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       for (unsigned j = 0; j < *num_blks; j++) {
-         int stage_index = InterfaceBlockStageIndex[i][j];
+         int stage_index = ifc_blk_stage_idx[i][j];
 
          if (stage_index != -1) {
             struct gl_linked_shader *sh = prog->_LinkedShaders[i];
@@ -1283,7 +1317,7 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
    }
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      delete[] InterfaceBlockStageIndex[i];
+      free(ifc_blk_stage_idx[i]);
    }
 
    if (validate_ssbo)
@@ -2092,7 +2126,7 @@ link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
          shader->SampleInterlockOrdered;
       linked_shader->Program->info.fs.sample_interlock_unordered |=
          shader->SampleInterlockUnordered;
-      linked_shader->Program->sh.fs.BlendSupport |= shader->BlendSupport;
+      linked_shader->Program->info.fs.advanced_blend_modes |= shader->BlendSupport;
    }
 
    linked_shader->Program->info.fs.pixel_center_integer = pixel_center_integer;
@@ -2230,9 +2264,9 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
       return;
 
    for (int i = 0; i < 3; i++)
-      gl_prog->info.cs.local_size[i] = 0;
+      gl_prog->info.workgroup_size[i] = 0;
 
-   gl_prog->info.cs.local_size_variable = false;
+   gl_prog->info.workgroup_size_variable = false;
 
    gl_prog->info.cs.derivative_group = DERIVATIVE_GROUP_NONE;
 
@@ -2250,9 +2284,9 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
       struct gl_shader *shader = shader_list[sh];
 
       if (shader->info.Comp.LocalSize[0] != 0) {
-         if (gl_prog->info.cs.local_size[0] != 0) {
+         if (gl_prog->info.workgroup_size[0] != 0) {
             for (int i = 0; i < 3; i++) {
-               if (gl_prog->info.cs.local_size[i] !=
+               if (gl_prog->info.workgroup_size[i] !=
                    shader->info.Comp.LocalSize[i]) {
                   linker_error(prog, "compute shader defined with conflicting "
                                "local sizes\n");
@@ -2261,11 +2295,11 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
             }
          }
          for (int i = 0; i < 3; i++) {
-            gl_prog->info.cs.local_size[i] =
+            gl_prog->info.workgroup_size[i] =
                shader->info.Comp.LocalSize[i];
          }
       } else if (shader->info.Comp.LocalSizeVariable) {
-         if (gl_prog->info.cs.local_size[0] != 0) {
+         if (gl_prog->info.workgroup_size[0] != 0) {
             /* The ARB_compute_variable_group_size spec says:
              *
              *     If one compute shader attached to a program declares a
@@ -2277,7 +2311,7 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
                          "variable local group size\n");
             return;
          }
-         gl_prog->info.cs.local_size_variable = true;
+         gl_prog->info.workgroup_size_variable = true;
       }
 
       enum gl_derivative_group group = shader->info.Comp.DerivativeGroup;
@@ -2296,30 +2330,30 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
     * since we already know we're in the right type of shader program
     * for doing it.
     */
-   if (gl_prog->info.cs.local_size[0] == 0 &&
-       !gl_prog->info.cs.local_size_variable) {
+   if (gl_prog->info.workgroup_size[0] == 0 &&
+       !gl_prog->info.workgroup_size_variable) {
       linker_error(prog, "compute shader must contain a fixed or a variable "
                          "local group size\n");
       return;
    }
 
    if (gl_prog->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS) {
-      if (gl_prog->info.cs.local_size[0] % 2 != 0) {
+      if (gl_prog->info.workgroup_size[0] % 2 != 0) {
          linker_error(prog, "derivative_group_quadsNV must be used with a "
                       "local group size whose first dimension "
                       "is a multiple of 2\n");
          return;
       }
-      if (gl_prog->info.cs.local_size[1] % 2 != 0) {
+      if (gl_prog->info.workgroup_size[1] % 2 != 0) {
          linker_error(prog, "derivative_group_quadsNV must be used with a local"
                       "group size whose second dimension "
                       "is a multiple of 2\n");
          return;
       }
    } else if (gl_prog->info.cs.derivative_group == DERIVATIVE_GROUP_LINEAR) {
-      if ((gl_prog->info.cs.local_size[0] *
-           gl_prog->info.cs.local_size[1] *
-           gl_prog->info.cs.local_size[2]) % 4 != 0) {
+      if ((gl_prog->info.workgroup_size[0] *
+           gl_prog->info.workgroup_size[1] *
+           gl_prog->info.workgroup_size[2]) % 4 != 0) {
          linker_error(prog, "derivative_group_linearNV must be used with a "
                       "local group size whose total number of invocations "
                       "is a multiple of 4\n");
@@ -2538,6 +2572,12 @@ link_intrastage_shaders(void *mem_ctx,
    array_sizing_visitor v;
    v.run(linked->ir);
    v.fixup_unnamed_interface_types();
+
+   /* Now that we know the sizes of all the arrays, we can replace .length()
+    * calls with a constant expression.
+    */
+   array_length_to_const_visitor len_v;
+   len_v.run(linked->ir);
 
    /* Link up uniform blocks defined within this stage. */
    link_uniform_blocks(mem_ctx, ctx, prog, linked, &ubo_blocks,

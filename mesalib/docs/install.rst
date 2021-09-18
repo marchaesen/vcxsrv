@@ -19,7 +19,7 @@ Build system
 -  `Meson <https://mesonbuild.com>`__ is required when building on \*nix
    platforms and on Windows.
 -  Android Build system when building as native Android component. Meson
-   is used when when building ARC.
+   is used when building ARC.
 
 Compiler
 ^^^^^^^^
@@ -101,20 +101,98 @@ On Windows you can also use the Visual Studio backend
 Please read the :doc:`detailed meson instructions <meson>` for more
 information
 
-3. Building with AOSP (Android)
+3. Running against a local build
+--------------------------------
+
+It's often necessary or useful when debugging driver issues or testing new
+branches to run against a local build of Mesa without doing a system-wide
+install.  To do this, choose a temporary location for the install.  A directory
+called ``installdir`` inside your mesa tree is as good as anything.  All of the
+commands below will assume ``$MESA_INSTALLDIR`` is an absolute path to this
+location.
+
+First, configure Mesa and install in the temporary location:
+
+.. code-block:: console
+
+   meson builddir/ -Dprefix="$MESA_INSTALLDIR" OTHER_OPTIONS
+   ninja -C builddir/ install
+
+where ``OTHER_OPTIONS`` is replaced by any meson configuration options you may
+want.  For instance, if you want to build the LLVMpipe drivers, it would look
+like this:
+
+.. code-block:: console
+
+   meson builddir/ -Dprefix="$MESA_INSTALLDIR" -Ddri-drivers= \
+      -Dgallium-drivers=swrast -Dvulkan-drivers=swrast
+   ninja -C builddir/ install
+
+Once Mesa has built and installed to ``$MESA_INSTALLDIR``, you can run any app
+against your temporary install by setting the right environment variables.
+Which variable you have to set depends on the API.
+
+OpenGL
+~~~~~~
+
+.. code-block:: console
+
+   LD_LIBRARY_PATH="$MESA_INSTALLDIR/lib64" glxinfo
+
+You may need to use ``lib`` instead of ``lib64`` on some systems or a full
+library specifier on debian.  Look inside ``installdir`` for the directory that
+contains ``libGL.so`` and use that one.
+
+Vulkan
+~~~~~~
+
+.. code-block:: console
+
+   VK_ICD_FILENAMES="$MESA_INSTALLDIR/share/vulkan/icd/my_icd.json" vulkaninfo
+
+where ``my_icd.json`` is replaced with the actual ICD json file name.  This
+will depend on your driver.  For instance, the 64-bit lavapipe driver ICD file
+is named ``lvp_icd.x86_64.json``.
+
+OpenCL
+~~~~~~
+
+.. code-block:: console
+
+   OCL_ICD_VENDORS="$MESA_INSTALLDIR/etc/OpenCL/vendors" clinfo
+
+Unlike Vulkan, OpenCL takes a path to the whole ``vendors`` folder and will
+enumerate any drivers found there.
+
+Troubleshooting local builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are trying to run an app against a local build and it's not working,
+here are a few things to check:
+
+ 1. Double-check your paths and try with the simplest app you can.  Before
+    banging your head on a Steam game, make sure your path works with
+    ``glxgears`` first.
+
+ 2. Watch out for wrapper scripts.  Some more complex apps such as games have
+    big start-up scripts.  Sometimes those scripts scrub the environment or set
+    ``LD_LIBRARY_PATH`` to something in the game's install directory.
+
+ 3. Is your Mesa build the same arch as your app?  Lots of games are still
+    32-bit and your Mesa build is probably 64-bit by default.
+
+ 4. 32 and 64-bit builds in the same local install directory doesn't typically
+    work.  Distros go to great lengths to make this work in your system install
+    and it's hard to get it right for a local install.  If you've recently
+    built 64-bit and are now building 32-bit, throw away the install directory
+    first to prevent conflicts.
+
+4. Building with AOSP (Android)
 -------------------------------
 
-Currently one can build Mesa for Android as part of the AOSP project,
-yet your experience might vary.
+<TODO>
 
-In order to achieve that one should update their local manifest to point
-to the upstream repo, set the appropriate BOARD_GPU_DRIVERS and build
-the libGLES_mesa library.
-
-FINISHME: Improve on the instructions add references to Rob H
-repos/Jenkins, Android-x86 and/or other resources.
-
-4. Library Information
+5. Library Information
 ----------------------
 
 When compilation has finished, look in the top-level ``lib/`` (or
@@ -145,7 +223,7 @@ If you built the DRI hardware drivers, you'll also see the DRI drivers:
 If you built with Gallium support, look in lib/gallium/ for
 Gallium-based versions of libGL and device drivers.
 
-5. Building OpenGL programs with pkg-config
+6. Building OpenGL programs with pkg-config
 -------------------------------------------
 
 Running ``ninja install`` will install package configuration files for

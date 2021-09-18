@@ -41,13 +41,17 @@ loader_c_args = [
   '-DDEFAULT_DRIVER_DIR="@0@"'.format(dri_search_path),
 ]
 
-if with_gallium_iris and get_option('prefer-iris')
+if get_option('prefer-iris')
   loader_c_args += ['-DPREFER_IRIS']
+endif
+
+if get_option('prefer-crocus')
+  loader_c_args += ['-DPREFER_CROCUS']
 endif
 
 libloader = static_library(
   'loader',
-  ['loader.c', 'pci_id_driver_map.c'],
+  ['loader_dri_helper.c', 'loader.c', 'pci_id_driver_map.c'],
   c_args : loader_c_args,
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_util],

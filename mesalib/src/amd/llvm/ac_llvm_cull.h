@@ -48,9 +48,14 @@ struct ac_cull_options {
    bool use_halfz_clip_space;
 };
 
-LLVMValueRef ac_cull_triangle(struct ac_llvm_context *ctx, LLVMValueRef pos[3][4],
-                              LLVMValueRef initially_accepted, LLVMValueRef vp_scale[2],
-                              LLVMValueRef vp_translate[2], LLVMValueRef small_prim_precision,
-                              struct ac_cull_options *options);
+/* Callback invoked in the inner-most branch where the primitive is accepted. */
+typedef void (*ac_cull_accept_func)(struct ac_llvm_context *ctx, LLVMValueRef accepted,
+                                    void *userdata);
+
+void ac_cull_triangle(struct ac_llvm_context *ctx, LLVMValueRef pos[3][4],
+                      LLVMValueRef initially_accepted, LLVMValueRef vp_scale[2],
+                      LLVMValueRef vp_translate[2], LLVMValueRef small_prim_precision,
+                      struct ac_cull_options *options, ac_cull_accept_func accept_func,
+                      void *userdata);
 
 #endif

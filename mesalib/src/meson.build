@@ -25,6 +25,9 @@ inc_gallium = include_directories('gallium/include')
 inc_gallium_aux = include_directories('gallium/auxiliary')
 inc_amd_common = include_directories('amd/common')
 inc_amd_common_llvm = include_directories('amd/llvm')
+inc_tool = include_directories('tool')
+pps_datasources = []
+pps_includes = []
 
 libglsl_util = static_library(
   'glsl_util',
@@ -83,7 +86,7 @@ endif
 if with_gallium_freedreno or with_freedreno_vk
   subdir('freedreno')
 endif
-if with_gallium_panfrost or with_gallium_lima
+if with_gallium_panfrost or with_gallium_lima or with_panfrost_vk or with_tools.contains('panfrost')
   subdir('panfrost')
 endif
 if with_gallium_virgl or with_virtio_vk
@@ -114,9 +117,6 @@ if with_gbm
 else
   inc_gbm = []
 endif
-if with_egl
-  subdir('egl')
-endif
 if with_gallium
   subdir('gallium')
   # This has to be here since it requires libgallium, and subdir cannot
@@ -124,6 +124,9 @@ if with_gallium
   if with_tests and with_shared_glapi
     subdir('mesa/state_tracker/tests')
   endif
+endif
+if with_egl
+  subdir('egl')
 endif
 
 # This must be after at least mesa, glx, and gallium, since libgl will be
@@ -139,3 +142,5 @@ if with_glx != 'disabled' and not with_glvnd
     variables : ['glx_tls=@0@'.format(use_elf_tls ? 'yes' : 'no')],
   )
 endif
+
+subdir('tool')

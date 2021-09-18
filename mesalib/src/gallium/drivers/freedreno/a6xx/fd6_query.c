@@ -290,28 +290,28 @@ log_counters(struct fd6_primitives_sample *ps)
       "ras_primitives_in", "x",
    };
 
-   printf("  counter\t\tstart\t\t\tstop\t\t\tdiff\n");
+   mesa_logd("  counter\t\tstart\t\t\tstop\t\t\tdiff");
    for (int i = 0; i < ARRAY_SIZE(labels); i++) {
       int register_idx = i + (counter_base - REG_A6XX_RBBM_PRIMCTR_0_LO) / 2;
-      printf("  RBBM_PRIMCTR_%d\t0x%016" PRIx64 "\t0x%016" PRIx64 "\t%" PRIi64
-             "\t%s\n",
+      mesa_logd("  RBBM_PRIMCTR_%d\t0x%016" PRIx64 "\t0x%016" PRIx64 "\t%" PRIi64
+             "\t%s",
              register_idx, ps->prim_start[i], ps->prim_stop[i],
              ps->prim_stop[i] - ps->prim_start[i], labels[register_idx]);
    }
 
-   printf("  so counts\n");
+   mesa_logd("  so counts");
    for (int i = 0; i < ARRAY_SIZE(ps->start); i++) {
-      printf("  CHANNEL %d emitted\t0x%016" PRIx64 "\t0x%016" PRIx64
-             "\t%" PRIi64 "\n",
+      mesa_logd("  CHANNEL %d emitted\t0x%016" PRIx64 "\t0x%016" PRIx64
+             "\t%" PRIi64,
              i, ps->start[i].generated, ps->stop[i].generated,
              ps->stop[i].generated - ps->start[i].generated);
-      printf("  CHANNEL %d generated\t0x%016" PRIx64 "\t0x%016" PRIx64
-             "\t%" PRIi64 "\n",
+      mesa_logd("  CHANNEL %d generated\t0x%016" PRIx64 "\t0x%016" PRIx64
+             "\t%" PRIi64,
              i, ps->start[i].emitted, ps->stop[i].emitted,
              ps->stop[i].emitted - ps->start[i].emitted);
    }
 
-   printf("generated %" PRIu64 ", emitted %" PRIu64 "\n", ps->result.generated,
+   mesa_logd("generated %" PRIu64 ", emitted %" PRIu64, ps->result.generated,
           ps->result.emitted);
 }
 

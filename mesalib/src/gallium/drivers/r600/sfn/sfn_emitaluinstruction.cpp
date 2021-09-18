@@ -51,6 +51,20 @@ bool EmitAluInstruction::do_emit(nir_instr* ir)
 
    preload_src(instr);
 
+   if (get_chip_class() == CAYMAN) {
+      switch (instr.op) {
+      case nir_op_fcos_r600: return emit_alu_cm_trig(instr, op1_cos);
+      case nir_op_fexp2: return emit_alu_cm_trig(instr, op1_exp_ieee);
+      case nir_op_flog2: return emit_alu_cm_trig(instr, op1_log_clamped);
+      case nir_op_frcp: return emit_alu_cm_trig(instr, op1_recip_ieee);
+      case nir_op_frsq: return emit_alu_cm_trig(instr, op1_recipsqrt_ieee1);
+      case nir_op_fsin_r600: return emit_alu_cm_trig(instr, op1_sin);
+      case nir_op_fsqrt: return emit_alu_cm_trig(instr, op1_sqrt_ieee);
+         default:
+            ;
+      }
+   }
+
    switch (instr.op) {
     /* These are in the ALU instruction list, but they should be texture instructions */
    case nir_op_b2b1: return emit_mov(instr);
@@ -402,8 +416,9 @@ bool EmitAluInstruction::emit_alu_trans_op1(const nir_alu_instr& instr, EAluOp o
    if (get_chip_class() == CAYMAN) {
       int last_slot = (instr.dest.write_mask & 0x8) ? 4 : 3;
       for (int i = 0; i < last_slot; ++i) {
+         bool write_comp = instr.dest.write_mask & (1 << i);
          ir = new AluInstruction(opcode, from_nir(instr.dest, i),
-                                 m_src[0][0], instr.dest.write_mask & (1 << i) ? write : empty);
+                                 m_src[0][write_comp ? i : 0], write_comp ? write : empty);
          if (absolute || instr.src[0].abs) ir->set_flag(alu_src0_abs);
          if (instr.src[0].negate) ir->set_flag(alu_src0_neg);
          if (instr.dest.saturate) ir->set_flag(alu_dst_clamp);
@@ -427,31 +442,71 @@ bool EmitAluInstruction::emit_alu_trans_op1(const nir_alu_instr& instr, EAluOp o
    return true;
 }
 
+bool EmitAluInstruction::emit_alu_cm_trig(const nir_alu_instr& instr, EAluOp opcode)
+{
+   AluInstruction *ir = nullptr;
+   std::set<int> src_idx;
+
+   unsigned last_slot = (instr.dest.write_mask & 0x8) ? 4 : 3;
+
+   for (unsigned j = 0; j < nir_dest_num_components(instr.dest.dest); ++j) {
+      for (unsigned i = 0; i < last_slot; ++i) {
+         bool write_comp = instr.dest.write_mask & (1 << j) && (i == j);
+         ir = new AluInstruction(opcode, from_nir(instr.dest, i),
+                                 m_src[0][j], write_comp ? write : empty);
+         if (instr.src[0].abs) ir->set_flag(alu_src0_abs);
+         if (instr.src[0].negate) ir->set_flag(alu_src0_neg);
+         if (instr.dest.saturate) ir->set_flag(alu_dst_clamp);
+
+         if (i == (last_slot - 1)) ir->set_flag(alu_last_instr);
+
+         emit_instruction(ir);
+      }
+   }
+   return true;
+}
+
+
 bool EmitAluInstruction::emit_alu_f2i32_or_u32(const nir_alu_instr& instr, EAluOp op)
 {
    AluInstruction *ir = nullptr;
-   std::array<PValue, 4> v;
 
-   for (int i = 0; i < 4; ++i) {
-      if (!(instr.dest.write_mask & (1 << i)))
-         continue;
-      v[i] = from_nir(instr.dest, i);
-      ir = new AluInstruction(op1_trunc, v[i], m_src[0][i], {alu_write});
-      if (instr.src[0].abs) ir->set_flag(alu_src0_abs);
-      if (instr.src[0].negate) ir->set_flag(alu_src0_neg);
-      emit_instruction(ir);
-   }
-   make_last(ir);
+   if (get_chip_class() < CAYMAN) {
+      std::array<PValue, 4> v;
 
-   for (int i = 0; i < 4; ++i) {
-      if (!(instr.dest.write_mask & (1 << i)))
-         continue;
-      ir = new AluInstruction(op, v[i], v[i], {alu_write});
-      emit_instruction(ir);
-      if (op == op1_flt_to_uint)
-         make_last(ir);
+      for (int i = 0; i < 4; ++i) {
+         if (!(instr.dest.write_mask & (1 << i)))
+            continue;
+         v[i] = from_nir(instr.dest, i);
+         ir = new AluInstruction(op1_trunc, v[i], m_src[0][i], {alu_write});
+         if (instr.src[0].abs) ir->set_flag(alu_src0_abs);
+         if (instr.src[0].negate) ir->set_flag(alu_src0_neg);
+         emit_instruction(ir);
+      }
+      make_last(ir);
+
+      for (int i = 0; i < 4; ++i) {
+         if (!(instr.dest.write_mask & (1 << i)))
+            continue;
+         ir = new AluInstruction(op, v[i], v[i], {alu_write});
+         emit_instruction(ir);
+         if (op == op1_flt_to_uint)
+            make_last(ir);
+      }
+      make_last(ir);
+   } else {
+      for (int i = 0; i < 4; ++i) {
+         if (!(instr.dest.write_mask & (1 << i)))
+            continue;
+         ir = new AluInstruction(op, from_nir(instr.dest, i), m_src[0][i], {alu_write});
+         if (instr.src[0].abs) ir->set_flag(alu_src0_abs);
+         if (instr.src[0].negate) ir->set_flag(alu_src0_neg);
+         emit_instruction(ir);
+         if (op == op1_flt_to_uint)
+            make_last(ir);
+      }
+      make_last(ir);
    }
-   make_last(ir);
 
    return true;
 }
@@ -763,12 +818,11 @@ bool EmitAluInstruction::emit_alu_trans_op2(const nir_alu_instr& instr, EAluOp o
    AluInstruction *ir = nullptr;
 
    if (get_chip_class() == CAYMAN) {
-      int lasti = util_last_bit(instr.dest.write_mask);
-      for (int k = 0; k < lasti ; ++k) {
+      for (int k = 0; k < 4; ++k) {
          if (instr.dest.write_mask & (1 << k)) {
 
             for (int i = 0; i < 4; i++) {
-               ir = new AluInstruction(opcode, from_nir(instr.dest, i), m_src[0][k], m_src[0][k], (i == k) ? write : empty);
+               ir = new AluInstruction(opcode, from_nir(instr.dest, i), m_src[0][k], m_src[1][k], (i == k) ? write : empty);
                if (src0.negate) ir->set_flag(alu_src0_neg);
                if (src0.abs) ir->set_flag(alu_src0_abs);
                if (src1.negate) ir->set_flag(alu_src1_neg);

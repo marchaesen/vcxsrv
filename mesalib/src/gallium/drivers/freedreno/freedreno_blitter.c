@@ -77,8 +77,7 @@ default_src_texture(struct pipe_sampler_view *src_templ,
 }
 
 static void
-fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond,
-                      bool discard) assert_dt
+fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond) assert_dt
 {
    util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vtx.vertexbuf.vb);
    util_blitter_save_vertex_elements(ctx->blitter, ctx->vtx.vtx);
@@ -109,34 +108,49 @@ fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond,
 
    if (ctx->batch)
       fd_batch_update_queries(ctx->batch);
-
-   ctx->in_discard_blit = discard;
 }
 
 static void
 fd_blitter_pipe_end(struct fd_context *ctx) assert_dt
 {
-   ctx->in_discard_blit = false;
 }
 
 bool
 fd_blitter_blit(struct fd_context *ctx, const struct pipe_blit_info *info)
 {
+   struct pipe_context *pctx = &ctx->base;
    struct pipe_resource *dst = info->dst.resource;
    struct pipe_resource *src = info->src.resource;
    struct pipe_context *pipe = &ctx->base;
    struct pipe_surface *dst_view, dst_templ;
    struct pipe_sampler_view src_templ, *src_view;
-   bool discard = false;
 
-   if (!info->scissor_enable && !info->alpha_blend) {
-      discard = util_texrange_covers_whole_level(
-         info->dst.resource, info->dst.level, info->dst.box.x, info->dst.box.y,
-         info->dst.box.z, info->dst.box.width, info->dst.box.height,
-         info->dst.box.depth);
+   /* If the blit is updating the whole contents of the resource,
+    * invalidate it so we don't trigger any unnecessary tile loads in the 3D
+    * path.
+    */
+   if (util_blit_covers_whole_resource(info))
+      pctx->invalidate_resource(pctx, info->dst.resource);
+
+   /* The blit format may not match the resource format in this path, so
+    * we need to validate that we can use the src/dst resource with the
+    * requested format (and uncompress if necessary).  Normally this would
+    * happen in ->set_sampler_view(), ->set_framebuffer_state(), etc.  But
+    * that would cause recursion back into u_blitter, which ends in tears.
+    *
+    * To avoid recursion, this needs to be done before util_blitter_save_*()
+    */
+   if (ctx->validate_format) {
+      ctx->validate_format(ctx, fd_resource(dst), info->dst.format);
+      ctx->validate_format(ctx, fd_resource(src), info->src.format);
    }
 
-   fd_blitter_pipe_begin(ctx, info->render_condition_enable, discard);
+   if (src == dst)
+      pipe->flush(pipe, NULL, 0);
+
+   DBG_BLIT(info, NULL);
+
+   fd_blitter_pipe_begin(ctx, info->render_condition_enable);
 
    /* Initialize the surface. */
    default_dst_texture(&dst_templ, dst, info->dst.level, info->dst.box.z);
@@ -152,12 +166,18 @@ fd_blitter_blit(struct fd_context *ctx, const struct pipe_blit_info *info)
    util_blitter_blit_generic(
       ctx->blitter, dst_view, &info->dst.box, src_view, &info->src.box,
       src->width0, src->height0, info->mask, info->filter,
-      info->scissor_enable ? &info->scissor : NULL, info->alpha_blend);
+      info->scissor_enable ? &info->scissor : NULL, info->alpha_blend, false);
 
    pipe_surface_reference(&dst_view, NULL);
    pipe_sampler_view_reference(&src_view, NULL);
 
    fd_blitter_pipe_end(ctx);
+
+   /* While this shouldn't technically be necessary, it is required for
+    * dEQP-GLES31.functional.stencil_texturing.format.stencil_index8_cube and
+    * 2d_array to pass.
+    */
+   fd_bc_flush_writer(ctx, fd_resource(info->dst.resource));
 
    /* The fallback blitter must never fail: */
    return true;
@@ -176,7 +196,7 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
    /* Note: don't use discard=true, if there was something to
     * discard, that would have been already handled in fd_clear().
     */
-   fd_blitter_pipe_begin(ctx, false, false);
+   fd_blitter_pipe_begin(ctx, false);
 
    util_blitter_save_fragment_constant_buffer_slot(
       ctx->blitter, ctx->constbuf[PIPE_SHADER_FRAGMENT].cb);
@@ -307,8 +327,13 @@ fd_blitter_pipe_copy_region(struct fd_context *ctx, struct pipe_resource *dst,
    if (!util_blitter_is_copy_supported(ctx->blitter, dst, src))
       return false;
 
-   /* TODO we could discard if dst box covers dst level fully.. */
-   fd_blitter_pipe_begin(ctx, false, false);
+   if (src == dst) {
+      struct pipe_context *pctx = &ctx->base;
+      pctx->flush(pctx, NULL, 0);
+   }
+
+   /* TODO we could invalidate if dst box covers dst level fully. */
+   fd_blitter_pipe_begin(ctx, false);
    util_blitter_copy_texture(ctx->blitter, dst, dst_level, dstx, dsty, dstz,
                              src, src_level, src_box);
    fd_blitter_pipe_end(ctx);
@@ -327,6 +352,17 @@ fd_resource_copy_region(struct pipe_context *pctx, struct pipe_resource *dst,
                         unsigned src_level, const struct pipe_box *src_box)
 {
    struct fd_context *ctx = fd_context(pctx);
+
+   /* The blitter path handles compressed formats only if src and dst format
+    * match, in other cases just fall back to sw:
+    */
+   if ((src->format != dst->format) &&
+       (util_format_is_compressed(src->format) ||
+        util_format_is_compressed(dst->format))) {
+      perf_debug_ctx(ctx, "copy_region falls back to sw for {%"PRSC_FMT"} to {%"PRSC_FMT"}",
+                     PRSC_ARGS(src), PRSC_ARGS(dst));
+      goto fallback;
+   }
 
    if (ctx->blit) {
       struct pipe_blit_info info;
@@ -355,17 +391,13 @@ fd_resource_copy_region(struct pipe_context *pctx, struct pipe_resource *dst,
          return;
    }
 
-   /* TODO if we have 2d core, or other DMA engine that could be used
-    * for simple copies and reasonably easily synchronized with the 3d
-    * core, this is where we'd plug it in..
-    */
-
    /* try blit on 3d pipe: */
    if (fd_blitter_pipe_copy_region(ctx, dst, dst_level, dstx, dsty, dstz, src,
                                    src_level, src_box))
       return;
 
    /* else fallback to pure sw: */
+fallback:
    util_resource_copy_region(pctx, dst, dst_level, dstx, dsty, dstz, src,
                              src_level, src_box);
 }

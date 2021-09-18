@@ -54,7 +54,7 @@ struct si_pm4_state {
    uint32_t pm4[SI_PM4_MAX_DW];
 
    /* For shader states only */
-   struct si_shader *shader;
+   bool is_shader;
    struct si_atom atom;
 };
 

@@ -364,7 +364,6 @@ spec/!opengl 2.0/vertex-program-two-side/tcs-out, tes and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/tes-out and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/vs, gs and fs: skip
 spec/!opengl 2.0/vertex-program-two-side/vs, tcs, tes and fs: skip
-spec/!opengl 2.1/fbo-mrt-alphatest-no-buffer-zero-write: crash
 spec/!opengl 3.0/bound-resource-limits: fail
 spec/!opengl 3.0/clearbuffer-depth-cs-probe: skip
 spec/!opengl 3.0/required-sized-texture-formats: fail
@@ -2390,7 +2389,6 @@ spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 512 42 8 8 7: sk
 spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 512 42 8 8 8: skip
 spec/arb_texture_buffer_object/bufferstorage: skip
 spec/arb_texture_buffer_object/data-sync: fail
-spec/arb_texture_buffer_object/get: fail
 spec/arb_texture_buffer_object/indexed: skip
 spec/arb_texture_buffer_object/negative-unsupported: skip
 spec/arb_texture_buffer_object/subdata-sync: fail
@@ -4562,8 +4560,6 @@ spec/glsl-1.30/execution/tex-miplevel-selection texturegrad cubearray: skip
 spec/glsl-1.30/execution/tex-miplevel-selection texturelod cubearray: skip
 spec/glsl-1.30/execution/tex-miplevel-selection textureoffset 2darrayshadow: skip
 spec/glsl-1.50/built-in constants compatibility: skip
-spec/glsl-1.50/execution/geometry/primitive-id-restart gl_line_loop ffs: fail
-spec/glsl-1.50/execution/geometry/primitive-id-restart gl_line_loop other: fail
 spec/glsl-1.50/execution/geometry/primitive-types gl_triangle_strip: fail
 spec/glsl-1.50/execution/geometry/primitive-types gl_triangle_strip_adjacency: fail
 spec/glsl-1.50/execution/geometry/tri-strip-ordering-with-prim-restart gl_triangle_strip ffs: fail
@@ -4753,9 +4749,9 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    13299
-       fail:      538
-      crash:       68
+       pass:    13303
+       fail:      535
+      crash:       67
        skip:     4126
     timeout:        0
        warn:       10

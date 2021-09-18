@@ -109,6 +109,7 @@ struct pstip_stage
                                     enum pipe_shader_type shader,
                                     unsigned start, unsigned count,
                                     unsigned unbind_num_trailing_slots,
+                                    bool take_ownership,
                                     struct pipe_sampler_view **);
 
    void (*driver_set_polygon_stipple)(struct pipe_context *,
@@ -224,7 +225,8 @@ pstip_first_tri(struct draw_stage *stage, struct prim_header *header)
                                      num_samplers, pstip->state.samplers);
 
    pstip->driver_set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0,
-                                   num_sampler_views, 0, pstip->state.sampler_views);
+                                   num_sampler_views, 0, false,
+                                   pstip->state.sampler_views);
 
    draw->suspend_flushing = FALSE;
 
@@ -253,7 +255,7 @@ pstip_flush(struct draw_stage *stage, unsigned flags)
                                      pstip->state.samplers);
 
    pstip->driver_set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0,
-                                   pstip->num_sampler_views, 0,
+                                   pstip->num_sampler_views, 0, false,
                                    pstip->state.sampler_views);
 
    draw->suspend_flushing = FALSE;
@@ -418,6 +420,7 @@ pstip_set_sampler_views(struct pipe_context *pipe,
                         enum pipe_shader_type shader,
                         unsigned start, unsigned num,
                         unsigned unbind_num_trailing_slots,
+                        bool take_ownership,
                         struct pipe_sampler_view **views)
 {
    struct pstip_stage *pstip = pstip_stage_from_pipe(pipe);
@@ -438,7 +441,7 @@ pstip_set_sampler_views(struct pipe_context *pipe,
 
    /* pass-through */
    pstip->driver_set_sampler_views(pstip->pipe, shader, start, num,
-                                   unbind_num_trailing_slots, views);
+                                   unbind_num_trailing_slots, take_ownership, views);
 }
 
 

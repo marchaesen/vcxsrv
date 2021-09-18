@@ -43,9 +43,8 @@ PALETTE = [
 
 class RootWidget(urwid.Frame):
 
-    def __init__(self, *args, ui: 'UI' = None, **kwargs):
+    def __init__(self, *args, ui: 'UI', **kwargs):
         super().__init__(*args, **kwargs)
-        assert ui is not None
         self.ui = ui
 
     def keypress(self, size: int, key: str) -> typing.Optional[str]:
@@ -67,7 +66,8 @@ class CommitWidget(urwid.Text):
     _selectable = True
 
     def __init__(self, ui: 'UI', commit: 'core.Commit'):
-        super().__init__(f'{commit.sha[:10]} {commit.description}')
+        reason = commit.nomination_type.name.ljust(6)
+        super().__init__(f'{commit.date()} {reason} {commit.sha[:10]} {commit.description}')
         self.ui = ui
         self.commit = commit
 

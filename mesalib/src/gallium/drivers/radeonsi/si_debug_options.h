@@ -1,4 +1,4 @@
-OPT_BOOL(inline_uniforms, false, "Optimize shaders by replacing uniforms with literals")
+OPT_BOOL(inline_uniforms, true, "Optimize shaders by replacing uniforms with literals")
 OPT_BOOL(aux_debug, false, "Generate ddebug_dumps for the auxiliary context")
 OPT_BOOL(sync_compile, false, "Always compile synchronously (will cause stalls)")
 OPT_BOOL(dump_shader_binary, false, "Dump shader binary as part of ddebug_dumps")

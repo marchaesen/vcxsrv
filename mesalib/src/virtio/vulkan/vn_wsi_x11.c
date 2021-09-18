@@ -12,7 +12,8 @@
 
 #include "wsi_common_x11.h"
 
-#include "vn_device.h"
+#include "vn_instance.h"
+#include "vn_physical_device.h"
 #include "vn_wsi.h"
 
 /* XCB surface commands */

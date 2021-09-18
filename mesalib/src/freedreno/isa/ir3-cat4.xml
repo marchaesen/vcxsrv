@@ -60,13 +60,13 @@ SOFTWARE.
 	<field name="SY" pos="60" type="bool" display="(sy)"/>
 	<pattern low="61" high="63">100</pattern>  <!-- cat4 -->
 	<encode>
-		<map name="SRC">src->regs[1]</map>
+		<map name="SRC">src->srcs[0]</map>
 		<map name="DST_CONV">
-			((src->regs[0]->num >> 2) == 62) ? 0 :
-			!!((src->regs[1]->flags ^ src->regs[0]->flags) &amp; IR3_REG_HALF)
+			((src->dsts[0]->num >> 2) == 62) ? 0 :
+			!!((src->srcs[0]->flags ^ src->dsts[0]->flags) &amp; IR3_REG_HALF)
 		</map>
-		<map name="FULL">!(src->regs[1]->flags &amp; IR3_REG_HALF)</map>
-		<map name="SRC_R">!!(src->regs[1]->flags &amp; IR3_REG_R)</map>
+		<map name="FULL">!(src->srcs[0]->flags &amp; IR3_REG_HALF)</map>
+		<map name="SRC_R">!!(src->srcs[0]->flags &amp; IR3_REG_R)</map>
 	</encode>
 </bitset>
 

@@ -57,6 +57,7 @@ struct trace_surface
 struct trace_sampler_view
 {
    struct pipe_sampler_view base;
+   unsigned refcount;
 
    struct pipe_sampler_view *sampler_view;
 };

@@ -29,8 +29,7 @@
 '''
 
 
-from __future__ import division
-
+import copy
 
 VOID, UNSIGNED, SIGNED, FIXED, FLOAT = range(5)
 
@@ -45,7 +44,7 @@ ZS = 'zs'
 
 
 def is_pot(x):
-   return (x & (x - 1)) == 0
+    return (x & (x - 1)) == 0
 
 
 VERY_LARGE = 99999999999999999999999
@@ -53,8 +52,8 @@ VERY_LARGE = 99999999999999999999999
 
 class Channel:
     '''Describe the channel of a color channel.'''
-    
-    def __init__(self, type, norm, pure, size, name = ''):
+
+    def __init__(self, type, norm, pure, size, name=''):
         self.type = type
         self.norm = norm
         self.pure = pure
@@ -70,6 +69,9 @@ class Channel:
             s += 'p'
         s += str(self.size)
         return s
+
+    def __repr__(self):
+        return "Channel({})".format(self.__str__())
 
     def __eq__(self, other):
         if other is None:
@@ -93,7 +95,7 @@ class Channel:
         if self.type == SIGNED:
             return (1 << (self.size - 1)) - 1
         assert False
-    
+
     def min(self):
         '''Minimum representable number.'''
         if self.type == FLOAT:
@@ -118,12 +120,66 @@ class Format:
         self.block_width = block_width
         self.block_height = block_height
         self.block_depth = block_depth
+        self.colorspace = colorspace
+
         self.le_channels = le_channels
         self.le_swizzles = le_swizzles
-        self.be_channels = be_channels
-        self.be_swizzles = be_swizzles
-        self.name = name
-        self.colorspace = colorspace
+
+        le_shift = 0
+        for channel in self.le_channels:
+            channel.shift = le_shift
+            le_shift += channel.size
+
+        if be_channels:
+            if self.is_array():
+                print(
+                    "{} is an array format and should not include BE swizzles in the CSV".format(self.name))
+                exit(1)
+            if self.is_bitmask():
+                print(
+                    "{} is a bitmask format and should not include BE swizzles in the CSV".format(self.name))
+                exit(1)
+            self.be_channels = be_channels
+            self.be_swizzles = be_swizzles
+        elif self.is_bitmask() and not self.is_array():
+            # Bitmask formats are "load a word the size of the block and
+            # bitshift channels out of it." However, the channel shifts
+            # defined in u_format_table.c are numbered right-to-left on BE
+            # for some historical reason (see below), which is hard to
+            # change due to llvmpipe, so we also have to flip the channel
+            # order and the channel-to-rgba swizzle values to read
+            # right-to-left from the defined (non-VOID) channels so that the
+            # correct shifts happen.
+            #
+            # This is nonsense, but it's the nonsense that makes
+            # u_format_test pass and you get the right colors in softpipe at
+            # least.
+            chans = self.nr_channels()
+            self.be_channels = self.le_channels[chans -
+                                                1::-1] + self.le_channels[chans:4]
+
+            xyzw = [SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_W]
+            chan_map = {SWIZZLE_X: xyzw[chans - 1] if chans >= 1 else SWIZZLE_X,
+                        SWIZZLE_Y: xyzw[chans - 2] if chans >= 2 else SWIZZLE_X,
+                        SWIZZLE_Z: xyzw[chans - 3] if chans >= 3 else SWIZZLE_X,
+                        SWIZZLE_W: xyzw[chans - 4] if chans >= 4 else SWIZZLE_X,
+                        SWIZZLE_1: SWIZZLE_1,
+                        SWIZZLE_0: SWIZZLE_0,
+                        SWIZZLE_NONE: SWIZZLE_NONE}
+            self.be_swizzles = [chan_map[s] for s in self.le_swizzles]
+        else:
+            self.be_channels = copy.deepcopy(le_channels)
+            self.be_swizzles = le_swizzles
+
+        be_shift = 0
+        for channel in reversed(self.be_channels):
+            channel.shift = be_shift
+            be_shift += channel.size
+
+        assert le_shift == be_shift
+        for i in range(4):
+            assert (self.le_swizzles[i] != SWIZZLE_NONE) == (
+                self.be_swizzles[i] != SWIZZLE_NONE)
 
     def __str__(self):
         return self.name
@@ -156,7 +212,7 @@ class Format:
             return None
         ref_channel = self.le_channels[0]
         if ref_channel.type == VOID:
-           ref_channel = self.le_channels[1]
+            ref_channel = self.le_channels[1]
         for channel in self.le_channels:
             if channel.size and (channel.size != ref_channel.size or channel.size % 8):
                 return None
@@ -177,7 +233,7 @@ class Format:
             return False
         ref_channel = self.le_channels[0]
         if ref_channel.type == VOID:
-           ref_channel = self.le_channels[1]
+            ref_channel = self.le_channels[1]
         for channel in self.le_channels[1:]:
             if channel.type != VOID:
                 if channel.type != ref_channel.type:
@@ -244,7 +300,7 @@ class Format:
                  for channel in self.le_channels
                  if channel.type != VOID]
         for x in pures:
-           assert x == pures[0]
+            assert x == pures[0]
         return pures[0]
 
     def channel_type(self):
@@ -252,7 +308,7 @@ class Format:
                  for channel in self.le_channels
                  if channel.type != VOID]
         for x in types:
-           assert x == types[0]
+            assert x == types[0]
         return types[0]
 
     def is_pure_signed(self):
@@ -292,6 +348,7 @@ _swizzle_parse_map = {
     '1': SWIZZLE_1,
     '_': SWIZZLE_NONE,
 }
+
 
 def _parse_channels(fields, layout, colorspace, swizzles):
     if layout == PLAIN:
@@ -341,6 +398,7 @@ def _parse_channels(fields, layout, colorspace, swizzles):
 
     return channels
 
+
 def parse(filename):
     '''Parse the format description in CSV format in terms of the
     Channel and Format classes above.'''
@@ -359,9 +417,7 @@ def parse(filename):
             continue
 
         fields = [field.strip() for field in line.split(',')]
-        if len (fields) == 11:
-            fields += fields[5:10]
-        assert len (fields) == 16
+        assert(len(fields) == 11 or len(fields) == 16)
 
         name = fields[0]
         layout = fields[1]
@@ -371,24 +427,16 @@ def parse(filename):
         le_swizzles = [_swizzle_parse_map[swizzle] for swizzle in fields[9]]
         le_channels = _parse_channels(fields[5:9], layout, colorspace, le_swizzles)
 
-        be_swizzles = [_swizzle_parse_map[swizzle] for swizzle in fields[15]]
-        be_channels = _parse_channels(fields[11:15], layout, colorspace, be_swizzles)
+        be_swizzles = None
+        be_channels = None
+        if len(fields) == 16:
+            be_swizzles = [_swizzle_parse_map[swizzle]
 
-        le_shift = 0
-        for channel in le_channels:
-            channel.shift = le_shift
-            le_shift += channel.size
+                           for swizzle in fields[15]]
+            be_channels = _parse_channels(
 
-        be_shift = 0
-        for channel in be_channels[3::-1]:
-            channel.shift = be_shift
-            be_shift += channel.size
-
-        assert le_shift == be_shift
-        for i in range(4):
-            assert (le_swizzles[i] != SWIZZLE_NONE) == (be_swizzles[i] != SWIZZLE_NONE)
+                fields[11:15], layout, colorspace, be_swizzles)
 
         format = Format(name, layout, block_width, block_height, block_depth, le_channels, le_swizzles, be_channels, be_swizzles, colorspace)
         formats.append(format)
     return formats
-

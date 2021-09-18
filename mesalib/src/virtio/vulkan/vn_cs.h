@@ -8,15 +8,24 @@
 
 #include "vn_common.h"
 
+#define VN_CS_ENCODER_BUFFER_INITIALIZER(storage)                            \
+   (struct vn_cs_encoder_buffer) { .base = storage, }
+
+/* note that buffers points to an unamed local variable */
 #define VN_CS_ENCODER_INITIALIZER_LOCAL(storage, size)                       \
    (struct vn_cs_encoder)                                                    \
    {                                                                         \
-      .buffers =                                                             \
-         &(struct vn_cs_encoder_buffer){                                     \
-            .base = storage,                                                 \
-         },                                                                  \
+      .buffers = &VN_CS_ENCODER_BUFFER_INITIALIZER(storage),                 \
       .buffer_count = 1, .buffer_max = 1, .current_buffer_size = size,       \
       .cur = storage, .end = (const void *)(storage) + (size),               \
+   }
+
+#define VN_CS_ENCODER_INITIALIZER(buf, size)                                 \
+   (struct vn_cs_encoder)                                                    \
+   {                                                                         \
+      .buffers = (buf), .buffer_count = 1, .buffer_max = 1,                  \
+      .current_buffer_size = size, .cur = (buf)->base,                       \
+      .end = (buf)->base + (size),                                           \
    }
 
 #define VN_CS_DECODER_INITIALIZER(storage, size)                             \

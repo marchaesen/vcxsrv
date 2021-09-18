@@ -69,11 +69,11 @@ vn_sizeof_VkLayerProperties(const VkLayerProperties *val)
 {
     size_t size = 0;
     size += vn_sizeof_array_size(VK_MAX_EXTENSION_NAME_SIZE);
-    size += vn_sizeof_blob_array(val->layerName, VK_MAX_EXTENSION_NAME_SIZE);
+    size += vn_sizeof_char_array(val->layerName, VK_MAX_EXTENSION_NAME_SIZE);
     size += vn_sizeof_uint32_t(&val->specVersion);
     size += vn_sizeof_uint32_t(&val->implementationVersion);
     size += vn_sizeof_array_size(VK_MAX_DESCRIPTION_SIZE);
-    size += vn_sizeof_blob_array(val->description, VK_MAX_DESCRIPTION_SIZE);
+    size += vn_sizeof_char_array(val->description, VK_MAX_DESCRIPTION_SIZE);
     return size;
 }
 
@@ -82,13 +82,13 @@ vn_decode_VkLayerProperties(struct vn_cs_decoder *dec, VkLayerProperties *val)
 {
     {
         const size_t array_size = vn_decode_array_size(dec, VK_MAX_EXTENSION_NAME_SIZE);
-        vn_decode_blob_array(dec, val->layerName, array_size);
+        vn_decode_char_array(dec, val->layerName, array_size);
     }
     vn_decode_uint32_t(dec, &val->specVersion);
     vn_decode_uint32_t(dec, &val->implementationVersion);
     {
         const size_t array_size = vn_decode_array_size(dec, VK_MAX_DESCRIPTION_SIZE);
-        vn_decode_blob_array(dec, val->description, array_size);
+        vn_decode_char_array(dec, val->description, array_size);
     }
 }
 
@@ -119,9 +119,17 @@ vn_sizeof_VkExtensionProperties(const VkExtensionProperties *val)
 {
     size_t size = 0;
     size += vn_sizeof_array_size(VK_MAX_EXTENSION_NAME_SIZE);
-    size += vn_sizeof_blob_array(val->extensionName, VK_MAX_EXTENSION_NAME_SIZE);
+    size += vn_sizeof_char_array(val->extensionName, VK_MAX_EXTENSION_NAME_SIZE);
     size += vn_sizeof_uint32_t(&val->specVersion);
     return size;
+}
+
+static inline void
+vn_encode_VkExtensionProperties(struct vn_cs_encoder *enc, const VkExtensionProperties *val)
+{
+    vn_encode_array_size(enc, VK_MAX_EXTENSION_NAME_SIZE);
+    vn_encode_char_array(enc, val->extensionName, VK_MAX_EXTENSION_NAME_SIZE);
+    vn_encode_uint32_t(enc, &val->specVersion);
 }
 
 static inline void
@@ -129,7 +137,7 @@ vn_decode_VkExtensionProperties(struct vn_cs_decoder *dec, VkExtensionProperties
 {
     {
         const size_t array_size = vn_decode_array_size(dec, VK_MAX_EXTENSION_NAME_SIZE);
-        vn_decode_blob_array(dec, val->extensionName, array_size);
+        vn_decode_char_array(dec, val->extensionName, array_size);
     }
     vn_decode_uint32_t(dec, &val->specVersion);
 }
@@ -591,6 +599,17 @@ vn_encode_VkViewport(struct vn_cs_encoder *enc, const VkViewport *val)
     vn_encode_float(enc, &val->height);
     vn_encode_float(enc, &val->minDepth);
     vn_encode_float(enc, &val->maxDepth);
+}
+
+static inline void
+vn_decode_VkViewport(struct vn_cs_decoder *dec, VkViewport *val)
+{
+    vn_decode_float(dec, &val->x);
+    vn_decode_float(dec, &val->y);
+    vn_decode_float(dec, &val->width);
+    vn_decode_float(dec, &val->height);
+    vn_decode_float(dec, &val->minDepth);
+    vn_decode_float(dec, &val->maxDepth);
 }
 
 /* struct VkOffset2D */

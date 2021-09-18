@@ -236,7 +236,7 @@ record_textures_used(struct shader_info *info,
 
    if (op == nir_texop_txf ||
        op == nir_texop_txf_ms ||
-       op == nir_texop_txf_ms_mcs)
+       op == nir_texop_txf_ms_mcs_intel)
       BITSET_SET_RANGE(info->textures_used_by_txf, var->data.binding, var->data.binding + (MAX2(size, 1) - 1));
 }
 

@@ -5,6 +5,8 @@ xkb_symbols "basic" {
 
     name[Group1]="Bambara";
 
+    key <AB04>	{ [         v,          V, leftdoublequotemark, leftsinglequotemark ]	};
+    key <AB05>	{ [         b,          B, rightdoublequotemark, rightsinglequotemark ] };
     key <AB06>	{ [         n,          N,         U0272,       U019D ]	}; // n N ɲ Ɲ
     key <AC02>	{ [         s,          S,         U0161,       U0160 ]	}; // s S š Š
     key <AC05>	{ [         g,          G,         U0254,       U0186 ]	}; // g G ɔ Ɔ

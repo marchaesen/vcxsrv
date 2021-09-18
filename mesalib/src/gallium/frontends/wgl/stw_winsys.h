@@ -131,8 +131,14 @@ struct stw_winsys
     */
    struct stw_winsys_framebuffer *
    (*create_framebuffer)( struct pipe_screen *screen,
-                          HDC hDC,
+                          HWND hWnd,
                           int iPixelFormat );
+
+   /**
+    * Get the name of the screen that was created
+    */
+   const char *
+   (*get_name)(void);
 };
 
 boolean

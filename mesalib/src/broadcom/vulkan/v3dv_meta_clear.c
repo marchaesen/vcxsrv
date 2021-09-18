@@ -22,11 +22,173 @@
  */
 
 #include "v3dv_private.h"
+#include "v3dv_meta_common.h"
 
-#include "broadcom/cle/v3dx_pack.h"
 #include "compiler/nir/nir_builder.h"
 #include "vk_format_info.h"
 #include "util/u_pack_color.h"
+
+static void
+get_hw_clear_color(struct v3dv_device *device,
+                   const VkClearColorValue *color,
+                   VkFormat fb_format,
+                   VkFormat image_format,
+                   uint32_t internal_type,
+                   uint32_t internal_bpp,
+                   uint32_t *hw_color)
+{
+   const uint32_t internal_size = 4 << internal_bpp;
+
+   /* If the image format doesn't match the framebuffer format, then we are
+    * trying to clear an unsupported tlb format using a compatible
+    * format for the framebuffer. In this case, we want to make sure that
+    * we pack the clear value according to the original format semantics,
+    * not the compatible format.
+    */
+   if (fb_format == image_format) {
+      v3dv_X(device, get_hw_clear_color)(color, internal_type, internal_size,
+                                         hw_color);
+   } else {
+      union util_color uc;
+      enum pipe_format pipe_image_format =
+         vk_format_to_pipe_format(image_format);
+      util_pack_color(color->float32, pipe_image_format, &uc);
+      memcpy(hw_color, uc.ui, internal_size);
+   }
+}
+
+/* Returns true if the implementation is able to handle the case, false
+ * otherwise.
+*/
+static bool
+clear_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
+                struct v3dv_image *image,
+                const VkClearValue *clear_value,
+                const VkImageSubresourceRange *range)
+{
+   const VkOffset3D origin = { 0, 0, 0 };
+   VkFormat fb_format;
+   if (!v3dv_meta_can_use_tlb(image, &origin, &fb_format))
+      return false;
+
+   uint32_t internal_type, internal_bpp;
+   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_image_aspects)
+      (fb_format, range->aspectMask,
+       &internal_type, &internal_bpp);
+
+   union v3dv_clear_value hw_clear_value = { 0 };
+   if (range->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
+      get_hw_clear_color(cmd_buffer->device, &clear_value->color, fb_format,
+                         image->vk.format, internal_type, internal_bpp,
+                         &hw_clear_value.color[0]);
+   } else {
+      assert((range->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) ||
+             (range->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT));
+      hw_clear_value.z = clear_value->depthStencil.depth;
+      hw_clear_value.s = clear_value->depthStencil.stencil;
+   }
+
+   uint32_t level_count = vk_image_subresource_level_count(&image->vk, range);
+   uint32_t min_level = range->baseMipLevel;
+   uint32_t max_level = range->baseMipLevel + level_count;
+
+   /* For 3D images baseArrayLayer and layerCount must be 0 and 1 respectively.
+    * Instead, we need to consider the full depth dimension of the image, which
+    * goes from 0 up to the level's depth extent.
+    */
+   uint32_t min_layer;
+   uint32_t max_layer;
+   if (image->vk.image_type != VK_IMAGE_TYPE_3D) {
+      min_layer = range->baseArrayLayer;
+      max_layer = range->baseArrayLayer +
+                  vk_image_subresource_layer_count(&image->vk, range);
+   } else {
+      min_layer = 0;
+      max_layer = 0;
+   }
+
+   for (uint32_t level = min_level; level < max_level; level++) {
+      if (image->vk.image_type == VK_IMAGE_TYPE_3D)
+         max_layer = u_minify(image->vk.extent.depth, level);
+
+      uint32_t width = u_minify(image->vk.extent.width, level);
+      uint32_t height = u_minify(image->vk.extent.height, level);
+
+      struct v3dv_job *job =
+         v3dv_cmd_buffer_start_job(cmd_buffer, -1, V3DV_JOB_TYPE_GPU_CL);
+
+      if (!job)
+         return true;
+
+      v3dv_job_start_frame(job, width, height, max_layer, false,
+                           1, internal_bpp,
+                           image->vk.samples > VK_SAMPLE_COUNT_1_BIT);
+
+      struct v3dv_meta_framebuffer framebuffer;
+      v3dv_X(job->device, meta_framebuffer_init)(&framebuffer, fb_format,
+                                                 internal_type,
+                                                 &job->frame_tiling);
+
+      v3dv_X(job->device, job_emit_binning_flush)(job);
+
+      /* If this triggers it is an application bug: the spec requires
+       * that any aspects to clear are present in the image.
+       */
+      assert(range->aspectMask & image->vk.aspects);
+
+      v3dv_X(job->device, meta_emit_clear_image_rcl)
+         (job, image, &framebuffer, &hw_clear_value,
+          range->aspectMask, min_layer, max_layer, level);
+
+      v3dv_cmd_buffer_finish_job(cmd_buffer);
+   }
+
+   return true;
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_CmdClearColorImage(VkCommandBuffer commandBuffer,
+                        VkImage _image,
+                        VkImageLayout imageLayout,
+                        const VkClearColorValue *pColor,
+                        uint32_t rangeCount,
+                        const VkImageSubresourceRange *pRanges)
+{
+   V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
+   V3DV_FROM_HANDLE(v3dv_image, image, _image);
+
+   const VkClearValue clear_value = {
+      .color = *pColor,
+   };
+
+   for (uint32_t i = 0; i < rangeCount; i++) {
+      if (clear_image_tlb(cmd_buffer, image, &clear_value, &pRanges[i]))
+         continue;
+      unreachable("Unsupported color clear.");
+   }
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_CmdClearDepthStencilImage(VkCommandBuffer commandBuffer,
+                               VkImage _image,
+                               VkImageLayout imageLayout,
+                               const VkClearDepthStencilValue *pDepthStencil,
+                               uint32_t rangeCount,
+                               const VkImageSubresourceRange *pRanges)
+{
+   V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
+   V3DV_FROM_HANDLE(v3dv_image, image, _image);
+
+   const VkClearValue clear_value = {
+      .depthStencil = *pDepthStencil,
+   };
+
+   for (uint32_t i = 0; i < rangeCount; i++) {
+      if (clear_image_tlb(cmd_buffer, image, &clear_value, &pRanges[i]))
+         continue;
+      unreachable("Unsupported depth/stencil clear.");
+   }
+}
 
 static void
 destroy_color_clear_pipeline(VkDevice _device,
@@ -54,12 +216,20 @@ static VkResult
 create_color_clear_pipeline_layout(struct v3dv_device *device,
                                    VkPipelineLayout *pipeline_layout)
 {
+   /* FIXME: this is abusing a bit the API, since not all of our clear
+    * pipelines have a geometry shader. We could create 2 different pipeline
+    * layouts, but this works for us for now.
+    */
+   VkPushConstantRange ranges[2] = {
+      { VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16 },
+      { VK_SHADER_STAGE_GEOMETRY_BIT, 16, 4 },
+   };
+
    VkPipelineLayoutCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .setLayoutCount = 0,
-      .pushConstantRangeCount = 1,
-      .pPushConstantRanges =
-         &(VkPushConstantRange) { VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16 },
+      .pushConstantRangeCount = 2,
+      .pPushConstantRanges = ranges,
    };
 
    return v3dv_CreatePipelineLayout(v3dv_device_to_handle(device),
@@ -70,12 +240,20 @@ static VkResult
 create_depth_clear_pipeline_layout(struct v3dv_device *device,
                                    VkPipelineLayout *pipeline_layout)
 {
+   /* FIXME: this is abusing a bit the API, since not all of our clear
+    * pipelines have a geometry shader. We could create 2 different pipeline
+    * layouts, but this works for us for now.
+    */
+   VkPushConstantRange ranges[2] = {
+      { VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4 },
+      { VK_SHADER_STAGE_GEOMETRY_BIT, 4, 4 },
+   };
+
    VkPipelineLayoutCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .setLayoutCount = 0,
-      .pushConstantRangeCount = 1,
-      .pPushConstantRanges =
-         &(VkPushConstantRange) { VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4 },
+      .pushConstantRangeCount = 2,
+      .pPushConstantRanges = ranges
    };
 
    return v3dv_CreatePipelineLayout(v3dv_device_to_handle(device),
@@ -178,6 +356,70 @@ get_clear_rect_vs()
 }
 
 static nir_shader *
+get_clear_rect_gs(uint32_t push_constant_layer_base)
+{
+   /* FIXME: this creates a geometry shader that takes the index of a single
+    * layer to clear from push constants, so we need to emit a draw call for
+    * each layer that we want to clear. We could actually do better and have it
+    * take a range of layers and then emit one triangle per layer to clear,
+    * however, if we were to do this we would need to be careful not to exceed
+    * the maximum number of output vertices allowed in a geometry shader.
+    */
+   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_GEOMETRY, options,
+                                                  "meta clear gs");
+   nir_shader *nir = b.shader;
+   nir->info.inputs_read = 1ull << VARYING_SLOT_POS;
+   nir->info.outputs_written = (1ull << VARYING_SLOT_POS) |
+                               (1ull << VARYING_SLOT_LAYER);
+   nir->info.gs.input_primitive = GL_TRIANGLES;
+   nir->info.gs.output_primitive = GL_TRIANGLE_STRIP;
+   nir->info.gs.vertices_in = 3;
+   nir->info.gs.vertices_out = 3;
+   nir->info.gs.invocations = 1;
+   nir->info.gs.active_stream_mask = 0x1;
+
+   /* in vec4 gl_Position[3] */
+   nir_variable *gs_in_pos =
+      nir_variable_create(b.shader, nir_var_shader_in,
+                          glsl_array_type(glsl_vec4_type(), 3, 0),
+                          "in_gl_Position");
+   gs_in_pos->data.location = VARYING_SLOT_POS;
+
+   /* out vec4 gl_Position */
+   nir_variable *gs_out_pos =
+      nir_variable_create(b.shader, nir_var_shader_out, glsl_vec4_type(),
+                          "out_gl_Position");
+   gs_out_pos->data.location = VARYING_SLOT_POS;
+
+   /* out float gl_Layer */
+   nir_variable *gs_out_layer =
+      nir_variable_create(b.shader, nir_var_shader_out, glsl_float_type(),
+                          "out_gl_Layer");
+   gs_out_layer->data.location = VARYING_SLOT_LAYER;
+
+   /* Emit output triangle */
+   for (uint32_t i = 0; i < 3; i++) {
+      /* gl_Position from shader input */
+      nir_deref_instr *in_pos_i =
+         nir_build_deref_array_imm(&b, nir_build_deref_var(&b, gs_in_pos), i);
+      nir_copy_deref(&b, nir_build_deref_var(&b, gs_out_pos), in_pos_i);
+
+      /* gl_Layer from push constants */
+      nir_ssa_def *layer =
+         nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 0),
+                                .base = push_constant_layer_base, .range = 4);
+      nir_store_var(&b, gs_out_layer, layer, 0x1);
+
+      nir_emit_vertex(&b, 0);
+   }
+
+   nir_end_primitive(&b, 0);
+
+   return nir;
+}
+
+static nir_shader *
 get_color_clear_rect_fs(uint32_t rt_idx, VkFormat format)
 {
    const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
@@ -224,6 +466,7 @@ create_pipeline(struct v3dv_device *device,
                 uint32_t subpass_idx,
                 uint32_t samples,
                 struct nir_shader *vs_nir,
+                struct nir_shader *gs_nir,
                 struct nir_shader *fs_nir,
                 const VkPipelineVertexInputStateCreateInfo *vi_state,
                 const VkPipelineDepthStencilStateCreateInfo *ds_state,
@@ -231,32 +474,41 @@ create_pipeline(struct v3dv_device *device,
                 const VkPipelineLayout layout,
                 VkPipeline *pipeline)
 {
+   VkPipelineShaderStageCreateInfo stages[3] = { 0 };
    struct vk_shader_module vs_m;
+   struct vk_shader_module gs_m;
    struct vk_shader_module fs_m;
 
+   uint32_t stage_count = 0;
    v3dv_shader_module_internal_init(device, &vs_m, vs_nir);
-   if (fs_nir)
-      v3dv_shader_module_internal_init(device, &fs_m, fs_nir);
+   stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
+   stages[stage_count].module = vk_shader_module_to_handle(&vs_m);
+   stages[stage_count].pName = "main";
+   stage_count++;
 
-   VkPipelineShaderStageCreateInfo stages[2] = {
-      {
-         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-         .stage = VK_SHADER_STAGE_VERTEX_BIT,
-         .module = vk_shader_module_to_handle(&vs_m),
-         .pName = "main",
-      },
-      {
-         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-         .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-         .module = fs_nir ? vk_shader_module_to_handle(&fs_m) : VK_NULL_HANDLE,
-         .pName = "main",
-      },
-   };
+   if (gs_nir) {
+      v3dv_shader_module_internal_init(device, &gs_m, gs_nir);
+      stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+      stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+      stages[stage_count].module = vk_shader_module_to_handle(&gs_m);
+      stages[stage_count].pName = "main";
+      stage_count++;
+   }
+
+   if (fs_nir) {
+      v3dv_shader_module_internal_init(device, &fs_m, fs_nir);
+      stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+      stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+      stages[stage_count].module = vk_shader_module_to_handle(&fs_m);
+      stages[stage_count].pName = "main";
+      stage_count++;
+   }
 
    VkGraphicsPipelineCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 
-      .stageCount = fs_nir ? 2 : 1,
+      .stageCount = stage_count,
       .pStages = stages,
 
       .pVertexInputState = vi_state,
@@ -342,11 +594,13 @@ create_color_clear_pipeline(struct v3dv_device *device,
                             VkFormat format,
                             uint32_t samples,
                             uint32_t components,
+                            bool is_layered,
                             VkPipelineLayout pipeline_layout,
                             VkPipeline *pipeline)
 {
    nir_shader *vs_nir = get_clear_rect_vs();
    nir_shader *fs_nir = get_color_clear_rect_fs(rt_idx, format);
+   nir_shader *gs_nir = is_layered ? get_clear_rect_gs(16) : NULL;
 
    const VkPipelineVertexInputStateCreateInfo vi_state = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -384,7 +638,7 @@ create_color_clear_pipeline(struct v3dv_device *device,
    return create_pipeline(device,
                           pass, subpass_idx,
                           samples,
-                          vs_nir, fs_nir,
+                          vs_nir, gs_nir, fs_nir,
                           &vi_state,
                           &ds_state,
                           &cb_state,
@@ -398,6 +652,7 @@ create_depth_clear_pipeline(struct v3dv_device *device,
                             struct v3dv_render_pass *pass,
                             uint32_t subpass_idx,
                             uint32_t samples,
+                            bool is_layered,
                             VkPipelineLayout pipeline_layout,
                             VkPipeline *pipeline)
 {
@@ -407,6 +662,7 @@ create_depth_clear_pipeline(struct v3dv_device *device,
 
    nir_shader *vs_nir = get_clear_rect_vs();
    nir_shader *fs_nir = has_depth ? get_depth_clear_rect_fs() : NULL;
+   nir_shader *gs_nir = is_layered ? get_clear_rect_gs(4) : NULL;
 
    const VkPipelineVertexInputStateCreateInfo vi_state = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -441,7 +697,7 @@ create_depth_clear_pipeline(struct v3dv_device *device,
    return create_pipeline(device,
                           pass, subpass_idx,
                           samples,
-                          vs_nir, fs_nir,
+                          vs_nir, gs_nir, fs_nir,
                           &vi_state,
                           &ds_state,
                           &cb_state,
@@ -499,7 +755,8 @@ static inline uint64_t
 get_color_clear_pipeline_cache_key(uint32_t rt_idx,
                                    VkFormat format,
                                    uint32_t samples,
-                                   uint32_t components)
+                                   uint32_t components,
+                                   bool is_layered)
 {
    assert(rt_idx < V3D_MAX_DRAW_BUFFERS);
 
@@ -518,6 +775,9 @@ get_color_clear_pipeline_cache_key(uint32_t rt_idx,
    key |= ((uint64_t) components) << bit_offset;
    bit_offset += 4;
 
+   key |= (is_layered ? 1ull : 0ull) << bit_offset;
+   bit_offset += 1;
+
    assert(bit_offset <= 64);
    return key;
 }
@@ -525,7 +785,8 @@ get_color_clear_pipeline_cache_key(uint32_t rt_idx,
 static inline uint64_t
 get_depth_clear_pipeline_cache_key(VkImageAspectFlags aspects,
                                    VkFormat format,
-                                   uint32_t samples)
+                                   uint32_t samples,
+                                   bool is_layered)
 {
    uint64_t key = 0;
    uint32_t bit_offset = 0;
@@ -544,6 +805,9 @@ get_depth_clear_pipeline_cache_key(VkImageAspectFlags aspects,
    key |= ((uint64_t) has_stencil) << bit_offset;
    bit_offset++;;
 
+   key |= (is_layered ? 1ull : 0ull) << bit_offset;
+   bit_offset += 1;
+
    assert(bit_offset <= 64);
    return key;
 }
@@ -557,6 +821,7 @@ get_color_clear_pipeline(struct v3dv_device *device,
                          VkFormat format,
                          uint32_t samples,
                          uint32_t components,
+                         bool is_layered,
                          struct v3dv_meta_color_clear_pipeline **pipeline)
 {
    assert(vk_format_is_color(format));
@@ -580,8 +845,8 @@ get_color_clear_pipeline(struct v3dv_device *device,
 
    uint64_t key;
    if (can_cache_pipeline) {
-      key =
-         get_color_clear_pipeline_cache_key(rt_idx, format, samples, components);
+      key = get_color_clear_pipeline_cache_key(rt_idx, format, samples,
+                                               components, is_layered);
       mtx_lock(&device->meta.mtx);
       struct hash_entry *entry =
          _mesa_hash_table_search(device->meta.color_clear.cache, &key);
@@ -621,6 +886,7 @@ get_color_clear_pipeline(struct v3dv_device *device,
                                         format,
                                         samples,
                                         components,
+                                        is_layered,
                                         device->meta.color_clear.p_layout,
                                         &(*pipeline)->pipeline);
    if (result != VK_SUCCESS)
@@ -660,6 +926,7 @@ get_depth_clear_pipeline(struct v3dv_device *device,
                          struct v3dv_render_pass *pass,
                          uint32_t subpass_idx,
                          uint32_t attachment_idx,
+                         bool is_layered,
                          struct v3dv_meta_depth_clear_pipeline **pipeline)
 {
    assert(subpass_idx < pass->subpass_count);
@@ -673,7 +940,7 @@ get_depth_clear_pipeline(struct v3dv_device *device,
    assert(vk_format_is_depth_or_stencil(format));
 
    const uint64_t key =
-      get_depth_clear_pipeline_cache_key(aspects, format, samples);
+      get_depth_clear_pipeline_cache_key(aspects, format, samples, is_layered);
    mtx_lock(&device->meta.mtx);
    struct hash_entry *entry =
       _mesa_hash_table_search(device->meta.depth_clear.cache, &key);
@@ -696,6 +963,7 @@ get_depth_clear_pipeline(struct v3dv_device *device,
                                         pass,
                                         subpass_idx,
                                         samples,
+                                        is_layered,
                                         device->meta.depth_clear.p_layout,
                                         &(*pipeline)->pipeline);
    if (result != VK_SUCCESS)
@@ -722,272 +990,15 @@ fail:
    return result;
 }
 
-static VkFormat
-get_color_format_for_depth_stencil_format(VkFormat format)
-{
-   /* For single depth/stencil aspect formats, we just choose a compatible
-    * 1 channel format, but for combined depth/stencil we want an RGBA format
-    * so we can specify the channels we want to write.
-    */
-   switch (format) {
-   case VK_FORMAT_D16_UNORM:
-      return VK_FORMAT_R16_UINT;
-   case VK_FORMAT_D32_SFLOAT:
-      return VK_FORMAT_R32_SFLOAT;
-   case VK_FORMAT_X8_D24_UNORM_PACK32:
-   case VK_FORMAT_D24_UNORM_S8_UINT:
-      return VK_FORMAT_R8G8B8A8_UINT;
-   default:
-      unreachable("Unsupported depth/stencil format");
-   };
-}
-
-/**
- * Emits a scissored quad in the clear color, however, unlike the subpass
- * versions, this creates its own framebuffer setup with a single color
- * attachment, and therefore spanws new jobs, making it much slower than the
- * subpass version.
- *
- * This path is only used when we have clears on layers other than the
- * base layer in a framebuffer attachment, since we don't currently
- * support any form of layered rendering that would allow us to implement
- * this in the subpass version.
- *
- * Notice this can also handle depth/stencil formats by rendering to the
- * depth/stencil target using a compatible color format.
- */
-static void
-emit_color_clear_rect(struct v3dv_cmd_buffer *cmd_buffer,
-                      uint32_t attachment_idx,
-                      VkFormat rt_format,
-                      uint32_t rt_samples,
-                      uint32_t rt_components,
-                      VkClearColorValue clear_color,
-                      const VkClearRect *rect)
-{
-   assert(cmd_buffer->state.pass);
-   struct v3dv_device *device = cmd_buffer->device;
-   struct v3dv_render_pass *pass = cmd_buffer->state.pass;
-
-   assert(attachment_idx != VK_ATTACHMENT_UNUSED &&
-          attachment_idx < pass->attachment_count);
-
-   struct v3dv_meta_color_clear_pipeline *pipeline = NULL;
-   VkResult result =
-      get_color_clear_pipeline(device,
-                               NULL, 0, /* Not using current subpass */
-                               0, attachment_idx,
-                               rt_format, rt_samples, rt_components,
-                               &pipeline);
-   if (result != VK_SUCCESS) {
-      if (result == VK_ERROR_OUT_OF_HOST_MEMORY)
-         v3dv_flag_oom(cmd_buffer, NULL);
-      return;
-   }
-   assert(pipeline && pipeline->pipeline && pipeline->pass);
-
-   /* Since we are not emitting the draw call in the current subpass we should
-    * be caching the clear pipeline and we don't have to take care of destorying
-    * it below.
-    */
-   assert(pipeline->cached);
-
-   /* Store command buffer state for the current subpass before we interrupt
-    * it to emit the color clear pass and then finish the job for the
-    * interrupted subpass.
-    */
-   v3dv_cmd_buffer_meta_state_push(cmd_buffer, false);
-   v3dv_cmd_buffer_finish_job(cmd_buffer);
-
-   struct v3dv_framebuffer *subpass_fb =
-      v3dv_framebuffer_from_handle(cmd_buffer->state.meta.framebuffer);
-   VkCommandBuffer cmd_buffer_handle = v3dv_cmd_buffer_to_handle(cmd_buffer);
-   VkDevice device_handle = v3dv_device_to_handle(cmd_buffer->device);
-
-   /* If we are clearing a depth/stencil attachment as a color attachment
-    * then we need to configure the framebuffer to the compatible color
-    * format.
-    */
-   const struct v3dv_image_view *att_iview =
-      subpass_fb->attachments[attachment_idx];
-   const bool is_depth_or_stencil =
-      vk_format_is_depth_or_stencil(att_iview->vk_format);
-
-   /* Emit the pass for each attachment layer, which creates a framebuffer
-    * for each selected layer of the attachment and then renders a scissored
-    * quad in the clear color.
-    */
-   uint32_t dirty_dynamic_state = 0;
-   for (uint32_t i = 0; i < rect->layerCount; i++) {
-      VkImageViewCreateInfo fb_layer_view_info = {
-         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-         .image = v3dv_image_to_handle((struct v3dv_image *)att_iview->image),
-         .viewType =
-            v3dv_image_type_to_view_type(att_iview->image->type),
-         .format = is_depth_or_stencil ? rt_format : att_iview->vk_format,
-         .subresourceRange = {
-            .aspectMask = is_depth_or_stencil ? VK_IMAGE_ASPECT_COLOR_BIT :
-                                                att_iview->aspects,
-            .baseMipLevel = att_iview->base_level,
-            .levelCount = att_iview->max_level - att_iview->base_level + 1,
-            .baseArrayLayer = att_iview->first_layer + rect->baseArrayLayer + i,
-            .layerCount = 1,
-         },
-      };
-      VkImageView fb_attachment;
-      result = v3dv_CreateImageView(v3dv_device_to_handle(device),
-                                    &fb_layer_view_info,
-                                    &device->vk.alloc, &fb_attachment);
-      if (result != VK_SUCCESS)
-         goto fail;
-
-      v3dv_cmd_buffer_add_private_obj(
-         cmd_buffer, (uintptr_t)fb_attachment,
-         (v3dv_cmd_buffer_private_obj_destroy_cb)v3dv_DestroyImageView);
-
-      VkFramebufferCreateInfo fb_info = {
-         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-         .renderPass = v3dv_render_pass_to_handle(pass),
-         .attachmentCount = 1,
-         .pAttachments = &fb_attachment,
-         .width = subpass_fb->width,
-         .height = subpass_fb->height,
-         .layers = 1,
-      };
-
-      VkFramebuffer fb;
-      result = v3dv_CreateFramebuffer(device_handle, &fb_info,
-                                      &cmd_buffer->device->vk.alloc, &fb);
-      if (result != VK_SUCCESS)
-         goto fail;
-
-      v3dv_cmd_buffer_add_private_obj(
-         cmd_buffer, (uintptr_t)fb,
-         (v3dv_cmd_buffer_private_obj_destroy_cb)v3dv_DestroyFramebuffer);
-
-      VkRenderPassBeginInfo rp_info = {
-         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-         .renderPass = pipeline->pass,
-         .framebuffer = fb,
-         .renderArea = {
-            .offset = { rect->rect.offset.x, rect->rect.offset.y },
-            .extent = { rect->rect.extent.width, rect->rect.extent.height } },
-         .clearValueCount = 0,
-      };
-
-      v3dv_CmdBeginRenderPass(cmd_buffer_handle, &rp_info,
-                              VK_SUBPASS_CONTENTS_INLINE);
-
-      struct v3dv_job *job = cmd_buffer->state.job;
-      if (!job)
-         goto fail;
-      job->is_subpass_continue = true;
-
-      v3dv_CmdPushConstants(cmd_buffer_handle,
-                            device->meta.color_clear.p_layout,
-                            VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16,
-                            &clear_color);
-
-      v3dv_CmdBindPipeline(cmd_buffer_handle,
-                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                           pipeline->pipeline);
-
-      const VkViewport viewport = {
-         .x = rect->rect.offset.x,
-         .y = rect->rect.offset.y,
-         .width = rect->rect.extent.width,
-         .height = rect->rect.extent.height,
-         .minDepth = 0.0f,
-         .maxDepth = 1.0f
-      };
-      v3dv_CmdSetViewport(cmd_buffer_handle, 0, 1, &viewport);
-      v3dv_CmdSetScissor(cmd_buffer_handle, 0, 1, &rect->rect);
-
-      v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
-
-      v3dv_CmdEndRenderPass(cmd_buffer_handle);
-   }
-
-   /* The clear pipeline sets viewport and scissor state, so we need
-    * to restore it
-    */
-   dirty_dynamic_state = V3DV_CMD_DIRTY_VIEWPORT | V3DV_CMD_DIRTY_SCISSOR;
-
-fail:
-   v3dv_cmd_buffer_meta_state_pop(cmd_buffer, dirty_dynamic_state, true);
-}
-
-static void
-emit_ds_clear_rect(struct v3dv_cmd_buffer *cmd_buffer,
-                   VkImageAspectFlags aspects,
-                   uint32_t attachment_idx,
-                   VkClearDepthStencilValue clear_ds,
-                   const VkClearRect *rect)
-{
-   assert(cmd_buffer->state.pass);
-   assert(attachment_idx != VK_ATTACHMENT_UNUSED);
-   assert(attachment_idx < cmd_buffer->state.pass->attachment_count);
-
-   VkFormat format =
-      cmd_buffer->state.pass->attachments[attachment_idx].desc.format;
-   assert ((aspects & ~vk_format_aspects(format)) == 0);
-
-   uint32_t samples =
-      cmd_buffer->state.pass->attachments[attachment_idx].desc.samples;
-
-   enum pipe_format pformat = vk_format_to_pipe_format(format);
-   VkClearColorValue clear_color;
-   uint32_t clear_zs =
-      util_pack_z_stencil(pformat, clear_ds.depth, clear_ds.stencil);
-
-   /* We implement depth/stencil clears by turning them into color clears
-    * with a compatible color format.
-    */
-   VkFormat color_format = get_color_format_for_depth_stencil_format(format);
-
-   uint32_t comps;
-   if (color_format == VK_FORMAT_R8G8B8A8_UINT) {
-    /* We are clearing a D24 format so we need to select the channels that we
-     * are being asked to clear to avoid clearing aspects that should be
-     * preserved. Also, the hardware uses the MSB channels to store the D24
-     * component, so we need to shift the components in the clear value to
-     * match that.
-     */
-      comps = 0;
-      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
-         comps |= VK_COLOR_COMPONENT_R_BIT;
-         clear_color.uint32[0] = clear_zs >> 24;
-      }
-      if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT) {
-         comps |= VK_COLOR_COMPONENT_G_BIT |
-                  VK_COLOR_COMPONENT_B_BIT |
-                  VK_COLOR_COMPONENT_A_BIT;
-         clear_color.uint32[1] = (clear_zs >>  0) & 0xff;
-         clear_color.uint32[2] = (clear_zs >>  8) & 0xff;
-         clear_color.uint32[3] = (clear_zs >> 16) & 0xff;
-      }
-   } else {
-      /* For anything else we use a single component format */
-      comps = VK_COLOR_COMPONENT_R_BIT;
-      clear_color.uint32[0] = clear_zs;
-   }
-
-   emit_color_clear_rect(cmd_buffer, attachment_idx,
-                         color_format, samples, comps,
-                         clear_color, rect);
-}
-
-/* Emits a scissored quad in the clear color.
- *
- * This path only works for clears to the base layer in the framebuffer, since
- * we don't currently support any form of layered rendering.
- */
+/* Emits a scissored quad in the clear color */
 static void
 emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
                                struct v3dv_render_pass *pass,
                                struct v3dv_subpass *subpass,
                                uint32_t rt_idx,
                                const VkClearColorValue *clear_color,
+                               bool is_layered,
+                               bool all_rects_same_layers,
                                uint32_t rect_count,
                                const VkClearRect *rects)
 {
@@ -1016,6 +1027,7 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
                                               format,
                                               samples,
                                               components,
+                                              is_layered,
                                               &pipeline);
    if (result != VK_SUCCESS) {
       if (result == VK_ERROR_OUT_OF_HOST_MEMORY)
@@ -1040,7 +1052,6 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
    uint32_t dynamic_states = V3DV_CMD_DIRTY_VIEWPORT | V3DV_CMD_DIRTY_SCISSOR;
 
    for (uint32_t i = 0; i < rect_count; i++) {
-      assert(rects[i].baseArrayLayer == 0 && rects[i].layerCount == 1);
       const VkViewport viewport = {
          .x = rects[i].rect.offset.x,
          .y = rects[i].rect.offset.y,
@@ -1051,7 +1062,20 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
       };
       v3dv_CmdSetViewport(cmd_buffer_handle, 0, 1, &viewport);
       v3dv_CmdSetScissor(cmd_buffer_handle, 0, 1, &rects[i].rect);
-      v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
+
+      if (is_layered) {
+         for (uint32_t layer_offset = 0; layer_offset < rects[i].layerCount;
+              layer_offset++) {
+            uint32_t layer = rects[i].baseArrayLayer + layer_offset;
+            v3dv_CmdPushConstants(cmd_buffer_handle,
+                                  cmd_buffer->device->meta.depth_clear.p_layout,
+                                  VK_SHADER_STAGE_GEOMETRY_BIT, 16, 4, &layer);
+            v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
+         }
+      } else {
+         assert(rects[i].baseArrayLayer == 0 && rects[i].layerCount == 1);
+         v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
+      }
    }
 
    /* Subpass pipelines can't be cached because they include a reference to the
@@ -1068,9 +1092,6 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
 
 /* Emits a scissored quad, clearing the depth aspect by writing to gl_FragDepth
  * and the stencil aspect by using stencil testing.
- *
- * This path only works for clears to the base layer in the framebuffer, since
- * we don't currently support any form of layered rendering.
  */
 static void
 emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
@@ -1078,6 +1099,8 @@ emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
                             struct v3dv_subpass *subpass,
                             VkImageAspectFlags aspects,
                             const VkClearDepthStencilValue *clear_ds,
+                            bool is_layered,
+                            bool all_rects_same_layers,
                             uint32_t rect_count,
                             const VkClearRect *rects)
 {
@@ -1094,6 +1117,7 @@ emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
                                               pass,
                                               cmd_buffer->state.subpass_idx,
                                               attachment_idx,
+                                              is_layered,
                                               &pipeline);
    if (result != VK_SUCCESS) {
       if (result == VK_ERROR_OUT_OF_HOST_MEMORY)
@@ -1130,7 +1154,6 @@ emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
    }
 
    for (uint32_t i = 0; i < rect_count; i++) {
-      assert(rects[i].baseArrayLayer == 0 && rects[i].layerCount == 1);
       const VkViewport viewport = {
          .x = rects[i].rect.offset.x,
          .y = rects[i].rect.offset.y,
@@ -1141,488 +1164,46 @@ emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
       };
       v3dv_CmdSetViewport(cmd_buffer_handle, 0, 1, &viewport);
       v3dv_CmdSetScissor(cmd_buffer_handle, 0, 1, &rects[i].rect);
-      v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
+      if (is_layered) {
+         for (uint32_t layer_offset = 0; layer_offset < rects[i].layerCount;
+              layer_offset++) {
+            uint32_t layer = rects[i].baseArrayLayer + layer_offset;
+            v3dv_CmdPushConstants(cmd_buffer_handle,
+                                  cmd_buffer->device->meta.depth_clear.p_layout,
+                                  VK_SHADER_STAGE_GEOMETRY_BIT, 4, 4, &layer);
+            v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
+         }
+      } else {
+         assert(rects[i].baseArrayLayer == 0 && rects[i].layerCount == 1);
+         v3dv_CmdDraw(cmd_buffer_handle, 4, 1, 0, 0);
+      }
    }
 
    v3dv_cmd_buffer_meta_state_pop(cmd_buffer, dynamic_states, false);
 }
 
 static void
-emit_tlb_clear_store(struct v3dv_cmd_buffer *cmd_buffer,
-                     struct v3dv_cl *cl,
-                     uint32_t attachment_idx,
-                     uint32_t layer,
-                     uint32_t buffer)
+gather_layering_info(uint32_t rect_count, const VkClearRect *rects,
+                     bool *is_layered, bool *all_rects_same_layers)
 {
-   const struct v3dv_image_view *iview =
-      cmd_buffer->state.framebuffer->attachments[attachment_idx];
-   const struct v3dv_image *image = iview->image;
-   const struct v3d_resource_slice *slice = &image->slices[iview->base_level];
-   uint32_t layer_offset = v3dv_layer_offset(image,
-                                             iview->base_level,
-                                             iview->first_layer + layer);
+   *all_rects_same_layers = true;
 
-   cl_emit(cl, STORE_TILE_BUFFER_GENERAL, store) {
-      store.buffer_to_store = buffer;
-      store.address = v3dv_cl_address(image->mem->bo, layer_offset);
-      store.clear_buffer_being_stored = false;
-
-      store.output_image_format = iview->format->rt_type;
-      store.r_b_swap = iview->swap_rb;
-      store.memory_format = slice->tiling;
-
-      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
-          slice->tiling == V3D_TILING_UIF_XOR) {
-         store.height_in_ub_or_stride =
-            slice->padded_height_of_output_image_in_uif_blocks;
-      } else if (slice->tiling == V3D_TILING_RASTER) {
-         store.height_in_ub_or_stride = slice->stride;
-      }
-
-      if (image->samples > VK_SAMPLE_COUNT_1_BIT)
-         store.decimate_mode = V3D_DECIMATE_MODE_ALL_SAMPLES;
-      else
-         store.decimate_mode = V3D_DECIMATE_MODE_SAMPLE_0;
-   }
-}
-
-static void
-emit_tlb_clear_stores(struct v3dv_cmd_buffer *cmd_buffer,
-                      struct v3dv_cl *cl,
-                      uint32_t attachment_count,
-                      const VkClearAttachment *attachments,
-                      uint32_t layer)
-{
-   struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_subpass *subpass =
-      &state->pass->subpasses[state->subpass_idx];
-
-   bool has_stores = false;
-   for (uint32_t i = 0; i < attachment_count; i++) {
-      uint32_t attachment_idx;
-      uint32_t buffer;
-      if (attachments[i].aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT |
-                                       VK_IMAGE_ASPECT_STENCIL_BIT)) {
-         attachment_idx = subpass->ds_attachment.attachment;
-         buffer = v3dv_zs_buffer_from_aspect_bits(attachments[i].aspectMask);
-      } else {
-         uint32_t rt_idx = attachments[i].colorAttachment;
-         attachment_idx = subpass->color_attachments[rt_idx].attachment;
-         buffer = RENDER_TARGET_0 + rt_idx;
-      }
-
-      if (attachment_idx == VK_ATTACHMENT_UNUSED)
-         continue;
-
-      has_stores = true;
-      emit_tlb_clear_store(cmd_buffer, cl, attachment_idx, layer, buffer);
-   }
-
-   if (!has_stores) {
-      cl_emit(cl, STORE_TILE_BUFFER_GENERAL, store) {
-         store.buffer_to_store = NONE;
-      }
-   }
-}
-
-static void
-emit_tlb_clear_per_tile_rcl(struct v3dv_cmd_buffer *cmd_buffer,
-                            uint32_t attachment_count,
-                            const VkClearAttachment *attachments,
-                            uint32_t layer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   struct v3dv_cl *cl = &job->indirect;
-   v3dv_cl_ensure_space(cl, 200, 1);
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   struct v3dv_cl_reloc tile_list_start = v3dv_cl_get_address(cl);
-
-   cl_emit(cl, TILE_COORDINATES_IMPLICIT, coords);
-
-   cl_emit(cl, END_OF_LOADS, end); /* Nothing to load */
-
-   cl_emit(cl, PRIM_LIST_FORMAT, fmt) {
-      fmt.primitive_type = LIST_TRIANGLES;
-   }
-
-   cl_emit(cl, BRANCH_TO_IMPLICIT_TILE_LIST, branch);
-
-   emit_tlb_clear_stores(cmd_buffer, cl, attachment_count, attachments, layer);
-
-   cl_emit(cl, END_OF_TILE_MARKER, end);
-
-   cl_emit(cl, RETURN_FROM_SUB_LIST, ret);
-
-   cl_emit(&job->rcl, START_ADDRESS_OF_GENERIC_TILE_LIST, branch) {
-      branch.start = tile_list_start;
-      branch.end = v3dv_cl_get_address(cl);
-   }
-}
-
-static void
-emit_tlb_clear_layer_rcl(struct v3dv_cmd_buffer *cmd_buffer,
-                         uint32_t attachment_count,
-                         const VkClearAttachment *attachments,
-                         uint32_t layer)
-{
-   const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
-
-   struct v3dv_job *job = cmd_buffer->state.job;
-   struct v3dv_cl *rcl = &job->rcl;
-
-   const struct v3dv_frame_tiling *tiling = &job->frame_tiling;
-
-   const uint32_t tile_alloc_offset =
-      64 * layer * tiling->draw_tiles_x * tiling->draw_tiles_y;
-   cl_emit(rcl, MULTICORE_RENDERING_TILE_LIST_SET_BASE, list) {
-      list.address = v3dv_cl_address(job->tile_alloc, tile_alloc_offset);
-   }
-
-   cl_emit(rcl, MULTICORE_RENDERING_SUPERTILE_CFG, config) {
-      config.number_of_bin_tile_lists = 1;
-      config.total_frame_width_in_tiles = tiling->draw_tiles_x;
-      config.total_frame_height_in_tiles = tiling->draw_tiles_y;
-
-      config.supertile_width_in_tiles = tiling->supertile_width;
-      config.supertile_height_in_tiles = tiling->supertile_height;
-
-      config.total_frame_width_in_supertiles =
-         tiling->frame_width_in_supertiles;
-      config.total_frame_height_in_supertiles =
-         tiling->frame_height_in_supertiles;
-   }
-
-   /* Emit the clear and also the workaround for GFXH-1742 */
-   for (int i = 0; i < 2; i++) {
-      cl_emit(rcl, TILE_COORDINATES, coords);
-      cl_emit(rcl, END_OF_LOADS, end);
-      cl_emit(rcl, STORE_TILE_BUFFER_GENERAL, store) {
-         store.buffer_to_store = NONE;
-      }
-      if (i == 0) {
-         cl_emit(rcl, CLEAR_TILE_BUFFERS, clear) {
-            clear.clear_z_stencil_buffer = true;
-            clear.clear_all_render_targets = true;
-         }
-      }
-      cl_emit(rcl, END_OF_TILE_MARKER, end);
-   }
-
-   cl_emit(rcl, FLUSH_VCD_CACHE, flush);
-
-   emit_tlb_clear_per_tile_rcl(cmd_buffer, attachment_count, attachments, layer);
-
-   uint32_t supertile_w_in_pixels =
-      tiling->tile_width * tiling->supertile_width;
-   uint32_t supertile_h_in_pixels =
-      tiling->tile_height * tiling->supertile_height;
-
-   const uint32_t max_render_x = framebuffer->width - 1;
-   const uint32_t max_render_y = framebuffer->height - 1;
-   const uint32_t max_x_supertile = max_render_x / supertile_w_in_pixels;
-   const uint32_t max_y_supertile = max_render_y / supertile_h_in_pixels;
-
-   for (int y = 0; y <= max_y_supertile; y++) {
-      for (int x = 0; x <= max_x_supertile; x++) {
-         cl_emit(rcl, SUPERTILE_COORDINATES, coords) {
-            coords.column_number_in_supertiles = x;
-            coords.row_number_in_supertiles = y;
-         }
-      }
-   }
-}
-
-static void
-emit_tlb_clear_job(struct v3dv_cmd_buffer *cmd_buffer,
-                   uint32_t attachment_count,
-                   const VkClearAttachment *attachments,
-                   uint32_t base_layer,
-                   uint32_t layer_count)
-{
-   const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
-   const struct v3dv_subpass *subpass =
-      &state->pass->subpasses[state->subpass_idx];
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   /* Check how many color attachments we have and also if we have a
-    * depth/stencil attachment.
-    */
-   uint32_t color_attachment_count = 0;
-   VkClearAttachment color_attachments[4];
-   const VkClearDepthStencilValue *ds_clear_value = NULL;
-   uint8_t internal_depth_type = V3D_INTERNAL_TYPE_DEPTH_32F;
-   for (uint32_t i = 0; i < attachment_count; i++) {
-      if (attachments[i].aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT |
-                                       VK_IMAGE_ASPECT_STENCIL_BIT)) {
-         assert(subpass->ds_attachment.attachment != VK_ATTACHMENT_UNUSED);
-         ds_clear_value = &attachments[i].clearValue.depthStencil;
-         struct v3dv_render_pass_attachment *att =
-            &state->pass->attachments[subpass->ds_attachment.attachment];
-         internal_depth_type = v3dv_get_internal_depth_type(att->desc.format);
-      } else if (attachments[i].aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
-         color_attachments[color_attachment_count++] = attachments[i];
+   uint32_t min_layer = rects[0].baseArrayLayer;
+   uint32_t max_layer = rects[0].baseArrayLayer + rects[0].layerCount - 1;
+   for (uint32_t i = 1; i < rect_count; i++) {
+      if (rects[i].baseArrayLayer != rects[i - 1].baseArrayLayer ||
+          rects[i].layerCount != rects[i - 1].layerCount) {
+         *all_rects_same_layers = false;
+         min_layer = MIN2(min_layer, rects[i].baseArrayLayer);
+         max_layer = MAX2(max_layer, rects[i].baseArrayLayer +
+                                     rects[i].layerCount - 1);
       }
    }
 
-   uint8_t internal_bpp;
-   bool msaa;
-   v3dv_framebuffer_compute_internal_bpp_msaa(framebuffer, subpass,
-                                              &internal_bpp, &msaa);
-
-   v3dv_job_start_frame(job,
-                        framebuffer->width,
-                        framebuffer->height,
-                        framebuffer->layers,
-                        color_attachment_count,
-                        internal_bpp, msaa);
-
-   struct v3dv_cl *rcl = &job->rcl;
-   v3dv_cl_ensure_space_with_branch(rcl, 200 +
-                                    layer_count * 256 *
-                                    cl_packet_length(SUPERTILE_COORDINATES));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   const struct v3dv_frame_tiling *tiling = &job->frame_tiling;
-   cl_emit(rcl, TILE_RENDERING_MODE_CFG_COMMON, config) {
-      config.early_z_disable = true;
-      config.image_width_pixels = framebuffer->width;
-      config.image_height_pixels = framebuffer->height;
-      config.number_of_render_targets = MAX2(color_attachment_count, 1);
-      config.multisample_mode_4x = false; /* FIXME */
-      config.maximum_bpp_of_all_render_targets = tiling->internal_bpp;
-      config.internal_depth_type = internal_depth_type;
-   }
-
-   for (uint32_t i = 0; i < color_attachment_count; i++) {
-      uint32_t rt_idx = color_attachments[i].colorAttachment;
-      uint32_t attachment_idx = subpass->color_attachments[rt_idx].attachment;
-      if (attachment_idx == VK_ATTACHMENT_UNUSED)
-         continue;
-
-      const struct v3dv_render_pass_attachment *attachment =
-         &state->pass->attachments[attachment_idx];
-
-      uint32_t internal_type, internal_bpp, internal_size;
-      const struct v3dv_format *format =
-         v3dv_get_format(attachment->desc.format);
-      v3dv_get_internal_type_bpp_for_output_format(format->rt_type,
-                                                   &internal_type,
-                                                   &internal_bpp);
-      internal_size = 4 << internal_bpp;
-
-      uint32_t clear_color[4] = { 0 };
-      v3dv_get_hw_clear_color(&color_attachments[i].clearValue.color,
-                              internal_type,
-                              internal_size,
-                              clear_color);
-
-      struct v3dv_image_view *iview = framebuffer->attachments[attachment_idx];
-      const struct v3dv_image *image = iview->image;
-      const struct v3d_resource_slice *slice = &image->slices[iview->base_level];
-
-      uint32_t clear_pad = 0;
-      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
-          slice->tiling == V3D_TILING_UIF_XOR) {
-         int uif_block_height = v3d_utile_height(image->cpp) * 2;
-
-         uint32_t implicit_padded_height =
-            align(framebuffer->height, uif_block_height) / uif_block_height;
-
-         if (slice->padded_height_of_output_image_in_uif_blocks -
-             implicit_padded_height >= 15) {
-            clear_pad = slice->padded_height_of_output_image_in_uif_blocks;
-         }
-      }
-
-      cl_emit(rcl, TILE_RENDERING_MODE_CFG_CLEAR_COLORS_PART1, clear) {
-         clear.clear_color_low_32_bits = clear_color[0];
-         clear.clear_color_next_24_bits = clear_color[1] & 0xffffff;
-         clear.render_target_number = i;
-      };
-
-      if (iview->internal_bpp >= V3D_INTERNAL_BPP_64) {
-         cl_emit(rcl, TILE_RENDERING_MODE_CFG_CLEAR_COLORS_PART2, clear) {
-            clear.clear_color_mid_low_32_bits =
-              ((clear_color[1] >> 24) | (clear_color[2] << 8));
-            clear.clear_color_mid_high_24_bits =
-              ((clear_color[2] >> 24) | ((clear_color[3] & 0xffff) << 8));
-            clear.render_target_number = i;
-         };
-      }
-
-      if (iview->internal_bpp >= V3D_INTERNAL_BPP_128 || clear_pad) {
-         cl_emit(rcl, TILE_RENDERING_MODE_CFG_CLEAR_COLORS_PART3, clear) {
-            clear.uif_padded_height_in_uif_blocks = clear_pad;
-            clear.clear_color_high_16_bits = clear_color[3] >> 16;
-            clear.render_target_number = i;
-         };
-      }
-   }
-
-   cl_emit(rcl, TILE_RENDERING_MODE_CFG_COLOR, rt) {
-      v3dv_render_pass_setup_render_target(cmd_buffer, 0,
-                                           &rt.render_target_0_internal_bpp,
-                                           &rt.render_target_0_internal_type,
-                                           &rt.render_target_0_clamp);
-      v3dv_render_pass_setup_render_target(cmd_buffer, 1,
-                                           &rt.render_target_1_internal_bpp,
-                                           &rt.render_target_1_internal_type,
-                                           &rt.render_target_1_clamp);
-      v3dv_render_pass_setup_render_target(cmd_buffer, 2,
-                                           &rt.render_target_2_internal_bpp,
-                                           &rt.render_target_2_internal_type,
-                                           &rt.render_target_2_clamp);
-      v3dv_render_pass_setup_render_target(cmd_buffer, 3,
-                                           &rt.render_target_3_internal_bpp,
-                                           &rt.render_target_3_internal_type,
-                                           &rt.render_target_3_clamp);
-   }
-
-   cl_emit(rcl, TILE_RENDERING_MODE_CFG_ZS_CLEAR_VALUES, clear) {
-      clear.z_clear_value = ds_clear_value ? ds_clear_value->depth : 1.0f;
-      clear.stencil_clear_value = ds_clear_value ? ds_clear_value->stencil : 0;
-   };
-
-   cl_emit(rcl, TILE_LIST_INITIAL_BLOCK_SIZE, init) {
-      init.use_auto_chained_tile_lists = true;
-      init.size_of_first_block_in_chained_tile_lists =
-         TILE_ALLOCATION_BLOCK_SIZE_64B;
-   }
-
-   for (int layer = base_layer; layer < base_layer + layer_count; layer++) {
-      emit_tlb_clear_layer_rcl(cmd_buffer,
-                               attachment_count,
-                               attachments,
-                               layer);
-   }
-
-   cl_emit(rcl, END_OF_RENDERING, end);
+   *is_layered = !(min_layer == 0 && max_layer == 0);
 }
 
-static void
-emit_tlb_clear(struct v3dv_cmd_buffer *cmd_buffer,
-               uint32_t attachment_count,
-               const VkClearAttachment *attachments,
-               uint32_t base_layer,
-               uint32_t layer_count)
-{
-   struct v3dv_job *job =
-      v3dv_cmd_buffer_start_job(cmd_buffer, cmd_buffer->state.subpass_idx,
-                                V3DV_JOB_TYPE_GPU_CL);
-
-   if (!job)
-      return;
-
-   /* vkCmdClearAttachments runs inside a render pass */
-   job->is_subpass_continue = true;
-
-   emit_tlb_clear_job(cmd_buffer,
-                      attachment_count,
-                      attachments,
-                      base_layer, layer_count);
-
-   v3dv_cmd_buffer_subpass_resume(cmd_buffer, cmd_buffer->state.subpass_idx);
-}
-
-static bool
-is_subrect(const VkRect2D *r0, const VkRect2D *r1)
-{
-   return r0->offset.x <= r1->offset.x &&
-          r0->offset.y <= r1->offset.y &&
-          r0->offset.x + r0->extent.width >= r1->offset.x + r1->extent.width &&
-          r0->offset.y + r0->extent.height >= r1->offset.y + r1->extent.height;
-}
-
-static bool
-can_use_tlb_clear(struct v3dv_cmd_buffer *cmd_buffer,
-                  uint32_t rect_count,
-                  const VkClearRect* rects)
-{
-   const struct v3dv_framebuffer *framebuffer = cmd_buffer->state.framebuffer;
-
-   const VkRect2D *render_area = &cmd_buffer->state.render_area;
-
-   /* Check if we are clearing a single region covering the entire framebuffer
-    * and that we are not constrained by the current render area.
-    *
-    * From the Vulkan 1.0 spec:
-    *
-    *   "The vkCmdClearAttachments command is not affected by the bound
-    *    pipeline state."
-    *
-    * So we can ignore scissor and viewport state for this check.
-    */
-   const VkRect2D fb_rect = {
-      { 0, 0 },
-      { framebuffer->width, framebuffer->height }
-   };
-
-   return rect_count == 1 &&
-          is_subrect(&rects[0].rect, &fb_rect) &&
-          is_subrect(render_area, &fb_rect);
-}
-
-static void
-handle_deferred_clear_attachments(struct v3dv_cmd_buffer *cmd_buffer,
-                                  uint32_t attachmentCount,
-                                  const VkClearAttachment *pAttachments,
-                                  uint32_t rectCount,
-                                  const VkClearRect *pRects)
-{
-   /* Finish the current job */
-   v3dv_cmd_buffer_finish_job(cmd_buffer);
-
-   /* Add a deferred clear attachments job right after that we will process
-    * when we execute this secondary command buffer into a primary.
-    */
-   struct v3dv_job *job =
-      v3dv_cmd_buffer_create_cpu_job(cmd_buffer->device,
-                                     V3DV_JOB_TYPE_CPU_CLEAR_ATTACHMENTS,
-                                     cmd_buffer,
-                                     cmd_buffer->state.subpass_idx);
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   job->cpu.clear_attachments.rects =
-      vk_alloc(&cmd_buffer->device->vk.alloc,
-               sizeof(VkClearRect) * rectCount, 8,
-               VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
-   if (!job->cpu.clear_attachments.rects) {
-      v3dv_flag_oom(cmd_buffer, NULL);
-      return;
-   }
-
-   job->cpu.clear_attachments.attachment_count = attachmentCount;
-   memcpy(job->cpu.clear_attachments.attachments, pAttachments,
-          sizeof(VkClearAttachment) * attachmentCount);
-
-   job->cpu.clear_attachments.rect_count = rectCount;
-   memcpy(job->cpu.clear_attachments.rects, pRects,
-          sizeof(VkClearRect) * rectCount);
-
-   list_addtail(&job->list_link, &cmd_buffer->jobs);
-
-   /* Resume the subpass so we can continue recording commands */
-   v3dv_cmd_buffer_subpass_resume(cmd_buffer,
-                                  cmd_buffer->state.subpass_idx);
-}
-
-static bool
-all_clear_rects_in_base_layer(uint32_t rect_count, const VkClearRect *rects)
-{
-   for (uint32_t i = 0; i < rect_count; i++) {
-      if (rects[i].baseArrayLayer != 0 || rects[i].layerCount != 1)
-         return false;
-   }
-   return true;
-}
-
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdClearAttachments(VkCommandBuffer commandBuffer,
                          uint32_t attachmentCount,
                          const VkClearAttachment *pAttachments,
@@ -1634,117 +1215,31 @@ v3dv_CmdClearAttachments(VkCommandBuffer commandBuffer,
    /* We can only clear attachments in the current subpass */
    assert(attachmentCount <= 5); /* 4 color + D/S */
 
-   /* Clear attachments may clear multiple layers of the framebuffer, which
-    * currently requires that we emit multiple jobs (one per layer) and
-    * therefore requires that we have the framebuffer information available
-    * to select the destination layers.
-    *
-    * For secondary command buffers the framebuffer state may not be available
-    * until they are executed inside a primary command buffer, so in that case
-    * we need to defer recording of the command until that moment.
-    *
-    * FIXME: once we add support for geometry shaders in the driver we could
-    * avoid emitting a job per layer to implement this by always using the clear
-    * rect path below with a passthrough geometry shader to select the layer to
-    * clear. If we did that we would not need to special case secondary command
-    * buffers here and we could ensure that any secondary command buffer in a
-    * render pass only has on job with a partial CL, which would simplify things
-    * quite a bit.
-    */
-   if (!cmd_buffer->state.framebuffer) {
-      assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
-      handle_deferred_clear_attachments(cmd_buffer,
-                                        attachmentCount, pAttachments,
-                                        rectCount, pRects);
-      return;
-   }
-
-   assert(cmd_buffer->state.framebuffer);
-
    struct v3dv_render_pass *pass = cmd_buffer->state.pass;
 
    assert(cmd_buffer->state.subpass_idx < pass->subpass_count);
    struct v3dv_subpass *subpass =
       &cmd_buffer->state.pass->subpasses[cmd_buffer->state.subpass_idx];
 
-   /* First we try to handle this by emitting a clear rect inside the
-    * current job for this subpass. This should be optimal but this method
-    * cannot handle clearing layers other than the base layer, since we don't
-    * support any form of layered rendering yet.
+   /* Emit a clear rect inside the current job for this subpass. For layered
+    * framebuffers, we use a geometry shader to redirect clears to the
+    * appropriate layers.
     */
-   if (all_clear_rects_in_base_layer(rectCount, pRects)) {
-      for (uint32_t i = 0; i < attachmentCount; i++) {
-         if (pAttachments[i].aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
-            emit_subpass_color_clear_rects(cmd_buffer, pass, subpass,
-                                           pAttachments[i].colorAttachment,
-                                           &pAttachments[i].clearValue.color,
-                                           rectCount, pRects);
-         } else {
-            emit_subpass_ds_clear_rects(cmd_buffer, pass, subpass,
-                                        pAttachments[i].aspectMask,
-                                        &pAttachments[i].clearValue.depthStencil,
-                                        rectCount, pRects);
-         }
-      }
-      return;
-   }
-
-   perf_debug("Falling back to slow path for vkCmdClearAttachments due to "
-              "clearing layers other than the base array layer.\n");
-
-   /* If we can't handle this as a draw call inside the current job then we
-    * will have to spawn jobs for the clears, which will be slow. In that case,
-    * try to use the TLB to clear if possible.
-    */
-   if (can_use_tlb_clear(cmd_buffer, rectCount, pRects)) {
-      emit_tlb_clear(cmd_buffer, attachmentCount, pAttachments,
-                     pRects[0].baseArrayLayer, pRects[0].layerCount);
-      return;
-   }
-
-   /* Otherwise, fall back to drawing rects with the clear value using a
-    * separate job. This is the slowest path.
-    */
+   bool is_layered, all_rects_same_layers;
+   gather_layering_info(rectCount, pRects, &is_layered, &all_rects_same_layers);
    for (uint32_t i = 0; i < attachmentCount; i++) {
-      uint32_t attachment_idx = VK_ATTACHMENT_UNUSED;
-
       if (pAttachments[i].aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
-         uint32_t rt_idx = pAttachments[i].colorAttachment;
-         attachment_idx = subpass->color_attachments[rt_idx].attachment;
-      } else if (pAttachments[i].aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT |
-                                               VK_IMAGE_ASPECT_STENCIL_BIT)) {
-         attachment_idx = subpass->ds_attachment.attachment;
-      }
-
-      if (attachment_idx == VK_ATTACHMENT_UNUSED)
-         continue;
-
-      if (pAttachments[i].aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
-         const uint32_t components = VK_COLOR_COMPONENT_R_BIT |
-                                     VK_COLOR_COMPONENT_G_BIT |
-                                     VK_COLOR_COMPONENT_B_BIT |
-                                     VK_COLOR_COMPONENT_A_BIT;
-         const uint32_t samples =
-            cmd_buffer->state.pass->attachments[attachment_idx].desc.samples;
-         const VkFormat format =
-            cmd_buffer->state.pass->attachments[attachment_idx].desc.format;
-         for (uint32_t j = 0; j < rectCount; j++) {
-            emit_color_clear_rect(cmd_buffer,
-                                  attachment_idx,
-                                  format,
-                                  samples,
-                                  components,
-                                  pAttachments[i].clearValue.color,
-                                  &pRects[j]);
-         }
+         emit_subpass_color_clear_rects(cmd_buffer, pass, subpass,
+                                        pAttachments[i].colorAttachment,
+                                        &pAttachments[i].clearValue.color,
+                                        is_layered, all_rects_same_layers,
+                                        rectCount, pRects);
       } else {
-         for (uint32_t j = 0; j < rectCount; j++) {
-            emit_ds_clear_rect(cmd_buffer,
-                               pAttachments[i].aspectMask,
-                               attachment_idx,
-                               pAttachments[i].clearValue.depthStencil,
-                               &pRects[j]);
-         }
+         emit_subpass_ds_clear_rects(cmd_buffer, pass, subpass,
+                                     pAttachments[i].aspectMask,
+                                     &pAttachments[i].clearValue.depthStencil,
+                                     is_layered, all_rects_same_layers,
+                                     rectCount, pRects);
       }
    }
 }

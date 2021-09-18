@@ -210,7 +210,7 @@ ir3_emit_ubos(struct fd_context *ctx, const struct ir3_shader_variant *v,
    /* a6xx+ uses UBO state and ldc instead of pointers emitted in
     * const state and ldg:
     */
-   if (ctx->screen->gpu_id >= 600)
+   if (ctx->screen->gen >= 6)
       return;
 
    if (v->constlen > offset) {
@@ -250,28 +250,6 @@ ir3_emit_ubos(struct fd_context *ctx, const struct ir3_shader_variant *v,
       assert(offset * 4 + params <= v->constlen * 4);
 
       emit_const_ptrs(ring, v, offset * 4, params, bos, offsets);
-   }
-}
-
-static inline void
-ir3_emit_ssbo_sizes(struct fd_screen *screen,
-                    const struct ir3_shader_variant *v,
-                    struct fd_ringbuffer *ring,
-                    struct fd_shaderbuf_stateobj *sb)
-{
-   const struct ir3_const_state *const_state = ir3_const_state(v);
-   uint32_t offset = const_state->offsets.ssbo_sizes;
-   if (v->constlen > offset) {
-      uint32_t sizes[align(const_state->ssbo_size.count, 4)];
-      unsigned mask = const_state->ssbo_size.mask;
-
-      while (mask) {
-         unsigned index = u_bit_scan(&mask);
-         unsigned off = const_state->ssbo_size.off[index];
-         sizes[off] = sb->sb[index].buffer_size;
-      }
-
-      emit_const_user(ring, v, offset * 4, ARRAY_SIZE(sizes), sizes);
    }
 }
 
@@ -448,12 +426,6 @@ emit_common_consts(const struct ir3_shader_variant *v,
          ir3_emit_immediates(ctx->screen, v, ring);
    }
 
-   if (dirty & (FD_DIRTY_SHADER_PROG | FD_DIRTY_SHADER_SSBO)) {
-      struct fd_shaderbuf_stateobj *sb = &ctx->shaderbuf[t];
-      ring_wfi(ctx->batch, ring);
-      ir3_emit_ssbo_sizes(ctx->screen, v, ring, sb);
-   }
-
    if (dirty & (FD_DIRTY_SHADER_PROG | FD_DIRTY_SHADER_IMAGE)) {
       struct fd_shaderimg_stateobj *si = &ctx->shaderimg[t];
       ring_wfi(ctx->batch, ring);
@@ -507,9 +479,10 @@ ir3_emit_vs_driver_params(const struct ir3_shader_variant *v,
     * stream so need to copy them to bo.
     */
    if (indirect && needs_vtxid_base) {
+      uint32_t vertex_params_area = align(vertex_params_size, 16);
       struct pipe_resource *vertex_params_rsc =
          pipe_buffer_create(&ctx->screen->base, PIPE_BIND_CONSTANT_BUFFER,
-                            PIPE_USAGE_STREAM, vertex_params_size * 4);
+                            PIPE_USAGE_STREAM, vertex_params_area * 4);
       unsigned src_off = indirect->offset;
       ;
       void *ptr;
@@ -529,7 +502,7 @@ ir3_emit_vs_driver_params(const struct ir3_shader_variant *v,
       ctx->screen->mem_to_mem(ring, vertex_params_rsc, 0, indirect->buffer,
                               src_off, 1);
 
-      emit_const_prsc(ring, v, offset * 4, 0, vertex_params_size,
+      emit_const_prsc(ring, v, offset * 4, 0, vertex_params_area,
                       vertex_params_rsc);
 
       pipe_resource_reference(&vertex_params_rsc, NULL);

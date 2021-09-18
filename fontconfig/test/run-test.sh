@@ -22,6 +22,8 @@
 # PERFORMANCE OF THIS SOFTWARE.
 set -e
 
+: "${TMPDIR=/tmp}"
+
 case "$OSTYPE" in
     msys ) MyPWD=$(pwd -W) ;;  # On Msys/MinGW, returns a MS Windows style path.
     *    ) MyPWD=$(pwd)    ;;  # On any other platforms, returns a Unix style path.
@@ -30,7 +32,7 @@ esac
 TESTDIR=${srcdir-"$MyPWD"}
 BUILDTESTDIR=${builddir-"$MyPWD"}
 
-BASEDIR=$(mktemp -d --tmpdir fontconfig.XXXXXXXX)
+BASEDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 FONTDIR="$BASEDIR"/fonts
 CACHEDIR="$BASEDIR"/cache.dir
 EXPECTED=${EXPECTED-"out.expected"}
@@ -174,7 +176,7 @@ fi
 $FCCACHE "$FONTDIR"
 sleep 1
 ls -l "$CACHEDIR" > out1
-TESTTMPDIR=$(mktemp -d /tmp/fontconfig.XXXXXXXX)
+TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 sed "s!@FONTDIR@!$TESTTMPDIR/fonts!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
 s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > bind-fonts.conf
@@ -217,8 +219,8 @@ $FCCACHE "$FONTDIR"
 sleep 1
 ls -1 --color=no "$CACHEDIR"/*cache*> out1
 stat -c '%n %s %y %z' "$(cat out1)" > stat1
-TESTTMPDIR=$(mktemp -d /tmp/fontconfig.XXXXXXXX)
-TESTTMP2DIR=$(mktemp -d /tmp/fontconfig.XXXXXXXX)
+TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
+TESTTMP2DIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 cp "$FONT2" "$TESTTMP2DIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$TESTTMP2DIR"
@@ -269,7 +271,7 @@ fi
 $FCCACHE "$FONTDIR"
 sleep 1
 (cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > out1
-TESTTMPDIR=$(mktemp -d /tmp/fontconfig.XXXXXXXX)
+TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 mkdir -p "$TESTTMPDIR"/cache.dir
 sed "s!@FONTDIR@!$TESTTMPDIR/fonts!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
@@ -304,7 +306,7 @@ mv "$_cache" "$_newcache"
 echo "$_uuid" > "$FONTDIR"/.uuid
 touch -d @"$_mtime" "$FONTDIR"
 (cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > out1
-TESTTMPDIR=$(mktemp -d /tmp/fontconfig.XXXXXXXX)
+TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 mkdir -p "$TESTTMPDIR"/cache.dir
 sed "s!@FONTDIR@!$TESTTMPDIR/fonts!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
@@ -357,10 +359,10 @@ cp "$FONT1" "$FONT2" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
 fi
-MYCACHEBASEDIR=$(mktemp -d /tmp/fontconfig.XXXXXXXX)
+MYCACHEBASEDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 MYCACHEDIR="$MYCACHEBASEDIR"/cache.dir
 MYOWNCACHEDIR="$MYCACHEBASEDIR"/owncache.dir
-MYCONFIG=$(mktemp /tmp/fontconfig.XXXXXXXX)
+MYCONFIG=$(mktemp "$TMPDIR"/fontconfig.XXXXXXXX)
 
 mkdir -p "$MYCACHEDIR"
 mkdir -p "$MYOWNCACHEDIR"
@@ -440,7 +442,7 @@ dotest "empty XDG_CACHE_HOME"
 prep
 export XDG_CACHE_HOME=""
 export old_HOME="$HOME"
-export temp_HOME=$(mktemp -d --tmpdir fontconfig.XXXXXXXX)
+export temp_HOME=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 export HOME="$temp_HOME"
 cp "$FONT1" "$FONT2" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then

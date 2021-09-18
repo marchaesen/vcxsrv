@@ -82,7 +82,6 @@ wglCreatePbufferARB(HDC hCurrentDC,
    DWORD dwStyle;
    RECT rect;
    HWND hWnd;
-   HDC hDC;
    int iDisplayablePixelFormat;
    PIXELFORMATDESCRIPTOR pfd;
    BOOL bRet;
@@ -239,22 +238,15 @@ wglCreatePbufferARB(HDC hCurrentDC,
    assert(rect.bottom - rect.top == iHeight);
 #endif
 
-   hDC = GetDC(hWnd);
-   if (!hDC) {
-      return 0;
-   }
-
    /*
     * We can't pass non-displayable pixel formats to GDI, which is why we
     * create the framebuffer object before calling SetPixelFormat().
     */
-   fb = stw_framebuffer_create(hDC, iPixelFormat);
+   fb = stw_framebuffer_create(hWnd, iPixelFormat, STW_FRAMEBUFFER_PBUFFER);
    if (!fb) {
       SetLastError(ERROR_NO_SYSTEM_RESOURCES);
       return NULL;
    }
-
-   fb->bPbuffer = TRUE;
 
    /* WGL_ARB_render_texture fields */
    fb->textureTarget = textureTarget;
@@ -269,7 +261,7 @@ wglCreatePbufferARB(HDC hCurrentDC,
     * We need to set a displayable pixel format on the hidden window DC
     * so that wglCreateContext and wglMakeCurrent are not overruled by GDI.
     */
-   bRet = SetPixelFormat(hDC, iDisplayablePixelFormat, &pfd);
+   bRet = SetPixelFormat(GetDC(hWnd), iDisplayablePixelFormat, &pfd);
    assert(bRet);
 
    return (HPBUFFERARB)fb;

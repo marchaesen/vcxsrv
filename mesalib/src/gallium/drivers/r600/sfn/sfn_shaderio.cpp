@@ -416,7 +416,7 @@ ShaderInput& ShaderIO::input(size_t driver_loc, int frac)
          continue;
 
       auto& v = static_cast<ShaderInputVarying&>(*i);
-      if (v.location() == driver_loc && v.location_frac() == frac)
+      if (v.location() == driver_loc)
          return v;
    }
    return input(driver_loc);

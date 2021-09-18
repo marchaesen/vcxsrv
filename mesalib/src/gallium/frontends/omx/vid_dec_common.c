@@ -138,7 +138,7 @@ void vid_dec_FillOutput(vid_dec_PrivateType *priv, struct pipe_video_buffer *buf
          struct pipe_box box = {0, 0, j, width, height, 1};
          struct pipe_transfer *transfer;
          uint8_t *map, *dst;
-         map = priv->pipe->transfer_map(priv->pipe, views[i]->texture, 0,
+         map = priv->pipe->texture_map(priv->pipe, views[i]->texture, 0,
                   PIPE_MAP_READ, &box, &transfer);
          if (!map)
             return;
@@ -150,7 +150,7 @@ void vid_dec_FillOutput(vid_dec_PrivateType *priv, struct pipe_video_buffer *buf
             def->nStride * views[i]->texture->array_size, 0, 0,
             box.width, box.height, map, transfer->stride, 0, 0);
 
-         pipe_transfer_unmap(priv->pipe, transfer);
+         pipe_texture_unmap(priv->pipe, transfer);
       }
    }
 }

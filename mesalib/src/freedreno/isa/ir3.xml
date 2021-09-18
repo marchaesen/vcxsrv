@@ -64,10 +64,10 @@ TODO:
 			that are specific to a single instruction category,
 			mappings should be defined at that level instead.
 		 -->
-		<map name="DST">src->regs[0]</map>
-		<map name="SRC1">src->regs[1]</map>
-		<map name="SRC2">src->regs[2]</map>
-		<map name="SRC3">src->regs[3]</map>
+		<map name="DST">src->dsts[0]</map>
+		<map name="SRC1">src->srcs[0]</map>
+		<map name="SRC2">src->srcs[1]</map>
+		<map name="SRC3">src->srcs[2]</map>
 		<map name="REPEAT">src->repeat</map>
 		<map name="SS">!!(src->flags &amp; IR3_INSTR_SS)</map>
 		<map name="JP">!!(src->flags &amp; IR3_INSTR_JP)</map>

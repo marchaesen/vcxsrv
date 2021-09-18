@@ -410,12 +410,12 @@ rbug_screen_fence_get_fd(struct pipe_screen *_screen,
    return screen->fence_get_fd(screen, fence);
 }
 
-static void
-rbug_screen_finalize_nir(struct pipe_screen *_screen, void *nir, bool optimize)
+static char *
+rbug_screen_finalize_nir(struct pipe_screen *_screen, void *nir)
 {
    struct pipe_screen *screen = rbug_screen(_screen)->screen;
 
-   screen->finalize_nir(screen, nir, optimize);
+   return screen->finalize_nir(screen, nir);
 }
 
 bool

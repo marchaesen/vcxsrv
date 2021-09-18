@@ -159,7 +159,7 @@ r600_create_new_load(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *va
 
    if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
        intr->intrinsic == nir_intrinsic_interp_deref_at_sample)
-      nir_src_copy(&new_intr->src[1], &intr->src[1], &new_intr->instr);
+      nir_src_copy(&new_intr->src[1], &intr->src[1]);
 
    nir_builder_instr_insert(b, &new_intr->instr);
 
@@ -443,6 +443,8 @@ r600_vectorize_io_impl(nir_function_impl *impl)
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    r600_vec_instr_set_destroy(instr_set);

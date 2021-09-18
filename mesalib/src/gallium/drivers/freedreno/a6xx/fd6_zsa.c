@@ -108,7 +108,7 @@ fd6_zsa_state_create(struct pipe_context *pctx,
 
    if (cso->depth_enabled) {
       so->rb_depth_cntl |=
-         A6XX_RB_DEPTH_CNTL_Z_ENABLE | A6XX_RB_DEPTH_CNTL_Z_TEST_ENABLE;
+         A6XX_RB_DEPTH_CNTL_Z_TEST_ENABLE | A6XX_RB_DEPTH_CNTL_Z_READ_ENABLE;
 
       so->lrz.test = true;
 

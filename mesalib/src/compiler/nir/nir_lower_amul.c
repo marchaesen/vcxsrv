@@ -65,6 +65,8 @@ typedef struct {
    bool has_large_ssbo;
 
    unsigned max_slot;
+
+   bool progress;
 } lower_state;
 
 /* Lower 'amul's in offset src of large variables to 'imul': */
@@ -83,19 +85,19 @@ lower_large_src(nir_src *src, void *s)
    if (parent->pass_flags)
       return false;
 
-   bool progress = nir_foreach_src(parent, lower_large_src, state);
+   nir_foreach_src(parent, lower_large_src, state);
 
    if (parent->type == nir_instr_type_alu) {
       nir_alu_instr *alu = nir_instr_as_alu(parent);
       if (alu->op == nir_op_amul) {
          alu->op = nir_op_imul;
-         progress = true;
+         state->progress = true;
       }
    }
 
    parent->pass_flags = 1;
 
-   return progress;
+   return true;
 }
 
 static bool
@@ -118,27 +120,27 @@ large_ssbo(lower_state *state, nir_src src)
    return state->large_ssbos[idx];
 }
 
-static bool
+static void
 lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
 {
    switch (intr->intrinsic) {
    case nir_intrinsic_load_ubo:
       //# src[] = { buffer_index, offset }.
       if (large_ubo(state, intr->src[0]))
-         return lower_large_src(&intr->src[1], state);
-      return false;
+         lower_large_src(&intr->src[1], state);
+      return;
 
    case nir_intrinsic_load_ssbo:
       //# src[] = { buffer_index, offset }.
       if (large_ssbo(state, intr->src[0]))
-         return lower_large_src(&intr->src[1], state);
-      return false;
+         lower_large_src(&intr->src[1], state);
+      return;
 
    case nir_intrinsic_store_ssbo:
       //# src[] = { value, block_index, offset }
       if (large_ssbo(state, intr->src[1]))
-         return lower_large_src(&intr->src[2], state);
-      return false;
+         lower_large_src(&intr->src[2], state);
+      return;
 
    case nir_intrinsic_ssbo_atomic_add:
    case nir_intrinsic_ssbo_atomic_imin:
@@ -158,8 +160,8 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
        * 1: offset
        */
       if (large_ssbo(state, intr->src[0]))
-         return lower_large_src(&intr->src[1], state);
-      return false;
+         lower_large_src(&intr->src[1], state);
+      return;
 
    case nir_intrinsic_global_atomic_add:
    case nir_intrinsic_global_atomic_imin:
@@ -175,8 +177,16 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
    case nir_intrinsic_global_atomic_fmin:
    case nir_intrinsic_global_atomic_fmax:
    case nir_intrinsic_global_atomic_fcomp_swap:
+   case nir_intrinsic_load_global_constant:
+   case nir_intrinsic_load_global:
       /* just assume we that 24b is not sufficient: */
-      return lower_large_src(&intr->src[0], state);
+      lower_large_src(&intr->src[0], state);
+      return;
+
+   case nir_intrinsic_store_global:
+      /* just assume we that 24b is not sufficient: */
+      lower_large_src(&intr->src[1], state);
+      return;
 
    /* These should all be small enough to unconditionally use imul24: */
    case nir_intrinsic_shared_atomic_add:
@@ -198,20 +208,16 @@ lower_intrinsic(lower_state *state, nir_intrinsic_instr *intr)
    case nir_intrinsic_load_output:
    case nir_intrinsic_store_output:
    default:
-      return false;
+      return;
    }
 }
 
-static bool
+static void
 lower_instr(lower_state *state, nir_instr *instr)
 {
-   bool progress = false;
-
    if (instr->type == nir_instr_type_intrinsic) {
-      progress |= lower_intrinsic(state, nir_instr_as_intrinsic(instr));
+      lower_intrinsic(state, nir_instr_as_intrinsic(instr));
    }
-
-   return progress;
 }
 
 static bool
@@ -278,7 +284,6 @@ nir_lower_amul(nir_shader *shader,
       }
    }
 
-   bool progress = false;
    nir_foreach_function(function, shader) {
       nir_function_impl *impl = function->impl;
 
@@ -287,7 +292,7 @@ nir_lower_amul(nir_shader *shader,
 
       nir_foreach_block(block, impl) {
          nir_foreach_instr(instr, block) {
-            progress |= lower_instr(&state, instr);
+            lower_instr(&state, instr);
          }
       }
    }
@@ -312,7 +317,7 @@ nir_lower_amul(nir_shader *shader,
                continue;
 
             alu->op = nir_op_imul24;
-            progress |= true;
+            state.progress |= true;
          }
       }
 
@@ -321,5 +326,5 @@ nir_lower_amul(nir_shader *shader,
 
    }
 
-   return progress;
+   return state.progress;
 }

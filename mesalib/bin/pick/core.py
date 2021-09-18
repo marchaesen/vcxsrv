@@ -138,6 +138,14 @@ class Commit:
             c.resolution = Resolution(data['resolution'])
         return c
 
+    def date(self) -> str:
+        # Show commit date, ie. when the commit actually landed
+        # (as opposed to when it was first written)
+        return subprocess.check_output(
+            ['git', 'show', '--no-patch', '--format=%cs', self.sha],
+            stderr=subprocess.DEVNULL
+        ).decode("ascii").strip()
+
     async def apply(self, ui: 'UI') -> typing.Tuple[bool, str]:
         # FIXME: This isn't really enough if we fail to cherry-pick because the
         # git tree will still be dirty

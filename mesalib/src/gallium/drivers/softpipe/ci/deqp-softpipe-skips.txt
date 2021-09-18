@@ -2,15 +2,7 @@
 # non-zero-length and not starting with '#', will regex match to
 # delete lines from the test list.  Be careful.
 
-# Skip the perf/stress tests to keep runtime manageable
-dEQP-GLES[0-9]*.performance.*
-dEQP-GLES[0-9]*.stress.*
-
-# These are really slow on tiling architectures (including llvmpipe).
-dEQP-GLES[0-9]*.functional.flush_finish.*
-
-# Random failures
-dEQP-GLES31.functional.draw_buffers_indexed.overwrite_indexed.common_color_mask_buffer_color_mask
+# Consistent timeouts.
 dEQP-GLES31.functional.fbo.no_attachments.maximums.all
 dEQP-GLES31.functional.fbo.no_attachments.maximums.size
 

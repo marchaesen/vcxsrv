@@ -170,6 +170,11 @@ struct glamor_format {
      * transferred using format/type.
      */
     CARD32 render_format;
+    /**
+     * Whether rendering is supported in GL at all (i.e. without pixel data conversion
+     * just before upload)
+     */
+    Bool rendering_supported;
 };
 
 struct glamor_saved_procs {
@@ -213,8 +218,14 @@ typedef struct glamor_screen_private {
     Bool has_texture_swizzle;
     Bool is_core_profile;
     Bool can_copyplane;
+    Bool use_gpu_shader4;
     int max_fbo_size;
 
+    /**
+     * Stores information about supported formats. Note, that this list contains all
+     * supported pixel formats, including these that are not supported on GL side
+     * directly, but are converted to another format instead.
+     */
     struct glamor_format formats[33];
     struct glamor_format cbcr_format;
 

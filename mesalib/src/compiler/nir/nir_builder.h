@@ -103,17 +103,19 @@ nir_shader_instructions_pass(nir_shader *shader,
       if (!function->impl)
          continue;
 
+      bool func_progress = false;
       nir_builder b;
       nir_builder_init(&b, function->impl);
 
       nir_foreach_block_safe(block, function->impl) {
          nir_foreach_instr_safe(instr, block) {
-            progress |= pass(&b, instr, cb_data);
+            func_progress |= pass(&b, instr, cb_data);
          }
       }
 
-      if (progress) {
+      if (func_progress) {
          nir_metadata_preserve(function->impl, preserved);
+         progress = true;
       } else {
          nir_metadata_preserve(function->impl, nir_metadata_all);
       }
@@ -206,16 +208,8 @@ nir_if_phi(nir_builder *build, nir_ssa_def *then_def, nir_ssa_def *else_def)
    nir_if *nif = nir_cf_node_as_if(nir_cf_node_prev(&block->cf_node));
 
    nir_phi_instr *phi = nir_phi_instr_create(build->shader);
-
-   nir_phi_src *src = ralloc(phi, nir_phi_src);
-   src->pred = nir_if_last_then_block(nif);
-   src->src = nir_src_for_ssa(then_def);
-   exec_list_push_tail(&phi->srcs, &src->node);
-
-   src = ralloc(phi, nir_phi_src);
-   src->pred = nir_if_last_else_block(nif);
-   src->src = nir_src_for_ssa(else_def);
-   exec_list_push_tail(&phi->srcs, &src->node);
+   nir_phi_instr_add_src(phi, nir_if_last_then_block(nif), nir_src_for_ssa(then_def));
+   nir_phi_instr_add_src(phi, nir_if_last_else_block(nif), nir_src_for_ssa(else_def));
 
    assert(then_def->num_components == else_def->num_components);
    assert(then_def->bit_size == else_def->bit_size);
@@ -353,6 +347,17 @@ nir_imm_vec2(nir_builder *build, float x, float y)
 }
 
 static inline nir_ssa_def *
+nir_imm_vec3(nir_builder *build, float x, float y, float z)
+{
+   nir_const_value v[3] = {
+      nir_const_value_for_float(x, 32),
+      nir_const_value_for_float(y, 32),
+      nir_const_value_for_float(z, 32),
+   };
+   return nir_build_imm(build, 3, 32, v);
+}
+
+static inline nir_ssa_def *
 nir_imm_vec4(nir_builder *build, float x, float y, float z, float w)
 {
    nir_const_value v[4] = {
@@ -406,6 +411,18 @@ nir_imm_ivec2(nir_builder *build, int x, int y)
    };
 
    return nir_build_imm(build, 2, 32, v);
+}
+
+static inline nir_ssa_def *
+nir_imm_ivec3(nir_builder *build, int x, int y, int z)
+{
+   nir_const_value v[3] = {
+      nir_const_value_for_int(x, 32),
+      nir_const_value_for_int(y, 32),
+      nir_const_value_for_int(z, 32),
+   };
+
+   return nir_build_imm(build, 3, 32, v);
 }
 
 static inline nir_ssa_def *
@@ -838,6 +855,13 @@ nir_ieq_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
    return nir_ieq(build, x, nir_imm_intN_t(build, y, x->bit_size));
 }
 
+/* Use nir_iadd(x, -y) for reversing parameter ordering */
+static inline nir_ssa_def *
+nir_isub_imm(nir_builder *build, uint64_t y, nir_ssa_def *x)
+{
+   return nir_isub(build, nir_imm_intN_t(build, y, x->bit_size), x);
+}
+
 static inline nir_ssa_def *
 _nir_mul_imm(nir_builder *build, nir_ssa_def *x, uint64_t y, bool amul)
 {
@@ -951,6 +975,35 @@ nir_uclamp(nir_builder *b,
            nir_ssa_def *x, nir_ssa_def *min_val, nir_ssa_def *max_val)
 {
    return nir_umin(b, nir_umax(b, x, min_val), max_val);
+}
+
+static inline nir_ssa_def *
+nir_ffma_imm12(nir_builder *build, nir_ssa_def *src0, double src1, double src2)
+{
+   if (build->shader->options->avoid_ternary_with_two_constants)
+      return nir_fadd_imm(build, nir_fmul_imm(build, src0, src1), src2);
+   else
+      return nir_ffma(build, src0, nir_imm_floatN_t(build, src1, src0->bit_size),
+                             nir_imm_floatN_t(build, src2, src0->bit_size));
+}
+
+static inline nir_ssa_def *
+nir_ffma_imm1(nir_builder *build, nir_ssa_def *src0, double src1, nir_ssa_def *src2)
+{
+   return nir_ffma(build, src0, nir_imm_floatN_t(build, src1, src0->bit_size), src2);
+}
+
+static inline nir_ssa_def *
+nir_ffma_imm2(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1, double src2)
+{
+   return nir_ffma(build, src0, src1, nir_imm_floatN_t(build, src2, src0->bit_size));
+}
+
+static inline nir_ssa_def *
+nir_a_minus_bc(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1,
+               nir_ssa_def *src2)
+{
+   return nir_ffma(build, nir_fneg(build, src1), src2, src0);
 }
 
 static inline nir_ssa_def *
@@ -1109,6 +1162,62 @@ nir_bitcast_vector(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
    assert(dest_num_components <= NIR_MAX_VEC_COMPONENTS);
 
    return nir_extract_bits(b, &src, 1, 0, dest_num_components, dest_bit_size);
+}
+
+/**
+ * Pad a value to N components with undefs of matching bit size.
+ * If the value already contains >= num_components, it is returned without change.
+ */
+static inline nir_ssa_def *
+nir_pad_vector(nir_builder *b, nir_ssa_def *src, unsigned num_components)
+{
+   assert(src->num_components <= num_components);
+   if (src->num_components == num_components)
+      return src;
+
+   nir_ssa_def *components[NIR_MAX_VEC_COMPONENTS];
+   nir_ssa_def *undef = nir_ssa_undef(b, 1, src->bit_size);
+   unsigned i = 0;
+   for (; i < src->num_components; i++)
+      components[i] = nir_channel(b, src, i);
+   for (; i < num_components; i++)
+      components[i] = undef;
+
+   return nir_vec(b, components, num_components);
+}
+
+/**
+ * Pad a value to N components with copies of the given immediate of matching
+ * bit size. If the value already contains >= num_components, it is returned
+ * without change.
+ */
+static inline nir_ssa_def *
+nir_pad_vector_imm_int(nir_builder *b, nir_ssa_def *src, uint64_t imm_val,
+                       unsigned num_components)
+{
+   assert(src->num_components <= num_components);
+   if (src->num_components == num_components)
+      return src;
+
+   nir_ssa_def *components[NIR_MAX_VEC_COMPONENTS];
+   nir_ssa_def *imm = nir_imm_intN_t(b, imm_val, src->bit_size);
+   unsigned i = 0;
+   for (; i < src->num_components; i++)
+      components[i] = nir_channel(b, src, i);
+   for (; i < num_components; i++)
+      components[i] = imm;
+
+   return nir_vec(b, components, num_components);
+}
+
+/**
+ * Pad a value to 4 components with undefs of matching bit size.
+ * If the value already contains >= 4 components, it is returned without change.
+ */
+static inline nir_ssa_def *
+nir_pad_vec4(nir_builder *b, nir_ssa_def *src)
+{
+   return nir_pad_vector(b, src, 4);
 }
 
 /**
@@ -1571,6 +1680,14 @@ nir_build_calc_io_offset(nir_builder *b,
    unsigned const_op = nir_intrinsic_component(intrin) * component_stride;
 
    return nir_iadd_imm_nuw(b, nir_iadd_nuw(b, base_op, offset_op), const_op);
+}
+
+/* calculate a `(1 << value) - 1` in ssa without overflows */
+static inline nir_ssa_def *
+nir_mask(nir_builder *b, nir_ssa_def *bits, unsigned dst_bit_size)
+{
+   return nir_ushr(b, nir_imm_intN_t(b, -1, dst_bit_size),
+                      nir_isub_imm(b, dst_bit_size, nir_u2u32(b, bits)));
 }
 
 static inline nir_ssa_def *

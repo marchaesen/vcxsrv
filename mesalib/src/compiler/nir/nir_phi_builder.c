@@ -287,11 +287,8 @@ nir_phi_builder_finish(struct nir_phi_builder *pb)
          nir_block **preds = nir_block_get_predecessors_sorted(phi->instr.block, pb);
 
          for (unsigned i = 0; i < phi->instr.block->predecessors->entries; i++) {
-            nir_phi_src *src = ralloc(phi, nir_phi_src);
-            src->pred = preds[i];
-            src->src = nir_src_for_ssa(
-               nir_phi_builder_value_get_block_def(val, preds[i]));
-            exec_list_push_tail(&phi->srcs, &src->node);
+            nir_phi_instr_add_src(phi, preds[i],
+                                  nir_src_for_ssa(nir_phi_builder_value_get_block_def(val, preds[i])));
          }
 
          ralloc_free(preds);

@@ -60,6 +60,7 @@ static const struct debug_named_value midgard_debug_options[] = {
         {"shaderdb",  MIDGARD_DBG_SHADERDB,     "Prints shader-db statistics"},
         {"inorder",   MIDGARD_DBG_INORDER,      "Disables out-of-order scheduling"},
         {"verbose",   MIDGARD_DBG_VERBOSE,      "Dump shaders verbosely"},
+        {"internal",  MIDGARD_DBG_INTERNAL,     "Dump internal shaders"},
         DEBUG_NAMED_VALUE_END
 };
 
@@ -133,6 +134,8 @@ schedule_barrier(compiler_context *ctx)
 
 M_LOAD(ld_attr_32, nir_type_uint32);
 M_LOAD(ld_vary_32, nir_type_uint32);
+M_LOAD(ld_ubo_32, nir_type_uint32);
+M_LOAD(ld_ubo_64, nir_type_uint32);
 M_LOAD(ld_ubo_128, nir_type_uint32);
 M_LOAD(ld_32, nir_type_uint32);
 M_LOAD(ld_64, nir_type_uint32);
@@ -306,10 +309,7 @@ optimise_nir(nir_shader *nir, unsigned quirks, bool is_blend)
         nir_lower_tex_options lower_tex_options = {
                 .lower_txs_lod = true,
                 .lower_txp = ~0,
-                .lower_tex_without_implicit_lod =
-                        (quirks & MIDGARD_EXPLICIT_LOD),
                 .lower_tg4_broadcom_swizzle = true,
-
                 /* TODO: we have native gradient.. */
                 .lower_txd = true,
         };
@@ -331,15 +331,6 @@ optimise_nir(nir_shader *nir, unsigned quirks, bool is_blend)
         NIR_PASS(progress, nir, pan_lower_sample_pos);
 
         NIR_PASS(progress, nir, midgard_nir_lower_algebraic_early);
-
-        /* Peephole select is more effective before lowering uniforms to UBO,
-         * so do a round of that, and then call lower_uniforms_to_ubo
-         * explicitly (instead of relying on the state tracker to do it). Note
-         * the state tracker does run peephole_select before lowering uniforms
-         * to UBO ordinarily, but it isn't as aggressive as we need. */
-
-        NIR_PASS(progress, nir, nir_opt_peephole_select, 64, false, true);
-        NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, true, false);
 
         do {
                 progress = false;
@@ -378,10 +369,7 @@ optimise_nir(nir_shader *nir, unsigned quirks, bool is_blend)
                 NIR_PASS(progress, nir, nir_opt_undef);
                 NIR_PASS(progress, nir, nir_lower_undef_to_zero);
 
-                NIR_PASS(progress, nir, nir_opt_loop_unroll,
-                         nir_var_shader_in |
-                         nir_var_shader_out |
-                         nir_var_function_temp);
+                NIR_PASS(progress, nir, nir_opt_loop_unroll);
 
                 NIR_PASS(progress, nir, nir_opt_vectorize,
                          midgard_vectorize_filter, NULL);
@@ -417,6 +405,15 @@ optimise_nir(nir_shader *nir, unsigned quirks, bool is_blend)
 
         NIR_PASS(progress, nir, nir_copy_prop);
         NIR_PASS(progress, nir, nir_opt_dce);
+
+        /* Backend scheduler is purely local, so do some global optimizations
+         * to reduce register pressure. */
+        nir_move_options move_all =
+                nir_move_const_undef | nir_move_load_ubo | nir_move_load_input |
+                nir_move_comparisons | nir_move_copies | nir_move_load_ssbo;
+
+        NIR_PASS_V(nir, nir_opt_sink, move_all);
+        NIR_PASS_V(nir, nir_opt_move, move_all);
 
         /* Take us out of SSA */
         NIR_PASS(progress, nir, nir_lower_locals_to_regs);
@@ -583,9 +580,9 @@ mir_accept_dest_mod(compiler_context *ctx, nir_dest **dest, nir_op op)
 static unsigned
 mir_determine_float_outmod(compiler_context *ctx, nir_dest **dest, unsigned prior_outmod)
 {
-        bool clamp_0_inf = mir_accept_dest_mod(ctx, dest, nir_op_fclamp_pos);
+        bool clamp_0_inf = mir_accept_dest_mod(ctx, dest, nir_op_fclamp_pos_mali);
         bool clamp_0_1 = mir_accept_dest_mod(ctx, dest, nir_op_fsat);
-        bool clamp_m1_1 = mir_accept_dest_mod(ctx, dest, nir_op_fsat_signed);
+        bool clamp_m1_1 = mir_accept_dest_mod(ctx, dest, nir_op_fsat_signed_mali);
         bool prior = (prior_outmod != midgard_outmod_none);
         int count = (int) prior + (int) clamp_0_inf + (int) clamp_0_1 + (int) clamp_m1_1;
 
@@ -657,7 +654,7 @@ mir_is_bcsel_float(nir_alu_instr *instr)
         };
 
         nir_op floatdestmods[] = {
-                nir_op_fsat, nir_op_fsat_signed, nir_op_fclamp_pos,
+                nir_op_fsat, nir_op_fsat_signed_mali, nir_op_fclamp_pos_mali,
                 nir_op_f2f16, nir_op_f2f32
         };
 
@@ -742,6 +739,10 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                 ALU_CASE(fdot4, fdot4);
                 ALU_CASE(iadd, iadd);
                 ALU_CASE(isub, isub);
+                ALU_CASE(iadd_sat, iaddsat);
+                ALU_CASE(isub_sat, isubsat);
+                ALU_CASE(uadd_sat, uaddsat);
+                ALU_CASE(usub_sat, usubsat);
                 ALU_CASE(imul, imul);
                 ALU_CASE(imul_high, imul);
                 ALU_CASE(umul_high, imul);
@@ -841,8 +842,8 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                 ALU_CASE(fabs, fmov);
                 ALU_CASE(fneg, fmov);
                 ALU_CASE(fsat, fmov);
-                ALU_CASE(fsat_signed, fmov);
-                ALU_CASE(fclamp_pos, fmov);
+                ALU_CASE(fsat_signed_mali, fmov);
+                ALU_CASE(fclamp_pos_mali, fmov);
 
         /* For size conversion, we use a move. Ideally though we would squash
          * these ops together; maybe that has to happen after in NIR as part of
@@ -933,9 +934,9 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                 outmod = midgard_outmod_keeplo;
         } else if (instr->op == nir_op_fsat) {
                 outmod = midgard_outmod_clamp_0_1;
-        } else if (instr->op == nir_op_fsat_signed) {
+        } else if (instr->op == nir_op_fsat_signed_mali) {
                 outmod = midgard_outmod_clamp_m1_1;
-        } else if (instr->op == nir_op_fclamp_pos) {
+        } else if (instr->op == nir_op_fclamp_pos_mali) {
                 outmod = midgard_outmod_clamp_0_inf;
         }
 
@@ -1152,11 +1153,26 @@ emit_ubo_read(
         unsigned offset,
         nir_src *indirect_offset,
         unsigned indirect_shift,
-        unsigned index)
+        unsigned index,
+        unsigned nr_comps)
 {
-        /* TODO: half-floats */
+        midgard_instruction ins;
 
-        midgard_instruction ins = m_ld_ubo_128(dest, 0);
+        unsigned dest_size = (instr->type == nir_instr_type_intrinsic) ?
+                nir_dest_bit_size(nir_instr_as_intrinsic(instr)->dest) : 32;
+
+        unsigned bitsize = dest_size * nr_comps;
+
+        /* Pick the smallest intrinsic to avoid out-of-bounds reads */
+        if (bitsize <= 32)
+                ins = m_ld_ubo_32(dest, 0);
+        else if (bitsize <= 64)
+                ins = m_ld_ubo_64(dest, 0);
+        else if (bitsize <= 128)
+                ins = m_ld_ubo_128(dest, 0);
+        else
+                unreachable("Invalid UBO read size");
+
         ins.constants.u32[0] = offset;
 
         if (instr->type == nir_instr_type_intrinsic)
@@ -1489,16 +1505,16 @@ emit_sysval_read(compiler_context *ctx, nir_instr *instr,
         /* Emit the read itself -- this is never indirect */
         midgard_instruction *ins =
                 emit_ubo_read(ctx, instr, dest, (uniform * 16) + offset, NULL, 0,
-                              sysval_ubo);
+                              sysval_ubo, nr_components);
 
         ins->mask = mask_of(nr_components);
 }
 
 static unsigned
-compute_builtin_arg(nir_op op)
+compute_builtin_arg(nir_intrinsic_op op)
 {
         switch (op) {
-        case nir_intrinsic_load_work_group_id:
+        case nir_intrinsic_load_workgroup_id:
                 return REGISTER_LDST_GROUP_ID;
         case nir_intrinsic_load_local_invocation_id:
                 return REGISTER_LDST_LOCAL_THREAD_ID;
@@ -1578,10 +1594,10 @@ emit_compute_builtin(compiler_context *ctx, nir_intrinsic_instr *instr)
 }
 
 static unsigned
-vertex_builtin_arg(nir_op op)
+vertex_builtin_arg(nir_intrinsic_op op)
 {
         switch (op) {
-        case nir_intrinsic_load_vertex_id:
+        case nir_intrinsic_load_vertex_id_zero_base:
                 return PAN_VERTEX_ID;
         case nir_intrinsic_load_instance_id:
                 return PAN_INSTANCE_ID;
@@ -1743,7 +1759,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                 reg = nir_dest_index(&instr->dest);
 
                 if (is_kernel) {
-                        emit_ubo_read(ctx, &instr->instr, reg, offset, indirect_offset, 0, 0);
+                        emit_ubo_read(ctx, &instr->instr, reg, offset, indirect_offset, 0, 0, nr_comp);
                 } else if (is_ubo) {
                         nir_src index = instr->src[0];
 
@@ -1751,7 +1767,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                         assert(nir_src_is_const(index));
 
                         uint32_t uindex = nir_src_as_uint(index);
-                        emit_ubo_read(ctx, &instr->instr, reg, offset, indirect_offset, 0, uindex);
+                        emit_ubo_read(ctx, &instr->instr, reg, offset, indirect_offset, 0, uindex, nr_comp);
                 } else if (is_global || is_shared || is_scratch) {
                         unsigned seg = is_global ? LDST_GLOBAL : (is_shared ? LDST_SHARED : LDST_SCRATCH);
                         emit_global(ctx, &instr->instr, true, reg, src_offset, seg);
@@ -1846,18 +1862,6 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                 }
 
                 emit_mir_instruction(ctx, ld);
-                break;
-        }
-
-        case nir_intrinsic_load_blend_const_color_rgba: {
-                assert(ctx->inputs->is_blend);
-                reg = nir_dest_index(&instr->dest);
-
-                midgard_instruction ins = v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), reg);
-                ins.has_constants = true;
-                memcpy(ins.constants.f32, ctx->inputs->blend.constants,
-                       sizeof(ctx->inputs->blend.constants));
-                emit_mir_instruction(ctx, ins);
                 break;
         }
 
@@ -2003,9 +2007,18 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                 emit_global(ctx, &instr->instr, false, reg, &instr->src[1], seg);
                 break;
 
+        case nir_intrinsic_load_first_vertex:
         case nir_intrinsic_load_ssbo_address:
         case nir_intrinsic_load_work_dim:
                 emit_sysval_read(ctx, &instr->instr, 1, 0);
+                break;
+
+        case nir_intrinsic_load_base_vertex:
+                emit_sysval_read(ctx, &instr->instr, 1, 4);
+                break;
+
+        case nir_intrinsic_load_base_instance:
+                emit_sysval_read(ctx, &instr->instr, 1, 8);
                 break;
 
         case nir_intrinsic_load_sample_positions_pan:
@@ -2018,20 +2031,20 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
         case nir_intrinsic_load_viewport_scale:
         case nir_intrinsic_load_viewport_offset:
-        case nir_intrinsic_load_num_work_groups:
+        case nir_intrinsic_load_num_workgroups:
         case nir_intrinsic_load_sampler_lod_parameters_pan:
-        case nir_intrinsic_load_local_group_size:
+        case nir_intrinsic_load_workgroup_size:
                 emit_sysval_read(ctx, &instr->instr, 3, 0);
                 break;
 
-        case nir_intrinsic_load_work_group_id:
+        case nir_intrinsic_load_workgroup_id:
         case nir_intrinsic_load_local_invocation_id:
         case nir_intrinsic_load_global_invocation_id:
         case nir_intrinsic_load_global_invocation_id_zero_base:
                 emit_compute_builtin(ctx, instr);
                 break;
 
-        case nir_intrinsic_load_vertex_id:
+        case nir_intrinsic_load_vertex_id_zero_base:
         case nir_intrinsic_load_instance_id:
                 emit_vertex_builtin(ctx, instr);
                 break;
@@ -2044,7 +2057,10 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                 emit_special(ctx, instr, 97);
                 break;
 
+        /* Midgard doesn't seem to want special handling */
+        case nir_intrinsic_memory_barrier:
         case nir_intrinsic_memory_barrier_buffer:
+        case nir_intrinsic_memory_barrier_image:
         case nir_intrinsic_memory_barrier_shared:
         case nir_intrinsic_group_memory_barrier:
                 break;
@@ -3087,7 +3103,8 @@ midgard_compile_shader_nir(nir_shader *nir,
 
         NIR_PASS_V(nir, pan_nir_reorder_writeout);
 
-        if ((midgard_debug & MIDGARD_DBG_SHADERS) && !nir->info.internal) {
+        if ((midgard_debug & MIDGARD_DBG_SHADERS) &&
+            ((midgard_debug & MIDGARD_DBG_INTERNAL) || !nir->info.internal)) {
                 nir_print_shader(nir, stdout);
         }
 
@@ -3153,12 +3170,14 @@ midgard_compile_shader_nir(nir_shader *nir,
 
         /* Analyze now that the code is known but before scheduling creates
          * pipeline registers which are harder to track */
-        mir_analyze_helper_terminate(ctx);
         mir_analyze_helper_requirements(ctx);
 
         /* Schedule! */
         midgard_schedule_program(ctx);
         mir_ra(ctx);
+
+        /* Analyze after scheduling since this is order-dependent */
+        mir_analyze_helper_terminate(ctx);
 
         /* Emit flat binary from the instruction arrays. Iterate each block in
          * sequence. Save instruction boundaries such that lookahead tags can
@@ -3207,12 +3226,21 @@ midgard_compile_shader_nir(nir_shader *nir,
         /* Report the very first tag executed */
         info->midgard.first_tag = midgard_get_first_tag_from_block(ctx, 0);
 
-        if ((midgard_debug & MIDGARD_DBG_SHADERS) && !nir->info.internal) {
+        info->ubo_mask = ctx->ubo_mask & BITSET_MASK(ctx->nir->info.num_ubos);
+
+        if ((midgard_debug & MIDGARD_DBG_SHADERS) &&
+            ((midgard_debug & MIDGARD_DBG_INTERNAL) || !nir->info.internal)) {
                 disassemble_midgard(stdout, binary->data,
                                     binary->size, inputs->gpu_id,
                                     midgard_debug & MIDGARD_DBG_VERBOSE);
                 fflush(stdout);
         }
+
+        /* A shader ending on a 16MB boundary causes INSTR_INVALID_PC faults,
+         * workaround by adding some padding to the end of the shader. (The
+         * kernel makes sure shader BOs can't cross 16MB boundaries.) */
+        if (binary->size)
+                memset(util_dynarray_grow(binary, uint8_t, 16), 0, 16);
 
         if ((midgard_debug & MIDGARD_DBG_SHADERDB || inputs->shaderdb) &&
             !nir->info.internal) {
@@ -3253,6 +3281,9 @@ midgard_compile_shader_nir(nir_shader *nir,
                         ctx->loop_count,
                         ctx->spills, ctx->fills);
         }
+
+        _mesa_hash_table_u64_destroy(ctx->ssa_constants);
+        _mesa_hash_table_u64_destroy(ctx->sysval_to_id);
 
         ralloc_free(ctx);
 }

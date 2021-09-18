@@ -148,7 +148,7 @@ write_vpos(struct svga_context *svga,
    }
 
    if (!use_existing) {
-      struct pipe_shader_state state;
+      struct pipe_shader_state state = {0};
       struct tgsi_token *new_tokens = NULL;
 
       new_tokens = tgsi_write_vpos(shader->tokens,
@@ -197,7 +197,7 @@ transform_dynamic_indexing(struct svga_context *svga,
    struct tgsi_token *new_tokens = NULL;
 
    if (!use_existing) {
-      struct pipe_shader_state state;
+      struct pipe_shader_state state = {0};
       new_tokens = tgsi_remove_dynamic_indexing(shader->tokens,
                                                 info->const_buffers_declared,
                                                 info->samplers_declared,

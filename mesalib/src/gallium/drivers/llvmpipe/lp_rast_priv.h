@@ -176,6 +176,7 @@ lp_rast_get_color_block_pointer(struct lp_rasterizer_task *task,
    color = task->color_tiles[buf] + pixel_offset;
 
    if (layer) {
+      assert(layer <= task->scene->fb_max_layer);
       color += layer * task->scene->cbufs[buf].layer_stride;
    }
 
@@ -347,6 +348,10 @@ void lp_rast_triangle_32_3_16( struct lp_rasterizer_task *,
 void lp_rast_triangle_32_4_16( struct lp_rasterizer_task *, 
                             const union lp_rast_cmd_arg );
 
+
+void lp_rast_rectangle( struct lp_rasterizer_task *, 
+                        const union lp_rast_cmd_arg );
+
 void lp_rast_triangle_ms_1( struct lp_rasterizer_task *,
                          const union lp_rast_cmd_arg );
 void lp_rast_triangle_ms_2( struct lp_rasterizer_task *,
@@ -405,5 +410,14 @@ lp_rast_set_state(struct lp_rasterizer_task *task,
  
 void
 lp_debug_bin( const struct cmd_bin *bin, int x, int y );
+
+void
+lp_linear_rasterize_bin(struct lp_rasterizer_task *task,
+                        const struct cmd_bin *bin);
+
+void
+lp_rast_linear_rect_fallback(struct lp_rasterizer_task *task,
+                             const struct lp_rast_shader_inputs *inputs,
+                             const struct u_rect *box);
 
 #endif

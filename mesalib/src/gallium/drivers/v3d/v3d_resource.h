@@ -28,42 +28,7 @@
 #include "v3d_screen.h"
 #include "util/u_transfer.h"
 
-/* A UIFblock is a 256-byte region of memory that's 256-byte aligned.  These
- * will be grouped in 4x4 blocks (left-to-right, then top-to-bottom) in a 4KB
- * page.  Those pages are then arranged left-to-right, top-to-bottom, to cover
- * an image.
- *
- * The inside of a UIFblock, for packed pixels, will be split into 4 64-byte
- * utiles.  Utiles may be 8x8 (8bpp), 8x4(16bpp) or 4x4 (32bpp).
- */
-
-/**
- * Tiling mode enum used for v3d_resource.c, which maps directly to the Memory
- * Format field of render target and Z/Stencil config.
- */
-enum v3d_tiling_mode {
-        /* Untiled resources.  Not valid as texture inputs. */
-        V3D_TILING_RASTER,
-
-        /* Single line of u-tiles. */
-        V3D_TILING_LINEARTILE,
-
-        /* Departure from standard 4-UIF block column format. */
-        V3D_TILING_UBLINEAR_1_COLUMN,
-
-        /* Departure from standard 4-UIF block column format. */
-        V3D_TILING_UBLINEAR_2_COLUMN,
-
-        /* Normal tiling format: grouped in 4x4 UIFblocks, each of which is
-         * split 2x2 into utiles.
-         */
-        V3D_TILING_UIF_NO_XOR,
-
-        /* Normal tiling format: grouped in 4x4 UIFblocks, each of which is
-         * split 2x2 into utiles.
-         */
-        V3D_TILING_UIF_XOR,
-};
+#include "broadcom/common/v3d_tiling.h"
 
 struct v3d_transfer {
         struct pipe_transfer base;

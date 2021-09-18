@@ -71,11 +71,11 @@ lower_reduction(nir_alu_instr *alu, nir_op chan_op, nir_op merge_op,
    for (int i = num_components - 1; i >= 0; i--) {
       nir_alu_instr *chan = nir_alu_instr_create(builder->shader, chan_op);
       nir_alu_ssa_dest_init(chan, 1, alu->dest.dest.ssa.bit_size);
-      nir_alu_src_copy(&chan->src[0], &alu->src[0], chan);
+      nir_alu_src_copy(&chan->src[0], &alu->src[0]);
       chan->src[0].swizzle[0] = chan->src[0].swizzle[i];
       if (nir_op_infos[chan_op].num_inputs > 1) {
          assert(nir_op_infos[chan_op].num_inputs == 2);
-         nir_alu_src_copy(&chan->src[1], &alu->src[1], chan);
+         nir_alu_src_copy(&chan->src[1], &alu->src[1]);
          chan->src[1].swizzle[0] = chan->src[1].swizzle[i];
       }
       chan->exact = alu->exact;
@@ -91,6 +91,52 @@ lower_reduction(nir_alu_instr *alu, nir_op chan_op, nir_op merge_op,
    }
 
    return last;
+}
+
+static inline bool
+will_lower_ffma(nir_shader *shader, unsigned bit_size)
+{
+   switch (bit_size) {
+   case 16:
+      return shader->options->lower_ffma16;
+   case 32:
+      return shader->options->lower_ffma32;
+   case 64:
+      return shader->options->lower_ffma64;
+   }
+   unreachable("bad bit size");
+}
+
+static nir_ssa_def *
+lower_fdot(nir_alu_instr *alu, nir_builder *builder)
+{
+   /* If we don't want to lower ffma, create several ffma instead of fmul+fadd
+    * and fusing later because fusing is not possible for exact fdot instructions.
+    */
+   if (will_lower_ffma(builder->shader, alu->dest.dest.ssa.bit_size))
+      return lower_reduction(alu, nir_op_fmul, nir_op_fadd, builder);
+
+   unsigned num_components = nir_op_infos[alu->op].input_sizes[0];
+
+   nir_ssa_def *prev = NULL;
+   for (int i = num_components - 1; i >= 0; i--) {
+      nir_alu_instr *instr = nir_alu_instr_create(
+         builder->shader, prev ? nir_op_ffma : nir_op_fmul);
+      nir_alu_ssa_dest_init(instr, 1, alu->dest.dest.ssa.bit_size);
+      for (unsigned j = 0; j < 2; j++) {
+         nir_alu_src_copy(&instr->src[j], &alu->src[j]);
+         instr->src[j].swizzle[0] = alu->src[j].swizzle[i];
+      }
+      if (i != num_components - 1)
+         instr->src[2].src = nir_src_for_ssa(prev);
+      instr->exact = builder->exact;
+
+      nir_builder_instr_insert(builder, &instr->instr);
+
+      prev = &instr->dest.dest.ssa;
+   }
+
+   return prev;
 }
 
 static nir_ssa_def *
@@ -125,8 +171,8 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
    case nir_op_vec4:
    case nir_op_vec3:
    case nir_op_vec2:
-   case nir_op_cube_face_coord:
-   case nir_op_cube_face_index:
+   case nir_op_cube_face_coord_amd:
+   case nir_op_cube_face_index_amd:
       /* We don't need to scalarize these ops, they're the ones generated to
        * group up outputs into a value that can be SSAed.
        */
@@ -244,7 +290,13 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
    case nir_op_unpack_double_2x32_dxil:
       return NULL;
 
-      LOWER_REDUCTION(nir_op_fdot, nir_op_fmul, nir_op_fadd);
+   case nir_op_fdot2:
+   case nir_op_fdot3:
+   case nir_op_fdot4:
+   case nir_op_fdot8:
+   case nir_op_fdot16:
+      return lower_fdot(alu, b);
+
       LOWER_REDUCTION(nir_op_ball_fequal, nir_op_feq, nir_op_iand);
       LOWER_REDUCTION(nir_op_ball_iequal, nir_op_ieq, nir_op_iand);
       LOWER_REDUCTION(nir_op_bany_fnequal, nir_op_fneu, nir_op_ior);
@@ -274,10 +326,7 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
    unsigned num_components = alu->dest.dest.ssa.num_components;
    nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS] = { NULL };
 
-   for (chan = 0; chan < NIR_MAX_VEC_COMPONENTS; chan++) {
-      if (!(alu->dest.write_mask & (1 << chan)))
-         continue;
-
+   for (chan = 0; chan < num_components; chan++) {
       nir_alu_instr *lower = nir_alu_instr_create(b->shader, alu->op);
       for (i = 0; i < num_src; i++) {
          /* We only handle same-size-as-dest (input_sizes[] == 0) or scalar
@@ -287,9 +336,10 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
          unsigned src_chan = (nir_op_infos[alu->op].input_sizes[i] == 1 ?
                               0 : chan);
 
-         nir_alu_src_copy(&lower->src[i], &alu->src[i], lower);
+         nir_alu_src_copy(&lower->src[i], &alu->src[i]);
          for (int j = 0; j < NIR_MAX_VEC_COMPONENTS; j++)
-            lower->src[i].swizzle[j] = alu->src[i].swizzle[src_chan];
+            lower->src[i].swizzle[j] = alu->dest.write_mask & (1 << chan) ?
+                                       alu->src[i].swizzle[src_chan] : 0;
       }
 
       nir_alu_ssa_dest_init(lower, 1, alu->dest.dest.ssa.bit_size);

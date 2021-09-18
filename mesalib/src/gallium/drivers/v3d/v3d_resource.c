@@ -36,7 +36,6 @@
 #include "v3d_screen.h"
 #include "v3d_context.h"
 #include "v3d_resource.h"
-#include "v3d_tiling.h"
 #include "broadcom/cle/v3d_packet_v33_pack.h"
 
 static void
@@ -397,6 +396,21 @@ v3d_resource_destroy(struct pipe_screen *pscreen,
         free(rsc);
 }
 
+static uint64_t
+v3d_resource_modifier(struct v3d_resource *rsc)
+{
+        if (rsc->tiled) {
+                /* A shared tiled buffer should always be allocated as UIF,
+                 * not UBLINEAR or LT.
+                 */
+                assert(rsc->slices[0].tiling == V3D_TILING_UIF_XOR ||
+                       rsc->slices[0].tiling == V3D_TILING_UIF_NO_XOR);
+                return DRM_FORMAT_MOD_BROADCOM_UIF;
+        } else {
+                return DRM_FORMAT_MOD_LINEAR;
+        }
+}
+
 static bool
 v3d_resource_get_handle(struct pipe_screen *pscreen,
                         struct pipe_context *pctx,
@@ -410,6 +424,7 @@ v3d_resource_get_handle(struct pipe_screen *pscreen,
 
         whandle->stride = rsc->slices[0].stride;
         whandle->offset = 0;
+        whandle->modifier = v3d_resource_modifier(rsc);
 
         /* If we're passing some reference to our BO out to some other part of
          * the system, then we can't do any optimizations about only us being
@@ -417,26 +432,16 @@ v3d_resource_get_handle(struct pipe_screen *pscreen,
          */
         bo->private = false;
 
-        if (rsc->tiled) {
-                /* A shared tiled buffer should always be allocated as UIF,
-                 * not UBLINEAR or LT.
-                 */
-                assert(rsc->slices[0].tiling == V3D_TILING_UIF_XOR ||
-                       rsc->slices[0].tiling == V3D_TILING_UIF_NO_XOR);
-                whandle->modifier = DRM_FORMAT_MOD_BROADCOM_UIF;
-        } else {
-                whandle->modifier = DRM_FORMAT_MOD_LINEAR;
-        }
-
         switch (whandle->type) {
         case WINSYS_HANDLE_TYPE_SHARED:
                 return v3d_bo_flink(bo, &whandle->handle);
         case WINSYS_HANDLE_TYPE_KMS:
                 if (screen->ro) {
-                        assert(rsc->scanout);
-                        bool ok = renderonly_get_handle(rsc->scanout, whandle);
-                        whandle->stride = rsc->slices[0].stride;
-                        return ok;
+                        if (renderonly_get_handle(rsc->scanout, whandle)) {
+                                whandle->stride = rsc->slices[0].stride;
+                                return true;
+                        }
+                        return false;
                 }
                 whandle->handle = bo->handle;
                 return true;
@@ -446,6 +451,30 @@ v3d_resource_get_handle(struct pipe_screen *pscreen,
         }
 
         return false;
+}
+
+static bool
+v3d_resource_get_param(struct pipe_screen *pscreen,
+                       struct pipe_context *pctx, struct pipe_resource *prsc,
+                       unsigned plane, unsigned layer, unsigned level,
+                       enum pipe_resource_param param,
+                       unsigned usage, uint64_t *value)
+{
+        struct v3d_resource *rsc = v3d_resource(prsc);
+
+        switch (param) {
+        case PIPE_RESOURCE_PARAM_STRIDE:
+                *value = rsc->slices[level].stride;
+                return true;
+        case PIPE_RESOURCE_PARAM_OFFSET:
+                *value = 0;
+                return true;
+        case PIPE_RESOURCE_PARAM_MODIFIER:
+                *value = v3d_resource_modifier(rsc);
+                return true;
+        default:
+                return false;
+        }
 }
 
 #define PAGE_UB_ROWS (V3D_UIFCFG_PAGE_SIZE / V3D_UIFBLOCK_ROW_SIZE)
@@ -808,7 +837,7 @@ v3d_resource_create_with_modifiers(struct pipe_screen *pscreen,
 
                 if (!rsc->scanout) {
                         fprintf(stderr, "Failed to create scanout resource\n");
-                        return NULL;
+                        goto fail;
                 }
                 assert(handle.type == WINSYS_HANDLE_TYPE_FD);
                 rsc->bo = v3d_bo_open_dmabuf(screen, handle.handle);
@@ -929,10 +958,6 @@ v3d_resource_from_handle(struct pipe_screen *pscreen,
                         renderonly_create_gpu_import_for_resource(prsc,
                                                                   screen->ro,
                                                                   NULL);
-                if (!rsc->scanout) {
-                        fprintf(stderr, "Failed to create scanout resource.\n");
-                        goto fail;
-                }
         }
 
         if (rsc->tiled && whandle->stride != slice->stride) {
@@ -1152,6 +1177,7 @@ v3d_resource_screen_init(struct pipe_screen *pscreen)
         pscreen->resource_create = u_transfer_helper_resource_create;
         pscreen->resource_from_handle = v3d_resource_from_handle;
         pscreen->resource_get_handle = v3d_resource_get_handle;
+        pscreen->resource_get_param = v3d_resource_get_param;
         pscreen->resource_destroy = u_transfer_helper_resource_destroy;
         pscreen->transfer_helper = u_transfer_helper_create(&transfer_vtbl,
                                                             true, false,
@@ -1161,9 +1187,11 @@ v3d_resource_screen_init(struct pipe_screen *pscreen)
 void
 v3d_resource_context_init(struct pipe_context *pctx)
 {
-        pctx->transfer_map = u_transfer_helper_transfer_map;
+        pctx->buffer_map = u_transfer_helper_transfer_map;
+        pctx->texture_map = u_transfer_helper_transfer_map;
         pctx->transfer_flush_region = u_transfer_helper_transfer_flush_region;
-        pctx->transfer_unmap = u_transfer_helper_transfer_unmap;
+        pctx->buffer_unmap = u_transfer_helper_transfer_unmap;
+        pctx->texture_unmap = u_transfer_helper_transfer_unmap;
         pctx->buffer_subdata = u_default_buffer_subdata;
         pctx->texture_subdata = v3d_texture_subdata;
         pctx->create_surface = v3d_create_surface;

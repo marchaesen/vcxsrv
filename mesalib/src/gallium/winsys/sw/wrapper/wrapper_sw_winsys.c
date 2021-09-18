@@ -105,7 +105,7 @@ wsw_dt_get_stride(struct wrapper_sw_displaytarget *wdt, unsigned *stride)
    struct pipe_transfer *tr;
    void *map;
 
-   map = pipe_transfer_map(pipe, tex, 0, 0,
+   map = pipe_texture_map(pipe, tex, 0, 0,
                            PIPE_MAP_READ_WRITE,
                            0, 0, wdt->tex->width0, wdt->tex->height0, &tr);
    if (!map)
@@ -114,7 +114,7 @@ wsw_dt_get_stride(struct wrapper_sw_displaytarget *wdt, unsigned *stride)
    *stride = tr->stride;
    wdt->stride = tr->stride;
 
-   pipe->transfer_unmap(pipe, tr);
+   pipe->texture_unmap(pipe, tr);
 
    return true;
 }
@@ -221,7 +221,7 @@ wsw_dt_map(struct sw_winsys *ws,
 
       assert(!wdt->transfer);
 
-      ptr = pipe_transfer_map(pipe, tex, 0, 0,
+      ptr = pipe_texture_map(pipe, tex, 0, 0,
                               PIPE_MAP_READ_WRITE,
                               0, 0, wdt->tex->width0, wdt->tex->height0, &tr);
       if (!ptr)
@@ -239,7 +239,7 @@ wsw_dt_map(struct sw_winsys *ws,
    return wdt->ptr;
 
 err:
-   pipe->transfer_unmap(pipe, tr);
+   pipe->texture_unmap(pipe, tr);
    return NULL;
 }
 
@@ -257,7 +257,7 @@ wsw_dt_unmap(struct sw_winsys *ws,
    if (wdt->map_count)
       return;
 
-   pipe->transfer_unmap(pipe, wdt->transfer);
+   pipe->texture_unmap(pipe, wdt->transfer);
    pipe->flush(pipe, NULL, 0);
    wdt->transfer = NULL;
 }

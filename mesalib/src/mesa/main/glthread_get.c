@@ -24,11 +24,13 @@
 #include "main/glthread_marshal.h"
 #include "main/dispatch.h"
 
-void
+uint32_t
 _mesa_unmarshal_GetIntegerv(struct gl_context *ctx,
-                            const struct marshal_cmd_GetIntegerv *cmd)
+                            const struct marshal_cmd_GetIntegerv *cmd,
+                            const uint64_t *last)
 {
    unreachable("never executed");
+   return 0;
 }
 
 void GLAPIENTRY

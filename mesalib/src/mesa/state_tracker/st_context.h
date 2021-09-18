@@ -210,8 +210,6 @@ struct st_context
       struct pipe_sampler_state frag_samplers[PIPE_MAX_SAMPLERS];
       GLuint num_vert_samplers;
       GLuint num_frag_samplers;
-      struct pipe_sampler_view *vert_sampler_views[PIPE_MAX_SAMPLERS];
-      struct pipe_sampler_view *frag_sampler_views[PIPE_MAX_SAMPLERS];
       GLuint num_sampler_views[PIPE_SHADER_TYPES];
       unsigned num_images[PIPE_SHADER_TYPES];
       struct pipe_clip_state clip;
@@ -326,8 +324,8 @@ struct st_context
       struct pipe_blend_state upload_blend;
       void *vs;
       void *gs;
-      void *upload_fs[3][2];
-      void *download_fs[3][PIPE_MAX_TEXTURE_TYPES][2];
+      void *upload_fs[5][2];
+      void *download_fs[5][PIPE_MAX_TEXTURE_TYPES][2];
       bool upload_enabled;
       bool download_enabled;
       bool rgba_only;
@@ -401,7 +399,7 @@ st_create_context(gl_api api, struct pipe_context *pipe,
                   const struct gl_config *visual,
                   struct st_context *share,
                   const struct st_config_options *options,
-                  bool no_error);
+                  bool no_error, bool has_egl_image_validate);
 
 extern void
 st_destroy_context(struct st_context *st);

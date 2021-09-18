@@ -641,7 +641,7 @@ _mesa_GetPerfQueryDataINTEL(GLuint queryHandle, GLuint flags,
 
    if (!obj->Ready) {
       if (flags == GL_PERFQUERY_FLUSH_INTEL) {
-         ctx->Driver.Flush(ctx);
+         ctx->Driver.Flush(ctx, 0);
       } else if (flags == GL_PERFQUERY_WAIT_INTEL) {
          ctx->Driver.WaitPerfQuery(ctx, obj);
          obj->Ready = true;

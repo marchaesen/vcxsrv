@@ -31,7 +31,7 @@ AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS) $(CWARNFLAGS)
 AM_CPPFLAGS = $(XORG_INCS)
 
 inputtest_drv_la_LTLIBRARIES = inputtest_drv.la
-inputtest_drv_la_LDFLAGS = -module -avoid-version
+inputtest_drv_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 inputtest_drv_ladir = @moduledir@/input
 
 inputtest_drv_la_SOURCES = xf86-input-inputtest.c xf86-input-inputtest-protocol.h

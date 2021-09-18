@@ -111,12 +111,50 @@ dag_traverse_bottom_up_node(struct dag_node *node,
    if (_mesa_set_search(state->seen, node))
       return;
 
-   util_dynarray_foreach(&node->edges, struct dag_edge, edge) {
-      dag_traverse_bottom_up_node(edge->child, cb, state);
-   }
+   struct util_dynarray stack;
+   util_dynarray_init(&stack, NULL);
 
-   cb(node, state->data);
-   _mesa_set_add(state->seen, node);
+   do {
+      assert(node);
+
+      while (node->edges.size != 0) {
+         util_dynarray_append(&stack, struct dag_node *, node);
+
+         /* Push unprocessed children onto stack in reverse order. Note that
+          * it's possible for any of the children nodes to already be on the
+          * stack.
+          */
+         util_dynarray_foreach_reverse(&node->edges, struct dag_edge, edge) {
+            if (!_mesa_set_search(state->seen, edge->child)) {
+               util_dynarray_append(&stack, struct dag_node *, edge->child);
+            }
+         }
+
+         /* Get last element pushed: either left-most child or current node.
+          * If it's the current node, that means that we've processed all its
+          * children already.
+          */
+         struct dag_node *top = util_dynarray_pop(&stack, struct dag_node *);
+         if (top == node)
+            break;
+         node = top;
+      }
+
+      /* Process the node */
+      cb(node, state->data);
+      _mesa_set_add(state->seen, node);
+
+      /* Find the next unprocessed node in the stack */
+      do {
+         node = NULL;
+         if (stack.size == 0)
+            break;
+
+         node = util_dynarray_pop(&stack, struct dag_node *);
+      } while (_mesa_set_search(state->seen, node));
+   } while (node);
+
+   util_dynarray_fini(&stack);
 }
 
 /**

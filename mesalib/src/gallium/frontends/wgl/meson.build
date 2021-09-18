@@ -43,15 +43,14 @@ libwgl = static_library(
     'stw_pixelformat.c',
     'stw_st.c',
     'stw_tls.c',
-    'stw_wgl.c',
   ),
   c_args : [
     '-D_GDI32_',             # prevent wgl* being declared __declspec(dllimport)
-    '-DBUILD_GL32',          # declare gl* as __declspec(dllexport) in Mesa headers
     '-DWIN32_LEAN_AND_MEAN', # http://msdn2.microsoft.com/en-us/library/6dwk3a1z.aspx
     _c_args_wgl
   ],
   include_directories : [
     inc_include, inc_src, inc_gallium, inc_gallium_aux, inc_mapi, inc_mesa,
   ],
+  dependencies : [idep_xmlconfig],
 )

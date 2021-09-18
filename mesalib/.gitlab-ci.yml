@@ -3,9 +3,18 @@ variables:
   MESA_TEMPLATES_COMMIT: &ci-templates-commit 290b79e0e78eab67a83766f4e9691be554fc4afd
   CI_PRE_CLONE_SCRIPT: |-
           set -o xtrace
-          /usr/bin/wget -q -O- ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh | sh -
+          /usr/bin/wget -q -O- ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh | bash -
           set +o xtrace
   MINIO_HOST: minio-packet.freedesktop.org
+  # per-pipeline artifact storage on MinIO
+  PIPELINE_ARTIFACTS_BASE: ${MINIO_HOST}/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}
+  # per-job artifact storage on MinIO
+  JOB_ARTIFACTS_BASE: ${PIPELINE_ARTIFACTS_BASE}/${CI_JOB_ID}
+  # reference images stored for traces
+  PIGLIT_REPLAY_REFERENCE_IMAGES_BASE: "${MINIO_HOST}/mesa-tracie-results/$FDO_UPSTREAM_REPO"
+  # Individual CI farm status, set to "offline" to disable jobs
+  # running on a particular CI farm (ie. for outages, etc):
+  FD_FARM: "online"
 
 include:
   - project: 'freedesktop/ci-templates'
@@ -16,11 +25,14 @@ include:
     ref: *ci-templates-commit
     file:
       - '/templates/debian.yml'
-  - local: '.gitlab-ci/lava-gitlab-ci.yml'
+      - '/templates/fedora.yml'
+  - local: '.gitlab-ci/lava/lava-gitlab-ci.yml'
   - local: '.gitlab-ci/test-source-dep.yml'
   - local: 'src/amd/ci/gitlab-ci.yml'
   - local: 'src/broadcom/ci/gitlab-ci.yml'
+  - local: 'src/etnaviv/ci/gitlab-ci.yml'
   - local: 'src/freedreno/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/i915/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/iris/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/lima/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/llvmpipe/ci/gitlab-ci.yml'
@@ -34,19 +46,18 @@ include:
 stages:
   - sanity
   - container
-  - container-2
   - git-archive
-  - meson-x86_64
+  - build-x86_64
   - build-misc
   - amd
   - intel
   - arm
   - broadcom
   - freedreno
+  - etnaviv
   - software-renderer
   - layered-backends
   - deploy
-  - success
 
 # Generic rule to not run the job during scheduled pipelines
 # ----------------------------------------------------------
@@ -90,8 +101,9 @@ stages:
     - .fdo.ci-fairy
     - .ci-run-policy
   script:
-  - apk --no-cache add graphviz
-  - pip3 install sphinx sphinx_rtd_theme
+  - apk --no-cache add graphviz doxygen
+  - pip3 install "sphinx<4.0" breathe mako sphinx_rtd_theme
+  - docs/doxygen-wrapper.py --out-dir=docs/doxygen_xml
   - sphinx-build -W -b html docs public
 
 pages:
@@ -168,25 +180,6 @@ test-docs-mr:
     when:
       - runner_system_failure
 
-success:
-  stage: success
-  image: debian:stable-slim
-  rules:
-    - *ignore_scheduled_pipelines
-    - if: *is-post-merge
-      when: never
-    - if: *is-for-marge
-      changes: *docs-or-ci
-      when: never
-    - changes: *all_paths
-      when: never
-    - if: *is-pre-merge
-      when: on_success
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - echo "Dummy job to make sure every merge request pipeline runs at least one job"
-
 
 .ci-deqp-artifacts:
   artifacts:
@@ -213,8 +206,10 @@ success:
     FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
 
 .set-image:
+  extends:
+    - .incorporate-templates-commit
   variables:
-    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${FDO_DISTRIBUTION_TAG}"
   image: "$MESA_IMAGE"
 
 .set-image-base-tag:
@@ -222,7 +217,7 @@ success:
     - .set-image
     - .incorporate-base-tag+templates-commit
   variables:
-    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${FDO_DISTRIBUTION_TAG}"
 
 
 # Build the CI docker images.
@@ -277,7 +272,7 @@ success:
     - when: never
   variables:
     FDO_DISTRIBUTION_VERSION: bullseye-slim
-    FDO_REPO_SUFFIX: "debian/$CI_JOB_NAME"
+    FDO_REPO_SUFFIX: $CI_JOB_NAME
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
     # no need to pull the whole repo to build the container image
     GIT_STRATEGY: none
@@ -288,182 +283,205 @@ success:
     - .incorporate-base-tag+templates-commit
     # Don't want the .container rules
     - .ci-run-policy
-  stage: container-2
 
 # Debian 11 based x86 build image base
-x86_build-base:
+debian/x86_build-base:
   extends:
     - .fdo.container-build@debian
     - .container
   variables:
-    MESA_IMAGE_TAG: &x86_build-base "2021-03-31-bullseye"
+    MESA_IMAGE_TAG: &debian-x86_build-base "2021-07-26-python"
 
-.use-x86_build-base:
+.use-debian/x86_build-base:
   extends:
     - .fdo.container-build@debian
     - .use-base-image
   variables:
     MESA_BASE_IMAGE: "debian/x86_build-base"
-    MESA_BASE_TAG: *x86_build-base
+    MESA_BASE_TAG: *debian-x86_build-base
+    MESA_ARTIFACTS_BASE_TAG: *debian-x86_build-base
   needs:
-    - x86_build-base
+    - debian/x86_build-base
 
 # Debian 11 based x86 main build image
-x86_build:
+debian/x86_build:
   extends:
-    - .use-x86_build-base
+    - .use-debian/x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_build "2021-04-13-glvnd"
+    MESA_IMAGE_TAG: &debian-x86_build "2021-07-02-bump-libdrm"
 
-.use-x86_build:
+.use-debian/x86_build:
   extends:
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_build-base
+    MESA_BASE_TAG: *debian-x86_build-base
     MESA_IMAGE_PATH: "debian/x86_build"
-    MESA_IMAGE_TAG: *x86_build
+    MESA_IMAGE_TAG: *debian-x86_build
   needs:
-    - x86_build
+    - debian/x86_build
 
 # Debian 11 based i386 cross-build image
-i386_build:
+debian/i386_build:
   extends:
-    - .use-x86_build-base
+    - .use-debian/x86_build-base
   variables:
-    MESA_IMAGE_TAG: &i386_build "2021-04-13-bullseye"
+    MESA_IMAGE_TAG: &debian-i386_build "2021-07-02-bump-libdrm"
 
-.use-i386_build:
+.use-debian/i386_build:
   extends:
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_build-base
+    MESA_BASE_TAG: *debian-x86_build-base
     MESA_IMAGE_PATH: "debian/i386_build"
-    MESA_IMAGE_TAG: *i386_build
+    MESA_IMAGE_TAG: *debian-i386_build
   needs:
-    - i386_build
+    - debian/i386_build
 
 # Debian 11 based ppc64el cross-build image
-ppc64el_build:
+debian/ppc64el_build:
   extends:
-    - .use-x86_build-base
+    - .use-debian/x86_build-base
   variables:
-    MESA_IMAGE_TAG: &ppc64el_build "2021-04-13-bullseye"
+    MESA_IMAGE_TAG: &debian-ppc64el_build "2021-07-02-bump-libdrm"
 
-.use-ppc64el_build:
+.use-debian/ppc64el_build:
   extends:
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_build-base
+    MESA_BASE_TAG: *debian-x86_build-base
     MESA_IMAGE_PATH: "debian/ppc64el_build"
-    MESA_IMAGE_TAG: *ppc64el_build
+    MESA_IMAGE_TAG: *debian-ppc64el_build
   needs:
-    - ppc64el_build
+    - debian/ppc64el_build
 
 # Debian 11 based s390x cross-build image
-s390x_build:
+debian/s390x_build:
   extends:
-    - .use-x86_build-base
+    - .use-debian/x86_build-base
   variables:
-    MESA_IMAGE_TAG: &s390x_build "2021-04-13-bullseye"
+    MESA_IMAGE_TAG: &debian-s390x_build "2021-07-02-bump-libdrm"
 
-.use-s390x_build:
+.use-debian/s390x_build:
   extends:
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_build-base
+    MESA_BASE_TAG: *debian-x86_build-base
     MESA_IMAGE_PATH: "debian/s390x_build"
-    MESA_IMAGE_TAG: *s390x_build
+    MESA_IMAGE_TAG: *debian-s390x_build
   needs:
-    - s390x_build
+    - debian/s390x_build
 
 # Android NDK cross-build image
-android_build:
+debian/android_build:
   extends:
-    - .use-x86_build-base
+    - .use-debian/x86_build-base
   variables:
-    MESA_IMAGE_TAG: &android_build "2021-04-08-libdrm"
+    MESA_IMAGE_TAG: &debian-android_build "2021-07-02-bump-libdrm"
 
-.use-android_build:
+.use-debian/android_build:
   extends:
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_build-base
+    MESA_BASE_TAG: *debian-x86_build-base
     MESA_IMAGE_PATH: "debian/android_build"
-    MESA_IMAGE_TAG: *android_build
+    MESA_IMAGE_TAG: *debian-android_build
   needs:
-    - android_build
+    - debian/android_build
 
 # Debian 11 based x86 test image base
-x86_test-base:
-  extends: x86_build-base
+debian/x86_test-base:
+  extends: debian/x86_build-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-base "2021-03-31-cargo"
+    MESA_IMAGE_TAG: &debian-x86_test-base "2021-07-26-python"
 
-.use-x86_test-base:
+.use-debian/x86_test-base:
   extends:
     - .fdo.container-build@debian
     - .use-base-image
   variables:
     MESA_BASE_IMAGE: "debian/x86_test-base"
-    MESA_BASE_TAG: *x86_test-base
+    MESA_BASE_TAG: *debian-x86_test-base
   needs:
-    - x86_test-base
+    - debian/x86_test-base
 
 # Debian 11 based x86 test image for GL
-x86_test-gl:
-  extends: .use-x86_test-base
+debian/x86_test-gl:
+  extends: .use-debian/x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-gl "2021-04-28-yuv-3"
+    FDO_DISTRIBUTION_EXEC: 'env KERNEL_URL=${KERNEL_URL} FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
+    KERNEL_URL: &kernel-rootfs-url "https://gitlab.freedesktop.org/gfx-ci/linux/-/archive/v5.13-rc5-for-mesa-ci-2bb5d9ffd79c/linux-v5.13-rc5-for-mesa-ci-2bb5d9ffd79c.tar.bz2"
+    MESA_IMAGE_TAG: &debian-x86_test-gl "2021-09-01-piglit"
 
 # Debian 11 based x86 test image for VK
-x86_test-vk:
-  extends: .use-x86_test-base
+debian/x86_test-vk:
+  extends: .use-debian/x86_test-base
   variables:
-    MESA_IMAGE_TAG: &x86_test-vk "2021-04-28-yuv-3"
+    MESA_IMAGE_TAG: &debian-x86_test-vk "2021-09-01-piglit"
 
 # Debian 11 based ARM build image
-arm_build:
+debian/arm_build:
   extends:
     - .fdo.container-build@debian
     - .container
   tags:
     - aarch64
   variables:
-    MESA_IMAGE_TAG: &arm_build "2021-04-13-bullseye"
+    MESA_IMAGE_TAG: &debian-arm_build "2021-07-26-python"
 
-.use-arm_build:
+.use-debian/arm_build:
   extends:
     - .set-image
   variables:
     MESA_IMAGE_PATH: "debian/arm_build"
-    MESA_IMAGE_TAG: *arm_build
+    MESA_IMAGE_TAG: *debian-arm_build
+    MESA_ARTIFACTS_TAG: *debian-arm_build
   needs:
-    - arm_build
+    - debian/arm_build
+
+
+# Fedora 34 based x86 build image
+fedora/x86_build:
+  extends:
+    - .fdo.container-build@fedora
+    - .container
+  variables:
+    FDO_DISTRIBUTION_VERSION: 34
+    MESA_IMAGE_TAG: &fedora-x86_build "2021-07-08-bump-libdrm"
+
+.use-fedora/x86_build:
+  extends:
+    - .set-image
+  variables:
+    MESA_IMAGE_PATH: "fedora/x86_build"
+    MESA_IMAGE_TAG: *fedora-x86_build
+  needs:
+    - fedora/x86_build
+
 
 .kernel+rootfs:
   extends:
     - .ci-run-policy
-  stage: container-2
+  stage: container
   variables:
     GIT_STRATEGY: fetch
-    KERNEL_URL: "https://gitlab.freedesktop.org/drm/msm/-/archive/v5.11-for-mesa-ci-40abe2528d16/linux-v5.11-for-mesa-ci-40abe2528d16.tar.bz2"
-    MESA_ROOTFS_TAG: &kernel-rootfs "2021-04-28-yuv-3"
-    DISTRIBUTION_TAG: &distribution-tag-arm "${MESA_ROOTFS_TAG}--${MESA_IMAGE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    KERNEL_URL: *kernel-rootfs-url
+    MESA_ROOTFS_TAG: &kernel-rootfs "2021-09-11-etnaviv"
+    DISTRIBUTION_TAG: &distribution-tag-arm "${MESA_ROOTFS_TAG}--${MESA_ARTIFACTS_TAG}--${MESA_TEMPLATES_COMMIT}"
   script:
     - .gitlab-ci/container/lava_build.sh
 
 kernel+rootfs_amd64:
   extends:
-    - .use-x86_build-base
+    - .use-debian/x86_build-base
     - .kernel+rootfs
   image: "$FDO_BASE_IMAGE"
   variables:
     DEBIAN_ARCH: "amd64"
-    DISTRIBUTION_TAG: &distribution-tag-amd64 "${MESA_ROOTFS_TAG}--${MESA_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    DISTRIBUTION_TAG: &distribution-tag-amd64 "${MESA_ROOTFS_TAG}--${MESA_ARTIFACTS_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
 
 kernel+rootfs_arm64:
   extends:
-    - .use-arm_build
+    - .use-debian/arm_build
     - .kernel+rootfs
   tags:
     - aarch64
@@ -488,32 +506,31 @@ kernel+rootfs_armhf:
     MESA_ROOTFS_TAG: *kernel-rootfs
 
 # x86 image with ARM64 & armhf kernel & rootfs for baremetal testing
-arm_test:
+debian/arm_test:
   extends:
     - .fdo.container-build@debian
     - .container
     # Don't want the .container rules
     - .ci-run-policy
-  stage: build-misc
   needs:
     - kernel+rootfs_arm64
     - kernel+rootfs_armhf
   variables:
     FDO_DISTRIBUTION_EXEC: 'env ARTIFACTS_PREFIX=https://${MINIO_HOST}/mesa-lava ARTIFACTS_SUFFIX=${MESA_ROOTFS_TAG}--${MESA_ARM_BUILD_TAG}--${MESA_TEMPLATES_COMMIT} CI_PROJECT_PATH=${CI_PROJECT_PATH} FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} FDO_UPSTREAM_REPO=${FDO_UPSTREAM_REPO} bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
     FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${MESA_ARM_BUILD_TAG}--${MESA_TEMPLATES_COMMIT}"
-    MESA_ARM_BUILD_TAG: *arm_build
-    MESA_IMAGE_TAG: &arm_test "2021-04-20-kernel-modules"
+    MESA_ARM_BUILD_TAG: *debian-arm_build
+    MESA_IMAGE_TAG: &debian-arm_test "2021-09-11-etnaviv"
     MESA_ROOTFS_TAG: *kernel-rootfs
 
-.use-arm_test:
+.use-debian/arm_test:
   image: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${MESA_ARM_BUILD_TAG}--${MESA_TEMPLATES_COMMIT}"
   variables:
-    MESA_ARM_BUILD_TAG: *arm_build
+    MESA_ARM_BUILD_TAG: *debian-arm_build
     MESA_IMAGE_PATH: "debian/arm_test"
-    MESA_IMAGE_TAG: *arm_test
+    MESA_IMAGE_TAG: *debian-arm_test
     MESA_ROOTFS_TAG: *kernel-rootfs
   needs:
-    - arm_test
+    - debian/arm_test
 
 # Native Windows docker builds
 #
@@ -533,7 +550,7 @@ arm_test:
   variables:
     MESA_IMAGE: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}"
     MESA_IMAGE_PATH: "windows/x64_build"
-    MESA_IMAGE_TAG: "2021-04-14-radv"
+    MESA_IMAGE_TAG: "2021-06-24-zink-msvc"
     MESA_UPSTREAM_IMAGE: "$CI_REGISTRY/$FDO_UPSTREAM_REPO/$MESA_IMAGE_PATH:${MESA_IMAGE_TAG}"
 
 windows_build_vs2019:
@@ -647,14 +664,14 @@ sanity:
 .meson-build:
   extends:
     - .build-linux
-    - .use-x86_build
-  stage: meson-x86_64
+    - .use-debian/x86_build
+  stage: build-x86_64
   variables:
     LLVM_VERSION: 11
   script:
     - .gitlab-ci/meson/build.sh
 
-meson-testing:
+debian-testing:
   extends:
     - .meson-build
     - .ci-deqp-artifacts
@@ -667,7 +684,7 @@ meson-testing:
       -D platforms=x11
     GALLIUM_ST: >
       -D dri3=enabled
-    GALLIUM_DRIVERS: "swrast,virgl,radeonsi,zink,iris"
+    GALLIUM_DRIVERS: "swrast,virgl,radeonsi,zink,iris,i915"
     VULKAN_DRIVERS: "swrast,amd"
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
@@ -677,9 +694,9 @@ meson-testing:
     - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
-meson-testing-asan:
+debian-testing-asan:
   extends:
-    - meson-testing
+    - debian-testing
   variables:
     C_ARGS: >
       -Wno-error=stringop-truncation
@@ -689,7 +706,7 @@ meson-testing-asan:
     MINIO_ARTIFACT_NAME: ""
     ARTIFACTS_DEBUG_SYMBOLS: 1
 
-meson-clover-testing:
+debian-clover-testing:
   extends:
     - .meson-build
     - .ci-deqp-artifacts
@@ -710,7 +727,7 @@ meson-clover-testing:
     - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
-meson-gallium:
+debian-gallium:
   extends: .meson-build
   variables:
     UNWIND: "enabled"
@@ -729,7 +746,7 @@ meson-gallium:
       -D gallium-xa=enabled
       -D gallium-nine=true
       -D gallium-opencl=disabled
-    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12"
+    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12,asahi,crocus"
     VULKAN_DRIVERS: swrast
     EXTRA_OPTION: >
       -D osmesa=true
@@ -740,7 +757,7 @@ meson-gallium:
     - src/freedreno/.gitlab-ci/run-fdtools.sh
 
 # Test a release build with -Werror so new warnings don't sneak in.
-meson-release:
+debian-release:
   extends: .meson-build
   variables:
     UNWIND: "enabled"
@@ -760,7 +777,7 @@ meson-release:
       -D gallium-nine=false
       -D gallium-opencl=disabled
       -D llvm=false
-    GALLIUM_DRIVERS: "iris,nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12"
+    GALLIUM_DRIVERS: "i915,iris,nouveau,kmsro,freedreno,r300,svga,swrast,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12,crocus"
     BUILDTYPE: "release"
     EXTRA_OPTION: >
       -D osmesa=true
@@ -768,10 +785,57 @@ meson-release:
   script:
     - .gitlab-ci/meson/build.sh
 
-meson-android:
+fedora-release:
+  extends:
+    - .meson-build
+    - .use-fedora/x86_build
+  variables:
+    BUILDTYPE: "release"
+    C_ARGS: >
+      -Wno-error=array-bounds
+      -Wno-error=maybe-uninitialized
+      -Wno-error=stringop-overread
+      -Wno-error=uninitialized
+    CPP_ARGS: >
+      -Wno-error=array-bounds
+    DRI_DRIVERS: "nouveau,i915,i965,r100,r200"
+    DRI_LOADERS: >
+      -D glx=dri
+      -D gbm=enabled
+      -D egl=enabled
+      -D glvnd=true
+      -D platforms=x11,wayland
+    EXTRA_OPTION: >
+      -D osmesa=true
+      -D selinux=true
+      -D tools=drm-shim,etnaviv,freedreno,glsl,intel,nir,nouveau,lima,panfrost
+    GALLIUM_DRIVERS: "crocus,etnaviv,freedreno,iris,kmsro,lima,nouveau,panfrost,r300,r600,radeonsi,svga,swrast,tegra,v3d,vc4,virgl,zink"
+    GALLIUM_ST: >
+      -D dri3=enabled
+      -D gallium-extra-hud=true
+      -D gallium-vdpau=enabled
+      -D gallium-xvmc=disabled
+      -D gallium-omx=disabled
+      -D gallium-va=enabled
+      -D gallium-xa=enabled
+      -D gallium-nine=false
+      -D gallium-opencl=icd
+      -D gles1=disabled
+      -D gles2=enabled
+      -D llvm=enabled
+      -D microsoft-clc=disabled
+      -D shared-llvm=enabled
+      -D vulkan-device-select-layer=true
+    LLVM_VERSION: ""
+    UNWIND: "disabled"
+    VULKAN_DRIVERS: "amd,broadcom,freedreno,intel"
+  script:
+    - .gitlab-ci/meson/build.sh
+
+debian-android:
   extends:
     - .meson-cross
-    - .use-android_build
+    - .use-debian/android_build
   variables:
     UNWIND: "disabled"
     C_ARGS: >
@@ -797,7 +861,7 @@ meson-android:
     EXTRA_OPTION: >
       -D android-stub=true
       -D llvm=disabled
-      -D platform-sdk-version=26
+      -D platform-sdk-version=29
       -D valgrind=false
     GALLIUM_ST: >
       -D dri3=disabled
@@ -816,7 +880,7 @@ meson-android:
     # Can't do Intel because gen_decoder.c currently requires libexpat, which
     # is not a dependency that AOSP wants to accept.  Can't do Radeon because
     # it requires LLVM, which we don't have an Android build of.
-    # - PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-android/pkgconfig/ CROSS=x86_64-linux-android GALLIUM_DRIVERS=iris VULKAN_DRIVERS=intel .gitlab-ci/meson/build.sh
+    - PKG_CONFIG_PATH=/usr/local/lib/x86_64-linux-android/pkgconfig/:/android-ndk-r21d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/pkgconfig/ CROSS=x86_64-linux-android GALLIUM_DRIVERS=iris VULKAN_DRIVERS=intel .gitlab-ci/meson/build.sh
 
 .meson-cross:
   extends:
@@ -842,9 +906,9 @@ meson-android:
 .meson-arm:
   extends:
     - .meson-cross
-    - .use-arm_build
+    - .use-debian/arm_build
   needs:
-    - arm_build
+    - debian/arm_build
   variables:
     VULKAN_DRIVERS: freedreno,broadcom
     GALLIUM_DRIVERS: "etnaviv,freedreno,kmsro,lima,nouveau,panfrost,swrast,tegra,v3d,vc4"
@@ -852,7 +916,7 @@ meson-android:
   tags:
     - aarch64
 
-meson-armhf:
+debian-armhf:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
@@ -866,12 +930,12 @@ meson-armhf:
     - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
-meson-arm64:
+debian-arm64:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
   variables:
-    VULKAN_DRIVERS: "freedreno,broadcom"
+    VULKAN_DRIVERS: "freedreno,broadcom,panfrost"
     EXTRA_OPTION: >
       -D llvm=disabled
       -D valgrind=false
@@ -880,9 +944,9 @@ meson-arm64:
     - .gitlab-ci/meson/build.sh
     - .gitlab-ci/prepare-artifacts.sh
 
-meson-arm64-asan:
+debian-arm64-asan:
   extends:
-    - meson-arm64
+    - debian-arm64
   variables:
     C_ARGS: >
       -Wno-error=stringop-truncation
@@ -894,7 +958,7 @@ meson-arm64-asan:
     MINIO_ARTIFACT_NAME: mesa-arm64-asan
     MESON_TEST_ARGS: "--no-suite mesa:compiler"
 
-meson-arm64-build-test:
+debian-arm64-build-test:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
@@ -905,7 +969,7 @@ meson-arm64-build-test:
   script:
     - .gitlab-ci/meson/build.sh
 
-meson-clang:
+debian-clang:
   extends: .meson-build
   variables:
     UNWIND: "enabled"
@@ -948,12 +1012,12 @@ meson-clang:
     DRI_LOADERS: >
       -D glvnd=true
     DRI_DRIVERS: "auto"
-    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12"
+    GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12,crocus"
     VULKAN_DRIVERS: intel,amd,freedreno,broadcom,virtio-experimental
     CC: clang
     CXX: clang++
 
-meson-windows-vs2019:
+windows-vs2019:
   extends:
     - .build-windows
     - .use-windows_build_vs2019
@@ -963,6 +1027,7 @@ meson-windows-vs2019:
     - . .\.gitlab-ci\windows\mesa_build.ps1
   artifacts:
     paths:
+      - _build/meson-logs/*.txt
       - _install/
 
 test-d3d12-windows:
@@ -972,9 +1037,9 @@ test-d3d12-windows:
     - .windows-test-rules
   stage: layered-backends
   dependencies:
-    - meson-windows-vs2019
+    - windows-vs2019
   needs:
-    - meson-windows-vs2019
+    - windows-vs2019
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     GALLIUM_DRIVER: d3d12
@@ -988,7 +1053,7 @@ test-d3d12-windows:
     paths:
       - summary/
 
-meson-clover:
+debian-clover:
   extends: .meson-build
   variables:
     UNWIND: "enabled"
@@ -1012,7 +1077,7 @@ meson-clover:
     - LLVM_VERSION=9 GALLIUM_DRIVERS=r600,swrast .gitlab-ci/meson/build.sh
     - .gitlab-ci/meson/build.sh
 
-meson-vulkan:
+debian-vulkan:
   extends: .meson-build
   variables:
     UNWIND: "disabled"
@@ -1040,22 +1105,23 @@ meson-vulkan:
       -D vulkan-layers=device-select,overlay
       -D build-aco-tests=true
 
-meson-i386:
+debian-i386:
   extends:
     - .meson-cross
-    - .use-i386_build
+    - .use-debian/i386_build
   variables:
     CROSS: i386
     VULKAN_DRIVERS: intel,amd,swrast,virtio-experimental
-    GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,swrast,virgl,zink"
+    GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,swrast,virgl,zink,crocus"
     DRI_DRIVERS: "i915,i965,r100,r200,nouveau"
     EXTRA_OPTION: >
       -D vulkan-layers=device-select,overlay
 
-meson-s390x:
+debian-s390x:
   extends:
-    - meson-ppc64el
-    - .use-s390x_build
+    - debian-ppc64el
+    - .use-debian/s390x_build
+    - .s390x-rules
   tags:
     - kvm
   variables:
@@ -1065,16 +1131,17 @@ meson-s390x:
     LLVM_VERSION: 9
     VULKAN_DRIVERS: "swrast"
 
-meson-ppc64el:
+debian-ppc64el:
   extends:
     - .meson-cross
-    - .use-ppc64el_build
+    - .use-debian/ppc64el_build
+    - .ppc64el-rules
   variables:
     CROSS: ppc64el
     GALLIUM_DRIVERS: "nouveau,radeonsi,swrast,virgl,zink"
     VULKAN_DRIVERS: "amd,swrast"
 
-meson-mingw32-x86_64:
+debian-mingw32-x86_64:
   extends: .meson-build
   stage: build-misc
   variables:
@@ -1109,42 +1176,51 @@ meson-mingw32-x86_64:
     paths:
       - results/
 
-.use-x86_test-gl:
+.use-debian/x86_test-gl:
   extends:
     - .test
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_test-base
+    MESA_BASE_TAG: *debian-x86_test-base
     MESA_IMAGE_PATH: "debian/x86_test-gl"
-    MESA_IMAGE_TAG: *x86_test-gl
+    MESA_IMAGE_TAG: *debian-x86_test-gl
   needs:
-    - x86_test-gl
+    - debian/x86_test-gl
 
 .test-gl:
   extends:
-    - .use-x86_test-gl
+    - .use-debian/x86_test-gl
   needs:
-    - x86_test-gl
-    - meson-testing
+    - debian/x86_test-gl
+    - debian-testing
 
 .test-vk:
   extends:
     - .test
     - .set-image-base-tag
   variables:
-    MESA_BASE_TAG: *x86_test-base
+    MESA_BASE_TAG: *debian-x86_test-base
     MESA_IMAGE_PATH: "debian/x86_test-vk"
-    MESA_IMAGE_TAG: *x86_test-vk
+    MESA_IMAGE_TAG: *debian-x86_test-vk
   needs:
-    - meson-testing
-    - x86_test-vk
+    - debian-testing
+    - debian/x86_test-vk
 
 .test-cl:
   extends:
-    - .use-x86_test-gl
+    - .use-debian/x86_test-gl
   needs:
-    - x86_test-gl
-    - meson-clover-testing
+    - debian/x86_test-gl
+    - debian-clover-testing
+
+.vkd3d-proton-test:
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - results/vkd3d-proton.log
+  script:
+    - ./install/vkd3d-proton/run.sh
 
 .piglit-test:
   artifacts:
@@ -1173,9 +1249,7 @@ meson-mingw32-x86_64:
   variables:
     PIGLIT_PROFILES: replay
     PIGLIT_REPLAY_UPLOAD_TO_MINIO: 1
-    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/
-    PIGLIT_REPLAY_REFERENCE_IMAGES_BASE_URL: "/mesa-tracie-results/$FDO_UPSTREAM_REPO"
-    PIGLIT_REPLAY_ARTIFACTS_BASE_URL: "/artifacts/$CI_PROJECT_PATH/$CI_PIPELINE_ID/$CI_JOB_ID"
+    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_host=minio-packet.freedesktop.org --minio_bucket=mesa-tracie-public --role-session-name=${CI_PROJECT_PATH}:${CI_JOB_ID} --jwt=${CI_JOB_JWT}
     PIGLIT_JUNIT_RESULTS: 1
 
 .deqp-test:
@@ -1243,7 +1317,7 @@ meson-mingw32-x86_64:
     # instead of fd.o.  Set FDO_HTTP_CACHE_URI to an http cache for your test lab to
     # improve it even more (see https://docs.mesa3d.org/ci/bare-metal.html for
     # setup).
-    - wget ${FDO_HTTP_CACHE_URI:-}https://minio-packet.freedesktop.org/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}/${MINIO_ARTIFACT_NAME}.tar.gz -S --progress=dot:giga -O- | tar -xz
+    - wget ${FDO_HTTP_CACHE_URI:-}https://${PIPELINE_ARTIFACTS_BASE}/${MINIO_ARTIFACT_NAME}.tar.gz -S --progress=dot:giga -O- | tar -xz
   artifacts:
     when: always
     name: "mesa_${CI_JOB_NAME}"
@@ -1266,11 +1340,11 @@ meson-mingw32-x86_64:
     TEST_LD_PRELOAD: libasan.so.6
     MINIO_ARTIFACT_NAME: mesa-arm64-asan
   needs:
-    - arm_test
-    - job: meson-arm64-asan
+    - debian/arm_test
+    - job: debian-arm64-asan
       artifacts: false
 
 .baremetal-deqp-test:
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     DEQP_PARALLEL: 0 # Default to number of CPUs

@@ -93,6 +93,27 @@ fd2_screen_is_format_supported(struct pipe_screen *pscreen,
    return retval == usage;
 }
 
+/* clang-format off */
+static const uint8_t a22x_primtypes[PIPE_PRIM_MAX] = {
+   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
+   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
+   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
+   [PIPE_PRIM_LINE_LOOP]      = DI_PT_LINELOOP,
+   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
+   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
+   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
+};
+
+static const uint8_t a20x_primtypes[PIPE_PRIM_MAX] = {
+   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
+   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
+   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
+   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
+   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
+   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
+};
+/* clang-format on */
+
 void
 fd2_screen_init(struct pipe_screen *pscreen)
 {
@@ -107,4 +128,10 @@ fd2_screen_init(struct pipe_screen *pscreen)
       screen->tile_mode = fd2_tile_mode;
 
    fd2_emit_init_screen(pscreen);
+
+   if (screen->gpu_id >= 220) {
+      screen->primtypes = a22x_primtypes;
+   } else {
+      screen->primtypes = a20x_primtypes;
+   }
 }

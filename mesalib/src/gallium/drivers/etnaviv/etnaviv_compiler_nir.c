@@ -164,7 +164,7 @@ etna_optimize_loop(nir_shader *s)
          OPT(s, nir_copy_prop);
          OPT(s, nir_opt_dce);
       }
-      progress |= OPT(s, nir_opt_loop_unroll, nir_var_all);
+      progress |= OPT(s, nir_opt_loop_unroll);
       progress |= OPT(s, nir_opt_if, false);
       progress |= OPT(s, nir_opt_remove_phis);
       progress |= OPT(s, nir_opt_undef);
@@ -687,7 +687,7 @@ insert_vec_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
    unsigned write_mask = (1u << start_idx);
 
    nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
-   nir_alu_src_copy(&mov->src[0], &vec->src[start_idx], mov);
+   nir_alu_src_copy(&mov->src[0], &vec->src[start_idx]);
 
    mov->src[0].swizzle[0] = vec->src[start_idx].swizzle[0];
    mov->src[0].negate = vec->src[start_idx].negate;

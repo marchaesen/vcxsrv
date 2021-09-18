@@ -41,6 +41,24 @@ struct pipe_resource;
 struct st_framebuffer_iface;
 struct stw_pixelformat_info;
 
+enum stw_framebuffer_owner
+{
+   /* WGL window framebuffers have no corresponding destroy, and therefore
+    * a window hook is needed to clean them up.
+    */
+   STW_FRAMEBUFFER_WGL_WINDOW,
+   /* PBuffers behave like WGL window framebuffers, except that the window
+    * lifetime is managed by us. We can explicitly clean up the window.
+    */
+   STW_FRAMEBUFFER_PBUFFER,
+   /* EGL window framebuffers do have a corresponding destroy, so they don't
+    * need to be registered in the global framebuffer list. This means they
+    * will only be cleaned up from a destroy, and don't need to live until the
+    * window goes away.
+    */
+   STW_FRAMEBUFFER_EGL_WINDOW,
+};
+
 /**
  * Windows framebuffer.
  */
@@ -70,7 +88,7 @@ struct stw_framebuffer
 
    /* A pixel format that can be used by GDI */
    int iDisplayablePixelFormat;
-   boolean bPbuffer;
+   enum stw_framebuffer_owner owner;
 
    struct st_framebuffer_iface *stfb;
 
@@ -127,7 +145,6 @@ struct stw_framebuffer
    struct stw_framebuffer *next;
 };
 
-
 /**
  * Create a new framebuffer object which will correspond to the given HDC.
  * 
@@ -135,7 +152,7 @@ struct stw_framebuffer
  * must be called when done 
  */
 struct stw_framebuffer *
-stw_framebuffer_create(HDC hdc, int iPixelFormat);
+stw_framebuffer_create(HWND hwnd, int iPixelFormat, enum stw_framebuffer_owner owner);
 
 
 /**
@@ -143,14 +160,8 @@ stw_framebuffer_create(HDC hdc, int iPixelFormat);
  *
  * It's not necessary to hold stw_dev::fb_mutex global lock.
  */
-static inline void
-stw_framebuffer_reference_locked(struct stw_framebuffer *fb)
-{
-   if (fb) {
-      assert(stw_own_mutex(&fb->mutex));
-      fb->refcnt++;
-   }
-}
+void
+stw_framebuffer_reference_locked(struct stw_framebuffer *fb);
 
 
 void
@@ -183,6 +194,9 @@ stw_framebuffer_present_locked(HDC hdc,
 void
 stw_framebuffer_update(struct stw_framebuffer *fb);
 
+BOOL
+stw_framebuffer_swap_locked(HDC hdc, struct stw_framebuffer *fb);
+
 
 static inline void
 stw_framebuffer_lock(struct stw_framebuffer *fb)
@@ -197,13 +211,8 @@ stw_framebuffer_lock(struct stw_framebuffer *fb)
  * after calling this function, as it may have been deleted by another thread
  * in the meanwhile.
  */
-static inline void
-stw_framebuffer_unlock(struct stw_framebuffer *fb)
-{
-   assert(fb);
-   assert(stw_own_mutex(&fb->mutex));
-   LeaveCriticalSection(&fb->mutex);
-}
+void
+stw_framebuffer_unlock(struct stw_framebuffer *fb);
 
 
 /**

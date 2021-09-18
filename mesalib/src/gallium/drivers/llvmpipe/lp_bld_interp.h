@@ -70,9 +70,8 @@ struct lp_shader_input {
    uint interp:4;       /* enum lp_interp */
    uint usage_mask:4;   /* bitmask of TGSI_WRITEMASK_x flags */
    uint src_index:8;    /* where to find values in incoming vertices */
-   uint cyl_wrap:4;     /* TGSI_CYLINDRICAL_WRAP_x flags */
    uint location:2;     /* TGSI_INTERPOLOATE_LOC_* */
-   uint padding:10;
+   uint padding:14;
 };
 
 

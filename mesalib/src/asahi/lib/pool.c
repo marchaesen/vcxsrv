@@ -75,7 +75,6 @@ agx_pool_get_bo_handles(struct agx_pool *pool, uint32_t *handles)
    unsigned idx = 0;
    util_dynarray_foreach(&pool->bos, struct agx_bo *, bo) {
       handles[idx++] = (*bo)->handle;
-      (*bo)->access = AGX_BO_ACCESS_RW;
    }
 }
 

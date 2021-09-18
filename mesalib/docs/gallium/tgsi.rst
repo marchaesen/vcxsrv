@@ -3561,11 +3561,6 @@ interpolation should be done at, one of ``TGSI_INTERPOLATE_LOC_*``. Note that
 when per-sample shading is enabled, the implementation may choose to
 interpolate at the sample irrespective of the Location field.
 
-The CylindricalWrap bitfield specifies which register components
-should be subject to cylindrical wrapping when interpolating by the
-rasteriser. If TGSI_CYLINDRICAL_WRAP_X is set to 1, the X component
-should be interpolated according to cylindrical wrapping rules.
-
 
 Declaration Sampler View
 ^^^^^^^^^^^^^^^^^^^^^^^^

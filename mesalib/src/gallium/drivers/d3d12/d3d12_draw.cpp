@@ -63,7 +63,7 @@ fill_cbv_descriptors(struct d3d12_context *ctx,
       D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
       if (buffer && buffer->buffer) {
          struct d3d12_resource *res = d3d12_resource(buffer->buffer);
-         d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+         d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_BIND_INVALIDATE_NONE);
          cbv_desc.BufferLocation = d3d12_resource_gpu_virtual_address(res) + buffer->buffer_offset;
          cbv_desc.SizeInBytes = MIN2(D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
             align(buffer->buffer_size, 256));
@@ -110,14 +110,16 @@ fill_srv_descriptors(struct d3d12_context *ctx,
                                        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
          if (view->base.texture->target == PIPE_BUFFER) {
             d3d12_transition_resource_state(ctx, d3d12_resource(view->base.texture),
-                                            state);
+                                            state,
+                                            D3D12_BIND_INVALIDATE_NONE);
          } else {
             d3d12_transition_subresources_state(ctx, d3d12_resource(view->base.texture),
                                                 view->base.u.tex.first_level, view->mip_levels,
                                                 view->base.u.tex.first_layer, view->array_size,
                                                 d3d12_get_format_start_plane(view->base.format),
                                                 d3d12_get_format_num_planes(view->base.format),
-                                                state);
+                                                state,
+                                                D3D12_BIND_INVALIDATE_NONE);
          }
       } else {
          descs[desc_idx] = screen->null_srvs[shader->srv_bindings[i].dimension].cpu_handle;
@@ -241,12 +243,17 @@ check_descriptors_left(struct d3d12_context *ctx)
    return true;
 }
 
-static void
-set_graphics_root_parameters(struct d3d12_context *ctx,
-                             const struct pipe_draw_info *dinfo,
-                             const struct pipe_draw_start_count_bias *draw)
+#define MAX_DESCRIPTOR_TABLES (D3D12_GFX_SHADER_STAGES * 3)
+
+static unsigned
+update_graphics_root_parameters(struct d3d12_context *ctx,
+                                const struct pipe_draw_info *dinfo,
+                                const struct pipe_draw_start_count_bias *draw,
+                                D3D12_GPU_DESCRIPTOR_HANDLE root_desc_tables[MAX_DESCRIPTOR_TABLES],
+                                int root_desc_indices[MAX_DESCRIPTOR_TABLES])
 {
    unsigned num_params = 0;
+   unsigned num_root_desciptors = 0;
 
    for (unsigned i = 0; i < D3D12_GFX_SHADER_STAGES; ++i) {
       if (!ctx->gfx_stages[i])
@@ -258,16 +265,25 @@ set_graphics_root_parameters(struct d3d12_context *ctx,
       assert(shader);
 
       if (shader->num_cb_bindings > 0) {
-         if (dirty & D3D12_SHADER_DIRTY_CONSTBUF)
-            ctx->cmdlist->SetGraphicsRootDescriptorTable(num_params, fill_cbv_descriptors(ctx, shader, i));
+         if (dirty & D3D12_SHADER_DIRTY_CONSTBUF) {
+            assert(num_root_desciptors < MAX_DESCRIPTOR_TABLES);
+            root_desc_tables[num_root_desciptors] = fill_cbv_descriptors(ctx, shader, i);
+            root_desc_indices[num_root_desciptors++] = num_params;
+         }
          num_params++;
       }
       if (shader->end_srv_binding > 0) {
-         if (dirty & D3D12_SHADER_DIRTY_SAMPLER_VIEWS)
-            ctx->cmdlist->SetGraphicsRootDescriptorTable(num_params, fill_srv_descriptors(ctx, shader, i));
+         if (dirty & D3D12_SHADER_DIRTY_SAMPLER_VIEWS) {
+            assert(num_root_desciptors < MAX_DESCRIPTOR_TABLES);
+            root_desc_tables[num_root_desciptors] = fill_srv_descriptors(ctx, shader, i);
+            root_desc_indices[num_root_desciptors++] = num_params;
+         }
          num_params++;
-         if (dirty & D3D12_SHADER_DIRTY_SAMPLERS)
-            ctx->cmdlist->SetGraphicsRootDescriptorTable(num_params, fill_sampler_descriptors(ctx, shader_sel, i));
+         if (dirty & D3D12_SHADER_DIRTY_SAMPLERS) {
+            assert(num_root_desciptors < MAX_DESCRIPTOR_TABLES);
+            root_desc_tables[num_root_desciptors] = fill_sampler_descriptors(ctx, shader_sel, i);
+            root_desc_indices[num_root_desciptors++] = num_params;
+         }
          num_params++;
       }
       /* TODO Don't always update state vars */
@@ -278,6 +294,7 @@ set_graphics_root_parameters(struct d3d12_context *ctx,
          num_params++;
       }
    }
+   return num_root_desciptors;
 }
 
 static bool
@@ -388,7 +405,8 @@ transition_surface_subresources_state(struct d3d12_context *ctx,
                                        start_layer, num_layers,
                                        d3d12_get_format_start_plane(psurf->format),
                                        d3d12_get_format_num_planes(psurf->format),
-                                       state);
+                                       state,
+                                       D3D12_BIND_INVALIDATE_FULL);
 }
 
 static bool
@@ -443,16 +461,16 @@ d3d12_draw_vbo(struct pipe_context *pctx,
    unsigned index_offset = 0;
    enum d3d12_surface_conversion_mode conversion_modes[PIPE_MAX_COLOR_BUFS] = {};
 
-   if (!prim_supported(dinfo->mode) ||
+   if (!prim_supported((enum pipe_prim_type)dinfo->mode) ||
        dinfo->index_size == 1 ||
        (dinfo->primitive_restart && dinfo->restart_index != 0xffff &&
         dinfo->restart_index != 0xffffffff)) {
 
       if (!dinfo->primitive_restart &&
-          !u_trim_pipe_prim(dinfo->mode, (unsigned *)&draws[0].count))
+          !u_trim_pipe_prim((enum pipe_prim_type)dinfo->mode, (unsigned *)&draws[0].count))
          return;
 
-      ctx->initial_api_prim = dinfo->mode;
+      ctx->initial_api_prim = (enum pipe_prim_type)dinfo->mode;
       util_primconvert_save_rasterizer_state(ctx->primconvert, &ctx->gfx_pipeline_state.rast->base);
       util_primconvert_draw_vbo(ctx->primconvert, dinfo, drawid_offset, indirect, draws, num_draws);
       return;
@@ -479,13 +497,13 @@ d3d12_draw_vbo(struct pipe_context *pctx,
                                                  D3D12_SHADER_DIRTY_SAMPLERS;
 
    /* this should *really* be fixed at a higher level than here! */
-   enum pipe_prim_type reduced_prim = u_reduced_prim(dinfo->mode);
+   enum pipe_prim_type reduced_prim = u_reduced_prim((enum pipe_prim_type)dinfo->mode);
    if (reduced_prim == PIPE_PRIM_TRIANGLES &&
        ctx->gfx_pipeline_state.rast->base.cull_face == PIPE_FACE_FRONT_AND_BACK)
       return;
 
    if (ctx->gfx_pipeline_state.prim_type != dinfo->mode) {
-      ctx->gfx_pipeline_state.prim_type = dinfo->mode;
+      ctx->gfx_pipeline_state.prim_type = (enum pipe_prim_type)dinfo->mode;
       ctx->state_dirty |= D3D12_DIRTY_PRIM_MODE;
    }
 
@@ -577,7 +595,9 @@ d3d12_draw_vbo(struct pipe_context *pctx,
       ctx->cmdlist->SetPipelineState(ctx->current_pso);
    }
 
-   set_graphics_root_parameters(ctx, dinfo, &draws[0]);
+   D3D12_GPU_DESCRIPTOR_HANDLE root_desc_tables[MAX_DESCRIPTOR_TABLES];
+   int root_desc_indices[MAX_DESCRIPTOR_TABLES];
+   unsigned num_root_desciptors = update_graphics_root_parameters(ctx, dinfo, &draws[0], root_desc_tables, root_desc_indices);
 
    bool need_zero_one_depth_range = d3d12_need_zero_one_depth_range(ctx);
    if (need_zero_one_depth_range != ctx->need_zero_one_depth_range) {
@@ -620,12 +640,12 @@ d3d12_draw_vbo(struct pipe_context *pctx,
       ctx->cmdlist->OMSetStencilRef(ctx->stencil_ref.ref_value[0]);
 
    if (ctx->cmdlist_dirty & D3D12_DIRTY_PRIM_MODE)
-      ctx->cmdlist->IASetPrimitiveTopology(topology(dinfo->mode));
+      ctx->cmdlist->IASetPrimitiveTopology(topology((enum pipe_prim_type)dinfo->mode));
 
    for (unsigned i = 0; i < ctx->num_vbs; ++i) {
       if (ctx->vbs[i].buffer.resource) {
          struct d3d12_resource *res = d3d12_resource(ctx->vbs[i].buffer.resource);
-         d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+         d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_BIND_INVALIDATE_NONE);
          if (ctx->cmdlist_dirty & D3D12_DIRTY_VERTEX_BUFFERS)
             d3d12_batch_reference_resource(batch, res);
       }
@@ -639,7 +659,7 @@ d3d12_draw_vbo(struct pipe_context *pctx,
       ibv.BufferLocation = d3d12_resource_gpu_virtual_address(res) + index_offset;
       ibv.SizeInBytes = res->base.width0 - index_offset;
       ibv.Format = ib_format(dinfo->index_size);
-      d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+      d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_BIND_INVALIDATE_NONE);
       if (ctx->cmdlist_dirty & D3D12_DIRTY_INDEX_BUFFER ||
           memcmp(&ctx->ibv, &ibv, sizeof(D3D12_INDEX_BUFFER_VIEW)) != 0) {
          ctx->ibv = ibv;
@@ -691,8 +711,8 @@ d3d12_draw_vbo(struct pipe_context *pctx,
          d3d12_batch_reference_resource(batch, fill_buffer);
       }
 
-      d3d12_transition_resource_state(ctx, so_buffer, D3D12_RESOURCE_STATE_STREAM_OUT);
-      d3d12_transition_resource_state(ctx, fill_buffer, D3D12_RESOURCE_STATE_STREAM_OUT);
+      d3d12_transition_resource_state(ctx, so_buffer, D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_BIND_INVALIDATE_NONE);
+      d3d12_transition_resource_state(ctx, fill_buffer, D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_BIND_INVALIDATE_NONE);
    }
    if (ctx->cmdlist_dirty & D3D12_DIRTY_STREAM_OUTPUT)
       ctx->cmdlist->SOSetTargets(0, 4, so_buffer_views);
@@ -714,6 +734,9 @@ d3d12_draw_vbo(struct pipe_context *pctx,
    }
 
    d3d12_apply_resource_states(ctx);
+
+   for (unsigned i = 0; i < num_root_desciptors; ++i)
+      ctx->cmdlist->SetGraphicsRootDescriptorTable(root_desc_indices[i], root_desc_tables[i]);
 
    if (dinfo->index_size > 0)
       ctx->cmdlist->DrawIndexedInstanced(draws[0].count, dinfo->instance_count,

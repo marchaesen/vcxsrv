@@ -27,16 +27,20 @@
 #include <vulkan/vulkan.h>
 
 #include "util/list.h"
+#include "util/set.h"
 #include "util/u_dynarray.h"
 
 #include "zink_fence.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct pipe_reference;
 
 struct zink_buffer_view;
 struct zink_context;
 struct zink_descriptor_set;
-struct zink_framebuffer;
 struct zink_image_view;
 struct zink_program;
 struct zink_render_pass;
@@ -45,53 +49,68 @@ struct zink_sampler_view;
 struct zink_surface;
 
 struct zink_batch_usage {
-   /* this has to be atomic for fence access, so we can't use a bitmask and make everything neat */
    uint32_t usage;
+   cnd_t flush;
+   mtx_t mtx;
+   bool unflushed;
 };
+
+/* not real api don't use */
+bool
+batch_ptr_add_usage(struct zink_batch *batch, struct set *s, void *ptr);
 
 struct zink_batch_state {
    struct zink_fence fence;
-   struct pipe_reference reference;
+
+   struct zink_batch_usage usage;
    struct zink_context *ctx;
    VkCommandPool cmdpool;
    VkCommandBuffer cmdbuf;
+   VkCommandBuffer barrier_cmdbuf;
 
    VkQueue queue; //duplicated from batch for threading
    VkSemaphore sem;
 
    struct util_queue_fence flush_completed;
 
-   struct zink_resource *flush_res;
+   struct pipe_resource *flush_res;
 
-   unsigned short descs_used; //number of descriptors currently allocated
-
-   struct set *fbs;
    struct set *programs;
 
+   struct set *resources;
    struct set *surfaces;
    struct set *bufferviews;
-   struct set *desc_sets;
+
+   struct util_dynarray unref_resources;
 
    struct util_dynarray persistent_resources;
    struct util_dynarray zombie_samplers;
+   struct util_dynarray dead_framebuffers;
 
    struct set *active_queries; /* zink_query objects which were active at some point in this batch */
 
+   struct zink_batch_descriptor_data *dd;
+
    VkDeviceSize resource_size;
+
+    /* this is a monotonic int used to disambiguate internal fences from their tc fence references */
+   unsigned submit_count;
 
    bool is_device_lost;
    bool have_timelines;
+   bool has_barriers;
+   bool scanout_flush;
 };
 
 struct zink_batch {
    struct zink_batch_state *state;
 
-   uint32_t last_batch_id;
-   VkQueue queue; //gfx+compute
-   VkQueue thread_queue; //gfx+compute
-   struct util_queue flush_queue; //TODO: move to wsi
+   struct zink_batch_usage *last_batch_usage;
+
+   unsigned work_count;
 
    bool has_work;
+   bool last_was_compute;
    bool in_rp; //renderpass is currently active
 };
 
@@ -120,18 +139,23 @@ zink_batch_state_clear_resources(struct zink_screen *screen, struct zink_batch_s
 void
 zink_reset_batch(struct zink_context *ctx, struct zink_batch *batch);
 void
-zink_batch_reference_framebuffer(struct zink_batch *batch,
-                                 struct zink_framebuffer *fb);
-void
 zink_start_batch(struct zink_context *ctx, struct zink_batch *batch);
 
 void
 zink_end_batch(struct zink_context *ctx, struct zink_batch *batch);
 
 void
+zink_batch_resource_usage_set(struct zink_batch *batch, struct zink_resource *res, bool write);
+
+void
 zink_batch_reference_resource_rw(struct zink_batch *batch,
                                  struct zink_resource *res,
                                  bool write);
+void
+zink_batch_reference_resource(struct zink_batch *batch, struct zink_resource *res);
+
+void
+zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resource *res);
 
 void
 zink_batch_reference_sampler_view(struct zink_batch *batch,
@@ -153,32 +177,47 @@ zink_batch_reference_surface(struct zink_batch *batch, struct zink_surface *surf
 void
 debug_describe_zink_batch_state(char *buf, const struct zink_batch_state *ptr);
 
-static inline void
-zink_batch_state_reference(struct zink_screen *screen,
-                           struct zink_batch_state **dst,
-                           struct zink_batch_state *src)
+static inline bool
+zink_batch_usage_is_unflushed(const struct zink_batch_usage *u)
 {
-   struct zink_batch_state *old_dst = dst ? *dst : NULL;
+   return u && u->unflushed;
+}
 
-   if (pipe_reference_described(old_dst ? &old_dst->reference : NULL, src ? &src->reference : NULL,
-                                (debug_reference_descriptor)debug_describe_zink_batch_state))
-      zink_batch_state_destroy(screen, old_dst);
-   if (dst) *dst = src;
+static inline void
+zink_batch_usage_unset(struct zink_batch_usage **u, struct zink_batch_state *bs)
+{
+   (void)p_atomic_cmpxchg((uintptr_t *)u, (uintptr_t)&bs->usage, (uintptr_t)NULL);
+}
+
+static inline void
+zink_batch_usage_set(struct zink_batch_usage **u, struct zink_batch_state *bs)
+{
+   *u = &bs->usage;
+}
+
+static inline bool
+zink_batch_usage_matches(const struct zink_batch_usage *u, const struct zink_batch_state *bs)
+{
+   return u == &bs->usage;
+}
+
+static inline bool
+zink_batch_usage_exists(const struct zink_batch_usage *u)
+{
+   return u && (u->usage || u->unflushed);
 }
 
 bool
-zink_batch_add_desc_set(struct zink_batch *batch, struct zink_descriptor_set *zds);
+zink_screen_usage_check_completion(struct zink_screen *screen, const struct zink_batch_usage *u);
+
+bool
+zink_batch_usage_check_completion(struct zink_context *ctx, const struct zink_batch_usage *u);
 
 void
-zink_batch_usage_set(struct zink_batch_usage *u, uint32_t batch_id);
-bool
-zink_batch_usage_matches(struct zink_batch_usage *u, uint32_t batch_id);
-bool
-zink_batch_usage_exists(struct zink_batch_usage *u);
+zink_batch_usage_wait(struct zink_context *ctx, struct zink_batch_usage *u);
 
-static inline void
-zink_batch_usage_unset(struct zink_batch_usage *u, uint32_t batch_id)
-{
-   p_atomic_cmpxchg(&u->usage, batch_id, 0);
+#ifdef __cplusplus
 }
+#endif
+
 #endif

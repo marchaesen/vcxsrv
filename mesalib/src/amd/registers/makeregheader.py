@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 COPYRIGHT = '''
 /*
  * Copyright 2015-2019 Advanced Micro Devices, Inc.
@@ -112,6 +110,23 @@ def get_chips_comment(chips, parent=None):
 
     return ', '.join(comment)
 
+def detect_conflict(regdb, field_in_type1, field_in_type2):
+    """
+    Returns False if field_in_type1 and field_in_type2 can be merged
+    into a single field = if writing to field_in_type1 bits won't
+    overwrite adjacent fields in type2, and the other way around.
+    """
+    for idx, type_refs in enumerate([field_in_type1.type_refs, field_in_type2.type_refs]):
+        ref = field_in_type2 if idx == 0 else field_in_type1
+        for type_ref in type_refs:
+            for field in regdb.register_type(type_ref).fields:
+                # If a different field in the other type starts in
+                # the tested field's bits[0, 1] interval
+                if (field.bits[0] > ref.bits[0] and
+                    field.bits[0] <= ref.bits[1]):
+                    return True
+
+    return False
 
 class HeaderWriter(object):
     def __init__(self, regdb, guard=None):
@@ -200,21 +215,10 @@ class HeaderWriter(object):
                 if prev.bits[0] != line.bits[0]:
                     continue
 
-                if prev.bits[1] < line.bits[1]:
+                if prev.bits[1] != line.bits[1]:
                     # Current line's field extends beyond the range of prev.
                     # Need to check for conflicts
-                    conflict = False
-                    for type_ref in prev.type_refs:
-                        for field in regdb.register_type(type_ref).fields:
-                            # The only possible conflict is for a prev field
-                            # that starts at a higher bit.
-                            if (field.bits[0] > line.bits[0] and
-                                field.bits[0] <= line.bits[1]):
-                                conflict = True
-                                break
-                        if conflict:
-                            break
-                    if conflict:
+                    if detect_conflict(regdb, prev, line):
                         continue
 
                 prev.bits[1] = max(prev.bits[1], line.bits[1])

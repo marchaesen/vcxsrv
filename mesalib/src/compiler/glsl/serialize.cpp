@@ -1127,9 +1127,6 @@ write_shader_metadata(struct blob *metadata, gl_linked_shader *shader)
                        sizeof(struct gl_bindless_image) - ptr_size);
    }
 
-   blob_write_bytes(metadata, &glprog->sh.fs.BlendSupport,
-                    sizeof(glprog->sh.fs.BlendSupport));
-
    write_shader_parameters(metadata, glprog->Parameters);
 
    assert((glprog->driver_cache_blob == NULL) ==
@@ -1193,9 +1190,6 @@ read_shader_metadata(struct blob_reader *metadata,
                         sizeof(struct gl_bindless_image) - ptr_size);
       }
    }
-
-   blob_copy_bytes(metadata, (uint8_t *) &glprog->sh.fs.BlendSupport,
-                   sizeof(glprog->sh.fs.BlendSupport));
 
    glprog->Parameters = _mesa_new_parameter_list();
    read_shader_parameters(metadata, glprog->Parameters);

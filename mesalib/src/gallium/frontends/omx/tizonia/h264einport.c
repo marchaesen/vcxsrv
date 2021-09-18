@@ -69,7 +69,7 @@ static OMX_ERRORTYPE enc_AllocateBackTexture(OMX_HANDLETYPE ap_hdl,
    box.width = (*resource)->width0;
    box.height = (*resource)->height0;
    box.depth = (*resource)->depth0;
-   ptr = priv->s_pipe->transfer_map(priv->s_pipe, *resource, 0, PIPE_MAP_WRITE, &box, transfer);
+   ptr = priv->s_pipe->texture_map(priv->s_pipe, *resource, 0, PIPE_MAP_WRITE, &box, transfer);
    if (map)
       *map = ptr;
 
@@ -157,7 +157,7 @@ static OMX_ERRORTYPE h264e_inport_FreeBuffer(const void * ap_obj, OMX_HANDLETYPE
    if (inp) {
      enc_ReleaseTasks(&inp->tasks);
      if (inp->transfer)
-       pipe_transfer_unmap(priv->s_pipe, inp->transfer);
+       pipe_texture_unmap(priv->s_pipe, inp->transfer);
      pipe_resource_reference(&inp->resource, NULL);
      FREE(inp);
    }

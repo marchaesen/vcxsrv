@@ -1024,6 +1024,8 @@ _mesa_uncompressed_format_to_type_and_comps(mesa_format format,
 
    case MESA_FORMAT_YCBCR:
    case MESA_FORMAT_YCBCR_REV:
+   case MESA_FORMAT_RG_RB_UNORM8:
+   case MESA_FORMAT_GR_BR_UNORM8:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 2;
       return;

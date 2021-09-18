@@ -98,7 +98,7 @@ emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
       /* Copy over any other sources.  This is needed for interp_deref_at */
       for (unsigned i = 1;
            i < nir_intrinsic_infos[orig_instr->intrinsic].num_srcs; i++)
-         nir_src_copy(&load->src[i], &orig_instr->src[i], load);
+         nir_src_copy(&load->src[i], &orig_instr->src[i]);
 
       nir_ssa_dest_init(&load->instr, &load->dest,
                         orig_instr->dest.ssa.num_components,

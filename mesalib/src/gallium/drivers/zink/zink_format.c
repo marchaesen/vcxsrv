@@ -1,3 +1,4 @@
+#include "util/format/u_format.h"
 #include "zink_format.h"
 
 static const VkFormat formats[PIPE_FORMAT_COUNT] = {
@@ -77,7 +78,6 @@ static const VkFormat formats[PIPE_FORMAT_COUNT] = {
    MAP_FORMAT_NORM(R8G8B8A8)
    MAP_FORMAT_SCALED(R8G8B8A8)
    MAP_FORMAT_INT(R8G8B8A8)
-   MAP_FORMAT_SRGB(R8G8B8A8)
    MAP_FORMAT_NORM(B8G8R8A8)
    MAP_FORMAT_SCALED(B8G8R8A8)
    MAP_FORMAT_INT(B8G8R8A8)
@@ -104,8 +104,6 @@ static const VkFormat formats[PIPE_FORMAT_COUNT] = {
    [PIPE_FORMAT_A1R5G5B5_UNORM] = VK_FORMAT_B5G5R5A1_UNORM_PACK16,
    [PIPE_FORMAT_B5G5R5A1_UNORM] = VK_FORMAT_A1R5G5B5_UNORM_PACK16,
 
-   [PIPE_FORMAT_B5G6R5_UNORM] = VK_FORMAT_R5G6B5_UNORM_PACK16,
-   [PIPE_FORMAT_A1R5G5B5_UNORM] = VK_FORMAT_B5G5R5A1_UNORM_PACK16,
    [PIPE_FORMAT_R11G11B10_FLOAT] = VK_FORMAT_B10G11R11_UFLOAT_PACK32,
    [PIPE_FORMAT_R9G9B9E5_FLOAT] = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32,
    /* ARB_vertex_type_2_10_10_10 */
@@ -150,8 +148,79 @@ static const VkFormat formats[PIPE_FORMAT_COUNT] = {
    [PIPE_FORMAT_BPTC_RGB_UFLOAT] = VK_FORMAT_BC6H_UFLOAT_BLOCK,
 };
 
+enum pipe_format
+zink_decompose_vertex_format(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   unsigned first_non_void = util_format_get_first_non_void_channel(format);
+   enum pipe_format new_format;
+   assert(first_non_void == 0);
+   if (!desc->is_array)
+      return PIPE_FORMAT_NONE;
+   if (desc->is_unorm) {
+      enum pipe_format unorm_formats[] = {
+         PIPE_FORMAT_R8_UNORM,
+         PIPE_FORMAT_R16_UNORM,
+         PIPE_FORMAT_R32_UNORM
+      };
+      return unorm_formats[desc->channel[first_non_void].size >> 4];
+   } else if (desc->is_snorm) {
+      enum pipe_format snorm_formats[] = {
+         PIPE_FORMAT_R8_SNORM,
+         PIPE_FORMAT_R16_SNORM,
+         PIPE_FORMAT_R32_SNORM
+      };
+      return snorm_formats[desc->channel[first_non_void].size >> 4];
+   } else {
+      enum pipe_format uint_formats[][3] = {
+         {PIPE_FORMAT_R8_USCALED, PIPE_FORMAT_R16_USCALED, PIPE_FORMAT_R32_USCALED},
+         {PIPE_FORMAT_R8_UINT, PIPE_FORMAT_R16_UINT, PIPE_FORMAT_R32_UINT},
+      };
+      enum pipe_format sint_formats[][3] = {
+         {PIPE_FORMAT_R8_SSCALED, PIPE_FORMAT_R16_SSCALED, PIPE_FORMAT_R32_SSCALED},
+         {PIPE_FORMAT_R8_SINT, PIPE_FORMAT_R16_SINT, PIPE_FORMAT_R32_SINT},
+      };
+      switch (desc->channel[first_non_void].type) {
+      case UTIL_FORMAT_TYPE_UNSIGNED:
+         return uint_formats[desc->channel[first_non_void].pure_integer][desc->channel[first_non_void].size >> 4];
+      case UTIL_FORMAT_TYPE_SIGNED:
+         return sint_formats[desc->channel[first_non_void].pure_integer][desc->channel[first_non_void].size >> 4];
+      case UTIL_FORMAT_TYPE_FLOAT:
+         return desc->channel[first_non_void].size == 16 ? PIPE_FORMAT_R16_FLOAT : PIPE_FORMAT_R32_FLOAT;
+         break;
+      default:
+         return PIPE_FORMAT_NONE;
+      }
+   }
+   return new_format;
+}
+
 VkFormat
 zink_pipe_format_to_vk_format(enum pipe_format format)
 {
    return formats[format];
+}
+
+
+bool
+zink_format_is_voidable_rgba_variant(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   unsigned chan;
+
+   if(desc->block.width != 1 ||
+      desc->block.height != 1 ||
+      (desc->block.bits != 32 && desc->block.bits != 64))
+      return false;
+
+   if (desc->nr_channels != 4)
+      return false;
+
+   unsigned size = desc->channel[0].size;
+   for(chan = 0; chan < 4; ++chan) {
+      if(desc->channel[chan].size != size)
+         return false;
+   }
+
+   return true;
 }

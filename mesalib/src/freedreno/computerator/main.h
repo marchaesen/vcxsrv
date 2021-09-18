@@ -41,6 +41,7 @@ struct kernel {
    uint32_t local_size[3];
    uint32_t num_bufs;
    uint32_t buf_sizes[MAX_BUFS]; /* size in dwords */
+   uint32_t buf_addr_regs[MAX_BUFS];
 
    /* filled in by frontend before launching grid: */
    struct fd_bo *bufs[MAX_BUFS];
@@ -79,7 +80,8 @@ struct backend {
       return (struct _to *)f;                                                  \
    }
 
-struct backend *a6xx_init(struct fd_device *dev, uint32_t gpu_id);
+struct backend *a4xx_init(struct fd_device *dev, const struct fd_dev_id *dev_id);
+struct backend *a6xx_init(struct fd_device *dev, const struct fd_dev_id *dev_id);
 
 /* for conditionally setting boolean flag(s): */
 #define COND(bool, val) ((bool) ? (val) : 0)

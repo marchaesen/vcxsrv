@@ -39,6 +39,7 @@
 
 #include "pipe/p_compiler.h"
 #include "util/u_pack_color.h"
+#include "util/u_rect.h"
 #include "lp_jit.h"
 
 
@@ -93,6 +94,15 @@ struct lp_rast_state {
 
 
 /**
+ * Texture blit offsets.
+ */
+struct lp_rast_blit {
+   int16_t x0;
+   int16_t y0;
+};
+
+
+/**
  * Coefficients necessary to run the shader at a given location.
  * First coefficient is position.
  * These pointers point into the bin data buffer.
@@ -101,7 +111,8 @@ struct lp_rast_shader_inputs {
    unsigned frontfacing:1;      /** True for front-facing */
    unsigned disable:1;          /** Partially binned, disable this command */
    unsigned opaque:1;           /** Is opaque */
-   unsigned pad0:13;            /* wasted space */
+   unsigned is_blit:1;          /* blit */
+   unsigned pad0:12;            /* wasted space */
    unsigned view_index:16;
    unsigned stride;             /* how much to advance data between a0, dadx, dady */
    unsigned layer;              /* the layer to render to (from gs, already clamped) */
@@ -146,6 +157,31 @@ struct lp_rast_triangle {
 };
 
 
+#define RECT_PLANE_LEFT   0x1
+#define RECT_PLANE_RIGHT  0x2
+#define RECT_PLANE_TOP    0x4
+#define RECT_PLANE_BOTTOM 0x8
+
+/**
+ * Rasterization information for a screen-aligned rectangle known to
+ * be in this bin, plus inputs to run the shader:
+ * These fields are tile- and bin-independent.
+ * Objects of this type are put into the lp_setup_context::data buffer.
+ */
+struct lp_rast_rectangle {
+#ifdef DEBUG
+   float v[2][2]; /**< diagonal corners */
+#endif
+
+   /* Rectangle boundaries in integer pixels:
+    */
+   struct u_rect box;
+
+   /* inputs for the shader */
+   struct lp_rast_shader_inputs inputs;
+};
+
+
 struct lp_rast_clear_rb {
    union util_color color_val;
    unsigned cbuf;
@@ -179,6 +215,7 @@ union lp_rast_cmd_arg {
       const struct lp_rast_triangle *tri;
       unsigned plane_mask;
    } triangle;
+   const struct lp_rast_rectangle *rectangle;
    const struct lp_rast_state *set_state;
    const struct lp_rast_clear_rb *clear_rb;
    struct {
@@ -224,6 +261,14 @@ lp_rast_arg_triangle_contained( const struct lp_rast_triangle *triangle,
    union lp_rast_cmd_arg arg;
    arg.triangle.tri = triangle;
    arg.triangle.plane_mask = x | (y << 8);
+   return arg;
+}
+
+static inline union lp_rast_cmd_arg
+lp_rast_arg_rectangle( const struct lp_rast_rectangle *rectangle )
+{
+   union lp_rast_cmd_arg arg;
+   arg.rectangle = rectangle;
    return arg;
 }
 
@@ -317,8 +362,26 @@ lp_rast_arg_null( void )
 #define LP_RAST_OP_MS_TRIANGLE_3_4   0x25
 #define LP_RAST_OP_MS_TRIANGLE_3_16  0x26
 #define LP_RAST_OP_MS_TRIANGLE_4_16  0x27
-#define LP_RAST_OP_MAX               0x28
+#define LP_RAST_OP_RECTANGLE         0x28  /* Keep at end */
+#define LP_RAST_OP_BLIT              0x29  /* Keep at end */
+
+#define LP_RAST_OP_MAX               0x2a
 #define LP_RAST_OP_MASK              0xff
+
+/* Returned by characterize_bin:
+ */
+#define LP_RAST_FLAGS_TRI            (0x1)
+#define LP_RAST_FLAGS_RECT           (0x2)
+#define LP_RAST_FLAGS_TILE           (0x4)
+#define LP_RAST_FLAGS_BLIT           (0x8)
+
+struct lp_bin_info {
+   unsigned type:8;
+   unsigned count:24;
+};
+
+struct lp_bin_info
+lp_characterize_bin(const struct cmd_bin *bin);
 
 void
 lp_debug_bins( struct lp_scene *scene );

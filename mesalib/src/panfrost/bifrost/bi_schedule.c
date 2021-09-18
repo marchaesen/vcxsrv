@@ -38,6 +38,13 @@ struct bi_worklist {
 
         /* Bitset of instructions in the block ready for scheduling */
         BITSET_WORD *worklist;
+
+        /* The backwards dependency graph. nr_dependencies is the number of
+         * unscheduled instructions that must still be scheduled after (before)
+         * this instruction. dependents are which instructions need to be
+         * scheduled before (after) this instruction. */
+        unsigned *dep_counts;
+        BITSET_WORD **dependents;
 };
 
 /* State of a single tuple and clause under construction */
@@ -104,10 +111,10 @@ struct bi_clause_state {
         /* Has a message-passing instruction already been assigned? */
         bool message;
 
-        /* Indices already read, this needs to be tracked to avoid hazards
+        /* Indices already accessed, this needs to be tracked to avoid hazards
          * around message-passing instructions */
-        unsigned read_count;
-        bi_index reads[BI_MAX_SRCS * 16];
+        unsigned access_count;
+        bi_index accesses[(BI_MAX_SRCS + 2) * 16];
 
         unsigned tuple_count;
         struct bi_const_state consts[8];
@@ -146,6 +153,138 @@ bi_supports_dtsel(bi_instr *ins)
                 return true;
         default:
                 return false;
+        }
+}
+
+/* Adds an edge to the dependency graph */
+
+static void
+bi_push_dependency(unsigned parent, unsigned child,
+                BITSET_WORD **dependents, unsigned *dep_counts)
+{
+        if (!BITSET_TEST(dependents[parent], child)) {
+                BITSET_SET(dependents[parent], child);
+                dep_counts[child]++;
+        }
+}
+
+static void
+add_dependency(struct util_dynarray *table, unsigned index, unsigned child,
+                BITSET_WORD **dependents, unsigned *dep_counts)
+{
+        assert(index < 64);
+        util_dynarray_foreach(table + index, unsigned, parent)
+                bi_push_dependency(*parent, child, dependents, dep_counts);
+}
+
+static void
+mark_access(struct util_dynarray *table, unsigned index, unsigned parent)
+{
+        assert(index < 64);
+        util_dynarray_append(&table[index], unsigned, parent);
+}
+
+static bool
+bi_is_sched_barrier(bi_instr *I)
+{
+        switch (I->op) {
+        case BI_OPCODE_BARRIER:
+        case BI_OPCODE_DISCARD_F32:
+                return true;
+        default:
+                return false;
+        }
+}
+
+static void
+bi_create_dependency_graph(struct bi_worklist st, bool inorder)
+{
+        struct util_dynarray last_read[64], last_write[64];
+
+        for (unsigned i = 0; i < 64; ++i) {
+                util_dynarray_init(&last_read[i], NULL);
+                util_dynarray_init(&last_write[i], NULL);
+        }
+
+        /* Initialize dependency graph */
+        for (unsigned i = 0; i < st.count; ++i) {
+                st.dependents[i] =
+                        calloc(BITSET_WORDS(st.count), sizeof(BITSET_WORD));
+
+                st.dep_counts[i] = 0;
+        }
+
+        unsigned prev_msg = ~0;
+
+        /* Populate dependency graph */
+        for (signed i = st.count - 1; i >= 0; --i) {
+                bi_instr *ins = st.instructions[i];
+
+                bi_foreach_src(ins, s) {
+                        if (ins->src[s].type != BI_INDEX_REGISTER) continue;
+                        unsigned count = bi_count_read_registers(ins, s);
+
+                        for (unsigned c = 0; c < count; ++c)
+                                add_dependency(last_write, ins->src[s].value + c, i, st.dependents, st.dep_counts);
+                }
+
+                /* Keep message-passing ops in order. (This pass only cares
+                 * about bundling; reordering of message-passing instructions
+                 * happens during earlier scheduling.) */
+
+                if (bi_message_type_for_instr(ins)) {
+                        if (prev_msg != ~0)
+                                bi_push_dependency(prev_msg, i, st.dependents, st.dep_counts);
+
+                        prev_msg = i;
+                }
+
+                /* Handle schedule barriers, adding All the deps */
+                if (inorder || bi_is_sched_barrier(ins)) {
+                        for (unsigned j = 0; j < st.count; ++j) {
+                                if (i == j) continue;
+
+                                bi_push_dependency(MAX2(i, j), MIN2(i, j),
+                                                st.dependents, st.dep_counts);
+                        }
+                }
+
+                bi_foreach_dest(ins, d) {
+                        if (ins->dest[d].type != BI_INDEX_REGISTER) continue;
+                        unsigned dest = ins->dest[d].value;
+
+                        unsigned count = bi_count_write_registers(ins, d);
+
+                        for (unsigned c = 0; c < count; ++c) {
+                                add_dependency(last_read, dest + c, i, st.dependents, st.dep_counts);
+                                add_dependency(last_write, dest + c, i, st.dependents, st.dep_counts);
+                                mark_access(last_write, dest + c, i);
+                        }
+                }
+
+                bi_foreach_src(ins, s) {
+                        if (ins->src[s].type != BI_INDEX_REGISTER) continue;
+
+                        unsigned count = bi_count_read_registers(ins, s);
+
+                        for (unsigned c = 0; c < count; ++c) 
+                                mark_access(last_read, ins->src[s].value + c, i);
+                }
+        }
+
+        /* If there is a branch, all instructions depend on it, as interblock
+         * execution must be purely in-order */
+
+        bi_instr *last = st.instructions[st.count - 1];
+        if (last->branch_target || last->op == BI_OPCODE_JUMP) {
+                for (signed i = st.count - 2; i >= 0; --i)
+                        bi_push_dependency(st.count - 1, i, st.dependents, st.dep_counts);
+        }
+
+        /* Free the intermediate structures */
+        for (unsigned i = 0; i < 64; ++i) {
+                util_dynarray_fini(&last_read[i]);
+                util_dynarray_fini(&last_write[i]);
         }
 }
 
@@ -223,13 +362,15 @@ bi_lower_seg_add(bi_context *ctx,
         bi_instr *pinstr = tuple->add;
         bi_builder b = bi_init_builder(ctx, bi_before_instr(pinstr));
 
-        bi_instr *fma = bi_seg_add_to(&b, bi_word(pinstr->dest[0], 0),
-                        pinstr->src[0], pinstr->preserve_null, pinstr->seg);
+        bi_instr *fma = bi_seg_add_to(&b, pinstr->dest[0], pinstr->src[0],
+                        pinstr->preserve_null, pinstr->seg);
 
         pinstr->op = BI_OPCODE_SEG_ADD;
-        pinstr->dest[0] = bi_word(pinstr->dest[0], 1);
         pinstr->src[0] = pinstr->src[1];
         pinstr->src[1] = bi_null();
+
+        assert(pinstr->dest[0].type == BI_INDEX_REGISTER);
+        pinstr->dest[0].value += 1;
 
         return fma;
 }
@@ -254,10 +395,10 @@ bi_lower_dtsel(bi_context *ctx,
 static bi_instr **
 bi_flatten_block(bi_block *block, unsigned *len)
 {
-        if (list_is_empty(&block->base.instructions))
+        if (list_is_empty(&block->instructions))
                 return NULL;
 
-        *len = list_length(&block->base.instructions);
+        *len = list_length(&block->instructions);
         bi_instr **instructions = malloc(sizeof(bi_instr *) * (*len));
 
         unsigned i = 0;
@@ -273,14 +414,23 @@ bi_flatten_block(bi_block *block, unsigned *len)
  */
 
 static struct bi_worklist
-bi_initialize_worklist(bi_block *block)
+bi_initialize_worklist(bi_block *block, bool inorder)
 {
         struct bi_worklist st = { };
         st.instructions = bi_flatten_block(block, &st.count);
 
-        if (st.count) {
-                st.worklist = calloc(BITSET_WORDS(st.count), sizeof(BITSET_WORD));
-                BITSET_SET(st.worklist, st.count - 1);
+        if (!st.count)
+                return st;
+
+        st.dependents = calloc(st.count, sizeof(st.dependents[0]));
+        st.dep_counts = calloc(st.count, sizeof(st.dep_counts[0]));
+
+        bi_create_dependency_graph(st, inorder);
+        st.worklist = calloc(BITSET_WORDS(st.count), sizeof(BITSET_WORD));
+
+        for (unsigned i = 0; i < st.count; ++i) {
+                if (st.dep_counts[i] == 0)
+                        BITSET_SET(st.worklist, i);
         }
 
         return st;
@@ -289,6 +439,8 @@ bi_initialize_worklist(bi_block *block)
 static void
 bi_free_worklist(struct bi_worklist st)
 {
+        free(st.dep_counts);
+        free(st.dependents);
         free(st.instructions);
         free(st.worklist);
 }
@@ -296,118 +448,76 @@ bi_free_worklist(struct bi_worklist st)
 static void
 bi_update_worklist(struct bi_worklist st, unsigned idx)
 {
-        if (idx >= 1)
-                BITSET_SET(st.worklist, idx - 1);
-}
+        assert(st.dep_counts[idx] == 0);
 
-/* To work out the back-to-back flag, we need to detect branches and
- * "fallthrough" branches, implied in the last clause of a block that falls
- * through to another block with *multiple predecessors*. */
+        if (!st.dependents[idx])
+                return;
 
-static bool
-bi_back_to_back(bi_block *block)
-{
-        /* Last block of a program */
-        if (!block->base.successors[0]) {
-                assert(!block->base.successors[1]);
-                return false;
+        /* Iterate each dependent to remove one dependency (`done`),
+         * adding dependents to the worklist where possible. */
+
+        unsigned i;
+        BITSET_FOREACH_SET(i, st.dependents[idx], st.count) {
+                assert(st.dep_counts[i] != 0);
+                unsigned new_deps = --st.dep_counts[i];
+
+                if (new_deps == 0)
+                        BITSET_SET(st.worklist, i);
         }
 
-        /* Multiple successors? We're branching */
-        if (block->base.successors[1])
-                return false;
-
-        struct pan_block *succ = block->base.successors[0];
-        assert(succ->predecessors);
-        unsigned count = succ->predecessors->entries;
-
-        /* Back to back only if the successor has only a single predecessor */
-        return (count == 1);
-}
-
-/* Insert a clause wrapping a single instruction */
-
-bi_clause *
-bi_singleton(void *memctx, bi_instr *ins,
-                bi_block *block,
-                unsigned scoreboard_id,
-                unsigned dependencies,
-                uint64_t combined_constant,
-                bool osrb)
-{
-        bi_clause *u = rzalloc(memctx, bi_clause);
-        u->tuple_count = 1;
-
-        ASSERTED bool can_fma = bi_opcode_props[ins->op].fma;
-        bool can_add = bi_opcode_props[ins->op].add;
-        assert(can_fma || can_add);
-
-        if (can_add)
-                u->tuples[0].add = ins;
-        else
-                u->tuples[0].fma = ins;
-
-        u->scoreboard_id = scoreboard_id;
-        u->staging_barrier = osrb;
-        u->dependencies = dependencies;
-
-        if (ins->op == BI_OPCODE_ATEST)
-                u->dependencies |= (1 << 6);
-
-        if (ins->op == BI_OPCODE_BLEND)
-                u->dependencies |= (1 << 6) | (1 << 7);
-
-        /* Let's be optimistic, we'll fix up later */
-        u->flow_control = BIFROST_FLOW_NBTB;
-
-        assert(!ins->branch_target);
-
-        if (combined_constant) {
-                /* Clause in 64-bit, above in 32-bit */
-                u->constant_count = 1;
-                u->constants[0] = combined_constant;
-                u->tuples[0].fau_idx = bi_constant_field(0) |
-                        (combined_constant & 0xF);
-        }
-
-        u->next_clause_prefetch = (ins->op != BI_OPCODE_JUMP);
-        u->message_type = bi_message_type_for_instr(ins);
-        u->message = u->message_type ? ins : NULL;
-        u->block = block;
-
-        return u;
+        free(st.dependents[idx]);
 }
 
 /* Scheduler predicates */
 
-ASSERTED static bool
+/* IADDC.i32 can implement IADD.u32 if no saturation or swizzling is in use */
+static bool
+bi_can_iaddc(bi_instr *ins)
+{
+        return (ins->op == BI_OPCODE_IADD_U32 && !ins->saturate &&
+                ins->src[0].swizzle == BI_SWIZZLE_H01 &&
+                ins->src[1].swizzle == BI_SWIZZLE_H01);
+}
+
+bool
 bi_can_fma(bi_instr *ins)
 {
-        /* Errata: *V2F32_TO_V2F16 with distinct sources raises
-         * INSTR_INVALID_ENC under certain conditions */
-        if (ins->op == BI_OPCODE_V2F32_TO_V2F16 &&
-                        !bi_is_word_equiv(ins->src[0], ins->src[1]))
-                return false;
+        /* +IADD.i32 -> *IADDC.i32 */
+        if (bi_can_iaddc(ins))
+                return true;
 
         /* TODO: some additional fp16 constraints */
         return bi_opcode_props[ins->op].fma;
 }
 
-ASSERTED static bool
+static bool
+bi_impacted_fadd_widens(bi_instr *I)
+{
+        enum bi_swizzle swz0 = I->src[0].swizzle;
+        enum bi_swizzle swz1 = I->src[1].swizzle;
+
+        return (swz0 == BI_SWIZZLE_H00 && swz1 == BI_SWIZZLE_H11) ||
+                (swz0 == BI_SWIZZLE_H11 && swz1 == BI_SWIZZLE_H11) ||
+                (swz0 == BI_SWIZZLE_H11 && swz1 == BI_SWIZZLE_H00);
+}
+
+bool
 bi_can_add(bi_instr *ins)
 {
         /* +FADD.v2f16 lacks clamp modifier, use *FADD.v2f16 instead */
         if (ins->op == BI_OPCODE_FADD_V2F16 && ins->clamp)
                 return false;
 
+        /* +FCMP.v2f16 lacks abs modifier, use *FCMP.v2f16 instead */
+        if (ins->op == BI_OPCODE_FCMP_V2F16 && (ins->src[0].abs || ins->src[1].abs))
+                return false;
+
+        /* +FADD.f32 has restricted widens, use +FADD.f32 for the full set */
+        if (ins->op == BI_OPCODE_FADD_F32 && bi_impacted_fadd_widens(ins))
+               return false;
+
         /* TODO: some additional fp16 constraints */
         return bi_opcode_props[ins->op].add;
-}
-
-ASSERTED static bool
-bi_must_last(bi_instr *ins)
-{
-        return bi_opcode_props[ins->op].last;
 }
 
 /* Architecturally, no single instruction has a "not last" constraint. However,
@@ -428,7 +538,7 @@ bi_must_not_last(bi_instr *ins)
  * be raised for unknown reasons (possibly an errata).
  */
 
-ASSERTED static bool
+bool
 bi_must_message(bi_instr *ins)
 {
         return (bi_opcode_props[ins->op].message != BIFROST_MESSAGE_NONE) ||
@@ -456,19 +566,19 @@ bi_fma_atomic(enum bi_opcode op)
         }
 }
 
-ASSERTED static bool
+bool
 bi_reads_zero(bi_instr *ins)
 {
         return !(bi_fma_atomic(ins->op) || ins->op == BI_OPCODE_IMULD);
 }
 
-static bool
+bool
 bi_reads_temps(bi_instr *ins, unsigned src)
 {
         switch (ins->op) {
         /* Cannot permute a temporary */
+        case BI_OPCODE_CLPER_I32:
         case BI_OPCODE_CLPER_V6_I32:
-        case BI_OPCODE_CLPER_V7_I32:
                 return src != 0;
         case BI_OPCODE_IMULD:
                 return false;
@@ -477,7 +587,73 @@ bi_reads_temps(bi_instr *ins, unsigned src)
         }
 }
 
-ASSERTED static bool
+static bool
+bi_impacted_t_modifiers(bi_instr *I, unsigned src)
+{
+        enum bi_swizzle swizzle = I->src[src].swizzle;
+
+        switch (I->op) {
+        case BI_OPCODE_F16_TO_F32:
+        case BI_OPCODE_F16_TO_S32:
+        case BI_OPCODE_F16_TO_U32:
+        case BI_OPCODE_MKVEC_V2I16:
+        case BI_OPCODE_S16_TO_F32:
+        case BI_OPCODE_S16_TO_S32:
+        case BI_OPCODE_U16_TO_F32:
+        case BI_OPCODE_U16_TO_U32:
+                return (swizzle != BI_SWIZZLE_H00);
+
+        case BI_OPCODE_BRANCH_F32:
+        case BI_OPCODE_LOGB_F32:
+        case BI_OPCODE_ILOGB_F32:
+        case BI_OPCODE_FADD_F32:
+        case BI_OPCODE_FCMP_F32:
+        case BI_OPCODE_FREXPE_F32:
+        case BI_OPCODE_FREXPM_F32:
+        case BI_OPCODE_FROUND_F32:
+                return (swizzle != BI_SWIZZLE_H01);
+
+        case BI_OPCODE_IADD_S32:
+        case BI_OPCODE_IADD_U32:
+        case BI_OPCODE_ISUB_S32:
+        case BI_OPCODE_ISUB_U32:
+        case BI_OPCODE_IADD_V4S8:
+        case BI_OPCODE_IADD_V4U8:
+        case BI_OPCODE_ISUB_V4S8:
+        case BI_OPCODE_ISUB_V4U8:
+                return (src == 1) && (swizzle != BI_SWIZZLE_H01);
+
+        case BI_OPCODE_S8_TO_F32:
+        case BI_OPCODE_S8_TO_S32:
+        case BI_OPCODE_U8_TO_F32:
+        case BI_OPCODE_U8_TO_U32:
+                return (swizzle != BI_SWIZZLE_B0000);
+
+        case BI_OPCODE_V2S8_TO_V2F16:
+        case BI_OPCODE_V2S8_TO_V2S16:
+        case BI_OPCODE_V2U8_TO_V2F16:
+        case BI_OPCODE_V2U8_TO_V2U16:
+                return (swizzle != BI_SWIZZLE_B0022);
+
+        case BI_OPCODE_IADD_V2S16:
+        case BI_OPCODE_IADD_V2U16:
+        case BI_OPCODE_ISUB_V2S16:
+        case BI_OPCODE_ISUB_V2U16:
+                return (src == 1) && (swizzle >= BI_SWIZZLE_H11);
+
+#if 0
+        /* Restriction on IADD in 64-bit clauses on G72 */
+        case BI_OPCODE_IADD_S64:
+        case BI_OPCODE_IADD_U64:
+                return (src == 1) && (swizzle != BI_SWIZZLE_D0);
+#endif
+
+        default:
+                return false;
+        }
+}
+
+bool
 bi_reads_t(bi_instr *ins, unsigned src)
 {
         /* Branch offset cannot come from passthrough */
@@ -491,6 +667,11 @@ bi_reads_t(bi_instr *ins, unsigned src)
         /* Staging register reads may happen before the succeeding register
          * block encodes a write, so effectively there is no passthrough */
         if (src == 0 && bi_opcode_props[ins->op].sr_read)
+                return false;
+
+        /* Bifrost cores newer than Mali G71 have restrictions on swizzles on
+         * same-cycle temporaries. Check the list for these hazards. */
+        if (bi_impacted_t_modifiers(ins, src))
                 return false;
 
         /* Descriptor must not come from a passthrough */
@@ -696,16 +877,17 @@ bi_has_staging_passthrough_hazard(bi_index fma, bi_instr *add)
 {
         bi_foreach_src(add, s) {
                 bi_index src = add->src[s];
+
+                if (src.type != BI_INDEX_REGISTER)
+                        continue;
+
                 unsigned count = bi_count_read_registers(add, s);
+                bool read = false;
 
-                if (!bi_is_equiv(fma, src))
-                        continue;
+                for (unsigned d = 0; d < count; ++d)
+                        read |= bi_is_equiv(fma, bi_register(src.value + d));
 
-                /* fma \in [src, src + src_count) */
-                if (!(fma.offset >= src.offset && fma.offset < src.offset + count))
-                        continue;
-
-                if (!bi_reads_t(add, s))
+                if (read && !bi_reads_t(add, s))
                         return true;
         }
 
@@ -729,14 +911,32 @@ bi_has_cross_passthrough_hazard(bi_tuple *succ, bi_instr *ins)
 }
 
 /* Is a register written other than the staging mechanism? ATEST is special,
- * writing to both a staging register and a regular register (fixed packing)*/
+ * writing to both a staging register and a regular register (fixed packing).
+ * BLEND is special since it has to write r48 the normal way even if it never
+ * gets read. This depends on liveness analysis, as a register is not needed
+ * for a write that will be discarded after one tuple. */
 
-static bool
-bi_writes_reg(bi_instr *instr)
+static unsigned
+bi_write_count(bi_instr *instr, uint64_t live_after_temp)
 {
-        return (instr->op == BI_OPCODE_ATEST) ||
-                (!bi_is_null(instr->dest[0]) &&
-                 !bi_opcode_props[instr->op].sr_write);
+        if (instr->op == BI_OPCODE_ATEST || instr->op == BI_OPCODE_BLEND)
+                return 1;
+
+        unsigned count = 0;
+
+        bi_foreach_dest(instr, d) {
+                if (d == 0 && bi_opcode_props[instr->op].sr_write)
+                        continue;
+
+                if (bi_is_null(instr->dest[d]))
+                        continue;
+
+                assert(instr->dest[0].type == BI_INDEX_REGISTER);
+                if (live_after_temp & BITFIELD64_BIT(instr->dest[0].value))
+                        count++;
+        }
+
+        return count;
 }
 
 /* Instruction placement entails two questions: what subset of instructions in
@@ -750,6 +950,7 @@ static bool
 bi_instr_schedulable(bi_instr *instr,
                 struct bi_clause_state *clause,
                 struct bi_tuple_state *tuple,
+                uint64_t live_after_temp,
                 bool fma)
 {
         /* The units must match */
@@ -761,7 +962,7 @@ bi_instr_schedulable(bi_instr *instr,
                 return false;
 
         /* Some instructions have placement requirements */
-        if (bi_must_last(instr) && !tuple->last)
+        if (bi_opcode_props[instr->op].last && !tuple->last)
                 return false;
 
         if (bi_must_not_last(instr) && tuple->last)
@@ -769,12 +970,33 @@ bi_instr_schedulable(bi_instr *instr,
 
         /* Message-passing instructions are not guaranteed write within the
          * same clause (most likely they will not), so if a later instruction
-         * in the clause reads from the destination, the message-passing
+         * in the clause accesses the destination, the message-passing
          * instruction can't be scheduled */
-        if (bi_opcode_props[instr->op].sr_write) {
-                for (unsigned i = 0; i < clause->read_count; ++i) {
-                        if (bi_is_equiv(instr->dest[0], clause->reads[i]))
-                                return false;
+        if (bi_opcode_props[instr->op].sr_write && !bi_is_null(instr->dest[0])) {
+                unsigned nr = bi_count_write_registers(instr, 0);
+                assert(instr->dest[0].type == BI_INDEX_REGISTER);
+                unsigned reg = instr->dest[0].value;
+
+                for (unsigned i = 0; i < clause->access_count; ++i) {
+                        bi_index idx = clause->accesses[i];
+                        for (unsigned d = 0; d < nr; ++d) {
+                                if (bi_is_equiv(bi_register(reg + d), idx))
+                                        return false;
+                        }
+                }
+        }
+
+        if (bi_opcode_props[instr->op].sr_read && !bi_is_null(instr->src[0])) {
+                unsigned nr = bi_count_read_registers(instr, 0);
+                assert(instr->src[0].type == BI_INDEX_REGISTER);
+                unsigned reg = instr->src[0].value;
+
+                for (unsigned i = 0; i < clause->access_count; ++i) {
+                        bi_index idx = clause->accesses[i];
+                        for (unsigned d = 0; d < nr; ++d) {
+                                if (bi_is_equiv(bi_register(reg + d), idx))
+                                        return false;
+                        }
                 }
         }
 
@@ -792,11 +1014,9 @@ bi_instr_schedulable(bi_instr *instr,
         if (tuple->prev && bi_has_cross_passthrough_hazard(tuple->prev, instr))
                 return false;
 
-        /* Register file writes are limited, TODO don't count tempable things */
+        /* Register file writes are limited */
         unsigned total_writes = tuple->reg.nr_writes;
-
-        if (bi_writes_reg(instr))
-                total_writes++;
+        total_writes += bi_write_count(instr, live_after_temp);
 
         /* Last tuple in a clause can only write a single value */
         if (tuple->last && total_writes > 1)
@@ -813,8 +1033,12 @@ bi_instr_schedulable(bi_instr *instr,
 
         unsigned total_srcs = tuple->reg.nr_reads + unique_new_srcs;
 
-        /* TODO: spill to moves */
-        if (total_srcs > 3)
+        bool can_spill_to_moves = (!tuple->add);
+        can_spill_to_moves &= (bi_nconstants(clause) < 13 - (clause->tuple_count + 2));
+        can_spill_to_moves &= (clause->tuple_count < 7);
+
+        /* However, we can get an extra 1 or 2 sources by inserting moves */
+        if (total_srcs > (can_spill_to_moves ? 4 : 3))
                 return false;
 
         /* Count effective reads for the successor */
@@ -823,23 +1047,41 @@ bi_instr_schedulable(bi_instr *instr,
                         tuple->prev_reads, tuple->nr_prev_reads);
 
         /* Successor must satisfy R+W <= 4, so we require W <= 4-R */
-        if (total_writes > MAX2(4 - (signed) succ_reads, 0))
+        if ((signed) total_writes > (4 - (signed) succ_reads))
                 return false;
 
         return true;
 }
 
 static signed
-bi_instr_cost(bi_instr *instr)
+bi_instr_cost(bi_instr *instr, struct bi_tuple_state *tuple)
 {
-        /* TODO: stub */
-        return 0;
+        signed cost = 0;
+
+        /* Instructions that can schedule to either FMA or to ADD should be
+         * deprioritized since they're easier to reschedule elsewhere */
+        if (bi_can_fma(instr) && bi_can_add(instr))
+                cost++;
+
+        /* Message-passing instructions impose constraints on the registers
+         * later in the clause, so schedule them as late within a clause as
+         * possible (<==> prioritize them since we're backwards <==> decrease
+         * cost) */
+        if (bi_must_message(instr))
+                cost--;
+
+        /* Last instructions are big constraints (XXX: no effect on shader-db) */
+        if (bi_opcode_props[instr->op].last)
+                cost -= 2;
+
+        return cost;
 }
 
 static unsigned
 bi_choose_index(struct bi_worklist st,
                 struct bi_clause_state *clause,
                 struct bi_tuple_state *tuple,
+                uint64_t live_after_temp,
                 bool fma)
 {
         unsigned i, best_idx = ~0;
@@ -848,10 +1090,15 @@ bi_choose_index(struct bi_worklist st,
         BITSET_FOREACH_SET(i, st.worklist, st.count) {
                 bi_instr *instr = st.instructions[i];
 
-                if (!bi_instr_schedulable(instr, clause, tuple, fma))
+                if (!bi_instr_schedulable(instr, clause, tuple, live_after_temp, fma))
                         continue;
 
-                signed cost = bi_instr_cost(instr);
+                signed cost = bi_instr_cost(instr, tuple);
+
+                /* Tie break in favour of later instructions, under the
+                 * assumption this promotes temporary usage (reducing pressure
+                 * on the register file). This is a side effect of a prepass
+                 * scheduling for pressure. */
 
                 if (cost <= best_cost) {
                         best_idx = i;
@@ -864,17 +1111,17 @@ bi_choose_index(struct bi_worklist st,
 
 static void
 bi_pop_instr(struct bi_clause_state *clause, struct bi_tuple_state *tuple,
-                bi_instr *instr, bool fma)
+                bi_instr *instr, uint64_t live_after_temp, bool fma)
 {
         bi_update_fau(clause, tuple, instr, fma, true);
 
         /* TODO: maybe opt a bit? or maybe doesn't matter */
-        assert(clause->read_count + BI_MAX_SRCS <= ARRAY_SIZE(clause->reads));
-        memcpy(clause->reads + clause->read_count, instr->src, sizeof(instr->src));
-        clause->read_count += BI_MAX_SRCS;
-
-        if (bi_writes_reg(instr))
-                tuple->reg.nr_writes++;
+        assert(clause->access_count + BI_MAX_SRCS + BI_MAX_DESTS <= ARRAY_SIZE(clause->accesses));
+        memcpy(clause->accesses + clause->access_count, instr->src, sizeof(instr->src));
+        clause->access_count += BI_MAX_SRCS;
+        memcpy(clause->accesses + clause->access_count, instr->dest, sizeof(instr->dest));
+        clause->access_count += BI_MAX_DESTS;
+        tuple->reg.nr_writes += bi_write_count(instr, live_after_temp);
 
         bi_foreach_src(instr, s) {
                 if (bi_tuple_is_new_src(instr, &tuple->reg, s))
@@ -889,6 +1136,7 @@ static bi_instr *
 bi_take_instr(bi_context *ctx, struct bi_worklist st,
                 struct bi_clause_state *clause,
                 struct bi_tuple_state *tuple,
+                uint64_t live_after_temp,
                 bool fma)
 {
         if (tuple->add && tuple->add->op == BI_OPCODE_CUBEFACE)
@@ -902,22 +1150,45 @@ bi_take_instr(bi_context *ctx, struct bi_worklist st,
         else if (tuple->add && tuple->add->table)
                 return bi_lower_dtsel(ctx, clause, tuple);
 
+        /* TODO: Optimize these moves */
+        if (!fma && tuple->nr_prev_reads > 3) {
+                /* Only spill by one source for now */
+                assert(tuple->nr_prev_reads == 4);
+
+                /* Pick a source to spill */
+                bi_index src = tuple->prev_reads[0];
+
+                /* Schedule the spill */
+                bi_builder b = bi_init_builder(ctx, bi_before_tuple(tuple->prev));
+                bi_instr *mov = bi_mov_i32_to(&b, src, src);
+                bi_pop_instr(clause, tuple, mov, live_after_temp, fma);
+                return mov;
+        }
+
 #ifndef NDEBUG
         /* Don't pair instructions if debugging */
         if ((bifrost_debug & BIFROST_DBG_NOSCHED) && tuple->add)
                 return NULL;
 #endif
 
-        unsigned idx = bi_choose_index(st, clause, tuple, fma);
+        unsigned idx = bi_choose_index(st, clause, tuple, live_after_temp, fma);
 
         if (idx >= st.count)
                 return NULL;
 
         /* Update state to reflect taking the instruction */
         bi_instr *instr = st.instructions[idx];
+
         BITSET_CLEAR(st.worklist, idx);
         bi_update_worklist(st, idx);
-        bi_pop_instr(clause, tuple, instr, fma);
+        bi_pop_instr(clause, tuple, instr, live_after_temp, fma);
+
+        /* Fixups */
+        if (instr->op == BI_OPCODE_IADD_U32 && fma) {
+                assert(bi_can_iaddc(instr));
+                instr->op = BI_OPCODE_IADDC_I32;
+                instr->src[2] = bi_zero();
+        }
 
         return instr;
 }
@@ -951,21 +1222,25 @@ bi_use_passthrough(bi_instr *ins, bi_index old,
 
 /* Rewrites an adjacent pair of tuples _prec_eding and _succ_eding to use
  * intertuple passthroughs where necessary. Passthroughs are allowed as a
- * post-condition of scheduling. */
+ * post-condition of scheduling. Note we rewrite ADD first, FMA second --
+ * opposite the order of execution. This is deliberate -- if both FMA and ADD
+ * write to the same logical register, the next executed tuple will get the
+ * latter result. There's no interference issue under the assumption of correct
+ * register allocation. */
 
 static void
 bi_rewrite_passthrough(bi_tuple prec, bi_tuple succ)
 {
         bool sr_read = succ.add ? bi_opcode_props[succ.add->op].sr_read : false;
 
-        if (prec.fma) {
-                bi_use_passthrough(succ.fma, prec.fma->dest[0], BIFROST_SRC_PASS_FMA, false);
-                bi_use_passthrough(succ.add, prec.fma->dest[0], BIFROST_SRC_PASS_FMA, sr_read);
-        }
-
         if (prec.add) {
                 bi_use_passthrough(succ.fma, prec.add->dest[0], BIFROST_SRC_PASS_ADD, false);
                 bi_use_passthrough(succ.add, prec.add->dest[0], BIFROST_SRC_PASS_ADD, sr_read);
+        }
+
+        if (prec.fma) {
+                bi_use_passthrough(succ.fma, prec.fma->dest[0], BIFROST_SRC_PASS_FMA, false);
+                bi_use_passthrough(succ.add, prec.fma->dest[0], BIFROST_SRC_PASS_FMA, sr_read);
         }
 }
 
@@ -1283,7 +1558,7 @@ bi_apply_constant_modifiers(struct bi_const_state *consts,
 /* Schedule a single clause. If no instructions remain, return NULL. */
 
 static bi_clause *
-bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st)
+bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st, uint64_t *live)
 {
         struct bi_clause_state clause_state = { 0 };
         bi_clause *clause = rzalloc(ctx, bi_clause);
@@ -1298,6 +1573,15 @@ bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st)
         struct bi_reg_state reg_state = {};
         bi_index prev_reads[5] = { bi_null() };
         unsigned nr_prev_reads = 0;
+
+        /* We need to track future liveness. The main *live set tracks what is
+         * live at the current point int he program we are scheduling, but to
+         * determine temp eligibility, we instead want what will be live after
+         * the next tuple in the program. If you scheduled forwards, you'd need
+         * a crystall ball for this. Luckily we schedule backwards, so we just
+         * delay updates to the live_after_temp by an extra tuple. */
+        uint64_t live_after_temp = *live;
+        uint64_t live_next_tuple = live_after_temp;
 
         do {
                 struct bi_tuple_state tuple_state = {
@@ -1315,10 +1599,26 @@ bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st)
 
                 tuple = &clause->tuples[idx];
 
+                if (clause->message && bi_opcode_props[clause->message->op].sr_read && !bi_is_null(clause->message->src[0])) {
+                        unsigned nr = bi_count_read_registers(clause->message, 0);
+                        live_after_temp |= (BITFIELD64_MASK(nr) << clause->message->src[0].value);
+                }
+
                 /* Since we schedule backwards, we schedule ADD first */
-                tuple_state.add = bi_take_instr(ctx, st, &clause_state, &tuple_state, false);
-                tuple->fma = bi_take_instr(ctx, st, &clause_state, &tuple_state, true);
+                tuple_state.add = bi_take_instr(ctx, st, &clause_state, &tuple_state, live_after_temp, false);
+                tuple->fma = bi_take_instr(ctx, st, &clause_state, &tuple_state, live_after_temp, true);
                 tuple->add = tuple_state.add;
+
+                /* Update liveness from the new instructions */
+                if (tuple->add)
+                        *live = bi_postra_liveness_ins(*live, tuple->add);
+
+                if (tuple->fma)
+                        *live = bi_postra_liveness_ins(*live, tuple->fma);
+
+               /* Rotate in the new per-tuple liveness */
+                live_after_temp = live_next_tuple;
+                live_next_tuple = *live;
 
                 /* We may have a message, but only one per clause */
                 if (tuple->add && bi_must_message(tuple->add)) {
@@ -1329,20 +1629,25 @@ bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st)
                                 bi_message_type_for_instr(tuple->add);
                         clause->message = tuple->add;
 
-                        switch (tuple->add->op) {
-                        case BI_OPCODE_ATEST:
-                                clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_DEPTH);
-                                break;
-                        case BI_OPCODE_LD_TILE:
-                                if (!ctx->inputs->is_blend)
+                        /* We don't need to set dependencies for blend shaders
+                         * because the BLEND instruction in the fragment
+                         * shader should have already done the wait */
+                        if (!ctx->inputs->is_blend) {
+                                switch (tuple->add->op) {
+                                case BI_OPCODE_ATEST:
+                                        clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_DEPTH);
+                                        break;
+                                case BI_OPCODE_LD_TILE:
+                                case BI_OPCODE_ST_TILE:
                                         clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_COLOUR);
-                                break;
-                        case BI_OPCODE_BLEND:
-                                clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_DEPTH);
-                                clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_COLOUR);
-                                break;
-                        default:
-                                break;
+                                        break;
+                                case BI_OPCODE_BLEND:
+                                        clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_DEPTH);
+                                        clause->dependencies |= (1 << BIFROST_SLOT_ELDEST_COLOUR);
+                                        break;
+                                default:
+                                        break;
+                                }
                         }
                 }
 
@@ -1378,7 +1683,9 @@ bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st)
                 bool not_last = (some_instruction > 0) &&
                         bi_must_not_last(st.instructions[some_instruction - 1]);
 
-                if (!(tuple->fma || tuple->add || (tuple_state.last && not_last)))
+                bool insert_empty = tuple_state.last && not_last;
+
+                if (!(tuple->fma || tuple->add || insert_empty))
                         break;
 
                 clause->tuple_count++;
@@ -1389,7 +1696,7 @@ bi_schedule_clause(bi_context *ctx, bi_block *block, struct bi_worklist st)
 
 #ifndef NDEBUG
                 /* Don't schedule more than 1 tuple if debugging */
-                if (bifrost_debug & BIFROST_DBG_NOSCHED)
+                if ((bifrost_debug & BIFROST_DBG_NOSCHED) && !insert_empty)
                         break;
 #endif
 
@@ -1488,24 +1795,43 @@ bi_schedule_block(bi_context *ctx, bi_block *block)
         list_inithead(&block->clauses);
 
         /* Copy list to dynamic array */
-        struct bi_worklist st = bi_initialize_worklist(block);
+        struct bi_worklist st = bi_initialize_worklist(block,
+                        bifrost_debug & BIFROST_DBG_INORDER);
 
         if (!st.count) {
                 bi_free_worklist(st);
                 return;
         }
 
+        /* We need to track liveness during scheduling in order to determine whether we can use temporary (passthrough) registers */
+        uint64_t live = block->reg_live_out;
+
         /* Schedule as many clauses as needed to fill the block */
         bi_clause *u = NULL;
-        while((u = bi_schedule_clause(ctx, block, st)))
+        while((u = bi_schedule_clause(ctx, block, st, &live)))
                 list_add(&u->link, &block->clauses);
 
         /* Back-to-back bit affects only the last clause of a block,
          * the rest are implicitly true */
         if (!list_is_empty(&block->clauses)) {
                 bi_clause *last_clause = list_last_entry(&block->clauses, bi_clause, link);
-                if (!bi_back_to_back(block))
+                if (bi_reconverge_branches(block))
                         last_clause->flow_control = BIFROST_FLOW_NBTB_UNCONDITIONAL;
+        }
+
+        /* Reorder instructions to match the new schedule. First remove
+         * existing instructions and then recreate the list */
+
+        bi_foreach_instr_in_block_safe(block, ins) {
+                list_del(&ins->link);
+        }
+
+        bi_foreach_clause_in_block(block, clause) {
+                for (unsigned i = 0; i < clause->tuple_count; ++i)  {
+                        bi_foreach_instr_in_tuple(&clause->tuples[i], ins) {
+                                list_addtail(&ins->link, &block->instructions);
+                        }
+                }
         }
 
         block->scheduled = true;
@@ -1571,13 +1897,11 @@ bi_check_fau_src(bi_instr *ins, unsigned s, uint32_t *constants, unsigned *cword
         return true;
 }
 
-static void
-bi_lower_fau(bi_context *ctx, bi_block *block)
+void
+bi_lower_fau(bi_context *ctx)
 {
-        bi_builder b = bi_init_builder(ctx, bi_after_block(ctx->current_block));
-
-        bi_foreach_instr_in_block_safe(block, _ins) {
-                bi_instr *ins = (bi_instr *) _ins;
+        bi_foreach_instr_global_safe(ctx, ins) {
+                bi_builder b = bi_init_builder(ctx, bi_before_instr(ins));
 
                 uint32_t constants[2];
                 unsigned cwords = 0;
@@ -1591,102 +1915,63 @@ bi_lower_fau(bi_context *ctx, bi_block *block)
                 bi_foreach_src(ins, s) {
                         if (bi_check_fau_src(ins, s, constants, &cwords, &fau)) continue;
 
-                        b.cursor = bi_before_instr(ins);
                         bi_index copy = bi_mov_i32(&b, ins->src[s]);
                         ins->src[s] = bi_replace_index(ins->src[s], copy);
                 }
         }
 }
 
+/* Only v7 allows specifying a dependency on the tilebuffer for the first
+ * clause of a shader. v6 requires adding a NOP clause with the depedency. */
+
+static void
+bi_add_nop_for_atest(bi_context *ctx)
+{
+        /* Only needed on v6 */
+        if (ctx->arch >= 7)
+                return;
+
+        if (list_is_empty(&ctx->blocks))
+                return;
+
+        /* Fetch the first clause of the shader */
+        bi_block *block = list_first_entry(&ctx->blocks, bi_block, link);
+        bi_clause *clause = bi_next_clause(ctx, block, NULL);
+
+        if (!clause || !(clause->dependencies & ((1 << BIFROST_SLOT_ELDEST_DEPTH) |
+                                                 (1 << BIFROST_SLOT_ELDEST_COLOUR))))
+                return;
+
+        /* Add a NOP so we can wait for the dependencies required by the first
+         * clause */
+
+        bi_instr *I = rzalloc(ctx, bi_instr);
+        I->op = BI_OPCODE_NOP;
+        I->dest[0] = bi_null();
+
+        bi_clause *new_clause = ralloc(ctx, bi_clause);
+        *new_clause = (bi_clause) {
+                .flow_control = BIFROST_FLOW_NBTB,
+                .next_clause_prefetch = true,
+                .block = clause->block,
+
+                .tuple_count = 1,
+                .tuples[0] = { .fma = I, },
+        };
+
+        list_add(&new_clause->link, &clause->block->clauses);
+}
+
 void
 bi_schedule(bi_context *ctx)
 {
+        /* Fed into both scheduling and DCE */
+        bi_postra_liveness(ctx);
+
         bi_foreach_block(ctx, block) {
-                bi_block *bblock = (bi_block *) block;
-                bi_lower_fau(ctx, bblock);
-                bi_schedule_block(ctx, bblock);
+                bi_schedule_block(ctx, block);
         }
 
-        bi_opt_dead_code_eliminate(ctx, true);
+        bi_opt_dce_post_ra(ctx);
+        bi_add_nop_for_atest(ctx);
 }
-
-#ifndef NDEBUG
-
-static bi_builder *
-bit_builder(void *memctx)
-{
-        bi_context *ctx = rzalloc(memctx, bi_context);
-        list_inithead(&ctx->blocks);
-
-        bi_block *blk = rzalloc(ctx, bi_block);
-
-        blk->base.predecessors = _mesa_set_create(blk,
-                        _mesa_hash_pointer,
-                        _mesa_key_pointer_equal);
-
-        list_addtail(&blk->base.link, &ctx->blocks);
-        list_inithead(&blk->base.instructions);
-
-        bi_builder *b = rzalloc(memctx, bi_builder);
-        b->shader = ctx;
-        b->cursor = bi_after_block(blk);
-        return b;
-}
-
-#define TMP() bi_temp(b->shader)
-
-static void
-bi_test_units(bi_builder *b)
-{
-        bi_instr *mov = bi_mov_i32_to(b, TMP(), TMP());
-        assert(bi_can_fma(mov));
-        assert(bi_can_add(mov));
-        assert(!bi_must_last(mov));
-        assert(!bi_must_message(mov));
-        assert(bi_reads_zero(mov));
-        assert(bi_reads_temps(mov, 0));
-        assert(bi_reads_t(mov, 0));
-
-        bi_instr *fma = bi_fma_f32_to(b, TMP(), TMP(), TMP(), bi_zero(), BI_ROUND_NONE);
-        assert(bi_can_fma(fma));
-        assert(!bi_can_add(fma));
-        assert(!bi_must_last(fma));
-        assert(!bi_must_message(fma));
-        assert(bi_reads_zero(fma));
-        for (unsigned i = 0; i < 3; ++i) {
-                assert(bi_reads_temps(fma, i));
-                assert(bi_reads_t(fma, i));
-        }
-
-        bi_instr *load = bi_load_i128_to(b, TMP(), TMP(), TMP(), BI_SEG_UBO);
-        assert(!bi_can_fma(load));
-        assert(bi_can_add(load));
-        assert(!bi_must_last(load));
-        assert(bi_must_message(load));
-        for (unsigned i = 0; i < 2; ++i) {
-                assert(bi_reads_temps(load, i));
-                assert(bi_reads_t(load, i));
-        }
-
-        bi_instr *blend = bi_blend_to(b, TMP(), TMP(), TMP(), TMP(), TMP(), 4);
-        assert(!bi_can_fma(load));
-        assert(bi_can_add(load));
-        assert(bi_must_last(blend));
-        assert(bi_must_message(blend));
-        for (unsigned i = 0; i < 4; ++i)
-                assert(bi_reads_temps(blend, i));
-        assert(!bi_reads_t(blend, 0));
-        assert(bi_reads_t(blend, 1));
-        assert(!bi_reads_t(blend, 2));
-        assert(!bi_reads_t(blend, 3));
-}
-
-int bi_test_scheduler(void)
-{
-        void *memctx = NULL;
-
-        bi_test_units(bit_builder(memctx));
-
-        return 0;
-}
-#endif

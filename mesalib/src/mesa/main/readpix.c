@@ -120,6 +120,13 @@ _mesa_get_readpixels_transfer_ops(const struct gl_context *ctx,
            type != GL_UNSIGNED_INT_10F_11F_11F_REV)) {
          transferOps |= IMAGE_CLAMP_BIT;
       }
+
+      /* For SNORM formats we only clamp if `type` is signed and clamp is `true` */
+      if (!_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) &&
+          _mesa_get_format_datatype(texFormat) == GL_SIGNED_NORMALIZED &&
+          (type == GL_BYTE || type == GL_SHORT || type == GL_INT)) {
+         transferOps &= ~IMAGE_CLAMP_BIT;
+      }
    }
 
    /* If the format is unsigned normalized, we can ignore clamping

@@ -55,6 +55,7 @@ TEMPLATE_H = Template(COPYRIGHT + """\
 
 /* Windows api conflict */
 #ifdef _WIN32
+#include <windows.h>
 #ifdef CreateSemaphore
 #undef CreateSemaphore
 #endif
@@ -67,8 +68,7 @@ TEMPLATE_H = Template(COPYRIGHT + """\
 extern "C" {
 #endif
 
-<%def name="dispatch_table(type, entrypoints)">
-struct vk_${type}_dispatch_table {
+<%def name="dispatch_table(entrypoints)">
 % for e in entrypoints:
   % if e.alias:
     <% continue %>
@@ -101,8 +101,9 @@ struct vk_${type}_dispatch_table {
 #endif
   % endif
 % endfor
-};
+</%def>
 
+<%def name="entrypoint_table(type, entrypoints)">
 struct vk_${type}_entrypoint_table {
 % for e in entrypoints:
   % if e.guard is not None:
@@ -118,9 +119,37 @@ struct vk_${type}_entrypoint_table {
 };
 </%def>
 
-${dispatch_table('instance', instance_entrypoints)}
-${dispatch_table('physical_device', physical_device_entrypoints)}
-${dispatch_table('device', device_entrypoints)}
+struct vk_instance_dispatch_table {
+  ${dispatch_table(instance_entrypoints)}
+};
+
+struct vk_physical_device_dispatch_table {
+  ${dispatch_table(physical_device_entrypoints)}
+};
+
+struct vk_device_dispatch_table {
+  ${dispatch_table(device_entrypoints)}
+};
+
+struct vk_dispatch_table {
+    union {
+        struct {
+            struct vk_instance_dispatch_table instance;
+            struct vk_physical_device_dispatch_table physical_device;
+            struct vk_device_dispatch_table device;
+        };
+
+        struct {
+            ${dispatch_table(instance_entrypoints)}
+            ${dispatch_table(physical_device_entrypoints)}
+            ${dispatch_table(device_entrypoints)}
+        };
+    };
+};
+
+${entrypoint_table('instance', instance_entrypoints)}
+${entrypoint_table('physical_device', physical_device_entrypoints)}
+${entrypoint_table('device', device_entrypoints)}
 
 void
 vk_instance_dispatch_table_load(struct vk_instance_dispatch_table *table,
@@ -192,7 +221,7 @@ extern struct vk_device_dispatch_table vk_device_trampolines;
 #endif
 
 #endif /* VK_DISPATCH_TABLE_H */
-""", output_encoding='utf-8')
+""")
 
 TEMPLATE_C = Template(COPYRIGHT + """\
 /* This file generated from ${filename}, don't edit directly. */
@@ -638,7 +667,7 @@ struct vk_device_dispatch_table vk_device_trampolines = {
   % endif
 % endfor
 };
-""", output_encoding='utf-8')
+""")
 
 U32_MASK = 2**32 - 1
 
@@ -697,7 +726,7 @@ class StringIntMap(object):
             self.collisions[min(level, 9)] += 1
             self.mapping[h & self.hash_mask] = idx
 
-EntrypointParam = namedtuple('EntrypointParam', 'type name decl')
+EntrypointParam = namedtuple('EntrypointParam', 'type name decl len')
 
 class EntrypointBase(object):
     def __init__(self, name):
@@ -782,7 +811,8 @@ def get_entrypoints(doc, entrypoints_to_defines):
             params = [EntrypointParam(
                 type=p.find('./type').text,
                 name=p.find('./name').text,
-                decl=''.join(p.itertext())
+                decl=''.join(p.itertext()),
+                len=p.attrib.get('len', None)
             ) for p in command.findall('./param')]
             guard = entrypoints_to_defines.get(name)
             # They really need to be unique
@@ -898,13 +928,13 @@ def main():
     # per entry point.
     try:
         if args.out_h:
-            with open(args.out_h, 'wb') as f:
+            with open(args.out_h, 'w') as f:
                 f.write(TEMPLATE_H.render(instance_entrypoints=instance_entrypoints,
                                           physical_device_entrypoints=physical_device_entrypoints,
                                           device_entrypoints=device_entrypoints,
                                           filename=os.path.basename(__file__)))
         if args.out_c:
-            with open(args.out_c, 'wb') as f:
+            with open(args.out_c, 'w') as f:
                 f.write(TEMPLATE_C.render(instance_entrypoints=instance_entrypoints,
                                           physical_device_entrypoints=physical_device_entrypoints,
                                           device_entrypoints=device_entrypoints,

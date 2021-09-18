@@ -740,7 +740,7 @@ util_format_translate(enum pipe_format dst_format,
       unsigned tmp_stride;
       uint8_t *tmp_row;
 
-      if (!unpack->unpack_rgba_8unorm ||
+      if ((!unpack->unpack_rgba_8unorm && !unpack->unpack_rgba_8unorm_rect) ||
           !pack->pack_rgba_8unorm) {
          return FALSE;
       }
@@ -802,7 +802,7 @@ util_format_translate(enum pipe_format dst_format,
       unsigned tmp_stride;
       unsigned int *tmp_row;
 
-      if (!unpack->unpack_rgba ||
+      if ((!unpack->unpack_rgba && !unpack->unpack_rgba_rect) ||
           !pack->pack_rgba_uint) {
          return FALSE;
       }
@@ -832,7 +832,7 @@ util_format_translate(enum pipe_format dst_format,
       unsigned tmp_stride;
       float *tmp_row;
 
-      if (!unpack->unpack_rgba ||
+      if ((!unpack->unpack_rgba && !unpack->unpack_rgba_rect) ||
           !pack->pack_rgba_float) {
          return FALSE;
       }
@@ -1138,7 +1138,7 @@ static void
 util_format_unpack_table_init(void)
 {
    for (enum pipe_format format = PIPE_FORMAT_NONE; format < PIPE_FORMAT_COUNT; format++) {
-#if (defined(PIPE_ARCH_AARCH64) || defined(PIPE_ARCH_ARM)) && !defined NO_FORMAT_ASM
+#if (defined(PIPE_ARCH_AARCH64) || defined(PIPE_ARCH_ARM)) && !defined(NO_FORMAT_ASM) && !defined(__SOFTFP__)
       const struct util_format_unpack_description *unpack = util_format_unpack_description_neon(format);
       if (unpack) {
          util_format_unpack_table[format] = unpack;

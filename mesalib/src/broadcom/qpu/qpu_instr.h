@@ -94,7 +94,6 @@ enum v3d_qpu_waddr {
         V3D_QPU_WADDR_R3 = 3,
         V3D_QPU_WADDR_R4 = 4,
         V3D_QPU_WADDR_R5 = 5,
-        /* 6 is reserved, but note 3.2.2.8: "Result Writes" */
         V3D_QPU_WADDR_NOP = 6,
         V3D_QPU_WADDR_TLB = 7,
         V3D_QPU_WADDR_TLBU = 8,
@@ -191,6 +190,8 @@ enum v3d_qpu_add_op {
         V3D_QPU_A_TMUWT,
         V3D_QPU_A_VPMSETUP,
         V3D_QPU_A_VPMWT,
+        V3D_QPU_A_FLAFIRST,
+        V3D_QPU_A_FLNAFIRST,
         V3D_QPU_A_LDVPMV_IN,
         V3D_QPU_A_LDVPMV_OUT,
         V3D_QPU_A_LDVPMD_IN,

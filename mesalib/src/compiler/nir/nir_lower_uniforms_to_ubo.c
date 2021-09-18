@@ -135,6 +135,8 @@ nir_lower_uniforms_to_ubo(nir_shader *shader, bool dword_packed, bool load_vec4)
       if (!shader->info.first_ubo_is_default_ubo) {
          nir_foreach_variable_with_modes(var, shader, nir_var_mem_ubo) {
             var->data.binding++;
+            if (var->data.driver_location != -1)
+               var->data.driver_location++;
             /* only increment location for ubo arrays */
             if (glsl_without_array(var->type) == var->interface_type &&
                 glsl_type_is_array(var->type))
@@ -145,7 +147,7 @@ nir_lower_uniforms_to_ubo(nir_shader *shader, bool dword_packed, bool load_vec4)
 
       if (shader->num_uniforms > 0) {
          const struct glsl_type *type = glsl_array_type(glsl_vec4_type(),
-                                                        shader->num_uniforms, 0);
+                                                        shader->num_uniforms, 16);
          nir_variable *ubo = nir_variable_create(shader, nir_var_mem_ubo, type,
                                                  "uniform_0");
          ubo->data.binding = 0;

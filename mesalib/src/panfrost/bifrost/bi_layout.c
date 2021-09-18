@@ -32,24 +32,6 @@
  * manipulating clause layouts.
  */
 
-/* Helper to see if a tuple can be inserted. We must satisfy the invariant:
- *
- *      constant_count + tuple_count <= 13
- *
- * ...which is equivalent to the clause ending up with 8 or fewer quardwords.
- * Inserting a tuple increases tuple_count by one, and if it reads a unique
- * constant, it increases constant_count by one.
- */
-
-bool
-bi_can_insert_tuple(bi_clause *clause, bool constant)
-{
-        unsigned constant_count = clause->constant_count + (constant ? 1 : 0);
-        unsigned tuple_count = clause->tuple_count + 1;
-
-        return (constant_count + tuple_count) <= 13;
-}
-
 /* Is embedded constant 0 packed for free in a clause with this many tuples? */
 
 bool
@@ -87,7 +69,7 @@ bi_ec0_packed(unsigned tuple_count)
  * constants are packed two-by-two as constant quadwords.
  */
 
-unsigned
+static unsigned
 bi_clause_quadwords(bi_clause *clause)
 {
         unsigned X = clause->tuple_count;
@@ -113,7 +95,7 @@ bi_block_offset(bi_context *ctx, bi_clause *start, bi_block *target)
 
         /* Determine if the block we're branching to is strictly greater in
          * source order */
-        bool forwards = target->base.name > start->block->base.name;
+        bool forwards = target->name > start->block->name;
 
         if (forwards) {
                 /* We have to jump through this block from the start of this
@@ -124,9 +106,7 @@ bi_block_offset(bi_context *ctx, bi_clause *start, bi_block *target)
 
                 /* We then need to jump through every clause of every following
                  * block until the target */
-                bi_foreach_block_from(ctx, start->block, _blk) {
-                        bi_block *blk = (bi_block *) _blk;
-
+                bi_foreach_block_from(ctx, start->block, blk) {
                         /* Don't double-count the first block */
                         if (blk == start->block)
                                 continue;
@@ -153,9 +133,7 @@ bi_block_offset(bi_context *ctx, bi_clause *start, bi_block *target)
                 /* And jump back every clause of preceding blocks up through
                  * and including the target to get to the beginning of the
                  * target */
-                bi_foreach_block_from_rev(ctx, start->block, _blk) {
-                        bi_block *blk = (bi_block *) _blk;
-
+                bi_foreach_block_from_rev(ctx, start->block, blk) {
                         if (blk == start->block)
                                 continue;
 

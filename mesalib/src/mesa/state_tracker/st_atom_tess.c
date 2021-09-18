@@ -43,10 +43,12 @@ st_update_tess(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
    struct pipe_context *pipe = st->pipe;
 
-   if (!pipe->set_tess_state)
-      return;
+   if (pipe->set_tess_state) {
+      pipe->set_tess_state(pipe,
+                           ctx->TessCtrlProgram.patch_default_outer_level,
+                           ctx->TessCtrlProgram.patch_default_inner_level);
+   }
 
-   pipe->set_tess_state(pipe,
-                        ctx->TessCtrlProgram.patch_default_outer_level,
-                        ctx->TessCtrlProgram.patch_default_inner_level);
+   if (pipe->set_patch_vertices)
+      pipe->set_patch_vertices(pipe, ctx->TessCtrlProgram.patch_vertices);
 }

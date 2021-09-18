@@ -42,6 +42,7 @@ static void init_vega10(struct radeon_info *info)
    info->use_display_dcc_with_retile_blit = false;
    info->has_graphics = true;
    info->tcc_cache_line_size = 64;
+   info->max_render_backends = 16;
 
    info->gb_addr_config = 0x2a114042;
 }
@@ -56,6 +57,7 @@ static void init_vega20(struct radeon_info *info)
    info->use_display_dcc_with_retile_blit = false;
    info->has_graphics = true;
    info->tcc_cache_line_size = 64;
+   info->max_render_backends = 16;
 
    info->gb_addr_config = 0x2a114042;
 }
@@ -71,6 +73,7 @@ static void init_raven(struct radeon_info *info)
    info->use_display_dcc_with_retile_blit = true;
    info->has_graphics = true;
    info->tcc_cache_line_size = 64;
+   info->max_render_backends = 2;
 
    info->gb_addr_config = 0x24000042;
 }
@@ -85,6 +88,7 @@ static void init_raven2(struct radeon_info *info)
    info->use_display_dcc_with_retile_blit = false;
    info->has_graphics = true;
    info->tcc_cache_line_size = 64;
+   info->max_render_backends = 1;
 
    info->gb_addr_config = 0x26013041;
 }
@@ -99,6 +103,7 @@ static void init_navi10(struct radeon_info *info)
    info->use_display_dcc_with_retile_blit = false;
    info->has_graphics = true;
    info->tcc_cache_line_size = 128;
+   info->max_render_backends = 16;
 
    info->gb_addr_config = 0x00100044;
 }
@@ -113,6 +118,7 @@ static void init_navi14(struct radeon_info *info)
    info->use_display_dcc_with_retile_blit = false;
    info->has_graphics = true;
    info->tcc_cache_line_size = 128;
+   info->max_render_backends = 8;
 
    info->gb_addr_config = 0x00000043;
 }
@@ -129,6 +135,7 @@ static void init_sienna_cichlid(struct radeon_info *info)
    info->tcc_cache_line_size = 128;
    info->has_rbplus = true;
    info->rbplus_allowed = true;
+   info->max_render_backends = 16;
 
    info->gb_addr_config = 0x00000444;
 }
@@ -145,6 +152,7 @@ static void init_navy_flounder(struct radeon_info *info)
    info->tcc_cache_line_size = 128;
    info->has_rbplus = true;
    info->rbplus_allowed = true;
+   info->max_render_backends = 8;
 
    info->gb_addr_config = 0x00000344;
 }
@@ -184,8 +192,6 @@ static struct radeon_info get_radeon_info(struct testcase *testcase)
 
    testcase->init(&info);
 
-   info.max_render_backends = 1u << (testcase->se +
-                                     testcase->rb_per_se);
    switch(info.chip_class) {
    case GFX10_3:
       break;

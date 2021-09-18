@@ -2,13 +2,6 @@
 # non-zero-length and not starting with '#', will regex match to
 # delete lines from the test list.  Be careful.
 
-# Skip the perf/stress tests to keep runtime manageable
-dEQP-GLES[0-9]*.performance.*
-dEQP-GLES[0-9]*.stress.*
-
-# These are really slow on tiling architectures
-dEQP-GLES[0-9]*.functional.flush_finish.*
-
 # Times out
 dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36
 
@@ -21,3 +14,10 @@ dEQP-GLES31.functional.shaders.builtin_functions.precision.distance.lowp_compute
 dEQP-GLES31.functional.shaders.builtin_functions.precision.pow.highp_compute.vec3
 dEQP-GLES31.functional.shaders.builtin_functions.precision.sqrt.highp_compute.vec3
 dEQP-GLES31.functional.shaders.builtin_functions.precision.tanh.lowp_compute.vec3
+
+# Takes more than a few minutes, time is spent in batch_draw_tracking().
+KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
+
+# Sometimes times out in CI.  I think it's spending time in the compiler, and so
+# then the flake-detect run usually passes once shaders are cached.
+KHR-GLES31.core.arrays_of_arrays.SizedDeclarationsPrimitive

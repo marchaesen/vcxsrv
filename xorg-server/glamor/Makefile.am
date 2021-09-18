@@ -13,7 +13,6 @@ libglamor_la_SOURCES = \
 	glamor_debug.h \
 	glamor_font.c \
 	glamor_font.h \
-	glamor_glx.c \
 	glamor_composite_glyphs.c \
 	glamor_image.c \
 	glamor_lines.c \

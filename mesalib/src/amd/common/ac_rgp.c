@@ -52,7 +52,7 @@
 
 #define SQTT_FILE_MAGIC_NUMBER  0x50303042
 #define SQTT_FILE_VERSION_MAJOR 1
-#define SQTT_FILE_VERSION_MINOR 4
+#define SQTT_FILE_VERSION_MINOR 5
 
 #define SQTT_GPU_NAME_MAX_SIZE 256
 #define SQTT_MAX_NUM_SE        32
@@ -79,7 +79,7 @@ enum sqtt_file_chunk_type
    SQTT_FILE_CHUNK_TYPE_SQTT_DESC,
    SQTT_FILE_CHUNK_TYPE_SQTT_DATA,
    SQTT_FILE_CHUNK_TYPE_API_INFO,
-   SQTT_FILE_CHUNK_TYPE_ISA_DATABASE,
+   SQTT_FILE_CHUNK_TYPE_RESERVED,
    SQTT_FILE_CHUNK_TYPE_QUEUE_EVENT_TIMINGS,
    SQTT_FILE_CHUNK_TYPE_CLOCK_CALIBRATION,
    SQTT_FILE_CHUNK_TYPE_CPU_INFO,
@@ -435,7 +435,7 @@ static uint32_t ac_memory_ops_per_clock(uint32_t vram_type)
    }
 }
 
-static void ac_fill_sqtt_asic_info(struct radeon_info *rad_info,
+static void ac_sqtt_fill_asic_info(struct radeon_info *rad_info,
                                    struct sqtt_file_chunk_asic_info *chunk)
 {
    bool has_wave32 = rad_info->chip_class >= GFX10;
@@ -819,10 +819,10 @@ static enum elf_gfxip_level ac_chip_class_to_elf_gfxip_level(enum chip_class chi
 }
 
 static void ac_sqtt_dump_data(struct radeon_info *rad_info,
-                              const struct ac_thread_trace *thread_trace,
-                              struct ac_thread_trace_data *thread_trace_data,
+                              struct ac_thread_trace *thread_trace,
                               FILE *output)
 {
+   struct ac_thread_trace_data *thread_trace_data = thread_trace->data;
    struct sqtt_file_chunk_asic_info asic_info = {0};
    struct sqtt_file_chunk_cpu_info cpu_info = {0};
    struct sqtt_file_chunk_api_info api_info = {0};
@@ -846,7 +846,7 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
    fwrite(&cpu_info, sizeof(cpu_info), 1, output);
 
    /* SQTT asic chunk. */
-   ac_fill_sqtt_asic_info(rad_info, &asic_info);
+   ac_sqtt_fill_asic_info(rad_info, &asic_info);
    file_offset += sizeof(asic_info);
    fwrite(&asic_info, sizeof(asic_info), 1, output);
 
@@ -947,9 +947,8 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
    }
 }
 
-int ac_dump_thread_trace(struct radeon_info *info,
-                         const struct ac_thread_trace *thread_trace,
-                         struct ac_thread_trace_data *thread_trace_data)
+int ac_dump_rgp_capture(struct radeon_info *info,
+                        struct ac_thread_trace *thread_trace)
 {
    char filename[2048];
    struct tm now;
@@ -967,9 +966,9 @@ int ac_dump_thread_trace(struct radeon_info *info,
    if (!f)
       return -1;
 
-   ac_sqtt_dump_data(info, thread_trace, thread_trace_data, f);
+   ac_sqtt_dump_data(info, thread_trace, f);
 
-   fprintf(stderr, "Thread trace capture saved to '%s'\n", filename);
+   fprintf(stderr, "RGP capture saved to '%s'\n", filename);
 
    fclose(f);
    return 0;

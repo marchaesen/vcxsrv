@@ -54,11 +54,11 @@ enum pc_di_index_size
 fd_pipe2index(enum pipe_format format)
 {
    switch (format) {
-   case PIPE_FORMAT_I8_UINT:
+   case PIPE_FORMAT_R8_UINT:
       return INDEX_SIZE_8_BIT;
-   case PIPE_FORMAT_I16_UINT:
+   case PIPE_FORMAT_R16_UINT:
       return INDEX_SIZE_16_BIT;
-   case PIPE_FORMAT_I32_UINT:
+   case PIPE_FORMAT_R32_UINT:
       return INDEX_SIZE_32_BIT;
    default:
       return ~0;

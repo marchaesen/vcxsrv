@@ -311,7 +311,7 @@ static OMX_ERRORTYPE enc_AllocateBackTexture(omx_base_PortType *port,
    box.width = (*resource)->width0;
    box.height = (*resource)->height0;
    box.depth = (*resource)->depth0;
-   ptr = priv->s_pipe->transfer_map(priv->s_pipe, *resource, 0, PIPE_MAP_WRITE, &box, transfer);
+   ptr = priv->s_pipe->texture_map(priv->s_pipe, *resource, 0, PIPE_MAP_WRITE, &box, transfer);
    if (map)
       *map = ptr;
 
@@ -345,7 +345,7 @@ static OMX_ERRORTYPE vid_enc_SetParameter(OMX_HANDLETYPE handle, OMX_INDEXTYPE i
          enc_AllocateBackTexture(priv->ports[OMX_BASE_FILTER_INPUTPORT_INDEX],
                                  &resource, &transfer, NULL);
          port->sPortParam.format.video.nStride = transfer->stride;
-         pipe_transfer_unmap(priv->s_pipe, transfer);
+         pipe_texture_unmap(priv->s_pipe, transfer);
          pipe_resource_reference(&resource, NULL);
 
          framesize = port->sPortParam.format.video.nStride *
@@ -700,7 +700,7 @@ static OMX_ERRORTYPE vid_enc_FreeInBuffer(omx_base_PortType *port, OMX_U32 idx, 
    if (inp) {
       enc_ReleaseTasks(&inp->tasks);
       if (inp->transfer)
-         pipe_transfer_unmap(priv->s_pipe, inp->transfer);
+         pipe_texture_unmap(priv->s_pipe, inp->transfer);
       pipe_resource_reference(&inp->resource, NULL);
       FREE(inp);
    }
@@ -737,7 +737,7 @@ static OMX_ERRORTYPE vid_enc_FreeOutBuffer(omx_base_PortType *port, OMX_U32 idx,
    if (buf->pOutputPortPrivate) {
       struct output_buf_private *outp = buf->pOutputPortPrivate;
       if (outp->transfer)
-         pipe_transfer_unmap(priv->t_pipe, outp->transfer);
+         pipe_buffer_unmap(priv->t_pipe, outp->transfer);
       pipe_resource_reference(&outp->bitstream, NULL);
       FREE(outp);
       buf->pOutputPortPrivate = NULL;

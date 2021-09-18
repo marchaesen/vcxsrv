@@ -17,7 +17,8 @@ struct Raw {
     size_t bufsize;
     Seat *seat;
     LogContext *logctx;
-    bool sent_console_eof, sent_socket_eof, session_started;
+    Ldisc *ldisc;
+    bool sent_console_eof, sent_socket_eof, socket_connected;
 
     Conf *conf;
 
@@ -37,8 +38,19 @@ static void raw_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
                     const char *error_msg, int error_code)
 {
     Raw *raw = container_of(plug, Raw, plug);
-    backend_socket_log(raw->seat, raw->logctx, type, addr, port,
-                       error_msg, error_code, raw->conf, raw->session_started);
+    backend_socket_log(raw->seat, raw->logctx, type, addr, port, error_msg,
+                       error_code, raw->conf, raw->socket_connected);
+    if (type == PLUGLOG_CONNECT_SUCCESS) {
+        raw->socket_connected = true;
+        if (raw->ldisc)
+            ldisc_check_sendok(raw->ldisc);
+        if (is_tempseat(raw->seat)) {
+            Seat *ts = raw->seat;
+            tempseat_flush(ts);
+            raw->seat = tempseat_get_real(ts);
+            tempseat_free(ts);
+        }
+    }
 }
 
 static void raw_check_close(Raw *raw)
@@ -95,9 +107,6 @@ static void raw_receive(Plug *plug, int urgent, const char *data, size_t len)
 {
     Raw *raw = container_of(plug, Raw, plug);
     c_write(raw, data, len);
-    /* We count 'session start', for proxy logging purposes, as being
-     * when data is received from the network and printed. */
-    raw->session_started = true;
 }
 
 static void raw_sent(Plug *plug, size_t bufsize)
@@ -133,9 +142,6 @@ static char *raw_init(const BackendVtable *vt, Seat *seat,
     int addressfamily;
     char *loghost;
 
-    /* No local authentication phase in this protocol */
-    seat_set_trust_status(seat, false);
-
     raw = snew(Raw);
     raw->plug.vt = &Raw_plugvt;
     raw->backend.vt = vt;
@@ -144,7 +150,7 @@ static char *raw_init(const BackendVtable *vt, Seat *seat,
     *backend_handle = &raw->backend;
     raw->sent_console_eof = raw->sent_socket_eof = false;
     raw->bufsize = 0;
-    raw->session_started = false;
+    raw->socket_connected = false;
     raw->conf = conf_copy(conf);
 
     raw->seat = seat;
@@ -168,9 +174,13 @@ static char *raw_init(const BackendVtable *vt, Seat *seat,
      * Open socket.
      */
     raw->s = new_connection(addr, *realhost, port, false, true, nodelay,
-                            keepalive, &raw->plug, conf);
+                            keepalive, &raw->plug, conf,
+                            log_get_policy(logctx), &raw->seat);
     if ((err = sk_socket_error(raw->s)) != NULL)
         return dupstr(err);
+
+    /* No local authentication phase in this protocol */
+    seat_set_trust_status(raw->seat, false);
 
     loghost = conf_get_str(conf, CONF_loghost);
     if (*loghost) {
@@ -191,6 +201,8 @@ static void raw_free(Backend *be)
 {
     Raw *raw = container_of(be, Raw, backend);
 
+    if (is_tempseat(raw->seat))
+        tempseat_free(raw->seat);
     if (raw->s)
         sk_close(raw->s);
     conf_free(raw->conf);
@@ -207,16 +219,14 @@ static void raw_reconfig(Backend *be, Conf *conf)
 /*
  * Called to send data down the raw connection.
  */
-static size_t raw_send(Backend *be, const char *buf, size_t len)
+static void raw_send(Backend *be, const char *buf, size_t len)
 {
     Raw *raw = container_of(be, Raw, backend);
 
     if (raw->s == NULL)
-        return 0;
+        return;
 
     raw->bufsize = sk_write(raw->s, buf, len);
-
-    return raw->bufsize;
 }
 
 /*
@@ -269,7 +279,8 @@ static bool raw_connected(Backend *be)
 
 static bool raw_sendok(Backend *be)
 {
-    return true;
+    Raw *raw = container_of(be, Raw, backend);
+    return raw->socket_connected;
 }
 
 static void raw_unthrottle(Backend *be, size_t backlog)
@@ -287,7 +298,8 @@ static bool raw_ldisc(Backend *be, int option)
 
 static void raw_provide_ldisc(Backend *be, Ldisc *ldisc)
 {
-    /* This is a stub. */
+    Raw *raw = container_of(be, Raw, backend);
+    raw->ldisc = ldisc;
 }
 
 static int raw_exitcode(Backend *be)

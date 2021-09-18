@@ -102,7 +102,7 @@ retry_draw_auto(struct svga_context *svga,
       unsigned hw_count;
 
       range.primType = svga_translate_prim(info->mode, 12, &hw_count,
-                                           info->vertices_per_patch);
+                                           svga->patch_vertices);
       range.primitiveCount = 0;
       range.indexArray.surfaceId = SVGA3D_INVALID_ID;
       range.indexArray.offset = 0;
@@ -151,7 +151,7 @@ retry_draw_indirect(struct svga_context *svga,
       unsigned hw_count;
 
       range.primType = svga_translate_prim(info->mode, 12, &hw_count,
-                                           info->vertices_per_patch);
+                                           svga->patch_vertices);
       range.primitiveCount = 0;  /* specified in indirect buffer */
       range.indexArray.surfaceId = SVGA3D_INVALID_ID;
       range.indexArray.offset = 0;
@@ -269,8 +269,8 @@ svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
       svga->dirty |= SVGA_NEW_VS_CONSTS;
    }
 
-   if (svga->curr.vertices_per_patch != info->vertices_per_patch) {
-      svga->curr.vertices_per_patch = info->vertices_per_patch;
+   if (svga->curr.vertices_per_patch != svga->patch_vertices) {
+      svga->curr.vertices_per_patch = svga->patch_vertices;
 
       /* If input patch size changes, we need to notifiy the TCS
        * code to reevaluate the shader variant since the
@@ -369,7 +369,7 @@ svga_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
       else {
          ret = retry_draw_arrays(svga, info->mode, draws[0].start, count,
                                  info->start_instance, info->instance_count,
-                                 info->vertices_per_patch);
+                                 svga->patch_vertices);
       }
    }
 

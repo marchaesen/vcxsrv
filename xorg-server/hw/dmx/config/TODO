@@ -1,7 +1,0 @@
-Fri May 31 13:20:17 2002
-
-1) Sanitize values from input boxes.
-
-2) Add canvas colors to cavas widget resources or to command-line options.
-
-3) Add ability to edit option line(s) and wall.

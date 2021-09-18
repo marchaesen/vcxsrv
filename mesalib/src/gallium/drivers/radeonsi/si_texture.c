@@ -447,10 +447,9 @@ static void si_reallocate_texture_inplace(struct si_context *sctx, struct si_tex
    tex->buffer.b.b.bind = templ.bind;
    radeon_bo_reference(sctx->screen->ws, &tex->buffer.buf, new_tex->buffer.buf);
    tex->buffer.gpu_address = new_tex->buffer.gpu_address;
-   tex->buffer.vram_usage_kb = new_tex->buffer.vram_usage_kb;
-   tex->buffer.gart_usage_kb = new_tex->buffer.gart_usage_kb;
+   tex->buffer.memory_usage_kb = new_tex->buffer.memory_usage_kb;
    tex->buffer.bo_size = new_tex->buffer.bo_size;
-   tex->buffer.bo_alignment = new_tex->buffer.bo_alignment;
+   tex->buffer.bo_alignment_log2 = new_tex->buffer.bo_alignment_log2;
    tex->buffer.domains = new_tex->buffer.domains;
    tex->buffer.flags = new_tex->buffer.flags;
 
@@ -482,7 +481,7 @@ static void si_reallocate_texture_inplace(struct si_context *sctx, struct si_tex
    tex->db_render_format = new_tex->db_render_format;
    memcpy(tex->stencil_clear_value, new_tex->stencil_clear_value, sizeof(tex->stencil_clear_value));
    tex->tc_compatible_htile = new_tex->tc_compatible_htile;
-   tex->depth_cleared_level_mask = new_tex->depth_cleared_level_mask;
+   tex->depth_cleared_level_mask_once = new_tex->depth_cleared_level_mask_once;
    tex->stencil_cleared_level_mask = new_tex->stencil_cleared_level_mask;
    tex->upgraded_depth = new_tex->upgraded_depth;
    tex->db_compatible = new_tex->db_compatible;
@@ -749,7 +748,7 @@ static bool si_texture_get_handle(struct pipe_screen *screen, struct pipe_contex
          sctx->b.resource_copy_region(&sctx->b, newb, 0, 0, 0, 0, &res->b.b, 0, &box);
          flush = true;
          /* Move the new buffer storage to the old pipe_resource. */
-         si_replace_buffer_storage(&sctx->b, &res->b.b, newb);
+         si_replace_buffer_storage(&sctx->b, &res->b.b, newb, 0, 0, 0);
          pipe_resource_reference(&newb, NULL);
 
          assert(res->b.b.bind & PIPE_BIND_SHARED);
@@ -783,22 +782,6 @@ static bool si_texture_get_handle(struct pipe_screen *screen, struct pipe_contex
 
    return sscreen->ws->buffer_get_handle(sscreen->ws, res->buf, whandle);
 }
-
-static void si_texture_destroy(struct pipe_screen *screen, struct pipe_resource *ptex)
-{
-   struct si_texture *tex = (struct si_texture *)ptex;
-   struct si_resource *resource = &tex->buffer;
-
-   si_texture_reference(&tex->flushed_depth_texture, NULL);
-
-   if (tex->cmask_buffer != &tex->buffer) {
-      si_resource_reference(&tex->cmask_buffer, NULL);
-   }
-   radeon_bo_reference(((struct si_screen*)screen)->ws, &resource->buf, NULL);
-   FREE(tex);
-}
-
-static const struct u_resource_vtbl si_texture_vtbl;
 
 void si_print_texture_info(struct si_screen *sscreen, struct si_texture *tex,
                            struct u_log_context *log)
@@ -912,7 +895,6 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
 
    resource = &tex->buffer;
    resource->b.b = *base;
-   resource->b.vtbl = &si_texture_vtbl;
    pipe_reference_init(&resource->b.b.reference, 1);
    resource->b.b.screen = screen;
 
@@ -998,11 +980,10 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
    if (plane0) {
       /* The buffer is shared with the first plane. */
       resource->bo_size = plane0->buffer.bo_size;
-      resource->bo_alignment = plane0->buffer.bo_alignment;
+      resource->bo_alignment_log2 = plane0->buffer.bo_alignment_log2;
       resource->flags = plane0->buffer.flags;
       resource->domains = plane0->buffer.domains;
-      resource->vram_usage_kb = plane0->buffer.vram_usage_kb;
-      resource->gart_usage_kb = plane0->buffer.gart_usage_kb;
+      resource->memory_usage_kb = plane0->buffer.memory_usage_kb;
 
       radeon_bo_reference(sscreen->ws, &resource->buf, plane0->buffer.buf);
       resource->gpu_address = plane0->buffer.gpu_address;
@@ -1016,12 +997,9 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
       resource->buf = imported_buf;
       resource->gpu_address = sscreen->ws->buffer_get_virtual_address(resource->buf);
       resource->bo_size = imported_buf->size;
-      resource->bo_alignment = 1 << imported_buf->alignment_log2;
+      resource->bo_alignment_log2 = imported_buf->alignment_log2;
       resource->domains = sscreen->ws->buffer_get_initial_domain(resource->buf);
-      if (resource->domains & RADEON_DOMAIN_VRAM)
-         resource->vram_usage_kb = MAX2(1, resource->bo_size / 1024);
-      else if (resource->domains & RADEON_DOMAIN_GTT)
-         resource->gart_usage_kb = MAX2(1, resource->bo_size / 1024);
+      resource->memory_usage_kb = MAX2(1, resource->bo_size / 1024);
       if (sscreen->ws->buffer_get_flags)
          resource->flags = sscreen->ws->buffer_get_flags(resource->buf);
    }
@@ -1445,45 +1423,9 @@ si_texture_create_with_modifiers(struct pipe_screen *screen,
    return si_texture_create_with_modifier(screen, templ, modifier);
 }
 
-/* State trackers create separate textures in a next-chain for extra planes
- * even if those are planes created purely for modifiers. Because the linking
- * of the chain happens outside of the driver, and NULL is interpreted as
- * failure, let's create some dummy texture structs. We could use these
- * later to use the offsets for linking if we really wanted to.
- *
- * For now just create a dummy struct and completely ignore it.
- *
- * Potentially in the future we could store stride/offset and use it during
- * creation, though we might want to change how linking is done first.
- */
-
-struct si_auxiliary_texture {
-   struct threaded_resource b;
-   struct pb_buffer *buffer;
-   uint32_t offset;
-   uint32_t stride;
-};
-
-static void si_auxiliary_texture_destroy(struct pipe_screen *screen,
-                                         struct pipe_resource *ptex)
-{
-   struct si_auxiliary_texture *tex = (struct si_auxiliary_texture *)ptex;
-
-   radeon_bo_reference(((struct si_screen*)screen)->ws, &tex->buffer, NULL);
-   FREE(ptex);
-}
-
-static const struct u_resource_vtbl si_auxiliary_texture_vtbl = {
-   NULL,                        /* get_handle */
-   si_auxiliary_texture_destroy,    /* resource_destroy */
-   NULL,                        /* transfer_map */
-   NULL,                        /* transfer_flush_region */
-   NULL,                        /* transfer_unmap */
-};
-
 static bool si_texture_is_aux_plane(const struct pipe_resource *resource)
 {
-   return ((struct threaded_resource*)resource)->vtbl == &si_auxiliary_texture_vtbl;
+   return resource->flags & SI_RESOURCE_AUX_PLANE;
 }
 
 static struct pipe_resource *si_texture_from_winsys_buffer(struct si_screen *sscreen,
@@ -1627,7 +1569,7 @@ static struct pipe_resource *si_texture_from_handle(struct pipe_screen *screen,
       if (!tex)
          return NULL;
       tex->b.b = *templ;
-      tex->b.vtbl = &si_auxiliary_texture_vtbl;
+      tex->b.b.flags |= SI_RESOURCE_AUX_PLANE;
       tex->stride = whandle->stride;
       tex->offset = whandle->offset;
       tex->buffer = buf;
@@ -1781,12 +1723,15 @@ static void *si_texture_transfer_map(struct pipe_context *ctx, struct pipe_resou
    struct si_resource *buf;
    unsigned offset = 0;
    char *map;
-   bool use_staging_texture = false;
+   bool use_staging_texture = tex->buffer.flags & RADEON_FLAG_ENCRYPTED;
 
    assert(!(texture->flags & SI_RESOURCE_FLAG_FORCE_LINEAR));
    assert(box->width && box->height && box->depth);
 
-   if (tex->buffer.flags & RADEON_FLAG_ENCRYPTED)
+   if (tex->buffer.b.b.flags & SI_RESOURCE_AUX_PLANE)
+      return NULL;
+
+   if ((tex->buffer.flags & RADEON_FLAG_ENCRYPTED) && usage & PIPE_MAP_READ)
       return NULL;
 
    if (tex->is_depth) {
@@ -1847,19 +1792,6 @@ static void *si_texture_transfer_map(struct pipe_context *ctx, struct pipe_resou
       struct si_texture *staging;
       unsigned bo_usage = usage & PIPE_MAP_READ ? PIPE_USAGE_STAGING : PIPE_USAGE_STREAM;
       unsigned bo_flags = SI_RESOURCE_FLAG_FORCE_LINEAR | SI_RESOURCE_FLAG_DRIVER_INTERNAL;
-
-      /* The pixel shader has a bad access pattern for linear textures.
-       * If a pixel shader is used to blit to/from staging, don't disable caches.
-       *
-       * MSAA, depth/stencil textures, and compressed textures use the pixel shader
-       * to blit.
-       */
-      if (texture->nr_samples <= 1 &&
-          !tex->is_depth &&
-          !util_format_is_compressed(texture->format) &&
-          /* Texture uploads with DCC use the pixel shader to blit */
-          (!(usage & PIPE_MAP_WRITE) || !vi_dcc_enabled(tex, level)))
-         bo_flags |= SI_RESOURCE_FLAG_UNCACHED;
 
       si_init_temp_resource_from_box(&resource, texture, box, level, bo_usage,
                                      bo_flags);
@@ -1960,14 +1892,6 @@ static void si_texture_transfer_unmap(struct pipe_context *ctx, struct pipe_tran
    pipe_resource_reference(&transfer->resource, NULL);
    FREE(transfer);
 }
-
-static const struct u_resource_vtbl si_texture_vtbl = {
-   NULL,                            /* get_handle */
-   si_texture_destroy,              /* resource_destroy */
-   si_texture_transfer_map,         /* transfer_map */
-   u_default_transfer_flush_region, /* transfer_flush_region */
-   si_texture_transfer_unmap,       /* transfer_unmap */
-};
 
 /* Return if it's allowed to reinterpret one format as another with DCC enabled.
  */
@@ -2279,6 +2203,8 @@ void si_init_screen_texture_functions(struct si_screen *sscreen)
 
 void si_init_context_texture_functions(struct si_context *sctx)
 {
+   sctx->b.texture_map = si_texture_transfer_map;
+   sctx->b.texture_unmap = si_texture_transfer_unmap;
    sctx->b.create_surface = si_create_surface;
    sctx->b.surface_destroy = si_surface_destroy;
 }

@@ -28,6 +28,7 @@
 #include "u_inlines.h"
 #include "util/u_memory.h"
 #include "u_prim_restart.h"
+#include "u_prim.h"
 
 typedef struct {
   uint32_t count;
@@ -148,7 +149,7 @@ util_translate_prim_restart_ib(struct pipe_context *context,
       goto error;
 
    util_translate_prim_restart_data(src_index_size, src_map, dst_map,
-                                    draw->count, info->restart_index);
+                                    count, info->restart_index);
 
    if (src_transfer)
       pipe_buffer_unmap(context, src_transfer);
@@ -169,13 +170,11 @@ error:
 
 /** Helper structs for util_draw_vbo_without_prim_restart() */
 
-struct range {
-   unsigned start, count;
-};
-
 struct range_info {
-   struct range *ranges;
+   struct pipe_draw_start_count_bias *draws;
    unsigned count, max;
+   unsigned min_index, max_index;
+   unsigned total_index_count;
 };
 
 
@@ -184,101 +183,67 @@ struct range_info {
  * \return true for success, false if out of memory
  */
 static boolean
-add_range(struct range_info *info, unsigned start, unsigned count)
+add_range(enum pipe_prim_type mode, struct range_info *info, unsigned start, unsigned count, unsigned index_bias)
 {
+   /* degenerate primitive: ignore */
+   if (!u_trim_pipe_prim(mode, (unsigned*)&count))
+      return TRUE;
+
    if (info->max == 0) {
       info->max = 10;
-      info->ranges = MALLOC(info->max * sizeof(struct range));
-      if (!info->ranges) {
+      info->draws = MALLOC(info->max * sizeof(struct pipe_draw_start_count_bias));
+      if (!info->draws) {
          return FALSE;
       }
    }
    else if (info->count == info->max) {
-      /* grow the ranges[] array */
-      info->ranges = REALLOC(info->ranges,
-                             info->max * sizeof(struct range),
-                             2 * info->max * sizeof(struct range));
-      if (!info->ranges) {
+      /* grow the draws[] array */
+      info->draws = REALLOC(info->draws,
+                             info->max * sizeof(struct pipe_draw_start_count_bias),
+                             2 * info->max * sizeof(struct pipe_draw_start_count_bias));
+      if (!info->draws) {
          return FALSE;
       }
 
       info->max *= 2;
    }
+   info->min_index = MIN2(info->min_index, start);
+   info->max_index = MAX2(info->max_index, start + count - 1);
 
    /* save the range */
-   info->ranges[info->count].start = start;
-   info->ranges[info->count].count = count;
+   info->draws[info->count].start = start;
+   info->draws[info->count].count = count;
+   info->draws[info->count].index_bias = index_bias;
    info->count++;
+   info->total_index_count += count;
 
    return TRUE;
 }
 
-
-/**
- * Implement primitive restart by breaking an indexed primitive into
- * pieces which do not contain restart indexes.  Each piece is then
- * drawn by calling pipe_context::draw_vbo().
- * \return PIPE_OK if no error, an error code otherwise.
- */
-enum pipe_error
-util_draw_vbo_without_prim_restart(struct pipe_context *context,
-                                   const struct pipe_draw_info *info,
-                                   unsigned drawid_offset,
-                                   const struct pipe_draw_indirect_info *indirect_info,
-                                   const struct pipe_draw_start_count_bias *draw)
+struct pipe_draw_start_count_bias *
+util_prim_restart_convert_to_direct(const void *index_map,
+                                    const struct pipe_draw_info *info,
+                                    const struct pipe_draw_start_count_bias *draw,
+                                    unsigned *num_draws,
+                                    unsigned *min_index,
+                                    unsigned *max_index,
+                                    unsigned *total_index_count)
 {
-   const void *src_map;
-   struct range_info ranges = {0};
-   struct pipe_draw_info new_info;
-   struct pipe_draw_start_count_bias new_draw;
-   struct pipe_transfer *src_transfer = NULL;
+   struct range_info ranges = { .min_index = UINT32_MAX, 0 };
    unsigned i, start, count;
-   DrawElementsIndirectCommand indirect;
-   unsigned info_start = draw->start;
-   unsigned info_count = draw->count;
-   unsigned info_instance_count = info->instance_count;
+   ranges.min_index = UINT32_MAX;
 
    assert(info->index_size);
    assert(info->primitive_restart);
 
-   if (indirect_info && indirect_info->buffer) {
-      indirect = read_indirect_elements(context, indirect_info);
-      info_count = indirect.count;
-      info_start = indirect.firstIndex;
-      info_instance_count = indirect.primCount;
-   }
-
-   /* Get pointer to the index data */
-   if (!info->has_user_indices) {
-      /* map the index buffer (only the range we need to scan) */
-      src_map = pipe_buffer_map_range(context, info->index.resource,
-                                      info_start * info->index_size,
-                                      info_count * info->index_size,
-                                      PIPE_MAP_READ,
-                                      &src_transfer);
-      if (!src_map) {
-         return PIPE_ERROR_OUT_OF_MEMORY;
-      }
-   }
-   else {
-      if (!info->index.user) {
-         debug_printf("User-space index buffer is null!");
-         return PIPE_ERROR_BAD_INPUT;
-      }
-      src_map = (const uint8_t *) info->index.user
-         + info_start * info->index_size;
-   }
-
 #define SCAN_INDEXES(TYPE) \
-   for (i = 0; i <= info_count; i++) { \
-      if (i == info_count || \
-          ((const TYPE *) src_map)[i] == info->restart_index) { \
+   for (i = 0; i <= draw->count; i++) { \
+      if (i == draw->count || \
+          ((const TYPE *) index_map)[i] == info->restart_index) { \
          /* cut / restart */ \
          if (count > 0) { \
-            if (!add_range(&ranges, info_start + start, count)) { \
-               if (src_transfer) \
-                  pipe_buffer_unmap(context, src_transfer); \
-               return PIPE_ERROR_OUT_OF_MEMORY; \
+            if (!add_range(info->mode, &ranges, draw->start + start, count, draw->index_bias)) { \
+               return NULL; \
             } \
          } \
          start = i + 1; \
@@ -303,26 +268,91 @@ util_draw_vbo_without_prim_restart(struct pipe_context *context,
       break;
    default:
       assert(!"Bad index size");
+      return NULL;
+   }
+
+   *num_draws = ranges.count;
+   *min_index = ranges.min_index;
+   *max_index = ranges.max_index;
+   *total_index_count = ranges.total_index_count;
+   return ranges.draws;
+}
+
+/**
+ * Implement primitive restart by breaking an indexed primitive into
+ * pieces which do not contain restart indexes.  Each piece is then
+ * drawn by calling pipe_context::draw_vbo().
+ * \return PIPE_OK if no error, an error code otherwise.
+ */
+enum pipe_error
+util_draw_vbo_without_prim_restart(struct pipe_context *context,
+                                   const struct pipe_draw_info *info,
+                                   unsigned drawid_offset,
+                                   const struct pipe_draw_indirect_info *indirect_info,
+                                   const struct pipe_draw_start_count_bias *draw)
+{
+   const void *src_map;
+   struct pipe_draw_info new_info = *info;
+   struct pipe_draw_start_count_bias new_draw = *draw;
+   struct pipe_transfer *src_transfer = NULL;
+   DrawElementsIndirectCommand indirect;
+   struct pipe_draw_start_count_bias *direct_draws;
+   unsigned num_draws = 0;
+
+   assert(info->index_size);
+   assert(info->primitive_restart);
+
+   switch (info->index_size) {
+   case 1:
+   case 2:
+   case 4:
+      break;
+   default:
+      assert(!"Bad index size");
       return PIPE_ERROR_BAD_INPUT;
    }
 
+   if (indirect_info && indirect_info->buffer) {
+      indirect = read_indirect_elements(context, indirect_info);
+      new_draw.count = indirect.count;
+      new_draw.start = indirect.firstIndex;
+      new_info.instance_count = indirect.primCount;
+   }
+
+   /* Get pointer to the index data */
+   if (!info->has_user_indices) {
+      /* map the index buffer (only the range we need to scan) */
+      src_map = pipe_buffer_map_range(context, info->index.resource,
+                                      new_draw.start * info->index_size,
+                                      new_draw.count * info->index_size,
+                                      PIPE_MAP_READ,
+                                      &src_transfer);
+      if (!src_map) {
+         return PIPE_ERROR_OUT_OF_MEMORY;
+      }
+   }
+   else {
+      if (!info->index.user) {
+         debug_printf("User-space index buffer is null!");
+         return PIPE_ERROR_BAD_INPUT;
+      }
+      src_map = (const uint8_t *) info->index.user
+         + new_draw.start * info->index_size;
+   }
+
+   unsigned total_index_count;
+   direct_draws = util_prim_restart_convert_to_direct(src_map, &new_info, &new_draw, &num_draws,
+                                                      &new_info.min_index, &new_info.max_index,
+                                                      &total_index_count);
    /* unmap index buffer */
    if (src_transfer)
       pipe_buffer_unmap(context, src_transfer);
 
-   /* draw ranges between the restart indexes */
-   new_info = *info;
-   new_draw = *draw;
-   /* we've effectively remapped this to a direct draw */
-   new_info.instance_count = info_instance_count;
    new_info.primitive_restart = FALSE;
-   for (i = 0; i < ranges.count; i++) {
-      new_draw.start = ranges.ranges[i].start;
-      new_draw.count = ranges.ranges[i].count;
-      context->draw_vbo(context, &new_info, drawid_offset, NULL, &new_draw, 1);
-   }
+   new_info.index_bounds_valid = true;
+   if (direct_draws)
+      context->draw_vbo(context, &new_info, drawid_offset, NULL, direct_draws, num_draws);
+   free(direct_draws);
 
-   FREE(ranges.ranges);
-
-   return PIPE_OK;
+   return num_draws > 0 ? PIPE_OK : PIPE_ERROR_OUT_OF_MEMORY;
 }

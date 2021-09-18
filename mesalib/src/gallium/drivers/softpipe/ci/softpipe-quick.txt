@@ -29,6 +29,7 @@ glx/glx-visuals-depth -pixmap: fail
 glx/glx-visuals-stencil: fail
 glx/glx-visuals-stencil -pixmap: fail
 glx/glx_arb_create_context_es2_profile/invalid opengl es version: fail
+glx/glx_arb_create_context_no_error/no error: fail
 glx/glx_arb_create_context_robustness/invalid reset notification strategy: skip
 glx/glx_arb_create_context_robustness/require gl_arb_robustness: skip
 glx/glx_arb_sync_control/glxgetmscrateoml: skip
@@ -257,7 +258,6 @@ spec/!opengl 1.4/copy-pixels samples=32: skip
 spec/!opengl 1.4/copy-pixels samples=4: skip
 spec/!opengl 1.4/copy-pixels samples=6: skip
 spec/!opengl 1.4/copy-pixels samples=8: skip
-spec/!opengl 1.4/gl-1.4-polygon-offset: fail
 spec/!opengl 1.4/gl-1.4-rgba-mipmap-texture-with-rgb-visual: skip
 spec/!opengl 2.0/vertex-program-two-side back back2/tcs-out, tes and fs: skip
 spec/!opengl 2.0/vertex-program-two-side back back2/tes-out and fs: skip
@@ -597,11 +597,13 @@ spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifi
 spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_vs_interface: crash
 spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_vs_named_interface: crash
 spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_vs_struct: crash
+spec/arb_enhanced_layouts/execution/component-layout/tcs-tes-fs-array-with-non-array-interleave: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-load-output: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-load-output-indirect: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs-array-interleave: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs-double: skip
+spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs-ifc-array-interleave: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs-patch: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs-patch-array-interleave: skip
 spec/arb_enhanced_layouts/explicit-offset-bufferstorage: skip
@@ -841,6 +843,7 @@ spec/arb_sample_shading/samplemask 6: skip
 spec/arb_sample_shading/samplemask 6 all: skip
 spec/arb_sample_shading/samplemask 8: skip
 spec/arb_sample_shading/samplemask 8 all: skip
+spec/arb_separate_shader_objects/execution/layout-location-named-block-with-array: skip
 spec/arb_separate_shader_objects/linker/pervertex-clipdistance-tcs-out-tes: skip
 spec/arb_separate_shader_objects/linker/pervertex-clipdistance-tes-out-gs: skip
 spec/arb_separate_shader_objects/linker/pervertex-clipdistance-vs-out-tcs: skip
@@ -1791,22 +1794,6 @@ spec/arb_texture_rg/texwrap formats/gl_r8, npot: fail
 spec/arb_texture_rg/texwrap formats/gl_rg16, npot: fail
 spec/arb_texture_rg/texwrap formats/gl_rg8, npot: fail
 spec/arb_texture_stencil8/fbo-clear-formats/gl_stencil_index8 (fbo incomplete): skip
-spec/arb_texture_view/rendering-formats/clear gl_r8 as gl_r8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_r8 as gl_r8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16f: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_r16i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_rg8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rg8 as gl_rg8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgb8 as gl_rgb8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgb8 as gl_rgb8i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_r32f: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_r32i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16f: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16i: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8_snorm: fail
-spec/arb_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8i: fail
 spec/arb_texture_view/rendering-formats/clear gl_rgba8_snorm as gl_r32f: fail
 spec/arb_transform_feedback2/change objects while paused: crash
 spec/arb_transform_feedback3/arb_transform_feedback3-ext_interleaved_two_bufs_gs: crash
@@ -1850,6 +1837,7 @@ spec/egl_khr_fence_sync/conformance/eglcreatesynckhr_wrong_display_same_thread: 
 spec/egl_khr_gl_image/egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24: fail
 spec/egl_nok_swap_region/basic: skip
 spec/egl_nok_texture_from_pixmap/basic: skip
+spec/ext_clear_texture/ext_clear_texture-multisample: skip
 spec/ext_demote_to_helper_invocation/execution/demote: skip
 spec/ext_demote_to_helper_invocation/execution/demote_with_derivatives: skip
 spec/ext_direct_state_access/indexed-state-queries 12/getdoublei_vext: skip
@@ -1864,11 +1852,13 @@ spec/ext_external_objects/semaphore-api-errors: skip
 spec/ext_external_objects/vk-buf-exchange: skip
 spec/ext_external_objects/vk-depth-display: skip
 spec/ext_external_objects/vk-image-display: skip
+spec/ext_external_objects/vk-image-display-muliple-textures: skip
 spec/ext_external_objects/vk-image-display-overwrite: skip
 spec/ext_external_objects/vk-image-overwrite: skip
 spec/ext_external_objects/vk-pix-buf-update-errors: skip
 spec/ext_external_objects/vk-semaphores: skip
 spec/ext_external_objects/vk-semaphores-2: skip
+spec/ext_external_objects/vk-stencil-display: skip
 spec/ext_external_objects/vk-vert-buf-reuse: skip
 spec/ext_external_objects/vk-vert-buf-update-errors: skip
 spec/ext_external_objects_fd/memory-object-api-errors: skip
@@ -2693,7 +2683,6 @@ spec/glsl-1.10/execution/fs-dfdx-accuracy: warn
 spec/glsl-1.10/execution/fs-dfdy-accuracy: warn
 spec/glsl-1.10/preprocessor/extension-defined-test: skip
 spec/glsl-1.10/preprocessor/extension-if-1: skip
-spec/glsl-1.30/execution/range_analysis_fsat_of_nan: fail
 spec/glsl-1.30/execution/tex-miplevel-selection texturegrad 1d: fail
 spec/glsl-1.30/execution/tex-miplevel-selection texturegrad 1darray: fail
 spec/glsl-1.30/execution/tex-miplevel-selection texturegrad 1darrayshadow: fail
@@ -2730,18 +2719,6 @@ spec/glsl-1.30/execution/tex-miplevel-selection textureprojgradoffset 2d: fail
 spec/glsl-1.30/execution/tex-miplevel-selection textureprojgradoffset 2d_projvec4: fail
 spec/glsl-1.30/execution/tex-miplevel-selection textureprojgradoffset 2dshadow: fail
 spec/glsl-1.30/execution/tex-miplevel-selection textureprojgradoffset 3d: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-const-accept: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-const-reject: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-different-from-position: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-homogeneity: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-primitives-lines: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-primitives-points: fail
-spec/glsl-1.50/execution/compatibility/clipping/gs-clip-vertex-primitives-triangle-strip: fail
-spec/glsl-1.50/execution/compatibility/clipping/vs-gs-clip-vertex-const-accept: fail
-spec/glsl-1.50/execution/compatibility/clipping/vs-gs-clip-vertex-const-reject: fail
-spec/glsl-1.50/execution/compatibility/clipping/vs-gs-clip-vertex-different-from-position: fail
-spec/glsl-1.50/execution/compatibility/clipping/vs-gs-clip-vertex-homogeneity: fail
-spec/glsl-1.50/execution/compatibility/clipping/vs-gs-clip-vertex-primitives-triangle-strip: fail
 spec/glsl-1.50/execution/compatibility/gs-clamp-vertex-color: fail
 spec/glsl-1.50/execution/geometry/clip-distance-bulk-copy: fail
 spec/glsl-1.50/execution/geometry/clip-distance-itemized-copy: fail
@@ -2750,8 +2727,8 @@ spec/glsl-1.50/execution/interface-vs-unnamed-to-fs-unnamed: fail
 spec/glsl-1.50/execution/primitive-id-no-gs: fail
 spec/glsl-1.50/execution/primitive-id-no-gs-first-vertex: fail
 spec/glsl-1.50/execution/primitive-id-no-gs-instanced: fail
-spec/glsl-1.50/execution/primitive-id-no-gs-quad-strip: crash
-spec/glsl-1.50/execution/primitive-id-no-gs-quads: crash
+spec/glsl-1.50/execution/primitive-id-no-gs-quad-strip: fail
+spec/glsl-1.50/execution/primitive-id-no-gs-quads: fail
 spec/glsl-1.50/execution/primitive-id-no-gs-strip: fail
 spec/glsl-1.50/execution/primitive-id-no-gs-strip-first-vertex: fail
 spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler1d: skip
@@ -3004,20 +2981,6 @@ spec/oes_texture_compression_astc/miptree-3d-gl srgb: skip
 spec/oes_texture_compression_astc/miptree-3d-gles hdr: skip
 spec/oes_texture_compression_astc/miptree-3d-gles ldr: skip
 spec/oes_texture_compression_astc/miptree-3d-gles srgb: skip
-spec/oes_texture_view/rendering-formats/clear gl_r8 as gl_r8_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_r8 as gl_r8i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16f: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_r16i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_rg8_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rg8 as gl_rg8i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_r32f: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_r32i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16f: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rg16i: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8_snorm: fail
-spec/oes_texture_view/rendering-formats/clear gl_rgba8 as gl_rgba8i: fail
 spec/oes_texture_view/rendering-formats/clear gl_rgba8_snorm as gl_r32f: fail
 spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16i: skip
 spec/oes_texture_view/rendering-formats/render to gl_rgb16 as gl_rgb16ui: skip

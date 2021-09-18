@@ -43,62 +43,79 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 RESULTS=`pwd`/${DEQP_RESULTS_DIR:-results}
 mkdir -p $RESULTS
 
+HANG_DETECTION_CMD=""
+
 # Generate test case list file.
 if [ "$DEQP_VER" = "vk" ]; then
-   cp /deqp/mustpass/vk-$DEQP_VARIANT.txt /tmp/case-list.txt
+   MUSTPASS=/deqp/mustpass/vk-$DEQP_VARIANT.txt
    DEQP=/deqp/external/vulkancts/modules/vulkan/deqp-vk
+   HANG_DETECTION_CMD="/parallel-deqp-runner/build/bin/hang-detection"
 elif [ "$DEQP_VER" = "gles2" -o "$DEQP_VER" = "gles3" -o "$DEQP_VER" = "gles31" -o "$DEQP_VER" = "egl" ]; then
-   cp /deqp/mustpass/$DEQP_VER-$DEQP_VARIANT.txt /tmp/case-list.txt
+   MUSTPASS=/deqp/mustpass/$DEQP_VER-$DEQP_VARIANT.txt
    DEQP=/deqp/modules/$DEQP_VER/deqp-$DEQP_VER
    SUITE=dEQP
 elif [ "$DEQP_VER" = "gles2-khr" -o "$DEQP_VER" = "gles3-khr" -o "$DEQP_VER" = "gles31-khr" -o "$DEQP_VER" = "gles32-khr" ]; then
-   cp /deqp/mustpass/$DEQP_VER-$DEQP_VARIANT.txt /tmp/case-list.txt
+   MUSTPASS=/deqp/mustpass/$DEQP_VER-$DEQP_VARIANT.txt
    DEQP=/deqp/external/openglcts/modules/glcts
    SUITE=dEQP
 else
-   cp /deqp/mustpass/$DEQP_VER-$DEQP_VARIANT.txt /tmp/case-list.txt
+   MUSTPASS=/deqp/mustpass/$DEQP_VER-$DEQP_VARIANT.txt
    DEQP=/deqp/external/openglcts/modules/glcts
    SUITE=KHR
 fi
 
-# If the caselist is too long to run in a reasonable amount of time, let the job
-# specify what fraction (1/n) of the caselist we should run.  Note: N~M is a gnu
-# sed extension to match every nth line (first line is #1).
-if [ -n "$DEQP_FRACTION" ]; then
-   sed -ni 1~$DEQP_FRACTION"p" /tmp/case-list.txt
-fi
+if [ -z "$DEQP_SUITE" ]; then
+    cp $MUSTPASS /tmp/case-list.txt
 
-# If the job is parallel at the gitab job level, take the corresponding fraction
-# of the caselist.
-if [ -n "$CI_NODE_INDEX" ]; then
-   sed -ni $CI_NODE_INDEX~$CI_NODE_TOTAL"p" /tmp/case-list.txt
-fi
+    # If the caselist is too long to run in a reasonable amount of time, let the job
+    # specify what fraction (1/n) of the caselist we should run.  Note: N~M is a gnu
+    # sed extension to match every nth line (first line is #1).
+    if [ -n "$DEQP_FRACTION" ]; then
+       sed -ni 1~$DEQP_FRACTION"p" /tmp/case-list.txt
+    fi
 
-if [ -n "$DEQP_CASELIST_FILTER" ]; then
-    sed -ni "/$DEQP_CASELIST_FILTER/p" /tmp/case-list.txt
-fi
+    # If the job is parallel at the gitab job level, take the corresponding fraction
+    # of the caselist.
+    if [ -n "$CI_NODE_INDEX" ]; then
+       sed -ni $CI_NODE_INDEX~$CI_NODE_TOTAL"p" /tmp/case-list.txt
+    fi
 
-if [ -n "$DEQP_CASELIST_INV_FILTER" ]; then
-    sed -ni "/$DEQP_CASELIST_INV_FILTER/!p" /tmp/case-list.txt
-fi
+    if [ -n "$DEQP_CASELIST_FILTER" ]; then
+        sed -ni "/$DEQP_CASELIST_FILTER/p" /tmp/case-list.txt
+    fi
 
-if [ ! -s /tmp/case-list.txt ]; then
-    echo "Caselist generation failed"
-    exit 1
+    if [ -n "$DEQP_CASELIST_INV_FILTER" ]; then
+        sed -ni "/$DEQP_CASELIST_INV_FILTER/!p" /tmp/case-list.txt
+    fi
+
+    if [ ! -s /tmp/case-list.txt ]; then
+        echo "Caselist generation failed"
+        exit 1
+    fi
 fi
 
 if [ -e "$INSTALL/deqp-$GPU_VERSION-fails.txt" ]; then
     DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --baseline $INSTALL/deqp-$GPU_VERSION-fails.txt"
 fi
 
-if [ -e "$INSTALL/deqp-$GPU_VERSION-flakes.txt" ]; then
-    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt"
+# Default to an empty known flakes file if it doesn't exist.
+touch $INSTALL/deqp-$GPU_VERSION-flakes.txt
+
+
+if [ -n "$VK_DRIVER" ] && [ -e "$INSTALL/deqp-$VK_DRIVER-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$VK_DRIVER-skips.txt"
+fi
+
+if [ -n "$GALLIUM_DRIVER" ] && [ -e "$INSTALL/deqp-$GALLIUM_DRIVER-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$GALLIUM_DRIVER-skips.txt"
+fi
+
+if [ -n "$DRIVER_NAME" ] && [ -e "$INSTALL/deqp-$DRIVER_NAME-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$DRIVER_NAME-skips.txt"
 fi
 
 if [ -e "$INSTALL/deqp-$GPU_VERSION-skips.txt" ]; then
-    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --skips $INSTALL/deqp-$GPU_VERSION-skips.txt"
-else
-    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --skips $INSTALL/deqp-default-skips.txt"
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$GPU_VERSION-skips.txt"
 fi
 
 set +e
@@ -110,71 +127,6 @@ elif [ -n "$FDO_CI_CONCURRENT" ]; then
 else
    JOB="--jobs 4"
 fi
-
-# If this CI lab lacks artifacts support, print the whole list of failures/flakes.
-if [ -n "$DEQP_NO_SAVE_RESULTS" ]; then
-   SUMMARY_LIMIT="--summary-limit 0"
-fi
-
-run_cts() {
-    deqp=$1
-    caselist=$2
-    output=$3
-    deqp-runner \
-        run \
-        --deqp $deqp \
-        --output $RESULTS \
-        --caselist $caselist \
-        --testlog-to-xml  /deqp/executor/testlog-to-xml \
-        $JOB \
-        $SUMMARY_LIMIT \
-	$DEQP_RUNNER_OPTIONS \
-        -- \
-        $DEQP_OPTIONS
-}
-
-report_flakes() {
-    flakes=`grep ",Flake" $1 | sed 's|,Flake.*||g'`
-    if [ -z "$flakes" ]; then
-        return 0
-    fi
-
-    if [ -z "$FLAKES_CHANNEL" ]; then
-        return 0
-    fi
-
-    # The nick needs to be something unique so that multiple runners
-    # connecting at the same time don't race for one nick and get blocked.
-    # freenode has a 16-char limit on nicks (9 is the IETF standard, but
-    # various servers extend that).  So, trim off the common prefixes of the
-    # runner name, and append the job ID so that software runners with more
-    # than one concurrent job (think swrast) don't collide.  For freedreno,
-    # that gives us a nick as long as db410c-N-JJJJJJJJ, and it'll be a while
-    # before we make it to 9-digit jobs (we're at 7 so far).
-    runner=`echo $CI_RUNNER_DESCRIPTION | sed 's|mesa-||' | sed 's|google-freedreno-||g'`
-    bot="$runner-$CI_JOB_ID"
-    channel="$FLAKES_CHANNEL"
-    (
-    echo NICK $bot
-    echo USER $bot unused unused :Gitlab CI Notifier
-    sleep 10
-    echo "JOIN $channel"
-    sleep 1
-    desc="Flakes detected in job: $CI_JOB_URL on $CI_RUNNER_DESCRIPTION"
-    if [ -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" ]; then
-        desc="$desc on branch $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME ($CI_MERGE_REQUEST_TITLE)"
-    elif [ -n "$CI_COMMIT_BRANCH" ]; then
-        desc="$desc on branch $CI_COMMIT_BRANCH ($CI_COMMIT_TITLE)"
-    fi
-    echo "PRIVMSG $channel :$desc"
-    for flake in $flakes; do
-        echo "PRIVMSG $channel :$flake"
-    done
-    echo "PRIVMSG $channel :See $CI_JOB_URL/artifacts/browse/results/"
-    echo "QUIT"
-    ) | nc irc.freenode.net 6667 > /dev/null
-
-}
 
 parse_renderer() {
     RENDERER=`grep -A1 TestCaseResult.\*info.renderer $RESULTS/deqp-info.qpa | grep '<Text' | sed 's|.*<Text>||g' | sed 's|</Text>||g'`
@@ -210,7 +162,7 @@ check_vk_device_name() {
     export LD_PRELOAD=
     DEVICENAME=`grep deviceName $RESULTS/deqp-info.qpa | sed 's|deviceName: ||g'`
     echo "deviceName: $DEVICENAME"
-    if [ -n "$DEQP_EXPECTED_RENDERER" -a "x$DEVICENAME" != "x$DEQP_EXPECTED_RENDERER" ]; then
+    if ! echo $DEVICENAME | grep -q "$DEQP_EXPECTED_RENDERER"; then
         echo "Expected deviceName $DEQP_EXPECTED_RENDERER"
         exit 1
     fi
@@ -238,7 +190,7 @@ if [ "$GALLIUM_DRIVER" = "virpipe" ]; then
     fi
 
     GALLIUM_DRIVER=llvmpipe \
-    GALLIVM_PERF="nopt,no_filter_hacks" \
+    GALLIVM_PERF="nopt" \
     virgl_test_server $VTEST_ARGS >$RESULTS/vtest-log.txt 2>&1 &
 
     sleep 1
@@ -255,7 +207,35 @@ FAILURES_CSV=$RESULTS/failures.csv
 
 export LD_PRELOAD=$TEST_LD_PRELOAD
 
-run_cts $DEQP /tmp/case-list.txt $RESULTS_CSV
+if [ -z "$DEQP_SUITE" ]; then
+    deqp-runner \
+        run \
+        --deqp $DEQP \
+        --output $RESULTS \
+        --caselist /tmp/case-list.txt \
+        --skips $INSTALL/deqp-all-skips.txt $DEQP_SKIPS \
+        --flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt \
+        --testlog-to-xml /deqp/executor/testlog-to-xml \
+        $JOB \
+        $SUMMARY_LIMIT \
+	$DEQP_RUNNER_OPTIONS \
+        -- \
+        $DEQP_OPTIONS
+else
+    deqp-runner \
+        suite \
+        --suite $INSTALL/deqp-$DEQP_SUITE.toml \
+        --output $RESULTS \
+        --skips $INSTALL/deqp-all-skips.txt $DEQP_SKIPS \
+        --flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt \
+        --testlog-to-xml /deqp/executor/testlog-to-xml \
+        --fraction-start $CI_NODE_INDEX \
+        --fraction $CI_NODE_TOTAL \
+        $JOB \
+        $SUMMARY_LIMIT \
+	$DEQP_RUNNER_OPTIONS
+fi
+
 DEQP_EXITCODE=$?
 
 export LD_PRELOAD=
@@ -273,7 +253,7 @@ find $RESULTS -name \*.xml \
     -exec cp /deqp/testlog.css /deqp/testlog.xsl "$RESULTS/" ";" \
     -quit
 
-deqp-runner junit \
+$HANG_DETECTION_CMD deqp-runner junit \
    --testsuite $DEQP_VER \
    --results $RESULTS/failures.csv \
    --output $RESULTS/junit.xml \
@@ -281,6 +261,18 @@ deqp-runner junit \
    --template "See https://$CI_PROJECT_ROOT_NAMESPACE.pages.freedesktop.org/-/$CI_PROJECT_NAME/-/jobs/$CI_JOB_ID/artifacts/results/{{testcase}}.xml"
 
 # Report the flakes to the IRC channel for monitoring (if configured):
-quiet report_flakes $RESULTS_CSV
+if [ -n "$FLAKES_CHANNEL" ]; then
+  python3 $INSTALL/report-flakes.py \
+         --host irc.oftc.net \
+         --port 6667 \
+         --results $RESULTS_CSV \
+         --known-flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt \
+         --channel "$FLAKES_CHANNEL" \
+         --runner "$CI_RUNNER_DESCRIPTION" \
+         --job "$CI_JOB_ID" \
+         --url "$CI_JOB_URL" \
+         --branch "${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-$CI_COMMIT_BRANCH}" \
+         --branch-title "${CI_MERGE_REQUEST_TITLE:-$CI_COMMIT_TITLE}"
+fi
 
 exit $DEQP_EXITCODE

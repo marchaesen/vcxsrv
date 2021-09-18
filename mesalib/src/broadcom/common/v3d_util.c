@@ -29,11 +29,18 @@
  */
 uint32_t
 v3d_csd_choose_workgroups_per_supergroup(struct v3d_device_info *devinfo,
+                                         bool has_subgroups,
                                          bool has_tsy_barrier,
                                          uint32_t threads,
                                          uint32_t num_wgs,
                                          uint32_t wg_size)
 {
+   /* FIXME: subgroups may restrict supergroup packing. For now, we disable it
+    * completely if the shader uses subgroups.
+    */
+   if (has_subgroups)
+           return 1;
+
    /* Compute maximum number of batches in a supergroup for this workgroup size.
     * Each batch is 16 elements, and we can have up to 16 work groups in a
     * supergroup:

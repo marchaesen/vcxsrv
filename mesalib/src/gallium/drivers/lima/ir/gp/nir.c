@@ -315,13 +315,13 @@ static bool gpir_emit_load_const(gpir_block *block, nir_instr *ni)
 
 static bool gpir_emit_ssa_undef(gpir_block *block, nir_instr *ni)
 {
-   gpir_error("nir_ssa_undef_instr not support\n");
+   gpir_error("nir_ssa_undef_instr is not supported\n");
    return false;
 }
 
 static bool gpir_emit_tex(gpir_block *block, nir_instr *ni)
 {
-   gpir_error("nir_jump_instr not support\n");
+   gpir_error("texture operations are not supported\n");
    return false;
 }
 

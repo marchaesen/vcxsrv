@@ -858,7 +858,8 @@ util_format_z32_float_s8x24_uint_pack_z_32unorm(uint8_t *restrict dst_row, unsig
       const uint32_t *src = src_row;
       float *dst = (float *)dst_row;
       for(x = 0; x < width; ++x) {
-         *dst++ = z32_unorm_to_z32_float(*src++);
+         *dst = z32_unorm_to_z32_float(*src++);
+         dst += 2;
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);

@@ -76,10 +76,10 @@ SOFTWARE.
 	<field name="SY" pos="60" type="bool" display="(sy)"/>
 	<pattern low="61" high="63">001</pattern>  <!-- cat1 -->
 	<encode>
-		<map name="SRC">src->regs[1]</map>
-		<map name="SRC_R">!!(src->regs[1]->flags &amp; IR3_REG_R)</map>
+		<map name="SRC">src->srcs[0]</map>
+		<map name="SRC_R">!!(src->srcs[0]->flags &amp; IR3_REG_R)</map>
 		<map name="UL">!!(src->flags &amp; IR3_INSTR_UL)</map>
-		<map name="DST_REL">!!(src->regs[0]->flags &amp; IR3_REG_RELATIV)</map>
+		<map name="DST_REL">!!(src->dsts[0]->flags &amp; IR3_REG_RELATIV)</map>
 		<map name="ROUND">src->cat1.round</map>
 	</encode>
 </bitset>
@@ -340,8 +340,10 @@ SOFTWARE.
 		equivalent sequence of mov/cov, but they guarantee that all
 		sources are read before any destination is written, so they
 		behave as-if the moves are executed in parallel.
-		TODO: when were these added?
 	</doc>
+
+	<gen min="500"/> <!-- TODO does a4xx support these? -->
+
 	<field name="SRC0" low="0" high="7" type="#cat1-multi-src">
 		<param name="HALF"/>
 	</field>
@@ -354,7 +356,7 @@ SOFTWARE.
 	<pattern low="57" high="58">10</pattern>  <!-- OPC -->
 
 	<encode>
-		<map name="DST0">src->regs[0]</map>
+		<map name="DST0">src->dsts[0]</map>
 	</encode>
 </bitset>
 
@@ -377,9 +379,9 @@ SOFTWARE.
 	<pattern low="40" high="41">00</pattern> <!-- SUB_OPC -->
 
 	<encode>
-		<map name="SRC0">src->regs[2]</map>
-		<map name="SRC1">src->regs[3]</map>
-		<map name="DST1">src->regs[1]</map>
+		<map name="SRC0">src->srcs[0]</map>
+		<map name="SRC1">src->srcs[1]</map>
+		<map name="DST1">src->dsts[1]</map>
 	</encode>
 </bitset>
 
@@ -402,10 +404,10 @@ SOFTWARE.
 	<pattern low="40" high="41">01</pattern> <!-- SUB_OPC -->
 
 	<encode>
-		<map name="SRC0">src->regs[1]</map>
-		<map name="SRC1">src->regs[2]</map>
-		<map name="SRC2">src->regs[3]</map>
-		<map name="SRC3">src->regs[4]</map>
+		<map name="SRC0">src->srcs[0]</map>
+		<map name="SRC1">src->srcs[1]</map>
+		<map name="SRC2">src->srcs[2]</map>
+		<map name="SRC3">src->srcs[3]</map>
 	</encode>
 </bitset>
 
@@ -428,10 +430,10 @@ SOFTWARE.
 	<pattern low="40" high="41">10</pattern> <!-- SUB_OPC -->
 
 	<encode>
-		<map name="SRC0">src->regs[4]</map>
-		<map name="DST1">src->regs[1]</map>
-		<map name="DST2">src->regs[2]</map>
-		<map name="DST3">src->regs[3]</map>
+		<map name="SRC0">src->srcs[0]</map>
+		<map name="DST1">src->dsts[1]</map>
+		<map name="DST2">src->dsts[2]</map>
+		<map name="DST3">src->dsts[3]</map>
 	</encode>
 </bitset>
 
@@ -455,16 +457,6 @@ SOFTWARE.
 	<pattern low="50" high="52">011</pattern>       <!-- SRC_TYPE==u32 -->
 	<pattern low="53" high="54">00</pattern>
 	<pattern low="57" high="58">11</pattern>  <!-- OPC -->
-
-	<!--
-		TODO in ir3 things are encoded w/ instr->repeat==0 and repeat field is
-		reconstructed from wrmask.. but I'm not sure if that is actually accurate
-		(in terms of how delay slots work).. for now, work around that to match
-		the existing stuff:
-	 -->
-	<encode>
-		<map name="REPEAT">util_last_bit(src->regs[0]->wrmask) - 1</map>
-	</encode>
 </bitset>
 
 

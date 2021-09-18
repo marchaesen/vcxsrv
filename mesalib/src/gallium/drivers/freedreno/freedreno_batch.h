@@ -28,19 +28,18 @@
 #define FREEDRENO_BATCH_H_
 
 #include "util/list.h"
+#include "util/set.h"
 #include "util/simple_mtx.h"
 #include "util/u_inlines.h"
 #include "util/u_queue.h"
-#include "util/u_trace.h"
+#include "util/perf/u_trace.h"
 
 #include "freedreno_context.h"
 #include "freedreno_fence.h"
 #include "freedreno_util.h"
 
-#ifdef DEBUG
-#define BATCH_DEBUG FD_DBG(MSGS)
-#else
-#define BATCH_DEBUG 0
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 struct fd_resource;
@@ -65,11 +64,6 @@ struct fd_batch {
    struct pipe_fence_handle *fence;
 
    struct fd_context *ctx;
-
-   /* emit_lock serializes cmdstream emission and flush.  Acquire before
-    * screen->lock.
-    */
-   simple_mtx_t submit_lock;
 
    /* do we need to mem2gmem before rendering.  We don't, if for example,
     * there was a glClear() that invalidated the entire previous buffer
@@ -96,8 +90,6 @@ struct fd_batch {
    bool nondraw : 1;
    bool needs_flush : 1;
    bool flushed : 1;
-   bool blit : 1;
-   bool back_blit : 1;    /* only blit so far is resource shadowing back-blit */
    bool tessellation : 1; /* tessellation used in batch */
 
    /* Keep track if WAIT_FOR_IDLE is needed for registers we need
@@ -248,17 +240,21 @@ struct fd_batch {
    uint32_t query_tile_stride;
    /*@}*/
 
-   /* Set of resources used by currently-unsubmitted batch (read or
-    * write).. does not hold a reference to the resource.
+   /* Set of references to resources used by currently-unsubmitted batch (read
+    * or write).  Note that this set may not include all BOs referenced by the
+    * batch due to fd_bc_resource_invalidate().
     */
    struct set *resources;
 
+   BITSET_WORD *bos;
+   uint32_t bos_size;
+
    /** key in batch-cache (if not null): */
-   const struct fd_batch_key *key;
+   struct fd_batch_key *key;
    uint32_t hash;
 
    /** set of dependent batches.. holds refs to dependent batches: */
-   uint32_t dependents_mask;
+   struct set *dependents;
 
    /* Buffer for tessellation engine input
     */
@@ -293,29 +289,10 @@ struct fd_batch_key *fd_batch_key_clone(void *mem_ctx,
 void __fd_batch_describe(char *buf, const struct fd_batch *batch) assert_dt;
 void __fd_batch_destroy(struct fd_batch *batch);
 
-/*
- * NOTE the rule is, you need to hold the screen->lock when destroying
- * a batch..  so either use fd_batch_reference() (which grabs the lock
- * for you) if you don't hold the lock, or fd_batch_reference_locked()
- * if you do hold the lock.
- *
- * WARNING the _locked() version can briefly drop the lock.  Without
- * recursive mutexes, I'm not sure there is much else we can do (since
- * __fd_batch_destroy() needs to unref resources)
- *
- * WARNING you must acquire the screen->lock and use the _locked()
- * version in case that the batch being ref'd can disappear under
- * you.
- */
-
 static inline void
-fd_batch_reference_locked(struct fd_batch **ptr, struct fd_batch *batch)
+fd_batch_reference(struct fd_batch **ptr, struct fd_batch *batch)
 {
    struct fd_batch *old_batch = *ptr;
-
-   /* only need lock if a reference is dropped: */
-   if (old_batch)
-      fd_screen_assert_locked(old_batch->ctx->screen);
 
    if (pipe_reference_described(
           &(*ptr)->reference, &batch->reference,
@@ -326,38 +303,18 @@ fd_batch_reference_locked(struct fd_batch **ptr, struct fd_batch *batch)
 }
 
 static inline void
-fd_batch_reference(struct fd_batch **ptr, struct fd_batch *batch)
-{
-   struct fd_batch *old_batch = *ptr;
-   struct fd_context *ctx = old_batch ? old_batch->ctx : NULL;
-
-   if (ctx)
-      fd_screen_lock(ctx->screen);
-
-   fd_batch_reference_locked(ptr, batch);
-
-   if (ctx)
-      fd_screen_unlock(ctx->screen);
-}
-
-static inline void
 fd_batch_unlock_submit(struct fd_batch *batch)
 {
-   simple_mtx_unlock(&batch->submit_lock);
 }
 
 /**
- * Returns true if emit-lock was aquired, false if failed to aquire lock,
+ * Returns true if emit-lock was acquired, false if failed to acquire lock,
  * ie. batch already flushed.
  */
 static inline bool MUST_CHECK
 fd_batch_lock_submit(struct fd_batch *batch)
 {
-   simple_mtx_lock(&batch->submit_lock);
-   bool ret = !batch->flushed;
-   if (!ret)
-      fd_batch_unlock_submit(batch);
-   return ret;
+   return !batch->flushed;
 }
 
 /**
@@ -416,12 +373,18 @@ fd_event_write(struct fd_batch *batch, struct fd_ringbuffer *ring,
 static inline struct fd_ringbuffer *
 fd_batch_get_epilogue(struct fd_batch *batch)
 {
-   if (batch->epilogue == NULL)
-      batch->epilogue = fd_submit_new_ringbuffer(batch->submit, 0x1000, 0);
+   if (batch->epilogue == NULL) {
+      batch->epilogue = fd_submit_new_ringbuffer(batch->submit, 0x1000,
+                                                 (enum fd_ringbuffer_flags)0);
+   }
 
    return batch->epilogue;
 }
 
 struct fd_ringbuffer *fd_batch_get_prologue(struct fd_batch *batch);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* FREEDRENO_BATCH_H_ */

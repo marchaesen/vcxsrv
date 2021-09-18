@@ -194,5 +194,5 @@ dst = sys.argv[2]
 
 isa = ISA(xml)
 
-with open(dst, 'wb') as f:
-    f.write(Template(template, output_encoding='utf-8').render(isa=isa))
+with open(dst, 'w') as f:
+    f.write(Template(template).render(isa=isa))

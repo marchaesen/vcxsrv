@@ -424,7 +424,7 @@ hud_driver_query_install(struct hud_batch_query_context **pbq,
                          struct hud_pane *pane, struct pipe_screen *screen,
                          const char *name)
 {
-   struct pipe_driver_query_info query;
+   struct pipe_driver_query_info query = { 0 };
    unsigned num_queries, i;
    boolean found = FALSE;
 

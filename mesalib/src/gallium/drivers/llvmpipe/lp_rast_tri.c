@@ -261,6 +261,31 @@ sign_bits4(const __m128i *cstep, int cdiff)
    return _mm_movemask_epi8(result);
 }
 
+#define COLUMN0 ((1<<0)|(1<<4)|(1<<8) |(1<<12))
+#define COLUMN1 ((1<<1)|(1<<5)|(1<<9) |(1<<13))
+#define COLUMN2 ((1<<2)|(1<<6)|(1<<10)|(1<<14))
+#define COLUMN3 ((1<<3)|(1<<7)|(1<<11)|(1<<15))
+
+#define ROW0 ((1<<0) |(1<<1) |(1<<2) |(1<<3))
+#define ROW1 ((1<<4) |(1<<5) |(1<<6) |(1<<7))
+#define ROW2 ((1<<8) |(1<<9) |(1<<10)|(1<<11))
+#define ROW3 ((1<<12)|(1<<13)|(1<<14)|(1<<15))
+
+#define STAMP_SIZE 4
+static unsigned bottom_mask_tab[STAMP_SIZE] = { 
+   ROW3,
+   ROW3 | ROW2,
+   ROW3 | ROW2 | ROW1,
+   ROW3 | ROW2 | ROW1 | ROW0,
+};
+
+static unsigned right_mask_tab[STAMP_SIZE] = { 
+   COLUMN3,
+   COLUMN3 | COLUMN2,
+   COLUMN3 | COLUMN2 | COLUMN1,
+   COLUMN3 | COLUMN2 | COLUMN1 | COLUMN0,
+};
+
 
 #define NR_PLANES 3
 

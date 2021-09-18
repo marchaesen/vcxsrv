@@ -23,6 +23,15 @@
 
 #include "agx_compiler.h"
 
+/* Binary patches needed for branch offsets */
+struct agx_branch_fixup {
+   /* Offset into the binary to patch */
+   off_t offset;
+
+   /* Value to patch with will be block->offset */
+   agx_block *block;
+};
+
 /* Texturing has its own operands */
 static unsigned
 agx_pack_sample_coords(agx_index index, bool *flag)
@@ -60,6 +69,21 @@ agx_pack_sample_offset(agx_index index, bool *flag)
    assert(index.type == AGX_INDEX_NULL);
    *flag = 0;
    return 0;
+}
+
+static unsigned
+agx_pack_lod(agx_index index)
+{
+   /* Immediate zero */
+   if (index.type == AGX_INDEX_IMMEDIATE && index.value == 0)
+      return 0;
+
+   /* Otherwise must be a 16-bit float immediate */
+   assert(index.type == AGX_INDEX_REGISTER);
+   assert(index.size == AGX_SIZE_16);
+   assert(index.value < 0x100);
+
+   return index.value;
 }
 
 /* Load/stores have their own operands */
@@ -260,6 +284,10 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
 
       raw |= (D & BITFIELD_MASK(8)) << 7;
       extend |= ((D >> 8) << extend_offset);
+   } else if (info.immediates & AGX_IMMEDIATE_NEST) {
+      raw |= (I->invert_cond << 8);
+      raw |= (I->nest << 11);
+      raw |= (I->icond << 13);
    }
 
    for (unsigned s = 0; s < info.nr_srcs; ++s) {
@@ -313,6 +341,9 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
       raw |= (uint64_t) (I->mask & 0x3) << 38;
       raw |= (uint64_t) ((I->mask >> 2) & 0x3) << 50;
       raw |= (uint64_t) ((I->mask >> 4) & 0x1) << 63;
+   } else if (info.immediates & AGX_IMMEDIATE_SR) {
+      raw |= (uint64_t) (I->sr & 0x3F) << 16;
+      raw |= (uint64_t) (I->sr >> 6) << 26;
    } else if (info.immediates & AGX_IMMEDIATE_WRITEOUT)
       raw |= (uint64_t) (I->imm) << 8;
    else if (info.immediates & AGX_IMMEDIATE_IMM)
@@ -353,21 +384,25 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
 }
 
 static void
-agx_pack_instr(struct util_dynarray *emission, agx_instr *I)
+agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups, agx_instr *I)
 {
    switch (I->op) {
-   case AGX_OPCODE_BLEND:
+   case AGX_OPCODE_LD_TILE:
+   case AGX_OPCODE_ST_TILE:
    {
-      unsigned D = agx_pack_alu_dst(I->src[0]);
+      bool load = (I->op == AGX_OPCODE_LD_TILE);
+      unsigned D = agx_pack_alu_dst(load ? I->dest[0] : I->src[0]);
       unsigned rt = 0; /* TODO */
       unsigned mask = I->mask ?: 0xF;
       assert(mask < 0x10);
 
       uint64_t raw =
          0x09 |
+         (load ? (1 << 6) : 0) |
          ((uint64_t) (D & BITFIELD_MASK(8)) << 7) |
          ((uint64_t) (I->format) << 24) |
          ((uint64_t) (rt) << 32) |
+         (load ? (1ull << 35) : 0) |
          ((uint64_t) (mask) << 36) |
          ((uint64_t) 0x0380FC << 40) |
          (((uint64_t) (D >> 8)) << 60);
@@ -378,24 +413,27 @@ agx_pack_instr(struct util_dynarray *emission, agx_instr *I)
    }
 
    case AGX_OPCODE_LD_VARY:
+   case AGX_OPCODE_LD_VARY_FLAT:
    {
+      bool flat = (I->op == AGX_OPCODE_LD_VARY_FLAT);
       unsigned D = agx_pack_alu_dst(I->dest[0]);
-      bool perspective = 1; // TODO
       unsigned channels = (I->channels & 0x3);
       assert(I->mask < 0xF); /* 0 indicates full mask */
       agx_index index_src = I->src[0];
       assert(index_src.type == AGX_INDEX_IMMEDIATE);
-      assert((D >> 8) == 0); /* TODO: Dx? */
+      assert(!(flat && I->perspective));
       unsigned index = index_src.value;
 
       uint64_t raw =
-            0x21 | (perspective ? (1 << 6) : 0) |
+            0x21 | (flat ? (1 << 7) : 0) |
+            (I->perspective ? (1 << 6) : 0) |
             ((D & 0xFF) << 7) |
             (1ull << 15) | /* XXX */
             (((uint64_t) index) << 16) |
             (((uint64_t) channels) << 30) |
-            (1ull << 46) | /* XXX */
-            (1ull << 52); /* XXX */
+            (!flat ? (1ull << 46) : 0) | /* XXX */
+            (!flat ? (1ull << 52) : 0) | /* XXX */
+            (((uint64_t) (D >> 8)) << 56);
 
       unsigned size = 8;
       memcpy(util_dynarray_grow_bytes(emission, 1, size), &raw, size);
@@ -482,23 +520,19 @@ agx_pack_instr(struct util_dynarray *emission, agx_instr *I)
       unsigned T = agx_pack_texture(I->src[2], &Tt);
       unsigned S = agx_pack_sampler(I->src[3], &St);
       unsigned O = agx_pack_sample_offset(I->src[4], &Ot);
+      unsigned D = agx_pack_lod(I->src[1]);
 
       unsigned U = 0; // TODO: what is sampler ureg?
-
-      unsigned D = 0; // TODO: LOD
-      assert(I->src[1].type == AGX_INDEX_IMMEDIATE &&
-             I->src[1].value == 0);
-
       unsigned q1 = 0; // XXX
       unsigned q2 = 0; // XXX
       unsigned q3 = 12; // XXX
-      unsigned q4 = 1; // XXX
+      unsigned kill = 0; // helper invocation kill bit
       unsigned q5 = 0; // XXX
       unsigned q6 = 0; // XXX
 
       uint32_t extend =
             ((U & BITFIELD_MASK(5)) << 0) |
-            (q4 << 5) |
+            (kill << 5) |
             ((R >> 6) << 8) |
             ((C >> 6) << 10) |
             ((D >> 6) << 12) |
@@ -527,7 +561,7 @@ agx_pack_instr(struct util_dynarray *emission, agx_instr *I)
             (((uint64_t) I->dim) << 40) |
             (((uint64_t) q3) << 43) |
             (((uint64_t) I->mask) << 48) |
-            (((uint64_t) I->lod_mode) << 48) |
+            (((uint64_t) I->lod_mode) << 52) |
             (((uint64_t) (S & BITFIELD_MASK(6))) << 32) |
             (((uint64_t) St) << 62) |
             (((uint64_t) q5) << 63);
@@ -539,15 +573,67 @@ agx_pack_instr(struct util_dynarray *emission, agx_instr *I)
       break;
    }
 
+   case AGX_OPCODE_JMP_EXEC_ANY:
+   case AGX_OPCODE_JMP_EXEC_NONE:
+   {
+      /* We don't implement indirect branches */
+      assert(I->target != NULL);
+
+      /* We'll fix the offset later. */
+      struct agx_branch_fixup fixup = {
+         .block = I->target,
+         .offset = emission->size
+      };
+
+      util_dynarray_append(fixups, struct agx_branch_fixup, fixup);
+
+      /* The rest of the instruction is fixed */
+      struct agx_opcode_info info = agx_opcodes_info[I->op];
+      uint64_t raw = info.encoding.exact;
+      memcpy(util_dynarray_grow_bytes(emission, 1, 6), &raw, 6);
+      break;
+   }
+
    default:
       agx_pack_alu(emission, I);
       return;
    }
 }
 
-void
-agx_pack(agx_context *ctx, struct util_dynarray *emission)
+/* Relative branches may be emitted before their targets, so we patch the
+ * binary to fix up the branch offsets after the main emit */
+
+static void
+agx_fixup_branch(struct util_dynarray *emission, struct agx_branch_fixup fix)
 {
-   agx_foreach_instr_global(ctx, ins)
-      agx_pack_instr(emission, ins);
+   /* Branch offset is 2 bytes into the jump instruction */
+   uint8_t *location = ((uint8_t *) emission->data) + fix.offset + 2;
+
+   /* Offsets are relative to the jump instruction */
+   int32_t patch = (int32_t) fix.block->offset - (int32_t) fix.offset;
+
+   /* Patch the binary */
+   memcpy(location, &patch, sizeof(patch));
+}
+
+void
+agx_pack_binary(agx_context *ctx, struct util_dynarray *emission)
+{
+   struct util_dynarray fixups;
+   util_dynarray_init(&fixups, ctx);
+
+   agx_foreach_block(ctx, block) {
+      /* Relative to the start of the binary, the block begins at the current
+       * number of bytes emitted */
+      block->offset = emission->size;
+
+      agx_foreach_instr_in_block(block, ins) {
+         agx_pack_instr(emission, &fixups, ins);
+      }
+   }
+
+   util_dynarray_foreach(&fixups, struct agx_branch_fixup, fixup)
+      agx_fixup_branch(emission, *fixup);
+
+   util_dynarray_fini(&fixups);
 }

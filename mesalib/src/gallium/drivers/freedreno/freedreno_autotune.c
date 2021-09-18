@@ -157,7 +157,7 @@ fallback_use_bypass(struct fd_batch *batch)
 
    /* Fallback logic if we have no historical data about the rendertarget: */
    if (batch->cleared || batch->gmem_reason ||
-       ((batch->num_draws > 5) && !batch->blit) || (pfb->samples > 1)) {
+       (batch->num_draws > 5) || (pfb->samples > 1)) {
       return false;
    }
 

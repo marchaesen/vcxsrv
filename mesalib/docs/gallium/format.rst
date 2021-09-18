@@ -51,6 +51,11 @@ Format names with an embedded underscore are subsampled.  ``R8G8_B8G8`` is a
 single 32-bit block of two pixels, where the R and B values are repeated in
 both pixels.
 
+Index buffers do not have a natural format in Gallium structures. For purposes
+of ``is_format_supported`` queries, the formats ``R8_UINT``, ``R16_UINT``, and
+``R32_UINT`` are used with ``PIPE_BIND_INDEX_BUFFER`` for 8-bit, 16-bit, and
+32-bit index buffers respectively.
+
 References
 ----------
 

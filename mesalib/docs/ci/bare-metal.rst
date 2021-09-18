@@ -121,11 +121,6 @@ required by your bare-metal script, something like::
 The ``FDO_CI_CONCURRENT`` variable should be set to the number of CPU threads on
 the board, which is used for auto-tuning of job parallelism.
 
-If you want to collect the results for fastboot you need to add the following
-two board-specific environment variables ``BM_WEBDAV_IP`` and ``BM_WEBDAV_PORT``.
-These represent the IP address of the Docker host and the board specific port number
-that gets used to start a nginx server.
-
 Once you've updated your runners' configs, restart with ``sudo service
 gitlab-runner restart``
 

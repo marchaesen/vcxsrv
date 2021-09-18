@@ -28,11 +28,13 @@
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_control_flow_private.h"
+#include "nir_worklist.h"
 #include "util/half_float.h"
 #include <limits.h>
 #include <assert.h>
 #include <math.h>
 #include "util/u_math.h"
+#include "util/u_qsort.h"
 
 #include "main/menums.h" /* BITFIELD64_MASK */
 
@@ -98,6 +100,17 @@ nir_component_mask_reinterpret(nir_component_mask_t mask,
    return new_mask;
 }
 
+static void
+nir_shader_destructor(void *ptr)
+{
+   nir_shader *shader = ptr;
+
+   /* Free all instrs from the shader, since they're not ralloced. */
+   list_for_each_entry_safe(nir_instr, instr, &shader->gc_list, gc_node) {
+      nir_instr_free(instr);
+   }
+}
+
 nir_shader *
 nir_shader_create(void *mem_ctx,
                   gl_shader_stage stage,
@@ -105,6 +118,7 @@ nir_shader_create(void *mem_ctx,
                   shader_info *si)
 {
    nir_shader *shader = rzalloc(mem_ctx, nir_shader);
+   ralloc_set_destructor(shader, nir_shader_destructor);
 
    exec_list_make_empty(&shader->variables);
 
@@ -118,6 +132,8 @@ nir_shader_create(void *mem_ctx,
    }
 
    exec_list_make_empty(&shader->functions);
+
+   list_inithead(&shader->gc_list);
 
    shader->num_inputs = 0;
    shader->num_outputs = 0;
@@ -138,7 +154,6 @@ reg_create(void *mem_ctx, struct exec_list *list)
    reg->num_components = 0;
    reg->bit_size = 32;
    reg->num_array_elems = 0;
-   reg->name = NULL;
 
    exec_list_push_tail(list, &reg->node);
 
@@ -259,6 +274,54 @@ nir_find_variable_with_driver_location(nir_shader *shader,
    return NULL;
 }
 
+/* Annoyingly, qsort_r is not in the C standard library and, in particular, we
+ * can't count on it on MSV and Android.  So we stuff the CMP function into
+ * each array element.  It's a bit messy and burns more memory but the list of
+ * variables should hever be all that long.
+ */
+struct var_cmp {
+   nir_variable *var;
+   int (*cmp)(const nir_variable *, const nir_variable *);
+};
+
+static int
+var_sort_cmp(const void *_a, const void *_b, void *_cmp)
+{
+   const struct var_cmp *a = _a;
+   const struct var_cmp *b = _b;
+   assert(a->cmp == b->cmp);
+   return a->cmp(a->var, b->var);
+}
+
+void
+nir_sort_variables_with_modes(nir_shader *shader,
+                              int (*cmp)(const nir_variable *,
+                                         const nir_variable *),
+                              nir_variable_mode modes)
+{
+   unsigned num_vars = 0;
+   nir_foreach_variable_with_modes(var, shader, modes) {
+      ++num_vars;
+   }
+   struct var_cmp *vars = ralloc_array(shader, struct var_cmp, num_vars);
+   unsigned i = 0;
+   nir_foreach_variable_with_modes_safe(var, shader, modes) {
+      exec_node_remove(&var->node);
+      vars[i++] = (struct var_cmp){
+         .var = var,
+         .cmp = cmp,
+      };
+   }
+   assert(i == num_vars);
+
+   util_qsort_r(vars, num_vars, sizeof(*vars), var_sort_cmp, cmp);
+
+   for (i = 0; i < num_vars; i++)
+      exec_list_push_tail(&shader->variables, &vars[i].var->node);
+
+   ralloc_free(vars);
+}
+
 nir_function *
 nir_function_create(nir_shader *shader, const char *name)
 {
@@ -276,11 +339,36 @@ nir_function_create(nir_shader *shader, const char *name)
    return func;
 }
 
+static bool src_has_indirect(nir_src *src)
+{
+   return !src->is_ssa && src->reg.indirect;
+}
+
+static void src_free_indirects(nir_src *src)
+{
+   if (src_has_indirect(src)) {
+      assert(src->reg.indirect->is_ssa || !src->reg.indirect->reg.indirect);
+      free(src->reg.indirect);
+      src->reg.indirect = NULL;
+   }
+}
+
+static void dest_free_indirects(nir_dest *dest)
+{
+   if (!dest->is_ssa && dest->reg.indirect) {
+      assert(dest->reg.indirect->is_ssa || !dest->reg.indirect->reg.indirect);
+      free(dest->reg.indirect);
+      dest->reg.indirect = NULL;
+   }
+}
+
 /* NOTE: if the instruction you are copying a src to is already added
  * to the IR, use nir_instr_rewrite_src() instead.
  */
-void nir_src_copy(nir_src *dest, const nir_src *src, void *mem_ctx)
+void nir_src_copy(nir_src *dest, const nir_src *src)
 {
+   src_free_indirects(dest);
+
    dest->is_ssa = src->is_ssa;
    if (src->is_ssa) {
       dest->ssa = src->ssa;
@@ -288,36 +376,37 @@ void nir_src_copy(nir_src *dest, const nir_src *src, void *mem_ctx)
       dest->reg.base_offset = src->reg.base_offset;
       dest->reg.reg = src->reg.reg;
       if (src->reg.indirect) {
-         dest->reg.indirect = ralloc(mem_ctx, nir_src);
-         nir_src_copy(dest->reg.indirect, src->reg.indirect, mem_ctx);
+         dest->reg.indirect = malloc(sizeof(nir_src));
+         nir_src_copy(dest->reg.indirect, src->reg.indirect);
       } else {
          dest->reg.indirect = NULL;
       }
    }
 }
 
-void nir_dest_copy(nir_dest *dest, const nir_dest *src, nir_instr *instr)
+void nir_dest_copy(nir_dest *dest, const nir_dest *src)
 {
    /* Copying an SSA definition makes no sense whatsoever. */
    assert(!src->is_ssa);
+
+   dest_free_indirects(dest);
 
    dest->is_ssa = false;
 
    dest->reg.base_offset = src->reg.base_offset;
    dest->reg.reg = src->reg.reg;
    if (src->reg.indirect) {
-      dest->reg.indirect = ralloc(instr, nir_src);
-      nir_src_copy(dest->reg.indirect, src->reg.indirect, instr);
+      dest->reg.indirect = malloc(sizeof(nir_src));
+      nir_src_copy(dest->reg.indirect, src->reg.indirect);
    } else {
       dest->reg.indirect = NULL;
    }
 }
 
 void
-nir_alu_src_copy(nir_alu_src *dest, const nir_alu_src *src,
-                 nir_alu_instr *instr)
+nir_alu_src_copy(nir_alu_src *dest, const nir_alu_src *src)
 {
-   nir_src_copy(&dest->src, &src->src, &instr->instr);
+   nir_src_copy(&dest->src, &src->src);
    dest->abs = src->abs;
    dest->negate = src->negate;
    for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
@@ -325,10 +414,9 @@ nir_alu_src_copy(nir_alu_src *dest, const nir_alu_src *src,
 }
 
 void
-nir_alu_dest_copy(nir_alu_dest *dest, const nir_alu_dest *src,
-                  nir_alu_instr *instr)
+nir_alu_dest_copy(nir_alu_dest *dest, const nir_alu_dest *src)
 {
-   nir_dest_copy(&dest->dest, &src->dest, &instr->instr);
+   nir_dest_copy(&dest->dest, &src->dest);
    dest->write_mask = src->write_mask;
    dest->saturate = src->saturate;
 }
@@ -516,10 +604,8 @@ nir_alu_instr *
 nir_alu_instr_create(nir_shader *shader, nir_op op)
 {
    unsigned num_srcs = nir_op_infos[op].num_inputs;
-   /* TODO: don't use rzalloc */
-   nir_alu_instr *instr =
-      rzalloc_size(shader,
-                   sizeof(nir_alu_instr) + num_srcs * sizeof(nir_alu_src));
+   /* TODO: don't use calloc */
+   nir_alu_instr *instr = calloc(1, sizeof(nir_alu_instr) + num_srcs * sizeof(nir_alu_src));
 
    instr_init(&instr->instr, nir_instr_type_alu);
    instr->op = op;
@@ -527,14 +613,15 @@ nir_alu_instr_create(nir_shader *shader, nir_op op)
    for (unsigned i = 0; i < num_srcs; i++)
       alu_src_init(&instr->src[i]);
 
+   list_add(&instr->instr.gc_node, &shader->gc_list);
+
    return instr;
 }
 
 nir_deref_instr *
 nir_deref_instr_create(nir_shader *shader, nir_deref_type deref_type)
 {
-   nir_deref_instr *instr =
-      rzalloc_size(shader, sizeof(nir_deref_instr));
+   nir_deref_instr *instr = calloc(1, sizeof(*instr));
 
    instr_init(&instr->instr, nir_instr_type_deref);
 
@@ -548,18 +635,23 @@ nir_deref_instr_create(nir_shader *shader, nir_deref_type deref_type)
 
    dest_init(&instr->dest);
 
+   list_add(&instr->instr.gc_node, &shader->gc_list);
+
    return instr;
 }
 
 nir_jump_instr *
 nir_jump_instr_create(nir_shader *shader, nir_jump_type type)
 {
-   nir_jump_instr *instr = ralloc(shader, nir_jump_instr);
+   nir_jump_instr *instr = malloc(sizeof(*instr));
    instr_init(&instr->instr, nir_instr_type_jump);
    src_init(&instr->condition);
    instr->type = type;
    instr->target = NULL;
    instr->else_target = NULL;
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
+
    return instr;
 }
 
@@ -568,10 +660,12 @@ nir_load_const_instr_create(nir_shader *shader, unsigned num_components,
                             unsigned bit_size)
 {
    nir_load_const_instr *instr =
-      rzalloc_size(shader, sizeof(*instr) + num_components * sizeof(*instr->value));
+      calloc(1, sizeof(*instr) + num_components * sizeof(*instr->value));
    instr_init(&instr->instr, nir_instr_type_load_const);
 
-   nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size, NULL);
+   nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size);
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
 
    return instr;
 }
@@ -580,10 +674,9 @@ nir_intrinsic_instr *
 nir_intrinsic_instr_create(nir_shader *shader, nir_intrinsic_op op)
 {
    unsigned num_srcs = nir_intrinsic_infos[op].num_srcs;
-   /* TODO: don't use rzalloc */
+   /* TODO: don't use calloc */
    nir_intrinsic_instr *instr =
-      rzalloc_size(shader,
-                  sizeof(nir_intrinsic_instr) + num_srcs * sizeof(nir_src));
+      calloc(1, sizeof(nir_intrinsic_instr) + num_srcs * sizeof(nir_src));
 
    instr_init(&instr->instr, nir_instr_type_intrinsic);
    instr->intrinsic = op;
@@ -594,6 +687,8 @@ nir_intrinsic_instr_create(nir_shader *shader, nir_intrinsic_op op)
    for (unsigned i = 0; i < num_srcs; i++)
       src_init(&instr->src[i]);
 
+   list_add(&instr->instr.gc_node, &shader->gc_list);
+
    return instr;
 }
 
@@ -602,14 +697,15 @@ nir_call_instr_create(nir_shader *shader, nir_function *callee)
 {
    const unsigned num_params = callee->num_params;
    nir_call_instr *instr =
-      rzalloc_size(shader, sizeof(*instr) +
-                   num_params * sizeof(instr->params[0]));
+      calloc(1, sizeof(*instr) + num_params * sizeof(instr->params[0]));
 
    instr_init(&instr->instr, nir_instr_type_call);
    instr->callee = callee;
    instr->num_params = num_params;
    for (unsigned i = 0; i < num_params; i++)
       src_init(&instr->params[i]);
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
 
    return instr;
 }
@@ -625,19 +721,21 @@ static int8_t default_tg4_offsets[4][2] =
 nir_tex_instr *
 nir_tex_instr_create(nir_shader *shader, unsigned num_srcs)
 {
-   nir_tex_instr *instr = rzalloc(shader, nir_tex_instr);
+   nir_tex_instr *instr = calloc(1, sizeof(*instr));
    instr_init(&instr->instr, nir_instr_type_tex);
 
    dest_init(&instr->dest);
 
    instr->num_srcs = num_srcs;
-   instr->src = ralloc_array(instr, nir_tex_src, num_srcs);
+   instr->src = malloc(sizeof(nir_tex_src) * num_srcs);
    for (unsigned i = 0; i < num_srcs; i++)
       src_init(&instr->src[i].src);
 
    instr->texture_index = 0;
    instr->sampler_index = 0;
    memcpy(instr->tg4_offsets, default_tg4_offsets, sizeof(instr->tg4_offsets));
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
 
    return instr;
 }
@@ -647,7 +745,7 @@ nir_tex_instr_add_src(nir_tex_instr *tex,
                       nir_tex_src_type src_type,
                       nir_src src)
 {
-   nir_tex_src *new_srcs = rzalloc_array(tex, nir_tex_src,
+   nir_tex_src *new_srcs = calloc(sizeof(*new_srcs),
                                          tex->num_srcs + 1);
 
    for (unsigned i = 0; i < tex->num_srcs; i++) {
@@ -656,7 +754,7 @@ nir_tex_instr_add_src(nir_tex_instr *tex,
                          &tex->src[i].src);
    }
 
-   ralloc_free(tex->src);
+   free(tex->src);
    tex->src = new_srcs;
 
    tex->src[tex->num_srcs].src_type = src_type;
@@ -692,21 +790,48 @@ nir_tex_instr_has_explicit_tg4_offsets(nir_tex_instr *tex)
 nir_phi_instr *
 nir_phi_instr_create(nir_shader *shader)
 {
-   nir_phi_instr *instr = ralloc(shader, nir_phi_instr);
+   nir_phi_instr *instr = malloc(sizeof(*instr));
    instr_init(&instr->instr, nir_instr_type_phi);
 
    dest_init(&instr->dest);
    exec_list_make_empty(&instr->srcs);
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
+
    return instr;
+}
+
+/**
+ * Adds a new source to a NIR instruction.
+ *
+ * Note that this does not update the def/use relationship for src, assuming
+ * that the instr is not in the shader.  If it is, you have to do:
+ *
+ * list_addtail(&phi_src->src.use_link, &src.ssa->uses);
+ */
+nir_phi_src *
+nir_phi_instr_add_src(nir_phi_instr *instr, nir_block *pred, nir_src src)
+{
+   nir_phi_src *phi_src;
+
+   phi_src = calloc(1, sizeof(nir_phi_src));
+   phi_src->pred = pred;
+   phi_src->src = src;
+   phi_src->src.parent_instr = &instr->instr;
+   exec_list_push_tail(&instr->srcs, &phi_src->node);
+
+   return phi_src;
 }
 
 nir_parallel_copy_instr *
 nir_parallel_copy_instr_create(nir_shader *shader)
 {
-   nir_parallel_copy_instr *instr = ralloc(shader, nir_parallel_copy_instr);
+   nir_parallel_copy_instr *instr = malloc(sizeof(*instr));
    instr_init(&instr->instr, nir_instr_type_parallel_copy);
 
    exec_list_make_empty(&instr->entries);
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
 
    return instr;
 }
@@ -716,10 +841,12 @@ nir_ssa_undef_instr_create(nir_shader *shader,
                            unsigned num_components,
                            unsigned bit_size)
 {
-   nir_ssa_undef_instr *instr = ralloc(shader, nir_ssa_undef_instr);
+   nir_ssa_undef_instr *instr = malloc(sizeof(*instr));
    instr_init(&instr->instr, nir_instr_type_ssa_undef);
 
-   nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size, NULL);
+   nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size);
+
+   list_add(&instr->instr.gc_node, &shader->gc_list);
 
    return instr;
 }
@@ -958,6 +1085,22 @@ nir_instr_insert(nir_cursor cursor, nir_instr *instr)
    impl->valid_metadata &= ~nir_metadata_instr_index;
 }
 
+bool
+nir_instr_move(nir_cursor cursor, nir_instr *instr)
+{
+   /* If the cursor happens to refer to this instruction (either before or
+    * after), don't do anything.
+    */
+   if ((cursor.option == nir_cursor_before_instr ||
+        cursor.option == nir_cursor_after_instr) &&
+       cursor.instr == instr)
+      return false;
+
+   nir_instr_remove(instr);
+   nir_instr_insert(cursor, instr);
+   return true;
+}
+
 static bool
 src_is_valid(const nir_src *src)
 {
@@ -1002,6 +1145,144 @@ void nir_instr_remove_v(nir_instr *instr)
       nir_jump_instr *jump_instr = nir_instr_as_jump(instr);
       nir_handle_remove_jump(instr->block, jump_instr->type);
    }
+}
+
+static bool free_src_indirects_cb(nir_src *src, void *state)
+{
+   src_free_indirects(src);
+   return true;
+}
+
+static bool free_dest_indirects_cb(nir_dest *dest, void *state)
+{
+   dest_free_indirects(dest);
+   return true;
+}
+
+void nir_instr_free(nir_instr *instr)
+{
+   nir_foreach_src(instr, free_src_indirects_cb, NULL);
+   nir_foreach_dest(instr, free_dest_indirects_cb, NULL);
+
+   switch (instr->type) {
+   case nir_instr_type_tex:
+      free(nir_instr_as_tex(instr)->src);
+      break;
+
+   case nir_instr_type_phi: {
+      nir_phi_instr *phi = nir_instr_as_phi(instr);
+      nir_foreach_phi_src_safe(phi_src, phi) {
+         free(phi_src);
+      }
+      break;
+   }
+
+   default:
+      break;
+   }
+
+   list_del(&instr->gc_node);
+   free(instr);
+}
+
+void
+nir_instr_free_list(struct exec_list *list)
+{
+   struct exec_node *node;
+   while ((node = exec_list_pop_head(list))) {
+      nir_instr *removed_instr = exec_node_data(nir_instr, node, node);
+      nir_instr_free(removed_instr);
+   }
+}
+
+static bool nir_instr_free_and_dce_live_cb(nir_ssa_def *def, void *state)
+{
+   bool *live = state;
+
+   if (!nir_ssa_def_is_unused(def)) {
+      *live = true;
+      return false;
+   } else {
+      return true;
+   }
+}
+
+static bool nir_instr_free_and_dce_is_live(nir_instr *instr)
+{
+   /* Note: don't have to worry about jumps because they don't have dests to
+    * become unused.
+    */
+   if (instr->type == nir_instr_type_intrinsic) {
+      nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+      const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
+      if (!(info->flags & NIR_INTRINSIC_CAN_ELIMINATE))
+         return true;
+   }
+
+   bool live = false;
+   nir_foreach_ssa_def(instr, nir_instr_free_and_dce_live_cb, &live);
+   return live;
+}
+
+static bool
+nir_instr_dce_add_dead_srcs_cb(nir_src *src, void *state)
+{
+   nir_instr_worklist *wl = state;
+
+   if (src->is_ssa) {
+      list_del(&src->use_link);
+      if (!nir_instr_free_and_dce_is_live(src->ssa->parent_instr))
+         nir_instr_worklist_push_tail(wl, src->ssa->parent_instr);
+
+      /* Stop nir_instr_remove from trying to delete the link again. */
+      src->ssa = NULL;
+   }
+
+   return true;
+}
+
+static void
+nir_instr_dce_add_dead_ssa_srcs(nir_instr_worklist *wl, nir_instr *instr)
+{
+   nir_foreach_src(instr, nir_instr_dce_add_dead_srcs_cb, wl);
+}
+
+/**
+ * Frees an instruction and any SSA defs that it used that are now dead,
+ * returning a nir_cursor where the instruction previously was.
+ */
+nir_cursor
+nir_instr_free_and_dce(nir_instr *instr)
+{
+   nir_instr_worklist *worklist = nir_instr_worklist_create();
+
+   nir_instr_dce_add_dead_ssa_srcs(worklist, instr);
+   nir_cursor c = nir_instr_remove(instr);
+
+   struct exec_list to_free;
+   exec_list_make_empty(&to_free);
+
+   nir_instr *dce_instr;
+   while ((dce_instr = nir_instr_worklist_pop_head(worklist))) {
+      nir_instr_dce_add_dead_ssa_srcs(worklist, dce_instr);
+
+      /* If we're removing the instr where our cursor is, then we have to
+       * point the cursor elsewhere.
+       */
+      if ((c.option == nir_cursor_before_instr ||
+           c.option == nir_cursor_after_instr) &&
+          c.instr == dce_instr)
+         c = nir_instr_remove(dce_instr);
+      else
+         nir_instr_remove(dce_instr);
+      exec_list_push_tail(&to_free, &dce_instr->node);
+   }
+
+   nir_instr_free_list(&to_free);
+
+   nir_instr_worklist_destroy(worklist);
+
+   return c;
 }
 
 /*@}*/
@@ -1195,11 +1476,17 @@ nir_src_is_dynamically_uniform(nir_src src)
    if (src.ssa->parent_instr->type == nir_instr_type_load_const)
       return true;
 
-   /* As are uniform variables */
    if (src.ssa->parent_instr->type == nir_instr_type_intrinsic) {
       nir_intrinsic_instr *intr = nir_instr_as_intrinsic(src.ssa->parent_instr);
+      /* As are uniform variables */
       if (intr->intrinsic == nir_intrinsic_load_uniform &&
           nir_src_is_dynamically_uniform(intr->src[0]))
+         return true;
+      /* Push constant loads always use uniform offsets. */
+      if (intr->intrinsic == nir_intrinsic_load_push_constant)
+         return true;
+      if (intr->intrinsic == nir_intrinsic_load_deref &&
+          nir_deref_mode_is(nir_src_as_deref(intr->src[0]), nir_var_mem_push_const))
          return true;
    }
 
@@ -1263,7 +1550,7 @@ nir_instr_rewrite_src(nir_instr *instr, nir_src *src, nir_src new_src)
    assert(!src_is_valid(src) || src->parent_instr == instr);
 
    src_remove_all_uses(src);
-   *src = new_src;
+   nir_src_copy(src, &new_src);
    src_add_all_uses(src, instr, NULL);
 }
 
@@ -1273,6 +1560,7 @@ nir_instr_move_src(nir_instr *dest_instr, nir_src *dest, nir_src *src)
    assert(!src_is_valid(dest) || dest->parent_instr == dest_instr);
 
    src_remove_all_uses(dest);
+   src_free_indirects(dest);
    src_remove_all_uses(src);
    *dest = *src;
    *src = NIR_SRC_INIT;
@@ -1286,7 +1574,7 @@ nir_if_rewrite_condition(nir_if *if_stmt, nir_src new_src)
    assert(!src_is_valid(src) || src->parent_if == if_stmt);
 
    src_remove_all_uses(src);
-   *src = new_src;
+   nir_src_copy(src, &new_src);
    src_add_all_uses(src, NULL, if_stmt);
 }
 
@@ -1305,7 +1593,7 @@ nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest, nir_dest new_dest)
    /* We can't re-write with an SSA def */
    assert(!new_dest.is_ssa);
 
-   nir_dest_copy(dest, &new_dest, instr);
+   nir_dest_copy(dest, &new_dest);
 
    dest->reg.parent_instr = instr;
    list_addtail(&dest->reg.def_link, &new_dest.reg.reg->defs);
@@ -1318,9 +1606,8 @@ nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest, nir_dest new_dest)
 void
 nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
                  unsigned num_components,
-                 unsigned bit_size, const char *name)
+                 unsigned bit_size)
 {
-   def->name = ralloc_strdup(instr, name);
    def->parent_instr = instr;
    list_inithead(&def->uses);
    list_inithead(&def->if_uses);
@@ -1347,7 +1634,7 @@ nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
                  const char *name)
 {
    dest->is_ssa = true;
-   nir_ssa_def_init(instr, &dest->ssa, num_components, bit_size, name);
+   nir_ssa_def_init(instr, &dest->ssa, num_components, bit_size);
 }
 
 void
@@ -1429,6 +1716,19 @@ nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_ssa_def *new_ssa,
    }
 }
 
+static nir_ssa_def *
+get_store_value(nir_intrinsic_instr *intrin)
+{
+   assert(nir_intrinsic_has_write_mask(intrin));
+   /* deref stores have the deref in src[0] and the store value in src[1] */
+   if (intrin->intrinsic == nir_intrinsic_store_deref ||
+       intrin->intrinsic == nir_intrinsic_store_deref_block_intel)
+      return intrin->src[1].ssa;
+
+   /* all other stores have the store value in src[0] */
+   return intrin->src[0].ssa;
+}
+
 nir_component_mask_t
 nir_ssa_def_components_read(const nir_ssa_def *def)
 {
@@ -1440,6 +1740,13 @@ nir_ssa_def_components_read(const nir_ssa_def *def)
          int src_idx = alu_src - &alu->src[0];
          assert(src_idx >= 0 && src_idx < nir_op_infos[alu->op].num_inputs);
          read_mask |= nir_alu_instr_src_read_mask(alu, src_idx);
+      } else if (use->parent_instr->type == nir_instr_type_intrinsic) {
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(use->parent_instr);
+         if (nir_intrinsic_has_write_mask(intrin) && use->ssa == get_store_value(intrin)) {
+            read_mask |= nir_intrinsic_write_mask(intrin);
+         } else {
+            return (1 << def->num_components) - 1;
+         }
       } else {
          return (1 << def->num_components) - 1;
       }
@@ -1868,7 +2175,7 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
             nir_if_rewrite_condition(use_src->parent_if, new_src);
 
          if (nir_ssa_def_is_unused(old_def)) {
-            iter = nir_instr_remove(instr);
+            iter = nir_instr_free_and_dce(instr);
          } else {
             iter = nir_after_instr(instr);
          }
@@ -1882,7 +2189,7 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
          if (new_def == NIR_LOWER_INSTR_PROGRESS_REPLACE) {
             /* Only instructions without a return value can be removed like this */
             assert(!old_def);
-            iter = nir_instr_remove(instr);
+            iter = nir_instr_free_and_dce(instr);
             progress = true;
          } else
             iter = nir_after_instr(instr);
@@ -1959,10 +2266,10 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_local_invocation_id;
    case SYSTEM_VALUE_LOCAL_INVOCATION_INDEX:
       return nir_intrinsic_load_local_invocation_index;
-   case SYSTEM_VALUE_WORK_GROUP_ID:
-      return nir_intrinsic_load_work_group_id;
-   case SYSTEM_VALUE_NUM_WORK_GROUPS:
-      return nir_intrinsic_load_num_work_groups;
+   case SYSTEM_VALUE_WORKGROUP_ID:
+      return nir_intrinsic_load_workgroup_id;
+   case SYSTEM_VALUE_NUM_WORKGROUPS:
+      return nir_intrinsic_load_num_workgroups;
    case SYSTEM_VALUE_PRIMITIVE_ID:
       return nir_intrinsic_load_primitive_id;
    case SYSTEM_VALUE_TESS_COORD:
@@ -2003,8 +2310,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_num_subgroups;
    case SYSTEM_VALUE_SUBGROUP_ID:
       return nir_intrinsic_load_subgroup_id;
-   case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
-      return nir_intrinsic_load_local_group_size;
+   case SYSTEM_VALUE_WORKGROUP_SIZE:
+      return nir_intrinsic_load_workgroup_size;
    case SYSTEM_VALUE_GLOBAL_INVOCATION_ID:
       return nir_intrinsic_load_global_invocation_id;
    case SYSTEM_VALUE_BASE_GLOBAL_INVOCATION_ID:
@@ -2090,10 +2397,10 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_LOCAL_INVOCATION_ID;
    case nir_intrinsic_load_local_invocation_index:
       return SYSTEM_VALUE_LOCAL_INVOCATION_INDEX;
-   case nir_intrinsic_load_num_work_groups:
-      return SYSTEM_VALUE_NUM_WORK_GROUPS;
-   case nir_intrinsic_load_work_group_id:
-      return SYSTEM_VALUE_WORK_GROUP_ID;
+   case nir_intrinsic_load_num_workgroups:
+      return SYSTEM_VALUE_NUM_WORKGROUPS;
+   case nir_intrinsic_load_workgroup_id:
+      return SYSTEM_VALUE_WORKGROUP_ID;
    case nir_intrinsic_load_primitive_id:
       return SYSTEM_VALUE_PRIMITIVE_ID;
    case nir_intrinsic_load_tess_coord:
@@ -2134,8 +2441,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_NUM_SUBGROUPS;
    case nir_intrinsic_load_subgroup_id:
       return SYSTEM_VALUE_SUBGROUP_ID;
-   case nir_intrinsic_load_local_group_size:
-      return SYSTEM_VALUE_LOCAL_GROUP_SIZE;
+   case nir_intrinsic_load_workgroup_size:
+      return SYSTEM_VALUE_WORKGROUP_SIZE;
    case nir_intrinsic_load_global_invocation_id:
       return SYSTEM_VALUE_GLOBAL_INVOCATION_ID;
    case nir_intrinsic_load_base_global_invocation_id:
@@ -2283,10 +2590,11 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
    nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
    nir_variable *var = nir_deref_instr_get_variable(deref);
 
-   nir_intrinsic_set_image_dim(intrin, glsl_get_sampler_dim(deref->type));
-   nir_intrinsic_set_image_array(intrin, glsl_sampler_type_is_array(deref->type));
+   /* Only update the format if the intrinsic doesn't have one set */
+   if (nir_intrinsic_format(intrin) == PIPE_FORMAT_NONE)
+      nir_intrinsic_set_format(intrin, var->data.image.format);
+
    nir_intrinsic_set_access(intrin, access | var->data.access);
-   nir_intrinsic_set_format(intrin, var->data.image.format);
    if (nir_intrinsic_has_src_type(intrin))
       nir_intrinsic_set_src_type(intrin, data_type);
    if (nir_intrinsic_has_dest_type(intrin))
@@ -2312,8 +2620,10 @@ nir_get_shader_call_payload_src(nir_intrinsic_instr *call)
 {
    switch (call->intrinsic) {
    case nir_intrinsic_trace_ray:
+   case nir_intrinsic_rt_trace_ray:
       return &call->src[10];
    case nir_intrinsic_execute_callable:
+   case nir_intrinsic_rt_execute_callable:
       return &call->src[1];
    default:
       unreachable("Not a call intrinsic");
@@ -2411,6 +2721,9 @@ nir_binding nir_chase_binding(nir_src rsrc)
 
 nir_variable *nir_get_binding_variable(nir_shader *shader, nir_binding binding)
 {
+   nir_variable *binding_var = NULL;
+   unsigned count = 0;
+
    if (!binding.success)
       return NULL;
 
@@ -2418,9 +2731,58 @@ nir_variable *nir_get_binding_variable(nir_shader *shader, nir_binding binding)
       return binding.var;
 
    nir_foreach_variable_with_modes(var, shader, nir_var_mem_ubo | nir_var_mem_ssbo) {
-      if (var->data.descriptor_set == binding.desc_set && var->data.binding == binding.binding)
-         return var;
+      if (var->data.descriptor_set == binding.desc_set && var->data.binding == binding.binding) {
+         binding_var = var;
+         count++;
+      }
    }
 
-   return NULL;
+   /* Be conservative if another variable is using the same binding/desc_set
+    * because the access mask might be different and we can't get it reliably.
+    */
+   if (count > 1)
+      return NULL;
+
+   return binding_var;
+}
+
+bool
+nir_alu_instr_is_copy(nir_alu_instr *instr)
+{
+   assert(instr->src[0].src.is_ssa);
+
+   if (instr->op == nir_op_mov) {
+      return !instr->dest.saturate &&
+             !instr->src[0].abs &&
+             !instr->src[0].negate;
+   } else if (nir_op_is_vec(instr->op)) {
+      for (unsigned i = 0; i < instr->dest.dest.ssa.num_components; i++) {
+         if (instr->src[i].abs || instr->src[i].negate)
+            return false;
+      }
+      return !instr->dest.saturate;
+   } else {
+      return false;
+   }
+}
+
+nir_ssa_scalar
+nir_ssa_scalar_chase_movs(nir_ssa_scalar s)
+{
+   while (nir_ssa_scalar_is_alu(s)) {
+      nir_alu_instr *alu = nir_instr_as_alu(s.def->parent_instr);
+      if (!nir_alu_instr_is_copy(alu))
+         break;
+
+      if (alu->op == nir_op_mov) {
+         s.def = alu->src[0].src.ssa;
+         s.comp = alu->src[0].swizzle[s.comp];
+      } else {
+         assert(nir_op_is_vec(alu->op));
+         s.def = alu->src[s.comp].src.ssa;
+         s.comp = alu->src[s.comp].swizzle[0];
+      }
+   }
+
+   return s;
 }

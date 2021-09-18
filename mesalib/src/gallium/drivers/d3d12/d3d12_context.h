@@ -271,10 +271,16 @@ void
 d3d12_flush_cmdlist_and_wait(struct d3d12_context *ctx);
 
 
+enum d3d12_bind_invalidate_option {
+   D3D12_BIND_INVALIDATE_NONE,
+   D3D12_BIND_INVALIDATE_FULL,
+};
+
 void
 d3d12_transition_resource_state(struct d3d12_context* ctx,
                                 struct d3d12_resource* res,
-                                D3D12_RESOURCE_STATES state);
+                                D3D12_RESOURCE_STATES state,
+                                d3d12_bind_invalidate_option bind_invalidate);
 
 void
 d3d12_transition_subresources_state(struct d3d12_context *ctx,
@@ -282,7 +288,8 @@ d3d12_transition_subresources_state(struct d3d12_context *ctx,
                                     unsigned start_level, unsigned num_levels,
                                     unsigned start_layer, unsigned num_layers,
                                     unsigned start_plane, unsigned num_planes,
-                                    D3D12_RESOURCE_STATES state);
+                                    D3D12_RESOURCE_STATES state,
+                                    d3d12_bind_invalidate_option bind_invalidate);
 
 void
 d3d12_apply_resource_states(struct d3d12_context* ctx);

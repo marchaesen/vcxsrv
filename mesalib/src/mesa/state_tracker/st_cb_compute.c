@@ -59,7 +59,7 @@ static void st_dispatch_compute_common(struct gl_context *ctx,
       st_validate_state(st, ST_PIPELINE_COMPUTE);
 
    for (unsigned i = 0; i < 3; i++) {
-      info.block[i] = group_size ? group_size[i] : prog->info.cs.local_size[i];
+      info.block[i] = group_size ? group_size[i] : prog->info.workgroup_size[i];
       info.grid[i]  = num_groups ? num_groups[i] : 0;
    }
 

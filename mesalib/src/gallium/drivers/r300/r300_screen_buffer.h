@@ -41,6 +41,9 @@ void r300_upload_index_buffer(struct r300_context *r300,
 			      unsigned index_size, unsigned *start,
 			      unsigned count, const uint8_t *ptr);
 
+void r300_resource_destroy(struct pipe_screen *screen,
+                           struct pipe_resource *buf);
+
 struct pipe_resource *r300_buffer_create(struct pipe_screen *screen,
 					 const struct pipe_resource *templ);
 
@@ -50,5 +53,16 @@ static inline struct r300_buffer *r300_buffer(struct pipe_resource *buffer)
 {
     return (struct r300_buffer *)buffer;
 }
+
+void *
+r300_buffer_transfer_map( struct pipe_context *context,
+                          struct pipe_resource *resource,
+                          unsigned level,
+                          unsigned usage,
+                          const struct pipe_box *box,
+                          struct pipe_transfer **ptransfer );
+
+void r300_buffer_transfer_unmap( struct pipe_context *pipe,
+                                 struct pipe_transfer *transfer );
 
 #endif

@@ -170,7 +170,6 @@ msm_bo_new_handle(struct fd_device *dev, uint32_t size, uint32_t flags,
 {
    struct drm_msm_gem_new req = {
       .size = size,
-      .flags = MSM_BO_WC, // TODO figure out proper flags..
    };
    int ret;
 
@@ -179,6 +178,11 @@ msm_bo_new_handle(struct fd_device *dev, uint32_t size, uint32_t flags,
 
    if (flags & FD_BO_GPUREADONLY)
       req.flags |= MSM_BO_GPU_READONLY;
+
+   if (flags & FD_BO_CACHED_COHERENT)
+      req.flags |= MSM_BO_CACHED_COHERENT;
+   else
+      req.flags |= MSM_BO_WC;
 
    ret = drmCommandWriteRead(dev->fd, DRM_MSM_GEM_NEW, &req, sizeof(req));
    if (ret)

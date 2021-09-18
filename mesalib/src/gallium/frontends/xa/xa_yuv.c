@@ -93,7 +93,7 @@ xa_yuv_bind_samplers(struct xa_context *r, struct xa_surface *yuv[])
     }
     r->num_bound_samplers = 3;
     cso_set_samplers(r->cso, PIPE_SHADER_FRAGMENT, 3, (const struct pipe_sampler_state **)samplers);
-    r->pipe->set_sampler_views(r->pipe, PIPE_SHADER_FRAGMENT, 0, 3, 0, r->bound_sampler_views);
+    r->pipe->set_sampler_views(r->pipe, PIPE_SHADER_FRAGMENT, 0, 3, 0, false, r->bound_sampler_views);
 }
 
 static void

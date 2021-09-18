@@ -39,6 +39,8 @@
 static bool
 ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
 {
+   const struct fd_dev_info *info = fd_screen(pscreen)->info;
+
    switch (pfmt) {
    case PIPE_FORMAT_X24S8_UINT:
    case PIPE_FORMAT_Z24_UNORM_S8_UINT:
@@ -47,7 +49,7 @@ ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
        * fd_resource_uncompress() at the point of stencil sampling because
        * that itself uses stencil sampling in the fd_blitter_blit path.
        */
-      return fd_screen(pscreen)->info.a6xx.has_z24uint_s8uint;
+      return info->a6xx.has_z24uint_s8uint;
 
    case PIPE_FORMAT_R8_G8B8_420_UNORM:
       return true;
@@ -81,10 +83,11 @@ ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
    case FMT6_8_8_SINT:
    case FMT6_8_8_UINT:
    case FMT6_8_8_UNORM:
-   case FMT6_8_UNORM:
    case FMT6_Z24_UNORM_S8_UINT:
    case FMT6_Z24_UNORM_S8_UINT_AS_R8G8B8A8:
       return true;
+   case FMT6_8_UNORM:
+      return info->a6xx.has_8bpp_ubwc;
    default:
       return false;
    }
@@ -104,6 +107,56 @@ can_do_ubwc(struct pipe_resource *prsc)
    return true;
 }
 
+static bool
+is_norm(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   return desc->is_snorm || desc->is_unorm;
+}
+
+static bool
+valid_format_cast(struct fd_resource *rsc, enum pipe_format format)
+{
+   /* Special case "casting" format in hw: */
+   if (format == PIPE_FORMAT_Z24_UNORM_S8_UINT_AS_R8G8B8A8)
+      return true;
+
+   /* For some color values (just "solid white") compression metadata maps to
+    * different pixel values for uint/sint vs unorm/snorm, so we can't reliably
+    * "cast" u/snorm to u/sint and visa versa:
+    */
+   if (is_norm(format) != is_norm(rsc->b.b.format))
+      return false;
+
+   /* The UBWC formats can be re-interpreted so long as the components
+    * have the same # of bits
+    */
+   for (unsigned i = 0; i < 4; i++) {
+      unsigned sb, db;
+
+      sb = util_format_get_component_bits(rsc->b.b.format, UTIL_FORMAT_COLORSPACE_RGB, i);
+      db = util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_RGB, i);
+
+      if (sb != db)
+         return false;
+   }
+
+   return true;
+}
+
+/**
+ * R8G8 have a different block width/height and height alignment from other
+ * formats that would normally be compatible (like R16), and so if we are
+ * trying to, for example, sample R16 as R8G8 we need to demote to linear.
+ */
+static bool
+is_r8g8(enum pipe_format format)
+{
+   return (util_format_get_blocksize(format) == 2) &&
+         (util_format_get_nr_components(format) == 2);
+}
+
 /**
  * Ensure the rsc is in an ok state to be used with the specified format.
  * This handles the case of UBWC buffers used with non-UBWC compatible
@@ -113,19 +166,33 @@ void
 fd6_validate_format(struct fd_context *ctx, struct fd_resource *rsc,
                     enum pipe_format format)
 {
+   enum pipe_format orig_format = rsc->b.b.format;
+
    tc_assert_driver_thread(ctx->tc);
+
+   if (orig_format == format)
+      return;
+
+   if (rsc->layout.tile_mode && (is_r8g8(orig_format) != is_r8g8(format))) {
+      perf_debug_ctx(ctx,
+                     "%" PRSC_FMT ": demoted to linear+uncompressed due to use as %s",
+                     PRSC_ARGS(&rsc->b.b), util_format_short_name(format));
+
+      fd_resource_uncompress(ctx, rsc, true);
+      return;
+   }
 
    if (!rsc->layout.ubwc)
       return;
 
-   if (ok_ubwc_format(rsc->b.b.screen, format))
+   if (ok_ubwc_format(rsc->b.b.screen, format) && valid_format_cast(rsc, format))
       return;
 
    perf_debug_ctx(ctx,
                   "%" PRSC_FMT ": demoted to uncompressed due to use as %s",
                   PRSC_ARGS(&rsc->b.b), util_format_short_name(format));
 
-   fd_resource_uncompress(ctx, rsc);
+   fd_resource_uncompress(ctx, rsc, false);
 }
 
 static void

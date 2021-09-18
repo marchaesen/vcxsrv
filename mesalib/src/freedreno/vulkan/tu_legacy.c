@@ -13,7 +13,7 @@
 #include "tu_entrypoints.h"
 #include "vk_util.h"
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_GetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice pdev,
                                           uint32_t *count,
                                           VkQueueFamilyProperties *props)
@@ -31,7 +31,7 @@ tu_GetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice pdev,
       props[i] = props2[i].queueFamilyProperties;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_GetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice pdev,
                                                 VkFormat format,
                                                 VkImageType type,
@@ -63,7 +63,7 @@ tu_GetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice pdev,
       props[i] = props2[i].properties;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_GetImageSparseMemoryRequirements(VkDevice device,
                                     VkImage image,
                                     uint32_t *count,

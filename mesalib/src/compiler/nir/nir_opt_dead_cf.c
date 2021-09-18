@@ -236,6 +236,41 @@ node_is_dead(nir_cf_node *node)
             if (!(nir_intrinsic_infos[intrin->intrinsic].flags &
                 NIR_INTRINSIC_CAN_ELIMINATE))
                return false;
+
+            switch (intrin->intrinsic) {
+            case nir_intrinsic_load_deref:
+            case nir_intrinsic_load_ssbo:
+            case nir_intrinsic_load_global:
+               /* If there's a memory barrier after the loop, a load might be
+                * required to happen before some other instruction after the
+                * barrier, so it is not valid to eliminate it -- unless we
+                * know we can reorder it.
+                *
+                * Consider only loads that the result can be affected by other
+                * invocations.
+                */
+               if (intrin->intrinsic == nir_intrinsic_load_deref) {
+                  nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+                  if (!nir_deref_mode_may_be(deref, nir_var_mem_ssbo |
+                                                    nir_var_mem_shared |
+                                                    nir_var_mem_global |
+                                                    nir_var_shader_out))
+                     break;
+               }
+               if (nir_intrinsic_access(intrin) & ACCESS_CAN_REORDER)
+                  break;
+               return false;
+
+            case nir_intrinsic_load_shared:
+            case nir_intrinsic_load_output:
+            case nir_intrinsic_load_per_vertex_output:
+               /* Same as above loads. */
+               return false;
+
+            default:
+               /* Do nothing. */
+               break;
+            }
          }
 
          if (!nir_foreach_ssa_def(instr, def_only_used_in_cf_node, node))

@@ -194,6 +194,31 @@ vn_decode_blob_array(struct vn_cs_decoder *dec, void *val, size_t size)
     vn_decode(dec, (size + 3) & ~3, val, size);
 }
 
+/* string */
+
+static inline size_t
+vn_sizeof_char_array(const char *val, size_t size)
+{
+    return vn_sizeof_blob_array(val, size);
+}
+
+static inline void
+vn_encode_char_array(struct vn_cs_encoder *enc, const char *val, size_t size)
+{
+    assert(size && strlen(val) < size);
+    vn_encode_blob_array(enc, val, size);
+}
+
+static inline void
+vn_decode_char_array(struct vn_cs_decoder *dec, char *val, size_t size)
+{
+    vn_decode_blob_array(dec, val, size);
+    if (size)
+        val[size - 1] = '\0';
+    else
+        vn_cs_decoder_set_fatal(dec);
+}
+
 /* array size (uint64_t) */
 
 static inline size_t
@@ -209,14 +234,22 @@ vn_encode_array_size(struct vn_cs_encoder *enc, uint64_t size)
 }
 
 static inline uint64_t
-vn_decode_array_size(struct vn_cs_decoder *dec, uint64_t max_size)
+vn_decode_array_size(struct vn_cs_decoder *dec, uint64_t expected_size)
 {
     uint64_t size;
     vn_decode_uint64_t(dec, &size);
-    if (size > max_size) {
+    if (size != expected_size) {
         vn_cs_decoder_set_fatal(dec);
         size = 0;
     }
+    return size;
+}
+
+static inline uint64_t
+vn_decode_array_size_unchecked(struct vn_cs_decoder *dec)
+{
+    uint64_t size;
+    vn_decode_uint64_t(dec, &size);
     return size;
 }
 
@@ -246,7 +279,7 @@ vn_encode_simple_pointer(struct vn_cs_encoder *enc, const void *val)
 static inline bool
 vn_decode_simple_pointer(struct vn_cs_decoder *dec)
 {
-    return vn_decode_array_size(dec, 1);
+    return vn_decode_array_size_unchecked(dec);
 }
 
 /* uint32_t */
@@ -1056,6 +1089,27 @@ vn_encode_VkQueryResultFlagBits(struct vn_cs_encoder *enc, const VkQueryResultFl
 
 static inline void
 vn_decode_VkQueryResultFlagBits(struct vn_cs_decoder *dec, VkQueryResultFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+/* enum VkEventCreateFlagBits */
+
+static inline size_t
+vn_sizeof_VkEventCreateFlagBits(const VkEventCreateFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkEventCreateFlagBits(struct vn_cs_encoder *enc, const VkEventCreateFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkEventCreateFlagBits(struct vn_cs_decoder *dec, VkEventCreateFlagBits *val)
 {
     vn_decode_int32_t(dec, (int32_t *)val);
 }

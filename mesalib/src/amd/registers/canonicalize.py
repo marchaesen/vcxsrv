@@ -33,8 +33,6 @@ Notes about deduced register types as well as the output JSON are printed on
 stdout.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from collections import defaultdict
 import json
 import re

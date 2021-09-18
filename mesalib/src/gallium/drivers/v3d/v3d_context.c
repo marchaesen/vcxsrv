@@ -32,7 +32,6 @@
 #include "util/u_blitter.h"
 #include "util/u_upload_mgr.h"
 #include "util/u_prim.h"
-#include "indices/u_primconvert.h"
 #include "pipe/p_screen.h"
 
 #include "v3d_screen.h"
@@ -282,9 +281,6 @@ v3d_context_destroy(struct pipe_context *pctx)
         if (v3d->blitter)
                 util_blitter_destroy(v3d->blitter);
 
-        if (v3d->primconvert)
-                util_primconvert_destroy(v3d->primconvert);
-
         if (v3d->uploader)
                 u_upload_destroy(v3d->uploader);
         if (v3d->state_uploader)
@@ -393,11 +389,6 @@ v3d_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         if (!v3d->blitter)
                 goto fail;
         v3d->blitter->use_index_buffer = true;
-
-        v3d->primconvert = util_primconvert_create(pctx,
-                                                   (1 << PIPE_PRIM_QUADS) - 1);
-        if (!v3d->primconvert)
-                goto fail;
 
         V3D_DEBUG |= saved_shaderdb_flag;
 

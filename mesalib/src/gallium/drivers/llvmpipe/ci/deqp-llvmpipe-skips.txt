@@ -13,3 +13,4 @@ KHR-GL45.copy_image.functional
 KHR-GL45.texture_size_promotion.functional
 KHR-GL45.texture_swizzle.functional
 KHR-GL45.texture_swizzle.smoke
+KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2

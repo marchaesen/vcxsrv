@@ -26,6 +26,7 @@
 
 #include "r600_pipe_common.h"
 #include "r600_cs.h"
+#include "evergreen_compute.h"
 #include "tgsi/tgsi_parse.h"
 #include "util/list.h"
 #include "util/u_draw_quad.h"
@@ -589,9 +590,11 @@ bool r600_common_context_init(struct r600_common_context *rctx,
 
 	rctx->b.invalidate_resource = r600_invalidate_resource;
 	rctx->b.resource_commit = r600_resource_commit;
-	rctx->b.transfer_map = u_transfer_map_vtbl;
-	rctx->b.transfer_flush_region = u_transfer_flush_region_vtbl;
-	rctx->b.transfer_unmap = u_transfer_unmap_vtbl;
+	rctx->b.buffer_map = r600_buffer_transfer_map;
+        rctx->b.texture_map = r600_texture_transfer_map;
+	rctx->b.transfer_flush_region = r600_buffer_flush_region;
+	rctx->b.buffer_unmap = r600_buffer_transfer_unmap;
+        rctx->b.texture_unmap = r600_texture_transfer_unmap;
 	rctx->b.texture_subdata = u_default_texture_subdata;
 	rctx->b.flush = r600_flush_from_st;
 	rctx->b.set_debug_callback = r600_set_debug_callback;
@@ -1181,6 +1184,21 @@ r600_get_compiler_options(struct pipe_screen *screen,
        return &rscreen->nir_options;
 }
 
+extern bool r600_lower_to_scalar_instr_filter(const nir_instr *instr, const void *);
+
+static void r600_resource_destroy(struct pipe_screen *screen,
+				  struct pipe_resource *res)
+{
+	if (res->target == PIPE_BUFFER) {
+		if (r600_resource(res)->compute_global_bo)
+			r600_compute_global_buffer_destroy(screen, res);
+		else
+			r600_buffer_destroy(screen, res);
+	} else {
+		r600_texture_destroy(screen, res);
+	}
+}
+
 bool r600_common_screen_init(struct r600_common_screen *rscreen,
 			     struct radeon_winsys *ws)
 {
@@ -1217,11 +1235,11 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 	rscreen->b.get_compiler_options = r600_get_compiler_options;
 	rscreen->b.fence_finish = r600_fence_finish;
 	rscreen->b.fence_reference = r600_fence_reference;
-	rscreen->b.resource_destroy = u_resource_destroy_vtbl;
+	rscreen->b.resource_destroy = r600_resource_destroy;
 	rscreen->b.resource_from_user_memory = r600_buffer_from_user_memory;
 	rscreen->b.query_memory_info = r600_query_memory_info;
 
-	if (rscreen->info.has_hw_decode) {
+	if (rscreen->info.has_video_hw.uvd_decode) {
 		rscreen->b.get_video_param = rvid_get_video_param;
 		rscreen->b.is_video_format_supported = rvid_is_format_supported;
 	} else {
@@ -1269,7 +1287,7 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		printf("has_dedicated_vram = %u\n", rscreen->info.has_dedicated_vram);
 		printf("r600_has_virtual_memory = %i\n", rscreen->info.r600_has_virtual_memory);
 		printf("gfx_ib_pad_with_type2 = %i\n", rscreen->info.gfx_ib_pad_with_type2);
-		printf("has_hw_decode = %u\n", rscreen->info.has_hw_decode);
+		printf("uvd_decode = %u\n", rscreen->info.has_video_hw.uvd_decode);
 		printf("num_rings[RING_DMA] = %i\n", rscreen->info.num_rings[RING_DMA]);
 		printf("num_rings[RING_COMPUTE] = %u\n", rscreen->info.num_rings[RING_COMPUTE]);
 		printf("uvd_fw_version = %u\n", rscreen->info.uvd_fw_version);
@@ -1316,6 +1334,8 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		.lower_int64_options = ~0,
 		.lower_extract_byte = true,
 		.lower_extract_word = true,
+		.lower_insert_byte = true,
+		.lower_insert_word = true,
 		.lower_rotate = true,
 		.max_unroll_iterations = 32,
 		.lower_interpolate_at = true,
@@ -1330,6 +1350,9 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		.lower_bitfield_insert_to_bitfield_select = true,
 		.has_fused_comp_and_csel = true,
 		.lower_find_msb_to_reverse = true,
+                .lower_to_scalar = true,
+                .lower_to_scalar_filter = r600_lower_to_scalar_instr_filter,
+                .linker_ignore_precision = true,
 	};
 
 	rscreen->nir_options = nir_options;

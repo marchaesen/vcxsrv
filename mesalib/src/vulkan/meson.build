@@ -37,6 +37,7 @@ if with_platform_x11
     dep_xcb_present,
     dep_xcb_sync,
     dep_xcb_xrandr,
+    dep_xcb_shm,
     dep_xshmfence,
   ]
   vulkan_wsi_list += ['xcb', 'x11']

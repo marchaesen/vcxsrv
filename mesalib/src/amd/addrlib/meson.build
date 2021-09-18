@@ -68,8 +68,6 @@ foreach w : ['-Wno-unused-variable', '-Wno-unused-local-typedefs',
   endif
 endforeach
 
-message(cpp_args_addrlib)
-
 libamdgpu_addrlib = static_library(
   'addrlib',
   files_addrlib,

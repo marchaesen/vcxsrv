@@ -85,7 +85,6 @@ static struct gl_framebuffer DummyFramebuffer = {
    .Delete = delete_dummy_framebuffer,
 };
 static struct gl_renderbuffer DummyRenderbuffer = {
-   .Mutex = _SIMPLE_MTX_INITIALIZER_NP,
    .Delete = delete_dummy_renderbuffer,
 };
 
@@ -803,6 +802,8 @@ is_format_color_renderable(const struct gl_context *ctx, mesa_format format,
       return _mesa_has_EXT_color_buffer_float(ctx);
    case GL_RGB16F:
       return _mesa_has_EXT_color_buffer_half_float(ctx);
+   case GL_RGB10_A2:
+      return _mesa_is_gles3(ctx);
    case GL_RGB32F:
    case GL_RGB32I:
    case GL_RGB32UI:
@@ -2744,6 +2745,13 @@ _mesa_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image)
    rb = ctx->CurrentRenderbuffer;
    if (!rb) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "EGLImageTargetRenderbufferStorageOES");
+      return;
+   }
+
+   if (!image || (ctx->Driver.ValidateEGLImage &&
+                  !ctx->Driver.ValidateEGLImage(ctx, image))) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
                   "EGLImageTargetRenderbufferStorageOES");
       return;
    }

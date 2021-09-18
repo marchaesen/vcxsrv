@@ -23,8 +23,10 @@
  *
  */
 
-#include "aco_ir.h"
 #include "aco_builder.h"
+#include "aco_ir.h"
+
+#include <vector>
 
 /*
  * Insert p_linear_start instructions right before RA to correctly allocate
@@ -34,7 +36,8 @@
 
 namespace aco {
 
-void setup_reduce_temp(Program* program)
+void
+setup_reduce_temp(Program* program)
 {
    unsigned last_top_level_block_idx = 0;
    unsigned maxSize = 0;
@@ -67,7 +70,8 @@ void setup_reduce_temp(Program* program)
       if (reduceTmp_in_loop && block.loop_nest_depth == 0) {
          assert(inserted_at == (int)last_top_level_block_idx);
 
-         aco_ptr<Instruction> end{create_instruction<Instruction>(aco_opcode::p_end_linear_vgpr, Format::PSEUDO, vtmp_in_loop ? 2 : 1, 0)};
+         aco_ptr<Instruction> end{create_instruction<Instruction>(
+            aco_opcode::p_end_linear_vgpr, Format::PSEUDO, vtmp_in_loop ? 2 : 1, 0)};
          end->operands[0] = Operand(reduceTmp);
          if (vtmp_in_loop)
             end->operands[1] = Operand(vtmp);
@@ -87,7 +91,7 @@ void setup_reduce_temp(Program* program)
 
       std::vector<aco_ptr<Instruction>>::iterator it;
       for (it = block.instructions.begin(); it != block.instructions.end(); ++it) {
-         Instruction *instr = (*it).get();
+         Instruction* instr = (*it).get();
          if (instr->format != Format::PSEUDO_REDUCTION)
             continue;
 
@@ -96,7 +100,8 @@ void setup_reduce_temp(Program* program)
 
          if ((int)last_top_level_block_idx != inserted_at) {
             reduceTmp = program->allocateTmp(reduceTmp.regClass());
-            aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
+            aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(
+               aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
             create->definitions[0] = Definition(reduceTmp);
             /* find the right place to insert this definition */
             if (last_top_level_block_idx == block.index) {
@@ -108,18 +113,19 @@ void setup_reduce_temp(Program* program)
             } else {
                assert(last_top_level_block_idx < block.index);
                /* insert before the branch at last top level block */
-               std::vector<aco_ptr<Instruction>>& instructions = program->blocks[last_top_level_block_idx].instructions;
-               instructions.insert(std::next(instructions.begin(), instructions.size() - 1), std::move(create));
+               std::vector<aco_ptr<Instruction>>& instructions =
+                  program->blocks[last_top_level_block_idx].instructions;
+               instructions.insert(std::next(instructions.begin(), instructions.size() - 1),
+                                   std::move(create));
                inserted_at = last_top_level_block_idx;
             }
          }
 
          /* same as before, except for the vector temporary instead of the reduce temporary */
          unsigned cluster_size = instr->reduction().cluster_size;
-         bool need_vtmp = op == imul32 || op == fadd64 || op == fmul64 ||
-                          op == fmin64 || op == fmax64 || op == umin64 ||
-                          op == umax64 || op == imin64 || op == imax64 ||
-                          op == imul64;
+         bool need_vtmp = op == imul32 || op == fadd64 || op == fmul64 || op == fmin64 ||
+                          op == fmax64 || op == umin64 || op == umax64 || op == imin64 ||
+                          op == imax64 || op == imul64;
          bool gfx10_need_vtmp = op == imul8 || op == imax8 || op == imin8 || op == umin8 ||
                                 op == imul16 || op == imax16 || op == imin16 || op == umin16 ||
                                 op == iadd64;
@@ -136,15 +142,18 @@ void setup_reduce_temp(Program* program)
          vtmp_in_loop |= need_vtmp && block.loop_nest_depth > 0;
          if (need_vtmp && (int)last_top_level_block_idx != vtmp_inserted_at) {
             vtmp = program->allocateTmp(vtmp.regClass());
-            aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
+            aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(
+               aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
             create->definitions[0] = Definition(vtmp);
             if (last_top_level_block_idx == block.index) {
                it = block.instructions.insert(it, std::move(create));
                it++;
             } else {
                assert(last_top_level_block_idx < block.index);
-               std::vector<aco_ptr<Instruction>>& instructions = program->blocks[last_top_level_block_idx].instructions;
-               instructions.insert(std::next(instructions.begin(), instructions.size() - 1), std::move(create));
+               std::vector<aco_ptr<Instruction>>& instructions =
+                  program->blocks[last_top_level_block_idx].instructions;
+               instructions.insert(std::next(instructions.begin(), instructions.size() - 1),
+                                   std::move(create));
                vtmp_inserted_at = last_top_level_block_idx;
             }
          }
@@ -156,5 +165,4 @@ void setup_reduce_temp(Program* program)
    }
 }
 
-};
-
+}; // namespace aco

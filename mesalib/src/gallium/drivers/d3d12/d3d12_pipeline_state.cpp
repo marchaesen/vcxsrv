@@ -38,17 +38,6 @@ struct d3d12_pso_entry {
    ID3D12PipelineState *pso;
 };
 
-static const char *slot_to_varying[] = {
-   "VARYINGAA", "VARYINGAB", "VARYINGAC", "VARYINGAD", "VARYINGAE", "VARYINGAF", "VARYINGAG", "VARYINGAH",
-   "VARYINGAI", "VARYINGAJ", "VARYINGAK", "VARYINGAL", "VARYINGAM", "VARYINGAN", "VARYINGAO", "VARYINGAP",
-   "VARYINGBA", "VARYINGBB", "VARYINGBC", "VARYINGBD", "VARYINGBE", "VARYINGBF", "VARYINGBG", "VARYINGBH",
-   "VARYINGBI", "VARYINGBJ", "VARYINGBK", "VARYINGBL", "VARYINGBM", "VARYINGBN", "VARYINGBO", "VARYINGBP",
-   "VARYINGCA", "VARYINGCB", "VARYINGCC", "VARYINGCD", "VARYINGCE", "VARYINGCF", "VARYINGCG", "VARYINGCH",
-   "VARYINGCI", "VARYINGCJ", "VARYINGCK", "VARYINGCL", "VARYINGCM", "VARYINGCN", "VARYINGCO", "VARYINGCP",
-   "VARYINGDA", "VARYINGDB", "VARYINGDC", "VARYINGDD", "VARYINGDE", "VARYINGDF", "VARYINGDG", "VARYINGDH",
-   "VARYINGDI", "VARYINGDJ", "VARYINGDK", "VARYINGDL", "VARYINGDM", "VARYINGDN", "VARYINGDO", "VARYINGDP",
-};
-
 static const char *
 get_semantic_name(int slot, unsigned *index)
 {
@@ -72,8 +61,8 @@ get_semantic_name(int slot, unsigned *index)
       return "SV_PrimitiveID";
 
    default: {
-         int index = slot - VARYING_SLOT_POS;
-         return slot_to_varying[index];
+         *index = slot - VARYING_SLOT_POS;
+         return "TEXCOORD";
       }
    }
 }

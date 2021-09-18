@@ -271,6 +271,8 @@ dri_unbind_context(__DRIcontext * cPriv)
          stapi->make_current(stapi, NULL, NULL, NULL);
       }
    }
+   ctx->dPriv = NULL;
+   ctx->rPriv = NULL;
 
    return GL_TRUE;
 }

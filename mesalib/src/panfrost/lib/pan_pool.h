@@ -26,61 +26,64 @@
 #define __PAN_POOL_H__
 
 #include <stddef.h>
-#include <midgard_pack.h>
+#include <gen_macros.h>
 #include "pan_bo.h"
 
 #include "util/u_dynarray.h"
 
-/* Represents a pool of memory that can only grow, used to allocate objects
- * with the same lifetime as the pool itself. In OpenGL, a pool is owned by the
- * batch for transient structures. In Vulkan, it may be owned by e.g. the
- * command pool */
+/* Represents grow-only memory. */
 
 struct pan_pool {
         /* Parent device for allocation */
         struct panfrost_device *dev;
 
-        /* BOs allocated by this pool */
-        struct util_dynarray bos;
-
-        /* Current transient BO */
-        struct panfrost_bo *transient_bo;
-
-        /* Within the topmost transient BO, how much has been used? */
-        unsigned transient_offset;
+        /* Label for created BOs */
+        const char *label;
 
         /* BO flags to use in the pool */
         unsigned create_flags;
+
+        /* Minimum size for allocated BOs. */
+        size_t slab_size;
 };
 
-void
-panfrost_pool_init(struct pan_pool *pool, void *memctx,
-                   struct panfrost_device *dev, unsigned create_flags,
-                   bool prealloc);
-
-void
-panfrost_pool_cleanup(struct pan_pool *pool);
-
-static inline unsigned
-panfrost_pool_num_bos(struct pan_pool *pool)
+static inline void
+pan_pool_init(struct pan_pool *pool, struct panfrost_device *dev,
+              unsigned create_flags, size_t slab_size, const char *label)
 {
-        return util_dynarray_num_elements(&pool->bos, struct panfrost_bo *);
+        pool->dev = dev;
+        pool->create_flags = create_flags;
+        pool->slab_size = slab_size;
+        pool->label = label;
 }
-
-void
-panfrost_pool_get_bo_handles(struct pan_pool *pool, uint32_t *handles);
 
 /* Represents a fat pointer for GPU-mapped memory, returned from the transient
  * allocator and not used for much else */
 
 struct panfrost_ptr
-panfrost_pool_alloc_aligned(struct pan_pool *pool, size_t sz, unsigned alignment);
+pan_pool_alloc_aligned(struct pan_pool *pool, size_t sz, unsigned alignment);
 
-mali_ptr
-panfrost_pool_upload(struct pan_pool *pool, const void *data, size_t sz);
+#define PAN_POOL_ALLOCATOR(pool_subclass, alloc_func) \
+struct panfrost_ptr \
+pan_pool_alloc_aligned(struct pan_pool *p, size_t sz, unsigned alignment) \
+{ \
+        pool_subclass *pool = container_of(p, pool_subclass, base); \
+        return alloc_func(pool, sz, alignment); \
+}
 
-mali_ptr
-panfrost_pool_upload_aligned(struct pan_pool *pool, const void *data, size_t sz, unsigned alignment);
+static inline mali_ptr
+pan_pool_upload_aligned(struct pan_pool *pool, const void *data, size_t sz, unsigned alignment)
+{
+        struct panfrost_ptr transfer = pan_pool_alloc_aligned(pool, sz, alignment);
+        memcpy(transfer.cpu, data, sz);
+        return transfer.gpu;
+}
+
+static inline mali_ptr
+pan_pool_upload(struct pan_pool *pool, const void *data, size_t sz)
+{
+        return pan_pool_upload_aligned(pool, data, sz, sz);
+}
 
 struct pan_desc_alloc_info {
         unsigned size;
@@ -90,8 +93,8 @@ struct pan_desc_alloc_info {
 
 #define PAN_DESC_ARRAY(count, name) \
         { \
-                .size = MALI_ ## name ## _LENGTH, \
-                .align = MALI_ ## name ## _ALIGN, \
+                .size = pan_size(name), \
+                .align = pan_alignment(name), \
                 .nelems = count, \
         }
 
@@ -104,8 +107,8 @@ struct pan_desc_alloc_info {
         }
 
 static inline struct panfrost_ptr
-panfrost_pool_alloc_descs(struct pan_pool *pool,
-                          const struct pan_desc_alloc_info *descs)
+pan_pool_alloc_descs(struct pan_pool *pool,
+                     const struct pan_desc_alloc_info *descs)
 {
         unsigned size = 0;
         unsigned align = descs[0].align;
@@ -115,16 +118,16 @@ panfrost_pool_alloc_descs(struct pan_pool *pool,
                 size += descs[i].size * descs[i].nelems;
         }
 
-        return panfrost_pool_alloc_aligned(pool, size, align);
+        return pan_pool_alloc_aligned(pool, size, align);
 }
 
-#define panfrost_pool_alloc_desc(pool, name) \
-        panfrost_pool_alloc_descs(pool, PAN_DESC_AGGREGATE(PAN_DESC(name)))
+#define pan_pool_alloc_desc(pool, name) \
+        pan_pool_alloc_descs(pool, PAN_DESC_AGGREGATE(PAN_DESC(name)))
 
-#define panfrost_pool_alloc_desc_array(pool, count, name) \
-        panfrost_pool_alloc_descs(pool, PAN_DESC_AGGREGATE(PAN_DESC_ARRAY(count, name)))
+#define pan_pool_alloc_desc_array(pool, count, name) \
+        pan_pool_alloc_descs(pool, PAN_DESC_AGGREGATE(PAN_DESC_ARRAY(count, name)))
 
-#define panfrost_pool_alloc_desc_aggregate(pool, ...) \
-        panfrost_pool_alloc_descs(pool, PAN_DESC_AGGREGATE(__VA_ARGS__))
+#define pan_pool_alloc_desc_aggregate(pool, ...) \
+        pan_pool_alloc_descs(pool, PAN_DESC_AGGREGATE(__VA_ARGS__))
 
 #endif

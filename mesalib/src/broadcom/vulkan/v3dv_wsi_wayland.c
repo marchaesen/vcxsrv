@@ -26,7 +26,8 @@
 #include "wsi_common_wayland.h"
 #include "v3dv_private.h"
 
-VkBool32 v3dv_GetPhysicalDeviceWaylandPresentationSupportKHR(
+VKAPI_ATTR VkBool32 VKAPI_CALL
+v3dv_GetPhysicalDeviceWaylandPresentationSupportKHR(
     VkPhysicalDevice                            physicalDevice,
     uint32_t                                    queueFamilyIndex,
     struct wl_display*                          display)
@@ -36,7 +37,8 @@ VkBool32 v3dv_GetPhysicalDeviceWaylandPresentationSupportKHR(
    return wsi_wl_get_presentation_support(&physical_device->wsi_device, display);
 }
 
-VkResult v3dv_CreateWaylandSurfaceKHR(
+VKAPI_ATTR VkResult VKAPI_CALL
+v3dv_CreateWaylandSurfaceKHR(
     VkInstance                                  _instance,
     const VkWaylandSurfaceCreateInfoKHR*        pCreateInfo,
     const VkAllocationCallbacks*                pAllocator,

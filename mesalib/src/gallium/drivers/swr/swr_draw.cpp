@@ -90,7 +90,7 @@ swr_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
       // trick copied from softpipe to modify const struct *info
       memcpy(&resolved_info, (void*)info, sizeof(struct pipe_draw_info));
       resolved_draw.start = draws[0].start;
-      resolved_draw.count = ctx->so_primCounter * resolved_info.vertices_per_patch;
+      resolved_draw.count = ctx->so_primCounter * ctx->patch_vertices;
       resolved_info.max_index = resolved_draw.count - 1;
       info = &resolved_info;
       indirect = NULL;
@@ -252,7 +252,7 @@ swr_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
 
    if (info->index_size)
       ctx->api.pfnSwrDrawIndexedInstanced(ctx->swrContext,
-                                          swr_convert_prim_topology(info->mode, info->vertices_per_patch),
+                                          swr_convert_prim_topology(info->mode, ctx->patch_vertices),
                                           draws[0].count,
                                           info->instance_count,
                                           draws[0].start,
@@ -260,7 +260,7 @@ swr_draw_vbo(struct pipe_context *pipe, const struct pipe_draw_info *info,
                                           info->start_instance);
    else
       ctx->api.pfnSwrDrawInstanced(ctx->swrContext,
-                                   swr_convert_prim_topology(info->mode, info->vertices_per_patch),
+                                   swr_convert_prim_topology(info->mode, ctx->patch_vertices),
                                    draws[0].count,
                                    info->instance_count,
                                    draws[0].start,

@@ -249,25 +249,13 @@ fd6_emit_fb_tex(struct fd_ringbuffer *state, struct fd_context *ctx) assert_dt
    struct pipe_surface *psurf = pfb->cbufs[0];
    struct fd_resource *rsc = fd_resource(psurf->texture);
 
-   uint32_t texconst0 = fd6_tex_const_0(
-      psurf->texture, psurf->u.tex.level, psurf->format, PIPE_SWIZZLE_X,
-      PIPE_SWIZZLE_Y, PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W);
-
-   /* always TILE6_2 mode in GMEM.. which also means no swap: */
-   texconst0 &=
-      ~(A6XX_TEX_CONST_0_SWAP__MASK | A6XX_TEX_CONST_0_TILE_MODE__MASK);
-   texconst0 |= A6XX_TEX_CONST_0_TILE_MODE(TILE6_2);
-
-   OUT_RING(state, texconst0);
+   OUT_RINGP(state, 0, &ctx->batch->fb_read_patches); /* texconst0, patched in gmem emit */
    OUT_RING(state, A6XX_TEX_CONST_1_WIDTH(pfb->width) |
                       A6XX_TEX_CONST_1_HEIGHT(pfb->height));
-   OUT_RINGP(state, A6XX_TEX_CONST_2_TYPE(A6XX_TEX_2D),
-             &ctx->batch->fb_read_patches);
+   OUT_RING(state, 0); /* texconst2, patched in gmem emit */
    OUT_RING(state, A6XX_TEX_CONST_3_ARRAY_PITCH(rsc->layout.layer_size));
-
-   OUT_RING(state, A6XX_TEX_CONST_4_BASE_LO(ctx->screen->gmem_base));
-   OUT_RING(state, A6XX_TEX_CONST_5_BASE_HI(ctx->screen->gmem_base >> 32) |
-                      A6XX_TEX_CONST_5_DEPTH(1));
+   OUT_RING(state, 0); /* BASE_LO, patched in gmem emit */
+   OUT_RING(state, 0); /* BASE_HI, patched in gmem emit */
    OUT_RING(state, 0); /* texconst6 */
    OUT_RING(state, 0); /* texconst7 */
    OUT_RING(state, 0); /* texconst8 */
@@ -921,23 +909,30 @@ fd6_emit_streamout(struct fd_ringbuffer *ring, struct fd6_emit *emit) assert_dt
    if (emit->streamout_mask) {
       fd6_emit_add_group(emit, prog->streamout_stateobj, FD6_GROUP_SO,
                          ENABLE_ALL);
-   } else {
+   } else if (ctx->last.streamout_mask != 0) {
       /* If we transition from a draw with streamout to one without, turn
        * off streamout.
        */
-      if (ctx->last.streamout_mask != 0) {
-         struct fd_ringbuffer *obj = fd_submit_new_ringbuffer(
-            emit->ctx->batch->submit, 5 * 4, FD_RINGBUFFER_STREAMING);
-
-         OUT_PKT7(obj, CP_CONTEXT_REG_BUNCH, 4);
-         OUT_RING(obj, REG_A6XX_VPC_SO_CNTL);
-         OUT_RING(obj, 0);
-         OUT_RING(obj, REG_A6XX_VPC_SO_STREAM_CNTL);
-         OUT_RING(obj, 0);
-
-         fd6_emit_take_group(emit, obj, FD6_GROUP_SO, ENABLE_ALL);
-      }
+      fd6_emit_add_group(emit, fd6_context(ctx)->streamout_disable_stateobj,
+                         FD6_GROUP_SO, ENABLE_ALL);
    }
+
+   /* Make sure that any use of our TFB outputs (indirect draw source or shader
+    * UBO reads) comes after the TFB output is written.  From the GL 4.6 core
+    * spec:
+    *
+    *     "Buffers should not be bound or in use for both transform feedback and
+    *      other purposes in the GL.  Specifically, if a buffer object is
+    *      simultaneously bound to a transform feedback buffer binding point
+    *      and elsewhere in the GL, any writes to or reads from the buffer
+    *      generate undefined values."
+    *
+    * So we idle whenever SO buffers change.  Note that this function is called
+    * on every draw with TFB enabled, so check the dirty flag for the buffers
+    * themselves.
+    */
+   if (ctx->dirty & FD_DIRTY_STREAMOUT)
+      fd_wfi(ctx->batch, ring);
 
    ctx->last.streamout_mask = emit->streamout_mask;
 }
@@ -1088,7 +1083,6 @@ fd6_emit_state(struct fd_ringbuffer *ring, struct fd6_emit *emit)
          break;
       case FD6_GROUP_IBO:
          state = build_ibo(emit);
-         fd6_emit_ibo_consts(emit, fs, PIPE_SHADER_FRAGMENT, ring);
          break;
       case FD6_GROUP_CONST:
          state = fd6_build_user_consts(emit);
@@ -1233,7 +1227,7 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    // struct fd_context *ctx = batch->ctx;
 
    if (!batch->nondraw) {
-      trace_start_state_restore(&batch->trace);
+      trace_start_state_restore(&batch->trace, ring);
    }
 
    fd6_cache_inv(batch, ring);
@@ -1259,9 +1253,9 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    WRITE(REG_A6XX_HLSQ_UNKNOWN_BE01, 0);
 
    WRITE(REG_A6XX_VPC_UNKNOWN_9600, 0);
-   WRITE(REG_A6XX_GRAS_UNKNOWN_8600, 0x880);
+   WRITE(REG_A6XX_GRAS_DBG_ECO_CNTL, 0x880);
    WRITE(REG_A6XX_HLSQ_UNKNOWN_BE04, 0x80000);
-   WRITE(REG_A6XX_SP_UNKNOWN_AE03, 0x1430);
+   WRITE(REG_A6XX_SP_CHICKEN_BITS, 0x1430);
    WRITE(REG_A6XX_SP_IBO_COUNT, 0);
    WRITE(REG_A6XX_SP_UNKNOWN_B182, 0);
    WRITE(REG_A6XX_HLSQ_SHARED_CONSTS, 0);
@@ -1274,7 +1268,7 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    WRITE(REG_A6XX_RB_UNKNOWN_8811, 0x00000010);
    WRITE(REG_A6XX_PC_MODE_CNTL, 0x1f);
 
-   WRITE(REG_A6XX_GRAS_UNKNOWN_8101, 0);
+   WRITE(REG_A6XX_GRAS_LRZ_PS_INPUT_CNTL, 0);
    WRITE(REG_A6XX_GRAS_SAMPLE_CNTL, 0);
    WRITE(REG_A6XX_GRAS_UNKNOWN_8110, 0x2);
 
@@ -1298,19 +1292,20 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
 
    WRITE(REG_A6XX_SP_UNKNOWN_B183, 0);
 
-   WRITE(REG_A6XX_GRAS_UNKNOWN_8099, 0);
+   WRITE(REG_A6XX_GRAS_SU_CONSERVATIVE_RAS_CNTL, 0);
    WRITE(REG_A6XX_GRAS_VS_LAYER_CNTL, 0);
-   WRITE(REG_A6XX_GRAS_UNKNOWN_80A0, 2);
+   WRITE(REG_A6XX_GRAS_SC_CNTL, A6XX_GRAS_SC_CNTL_CCUSINGLECACHELINESIZE(2));
    WRITE(REG_A6XX_GRAS_UNKNOWN_80AF, 0);
    WRITE(REG_A6XX_VPC_UNKNOWN_9210, 0);
    WRITE(REG_A6XX_VPC_UNKNOWN_9211, 0);
    WRITE(REG_A6XX_VPC_UNKNOWN_9602, 0);
    WRITE(REG_A6XX_PC_UNKNOWN_9E72, 0);
    WRITE(REG_A6XX_SP_TP_SAMPLE_CONFIG, 0);
-   /* NOTE blob seems to (mostly?) use 0xb2 for SP_TP_UNKNOWN_B309
+   /* NOTE blob seems to (mostly?) use 0xb2 for SP_TP_MODE_CNTL
     * but this seems to kill texture gather offsets.
     */
-   WRITE(REG_A6XX_SP_TP_UNKNOWN_B309, 0xa2);
+   WRITE(REG_A6XX_SP_TP_MODE_CNTL, 0xa0 |
+         A6XX_SP_TP_MODE_CNTL_ISAMMODE(ISAMMODE_GL));
    WRITE(REG_A6XX_RB_SAMPLE_CONFIG, 0);
    WRITE(REG_A6XX_GRAS_SAMPLE_CONFIG, 0);
    WRITE(REG_A6XX_RB_Z_BOUNDS_MIN, 0);
@@ -1345,7 +1340,7 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    OUT_RING(ring, 0x00000000);
 
    if (!batch->nondraw) {
-      trace_end_state_restore(&batch->trace);
+      trace_end_state_restore(&batch->trace, ring);
    }
 }
 
@@ -1378,9 +1373,11 @@ static void
 fd6_framebuffer_barrier(struct fd_context *ctx) assert_dt
 {
    struct fd6_context *fd6_ctx = fd6_context(ctx);
-   struct fd_batch *batch = ctx->batch;
+   struct fd_batch *batch = fd_context_batch_locked(ctx);
    struct fd_ringbuffer *ring = batch->draw;
    unsigned seqno;
+
+   fd_batch_needs_flush(batch);
 
    seqno = fd6_event_write(batch, ring, RB_DONE_TS, true);
 
@@ -1396,6 +1393,7 @@ fd6_framebuffer_barrier(struct fd_context *ctx) assert_dt
    fd6_event_write(batch, ring, PC_CCU_FLUSH_DEPTH_TS, true);
 
    seqno = fd6_event_write(batch, ring, CACHE_FLUSH_TS, true);
+   fd_wfi(batch, ring);
 
    fd6_event_write(batch, ring, 0x31, false);
 
@@ -1403,6 +1401,9 @@ fd6_framebuffer_barrier(struct fd_context *ctx) assert_dt
    OUT_RING(ring, CP_WAIT_MEM_GTE_0_RESERVED(0));
    OUT_RELOC(ring, control_ptr(fd6_ctx, seqno));
    OUT_RING(ring, CP_WAIT_MEM_GTE_3_REF(seqno));
+
+   fd_batch_unlock_submit(batch);
+   fd_batch_reference(&batch, NULL);
 }
 
 void

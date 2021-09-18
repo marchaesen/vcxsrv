@@ -46,6 +46,9 @@ lower_fragcoord_wtrans_filter(const nir_instr *instr, UNUSED const void *_option
       return false;
 
    nir_variable *var = nir_intrinsic_get_var(intr, 0);
+   if (var->data.mode != nir_var_shader_in)
+      return false;
+
    return var->data.location == VARYING_SLOT_POS;
 }
 

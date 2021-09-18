@@ -23,7 +23,7 @@
 
 #include "util/format/u_format.h"
 #include "v3d_context.h"
-#include "v3d_tiling.h"
+#include "broadcom/common/v3d_tiling.h"
 #include "broadcom/common/v3d_macros.h"
 #include "broadcom/cle/v3dx_pack.h"
 
@@ -532,6 +532,35 @@ v3d_emit_z_stencil_config(struct v3d_job *job, struct v3d_surface *surf,
 
 #define div_round_up(a, b) (((a) + (b) - 1) / b)
 
+static bool
+supertile_in_job_scissors(struct v3d_job *job,
+                          uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+{
+   if (job->scissor.disabled || job->scissor.count == 0)
+      return true;
+
+   const uint32_t min_x = x * w;
+   const uint32_t min_y = y * h;
+   const uint32_t max_x = min_x + w - 1;
+   const uint32_t max_y = min_y + h - 1;
+
+   for (uint32_t i = 0; i < job->scissor.count; i++) {
+           const uint32_t min_s_x = job->scissor.rects[i].min_x;
+           const uint32_t min_s_y = job->scissor.rects[i].min_y;
+           const uint32_t max_s_x = job->scissor.rects[i].max_x;
+           const uint32_t max_s_y = job->scissor.rects[i].max_y;
+
+           if (max_x < min_s_x || min_x > max_s_x ||
+               max_y < min_s_y || min_y > max_s_y) {
+                   continue;
+           }
+
+           return true;
+   }
+
+   return false;
+}
+
 static void
 emit_render_layer(struct v3d_job *job, uint32_t layer)
 {
@@ -641,9 +670,13 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
 
         for (int y = min_y_supertile; y <= max_y_supertile; y++) {
                 for (int x = min_x_supertile; x <= max_x_supertile; x++) {
-                        cl_emit(&job->rcl, SUPERTILE_COORDINATES, coords) {
-                                coords.column_number_in_supertiles = x;
-                                coords.row_number_in_supertiles = y;
+                        if (supertile_in_job_scissors(job, x, y,
+                                                      supertile_w_in_pixels,
+                                                      supertile_h_in_pixels)) {
+                                cl_emit(&job->rcl, SUPERTILE_COORDINATES, coords) {
+                                      coords.column_number_in_supertiles = x;
+                                      coords.row_number_in_supertiles = y;
+                                }
                         }
                 }
         }

@@ -91,16 +91,20 @@ static uint32_t
 get_semantic_name_offset(name_offset_cache_t *cache, const char *name,
                          struct _mesa_string_buffer *buf, uint32_t buf_offset)
 {
-   /* consider replacing this with a binary search using rb_tree */
-   for (unsigned i = 0; i < cache->num_entries; ++i) {
-      if (!strcmp(name, cache->entries[i].name))
-         return cache->entries[i].offset;
-   }
-
    uint32_t offset = buf->length + buf_offset;
-   cache->entries[cache->num_entries].name = name;
-   cache->entries[cache->num_entries].offset = offset;
-   ++cache->num_entries;
+
+   // DXC doesn't de-duplicate arbitrary semantic names, only SVs.
+   if (strncmp(name, "SV_", 3) == 0) {
+      /* consider replacing this with a binary search using rb_tree */
+      for (unsigned i = 0; i < cache->num_entries; ++i) {
+         if (!strcmp(name, cache->entries[i].name))
+            return cache->entries[i].offset;
+      }
+
+      cache->entries[cache->num_entries].name = name;
+      cache->entries[cache->num_entries].offset = offset;
+      ++cache->num_entries;
+   }
    _mesa_string_buffer_append_len(buf, name, strlen(name) + 1);
 
    return offset;

@@ -162,7 +162,11 @@
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_PIXEL               0x00000000
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_POS                 0x00000001
 #define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_PARAM               0x00000002
-#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_IND_ACK       0x00000003
+#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE               0x00000000
+#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_WRITE_IND           0x00000001
+#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_READ                0x00000002
+#define     V_SQ_CF_ALLOC_EXPORT_WORD0_SQ_EXPORT_READ_IND            0x00000003
+
 #define   S_SQ_CF_ALLOC_EXPORT_WORD0_RW_GPR(x)                       (((unsigned)(x) & 0x7F) << 15)
 #define   G_SQ_CF_ALLOC_EXPORT_WORD0_RW_GPR(x)                       (((x) >> 15) & 0x7F)
 #define   C_SQ_CF_ALLOC_EXPORT_WORD0_RW_GPR                          0xFFC07FFF
@@ -566,6 +570,10 @@
 #define S_SQ_ALU_WORD1_LDS_IDX_OP_IDX_OFFSET_2(x)                    (((unsigned)(x) & 0x1) << 28)
 /* this was clamp */
 #define S_SQ_ALU_WORD1_LDS_IDX_OP_IDX_OFFSET_3(x)                    (((unsigned)(x) & 0x1) << 31)
+
+#define     EG_V_SQ_ALU_SRC_LDS_OQ_A_POP                             0x000000DD
+#define     EG_V_SQ_ALU_SRC_LDS_OQ_B_POP                             0x000000DE
+
 
 #define V_SQ_LDS_INST_ADD                               0x00
 #define V_SQ_LDS_INST_SUB                               0x01

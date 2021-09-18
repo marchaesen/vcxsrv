@@ -46,7 +46,7 @@ struct v3d_hw *v3d_hw_auto_new(void *in_params)
 }
 
 
-uint32_t v3d_hw_get_mem(const struct v3d_hw *hw, size_t *size, void **p)
+uint32_t v3d_hw_get_mem(const struct v3d_hw *hw, uint32_t *size, void **p)
 {
         return hw->get_mem(size, p);
 }
@@ -54,11 +54,6 @@ uint32_t v3d_hw_get_mem(const struct v3d_hw *hw, size_t *size, void **p)
 bool v3d_hw_alloc_mem(struct v3d_hw *hw, size_t min_size)
 {
         return hw->alloc_mem(min_size) == V3D_HW_ALLOC_SUCCESS;
-}
-
-bool v3d_hw_has_gca(struct v3d_hw *hw)
-{
-        return hw->has_gca();
 }
 
 uint32_t v3d_hw_read_reg(struct v3d_hw *hw, uint32_t reg)
@@ -87,6 +82,11 @@ void
 v3d_hw_set_isr(struct v3d_hw *hw, void (*isr)(uint32_t status))
 {
         hw->set_isr(isr);
+}
+
+uint32_t v3d_hw_get_hub_core()
+{
+        return V3D_HW_HUB_CORE;
 }
 
 }

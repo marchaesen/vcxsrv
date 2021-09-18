@@ -97,7 +97,7 @@ static int
 SELinuxAtomToSIDLookup(Atom atom, SELinuxObjectRec * obj, int map, int polymap)
 {
     const char *name = NameForAtom(atom);
-    security_context_t ctx;
+    char *ctx;
     int rc = Success;
 
     obj->poly = 1;
@@ -255,7 +255,7 @@ SELinuxEventToSID(unsigned type, security_id_t sid_of_window,
 {
     const char *name = LookupEventName(type);
     security_id_t sid;
-    security_context_t ctx;
+    char *ctx;
 
     type &= 127;
 
@@ -291,7 +291,7 @@ SELinuxEventToSID(unsigned type, security_id_t sid_of_window,
 int
 SELinuxExtensionToSID(const char *name, security_id_t * sid_rtn)
 {
-    security_context_t ctx;
+    char *ctx;
 
     /* Look in the mappings of extension names to contexts */
     if (selabel_lookup_raw(label_hnd, &ctx, name, SELABEL_X_EXT) < 0) {
@@ -347,10 +347,10 @@ SELinuxTypeToClass(RESTYPE type)
     return (security_class_t) (unsigned long) tmp;
 }
 
-security_context_t
+char *
 SELinuxDefaultClientLabel(void)
 {
-    security_context_t ctx;
+    char *ctx;
 
     if (selabel_lookup_raw(label_hnd, &ctx, "remote", SELABEL_X_CLIENT) < 0)
         FatalError("SELinux: failed to look up remote-client context\n");

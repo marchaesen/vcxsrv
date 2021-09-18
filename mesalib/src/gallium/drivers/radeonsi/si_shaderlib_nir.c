@@ -33,7 +33,7 @@ static void *create_nir_cs(struct si_context *sctx, nir_builder *b)
    struct pipe_compute_state state = {0};
    state.ir_type = PIPE_SHADER_IR_NIR;
    state.prog = b->shader;
-   sctx->b.screen->finalize_nir(sctx->b.screen, (void*)state.prog, false);
+   sctx->b.screen->finalize_nir(sctx->b.screen, (void*)state.prog);
    return sctx->b.create_compute_state(&sctx->b, &state);
 }
 
@@ -42,8 +42,8 @@ static nir_ssa_def *get_global_ids(nir_builder *b, unsigned num_components)
    unsigned mask = BITFIELD_MASK(num_components);
 
    nir_ssa_def *local_ids = nir_channels(b, nir_load_local_invocation_id(b), mask);
-   nir_ssa_def *block_ids = nir_channels(b, nir_load_work_group_id(b, 32), mask);
-   nir_ssa_def *block_size = nir_channels(b, nir_load_local_group_size(b), mask);
+   nir_ssa_def *block_ids = nir_channels(b, nir_load_workgroup_id(b, 32), mask);
+   nir_ssa_def *block_size = nir_channels(b, nir_load_workgroup_size(b), mask);
    return nir_iadd(b, nir_imul(b, block_ids, block_size), local_ids);
 }
 
@@ -59,9 +59,9 @@ void *si_create_dcc_retile_cs(struct si_context *sctx, struct radeon_surf *surf)
       sctx->b.screen->get_compiler_options(sctx->b.screen, PIPE_SHADER_IR_NIR, PIPE_SHADER_COMPUTE);
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options, "dcc_retile");
-   b.shader->info.cs.local_size[0] = 8;
-   b.shader->info.cs.local_size[1] = 8;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
    b.shader->info.cs.user_data_components_amd = 3;
    b.shader->info.num_ssbos = 1;
 
@@ -107,9 +107,9 @@ void *gfx9_create_clear_dcc_msaa_cs(struct si_context *sctx, struct si_texture *
       sctx->b.screen->get_compiler_options(sctx->b.screen, PIPE_SHADER_IR_NIR, PIPE_SHADER_COMPUTE);
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options, "clear_dcc_msaa");
-   b.shader->info.cs.local_size[0] = 8;
-   b.shader->info.cs.local_size[1] = 8;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
    b.shader->info.cs.user_data_components_amd = 2;
    b.shader->info.num_ssbos = 1;
 

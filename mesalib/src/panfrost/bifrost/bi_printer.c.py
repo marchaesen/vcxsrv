@@ -75,6 +75,9 @@ bir_passthrough_name(unsigned idx)
 static void
 bi_print_index(FILE *fp, bi_index index)
 {
+    if (index.discard)
+        fputs("`", fp);
+
     if (bi_is_null(index))
         fprintf(fp, "_");
     else if (index.type == BI_INDEX_CONSTANT)
@@ -109,7 +112,7 @@ bi_print_index(FILE *fp, bi_index index)
 % for mod in sorted(modifiers):
 % if len(modifiers[mod]) > 2: # otherwise just boolean
 
-static inline const char *
+UNUSED static inline const char *
 bi_${mod}_as_str(enum bi_${mod} ${mod})
 {
     switch (${mod}) {
@@ -154,7 +157,7 @@ bi_${mod}_as_str(enum bi_${mod} ${mod})
 </%def>
 
 void
-bi_print_instr(bi_instr *I, FILE *fp)
+bi_print_instr(const bi_instr *I, FILE *fp)
 {
     bi_foreach_dest(I, d) {
         if (bi_is_null(I->dest[d])) break;
@@ -194,7 +197,7 @@ bi_print_instr(bi_instr *I, FILE *fp)
     }
 
     if (I->branch_target)
-            fprintf(fp, " -> block%u", I->branch_target->base.name);
+            fprintf(fp, " -> block%u", I->branch_target->name);
 
     fputs("\\n", fp);
 

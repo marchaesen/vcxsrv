@@ -131,9 +131,9 @@ nir_convert_ycbcr_to_rgb(nir_builder *b,
       ycbcr_model_to_rgb_matrix(model);
 
    nir_ssa_def *converted_channels[] = {
-      nir_fdot4(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[0])),
-      nir_fdot4(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[1])),
-      nir_fdot4(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[2]))
+      nir_fdot(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[0])),
+      nir_fdot(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[1])),
+      nir_fdot(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[2]))
    };
 
    return nir_vec4(b,

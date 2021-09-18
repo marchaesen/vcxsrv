@@ -6,8 +6,8 @@ support for Windows, other flavors of Unix and other systems such as
 Haiku. We're actively developing and maintaining several hardware and
 software drivers.
 
-The primary API is OpenGL but there's also support for OpenGL ES 1, ES2
-and ES 3, OpenCL, VDPAU, XvMC and the EGL interface.
+The primary API is OpenGL but there's also support for OpenGL ES, Vulkan,
+EGL, OpenMAX, OpenCL, VDPAU, VA-API and XvMC.
 
 Hardware drivers include:
 
@@ -17,27 +17,33 @@ Hardware drivers include:
    `RadeonFeature <https://www.x.org/wiki/RadeonFeature>`__
 -  NVIDIA GPUs (Riva TNT and later). See `Nouveau
    Wiki <https://nouveau.freedesktop.org>`__
--  Qualcomm Adreno A2xx-A6xx. See `Freedreno
-   Wiki <https://github.com/freedreno/freedreno/wiki>`__
--  Broadcom VideoCore 4, 5. See `This Week in
-   V3D <https://anholt.github.io/twivc4/>`__
+-  Qualcomm Adreno A2xx-A6xx. See :doc:`Freedreno
+   <drivers/freedreno>`
+-  Broadcom VideoCore 4 and 5. See :doc:`VC4 <drivers/vc4>` and
+   :doc:`V3D <drivers/v3d>`
 -  ARM Mali Utgard. See :doc:`Lima <drivers/lima>`
 -  ARM Mali Midgard, Bifrost. See :doc:`Panfrost <drivers/panfrost>`
 -  Vivante GCxxx. See `Etnaviv
    Wiki <https://github.com/laanwj/etna_viv/wiki>`__
 -  NVIDIA Tegra (K1 and later).
 
+Layered driver include:
+
+-  :doc:`D3D12 <drivers/d3d12>` - driver providing OpenGL on top of
+   Microsoft's Direct3D 12 API.
+-  :doc:`SVGA3D <drivers/svga3d>` - driver for VMware virtual GPU
+-  `VirGL <https://virgil3d.github.io/>`__ - research project for
+   accelerated graphics for qemu guests
+-  :doc:`Zink <drivers/zink>` - driver providing OpenGL on top of
+   Khoronos' Vulkan API.
+
 Software drivers include:
 
--  :doc:`llvmpipe <drivers/llvmpipe>` - uses LLVM for x86 JIT code generation
+-  :doc:`LLVMpipe <drivers/llvmpipe>` - uses LLVM for x86 JIT code generation
    and is multi-threaded
--  softpipe - a reference Gallium driver
--  :doc:`svga <drivers/vmware-guest>` - driver for VMware virtual GPU
--  `swr <https://www.openswr.org/>`__ - x86-optimized software renderer
+-  Softpipe - a reference Gallium driver
+-  :doc:`OpenSWR <drivers/openswr>` - x86-optimized software renderer
    for visualization workloads
--  `virgl <https://virgil3d.github.io/>`__ - research project for
-   accelerated graphics for qemu guests
--  swrast - the legacy/original Mesa software rasterizer
 
 Additional driver information:
 
@@ -54,15 +60,16 @@ systems. These have been removed from the Mesa source tree and
 distribution. If anyone's interested though, the code can be found in
 the Git repo. The list includes:
 
--  3dfx/glide
--  Matrox
--  ATI R128
--  Savage
--  VIA Unichrome
--  SIS
--  3Dlabs gamma
--  DOS
--  fbdev
--  DEC/VMS
--  Mach64
+-  3dfx Glide
+-  3DLABS Gamma
+-  ATI Mach 64
+-  ATI Rage 128
+-  DEC OpenVMS
 -  Intel i810
+-  Linux fbdev
+-  Matrox
+-  MS-DOS
+-  S3 Savage
+-  Silicon Integrated Systems
+-  swrast
+-  VIA Unichrome

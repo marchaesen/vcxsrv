@@ -32,7 +32,6 @@
 
 #include "etnaviv_resource.h"
 #include "etnaviv_tiling.h"
-#include "indices/u_primconvert.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_format.h"
@@ -143,9 +142,6 @@ struct etna_context {
       ETNA_DIRTY_SCISSOR_CLIP    = (1 << 20),
    } dirty;
 
-   uint32_t prim_hwsupport;
-   struct primconvert_context *primconvert;
-
    struct slab_child_pool transfer_pool;
    struct blitter_context *blitter;
 
@@ -205,6 +201,9 @@ struct etna_context {
    /* set of resources used by currently-unsubmitted renders */
    struct set *used_resources_read;
    struct set *used_resources_write;
+
+   /* resources that must be flushed implicitly at the context flush time */
+   struct set *flush_resources;
 
    mtx_t lock;
 };

@@ -96,11 +96,10 @@ _mesa_draw_gallium_fallback(struct gl_context *ctx,
 
 void
 _mesa_draw_gallium_multimode_fallback(struct gl_context *ctx,
-                                    struct pipe_draw_info *info,
-                                    unsigned drawid_offset,
-                                    const struct pipe_draw_start_count_bias *draws,
-                                    const unsigned char *mode,
-                                    unsigned num_draws);
+                                     struct pipe_draw_info *info,
+                                     const struct pipe_draw_start_count_bias *draws,
+                                     const unsigned char *mode,
+                                     unsigned num_draws);
 
 void GLAPIENTRY
 _mesa_EvalMesh1(GLenum mode, GLint i1, GLint i2);

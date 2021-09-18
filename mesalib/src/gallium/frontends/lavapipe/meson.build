@@ -10,6 +10,17 @@ lvp_entrypoints = custom_target(
   depend_files : vk_entrypoints_gen_depend_files,
 )
 
+lvp_commands = custom_target(
+  'lvp_commands',
+  input : [vk_commands_gen, vk_api_xml],
+  output : ['lvp_commands.c'],
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--out-c', '@OUTPUT0@', '--prefix', 'lvp',
+  ],
+  depend_files : vk_commands_gen_depend_files,
+)
+
 liblvp_files = files(
     'lvp_device.c',
     'lvp_cmd_buffer.c',
@@ -52,9 +63,9 @@ endif
 
 liblavapipe_st = static_library(
   'lavapipe_st',
-  [liblvp_files, lvp_entrypoints, sha1_h],
+  [liblvp_files, lvp_entrypoints, lvp_commands, sha1_h],
   link_with : [ libvulkan_wsi ],
-  c_args : [ lvp_flags ],
+  c_args : [ c_msvc_compat_args, lvp_flags ],
   gnu_symbol_visibility : 'hidden',
   include_directories : [ inc_include, inc_src, inc_util, inc_gallium, inc_compiler, inc_gallium_aux, inc_vulkan_wsi ],
   dependencies : [ idep_nir, idep_mesautil, idep_vulkan_util, lvp_deps ]

@@ -63,6 +63,10 @@ st_choose_renderbuffer_format(struct st_context *st,
                               unsigned storage_sample_count);
 
 extern enum pipe_format
+st_choose_matching_format_noverify(struct st_context *st,
+                                   GLenum format, GLenum type, GLboolean swapBytes);
+
+extern enum pipe_format
 st_choose_matching_format(struct st_context *st, unsigned bind,
 			  GLenum format, GLenum type, GLboolean swapBytes);
 
@@ -76,8 +80,7 @@ st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
                        GLenum internalFormat, GLenum pname, GLint *params);
 
 extern void
-st_translate_color(const union gl_color_union *colorIn,
-                   union pipe_color_union *colorOut,
+st_translate_color(union pipe_color_union *color,
                    GLenum baseFormat, GLboolean is_integer);
 
 #ifdef __cplusplus

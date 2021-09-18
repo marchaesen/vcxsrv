@@ -22,27 +22,38 @@
  *
  */
 
-
 #include "aco_ir.h"
 
+#include <algorithm>
 #include <map>
+#include <vector>
 
 namespace aco {
 namespace {
 
-/* map: block-id -> pair (dest, src) to store phi information */
-typedef std::map<uint32_t, std::vector<std::pair<Definition, Operand>>> phi_info;
-
-struct ssa_elimination_ctx {
-   phi_info logical_phi_info;
-   phi_info linear_phi_info;
-   std::vector<bool> empty_blocks;
-   Program* program;
-
-   ssa_elimination_ctx(Program* program_) : empty_blocks(program_->blocks.size(), true), program(program_) {}
+struct phi_info_item {
+   Definition def;
+   Operand op;
 };
 
-void collect_phi_info(ssa_elimination_ctx& ctx)
+struct ssa_elimination_ctx {
+   /* The outer vectors should be indexed by block index. The inner vectors store phi information
+    * for each block. */
+   std::vector<std::vector<phi_info_item>> logical_phi_info;
+   std::vector<std::vector<phi_info_item>> linear_phi_info;
+   std::vector<bool> empty_blocks;
+   std::vector<bool> blocks_incoming_exec_used;
+   Program* program;
+
+   ssa_elimination_ctx(Program* program_)
+       : logical_phi_info(program_->blocks.size()), linear_phi_info(program_->blocks.size()),
+         empty_blocks(program_->blocks.size(), true),
+         blocks_incoming_exec_used(program_->blocks.size(), true), program(program_)
+   {}
+};
+
+void
+collect_phi_info(ssa_elimination_ctx& ctx)
 {
    for (Block& block : ctx.program->blocks) {
       for (aco_ptr<Instruction>& phi : block.instructions) {
@@ -55,22 +66,30 @@ void collect_phi_info(ssa_elimination_ctx& ctx)
             if (phi->operands[i].physReg() == phi->definitions[0].physReg())
                continue;
 
-            std::vector<unsigned>& preds = phi->opcode == aco_opcode::p_phi ? block.logical_preds : block.linear_preds;
-            phi_info& info = phi->opcode == aco_opcode::p_phi ? ctx.logical_phi_info : ctx.linear_phi_info;
-            const auto result = info.emplace(preds[i], std::vector<std::pair<Definition, Operand>>());
             assert(phi->definitions[0].size() == phi->operands[i].size());
-            result.first->second.emplace_back(phi->definitions[0], phi->operands[i]);
-            ctx.empty_blocks[preds[i]] = false;
+
+            std::vector<unsigned>& preds =
+               phi->opcode == aco_opcode::p_phi ? block.logical_preds : block.linear_preds;
+            uint32_t pred_idx = preds[i];
+            auto& info_vec = phi->opcode == aco_opcode::p_phi ? ctx.logical_phi_info[pred_idx]
+                                                              : ctx.linear_phi_info[pred_idx];
+            info_vec.push_back({phi->definitions[0], phi->operands[i]});
+            ctx.empty_blocks[pred_idx] = false;
          }
       }
    }
 }
 
-void insert_parallelcopies(ssa_elimination_ctx& ctx)
+void
+insert_parallelcopies(ssa_elimination_ctx& ctx)
 {
    /* insert the parallelcopies from logical phis before p_logical_end */
-   for (auto&& entry : ctx.logical_phi_info) {
-      Block& block = ctx.program->blocks[entry.first];
+   for (unsigned block_idx = 0; block_idx < ctx.program->blocks.size(); ++block_idx) {
+      auto& logical_phi_info = ctx.logical_phi_info[block_idx];
+      if (logical_phi_info.empty())
+         continue;
+
+      Block& block = ctx.program->blocks[block_idx];
       unsigned idx = block.instructions.size() - 1;
       while (block.instructions[idx]->opcode != aco_opcode::p_logical_end) {
          assert(idx > 0);
@@ -78,12 +97,13 @@ void insert_parallelcopies(ssa_elimination_ctx& ctx)
       }
 
       std::vector<aco_ptr<Instruction>>::iterator it = std::next(block.instructions.begin(), idx);
-      aco_ptr<Pseudo_instruction> pc{create_instruction<Pseudo_instruction>(aco_opcode::p_parallelcopy, Format::PSEUDO, entry.second.size(), entry.second.size())};
+      aco_ptr<Pseudo_instruction> pc{
+         create_instruction<Pseudo_instruction>(aco_opcode::p_parallelcopy, Format::PSEUDO,
+                                                logical_phi_info.size(), logical_phi_info.size())};
       unsigned i = 0;
-      for (std::pair<Definition, Operand>& pair : entry.second)
-      {
-         pc->definitions[i] = pair.first;
-         pc->operands[i] = pair.second;
+      for (auto& phi_info : logical_phi_info) {
+         pc->definitions[i] = phi_info.def;
+         pc->operands[i] = phi_info.op;
          i++;
       }
       /* this shouldn't be needed since we're only copying vgprs */
@@ -92,17 +112,22 @@ void insert_parallelcopies(ssa_elimination_ctx& ctx)
    }
 
    /* insert parallelcopies for the linear phis at the end of blocks just before the branch */
-   for (auto&& entry : ctx.linear_phi_info) {
-      Block& block = ctx.program->blocks[entry.first];
+   for (unsigned block_idx = 0; block_idx < ctx.program->blocks.size(); ++block_idx) {
+      auto& linear_phi_info = ctx.linear_phi_info[block_idx];
+      if (linear_phi_info.empty())
+         continue;
+
+      Block& block = ctx.program->blocks[block_idx];
       std::vector<aco_ptr<Instruction>>::iterator it = block.instructions.end();
       --it;
       assert((*it)->isBranch());
-      aco_ptr<Pseudo_instruction> pc{create_instruction<Pseudo_instruction>(aco_opcode::p_parallelcopy, Format::PSEUDO, entry.second.size(), entry.second.size())};
+      aco_ptr<Pseudo_instruction> pc{
+         create_instruction<Pseudo_instruction>(aco_opcode::p_parallelcopy, Format::PSEUDO,
+                                                linear_phi_info.size(), linear_phi_info.size())};
       unsigned i = 0;
-      for (std::pair<Definition, Operand>& pair : entry.second)
-      {
-         pc->definitions[i] = pair.first;
-         pc->operands[i] = pair.second;
+      for (auto& phi_info : linear_phi_info) {
+         pc->definitions[i] = phi_info.def;
+         pc->operands[i] = phi_info.op;
          i++;
       }
       pc->tmp_in_scc = block.scc_live_out;
@@ -111,38 +136,38 @@ void insert_parallelcopies(ssa_elimination_ctx& ctx)
    }
 }
 
-bool is_empty_block(Block* block, bool ignore_exec_writes)
+bool
+is_empty_block(Block* block, bool ignore_exec_writes)
 {
    /* check if this block is empty and the exec mask is not needed */
    for (aco_ptr<Instruction>& instr : block->instructions) {
       switch (instr->opcode) {
-         case aco_opcode::p_linear_phi:
-         case aco_opcode::p_phi:
-         case aco_opcode::p_logical_start:
-         case aco_opcode::p_logical_end:
-         case aco_opcode::p_branch:
+      case aco_opcode::p_linear_phi:
+      case aco_opcode::p_phi:
+      case aco_opcode::p_logical_start:
+      case aco_opcode::p_logical_end:
+      case aco_opcode::p_branch: break;
+      case aco_opcode::p_parallelcopy:
+         for (unsigned i = 0; i < instr->definitions.size(); i++) {
+            if (ignore_exec_writes && instr->definitions[i].physReg() == exec)
+               continue;
+            if (instr->definitions[i].physReg() != instr->operands[i].physReg())
+               return false;
+         }
+         break;
+      case aco_opcode::s_andn2_b64:
+      case aco_opcode::s_andn2_b32:
+         if (ignore_exec_writes && instr->definitions[0].physReg() == exec)
             break;
-         case aco_opcode::p_parallelcopy:
-            for (unsigned i = 0; i < instr->definitions.size(); i++) {
-               if (ignore_exec_writes && instr->definitions[i].physReg() == exec)
-                  continue;
-               if (instr->definitions[i].physReg() != instr->operands[i].physReg())
-                  return false;
-            }
-            break;
-         case aco_opcode::s_andn2_b64:
-         case aco_opcode::s_andn2_b32:
-            if (ignore_exec_writes && instr->definitions[0].physReg() == exec)
-               break;
-            return false;
-         default:
-            return false;
+         return false;
+      default: return false;
       }
    }
    return true;
 }
 
-void try_remove_merge_block(ssa_elimination_ctx& ctx, Block* block)
+void
+try_remove_merge_block(ssa_elimination_ctx& ctx, Block* block)
 {
    /* check if the successor is another merge block which restores exec */
    // TODO: divergent loops also restore exec
@@ -160,7 +185,8 @@ void try_remove_merge_block(ssa_elimination_ctx& ctx, Block* block)
    block->instructions.emplace_back(std::move(branch));
 }
 
-void try_remove_invert_block(ssa_elimination_ctx& ctx, Block* block)
+void
+try_remove_invert_block(ssa_elimination_ctx& ctx, Block* block)
 {
    assert(block->linear_succs.size() == 2);
    /* only remove this block if the successor got removed as well */
@@ -174,7 +200,7 @@ void try_remove_invert_block(ssa_elimination_ctx& ctx, Block* block)
    unsigned succ_idx = block->linear_succs[0];
    assert(block->linear_preds.size() == 2);
    for (unsigned i = 0; i < 2; i++) {
-      Block *pred = &ctx.program->blocks[block->linear_preds[i]];
+      Block* pred = &ctx.program->blocks[block->linear_preds[i]];
       pred->linear_succs[0] = succ_idx;
       ctx.program->blocks[succ_idx].linear_preds[i] = pred->index;
 
@@ -189,7 +215,8 @@ void try_remove_invert_block(ssa_elimination_ctx& ctx, Block* block)
    block->linear_succs.clear();
 }
 
-void try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
+void
+try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
 {
    if (!is_empty_block(block, false))
       return;
@@ -258,10 +285,87 @@ void try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
    block->linear_succs.clear();
 }
 
-void jump_threading(ssa_elimination_ctx& ctx)
+bool
+instr_writes_exec(Instruction* instr)
+{
+   for (Definition& def : instr->definitions)
+      if (def.physReg() == exec || def.physReg() == exec_hi)
+         return true;
+
+   return false;
+}
+
+void
+eliminate_useless_exec_writes_in_block(ssa_elimination_ctx& ctx, Block& block)
+{
+   /* Check if any successor needs the outgoing exec mask from the current block. */
+
+   bool exec_write_used;
+
+   if (!ctx.logical_phi_info[block.index].empty()) {
+      exec_write_used = true;
+   } else {
+      bool copy_to_exec = false;
+      bool copy_from_exec = false;
+
+      for (const auto& successor_phi_info : ctx.linear_phi_info[block.index]) {
+         copy_to_exec |= successor_phi_info.def.physReg() == exec;
+         copy_from_exec |= successor_phi_info.op.physReg() == exec;
+      }
+
+      if (copy_from_exec)
+         exec_write_used = true;
+      else if (copy_to_exec)
+         exec_write_used = false;
+      else
+         /* blocks_incoming_exec_used is initialized to true, so this is correct even for loops. */
+         exec_write_used =
+            std::any_of(block.linear_succs.begin(), block.linear_succs.end(),
+                        [&ctx](int succ_idx) { return ctx.blocks_incoming_exec_used[succ_idx]; });
+   }
+
+   /* Go through all instructions and eliminate useless exec writes. */
+
+   for (int i = block.instructions.size() - 1; i >= 0; --i) {
+      aco_ptr<Instruction>& instr = block.instructions[i];
+
+      /* We already take information from phis into account before the loop, so let's just break on
+       * phis. */
+      if (instr->opcode == aco_opcode::p_linear_phi || instr->opcode == aco_opcode::p_phi)
+         break;
+
+      /* See if the current instruction needs or writes exec. */
+      bool needs_exec = needs_exec_mask(instr.get());
+      bool writes_exec = instr_writes_exec(instr.get());
+
+      /* See if we found an unused exec write. */
+      if (writes_exec && !exec_write_used) {
+         instr.reset();
+         continue;
+      }
+
+      /* For a newly encountered exec write, clear the used flag. */
+      if (writes_exec)
+         exec_write_used = false;
+
+      /* If the current instruction needs exec, mark it as used. */
+      exec_write_used |= needs_exec;
+   }
+
+   /* Remember if the current block needs an incoming exec mask from its predecessors. */
+   ctx.blocks_incoming_exec_used[block.index] = exec_write_used;
+
+   /* Cleanup: remove deleted instructions from the vector. */
+   auto new_end = std::remove(block.instructions.begin(), block.instructions.end(), nullptr);
+   block.instructions.resize(new_end - block.instructions.begin());
+}
+
+void
+jump_threading(ssa_elimination_ctx& ctx)
 {
    for (int i = ctx.program->blocks.size() - 1; i >= 0; i--) {
       Block* block = &ctx.program->blocks[i];
+      eliminate_useless_exec_writes_in_block(ctx, *block);
 
       if (!ctx.empty_blocks[i])
          continue;
@@ -274,8 +378,7 @@ void jump_threading(ssa_elimination_ctx& ctx)
       if (block->linear_succs.size() > 1)
          continue;
 
-      if (block->kind & block_kind_merge ||
-          block->kind & block_kind_loop_exit)
+      if (block->kind & block_kind_merge || block->kind & block_kind_loop_exit)
          try_remove_merge_block(ctx, block);
 
       if (block->linear_preds.size() == 1)
@@ -285,8 +388,8 @@ void jump_threading(ssa_elimination_ctx& ctx)
 
 } /* end namespace */
 
-
-void ssa_elimination(Program* program)
+void
+ssa_elimination(Program* program)
 {
    ssa_elimination_ctx ctx(program);
 
@@ -298,6 +401,5 @@ void ssa_elimination(Program* program)
 
    /* insert parallelcopies from SSA elimination */
    insert_parallelcopies(ctx);
-
 }
-}
+} // namespace aco

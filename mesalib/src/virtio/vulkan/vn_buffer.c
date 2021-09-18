@@ -13,35 +13,38 @@
 #include "venus-protocol/vn_protocol_driver_buffer.h"
 #include "venus-protocol/vn_protocol_driver_buffer_view.h"
 
+#include "vn_android.h"
 #include "vn_device.h"
 #include "vn_device_memory.h"
 
 /* buffer commands */
 
 VkResult
-vn_CreateBuffer(VkDevice device,
-                const VkBufferCreateInfo *pCreateInfo,
-                const VkAllocationCallbacks *pAllocator,
-                VkBuffer *pBuffer)
+vn_buffer_create(struct vn_device *dev,
+                 const VkBufferCreateInfo *create_info,
+                 const VkAllocationCallbacks *alloc,
+                 struct vn_buffer **out_buf)
 {
-   struct vn_device *dev = vn_device_from_handle(device);
-   const VkAllocationCallbacks *alloc =
-      pAllocator ? pAllocator : &dev->base.base.alloc;
+   VkDevice device = vn_device_to_handle(dev);
+   struct vn_buffer *buf = NULL;
+   VkBuffer buffer = VK_NULL_HANDLE;
+   VkResult result;
 
-   struct vn_buffer *buf = vk_zalloc(alloc, sizeof(*buf), VN_DEFAULT_ALIGN,
-                                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   buf = vk_zalloc(alloc, sizeof(*buf), VN_DEFAULT_ALIGN,
+                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!buf)
-      return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    vn_object_base_init(&buf->base, VK_OBJECT_TYPE_BUFFER, &dev->base);
 
-   VkBuffer buf_handle = vn_buffer_to_handle(buf);
+   buffer = vn_buffer_to_handle(buf);
    /* TODO async */
-   VkResult result = vn_call_vkCreateBuffer(dev->instance, device,
-                                            pCreateInfo, NULL, &buf_handle);
+   result = vn_call_vkCreateBuffer(dev->instance, device, create_info, NULL,
+                                   &buffer);
    if (result != VK_SUCCESS) {
+      vn_object_base_fini(&buf->base);
       vk_free(alloc, buf);
-      return vn_error(dev->instance, result);
+      return result;
    }
 
    /* TODO add a per-device cache for the requirements */
@@ -55,11 +58,44 @@ vn_CreateBuffer(VkDevice device,
       dev->instance, device,
       &(VkBufferMemoryRequirementsInfo2){
          .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2,
-         .buffer = vn_buffer_to_handle(buf),
+         .buffer = buffer,
       },
       &buf->memory_requirements);
 
-   *pBuffer = buf_handle;
+   *out_buf = buf;
+
+   return VK_SUCCESS;
+}
+
+VkResult
+vn_CreateBuffer(VkDevice device,
+                const VkBufferCreateInfo *pCreateInfo,
+                const VkAllocationCallbacks *pAllocator,
+                VkBuffer *pBuffer)
+{
+   struct vn_device *dev = vn_device_from_handle(device);
+   const VkAllocationCallbacks *alloc =
+      pAllocator ? pAllocator : &dev->base.base.alloc;
+   struct vn_buffer *buf = NULL;
+   VkResult result;
+
+   const VkExternalMemoryBufferCreateInfo *external_info =
+      vk_find_struct_const(pCreateInfo->pNext,
+                           EXTERNAL_MEMORY_BUFFER_CREATE_INFO);
+   const bool ahb_info =
+      external_info &&
+      external_info->handleTypes ==
+         VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
+
+   if (ahb_info)
+      result = vn_android_buffer_from_ahb(dev, pCreateInfo, alloc, &buf);
+   else
+      result = vn_buffer_create(dev, pCreateInfo, alloc, &buf);
+
+   if (result != VK_SUCCESS)
+      return vn_error(dev->instance, result);
+
+   *pBuffer = vn_buffer_to_handle(buf);
 
    return VK_SUCCESS;
 }

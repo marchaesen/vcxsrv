@@ -82,8 +82,6 @@ static void
 print_register(nir_register *reg, print_state *state)
 {
    FILE *fp = state->fp;
-   if (reg->name != NULL)
-      fprintf(fp, "/* %s */ ", reg->name);
    fprintf(fp, "r%u", reg->index);
 }
 
@@ -107,8 +105,6 @@ static void
 print_ssa_def(nir_ssa_def *def, print_state *state)
 {
    FILE *fp = state->fp;
-   if (def->name != NULL)
-      fprintf(fp, "/* %s */ ", def->name);
    fprintf(fp, "%s %u ssa_%u", sizes[def->num_components], def->bit_size,
            def->index);
 }
@@ -117,8 +113,6 @@ static void
 print_ssa_use(nir_ssa_def *def, print_state *state)
 {
    FILE *fp = state->fp;
-   if (def->name != NULL)
-      fprintf(fp, "/* %s */ ", def->name);
    fprintf(fp, "ssa_%u", def->index);
 }
 
@@ -495,8 +489,9 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const patch = (var->data.patch) ? "patch " : "";
    const char *const inv = (var->data.invariant) ? "invariant " : "";
    const char *const per_view = (var->data.per_view) ? "per_view " : "";
-   fprintf(fp, "%s%s%s%s%s%s %s ",
-           cent, samp, patch, inv, per_view,
+   const char *const per_primitive = (var->data.per_primitive) ? "per_primitive " : "";
+   fprintf(fp, "%s%s%s%s%s%s%s %s ",
+           cent, samp, patch, inv, per_view, per_primitive,
            get_variable_mode_str(var->data.mode, false),
            glsl_interp_mode_name(var->data.interpolation));
 
@@ -1084,8 +1079,8 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
    case nir_texop_txf_ms_fb:
       fprintf(fp, "txf_ms_fb ");
       break;
-   case nir_texop_txf_ms_mcs:
-      fprintf(fp, "txf_ms_mcs ");
+   case nir_texop_txf_ms_mcs_intel:
+      fprintf(fp, "txf_ms_mcs_intel ");
       break;
    case nir_texop_txs:
       fprintf(fp, "txs ");
@@ -1129,6 +1124,12 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       fprintf(fp, " ");
 
       switch(instr->src[i].src_type) {
+      case nir_tex_src_backend1:
+         fprintf(fp, "(backend1)");
+         break;
+      case nir_tex_src_backend2:
+         fprintf(fp, "(backend2)");
+         break;
       case nir_tex_src_coord:
          fprintf(fp, "(coord)");
          break;
@@ -1153,8 +1154,8 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       case nir_tex_src_ms_index:
          fprintf(fp, "(ms_index)");
          break;
-      case nir_tex_src_ms_mcs:
-         fprintf(fp, "(ms_mcs)");
+      case nir_tex_src_ms_mcs_intel:
+         fprintf(fp, "(ms_mcs_intel)");
          break;
       case nir_tex_src_ddx:
          fprintf(fp, "(ddx)");
@@ -1605,12 +1606,12 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
    if (shader->info.label)
       fprintf(fp, "label: %s\n", shader->info.label);
 
-   if (gl_shader_stage_is_compute(shader->info.stage)) {
-      fprintf(fp, "local-size: %u, %u, %u%s\n",
-              shader->info.cs.local_size[0],
-              shader->info.cs.local_size[1],
-              shader->info.cs.local_size[2],
-              shader->info.cs.local_size_variable ? " (variable)" : "");
+   if (gl_shader_stage_uses_workgroup(shader->info.stage)) {
+      fprintf(fp, "workgroup-size: %u, %u, %u%s\n",
+              shader->info.workgroup_size[0],
+              shader->info.workgroup_size[1],
+              shader->info.workgroup_size[2],
+              shader->info.workgroup_size_variable ? " (variable)" : "");
       fprintf(fp, "shared-size: %u\n", shader->info.shared_size);
    }
 
@@ -1653,14 +1654,14 @@ nir_print_shader(nir_shader *shader, FILE *fp)
 }
 
 char *
-nir_shader_as_str(nir_shader *nir, void *mem_ctx)
+nir_shader_as_str_annotated(nir_shader *nir, struct hash_table *annotations, void *mem_ctx)
 {
    char *stream_data = NULL;
    size_t stream_size = 0;
    struct u_memstream mem;
    if (u_memstream_open(&mem, &stream_data, &stream_size)) {
       FILE *const stream = u_memstream_get(&mem);
-      nir_print_shader(nir, stream);
+      nir_print_shader_annotated(nir, stream, annotations);
       u_memstream_close(&mem);
    }
 
@@ -1671,6 +1672,12 @@ nir_shader_as_str(nir_shader *nir, void *mem_ctx)
    free(stream_data);
 
    return str;
+}
+
+char *
+nir_shader_as_str(nir_shader *nir, void *mem_ctx)
+{
+   return nir_shader_as_str_annotated(nir, NULL, mem_ctx);
 }
 
 void
@@ -1695,4 +1702,12 @@ nir_print_deref(const nir_deref_instr *deref, FILE *fp)
       .fp = fp,
    };
    print_deref_link(deref, true, &state);
+}
+
+void nir_log_shader_annotated_tagged(enum mesa_log_level level, const char *tag,
+                                     nir_shader *shader, struct hash_table *annotations)
+{
+   char *str = nir_shader_as_str_annotated(shader, annotations, NULL);
+   _mesa_log_multiline(level, tag, str);
+   ralloc_free(str);
 }

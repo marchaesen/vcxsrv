@@ -131,6 +131,8 @@ generate_texture_mipmap(struct gl_context *ctx,
 
    _mesa_lock_texture(ctx, texObj);
 
+   texObj->External = GL_FALSE;
+
    srcImage = _mesa_select_tex_image(texObj, target, texObj->Attrib.BaseLevel);
    if (caller) {
       if (!srcImage) {

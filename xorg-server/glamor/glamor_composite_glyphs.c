@@ -208,11 +208,6 @@ static const glamor_facet glamor_facet_composite_glyphs_120 = {
     .locations = glamor_program_location_atlas,
 };
 
-static inline Bool
-glamor_glyph_use_130(glamor_screen_private *glamor_priv) {
-    return glamor_priv->glsl_version >= 130;
-}
-
 static Bool
 glamor_glyphs_init_facet(ScreenPtr screen)
 {
@@ -274,7 +269,7 @@ glamor_glyphs_flush(CARD8 op, PicturePtr src, PicturePtr dst,
                           box->y2 - box->y1);
                 box++;
 
-                if (glamor_glyph_use_130(glamor_priv))
+                if (glamor_glsl_has_ints(glamor_priv))
                     glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, nglyph);
                 else
                     glamor_glDrawArrays_GL_QUADS(glamor_priv, nglyph);
@@ -287,7 +282,7 @@ glamor_glyphs_flush(CARD8 op, PicturePtr src, PicturePtr dst,
 
     glDisable(GL_SCISSOR_TEST);
 
-    if (glamor_glyph_use_130(glamor_priv)) {
+    if (glamor_glsl_has_ints(glamor_priv)) {
         glVertexAttribDivisor(GLAMOR_VERTEX_SOURCE, 0);
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     }
@@ -305,7 +300,7 @@ glamor_glyph_start(ScreenPtr screen, int count)
 
     /* Set up the vertex buffers for the font and destination */
 
-    if (glamor_glyph_use_130(glamor_priv)) {
+    if (glamor_glsl_has_ints(glamor_priv)) {
         v = glamor_get_vbo_space(screen, count * (6 * sizeof (GLshort)), &vbo_offset);
 
         glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
@@ -439,7 +434,7 @@ glamor_composite_glyphs(CARD8 op,
                     /* First glyph in the current atlas?
                      */
                     if (_X_UNLIKELY(glyphs_queued == 0)) {
-                        if (glamor_glyph_use_130(glamor_priv))
+                        if (glamor_glsl_has_ints(glamor_priv))
                             prog = glamor_setup_program_render(op, src, glyph_pict, dst,
                                                                glyphs_program,
                                                                &glamor_facet_composite_glyphs_130,
@@ -458,7 +453,7 @@ glamor_composite_glyphs(CARD8 op,
                      */
 
                     glyphs_queued++;
-                    if (_X_LIKELY(glamor_glyph_use_130(glamor_priv))) {
+                    if (_X_LIKELY(glamor_glsl_has_ints(glamor_priv))) {
                         v[0] = x - glyph->info.x;
                         v[1] = y - glyph->info.y;
                         v[2] = glyph_draw->width;

@@ -48,9 +48,9 @@ typedef int regex_t;
 #define REG_EXTENDED 0
 #define REG_NOSUB 0
 #define REG_NOMATCH 1
-inline int regcomp(regex_t *r, const char *s, int f) { return 0; }
-inline int regexec(regex_t *r, const char *s, int n, void *p, int f) { return REG_NOMATCH; }
-inline void regfree(regex_t* r) {}
+static inline int regcomp(regex_t *r, const char *s, int f) { return 0; }
+static inline int regexec(regex_t *r, const char *s, int n, void *p, int f) { return REG_NOMATCH; }
+static inline void regfree(regex_t* r) {}
 #else
 #include <regex.h>
 #endif
@@ -617,6 +617,7 @@ struct OptConfData {
    int screenNum;
    const char *driverName, *execName;
    const char *kernelDriverName;
+   const char *deviceName;
    const char *engineName;
    const char *applicationName;
    uint32_t engineVersion;
@@ -670,17 +671,21 @@ static void
 parseDeviceAttr(struct OptConfData *data, const char **attr)
 {
    uint32_t i;
-   const char *driver = NULL, *screen = NULL, *kernel = NULL;
+   const char *driver = NULL, *screen = NULL, *kernel = NULL, *device = NULL;
    for (i = 0; attr[i]; i += 2) {
       if (!strcmp(attr[i], "driver")) driver = attr[i+1];
       else if (!strcmp(attr[i], "screen")) screen = attr[i+1];
       else if (!strcmp(attr[i], "kernel_driver")) kernel = attr[i+1];
+      else if (!strcmp(attr[i], "device")) device = attr[i+1];
       else XML_WARNING("unknown device attribute: %s.", attr[i]);
    }
    if (driver && strcmp(driver, data->driverName))
       data->ignoringDevice = data->inDevice;
    else if (kernel && (!data->kernelDriverName ||
                        strcmp(kernel, data->kernelDriverName)))
+      data->ignoringDevice = data->inDevice;
+   else if (device && (!data->deviceName ||
+                       strcmp(device, data->deviceName)))
       data->ignoringDevice = data->inDevice;
    else if (screen) {
       driOptionValue screenNum;
@@ -1117,6 +1122,7 @@ parseStaticConfig(struct OptConfData *data)
       const struct driconf_device *d = driconf[i];
       const char *devattr[] = {
          "driver", d->driver,
+         "device", d->device,
          NULL
       };
 
@@ -1207,6 +1213,7 @@ void
 driParseConfigFiles(driOptionCache *cache, const driOptionCache *info,
                     int screenNum, const char *driverName,
                     const char *kernelDriverName,
+                    const char *deviceName,
                     const char *applicationName, uint32_t applicationVersion,
                     const char *engineName, uint32_t engineVersion)
 {
@@ -1217,6 +1224,7 @@ driParseConfigFiles(driOptionCache *cache, const driOptionCache *info,
    userData.screenNum = screenNum;
    userData.driverName = driverName;
    userData.kernelDriverName = kernelDriverName;
+   userData.deviceName = deviceName;
    userData.applicationName = applicationName ? applicationName : "";
    userData.applicationVersion = applicationVersion;
    userData.engineName = engineName ? engineName : "";

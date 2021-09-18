@@ -107,9 +107,14 @@ vir_opt_redundant_flags_block(struct v3d_compile *c, struct qblock *block)
                         continue;
                 }
 
-                /* Flags aren't preserved across a thrsw. */
-                if (inst->qpu.sig.thrsw)
-                        last_flags = NULL;
+                /* Flags aren't preserved across a thrsw.
+                 *
+                 * In V3D 4.2+ flags are preserved across thread switches.
+                 */
+                if (c->devinfo->ver < 42) {
+                        if (inst->qpu.sig.thrsw)
+                                last_flags = NULL;
+                }
 
                 if (inst->qpu.flags.apf != V3D_QPU_PF_NONE ||
                     inst->qpu.flags.mpf != V3D_QPU_PF_NONE) {

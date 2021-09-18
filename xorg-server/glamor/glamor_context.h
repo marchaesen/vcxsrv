@@ -21,29 +21,26 @@
  * IN THE SOFTWARE.
  */
 
+#ifndef GLAMOR_CONTEXT_H
+#define GLAMOR_CONTEXT_H
+
+#include <epoxy/egl.h>
+
 /**
  * @file glamor_context.h
  *
  * This is the struct of state required for context switching in
- * glamor.  It has to use types that don't require including either
- * server headers or Xlib headers, since it will be included by both
- * the server and the GLX (xlib) code.
+ * glamor. Initially this was abstracted away from EGL, and
+ * presumably it would need to be again if someone wanted to use
+ * glamor with WGL/CGL.
  */
 
 struct glamor_context {
-    /** Either an EGLDisplay or an Xlib Display */
-    void *display;
-
-    /** Either a GLXContext or an EGLContext. */
-    void *ctx;
-
-    /** The EGLSurface we should MakeCurrent to */
-    void *drawable;
-
-    /** The GLXDrawable we should MakeCurrent to */
-    uint32_t drawable_xid;
+    EGLDisplay display;
+    EGLContext ctx;
+    EGLSurface surface;
 
     void (*make_current)(struct glamor_context *glamor_ctx);
 };
 
-Bool glamor_glx_screen_init(struct glamor_context *glamor_ctx);
+#endif

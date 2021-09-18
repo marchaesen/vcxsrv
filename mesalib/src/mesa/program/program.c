@@ -194,7 +194,7 @@ _mesa_init_gl_program(struct gl_program *prog, gl_shader_stage stage,
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
    prog->info.stage = stage;
-   prog->is_arb_asm = is_arb_asm;
+   prog->info.is_arb_asm = is_arb_asm;
 
    /* Uniforms that lack an initializer in the shader code have an initial
     * value of zero.  This includes sampler uniforms.

@@ -69,31 +69,74 @@ struct dxil_spirv_specialization {
    bool defined_on_module;
 };
 
+struct dxil_spirv_metadata {
+   bool requires_runtime_data;
+};
+
+struct dxil_spirv_object {
+   struct dxil_spirv_metadata metadata;
+   struct {
+      void *buffer;
+      size_t size;
+   } binary;
+};
+
+/* This struct describes the layout of data expected in the CB bound to
+ * runtime_data_cbv during compute shader execution */
+struct dxil_spirv_compute_runtime_data {
+   /* Total number of groups dispatched (i.e. value passed to Dispatch()) */
+   uint32_t group_count_x;
+   uint32_t group_count_y;
+   uint32_t group_count_z;
+};
+
+/* This struct describes the layout of data expected in the CB bound to
+ * runtime_data_cbv during vertex stages */
+struct dxil_spirv_vertex_runtime_data {
+   uint32_t first_vertex;
+   uint32_t base_instance;
+   bool is_indexed_draw;
+};
+
+struct dxil_spirv_runtime_conf {
+   struct {
+      uint32_t register_space;
+      uint32_t base_shader_register;
+   } runtime_data_cbv;
+
+   // Set true if vertex and instance ids have already been converted to
+   // zero-based. Otherwise, runtime_data will be required to lower them.
+   bool zero_based_vertex_instance_id;
+};
+
 /**
  * Compile a SPIR-V module into DXIL.
  * \param  words  SPIR-V module to compile
  * \param  word_count  number of words in the SPIR-V module
  * \param  specializations  specialization constants to compile with the shader
  * \param  num_specializations  number of specialization constants
- * \param  buffer  will contain the DXIL bytes on success. Needs to be freed()
- * \param  size  length of returned buffer
+ * \param  stage  shader stage
+ * \param  entry_point_name  name of shader entrypoint
+ * \param  conf  configuration for spriv_to_dxil
+ * \param  out_dxil  will contain the DXIL bytes on success (call spirv_to_dxil_free after use)
  * \return  true if compilation succeeded
  */
 bool
-spirv_to_dxil(const uint32_t* words,
-              size_t word_count,
-              struct dxil_spirv_specialization* specializations,
-              unsigned int num_specializations,
-              dxil_spirv_shader_stage stage,
-              const char* entry_point_name,
-              void** buffer,
-              size_t* size);
+spirv_to_dxil(const uint32_t *words, size_t word_count,
+              struct dxil_spirv_specialization *specializations,
+              unsigned int num_specializations, dxil_spirv_shader_stage stage,
+              const char *entry_point_name,
+              const struct dxil_spirv_runtime_conf *conf,
+              struct dxil_spirv_object *out_dxil);
 
 /**
  * Free the buffer allocated by spirv_to_dxil.
  */
 void
-spirv_to_dxil_free(void* buffer);
+spirv_to_dxil_free(struct dxil_spirv_object *dxil);
+
+uint64_t
+spirv_to_dxil_get_version(void);
 
 #ifdef __cplusplus
 }

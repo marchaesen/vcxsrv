@@ -363,8 +363,7 @@ radv_handle_thread_trace(VkQueue _queue)
       radv_QueueWaitIdle(_queue);
 
       if (radv_get_thread_trace(queue, &thread_trace)) {
-         ac_dump_thread_trace(&queue->device->physical_device->rad_info, &thread_trace,
-                              &queue->device->thread_trace);
+         ac_dump_rgp_capture(&queue->device->physical_device->rad_info, &thread_trace);
       } else {
          /* Trigger a new capture if the driver failed to get
           * the trace because the buffer was too small.
@@ -625,12 +624,6 @@ sqtt_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQueryPool queryPoo
 
 #define API_MARKER(cmd_name, ...) API_MARKER_ALIAS(cmd_name, cmd_name, __VA_ARGS__);
 
-static bool
-radv_sqtt_dump_pipeline()
-{
-   return getenv("RADV_THREAD_TRACE_PIPELINE");
-}
-
 void
 sqtt_CmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
                      VkPipeline _pipeline)
@@ -639,7 +632,7 @@ sqtt_CmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipeline
 
    API_MARKER(BindPipeline, commandBuffer, pipelineBindPoint, _pipeline);
 
-   if (radv_sqtt_dump_pipeline())
+   if (radv_is_instruction_timing_enabled())
       radv_describe_pipeline_bind(cmd_buffer, pipelineBindPoint, pipeline);
 }
 
@@ -899,6 +892,8 @@ radv_add_code_object(struct radv_device *device, struct radv_pipeline *pipeline)
       record->shader_data[i].code = code;
       record->shader_data[i].vgpr_count = shader->config.num_vgprs;
       record->shader_data[i].sgpr_count = shader->config.num_sgprs;
+      record->shader_data[i].scratch_memory_size = shader->config.scratch_bytes_per_wave;
+      record->shader_data[i].wavefront_size = shader->info.wave_size;
       record->shader_data[i].base_address = va & 0xffffffffffff;
       record->shader_data[i].elf_symbol_offset = 0;
       record->shader_data[i].hw_stage = radv_mesa_to_rgp_shader_stage(pipeline, i);
@@ -1021,7 +1016,7 @@ sqtt_CreateGraphicsPipelines(VkDevice _device, VkPipelineCache pipelineCache, ui
    if (result != VK_SUCCESS)
       return result;
 
-   if (radv_sqtt_dump_pipeline()) {
+   if (radv_is_instruction_timing_enabled()) {
       for (unsigned i = 0; i < count; i++) {
          RADV_FROM_HANDLE(radv_pipeline, pipeline, pPipelines[i]);
 
@@ -1057,7 +1052,7 @@ sqtt_CreateComputePipelines(VkDevice _device, VkPipelineCache pipelineCache, uin
    if (result != VK_SUCCESS)
       return result;
 
-   if (radv_sqtt_dump_pipeline()) {
+   if (radv_is_instruction_timing_enabled()) {
       for (unsigned i = 0; i < count; i++) {
          RADV_FROM_HANDLE(radv_pipeline, pipeline, pPipelines[i]);
 
@@ -1090,7 +1085,7 @@ sqtt_DestroyPipeline(VkDevice _device, VkPipeline _pipeline,
    if (!_pipeline)
       return;
 
-   if (radv_sqtt_dump_pipeline())
+   if (radv_is_instruction_timing_enabled())
       radv_unregister_pipeline(device, pipeline);
 
    radv_DestroyPipeline(_device, _pipeline, pAllocator);

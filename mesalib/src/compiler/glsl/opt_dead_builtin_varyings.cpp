@@ -527,7 +527,7 @@ lower_fragdata_array(struct gl_linked_shader *shader)
    varying_info_visitor info(ir_var_shader_out, true);
    info.get(shader->ir, 0, NULL);
 
-   replace_varyings_visitor(shader, &info, 0, 0, 0);
+   replace_varyings_visitor(shader, &info, 0, 0, false);
 }
 
 

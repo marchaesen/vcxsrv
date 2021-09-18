@@ -66,7 +66,7 @@ class PoERun:
                 self.print_error("Memory overflow in the binner; GPU hang")
                 return 1
 
-            result = re.search("bare-metal result: (\S*)", line)
+            result = re.search("hwci: mesa: (\S*)", line)
             if result:
                 if result.group(1) == "pass":
                     return 0

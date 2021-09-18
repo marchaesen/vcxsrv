@@ -60,8 +60,6 @@ struct xwl_eglstream_private {
 
     EGLConfig config;
 
-    SetWindowPixmapProcPtr SetWindowPixmap;
-
     Bool have_egl_damage;
     Bool have_egl_stream_flush;
 
@@ -99,37 +97,6 @@ xwl_eglstream_get(struct xwl_screen *xwl_screen)
 {
     return dixLookupPrivate(&xwl_screen->screen->devPrivates,
                             &xwl_eglstream_private_key);
-}
-
-static GLint
-xwl_eglstream_compile_glsl_prog(GLenum type, const char *source)
-{
-    GLint ok;
-    GLint prog;
-
-    prog = glCreateShader(type);
-    glShaderSource(prog, 1, (const GLchar **) &source, NULL);
-    glCompileShader(prog);
-    glGetShaderiv(prog, GL_COMPILE_STATUS, &ok);
-    if (!ok) {
-        GLchar *info;
-        GLint size;
-
-        glGetShaderiv(prog, GL_INFO_LOG_LENGTH, &size);
-        info = malloc(size);
-        if (info) {
-            glGetShaderInfoLog(prog, size, NULL, info);
-            ErrorF("Failed to compile %s: %s\n",
-                   type == GL_FRAGMENT_SHADER ? "FS" : "VS", info);
-            ErrorF("Program source:\n%s", source);
-            free(info);
-        }
-        else
-            ErrorF("Failed to get shader compilation info.\n");
-        FatalError("GLSL compile failure\n");
-    }
-
-    return prog;
 }
 
 static GLuint
@@ -293,9 +260,11 @@ xwl_eglstream_destroy_pixmap_stream(struct xwl_pixmap *xwl_pixmap)
 }
 
 static void
-xwl_glamor_eglstream_remove_pending_stream(struct xwl_pixmap *xwl_pixmap)
+xwl_eglstream_destroy_pending_cb(PixmapPtr pixmap)
 {
-    if (xwl_pixmap->pending_cb) {
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+
+    if (xwl_pixmap && xwl_pixmap->pending_cb) {
         wl_callback_destroy(xwl_pixmap->pending_cb);
         xwl_pixmap->pending_cb = NULL;
     }
@@ -307,7 +276,7 @@ xwl_glamor_eglstream_destroy_pixmap(PixmapPtr pixmap)
     struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
 
     if (xwl_pixmap && pixmap->refcnt == 1) {
-        xwl_glamor_eglstream_remove_pending_stream(xwl_pixmap);
+        xwl_eglstream_destroy_pending_cb(pixmap);
         xwl_eglstream_destroy_pixmap_stream(xwl_pixmap);
         xwl_pixmap_del_buffer_release_cb(pixmap);
     }
@@ -323,41 +292,6 @@ xwl_glamor_eglstream_get_wl_buffer_for_pixmap(PixmapPtr pixmap)
         return NULL;
 
     return xwl_pixmap->buffer;
-}
-
-static void
-xwl_eglstream_cancel_pending_stream(PixmapPtr pixmap)
-{
-    struct xwl_pixmap *xwl_pixmap;
-
-    xwl_pixmap = xwl_pixmap_get(pixmap);
-    if (xwl_pixmap)
-        xwl_glamor_eglstream_remove_pending_stream(xwl_pixmap);
-}
-
-static void
-xwl_eglstream_set_window_pixmap(WindowPtr window, PixmapPtr pixmap)
-{
-    ScreenPtr screen = window->drawable.pScreen;
-    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
-    struct xwl_eglstream_private *xwl_eglstream =
-        xwl_eglstream_get(xwl_screen);
-    PixmapPtr old_pixmap;
-
-    /* The pixmap for this window has changed.
-     * If that occurs while there is a stream pending, i.e. before the
-     * compositor has finished attaching the consumer for the window's
-     * pixmap's original eglstream, then a producer could no longer be
-     * attached, so the stream would be useless.
-     */
-    old_pixmap = (*screen->GetWindowPixmap) (window);
-    if (old_pixmap && old_pixmap != pixmap)
-        xwl_eglstream_cancel_pending_stream(old_pixmap);
-
-    xwl_screen->screen->SetWindowPixmap = xwl_eglstream->SetWindowPixmap;
-    (*xwl_screen->screen->SetWindowPixmap)(window, pixmap);
-    xwl_eglstream->SetWindowPixmap = xwl_screen->screen->SetWindowPixmap;
-    xwl_screen->screen->SetWindowPixmap = xwl_eglstream_set_window_pixmap;
 }
 
 static const char *
@@ -449,8 +383,7 @@ xwl_eglstream_consumer_ready_callback(void *data,
     struct xwl_eglstream_private *xwl_eglstream =
         xwl_eglstream_get(xwl_screen);
 
-    wl_callback_destroy(callback);
-    xwl_pixmap->pending_cb = NULL;
+    xwl_eglstream_destroy_pending_cb(pixmap);
 
     xwl_glamor_egl_make_current(xwl_screen);
 
@@ -811,8 +744,8 @@ xwl_eglstream_init_shaders(struct xwl_screen *xwl_screen)
          0,  0,
     };
 
-    vs = xwl_eglstream_compile_glsl_prog(GL_VERTEX_SHADER, blit_vs_src);
-    fs = xwl_eglstream_compile_glsl_prog(GL_FRAGMENT_SHADER, blit_fs_src);
+    vs = glamor_compile_glsl_prog(GL_VERTEX_SHADER, blit_vs_src);
+    fs = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, blit_fs_src);
 
     xwl_eglstream->blit_prog = xwl_eglstream_build_glsl_prog(vs, fs);
     glDeleteShader(vs);
@@ -1056,8 +989,10 @@ xwl_glamor_eglstream_init_egl(struct xwl_screen *xwl_screen)
 #endif
 
     eglBindAPI(EGL_OPENGL_API);
-    xwl_screen->egl_context = eglCreateContext(
-        xwl_screen->egl_display, config, EGL_NO_CONTEXT, attrib_list);
+    xwl_screen->egl_context = eglCreateContext(xwl_screen->egl_display,
+                                               EGL_NO_CONFIG_KHR,
+                                               EGL_NO_CONTEXT,
+                                               attrib_list);
     if (xwl_screen->egl_context == EGL_NO_CONTEXT) {
         ErrorF("Failed to create main EGL context: 0x%x\n", eglGetError());
         goto error;
@@ -1109,15 +1044,10 @@ error:
 static Bool
 xwl_glamor_eglstream_init_screen(struct xwl_screen *xwl_screen)
 {
-    struct xwl_eglstream_private *xwl_eglstream =
-        xwl_eglstream_get(xwl_screen);
     ScreenPtr screen = xwl_screen->screen;
 
     /* We can just let glamor handle CreatePixmap */
     screen->DestroyPixmap = xwl_glamor_eglstream_destroy_pixmap;
-
-    xwl_eglstream->SetWindowPixmap = screen->SetWindowPixmap;
-    screen->SetWindowPixmap = xwl_eglstream_set_window_pixmap;
 
     return TRUE;
 }

@@ -167,14 +167,14 @@ setup_counter(const char *name, struct perfcntr *c)
 }
 
 static struct perfcntr *
-parse_perfcntrs(uint32_t gpu_id, const char *perfcntrstr,
+parse_perfcntrs(const struct fd_dev_id *dev_id, const char *perfcntrstr,
                 unsigned *num_perfcntrs)
 {
    struct perfcntr *counters = NULL;
    char *cnames, *s;
    unsigned cnt = 0;
 
-   groups = fd_perfcntrs(gpu_id, &num_groups);
+   groups = fd_perfcntrs(dev_id, &num_groups);
    enabled_counters = calloc(num_groups, sizeof(enabled_counters[0]));
 
    cnames = strdup(perfcntrstr);
@@ -243,19 +243,20 @@ main(int argc, char **argv)
    struct fd_device *dev = fd_device_new(fd);
    struct fd_pipe *pipe = fd_pipe_new(dev, FD_PIPE_3D);
 
-   uint64_t val;
-   fd_pipe_get_param(pipe, FD_GPU_ID, &val);
-   uint32_t gpu_id = val;
+   const struct fd_dev_id *dev_id = fd_pipe_dev_id(pipe);
 
-   printf("got gpu_id: %u\n", gpu_id);
+   printf("got gpu: %s\n", fd_dev_name(dev_id));
 
    struct backend *backend;
-   switch (gpu_id) {
-   case 600 ... 699:
-      backend = a6xx_init(dev, gpu_id);
+   switch (fd_dev_gen(dev_id)) {
+   case 4:
+      backend = a4xx_init(dev, dev_id);
+      break;
+   case 6:
+      backend = a6xx_init(dev, dev_id);
       break;
    default:
-      err(1, "unsupported gpu: a%u", gpu_id);
+      err(1, "unsupported gpu generation: a%uxx", fd_dev_gen(dev_id));
    }
 
    struct kernel *kernel = backend->assemble(backend, in);
@@ -278,13 +279,18 @@ main(int argc, char **argv)
       if (!backend->set_perfcntrs) {
          err(1, "performance counters not supported");
       }
-      perfcntrs = parse_perfcntrs(gpu_id, perfcntrstr, &num_perfcntrs);
+      perfcntrs = parse_perfcntrs(dev_id, perfcntrstr, &num_perfcntrs);
       backend->set_perfcntrs(backend, perfcntrs, num_perfcntrs);
    }
 
    backend->emit_grid(kernel, grid, submit);
 
-   fd_submit_flush(submit, -1, NULL);
+   struct fd_submit_fence fence = {};
+   util_queue_fence_init(&fence.ready);
+
+   fd_submit_flush(submit, -1, &fence);
+
+   util_queue_fence_wait(&fence.ready);
 
    for (int i = 0; i < kernel->num_bufs; i++) {
       fd_bo_cpu_prep(kernel->bufs[i], pipe, FD_BO_PREP_READ);

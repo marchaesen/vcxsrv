@@ -668,7 +668,6 @@ scan_declaration(struct tgsi_shader_info *info,
          info->input_semantic_index[reg] = (ubyte) semIndex;
          info->input_interpolate[reg] = (ubyte)fulldecl->Interp.Interpolate;
          info->input_interpolate_loc[reg] = (ubyte)fulldecl->Interp.Location;
-         info->input_cylindrical_wrap[reg] = (ubyte)fulldecl->Interp.CylindricalWrap;
 
          /* Vertex shaders can have inputs with holes between them. */
          info->num_inputs = MAX2(info->num_inputs, reg + 1);

@@ -30,8 +30,6 @@
 
 struct pipe_debug_callback;
 
-#define RADEON_LLVM_MAX_INPUTS 32 * 4
-
 /* Ideally pass the sample mask input to the PS epilog as v14, which
  * is its usual location, so that the shader doesn't have to add v_mov.
  */
@@ -59,8 +57,6 @@ struct si_shader_context {
 
    struct ac_shader_args args;
    struct ac_shader_abi abi;
-
-   LLVMValueRef inputs[RADEON_LLVM_MAX_INPUTS];
 
    LLVMBasicBlockRef merged_wrap_if_entry_block;
    int merged_wrap_if_label;
@@ -134,10 +130,6 @@ struct si_shader_context {
 
    /* API TES */
    struct ac_arg tes_offchip_addr;
-   /* API GS */
-   struct ac_arg gs_vtx01_offset;  /* in dwords (GFX9) */
-   struct ac_arg gs_vtx23_offset;  /* in dwords (GFX9) */
-   struct ac_arg gs_vtx45_offset;  /* in dwords (GFX9) */
    /* PS */
    struct ac_arg pos_fixed_pt;
    /* CS */
@@ -194,9 +186,8 @@ bool gfx10_ngg_export_prim_early(struct si_shader *shader);
 void gfx10_ngg_build_sendmsg_gs_alloc_req(struct si_shader_context *ctx);
 void gfx10_ngg_build_export_prim(struct si_shader_context *ctx, LLVMValueRef user_edgeflags[3],
                                  LLVMValueRef prim_passthrough);
-void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi, unsigned max_outputs,
-                                     LLVMValueRef *addrs);
-void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi, unsigned max_outputs, LLVMValueRef *addrs);
+void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi);
+void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi);
 void gfx10_ngg_gs_emit_vertex(struct si_shader_context *ctx, unsigned stream, LLVMValueRef *addrs);
 void gfx10_ngg_gs_emit_prologue(struct si_shader_context *ctx);
 void gfx10_ngg_gs_emit_epilogue(struct si_shader_context *ctx);
@@ -242,7 +233,7 @@ bool si_llvm_compile_shader(struct si_screen *sscreen, struct ac_llvm_compiler *
 /* si_shader_llvm_gs.c */
 LLVMValueRef si_is_es_thread(struct si_shader_context *ctx);
 LLVMValueRef si_is_gs_thread(struct si_shader_context *ctx);
-void si_llvm_emit_es_epilogue(struct ac_shader_abi *abi, unsigned max_outputs, LLVMValueRef *addrs);
+void si_llvm_emit_es_epilogue(struct ac_shader_abi *abi);
 void si_preload_esgs_ring(struct si_shader_context *ctx);
 void si_preload_gs_rings(struct si_shader_context *ctx);
 void si_llvm_build_gs_prolog(struct si_shader_context *ctx, union si_shader_part_key *key);
@@ -250,7 +241,7 @@ void si_llvm_init_gs_callbacks(struct si_shader_context *ctx);
 
 /* si_shader_llvm_tess.c */
 void si_llvm_preload_tes_rings(struct si_shader_context *ctx);
-void si_llvm_emit_ls_epilogue(struct ac_shader_abi *abi, unsigned max_outputs, LLVMValueRef *addrs);
+void si_llvm_emit_ls_epilogue(struct ac_shader_abi *abi);
 void si_llvm_build_tcs_epilog(struct si_shader_context *ctx, union si_shader_part_key *key);
 void si_llvm_init_tcs_callbacks(struct si_shader_context *ctx);
 void si_llvm_init_tes_callbacks(struct si_shader_context *ctx, bool ngg_cull_shader);
@@ -266,7 +257,6 @@ void si_llvm_init_ps_callbacks(struct si_shader_context *ctx);
 void si_llvm_init_resource_callbacks(struct si_shader_context *ctx);
 
 /* si_shader_llvm_vs.c */
-void si_llvm_load_vs_inputs(struct si_shader_context *ctx, struct nir_shader *nir);
 void si_llvm_streamout_store_output(struct si_shader_context *ctx, LLVMValueRef const *so_buffers,
                                     LLVMValueRef const *so_write_offsets,
                                     struct pipe_stream_output *stream_out,
@@ -275,7 +265,7 @@ void si_llvm_emit_streamout(struct si_shader_context *ctx, struct si_shader_outp
                             unsigned noutput, unsigned stream);
 void si_llvm_build_vs_exports(struct si_shader_context *ctx,
                               struct si_shader_output_values *outputs, unsigned noutput);
-void si_llvm_emit_vs_epilogue(struct ac_shader_abi *abi, unsigned max_outputs, LLVMValueRef *addrs);
+void si_llvm_emit_vs_epilogue(struct ac_shader_abi *abi);
 void si_llvm_build_vs_prolog(struct si_shader_context *ctx, union si_shader_part_key *key);
 void si_llvm_init_vs_callbacks(struct si_shader_context *ctx, bool ngg_cull_shader);
 

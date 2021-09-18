@@ -330,13 +330,10 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec)
             printf("%s %d %d\n", __func__, exec->vtx.prim_count,
                    exec->vtx.vert_count);
 
-         exec->vtx.info.vertices_per_patch =
-            ctx->TessCtrlProgram.patch_vertices;
-
-         ctx->Driver.DrawGalliumMultiMode(ctx, &exec->vtx.info, 0,
-                                        exec->vtx.draw,
-                                        exec->vtx.mode,
-                                        exec->vtx.prim_count);
+         ctx->Driver.DrawGalliumMultiMode(ctx, &exec->vtx.info,
+                                          exec->vtx.draw,
+                                          exec->vtx.mode,
+                                          exec->vtx.prim_count);
 
          /* Get new storage -- unless asked not to. */
          if (!persistent_mapping)

@@ -98,6 +98,12 @@ mir_use_count(compiler_context *ctx, unsigned value)
                         ++used_count;
         }
 
+        if (ctx->blend_input == value)
+                ++used_count;
+
+        if (ctx->blend_src1 == value)
+                ++used_count;
+
         return used_count;
 }
 

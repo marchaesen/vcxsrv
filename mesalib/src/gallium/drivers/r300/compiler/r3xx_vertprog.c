@@ -369,7 +369,7 @@ static void translate_vertex_program(struct radeon_compiler *c, void *user)
 	struct r300_vertex_program_compiler *compiler = (struct r300_vertex_program_compiler*)c;
 	struct rc_instruction *rci;
 
-	unsigned loops[R500_PVS_MAX_LOOP_DEPTH];
+	unsigned loops[R500_PVS_MAX_LOOP_DEPTH] = {};
 	unsigned loop_depth = 0;
 
 	compiler->code->pos_end = 0;	/* Not supported yet */
@@ -864,7 +864,7 @@ static void rc_emulate_negative_addressing(struct radeon_compiler *compiler, voi
 		transform_negative_addressing(c, lastARL, inst, min_offset);
 }
 
-struct rc_swizzle_caps r300_vertprog_swizzle_caps = {
+const struct rc_swizzle_caps r300_vertprog_swizzle_caps = {
 	.IsNative = &swizzle_is_native,
 	.Split = 0 /* should never be called */
 };

@@ -328,20 +328,18 @@ struct vc4_context {
         /** bitfield of VC4_DIRTY_* */
         uint32_t dirty;
 
-        struct primconvert_context *primconvert;
-
         struct hash_table *fs_cache, *vs_cache;
         struct set *fs_inputs_set;
         uint32_t next_uncompiled_program_id;
         uint64_t next_compiled_program_id;
 
         struct ra_regs *regs;
-        unsigned int reg_class_any[2];
-        unsigned int reg_class_a_or_b[2];
-        unsigned int reg_class_a_or_b_or_acc[2];
-        unsigned int reg_class_r0_r3;
-        unsigned int reg_class_r4_or_a[2];
-        unsigned int reg_class_a[2];
+        struct ra_class *reg_class_any[2];
+        struct ra_class *reg_class_a_or_b[2];
+        struct ra_class *reg_class_a_or_b_or_acc[2];
+        struct ra_class *reg_class_r0_r3;
+        struct ra_class *reg_class_r4_or_a[2];
+        struct ra_class *reg_class_a[2];
 
         uint8_t prim_mode;
 

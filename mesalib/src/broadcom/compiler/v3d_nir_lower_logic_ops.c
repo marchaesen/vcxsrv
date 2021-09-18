@@ -202,12 +202,23 @@ v3d_get_format_swizzle_for_rt(struct v3d_compile *c, int rt)
 }
 
 static nir_ssa_def *
-v3d_nir_get_tlb_color(nir_builder *b, int rt, int sample)
+v3d_nir_get_tlb_color(nir_builder *b, struct v3d_compile *c, int rt, int sample)
 {
-        nir_ssa_def *color[4];
-        for (int i = 0; i < 4; i++)
-                color[i] = nir_load_tlb_color_v3d(b, 1, 32, nir_imm_int(b, rt), .base = sample, .component = i);
+        uint32_t num_components =
+                util_format_get_nr_components(c->fs_key->color_fmt[rt].format);
 
+        nir_ssa_def *color[4];
+        for (int i = 0; i < 4; i++) {
+                if (i < num_components) {
+                        color[i] =
+                                nir_load_tlb_color_v3d(b, 1, 32, nir_imm_int(b, rt),
+                                                       .base = sample,
+                                                       .component = i);
+                } else {
+                        /* These will be DCEd */
+                        color[i] = nir_imm_int(b, 0);
+                }
+        }
         return nir_vec4(b, color[0], color[1], color[2], color[3]);
 }
 
@@ -224,6 +235,22 @@ v3d_emit_logic_op_raw(struct v3d_compile *c, nir_builder *b,
                 nir_ssa_def *dst =
                         v3d_nir_get_swizzled_channel(b, dst_chans, fmt_swz[i]);
                 op_res[i] = v3d_logicop(b, c->fs_key->logicop_func, src, dst);
+
+                /* In Vulkan we configure our integer RTs to clamp, so we need
+                 * to ignore result bits that don't fit in the destination RT
+                 * component size.
+                 */
+                if (c->key->environment == V3D_ENVIRONMENT_VULKAN) {
+                        uint32_t bits =
+                                util_format_get_component_bits(
+                                        c->fs_key->color_fmt[rt].format,
+                                        UTIL_FORMAT_COLORSPACE_RGB, i);
+                        if (bits > 0 && bits < 32) {
+                                nir_ssa_def *mask =
+                                        nir_imm_int(b, (1u << bits) - 1);
+                                op_res[i] = nir_iand(b, op_res[i], mask);
+                        }
+                }
         }
 
         nir_ssa_def *r[4];
@@ -257,7 +284,7 @@ static nir_ssa_def *
 v3d_nir_emit_logic_op(struct v3d_compile *c, nir_builder *b,
                       nir_ssa_def *src, int rt, int sample)
 {
-        nir_ssa_def *dst = v3d_nir_get_tlb_color(b, rt, sample);
+        nir_ssa_def *dst = v3d_nir_get_tlb_color(b, c, rt, sample);
 
         nir_ssa_def *src_chans[4], *dst_chans[4];
         for (unsigned i = 0; i < 4; i++) {

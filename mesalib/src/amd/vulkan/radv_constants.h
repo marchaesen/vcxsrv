@@ -51,9 +51,9 @@
 #define MAX_SO_OUTPUTS                 64
 #define MAX_INLINE_UNIFORM_BLOCK_SIZE  (4ull * 1024 * 1024)
 #define MAX_INLINE_UNIFORM_BLOCK_COUNT 64
-#define MAX_BIND_POINTS                2 /* compute + graphics */
+#define MAX_BIND_POINTS                3 /* compute + graphics + raytracing */
 
-#define NUM_DEPTH_CLEAR_PIPELINES      3
+#define NUM_DEPTH_CLEAR_PIPELINES      2
 #define NUM_DEPTH_DECOMPRESS_PIPELINES 3
 
 /*

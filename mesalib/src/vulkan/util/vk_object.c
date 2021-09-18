@@ -113,12 +113,11 @@ vk_object_multizalloc(struct vk_device *device,
                       const VkAllocationCallbacks *alloc,
                       VkObjectType obj_type)
 {
-   void *ptr = vk_multialloc_alloc2(ma, &device->alloc, alloc,
-                                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   void *ptr = vk_multialloc_zalloc2(ma, &device->alloc, alloc,
+                                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (ptr == NULL)
       return NULL;
 
-   memset(ptr, 0, ma->size);
    vk_object_base_init(device, (struct vk_object_base *)ptr, obj_type);
 
    return ptr;

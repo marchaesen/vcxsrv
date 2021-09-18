@@ -90,6 +90,14 @@ struct radv_meta_saved_state {
       VkExtent2D size;
       VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
    } fragment_shading_rate;
+
+   bool depth_bias_enable;
+   bool primitive_restart_enable;
+   bool rasterizer_discard_enable;
+
+   unsigned logic_op;
+
+   uint32_t color_write_enable;
 };
 
 VkResult radv_device_init_meta_clear_state(struct radv_device *device, bool on_demand);
@@ -128,6 +136,9 @@ void radv_device_finish_meta_fmask_expand_state(struct radv_device *device);
 void radv_device_finish_meta_dcc_retile_state(struct radv_device *device);
 
 void radv_device_finish_meta_copy_vrs_htile_state(struct radv_device *device);
+
+VkResult radv_device_init_accel_struct_build_state(struct radv_device *device);
+void radv_device_finish_accel_struct_build_state(struct radv_device *device);
 
 void radv_meta_save(struct radv_meta_saved_state *saved_state, struct radv_cmd_buffer *cmd_buffer,
                     uint32_t flags);
@@ -209,7 +220,8 @@ void radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *imag
 void radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
                                      const VkImageSubresourceRange *subresourceRange);
 void radv_copy_vrs_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image *vrs_image,
-                         VkExtent2D *extent, struct radv_image *dst_image);
+                         VkExtent2D *extent, struct radv_image *dst_image,
+                         struct radv_buffer *htile_buffer, bool read_htile_value);
 
 void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
                                      struct radv_image *src_image, VkFormat src_format,

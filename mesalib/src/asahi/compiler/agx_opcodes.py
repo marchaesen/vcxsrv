@@ -23,6 +23,7 @@ SOFTWARE.
 
 opcodes = {}
 immediates = {}
+enums = {}
 
 class Opcode(object):
    def __init__(self, name, dests, srcs, imms, is_float, can_eliminate, encoding_16, encoding_32):
@@ -67,6 +68,10 @@ def immediate(name, ctype = "uint32_t"):
    immediates[name] = imm
    return imm
 
+def enum(name, value_dict):
+   enums[name] = value_dict
+   return immediate(name, "enum agx_" + name)
+
 L = (1 << 15)
 _ = None
 
@@ -86,6 +91,34 @@ DIM = immediate("dim", "enum agx_dim")
 SCOREBOARD = immediate("scoreboard")
 ICOND = immediate("icond")
 FCOND = immediate("fcond")
+NEST = immediate("nest")
+INVERT_COND = immediate("invert_cond")
+NEST = immediate("nest")
+TARGET = immediate("target", "agx_block *")
+PERSPECTIVE = immediate("perspective", "bool")
+SR = enum("sr", {
+   0:  'threadgroup_position_in_grid.x',
+   1:  'threadgroup_position_in_grid.y',
+   2:  'threadgroup_position_in_grid.z',
+   4:  'threads_per_threadgroup.x',
+   5:  'threads_per_threadgroup.y',
+   6:  'threads_per_threadgroup.z',
+   8:  'dispatch_threads_per_threadgroup.x',
+   9:  'dispatch_threads_per_threadgroup.y',
+   10: 'dispatch_threads_per_threadgroup.z',
+   48: 'thread_position_in_threadgroup.x',
+   49: 'thread_position_in_threadgroup.y',
+   50: 'thread_position_in_threadgroup.z',
+   51: 'thread_index_in_threadgroup',
+   52: 'thread_index_in_subgroup',
+   53: 'subgroup_index_in_threadgroup',
+   56: 'active_thread_index_in_quad',
+   58: 'active_thread_index_in_subgroup',
+   62: 'backfacing',
+   80: 'thread_position_in_grid.x',
+   81: 'thread_position_in_grid.y',
+   82: 'thread_position_in_grid.z',
+})
 
 FUNOP = lambda x: (x << 28)
 FUNOP_MASK = FUNOP((1 << 14) - 1)
@@ -172,10 +205,39 @@ op("device_load",
 op("wait", (0x38, 0xFF, 2, _), dests = 0,
       can_eliminate = False, imms = [SCOREBOARD])
 
+op("get_sr", (0x72, 0x7F | L, 4, _), dests = 1, imms = [SR])
+
+# Essentially same encoding
+op("ld_tile", (0x49, 0x7F, 8, _), dests = 1, srcs = 0,
+      can_eliminate = False, imms = [FORMAT])
+
+op("st_tile", (0x09, 0x7F, 8, _), dests = 0, srcs = 1,
+      can_eliminate = False, imms = [FORMAT])
+
+for (name, exact) in [("any", 0xC000), ("none", 0xC200)]:
+   op("jmp_exec_" + name, (exact, (1 << 16) - 1, 6, _), dests = 0, srcs = 0,
+         can_eliminate = False, imms = [TARGET])
+
+# TODO: model implicit r0l destinations
+op("pop_exec", (0x52 | (0x3 << 9), ((1 << 48) - 1) ^ (0x3 << 7) ^ (0x3 << 11), 6, _),
+      dests = 0, srcs = 0, can_eliminate = False, imms = [NEST])
+
+for is_float in [False, True]:
+   mod_mask = 0 if is_float else (0x3 << 26) | (0x3 << 38)
+
+   for (cf, cf_op) in [("if", 0), ("else", 1), ("while", 2)]:
+      name = "{}_{}cmp".format(cf, "f" if is_float else "i")
+      exact = 0x42 | (0x0 if is_float else 0x10) | (cf_op << 9)
+      mask = 0x7F | (0x3 << 9) | mod_mask | (0x3 << 44)
+      imms = [NEST, FCOND if is_float else ICOND, INVERT_COND]
+
+      op(name, (exact, mask, 6, _), dests = 0, srcs = 2, can_eliminate = False,
+            imms = imms, is_float = is_float)
+
 op("bitop", (0x7E, 0x7F, 6, _), srcs = 2, imms = [TRUTH_TABLE])
-op("blend", (0x09, 0x7F, 8, _), dests = 0, srcs = 1, imms = [FORMAT], can_eliminate = False)
 op("convert", (0x3E | L, 0x7F | L | (0x3 << 38), 6, _), srcs = 2, imms = [ROUND]) 
-op("ld_vary", (0x21, 0x3F, 8, _), srcs = 1, imms = [CHANNELS])
+op("ld_vary", (0x21, 0xBF, 8, _), srcs = 1, imms = [CHANNELS, PERSPECTIVE])
+op("ld_vary_flat", (0xA1, 0xBF, 8, _), srcs = 1, imms = [CHANNELS])
 op("st_vary", None, dests = 0, srcs = 2, can_eliminate = False)
 op("stop", (0x88, 0xFFFF, 2, _), dests = 0, can_eliminate = False)
 op("trap", (0x08, 0xFFFF, 2, _), dests = 0, can_eliminate = False)

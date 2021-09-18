@@ -47,6 +47,9 @@ static const nir_shader_compiler_options options = {
    .lower_fdph = true,
    .has_fsub = true,
    .has_isub = true,
+   .lower_insert_byte = true,
+   .lower_insert_word = true,
+   .force_indirect_unrolling = nir_var_all,
 };
 
 const nir_shader_compiler_options *
@@ -90,7 +93,7 @@ ir2_optimize_loop(nir_shader *s)
          OPT(s, nir_copy_prop);
          OPT(s, nir_opt_dce);
       }
-      progress |= OPT(s, nir_opt_loop_unroll, nir_var_all);
+      progress |= OPT(s, nir_opt_loop_unroll);
       progress |= OPT(s, nir_opt_if, false);
       progress |= OPT(s, nir_opt_remove_phis);
       progress |= OPT(s, nir_opt_undef);
@@ -689,6 +692,7 @@ emit_tex(struct ir2_context *ctx, nir_tex_instr *tex)
 
    switch (tex->sampler_dim) {
    case GLSL_SAMPLER_DIM_2D:
+   case GLSL_SAMPLER_DIM_EXTERNAL:
       break;
    case GLSL_SAMPLER_DIM_RECT:
       is_rect = true;

@@ -43,6 +43,7 @@ struct nir_spirv_specialization {
 };
 
 enum nir_spirv_debug_level {
+   NIR_SPIRV_DEBUG_LEVEL_INVALID = -1,
    NIR_SPIRV_DEBUG_LEVEL_INFO,
    NIR_SPIRV_DEBUG_LEVEL_WARNING,
    NIR_SPIRV_DEBUG_LEVEL_ERROR,

@@ -134,10 +134,8 @@ renderonly_create_gpu_import_for_resource(struct pipe_resource *rsc,
    err = drmPrimeFDToHandle(ro->kms_fd, fd, &scanout->handle);
    close(fd);
 
-   if (err < 0) {
-      fprintf(stderr, "drmPrimeFDToHandle() failed: %s\n", strerror(errno));
+   if (err < 0)
       goto free_scanout;
-   }
 
    return scanout;
 

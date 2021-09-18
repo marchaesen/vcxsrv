@@ -68,7 +68,7 @@ struct radeon_compiler {
 	 * of the compiler
 	 */
 	/*@{*/
-	struct rc_swizzle_caps * SwizzleCaps;
+	const struct rc_swizzle_caps * SwizzleCaps;
 	/*@}*/
 
 	struct emulate_loop_state loop_state;

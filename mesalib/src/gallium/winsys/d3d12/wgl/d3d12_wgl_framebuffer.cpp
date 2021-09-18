@@ -214,7 +214,7 @@ d3d12_wgl_framebuffer_get_resource(struct stw_winsys_framebuffer *pframebuffer,
 
 struct stw_winsys_framebuffer *
 d3d12_wgl_create_framebuffer(struct pipe_screen *screen,
-                             HDC hDC,
+                             HWND hWnd,
                              int iPixelFormat)
 {
    const struct stw_pixelformat_info *pfi =
@@ -229,7 +229,7 @@ d3d12_wgl_create_framebuffer(struct pipe_screen *screen,
 
    new (fb) struct d3d12_wgl_framebuffer();
 
-   fb->window = WindowFromDC(hDC);
+   fb->window = hWnd;
    fb->screen = d3d12_screen(screen);
    fb->base.destroy = d3d12_wgl_framebuffer_destroy;
    fb->base.resize = d3d12_wgl_framebuffer_resize;

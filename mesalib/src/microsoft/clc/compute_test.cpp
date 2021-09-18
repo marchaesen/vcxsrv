@@ -467,7 +467,7 @@ ComputeTest::run_shader_with_raw_args(Shader shader,
       compile_args.work_props.global_offset_x != 0 ||
       compile_args.work_props.global_offset_y != 0 ||
       compile_args.work_props.global_offset_z != 0;
-   conf.support_work_group_id_offsets =
+   conf.support_workgroup_id_offsets =
       compile_args.work_props.group_id_offset_x != 0 ||
       compile_args.work_props.group_id_offset_y != 0 ||
       compile_args.work_props.group_id_offset_z != 0;
@@ -493,7 +493,7 @@ ComputeTest::run_shader_with_raw_args(Shader shader,
    std::vector<uint8_t> argsbuf(dxil->metadata.kernel_inputs_buf_size);
    std::vector<ComPtr<ID3D12Resource>> argres(shader.dxil->kernel->num_args);
    clc_work_properties_data work_props = compile_args.work_props;
-   if (!conf.support_work_group_id_offsets) {
+   if (!conf.support_workgroup_id_offsets) {
       work_props.group_count_total_x = compile_args.x / conf.local_size[0];
       work_props.group_count_total_y = compile_args.y / conf.local_size[1];
       work_props.group_count_total_z = compile_args.z / conf.local_size[2];

@@ -49,7 +49,7 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    assert(var->data.location >= 0);
 
    const struct glsl_type *type = var->type;
-   if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
+   if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -279,7 +279,7 @@ get_unmoveable_components_masks(nir_shader *shader,
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -380,7 +380,7 @@ remap_slots_and_components(nir_shader *shader, nir_variable_mode mode,
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -513,7 +513,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
             continue;
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, producer->info.stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, producer->info.stage) || var->data.per_view) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -570,7 +570,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
 
          if (!vc_info->initialised) {
             const struct glsl_type *type = in_var->type;
-            if (nir_is_per_vertex_io(in_var, consumer->info.stage) ||
+            if (nir_is_arrayed_io(in_var, consumer->info.stage) ||
                 in_var->data.per_view) {
                assert(glsl_type_is_array(type));
                type = glsl_get_array_element(type);
@@ -582,9 +582,9 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
             vc_info->interp_loc = get_interp_loc(in_var);
             vc_info->is_32bit = glsl_type_is_32bit(type);
             vc_info->is_patch = in_var->data.patch;
-            vc_info->is_mediump =
-               in_var->data.precision == GLSL_PRECISION_MEDIUM ||
-               in_var->data.precision == GLSL_PRECISION_LOW;
+            vc_info->is_mediump = !producer->options->linker_ignore_precision &&
+               (in_var->data.precision == GLSL_PRECISION_MEDIUM ||
+                in_var->data.precision == GLSL_PRECISION_LOW);
             vc_info->is_intra_stage_only = false;
             vc_info->initialised = true;
          }
@@ -636,7 +636,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
 
             if (!vc_info->initialised) {
                const struct glsl_type *type = out_var->type;
-               if (nir_is_per_vertex_io(out_var, producer->info.stage)) {
+               if (nir_is_arrayed_io(out_var, producer->info.stage)) {
                   assert(glsl_type_is_array(type));
                   type = glsl_get_array_element(type);
                }
@@ -647,9 +647,9 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
                vc_info->interp_loc = get_interp_loc(out_var);
                vc_info->is_32bit = glsl_type_is_32bit(type);
                vc_info->is_patch = out_var->data.patch;
-               vc_info->is_mediump =
-                  out_var->data.precision == GLSL_PRECISION_MEDIUM ||
-                  out_var->data.precision == GLSL_PRECISION_LOW;
+               vc_info->is_mediump = !producer->options->linker_ignore_precision &&
+                  (out_var->data.precision == GLSL_PRECISION_MEDIUM ||
+                   out_var->data.precision == GLSL_PRECISION_LOW);
                vc_info->is_intra_stage_only = true;
                vc_info->initialised = true;
             }
@@ -670,12 +670,60 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
    }
 }
 
+static bool
+allow_pack_interp_type(nir_pack_varying_options options, int type)
+{
+   int sel;
+
+   switch (type) {
+   case INTERP_MODE_NONE:
+      sel = nir_pack_varying_interp_mode_none;
+      break;
+   case INTERP_MODE_SMOOTH:
+      sel = nir_pack_varying_interp_mode_smooth;
+      break;
+   case INTERP_MODE_FLAT:
+      sel = nir_pack_varying_interp_mode_flat;
+      break;
+   case INTERP_MODE_NOPERSPECTIVE:
+      sel = nir_pack_varying_interp_mode_noperspective;
+      break;
+   default:
+      return false;
+   }
+
+   return options & sel;
+}
+
+static bool
+allow_pack_interp_loc(nir_pack_varying_options options, int loc)
+{
+   int sel;
+
+   switch (loc) {
+   case INTERPOLATE_LOC_SAMPLE:
+      sel = nir_pack_varying_interp_loc_sample;
+      break;
+   case INTERPOLATE_LOC_CENTROID:
+      sel = nir_pack_varying_interp_loc_centroid;
+      break;
+   case INTERPOLATE_LOC_CENTER:
+      sel = nir_pack_varying_interp_loc_center;
+      break;
+   default:
+      return false;
+   }
+
+   return options & sel;
+}
+
 static void
 assign_remap_locations(struct varying_loc (*remap)[4],
                        struct assigned_comps *assigned_comps,
                        struct varying_component *info,
                        unsigned *cursor, unsigned *comp,
-                       unsigned max_location)
+                       unsigned max_location,
+                       nir_pack_varying_options options)
 {
    unsigned tmp_cursor = *cursor;
    unsigned tmp_comp = *comp;
@@ -683,21 +731,28 @@ assign_remap_locations(struct varying_loc (*remap)[4],
    for (; tmp_cursor < max_location; tmp_cursor++) {
 
       if (assigned_comps[tmp_cursor].comps) {
-         /* We can only pack varyings with matching interpolation types,
-          * interpolation loc must match also.
-          * TODO: i965 can handle interpolation locations that don't match,
-          * but the radeonsi nir backend handles everything as vec4s and so
-          * expects this to be the same for all components. We could make this
-          * check driver specfific or drop it if NIR ever become the only
-          * radeonsi backend.
-          * TODO2: The radeonsi comment above is not true. Only "flat" is per
-          * vec4 (128-bit granularity), all other interpolation qualifiers are
-          * per component (16-bit granularity for float16, 32-bit granularity
-          * otherwise). Each vec4 (128 bits) must be either vec4 or f16vec8.
+         /* We can only pack varyings with matching precision. */
+         if (assigned_comps[tmp_cursor].is_mediump != info->is_mediump) {
+            tmp_comp = 0;
+            continue;
+         }
+
+         /* We can only pack varyings with matching interpolation type
+          * if driver does not support it.
           */
-         if (assigned_comps[tmp_cursor].interp_type != info->interp_type ||
-             assigned_comps[tmp_cursor].interp_loc != info->interp_loc ||
-             assigned_comps[tmp_cursor].is_mediump != info->is_mediump) {
+         if (assigned_comps[tmp_cursor].interp_type != info->interp_type &&
+             (!allow_pack_interp_type(options, assigned_comps[tmp_cursor].interp_type) ||
+              !allow_pack_interp_type(options, info->interp_type))) {
+            tmp_comp = 0;
+            continue;
+         }
+
+         /* We can only pack varyings with matching interpolation location
+          * if driver does not support it.
+          */
+         if (assigned_comps[tmp_cursor].interp_loc != info->interp_loc &&
+             (!allow_pack_interp_loc(options, assigned_comps[tmp_cursor].interp_loc) ||
+              !allow_pack_interp_loc(options, info->interp_loc))) {
             tmp_comp = 0;
             continue;
          }
@@ -764,6 +819,8 @@ compact_components(nir_shader *producer, nir_shader *consumer,
    qsort(varying_comp_info, varying_comp_info_size,
          sizeof(struct varying_component), cmp_varying_component);
 
+   nir_pack_varying_options options = consumer->options->pack_varying_options;
+
    unsigned cursor = 0;
    unsigned comp = 0;
 
@@ -783,10 +840,12 @@ compact_components(nir_shader *producer, nir_shader *consumer,
          }
 
          assign_remap_locations(remap, assigned_comps, info,
-                                &cursor, &comp, MAX_VARYINGS_INCL_PATCH);
+                                &cursor, &comp, MAX_VARYINGS_INCL_PATCH,
+                                options);
       } else {
          assign_remap_locations(remap, assigned_comps, info,
-                                &cursor, &comp, MAX_VARYING);
+                                &cursor, &comp, MAX_VARYING,
+                                options);
 
          /* Check if we failed to assign a remap location. This can happen if
           * for example there are a bunch of unmovable components with
@@ -799,7 +858,8 @@ compact_components(nir_shader *producer, nir_shader *consumer,
             cursor = 0;
             comp = 0;
             assign_remap_locations(remap, assigned_comps, info,
-                                   &cursor, &comp, MAX_VARYING);
+                                   &cursor, &comp, MAX_VARYING,
+                                   options);
          }
       }
    }
@@ -1187,7 +1247,7 @@ nir_assign_io_var_locations(nir_shader *shader, nir_variable_mode mode,
    bool last_partial = false;
    nir_foreach_variable_in_list(var, &io_vars) {
       const struct glsl_type *type = var->type;
-      if (nir_is_per_vertex_io(var, stage)) {
+      if (nir_is_arrayed_io(var, stage)) {
          assert(glsl_type_is_array(type));
          type = glsl_get_array_element(type);
       }
@@ -1332,7 +1392,7 @@ get_linked_variable_io_mask(nir_variable *variable, gl_shader_stage stage)
 {
    const struct glsl_type *type = variable->type;
 
-   if (nir_is_per_vertex_io(variable, stage)) {
+   if (nir_is_arrayed_io(variable, stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }

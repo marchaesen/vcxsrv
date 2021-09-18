@@ -613,6 +613,69 @@ xkb_symbols "dvp" {
     //include "level3(ralt_switch)"
 };
 
+// Macintosh dvorak keyboard layout
+// Based on the Dvorak keyboard layout found in MacOS
+partial alphanumeric_keys
+xkb_symbols "dvorak-mac" {
+    name[Group1]= "English (Dvorak, Macintosh)";
+
+    key <TLDE> { [ grave, asciitilde, dead_grave, grave ] };
+
+    key <AE01> { [            1,      exclam,          exclamdown,                U2044 ] };
+    key <AE02> { [            2,          at,           trademark,             EuroSign ] };
+    key <AE03> { [            3,  numbersign,            sterling,                U2039 ] };
+    key <AE04> { [            4,      dollar,                cent,                U203A ] };
+    key <AE05> { [            5,     percent,            infinity,                UFB01 ] };
+    key <AE06> { [            6, asciicircum,             section,                UFB02 ] };
+    key <AE07> { [            7,   ampersand,           paragraph,         doubledagger ] };
+    key <AE08> { [            8,    asterisk,  enfilledcircbullet,               degree ] };
+    key <AE09> { [            9,   parenleft,         ordfeminine,       periodcentered ] };
+    key <AE10> { [            0,  parenright,           masculine,   singlelowquotemark ] };
+    key <AE11> { [  bracketleft,   braceleft, leftdoublequotemark, rightdoublequotemark ] };
+    key <AE12> { [ bracketright,  braceright, leftsinglequotemark, rightsinglequotemark ] };
+
+    key <AD01> { [ apostrophe,  quotedbl,               ae,           AE ] };
+    key <AD02> { [      comma,      less,    lessthanequal,       macron ] };
+    key <AD03> { [     period,   greater, greaterthanequal,        breve ] };
+    key <AD04> { [          p,         P,         Greek_pi,        U220F ] };
+    key <AD05> { [          y,         Y,              yen,       Aacute ] };
+    key <AD06> { [          f,         F,         function,   Idiaeresis ] };
+    key <AD07> { [          g,         G,        copyright,  doubleacute ] };
+    key <AD08> { [          c,         C,         ccedilla,     Ccedilla ] };
+    key <AD09> { [          r,         R,       registered,     permille ] };
+    key <AD10> { [          l,         L,          notsign,       Ograve ] };
+    key <AD11> { [      slash,  question,         division, questiondown ] };
+    key <AD12> { [      equal,      plus,         notequal,    plusminus ] };
+
+    key <AC01> { [     a,          A,             aring,       Aring ] };
+    key <AC02> { [     o,          O,            oslash,    Ooblique ] };
+    key <AC03> { [     e,          E,        dead_acute,       acute ] };
+    key <AC04> { [     u,          U,    dead_diaeresis,   diaeresis ] };
+    key <AC05> { [     i,          I,   dead_circumflex, asciicircum ] };
+    key <AC06> { [     d,          D, partialderivative, Icircumflex ] };
+    key <AC07> { [     h,          H,          abovedot,      Oacute ] };
+    key <AC08> { [     t,          T,            dagger,       caron ] };
+    key <AC09> { [     n,          N,        dead_tilde,  asciitilde ] };
+    key <AC10> { [     s,          S,            ssharp,      Iacute ] };
+    key <AC11> { [ minus, underscore,            endash,      emdash ] };
+
+    key <LSGT> { [ section, plusminus ] };
+    key <AB01> { [ semicolon, colon,       ellipsis,             Uacute ] };
+    key <AB02> { [         q,     Q,             oe,                 OE ] };
+    key <AB03> { [         j,     J,          U2206,        Ocircumflex ] };
+    key <AB04> { [         k,     K, dead_abovering,              UF8FF ] };
+    key <AB05> { [         x,     X,          U2248,             ogonek ] };
+    key <AB06> { [         b,     B,       integral,           idotless ] };
+    key <AB07> { [         m,     M,             mu,        Acircumflex ] };
+    key <AB08> { [         w,     W,          U2211, doublelowquotemark ] };
+    key <AB09> { [         v,     V,     squareroot,              U25CA ] };
+    key <AB10> { [         z,     Z,    Greek_OMEGA,            cedilla ] };
+
+    key <BKSL> { [ backslash, bar, guillemotleft, guillemotright ] };
+
+    include "level3(ralt_switch)"
+};
+
 // phonetic layout for Russian letters on an US keyboard
 // by Ivan Popov <pin@konvalo.org> 2005-07-17
 

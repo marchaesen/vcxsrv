@@ -28,19 +28,27 @@
 #include "v3dv_private.h"
 #include "vk_format_info.h"
 
+/* The only version specific structure that we need is
+ * TMU_CONFIG_PARAMETER_1. This didn't seem to change significantly from
+ * previous V3D versions and we don't expect that to change, so for now let's
+ * just hardcode the V3D version here.
+ */
+#define V3D_VERSION 41
+#include "broadcom/common/v3d_macros.h"
+#include "broadcom/cle/v3dx_pack.h"
+
 /* Our Vulkan resource indices represent indices in descriptor maps which
  * include all shader stages, so we need to size the arrays below
- * accordingly. For now we only support a maximum of 2 stages for VS and
- * FS.
+ * accordingly. For now we only support a maximum of 3 stages: VS, GS, FS.
  */
-#define MAX_STAGES 2
+#define MAX_STAGES 3
 
 #define MAX_TOTAL_TEXTURE_SAMPLERS (V3D_MAX_TEXTURE_SAMPLERS * MAX_STAGES)
 struct texture_bo_list {
    struct v3dv_bo *tex[MAX_TOTAL_TEXTURE_SAMPLERS];
 };
 
-/* This tracks state BOs forboth textures and samplers, so we
+/* This tracks state BOs for both textures and samplers, so we
  * multiply by 2.
  */
 #define MAX_TOTAL_STATES (2 * V3D_MAX_TEXTURE_SAMPLERS * MAX_STAGES)
@@ -125,7 +133,7 @@ check_push_constants_ubo(struct v3dv_cmd_buffer *cmd_buffer,
 static void
 write_tmu_p0(struct v3dv_cmd_buffer *cmd_buffer,
              struct v3dv_pipeline *pipeline,
-             broadcom_shader_stage stage,
+             enum broadcom_shader_stage stage,
              struct v3dv_cl_out **uniforms,
              uint32_t data,
              struct texture_bo_list *tex_bos,
@@ -146,7 +154,7 @@ write_tmu_p0(struct v3dv_cmd_buffer *cmd_buffer,
    tex_bos->tex[texture_idx] = texture_bo;
 
    struct v3dv_cl_reloc state_reloc =
-      v3dv_descriptor_map_get_texture_shader_state(descriptor_state,
+      v3dv_descriptor_map_get_texture_shader_state(cmd_buffer->device, descriptor_state,
                                                    &pipeline->shared_data->maps[stage]->texture_map,
                                                    pipeline->layout,
                                                    texture_idx);
@@ -169,7 +177,7 @@ write_tmu_p0(struct v3dv_cmd_buffer *cmd_buffer,
 static void
 write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
              struct v3dv_pipeline *pipeline,
-             broadcom_shader_stage stage,
+             enum broadcom_shader_stage stage,
              struct v3dv_cl_out **uniforms,
              uint32_t data,
              struct state_bo_list *state_bos)
@@ -182,7 +190,7 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
           sampler_idx != V3DV_NO_SAMPLER_32BIT_IDX);
 
    struct v3dv_cl_reloc sampler_state_reloc =
-      v3dv_descriptor_map_get_sampler_state(descriptor_state,
+      v3dv_descriptor_map_get_sampler_state(cmd_buffer->device, descriptor_state,
                                             &pipeline->shared_data->maps[stage]->sampler_map,
                                             pipeline->layout, sampler_idx);
 
@@ -219,7 +227,7 @@ write_tmu_p1(struct v3dv_cmd_buffer *cmd_buffer,
 static void
 write_ubo_ssbo_uniforms(struct v3dv_cmd_buffer *cmd_buffer,
                         struct v3dv_pipeline *pipeline,
-                        broadcom_shader_stage stage,
+                        enum broadcom_shader_stage stage,
                         struct v3dv_cl_out **uniforms,
                         enum quniform_contents content,
                         uint32_t data,
@@ -304,26 +312,26 @@ get_texture_size_from_image_view(struct v3dv_image_view *image_view,
       /* We don't u_minify the values, as we are using the image_view
        * extents
        */
-      return image_view->extent.width;
+      return image_view->vk.extent.width;
    case QUNIFORM_IMAGE_HEIGHT:
    case QUNIFORM_TEXTURE_HEIGHT:
-      return image_view->extent.height;
+      return image_view->vk.extent.height;
    case QUNIFORM_IMAGE_DEPTH:
    case QUNIFORM_TEXTURE_DEPTH:
-      return image_view->extent.depth;
+      return image_view->vk.extent.depth;
    case QUNIFORM_IMAGE_ARRAY_SIZE:
    case QUNIFORM_TEXTURE_ARRAY_SIZE:
-      if (image_view->type != VK_IMAGE_VIEW_TYPE_CUBE_ARRAY) {
-         return image_view->last_layer - image_view->first_layer + 1;
+      if (image_view->vk.view_type != VK_IMAGE_VIEW_TYPE_CUBE_ARRAY) {
+         return image_view->vk.layer_count;
       } else {
-         assert((image_view->last_layer - image_view->first_layer + 1) % 6 == 0);
-         return (image_view->last_layer - image_view->first_layer + 1) / 6;
+         assert(image_view->vk.layer_count % 6 == 0);
+         return image_view->vk.layer_count / 6;
       }
    case QUNIFORM_TEXTURE_LEVELS:
-      return image_view->max_level - image_view->base_level + 1;
+      return image_view->vk.level_count;
    case QUNIFORM_TEXTURE_SAMPLES:
-      assert(image_view->image);
-      return image_view->image->samples;
+      assert(image_view->vk.image);
+      return image_view->vk.image->samples;
    default:
       unreachable("Bad texture size field");
    }
@@ -348,11 +356,12 @@ get_texture_size_from_buffer_view(struct v3dv_buffer_view *buffer_view,
 static uint32_t
 get_texture_size(struct v3dv_cmd_buffer *cmd_buffer,
                  struct v3dv_pipeline *pipeline,
-                 broadcom_shader_stage stage,
+                 enum broadcom_shader_stage stage,
                  enum quniform_contents contents,
                  uint32_t data)
 {
-   uint32_t texture_idx = v3d_unit_data_get_unit(data);
+   uint32_t texture_idx = data;
+
    struct v3dv_descriptor_state *descriptor_state =
       v3dv_cmd_buffer_get_descriptor_state(cmd_buffer, pipeline);
 
@@ -392,6 +401,7 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
 
    struct v3dv_job *job = cmd_buffer->state.job;
    assert(job);
+   assert(job->cmd_buffer == cmd_buffer);
 
    struct texture_bo_list tex_bos = { 0 };
    struct state_bo_list state_bos = { 0 };
@@ -477,12 +487,72 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
                                          data));
          break;
 
+      /* We generate this from geometry shaders to cap the generated gl_Layer
+       * to be within the number of layers of the framebuffer so we prevent the
+       * binner from trying to access tile state memory out of bounds (for
+       * layers that don't exist).
+       *
+       * Unfortunately, for secondary command buffers we may not know the
+       * number of layers in the framebuffer at this stage. Since we are
+       * only using this to sanitize the shader and it should not have any
+       * impact on correct shaders that emit valid values for gl_Layer,
+       * we just work around it by using the largest number of layers we
+       * support.
+       *
+       * FIXME: we could do better than this by recording in the job that
+       * the value at this uniform offset is not correct, and patch it when
+       * we execute the secondary command buffer into a primary, since we do
+       * have the correct number of layers at that point, but again, since this
+       * is only for sanityzing the shader and it only affects the specific case
+       * of secondary command buffers without framebuffer info available it
+       * might not be worth the trouble.
+       *
+       * With multiview the number of layers is dictated by the view mask
+       * and not by the framebuffer layers. We do set the job's frame tiling
+       * information correctly from the view mask in that case, however,
+       * secondary command buffers may not have valid frame tiling data,
+       * so when multiview is enabled, we always set the number of layers
+       * from the subpass view mask.
+       */
+      case QUNIFORM_FB_LAYERS: {
+         const struct v3dv_cmd_buffer_state *state = &job->cmd_buffer->state;
+         const uint32_t view_mask =
+            state->pass->subpasses[state->subpass_idx].view_mask;
+
+         uint32_t num_layers;
+         if (view_mask != 0) {
+            num_layers = util_last_bit(view_mask);
+         } else if (job->frame_tiling.layers != 0) {
+            num_layers = job->frame_tiling.layers;
+         } else if (cmd_buffer->state.framebuffer) {
+            num_layers = cmd_buffer->state.framebuffer->layers;
+         } else {
+            assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+            num_layers = 2048;
+#if DEBUG
+            fprintf(stderr, "Skipping gl_LayerID shader sanity check for "
+                            "secondary command buffer\n");
+#endif
+         }
+         cl_aligned_u32(&uniforms, num_layers);
+         break;
+      }
+
+      case QUNIFORM_VIEW_INDEX:
+         cl_aligned_u32(&uniforms, job->cmd_buffer->state.view_index);
+         break;
+
       case QUNIFORM_NUM_WORK_GROUPS:
          assert(job->type == V3DV_JOB_TYPE_GPU_CSD);
          assert(job->csd.wg_count[data] > 0);
          if (wg_count_offsets)
             wg_count_offsets[data] = (uint32_t *) uniforms;
          cl_aligned_u32(&uniforms, job->csd.wg_count[data]);
+         break;
+
+      case QUNIFORM_WORK_GROUP_BASE:
+         assert(job->type == V3DV_JOB_TYPE_GPU_CSD);
+         cl_aligned_u32(&uniforms, job->csd.wg_base[data]);
          break;
 
       case QUNIFORM_SHARED_OFFSET:

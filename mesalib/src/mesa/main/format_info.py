@@ -21,8 +21,6 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from __future__ import division, print_function
-
 import format_parser as parser
 import sys
 
@@ -127,6 +125,8 @@ def get_channel_bits(fmat, chan_name):
          bits = 16 if 'RGBA' in fmat.name else 8
          return bits if fmat.has_channel(chan_name) else 0
       elif fmat.layout == 'atc':
+         return 8 if fmat.has_channel(chan_name) else 0
+      elif fmat.layout == 'other' and ('RG_RB' in fmat.name or 'GR_BR' in fmat.name):
          return 8 if fmat.has_channel(chan_name) else 0
       else:
          assert False

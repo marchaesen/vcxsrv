@@ -555,8 +555,10 @@ swr_create_context(struct pipe_screen *p_screen, void *priv, unsigned flags)
    ctx->pipe.priv = priv;
    ctx->pipe.create_surface = swr_create_surface;
    ctx->pipe.surface_destroy = swr_surface_destroy;
-   ctx->pipe.transfer_map = swr_transfer_map;
-   ctx->pipe.transfer_unmap = swr_transfer_unmap;
+   ctx->pipe.buffer_map = swr_transfer_map;
+   ctx->pipe.buffer_unmap = swr_transfer_unmap;
+   ctx->pipe.texture_map = swr_transfer_map;
+   ctx->pipe.texture_unmap = swr_transfer_unmap;
    ctx->pipe.transfer_flush_region = swr_transfer_flush_region;
 
    ctx->pipe.buffer_subdata = u_default_buffer_subdata;

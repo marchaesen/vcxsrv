@@ -187,7 +187,7 @@ fd_hw_get_query_result(struct fd_context *ctx, struct fd_query *q, bool wait,
 {
    struct fd_hw_query *hq = fd_hw_query(q);
    const struct fd_hw_sample_provider *p = hq->provider;
-   struct fd_hw_sample_period *period;
+   struct fd_hw_sample_period *period, *tmp;
 
    DBG("%p: wait=%d", q, wait);
 
@@ -197,47 +197,10 @@ fd_hw_get_query_result(struct fd_context *ctx, struct fd_query *q, bool wait,
    assert(list_is_empty(&hq->list));
    assert(!hq->period);
 
-   /* if !wait, then check the last sample (the one most likely to
-    * not be ready yet) and bail if it is not ready:
+   /* sum the result across all sample periods.  Start with the last period
+    * so that no-wait will bail quickly.
     */
-   if (!wait) {
-      int ret;
-
-      period = LIST_ENTRY(struct fd_hw_sample_period, hq->periods.prev, list);
-
-      struct fd_resource *rsc = fd_resource(period->end->prsc);
-
-      if (pending(rsc, false)) {
-         assert(!q->base.flushed);
-         tc_assert_driver_thread(ctx->tc);
-
-         /* piglit spec@arb_occlusion_query@occlusion_query_conform
-          * test, and silly apps perhaps, get stuck in a loop trying
-          * to get  query result forever with wait==false..  we don't
-          * wait to flush unnecessarily but we also don't want to
-          * spin forever:
-          */
-         if (hq->no_wait_cnt++ > 5) {
-            fd_context_access_begin(ctx);
-            fd_batch_flush(rsc->track->write_batch);
-            fd_context_access_end(ctx);
-         }
-         return false;
-      }
-
-      if (!rsc->bo)
-         return false;
-
-      ret = fd_resource_wait(
-         ctx, rsc, FD_BO_PREP_READ | FD_BO_PREP_NOSYNC | FD_BO_PREP_FLUSH);
-      if (ret)
-         return false;
-
-      fd_bo_cpu_fini(rsc->bo);
-   }
-
-   /* sum the result across all sample periods: */
-   LIST_FOR_EACH_ENTRY (period, &hq->periods, list) {
+   LIST_FOR_EACH_ENTRY_SAFE_REV (period, tmp, &hq->periods, list) {
       struct fd_hw_sample *start = period->start;
       ASSERTED struct fd_hw_sample *end = period->end;
       unsigned i;
@@ -248,10 +211,18 @@ fd_hw_get_query_result(struct fd_context *ctx, struct fd_query *q, bool wait,
 
       struct fd_resource *rsc = fd_resource(start->prsc);
 
-      if (rsc->track->write_batch) {
+      /* ARB_occlusion_query says:
+       *
+       *     "Querying the state for a given occlusion query forces that
+       *      occlusion query to complete within a finite amount of time."
+       *
+       * So, regardless of whether we are supposed to wait or not, we do need to
+       * flush now.
+       */
+      if (fd_get_query_result_in_driver_thread(q)) {
          tc_assert_driver_thread(ctx->tc);
          fd_context_access_begin(ctx);
-         fd_batch_flush(rsc->track->write_batch);
+         fd_bc_flush_writer(ctx, rsc);
          fd_context_access_end(ctx);
       }
 
@@ -259,7 +230,14 @@ fd_hw_get_query_result(struct fd_context *ctx, struct fd_query *q, bool wait,
       if (!rsc->bo)
          continue;
 
-      fd_resource_wait(ctx, rsc, FD_BO_PREP_READ);
+      if (!wait) {
+         int ret = fd_resource_wait(
+            ctx, rsc, FD_BO_PREP_READ | FD_BO_PREP_NOSYNC | FD_BO_PREP_FLUSH);
+         if (ret)
+            return false;
+      } else {
+         fd_resource_wait(ctx, rsc, FD_BO_PREP_READ);
+      }
 
       void *ptr = fd_bo_map(rsc->bo);
 
@@ -362,7 +340,7 @@ fd_hw_query_prepare(struct fd_batch *batch, uint32_t num_tiles)
    uint32_t tile_stride = batch->next_sample_offset;
 
    if (tile_stride > 0)
-      fd_resource_resize(batch->query_buf, tile_stride * num_tiles);
+      fd_resource_resize(batch->ctx, batch->query_buf, tile_stride * num_tiles);
 
    batch->query_tile_stride = tile_stride;
 

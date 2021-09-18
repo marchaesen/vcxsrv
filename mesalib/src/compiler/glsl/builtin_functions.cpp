@@ -90,6 +90,8 @@
 
 using namespace ir_builder;
 
+static mtx_t builtins_lock = _MTX_INITIALIZER_NP;
+
 /**
  * Availability predicates:
  *  @{
@@ -1296,7 +1298,15 @@ builtin_builder::builtin_builder()
 
 builtin_builder::~builtin_builder()
 {
+   mtx_lock(&builtins_lock);
+
    ralloc_free(mem_ctx);
+   mem_ctx = NULL;
+
+   ralloc_free(shader);
+   shader = NULL;
+
+   mtx_unlock(&builtins_lock);
 }
 
 ir_function_signature *
@@ -7330,6 +7340,8 @@ builtin_builder::_atomic_op2(const char *intrinsic,
    ir_variable *data = in_var(type, "atomic_data");
    MAKE_SIG(type, avail, 2, atomic, data);
 
+   atomic->data.implicit_conversion_prohibited = true;
+
    ir_variable *retval = body.make_temp(type, "atomic_retval");
    body.emit(call(shader->symbols->get_function(intrinsic), retval,
                   sig->parameters));
@@ -7346,6 +7358,8 @@ builtin_builder::_atomic_op3(const char *intrinsic,
    ir_variable *data1 = in_var(type, "atomic_data1");
    ir_variable *data2 = in_var(type, "atomic_data2");
    MAKE_SIG(type, avail, 3, atomic, data1, data2);
+
+   atomic->data.implicit_conversion_prohibited = true;
 
    ir_variable *retval = body.make_temp(type, "atomic_retval");
    body.emit(call(shader->symbols->get_function(intrinsic), retval,
@@ -7753,7 +7767,6 @@ builtin_builder::_helper_invocation()
 
 /* The singleton instance of builtin_builder. */
 static builtin_builder builtins;
-static mtx_t builtins_lock = _MTX_INITIALIZER_NP;
 static uint32_t builtin_users = 0;
 
 /**

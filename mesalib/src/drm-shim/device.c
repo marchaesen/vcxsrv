@@ -57,6 +57,8 @@ memfd_create(const char *name, unsigned int flags)
 /* Global state for the shim shared between libc, core, and driver. */
 struct shim_device shim_device;
 
+long shim_page_size;
+
 static uint32_t
 uint_key_hash(const void *key)
 {
@@ -88,7 +90,21 @@ drm_shim_device_init(void)
    ASSERTED int ret = ftruncate(shim_device.mem_fd, SHIM_MEM_SIZE);
    assert(ret == 0);
 
-   util_vma_heap_init(&shim_device.mem_heap, 4096, SHIM_MEM_SIZE - 4096);
+   /* The man page for mmap() says
+    *
+    *    offset must be a multiple of the page size as returned by
+    *    sysconf(_SC_PAGE_SIZE).
+    *
+    * Depending on the configuration of the kernel, this may not be 4096. Get
+    * this page size once and use it as the page size throughout, ensuring that
+    * are offsets are page-size aligned as required. Otherwise, mmap will fail
+    * with EINVAL.
+    */
+
+   shim_page_size = sysconf(_SC_PAGE_SIZE);
+
+   util_vma_heap_init(&shim_device.mem_heap, shim_page_size,
+                      SHIM_MEM_SIZE - shim_page_size);
 
    drm_shim_driver_init();
 }
@@ -270,7 +286,7 @@ drm_shim_bo_init(struct shim_bo *bo, size_t size)
 {
 
    mtx_lock(&shim_device.mem_lock);
-   bo->mem_addr = util_vma_heap_alloc(&shim_device.mem_heap, size, 4096);
+   bo->mem_addr = util_vma_heap_alloc(&shim_device.mem_heap, size, shim_page_size);
    mtx_unlock(&shim_device.mem_lock);
    assert(bo->mem_addr);
 
@@ -360,6 +376,9 @@ drm_shim_mmap(struct shim_fd *shim_fd, size_t length, int prot, int flags,
               int fd, off_t offset)
 {
    struct shim_bo *bo = (void *)(uintptr_t)offset;
+
+   /* The offset we pass to mmap must be aligned to the page size */
+   assert((bo->mem_addr & (shim_page_size - 1)) == 0);
 
    return mmap(NULL, length, prot, flags, shim_device.mem_fd, bo->mem_addr);
 }

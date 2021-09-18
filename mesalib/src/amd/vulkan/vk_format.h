@@ -121,21 +121,6 @@ vk_format_is_subsampled(VkFormat format)
    return util_format_is_subsampled_422(vk_format_to_pipe_format(format));
 }
 
-static inline VkFormat
-vk_format_depth_only(VkFormat format)
-{
-   switch (format) {
-   case VK_FORMAT_D16_UNORM_S8_UINT:
-      return VK_FORMAT_D16_UNORM;
-   case VK_FORMAT_D24_UNORM_S8_UINT:
-      return VK_FORMAT_X8_D24_UNORM_PACK32;
-   case VK_FORMAT_D32_SFLOAT_S8_UINT:
-      return VK_FORMAT_D32_SFLOAT;
-   default:
-      return format;
-   }
-}
-
 static inline bool
 vk_format_is_int(VkFormat format)
 {
@@ -204,12 +189,6 @@ vk_format_no_srgb(VkFormat format)
       assert(!vk_format_is_srgb(format));
       return format;
    }
-}
-
-static inline VkFormat
-vk_format_stencil_only(VkFormat format)
-{
-   return VK_FORMAT_S8_UINT;
 }
 
 static inline unsigned

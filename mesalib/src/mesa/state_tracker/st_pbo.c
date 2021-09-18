@@ -46,7 +46,9 @@
 
 /* Conversion to apply in the fragment shader. */
 enum st_pbo_conversion {
-   ST_PBO_CONVERT_NONE = 0,
+   ST_PBO_CONVERT_FLOAT = 0,
+   ST_PBO_CONVERT_UINT,
+   ST_PBO_CONVERT_SINT,
    ST_PBO_CONVERT_UINT_TO_SINT,
    ST_PBO_CONVERT_SINT_TO_UINT,
 
@@ -252,6 +254,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
       velem.velems[0].instance_divisor = 0;
       velem.velems[0].vertex_buffer_index = 0;
       velem.velems[0].src_format = PIPE_FORMAT_R32G32_FLOAT;
+      velem.velems[0].dual_slot = false;
 
       cso_set_vertex_elements(cso, &velem);
 
@@ -383,7 +386,8 @@ st_pbo_create_gs(struct st_context *st)
 }
 
 static const struct glsl_type *
-sampler_type_for_target(enum pipe_texture_target target)
+sampler_type_for_target(enum pipe_texture_target target,
+                        enum st_pbo_conversion conv)
 {
    bool is_array = target >= PIPE_TEXTURE_1D_ARRAY;
    static const enum glsl_sampler_dim dim[] = {
@@ -398,7 +402,15 @@ sampler_type_for_target(enum pipe_texture_target target)
       [PIPE_TEXTURE_CUBE_ARRAY] = GLSL_SAMPLER_DIM_CUBE,
    };
 
-   return glsl_sampler_type(dim[target], false, is_array, GLSL_TYPE_FLOAT);
+   static const enum glsl_base_type type[] = {
+      [ST_PBO_CONVERT_FLOAT] = GLSL_TYPE_FLOAT,
+      [ST_PBO_CONVERT_UINT] = GLSL_TYPE_UINT,
+      [ST_PBO_CONVERT_UINT_TO_SINT] = GLSL_TYPE_UINT,
+      [ST_PBO_CONVERT_SINT] = GLSL_TYPE_INT,
+      [ST_PBO_CONVERT_SINT_TO_UINT] = GLSL_TYPE_INT,
+   };
+
+   return glsl_sampler_type(dim[target], false, is_array, type[conv]);
 }
 
 
@@ -472,6 +484,11 @@ create_fs(struct st_context *st, bool download,
    if (download) {
       texcoord = nir_f2i32(&b, nir_channels(&b, coord, TGSI_WRITEMASK_XY));
 
+      if (target == PIPE_TEXTURE_1D) {
+         unsigned sw = 0;
+         texcoord = nir_swizzle(&b, texcoord, &sw, 1);
+      }
+
       if (layer) {
          nir_ssa_def *src_layer = layer;
 
@@ -501,7 +518,8 @@ create_fs(struct st_context *st, bool download,
 
    nir_variable *tex_var =
       nir_variable_create(b.shader, nir_var_uniform,
-                          sampler_type_for_target(target), "tex");
+                          sampler_type_for_target(target, conversion),
+                          "tex");
    tex_var->data.explicit_binding = true;
    tex_var->data.binding = 0;
 
@@ -512,7 +530,9 @@ create_fs(struct st_context *st, bool download,
    tex->sampler_dim = glsl_get_sampler_dim(tex_var->type);
    tex->coord_components =
       glsl_get_sampler_coordinate_components(tex_var->type);
-   tex->dest_type = nir_type_float32;
+   tex->is_array = target >= PIPE_TEXTURE_1D_ARRAY;
+
+   tex->dest_type = nir_get_nir_type_for_glsl_base_type(glsl_get_sampler_result_type(tex_var->type));
    tex->src[0].src_type = nir_tex_src_texture_deref;
    tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
    tex->src[1].src_type = nir_tex_src_sampler_deref;
@@ -529,10 +549,17 @@ create_fs(struct st_context *st, bool download,
       result = nir_umin(&b, result, nir_imm_int(&b, (1u << 31) - 1));
 
    if (download) {
+      static const enum glsl_base_type type[] = {
+         [ST_PBO_CONVERT_FLOAT] = GLSL_TYPE_FLOAT,
+         [ST_PBO_CONVERT_UINT] = GLSL_TYPE_UINT,
+         [ST_PBO_CONVERT_UINT_TO_SINT] = GLSL_TYPE_INT,
+         [ST_PBO_CONVERT_SINT] = GLSL_TYPE_INT,
+         [ST_PBO_CONVERT_SINT_TO_UINT] = GLSL_TYPE_UINT,
+      };
       nir_variable *img_var =
          nir_variable_create(b.shader, nir_var_uniform,
                              glsl_image_type(GLSL_SAMPLER_DIM_BUF, false,
-                                             GLSL_TYPE_FLOAT), "img");
+                                             type[conversion]), "img");
       img_var->data.access = ACCESS_NON_READABLE;
       img_var->data.explicit_binding = true;
       img_var->data.binding = 0;
@@ -542,7 +569,8 @@ create_fs(struct st_context *st, bool download,
                             nir_vec4(&b, pbo_addr, zero, zero, zero),
                             zero,
                             result,
-                            nir_imm_int(&b, 0));
+                            nir_imm_int(&b, 0),
+                            .image_dim = GLSL_SAMPLER_DIM_BUF);
    } else {
       nir_variable *color =
          nir_variable_create(b.shader, nir_var_shader_out, glsl_vec4_type(),
@@ -559,14 +587,18 @@ static enum st_pbo_conversion
 get_pbo_conversion(enum pipe_format src_format, enum pipe_format dst_format)
 {
    if (util_format_is_pure_uint(src_format)) {
+      if (util_format_is_pure_uint(dst_format))
+         return ST_PBO_CONVERT_UINT;
       if (util_format_is_pure_sint(dst_format))
          return ST_PBO_CONVERT_UINT_TO_SINT;
    } else if (util_format_is_pure_sint(src_format)) {
+      if (util_format_is_pure_sint(dst_format))
+         return ST_PBO_CONVERT_SINT;
       if (util_format_is_pure_uint(dst_format))
          return ST_PBO_CONVERT_SINT_TO_UINT;
    }
 
-   return ST_PBO_CONVERT_NONE;
+   return ST_PBO_CONVERT_FLOAT;
 }
 
 void *

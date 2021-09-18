@@ -50,7 +50,7 @@ llvmpipe_create_vs_state(struct pipe_context *pipe,
       return NULL;
    }
 
-   if (LP_DEBUG & DEBUG_TGSI) {
+   if (LP_DEBUG & DEBUG_TGSI && templ->type == PIPE_SHADER_IR_TGSI) {
       debug_printf("llvmpipe: Create vertex shader %p:\n", (void *) vs);
       tgsi_dump(templ->tokens, 0);
    }

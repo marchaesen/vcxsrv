@@ -30,7 +30,7 @@
 
 #include "radeon_swizzle.h"
 
-extern struct rc_swizzle_caps r300_swizzle_caps;
+extern const struct rc_swizzle_caps r300_swizzle_caps;
 
 unsigned int r300FPTranslateRGBSwizzle(unsigned int src, unsigned int swizzle);
 unsigned int r300FPTranslateAlphaSwizzle(unsigned int src, unsigned int swizzle);

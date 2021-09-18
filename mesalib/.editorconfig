@@ -36,6 +36,10 @@ indent_size = 2
 indent_style = space
 indent_size = 2
 
+[*.rst]
+indent_style = space
+indent_size = 3
+
 [*.patch]
 trim_trailing_whitespace = false
 

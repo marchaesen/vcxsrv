@@ -1,0 +1,39 @@
+MOV.i32.ts r1, lane_id
+MOV.i32.id r1, wls_ptr
+MOV.i32 r1, lane_id
+MOV.i32 r1, wls_ptr
+FADD.f32 r0, r1
+TEX.computed.2d.slot0 @r2, @r4:r5:r6:r7
+BRANCH
+BRANCH #0
+BRANCH #0, offset:
+BRANCH u0, offset:-123456789
+BRANCH u0, offset:123456789
+IADD_IMM.i32 r3, #12345
+FADD.v2f16 r0, r1, r0.h0
+MOV.i32.wait01.wait1 r0, r1
+MOV.i32.wait01.return r0, r1
+MOV.i32.reconverge.return r0, r1
+FROUND.f32.rtn.clamp_m1_1 r2, `r2.neg
+
+# An instruction may access no more than a single 64-bit uniform slot.
+FADD.f32 r0, u0, u4
+FADD.f32 r0, u5, u3
+FADD.f32 r0, u5, u6
+
+# An instruction may access no more than 64-bits of combined uniforms and constants.
+FMA.f32 r0, u0, u1, 0x0
+FMA.f32 r0, u0, 0x40490FDB, 0x0
+FMA.f32 r0, 0x3F317218, 0x40490FDB, 0x0
+
+# An instruction may only access uniforms in the default immediate mode.
+MOV.i32.id r0, u0
+MOV.i32.ts r0, u1
+
+# An instruction may access no more than a single special immediate (e.g. lane_id).
+IADD.u32 r0, lane_id, core_id
+IADD.u32.id r0, lane_id, core_id
+IADD.u32.ts r0, tls_ptr, wls_ptr
+IADD.u32.ts r0, tls_ptr, tls_ptr_hi
+IADD.u32.id r0, tls_ptr, tls_ptr_hi
+IADD.u32.id r0, tls_ptr, 0x40490FDB

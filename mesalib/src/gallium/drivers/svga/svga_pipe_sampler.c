@@ -415,6 +415,7 @@ svga_set_sampler_views(struct pipe_context *pipe,
                        unsigned start,
                        unsigned num,
                        unsigned unbind_num_trailing_slots,
+                       bool take_ownership,
                        struct pipe_sampler_view **views)
 {
    struct svga_context *svga = svga_context(pipe);
@@ -427,8 +428,13 @@ svga_set_sampler_views(struct pipe_context *pipe,
    assert(start + num <= ARRAY_SIZE(svga->curr.sampler_views[shader]));
 
    /* Pre-VGPU10 only supports FS textures */
-   if (!svga_have_vgpu10(svga) && shader != PIPE_SHADER_FRAGMENT)
+   if (!svga_have_vgpu10(svga) && shader != PIPE_SHADER_FRAGMENT) {
+      for (unsigned i = 0; i < num; i++) {
+         struct pipe_sampler_view *view = views[i];
+         pipe_sampler_view_reference(&view, NULL);
+      }
       return;
+   }
 
    SVGA_STATS_TIME_PUSH(svga_sws(svga), SVGA_STATS_TIME_SETSAMPLERVIEWS);
 
@@ -448,10 +454,15 @@ svga_set_sampler_views(struct pipe_context *pipe,
    for (i = 0; i < num; i++) {
       enum pipe_texture_target target;
 
-      if (svga->curr.sampler_views[shader][start + i] != views[i]) {
+      any_change |= svga->curr.sampler_views[shader][start + i] != views[i];
+
+      if (take_ownership) {
+         pipe_sampler_view_reference(&svga->curr.sampler_views[shader][start + i],
+               NULL);
+         svga->curr.sampler_views[shader][start + i] = views[i];
+      } else if (svga->curr.sampler_views[shader][start + i] != views[i]) {
          pipe_sampler_view_reference(&svga->curr.sampler_views[shader][start + i],
                                      views[i]);
-         any_change = TRUE;
       }
 
       if (!views[i])

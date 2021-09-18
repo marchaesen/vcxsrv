@@ -13,26 +13,34 @@
 
 #include "vn_common.h"
 
-enum {
-   VN_IMAGE_OWNERSHIP_ACQUIRE = 0,
-   VN_IMAGE_OWNERSHIP_RELEASE = 1,
-};
+/* changing this to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR disables ownership
+ * transfers and can be useful for debugging
+ */
+#define VN_PRESENT_SRC_INTERNAL_LAYOUT VK_IMAGE_LAYOUT_GENERAL
 
-struct vn_image_ownership_cmds {
-   VkCommandBuffer cmds[2];
+struct vn_image_create_deferred_info {
+   VkImageCreateInfo create;
+   VkImageFormatListCreateInfo list;
+   VkImageStencilUsageCreateInfo stencil;
 };
 
 struct vn_image {
    struct vn_object_base base;
 
+   VkSharingMode sharing_mode;
+
    VkMemoryRequirements2 memory_requirements[4];
    VkMemoryDedicatedRequirements dedicated_requirements[4];
+
+   bool is_wsi;
+   bool is_prime_blit_src;
+
    /* For VK_ANDROID_native_buffer, the WSI image owns the memory, */
    VkDeviceMemory private_memory;
-   /* For queue family ownership transfer of WSI images */
-   VkSharingMode sharing_mode;
-   struct vn_image_ownership_cmds *ownership_cmds;
-   struct vn_queue *acquire_queue;
+   /* For VK_ANDROID_external_memory_android_hardware_buffer, real image
+    * creation is deferred until bind image memory.
+    */
+   struct vn_image_create_deferred_info *deferred_info;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_image,
                                base.base,
@@ -41,6 +49,8 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(vn_image,
 
 struct vn_image_view {
    struct vn_object_base base;
+
+   const struct vn_image *image;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_image_view,
                                base.base,
@@ -70,8 +80,14 @@ vn_image_create(struct vn_device *dev,
                 struct vn_image **out_img);
 
 VkResult
-vn_image_android_wsi_init(struct vn_device *dev,
-                          struct vn_image *img,
-                          const VkAllocationCallbacks *alloc);
+vn_image_init_deferred(struct vn_device *dev,
+                       const VkImageCreateInfo *create_info,
+                       struct vn_image *img);
+
+VkResult
+vn_image_create_deferred(struct vn_device *dev,
+                         const VkImageCreateInfo *create_info,
+                         const VkAllocationCallbacks *alloc,
+                         struct vn_image **out_img);
 
 #endif /* VN_IMAGE_H */

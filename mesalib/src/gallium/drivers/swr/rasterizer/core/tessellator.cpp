@@ -2259,7 +2259,7 @@ void CHLSLTessellator::QuadHLSLProcessTessFactors( float tessFactor_Ueq0, float 
     }
 
     // Compute inside TessFactors
-    float insideTessFactor[QUAD_AXES];
+    float insideTessFactor[QUAD_AXES] = {0.0};
     if( m_quadInsideTessFactorReductionAxis == D3D11_TESSELLATOR_QUAD_REDUCTION_1_AXIS )
     {
         switch( m_insideTessFactorReduction )
@@ -2497,7 +2497,7 @@ void CHLSLTessellator::TriHLSLProcessTessFactors( float tessFactor_Ueq0, float t
     }
 
     // Compute inside TessFactor
-    float insideTessFactor;
+    float insideTessFactor = 0.0;
     switch( m_insideTessFactorReduction )
     {
     case D3D11_TESSELLATOR_REDUCTION_MIN:

@@ -256,6 +256,7 @@ glsl_to_nir(struct gl_context *ctx,
    if (shader->info.stage == MESA_SHADER_FRAGMENT) {
       shader->info.fs.pixel_center_integer = sh->Program->info.fs.pixel_center_integer;
       shader->info.fs.origin_upper_left = sh->Program->info.fs.origin_upper_left;
+      shader->info.fs.advanced_blend_modes = sh->Program->info.fs.advanced_blend_modes;
    }
 
    return shader;
@@ -1304,10 +1305,6 @@ nir_visitor::visit(ir_call *ir)
       case nir_intrinsic_image_deref_size:
       case nir_intrinsic_image_deref_atomic_inc_wrap:
       case nir_intrinsic_image_deref_atomic_dec_wrap: {
-         nir_ssa_undef_instr *instr_undef =
-            nir_ssa_undef_instr_create(shader, 1, 32);
-         nir_builder_instr_insert(&b, &instr_undef->instr);
-
          /* Set the image variable dereference. */
          exec_node *param = ir->actual_parameters.get_head();
          ir_dereference *image = (ir_dereference *)param;
@@ -1318,6 +1315,9 @@ nir_visitor::visit(ir_call *ir)
 
          instr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
          param = param->get_next();
+         nir_intrinsic_set_image_dim(instr,
+            (glsl_sampler_dim)type->sampler_dimensionality);
+         nir_intrinsic_set_image_array(instr, type->sampler_array);
 
          /* Set the intrinsic destination. */
          if (ir->return_deref) {
@@ -1360,7 +1360,7 @@ nir_visitor::visit(ir_call *ir)
             if (i < type->coordinate_components())
                srcs[i] = nir_channel(&b, src_addr, i);
             else
-               srcs[i] = &instr_undef->def;
+               srcs[i] = nir_ssa_undef(&b, 1, 32);
          }
 
          instr->src[1] = nir_src_for_ssa(nir_vec(&b, srcs, 4));
@@ -1374,7 +1374,7 @@ nir_visitor::visit(ir_call *ir)
                nir_src_for_ssa(evaluate_rvalue((ir_dereference *)param));
             param = param->get_next();
          } else {
-            instr->src[2] = nir_src_for_ssa(&instr_undef->def);
+            instr->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
          }
 
          /* Set the intrinsic parameters. */
@@ -1635,7 +1635,7 @@ nir_visitor::visit(ir_call *ir)
          nir_ssa_def *val = evaluate_rvalue(param_rvalue);
          nir_src src = nir_src_for_ssa(val);
 
-         nir_src_copy(&call->params[i], &src, call);
+         nir_src_copy(&call->params[i], &src);
       } else if (sig_param->data.mode == ir_var_function_inout) {
          unreachable("unimplemented: inout parameters");
       }
@@ -2274,13 +2274,7 @@ nir_visitor::visit(ir_expression *ir)
       }
       break;
    case ir_binop_dot:
-      switch (ir->operands[0]->type->vector_elements) {
-         case 2: result = nir_fdot2(&b, srcs[0], srcs[1]); break;
-         case 3: result = nir_fdot3(&b, srcs[0], srcs[1]); break;
-         case 4: result = nir_fdot4(&b, srcs[0], srcs[1]); break;
-         default:
-            unreachable("not reached");
-      }
+      result = nir_fdot(&b, srcs[0], srcs[1]);
       break;
    case ir_binop_vector_extract: {
       result = nir_channel(&b, srcs[0], 0);

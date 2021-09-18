@@ -9,7 +9,7 @@ struct sw_winsys;
 
 struct sw_driver_descriptor
 {
-   struct pipe_screen *(*create_screen)(struct sw_winsys *ws);
+   struct pipe_screen *(*create_screen)(struct sw_winsys *ws, bool sw_vk);
    struct {
        const char * const name;
        struct sw_winsys *(*create_winsys)();

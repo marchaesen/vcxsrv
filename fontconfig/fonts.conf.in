@@ -12,8 +12,8 @@
 	The intent of this standard configuration file is to be adequate for
 	most environments.  If you have a reasonably normal environment and
 	have found problems with this configuration, they are probably
-	things that others will also want fixed.  Please submit any
-	problems to the fontconfig bugzilla system located at fontconfig.org
+	things that others will also want fixed.  Please submit any problems
+	to the fontconfig issue tracking system located at fontconfig.org
 
 	Note that the normal 'make install' procedure for fontconfig is to
 	replace any existing fonts.conf file with the new version.  Place

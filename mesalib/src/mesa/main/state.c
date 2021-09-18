@@ -147,44 +147,6 @@ _mesa_update_allow_draw_out_of_order(struct gl_context *ctx)
 }
 
 
-void
-_mesa_update_primitive_id_is_unused(struct gl_context *ctx)
-{
-   /* Only the compatibility profile with display lists needs this. */
-   if (ctx->API != API_OPENGL_COMPAT || ctx->Const.AllowIncorrectPrimitiveId)
-      return;
-
-   /* If all of these are NULL, GLSL is disabled. */
-   struct gl_program *tcs =
-      ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
-   struct gl_program *tes =
-      ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
-   struct gl_program *gs =
-      ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
-   struct gl_program *fs =
-      ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
-
-   /* Update ctx->_PrimitiveIDIsUnused for display list if
-    * allow_incorrect_primitive_id isn't enabled.
-    * We can use merged primitives (see vbo_save) for drawing unless
-    * one program expects a correct primitive-ID value.
-    */
-   /* TODO: it may be possible to relax the restriction in some cases. If the current
-    * geometry shader doesn't read gl_PrimitiveIDIn but does write gl_PrimitiveID,
-    * then the restriction on fragment shaders reading gl_PrimitiveID can be lifted.
-    */
-   ctx->_PrimitiveIDIsUnused = !(
-      (tcs && (BITSET_TEST(tcs->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID) ||
-               tcs->info.inputs_read & VARYING_BIT_PRIMITIVE_ID)) ||
-      (tes && (BITSET_TEST(tes->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID) ||
-               tes->info.inputs_read & VARYING_BIT_PRIMITIVE_ID)) ||
-      (gs && (BITSET_TEST(gs->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID) ||
-              gs->info.inputs_read & VARYING_BIT_PRIMITIVE_ID)) ||
-      (fs && (BITSET_TEST(fs->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID) ||
-              fs->info.inputs_read & VARYING_BIT_PRIMITIVE_ID)));
-}
-
-
 /**
  * Update the ctx->*Program._Current pointers to point to the
  * current/active programs.
@@ -604,7 +566,7 @@ set_vertex_processing_mode(struct gl_context *ctx, gl_vertex_processing_mode m)
       assert(ctx->API != API_OPENGLES);
 
       /* Other parts of the code assume that inputs[VERT_ATTRIB_POS] through
-       * inputs[VERT_ATTRIB_FF_MAX] will be non-NULL.  However, in OpenGL
+       * inputs[VERT_ATTRIB_GENERIC0-1] will be non-NULL.  However, in OpenGL
        * ES 2.0+ or OpenGL core profile, none of these arrays should ever
        * be enabled.
        */

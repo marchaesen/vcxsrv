@@ -29,6 +29,7 @@
 #include <xorg-config.h>
 #endif
 
+#include <libxcvt/libxcvt.h>
 #include "xf86Modes.h"
 #include "xf86Priv.h"
 
@@ -791,4 +792,34 @@ xf86PruneDuplicateModes(DisplayModePtr modes)
     }
 
     return modes;
+}
+
+/*
+ * Generate a CVT standard mode from HDisplay, VDisplay and VRefresh.
+ */
+DisplayModePtr
+xf86CVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
+            Bool Interlaced)
+{
+    struct libxcvt_mode_info *libxcvt_mode_info;
+    DisplayModeRec *Mode = xnfcalloc(1, sizeof(DisplayModeRec));
+
+    libxcvt_mode_info =
+        libxcvt_gen_mode_info(HDisplay, VDisplay, VRefresh, Reduced, Interlaced);
+
+    Mode->VDisplay   = libxcvt_mode_info->vdisplay;
+    Mode->HDisplay   = libxcvt_mode_info->hdisplay;
+    Mode->Clock      = libxcvt_mode_info->dot_clock;
+    Mode->HSyncStart = libxcvt_mode_info->hsync_start;
+    Mode->HSyncEnd   = libxcvt_mode_info->hsync_end;
+    Mode->HTotal     = libxcvt_mode_info->htotal;
+    Mode->VSyncStart = libxcvt_mode_info->vsync_start;
+    Mode->VSyncEnd   = libxcvt_mode_info->vsync_end;
+    Mode->VTotal     = libxcvt_mode_info->vtotal;
+    Mode->VRefresh   = libxcvt_mode_info->vrefresh;
+    Mode->Flags      = libxcvt_mode_info->mode_flags;
+
+    free(libxcvt_mode_info);
+
+    return Mode;
 }

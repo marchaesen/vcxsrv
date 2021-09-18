@@ -107,7 +107,7 @@ static void code_object_to_config(const amd_kernel_code_t *code_object,
 }
 
 /* Asynchronous compute shader compilation. */
-static void si_create_compute_state_async(void *job, int thread_index)
+static void si_create_compute_state_async(void *job, void *gdata, int thread_index)
 {
    struct si_compute *program = (struct si_compute *)job;
    struct si_shader_selector *sel = &program->sel;
@@ -367,6 +367,9 @@ static void si_set_global_binding(struct pipe_context *ctx, unsigned first, unsi
 void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf *cs)
 {
    radeon_begin(cs);
+   radeon_set_sh_reg(cs, R_00B834_COMPUTE_PGM_HI,
+                     S_00B834_DATA(sctx->screen->info.address32_hi >> 8));
+
    radeon_set_sh_reg_seq(cs, R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0, 2);
    /* R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 / SE1,
     * renamed COMPUTE_DESTINATION_EN_SEn on gfx10. */
@@ -423,11 +426,13 @@ void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf 
    }
 
    if (sctx->chip_class >= GFX10) {
-      radeon_set_sh_reg(cs, R_00B890_COMPUTE_USER_ACCUM_0, 0);
-      radeon_set_sh_reg(cs, R_00B894_COMPUTE_USER_ACCUM_1, 0);
-      radeon_set_sh_reg(cs, R_00B898_COMPUTE_USER_ACCUM_2, 0);
-      radeon_set_sh_reg(cs, R_00B89C_COMPUTE_USER_ACCUM_3, 0);
-      radeon_set_sh_reg(cs, R_00B8A0_COMPUTE_PGM_RSRC3, 0);
+      radeon_set_sh_reg_seq(cs, R_00B890_COMPUTE_USER_ACCUM_0, 5);
+      radeon_emit(cs, 0); /* R_00B890_COMPUTE_USER_ACCUM_0 */
+      radeon_emit(cs, 0); /* R_00B894_COMPUTE_USER_ACCUM_1 */
+      radeon_emit(cs, 0); /* R_00B898_COMPUTE_USER_ACCUM_2 */
+      radeon_emit(cs, 0); /* R_00B89C_COMPUTE_USER_ACCUM_3 */
+      radeon_emit(cs, 0); /* R_00B8A0_COMPUTE_PGM_RSRC3 */
+
       radeon_set_sh_reg(cs, R_00B9F4_COMPUTE_DISPATCH_TUNNEL, 0);
    }
    radeon_end();
@@ -533,9 +538,7 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
                              RADEON_PRIO_SHADER_BINARY);
 
    radeon_begin(cs);
-   radeon_set_sh_reg_seq(cs, R_00B830_COMPUTE_PGM_LO, 2);
-   radeon_emit(cs, shader_va >> 8);
-   radeon_emit(cs, S_00B834_DATA(shader_va >> 40));
+   radeon_set_sh_reg(cs, R_00B830_COMPUTE_PGM_LO, shader_va >> 8);
 
    radeon_set_sh_reg_seq(cs, R_00B848_COMPUTE_PGM_RSRC1, 2);
    radeon_emit(cs, config->rsrc1);
@@ -857,6 +860,8 @@ static bool si_check_needs_implicit_sync(struct si_context *sctx)
     *
     *    buffer object and texture stores performed by shaders are not
     *    automatically synchronized
+    *
+    * TODO: Bindless textures are not handled, and thus are not synchronized.
     */
    struct si_shader_info *info = &sctx->cs_shader_state.program->sel.info;
    struct si_samplers *samplers = &sctx->samplers[PIPE_SHADER_COMPUTE];
@@ -890,18 +895,12 @@ static bool si_check_needs_implicit_sync(struct si_context *sctx)
 static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info *info)
 {
    struct si_context *sctx = (struct si_context *)ctx;
+   struct si_screen *sscreen = sctx->screen;
    struct si_compute *program = sctx->cs_shader_state.program;
    const amd_kernel_code_t *code_object = si_compute_get_code_object(program, info->pc);
    int i;
-   /* HW bug workaround when CS threadgroups > 256 threads and async
-    * compute isn't used, i.e. only one compute job can run at a time.
-    * If async compute is possible, the threadgroup size must be limited
-    * to 256 threads on all queues to avoid the bug.
-    * Only GFX6 and certain GFX7 chips are affected.
-    */
-   bool cs_regalloc_hang =
-      (sctx->chip_class == GFX6 || sctx->family == CHIP_BONAIRE || sctx->family == CHIP_KABINI) &&
-      info->block[0] * info->block[1] * info->block[2] > 256;
+   bool cs_regalloc_hang = sscreen->info.has_cs_regalloc_hang_bug &&
+                           info->block[0] * info->block[1] * info->block[2] > 256;
 
    if (cs_regalloc_hang)
       sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_CS_PARTIAL_FLUSH;

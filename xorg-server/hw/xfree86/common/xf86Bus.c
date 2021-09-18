@@ -106,6 +106,37 @@ xf86CallDriverProbe(DriverPtr drv, Bool detect_only)
     return foundScreen;
 }
 
+static screenLayoutPtr
+xf86BusConfigMatch(ScrnInfoPtr scrnInfo, Bool is_gpu) {
+    screenLayoutPtr layout;
+    int i, j;
+
+    for (layout = xf86ConfigLayout.screens; layout->screen != NULL;
+         layout++) {
+        for (i = 0; i < scrnInfo->numEntities; i++) {
+            GDevPtr dev =
+                xf86GetDevFromEntity(scrnInfo->entityList[i],
+                                     scrnInfo->entityInstanceList[i]);
+
+            if (is_gpu) {
+                for (j = 0; j < layout->screen->num_gpu_devices; j++) {
+                    if (dev == layout->screen->gpu_devices[j]) {
+                        /* A match has been found */
+                        return layout;
+                    }
+                }
+            } else {
+                if (dev == layout->screen->device) {
+                    /* A match has been found */
+                    return layout;
+                }
+            }
+        }
+    }
+
+    return NULL;
+}
+
 /**
  * @return TRUE if all buses are configured and set up correctly and FALSE
  * otherwise.
@@ -114,7 +145,7 @@ Bool
 xf86BusConfig(void)
 {
     screenLayoutPtr layout;
-    int i, j;
+    int i;
 
     /*
      * 3 step probe to (hopefully) ensure that we always find at least 1
@@ -170,27 +201,10 @@ xf86BusConfig(void)
      *
      */
     for (i = 0; i < xf86NumScreens; i++) {
-        for (layout = xf86ConfigLayout.screens; layout->screen != NULL;
-             layout++) {
-            Bool found = FALSE;
-
-            for (j = 0; j < xf86Screens[i]->numEntities; j++) {
-
-                GDevPtr dev =
-                    xf86GetDevFromEntity(xf86Screens[i]->entityList[j],
-                                         xf86Screens[i]->entityInstanceList[j]);
-
-                if (dev == layout->screen->device) {
-                    /* A match has been found */
-                    xf86Screens[i]->confScreen = layout->screen;
-                    found = TRUE;
-                    break;
-                }
-            }
-            if (found)
-                break;
-        }
-        if (layout->screen == NULL) {
+        layout = xf86BusConfigMatch(xf86Screens[i], FALSE);
+        if (layout && layout->screen)
+            xf86Screens[i]->confScreen = layout->screen;
+        else {
             /* No match found */
             xf86Msg(X_ERROR,
                     "Screen %d deleted because of no matching config section.\n",
@@ -199,9 +213,12 @@ xf86BusConfig(void)
         }
     }
 
-    /* bind GPU conf screen to protocol screen 0 */
-    for (i = 0; i < xf86NumGPUScreens; i++)
-        xf86GPUScreens[i]->confScreen = xf86Screens[0]->confScreen;
+    /* bind GPU conf screen to the configured protocol screen, or 0 if not configured */
+    for (i = 0; i < xf86NumGPUScreens; i++) {
+        layout = xf86BusConfigMatch(xf86GPUScreens[i], TRUE);
+        int scrnum = (layout && layout->screen) ? layout->screen->screennum : 0;
+        xf86GPUScreens[i]->confScreen = xf86Screens[scrnum]->confScreen;
+    }
 
     /* If no screens left, return now.  */
     if (xf86NumScreens == 0) {

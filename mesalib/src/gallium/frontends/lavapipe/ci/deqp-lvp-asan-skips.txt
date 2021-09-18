@@ -1,0 +1,5 @@
+# Lots of timeouts
+dEQP-VK.texture.filtering.*.combinations.*
+dEQP-VK.binding_model.buffer_device_address.set3.depth3.*
+dEQP-VK.ssbo.layout.*instance_array
+dEQP-VK.tessellation.invariance.*

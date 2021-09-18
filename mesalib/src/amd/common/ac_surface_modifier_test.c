@@ -42,10 +42,7 @@ struct test_entry {
    unsigned char hash[20];
 
    /* u_vector requires power of two sizing */
-   char padding[8];
-#ifdef PIPE_ARCH_X86
-   char padding2[8];
-#endif
+   char padding[sizeof(void*) == 8 ? 8 : 16];
 };
 
 static uint64_t

@@ -47,7 +47,7 @@ ALL_KNOWN_TESTS = \
 	sequence1 \
 	sizes \
 	spin1 spin2 spin3 spin4 \
-	stress1 threestage \
+	stress1 \
 	tsd1 tsd2 tsd3 \
 	valid1 valid2
 

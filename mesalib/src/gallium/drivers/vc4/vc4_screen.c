@@ -204,6 +204,9 @@ vc4_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
         case PIPE_CAP_TEXRECT:
                 return 0;
 
+        case PIPE_CAP_SUPPORTED_PRIM_MODES:
+                return screen->prim_types;
+
         default:
                 return u_pipe_screen_get_param_defaults(pscreen, param);
         }
@@ -406,8 +409,8 @@ vc4_screen_is_format_supported(struct pipe_screen *pscreen,
         }
 
         if ((usage & PIPE_BIND_INDEX_BUFFER) &&
-            format != PIPE_FORMAT_I8_UINT &&
-            format != PIPE_FORMAT_I16_UINT) {
+            format != PIPE_FORMAT_R8_UINT &&
+            format != PIPE_FORMAT_R16_UINT) {
                 return false;
         }
 
@@ -605,6 +608,16 @@ vc4_screen_create(int fd, struct renderonly *ro)
                 pscreen->get_driver_query_group_info = vc4_get_driver_query_group_info;
                 pscreen->get_driver_query_info = vc4_get_driver_query_info;
         }
+
+        /* Generate the bitmask of supported draw primitives. */
+        screen->prim_types = BITFIELD_BIT(PIPE_PRIM_POINTS) |
+                             BITFIELD_BIT(PIPE_PRIM_LINES) |
+                             BITFIELD_BIT(PIPE_PRIM_LINE_LOOP) |
+                             BITFIELD_BIT(PIPE_PRIM_LINE_STRIP) |
+                             BITFIELD_BIT(PIPE_PRIM_TRIANGLES) |
+                             BITFIELD_BIT(PIPE_PRIM_TRIANGLE_STRIP) |
+                             BITFIELD_BIT(PIPE_PRIM_TRIANGLE_FAN);
+
 
         return pscreen;
 

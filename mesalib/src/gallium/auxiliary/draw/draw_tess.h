@@ -84,6 +84,7 @@ struct draw_tess_eval_shader {
 
    unsigned position_output;
    unsigned viewport_index_output;
+   unsigned clipvertex_output;
    unsigned ccdistance_output[PIPE_MAX_CLIP_OR_CULL_DISTANCE_ELEMENT_COUNT];
    unsigned vector_length;
 

@@ -67,14 +67,7 @@ static bool amdgpu_bo_wait(struct radeon_winsys *rws,
          return false;
    }
 
-   bool is_shared = false;
-   if (bo->bo) {
-      simple_mtx_lock(&bo->lock);
-      is_shared = bo->u.real.is_shared;
-      simple_mtx_unlock(&bo->lock);
-   }
-
-   if (is_shared) {
+   if (bo->bo && bo->u.real.is_shared) {
       /* We can't use user fences for shared buffers, because user fences
        * are local to this process only. If we want to wait for all buffer
        * uses in all processes, we have to use amdgpu_bo_wait_for_idle.
@@ -666,22 +659,18 @@ static void amdgpu_bo_slab_destroy(struct radeon_winsys *rws, struct pb_buffer *
 {
    struct amdgpu_winsys *ws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = amdgpu_winsys_bo(_buf);
+   struct pb_slabs *slabs;
 
    assert(!bo->bo);
 
-   if (bo->base.usage & RADEON_FLAG_ENCRYPTED)
-      pb_slab_free(get_slabs(ws,
-                             bo->base.size,
-                             RADEON_FLAG_ENCRYPTED), &bo->u.slab.entry);
-   else
-      pb_slab_free(get_slabs(ws,
-                             bo->base.size,
-                             0), &bo->u.slab.entry);
+   slabs = get_slabs(ws, bo->base.size, bo->base.usage & RADEON_FLAG_ENCRYPTED);
 
    if (bo->base.placement & RADEON_DOMAIN_VRAM)
       ws->slab_wasted_vram -= get_slab_wasted_size(ws, bo);
    else
       ws->slab_wasted_gtt -= get_slab_wasted_size(ws, bo);
+
+   pb_slab_free(slabs, &bo->u.slab.entry);
 }
 
 static const struct pb_vtbl amdgpu_winsys_bo_slab_vtbl = {
@@ -1651,11 +1640,7 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
       if (sws->fd == ws->fd) {
          whandle->handle = bo->u.real.kms_handle;
 
-         simple_mtx_lock(&bo->lock);
-         bool is_shared = bo->u.real.is_shared;
-         simple_mtx_unlock(&bo->lock);
-
-         if (is_shared)
+         if (bo->u.real.is_shared)
             return true;
 
          goto hash_table_set;
@@ -1701,9 +1686,7 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
    _mesa_hash_table_insert(ws->bo_export_table, bo->bo, bo);
    simple_mtx_unlock(&ws->bo_export_table_lock);
 
-   simple_mtx_lock(&bo->lock);
    bo->u.real.is_shared = true;
-   simple_mtx_unlock(&bo->lock);
    return true;
 }
 

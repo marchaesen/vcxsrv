@@ -3,6 +3,8 @@
 //                    Cadèmia Siciliana <l10n@cademiasiciliana.org>
 // 18 July 2018 - Fixed inconsistent 'ì' and 'ù' in it(intl)
 //                Alessandro Pellegrini <pellegrini@dis.uniroma1.it>
+// 28 February 2017 - Added it(fur), please refer to
+//                Fabio Tomat <f.t.public@gmail.com>
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
@@ -27,6 +29,8 @@ xkb_symbols "basic" {
     key <AC10>	{ [    ograve,   ccedilla,           at, dead_cedilla ] };
     key <AC11>	{ [    agrave,     degree,   numbersign, dead_abovering ] };
 
+    key <AB04>	{ [         v,          V, leftdoublequotemark, leftsinglequotemark ]	};
+    key <AB05>	{ [         b,          B, rightdoublequotemark, rightsinglequotemark ] };
     key <AB06>	{ [         n,          N,       ntilde,       Ntilde ]	};
     key <AB08>	{ [     comma,  semicolon,   dead_acute,     multiply ]	};
     key <AB09>	{ [    period,      colon,periodcentered, dead_diaeresis ] };

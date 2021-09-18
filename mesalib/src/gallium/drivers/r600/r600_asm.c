@@ -762,6 +762,8 @@ static int merge_inst_groups(struct r600_bytecode *bc, struct r600_bytecode_alu 
 	struct r600_bytecode_alu *prev[5];
 	struct r600_bytecode_alu *result[5] = { NULL };
 
+        uint8_t interp_xz = 0;
+
 	uint32_t literal[4], prev_literal[4];
 	unsigned nliteral = 0, prev_nliteral = 0;
 
@@ -780,13 +782,24 @@ static int merge_inst_groups(struct r600_bytecode *bc, struct r600_bytecode_alu 
 			      return 0;
 		      if (is_alu_once_inst(prev[i]))
 			      return 0;
+
+                      if (prev[i]->op == ALU_OP2_INTERP_X)
+                         interp_xz |= 1;
+                      if (prev[i]->op == ALU_OP2_INTERP_Z)
+                         interp_xz |= 2;
 		}
 		if (slots[i]) {
 			if (slots[i]->pred_sel)
 				return 0;
 			if (is_alu_once_inst(slots[i]))
 				return 0;
+                        if (slots[i]->op == ALU_OP2_INTERP_X)
+                           interp_xz |= 1;
+                        if (slots[i]->op == ALU_OP2_INTERP_Z)
+                           interp_xz |= 2;
 		}
+                if (interp_xz == 3)
+                   return 0;
 	}
 
 	for (i = 0; i < max_slots; ++i) {

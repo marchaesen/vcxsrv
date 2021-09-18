@@ -184,14 +184,11 @@ pp_run(struct pp_queue_t *ppq, struct pipe_resource *in,
    }
 
    /* restore state we changed */
-   cso_restore_state(cso);
-
-   /* Unbind resources that we have bound. */
-   struct pipe_context *pipe = ppq->p->pipe;
-   pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, NULL);
-   pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, 0, false, NULL);
-   pipe->set_vertex_buffers(pipe, 0, 0, 1, false, NULL);
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0, 3, NULL);
+   cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEWS |
+                          CSO_UNBIND_FS_IMAGE0 |
+                          CSO_UNBIND_VS_CONSTANTS |
+                          CSO_UNBIND_FS_CONSTANTS |
+                          CSO_UNBIND_VERTEX_BUFFER0);
 
    /* restore states not restored by cso */
    if (ppq->p->st) {

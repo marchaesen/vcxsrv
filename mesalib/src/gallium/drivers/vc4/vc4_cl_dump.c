@@ -42,7 +42,7 @@ vc4_dump_cl(void *cl, uint32_t size, bool is_render)
         };
         struct v3d_spec *spec = v3d_spec_load(&devinfo);
 
-        struct clif_dump *clif = clif_dump_init(&devinfo, stderr, true);
+        struct clif_dump *clif = clif_dump_init(&devinfo, stderr, true, false);
 
         uint32_t offset = 0, hw_offset = 0;
         uint8_t *p = cl;

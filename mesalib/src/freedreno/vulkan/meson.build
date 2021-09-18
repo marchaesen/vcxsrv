@@ -29,16 +29,6 @@ tu_entrypoints = custom_target(
   depend_files : vk_entrypoints_gen_depend_files,
 )
 
-tu_extensions_c = custom_target(
-  'tu_extensions.c',
-  input : ['tu_extensions.py', vk_api_xml],
-  output : ['tu_extensions.c', 'tu_extensions.h'],
-  command : [
-    prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--out-c', '@OUTPUT0@',
-    '--out-h', '@OUTPUT1@'
-  ],
-  depend_files : vk_extensions_gen,
-)
 
 libtu_files = files(
   'tu_clear_blit.c',
@@ -60,6 +50,7 @@ libtu_files = files(
   'tu_shader.c',
   'tu_util.c',
   'tu_util.h',
+  'tu_perfetto.h',
   'vk_format.h',
 )
 
@@ -109,15 +100,35 @@ if with_xlib_lease
 endif
 
 if with_freedreno_kgsl
+  tu_flags += '-DTU_USE_KGSL'
   libtu_files += files('tu_kgsl.c')
 else
   libtu_files += files('tu_drm.c')
   tu_deps += dep_libdrm
 endif
 
+tu_tracepoints = custom_target(
+  'tu_tracepoints.[ch]',
+  input: 'tu_tracepoints.py',
+  output: ['tu_tracepoints.c', 'tu_tracepoints.h', 'tu_tracepoints_perfetto.h'],
+  command: [
+    prog_python, '@INPUT@',
+    '-p', join_paths(meson.source_root(), 'src/util/perf/'),
+    '--utrace-src', '@OUTPUT0@',
+    '--utrace-hdr', '@OUTPUT1@',
+    '--perfetto-hdr', '@OUTPUT2@',
+  ],
+  depend_files: u_trace_py,
+)
+
+if with_perfetto
+  libtu_files += ['tu_perfetto.cc', 'tu_perfetto_util.c']
+  tu_deps += dep_perfetto
+endif
+
 libvulkan_freedreno = shared_library(
   'vulkan_freedreno',
-  [libtu_files, tu_entrypoints, tu_extensions_c, freedreno_xml_header_files],
+  [libtu_files, tu_entrypoints, tu_tracepoints, freedreno_xml_header_files],
   include_directories : [
     inc_include,
     inc_src,
@@ -168,14 +179,15 @@ endif
 
 freedreno_icd = custom_target(
   'freedreno_icd',
-  input : 'tu_icd.py',
+  input : [vk_icd_gen, vk_api_xml],
   output : 'freedreno_icd.@0@.json'.format(host_machine.cpu()),
   command : [
-    prog_python, '@INPUT@',
-    '--lib-path', join_paths(get_option('prefix'), get_option('libdir')),
+    prog_python, '@INPUT0@',
+    '--api-version', '1.1', '--xml', '@INPUT1@',
+    '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
+                             'libvulkan_freedreno.so'),
     '--out', '@OUTPUT@',
   ],
-  depend_files : files('tu_extensions.py'),
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
   install : true,

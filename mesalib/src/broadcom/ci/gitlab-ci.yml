@@ -2,51 +2,39 @@
   extends:
     - .baremetal-test-armhf
     - .vc4-rules
-    - .use-arm_test
+    - .use-debian/arm_test
   variables:
     BM_BOOTFS: /boot/raspberrypi_armhf
-    BM_KERNEL_MODULES: vc4
     BM_ROOTFS: /rootfs-armhf
-    GPU_VERSION: vc4-rpi3
     DEQP_EXPECTED_RENDERER: VC4
+    GPU_VERSION: vc4-rpi3
+    HWCI_KERNEL_MODULES: vc4
+    FLAKES_CHANNEL: "#videocore-ci"
   script:
     - ./install/bare-metal/poe-powered.sh
   needs:
-    - job: arm_test
+    - job: debian/arm_test
       artifacts: false
-    - meson-armhf
+    - debian-armhf
   tags:
     - igalia-rpi3
 
-.vc4-rpi3-deqp:armhf:
+vc4-rpi3-gles:armhf:
   extends:
     - .vc4-rpi3-test:armhf
+  parallel: 2
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
-    # The vc4s are so slow that it takes about a minute to get through the
-    # default 500 tests in a group, triggering the serial watchdog.
-    DEQP_RUNNER_OPTIONS: "--tests-per-group 250"
-
-vc4-rpi3-gles2:armhf:
-  extends:
-    - .vc4-rpi3-deqp:armhf
-  parallel: 4
-  variables:
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: vc4-rpi3-gles
     DEQP_VER: gles2
-
-vc4-rpi3-khr-gles2:armhf:
-  extends:
-    - .vc4-rpi3-deqp:armhf
-    - .test-manual
-  variables:
-    DEQP_VER: gles2-khr
 
 vc4-rpi3-egl:armhf:
   extends:
-    - .vc4-rpi3-deqp:armhf
-    - .test-manual
+    - .vc4-rpi3-test:armhf
   variables:
-    BM_START_XORG: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    HWCI_START_XORG: 1
+    DEQP_RUNNER_OPTIONS: "--tests-per-group 250"
     DEQP_VER: egl
 
 .vc4-rpi3-piglit:armhf:
@@ -55,9 +43,9 @@ vc4-rpi3-egl:armhf:
     - .vc4-rpi3-test:armhf
     - .test-manual
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     BM_POE_TIMEOUT: 180
-    BM_START_XORG: 1
+    HWCI_START_XORG: 1
     PIGLIT_PLATFORM: mixed_glx_egl
 
 vc4-rpi3-piglit-quick_gl:armhf:
@@ -80,107 +68,74 @@ vc4-rpi3-piglit-quick_shader:armhf:
   extends:
     - .baremetal-test-armhf
     - .v3d-rules
-    - .use-arm_test
+    - .use-debian/arm_test
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     BM_BOOTFS: /boot/raspberrypi_armhf
-    BM_KERNEL_MODULES: v3d,vc4
     BM_POE_TIMEOUT: 300
     BM_ROOTFS: /rootfs-armhf
     DEQP_EXPECTED_RENDERER: V3D
+    FLAKES_CHANNEL: "#videocore-ci"
     GPU_VERSION: v3d-rpi4
+    HWCI_KERNEL_MODULES: v3d,vc4
   script:
     - ./install/bare-metal/poe-powered.sh
   needs:
-    - arm_test
-    - meson-armhf
+    - debian/arm_test
+    - debian-armhf
   tags:
     - igalia-rpi4
 
-v3d-rpi4-gles31:armhf:
+v3d-rpi4-gles:armhf:
   extends:
     - .v3d-rpi4-test:armhf
-  parallel: 2
+  parallel: 8
   variables:
+    DEQP_SUITE: v3d-rpi4-gles
     DEQP_VER: gles31
-
-v3d-rpi4-gles3:armhf:
-  extends:
-    - .v3d-rpi4-test:armhf
-  parallel: 4
-  variables:
-    DEQP_VER: gles3
-
-v3d-rpi4-gles2:armhf:
-  extends:
-    - .v3d-rpi4-test:armhf
-  variables:
-    DEQP_VER: gles2
-
-v3d-rpi4-khr-gles31:armhf:
-  extends:
-    - .v3d-rpi4-test:armhf
-    - .test-manual
-  variables:
-    DEQP_VER: gles31-khr
-
-v3d-rpi4-khr-gles3:armhf:
-  extends:
-    - .v3d-rpi4-test:armhf
-    - .test-manual
-  variables:
-    DEQP_VER: gles3-khr
-
-v3d-rpi4-khr-gles2:armhf:
-  extends:
-    - .v3d-rpi4-test:armhf
-    - .test-manual
-  variables:
-    DEQP_VER: gles2-khr
 
 v3d-rpi4-egl:armhf:
   extends:
     - .v3d-rpi4-test:armhf
-    - .test-manual
   variables:
-    BM_START_XORG: 1
+    HWCI_START_XORG: 1
     DEQP_VER: egl
 
 v3d-rpi4-piglit:armhf:
   extends:
     - .piglit-test
     - .v3d-rpi4-test:armhf
-    - .test-manual
-  parallel: 3
+  parallel: 4
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
-    BM_START_XORG: 1
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
+    HWCI_START_XORG: 1
     PIGLIT_PLATFORM: mixed_glx_egl
     PIGLIT_PROFILES: all
 
-v3dv-rpi4-vk:armhf:
+v3dv-rpi4-vk:arm64:
   extends:
-    - .baremetal-test-armhf
-    - .use-arm_test
+    - .baremetal-test
+    - .use-debian/arm_test
     - .v3dv-rules
-  parallel: 6
+  parallel: 8
   variables:
-    BARE_METAL_TEST_SCRIPT: "/install/deqp-runner.sh"
-    BM_BOOTFS: /boot/raspberrypi_armhf
-    BM_KERNEL_MODULES: v3d,vc4
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    BM_BOOTFS: /boot/raspberrypi_arm64
     BM_POE_TIMEOUT: 300
-    BM_ROOTFS: /rootfs-armhf
-    CPU: arm7hlf
+    BM_ROOTFS: /rootfs-arm64
     DEQP_EXPECTED_RENDERER: "V3D 4.2"
-    DEQP_FRACTION: 7
+    DEQP_FRACTION: 5
     DEQP_VER: vk
+    FLAKES_CHANNEL: "#videocore-ci"
     GPU_VERSION: v3dv-rpi4
-    VK_CPU: arm7hlf
+    HWCI_KERNEL_MODULES: v3d,vc4
+    MINIO_ARTIFACT_NAME: mesa-arm64
     VK_DRIVER: broadcom
   script:
     - ./install/bare-metal/poe-powered.sh
   needs:
-    - arm_test
-    - meson-armhf
+    - debian/arm_test
+    - job: debian-arm64
+      artifacts: false
   tags:
     - igalia-rpi4

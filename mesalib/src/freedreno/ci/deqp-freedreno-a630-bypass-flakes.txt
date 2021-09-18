@@ -9,3 +9,6 @@
 # fails these tests and qcom apparently noted the failure at one point
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2017
 dEQP-VK.renderpass.*separate_channels.*
+
+# Flakes in VK-GL-CTS 1.2.7.0
+dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_saturation

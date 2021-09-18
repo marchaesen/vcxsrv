@@ -200,7 +200,7 @@ FcCacheIsMmapSafe (int fd)
 	    status =  use ? MMAP_USE : MMAP_DONT_USE;
 	else
 	    status = MMAP_CHECK_FS;
-	(void) fc_atomic_ptr_cmpexch (&static_status, NULL, (void *) status);
+	(void) fc_atomic_ptr_cmpexch (&static_status, NULL, (void *) (intptr_t) status);
     }
 
     if (status == MMAP_CHECK_FS)
@@ -560,6 +560,7 @@ retry:
     FcMutexInit (lock);
     if (!fc_atomic_ptr_cmpexch (&cache_lock, NULL, lock)) {
       FcMutexFinish (lock);
+      free (lock);
       goto retry;
     }
 
@@ -1176,7 +1177,7 @@ FcCache *
 FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
 {
     int	fd;
-    FcCache *cache;
+    FcCache *cache = NULL;
     struct stat	my_file_stat;
     FcConfig *config;
 
@@ -1186,11 +1187,13 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
     if (!config)
 	return NULL;
     fd = FcDirCacheOpenFile (cache_file, file_stat);
-    if (fd < 0)
-	return NULL;
-    cache = FcDirCacheMapFd (config, fd, file_stat, NULL);
+    if (fd >= 0)
+    {
+	cache = FcDirCacheMapFd (config, fd, file_stat, NULL);
+	close (fd);
+    }
     FcConfigDestroy (config);
-    close (fd);
+
     return cache;
 }
 

@@ -285,11 +285,18 @@ bool ShaderFromNirProcessor::process_uniforms(nir_variable *uniform)
          sh_info().indirect_files |= 1 << TGSI_FILE_IMAGE;
    }
 
-   if (uniform->type->is_image()) {
-      ++m_image_count;
-   }
-
    return true;
+}
+
+void ShaderFromNirProcessor::set_shader_info(const nir_shader *sh)
+{
+   m_image_count = sh->info.num_images;
+   do_set_shader_info(sh);
+}
+
+void ShaderFromNirProcessor::do_set_shader_info(const nir_shader *sh)
+{
+   (void)sh;
 }
 
 bool ShaderFromNirProcessor::scan_inputs_read(const nir_shader *sh)

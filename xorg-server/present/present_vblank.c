@@ -42,37 +42,38 @@ present_vblank_notify(present_vblank_ptr vblank, CARD8 kind, CARD8 mode, uint64_
     }
 }
 
-present_vblank_ptr
-present_vblank_create(WindowPtr window,
-                      PixmapPtr pixmap,
-                      CARD32 serial,
-                      RegionPtr valid,
-                      RegionPtr update,
-                      int16_t x_off,
-                      int16_t y_off,
-                      RRCrtcPtr target_crtc,
-                      SyncFence *wait_fence,
-                      SyncFence *idle_fence,
-                      uint32_t options,
-                      const uint32_t *capabilities,
-                      present_notify_ptr notifies,
-                      int num_notifies,
-                      uint64_t target_msc,
-                      uint64_t crtc_msc)
+/* The memory vblank points to must be 0-initialized before calling this function.
+ *
+ * If this function returns FALSE, present_vblank_destroy must be called to clean
+ * up.
+ */
+Bool
+present_vblank_init(present_vblank_ptr vblank,
+                    WindowPtr window,
+                    PixmapPtr pixmap,
+                    CARD32 serial,
+                    RegionPtr valid,
+                    RegionPtr update,
+                    int16_t x_off,
+                    int16_t y_off,
+                    RRCrtcPtr target_crtc,
+                    SyncFence *wait_fence,
+                    SyncFence *idle_fence,
+                    uint32_t options,
+                    const uint32_t capabilities,
+                    present_notify_ptr notifies,
+                    int num_notifies,
+                    uint64_t target_msc,
+                    uint64_t crtc_msc)
 {
     ScreenPtr                   screen = window->drawable.pScreen;
     present_window_priv_ptr     window_priv = present_get_window_priv(window, TRUE);
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
-    present_vblank_ptr          vblank;
     PresentFlipReason           reason = PRESENT_FLIP_REASON_UNKNOWN;
 
     if (target_crtc) {
         screen_priv = present_screen_priv(target_crtc->pScreen);
     }
-
-    vblank = calloc (1, sizeof (present_vblank_rec));
-    if (!vblank)
-        return NULL;
 
     xorg_list_append(&vblank->window_list, &window_priv->vblank);
     xorg_list_init(&vblank->event_queue);
@@ -80,8 +81,6 @@ present_vblank_create(WindowPtr window,
     vblank->screen = screen;
     vblank->window = window;
     vblank->pixmap = pixmap;
-
-    screen_priv->create_event_id(window_priv, vblank);
 
     if (pixmap) {
         vblank->kind = PresentCompleteKindPixmap;
@@ -111,17 +110,16 @@ present_vblank_create(WindowPtr window,
     vblank->notifies = notifies;
     vblank->num_notifies = num_notifies;
     vblank->has_suboptimal = (options & PresentOptionSuboptimal);
-    vblank->flip_idler = FALSE;
 
     if (pixmap != NULL &&
         !(options & PresentOptionCopy) &&
-        capabilities) {
+        screen_priv->check_flip) {
         if (msc_is_after(target_msc, crtc_msc) &&
             screen_priv->check_flip (target_crtc, window, pixmap, TRUE, valid, x_off, y_off, &reason))
         {
             vblank->flip = TRUE;
             vblank->sync_flip = TRUE;
-        } else if ((*capabilities & PresentCapabilityAsync) &&
+        } else if ((capabilities & PresentCapabilityAsync) &&
             screen_priv->check_flip (target_crtc, window, pixmap, FALSE, valid, x_off, y_off, &reason))
         {
             vblank->flip = TRUE;
@@ -146,10 +144,42 @@ present_vblank_create(WindowPtr window,
                       vblank->event_id, vblank, target_msc,
                       vblank->pixmap->drawable.id, vblank->window->drawable.id,
                       target_crtc, vblank->flip, vblank->sync_flip, vblank->serial));
-    return vblank;
+    return TRUE;
 
 no_mem:
     vblank->notifies = NULL;
+    return FALSE;
+}
+
+present_vblank_ptr
+present_vblank_create(WindowPtr window,
+                      PixmapPtr pixmap,
+                      CARD32 serial,
+                      RegionPtr valid,
+                      RegionPtr update,
+                      int16_t x_off,
+                      int16_t y_off,
+                      RRCrtcPtr target_crtc,
+                      SyncFence *wait_fence,
+                      SyncFence *idle_fence,
+                      uint32_t options,
+                      const uint32_t capabilities,
+                      present_notify_ptr notifies,
+                      int num_notifies,
+                      uint64_t target_msc,
+                      uint64_t crtc_msc)
+{
+    present_vblank_ptr vblank = calloc(1, sizeof(present_vblank_rec));
+
+    if (!vblank)
+        return NULL;
+
+    if (present_vblank_init(vblank, window, pixmap, serial, valid, update,
+                            x_off, y_off, target_crtc, wait_fence, idle_fence,
+                            options, capabilities, notifies, num_notifies,
+                            target_msc, crtc_msc))
+        return vblank;
+
     present_vblank_destroy(vblank);
     return NULL;
 }

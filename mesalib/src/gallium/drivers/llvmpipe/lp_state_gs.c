@@ -51,7 +51,7 @@ llvmpipe_create_gs_state(struct pipe_context *pipe,
       goto no_state;
 
    /* debug */
-   if (LP_DEBUG & DEBUG_TGSI) {
+   if (LP_DEBUG & DEBUG_TGSI && templ->type == PIPE_SHADER_IR_TGSI) {
       debug_printf("llvmpipe: Create geometry shader %p:\n", (void *)state);
       tgsi_dump(templ->tokens, 0);
    }

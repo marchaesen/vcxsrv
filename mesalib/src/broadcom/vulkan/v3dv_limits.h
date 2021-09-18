@@ -44,7 +44,7 @@
 #define MAX_INPUT_ATTACHMENTS 4
 
 #define MAX_UNIFORM_BUFFERS 12
-#define MAX_STORAGE_BUFFERS 4
+#define MAX_STORAGE_BUFFERS 8
 
 #define MAX_DYNAMIC_UNIFORM_BUFFERS 8
 #define MAX_DYNAMIC_STORAGE_BUFFERS 4
@@ -52,6 +52,8 @@
                              MAX_DYNAMIC_STORAGE_BUFFERS)
 
 #define MAX_RENDER_TARGETS 4
+
+#define MAX_MULTIVIEW_VIEW_COUNT 16
 
 /* These are tunable parameters in the HW design, but all the V3D
  * implementations agree.
@@ -68,6 +70,5 @@
 #define PAGE_UB_ROWS_TIMES_1_5 ((PAGE_UB_ROWS * 3) >> 1)
 #define PAGE_CACHE_UB_ROWS (V3D_PAGE_CACHE_SIZE / V3D_UIFBLOCK_ROW_SIZE)
 #define PAGE_CACHE_MINUS_1_5_UB_ROWS (PAGE_CACHE_UB_ROWS - PAGE_UB_ROWS_TIMES_1_5)
-
 
 #endif /* V3DV_LIMITS_H */

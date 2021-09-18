@@ -63,6 +63,20 @@ cache_dump_stats(struct v3dv_pipeline_cache *cache)
    fprintf(stderr, "  cache hit  count:   %d\n", cache->stats.hit);
 }
 
+static void
+pipeline_cache_lock(struct v3dv_pipeline_cache *cache)
+{
+   if (!cache->externally_synchronized)
+      pthread_mutex_lock(&cache->mutex);
+}
+
+static void
+pipeline_cache_unlock(struct v3dv_pipeline_cache *cache)
+{
+   if (!cache->externally_synchronized)
+      pthread_mutex_unlock(&cache->mutex);
+}
+
 void
 v3dv_pipeline_cache_upload_nir(struct v3dv_pipeline *pipeline,
                                struct v3dv_pipeline_cache *cache,
@@ -75,10 +89,10 @@ v3dv_pipeline_cache_upload_nir(struct v3dv_pipeline *pipeline,
    if (cache->nir_stats.count > V3DV_MAX_PIPELINE_CACHE_ENTRIES)
       return;
 
-   pthread_mutex_lock(&cache->mutex);
+   pipeline_cache_lock(cache);
    struct hash_entry *entry =
       _mesa_hash_table_search(cache->nir_cache, sha1_key);
-   pthread_mutex_unlock(&cache->mutex);
+   pipeline_cache_unlock(cache);
    if (entry)
       return;
 
@@ -91,7 +105,7 @@ v3dv_pipeline_cache_upload_nir(struct v3dv_pipeline *pipeline,
       return;
    }
 
-   pthread_mutex_lock(&cache->mutex);
+   pipeline_cache_lock(cache);
    /* Because ralloc isn't thread-safe, we have to do all this inside the
     * lock.  We could unlock for the big memcpy but it's probably not worth
     * the hassle.
@@ -99,7 +113,7 @@ v3dv_pipeline_cache_upload_nir(struct v3dv_pipeline *pipeline,
    entry = _mesa_hash_table_search(cache->nir_cache, sha1_key);
    if (entry) {
       blob_finish(&blob);
-      pthread_mutex_unlock(&cache->mutex);
+      pipeline_cache_unlock(cache);
       return;
    }
 
@@ -122,7 +136,7 @@ v3dv_pipeline_cache_upload_nir(struct v3dv_pipeline *pipeline,
 
    _mesa_hash_table_insert(cache->nir_cache, snir->sha1_key, snir);
 
-   pthread_mutex_unlock(&cache->mutex);
+   pipeline_cache_unlock(cache);
 }
 
 nir_shader*
@@ -143,12 +157,12 @@ v3dv_pipeline_cache_search_for_nir(struct v3dv_pipeline *pipeline,
 
    const struct serialized_nir *snir = NULL;
 
-   pthread_mutex_lock(&cache->mutex);
+   pipeline_cache_lock(cache);
    struct hash_entry *entry =
       _mesa_hash_table_search(cache->nir_cache, sha1_key);
    if (entry)
       snir = entry->data;
-   pthread_mutex_unlock(&cache->mutex);
+   pipeline_cache_unlock(cache);
 
    if (snir) {
       struct blob_reader blob;
@@ -185,6 +199,7 @@ v3dv_pipeline_cache_search_for_nir(struct v3dv_pipeline *pipeline,
 void
 v3dv_pipeline_cache_init(struct v3dv_pipeline_cache *cache,
                          struct v3dv_device *device,
+                         VkPipelineCacheCreateFlags flags,
                          bool cache_enabled)
 {
    cache->device = device;
@@ -202,6 +217,9 @@ v3dv_pipeline_cache_init(struct v3dv_pipeline_cache *cache,
       cache->stats.miss = 0;
       cache->stats.hit = 0;
       cache->stats.count = 0;
+
+      cache->externally_synchronized = flags &
+         VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT;
    } else {
       cache->nir_cache = NULL;
       cache->cache = NULL;
@@ -229,7 +247,8 @@ v3dv_pipeline_shared_data_write_to_blob(const struct v3dv_pipeline_shared_data *
  */
 struct v3dv_pipeline_shared_data *
 v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
-                                        unsigned char sha1_key[20])
+                                        unsigned char sha1_key[20],
+                                        bool *cache_hit)
 {
    if (!cache || !cache->cache)
       return NULL;
@@ -241,7 +260,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
       fprintf(stderr, "pipeline cache %p, search pipeline with key %s\n", cache, sha1buf);
    }
 
-   pthread_mutex_lock(&cache->mutex);
+   pipeline_cache_lock(cache);
 
    struct hash_entry *entry =
       _mesa_hash_table_search(cache->cache, sha1_key);
@@ -252,6 +271,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
       assert(cache_entry);
 
       cache->stats.hit++;
+      *cache_hit = true;
       if (debug_cache) {
          fprintf(stderr, "\tcache hit: %p\n", cache_entry);
          if (dump_stats)
@@ -261,7 +281,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
 
       v3dv_pipeline_shared_data_ref(cache_entry);
 
-      pthread_mutex_unlock(&cache->mutex);
+      pipeline_cache_unlock(cache);
 
       return cache_entry;
    }
@@ -273,7 +293,7 @@ v3dv_pipeline_cache_search_for_pipeline(struct v3dv_pipeline_cache *cache,
          cache_dump_stats(cache);
    }
 
-   pthread_mutex_unlock(&cache->mutex);
+   pipeline_cache_unlock(cache);
 
 #ifdef ENABLE_SHADER_CACHE
    struct v3dv_device *device = cache->device;
@@ -325,11 +345,11 @@ v3dv_pipeline_shared_data_destroy(struct v3dv_device *device,
       if (shared_data->variants[stage] != NULL)
          v3dv_shader_variant_destroy(device, shared_data->variants[stage]);
 
-      /* We don't free the vertex_bin descriptor maps as we are sharing them
-       * with the vertex shader.
+      /* We don't free binning descriptor maps as we are sharing them
+       * with the render shaders.
        */
       if (shared_data->maps[stage] != NULL &&
-          stage != BROADCOM_SHADER_VERTEX_BIN) {
+          !broadcom_shader_stage_is_binning(stage)) {
          vk_free(&device->vk.alloc, shared_data->maps[stage]);
       }
    }
@@ -404,12 +424,12 @@ pipeline_cache_upload_shared_data(struct v3dv_pipeline_cache *cache,
    if (cache->stats.count > V3DV_MAX_PIPELINE_CACHE_ENTRIES)
       return;
 
-   pthread_mutex_lock(&cache->mutex);
+   pipeline_cache_lock(cache);
    struct hash_entry *entry =
       _mesa_hash_table_search(cache->cache, shared_data->sha1_key);
 
    if (entry) {
-      pthread_mutex_unlock(&cache->mutex);
+      pipeline_cache_unlock(cache);
       return;
    }
 
@@ -426,7 +446,7 @@ pipeline_cache_upload_shared_data(struct v3dv_pipeline_cache *cache,
          cache_dump_stats(cache);
    }
 
-   pthread_mutex_unlock(&cache->mutex);
+   pipeline_cache_unlock(cache);
 
 #ifdef ENABLE_SHADER_CACHE
    /* If we are being called from a on-disk-cache hit, we can skip writing to
@@ -492,7 +512,7 @@ shader_variant_create_from_blob(struct v3dv_device *device,
 {
    VkResult result;
 
-   broadcom_shader_stage stage = blob_read_uint32(blob);
+   enum broadcom_shader_stage stage = blob_read_uint32(blob);
 
    uint32_t prog_data_size = blob_read_uint32(blob);
    /* FIXME: as we include the stage perhaps we can avoid prog_data_size? */
@@ -563,8 +583,11 @@ v3dv_pipeline_shared_data_create_from_blob(struct v3dv_pipeline_cache *cache,
          return NULL;
 
       memcpy(maps[stage], current_maps, sizeof(struct v3dv_descriptor_maps));
-      if (stage == BROADCOM_SHADER_VERTEX)
-         maps[BROADCOM_SHADER_VERTEX_BIN] = maps[stage];
+      if (broadcom_shader_stage_is_render_with_binning(stage)) {
+         enum broadcom_shader_stage bin_stage =
+            broadcom_binning_shader_stage_for_render_stage(stage);
+            maps[bin_stage] = maps[stage];
+      }
    }
 
    uint8_t variant_count = blob_read_uint8(blob);
@@ -656,7 +679,7 @@ pipeline_cache_load(struct v3dv_pipeline_cache *cache,
    }
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_CreatePipelineCache(VkDevice _device,
                          const VkPipelineCacheCreateInfo *pCreateInfo,
                          const VkAllocationCallbacks *pAllocator,
@@ -666,7 +689,6 @@ v3dv_CreatePipelineCache(VkDevice _device,
    struct v3dv_pipeline_cache *cache;
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO);
-   assert(pCreateInfo->flags == 0);
 
    cache = vk_object_zalloc(&device->vk, pAllocator,
                             sizeof(*cache),
@@ -675,7 +697,7 @@ v3dv_CreatePipelineCache(VkDevice _device,
    if (cache == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   v3dv_pipeline_cache_init(cache, device,
+   v3dv_pipeline_cache_init(cache, device, pCreateInfo->flags,
                             device->instance->pipeline_cache_enabled);
 
    if (pCreateInfo->initialDataSize > 0) {
@@ -715,7 +737,7 @@ v3dv_pipeline_cache_finish(struct v3dv_pipeline_cache *cache)
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_DestroyPipelineCache(VkDevice _device,
                           VkPipelineCache _cache,
                           const VkAllocationCallbacks *pAllocator)
@@ -731,7 +753,7 @@ v3dv_DestroyPipelineCache(VkDevice _device,
    vk_object_free(&device->vk, pAllocator, cache);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_MergePipelineCaches(VkDevice device,
                          VkPipelineCache dstCache,
                          uint32_t srcCacheCount,
@@ -835,25 +857,25 @@ v3dv_pipeline_shared_data_write_to_blob(const struct v3dv_pipeline_shared_data *
 
    uint8_t descriptor_maps_count = 0;
    for (uint8_t stage = 0; stage < BROADCOM_SHADER_STAGES; stage++) {
-      if (stage == BROADCOM_SHADER_VERTEX_BIN)
+      if (broadcom_shader_stage_is_binning(stage))
          continue;
       if (cache_entry->maps[stage] == NULL)
          continue;
       descriptor_maps_count++;
    }
 
-   /* Right now we only support compute pipeline, or graphics pipeline with
-    * vertex, vertex bin, and fragment shader, but vertex and vertex bin
-    * descriptor maps are shared.
+   /* Compute pipelines only have one descriptor map,
+    * graphics pipelines may have 2 (VS+FS) or 3 (VS+GS+FS), since the binning
+    * stages take the descriptor map from the render stage.
     */
-   assert(descriptor_maps_count == 2 ||
+   assert((descriptor_maps_count >= 2 && descriptor_maps_count <= 3) ||
           (descriptor_maps_count == 1 && cache_entry->variants[BROADCOM_SHADER_COMPUTE]));
    blob_write_uint8(blob, descriptor_maps_count);
 
    for (uint8_t stage = 0; stage < BROADCOM_SHADER_STAGES; stage++) {
       if (cache_entry->maps[stage] == NULL)
          continue;
-      if (stage == BROADCOM_SHADER_VERTEX_BIN)
+      if (broadcom_shader_stage_is_binning(stage))
          continue;
 
       blob_write_uint8(blob, stage);
@@ -868,10 +890,10 @@ v3dv_pipeline_shared_data_write_to_blob(const struct v3dv_pipeline_shared_data *
       variant_count++;
    }
 
-   /* Right now we only support compute pipeline, or graphics pipeline with
-    * vertex, vertex bin, and fragment shader.
+   /* Graphics pipelines with VS+FS have 3 variants, VS+GS+FS will have 5 and
+    * compute pipelines only have 1.
     */
-   assert(variant_count == 3 ||
+   assert((variant_count == 5  || variant_count == 3) ||
           (variant_count == 1 && cache_entry->variants[BROADCOM_SHADER_COMPUTE]));
    blob_write_uint8(blob, variant_count);
 
@@ -896,7 +918,7 @@ v3dv_pipeline_shared_data_write_to_blob(const struct v3dv_pipeline_shared_data *
 }
 
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_GetPipelineCacheData(VkDevice _device,
                           VkPipelineCache _cache,
                           size_t *pDataSize,
@@ -915,7 +937,7 @@ v3dv_GetPipelineCacheData(VkDevice _device,
    struct v3dv_physical_device *pdevice = &device->instance->physicalDevice;
    VkResult result = VK_INCOMPLETE;
 
-   pthread_mutex_lock(&cache->mutex);
+   pipeline_cache_lock(cache);
 
    struct vk_pipeline_cache_header header = {
       .header_size = sizeof(struct vk_pipeline_cache_header),
@@ -992,7 +1014,7 @@ v3dv_GetPipelineCacheData(VkDevice _device,
  done:
    blob_finish(&blob);
 
-   pthread_mutex_unlock(&cache->mutex);
+   pipeline_cache_unlock(cache);
 
    return result;
 }

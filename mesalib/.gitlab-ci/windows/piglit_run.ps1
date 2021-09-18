@@ -1,6 +1,8 @@
 $env:PIGLIT_NO_FAST_SKIP = 1
 
 Copy-Item -Path _install\bin\opengl32.dll -Destination C:\Piglit\lib\piglit\bin\opengl32.dll
+Copy-Item -Path _install\bin\libgallium_wgl.dll -Destination C:\Piglit\lib\piglit\bin\libgallium_wgl.dll
+Copy-Item -Path _install\bin\libglapi.dll -Destination C:\Piglit\lib\piglit\bin\libglapi.dll
 
 # Run this using VsDevCmd.bat to ensure DXIL.dll is in %PATH%
 cmd.exe /C "C:\BuildTools\Common7\Tools\VsDevCmd.bat -host_arch=amd64 -arch=amd64 && py -3 C:\Piglit\bin\piglit.py run `"$env:PIGLIT_PROFILE`" $env:PIGLIT_OPTIONS $env:PIGLIT_TESTS .\results"

@@ -34,79 +34,25 @@
 
 struct panfrost_bo;
 
-struct panfrost_blend_shader_key {
-        /* RT format */
-        enum pipe_format format;
-
-        /* Render target */
-        unsigned rt : 3;
-
-        /* Blend shader uses blend constants */
-        unsigned has_constants : 1;
-
-        /* Logic Op info */
-        unsigned logicop_enable : 1;
-        unsigned logicop_func:4;
-
-        /* Number of samples */
-        unsigned nr_samples : 5;
-
-        struct pipe_rt_blend_state equation;
-};
-
-/* A blend shader descriptor ready for actual use */
-
-struct panfrost_blend_shader_final {
-        /* GPU address where we're compiled to */
-        uint64_t gpu;
-
-        /* First instruction tag (for tagging the pointer) */
-        unsigned first_tag;
-};
-
-struct panfrost_blend_equation_final {
-        struct MALI_BLEND_EQUATION equation;
-        float constant;
+struct pan_blend_info {
+        unsigned constant_mask : 4;
+        bool fixed_function : 1;
+        bool no_colour : 1;
+        bool load_dest : 1;
+        bool opaque : 1;
 };
 
 struct panfrost_blend_state {
         struct pipe_blend_state base;
         struct pan_blend_state pan;
+        struct pan_blend_info info[PIPE_MAX_COLOR_BUFS];
+        uint32_t equation[PIPE_MAX_COLOR_BUFS];
+
+        /* info.load presented as a bitfield for draw call hot paths */
+        unsigned load_dest_mask : PIPE_MAX_COLOR_BUFS;
 };
 
-/* Container for a final blend state, specialized to constants and a
- * framebuffer formats. */
-
-struct panfrost_blend_final {
-        /* Set for a shader, clear for an equation */
-        bool is_shader;
-
-        /* Set if this is the replace mode */
-        bool opaque;
-
-        /* Set if destination is loaded */
-        bool load_dest;
-
-        /* Set if the colour mask is 0x0 (nothing is written) */
-        bool no_colour;
-
-        union {
-                struct panfrost_blend_shader_final shader;
-                struct panfrost_blend_equation_final equation;
-        };
-};
-
-void
-panfrost_blend_context_init(struct pipe_context *pipe);
-
-struct panfrost_blend_final
-panfrost_get_blend_for_context(struct panfrost_context *ctx, unsigned rt, struct panfrost_bo **bo, unsigned *shader_offset);
-
-struct panfrost_blend_shader *
-panfrost_get_blend_shader(struct panfrost_context *ctx,
-                          struct panfrost_blend_state *blend,
-                          enum pipe_format fmt, unsigned nr_samples,
-                          unsigned rt,
-                          const float *constants);
+mali_ptr
+panfrost_get_blend(struct panfrost_batch *batch, unsigned rt, struct panfrost_bo **bo, unsigned *shader_offset);
 
 #endif

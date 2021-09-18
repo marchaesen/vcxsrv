@@ -344,14 +344,20 @@ stencil_ref_layout(const VkAttachmentReference2 *att_ref)
    return stencil_ref->stencilLayout;
 }
 
-/* From the Vulkan Specification 1.2.166 - VkAttachmentDescription2:
+/* From the Vulkan Specification 1.2.184:
  *
- * "If format is a depth/stencil format, and initialLayout only specifies the
- *  initial layout of the depth aspect of the attachment, the initial layout of
- *  the stencil aspect is specified by the stencilInitialLayout member of a
- *  VkAttachmentDescriptionStencilLayout structure included in the pNext chain.
- *  Otherwise, initialLayout describes the initial layout for all relevant
- *  image aspects."
+ * "If the pNext chain includes a VkAttachmentDescriptionStencilLayout structure, then the
+ *  stencilInitialLayout and stencilFinalLayout members specify the initial and final layouts of the
+ *  stencil aspect of a depth/stencil format, and initialLayout and finalLayout only apply to the
+ *  depth aspect. For depth-only formats, the VkAttachmentDescriptionStencilLayout structure is
+ *  ignored. For stencil-only formats, the initial and final layouts of the stencil aspect are taken
+ *  from the VkAttachmentDescriptionStencilLayout structure if present, or initialLayout and
+ *  finalLayout if not present."
+ *
+ * "If format is a depth/stencil format, and either initialLayout or finalLayout does not specify a
+ *  layout for the stencil aspect, then the application must specify the initial and final layouts
+ *  of the stencil aspect by including a VkAttachmentDescriptionStencilLayout structure in the pNext
+ *  chain."
  */
 static VkImageLayout
 stencil_desc_layout(const VkAttachmentDescription2KHR *att_desc, bool final)
@@ -360,14 +366,12 @@ stencil_desc_layout(const VkAttachmentDescription2KHR *att_desc, bool final)
    if (!util_format_has_stencil(desc))
       return VK_IMAGE_LAYOUT_UNDEFINED;
 
-   const VkImageLayout main_layout = final ? att_desc->finalLayout : att_desc->initialLayout;
-   if (!vk_image_layout_depth_only(main_layout))
-      return main_layout;
-
    const VkAttachmentDescriptionStencilLayoutKHR *stencil_desc =
       vk_find_struct_const(att_desc->pNext, ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
-   assert(stencil_desc);
-   return final ? stencil_desc->stencilFinalLayout : stencil_desc->stencilInitialLayout;
+
+   if (stencil_desc)
+      return final ? stencil_desc->stencilFinalLayout : stencil_desc->stencilInitialLayout;
+   return final ? att_desc->finalLayout : att_desc->initialLayout;
 }
 
 VkResult

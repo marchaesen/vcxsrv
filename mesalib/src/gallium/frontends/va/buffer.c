@@ -132,7 +132,7 @@ vlVaMapBuffer(VADriverContextP ctx, VABufferID buf_id, void **pbuff)
       box.width = resource->width0;
       box.height = resource->height0;
       box.depth = resource->depth0;
-      *pbuff = drv->pipe->transfer_map(drv->pipe, resource, 0, PIPE_MAP_WRITE,
+      *pbuff = drv->pipe->buffer_map(drv->pipe, resource, 0, PIPE_MAP_WRITE,
                                        &box, &buf->derived_surface.transfer);
       mtx_unlock(&drv->mutex);
 

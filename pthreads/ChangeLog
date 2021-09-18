@@ -1,3 +1,8 @@
+2021-08-16  Ingo
+
+	* Makefile (install target): add checks for file existance.
+	* README: fix some out of date instructions or descriptions.
+
 2019-11-03  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* NOTICE: Remove third party code acknowledgments because files have been

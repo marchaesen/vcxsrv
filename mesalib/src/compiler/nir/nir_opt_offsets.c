@@ -51,9 +51,6 @@ try_extract_const_addition(nir_builder *b, nir_instr *instr, opt_offsets_state *
          state->range_ht = _mesa_pointer_hash_table_create(NULL);
       }
 
-      /* Dominance metadata is needed by nir_unsigned_upper_bound to chase phis */
-      nir_metadata_require(b->impl, nir_metadata_dominance);
-
       /* Check if there can really be an unsigned wrap. */
       nir_ssa_scalar src0 = {alu->src[0].src.ssa, 0};
       nir_ssa_scalar src1 = {alu->src[1].src.ssa, 0};

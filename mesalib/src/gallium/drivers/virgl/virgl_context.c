@@ -382,6 +382,7 @@ static struct pipe_surface *virgl_create_surface(struct pipe_context *ctx,
    surf->base.u.tex.level = templ->u.tex.level;
    surf->base.u.tex.first_layer = templ->u.tex.first_layer;
    surf->base.u.tex.last_layer = templ->u.tex.last_layer;
+   surf->base.nr_samples = templ->nr_samples;
 
    virgl_encoder_create_surface(vctx, handle, res, &surf->base);
    surf->handle = handle;
@@ -1014,6 +1015,7 @@ static void virgl_set_sampler_views(struct pipe_context *ctx,
                                    unsigned start_slot,
                                    unsigned num_views,
                                    unsigned unbind_num_trailing_slots,
+                                   bool take_ownership,
                                    struct pipe_sampler_view **views)
 {
    struct virgl_context *vctx = virgl_context(ctx);
@@ -1027,7 +1029,12 @@ static void virgl_set_sampler_views(struct pipe_context *ctx,
          struct virgl_resource *res = virgl_resource(views[i]->texture);
          res->bind_history |= PIPE_BIND_SAMPLER_VIEW;
 
-         pipe_sampler_view_reference(&binding->views[idx], views[i]);
+         if (take_ownership) {
+            pipe_sampler_view_reference(&binding->views[idx], NULL);
+            binding->views[idx] = views[i];
+         } else {
+            pipe_sampler_view_reference(&binding->views[idx], views[i]);
+         }
          binding->view_enabled_mask |= 1 << idx;
       } else {
          pipe_sampler_view_reference(&binding->views[idx], NULL);
@@ -1040,7 +1047,7 @@ static void virgl_set_sampler_views(struct pipe_context *ctx,
 
    if (unbind_num_trailing_slots) {
       virgl_set_sampler_views(ctx, shader_type, start_slot + num_views,
-                              unbind_num_trailing_slots, 0, NULL);
+                              unbind_num_trailing_slots, 0, false, NULL);
    }
 }
 
@@ -1156,6 +1163,13 @@ static void virgl_set_tess_state(struct pipe_context *ctx,
    virgl_encode_set_tess_state(vctx, default_outer_level, default_inner_level);
 }
 
+static void virgl_set_patch_vertices(struct pipe_context *ctx, uint8_t patch_vertices)
+{
+   struct virgl_context *vctx = virgl_context(ctx);
+
+   vctx->patch_vertices = patch_vertices;
+}
+
 static void virgl_resource_copy_region(struct pipe_context *ctx,
                                       struct pipe_resource *dst,
                                       unsigned dst_level,
@@ -1168,8 +1182,8 @@ static void virgl_resource_copy_region(struct pipe_context *ctx,
    struct virgl_resource *dres = virgl_resource(dst);
    struct virgl_resource *sres = virgl_resource(src);
 
-   if (dres->u.b.target == PIPE_BUFFER)
-      util_range_add(&dres->u.b, &dres->valid_buffer_range, dstx, dstx + src_box->width);
+   if (dres->b.target == PIPE_BUFFER)
+      util_range_add(&dres->b, &dres->valid_buffer_range, dstx, dstx + src_box->width);
    virgl_resource_dirty(dres, dst_level);
 
    virgl_encode_resource_copy_region(vctx, dres,
@@ -1539,6 +1553,7 @@ struct pipe_context *virgl_context_create(struct pipe_screen *pscreen,
    vctx->base.set_constant_buffer = virgl_set_constant_buffer;
 
    vctx->base.set_tess_state = virgl_set_tess_state;
+   vctx->base.set_patch_vertices = virgl_set_patch_vertices;
    vctx->base.create_vs_state = virgl_create_vs_state;
    vctx->base.create_tcs_state = virgl_create_tcs_state;
    vctx->base.create_tes_state = virgl_create_tes_state;

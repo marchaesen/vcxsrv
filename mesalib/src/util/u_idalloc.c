@@ -36,10 +36,23 @@
 #include "util/u_math.h"
 #include <stdlib.h>
 
+static void
+util_idalloc_resize(struct util_idalloc *buf, unsigned new_num_elements)
+{
+   if (new_num_elements > buf->num_elements) {
+      buf->data = realloc(buf->data, new_num_elements * sizeof(*buf->data));
+      memset(&buf->data[buf->num_elements], 0,
+             (new_num_elements - buf->num_elements) * sizeof(*buf->data));
+      buf->num_elements = new_num_elements;
+   }
+}
+
 void
-util_idalloc_init(struct util_idalloc *buf)
+util_idalloc_init(struct util_idalloc *buf, unsigned initial_num_ids)
 {
    memset(buf, 0, sizeof(*buf));
+   assert(initial_num_ids);
+   util_idalloc_resize(buf, DIV_ROUND_UP(initial_num_ids, 32));
 }
 
 void
@@ -49,29 +62,12 @@ util_idalloc_fini(struct util_idalloc *buf)
       free(buf->data);
 }
 
-void
-util_idalloc_resize(struct util_idalloc *buf, unsigned new_num_elements)
-{
-   new_num_elements = align(new_num_elements, 32);
-
-   if (new_num_elements > buf->num_elements) {
-      unsigned i;
-
-      buf->data = realloc(buf->data,
-                          (new_num_elements / 32) * sizeof(*buf->data));
-
-      for (i = buf->num_elements / 32; i < new_num_elements / 32; i++)
-         buf->data[i] = 0;
-      buf->num_elements = new_num_elements;
-   }
-}
-
 unsigned
 util_idalloc_alloc(struct util_idalloc *buf)
 {
    unsigned num_elements = buf->num_elements;
 
-   for (unsigned i = buf->lowest_free_idx; i < num_elements / 32; i++) {
+   for (unsigned i = buf->lowest_free_idx; i < num_elements; i++) {
       if (buf->data[i] == 0xffffffff)
          continue;
 
@@ -82,19 +78,73 @@ util_idalloc_alloc(struct util_idalloc *buf)
    }
 
    /* No slots available, resize and return the first free. */
-   util_idalloc_resize(buf, num_elements * 2);
+   util_idalloc_resize(buf, MAX2(num_elements, 1) * 2);
 
-   buf->lowest_free_idx = num_elements / 32;
+   buf->lowest_free_idx = num_elements;
+   buf->data[num_elements] |= 1;
+   return num_elements * 32;
+}
 
-   buf->data[num_elements / 32] |= 1 << (num_elements % 32);
+static unsigned
+find_free_block(struct util_idalloc *buf, unsigned start)
+{
+   for (unsigned i = start; i < buf->num_elements; i++) {
+      if (!buf->data[i])
+         return i;
+   }
+   return buf->num_elements;
+}
 
-   return num_elements;
+/* Allocate a range of consecutive IDs. Return the first ID. */
+unsigned
+util_idalloc_alloc_range(struct util_idalloc *buf, unsigned num)
+{
+   if (num == 1)
+      return util_idalloc_alloc(buf);
+
+   unsigned num_alloc = DIV_ROUND_UP(num, 32);
+   unsigned num_elements = buf->num_elements;
+   unsigned base = find_free_block(buf, buf->lowest_free_idx);
+
+   while (1) {
+      unsigned i;
+      for (i = base;
+           i < num_elements && i - base < num_alloc && !buf->data[i]; i++);
+
+      if (i - base == num_alloc)
+         goto ret; /* found */
+
+      if (i == num_elements)
+         break; /* not found */
+
+      /* continue searching */
+      base = !buf->data[i] ? i : i + 1;
+   }
+
+   /* No slots available, allocate more. */
+   util_idalloc_resize(buf, num_elements * 2 + num_alloc);
+
+ret:
+   /* Mark the bits as used. */
+   for (unsigned i = base; i < base + num_alloc - (num % 32 != 0); i++)
+      buf->data[i] = 0xffffffff;
+   if (num % 32 != 0)
+      buf->data[base + num_alloc - 1] |= BITFIELD_MASK(num % 32);
+
+   if (buf->lowest_free_idx == base)
+      buf->lowest_free_idx = base + num / 32;
+
+   /* Validate this algorithm. */
+   for (unsigned i = 0; i < num; i++)
+      assert(util_idalloc_exists(buf, base * 32 + i));
+
+   return base * 32;
 }
 
 void
 util_idalloc_free(struct util_idalloc *buf, unsigned id)
 {
-   assert(id < buf->num_elements);
+   assert(id / 32 < buf->num_elements);
    unsigned idx = id / 32;
    buf->lowest_free_idx = MIN2(idx, buf->lowest_free_idx);
    buf->data[idx] &= ~(1 << (id % 32));
@@ -103,8 +153,55 @@ util_idalloc_free(struct util_idalloc *buf, unsigned id)
 void
 util_idalloc_reserve(struct util_idalloc *buf, unsigned id)
 {
-   if (id >= buf->num_elements)
-      util_idalloc_resize(buf, id * 2);
-   assert((buf->data[id / 32] & (1u << (id % 32))) == 0);
+   if (id / 32 >= buf->num_elements)
+      util_idalloc_resize(buf, (id / 32 + 1) * 2);
    buf->data[id / 32] |= 1u << (id % 32);
+}
+
+void
+util_idalloc_mt_init(struct util_idalloc_mt *buf,
+                     unsigned initial_num_ids, bool skip_zero)
+{
+   simple_mtx_init(&buf->mutex, mtx_plain);
+   util_idalloc_init(&buf->buf, initial_num_ids);
+   buf->skip_zero = skip_zero;
+
+   if (skip_zero) {
+      ASSERTED unsigned zero = util_idalloc_alloc(&buf->buf);
+      assert(zero == 0);
+   }
+}
+
+/* Callback for drivers using u_threaded_context (abbreviated as tc). */
+void
+util_idalloc_mt_init_tc(struct util_idalloc_mt *buf)
+{
+   util_idalloc_mt_init(buf, 1 << 16, true);
+}
+
+void
+util_idalloc_mt_fini(struct util_idalloc_mt *buf)
+{
+   util_idalloc_fini(&buf->buf);
+   simple_mtx_destroy(&buf->mutex);
+}
+
+unsigned
+util_idalloc_mt_alloc(struct util_idalloc_mt *buf)
+{
+   simple_mtx_lock(&buf->mutex);
+   unsigned id = util_idalloc_alloc(&buf->buf);
+   simple_mtx_unlock(&buf->mutex);
+   return id;
+}
+
+void
+util_idalloc_mt_free(struct util_idalloc_mt *buf, unsigned id)
+{
+   if (id == 0 && buf->skip_zero)
+      return;
+
+   simple_mtx_lock(&buf->mutex);
+   util_idalloc_free(&buf->buf, id);
+   simple_mtx_unlock(&buf->mutex);
 }

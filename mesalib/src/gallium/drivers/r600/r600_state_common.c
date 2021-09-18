@@ -641,6 +641,7 @@ static void r600_set_sampler_views(struct pipe_context *pipe,
 				   enum pipe_shader_type shader,
 				   unsigned start, unsigned count,
 				   unsigned unbind_num_trailing_slots,
+				   bool take_ownership,
 				   struct pipe_sampler_view **views)
 {
 	struct r600_context *rctx = (struct r600_context *) pipe;
@@ -674,6 +675,10 @@ static void r600_set_sampler_views(struct pipe_context *pipe,
 
 	for (i = 0; i < count; i++) {
 		if (rviews[i] == dst->views.views[i]) {
+			if (take_ownership) {
+				struct pipe_sampler_view *view = views[i];
+				pipe_sampler_view_reference(&view, NULL);
+			}
 			continue;
 		}
 
@@ -704,7 +709,12 @@ static void r600_set_sampler_views(struct pipe_context *pipe,
 				dirty_sampler_states_mask |= 1 << i;
 			}
 
-			pipe_sampler_view_reference((struct pipe_sampler_view **)&dst->views.views[i], views[i]);
+			if (take_ownership) {
+				pipe_sampler_view_reference((struct pipe_sampler_view **)&dst->views.views[i], NULL);
+				dst->views.views[i] = (struct r600_pipe_sampler_view*)views[i];
+			} else {
+				pipe_sampler_view_reference((struct pipe_sampler_view **)&dst->views.views[i], views[i]);
+			}
 			new_mask |= 1 << i;
 			r600_context_add_resource_size(pipe, views[i]->texture);
 		} else {

@@ -54,6 +54,8 @@ simds = [
    ['pixman-arm-simd-asm.S', 'pixman-arm-simd-asm-scaled.S']],
   ['arm-neon', have_neon, [],
    ['pixman-arm-neon-asm.S', 'pixman-arm-neon-asm-bilinear.S']],
+  ['arm-neon', have_a64neon, [],
+   ['pixman-arma64-neon-asm.S', 'pixman-arma64-neon-asm-bilinear.S']],
   ['mips-dspr2', have_mips_dspr2, mips_dspr2_flags,
    ['pixman-mips-dspr2-asm.S', 'pixman-mips-memcpy-asm.S']],
 ]

@@ -115,9 +115,11 @@ blit_resolve(struct d3d12_context *ctx, const struct pipe_blit_info *info)
    struct d3d12_resource *dst = d3d12_resource(info->dst.resource);
 
    d3d12_transition_resource_state(ctx, src,
-                                   D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+                                   D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+                                   D3D12_BIND_INVALIDATE_FULL);
    d3d12_transition_resource_state(ctx, dst,
-                                   D3D12_RESOURCE_STATE_RESOLVE_DEST);
+                                   D3D12_RESOURCE_STATE_RESOLVE_DEST,
+                                   D3D12_BIND_INVALIDATE_FULL);
 
    d3d12_apply_resource_states(ctx);
 
@@ -418,16 +420,17 @@ d3d12_direct_copy(struct d3d12_context *ctx,
       debug_printf("BLIT: Direct copy from subres %d to subres  %d\n",
                    src_subres, dst_subres);
 
-
    d3d12_transition_subresources_state(ctx, src, src_subres, 1, 0, 1,
                                        d3d12_get_format_start_plane(src->base.format),
                                        d3d12_get_format_num_planes(src->base.format),
-                                       D3D12_RESOURCE_STATE_COPY_SOURCE);
+                                       D3D12_RESOURCE_STATE_COPY_SOURCE,
+                                       D3D12_BIND_INVALIDATE_FULL);
 
    d3d12_transition_subresources_state(ctx, dst, dst_subres, 1, 0, 1,
                                        d3d12_get_format_start_plane(dst->base.format),
                                        d3d12_get_format_num_planes(dst->base.format),
-                                       D3D12_RESOURCE_STATE_COPY_DEST);
+                                       D3D12_RESOURCE_STATE_COPY_DEST,
+                                       D3D12_BIND_INVALIDATE_FULL);
 
    d3d12_apply_resource_states(ctx);
 
@@ -777,7 +780,7 @@ resolve_stencil_to_temp(struct d3d12_context *ctx,
    void *sampler_state = get_sampler_state(ctx);
 
    util_blit_save_state(ctx);
-   pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 1, 0, &src_view);
+   pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 1, 0, false, &src_view);
    pctx->bind_sampler_states(pctx, PIPE_SHADER_FRAGMENT, 0, 1, &sampler_state);
    util_blitter_custom_shader(ctx->blitter, dst_surf,
                               get_stencil_resolve_vs(ctx),
@@ -815,10 +818,12 @@ blit_resolve_stencil(struct d3d12_context *ctx,
    struct d3d12_resource *dst = d3d12_resource(info->dst.resource);
    d3d12_transition_subresources_state(ctx, d3d12_resource(tmp),
                                        0, 1, 0, 1, 0, 1,
-                                       D3D12_RESOURCE_STATE_COPY_SOURCE);
+                                       D3D12_RESOURCE_STATE_COPY_SOURCE,
+                                       D3D12_BIND_INVALIDATE_NONE);
    d3d12_transition_subresources_state(ctx, dst,
                                        0, 1, 0, 1, 1, 1,
-                                       D3D12_RESOURCE_STATE_COPY_DEST);
+                                       D3D12_RESOURCE_STATE_COPY_DEST,
+                                       D3D12_BIND_INVALIDATE_FULL);
    d3d12_apply_resource_states(ctx);
 
    struct d3d12_batch *batch = d3d12_current_batch(ctx);

@@ -148,6 +148,17 @@ util_draw_elements_instanced(struct pipe_context *pipe,
    pipe->draw_vbo(pipe, &info, 0, NULL, &draw, 1);
 }
 
+struct u_indirect_params {
+   struct pipe_draw_info info;
+   struct pipe_draw_start_count_bias draw;
+};
+
+/* caller must free the return value */
+struct u_indirect_params *
+util_draw_indirect_read(struct pipe_context *pipe,
+                        const struct pipe_draw_info *info_in,
+                        const struct pipe_draw_indirect_info *indirect,
+                        unsigned *num_draws);
 
 /* This converts an indirect draw into a direct draw by mapping the indirect
  * buffer, extracting its arguments, and calling pipe->draw_vbo.

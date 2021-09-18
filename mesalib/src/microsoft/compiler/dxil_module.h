@@ -159,6 +159,7 @@ struct dxil_features {
 struct dxil_shader_info {
    unsigned has_out_position:1;
    unsigned has_out_depth:1;
+   unsigned has_per_sample_input:1;
 };
 
 struct dxil_module {

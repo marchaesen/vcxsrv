@@ -1,3 +1,33 @@
+RELEASE 3.0.3
+--------------
+(2021-09-02)
+General
+-------
+This is a micro release with mostly administrative fixes.
+
+Testing and verification
+------------------------
+The MSVC and MinGW64 builds have been tested on SMP architecture
+(Intel x64 Hex Core) by completing the included test suite, as well as the
+stress and bench tests.
+
+Be sure to run your builds against the test suite. If you see failures
+then please consider how your toolchains might be contributing to the
+failure. See the README file for more detailed descriptions of the
+toolchains and test systems that we have used to get the tests to pass
+successfully.
+
+We recommend MinGW64 over MinGW for both 64 and 32 bit GNU CC builds
+only because the MinGW DWARF2 exception handling with C++ builds causes some
+problems with thread cancelation.
+
+MinGW64 also includes its own native pthreads implementation, which you may
+prefer to use. If you wish to build our library you will need to select the
+Win32 native threads option at install time. We recommend also selecting the
+SJLJ exception handling method for MinGW64-w32 builds. For MinGW64-w64 builds
+either the SJLJ or SEH exception handling method should work.
+
+
 RELEASE 3.0.0
 --------------
 (2018-08-08)

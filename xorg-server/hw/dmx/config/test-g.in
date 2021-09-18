@@ -1,4 +1,0 @@
-virtual a {
-    display d0:0 1280x1024;
-    display d1:0 1280x1024;
-}

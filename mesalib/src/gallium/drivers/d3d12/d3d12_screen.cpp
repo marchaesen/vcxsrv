@@ -541,9 +541,12 @@ d3d12_is_format_supported(struct pipe_screen *pscreen,
           !(fmt_info.Support1 & D3D12_FORMAT_SUPPORT1_IA_VERTEX_BUFFER))
          return false;
 
-      if (bind & PIPE_BIND_INDEX_BUFFER &&
-          !(fmt_info.Support1 & D3D12_FORMAT_SUPPORT1_IA_INDEX_BUFFER))
-         return false;
+      if (bind & PIPE_BIND_INDEX_BUFFER) {
+         if (format != PIPE_FORMAT_R8_UINT &&
+             format != PIPE_FORMAT_R16_UINT &&
+             format != PIPE_FORMAT_R32_UINT)
+            return false;
+      }
 
       if (sample_count > 0)
          return false;
@@ -635,7 +638,7 @@ d3d12_flush_frontbuffer(struct pipe_screen * pscreen,
 
    if (map) {
       pipe_transfer *transfer = nullptr;
-      void *res_map = pipe_transfer_map(pctx, pres, level, layer, PIPE_MAP_READ, 0, 0,
+      void *res_map = pipe_texture_map(pctx, pres, level, layer, PIPE_MAP_READ, 0, 0,
                                         u_minify(pres->width0, level),
                                         u_minify(pres->height0, level),
                                         &transfer);
@@ -643,7 +646,7 @@ d3d12_flush_frontbuffer(struct pipe_screen * pscreen,
          util_copy_rect((ubyte*)map, pres->format, res->dt_stride, 0, 0,
                         transfer->box.width, transfer->box.height,
                         (const ubyte*)res_map, transfer->stride, 0, 0);
-         pipe_transfer_unmap(pctx, transfer);
+         pipe_texture_unmap(pctx, transfer);
       }
       winsys->displaytarget_unmap(winsys, res->dt);
    }

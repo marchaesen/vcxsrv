@@ -78,8 +78,8 @@ def main():
     args = parser.parse_args()
 
     path = os.path.join(args.outdir, 'nir_intrinsics.c')
-    with open(path, 'wb') as f:
-        f.write(Template(template, output_encoding='utf-8').render(
+    with open(path, 'w') as f:
+        f.write(Template(template).render(
             INTR_OPCODES=INTR_OPCODES, INTR_INDICES=INTR_INDICES,
             reduce=reduce, operator=operator))
 

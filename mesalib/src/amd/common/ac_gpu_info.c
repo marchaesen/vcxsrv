@@ -136,76 +136,76 @@ struct amdgpu_gpu_info {
    uint32_t vce_harvest_config;
    uint32_t pci_rev_id;
 };
-int drmGetCap(int fd, uint64_t capability, uint64_t *value)
+static int drmGetCap(int fd, uint64_t capability, uint64_t *value)
 {
    return -EINVAL;
 }
-void drmFreeDevice(drmDevicePtr *device)
+static void drmFreeDevice(drmDevicePtr *device)
 {
 }
-int drmGetDevice2(int fd, uint32_t flags, drmDevicePtr *device)
+static int drmGetDevice2(int fd, uint32_t flags, drmDevicePtr *device)
 {
    return -ENODEV;
 }
-int amdgpu_bo_alloc(amdgpu_device_handle dev,
+static int amdgpu_bo_alloc(amdgpu_device_handle dev,
    struct amdgpu_bo_alloc_request *alloc_buffer,
    amdgpu_bo_handle *buf_handle)
 {
    return -EINVAL;
 }
-int amdgpu_bo_free(amdgpu_bo_handle buf_handle)
+static int amdgpu_bo_free(amdgpu_bo_handle buf_handle)
 {
    return -EINVAL;
 }
-int amdgpu_query_buffer_size_alignment(amdgpu_device_handle dev,
+static int amdgpu_query_buffer_size_alignment(amdgpu_device_handle dev,
    struct amdgpu_buffer_size_alignments
    *info)
 {
    return -EINVAL;
 }
-int amdgpu_query_firmware_version(amdgpu_device_handle dev, unsigned fw_type,
+static int amdgpu_query_firmware_version(amdgpu_device_handle dev, unsigned fw_type,
    unsigned ip_instance, unsigned index,
    uint32_t *version, uint32_t *feature)
 {
    return -EINVAL;
 }
-int amdgpu_query_hw_ip_info(amdgpu_device_handle dev, unsigned type,
+static int amdgpu_query_hw_ip_info(amdgpu_device_handle dev, unsigned type,
    unsigned ip_instance,
    struct drm_amdgpu_info_hw_ip *info)
 {
    return -EINVAL;
 }
-int amdgpu_query_heap_info(amdgpu_device_handle dev, uint32_t heap,
+static int amdgpu_query_heap_info(amdgpu_device_handle dev, uint32_t heap,
    uint32_t flags, struct amdgpu_heap_info *info)
 {
    return -EINVAL;
 }
-int amdgpu_query_gpu_info(amdgpu_device_handle dev,
+static int amdgpu_query_gpu_info(amdgpu_device_handle dev,
    struct amdgpu_gpu_info *info)
 {
    return -EINVAL;
 }
-int amdgpu_query_info(amdgpu_device_handle dev, unsigned info_id,
+static int amdgpu_query_info(amdgpu_device_handle dev, unsigned info_id,
    unsigned size, void *value)
 {
    return -EINVAL;
 }
-int amdgpu_query_sw_info(amdgpu_device_handle dev, enum amdgpu_sw_info info,
+static int amdgpu_query_sw_info(amdgpu_device_handle dev, enum amdgpu_sw_info info,
    void *value)
 {
    return -EINVAL;
 }
-int amdgpu_query_gds_info(amdgpu_device_handle dev,
+static int amdgpu_query_gds_info(amdgpu_device_handle dev,
    struct amdgpu_gds_resource_info *gds_info)
 {
    return -EINVAL;
 }
-int amdgpu_query_video_caps_info(amdgpu_device_handle dev, unsigned cap_type,
+static int amdgpu_query_video_caps_info(amdgpu_device_handle dev, unsigned cap_type,
                                  unsigned size, void *value)
 {
    return -EINVAL;
 }
-const char *amdgpu_get_marketing_name(amdgpu_device_handle dev)
+static const char *amdgpu_get_marketing_name(amdgpu_device_handle dev)
 {
    return NULL;
 }
@@ -553,10 +553,6 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->all_vram_visible = info->vram_size * 0.9 < info->vram_vis_size;
 
    util_cpu_detect();
-   info->smart_access_memory = info->all_vram_visible &&
-                               info->chip_class >= GFX10_3 &&
-                               util_get_cpu_caps()->family >= CPU_AMD_ZEN3 &&
-                               util_get_cpu_caps()->family < CPU_AMD_LAST;
 
    /* Set chip identification. */
    info->pci_id = amdinfo->asic_id; /* TODO: is this correct? */
@@ -620,9 +616,13 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       identify_chip(SIENNA_CICHLID);
       identify_chip(NAVY_FLOUNDER);
       identify_chip(DIMGREY_CAVEFISH);
+      identify_chip(BEIGE_GOBY);
       break;
    case FAMILY_VGH:
       identify_chip(VANGOGH);
+      break;
+   case FAMILY_YC:
+      identify_chip(YELLOW_CARP);
       break;
    }
 
@@ -648,6 +648,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       fprintf(stderr, "amdgpu: Unknown family.\n");
       return false;
    }
+
+   info->smart_access_memory = info->all_vram_visible &&
+                               info->chip_class >= GFX10_3 &&
+                               util_get_cpu_caps()->family >= CPU_AMD_ZEN3 &&
+                               util_get_cpu_caps()->family < CPU_AMD_LAST;
 
    info->family_id = amdinfo->family_id;
    info->chip_external_rev = amdinfo->chip_external_rev;
@@ -683,11 +688,14 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->max_tcc_blocks = device_info.num_tcc_blocks;
    info->max_se = amdinfo->num_shader_engines;
    info->max_sa_per_se = amdinfo->num_shader_arrays_per_engine;
-   info->has_hw_decode = (uvd.available_rings != 0) || (vcn_dec.available_rings != 0) ||
-                         (vcn_jpeg.available_rings != 0);
    info->uvd_fw_version = uvd.available_rings ? uvd_version : 0;
    info->vce_fw_version = vce.available_rings ? vce_version : 0;
-   info->uvd_enc_supported = uvd_enc.available_rings ? true : false;
+   info->has_video_hw.uvd_decode = uvd.available_rings != 0;
+   info->has_video_hw.vcn_decode = vcn_dec.available_rings != 0;
+   info->has_video_hw.jpeg_decode = vcn_jpeg.available_rings != 0;
+   info->has_video_hw.vce_encode = vce.available_rings != 0;
+   info->has_video_hw.uvd_encode = uvd_enc.available_rings != 0;
+   info->has_video_hw.vcn_encode = vcn_enc.available_rings != 0;
    info->has_userptr = true;
    info->has_syncobj = has_syncobj(fd);
    info->has_timeline_syncobj = has_timeline_syncobj(fd);
@@ -862,6 +870,13 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    /* Whether chips support double rate packed math instructions. */
    info->has_packed_math_16bit = info->chip_class >= GFX9;
 
+   /* Whether chips support dot product instructions. A subset of these support a smaller
+    * instruction encoding which accumulates with the destination.
+    */
+   info->has_accelerated_dot_product =
+      info->family == CHIP_ARCTURUS || info->family == CHIP_ALDEBARAN ||
+      info->family == CHIP_VEGA20 || info->family >= CHIP_NAVI12;
+
    /* TODO: Figure out how to use LOAD_CONTEXT_REG on GFX6-GFX7. */
    info->has_load_ctx_reg_pkt =
       info->chip_class >= GFX9 || (info->chip_class >= GFX8 && info->me_fw_feature >= 41);
@@ -878,20 +893,46 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
 
    info->has_ls_vgpr_init_bug = info->family == CHIP_VEGA10 || info->family == CHIP_RAVEN;
 
-   /* Drawing from 0-sized index buffers causes hangs on Navi10/14. */
-   info->has_zero_index_buffer_bug = info->family == CHIP_NAVI10 || info->family == CHIP_NAVI14;
+   /* Drawing from 0-sized index buffers causes hangs on gfx10. */
+   info->has_zero_index_buffer_bug = info->chip_class == GFX10;
 
    /* Whether chips are affected by the image load/sample/gather hw bug when
     * DCC is enabled (ie. WRITE_COMPRESS_ENABLE should be 0).
     */
    info->has_image_load_dcc_bug = info->family == CHIP_DIMGREY_CAVEFISH ||
-                                  info->family == CHIP_VANGOGH;
+                                  info->family == CHIP_VANGOGH ||
+                                  info->family == CHIP_YELLOW_CARP;
+
+   /* DB has a bug when ITERATE_256 is set to 1 that can cause a hang. The
+    * workaround is to set DECOMPRESS_ON_Z_PLANES to 2 for 4X MSAA D/S images.
+    */
+   info->has_two_planes_iterate256_bug = info->chip_class == GFX10;
+
+   /* GE has a bug when a legacy GS draw follows an NGG draw and it requires
+    * a VGT_FLUSH to fix that.
+    */
+   info->has_vgt_flush_ngg_legacy_bug = info->chip_class == GFX10 ||
+                                        info->family == CHIP_SIENNA_CICHLID;
+
+   /* HW bug workaround when CS threadgroups > 256 threads and async compute
+    * isn't used, i.e. only one compute job can run at a time.  If async
+    * compute is possible, the threadgroup size must be limited to 256 threads
+    * on all queues to avoid the bug.
+    * Only GFX6 and certain GFX7 chips are affected.
+    *
+    * FIXME: RADV doesn't limit the number of threads for async compute.
+    */
+   info->has_cs_regalloc_hang_bug = info->chip_class == GFX6 ||
+                                    info->family == CHIP_BONAIRE ||
+                                    info->family == CHIP_KABINI;
 
    /* Support for GFX10.3 was added with F32_ME_FEATURE_VERSION_31 but the
-    * firmware version wasn't bumped.
+    * feature version wasn't bumped.
     */
-   info->has_32bit_predication = info->chip_class >= GFX10_3 &&
-                                 info->me_fw_version >= 32;
+   info->has_32bit_predication = (info->chip_class >= GFX10 &&
+                                  info->me_fw_feature >= 32) ||
+                                 (info->chip_class == GFX9 &&
+                                  info->me_fw_feature >= 52);
 
    /* Get the number of good compute units. */
    info->num_good_compute_units = 0;
@@ -997,9 +1038,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
          pc_lines = 1024;
          break;
       case CHIP_NAVI14:
+      case CHIP_BEIGE_GOBY:
          pc_lines = 512;
          break;
       case CHIP_VANGOGH:
+      case CHIP_YELLOW_CARP:
          pc_lines = 256;
          break;
       default:
@@ -1028,18 +1071,14 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->num_physical_sgprs_per_simd = 128 * info->max_wave64_per_simd;
       info->min_sgpr_alloc = 128;
       info->sgpr_alloc_granularity = 128;
-      info->use_late_alloc = true; /* APUs benefit too. */
    } else if (info->chip_class >= GFX8) {
       info->num_physical_sgprs_per_simd = 800;
       info->min_sgpr_alloc = 16;
       info->sgpr_alloc_granularity = 16;
-      info->use_late_alloc = true;
    } else {
       info->num_physical_sgprs_per_simd = 512;
       info->min_sgpr_alloc = 8;
       info->sgpr_alloc_granularity = 8;
-      /* Potential hang on Kabini: */
-      info->use_late_alloc = info->family != CHIP_KABINI;
    }
 
    info->has_3d_cube_border_color_mipmap = info->has_graphics || info->family == CHIP_ARCTURUS;
@@ -1176,8 +1215,12 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    ce_fw_feature = %i\n", info->ce_fw_feature);
 
    fprintf(f, "Multimedia info:\n");
-   fprintf(f, "    has_hw_decode = %u\n", info->has_hw_decode);
-   fprintf(f, "    uvd_enc_supported = %u\n", info->uvd_enc_supported);
+   fprintf(f, "    uvd_decode = %u\n", info->has_video_hw.uvd_decode);
+   fprintf(f, "    vcn_decode = %u\n", info->has_video_hw.vcn_decode);
+   fprintf(f, "    jpeg_decode = %u\n", info->has_video_hw.jpeg_decode);
+   fprintf(f, "    vce_encode = %u\n", info->has_video_hw.vce_encode);
+   fprintf(f, "    uvd_encode = %u\n", info->has_video_hw.uvd_encode);
+   fprintf(f, "    vcn_encode = %u\n", info->has_video_hw.vcn_encode);
    fprintf(f, "    uvd_fw_version = %u\n", info->uvd_fw_version);
    fprintf(f, "    vce_fw_version = %u\n", info->vce_fw_version);
    fprintf(f, "    vce_harvest_config = %i\n", info->vce_harvest_config);
@@ -1227,7 +1270,6 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    min_wave64_vgpr_alloc = %i\n", info->min_wave64_vgpr_alloc);
    fprintf(f, "    max_vgpr_alloc = %i\n", info->max_vgpr_alloc);
    fprintf(f, "    wave64_vgpr_alloc_granularity = %i\n", info->wave64_vgpr_alloc_granularity);
-   fprintf(f, "    use_late_alloc = %i\n", info->use_late_alloc);
 
    fprintf(f, "Render backend info:\n");
    fprintf(f, "    pa_sc_tile_steering_override = 0x%x\n", info->pa_sc_tile_steering_override);

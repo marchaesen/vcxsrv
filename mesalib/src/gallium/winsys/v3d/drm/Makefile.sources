@@ -1,3 +1,0 @@
-C_SOURCES := \
-	v3d_drm_public.h \
-	v3d_drm_winsys.c

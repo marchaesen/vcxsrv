@@ -51,7 +51,6 @@ struct tgsi_shader_info
    ubyte input_interpolate[PIPE_MAX_SHADER_INPUTS];
    ubyte input_interpolate_loc[PIPE_MAX_SHADER_INPUTS];
    ubyte input_usage_mask[PIPE_MAX_SHADER_INPUTS];
-   ubyte input_cylindrical_wrap[PIPE_MAX_SHADER_INPUTS];
    ubyte output_semantic_name[PIPE_MAX_SHADER_OUTPUTS]; /**< TGSI_SEMANTIC_x */
    ubyte output_semantic_index[PIPE_MAX_SHADER_OUTPUTS];
    ubyte output_usagemask[PIPE_MAX_SHADER_OUTPUTS];

@@ -22,7 +22,6 @@
 
 # Converts a file to a C/C++ #include containing a string
 
-from __future__ import unicode_literals
 import argparse
 import io
 import os

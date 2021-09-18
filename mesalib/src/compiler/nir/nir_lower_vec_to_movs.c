@@ -68,8 +68,8 @@ insert_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
       return 1 << start_idx;
 
    nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
-   nir_alu_src_copy(&mov->src[0], &vec->src[start_idx], mov);
-   nir_alu_dest_copy(&mov->dest, &vec->dest, mov);
+   nir_alu_src_copy(&mov->src[0], &vec->src[start_idx]);
+   nir_alu_dest_copy(&mov->dest, &vec->dest);
 
    mov->dest.write_mask = (1u << start_idx);
    mov->src[0].swizzle[start_idx] = vec->src[start_idx].swizzle[0];
@@ -107,7 +107,7 @@ insert_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
    if (mov->dest.write_mask) {
       nir_instr_insert_before(&vec->instr, &mov->instr);
    } else {
-      ralloc_free(mov);
+      nir_instr_free(&mov->instr);
    }
 
    return channels_handled;
@@ -296,7 +296,7 @@ nir_lower_vec_to_movs_instr(nir_builder *b, nir_instr *instr, void *data)
    }
 
    nir_instr_remove(&vec->instr);
-   ralloc_free(vec);
+   nir_instr_free(&vec->instr);
 
    return true;
 }

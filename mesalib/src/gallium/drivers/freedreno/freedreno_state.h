@@ -66,6 +66,9 @@ void fd_set_shader_images(struct pipe_context *pctx,
                           unsigned count, unsigned unbind_num_trailing_slots,
                           const struct pipe_image_view *images);
 
+void fd_set_framebuffer_state(struct pipe_context *pctx,
+                         const struct pipe_framebuffer_state *framebuffer) in_dt;
+
 void fd_state_init(struct pipe_context *pctx);
 
 #endif /* FREEDRENO_STATE_H_ */

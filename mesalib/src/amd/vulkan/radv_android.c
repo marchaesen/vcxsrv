@@ -31,7 +31,6 @@
 
 #if ANDROID_API_LEVEL >= 26
 #include <hardware/gralloc1.h>
-#include <vndk/hardware_buffer.h>
 #endif
 #endif
 
@@ -373,40 +372,78 @@ radv_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h, VkFormat format,
 }
 
 VkResult
-radv_AcquireImageANDROID(VkDevice device, VkImage image_h, int nativeFenceFd, VkSemaphore semaphore,
+radv_AcquireImageANDROID(VkDevice device_h, VkImage image_h, int nativeFenceFd, VkSemaphore semaphore,
                          VkFence fence)
 {
-   VkResult semaphore_result = VK_SUCCESS, fence_result = VK_SUCCESS;
+   RADV_FROM_HANDLE(radv_device, device, device_h);
+   VkResult result = VK_SUCCESS;
+
+   /* From https://source.android.com/devices/graphics/implement-vulkan :
+    *
+    *    "The driver takes ownership of the fence file descriptor and closes
+    *    the fence file descriptor when no longer needed. The driver must do
+    *    so even if neither a semaphore or fence object is provided, or even
+    *    if vkAcquireImageANDROID fails and returns an error."
+    *
+    * The Vulkan spec for VkImportFence/SemaphoreFdKHR(), however, requires
+    * the file descriptor to be left alone on failure.
+    */
+   int semaphore_fd = -1, fence_fd = -1;
+   if (nativeFenceFd >= 0) {
+      if (semaphore != VK_NULL_HANDLE && fence != VK_NULL_HANDLE) {
+         /* We have both so we have to import the sync file twice. One of
+          * them needs to be a dup.
+          */
+         semaphore_fd = nativeFenceFd;
+         fence_fd = dup(nativeFenceFd);
+         if (fence_fd < 0) {
+            VkResult err = (errno == EMFILE) ? VK_ERROR_TOO_MANY_OBJECTS :
+                                               VK_ERROR_OUT_OF_HOST_MEMORY;
+            close(nativeFenceFd);
+            return vk_error(device->instance, err);
+         }
+      } else if (semaphore != VK_NULL_HANDLE) {
+         semaphore_fd = nativeFenceFd;
+      } else if (fence != VK_NULL_HANDLE) {
+         fence_fd = nativeFenceFd;
+      } else {
+         /* Nothing to import into so we have to close the file */
+         close(nativeFenceFd);
+      }
+   }
 
    if (semaphore != VK_NULL_HANDLE) {
-      int semaphore_fd = nativeFenceFd >= 0 ? os_dupfd_cloexec(nativeFenceFd) : nativeFenceFd;
-      semaphore_result = radv_ImportSemaphoreFdKHR(
-         device, &(VkImportSemaphoreFdInfoKHR){
-                    .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR,
-                    .flags = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT,
-                    .fd = semaphore_fd,
-                    .semaphore = semaphore,
-                    .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
-                 });
+      const VkImportSemaphoreFdInfoKHR info = {
+         .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR,
+         .semaphore = semaphore,
+         .flags = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT,
+         .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
+         .fd = semaphore_fd,
+      };
+      result = radv_ImportSemaphoreFdKHR(device_h, &info);
+      if (result == VK_SUCCESS)
+         semaphore_fd = -1; /* RADV took ownership */
    }
 
-   if (fence != VK_NULL_HANDLE) {
-      int fence_fd = nativeFenceFd >= 0 ? os_dupfd_cloexec(nativeFenceFd) : nativeFenceFd;
-      fence_result =
-         radv_ImportFenceFdKHR(device, &(VkImportFenceFdInfoKHR){
-                                          .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,
-                                          .flags = VK_FENCE_IMPORT_TEMPORARY_BIT,
-                                          .fd = fence_fd,
-                                          .fence = fence,
-                                          .handleType = VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT,
-                                       });
+   if (result == VK_SUCCESS && fence != VK_NULL_HANDLE) {
+      const VkImportFenceFdInfoKHR info = {
+         .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,
+         .fence = fence,
+         .flags = VK_FENCE_IMPORT_TEMPORARY_BIT,
+         .handleType = VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT,
+         .fd = fence_fd,
+      };
+      result = radv_ImportFenceFdKHR(device_h, &info);
+      if (result == VK_SUCCESS)
+         fence_fd = -1; /* RADV took ownership */
    }
 
-   close(nativeFenceFd);
+   if (semaphore_fd >= 0)
+      close(semaphore_fd);
+   if (fence_fd >= 0)
+      close(fence_fd);
 
-   if (semaphore_result != VK_SUCCESS)
-      return semaphore_result;
-   return fence_result;
+   return result;
 }
 
 VkResult
@@ -710,9 +747,10 @@ radv_import_ahb_memory(struct radv_device *device, struct radv_device_memory *me
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 
    uint64_t alloc_size = 0;
-   mem->bo = device->ws->buffer_from_fd(device->ws, dma_buf, priority, &alloc_size);
-   if (!mem->bo)
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   VkResult result =
+      device->ws->buffer_from_fd(device->ws, dma_buf, priority, &mem->bo, &alloc_size);
+   if (result != VK_SUCCESS)
+      return result;
 
    if (mem->image) {
       struct radeon_bo_metadata metadata;
@@ -807,8 +845,10 @@ radv_create_ahb_memory(struct radv_device *device, struct radv_device_memory *me
    };
 
    VkResult result = radv_import_ahb_memory(device, mem, priority, &import_info);
-   if (result != VK_SUCCESS)
-      AHardwareBuffer_release(mem->android_hardware_buffer);
+
+   /* Release a reference to avoid leak for AHB allocation. */
+   AHardwareBuffer_release(mem->android_hardware_buffer);
+
    return result;
 #else /* RADV_SUPPORT_ANDROID_HARDWARE_BUFFER */
    return VK_ERROR_EXTENSION_NOT_PRESENT;

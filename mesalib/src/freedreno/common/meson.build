@@ -18,15 +18,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+freedreno_devices_h = custom_target(
+  'freedreno_devices.h',
+  input: 'freedreno_devices.py',
+  output: 'freedreno_devices.h',
+  command: [prog_python, '@INPUT@'],
+  capture: true,
+)
+
 libfreedreno_common = static_library(
   'freedreno_common',
   [
     'disasm.h',
     'freedreno_dev_info.c',
     'freedreno_dev_info.h',
+    'freedreno_pm4.h',
     'freedreno_uuid.c',
     'freedreno_uuid.h',
     'freedreno_guardband.h',
+    freedreno_devices_h,
     sha1_h,
   ],
   include_directories : [inc_freedreno, inc_include, inc_src, inc_gallium],

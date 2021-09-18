@@ -74,10 +74,10 @@ sp_destroy_tex_tile_cache(struct softpipe_tex_tile_cache *tc)
          /*assert(tc->entries[pos].x < 0);*/
       }
       if (tc->transfer) {
-         tc->pipe->transfer_unmap(tc->pipe, tc->transfer);
+         tc->pipe->texture_unmap(tc->pipe, tc->transfer);
       }
       if (tc->tex_trans) {
-         tc->pipe->transfer_unmap(tc->pipe, tc->tex_trans);
+         tc->pipe->texture_unmap(tc->pipe, tc->tex_trans);
       }
 
       FREE( tc );
@@ -132,7 +132,7 @@ sp_tex_tile_cache_set_sampler_view(struct softpipe_tex_tile_cache *tc,
       pipe_resource_reference(&tc->texture, texture);
 
       if (tc->tex_trans_map) {
-         tc->pipe->transfer_unmap(tc->pipe, tc->tex_trans);
+         tc->pipe->texture_unmap(tc->pipe, tc->tex_trans);
          tc->tex_trans = NULL;
          tc->tex_trans_map = NULL;
       }
@@ -230,7 +230,7 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
          unsigned width, height, layer;
 
          if (tc->tex_trans_map) {
-            tc->pipe->transfer_unmap(tc->pipe, tc->tex_trans);
+            tc->pipe->texture_unmap(tc->pipe, tc->tex_trans);
             tc->tex_trans = NULL;
             tc->tex_trans_map = NULL;
          }
@@ -246,7 +246,7 @@ sp_find_cached_tile_tex(struct softpipe_tex_tile_cache *tc,
          }
 
          tc->tex_trans_map =
-            pipe_transfer_map(tc->pipe, tc->texture,
+            pipe_texture_map(tc->pipe, tc->texture,
                               addr.bits.level,
                               layer,
                               PIPE_MAP_READ | PIPE_MAP_UNSYNCHRONIZED,

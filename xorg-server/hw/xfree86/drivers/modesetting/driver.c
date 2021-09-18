@@ -144,6 +144,7 @@ static const OptionInfoRec Options[] = {
     {OPTION_ATOMIC, "Atomic", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_VARIABLE_REFRESH, "VariableRefresh", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_USE_GAMMA_LUT, "UseGammaLUT", OPTV_BOOLEAN, {0}, FALSE},
+    {OPTION_ASYNC_FLIP_SECONDARIES, "AsyncFlipSecondaries", OPTV_BOOLEAN, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE}
 };
 
@@ -514,9 +515,41 @@ GetRec(ScrnInfoPtr pScrn)
     return TRUE;
 }
 
+static void
+rotate_clip(PixmapPtr pixmap, BoxPtr rect, drmModeClip *clip, Rotation rotation)
+{
+    int w = pixmap->drawable.width;
+    int h = pixmap->drawable.height;
+
+    if (rotation == RR_Rotate_90) {
+	/* Rotate 90 degrees counter clockwise */
+        clip->x1 = rect->y1;
+	clip->x2 = rect->y2;
+	clip->y1 = w - rect->x2;
+	clip->y2 = w - rect->x1;
+    } else if (rotation == RR_Rotate_180) {
+	/* Rotate 180 degrees */
+        clip->x1 = w - rect->x2;
+	clip->x2 = w - rect->x1;
+	clip->y1 = h - rect->y2;
+	clip->y2 = h - rect->y1;
+    } else if (rotation == RR_Rotate_270) {
+	/* Rotate 90 degrees clockwise */
+        clip->x1 = h - rect->y2;
+	clip->x2 = h - rect->y1;
+	clip->y1 = rect->x1;
+	clip->y2 = rect->x2;
+    } else {
+	clip->x1 = rect->x1;
+	clip->x2 = rect->x2;
+	clip->y1 = rect->y1;
+	clip->y2 = rect->y2;
+    }
+}
+
 static int
-dispatch_dirty_region(ScrnInfoPtr scrn,
-                      PixmapPtr pixmap, DamagePtr damage, int fb_id)
+dispatch_dirty_region(ScrnInfoPtr scrn, xf86CrtcPtr crtc,
+		      PixmapPtr pixmap, DamagePtr damage, int fb_id)
 {
     modesettingPtr ms = modesettingPTR(scrn);
     RegionPtr dirty = DamageRegion(damage);
@@ -531,13 +564,9 @@ dispatch_dirty_region(ScrnInfoPtr scrn,
         if (!clip)
             return -ENOMEM;
 
-        /* XXX no need for copy? */
-        for (i = 0; i < num_cliprects; i++, rect++) {
-            clip[i].x1 = rect->x1;
-            clip[i].y1 = rect->y1;
-            clip[i].x2 = rect->x2;
-            clip[i].y2 = rect->y2;
-        }
+        /* Rotate and copy rects into clips */
+        for (i = 0; i < num_cliprects; i++, rect++)
+	    rotate_clip(pixmap, rect, &clip[i], crtc->rotation);
 
         /* TODO query connector property to see if this is needed */
         ret = drmModeDirtyFB(ms->fd, fb_id, clip, num_cliprects);
@@ -560,20 +589,31 @@ static void
 dispatch_dirty(ScreenPtr pScreen)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     modesettingPtr ms = modesettingPTR(scrn);
     PixmapPtr pixmap = pScreen->GetScreenPixmap(pScreen);
-    int fb_id = ms->drmmode.fb_id;
-    int ret;
+    uint32_t fb_id;
+    int ret, c, x, y ;
 
-    ret = dispatch_dirty_region(scrn, pixmap, ms->damage, fb_id);
-    if (ret == -EINVAL || ret == -ENOSYS) {
-        ms->dirty_enabled = FALSE;
-        DamageUnregister(ms->damage);
-        DamageDestroy(ms->damage);
-        ms->damage = NULL;
-        xf86DrvMsg(scrn->scrnIndex, X_INFO,
-                   "Disabling kernel dirty updates, not required.\n");
-        return;
+    for (c = 0; c < xf86_config->num_crtc; c++) {
+        xf86CrtcPtr crtc = xf86_config->crtc[c];
+        drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
+
+        if (!drmmode_crtc)
+            continue;
+
+	drmmode_crtc_get_fb_id(crtc, &fb_id, &x, &y);
+
+        ret = dispatch_dirty_region(scrn, crtc, pixmap, ms->damage, fb_id);
+        if (ret == -EINVAL || ret == -ENOSYS) {
+            ms->dirty_enabled = FALSE;
+            DamageUnregister(ms->damage);
+            DamageDestroy(ms->damage);
+            ms->damage = NULL;
+            xf86DrvMsg(scrn->scrnIndex, X_INFO,
+                       "Disabling kernel dirty updates, not required.\n");
+            return;
+        }
     }
 }
 
@@ -585,7 +625,7 @@ dispatch_dirty_pixmap(ScrnInfoPtr scrn, xf86CrtcPtr crtc, PixmapPtr ppix)
     DamagePtr damage = ppriv->secondary_damage;
     int fb_id = ppriv->fb_id;
 
-    dispatch_dirty_region(scrn, ppix, damage, fb_id);
+    dispatch_dirty_region(scrn, crtc, ppix, damage, fb_id);
 }
 
 static void
@@ -751,13 +791,14 @@ ms_change_property(ClientPtr client)
 
     client->requestVector[X_ChangeProperty] = saved_change_property;
     ret = saved_change_property(client);
-    if (ret != Success)
-        return ret;
 
     if (restore_property_vector)
         return ret;
 
     client->requestVector[X_ChangeProperty] = ms_change_property;
+
+    if (ret != Success)
+        return ret;
 
     ret = dixLookupWindow(&window, stuff->window, client, DixSetPropAccess);
     if (ret != Success)
@@ -1199,6 +1240,12 @@ PreInit(ScrnInfoPtr pScrn, int flags)
                                                  &ms->vrr_support) ? X_CONFIG : X_DEFAULT;
             xf86DrvMsg(pScrn->scrnIndex, from, "VariableRefresh: %sabled\n",
                        ms->vrr_support ? "en" : "dis");
+
+            ms->drmmode.async_flip_secondaries = FALSE;
+            from = xf86GetOptValBool(ms->drmmode.Options, OPTION_ASYNC_FLIP_SECONDARIES,
+                                     &ms->drmmode.async_flip_secondaries) ? X_CONFIG : X_DEFAULT;
+            xf86DrvMsg(pScrn->scrnIndex, from, "AsyncFlipSecondaries: %sabled\n",
+                       ms->drmmode.async_flip_secondaries ? "en" : "dis");
         }
     }
 
@@ -1218,6 +1265,14 @@ PreInit(ScrnInfoPtr pScrn, int flags)
             pScrn->capabilities |= RR_Capability_SourceOutput | RR_Capability_SourceOffload;
 #endif
     }
+
+    /*
+     * Use "atomic modesetting disable" request to detect if the kms driver is
+     * atomic capable, regardless if we will actually use atomic modesetting.
+     * This is effectively a no-op, we only care about the return status code.
+     */
+    ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 0);
+    ms->atomic_modeset_capable = (ret == 0);
 
     if (xf86ReturnOptValBool(ms->drmmode.Options, OPTION_ATOMIC, FALSE)) {
         ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);

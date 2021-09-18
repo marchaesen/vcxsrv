@@ -45,12 +45,19 @@
 #include "pipe/p_state.h"
 
 /**
- * Translate has to work on one more attribute because
- * the draw module has to be able to pass the vertex
- * position even if the fragment shader already consumes
- * PIPE_MAX_ATTRIBS inputs.
+ * Translate has to work on two more attributes because
+ * the draw module has to be able to pass a few fixed
+ * function vertex shader outputs even if the fragment
+ * shader already consumes PIPE_MAX_ATTRIBS inputs.
+ *
+ * These vertex shader outputs include:
+ * - position
+ * - bcolor (up to two)
+ * - point-size
+ * - viewport index
+ * - layer
  */
-#define TRANSLATE_MAX_ATTRIBS (PIPE_MAX_ATTRIBS + 1)
+#define TRANSLATE_MAX_ATTRIBS (PIPE_MAX_ATTRIBS + 6)
 
 enum translate_element_type {
    TRANSLATE_ELEMENT_NORMAL,
@@ -132,6 +139,7 @@ boolean translate_is_output_format_supported(enum pipe_format format);
 
 static inline int translate_keysize( const struct translate_key *key )
 {
+   assert(key->nr_elements <= TRANSLATE_MAX_ATTRIBS);
    return 2 * sizeof(int) + key->nr_elements * sizeof(struct translate_element);
 }
 

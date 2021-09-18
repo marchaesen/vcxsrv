@@ -64,7 +64,46 @@
 #include "util/crc32.h"
 #include "util/os_file.h"
 #include "util/simple_list.h"
+#include "util/u_process.h"
 #include "util/u_string.h"
+
+#ifdef ENABLE_SHADER_CACHE
+#if CUSTOM_SHADER_REPLACEMENT
+#include "shader_replacement.h"
+/* shader_replacement.h must declare a variable like this:
+
+   struct _shader_replacement {
+      // process name. If null, only sha1 is used to match
+      const char *app;
+      // original glsl shader sha1
+      const char *sha1;
+      // shader stage
+      gl_shader_stage stage;
+      ... any other information ...
+   };
+   struct _shader_replacement shader_replacements[...];
+
+   And a method to load a given replacement and return the new
+   glsl source:
+
+   char* load_shader_replacement(struct _shader_replacement *repl);
+
+   shader_replacement.h can be generated at build time, or copied
+   from an external folder, or any other method.
+*/
+#else
+struct _shader_replacement {
+   const char *app;
+   const char *sha1;
+   gl_shader_stage stage;
+};
+struct _shader_replacement shader_replacements[0];
+static char* load_shader_replacement(struct _shader_replacement *repl)
+{
+   return NULL;
+}
+#endif
+#endif
 
 /**
  * Return mask of GLSL_x flags by examining the MESA_GLSL env var.
@@ -78,10 +117,12 @@ _mesa_get_shader_flags(void)
    if (env) {
       if (strstr(env, "dump_on_error"))
          flags |= GLSL_DUMP_ON_ERROR;
+#ifndef CUSTOM_SHADER_REPLACEMENT
       else if (strstr(env, "dump"))
          flags |= GLSL_DUMP;
       if (strstr(env, "log"))
          flags |= GLSL_LOG;
+#endif
       if (strstr(env, "cache_fb"))
          flags |= GLSL_CACHE_FALLBACK;
       if (strstr(env, "cache_info"))
@@ -914,7 +955,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       return;
    case GL_ACTIVE_ATOMIC_COUNTER_BUFFERS:
-      if (!ctx->Extensions.ARB_shader_atomic_counters)
+      if (!ctx->Extensions.ARB_shader_atomic_counters && !_mesa_is_gles31(ctx))
          break;
 
       *params = shProg->data->NumAtomicBuffers;
@@ -935,7 +976,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       for (i = 0; i < 3; i++)
          params[i] = shProg->_LinkedShaders[MESA_SHADER_COMPUTE]->
-            Program->info.cs.local_size[i];
+            Program->info.workgroup_size[i];
       return;
    }
    case GL_PROGRAM_SEPARABLE:
@@ -1342,6 +1383,7 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
       }
    }
 
+#ifndef CUSTOM_SHADER_REPLACEMENT
    /* Capture .shader_test files. */
    const char *capture_path = _mesa_get_shader_capture_path();
    if (shProg->Name != 0 && shProg->Name != ~0 && capture_path != NULL) {
@@ -1386,6 +1428,7 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
 
       ralloc_free(filename);
    }
+#endif
 
    if (shProg->data->LinkStatus == LINKING_FAILURE &&
        (ctx->_Shader->Flags & GLSL_REPORT_ERRORS)) {
@@ -1918,12 +1961,13 @@ _mesa_LinkProgram(GLuint programObj)
 /**
  * Generate a SHA-1 hash value string for given source string.
  */
-static void
+static char *
 generate_sha1(const char *source, char sha_str[64])
 {
    unsigned char sha[20];
    _mesa_sha1_compute(source, strlen(source), sha);
    _mesa_sha1_format(sha_str, sha);
+   return sha_str;
 }
 
 /**
@@ -1934,17 +1978,15 @@ generate_sha1(const char *source, char sha_str[64])
  * <path>/<stage prefix>_<CHECKSUM>.arb
  */
 static char *
-construct_name(const gl_shader_stage stage, const char *source,
-               const char *path)
+construct_name(const gl_shader_stage stage, const char *sha,
+               const char *source, const char *path)
 {
-   char sha[64];
    static const char *types[] = {
       "VS", "TC", "TE", "GS", "FS", "CS",
    };
 
    const char *format = strncmp(source, "!!ARB", 5) ? "glsl" : "arb";
 
-   generate_sha1(source, sha);
    return ralloc_asprintf(NULL, "%s/%s_%s.%s", path, types[stage], sha, format);
 }
 
@@ -1954,9 +1996,11 @@ construct_name(const gl_shader_stage stage, const char *source,
 void
 _mesa_dump_shader_source(const gl_shader_stage stage, const char *source)
 {
+#ifndef CUSTOM_SHADER_REPLACEMENT
    static bool path_exists = true;
    char *dump_path;
    FILE *f;
+   char sha[64];
 
    if (!path_exists)
       return;
@@ -1967,7 +2011,8 @@ _mesa_dump_shader_source(const gl_shader_stage stage, const char *source)
       return;
    }
 
-   char *name = construct_name(stage, source, dump_path);
+   char *name = construct_name(stage, generate_sha1(source, sha),
+                               source, dump_path);
 
    f = fopen(name, "w");
    if (f) {
@@ -1979,6 +2024,7 @@ _mesa_dump_shader_source(const gl_shader_stage stage, const char *source)
                     strerror(errno));
    }
    ralloc_free(name);
+#endif
 }
 
 /**
@@ -1993,6 +2039,27 @@ _mesa_read_shader_source(const gl_shader_stage stage, const char *source)
    int len, shader_size = 0;
    GLcharARB *buffer;
    FILE *f;
+   char sha[64];
+
+   generate_sha1(source, sha);
+
+   if (!debug_get_bool_option("MESA_NO_SHADER_REPLACEMENT", false)) {
+      const char *process_name =
+         ARRAY_SIZE(shader_replacements) ? util_get_process_name() : NULL;
+      for (size_t i = 0; i < ARRAY_SIZE(shader_replacements); i++) {
+         if (stage != shader_replacements[i].stage)
+            continue;
+
+         if (shader_replacements[i].app &&
+             strcmp(process_name, shader_replacements[i].app) != 0)
+            continue;
+
+         if (memcmp(sha, shader_replacements[i].sha1, 40) != 0)
+            continue;
+
+         return load_shader_replacement(&shader_replacements[i]);
+      }
+   }
 
    if (!path_exists)
       return NULL;
@@ -2003,7 +2070,7 @@ _mesa_read_shader_source(const gl_shader_stage stage, const char *source)
       return NULL;
    }
 
-   char *name = construct_name(stage, source, read_path);
+   char *name = construct_name(stage, sha, source, read_path);
    f = fopen(name, "r");
    ralloc_free(name);
    if (!f)
@@ -2066,7 +2133,7 @@ shader_source(struct gl_context *ctx, GLuint shaderObj, GLsizei count,
     * This array holds offsets of where the appropriate string ends, thus the
     * last element will be set to the total length of the source code.
     */
-   offsets = malloc(count * sizeof(GLint));
+   offsets = calloc(count, sizeof(GLint));
    if (offsets == NULL) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glShaderSourceARB");
       return;
@@ -2588,7 +2655,6 @@ _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
                                      shProg);
       _mesa_reference_program(ctx, target, prog);
       _mesa_update_allow_draw_out_of_order(ctx);
-      _mesa_update_primitive_id_is_unused(ctx);
       _mesa_update_valid_to_render_state(ctx);
       if (stage == MESA_SHADER_VERTEX)
          _mesa_update_vertex_processing_mode(ctx);
@@ -2696,6 +2762,16 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 }
 
 
+static void
+set_patch_vertices(struct gl_context *ctx, GLint value)
+{
+   if (ctx->TessCtrlProgram.patch_vertices != value) {
+      FLUSH_VERTICES(ctx, 0, GL_CURRENT_BIT);
+      ctx->NewDriverState |= ctx->DriverFlags.NewTessState;
+      ctx->TessCtrlProgram.patch_vertices = value;
+   }
+}
+
 /**
  * For GL_ARB_tessellation_shader
  */
@@ -2703,8 +2779,8 @@ void GLAPIENTRY
 _mesa_PatchParameteri_no_error(GLenum pname, GLint value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   FLUSH_VERTICES(ctx, 0, GL_CURRENT_BIT);
-   ctx->TessCtrlProgram.patch_vertices = value;
+
+   set_patch_vertices(ctx, value);
 }
 
 
@@ -2728,8 +2804,7 @@ _mesa_PatchParameteri(GLenum pname, GLint value)
       return;
    }
 
-   FLUSH_VERTICES(ctx, 0, GL_CURRENT_BIT);
-   ctx->TessCtrlProgram.patch_vertices = value;
+   set_patch_vertices(ctx, value);
 }
 
 
@@ -2748,13 +2823,13 @@ _mesa_PatchParameterfv(GLenum pname, const GLfloat *values)
       FLUSH_VERTICES(ctx, 0, 0);
       memcpy(ctx->TessCtrlProgram.patch_default_outer_level, values,
              4 * sizeof(GLfloat));
-      ctx->NewDriverState |= ctx->DriverFlags.NewDefaultTessLevels;
+      ctx->NewDriverState |= ctx->DriverFlags.NewTessState;
       return;
    case GL_PATCH_DEFAULT_INNER_LEVEL:
       FLUSH_VERTICES(ctx, 0, 0);
       memcpy(ctx->TessCtrlProgram.patch_default_inner_level, values,
              2 * sizeof(GLfloat));
-      ctx->NewDriverState |= ctx->DriverFlags.NewDefaultTessLevels;
+      ctx->NewDriverState |= ctx->DriverFlags.NewTessState;
       return;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glPatchParameterfv");

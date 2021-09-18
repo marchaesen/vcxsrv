@@ -57,19 +57,6 @@ fd5_context_destroy(struct pipe_context *pctx) in_dt
    free(fd5_ctx);
 }
 
-/* clang-format off */
-static const uint8_t primtypes[] = {
-   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST,
-   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
-   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
-   [PIPE_PRIM_LINE_LOOP]      = DI_PT_LINELOOP,
-   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
-   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
-   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
-   [PIPE_PRIM_MAX]            = DI_PT_RECTLIST,  /* internal clear blits */
-};
-/* clang-format on */
-
 struct pipe_context *
 fd5_context_create(struct pipe_screen *pscreen, void *priv,
                    unsigned flags) disable_thread_safety_analysis
@@ -103,7 +90,7 @@ fd5_context_create(struct pipe_screen *pscreen, void *priv,
    if (!FD_DBG(NOBLIT))
       fd5_ctx->base.blit = fd5_blitter_blit;
 
-   pctx = fd_context_init(&fd5_ctx->base, pscreen, primtypes, priv, flags);
+   pctx = fd_context_init(&fd5_ctx->base, pscreen, priv, flags);
    if (!pctx)
       return NULL;
 

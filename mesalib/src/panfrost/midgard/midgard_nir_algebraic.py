@@ -53,11 +53,11 @@ algebraic_late = [
     (('b32csel', a, 0, 'b@32'), ('iand', ('inot', a), b)),
 
     # Fuse sat_signed. This should probably be shared with Bifrost
-    (('~fmin', ('fmax', a, -1.0), 1.0), ('fsat_signed', a)),
-    (('~fmax', ('fmin', a, 1.0), -1.0), ('fsat_signed', a)),
+    (('~fmin', ('fmax', a, -1.0), 1.0), ('fsat_signed_mali', a)),
+    (('~fmax', ('fmin', a, 1.0), -1.0), ('fsat_signed_mali', a)),
 
     # Fuse clamp_positive. This should probably be shared with Utgard/bifrost
-    (('fmax', a, 0.0), ('fclamp_pos', a)),
+    (('fmax', a, 0.0), ('fclamp_pos_mali', a)),
 
     (('ishl', 'a@16', b), ('u2u16', ('ishl', ('u2u32', a), b))),
     (('ishr', 'a@16', b), ('i2i16', ('ishr', ('i2i32', a), b))),

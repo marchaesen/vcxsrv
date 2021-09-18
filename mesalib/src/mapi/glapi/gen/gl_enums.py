@@ -25,8 +25,6 @@
 # Authors:
 #    Zack Rusin <zack@kde.org>
 
-from __future__ import print_function
-
 import argparse
 
 import license

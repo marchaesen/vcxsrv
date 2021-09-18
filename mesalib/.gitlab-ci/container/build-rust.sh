@@ -15,10 +15,10 @@ ln -s /usr/local/bin $HOME/.cargo/bin
 # version of the compiler, rather than whatever the container's Debian comes
 # with.
 #
-# Pick the rust compiler (1.41) available in Debian stable, and pick a specific
+# Pick the rust compiler (1.48) available in Debian stable, and pick a specific
 # snapshot from rustup so the compiler doesn't drift on us.
 wget https://sh.rustup.rs -O - | \
-    sh -s -- -y --default-toolchain 1.41.1-2020-02-27
+    sh -s -- -y --default-toolchain 1.49.0-2020-12-31
 
 # Set up a config script for cross compiling -- cargo needs your system cc for
 # linking in cross builds, but doesn't know what you want to use for system cc.

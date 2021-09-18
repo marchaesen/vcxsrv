@@ -39,7 +39,7 @@ __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
                                 const struct pipe_rasterizer_state *cso,
                                 bool primitive_restart)
 {
-   struct fd_ringbuffer *ring = fd_ringbuffer_new_object(ctx->pipe, 18 * 4);
+   struct fd_ringbuffer *ring = fd_ringbuffer_new_object(ctx->pipe, 26 * 4);
    float psize_min, psize_max;
 
    if (cso->point_size_per_vertex) {
@@ -93,6 +93,20 @@ __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
 
    OUT_REG(ring, A6XX_VPC_POLYGON_MODE(mode));
    OUT_REG(ring, A6XX_PC_POLYGON_MODE(mode));
+
+   /* These started showing up in a6xx gen3, but so far I haven't found
+    * any example of blob setting them to anything other than zero.
+    *
+    * Probably not related to tess_use_shared, but that is a convenient
+    * thing to key off of until we find whatever new feature gen3 added
+    * that uses these registers.
+    */
+   if (ctx->screen->info->a6xx.tess_use_shared) {
+      OUT_REG(ring, A6XX_RB_UNKNOWN_8A00());
+      OUT_REG(ring, A6XX_RB_UNKNOWN_8A10());
+      OUT_REG(ring, A6XX_RB_UNKNOWN_8A20());
+      OUT_REG(ring, A6XX_RB_UNKNOWN_8A30());
+   }
 
    return ring;
 }

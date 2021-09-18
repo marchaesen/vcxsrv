@@ -5,11 +5,11 @@
 #include "putty.h"
 
 size_t nullseat_output(
-    Seat *seat, bool is_stderr, const void *data, size_t len) { return 0; }
+    Seat *seat, SeatOutputType type, const void *data, size_t len) {return 0;}
 bool nullseat_eof(Seat *seat) { return true; }
 void nullseat_sent(Seat *seat, size_t bufsize) {}
-int nullseat_get_userpass_input(
-    Seat *seat, prompts_t *p, bufchain *input) { return 0; }
+int nullseat_get_userpass_input(Seat *seat, prompts_t *p) { return 0; }
+void nullseat_notify_session_started(Seat *seat) {}
 void nullseat_notify_remote_exit(Seat *seat) {}
 void nullseat_notify_remote_disconnect(Seat *seat) {}
 void nullseat_connection_fatal(Seat *seat, const char *message) {}
@@ -35,8 +35,9 @@ bool nullseat_get_window_pixel_size(
     Seat *seat, int *width, int *height) { return false; }
 StripCtrlChars *nullseat_stripctrl_new(
     Seat *seat, BinarySink *bs_out, SeatInteractionContext sic) {return NULL;}
-bool nullseat_set_trust_status(Seat *seat, bool tr) { return false; }
-bool nullseat_set_trust_status_vacuously(Seat *seat, bool tr) { return true; }
+void nullseat_set_trust_status(Seat *seat, bool trusted) {}
+bool nullseat_can_set_trust_status_yes(Seat *seat) { return true; }
+bool nullseat_can_set_trust_status_no(Seat *seat) { return false; }
 bool nullseat_verbose_no(Seat *seat) { return false; }
 bool nullseat_verbose_yes(Seat *seat) { return true; }
 bool nullseat_interactive_no(Seat *seat) { return false; }

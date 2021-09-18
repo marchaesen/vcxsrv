@@ -175,7 +175,7 @@ LLVMValueRef ac_build_phi(struct ac_llvm_context *ctx, LLVMTypeRef type, unsigne
                           LLVMValueRef *values, LLVMBasicBlockRef *blocks);
 
 void ac_build_s_barrier(struct ac_llvm_context *ctx);
-void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pvgpr);
+void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pgpr, bool sgpr);
 
 LLVMValueRef ac_build_shader_clock(struct ac_llvm_context *ctx, nir_scope scope);
 
@@ -315,6 +315,8 @@ void ac_build_raw_tbuffer_store(struct ac_llvm_context *ctx, LLVMValueRef rsrc, 
                                 unsigned num_channels, unsigned dfmt, unsigned nfmt,
                                 unsigned cache_policy);
 
+void ac_set_range_metadata(struct ac_llvm_context *ctx, LLVMValueRef value, unsigned lo,
+                           unsigned hi);
 LLVMValueRef ac_get_thread_id(struct ac_llvm_context *ctx);
 
 #define AC_TID_MASK_TOP_LEFT 0xfffffffc
@@ -386,6 +388,8 @@ enum ac_atomic_op
    ac_atomic_xor,
    ac_atomic_inc_wrap,
    ac_atomic_dec_wrap,
+   ac_atomic_fmin,
+   ac_atomic_fmax,
 };
 
 /* These cache policy bits match the definitions used by the LLVM intrinsics. */
@@ -502,6 +506,7 @@ LLVMValueRef ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LL
 LLVMValueRef ac_build_writelane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef value,
                                 LLVMValueRef lane);
 
+LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef add_src);
 LLVMValueRef ac_build_mbcnt(struct ac_llvm_context *ctx, LLVMValueRef mask);
 
 LLVMValueRef ac_build_inclusive_scan(struct ac_llvm_context *ctx, LLVMValueRef src, nir_op op);
@@ -578,10 +583,12 @@ struct ac_ngg_prim {
    unsigned num_vertices;
    LLVMValueRef isnull;
    LLVMValueRef index[3];
-   LLVMValueRef edgeflag[3];
+   LLVMValueRef edgeflags;
    LLVMValueRef passthrough;
 };
 
+LLVMValueRef ac_pack_edgeflags_for_export(struct ac_llvm_context *ctx,
+                                          const struct ac_shader_args *args);
 LLVMValueRef ac_pack_prim_export(struct ac_llvm_context *ctx, const struct ac_ngg_prim *prim);
 void ac_build_export_prim(struct ac_llvm_context *ctx, const struct ac_ngg_prim *prim);
 
@@ -605,9 +612,6 @@ LLVMValueRef ac_build_main(const struct ac_shader_args *args, struct ac_llvm_con
                            LLVMTypeRef ret_type, LLVMModuleRef module);
 void ac_build_s_endpgm(struct ac_llvm_context *ctx);
 
-LLVMValueRef ac_prefix_bitcount(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef index);
-LLVMValueRef ac_prefix_bitcount_2x64(struct ac_llvm_context *ctx, LLVMValueRef mask[2],
-                                     LLVMValueRef index);
 void ac_build_triangle_strip_indices_to_triangle(struct ac_llvm_context *ctx, LLVMValueRef is_odd,
                                                  LLVMValueRef flatshade_first,
                                                  LLVMValueRef index[3]);

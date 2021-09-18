@@ -79,9 +79,7 @@ struct fd_reg_pair {
                                                                                \
       BEGIN_RING(ring, count + 1);                                             \
       uint32_t *p = ring->cur;                                                 \
-      *p++ = CP_TYPE4_PKT | count | (_odd_parity_bit(count) << 7) |            \
-             ((regs[0].reg & 0x3ffff) << 8) |                                  \
-             ((_odd_parity_bit(regs[0].reg) << 27));                           \
+      *p++ = pm4_pkt4_hdr(regs[0].reg, count);                                 \
                                                                                \
       __ONE_REG(0, __VA_ARGS__);                                               \
       __ONE_REG(1, __VA_ARGS__);                                               \
@@ -111,8 +109,7 @@ struct fd_reg_pair {
                                                                                \
       BEGIN_RING(ring, count + 1);                                             \
       uint32_t *p = ring->cur;                                                 \
-      *p++ = CP_TYPE7_PKT | count | (_odd_parity_bit(count) << 15) |           \
-             ((opcode & 0x7f) << 16) | ((_odd_parity_bit(opcode) << 23));      \
+      *p++ = pm4_pkt7_hdr(opcode, count);                                      \
                                                                                \
       __ONE_REG(0, __VA_ARGS__);                                               \
       __ONE_REG(1, __VA_ARGS__);                                               \
@@ -147,8 +144,7 @@ struct fd_reg_pair {
                                                                                \
       BEGIN_RING(ring, count + 1);                                             \
       uint32_t *p = ring->cur;                                                 \
-      *p++ = CP_TYPE7_PKT | count | (_odd_parity_bit(count) << 15) |           \
-             ((opcode & 0x7f) << 16) | ((_odd_parity_bit(opcode) << 23));      \
+      *p++ = pm4_pkt7_hdr(opcode, count);                                      \
                                                                                \
       __ONE_REG(0, __VA_ARGS__);                                               \
       __ONE_REG(1, __VA_ARGS__);                                               \

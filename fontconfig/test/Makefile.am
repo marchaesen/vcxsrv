@@ -47,6 +47,7 @@ TESTDATA =			\
 	test-45-generic.json	\
 	test-60-generic.json	\
 	test-90-synthetic.json	\
+	test-issue-286.json	\
 	test-style-match.json	\
 	$(NULL)
 

@@ -32,7 +32,7 @@
 
 #include "util/compiler.h"
 
-struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
+const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 	{
 		.Opcode = RC_OPCODE_NOP,
 		.Name = "NOP"

@@ -4,6 +4,7 @@
   variables:
     LIBGL_ALWAYS_SOFTWARE: "true"
     GALLIUM_DRIVER: "llvmpipe"
+    FLAKES_CHANNEL: "#mesa-swrast-ci"
 
 llvmpipe-piglit-cl:
   extends:
@@ -27,7 +28,7 @@ llvmpipe-piglit-quick_gl:
     - .piglit-test
     - .llvmpipe-test
   variables:
-    GALLIVM_PERF: "no_filter_hacks"
+    GALLIVM_PERF: "no_quad_lod"
     LP_NUM_THREADS: 0
     PIGLIT_OPTIONS: >
       --process-isolation false
@@ -61,7 +62,6 @@ llvmpipe-piglit-quick_shader:
     - .piglit-test
     - .llvmpipe-test
   variables:
-    GALLIVM_PERF: "no_filter_hacks"
     LP_NUM_THREADS: 1
     PIGLIT_PROFILES: quick_shader
     PIGLIT_RESULTS: "llvmpipe-quick_shader"
@@ -79,7 +79,7 @@ llvmpipe-traces:
 
 .llvmpipe-deqp-test:
   variables:
-    GALLIVM_PERF: "nopt,no_filter_hacks"
+    GALLIVM_PERF: "nopt"
     # Don't use threads inside llvmpipe, we've already got all cores
     # busy at the deqp-runner level.
     LP_NUM_THREADS: 0
@@ -90,39 +90,24 @@ llvmpipe-traces:
     - .deqp-test
     - .llvmpipe-test
 
-llvmpipe-gles2:
+llvmpipe-deqp:
   variables:
-    DEQP_VER: gles2
-  extends:
-    - .llvmpipe-deqp-test
+    DEQP_VER: gles2 # for the renderer check
+    DEQP_SUITE: llvmpipe
+  parallel: 2
+  extends: .llvmpipe-deqp-test
 
-llvmpipe-gles3:
+llvmpipe-deqp-asan:
   variables:
-    DEQP_VER: gles3
-  extends:
-    - .llvmpipe-deqp-test
-
-llvmpipe-gles31:
-  variables:
-    DEQP_VER: gles31
-    # Stress test NIR clone/serialization with significant shaders enabled.
-    # Costs about 30% extra runtime.
-    NIR_TEST_CLONE: "true"
-    NIR_TEST_SERIALIZE: "true"
-  extends:
-    - .llvmpipe-deqp-test
-
-llvmpipe-gl:
-  variables:
-    DEQP_VER: gl45
-  extends:
-    - .llvmpipe-deqp-test
-
-llvmpipe-khr-gles2:
-  variables:
-    DEQP_VER: gles2-khr
-  extends:
-    - .llvmpipe-deqp-test
+    DEQP_VER: gles2 # for the renderer check
+    DEQP_SUITE: llvmpipe-asan
+    GPU_VERSION: llvmpipe-asan
+    DEQP_FRACTION: 10
+    TEST_LD_PRELOAD: libasan.so.6
+  extends: .llvmpipe-deqp-test
+  needs:
+    - debian/x86_test-gl
+    - debian-testing-asan
 
 llvmpipe-egl:
   variables:

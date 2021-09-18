@@ -40,6 +40,8 @@ libvn_files = files(
   'vn_device_memory.c',
   'vn_icd.c',
   'vn_image.c',
+  'vn_instance.c',
+  'vn_physical_device.c',
   'vn_pipeline.c',
   'vn_query_pool.c',
   'vn_queue.c',

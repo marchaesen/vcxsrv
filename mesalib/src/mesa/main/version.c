@@ -541,7 +541,10 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->OES_depth_texture_cube_map &&
                          extensions->EXT_texture_type_2_10_10_10_REV);
    const bool es31_compute_shader =
-      consts->MaxComputeWorkGroupInvocations >= 128;
+      consts->MaxComputeWorkGroupInvocations >= 128 &&
+      consts->Program[MESA_SHADER_COMPUTE].MaxShaderStorageBlocks &&
+      consts->Program[MESA_SHADER_COMPUTE].MaxAtomicBuffers &&
+      consts->Program[MESA_SHADER_COMPUTE].MaxImageUniforms;
    const bool ver_3_1 = (ver_3_0 &&
                          consts->MaxVertexAttribStride >= 2048 &&
                          extensions->ARB_arrays_of_arrays &&
@@ -549,10 +552,6 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->ARB_draw_indirect &&
                          extensions->ARB_explicit_uniform_location &&
                          extensions->ARB_framebuffer_no_attachments &&
-                         extensions->ARB_shader_atomic_counters &&
-                         extensions->ARB_shader_image_load_store &&
-                         extensions->ARB_shader_image_size &&
-                         extensions->ARB_shader_storage_buffer_object &&
                          extensions->ARB_shading_language_packing &&
                          extensions->ARB_stencil_texturing &&
                          extensions->ARB_texture_multisample &&
@@ -560,6 +559,14 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->MESA_shader_integer_functions &&
                          extensions->EXT_shader_integer_mix);
    const bool ver_3_2 = (ver_3_1 &&
+                         /* ES 3.2 requires that images/buffers be accessible
+                          * from fragment shaders as well
+                          */
+                         extensions->ARB_shader_atomic_counters &&
+                         extensions->ARB_shader_image_load_store &&
+                         extensions->ARB_shader_image_size &&
+                         extensions->ARB_shader_storage_buffer_object &&
+
                          extensions->EXT_draw_buffers2 &&
                          extensions->KHR_blend_equation_advanced &&
                          extensions->KHR_robustness &&

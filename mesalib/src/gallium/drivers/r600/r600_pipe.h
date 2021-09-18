@@ -614,6 +614,7 @@ struct r600_context {
 	struct r600_resource	*trace_buf;
 	unsigned		trace_id;
 
+	uint8_t patch_vertices;
 	bool cmd_buf_is_compute;
 	struct pipe_resource *append_fence;
 	uint32_t append_fence_id;

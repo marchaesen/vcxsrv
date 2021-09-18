@@ -44,7 +44,7 @@ draw_impl(struct fd_context *ctx, struct fd_ringbuffer *ring,
           struct fd4_emit *emit, unsigned index_offset) assert_dt
 {
    const struct pipe_draw_info *info = emit->info;
-   enum pc_di_primtype primtype = ctx->primtypes[info->mode];
+   enum pc_di_primtype primtype = ctx->screen->primtypes[info->mode];
 
    fd4_emit_state(ctx, ring, emit);
 

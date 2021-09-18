@@ -202,16 +202,6 @@ d3d12_gs_variant_cache_destroy(struct d3d12_context *ctx);
 struct d3d12_shader_selector *
 d3d12_get_gs_variant(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key);
 
-uint64_t
-d3d12_reassign_driver_locations(nir_shader *s, nir_variable_mode modes,
-                                uint64_t other_stage_mask);
-
-uint64_t
-d3d12_sort_by_driver_location(nir_shader *s, nir_variable_mode modes);
-
-void
-d3d12_sort_ps_outputs(nir_shader *s);
-
 #ifdef __cplusplus
 }
 #endif

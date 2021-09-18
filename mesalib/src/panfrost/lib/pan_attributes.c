@@ -23,7 +23,6 @@
  */
 
 #include "util/u_math.h"
-#include "midgard_pack.h"
 #include "pan_encoder.h"
 
 /* This file handles attribute descriptors. The
@@ -128,63 +127,3 @@ panfrost_compute_magic_divisor(unsigned hw_divisor, unsigned *o_shift, unsigned 
 
         return magic_divisor;
 }
-
-/* Records for gl_VertexID and gl_InstanceID use a slightly special encoding,
- * but the idea is the same */
-
-void
-panfrost_vertex_id(
-        unsigned padded_count,
-        struct mali_attribute_buffer_packed *attr,
-        bool instanced)
-{
-        /* We factor the padded count as shift/odd and that's it */
-        pan_pack(attr, ATTRIBUTE_BUFFER, cfg) {
-                cfg.special = MALI_ATTRIBUTE_SPECIAL_VERTEX_ID;
-                cfg.type = 0;
-
-                if (instanced) {
-                        cfg.divisor_r = __builtin_ctz(padded_count);
-                        cfg.divisor_p = padded_count >> (cfg.divisor_r + 1);
-                } else {
-                        /* Match the blob... */
-                        cfg.divisor_r = 0x1F;
-                        cfg.divisor_p = 0x4;
-                }
-        }
-}
-
-void
-panfrost_instance_id(
-        unsigned padded_count,
-        struct mali_attribute_buffer_packed *attr,
-        bool instanced)
-{
-        pan_pack(attr, ATTRIBUTE_BUFFER, cfg) {
-                cfg.special = MALI_ATTRIBUTE_SPECIAL_INSTANCE_ID;
-                cfg.type = 0;
-
-                /* POT records have just a shift directly with an off-by-one for
-                 * unclear reasons. NPOT records have a magic divisor smushed into the
-                 * stride field (which is unused for these special records) */
-
-                if (!instanced || padded_count <= 1) {
-                        /* Match the blob... */
-                        cfg.stride = ((1u << 31) - 1);
-                        cfg.divisor_r = 0x1F;
-                        cfg.divisor_e = 0x1;
-                } else if(util_is_power_of_two_or_zero(padded_count)) {
-                        /* By above, padded_count > 1 => padded_count >= 2 so
-                         * since we're a power of two, ctz(padded_count) =
-                         * log2(padded_count) >= log2(2) = 1, so
-                         * ctz(padded_count) - 1 >= 0, so this can't underflow
-                         * */
-
-                        cfg.divisor_r = __builtin_ctz(padded_count) - 1;
-                } else {
-                        cfg.stride = panfrost_compute_magic_divisor(padded_count,
-                                        &cfg.divisor_r, &cfg.divisor_e);
-                }
-        }
-}
- 

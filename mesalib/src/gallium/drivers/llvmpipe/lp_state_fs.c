@@ -67,6 +67,7 @@
 #include "util/u_string.h"
 #include "util/simple_list.h"
 #include "util/u_dual_blend.h"
+#include "util/u_upload_mgr.h"
 #include "util/os_time.h"
 #include "pipe/p_shader_tokens.h"
 #include "draw/draw_context.h"
@@ -589,7 +590,8 @@ generate_fs_loop(struct gallivm_state *gallivm,
    LLVMValueRef stencil_refs[2];
    LLVMValueRef outputs[PIPE_MAX_SHADER_OUTPUTS][TGSI_NUM_CHANNELS];
    LLVMValueRef zs_samples = lp_build_const_int32(gallivm, key->zsbuf_nr_samples);
-   struct lp_build_for_loop_state loop_state, sample_loop_state;
+   LLVMValueRef z_out = NULL, s_out = NULL;
+   struct lp_build_for_loop_state loop_state, sample_loop_state = {0};
    struct lp_build_mask_context mask;
    /*
     * TODO: figure out if simple_shader optimization is really worthwile to
@@ -699,6 +701,17 @@ generate_fs_loop(struct gallivm_state *gallivm,
                                                                       type),
                                                     color_store_size, "color1");
       }
+   }
+   if (shader->info.base.writes_z) {
+      z_out = lp_build_array_alloca(gallivm,
+                                    lp_build_vec_type(gallivm, type),
+                                    color_store_size, "depth");
+   }
+
+   if (shader->info.base.writes_stencil) {
+      s_out = lp_build_array_alloca(gallivm,
+                                    lp_build_vec_type(gallivm, type),
+                                    color_store_size, "depth");
    }
 
    lp_build_for_loop_begin(&loop_state, gallivm,
@@ -959,6 +972,7 @@ generate_fs_loop(struct gallivm_state *gallivm,
    params.ssbo_ptr = ssbo_ptr;
    params.ssbo_sizes_ptr = num_ssbo_ptr;
    params.image = image;
+   params.aniso_filter_table = lp_jit_context_aniso_filter_table(gallivm, context_ptr);
 
    /* Build the actual shader */
    if (shader->base.type == PIPE_SHADER_IR_TGSI)
@@ -1048,6 +1062,33 @@ generate_fs_loop(struct gallivm_state *gallivm,
       LLVMBuildStore(builder, output_smask, out_sample_mask_storage);
    }
 
+   if (shader->info.base.writes_z) {
+      int pos0 = find_output_by_semantic(&shader->info.base,
+                                         TGSI_SEMANTIC_POSITION,
+                                         0);
+      LLVMValueRef out = LLVMBuildLoad(builder, outputs[pos0][2], "");
+      LLVMValueRef idx = loop_state.counter;
+      if (key->min_samples > 1)
+         idx = LLVMBuildAdd(builder, idx,
+                            LLVMBuildMul(builder, sample_loop_state.counter, num_loop, ""), "");
+      LLVMValueRef ptr = LLVMBuildGEP(builder, z_out, &idx, 1, "");
+      LLVMBuildStore(builder, out, ptr);
+   }
+
+   if (shader->info.base.writes_stencil) {
+      int sten_out = find_output_by_semantic(&shader->info.base,
+                                             TGSI_SEMANTIC_STENCIL,
+                                             0);
+      LLVMValueRef out = LLVMBuildLoad(builder, outputs[sten_out][1], "output.s");
+      LLVMValueRef idx = loop_state.counter;
+      if (key->min_samples > 1)
+         idx = LLVMBuildAdd(builder, idx,
+                            LLVMBuildMul(builder, sample_loop_state.counter, num_loop, ""), "");
+      LLVMValueRef ptr = LLVMBuildGEP(builder, s_out, &idx, 1, "");
+      LLVMBuildStore(builder, out, ptr);
+   }
+
+
    /* Color write - per fragment sample */
    for (attrib = 0; attrib < shader->info.base.num_outputs; ++attrib)
    {
@@ -1118,14 +1159,13 @@ generate_fs_loop(struct gallivm_state *gallivm,
 
    /* Late Z test */
    if (depth_mode & LATE_DEPTH_TEST) {
-      int pos0 = find_output_by_semantic(&shader->info.base,
-                                         TGSI_SEMANTIC_POSITION,
-                                         0);
-      int s_out = find_output_by_semantic(&shader->info.base,
-                                          TGSI_SEMANTIC_STENCIL,
-                                          0);
-      if (pos0 != -1 && outputs[pos0][2]) {
-         z = LLVMBuildLoad(builder, outputs[pos0][2], "output.z");
+      if (shader->info.base.writes_z) {
+         LLVMValueRef idx = loop_state.counter;
+         if (key->min_samples > 1)
+            idx = LLVMBuildAdd(builder, idx,
+                               LLVMBuildMul(builder, sample_loop_state.counter, num_loop, ""), "");
+         LLVMValueRef ptr = LLVMBuildGEP(builder, z_out, &idx, 1, "");
+         z = LLVMBuildLoad(builder, ptr, "output.z");
       } else {
          if (key->multisample) {
             lp_build_interp_soa_update_pos_dyn(interp, gallivm, loop_state.counter, key->multisample ? sample_loop_state.counter : NULL);
@@ -1147,10 +1187,15 @@ generate_fs_loop(struct gallivm_state *gallivm,
                             lp_build_const_vec(gallivm, type, 1.0));
       }
 
-      if (s_out != -1 && outputs[s_out][1]) {
+      if (shader->info.base.writes_stencil) {
+         LLVMValueRef idx = loop_state.counter;
+         if (key->min_samples > 1)
+            idx = LLVMBuildAdd(builder, idx,
+                               LLVMBuildMul(builder, sample_loop_state.counter, num_loop, ""), "");
+         LLVMValueRef ptr = LLVMBuildGEP(builder, s_out, &idx, 1, "");
+         stencil_refs[0] = LLVMBuildLoad(builder, ptr, "output.s");
          /* there's only one value, and spec says to discard additional bits */
          LLVMValueRef s_max_mask = lp_build_const_int_vec(gallivm, int_type, 255);
-         stencil_refs[0] = LLVMBuildLoad(builder, outputs[s_out][1], "output.s");
          stencil_refs[0] = LLVMBuildBitCast(builder, stencil_refs[0], int_vec_type, "");
          stencil_refs[0] = LLVMBuildAnd(builder, stencil_refs[0], s_max_mask, "");
          stencil_refs[1] = stencil_refs[0];
@@ -3291,7 +3336,7 @@ generate_fragment(struct llvmpipe_context *lp,
                                 LLVMBuildGEP(builder, stride_ptr, &index, 1, ""),
                                 "");
 
-         if (key->multisample)
+         if (key->cbuf_nr_samples[cbuf] > 1)
             sample_stride = LLVMBuildLoad(builder,
                                           LLVMBuildGEP(builder, color_sample_stride_ptr,
                                                        &index, 1, ""), "");
@@ -3301,7 +3346,7 @@ generate_fragment(struct llvmpipe_context *lp,
             unsigned out_idx = key->min_samples == 1 ? 0 : s;
             LLVMValueRef out_ptr = color_ptr;;
 
-            if (key->multisample) {
+            if (sample_stride) {
                LLVMValueRef sample_offset = LLVMBuildMul(builder, sample_stride, lp_build_const_int32(gallivm, s), "");
                out_ptr = LLVMBuildGEP(builder, out_ptr, &sample_offset, 1, "");
             }
@@ -3407,6 +3452,7 @@ dump_fs_variant_key(struct lp_fragment_shader_variant_key *key)
       debug_printf("  .apply_min_lod = %u\n", sampler->apply_min_lod);
       debug_printf("  .apply_max_lod = %u\n", sampler->apply_max_lod);
       debug_printf("  .reduction_mode = %u\n", sampler->reduction_mode);
+      debug_printf("  .aniso = %u\n", sampler->aniso);
    }
    for (i = 0; i < key->nr_sampler_views; ++i) {
       const struct lp_static_texture_state *texture = &key->samplers[i].texture_state;
@@ -3439,6 +3485,24 @@ dump_fs_variant_key(struct lp_fragment_shader_variant_key *key)
    }
 }
 
+const char *
+lp_debug_fs_kind(enum lp_fs_kind kind)
+{
+   switch(kind) {
+   case LP_FS_KIND_GENERAL:
+      return "GENERAL";
+   case LP_FS_KIND_BLIT_RGBA:
+      return "BLIT_RGBA";
+   case LP_FS_KIND_BLIT_RGB1:
+      return "BLIT_RGB1";
+   case LP_FS_KIND_AERO_MINIFICATION:
+      return "AERO_MINIFICATION";
+   case LP_FS_KIND_LLVM_LINEAR:
+      return "LLVM_LINEAR";
+   default:
+      return "unknown";
+   }
+}
 
 void
 lp_debug_fs_variant(struct lp_fragment_shader_variant *variant)
@@ -3451,6 +3515,9 @@ lp_debug_fs_variant(struct lp_fragment_shader_variant *variant)
       nir_print_shader(variant->shader->base.ir.nir, stderr);
    dump_fs_variant_key(&variant->key);
    debug_printf("variant->opaque = %u\n", variant->opaque);
+   debug_printf("variant->potentially_opaque = %u\n", variant->potentially_opaque);
+   debug_printf("variant->blit = %u\n", variant->blit);
+   debug_printf("shader->kind = %s\n", lp_debug_fs_kind(variant->shader->kind));
    debug_printf("\n");
 }
 
@@ -3489,6 +3556,8 @@ generate_variant(struct llvmpipe_context *lp,
    struct lp_fragment_shader_variant *variant;
    const struct util_format_description *cbuf0_format_desc = NULL;
    boolean fullcolormask;
+   boolean no_kill;
+   boolean linear;
    char module_name[64];
    unsigned char ir_sha1_cache_key[20];
    struct lp_cached_code cached = { 0 };
@@ -3534,9 +3603,9 @@ generate_variant(struct llvmpipe_context *lp,
       fullcolormask = util_format_colormask_full(cbuf0_format_desc, key->blend.rt[0].colormask);
    }
 
-   variant->opaque =
-         !key->blend.logicop_enable &&
-         !key->blend.rt[0].blend_enable &&
+   /* The scissor is ignored here as only tiles inside the scissoring
+    * rectangle will refer to this */
+   no_kill =
          fullcolormask &&
          !key->stencil[0].enabled &&
          !key->alpha.enabled &&
@@ -3544,12 +3613,81 @@ generate_variant(struct llvmpipe_context *lp,
          !key->blend.alpha_to_coverage &&
          !key->depth.enabled &&
          !shader->info.base.uses_kill &&
-         !shader->info.base.writes_samplemask
-      ? TRUE : FALSE;
+         !shader->info.base.writes_samplemask;
+
+   variant->opaque =
+         no_kill &&
+         !key->blend.logicop_enable &&
+         !key->blend.rt[0].blend_enable
+         ? TRUE : FALSE;
+
+   variant->potentially_opaque =
+         no_kill &&
+         !key->blend.logicop_enable &&
+         key->blend.rt[0].blend_enable &&
+         key->blend.rt[0].rgb_func == PIPE_BLEND_ADD &&
+         key->blend.rt[0].rgb_dst_factor == PIPE_BLENDFACTOR_INV_SRC_ALPHA &&
+         key->blend.rt[0].alpha_func == key->blend.rt[0].rgb_func &&
+         key->blend.rt[0].alpha_dst_factor == key->blend.rt[0].rgb_dst_factor &&
+         shader->base.type == PIPE_SHADER_IR_TGSI &&
+         /*
+          * FIXME: for NIR, all of the fields of info.xxx (except info.base)
+          * are zeros, hence shader analysis (here and elsewhere) using these
+          * bits cannot work and will silently fail (cbuf is the only pointer
+          * field, hence causing a crash).
+          */
+         shader->info.cbuf[0][3].file != TGSI_FILE_NULL
+         ? TRUE : FALSE;
+
+   /* We only care about opaque blits for now */
+   if (variant->opaque &&
+       (shader->kind == LP_FS_KIND_BLIT_RGBA ||
+        shader->kind == LP_FS_KIND_BLIT_RGB1)) {
+      unsigned target, min_img_filter, mag_img_filter, min_mip_filter;
+      enum pipe_format texture_format;
+
+      texture_format = key->samplers[0].texture_state.format;
+      target = key->samplers[0].texture_state.target;
+      min_img_filter = key->samplers[0].sampler_state.min_img_filter;
+      mag_img_filter = key->samplers[0].sampler_state.mag_img_filter;
+      if (key->samplers[0].texture_state.level_zero_only) {
+         min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
+      } else {
+         min_mip_filter = key->samplers[0].sampler_state.min_mip_filter;
+      }
+
+      if (target == PIPE_TEXTURE_2D &&
+          min_img_filter == PIPE_TEX_FILTER_NEAREST &&
+          mag_img_filter == PIPE_TEX_FILTER_NEAREST &&
+          min_mip_filter == PIPE_TEX_MIPFILTER_NONE &&
+          ((texture_format &&
+            util_is_format_compatible(util_format_description(texture_format),
+                                      cbuf0_format_desc)) ||
+           (shader->kind == LP_FS_KIND_BLIT_RGB1 &&
+            (texture_format == PIPE_FORMAT_B8G8R8A8_UNORM ||
+             texture_format == PIPE_FORMAT_B8G8R8X8_UNORM) &&
+            (key->cbuf_format[0] == PIPE_FORMAT_B8G8R8A8_UNORM ||
+             key->cbuf_format[0] == PIPE_FORMAT_B8G8R8X8_UNORM))))
+         variant->blit = 1;
+   }
+
+
+   /* Whether this is a candidate for the linear path */
+   linear =
+         !key->stencil[0].enabled &&
+         !key->depth.enabled &&
+         !shader->info.base.uses_kill &&
+         !key->blend.logicop_enable &&
+         (key->cbuf_format[0] == PIPE_FORMAT_B8G8R8A8_UNORM ||
+          key->cbuf_format[0] == PIPE_FORMAT_B8G8R8X8_UNORM);
+
+   memcpy(&variant->key, key, sizeof *key);
 
    if ((LP_DEBUG & DEBUG_FS) || (gallivm_debug & GALLIVM_DEBUG_IR)) {
       lp_debug_fs_variant(variant);
    }
+
+   llvmpipe_fs_variant_fastpath(variant);
 
    lp_jit_init_types(variant);
    
@@ -3560,6 +3698,36 @@ generate_variant(struct llvmpipe_context *lp,
       if (variant->opaque) {
          /* Specialized shader, which doesn't need to read the color buffer. */
          generate_fragment(lp, shader, variant, RAST_WHOLE);
+      }
+   }
+
+   if (linear) {
+      /* Currently keeping both the old fastpaths and new linear path
+       * active.  The older code is still somewhat faster for the cases
+       * it covers.
+       *
+       * XXX: consider restricting this to aero-mode only.
+       */
+      if (fullcolormask &&
+          !key->alpha.enabled &&
+          !key->blend.alpha_to_coverage) {
+         llvmpipe_fs_variant_linear_fastpath(variant);
+      }
+
+      /* If the original fastpath doesn't cover this variant, try the new
+       * code:
+       */
+      if (variant->jit_linear == NULL) {
+         if (shader->kind == LP_FS_KIND_BLIT_RGBA ||
+             shader->kind == LP_FS_KIND_BLIT_RGB1 ||
+             shader->kind == LP_FS_KIND_LLVM_LINEAR) {
+            llvmpipe_fs_variant_linear_llvm(lp, shader, variant);
+         }
+      }
+   } else {
+      if (LP_DEBUG & DEBUG_LINEAR) {
+         lp_debug_fs_variant(variant);
+         debug_printf("    ----> no linear path for this variant\n");
       }
    }
 
@@ -3583,6 +3751,19 @@ generate_variant(struct llvmpipe_context *lp,
                                     variant->function[RAST_WHOLE]);
    } else if (!variant->jit_function[RAST_WHOLE]) {
       variant->jit_function[RAST_WHOLE] = variant->jit_function[RAST_EDGE_TEST];
+   }
+
+   if (linear) {
+      if (variant->linear_function) {
+         variant->jit_linear_llvm = (lp_jit_linear_llvm_func)
+               gallivm_jit_function(variant->gallivm, variant->linear_function);
+      }
+
+      /*
+       * This must be done after LLVM compilation, as it will call the JIT'ed
+       * code to determine active inputs.
+       */
+      lp_linear_check_variant(variant);
    }
 
    if (needs_caching) {
@@ -3640,7 +3821,6 @@ llvmpipe_create_fs_state(struct pipe_context *pipe,
 
    for (i = 0; i < shader->info.base.num_inputs; i++) {
       shader->inputs[i].usage_mask = shader->info.base.input_usage_mask[i];
-      shader->inputs[i].cyl_wrap = shader->info.base.input_cylindrical_wrap[i];
       shader->inputs[i].location = shader->info.base.input_interpolate_loc[i];
 
       switch (shader->info.base.input_interpolate[i]) {
@@ -3677,7 +3857,7 @@ llvmpipe_create_fs_state(struct pipe_context *pipe,
       shader->inputs[i].src_index = i+1;
    }
 
-   if (LP_DEBUG & DEBUG_TGSI) {
+   if (LP_DEBUG & DEBUG_TGSI && templ->type == PIPE_SHADER_IR_TGSI) {
       unsigned attrib;
       debug_printf("llvmpipe: Create fragment shader #%u %p:\n",
                    shader->no, (void *) shader);
@@ -3694,6 +3874,12 @@ llvmpipe_create_fs_state(struct pipe_context *pipe,
       }
       debug_printf("\n");
    }
+
+   /* This will put a derived copy of the tokens into shader->base.tokens */
+   if (templ->type == PIPE_SHADER_IR_TGSI)
+     llvmpipe_fs_analyse(shader, templ->tokens);
+   else
+     shader->kind = LP_FS_KIND_GENERAL;
 
    return shader;
 }
@@ -3799,7 +3985,7 @@ llvmpipe_set_constant_buffer(struct pipe_context *pipe,
                              const struct pipe_constant_buffer *cb)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
-   struct pipe_resource *constants = cb ? cb->buffer : NULL;
+   struct pipe_constant_buffer *constants = &llvmpipe->constants[shader][index];
 
    assert(shader < PIPE_SHADER_TYPES);
    assert(index < ARRAY_SIZE(llvmpipe->constants[shader]));
@@ -3808,10 +3994,19 @@ llvmpipe_set_constant_buffer(struct pipe_context *pipe,
    util_copy_constant_buffer(&llvmpipe->constants[shader][index], cb,
                              take_ownership);
 
-   if (constants) {
-       if (!(constants->bind & PIPE_BIND_CONSTANT_BUFFER)) {
+   /* user_buffer is only valid until the next set_constant_buffer (at most,
+    * possibly until shader deletion), so we need to upload it now to make sure
+    * it doesn't get updated/freed out from under us.
+    */
+   if (constants->user_buffer) {
+      u_upload_data(llvmpipe->pipe.const_uploader, 0, constants->buffer_size, 16,
+                    constants->user_buffer, &constants->buffer_offset,
+                    &constants->buffer);
+   }
+   if (constants->buffer) {
+       if (!(constants->buffer->bind & PIPE_BIND_CONSTANT_BUFFER)) {
          debug_printf("Illegal set constant without bind flag\n");
-         constants->bind |= PIPE_BIND_CONSTANT_BUFFER;
+         constants->buffer->bind |= PIPE_BIND_CONSTANT_BUFFER;
       }
    }
 
@@ -3821,20 +4016,10 @@ llvmpipe_set_constant_buffer(struct pipe_context *pipe,
        shader == PIPE_SHADER_TESS_EVAL) {
       /* Pass the constants to the 'draw' module */
       const unsigned size = cb ? cb->buffer_size : 0;
-      const ubyte *data;
 
-      if (constants) {
-         data = (ubyte *) llvmpipe_resource_data(constants);
-      }
-      else if (cb && cb->user_buffer) {
-         data = (ubyte *) cb->user_buffer;
-      }
-      else {
-         data = NULL;
-      }
-
-      if (data)
-         data += cb->buffer_offset;
+      const ubyte *data = NULL;
+      if (constants->buffer)
+         data = (ubyte *) llvmpipe_resource_data(constants->buffer) + constants->buffer_offset;
 
       draw_set_mapped_constant_buffer(llvmpipe->draw, shader,
                                       index, data, size);
@@ -3843,10 +4028,6 @@ llvmpipe_set_constant_buffer(struct pipe_context *pipe,
       llvmpipe->cs_dirty |= LP_CSNEW_CONSTANTS;
    else
       llvmpipe->dirty |= LP_NEW_FS_CONSTANTS;
-
-   if (cb && cb->user_buffer) {
-      pipe_resource_reference(&constants, NULL);
-   }
 }
 
 static void
@@ -3984,10 +4165,8 @@ make_variant_key(struct llvmpipe_context *lp,
 
    /*
     * Propagate the depth clamp setting from the rasterizer state.
-    * depth_clip == 0 implies depth clamping is enabled.
-    *
     */
-   key->depth_clamp = (lp->rasterizer->depth_clip_near == 0) ? 1 : 0;
+   key->depth_clamp = lp->rasterizer->depth_clamp;
 
    /* alpha test only applies if render buffer 0 is non-integer (or does not exist) */
    if (!lp->framebuffer.nr_cbufs ||
@@ -4153,9 +4332,14 @@ make_variant_key(struct llvmpipe_context *lp,
                                                &lp->images[PIPE_SHADER_FRAGMENT][i]);
       }
    }
+
+   if (shader->kind == LP_FS_KIND_AERO_MINIFICATION) {
+      key->samplers[0].sampler_state.min_img_filter = PIPE_TEX_FILTER_NEAREST;
+      key->samplers[0].sampler_state.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
+   }
+
    return key;
 }
-
 
 
 /**

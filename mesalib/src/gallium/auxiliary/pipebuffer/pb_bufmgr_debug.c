@@ -399,7 +399,7 @@ pb_debug_manager_create_buffer(struct pb_manager *_mgr,
    }
    
    assert(pipe_is_referenced(&buf->buffer->reference));
-   assert(pb_check_alignment(real_desc.alignment, 1ull << buf->buffer->alignment_log2));
+   assert(pb_check_alignment(real_desc.alignment, 1u << buf->buffer->alignment_log2));
    assert(pb_check_usage(real_desc.usage, buf->buffer->usage));
    assert(buf->buffer->size >= real_size);
    

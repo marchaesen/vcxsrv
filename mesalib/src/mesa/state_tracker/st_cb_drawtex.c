@@ -311,6 +311,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       velems.velems[i].instance_divisor = 0;
       velems.velems[i].vertex_buffer_index = 0;
       velems.velems[i].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
+      velems.velems[i].dual_slot = false;
    }
    velems.count = numAttribs;
 
@@ -347,7 +348,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    pipe_resource_reference(&vbuffer, NULL);
 
    /* restore state */
-   cso_restore_state(cso);
+   cso_restore_state(cso, 0);
    st->dirty |= ST_NEW_VERTEX_ARRAYS;
 }
 

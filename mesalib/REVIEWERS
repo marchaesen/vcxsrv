@@ -52,7 +52,7 @@ HAIKU
 R: Alexander von Gluck IV <kallisti5@unixzen.com>
 F: include/HaikuGL/
 F: src/egl/drivers/haiku/
-F: src/gallium/state_trackers/hgl/
+F: src/gallium/frontends/hgl/
 F: src/gallium/targets/haiku-softpipe/
 F: src/gallium/winsys/sw/hgl/
 F: src/hgl/

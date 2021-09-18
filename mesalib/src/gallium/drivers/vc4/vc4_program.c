@@ -1276,23 +1276,23 @@ ntq_emit_alu(struct vc4_compile *c, nir_alu_instr *instr)
                 result = ntq_emit_ubfe(c, src[0], src[1], src[2]);
                 break;
 
-        case nir_op_usadd_4x8:
+        case nir_op_usadd_4x8_vc4:
                 result = qir_V8ADDS(c, src[0], src[1]);
                 break;
 
-        case nir_op_ussub_4x8:
+        case nir_op_ussub_4x8_vc4:
                 result = qir_V8SUBS(c, src[0], src[1]);
                 break;
 
-        case nir_op_umin_4x8:
+        case nir_op_umin_4x8_vc4:
                 result = qir_V8MIN(c, src[0], src[1]);
                 break;
 
-        case nir_op_umax_4x8:
+        case nir_op_umax_4x8_vc4:
                 result = qir_V8MAX(c, src[0], src[1]);
                 break;
 
-        case nir_op_umul_unorm_4x8:
+        case nir_op_umul_unorm_4x8_vc4:
                 result = qir_V8MULD(c, src[0], src[1]);
                 break;
 
@@ -1521,7 +1521,7 @@ vc4_optimize_nir(struct nir_shader *s)
 
                 NIR_PASS_V(s, nir_lower_vars_to_ssa);
                 NIR_PASS(progress, s, nir_lower_alu_to_scalar, NULL, NULL);
-                NIR_PASS(progress, s, nir_lower_phis_to_scalar);
+                NIR_PASS(progress, s, nir_lower_phis_to_scalar, false);
                 NIR_PASS(progress, s, nir_copy_prop);
                 NIR_PASS(progress, s, nir_opt_remove_phis);
                 NIR_PASS(progress, s, nir_opt_dce);
@@ -1548,10 +1548,7 @@ vc4_optimize_nir(struct nir_shader *s)
                 }
 
                 NIR_PASS(progress, s, nir_opt_undef);
-                NIR_PASS(progress, s, nir_opt_loop_unroll,
-                         nir_var_shader_in |
-                         nir_var_shader_out |
-                         nir_var_function_temp);
+                NIR_PASS(progress, s, nir_opt_loop_unroll);
         } while (progress);
 }
 
@@ -2173,6 +2170,8 @@ static const nir_shader_compiler_options nir_options = {
         .lower_all_io_to_temps = true,
         .lower_extract_byte = true,
         .lower_extract_word = true,
+        .lower_insert_byte = true,
+        .lower_insert_word = true,
         .lower_fdiv = true,
         .lower_ffma16 = true,
         .lower_ffma32 = true,
@@ -2193,6 +2192,7 @@ static const nir_shader_compiler_options nir_options = {
         .has_fsub = true,
         .has_isub = true,
         .max_unroll_iterations = 32,
+        .force_indirect_unrolling = (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
 };
 
 const void *

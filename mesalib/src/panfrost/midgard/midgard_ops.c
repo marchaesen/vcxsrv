@@ -28,6 +28,8 @@
 #include "helpers.h"
 #undef MIDGARD_OPS_TABLE
 
+#include "midgard_ops.h"
+
 /* Table of mapping opcodes to accompanying properties. This is used for both
  * the disassembler and the compiler. It is placed in a .c file like this to
  * avoid duplications in the binary */
@@ -91,8 +93,8 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_ichoose]         = {"CHOOSE", UNITS_ADD},
         [midgard_alu_op_isub]            = {"SUB", UNITS_MOST},
         [midgard_alu_op_ishlsub]         = {"SUB", UNITS_MUL},
-        [midgard_alu_op_isubsat]         = {"SUBSAT", UNITS_MOST},
-        [midgard_alu_op_usubsat]         = {"SUBSAT", UNITS_MOST},
+        [midgard_alu_op_isubsat]         = {"SUBSAT", UNITS_ADD},
+        [midgard_alu_op_usubsat]         = {"SUBSAT", UNITS_ADD},
         [midgard_alu_op_imul]            = {"MUL", UNITS_MUL | OP_COMMUTES},
         [midgard_alu_op_iwmul]           = {"WMUL.s", UNIT_VMUL | OP_COMMUTES},
         [midgard_alu_op_uwmul]           = {"WMUL.u", UNIT_VMUL | OP_COMMUTES},
@@ -360,7 +362,7 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
         [midgard_op_st_tilebuffer_raw] = {"ST_TILEBUFFER.raw", M32},
 };
 
-struct mir_tex_op_props tex_opcode_props[256] = {
+struct mir_tex_op_props tex_opcode_props[16] = {
         [midgard_tex_op_normal] = {"TEX", M32},
         [midgard_tex_op_gradient] = {"TEX_GRAD", M32},
         [midgard_tex_op_fetch] = {"TEX_FETCH", M32},

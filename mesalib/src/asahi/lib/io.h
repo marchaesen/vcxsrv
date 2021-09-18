@@ -168,7 +168,7 @@ agx_memory_type_name(uint32_t type)
 }
 
 struct agx_notification_queue {
-#ifdef __APPLE
+#ifdef __APPLE__
    mach_port_t port;
    IODataQueueMemory *queue;
 #else
@@ -191,11 +191,10 @@ struct agx_map_header {
 	uint32_t unk3; // 28 05 00 80
 	uint64_t encoder_id; // GUID
 	uint32_t unk6; // 00 00 00 00
-	uint32_t unk7; // 80 07 00 00
-	uint32_t nr_entries_1;
-	uint32_t nr_entries_2;
-	uint32_t unka; // 0b 00 00 00
-	uint32_t padding[5];
+	uint32_t cmdbuf_size;
+	uint32_t nr_handles;
+	uint32_t nr_entries;
+	uint32_t indices[6];
 } __attribute__((packed));
 
 struct agx_map_entry {
@@ -209,8 +208,10 @@ struct agx_map_entry {
 	uint32_t unk8; // 00 00 00 00
 	uint32_t unk9; // 00 00 00 00
 	uint32_t unka; // ff ff 01 00 
-	uint32_t index;
-	uint32_t padding[5];
+	uint32_t indices[6];
 } __attribute__((packed));
+
+uint64_t
+agx_get_global_id(struct agx_device *dev);
 
 #endif

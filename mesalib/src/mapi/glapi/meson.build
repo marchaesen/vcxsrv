@@ -47,17 +47,12 @@ if with_shared_glapi
     gcc_lto_quirk,
   ]
   if with_platform_windows
-    static_glapi_args += ['-D_GDI32_', '-DBUILD_GL32']
+    static_glapi_args += ['-D_GDI32_']
   endif
 else
   static_glapi_args += '-DMAPI_MODE_UTIL'
   if with_platform_windows
-    static_glapi_args += ['-D_GDI32_', '-DBUILD_GL32', '-DKHRONOS_DLL_EXPORTS']
-    if with_shared_glapi
-      static_glapi_args += '-D_GLAPI_DLL_EXPORTS'
-    else
-      static_glapi_args += '-D_GLAPI_NO_EXPORTS'
-    endif
+    static_glapi_args += ['-D_GDI32_', '-DBUILD_GL32', '-DKHRONOS_DLL_EXPORTS', '-D_GLAPI_NO_EXPORTS']
   endif
   static_glapi_files += files(
     'glapi_dispatch.c',

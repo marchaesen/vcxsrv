@@ -226,11 +226,7 @@ static LLVMValueRef si_scale_alpha_by_sample_mask(struct si_shader_context *ctx,
 
    /* alpha = alpha * popcount(coverage) / SI_NUM_SMOOTH_AA_SAMPLES */
    coverage = LLVMGetParam(ctx->main_fn, samplemask_param);
-   coverage = ac_to_integer(&ctx->ac, coverage);
-
-   coverage = ac_build_intrinsic(&ctx->ac, "llvm.ctpop.i32", ctx->ac.i32, &coverage, 1,
-                                 AC_FUNC_ATTR_READNONE);
-
+   coverage = ac_build_bit_count(&ctx->ac, ac_to_integer(&ctx->ac, coverage));
    coverage = LLVMBuildUIToFP(ctx->ac.builder, coverage, ctx->ac.f32, "");
 
    coverage = LLVMBuildFMul(ctx->ac.builder, coverage,
@@ -490,14 +486,14 @@ static bool si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *col
  *
  * The alpha-ref SGPR is returned via its original location.
  */
-static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi, unsigned max_outputs,
-                                      LLVMValueRef *addrs)
+static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi)
 {
    struct si_shader_context *ctx = si_shader_context_from_abi(abi);
    struct si_shader *shader = ctx->shader;
    struct si_shader_info *info = &shader->selector->info;
    LLVMBuilderRef builder = ctx->ac.builder;
    unsigned i, j, first_vgpr, vgpr;
+   LLVMValueRef *addrs = abi->outputs;
 
    LLVMValueRef color[8][4] = {};
    LLVMValueRef depth = NULL, stencil = NULL, samplemask = NULL;

@@ -101,7 +101,10 @@ trace_transfer_create(struct trace_context *tr_ctx,
    return &tr_trans->base.b;
 
 error:
-   tr_ctx->pipe->transfer_unmap(tr_ctx->pipe, transfer);
+   if (res->target == PIPE_BUFFER)
+      tr_ctx->pipe->buffer_unmap(tr_ctx->pipe, transfer);
+   else
+      tr_ctx->pipe->texture_unmap(tr_ctx->pipe, transfer);
    return NULL;
 }
 

@@ -388,17 +388,21 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
             LVP_FROM_HANDLE(lvp_image_view, iview,
                             write->pImageInfo[j].imageView);
-            LVP_FROM_HANDLE(lvp_sampler, sampler,
-                            write->pImageInfo[j].sampler);
-
             desc[j].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             desc[j].info.iview = iview;
-
-            /* If this descriptor has an immutable sampler, we don't want
-             * to stomp on it.
+            /*
+             * All consecutive bindings updated via a single VkWriteDescriptorSet structure, except those
+             * with a descriptorCount of zero, must all either use immutable samplers or must all not
+             * use immutable samplers
              */
-            if (sampler)
+            if (bind_layout->immutable_samplers) {
+               desc[j].info.sampler = bind_layout->immutable_samplers[j];
+            } else {
+               LVP_FROM_HANDLE(lvp_sampler, sampler,
+                               write->pImageInfo[j].sampler);
+
                desc[j].info.sampler = sampler;
+            }
          }
          break;
 

@@ -39,6 +39,7 @@
 #include "gallivm/lp_bld_debug.h"
 #include "gallivm/lp_bld_format.h"
 #include "lp_context.h"
+#include "lp_screen.h"
 #include "lp_jit.h"
 
 static LLVMTypeRef
@@ -111,7 +112,8 @@ create_jit_sampler_type(struct gallivm_state *gallivm)
    LLVMTypeRef elem_types[LP_JIT_SAMPLER_NUM_FIELDS];
    elem_types[LP_JIT_SAMPLER_MIN_LOD] =
    elem_types[LP_JIT_SAMPLER_MAX_LOD] =
-   elem_types[LP_JIT_SAMPLER_LOD_BIAS] = LLVMFloatTypeInContext(lc);
+   elem_types[LP_JIT_SAMPLER_LOD_BIAS] =
+   elem_types[LP_JIT_SAMPLER_MAX_ANISO] = LLVMFloatTypeInContext(lc);
    elem_types[LP_JIT_SAMPLER_BORDER_COLOR] =
       LLVMArrayType(LLVMFloatTypeInContext(lc), 4);
 
@@ -130,6 +132,9 @@ create_jit_sampler_type(struct gallivm_state *gallivm)
    LP_CHECK_MEMBER_OFFSET(struct lp_jit_sampler, border_color,
                           gallivm->target, sampler_type,
                           LP_JIT_SAMPLER_BORDER_COLOR);
+   LP_CHECK_MEMBER_OFFSET(struct lp_jit_sampler, max_aniso,
+                          gallivm->target, sampler_type,
+                          LP_JIT_SAMPLER_MAX_ANISO);
    LP_CHECK_STRUCT_SIZE(struct lp_jit_sampler,
                         gallivm->target, sampler_type);
    return sampler_type;
@@ -185,6 +190,7 @@ lp_jit_create_types(struct lp_fragment_shader_variant *lp)
    struct gallivm_state *gallivm = lp->gallivm;
    LLVMContextRef lc = gallivm->context;
    LLVMTypeRef viewport_type, texture_type, sampler_type, image_type;
+   LLVMTypeRef linear_elem_type;
 
    /* struct lp_jit_viewport */
    {
@@ -232,6 +238,7 @@ lp_jit_create_types(struct lp_fragment_shader_variant *lp)
       elem_types[LP_JIT_CTX_U8_BLEND_COLOR] = LLVMPointerType(LLVMInt8TypeInContext(lc), 0);
       elem_types[LP_JIT_CTX_F_BLEND_COLOR] = LLVMPointerType(LLVMFloatTypeInContext(lc), 0);
       elem_types[LP_JIT_CTX_VIEWPORTS] = LLVMPointerType(viewport_type, 0);
+      elem_types[LP_JIT_CTX_ANISO_FILTER_TABLE] = LLVMPointerType(LLVMFloatTypeInContext(lc), 0);
       elem_types[LP_JIT_CTX_SSBOS] =
          LLVMArrayType(LLVMPointerType(LLVMInt32TypeInContext(lc), 0), LP_MAX_TGSI_SHADER_BUFFERS);
       elem_types[LP_JIT_CTX_NUM_SSBOS] =
@@ -281,6 +288,9 @@ lp_jit_create_types(struct lp_fragment_shader_variant *lp)
       LP_CHECK_MEMBER_OFFSET(struct lp_jit_context, sample_mask,
                              gallivm->target, context_type,
                              LP_JIT_CTX_SAMPLE_MASK);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_context, aniso_filter_table,
+                             gallivm->target, context_type,
+                             LP_JIT_CTX_ANISO_FILTER_TABLE);
       LP_CHECK_STRUCT_SIZE(struct lp_jit_context,
                            gallivm->target, context_type);
 
@@ -304,6 +314,74 @@ lp_jit_create_types(struct lp_fragment_shader_variant *lp)
                                                  ARRAY_SIZE(elem_types), 0);
 
       lp->jit_thread_data_ptr_type = LLVMPointerType(thread_data_type, 0);
+   }
+
+   /*
+    * lp_linear_elem
+    *
+    * XXX: it can be instanced only once due to the use of opaque types, and
+    * the fact that screen->module is also a global.
+    */
+   {
+      LLVMTypeRef ret_type;
+      LLVMTypeRef arg_types[1];
+      LLVMTypeRef func_type;
+
+      ret_type = LLVMPointerType(LLVMVectorType(LLVMInt8TypeInContext(lc), 16), 0);
+
+      arg_types[0] = LLVMPointerType(LLVMInt8TypeInContext(lc), 0);
+
+      /* lp_linear_func */
+      func_type = LLVMFunctionType(ret_type, arg_types, ARRAY_SIZE(arg_types), 0);
+
+      /*
+       * We actually define lp_linear_elem not as a structure but simply as a
+       * lp_linear_func pointer
+       */
+      linear_elem_type = LLVMPointerType(func_type, 0);
+   }
+
+   /* struct lp_jit_linear_context */
+   {
+      LLVMTypeRef linear_elem_ptr_type = LLVMPointerType(linear_elem_type, 0);
+      LLVMTypeRef elem_types[LP_JIT_LINEAR_CTX_COUNT];
+      LLVMTypeRef linear_context_type;
+
+
+      elem_types[LP_JIT_LINEAR_CTX_CONSTANTS] = LLVMPointerType(LLVMInt8TypeInContext(lc), 0);
+      elem_types[LP_JIT_LINEAR_CTX_TEX] =
+            LLVMArrayType(linear_elem_ptr_type, LP_MAX_LINEAR_TEXTURES);
+      elem_types[LP_JIT_LINEAR_CTX_INPUTS] =
+            LLVMArrayType(linear_elem_ptr_type, LP_MAX_LINEAR_INPUTS);
+      elem_types[LP_JIT_LINEAR_CTX_COLOR0] = LLVMPointerType(LLVMInt8TypeInContext(lc), 0);
+      elem_types[LP_JIT_LINEAR_CTX_BLEND_COLOR] = LLVMInt32TypeInContext(lc);
+      elem_types[LP_JIT_LINEAR_CTX_ALPHA_REF] = LLVMInt8TypeInContext(lc);
+
+      linear_context_type = LLVMStructTypeInContext(lc, elem_types,
+                                                    ARRAY_SIZE(elem_types), 0);
+
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_linear_context, constants,
+                             gallivm->target, linear_context_type,
+                             LP_JIT_LINEAR_CTX_CONSTANTS);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_linear_context, tex,
+                             gallivm->target, linear_context_type,
+                             LP_JIT_LINEAR_CTX_TEX);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_linear_context, inputs,
+                             gallivm->target, linear_context_type,
+                             LP_JIT_LINEAR_CTX_INPUTS);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_linear_context, color0,
+                             gallivm->target, linear_context_type,
+                             LP_JIT_LINEAR_CTX_COLOR0);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_linear_context, blend_color,
+                             gallivm->target, linear_context_type,
+                             LP_JIT_LINEAR_CTX_BLEND_COLOR);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_linear_context, alpha_ref_value,
+                             gallivm->target, linear_context_type,
+                             LP_JIT_LINEAR_CTX_ALPHA_REF);
+      LP_CHECK_STRUCT_SIZE(struct lp_jit_linear_context,
+                           gallivm->target, linear_context_type);
+
+      lp->jit_linear_context_ptr_type = LLVMPointerType(linear_context_type, 0);
    }
 
    if (gallivm_debug & GALLIVM_DEBUG_IR) {
@@ -385,6 +463,8 @@ lp_jit_create_cs_types(struct lp_compute_shader_variant *lp)
 
       elem_types[LP_JIT_CS_CTX_KERNEL_ARGS] = LLVMPointerType(LLVMInt8TypeInContext(lc), 0);
 
+      elem_types[LP_JIT_CS_CTX_ANISO_FILTER_TABLE] = LLVMPointerType(LLVMFloatTypeInContext(lc), 0);
+
       cs_context_type = LLVMStructTypeInContext(lc, elem_types,
                                              ARRAY_SIZE(elem_types), 0);
 
@@ -415,6 +495,9 @@ lp_jit_create_cs_types(struct lp_compute_shader_variant *lp)
       LP_CHECK_MEMBER_OFFSET(struct lp_jit_cs_context, kernel_args,
                              gallivm->target, cs_context_type,
                              LP_JIT_CS_CTX_KERNEL_ARGS);
+      LP_CHECK_MEMBER_OFFSET(struct lp_jit_cs_context, aniso_filter_table,
+                             gallivm->target, cs_context_type,
+                             LP_JIT_CS_CTX_ANISO_FILTER_TABLE);
       LP_CHECK_STRUCT_SIZE(struct lp_jit_cs_context,
                            gallivm->target, cs_context_type);
 

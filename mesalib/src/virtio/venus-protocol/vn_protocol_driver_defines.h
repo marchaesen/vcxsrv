@@ -20,6 +20,7 @@
 #define VK_STRUCTURE_TYPE_RING_CREATE_INFO_MESA ((VkStructureType)1000384000)
 #define VK_STRUCTURE_TYPE_MEMORY_RESOURCE_PROPERTIES_MESA ((VkStructureType)1000384001)
 #define VK_STRUCTURE_TYPE_IMPORT_MEMORY_RESOURCE_INFO_MESA ((VkStructureType)1000384002)
+#define VK_STRUCTURE_TYPE_MEMORY_RESOURCE_ALLOCATION_SIZE_PROPERTIES_100000_MESA ((VkStructureType)1000384003)
 
 typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkCreateInstance_EXT = 0,
@@ -259,6 +260,7 @@ typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkNotifyRingMESA_EXT = 190,
     VK_COMMAND_TYPE_vkWriteRingExtraMESA_EXT = 191,
     VK_COMMAND_TYPE_vkGetMemoryResourcePropertiesMESA_EXT = 192,
+    VK_COMMAND_TYPE_vkGetVenusExperimentalFeatureData100000MESA_EXT = 195,
 } VkCommandTypeEXT;
 
 typedef enum VkCommandFlagBitsEXT {
@@ -312,5 +314,17 @@ typedef struct VkImportMemoryResourceInfoMESA {
     const void* pNext;
     uint32_t resourceId;
 } VkImportMemoryResourceInfoMESA;
+
+typedef struct VkVenusExperimentalFeatures100000MESA {
+    VkBool32 memoryResourceAllocationSize;
+    VkBool32 globalFencing;
+    VkBool32 largeRing;
+} VkVenusExperimentalFeatures100000MESA;
+
+typedef struct VkMemoryResourceAllocationSizeProperties100000MESA {
+    VkStructureType sType;
+    void* pNext;
+    uint64_t allocationSize;
+} VkMemoryResourceAllocationSizeProperties100000MESA;
 
 #endif /* VN_PROTOCOL_DRIVER_DEFINES_H */

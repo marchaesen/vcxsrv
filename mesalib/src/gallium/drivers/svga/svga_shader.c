@@ -31,6 +31,7 @@
 #include "svga_format.h"
 #include "svga_shader.h"
 #include "svga_resource_texture.h"
+#include "VGPU10ShaderTokens.h"
 
 
 /**
@@ -223,6 +224,24 @@ static const enum pipe_swizzle set_XXXY[PIPE_SWIZZLE_MAX] = {
 };
 
 
+static VGPU10_RESOURCE_RETURN_TYPE
+vgpu10_return_type(enum pipe_format format)
+{
+   if (util_format_is_unorm(format))
+      return VGPU10_RETURN_TYPE_UNORM;
+   else if (util_format_is_snorm(format))
+      return VGPU10_RETURN_TYPE_SNORM;
+   else if (util_format_is_pure_uint(format))
+      return VGPU10_RETURN_TYPE_UINT;
+   else if (util_format_is_pure_sint(format))
+      return VGPU10_RETURN_TYPE_SINT;
+   else if (util_format_is_float(format))
+      return VGPU10_RETURN_TYPE_FLOAT;
+   else
+      return VGPU10_RETURN_TYPE_MAX;
+}
+
+
 /**
  * Initialize the shader-neutral fields of svga_compile_key from context
  * state.  This is basically the texture-related state.
@@ -251,6 +270,13 @@ svga_init_shader_key_common(const struct svga_context *svga,
       if (view) {
          assert(view->texture);
          assert(view->texture->target < (1 << 4)); /* texture_target:4 */
+
+         enum pipe_texture_target target = view->target;
+
+	 key->tex[i].target = target;
+	 key->tex[i].sampler_return_type = vgpu10_return_type(view->format);
+	 key->tex[i].sampler_view = 1;
+
 
          /* 1D/2D array textures with one slice and cube map array textures
           * with one cube are treated as non-arrays by the SVGA3D device.
@@ -319,6 +345,9 @@ svga_init_shader_key_common(const struct svga_context *svga,
          key->tex[i].swizzle_g = swizzle_tab[view->swizzle_g];
          key->tex[i].swizzle_b = swizzle_tab[view->swizzle_b];
          key->tex[i].swizzle_a = swizzle_tab[view->swizzle_a];
+      }
+      else {
+	 key->tex[i].sampler_view = 0;
       }
 
       if (sampler) {

@@ -23,15 +23,7 @@
 
 #include "vk_common_entrypoints.h"
 #include "vk_device.h"
-
-#define STACK_ARRAY_SIZE 8
-
-#define STACK_ARRAY(type, name, size) \
-   type _stack_##name[STACK_ARRAY_SIZE], *const name = \
-      (size) <= STACK_ARRAY_SIZE ? _stack_##name : malloc((size) * sizeof(type))
-
-#define STACK_ARRAY_FINISH(name) \
-   if (name != _stack_##name) free(name)
+#include "vk_util.h"
 
 VKAPI_ATTR void VKAPI_CALL
 vk_common_CmdCopyBuffer(VkCommandBuffer commandBuffer,

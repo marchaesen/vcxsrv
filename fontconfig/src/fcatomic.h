@@ -51,6 +51,25 @@ typedef <type> fc_atomic_int_t;
 #define fc_atomic_ptr_cmpexch(P,O,N)	*(P) == (O) ? (*(P) = (N), FcTrue) : FcFalse // atomic release
 
 
+#elif !defined(FC_NO_MT) && defined(HAVE_STDATOMIC_PRIMITIVES)
+
+#include <stdatomic.h>
+
+typedef atomic_int fc_atomic_int_t;
+#define FC_ATOMIC_INT_FORMAT		"d"
+#define fc_atomic_int_add(AI, V)	atomic_fetch_add_explicit (&(AI), (V), memory_order_acq_rel)
+
+#define fc_atomic_ptr_get(P)		atomic_load_explicit ((_Atomic(void *)*) (P), memory_order_acquire)
+static inline FcBool _fc_atomic_ptr_cmpexch(_Atomic(void *)*P, void * O, _Atomic(void *) N) {
+  return atomic_compare_exchange_strong_explicit(P, &O, N, memory_order_release, memory_order_relaxed);
+}
+#define fc_atomic_ptr_cmpexch(P,O,N)	_fc_atomic_ptr_cmpexch ((_Atomic(void *)*) (P), (O), (N))
+
+/* Casting -1 to _Atomic(int) produces a compiler error with Clang (but not GCC)
+ * so we have to override FC_REF_CONSTANT_VALUE for stdatomic.h atomics.
+ * See https://bugs.llvm.org/show_bug.cgi?id=40249. */
+#define FC_REF_CONSTANT_VALUE (-1)
+
 #elif !defined(FC_NO_MT) && defined(_MSC_VER) || defined(__MINGW32__)
 
 #include "fcwindows.h"
@@ -72,8 +91,6 @@ typedef int fc_atomic_int_t;
 #define FC_ATOMIC_INT_FORMAT		"d"
 #define fc_atomic_int_add(AI, V)	(OSAtomicAdd32Barrier ((V), &(AI)) - (V))
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4 || __IPHONE_OS_VERSION_MIN_REQUIRED >= 20100)
-
 #if SIZEOF_VOID_P == 8
 #define fc_atomic_ptr_get(P)		OSAtomicAdd64Barrier (0, (int64_t*)(P))
 #elif SIZEOF_VOID_P == 4
@@ -81,10 +98,15 @@ typedef int fc_atomic_int_t;
 #else
 #error "SIZEOF_VOID_P not 4 or 8 (assumes CHAR_BIT is 8)"
 #endif
-#define fc_atomic_ptr_cmpexch(P,O,N)	OSAtomicCompareAndSwapPtrBarrier ((void *) (O), (void *) (N), (void **) (P))
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= 1050 || __IPHONE_OS_VERSION_MIN_REQUIRED >= 20100)
+#define fc_atomic_ptr_cmpexch(P,O,N)	OSAtomicCompareAndSwapPtrBarrier ((void *) (O), (void *) (N), (void **) (P))
 #else
-#error "Your macOS / iOS targets are too old"
+#if __LP64__
+#define fc_atomic_ptr_cmpexch(P,O,N)	OSAtomicCompareAndSwap64Barrier ((int64_t) (O), (int64_t) (N), (int64_t *) (P))
+#else
+#define fc_atomic_ptr_cmpexch(P,O,N)	OSAtomicCompareAndSwap32Barrier ((int32_t) (O), (int32_t) (N), (int32_t *) (P))
+#endif
 #endif
 
 
@@ -134,7 +156,9 @@ typedef int fc_atomic_int_t;
 #endif
 
 /* reference count */
+#ifndef FC_REF_CONSTANT_VALUE
 #define FC_REF_CONSTANT_VALUE ((fc_atomic_int_t) -1)
+#endif
 #define FC_REF_CONSTANT {FC_REF_CONSTANT_VALUE}
 typedef struct _FcRef { fc_atomic_int_t count; } FcRef;
 static inline void   FcRefInit     (FcRef *r, int v) { r->count = v; }

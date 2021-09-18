@@ -591,6 +591,11 @@ ir_expression_operation = [
    # of its length.
    operation("ssbo_unsized_array_length", 1),
 
+   # Calculate length of an implicitly sized array.
+   # This opcode is going to be replaced with a constant expression at link
+   # time.
+   operation("implicitly_sized_array_length", 1),
+
    # 64-bit integer packing ops.
    operation("pack_int_2x32", 1, printable_name="packInt2x32", source_types=(int_type,), dest_type=int64_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),
    operation("pack_uint_2x32", 1, printable_name="packUint2x32", source_types=(uint_type,), dest_type=uint64_type, c_expression="data.u64[0] = pack_2x32(op[0]->value.u[0], op[0]->value.u[1])", flags=frozenset((horizontal_operation, non_assign_operation))),

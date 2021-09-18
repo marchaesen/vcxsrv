@@ -69,14 +69,7 @@ static void X(msm_ringbuffer_sp_emit_reloc_obj)(struct fd_ringbuffer *ring,
     * relocs per ringbuffer object is fairly small, so the O(n^2) doesn't
     * hurt much.
     */
-   bool found = false;
-   for (int i = 0; i < msm_ring->u.nr_reloc_bos; i++) {
-      if (msm_ring->u.reloc_bos[i] == reloc->bo) {
-         found = true;
-         break;
-      }
-   }
-   if (!found) {
+   if (!msm_ringbuffer_references_bo(ring, reloc->bo)) {
       APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(reloc->bo));
    }
 }
@@ -118,7 +111,9 @@ static uint32_t X(msm_ringbuffer_sp_emit_reloc_ring)(
 
    if (ring->flags & _FD_RINGBUFFER_OBJECT) {
       for (unsigned i = 0; i < msm_target->u.nr_reloc_bos; i++) {
-         APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(msm_target->u.reloc_bos[i]));
+         struct fd_bo *target_bo = msm_target->u.reloc_bos[i];
+         if (!msm_ringbuffer_references_bo(ring, target_bo))
+            APPEND(&msm_ring->u, reloc_bos, fd_bo_ref(target_bo));
       }
    } else {
       // TODO it would be nice to know whether we have already

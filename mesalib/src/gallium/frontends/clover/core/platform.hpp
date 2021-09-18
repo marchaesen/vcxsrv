@@ -50,6 +50,8 @@ namespace clover {
       cl_version version;
       std::vector<intrusive_ref<device>> devs;
    };
+
+   platform &find_platform(cl_platform_id d_platform);
 }
 
 #endif

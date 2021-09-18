@@ -2385,15 +2385,6 @@ img_filter_2d_ewa(const struct sp_sampler_view *sp_sview,
    float weight_buffer[TGSI_QUAD_SIZE];
    int j;
 
-   /* For each quad, the du and dx values are the same and so the ellipse is
-    * also the same. Note that texel/image access can only be performed using
-    * a quad, i.e. it is not possible to get the pixel value for a single
-    * tex coord. In order to have a better performance, the access is buffered
-    * using the s_buffer/t_buffer and weight_buffer. Only when the buffer is
-    * full, then the pixel values are read from the image.
-    */
-   const float ddq = 2 * A;
-
    /* Scale ellipse formula to directly index the Filter Lookup Table.
     * i.e. scale so that F = WEIGHT_LUT_SIZE-1
     */
@@ -2402,6 +2393,15 @@ img_filter_2d_ewa(const struct sp_sampler_view *sp_sview,
    B *= formScale;
    C *= formScale;
    /* F *= formScale; */ /* no need to scale F as we don't use it below here */
+
+   /* For each quad, the du and dx values are the same and so the ellipse is
+    * also the same. Note that texel/image access can only be performed using
+    * a quad, i.e. it is not possible to get the pixel value for a single
+    * tex coord. In order to have a better performance, the access is buffered
+    * using the s_buffer/t_buffer and weight_buffer. Only when the buffer is
+    * full, then the pixel values are read from the image.
+    */
+   const float ddq = 2 * A;
 
    args.level = level;
    args.offset = offset;

@@ -60,6 +60,9 @@ agx_print_index(agx_index index, FILE *fp)
       if (index.discard)
          fprintf(fp, "`");
 
+      if (index.kill)
+         fprintf(fp, "*");
+
       fprintf(fp, "%u", index.value);
       break;
 
@@ -165,6 +168,24 @@ agx_print_instr(agx_instr *I, FILE *fp)
          print_comma = true;
 
       fprintf(fp, "slot %u", I->scoreboard);
+   }
+
+   if (info.immediates & AGX_IMMEDIATE_NEST) {
+      if (print_comma)
+         fprintf(fp, ", ");
+      else
+         print_comma = true;
+
+      fprintf(fp, "n=%u", I->nest);
+   }
+
+   if ((info.immediates & AGX_IMMEDIATE_INVERT_COND) && I->invert_cond) {
+      if (print_comma)
+         fprintf(fp, ", ");
+      else
+         print_comma = true;
+
+      fprintf(fp, "inv");
    }
 
    fprintf(fp, "\n");

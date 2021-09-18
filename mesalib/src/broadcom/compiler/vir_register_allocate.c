@@ -164,10 +164,8 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
         }
 
         for (unsigned i = 0; i < c->num_temps; i++) {
-                int node = temp_to_node[i];
-
                 if (BITSET_TEST(c->spillable, i))
-                        ra_set_node_spill_cost(g, node, spill_costs[i]);
+                        ra_set_node_spill_cost(g, temp_to_node[i], spill_costs[i]);
         }
 
         return ra_get_best_spill_node(g);
@@ -179,7 +177,12 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
 void
 v3d_setup_spill_base(struct v3d_compile *c)
 {
-        c->cursor = vir_before_block(vir_entry_block(c));
+        /* Setting up the spill base is done in the entry block; so change
+         * both the current block to emit and the cursor.
+         */
+        struct qblock *current_block = c->cur_block;
+        c->cur_block = vir_entry_block(c);
+        c->cursor = vir_before_block(c->cur_block);
 
         int start_num_temps = c->num_temps;
 
@@ -206,16 +209,16 @@ v3d_setup_spill_base(struct v3d_compile *c)
         for (int i = start_num_temps; i < c->num_temps; i++)
                 BITSET_CLEAR(c->spillable, i);
 
+        /* Restore the current block. */
+        c->cur_block = current_block;
         c->cursor = vir_after_block(c->cur_block);
 }
 
-static void
+static struct qinst *
 v3d_emit_spill_tmua(struct v3d_compile *c, uint32_t spill_offset)
 {
-        vir_ADD_dest(c, vir_reg(QFILE_MAGIC,
-                                V3D_QPU_WADDR_TMUA),
-                     c->spill_base,
-                     vir_uniform_ui(c, spill_offset));
+        return vir_ADD_dest(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUA),
+                            c->spill_base, vir_uniform_ui(c, spill_offset));
 }
 
 
@@ -223,12 +226,17 @@ static void
 v3d_emit_tmu_spill(struct v3d_compile *c, struct qinst *inst,
                    struct qinst *position, uint32_t spill_offset)
 {
+        assert(inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU);
+
         c->cursor = vir_after_inst(position);
-        inst->dst.index = c->num_temps++;
-        vir_MOV_dest(c, vir_reg(QFILE_MAGIC,
-                                V3D_QPU_WADDR_TMUD),
-                     inst->dst);
-        v3d_emit_spill_tmua(c, spill_offset);
+        inst->dst = vir_get_temp(c);
+        enum v3d_qpu_cond cond = vir_get_cond(inst);
+        struct qinst *tmp =
+                vir_MOV_dest(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD),
+                             inst->dst);
+        tmp->qpu.flags.mc = cond;
+        tmp = v3d_emit_spill_tmua(c, spill_offset);
+        tmp->qpu.flags.ac = cond;
         vir_emit_thrsw(c);
         vir_TMUWT(c);
         c->spills++;
@@ -253,7 +261,7 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
         }
 
         struct qinst *last_thrsw = c->last_thrsw;
-        assert(!last_thrsw || last_thrsw->is_last_thrsw);
+        assert(last_thrsw && last_thrsw->is_last_thrsw);
 
         int start_num_temps = c->num_temps;
 
@@ -339,29 +347,13 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
                                                                    spill_offset);
                                 }
                         }
-
-                        /* If we didn't have a last-thrsw inserted by nir_to_vir and
-                         * we've been inserting thrsws, then insert a new last_thrsw
-                         * right before we start the vpm/tlb sequence for the last
-                         * thread segment.
-                         */
-                        if (!is_uniform && !last_thrsw && c->last_thrsw &&
-                            (v3d_qpu_writes_vpm(&inst->qpu) ||
-                             v3d_qpu_uses_tlb(&inst->qpu))) {
-                                c->cursor = vir_before_inst(inst);
-                                vir_emit_thrsw(c);
-
-                                last_thrsw = c->last_thrsw;
-                                last_thrsw->is_last_thrsw = true;
-                        }
                 }
         }
 
         /* Make sure c->last_thrsw is the actual last thrsw, not just one we
          * inserted in our most recent unspill.
          */
-        if (last_thrsw)
-                c->last_thrsw = last_thrsw;
+        c->last_thrsw = last_thrsw;
 
         /* Don't allow spilling of our spilling instructions.  There's no way
          * they can help get things colored.
@@ -372,10 +364,96 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
         c->disable_ldunif_opt = had_disable_ldunif_opt;
 }
 
+struct node_to_temp_map {
+        uint32_t temp;
+        uint32_t priority;
+};
+
 struct v3d_ra_select_callback_data {
         uint32_t next_acc;
         uint32_t next_phys;
+        struct node_to_temp_map *map;
 };
+
+/* Choosing accumulators improves chances of merging QPU instructions
+ * due to these merges requiring that at most 2 rf registers are used
+ * by the add and mul instructions.
+ */
+static bool
+v3d_ra_favor_accum(struct v3d_ra_select_callback_data *v3d_ra,
+                   BITSET_WORD *regs,
+                   int priority)
+{
+        /* Favor accumulators if we have less that this number of physical
+         * registers. Accumulators have more restrictions (like being
+         * invalidated through thrsw), so running out of physical registers
+         * even if we have accumulators available can lead to register
+         * allocation failures.
+         */
+        static const int available_rf_threshold = 5;
+        int available_rf = 0 ;
+        for (int i = 0; i < PHYS_COUNT; i++) {
+                if (BITSET_TEST(regs, PHYS_INDEX + i))
+                        available_rf++;
+                if (available_rf >= available_rf_threshold)
+                        break;
+        }
+        if (available_rf < available_rf_threshold)
+                return true;
+
+        /* Favor accumulators for short-lived temps (our priority represents
+         * liveness), to prevent long-lived temps from grabbing accumulators
+         * and preventing follow-up instructions from using them, potentially
+         * leading to large portions of the shader being unable to use
+         * accumulators and therefore merge instructions successfully.
+         */
+        static const int priority_threshold = 20;
+        if (priority <= priority_threshold)
+                return true;
+
+        return false;
+}
+
+static bool
+v3d_ra_select_accum(struct v3d_ra_select_callback_data *v3d_ra,
+                    BITSET_WORD *regs,
+                    unsigned int *out)
+{
+        /* Round-robin through our accumulators to give post-RA instruction
+         * selection more options.
+         */
+        for (int i = 0; i < ACC_COUNT; i++) {
+                int acc_off = (v3d_ra->next_acc + i) % ACC_COUNT;
+                int acc = ACC_INDEX + acc_off;
+
+                if (BITSET_TEST(regs, acc)) {
+                        v3d_ra->next_acc = acc_off + 1;
+                        *out = acc;
+                        return true;
+                }
+        }
+
+        return false;
+}
+
+static bool
+v3d_ra_select_rf(struct v3d_ra_select_callback_data *v3d_ra,
+                 BITSET_WORD *regs,
+                 unsigned int *out)
+{
+        for (int i = 0; i < PHYS_COUNT; i++) {
+                int phys_off = (v3d_ra->next_phys + i) % PHYS_COUNT;
+                int phys = PHYS_INDEX + phys_off;
+
+                if (BITSET_TEST(regs, phys)) {
+                        v3d_ra->next_phys = phys_off + 1;
+                        *out = phys;
+                        return true;
+                }
+        }
+
+        return false;
+}
 
 static unsigned int
 v3d_ra_select_callback(unsigned int n, BITSET_WORD *regs, void *data)
@@ -390,29 +468,20 @@ v3d_ra_select_callback(unsigned int n, BITSET_WORD *regs, void *data)
         if (BITSET_TEST(regs, r5))
                 return r5;
 
-        /* Choose an accumulator if possible (I think it's lower power than
-         * phys regs), but round-robin through them to give post-RA
-         * instruction selection more options.
+        unsigned int reg;
+        if (v3d_ra_favor_accum(v3d_ra, regs, v3d_ra->map[n].priority) &&
+            v3d_ra_select_accum(v3d_ra, regs, &reg)) {
+                return reg;
+        }
+
+        if (v3d_ra_select_rf(v3d_ra, regs, &reg))
+                return reg;
+
+        /* If we ran out of physical registers try to assign an accumulator
+         * if we didn't favor that option earlier.
          */
-        for (int i = 0; i < ACC_COUNT; i++) {
-                int acc_off = (v3d_ra->next_acc + i) % ACC_COUNT;
-                int acc = ACC_INDEX + acc_off;
-
-                if (BITSET_TEST(regs, acc)) {
-                        v3d_ra->next_acc = acc_off + 1;
-                        return acc;
-                }
-        }
-
-        for (int i = 0; i < PHYS_COUNT; i++) {
-                int phys_off = (v3d_ra->next_phys + i) % PHYS_COUNT;
-                int phys = PHYS_INDEX + phys_off;
-
-                if (BITSET_TEST(regs, phys)) {
-                        v3d_ra->next_phys = phys_off + 1;
-                        return phys;
-                }
-        }
+        if (v3d_ra_select_accum(v3d_ra, regs, &reg))
+                return reg;
 
         unreachable("RA must pass us at least one possible reg.");
 }
@@ -426,44 +495,37 @@ vir_init_reg_sets(struct v3d_compiler *compiler)
         int max_thread_index = (compiler->devinfo->ver >= 40 ? 2 : 3);
 
         compiler->regs = ra_alloc_reg_set(compiler, PHYS_INDEX + PHYS_COUNT,
-                                          true);
+                                          false);
         if (!compiler->regs)
                 return false;
 
         for (int threads = 0; threads < max_thread_index; threads++) {
                 compiler->reg_class_any[threads] =
-                        ra_alloc_reg_class(compiler->regs);
+                        ra_alloc_contig_reg_class(compiler->regs, 1);
                 compiler->reg_class_r5[threads] =
-                        ra_alloc_reg_class(compiler->regs);
+                        ra_alloc_contig_reg_class(compiler->regs, 1);
                 compiler->reg_class_phys_or_acc[threads] =
-                        ra_alloc_reg_class(compiler->regs);
+                        ra_alloc_contig_reg_class(compiler->regs, 1);
                 compiler->reg_class_phys[threads] =
-                        ra_alloc_reg_class(compiler->regs);
+                        ra_alloc_contig_reg_class(compiler->regs, 1);
 
                 for (int i = PHYS_INDEX;
                      i < PHYS_INDEX + (PHYS_COUNT >> threads); i++) {
-                        ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class_phys_or_acc[threads], i);
-                        ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class_phys[threads], i);
-                        ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class_any[threads], i);
+                        ra_class_add_reg(compiler->reg_class_phys_or_acc[threads], i);
+                        ra_class_add_reg(compiler->reg_class_phys[threads], i);
+                        ra_class_add_reg(compiler->reg_class_any[threads], i);
                 }
 
                 for (int i = ACC_INDEX + 0; i < ACC_INDEX + ACC_COUNT - 1; i++) {
-                        ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class_phys_or_acc[threads], i);
-                        ra_class_add_reg(compiler->regs,
-                                         compiler->reg_class_any[threads], i);
+                        ra_class_add_reg(compiler->reg_class_phys_or_acc[threads], i);
+                        ra_class_add_reg(compiler->reg_class_any[threads], i);
                 }
                 /* r5 can only store a single 32-bit value, so not much can
                  * use it.
                  */
-                ra_class_add_reg(compiler->regs,
-                                 compiler->reg_class_r5[threads],
+                ra_class_add_reg(compiler->reg_class_r5[threads],
                                  ACC_INDEX + 5);
-                ra_class_add_reg(compiler->regs,
-                                 compiler->reg_class_any[threads],
+                ra_class_add_reg(compiler->reg_class_any[threads],
                                  ACC_INDEX + 5);
         }
 
@@ -471,11 +533,6 @@ vir_init_reg_sets(struct v3d_compiler *compiler)
 
         return true;
 }
-
-struct node_to_temp_map {
-        uint32_t temp;
-        uint32_t priority;
-};
 
 static int
 node_to_temp_priority(const void *in_a, const void *in_b)
@@ -506,15 +563,15 @@ get_spill_batch_size(struct v3d_compile *c)
    return 20;
 }
 
-/* Don't emit spills using the TMU until we've dropped thread count first. Also,
- * don't spill if we have enabled any other optimization that can lead to
- * higher register pressure, such as TMU pipelining, we rather recompile without
- * the optimization in that case.
+/* Don't emit spills using the TMU until we've dropped thread count first. We,
+ * may also disable spilling when certain optimizations that are known to
+ * increase register pressure are active so we favor recompiling with
+ * optimizations disabled instead of spilling.
  */
 static inline bool
 tmu_spilling_allowed(struct v3d_compile *c, int thread_index)
 {
-        return thread_index == 0 && c->disable_tmu_pipelining;
+        return thread_index == 0 && c->tmu_spilling_allowed;
 }
 
 #define CLASS_BIT_PHYS			(1 << 0)
@@ -532,6 +589,7 @@ tmu_spilling_allowed(struct v3d_compile *c, int thread_index)
 struct qpu_reg *
 v3d_register_allocate(struct v3d_compile *c, bool *spilled)
 {
+        uint32_t UNUSED start_num_temps = c->num_temps;
         struct node_to_temp_map map[c->num_temps];
         uint32_t temp_to_node[c->num_temps];
         uint8_t class_bits[c->num_temps];
@@ -542,6 +600,7 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
                  * RF0-2.
                  */
                 .next_phys = 3,
+                .map = map,
         };
 
         *spilled = false;
@@ -782,6 +841,12 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
                 return NULL;
         }
 
+        /* Ensure that we are not accessing temp_to_node out of bounds. We
+         * should never trigger this assertion because `c->num_temps` only
+         * grows when we spill, in which case we return early and don't get
+         * here.
+         */
+        assert(start_num_temps == c->num_temps);
         struct qpu_reg *temp_registers = calloc(c->num_temps,
                                                 sizeof(*temp_registers));
 

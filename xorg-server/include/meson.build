@@ -16,6 +16,15 @@ conf_data.set('HAVE_TYPEOF', cc.compiles('''
 ''',
     name: 'typeof()') ? '1' : false)
 
+# For feature macros we're using either false (boolean) or '1', which correspond to the macro being
+# not defined at all and defined to 1. This is to match autotools behavior and thus preserve
+# backwards  compatibility with all the existing code that uses #ifdef to check if feature is
+# enabled. This ifdef would pass if the macro is defined to 0 which would silently break code
+# in various places.
+#
+# As a complication when we read the configuration from conf_data back we get either string or
+# bool. Meson does not like comparing things of different types so we always convert the returned
+# value to an integer using to_int().
 conf_data.set('MONOTONIC_CLOCK', cc.has_function('clock_gettime') and
 cc.compiles('''
     #define _POSIX_C_SOURCE 200112L
@@ -181,7 +190,7 @@ if cc.has_header_symbol('sys/socket.h', 'SCM_RIGHTS')
   conf_data.set('XTRANS_SEND_FDS', '1')
 endif
 
-if conf_data.get('HAVE_GETPEEREID') == false and conf_data.get('HAVE_GETPEERUCRED') == false
+if conf_data.get('HAVE_GETPEEREID').to_int() == 0 and conf_data.get('HAVE_GETPEERUCRED').to_int() == 0
     if not cc.has_header_symbol('sys/socket.h', 'SO_PEERCRED')
         conf_data.set('NO_LOCAL_CLIENT_CRED', 1)
     endif

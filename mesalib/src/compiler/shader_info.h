@@ -45,6 +45,7 @@ struct spirv_supported_capabilities {
    bool descriptor_indexing;
    bool device_group;
    bool draw_parameters;
+   bool float16_atomic_add;
    bool float16_atomic_min_max;
    bool float32_atomic_add;
    bool float32_atomic_min_max;
@@ -69,6 +70,7 @@ struct spirv_supported_capabilities {
    bool kernel_image;
    bool kernel_image_read_write;
    bool literal_sampler;
+   bool mesh_shading_nv;
    bool min_lod;
    bool multiview;
    bool physical_storage_buffer_address;
@@ -91,6 +93,7 @@ struct spirv_supported_capabilities {
    bool subgroup_basic;
    bool subgroup_quad;
    bool subgroup_shuffle;
+   bool subgroup_uniform_control_flow;
    bool subgroup_vote;
    bool tessellation;
    bool transform_feedback;
@@ -152,6 +155,12 @@ typedef struct shader_info {
    /* Which system values are actually read */
    BITSET_DECLARE(system_values_read, SYSTEM_VALUE_MAX);
 
+   /* Which I/O is per-primitive, for read/written information combine with
+    * the fields above.
+    */
+   uint64_t per_primitive_inputs;
+   uint64_t per_primitive_outputs;
+
    /* Which 16-bit inputs and outputs are used corresponding to
     * VARYING_SLOT_VARn_16BIT.
     */
@@ -197,6 +206,11 @@ typedef struct shader_info {
     * Size of shared variables accessed by compute/task/mesh shaders.
     */
    unsigned shared_size;
+
+   /**
+    * Local workgroup size used by compute/task/mesh shaders.
+    */
+   uint16_t workgroup_size[3];
 
    uint16_t inlinable_uniform_dw_offsets[MAX_INLINABLE_UNIFORMS];
    uint8_t num_inlinable_uniforms:4;
@@ -254,6 +268,21 @@ typedef struct shader_info {
     */
    bool shared_memory_explicit_layout:1;
 
+   /**
+    * Used for VK_KHR_zero_initialize_workgroup_memory.
+    */
+   bool zero_initialize_shared_memory:1;
+
+   /**
+    * Used for ARB_compute_variable_group_size.
+    */
+   bool workgroup_size_variable:1;
+
+   /**
+     * Is this an ARB assembly-style program.
+     */
+   bool is_arb_asm;
+
    union {
       struct {
          /* Which inputs are doubles */
@@ -268,6 +297,9 @@ typedef struct shader_info {
 
          /* True if the shader writes position in window space coordinates pre-transform */
          bool window_space_position:1;
+
+         /** Is an edge flag input needed? */
+         bool needs_edge_flag:1;
       } vs;
 
       struct {
@@ -381,13 +413,16 @@ typedef struct shader_info {
          unsigned color1_interp:3; /* glsl_interp_mode */
          bool color1_sample:1;
          bool color1_centroid:1;
+
+         /* Bitmask of gl_advanced_blend_mode values that may be used with this
+          * shader.
+          */
+         unsigned advanced_blend_modes;
       } fs;
 
       struct {
-         uint16_t local_size[3];
-         uint16_t local_size_hint[3];
+         uint16_t workgroup_size_hint[3];
 
-         bool local_size_variable:1;
          uint8_t user_data_components_amd:3;
 
          /*
@@ -395,8 +430,6 @@ typedef struct shader_info {
           * shader.  From NV_compute_shader_derivatives.
           */
          enum gl_derivative_group derivative_group:2;
-
-         bool zero_initialize_shared_memory;
 
          /**
           * pointer size is:
@@ -434,6 +467,13 @@ typedef struct shader_info {
           */
          uint64_t tcs_cross_invocation_outputs_read;
       } tess;
+
+      /* Applies to MESH. */
+      struct {
+         uint16_t max_vertices_out;
+         uint16_t max_primitives_out;
+         uint16_t primitive_type;  /* GL_POINTS, GL_LINES or GL_TRIANGLES. */
+      } mesh;
    };
 } shader_info;
 

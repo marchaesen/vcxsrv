@@ -93,6 +93,8 @@ struct etna_resource {
    struct pipe_resource *texture;
    /* for when PE doesn't support the base layout */
    struct pipe_resource *render;
+   /* frontend flushes resource via an explicit call to flush_resource */
+   bool explicit_flush;
 
    enum etna_resource_status status;
 

@@ -172,11 +172,10 @@ ureg_property(struct ureg_program *ureg, unsigned name, unsigned value);
  */
 
 struct ureg_src
-ureg_DECL_fs_input_cyl_centroid_layout(struct ureg_program *,
+ureg_DECL_fs_input_centroid_layout(struct ureg_program *,
                        enum tgsi_semantic semantic_name,
                        unsigned semantic_index,
                        enum tgsi_interpolate_mode interp_mode,
-                       unsigned cylindrical_wrap,
                        enum tgsi_interpolate_loc interp_location,
                        unsigned index,
                        unsigned usage_mask,
@@ -184,29 +183,13 @@ ureg_DECL_fs_input_cyl_centroid_layout(struct ureg_program *,
                        unsigned array_size);
 
 struct ureg_src
-ureg_DECL_fs_input_cyl_centroid(struct ureg_program *,
+ureg_DECL_fs_input_centroid(struct ureg_program *,
                        enum tgsi_semantic semantic_name,
                        unsigned semantic_index,
                        enum tgsi_interpolate_mode interp_mode,
-                       unsigned cylindrical_wrap,
                        enum tgsi_interpolate_loc interp_location,
                        unsigned array_id,
                        unsigned array_size);
-
-static inline struct ureg_src
-ureg_DECL_fs_input_cyl(struct ureg_program *ureg,
-                       enum tgsi_semantic semantic_name,
-                       unsigned semantic_index,
-                       enum tgsi_interpolate_mode interp_mode,
-                       unsigned cylindrical_wrap)
-{
-   return ureg_DECL_fs_input_cyl_centroid(ureg,
-                                 semantic_name,
-                                 semantic_index,
-                                 interp_mode,
-                                 cylindrical_wrap,
-                                 TGSI_INTERPOLATE_LOC_CENTER, 0, 1);
-}
 
 static inline struct ureg_src
 ureg_DECL_fs_input(struct ureg_program *ureg,
@@ -214,11 +197,11 @@ ureg_DECL_fs_input(struct ureg_program *ureg,
                    unsigned semantic_index,
                    enum tgsi_interpolate_mode interp_mode)
 {
-   return ureg_DECL_fs_input_cyl_centroid(ureg,
+   return ureg_DECL_fs_input_centroid(ureg,
                                  semantic_name,
                                  semantic_index,
                                  interp_mode,
-                                 0, TGSI_INTERPOLATE_LOC_CENTER, 0, 1);
+                                 TGSI_INTERPOLATE_LOC_CENTER, 0, 1);
 }
 
 struct ureg_src

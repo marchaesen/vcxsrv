@@ -247,6 +247,39 @@ agx_bo_create(struct agx_device *dev, unsigned size, unsigned flags)
    return bo;
 }
 
+static void
+agx_get_global_ids(struct agx_device *dev)
+{
+#if __APPLE__
+   uint64_t out[2] = {};
+   size_t out_sz = sizeof(out);
+
+   ASSERTED kern_return_t ret = IOConnectCallStructMethod(dev->fd,
+                       AGX_SELECTOR_GET_GLOBAL_IDS,
+                       NULL, 0, &out, &out_sz);
+
+   assert(ret == 0);
+   assert(out_sz == sizeof(out));
+   assert(out[1] > out[0]);
+
+   dev->next_global_id = out[0];
+   dev->last_global_id = out[1];
+#else
+   dev->next_global_id = 0;
+   dev->last_global_id = 0x1000000;
+#endif
+}
+
+uint64_t
+agx_get_global_id(struct agx_device *dev)
+{
+   if (unlikely(dev->next_global_id >= dev->last_global_id)) {
+      agx_get_global_ids(dev);
+   }
+
+   return dev->next_global_id++;
+}
+
 /* Tries to open an AGX device, returns true if successful */
 
 bool
@@ -296,6 +329,8 @@ agx_open_device(void *memctx, struct agx_device *dev)
    dev->queue = agx_create_command_queue(dev);
    dev->cmdbuf = agx_shmem_alloc(dev, 0x4000, true); // length becomes kernelCommandDataSize
    dev->memmap = agx_shmem_alloc(dev, 0x4000, false);
+   agx_get_global_ids(dev);
+
    return true;
 }
 
@@ -309,29 +344,6 @@ agx_close_device(struct agx_device *dev)
 
    if (ret)
       fprintf(stderr, "Error from IOServiceClose: %u\n", ret);
-#endif
-}
-
-uint64_t
-agx_cmdbuf_global_ids(struct agx_device *dev)
-{
-#if __APPLE
-   uint32_t out[4] = {};
-   size_t out_sz = sizeof(out);
-
-   ASSERTED kern_return_t ret = IOConnectCallStructMethod(dev->fd,
-                       0x6,
-                       NULL, 0, &out, &out_sz);
-
-   assert(ret == 0);
-   assert(out_sz == sizeof(out));
-   assert(out[2] == (out[0] + 0x1000000));
-
-   /* Returns a 32-bit but is 64-bit in Instruments, extend with the
-    * missing high bit */
-   return (out[0]) | (1ull << 32ull);
-#else
-   return 0;
 #endif
 }
 

@@ -39,33 +39,17 @@
 
 #include "tgsi/tgsi_dump.h"
 
-static void
-pan_upload_shader_descriptor(struct panfrost_context *ctx,
-                        struct panfrost_shader_state *state)
-{
-        const struct panfrost_device *dev = pan_device(ctx->base.screen);
-        struct mali_state_packed *out;
-
-        u_upload_alloc(ctx->state_uploader, 0, MALI_RENDERER_STATE_LENGTH, MALI_RENDERER_STATE_LENGTH,
-                        &state->upload.offset, &state->upload.rsrc, (void **) &out);
-
-        pan_pack(out, RENDERER_STATE, cfg) {
-                pan_shader_prepare_rsd(dev, &state->info,
-                                       state->bo ? state->bo->ptr.gpu : 0,
-                                       &cfg);
-        }
-
-        u_upload_unmap(ctx->state_uploader);
-}
-
 void
-panfrost_shader_compile(struct panfrost_context *ctx,
+panfrost_shader_compile(struct pipe_screen *pscreen,
+                        struct panfrost_pool *shader_pool,
+                        struct panfrost_pool *desc_pool,
                         enum pipe_shader_ir ir_type,
                         const void *ir,
                         gl_shader_stage stage,
                         struct panfrost_shader_state *state)
 {
-        struct panfrost_device *dev = pan_device(ctx->base.screen);
+        struct panfrost_screen *screen = pan_screen(pscreen);
+        struct panfrost_device *dev = pan_device(pscreen);
 
         nir_shader *s;
 
@@ -73,7 +57,7 @@ panfrost_shader_compile(struct panfrost_context *ctx,
                 s = nir_shader_clone(NULL, ir);
         } else {
                 assert (ir_type == PIPE_SHADER_IR_TGSI);
-                s = tgsi_to_nir(ir, ctx->base.screen, false);
+                s = tgsi_to_nir(ir, pscreen, false);
         }
 
         /* Lower this early so the backends don't have to worry about it */
@@ -95,16 +79,19 @@ panfrost_shader_compile(struct panfrost_context *ctx,
         util_dynarray_init(&binary, NULL);
         pan_shader_compile(dev, s, &inputs, &binary, &state->info);
 
-        /* Prepare the compiled binary for upload */
         if (binary.size) {
-                state->bo = panfrost_bo_create(dev, binary.size, PAN_BO_EXECUTE);
-                memcpy(state->bo->ptr.cpu, binary.data, binary.size);
+                state->bin = panfrost_pool_take_ref(shader_pool,
+                        pan_pool_upload_aligned(&shader_pool->base,
+                                binary.data, binary.size, 128));
         }
 
-        /* Midgard needs the first tag on the bottom nibble */
 
-        if (stage != MESA_SHADER_FRAGMENT)
-                pan_upload_shader_descriptor(ctx, state);
+        /* Don't upload RSD for fragment shaders since they need draw-time
+         * merging for e.g. depth/stencil/alpha */
+        bool upload = stage != MESA_SHADER_FRAGMENT;
+        screen->vtbl.prepare_rsd(dev, state, desc_pool, upload);
+
+        panfrost_analyze_sysvals(state);
 
         util_dynarray_fini(&binary);
 
