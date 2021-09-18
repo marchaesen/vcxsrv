@@ -47,7 +47,7 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     unsigned long       count;
     char                *bits;
 
-    if (glamor_priv->glsl_version < 130)
+    if (!glamor_glsl_has_ints(glamor_priv))
         return NULL;
 
     privates = FontGetPrivate(font, glamor_font_private_index);
@@ -210,7 +210,7 @@ glamor_font_init(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    if (glamor_priv->glsl_version < 130)
+    if (!glamor_glsl_has_ints(glamor_priv))
         return TRUE;
 
     if (glamor_font_generation != serverGeneration) {

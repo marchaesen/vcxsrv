@@ -37,8 +37,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define USE_SEL offsetof(SELinuxSubjectRec, sel_use_sid)
 
 typedef struct {
-    security_context_t octx;
-    security_context_t dctx;
+    char *octx;
+    char *dctx;
     CARD32 octx_len;
     CARD32 dctx_len;
     CARD32 id;
@@ -48,10 +48,10 @@ typedef struct {
  * Extension Dispatch
  */
 
-static security_context_t
+static char *
 SELinuxCopyContext(char *ptr, unsigned len)
 {
-    security_context_t copy = malloc(len + 1);
+    char *copy = malloc(len + 1);
 
     if (!copy)
         return NULL;
@@ -84,7 +84,7 @@ static int
 SELinuxSendContextReply(ClientPtr client, security_id_t sid)
 {
     SELinuxGetContextReply rep;
-    security_context_t ctx = NULL;
+    char *ctx = NULL;
     int len = 0;
 
     if (sid) {
@@ -117,7 +117,7 @@ ProcSELinuxSetCreateContext(ClientPtr client, unsigned offset)
 {
     PrivateRec **privPtr = &client->devPrivates;
     security_id_t *pSid;
-    security_context_t ctx = NULL;
+    char *ctx = NULL;
     char *ptr;
     int rc;
 
@@ -165,7 +165,7 @@ ProcSELinuxGetCreateContext(ClientPtr client, unsigned offset)
 static int
 ProcSELinuxSetDeviceContext(ClientPtr client)
 {
-    security_context_t ctx;
+    char *ctx;
     security_id_t sid;
     DeviceIntPtr dev;
     SELinuxSubjectRec *subj;

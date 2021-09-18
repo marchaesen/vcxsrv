@@ -112,6 +112,8 @@ __stdcall unsigned long GetTickCount(void);
 
 #include "miinitext.h"
 
+#include "present.h"
+
 Bool noTestExtensions;
 
 #ifdef COMPOSITE
@@ -534,6 +536,7 @@ UseMsg(void)
     ErrorF
         ("-deferglyphs [none|all|16] defer loading of [no|all|16-bit] glyphs\n");
     ErrorF("-f #                   bell base (0-100)\n");
+    ErrorF("-fakescreenfps #       fake screen default fps (1-600)\n");
     ErrorF("-fp string             default font path\n");
     ErrorF("-help                  prints message with these options\n");
     ErrorF("+iglx                  Allow creating indirect GLX contexts\n");
@@ -778,6 +781,15 @@ ProcessCommandLine(int argc, char *argv[])
         else if (strcmp(argv[i], "-f") == 0) {
             if (++i < argc)
                 defaultKeyboardControl.bell = atoi(argv[i]);
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-fakescreenfps") == 0) {
+            if (++i < argc) {
+                FakeScreenFps = (uint32_t) atoi(argv[i]);
+                if (FakeScreenFps < 1 || FakeScreenFps > 600)
+                    FatalError("fakescreenfps must be an integer in [1;600] range\n");
+            }
             else
                 UseMsg();
         }

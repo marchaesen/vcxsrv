@@ -29,7 +29,6 @@ pkg-config,\
 python3,\
 windowsdriproto,\
 xorgproto,\
-libdmx-devel,\
 libepoxy-devel,\
 libfontenc-devel,\
 libfreetype-devel,\
@@ -73,7 +72,7 @@ cache:
 - '%CYGWIN_ROOT%\home\%USERNAME%\.ccache'
 build_script:
 - SET PATH=%CYGWIN_ROOT%/bin
-- '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; meson setup --prefix=/usr -Dxv=false -Dxf86bigfont=true -Ddmx=true -Dxephyr=true -Dxnest=true -Dxvfb=true -Dxwin=true -Dxorg=true -Dhal=false -Dudev=false -Dpciaccess=false -Dint10=false build"'
+- '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; meson setup --prefix=/usr -Dxv=false -Dxf86bigfont=true -Dxephyr=true -Dxnest=true -Dxvfb=true -Dxwin=true -Dxorg=true -Dhal=false -Dudev=false -Dpciaccess=false -Dint10=false build"'
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; meson configure build"'
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; ninja -C build"'
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; ccache -s"'

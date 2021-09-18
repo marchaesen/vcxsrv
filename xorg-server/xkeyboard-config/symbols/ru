@@ -155,6 +155,56 @@ xkb_symbols "typewriter-legacy" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "gost-6431-75-48" {
+
+    include "ru(typewriter)"
+    name[Group1]= "Russian (GOST 6431-75)";
+
+    key <TLDE> { [    section,  asciitilde  ] };
+    key <AE01> { [  parenleft,           1  ] };
+    key <AE02> { [ parenright,           2  ] };
+    key <AE03> { [      minus,           3  ] };
+    key <AE04> { [      slash,           4  ] };
+    key <AE05> { [   quotedbl,           5  ] };
+    key <AE06> { [      colon,           6  ] };
+    key <AE07> { [      comma,           7  ] };
+    key <AE08> { [     period,           8  ] };
+    key <AE09> { [ underscore,           9  ] };
+    key <AE10> { [   question,           0  ] };
+    key <AE11> { [    percent,        plus  ] };
+    key <AE12> { [    exclam,        equal  ] };
+
+    key <BKSL> { [   semicolon,  numerosign ] };
+
+    key <LSGT> { [ emdash, endash ] };
+};
+
+partial alphanumeric_keys
+xkb_symbols "gost-14289-88" {
+
+    include "ru(typewriter)"
+    name[Group1]= "Russian (GOST 14289-88)";
+
+    key <TLDE> { [  backslash, asterisk,   asciitilde, section ] };
+    key <AE01> { [  parenleft,        1,         less, guillemotleft ] };
+    key <AE02> { [ parenright,        2,           at, guillemotright ] };
+    key <AE03> { [      minus,        3,   numbersign, numerosign ] };
+    key <AE04> { [      slash,        4,        U20BD, dollar ] }; // ruble
+    key <AE05> { [   quotedbl,        5,      greater ] };
+    key <AE06> { [      colon,        6,  asciicircum ] };
+    key <AE07> { [      comma,        7,   ampersand  ] };
+    key <AE08> { [     period,        8,   apostrophe, dead_acute ] };
+    key <AE09> { [ underscore,        9,    braceleft, U201E ] };
+    key <AE10> { [   question,        0,   braceright, U201F ] };
+    key <AE11> { [    percent,     plus,  bracketleft, plusminus ] };
+    key <AE12> { [     exclam,    equal, bracketright ] };
+
+    key <BKSL> { [  semicolon,      bar,        grave ] };
+
+    key <LSGT> { [ emdash, endash ] };
+};
+
+partial alphanumeric_keys
 xkb_symbols "phonetic" {
 
     name[Group1]= "Russian (phonetic)";

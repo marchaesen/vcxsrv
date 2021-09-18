@@ -175,30 +175,33 @@ FcCharSetPutLeaf (FcCharSet	*fcs,
       }
       else
       {
+	int i;
         unsigned int alloced = fcs->num;
-	intptr_t *new_leaves, distance;
+	intptr_t *new_leaves;
+	ptrdiff_t distance;
 
 	alloced *= 2;
-	new_leaves = realloc (leaves, alloced * sizeof (*leaves));
-	if (!new_leaves)
-	    return FcFalse;
 	numbers = realloc (numbers, alloced * sizeof (*numbers));
 	if (!numbers)
+	    return FcFalse;
+	new_leaves = realloc (leaves, alloced * sizeof (*leaves));
+	if (!new_leaves)
 	{
-	    /* Revert the reallocation of leaves */
-	    leaves = realloc (new_leaves, (alloced / 2) * sizeof (*new_leaves));
+	    /*
+	     * Revert the reallocation of numbers. We update numbers_offset
+	     * first in case realloc() fails.
+	     */
+	    fcs->numbers_offset = FcPtrToOffset (fcs, numbers);
+	    numbers = realloc (numbers, (alloced / 2) * sizeof (*numbers));
 	    /* unlikely to fail though */
-	    if (!leaves)
+	    if (!numbers)
 		return FcFalse;
-	    fcs->leaves_offset = FcPtrToOffset (fcs, leaves);
+	    fcs->numbers_offset = FcPtrToOffset (fcs, numbers);
 	    return FcFalse;
 	}
-	distance = (intptr_t) new_leaves - (intptr_t) leaves;
-	if (new_leaves && distance)
-	{
-	    int i;
-	    for (i = 0; i < fcs->num; i++)
-		new_leaves[i] -= distance;
+	distance = (char *) new_leaves - (char *) leaves;
+	for (i = 0; i < fcs->num; i++) {
+	    new_leaves[i] -= distance;
 	}
 	leaves = new_leaves;
       }

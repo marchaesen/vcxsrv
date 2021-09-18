@@ -21,32 +21,32 @@ srcs_os = [
 
 # Wrapper code for missing C library functions. Note that conf_data contains either '1' or false.
 srcs_libc = []
-if conf_data.get('HAVE_REALLOCARRAY') == false
+if conf_data.get('HAVE_REALLOCARRAY').to_int() == 0
     srcs_libc += 'reallocarray.c'
 endif
-if conf_data.get('HAVE_STRCASECMP') == false
+if conf_data.get('HAVE_STRCASECMP').to_int() == 0
     srcs_libc += 'strcasecmp.c'
 endif
-if conf_data.get('HAVE_STRCASESTR') == false
+if conf_data.get('HAVE_STRCASESTR').to_int() == 0
     srcs_libc += 'strcasestr.c'
 endif
-if conf_data.get('HAVE_STRLCAT') == false
+if conf_data.get('HAVE_STRLCAT').to_int() == 0
     srcs_libc += 'strlcat.c'
 endif
-if conf_data.get('HAVE_STRLCPY') == false
+if conf_data.get('HAVE_STRLCPY').to_int() == 0
     srcs_libc += 'strlcpy.c'
 endif
-if conf_data.get('HAVE_STRNDUP') == false
+if conf_data.get('HAVE_STRNDUP').to_int() == 0
     srcs_libc += 'strndup.c'
 endif
-if conf_data.get('HAVE_TIMINGSAFE_MEMCMP') == false
+if conf_data.get('HAVE_TIMINGSAFE_MEMCMP').to_int() == 0
     srcs_libc += 'timingsafe_memcmp.c'
 endif
-if conf_data.get('HAVE_POLL') == false
+if conf_data.get('HAVE_POLL').to_int() == 0
     srcs_os += 'xserver_poll.c'
 endif
 
-if conf_data.get('BUSFAULT') != false
+if conf_data.get('BUSFAULT').to_int() != 0
     srcs_os += 'busfault.c'
 endif
 

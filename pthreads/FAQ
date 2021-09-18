@@ -20,7 +20,7 @@ Q 5	Why is the default library version now less exception-friendly?
 
 Q 6	Should I use Cygwin or Mingw32 as a development environment?
 
-Q 7	Now that pthreads-win32 builds under Mingw32, why do I get
+Q 7	Now that pthreads4w builds under Mingw32, why do I get
 	memory access violations (segfaults)?
 
 Q 8	How do I use pthread.dll for Win32 (Visual C++ 5.0)
@@ -31,7 +31,7 @@ Q 10	How do I generate pthreadGCE.dll and libpthreadw32.a for use
 	with Mingw32?
 
 Q 11    Why isn't pthread_t defined as a scalar (e.g. pointer or int)
-        like it is for other POSIX threads implementations?
+        like it is for some other POSIX threads implementations?
 
 =============================================================================
 
@@ -78,7 +78,7 @@ There seems to be more opinion in favour of using the
 standard C version of the library (no EH) with C++ applications
 since this appears to be the assumption commercial pthreads
 implementations make. Therefore, if you use an EH version
-of pthreads-win32 then you may be under the illusion that
+of pthreads4w then you may be under the illusion that
 your application will be portable, when in fact it is likely to
 behave very differently linked with other pthreads libraries.
 
@@ -89,7 +89,7 @@ There are a couple of reasons:
 - there is division amongst the experts and so the code may
   be needed in the future. (Yes, it's in the repository and we
   can get it out anytime in the future, but ...)
-- pthreads-win32 is one of the few implementations, and possibly
+- pthreads4w is one of the few implementations, and possibly
   the only freely available one, that has EH versions. It may be
   useful to people who want to play with or study application
   behaviour under these conditions.
@@ -235,7 +235,7 @@ There are a few reasons:
   do the expected thing in that context. (There are equally respected
   people who believe it should not be easily accessible, if it's there
   at all.)
-- because pthreads-win32 is one of the few implementations that has
+- because pthreads4w is one of the few implementations that has
   the choice, perhaps the only freely available one, and so offers
   a laboratory to people who may want to explore the effects;
 - although the code will always be around somewhere for anyone who
@@ -258,7 +258,7 @@ Consult that project's documentation for more information.
 
 ------------------------------------------------------------------------------
 
-Q 7	Now that pthreads-win32 builds under Mingw32, why do I get
+Q 7	Now that pthreads4w builds under Mingw32, why do I get
 ---	memory access violations (segfaults)?
 
 The latest Mingw32 package has thread-safe exception handling (see Q10).
@@ -345,23 +345,23 @@ been able to get to it.
 If the thread you're trying to cancel is blocked (for instance, it could be
 waiting for data from the network), it will only get cancelled when it unblocks
 (when the data arrives). For true pre-emptive cancellation in these cases,
-pthreads-win32 from snapshot 2004-05-16 can automatically recognise and use the
+pthreads4w from snapshot 2004-05-16 can automatically recognise and use the
 QueueUserAPCEx package by Panagiotis E. Hadjidoukas. This package is available
-from the pthreads-win32 ftp site and is included in the pthreads-win32
+from the pthreads4w ftp site and is included in the pthreads4w
 self-unpacking zip from 2004-05-16 onwards.
 
 Using deferred cancellation would normally be the way to go, however,
 even though the POSIX threads standard lists a number of C library
 functions that are defined as deferred cancellation points, there is
 no hookup between those which are provided by Windows and the
-pthreads-win32 library.
+pthreads4w library.
 
 Incidently, it's worth noting for code portability that the older POSIX
 threads standards cancellation point lists didn't include "select" because
 (as I read in Butenhof) it wasn't part of POSIX. However, it does appear in
 the SUSV3.
 
-Effectively, the only mandatory cancellation points that pthreads-win32
+Effectively, the only mandatory cancellation points that pthreads4w
 recognises are those the library implements itself, ie.
 	
 	pthread_testcancel
@@ -373,13 +373,13 @@ recognises are those the library implements itself, ie.
 	pthread_delay_np
 
 The following routines from the non-mandatory list in SUSV3 are
-cancellation points in pthreads-win32:
+cancellation points in pthreads4w:
 
 	pthread_rwlock_wrlock
 	pthread_rwlock_timedwrlock
 
 The following routines from the non-mandatory list in SUSV3 are not
-cancellation points in pthreads-win32:
+cancellation points in pthreads4w:
 
 	pthread_rwlock_rdlock
 	pthread_rwlock_timedrdlock
@@ -405,23 +405,50 @@ http://sources.redhat.com/ml/pthreads-win32/2002/msg00000.html
 ------------------------------------------------------------------------------
 
 Q 11    Why isn't pthread_t defined as a scalar (e.g. pointer or int)
-        like it is for other POSIX threads implementations?
+        like it is for some other POSIX threads implementations?
 ----
-
-The change from scalar to vector was made in response to the numerous
-queries we received at that time either requesting assistance to debug
-applications or reporting problems with the library that turned out to be
-application bugs. Since the change we have only received requests that
-we change back to scalar in order to support applications that are not
-compliant with POSIX.
 
 Originally we defined pthread_t as a pointer (to the opaque pthread_t_
 struct) and later we changed it to a struct containing the original
 pointer plus a sequence counter. This is not only allowed under both
 the original POSIX Threads Standard and the current Single Unix
 Specification, it is expected if the implemented chooses and is why
-the standard requires pthread_t to be an opaque type.
+the standard requires pthread_t to be treated as opaque.
 
+The change from scalar to vector was made in response to the numerous
+queries we received at that time either requesting assistance to debug
+applications or reporting problems with the library that turned out to be
+application bugs. Since the change we have only received requests to
+change back to scalar in order to support applications that are, by
+admission in the request itself, not compliant with the standard.
+
+Motivation:
+Having asked the question: what problem is being solved by using a scalar
+pthread_t that is guaranteed to be unique only for the life of the thread it
+identifies?
+
+Create a pthread_t thread identifier that remains unique for all threads
+created within the process, over the life of the process, not just the life
+of the thread.
+
+Justification:
+Eliminate a common source of application design compromise, avoidable
+complexity and risk.
+
+Enable the pthread_equal() API function to actually do what it's naming
+suggests it does, and put an end to the apologist arguments around whether
+that is what it should do.
+
+Several pthreads implementations provide similarly unique thread identifiers,
+including Solaris and some others. Windows threads identifiers are similarly
+unique.
+
+Nothing here prevents an application from including code to track threads,
+including for the purpose of identifying threads no longer live, provided it
+treats pthread_t as an opaque type. If a scalar type is required then use
+the non-portable function pthread_getunique_np().
+
+Further comments:
 When pthread_t is a simple pointer some very difficult thread management
 problems arise because the process of freeing and later allocing
 thread structs means that new pthread_t handles can acquire the identity of
@@ -434,35 +461,37 @@ i.e. a developer is not supposed to assume anything about pthread_t. Several
 pthreads implmentations do provide non-portable aids, such as API calls to
 return unique sequence numbers etc.
 
-The change to a struct was made, along with some changes to their internal
-managment, in order to guarantee (for practical applications) that the
-pthread_t handle will be unique over the life of the running process.
-
 Where application code attempts to compare one pthread_t against another
 directly, a compiler error will be emitted because structs can't be
 compared at that level. This should signal a potentially serious problem
 in the code design, which would go undetected if pthread_t was a scalar.
 
 The POSIX Threading API provides a function named pthread_equal() to
-compare pthread_t thread handles.
+compare pthread_t thread handles. However, this doesn't garantee that
+the thread arguments are actually the same thread, only that their
+identifiers are the same. Only where thread identifiers are unique for the
+life of the process, rather than just the life of a thread, will this
+function be useful in practice.
 
-Other pthreads implementations, such as Sun's, use an int as the handle
-but do guarantee uniqueness within the process scope. Win32 scalar typed
-thread handles also guarantee uniqueness in system scope. It wasn't clear
-how well the internal management of these handles would scale as the
-number of threads and the fragmentation of the sequence numbering
-increased for applications where thousands or millions of threads are
-created and detached over time. The current management of threads within
-pthreads-win32 using structs for pthread_t, and reusing without ever
-freeing them, reduces the management time overheads to a constant, which
-could be important given that pthreads-win32 threads are built on top of
-Win32 threads and will therefore include that management overhead on top
-of their own. The cost is that the memory resources used for thread
-handles will remain at the peak level until the process exits.
+Within limits, other pthreads implementations, such as Solaris, use an int
+as the handle but do guarantee uniqueness within the process scope and
+lifetime. Win32 scalar typed thread handles also guarantee uniqueness in
+system scope. It wasn't clear how well the internal management of these
+handles would scale as the number of threads and the fragmentation of the
+sequence numbering increased for applications where thousands or millions
+of threads begin and exit over time.
 
-While it may be inconvenient for developers to be forced away from making
-assumptions about the internals of pthread_t, the advantage for the
-future development of pthread-win32, as well as those applications that
-use it, is that the library is free to change pthread_t internals and
-management as better methods arise.
+The current management of threads within pthreads4w using structs for
+pthread_t, and reusing without ever freeing them, reduces the management
+time overheads to a constant, which could be important given that
+pthreads4w threads are built on top of Win32 threads and will therefore
+include that management overhead on top of their own at start and end. The
+cost is that the memory resources used for thread handles will remain at
+the peak level until the process exits.
 
+How unique are our thread identifiers? On 64 bit machines, as of versions
+2.11.0 and 3.0.0, the counters are 64 bit and each reusable block of memory
+used for thread handles has an independent counter. So assuming a thread
+lives a minimum of one nano-second, the minimum process lifetime is 584
+years. This number is also not dependent on the number of CPUs in the
+machine.

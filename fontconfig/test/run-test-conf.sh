@@ -49,6 +49,7 @@ for i in \
     $RUNNER $TESTDIR/../conf.d/$i $TESTDIR/$test_json
 done
 for i in \
+	test-issue-286.json \
 	test-style-match.json \
     ; do
     echo $RUNNER $TESTDIR/$i ...

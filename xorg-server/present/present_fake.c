@@ -113,21 +113,29 @@ present_fake_queue_vblank(ScreenPtr     screen,
     return Success;
 }
 
+uint32_t FakeScreenFps = 0;
+
 void
 present_fake_screen_init(ScreenPtr screen)
 {
+    uint32_t                fake_fps;
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
-    /* For screens with hardware vblank support, the fake code
-     * will be used for off-screen windows and while screens are blanked,
-     * in which case we want a slow interval here
-     *
-     * Otherwise, pretend that the screen runs at 60Hz
-     */
-    if (screen_priv->info && screen_priv->info->get_crtc)
-        screen_priv->fake_interval = 1000000;
-    else
-        screen_priv->fake_interval = 16667;
+    if (FakeScreenFps)
+        fake_fps = FakeScreenFps;
+    else {
+        /* For screens with hardware vblank support, the fake code
+        * will be used for off-screen windows and while screens are blanked,
+        * in which case we want a large interval here: 1Hz
+        *
+        * Otherwise, pretend that the screen runs at 60Hz
+        */
+        if (screen_priv->info && screen_priv->info->get_crtc)
+            fake_fps = 1;
+        else
+            fake_fps = 60;
+    }
+    screen_priv->fake_interval = 1000000 / fake_fps;
 }
 
 void

@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
 
-.templates_sha: &template_sha 290b79e0e78eab67a83766f4e9691be554fc4afd # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+.templates_sha: &template_sha 007f3e2fe2235328e77d3cd4ce007ab41cd9ce6c # see https://docs.gitlab.com/ee/ci/yaml/#includefile
 
 
 include:

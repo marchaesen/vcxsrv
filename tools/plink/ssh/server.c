@@ -109,6 +109,7 @@ static const SeatVtable server_seat_vt = {
     .eof = nullseat_eof,
     .sent = nullseat_sent,
     .get_userpass_input = nullseat_get_userpass_input,
+    .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = nullseat_connection_fatal,
@@ -125,6 +126,7 @@ static const SeatVtable server_seat_vt = {
     .get_window_pixel_size = nullseat_get_window_pixel_size,
     .stripctrl_new = nullseat_stripctrl_new,
     .set_trust_status = nullseat_set_trust_status,
+    .can_set_trust_status = nullseat_can_set_trust_status_no,
     .verbose = nullseat_verbose_no,
     .interactive = nullseat_interactive_no,
     .get_cursor_position = nullseat_get_cursor_position,
@@ -241,6 +243,8 @@ Conf *make_ssh_server_conf(void)
     conf_set_bool(conf, CONF_ssh2_des_cbc, true);
     return conf;
 }
+
+void ssh_check_sendok(Ssh *ssh) {}
 
 static const PlugVtable ssh_server_plugvt = {
     .log = server_socket_log,
@@ -368,7 +372,6 @@ static void server_connect_bpp(server *srv)
 static void server_connect_ppl(server *srv, PacketProtocolLayer *ppl)
 {
     ppl->bpp = srv->bpp;
-    ppl->user_input = &srv->dummy_user_input;
     ppl->logctx = srv->logctx;
     ppl->ssh = &srv->ssh;
     ppl->seat = &srv->seat;
@@ -512,7 +515,8 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
 
         connection_layer = ssh2_connection_new(
             &srv->ssh, NULL, false, srv->conf,
-            ssh_verstring_get_local(old_bpp), &srv->cl);
+            ssh_verstring_get_local(old_bpp), &srv->dummy_user_input,
+            &srv->cl);
         ssh2connection_server_configure(connection_layer,
                                         srv->sftpserver_vt, srv->ssc);
         server_connect_ppl(srv, connection_layer);
@@ -526,7 +530,8 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
 
         connection_layer = ssh2_connection_new(
             &srv->ssh, NULL, false, srv->conf,
-            ssh_verstring_get_local(old_bpp), &srv->cl);
+            ssh_verstring_get_local(old_bpp), &srv->dummy_user_input,
+            &srv->cl);
         ssh2connection_server_configure(connection_layer,
                                         srv->sftpserver_vt, srv->ssc);
         server_connect_ppl(srv, connection_layer);
@@ -562,7 +567,8 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
         srv->bpp = ssh1_bpp_new(srv->logctx);
         server_connect_bpp(srv);
 
-        connection_layer = ssh1_connection_new(&srv->ssh, srv->conf, &srv->cl);
+        connection_layer = ssh1_connection_new(
+            &srv->ssh, srv->conf, &srv->dummy_user_input, &srv->cl);
         ssh1connection_server_configure(connection_layer, srv->ssc);
         server_connect_ppl(srv, connection_layer);
 

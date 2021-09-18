@@ -19,7 +19,7 @@ To update existing orth files:
 * Please make sure how the changes affects to the existing
   fonts and no regressions except it is expected behavior.
 
-* Please add any reference URL in bugzilla or any
+* Please add any reference URL in GitLab or any
   explanation why it needs to be added/removed and also why
   current orth file doesn't work.
 

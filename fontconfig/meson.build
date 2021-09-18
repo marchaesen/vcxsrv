@@ -190,6 +190,10 @@ else
   conf.set('FLEXIBLE_ARRAY_MEMBER', 1)
 endif
 
+if cc.links(files('meson-cc-tests/stdatomic-primitives-test.c'), name: 'stdatomic.h atomics')
+  conf.set('HAVE_STDATOMIC_PRIMITIVES', 1)
+endif
+
 if cc.links(files('meson-cc-tests/intel-atomic-primitives-test.c'), name: 'Intel atomics')
   conf.set('HAVE_INTEL_ATOMIC_PRIMITIVES', 1)
 endif

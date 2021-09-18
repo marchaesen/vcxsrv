@@ -1874,7 +1874,7 @@ int
 GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
                uint16_t type, uint32_t flags, const ValuatorMask *mask_in)
 {
-    ScreenPtr scr = dev->spriteInfo->sprite->hotPhys.pScreen;
+    ScreenPtr scr;
     TouchClassPtr t = dev->touch;
     ValuatorClassPtr v = dev->valuator;
     DeviceEvent *event;
@@ -1988,6 +1988,8 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
     }
     if (need_rawevent)
         set_raw_valuators(raw, &mask, FALSE, raw->valuators.data);
+
+    scr = dev->spriteInfo->sprite->hotPhys.pScreen;
 
     /* Indirect device touch coordinates are not used for cursor positioning.
      * They are merely informational, and are provided in device coordinates.

@@ -561,7 +561,11 @@ static int _X_COLD
 SProcDamageDispatch(ClientPtr client)
 {
     REQUEST(xDamageReq);
-    if (stuff->damageReqType >= XDamageNumberRequests)
+    DamageClientPtr pDamageClient = GetDamageClient(client);
+
+    if (pDamageClient->major_version >= ARRAY_SIZE(version_requests))
+        return BadRequest;
+    if (stuff->damageReqType > version_requests[pDamageClient->major_version])
         return BadRequest;
     return (*SProcDamageVector[stuff->damageReqType]) (client);
 }

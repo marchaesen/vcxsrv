@@ -667,6 +667,40 @@ if test $enable_arm_neon = yes && test $have_arm_neon = no ; then
    AC_MSG_ERROR([ARM NEON intrinsics not detected])
 fi
 
+dnl ==========================================================================
+dnl Check if assembler is gas compatible and supports ARM-a64 NEON instructions
+have_arm_a64_neon=no
+AC_MSG_CHECKING(whether to use ARM A64 NEON assembler)
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS="-x assembler-with-cpp $CFLAGS"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+.text
+.arch armv8-a
+.altmacro
+prfm pldl2strm, [x0]
+xtn v0.8b, v0.8h]])], have_arm_a64_neon=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(arm-a64-neon,
+   [AC_HELP_STRING([--disable-arm-a64-neon],
+                   [disable ARM A64 NEON fast paths])],
+   [enable_arm_a64_neon=$enableval], [enable_arm_a64_neon=auto])
+
+if test $enable_arm_a64_neon = no ; then
+   have_arm_a64_neon=disabled
+fi
+
+if test $have_arm_a64_neon = yes ; then
+   AC_DEFINE(USE_ARM_A64_NEON, 1, [use ARM A64_NEON assembly optimizations])
+fi
+
+AM_CONDITIONAL(USE_ARM_A64_NEON, test $have_arm_a64_neon = yes)
+
+AC_MSG_RESULT($have_arm_a64_neon)
+if test $enable_arm_a64_neon = yes && test $have_arm_a64_neon4 = no ; then
+   AC_MSG_ERROR([ARM A64 NEON intrinsics not detected])
+fi
+
 dnl ===========================================================================
 dnl Check for IWMMXT
 

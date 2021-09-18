@@ -49,7 +49,7 @@ xkb_symbols "sun_type6" {
    key <AE12> { [     dead_acute,    dead_grave,	grave,    apostrophe ] };
 
    key <AD01> { [              q,             Q,	at,   Greek_OMEGA ] };
-   key <AD02> { [              w,             W,	lstroke,       Lstroke ] };
+   key <AD02> { [              w,             W,	U017F,       section ] };
    key <AD03> { [              e,             E,	EuroSign,          cent ] };
    key <AD04> { [              r,             R,	paragraph,    registered ] };
    key <AD05> { [              t,             T,	tslash,        Tslash ] };
@@ -62,7 +62,7 @@ xkb_symbols "sun_type6" {
    key <AD12> { [         otilde,        Otilde,	section,   dead_macron ] };
 
    key <AC01> { [              a,             A,	ae,            AE ] };
-   key <AC02> { [              s,             S,	ssharp,       section ] };
+   key <AC02> { [              s,             S,	ssharp,       U1E9E ] };
    key <AC03> { [              d,             D,	eth,           ETH ] };
    key <AC04> { [              f,             F,	dstroke,   ordfeminine ] };
    key <AC05> { [              g,             G,	eng,           ENG ] };
@@ -76,7 +76,7 @@ xkb_symbols "sun_type6" {
 
    key <BKSL> { [     apostrophe,      asterisk,	onehalf,    dead_breve ] };
    key <AB01> { [              z,             Z,	zcaron,        Zcaron ] };
-   key <AB02> { [              x,             X,	guillemotright,       greater ] };
+   key <AB02> { [              x,             X,	guillemotright,       U203A ] };
    key <AB03> { [              c,             C,	cent,     copyright ] };
    key <AB04> { [              v,             V,	leftdoublequotemark, leftsinglequotemark ] };
    key <AB05> { [              b,             B,	rightdoublequotemark, rightsinglequotemark ] };

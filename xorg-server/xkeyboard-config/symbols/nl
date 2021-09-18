@@ -36,6 +36,8 @@ xkb_symbols "basic" {
     key <TLDE>	{ [        at,    section,      notsign,      notsign ]	};
 
     key <BKSL>	{ [      less,    greater,   dead_grave,   dead_breve ]	};
+    key <AB04>	{ [         v,          V, leftdoublequotemark, leftsinglequotemark ]	};
+    key <AB05>	{ [         b,          B, rightdoublequotemark, rightsinglequotemark ] };
     key <AB06>	{ [         n,          N,       ntilde,       Ntilde ]	};
     key <AB07>	{ [         m,          M,     Greek_mu,    masculine ]	};
     key <AB08>	{ [     comma,  semicolon,      cedilla, guillemotleft]	};

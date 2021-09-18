@@ -1,7 +1,3 @@
-if DMX
-DMX_SUBDIRS = dmx
-endif
-
 if XORG
 XORG_SUBDIRS = xfree86
 endif
@@ -35,12 +31,11 @@ SUBDIRS =			\
 	$(XWIN_SUBDIRS)		\
 	$(XVFB_SUBDIRS)		\
 	$(XNEST_SUBDIRS)	\
-	$(DMX_SUBDIRS)		\
 	$(KDRIVE_SUBDIRS)	\
 	$(XQUARTZ_SUBDIRS)	\
 	$(XWAYLAND_SUBDIRS)
 
-DIST_SUBDIRS = dmx xfree86 vfb xnest xwin xquartz kdrive xwayland
+DIST_SUBDIRS = xfree86 vfb xnest xwin xquartz kdrive xwayland
 
 relink:
 	$(AM_V_at)for i in $(SUBDIRS) ; do $(MAKE) -C $$i relink || exit 1 ; done

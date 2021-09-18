@@ -66,6 +66,11 @@ deprecated, use \fI\-listenfd\fP instead.
 Add given fd as a listen socket. This option is used by the \fIWayland\fP
 server to pass \fIXwayland\fP the socket where X clients connect.
 .TP 8
+.B \-noTouchPointerEmulation
+Disable touch pointer emulation. This allows the Wayland compositor to
+implement its own pointer emulation mechanism for X11 clients that don't
+support touch input.
+.TP 8
 .B \-rootless
 Run \fIXwayland\fP rootless, so that X clients integrate seamlessly with
 Wayland clients in a Wayland desktop. That requires the Wayland server

@@ -35,8 +35,8 @@
 /* Random number generator state
  */
 
-prng_t prng_state_data;
-prng_t *prng_state;
+prng_t prng_state_data = {0};
+prng_t *prng_state = NULL;
 
 /*----------------------------------------------------------------------------*\
  *  CRC-32 version 2.0.0 by Craig Bruce, 2006-04-29.

@@ -16,40 +16,25 @@ const bool ssh_proxy_supported = true;
 /*
  * TODO for future work:
  *
- * At present, this use of SSH as a proxy is 100% noninteractive. In
- * our implementations of the Seat and LogPolicy traits, every method
- * that involves interactively prompting the user is implemented by
- * pretending the user gave a safe default answer. So the effect is
- * very much as if you'd used 'plink -batch' as a proxy subprocess -
- * password prompts are cancelled and any dubious host key or crypto
- * primitive is unconditionally rejected - except that it all happens
- * in-process, making it mildly more convenient to set up, perhaps a
- * hair faster, and you get all the Event Log data in one place.
+ * All the interactive prompts we present to the main Seat - the host
+ * key and weak-crypto dialog boxes, and all prompts presented via the
+ * userpass_input system - need adjusting so that it's clear to the
+ * user _which_ SSH connection they come from. At the moment, you just
+ * get shown a host key fingerprint or a cryptic "login as:" prompt,
+ * and you have to guess which server you're currently supposed to be
+ * interpreting it relative to.
  *
- * But the biggest benefit of in-process SSH proxying would be that
- * the interactive prompts from the sub-SSH can be passed through to
- * the end user. If your jump host and your ultimate destination host
- * both require password authentication, you should be able to type
- * both password in sequence into the PuTTY terminal window; if you're
- * running a session of this kind for the first time, you should be
- * able to confirm both host keys one after another; if you need to
- * store SSH packet logs from both SSH connections, you should be able
- * to respond in turn to two askappend() prompts if necessary. And in
- * the current state of the code, none of that is yet implemented.
- *
- * To fix that, we'd have to start by arranging for this proxy
- * implementation to get hold of the 'real' (outer) Seat and LogPolicy
- * objects, which probably means that they'd have to be passed to
- * new_connection. Then, each method in this file that receives an
- * interactive prompt request would handle it by passing it on to the
- * outer Seat or LogPolicy, with some kind of tweak that would allow
- * the end user to see clearly that the prompt had come from the proxy
- * SSH connection rather than the primary one.
- *
- * One problem here is that not all uses of new_connection _have_ a
- * Seat or a LogPolicy available. So we'd also have to check if those
- * pointers are NULL, and if so, fall back to the existing behaviour
- * of behaving as if in batch mode.
+ * If the user manually aborts the attempt to make the proxy SSH
+ * connection (e.g. by hitting ^C at a userpass prompt, or refusing to
+ * accept the proxy server's host key), then an assertion failure
+ * occurs, because the main backend receives an indication of
+ * connection failure that causes it to want to call
+ * seat_connection_fatal("Remote side unexpectedly closed network
+ * connection"), which fails an assertion in tempseat.c because that
+ * method of TempSeat expects never to be called. To fix this, I think
+ * we need to distinguish 'connection attempt unexpectedly failed, in
+ * a way the user needs to be told about' from 'connection attempt was
+ * aborted by deliberate user action, so the user already knows'.
  */
 
 typedef struct SshProxy {
@@ -57,6 +42,8 @@ typedef struct SshProxy {
     Conf *conf;
     LogContext *logctx;
     Backend *backend;
+    LogPolicy *clientlp;
+    Seat *clientseat;
 
     ProxyStderrBuf psb;
     Plug *plug;
@@ -64,6 +51,9 @@ typedef struct SshProxy {
     bool frozen;
     bufchain ssh_to_socket;
     bool rcvd_eof_ssh_to_socket, sent_eof_ssh_to_socket;
+
+    SockAddr *addr;
+    int port;
 
     /* Traits implemented: we're a Socket from the point of view of
      * the client connection, and a Seat from the POV of the SSH
@@ -86,6 +76,7 @@ static void sshproxy_close(Socket *s)
 {
     SshProxy *sp = container_of(s, SshProxy, sock);
 
+    sk_addr_free(sp->addr);
     sfree(sp->errmsg);
     conf_free(sp->conf);
     if (sp->backend)
@@ -103,7 +94,8 @@ static size_t sshproxy_write(Socket *s, const void *data, size_t len)
     SshProxy *sp = container_of(s, SshProxy, sock);
     if (!sp->backend)
         return 0;
-    return backend_send(sp->backend, data, len);
+    backend_send(sp->backend, data, len);
+    return backend_sendbuffer(sp->backend);
 }
 
 static size_t sshproxy_write_oob(Socket *s, const void *data, size_t len)
@@ -166,10 +158,17 @@ static int sshproxy_askappend(LogPolicy *lp, Filename *filename,
                               void (*callback)(void *ctx, int result),
                               void *ctx)
 {
+    SshProxy *sp = container_of(lp, SshProxy, logpolicy);
+
     /*
-     * TODO: if we had access to the outer LogPolicy, we could pass on
-     * this request to the end user. (But we'd still have to have this
-     * code as a fallback in case there isn't a LogPolicy available.)
+     * If we have access to the outer LogPolicy, pass on this request
+     * to the end user.
+     */
+    if (sp->clientlp)
+        return lp_askappend(sp->clientlp, filename, callback, ctx);
+
+    /*
+     * Otherwise, fall back to the safe noninteractive assumption.
      */
     char *msg = dupprintf("Log file \"%s\" already exists; logging cancelled",
                           filename_to_str(filename));
@@ -180,12 +179,20 @@ static int sshproxy_askappend(LogPolicy *lp, Filename *filename,
 
 static void sshproxy_logging_error(LogPolicy *lp, const char *event)
 {
+    SshProxy *sp = container_of(lp, SshProxy, logpolicy);
+
     /*
-     * TODO: if we had access to the outer LogPolicy, we could pass on
-     * this request to _its_ logging_error method, where it would be
-     * more prominent than just dumping it in the outer SSH
-     * connection's Event Log. (But we'd still have to have this code
-     * as a fallback in case there isn't a LogPolicy available.)
+     * If we have access to the outer LogPolicy, pass on this request
+     * to it.
+     */
+    if (sp->clientlp) {
+        lp_logging_error(sp->clientlp, event);
+        return;
+    }
+
+    /*
+     * Otherwise, the best we can do is to put it in the outer SSH
+     * connection's Event Log.
      */
     char *msg = dupprintf("Logging error: %s", event);
     sshproxy_eventlog(lp, msg);
@@ -241,13 +248,35 @@ static void try_send_ssh_to_socket(void *ctx)
     }
 }
 
-static size_t sshproxy_output(Seat *seat, bool is_stderr,
+static void sshproxy_notify_session_started(Seat *seat)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+
+    if (sp->clientseat)
+        seat_set_trust_status(sp->clientseat, true);
+
+    plug_log(sp->plug, PLUGLOG_CONNECT_SUCCESS, sp->addr, sp->port, NULL, 0);
+}
+
+static size_t sshproxy_output(Seat *seat, SeatOutputType type,
                               const void *data, size_t len)
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
-    bufchain_add(&sp->ssh_to_socket, data, len);
-    try_send_ssh_to_socket(sp);
-    return bufchain_size(&sp->ssh_to_socket);
+    if (type == SEAT_OUTPUT_AUTH_BANNER) {
+        if (sp->clientseat) {
+            /*
+             * If we have access to the outer Seat, pass the SSH login
+             * banner on to it.
+             */
+            return seat_output(sp->clientseat, type, data, len);
+        } else {
+            return 0;
+        }
+    } else {
+        bufchain_add(&sp->ssh_to_socket, data, len);
+        try_send_ssh_to_socket(sp);
+        return bufchain_size(&sp->ssh_to_socket);
+    }
 }
 
 static bool sshproxy_eof(Seat *seat)
@@ -271,35 +300,23 @@ static void sshproxy_notify_remote_disconnect(Seat *seat)
         sshproxy_eof(seat);
 }
 
-static int sshproxy_get_userpass_input(Seat *seat, prompts_t *p,
-                                       bufchain *input)
+static int sshproxy_get_userpass_input(Seat *seat, prompts_t *p)
 {
-    /*
-     * TODO: if we had access to the outer Seat, we could pass on this
-     * prompts_t to *its* get_userpass_input method, appropriately
-     * adjusted to indicate that it comes from the proxy SSH
-     * connection. (But we'd still have to have this code as a
-     * fallback in case there isn't a Seat available.)
-     *
-     * Design question: how does that 'appropriately adjusted'
-     * interact with the possibility of multiple calls to this
-     * function with the same prompts_t? Should we redo the
-     * modification every time? Or provide some kind of callback that
-     * userauth can use to do it once up front? Or something else?
-     *
-     * Also, we'll need to be sure that the outer Seat is in the
-     * correct trust status before passing prompts along to it. For
-     * SSH, you'd certainly expect that to be OK, on the basis that
-     * the primary SSH connection won't set the Seat to untrusted mode
-     * until it finishes its userauth phase, which won't happen until
-     * long after _we've_ finished _our_ userauth phase. But what if
-     * the primary connection is something like Telnet, which goes
-     * into untrusted mode during startup? We may find we have to do
-     * some more complicated piece of plumbing that lets us take some
-     * kind of a preliminary lease on the Seat and defer anything the
-     * primary backend tries to do to it.
-     */
     SshProxy *sp = container_of(seat, SshProxy, seat);
+
+    if (sp->clientseat) {
+        /*
+         * If we have access to the outer Seat, pass this prompt
+         * request on to it. FIXME: appropriately adjusted
+         */
+        return seat_get_userpass_input(sp->clientseat, p);
+    }
+
+    /*
+     * Otherwise, behave as if noninteractive (like plink -batch):
+     * reject all attempts to present a prompt to the user, and log in
+     * the Event Log to say why not.
+     */
     sshproxy_error(sp, "Unable to provide interactive authentication "
                    "requested by proxy SSH connection");
     return 0;
@@ -328,16 +345,20 @@ static int sshproxy_verify_ssh_host_key(
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
 
+    if (sp->clientseat) {
+        /*
+         * If we have access to the outer Seat, pass this prompt
+         * request on to it. FIXME: appropriately adjusted
+         */
+        return seat_verify_ssh_host_key(
+            sp->clientseat, host, port, keytype, keystr, keydisp,
+            key_fingerprints, callback, ctx);
+    }
+
     /*
-     * TODO: if we had access to the outer Seat, we could pass on this
-     * request to *its* verify_ssh_host_key method, appropriately
-     * adjusted to indicate that it comes from the proxy SSH
-     * connection. (But we'd still have to have this code as a
-     * fallback in case there isn't a Seat available.)
-     *
-     * Instead, we have to behave as if we're in batch mode: directly
-     * verify the host key against the cache, and if that fails, take
-     * the safe option in the absence of interactive confirmation, and
+     * Otherwise, behave as if we're in batch mode: directly verify
+     * the host key against the cache, and if that fails, take the
+     * safe option in the absence of interactive confirmation, and
      * abort the connection.
      */
     int hkstatus = verify_host_key(host, port, keytype, keystr);
@@ -370,12 +391,18 @@ static int sshproxy_confirm_weak_crypto_primitive(
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
 
+    if (sp->clientseat) {
+        /*
+         * If we have access to the outer Seat, pass this prompt
+         * request on to it. FIXME: appropriately adjusted
+         */
+        return seat_confirm_weak_crypto_primitive(
+            sp->clientseat, algtype, algname, callback, ctx);
+    }
+
     /*
-     * TODO: if we had access to the outer Seat, we could pass on this
-     * request to *its* confirm_weak_crypto_primitive method,
-     * appropriately adjusted to indicate that it comes from the proxy
-     * SSH connection. (But we'd still have to have this code as a
-     * fallback in case there isn't a Seat available.)
+     * Otherwise, behave as if we're in batch mode: take the safest
+     * option.
      */
     sshproxy_error(sp, "First %s supported by server is %s, below warning "
                    "threshold. Abandoning proxy SSH connection.",
@@ -389,12 +416,18 @@ static int sshproxy_confirm_weak_cached_hostkey(
 {
     SshProxy *sp = container_of(seat, SshProxy, seat);
 
+    if (sp->clientseat) {
+        /*
+         * If we have access to the outer Seat, pass this prompt
+         * request on to it. FIXME: appropriately adjusted
+         */
+        return seat_confirm_weak_cached_hostkey(
+            sp->clientseat, algname, betteralgs, callback, ctx);
+    }
+
     /*
-     * TODO: if we had access to the outer Seat, we could pass on this
-     * request to *its* confirm_weak_cached_hostkey method,
-     * appropriately adjusted to indicate that it comes from the proxy
-     * SSH connection. (But we'd still have to have this code as a
-     * fallback in case there isn't a Seat available.)
+     * Otherwise, behave as if we're in batch mode: take the safest
+     * option.
      */
     sshproxy_error(sp, "First host key type stored for server is %s, below "
                    "warning threshold. Abandoning proxy SSH connection.",
@@ -402,20 +435,39 @@ static int sshproxy_confirm_weak_cached_hostkey(
     return 0;
 }
 
-static bool sshproxy_set_trust_status(Seat *seat, bool trusted)
+static StripCtrlChars *sshproxy_stripctrl_new(
+    Seat *seat, BinarySink *bs_out, SeatInteractionContext sic)
 {
-    /*
-     * This is called by the proxy SSH connection, to set our Seat
-     * into a given trust status. We can safely do nothing here and
-     * return true to claim we did something (effectively eliminating
-     * the spoofing defences completely, by suppressing the 'press
-     * Return to begin session' prompt and not providing anything in
-     * place of it), on the basis that session I/O from the proxy SSH
-     * connection is never passed directly on to the end user, so a
-     * malicious proxy SSH server wouldn't be able to spoof our human
-     * in any case.
-     */
-    return true;
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+    if (sp->clientseat)
+        return seat_stripctrl_new(sp->clientseat, bs_out, sic);
+    else
+        return NULL;
+}
+
+static void sshproxy_set_trust_status(Seat *seat, bool trusted)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+    if (sp->clientseat)
+        seat_set_trust_status(sp->clientseat, trusted);
+}
+
+static bool sshproxy_can_set_trust_status(Seat *seat)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+    return sp->clientseat && seat_can_set_trust_status(sp->clientseat);
+}
+
+static bool sshproxy_verbose(Seat *seat)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+    return sp->clientseat && seat_verbose(sp->clientseat);
+}
+
+static bool sshproxy_interactive(Seat *seat)
+{
+    SshProxy *sp = container_of(seat, SshProxy, seat);
+    return sp->clientseat && seat_interactive(sp->clientseat);
 }
 
 static const SeatVtable SshProxy_seat_vt = {
@@ -423,6 +475,7 @@ static const SeatVtable SshProxy_seat_vt = {
     .eof = sshproxy_eof,
     .sent = sshproxy_sent,
     .get_userpass_input = sshproxy_get_userpass_input,
+    .notify_session_started = sshproxy_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = sshproxy_notify_remote_disconnect,
     .connection_fatal = sshproxy_connection_fatal,
@@ -437,18 +490,19 @@ static const SeatVtable SshProxy_seat_vt = {
     .get_x_display = nullseat_get_x_display,
     .get_windowid = nullseat_get_windowid,
     .get_window_pixel_size = nullseat_get_window_pixel_size,
-    .stripctrl_new = nullseat_stripctrl_new,
+    .stripctrl_new = sshproxy_stripctrl_new,
     .set_trust_status = sshproxy_set_trust_status,
-    .verbose = nullseat_verbose_no,
-    .interactive = nullseat_interactive_no,
+    .can_set_trust_status = sshproxy_can_set_trust_status,
+    .verbose = sshproxy_verbose,
+    .interactive = sshproxy_interactive,
     .get_cursor_position = nullseat_get_cursor_position,
-
 };
 
 Socket *sshproxy_new_connection(SockAddr *addr, const char *hostname,
                                 int port, bool privport,
                                 bool oobinline, bool nodelay, bool keepalive,
-                                Plug *plug, Conf *clientconf)
+                                Plug *plug, Conf *clientconf,
+                                LogPolicy *clientlp, Seat **clientseat)
 {
     SshProxy *sp = snew(SshProxy);
     memset(sp, 0, sizeof(*sp));
@@ -459,6 +513,9 @@ Socket *sshproxy_new_connection(SockAddr *addr, const char *hostname,
     sp->plug = plug;
     psb_init(&sp->psb);
     bufchain_init(&sp->ssh_to_socket);
+
+    sp->addr = addr;
+    sp->port = port;
 
     sp->conf = conf_new();
     /* Try to treat proxy_hostname as the title of a saved session. If
@@ -501,6 +558,14 @@ Socket *sshproxy_new_connection(SockAddr *addr, const char *hostname,
                                proxy_hostname);
         return &sp->sock;
     }
+
+    /*
+     * We also expect that the backend will announce a willingness to
+     * notify us that the session has started. Any backend providing
+     * NC_HOST should also provide this.
+     */
+    assert(backvt->flags & BACKEND_NOTIFIES_SESSION_START &&
+           "Backend provides NC_HOST without SESSION_START!");
 
     /*
      * Turn off SSH features we definitely don't want. It would be
@@ -546,6 +611,28 @@ Socket *sshproxy_new_connection(SockAddr *addr, const char *hostname,
     }
 
     sfree(realhost);
+
+    /*
+     * If we've been given useful bits and pieces for interacting with
+     * the end user, squirrel them away now.
+     */
+    sp->clientlp = clientlp;
+    if (clientseat && (backvt->flags & BACKEND_NOTIFIES_SESSION_START)) {
+        /*
+         * We can only keep the client's Seat if our own backend will
+         * tell us when to give it back. (SSH-based backends _should_
+         * do that, but we check the flag here anyway.)
+         *
+         * Also, check if the client already has a TempSeat, and if
+         * so, don't wrap it with another one.
+         */
+        if (is_tempseat(*clientseat)) {
+            sp->clientseat = tempseat_get_real(*clientseat);
+        } else {
+            sp->clientseat = *clientseat;
+            *clientseat = tempseat_new(sp->clientseat);
+        }
+    }
 
     return &sp->sock;
 }

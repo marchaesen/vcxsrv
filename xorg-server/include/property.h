@@ -72,7 +72,7 @@ extern _X_EXPORT int dixChangeWindowProperty(ClientPtr pClient,
                                              int format,
                                              int mode,
                                              unsigned long len,
-                                             void *value,
+                                             const void *value,
                                              Bool sendevent);
 
 extern _X_EXPORT int DeleteProperty(ClientPtr /*client */ ,

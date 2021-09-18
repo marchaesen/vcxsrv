@@ -165,7 +165,6 @@ static void ssh_connect_bpp(Ssh *ssh)
 static void ssh_connect_ppl(Ssh *ssh, PacketProtocolLayer *ppl)
 {
     ppl->bpp = ssh->bpp;
-    ppl->user_input = &ssh->user_input;
     ppl->seat = ssh->seat;
     ppl->ssh = ssh;
     ppl->logctx = ssh->logctx;
@@ -241,7 +240,7 @@ static void ssh_got_ssh_version(struct ssh_version_receiver *rcv,
 
             connection_layer = ssh2_connection_new(
                 ssh, ssh->connshare, is_simple, ssh->conf,
-                ssh_verstring_get_remote(old_bpp), &ssh->cl);
+                ssh_verstring_get_remote(old_bpp), &ssh->user_input, &ssh->cl);
             ssh_connect_ppl(ssh, connection_layer);
 
             if (conf_get_bool(ssh->conf, CONF_ssh_no_userauth)) {
@@ -299,7 +298,8 @@ static void ssh_got_ssh_version(struct ssh_version_receiver *rcv,
             ssh->bpp = ssh1_bpp_new(ssh->logctx);
             ssh_connect_bpp(ssh);
 
-            connection_layer = ssh1_connection_new(ssh, ssh->conf, &ssh->cl);
+            connection_layer = ssh1_connection_new(
+                ssh, ssh->conf, &ssh->user_input, &ssh->cl);
             ssh_connect_ppl(ssh, connection_layer);
 
             ssh->base_layer = ssh1_login_new(
@@ -314,7 +314,7 @@ static void ssh_got_ssh_version(struct ssh_version_receiver *rcv,
 
         connection_layer = ssh2_connection_new(
             ssh, ssh->connshare, false, ssh->conf,
-            ssh_verstring_get_remote(old_bpp), &ssh->cl);
+            ssh_verstring_get_remote(old_bpp), &ssh->user_input, &ssh->cl);
         ssh_connect_ppl(ssh, connection_layer);
         ssh->base_layer = connection_layer;
     }
@@ -598,6 +598,15 @@ static void ssh_socket_log(Plug *plug, PlugLogType type, SockAddr *addr,
         backend_socket_log(ssh->seat, ssh->logctx, type, addr, port,
                            error_msg, error_code, ssh->conf,
                            ssh->session_started);
+
+    if (type == PLUGLOG_CONNECT_SUCCESS) {
+        if (is_tempseat(ssh->seat)) {
+            Seat *ts = ssh->seat;
+            tempseat_flush(ts);
+            ssh->seat = tempseat_get_real(ts);
+            tempseat_free(ts);
+        }
+    }
 }
 
 static void ssh_closing(Plug *plug, const char *error_msg, int error_code,
@@ -789,7 +798,8 @@ static char *connect_to_host(
 
         ssh->s = new_connection(addr, *realhost, port,
                                 false, true, nodelay, keepalive,
-                                &ssh->plug, ssh->conf);
+                                &ssh->plug, ssh->conf,
+                                log_get_policy(ssh->logctx), &ssh->seat);
         if ((err = sk_socket_error(ssh->s)) != NULL) {
             ssh->s = NULL;
             seat_notify_remote_exit(ssh->seat);
@@ -954,6 +964,9 @@ static void ssh_free(Backend *be)
 
     ssh_shutdown(ssh);
 
+    if (is_tempseat(ssh->seat))
+        tempseat_free(ssh->seat);
+
     conf_free(ssh->conf);
     if (ssh->connshare)
         sharestate_free(ssh->connshare);
@@ -1003,18 +1016,16 @@ static void ssh_reconfig(Backend *be, Conf *conf)
 /*
  * Called to send data down the SSH connection.
  */
-static size_t ssh_send(Backend *be, const char *buf, size_t len)
+static void ssh_send(Backend *be, const char *buf, size_t len)
 {
     Ssh *ssh = container_of(be, Ssh, backend);
 
     if (ssh == NULL || ssh->s == NULL)
-        return 0;
+        return;
 
     bufchain_add(&ssh->user_input, buf, len);
-    if (ssh->base_layer)
-        ssh_ppl_got_user_input(ssh->base_layer);
-
-    return backend_sendbuffer(&ssh->backend);
+    if (ssh->cl)
+        ssh_got_user_input(ssh->cl);
 }
 
 /*
@@ -1142,7 +1153,15 @@ static bool ssh_connected(Backend *be)
 static bool ssh_sendok(Backend *be)
 {
     Ssh *ssh = container_of(be, Ssh, backend);
-    return ssh->base_layer && ssh_ppl_want_user_input(ssh->base_layer);
+    return ssh->cl && ssh_get_wants_user_input(ssh->cl);
+}
+
+void ssh_check_sendok(Ssh *ssh)
+{
+    /* Called when the connection layer might have caused ssh_sendok
+     * to start returning true */
+    if (ssh->ldisc)
+        ldisc_check_sendok(ssh->ldisc);
 }
 
 void ssh_ldisc_update(Ssh *ssh)
@@ -1232,7 +1251,7 @@ const BackendVtable ssh_backend = {
     .id = "ssh",
     .displayname = "SSH",
     .protocol = PROT_SSH,
-    .flags = BACKEND_SUPPORTS_NC_HOST,
+    .flags = BACKEND_SUPPORTS_NC_HOST | BACKEND_NOTIFIES_SESSION_START,
     .default_port = 22,
 };
 
@@ -1257,5 +1276,5 @@ const BackendVtable sshconn_backend = {
     .id = "ssh-connection",
     .displayname = "Bare ssh-connection",
     .protocol = PROT_SSHCONN,
-    .flags = BACKEND_SUPPORTS_NC_HOST,
+    .flags = BACKEND_SUPPORTS_NC_HOST | BACKEND_NOTIFIES_SESSION_START,
 };

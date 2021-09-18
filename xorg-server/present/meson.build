@@ -9,7 +9,6 @@ srcs_present = [
     'present_scmd.c',
     'present_screen.c',
     'present_vblank.c',
-    'present_wnmd.c',
 ]
 
 hdrs_present = [

@@ -216,6 +216,8 @@ update_screen_size(struct xwl_output *xwl_output, int width, int height)
     }
 
     update_desktop_dimensions();
+
+    RRTellChanged(xwl_screen->screen);
 }
 
 struct xwl_emulated_mode *
@@ -674,6 +676,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
     RRCrtcGammaSetSize(xwl_output->randr_crtc, 256);
     RROutputSetCrtcs(xwl_output->randr_output, &xwl_output->randr_crtc, 1);
     RROutputSetConnection(xwl_output->randr_output, RR_Connected);
+    RRTellChanged(xwl_screen->screen);
 
     /* We want the output to be in the list as soon as created so we can
      * use it when binding to the xdg-output protocol...
@@ -698,6 +701,8 @@ err:
 void
 xwl_output_destroy(struct xwl_output *xwl_output)
 {
+    if (xwl_output->xdg_output)
+        zxdg_output_v1_destroy(xwl_output->xdg_output);
     wl_output_destroy(xwl_output->output);
     free(xwl_output);
 }
@@ -717,6 +722,7 @@ xwl_output_remove(struct xwl_output *xwl_output)
 
     RRCrtcDestroy(xwl_output->randr_crtc);
     RROutputDestroy(xwl_output->randr_output);
+    RRTellChanged(xwl_screen->screen);
 
     xwl_output_destroy(xwl_output);
 }

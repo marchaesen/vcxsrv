@@ -61,60 +61,76 @@ SOFTWARE.
 #define LATER 1
 
 #define NullClient ((ClientPtr) 0)
-#define REQUEST(type) \
-	type *stuff = (type *)client->requestBuffer
+
+#define REQUEST(type)                                                   \
+    type * stuff = (type *)client->requestBuffer;
 
 #define ARRAY_SIZE(a)  (sizeof((a)) / sizeof((a)[0]))
 
-#define REQUEST_SIZE_MATCH(req)\
-    if ((sizeof(req) >> 2) != client->req_len)\
-         return(BadLength)
+#define REQUEST_SIZE_MATCH(req)                                         \
+    do {                                                                \
+        if ((sizeof(req) >> 2) != client->req_len)                      \
+            return(BadLength);                                          \
+    } while (0)
 
-#define REQUEST_AT_LEAST_SIZE(req) \
-    if ((sizeof(req) >> 2) > client->req_len )\
-         return(BadLength)
+#define REQUEST_AT_LEAST_SIZE(req)                                      \
+    do {                                                                \
+        if ((sizeof(req) >> 2) > client->req_len)                       \
+            return(BadLength);                                          \
+    } while (0)
 
-#define REQUEST_AT_LEAST_EXTRA_SIZE(req, extra)  \
-    if (((sizeof(req) + ((uint64_t) extra)) >> 2) > client->req_len ) \
-         return(BadLength)
+#define REQUEST_AT_LEAST_EXTRA_SIZE(req, extra)                         \
+    do {                                                                \
+        if (((sizeof(req) + ((uint64_t) (extra))) >> 2) > client->req_len) \
+            return(BadLength);                                          \
+    } while (0)
 
-#define REQUEST_FIXED_SIZE(req, n)\
-    if (((sizeof(req) >> 2) > client->req_len) || \
-        (((n) >> 2) >= client->req_len) ||                              \
-        ((((uint64_t) sizeof(req) + (n) + 3) >> 2) != (uint64_t) client->req_len))  \
-         return(BadLength)
+#define REQUEST_FIXED_SIZE(req, n)                                      \
+    do {                                                                \
+        if ((((sizeof(req)) >> 2) > client->req_len) ||            \
+            (((n) >> 2) >= client->req_len) ||                         \
+            ((((uint64_t) sizeof(req) + (n) + 3) >> 2) != (uint64_t) client->req_len)) \
+            return(BadLength);                                          \
+    } while (0)
 
-#define LEGAL_NEW_RESOURCE(id,client)\
-    if (!LegalNewID(id,client)) \
-    {\
-	client->errorValue = id;\
-        return BadIDChoice;\
-    }
+#define LEGAL_NEW_RESOURCE(id,client)           \
+    do {                                        \
+        if (!LegalNewID((id), (client))) {      \
+            (client)->errorValue = (id);        \
+            return BadIDChoice;                 \
+        }                                       \
+    } while (0)
 
-#define VALIDATE_DRAWABLE_AND_GC(drawID, pDraw, mode)\
-    {\
-	int tmprc = dixLookupDrawable(&(pDraw), drawID, client, M_ANY, mode);\
-	if (tmprc != Success)\
-	    return tmprc;\
-	tmprc = dixLookupGC(&(pGC), stuff->gc, client, DixUseAccess);\
-	if (tmprc != Success)\
-	    return tmprc;\
-	if ((pGC->depth != pDraw->depth) || (pGC->pScreen != pDraw->pScreen))\
-	    return BadMatch;\
-    }\
-    if (pGC->serialNumber != pDraw->serialNumber)\
-	ValidateGC(pDraw, pGC);
+#define VALIDATE_DRAWABLE_AND_GC(drawID, pDraw, mode)                   \
+    do {                                                                \
+        int tmprc = dixLookupDrawable(&(pDraw), drawID, client, M_ANY, mode); \
+        if (tmprc != Success)                                           \
+            return tmprc;                                               \
+        tmprc = dixLookupGC(&(pGC), stuff->gc, client, DixUseAccess);   \
+        if (tmprc != Success)                                           \
+            return tmprc;                                               \
+        if ((pGC->depth != pDraw->depth) || (pGC->pScreen != pDraw->pScreen)) \
+            return BadMatch;                                            \
+        if (pGC->serialNumber != pDraw->serialNumber)                   \
+            ValidateGC(pDraw, pGC);                                     \
+    } while (0)
 
-#define WriteReplyToClient(pClient, size, pReply) { \
-   if ((pClient)->swapped) \
-      (*ReplySwapVector[((xReq *)(pClient)->requestBuffer)->reqType]) \
-           (pClient, (int)(size), pReply); \
-   else WriteToClient(pClient, (int)(size), (pReply)); }
+#define WriteReplyToClient(pClient, size, pReply)                       \
+    do {                                                                \
+        if ((pClient)->swapped)                                         \
+            (*ReplySwapVector[((xReq *)(pClient)->requestBuffer)->reqType]) \
+                (pClient, (int)(size), pReply);                         \
+        else                                                            \
+            WriteToClient(pClient, (int)(size), (pReply));              \
+    } while (0)
 
-#define WriteSwappedDataToClient(pClient, size, pbuf) \
-   if ((pClient)->swapped) \
-      (*(pClient)->pSwapReplyFunc)(pClient, (int)(size), pbuf); \
-   else WriteToClient(pClient, (int)(size), (pbuf));
+#define WriteSwappedDataToClient(pClient, size, pbuf)                   \
+    do {                                                                \
+        if ((pClient)->swapped)                                         \
+            (*(pClient)->pSwapReplyFunc)(pClient, (int)(size), pbuf);   \
+        else                                                            \
+            WriteToClient(pClient, (int)(size), (pbuf));                \
+    } while (0)
 
 typedef struct _TimeStamp *TimeStampPtr;
 
@@ -131,6 +147,7 @@ extern _X_EXPORT ClientPtr serverClient;
 extern _X_EXPORT int currentMaxClients;
 extern _X_EXPORT char dispatchExceptionAtReset;
 extern _X_EXPORT int terminateDelay;
+extern _X_EXPORT Bool touchEmulatePointer;
 
 typedef int HWEventQueueType;
 typedef HWEventQueueType *HWEventQueuePtr;

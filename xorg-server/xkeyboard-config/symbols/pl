@@ -69,12 +69,28 @@ xkb_symbols "legacy" {
     key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
     key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
     key <AB03>	{ [         c,          C,       cacute,       Cacute ]	};
+    key <AB04>	{ [         v,          V, doublelowquotemark, leftsinglequotemark ] };
+    key <AB05>	{ [         b,          B, rightdoublequotemark, leftdoublequotemark ] };
     key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
 
     include "kpdl(comma)"
 
     include "level3(ralt_switch)"
 };
+
+partial alphanumeric_keys
+xkb_symbols "lefty" {
+    // 2020 by Simon Zelazny.
+    // Places  Ó, Ł, and Ń under the left typing hand.
+    // For description and rationale, see: https://pzel.name/pl-lefty.html
+    include "pl(basic)"
+
+    name[Group1]="Polish (lefty)";
+    key <AD01>	{ [         q,          Q,      oacute,        Oacute ]	};
+    key <AD02>	{ [         w,          W,     lstroke,       Lstroke ]	};
+    key <AC03>	{ [         d,          D,      nacute,        Nacute ]	};
+};
+
 
 partial alphanumeric_keys
 xkb_symbols "qwertz" {
@@ -268,6 +284,8 @@ xkb_symbols "szl" {
     key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
     key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
     key <AB03>	{ [         c,          C,       cacute,       Cacute ]	};
+    key <AB04>	{ [         v,          V, doublelowquotemark, leftsinglequotemark ] };
+    key <AB05>	{ [         b,          B, rightdoublequotemark, leftdoublequotemark ] };
     key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
 
     include "kpdl(comma)"
@@ -298,6 +316,8 @@ xkb_symbols "csb" {
     key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]      };
 
     key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
+    key <AB04>	{ [         v,          V, doublelowquotemark, leftsinglequotemark ] };
+    key <AB05>	{ [         b,          B, rightdoublequotemark, leftdoublequotemark ] };
     key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
 
     include "kpdl(comma)"

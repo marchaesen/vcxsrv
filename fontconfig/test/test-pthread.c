@@ -71,17 +71,17 @@ static void *run_test_in_thread(void *arg)
 int main(int argc,char **argv)
 {
 	pthread_t threads[NTHR];
+	struct thr_arg_s thr_args[NTHR];
 	int i, j;
 
 	printf("Creating %d threads\n",NTHR);
 
 	for(i = 0;i<NTHR;i++)
 	{
-		struct thr_arg_s thr_arg;
 		int result;
-		thr_arg.thr_num=i;
+		thr_args[i].thr_num=i;
 		result = pthread_create(&threads[i],NULL,run_test_in_thread,
-					(void *)&thr_arg);
+					(void *)&thr_args[i]);
 		if(result!=0)
 		{
 			fprintf(stderr,"Cannot create thread %d\n",i);

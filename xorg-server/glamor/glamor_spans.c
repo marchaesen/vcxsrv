@@ -64,7 +64,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
 
     glamor_make_current(glamor_priv);
 
-    if (glamor_priv->glsl_version >= 130) {
+    if (glamor_glsl_has_ints(glamor_priv)) {
         prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->fill_spans_program,
                                        &glamor_facet_fillspans_130);
 
@@ -134,7 +134,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
                       box->x2 - box->x1,
                       box->y2 - box->y1);
             box++;
-            if (glamor_priv->glsl_version >= 130)
+            if (glamor_glsl_has_ints(glamor_priv))
                 glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, n);
             else {
                 glamor_glDrawArrays_GL_QUADS(glamor_priv, n);
@@ -146,7 +146,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
 
 bail:
     glDisable(GL_SCISSOR_TEST);
-    if (glamor_priv->glsl_version >= 130)
+    if (glamor_glsl_has_ints(glamor_priv))
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 

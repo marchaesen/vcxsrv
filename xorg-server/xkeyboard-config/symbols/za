@@ -34,6 +34,8 @@ xkb_symbols "basic" {
     key <AC10>  { [ semicolon,      colon, dead_diaeresis             ] };
     key <AC11>  { [apostrophe,   quotedbl,  dead_acute                ] };
 
+    key <AB04>  { [         v,          V, doublelowquotemark, leftsinglequotemark ] };
+    key <AB05>  { [         b,          B, rightdoublequotemark, leftdoublequotemark ] };
     key <AB06>  { [         n,          N,       U1e4b,         U1e4a ] };
     key <AB07>  { [         m,          M,       U1e45,         U1e44 ] };
     key <AB09>  { [    period,    greater, dead_abovedot              ] };

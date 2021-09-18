@@ -19,7 +19,7 @@ xkb_symbols "basic" {
     key <AE12>	{ [     minus, underscore, dead_cedilla,  dead_ogonek ]	};
 
     key <AD01>	{ [         a,          A,           at,  Greek_OMEGA ]	};
-    key <AD02>	{ [         z,          Z,      lstroke,      Lstroke ]	};
+    key <AD02>	{ [         z,          Z,        U017F,      section ]	};
     key <AD03>	{ [         e,          E,     EuroSign,         cent ]	};
     key <AD09>  { [         o,          O,           oe,           OE ] }; // o O œ Œ
     key <AD11>	{ [dead_circumflex, dead_diaeresis,  bracketleft, dead_abovering ] };
@@ -31,7 +31,7 @@ xkb_symbols "basic" {
     key <TLDE>	{ [twosuperior, threesuperior,  notsign,      notsign ]	};
 
     key <BKSL>	{ [        mu,   sterling,   dead_grave,   dead_breve ]	};
-    key <AB01>	{ [         w,          W, guillemotleft,        less ]	};
+    key <AB01>	{ [         w,          W, guillemotleft,       U2039 ]	};
     key <AB07>	{ [     comma,   question, dead_cedilla,    masculine ]	};
     key <AB08>	{ [ semicolon,     period, horizconnector,   multiply ]	};
     key <AB09>	{ [     colon,      slash, periodcentered,   division ]	};
@@ -137,7 +137,7 @@ xkb_symbols "iso-alternate" {
     name[Group1]="Belgian (ISO, alt.)";
 
     key <AD01>	{ [         a,          A,           ae,           AE ]	};
-    key <AD02>	{ [         z,          Z, guillemotleft,        less ]	};
+    key <AD02>	{ [         z,          Z, guillemotleft,       U2039 ]	};
     key <AC01>	{ [         q,          Q,           at,  Greek_OMEGA ]	};
     key <AC10>	{ [         m,          M,           mu,    masculine ]	};
     key <AB01>	{ [         w,          W,      lstroke,      Lstroke ]	};

@@ -773,14 +773,19 @@ glamor_render_format_is_supported(PicturePtr picture)
 {
     PictFormatShort storage_format;
     glamor_screen_private *glamor_priv;
+    struct glamor_format *f;
 
     /* Source-only pictures should always work */
     if (!picture->pDrawable)
         return TRUE;
 
     glamor_priv = glamor_get_screen_private(picture->pDrawable->pScreen);
-    storage_format =
-        glamor_priv->formats[picture->pDrawable->depth].render_format;
+    f = &glamor_priv->formats[picture->pDrawable->depth];
+
+    if (!f->rendering_supported)
+        return FALSE;
+
+    storage_format = f->render_format;
 
     switch (picture->format) {
     case PICT_a2r10g10b10:

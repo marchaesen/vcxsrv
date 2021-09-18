@@ -43,10 +43,10 @@
  */
 #define  __PTW32_VERSION_MAJOR 3
 #define  __PTW32_VERSION_MINOR 0
-#define  __PTW32_VERSION_MICRO 2
+#define  __PTW32_VERSION_MICRO 3
 #define  __PTW32_VERION_BUILD 0
-#define  __PTW32_VERSION 3,0,2,0
-#define  __PTW32_VERSION_STRING "3, 0, 2, 0\0"
+#define  __PTW32_VERSION 3,0,3,0
+#define  __PTW32_VERSION_STRING "3, 0, 3, 0\0"
 
 #if defined(__GNUC__)
 # pragma GCC system_header

@@ -42,6 +42,8 @@
 
 #define TOUCH_HISTORY_SIZE 100
 
+Bool touchEmulatePointer = TRUE;
+
 /**
  * Some documentation about touch points:
  * The driver submits touch events with its own (unique) touch point ID.
@@ -142,7 +144,7 @@ TouchBeginDDXTouch(DeviceIntPtr dev, uint32_t ddx_id)
     if (!t)
         return NULL;
 
-    emulate_pointer = (t->mode == XIDirectTouch);
+    emulate_pointer = touchEmulatePointer && (t->mode == XIDirectTouch);
 
     /* Look for another active touchpoint with the same DDX ID. DDX
      * touchpoints must be unique. */

@@ -682,7 +682,6 @@ void ssh_ppl_replace(PacketProtocolLayer *old, PacketProtocolLayer *new)
     new->bpp = old->bpp;
     ssh_ppl_setup_queues(new, old->in_pq, old->out_pq);
     new->selfptr = old->selfptr;
-    new->user_input = old->user_input;
     new->seat = old->seat;
     new->ssh = old->ssh;
 
@@ -737,6 +736,19 @@ size_t ssh_ppl_default_queued_data_size(PacketProtocolLayer *ppl)
     return ppl->out_pq->pqb.total_size;
 }
 
+static void ssh_ppl_prompts_callback(void *ctx)
+{
+    ssh_ppl_process_queue((PacketProtocolLayer *)ctx);
+}
+
+prompts_t *ssh_ppl_new_prompts(PacketProtocolLayer *ppl)
+{
+    prompts_t *p = new_prompts();
+    p->callback = ssh_ppl_prompts_callback;
+    p->callback_ctx = ppl;
+    return p;
+}
+
 /* ----------------------------------------------------------------------
  * Common helper functions for clients and implementations of
  * BinaryPacketProtocol.
@@ -786,8 +798,10 @@ void ssh2_bpp_queue_disconnect(BinaryPacketProtocol *bpp,
     pq_push(&bpp->out_pq, pkt);
 }
 
-#define BITMAP_UNIVERSAL(y, name, value)         \
-    | (value >= y && value < y+32 ? 1UL << (value-y) : 0)
+#define BITMAP_UNIVERSAL(y, name, value)                        \
+    | (value >= y && value < y+32                               \
+       ? 1UL << (value >= y && value < y+32 ? (value-y) : 0)    \
+       : 0)
 #define BITMAP_CONDITIONAL(y, name, value, ctx) \
     BITMAP_UNIVERSAL(y, name, value)
 #define SSH2_BITMAP_WORD(y) \

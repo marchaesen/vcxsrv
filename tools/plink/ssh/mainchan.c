@@ -129,6 +129,7 @@ static void mainchan_open_confirmation(Channel *chan)
 
     seat_update_specials_menu(mc->ppl->seat);
     ppl_logevent("Opened main channel");
+    seat_notify_session_started(mc->ppl->seat);
 
     if (mc->is_simple)
         sshfwd_hint_channel_is_simple(mc->sc);
@@ -321,7 +322,7 @@ static void mainchan_ready(mainchan *mc)
     mc->ready = true;
 
     ssh_set_wants_user_input(mc->cl, true);
-    ssh_ppl_got_user_input(mc->ppl); /* in case any is already queued */
+    ssh_got_user_input(mc->cl); /* in case any is already queued */
 
     /* If an EOF arrived before we were ready, handle it now. */
     if (mc->eof_pending) {

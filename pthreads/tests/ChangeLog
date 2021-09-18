@@ -1,3 +1,12 @@
+2021-08-26  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* runorder.mk (threestage): remove reference to this test; VC nmake doesn't
+	appear to notice it's referenced, which is disturbing, but GNU make does.
+	* common.mk (threestage): Likewise.
+	* exit2.c: Fix type cast truncation by changing (void * -> int) to
+	(void * -> size_t).
+	* exit3.c: Likewise.
+
 2018-08-19  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* threestage.c: Delete.

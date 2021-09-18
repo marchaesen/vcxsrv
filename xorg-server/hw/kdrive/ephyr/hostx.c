@@ -57,7 +57,7 @@
 #ifdef GLAMOR
 #include <epoxy/gl.h>
 #include "glamor.h"
-#include "ephyr_glamor_glx.h"
+#include "ephyr_glamor.h"
 #endif
 #include "ephyrlog.h"
 #include "ephyr.h"
@@ -556,21 +556,7 @@ hostx_init(void)
     HostX.winroot = xscreen->root;
     HostX.gc = xcb_generate_id(HostX.conn);
     HostX.depth = xscreen->root_depth;
-#ifdef GLAMOR
-    if (ephyr_glamor) {
-        HostX.visual = ephyr_glamor_get_visual();
-        if (HostX.visual->visual_id != xscreen->root_visual) {
-            attrs[1] = xcb_generate_id(HostX.conn);
-            attr_mask |= XCB_CW_COLORMAP;
-            xcb_create_colormap(HostX.conn,
-                                XCB_COLORMAP_ALLOC_NONE,
-                                attrs[1],
-                                HostX.winroot,
-                                HostX.visual->visual_id);
-        }
-    } else
-#endif
-        HostX.visual = xcb_aux_find_visual_by_id(xscreen,xscreen->root_visual);
+    HostX.visual = xcb_aux_find_visual_by_id(xscreen, xscreen->root_visual);
 
     xcb_create_gc(HostX.conn, HostX.gc, HostX.winroot, 0, NULL);
     cookie_WINDOW_STATE = xcb_intern_atom(HostX.conn, FALSE,
@@ -586,6 +572,7 @@ hostx_init(void)
         EphyrScrPriv *scrpriv = screen->driver;
 
         scrpriv->win = xcb_generate_id(HostX.conn);
+        scrpriv->vid = xscreen->root_visual;
         scrpriv->server_depth = HostX.depth;
         scrpriv->ximg = NULL;
         scrpriv->win_x = 0;
@@ -1570,11 +1557,11 @@ ephyr_glamor_init(ScreenPtr screen)
     KdScreenInfo *kd_screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = kd_screen->driver;
 
-    scrpriv->glamor = ephyr_glamor_glx_screen_init(scrpriv->win);
+    scrpriv->glamor = ephyr_glamor_screen_init(scrpriv->win, scrpriv->vid);
     ephyr_glamor_set_window_size(scrpriv->glamor,
                                  scrpriv->win_width, scrpriv->win_height);
 
-    if (!glamor_init(screen, 0)) {
+    if (!glamor_init(screen, GLAMOR_USE_EGL_SCREEN)) {
         FatalError("Failed to initialize glamor\n");
         return FALSE;
     }
@@ -1660,7 +1647,7 @@ ephyr_glamor_fini(ScreenPtr screen)
     EphyrScrPriv *scrpriv = kd_screen->driver;
 
     glamor_fini(screen);
-    ephyr_glamor_glx_screen_fini(scrpriv->glamor);
+    ephyr_glamor_screen_fini(scrpriv->glamor);
     scrpriv->glamor = NULL;
 }
 #endif

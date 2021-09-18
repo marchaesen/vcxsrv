@@ -78,6 +78,18 @@ parse_line(const char *buf, char *key, KeySym *val, char *prefix)
         return 1;
     }
 
+    /* See if we can parse one of the _EVDEVK symbols */
+    i = sscanf(buf, "#define %127s _EVDEVK(0x%lx)", key, val);
+    if (i == 2 && (tmp = strstr(key, "XK_"))) {
+        memcpy(prefix, key, (size_t)(tmp - key));
+        prefix[tmp - key] = '\0';
+        tmp += 3;
+        memmove(key, tmp, strlen(tmp) + 1);
+
+        *val += 0x10081000;
+        return 1;
+    }
+
     /* Now try to catch alias (XK_foo XK_bar) definitions, and resolve them
      * immediately: if the target is in the form XF86XK_foo, we need to
      * canonicalise this to XF86foo before we do the lookup. */

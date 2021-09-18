@@ -13,6 +13,8 @@ shared_module(
 
     install: true,
     install_dir: join_paths(module_dir, 'input'),
+
+    link_with: e,
 )
 
 install_man(configure_file(

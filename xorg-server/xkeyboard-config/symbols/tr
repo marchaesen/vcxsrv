@@ -106,8 +106,8 @@ xkb_symbols "f" {
     key <TLDE>  { [      plus,   asterisk,       notsign,     plusminus ] };
 
     key <BKSL>  { [         x,          X,         grave,    dead_grave ] };
-    key <AB01>  { [         j,          J, guillemotleft,    less ] };
-    key <AB02>  { [odiaeresis, Odiaeresis, guillemotright,   greater ] };
+    key <AB01>  { [         j,          J, guillemotleft,    U2039 ] };
+    key <AB02>  { [odiaeresis, Odiaeresis, guillemotright,   U203A ] };
     key <AB03>  { [         v,          V, leftdoublequotemark, VoidSymbol ] };
     key <AB04>  { [         c,          C,          cent,     copyright ] };
     key <AB05>  { [  ccedilla,   Ccedilla,rightdoublequotemark, VoidSymbol ] };
@@ -301,7 +301,7 @@ xkb_symbols "crh" {
     key <AC07>  { [         j,          J,          ibreve,          Ibreve ] };
     key <TLDE>  { [  quotedbl,  backslash,            less,          degree ] };
 
-    key <AB02>  { [    ntilde,     Ntilde,  guillemotright,         greater ] };
+    key <AB02>  { [    ntilde,     Ntilde,  guillemotright,           U203A ] };
 };
 
 // Crimean Tatar (Crimean Turkish) F layout

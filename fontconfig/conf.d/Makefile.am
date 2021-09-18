@@ -32,6 +32,7 @@ DOC_FILES = $(DOC_SOURCES:.in=)
 CONF_LINKS = \
 	10-hinting-$(PREFERRED_HINTING).conf	\
 	10-scale-bitmap-fonts.conf \
+	11-lcdfilter-default.conf \
 	20-unhint-small-vera.conf \
 	30-metric-aliases.conf \
 	40-nonlatin.conf \

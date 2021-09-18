@@ -66,10 +66,12 @@ typedef struct supdup_tag Supdup;
 struct supdup_tag
 {
     Socket *s;
+    bool socket_connected;
     bool closed_on_socket_error;
 
     Seat *seat;
     LogContext *logctx;
+    Ldisc *ldisc;
     int term_width, term_height;
 
     long long ttyopt;
@@ -561,7 +563,18 @@ static void supdup_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
     Supdup *supdup = container_of(plug, Supdup, plug);
     backend_socket_log(supdup->seat, supdup->logctx, type, addr, port,
                        error_msg, error_code,
-                       supdup->conf, supdup->state != CONNECTING);
+                       supdup->conf, supdup->socket_connected);
+    if (type == PLUGLOG_CONNECT_SUCCESS) {
+        supdup->socket_connected = true;
+        if (supdup->ldisc)
+            ldisc_check_sendok(supdup->ldisc);
+        if (is_tempseat(supdup->seat)) {
+            Seat *ts = supdup->seat;
+            tempseat_flush(ts);
+            supdup->seat = tempseat_get_real(ts);
+            tempseat_free(ts);
+        }
+    }
 }
 
 static void supdup_closing(Plug *plug, const char *error_msg, int error_code,
@@ -662,6 +675,7 @@ static char *supdup_init(const BackendVtable *x, Seat *seat,
     supdup->logctx = logctx;
     supdup->conf = conf_copy(conf);
     supdup->s = NULL;
+    supdup->socket_connected = false;
     supdup->closed_on_socket_error = false;
     supdup->seat = seat;
     supdup->term_width = conf_get_int(supdup->conf, CONF_width);
@@ -708,7 +722,8 @@ static char *supdup_init(const BackendVtable *x, Seat *seat,
      * Open socket.
      */
     supdup->s = new_connection(addr, *realhost, port, false, true,
-                               nodelay, keepalive, &supdup->plug, supdup->conf);
+                               nodelay, keepalive, &supdup->plug, supdup->conf,
+                               log_get_policy(logctx), &supdup->seat);
     if ((err = sk_socket_error(supdup->s)) != NULL)
         return dupstr(err);
 
@@ -778,6 +793,8 @@ static void supdup_free(Backend *be)
 {
     Supdup *supdup = container_of(be, Supdup, backend);
 
+    if (is_tempseat(supdup->seat))
+        tempseat_free(supdup->seat);
     if (supdup->s)
         sk_close(supdup->s);
     if (supdup->pinger)
@@ -797,14 +814,14 @@ static void supdup_reconfig(Backend *be, Conf *conf)
 /*
 * Called to send data down the Supdup connection.
 */
-static size_t supdup_send(Backend *be, const char *buf, size_t len)
+static void supdup_send(Backend *be, const char *buf, size_t len)
 {
     Supdup *supdup = container_of(be, Supdup, backend);
     char c;
     int i;
 
     if (supdup->s == NULL)
-        return 0;
+        return;
 
     for (i = 0; i < len; i++) {
         if (buf[i] == 034)
@@ -814,7 +831,6 @@ static size_t supdup_send(Backend *be, const char *buf, size_t len)
             supdup->bufsize = sk_write(supdup->s, &c, 1);
         }
     }
-    return supdup->bufsize;
 }
 
 /*
@@ -862,7 +878,8 @@ static bool supdup_connected(Backend *be)
 
 static bool supdup_sendok(Backend *be)
 {
-    return 1;
+    Supdup *supdup = container_of(be, Supdup, backend);
+    return supdup->socket_connected;
 }
 
 static void supdup_unthrottle(Backend *be, size_t backlog)
@@ -879,6 +896,8 @@ static bool supdup_ldisc(Backend *be, int option)
 
 static void supdup_provide_ldisc(Backend *be, Ldisc *ldisc)
 {
+    Supdup *supdup = container_of(be, Supdup, backend);
+    supdup->ldisc = ldisc;
 }
 
 static int supdup_exitcode(Backend *be)

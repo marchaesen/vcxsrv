@@ -343,7 +343,7 @@ xkb_symbols "multix" {
 
     key.type[group1]="EIGHT_LEVEL_SEMIALPHABETIC";
     key <AD01> {[         q,          Q,       NoSymbol, NoSymbol,       NoSymbol,   Greek_OMEGA ]};
-    key <AD02> {[         w,          W,       NoSymbol, NoSymbol,        lstroke,       Lstroke ]};
+    key <AD02> {[         w,          W,       NoSymbol, NoSymbol,        Lstroke,       lstroke ]};
     key <AD03> {[         e,          E,       NoSymbol, NoSymbol,             oe,            OE ]};
     key <AD04> {[         r,          R,       NoSymbol, NoSymbol,      paragraph,    registered ]};
     key <AD05> {[         t,          T,       NoSymbol, NoSymbol,         tslash,        Tslash ]};
@@ -360,7 +360,7 @@ xkb_symbols "multix" {
     key <AD12> {[  ccedilla,   Ccedilla,     asciitilde, NoSymbol,     dead_tilde,   dead_macron ]};
 
     key <AC01> {[         a,          A,       NoSymbol, NoSymbol,             ae,            AE ]};
-    key <AC02> {[         s,          S,       NoSymbol, NoSymbol,         ssharp,       section ]};
+    key <AC02> {[         s,          S,       NoSymbol, NoSymbol,         ssharp,         U1E9E ]};
     key <AC03> {[         d,          D,       NoSymbol, NoSymbol,            eth,           ETH ]};
     key <AC04> {[         f,          F,       NoSymbol, NoSymbol,       NoSymbol,   ordfeminine ]};
     key <AC05> {[         g,          G,       NoSymbol, NoSymbol,            eng,           ENG ]};

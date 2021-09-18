@@ -549,10 +549,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     Bool use_eglstreams = FALSE;
 #endif
 
-    xwl_screen = calloc(1, sizeof *xwl_screen);
-    if (xwl_screen == NULL)
-        return FALSE;
-
     if (!dixRegisterPrivateKey(&xwl_screen_private_key, PRIVATE_SCREEN, 0))
         return FALSE;
     if (!xwl_pixmap_init())
@@ -565,6 +561,10 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
      */
     if (!dixRegisterPrivateKey(&xwl_client_private_key, PRIVATE_CLIENT,
                                sizeof(struct xwl_client)))
+        return FALSE;
+
+    xwl_screen = calloc(1, sizeof *xwl_screen);
+    if (xwl_screen == NULL)
         return FALSE;
 
     dixSetPrivate(&pScreen->devPrivates, &xwl_screen_private_key, xwl_screen);

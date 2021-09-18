@@ -152,16 +152,16 @@ FC_ASSERT_STATIC (sizeof (FcRef) == sizeof (int));
 #define FcIsEncodedOffset(p)	((((intptr_t) (p)) & 1) != 0)
 
 /* Encode offset in a pointer of type t */
-#define FcOffsetEncode(o,t)	((t *) ((o) | 1))
+#define FcOffsetEncode(o,t)	((t *) (intptr_t) ((o) | 1))
 
 /* Decode a pointer into an offset */
 #define FcOffsetDecode(p)	(((intptr_t) (p)) & ~1)
 
 /* Compute pointer offset */
-#define FcPtrToOffset(b,p)	((intptr_t) (p) - (intptr_t) (b))
+#define FcPtrToOffset(b,p)	((ptrdiff_t) ((intptr_t) (p) - (intptr_t) (b)))
 
 /* Given base address, offset and type, return a pointer */
-#define FcOffsetToPtr(b,o,t)	((t *) ((intptr_t) (b) + (o)))
+#define FcOffsetToPtr(b,o,t)	((t *) ((intptr_t) (b) + (ptrdiff_t) (o)))
 
 /* Given base address, encoded offset and type, return a pointer */
 #define FcEncodedOffsetToPtr(b,p,t) FcOffsetToPtr(b,FcOffsetDecode(p),t)

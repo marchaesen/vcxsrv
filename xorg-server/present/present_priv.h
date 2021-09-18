@@ -81,7 +81,6 @@ struct present_vblank {
     Bool                queued;         /* on present_exec_queue */
     Bool                flip;           /* planning on using flip */
     Bool                flip_ready;     /* wants to flip, but waiting for previous flip or unflip */
-    Bool                flip_idler;     /* driver explicitly permitted idling */
     Bool                sync_flip;      /* do flip synchronous to vblank */
     Bool                abort_flip;     /* aborting this flip */
     PresentFlipReason   reason;         /* reason for which flip is not possible */
@@ -108,6 +107,7 @@ typedef Bool (*present_priv_check_flip_ptr)(RRCrtcPtr crtc,
                                             PresentFlipReason *reason);
 typedef void (*present_priv_check_flip_window_ptr)(WindowPtr window);
 typedef Bool (*present_priv_can_window_flip_ptr)(WindowPtr window);
+typedef void (*present_priv_clear_window_flip_ptr)(WindowPtr window);
 
 typedef int (*present_priv_pixmap_ptr)(WindowPtr window,
                                        PixmapPtr pixmap,
@@ -125,9 +125,6 @@ typedef int (*present_priv_pixmap_ptr)(WindowPtr window,
                                        uint64_t remainder,
                                        present_notify_ptr notifies,
                                        int num_notifies);
-
-typedef void (*present_priv_create_event_id_ptr)(present_window_priv_ptr window_priv,
-                                                 present_vblank_ptr vblank);
 
 typedef int (*present_priv_queue_vblank_ptr)(ScreenPtr screen,
                                              WindowPtr window,
@@ -164,7 +161,6 @@ struct present_screen_priv {
     Bool                        flip_sync;
 
     present_screen_info_ptr     info;
-    present_wnmd_info_ptr       wnmd_info;
 
     /* Mode hooks */
     present_priv_query_capabilities_ptr query_capabilities;
@@ -173,9 +169,9 @@ struct present_screen_priv {
     present_priv_check_flip_ptr         check_flip;
     present_priv_check_flip_window_ptr  check_flip_window;
     present_priv_can_window_flip_ptr    can_window_flip;
+    present_priv_clear_window_flip_ptr  clear_window_flip;
 
     present_priv_pixmap_ptr             present_pixmap;
-    present_priv_create_event_id_ptr    create_event_id;
 
     present_priv_queue_vblank_ptr       queue_vblank;
     present_priv_flush_ptr              flush;
@@ -221,15 +217,6 @@ struct present_window_priv {
     uint64_t               msc;         /* Last reported MSC from the current crtc */
     struct xorg_list       vblank;
     struct xorg_list       notifies;
-
-    /* Used for window flips */
-    uint64_t               event_id;
-    struct xorg_list       exec_queue;
-    struct xorg_list       flip_queue;
-    struct xorg_list       idle_queue;
-
-    present_vblank_ptr     flip_pending;
-    present_vblank_ptr     flip_active;
 };
 
 #define PresentCrtcNeverSet     ((RRCrtcPtr) 1)
@@ -448,12 +435,36 @@ present_scmd_init_mode_hooks(present_screen_priv_ptr screen_priv);
 /*
  * present_screen.c
  */
+Bool
+present_screen_register_priv_keys(void);
+
+present_screen_priv_ptr
+present_screen_priv_init(ScreenPtr screen);
 
 /*
  * present_vblank.c
  */
 void
 present_vblank_notify(present_vblank_ptr vblank, CARD8 kind, CARD8 mode, uint64_t ust, uint64_t crtc_msc);
+
+Bool
+present_vblank_init(present_vblank_ptr vblank,
+                    WindowPtr window,
+                    PixmapPtr pixmap,
+                    CARD32 serial,
+                    RegionPtr valid,
+                    RegionPtr update,
+                    int16_t x_off,
+                    int16_t y_off,
+                    RRCrtcPtr target_crtc,
+                    SyncFence *wait_fence,
+                    SyncFence *idle_fence,
+                    uint32_t options,
+                    const uint32_t capabilities,
+                    present_notify_ptr notifies,
+                    int num_notifies,
+                    uint64_t target_msc,
+                    uint64_t crtc_msc);
 
 present_vblank_ptr
 present_vblank_create(WindowPtr window,
@@ -467,7 +478,7 @@ present_vblank_create(WindowPtr window,
                       SyncFence *wait_fence,
                       SyncFence *idle_fence,
                       uint32_t options,
-                      const uint32_t *capabilities,
+                      const uint32_t capabilities,
                       present_notify_ptr notifies,
                       int num_notifies,
                       uint64_t target_msc,
@@ -478,11 +489,5 @@ present_vblank_scrap(present_vblank_ptr vblank);
 
 void
 present_vblank_destroy(present_vblank_ptr vblank);
-
-/*
- * present_wnmd.c
- */
-void
-present_wnmd_init_mode_hooks(present_screen_priv_ptr screen_priv);
 
 #endif /*  _PRESENT_PRIV_H_ */

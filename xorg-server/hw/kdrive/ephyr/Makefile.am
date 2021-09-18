@@ -41,8 +41,8 @@ GLAMOR_XV_SRCS = ephyr_glamor_xv.c
 endif
 
 GLAMOR_SRCS = \
-	ephyr_glamor_glx.c \
-	ephyr_glamor_glx.h \
+	ephyr_glamor.c \
+	ephyr_glamor.h \
 	$(GLAMOR_XV_SRCS)  \
 	$()
 endif

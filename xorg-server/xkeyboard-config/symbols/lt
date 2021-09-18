@@ -30,6 +30,8 @@ xkb_symbols "basic" {
     key <AE11> {[               minus,   underscore,   endash                ]};
     key <AE12> {[              zcaron,       Zcaron,    equal,          plus ]};
 
+    key <AD03> {[            NoSymbol,     NoSymbol, NoSymbol,      sterling ]};
+
     key <LSGT> {[              endash,     EuroSign                          ]};
 };
 
@@ -53,10 +55,12 @@ xkb_symbols "us" {
     key <AE06> {[        6,   asciicircum,              scaron,       Scaron ]};
     key <AE07> {[        7,     ampersand,             uogonek,      Uogonek ]};
     key <AE08> {[        8,      asterisk,             umacron,      Umacron ]};
-    key <AE09> {[        9,     parenleft,  doublelowquotemark,    parenleft ]};
-    key <AE10> {[        0,    parenright, leftdoublequotemark,   parenright ]};
+    key <AE09> {[        9,     parenleft,  doublelowquotemark               ]};
+    key <AE10> {[        0,    parenright, leftdoublequotemark               ]};
     key <AE11> {[    minus,    underscore,              endash               ]};
     key <AE12> {[    equal,          plus,              zcaron,       Zcaron ]};
+
+    key <AD03> {[  NoSymbol,     NoSymbol,            NoSymbol,     sterling ]};
 
     key <LSGT> {[   endash,      EuroSign                                    ]};
 };

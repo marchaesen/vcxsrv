@@ -164,6 +164,9 @@ a list of accepted extension names is printed.
 .B \-f \fIvolume\fP
 sets beep (bell) volume (allowable range: 0-100).
 .TP 8
+.B \-fakescreenfps \fFps\fP
+sets fake presenter screen default fps (allowable range: 1-600).
+.TP 8
 .B \-fp \fIfontPath\fP
 sets the search path for fonts.  This path is a comma separated list
 of directories which the X server searches for font databases.
@@ -605,7 +608,7 @@ Controlling the server once started: \fIxset\fP(1), \fIxsetroot\fP(1),
 \fIxhost\fP(1), \fIxinput\fP(1), \fIxrandr\fP(1)
 .PP
 Server-specific man pages:
-\fIXorg\fP(1), \fIXdmx\fP(1), \fIXephyr\fP(1), \fIXnest\fP(1),
+\fIXorg\fP(1), \fIXephyr\fP(1), \fIXnest\fP(1),
 \fIXvfb\fP(1), \fIXquartz\fP(1), \fIXWin\fP(1).
 .PP
 Server internal documentation:

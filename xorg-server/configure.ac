@@ -26,12 +26,12 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 20.99.1, [https://gitlab.freedesktop.org/xorg/xserver/issues], xorg-server)
-RELEASE_DATE="2018-05-14"
+AC_INIT([xorg-server], 21.0.99.1, [https://gitlab.freedesktop.org/xorg/xserver/issues], xorg-server)
+RELEASE_DATE="2021-07-05"
 RELEASE_NAME="Carrot and Ginger Soup"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 AC_USE_SYSTEM_EXTENSIONS
 
 # Require xorg-macros minimum of 1.14 for XORG_COMPILER_BRAND in XORG_DEFAULT_OPTIONS
@@ -572,7 +572,6 @@ AC_ARG_ENABLE(suid-wrapper, AS_HELP_STRING([--enable-suid-wrapper], [Build suid-
 
 dnl DDXes.
 AC_ARG_ENABLE(xorg,    	      AS_HELP_STRING([--enable-xorg], [Build Xorg server (default: auto)]), [XORG=$enableval], [XORG=auto])
-AC_ARG_ENABLE(dmx,    	      AS_HELP_STRING([--enable-dmx], [Build DMX server (default: no)]), [DMX=$enableval], [DMX=no])
 AC_ARG_ENABLE(xvfb,    	      AS_HELP_STRING([--enable-xvfb], [Build Xvfb server (default: yes)]), [XVFB=$enableval], [XVFB=yes])
 AC_ARG_ENABLE(xnest,   	      AS_HELP_STRING([--enable-xnest], [Build Xnest server (default: auto)]), [XNEST=$enableval], [XNEST=auto])
 AC_ARG_ENABLE(xquartz,        AS_HELP_STRING([--enable-xquartz], [Build Xquartz server for OS-X (default: auto)]), [XQUARTZ=$enableval], [XQUARTZ=auto])
@@ -721,7 +720,6 @@ XINERAMAPROTO="xineramaproto"
 BIGFONTPROTO="xf86bigfontproto >= 1.2.0"
 DGAPROTO="xf86dgaproto >= 2.0.99.1"
 GLPROTO="glproto >= 1.4.17"
-DMXPROTO="dmxproto >= 2.2.99.1"
 VIDMODEPROTO="xf86vidmodeproto >= 2.2.99.1"
 APPLEWMPROTO="applewmproto >= 1.4"
 LIBXSHMFENCE="xshmfence >= 1.1"
@@ -743,7 +741,6 @@ PRESENTPROTO="presentproto >= 1.2"
 
 dnl List of libraries that require a specific version
 LIBAPPLEWM="applewm >= 1.4"
-LIBDMX="dmx >= 1.0.99.1"
 LIBDRI="dri >= 7.8.0"
 LIBDRM="libdrm >= 2.4.89"
 LIBEGL="egl"
@@ -758,6 +755,7 @@ LIBUDEV="libudev >= 143"
 LIBSELINUX="libselinux >= 2.0.86"
 LIBDBUS="dbus-1 >= 1.0"
 LIBPIXMAN="pixman-1 >= 0.27.2"
+LIBXCVT="libxcvt"
 
 dnl Pixman is always required, but we separate it out so we can link
 dnl specific modules against it
@@ -765,7 +763,7 @@ PKG_CHECK_MODULES(PIXMAN, $LIBPIXMAN)
 REQUIRED_LIBS="$REQUIRED_LIBS $LIBPIXMAN $LIBXFONT xau"
 
 dnl Core modules for most extensions, et al.
-SDK_REQUIRED_MODULES="$XPROTO $RANDRPROTO $RENDERPROTO $XEXTPROTO $INPUTPROTO $KBPROTO $FONTSPROTO $LIBPIXMAN"
+SDK_REQUIRED_MODULES="$XPROTO $RANDRPROTO $RENDERPROTO $XEXTPROTO $INPUTPROTO $KBPROTO $FONTSPROTO $LIBPIXMAN $LIBXCVT"
 # Make SDK_REQUIRED_MODULES available for inclusion in xorg-server.pc
 AC_SUBST(SDK_REQUIRED_MODULES)
 
@@ -1758,11 +1756,14 @@ fi
 AC_MSG_RESULT([$XORG])
 
 if test "x$XORG" = xyes; then
+	PKG_CHECK_MODULES([LIBXCVT], $LIBXCVT)
+
 	XORG_DDXINCS='-I$(top_srcdir)/hw/xfree86 -I$(top_srcdir)/hw/xfree86/include -I$(top_srcdir)/hw/xfree86/common'
 	XORG_OSINCS='-I$(top_srcdir)/hw/xfree86/os-support -I$(top_srcdir)/hw/xfree86/os-support/bus -I$(top_srcdir)/os'
 	XORG_INCS="$XORG_DDXINCS $XORG_OSINCS"
-	XORG_CFLAGS="$XORGSERVER_CFLAGS -DHAVE_XORG_CONFIG_H"
+	XORG_CFLAGS="$XORGSERVER_CFLAGS $LIBXCVT_CFLAGS -DHAVE_XORG_CONFIG_H"
 	XORG_LIBS="$COMPOSITE_LIB $FIXES_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $XI_LIB $XKB_LIB"
+	XORG_SYS_LIBS="$XORG_SYS_LIBS $LIBXCVT_LIBS"
 
 	dnl ==================================================================
 	dnl symbol visibility
@@ -2176,62 +2177,6 @@ AM_CONDITIONAL(XQUARTZ, [test "x$XQUARTZ" = xyes])
 AM_CONDITIONAL(XQUARTZ_SPARKLE, [test "x$XQUARTZ_SPARKLE" != "xno"])
 AM_CONDITIONAL(STANDALONE_XPBPROXY, [test "x$STANDALONE_XPBPROXY" = xyes])
 
-dnl DMX DDX
-PKG_CHECK_MODULES(
-	[DMXMODULES],
-	[xmuu $LIBXEXT x11 >= 1.6 xrender xfixes $LIBXI $DMXPROTO xau $XDMCP_MODULES],
-	[PKG_CHECK_MODULES(
-		[XDMXCONFIG_DEP],
-		[xaw7 xmu xt xpm x11],
-		[have_dmx=yes],
-		[have_dmx=no])],
-	[have_dmx=no])
-AC_MSG_CHECKING([whether to build Xdmx DDX])
-if test "x$DMX" = xauto; then
-	DMX="$have_dmx"
-	case $host_os in
-		cygwin*) DMX="no" ;;
-		mingw*)  DMX="no" ;;
-		darwin*) DMX="no" ;;
-	esac
-fi
-AC_MSG_RESULT([$DMX])
-AM_CONDITIONAL(DMX, [test "x$DMX" = xyes])
-
-if test "x$DMX" = xyes; then
-	if test "x$have_dmx" = xno; then
-		AC_MSG_ERROR([Xdmx build explicitly requested, but required
-		              modules not found.])
-	fi
-	DMX_INCLUDES="$XEXT_INC $RENDER_INC $RECORD_INC"
-	XDMX_CFLAGS="$DMXMODULES_CFLAGS"
-	XDMX_LIBS="$FB_LIB $MI_LIB $XEXT_LIB $RENDER_LIB $RECORD_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_SHADOW_LIB $MIEXT_DAMAGE_LIB $COMPOSITE_LIB $DAMAGE_LIB $MAIN_LIB $DIX_LIB $RANDR_LIB $RENDER_LIB $CONFIG_LIB $OS_LIB $FIXES_LIB"
-	XDMX_SYS_LIBS="$DMXMODULES_LIBS"
-	AC_SUBST([XDMX_CFLAGS])
-	AC_SUBST([XDMX_LIBS])
-	AC_SUBST([XDMX_SYS_LIBS])
-
-dnl USB sources in DMX require <linux/input.h>
-	AC_CHECK_HEADER([linux/input.h], DMX_BUILD_USB="yes",
-			DMX_BUILD_USB="no")
-	AC_SUBST(XDMXCONFIG_DEP_CFLAGS)
-	AC_SUBST(XDMXCONFIG_DEP_LIBS)
-	PKG_CHECK_MODULES([DMXEXAMPLES_DEP], [$LIBDMX $LIBXEXT x11])
-	AC_SUBST(DMXEXAMPLES_DEP_LIBS)
-	PKG_CHECK_MODULES([DMXXMUEXAMPLES_DEP], [$LIBDMX xmu $LIBXEXT x11])
-	AC_SUBST(DMXXMUEXAMPLES_DEP_LIBS)
-	PKG_CHECK_MODULES([DMXXIEXAMPLES_DEP], [$LIBDMX $LIBXI $LIBXEXT x11])
-	AC_SUBST(DMXXIEXAMPLES_DEP_LIBS)
-	PKG_CHECK_MODULES([XTSTEXAMPLES_DEP], [$LIBXTST $LIBXEXT x11])
-	AC_SUBST(XTSTEXAMPLES_DEP_LIBS)
-	PKG_CHECK_MODULES([XRESEXAMPLES_DEP], [xres $LIBXEXT x11])
-	AC_SUBST(XRESEXAMPLES_DEP_LIBS)
-	PKG_CHECK_MODULES([X11EXAMPLES_DEP], [$LIBXEXT x11])
-	AC_SUBST(X11EXAMPLES_DEP_LIBS)
-
-fi
-AM_CONDITIONAL([DMX_BUILD_USB], [test "x$DMX_BUILD_USB" = xyes])
-
 dnl kdrive DDX
 
 XEPHYR_LIBS=
@@ -2246,9 +2191,6 @@ if test "$KDRIVE" = yes; then
     fi
     if test "x$DRI" = xyes && test "x$GLX" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS $LIBDRM xcb-glx xcb-xf86dri > 1.6"
-    fi
-    if test "x$GLAMOR" = xyes; then
-        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS x11-xcb"
     fi
 
     if test "x$XEPHYR" = xauto; then
@@ -2347,8 +2289,10 @@ if test "x$XWAYLAND" = xyes; then
 		AC_SUBST(have_eglstream, "false")
 	fi
 
+	PKG_CHECK_MODULES([LIBXCVT], $LIBXCVT)
+
 	XWAYLAND_LIBS="$FB_LIB $FIXES_LIB $MI_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $GLX_LIBS $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $DRI3_LIB $PRESENT_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $COMPOSITE_LIB $MAIN_LIB $DIX_LIB $OS_LIB"
-	XWAYLAND_SYS_LIBS="$XWAYLANDMODULES_LIBS $GLX_SYS_LIBS"
+	XWAYLAND_SYS_LIBS="$XWAYLANDMODULES_LIBS $GLX_SYS_LIBS $LIBXCVT_LIBS"
 	AC_SUBST([XWAYLAND_LIBS])
 	AC_SUBST([XWAYLAND_SYS_LIBS])
 
@@ -2482,18 +2426,7 @@ hw/xfree86/x86emu/Makefile
 hw/xfree86/xkb/Makefile
 hw/xfree86/utils/Makefile
 hw/xfree86/utils/man/Makefile
-hw/xfree86/utils/cvt/Makefile
 hw/xfree86/utils/gtf/Makefile
-hw/dmx/config/Makefile
-hw/dmx/config/man/Makefile
-hw/dmx/doc/Makefile
-hw/dmx/doxygen/doxygen.conf
-hw/dmx/doxygen/Makefile
-hw/dmx/examples/Makefile
-hw/dmx/input/Makefile
-hw/dmx/glxProxy/Makefile
-hw/dmx/Makefile
-hw/dmx/man/Makefile
 hw/vfb/Makefile
 hw/vfb/man/Makefile
 hw/xnest/Makefile

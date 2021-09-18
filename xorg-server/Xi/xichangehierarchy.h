@@ -39,6 +39,6 @@
 int SProcXIChangeHierarchy(ClientPtr /* client */ );
 int ProcXIChangeHierarchy(ClientPtr /* client */ );
 
-void XISendDeviceHierarchyEvent(int flags[]);
+void XISendDeviceHierarchyEvent(int flags[MAXDEVICES]);
 
 #endif                          /* CHDEVHIER_H */

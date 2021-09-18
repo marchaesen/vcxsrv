@@ -615,6 +615,10 @@ RRTellChanged(ScreenPtr pScreen)
         primarysp = pScrPriv;
     }
 
+    /* If there's no root window yet, can't send events */
+    if (!primary->root)
+        return;
+
     xorg_list_for_each_entry(iter, &primary->secondary_list, secondary_head) {
         pSecondaryScrPriv = rrGetScrPriv(iter);
 
@@ -692,6 +696,33 @@ RRFirstOutput(ScreenPtr pScreen)
     }
     return NULL;
 }
+
+RRCrtcPtr
+RRFirstEnabledCrtc(ScreenPtr pScreen)
+{
+    rrScrPriv(pScreen);
+    RROutputPtr output;
+    int i, j;
+
+    if (!pScrPriv)
+        return NULL;
+
+    if (pScrPriv->primaryOutput && pScrPriv->primaryOutput->crtc &&
+        pScrPriv->primaryOutput->pScreen == pScreen)
+        return pScrPriv->primaryOutput->crtc;
+
+    for (i = 0; i < pScrPriv->numCrtcs; i++) {
+        RRCrtcPtr crtc = pScrPriv->crtcs[i];
+
+        for (j = 0; j < pScrPriv->numOutputs; j++) {
+            output = pScrPriv->outputs[j];
+            if (output->crtc == crtc && crtc->mode)
+                return crtc;
+        }
+    }
+    return NULL;
+}
+
 
 CARD16
 RRVerticalRefresh(xRRModeInfo * mode)

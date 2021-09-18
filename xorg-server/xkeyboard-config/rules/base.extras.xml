@@ -549,6 +549,12 @@
             <description>Polish (Glagolica)</description>
           </configItem>
         </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>lefty</name>
+            <description>Polish (lefty)</description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -653,6 +659,18 @@
           <configItem popularity="exotic">
             <name>unipunct</name>
             <description>Russian (with US punctuation)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>gost-6431-75-48</name>
+            <description>Russian (GOST 6431-75, 48-key)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>gost-14289-88</name>
+            <description>Russian (GOST 14289-88)</description>
           </configItem>
         </variant>
         <variant>

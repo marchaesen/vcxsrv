@@ -95,6 +95,7 @@ ddxUseMsg(void)
     ErrorF("-shm                   use shared memory for passing buffers\n");
     ErrorF("-verbose [n]           verbose startup messages\n");
     ErrorF("-version               show the server version and exit\n");
+    ErrorF("-noTouchPointerEmulation  disable touch pointer emulation\n");
 }
 
 static int init_fd = -1;
@@ -184,6 +185,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else if (strcmp(argv[i], "-version") == 0) {
         xwl_show_version();
         exit(0);
+    }
+    else if (strcmp(argv[i], "-noTouchPointerEmulation") == 0) {
+        touchEmulatePointer = FALSE;
     }
 
     return 0;

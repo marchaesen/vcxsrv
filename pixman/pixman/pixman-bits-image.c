@@ -209,15 +209,15 @@ static force_inline void reduce_32(unsigned int satot, unsigned int srtot,
 {
     uint32_t *ret = p;
 
-    satot = (satot + 0x8000) >> 16;
-    srtot = (srtot + 0x8000) >> 16;
-    sgtot = (sgtot + 0x8000) >> 16;
-    sbtot = (sbtot + 0x8000) >> 16;
+    satot = (int32_t)(satot + 0x8000) / 65536;
+    srtot = (int32_t)(srtot + 0x8000) / 65536;
+    sgtot = (int32_t)(sgtot + 0x8000) / 65536;
+    sbtot = (int32_t)(sbtot + 0x8000) / 65536;
 
-    satot = CLIP (satot, 0, 0xff);
-    srtot = CLIP (srtot, 0, 0xff);
-    sgtot = CLIP (sgtot, 0, 0xff);
-    sbtot = CLIP (sbtot, 0, 0xff);
+    satot = CLIP ((int32_t)satot, 0, 0xff);
+    srtot = CLIP ((int32_t)srtot, 0, 0xff);
+    sgtot = CLIP ((int32_t)sgtot, 0, 0xff);
+    sbtot = CLIP ((int32_t)sbtot, 0, 0xff);
 
     *ret = ((satot << 24) | (srtot << 16) | (sgtot <<  8) | (sbtot));
 }
@@ -240,10 +240,10 @@ static force_inline void reduce_float(unsigned int satot, unsigned int srtot,
 {
     argb_t *ret = p;
 
-    ret->a = CLIP (satot / 65536.f, 0.f, 1.f);
-    ret->r = CLIP (srtot / 65536.f, 0.f, 1.f);
-    ret->g = CLIP (sgtot / 65536.f, 0.f, 1.f);
-    ret->b = CLIP (sbtot / 65536.f, 0.f, 1.f);
+    ret->a = CLIP ((int32_t)satot / 65536.f, 0.f, 1.f);
+    ret->r = CLIP ((int32_t)srtot / 65536.f, 0.f, 1.f);
+    ret->g = CLIP ((int32_t)sgtot / 65536.f, 0.f, 1.f);
+    ret->b = CLIP ((int32_t)sbtot / 65536.f, 0.f, 1.f);
 }
 
 typedef void (* accumulate_pixel_t) (unsigned int *satot, unsigned int *srtot,
@@ -482,6 +482,7 @@ __bits_image_fetch_affine_no_alpha (pixman_iter_t *  iter,
     int             width  = iter->width;
     uint32_t *      buffer = iter->buffer;
 
+    const uint32_t wide_zero[4] = {0};
     pixman_fixed_t x, y;
     pixman_fixed_t ux, uy;
     pixman_vector_t v;
@@ -513,7 +514,8 @@ __bits_image_fetch_affine_no_alpha (pixman_iter_t *  iter,
 
     for (i = 0; i < width; ++i)
     {
-	if (!mask || mask[i])
+	if (!mask || (!wide && mask[i]) ||
+	    (wide && memcmp(&mask[4 * i], wide_zero, 16) != 0))
 	{
 	    bits_image_fetch_pixel_filtered (
 		&image->bits, wide, x, y, get_pixel, buffer);
@@ -636,6 +638,7 @@ __bits_image_fetch_general (pixman_iter_t  *iter,
     get_pixel_t     get_pixel =
 	wide ? fetch_pixel_general_float : fetch_pixel_general_32;
 
+    const uint32_t wide_zero[4] = {0};
     pixman_fixed_t x, y, w;
     pixman_fixed_t ux, uy, uw;
     pixman_vector_t v;
@@ -670,7 +673,8 @@ __bits_image_fetch_general (pixman_iter_t  *iter,
     {
 	pixman_fixed_t x0, y0;
 
-	if (!mask || mask[i])
+	if (!mask || (!wide && mask[i]) ||
+	    (wide && memcmp(&mask[4 * i], wide_zero, 16) != 0))
 	{
 	    if (w != 0)
 	    {
@@ -1051,14 +1055,14 @@ dest_write_back_narrow (pixman_iter_t *iter)
     iter->y++;
 }
 
-static const float
+static float
 dither_factor_blue_noise_64 (int x, int y)
 {
     float m = dither_blue_noise_64x64[((y & 0x3f) << 6) | (x & 0x3f)];
     return m * (1. / 4096.f) + (1. / 8192.f);
 }
 
-static const float
+static float
 dither_factor_bayer_8 (int x, int y)
 {
     uint32_t m;

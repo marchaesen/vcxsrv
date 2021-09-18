@@ -2268,7 +2268,7 @@ tablet_pad_group(void *data,
     struct xwl_tablet_pad_group *group;
 
     group = calloc(1, sizeof *group);
-    if (pad == NULL) {
+    if (group == NULL) {
         ErrorF("%s ENOMEM\n", __func__);
         return;
     }

@@ -99,7 +99,7 @@ int
 
 security_class_t SELinuxTypeToClass(RESTYPE type);
 
-security_context_t SELinuxDefaultClientLabel(void);
+char *SELinuxDefaultClientLabel(void);
 
 void
  SELinuxLabelInit(void);

@@ -42,10 +42,6 @@ present_get_window_priv(WindowPtr window, Bool create)
     xorg_list_init(&window_priv->vblank);
     xorg_list_init(&window_priv->notifies);
 
-    xorg_list_init(&window_priv->exec_queue);
-    xorg_list_init(&window_priv->flip_queue);
-    xorg_list_init(&window_priv->idle_queue);
-
     window_priv->window = window;
     window_priv->crtc = PresentCrtcNeverSet;
     dixSetPrivate(&window->devPrivates, &present_window_private_key, window_priv);
@@ -87,50 +83,6 @@ present_free_window_vblank(WindowPtr window)
 }
 
 /*
- * Clean up any pending or current flips for this window
- */
-static void
-present_clear_window_flip(WindowPtr window)
-{
-    ScreenPtr                   screen = window->drawable.pScreen;
-    present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
-    present_vblank_ptr          flip_pending = screen_priv->flip_pending;
-
-    if (flip_pending && flip_pending->window == window) {
-        present_set_abort_flip(screen);
-        flip_pending->window = NULL;
-    }
-    if (screen_priv->flip_window == window) {
-        present_restore_screen_pixmap(screen);
-        screen_priv->flip_window = NULL;
-    }
-}
-
-static void
-present_wnmd_clear_window_flip(WindowPtr window)
-{
-    present_window_priv_ptr     window_priv = present_window_priv(window);
-    present_vblank_ptr          vblank, tmp;
-
-    xorg_list_for_each_entry_safe(vblank, tmp, &window_priv->flip_queue, event_queue) {
-        present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
-        present_vblank_destroy(vblank);
-    }
-
-    xorg_list_for_each_entry_safe(vblank, tmp, &window_priv->idle_queue, event_queue) {
-        present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
-        present_vblank_destroy(vblank);
-    }
-
-    vblank = window_priv->flip_active;
-    if (vblank) {
-        present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
-        present_vblank_destroy(vblank);
-    }
-    window_priv->flip_active = NULL;
-}
-
-/*
  * Hook the close window function to clean up our window private
  */
 static Bool
@@ -146,10 +98,7 @@ present_destroy_window(WindowPtr window)
         present_free_events(window);
         present_free_window_vblank(window);
 
-        if (screen_priv->wnmd_info)
-            present_wnmd_clear_window_flip(window);
-        else
-            present_clear_window_flip(window);
+        screen_priv->clear_window_flip(window);
 
         free(window_priv);
     }
@@ -202,7 +151,7 @@ present_clip_notify(WindowPtr window, int dx, int dy)
     wrap(screen_priv, screen, ClipNotify, present_clip_notify);
 }
 
-static Bool
+Bool
 present_screen_register_priv_keys(void)
 {
     if (!dixRegisterPrivateKey(&present_screen_private_key, PRIVATE_SCREEN, 0))
@@ -214,7 +163,7 @@ present_screen_register_priv_keys(void)
     return TRUE;
 }
 
-static present_screen_priv_ptr
+present_screen_priv_ptr
 present_screen_priv_init(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv;
@@ -231,27 +180,6 @@ present_screen_priv_init(ScreenPtr screen)
     dixSetPrivate(&screen->devPrivates, &present_screen_private_key, screen_priv);
 
     return screen_priv;
-}
-
-/*
- * Initialize a screen for use with present in window flip mode (wnmd)
- */
-int
-present_wnmd_screen_init(ScreenPtr screen, present_wnmd_info_ptr info)
-{
-    if (!present_screen_register_priv_keys())
-        return FALSE;
-
-    if (!present_screen_priv(screen)) {
-        present_screen_priv_ptr screen_priv = present_screen_priv_init(screen);
-        if (!screen_priv)
-            return FALSE;
-
-        screen_priv->wnmd_info = info;
-        present_wnmd_init_mode_hooks(screen_priv);
-    }
-
-    return TRUE;
 }
 
 /*

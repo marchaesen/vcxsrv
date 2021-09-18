@@ -368,10 +368,6 @@ ms_do_pageflip(ScreenPtr screen,
             ms->drmmode.flip_bo_import_failed = FALSE;
     }
 
-    flags = DRM_MODE_PAGE_FLIP_EVENT;
-    if (async)
-        flags |= DRM_MODE_PAGE_FLIP_ASYNC;
-
     /* Queue flips on all enabled CRTCs.
      *
      * Note that if/when we get per-CRTC buffers, we'll have to update this.
@@ -384,9 +380,30 @@ ms_do_pageflip(ScreenPtr screen,
     for (i = 0; i < config->num_crtc; i++) {
         enum queue_flip_status flip_status;
         xf86CrtcPtr crtc = config->crtc[i];
+        drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
 
         if (!xf86_crtc_on(crtc))
             continue;
+
+        flags = DRM_MODE_PAGE_FLIP_EVENT;
+        if (ms->drmmode.can_async_flip && async)
+            flags |= DRM_MODE_PAGE_FLIP_ASYNC;
+
+        /*
+         * If this is not the reference crtc used for flip timing and flip event
+         * delivery and timestamping, ie. not the one whose presentation timing
+         * we do really care about, and async flips are possible, and requested
+         * by an xorg.conf option, then we flip this "secondary" crtc without
+         * sync to vblank. This may cause tearing on such "secondary" outputs,
+         * but it will prevent throttling of multi-display flips to the refresh
+         * cycle of any of the secondary crtcs, avoiding periodic slowdowns and
+         * judder caused by unsynchronized outputs. This is especially useful for
+         * outputs in a "clone-mode" or "mirror-mode" configuration.
+         */
+        if (ms->drmmode.can_async_flip && ms->drmmode.async_flip_secondaries &&
+            (drmmode_crtc->vblank_pipe != ref_crtc_vblank_pipe) &&
+            (ref_crtc_vblank_pipe >= 0))
+            flags |= DRM_MODE_PAGE_FLIP_ASYNC;
 
         flip_status = queue_flip_on_crtc(screen, crtc, flipdata,
                                          ref_crtc_vblank_pipe,

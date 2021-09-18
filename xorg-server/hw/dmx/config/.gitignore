@@ -1,7 +1,0 @@
-#		Add & Override for this directory and its subdirectories
-dmxtodmx
-parser.c
-parser.h
-scanner.c
-vdltodmx
-xdmxconfig

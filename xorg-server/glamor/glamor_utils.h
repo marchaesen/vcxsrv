@@ -732,5 +732,9 @@ glamor_glDrawArrays_GL_QUADS(glamor_screen_private *glamor_priv, unsigned count)
     }
 }
 
+static inline Bool
+glamor_glsl_has_ints(glamor_screen_private *glamor_priv) {
+    return glamor_priv->glsl_version >= 130 || glamor_priv->use_gpu_shader4;
+}
 
 #endif

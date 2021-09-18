@@ -182,7 +182,7 @@ if build_xorg
     unit = executable('tests',
          unit_sources,
          c_args: unit_c_args,
-         dependencies: [pixman_dep, randrproto_dep, inputproto_dep],
+         dependencies: [pixman_dep, randrproto_dep, inputproto_dep, libxcvt_dep],
          include_directories: unit_includes,
          link_args: ldwraps,
          link_with: xorg_link,

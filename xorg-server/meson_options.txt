@@ -10,8 +10,6 @@ option('xwayland_eglstream', type: 'combo', choices: ['true', 'false', 'auto'],
        value: 'auto', description: 'Enable EGLStream support for glamor on Xwayland')
 option('xnest', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable Xnest nested X server')
-option('dmx', type: 'boolean', value: false,
-       description: 'Enable DMX nested X server')
 option('xvfb', type: 'boolean', value: true,
        description: 'Enable Xvfb X server')
 option('xwin', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
@@ -113,6 +111,8 @@ option('xf86-input-inputtest', type: 'boolean', value: true,
 option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')
 option('dri3', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI3 extension (default: auto)')
+option('drm', type: 'boolean', value: 'true',
+        description: 'Build Xorg with libdrm support')
 
 option('apple-applications-dir', type: 'string', value: '/Applications/Utilities',
         description: 'Applications directory')
@@ -129,3 +129,10 @@ option('libunwind', type: 'boolean', value: false,
         description: 'Use libunwind for backtrace reporting')
 
 option('xwayland-path', type: 'string', description: 'Directory containing Xwayland executable')
+
+option('docs', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+        description: 'Build documentation')
+option('devel-docs', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+        description: 'Build development documentation')
+option('docs-pdf', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+        description: 'Whether to build PDF version of documentation. Setting is ignored if documentation is not built.')

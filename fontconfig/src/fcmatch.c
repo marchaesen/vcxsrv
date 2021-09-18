@@ -433,7 +433,7 @@ FcCompareValueList (FcObject	     object,
 		*result = FcResultTypeMismatch;
 		return FcFalse;
 	    }
-	    v = v * 1000 + j * 100 + k;
+	    v = v * 1000 + j * 100 + k * (v2->value.type == FcTypeString ? 1 : 0);
 	    if (v < best)
 	    {
 		if (bestValue)
@@ -583,6 +583,14 @@ FcCompareFamilies (FcPattern       *pat,
                 weak_value = e->weak_value;
         }
     }
+    if (FcDebug () & FC_DBG_MATCHV)
+    {
+	printf ("%s: %g ", FcObjectName (FC_FAMILY_OBJECT), strong_value);
+	FcValueListPrint (v1orig);
+	printf (", ");
+	FcValueListPrint (v2orig);
+	printf ("\n");
+    }
 
     value[PRI_FAMILY_STRONG] = strong_value;
     value[PRI_FAMILY_WEAK] = weak_value;
@@ -714,27 +722,29 @@ FcFontRenderPrepare (FcConfig	    *config,
 		     l1 != NULL || l2 != NULL;
 		     j++, l1 = l1 ? FcValueListNext (l1) : NULL, l2 = l2 ? FcValueListNext (l2) : NULL)
 		{
+		    FcValueListPtr (* func) (FcValueListPtr, FcValue, FcValueBinding);
+		    FcValueBinding binding = FcValueBindingEnd;
+
 		    if (j == n)
 		    {
-			if (l1)
-			    ln = FcValueListPrepend (ln,
-						     FcValueCanonicalize (&l1->value),
-						     FcValueBindingStrong);
-			if (l2)
-			    ll = FcValueListPrepend (ll,
-						     FcValueCanonicalize (&l2->value),
-						     FcValueBindingStrong);
+			binding = FcValueBindingStrong;
+			func = FcValueListPrepend;
 		    }
 		    else
+			func = FcValueListAppend;
+		    if (l1)
 		    {
-			if (l1)
-			    ln = FcValueListAppend (ln,
-						    FcValueCanonicalize (&l1->value),
-						    FcValueBindingStrong);
-			if (l2)
-			    ll = FcValueListAppend (ll,
-						    FcValueCanonicalize (&l2->value),
-						    FcValueBindingStrong);
+			ln = func (ln,
+				   FcValueCanonicalize (&l1->value),
+				   l1->binding);
+		    }
+		    if (l2)
+		    {
+			if (binding == FcValueBindingEnd)
+			    binding = l2->binding;
+			ll = func (ll,
+				   FcValueCanonicalize (&l2->value),
+				   binding);
 		    }
 		}
 		FcPatternObjectListAdd (new, fe->object, ln, FcFalse);
@@ -852,10 +862,11 @@ FcFontSetMatchInternal (FcFontSet   **sets,
     double    	    score[PRI_END], bestscore[PRI_END];
     int		    f;
     FcFontSet	    *s;
-    FcPattern	    *best;
+    FcPattern	    *best, *pat = NULL;
     int		    i;
     int		    set;
     FcCompareData   data;
+    const FcPatternElt *elt;
 
     for (i = 0; i < PRI_END; i++)
 	bestscore[i] = 0;
@@ -911,13 +922,56 @@ FcFontSetMatchInternal (FcFontSet   **sets,
 
     FcCompareDataClear (&data);
 
+    /* Update the binding according to the score to indicate how exactly values matches on. */
+    if (best)
+    {
+	pat = FcPatternCreate ();
+	elt = FcPatternElts (best);
+	for (i = 0; i < FcPatternObjectCount (best); i++)
+	{
+	    const FcMatcher *match = FcObjectToMatcher (elt[i].object, FcFalse);
+	    FcValueListPtr l = FcPatternEltValues (&elt[i]);
+
+	    if (!match)
+		FcPatternObjectListAdd(pat, elt[i].object,
+				       FcValueListDuplicate(l), FcTrue);
+	    else
+	    {
+		FcValueBinding binding = FcValueBindingWeak;
+		FcValueListPtr new = NULL, ll, t = NULL;
+		FcValue v;
+
+		/* If the value was matched exactly, update the binding to Strong. */
+		if (bestscore[match->strong] < 1000)
+		    binding = FcValueBindingStrong;
+
+		for (ll = l; ll != NULL; ll = FcValueListNext (ll))
+		{
+		    if (!new)
+		    {
+			t = new = FcValueListCreate ();
+		    }
+		    else
+		    {
+			t->next = FcValueListCreate ();
+			t = FcValueListNext (t);
+		    }
+		    v = FcValueCanonicalize (&ll->value);
+		    t->value = FcValueSave (v);
+		    t->binding = binding;
+		    t->next = NULL;
+		}
+		FcPatternObjectListAdd (pat, elt[i].object, new, FcTrue);
+	    }
+	}
+    }
     if (FcDebug () & FC_DBG_MATCH)
     {
 	printf ("Best score");
 	for (i = 0; i < PRI_END; i++)
 	    printf (" %g", bestscore[i]);
 	printf ("\n");
-	FcPatternPrint (best);
+	FcPatternPrint (pat);
     }
     if (FcDebug () & FC_DBG_MATCH2)
     {
@@ -958,16 +1012,16 @@ FcFontSetMatchInternal (FcFontSet   **sets,
 	    }
 	    free (ss);
 	}
-	FcPatternPrint2 (p, best, os);
+	FcPatternPrint2 (p, pat, os);
 	if (os)
 	    FcObjectSetDestroy (os);
     }
     /* assuming that 'result' is initialized with FcResultNoMatch
      * outside this function */
-    if (best)
+    if (pat)
 	*result = FcResultMatch;
 
-    return best;
+    return pat;
 }
 
 FcPattern *
@@ -990,7 +1044,10 @@ FcFontSetMatch (FcConfig    *config,
 	    return NULL;
     best = FcFontSetMatchInternal (sets, nsets, p, result);
     if (best)
+    {
 	ret = FcFontRenderPrepare (config, p, best);
+	FcPatternDestroy (best);
+    }
 
     FcConfigDestroy (config);
 
@@ -1022,7 +1079,10 @@ FcFontMatch (FcConfig	*config,
 
     best = FcFontSetMatchInternal (sets, nsets, p, result);
     if (best)
+    {
 	ret = FcFontRenderPrepare (config, p, best);
+	FcPatternDestroy (best);
+    }
 
     FcConfigDestroy (config);
 

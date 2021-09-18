@@ -44,11 +44,19 @@ present_get_crtc(WindowPtr window)
 {
     ScreenPtr                   screen = window->drawable.pScreen;
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
+    RRCrtcPtr                   crtc = NULL;
 
     if (!screen_priv)
         return NULL;
 
-    return screen_priv->get_crtc(screen_priv, window);
+    crtc = screen_priv->get_crtc(screen_priv, window);
+    if (crtc && !present_screen_priv(crtc->pScreen)) {
+        crtc = RRFirstEnabledCrtc(screen);
+    }
+    if (crtc && !present_screen_priv(crtc->pScreen)) {
+        crtc = NULL;
+    }
+    return crtc;
 }
 
 /*

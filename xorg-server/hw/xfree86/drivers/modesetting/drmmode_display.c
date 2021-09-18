@@ -627,7 +627,7 @@ drmmode_crtc_can_test_mode(xf86CrtcPtr crtc)
     return ms->atomic_modeset;
 }
 
-static Bool
+Bool
 drmmode_crtc_get_fb_id(xf86CrtcPtr crtc, uint32_t *fb_id, int *x, int *y)
 {
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
@@ -2406,7 +2406,21 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
 
     drmmode_crtc->use_gamma_lut =
         drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].prop_id &&
-        drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].value &&
+        /* Only use GAMMA_LUT if the size is 1024.
+         *
+         * Currently, the modesetting driver always passes a sigRGBbits value of
+         * 10 to xf86HandleColormaps.  This causes it to create a RRCrtc gamma
+         * ramp of 1024 elements. If DRMMODE_CRTC_GAMMA_LUT_SIZE is larger than
+         * 1024 (for example on Intel GEN11, where it has a value of 262145)
+         * then xf86RandR12CrtcSetGamma will read past the end of the RRCrtc's
+         * gamma ramp when trying to copy it into the larger xf86Crtc gamma
+         * ramp.
+         *
+         * Since the larger GEN11 gamma ramp size hasn't been tested, just
+         * disable it for now. This will cause the modesetting driver to disable
+         * the CTM property and use the legacy DRM gamma ramp rather than the
+         * GAMMA_LUT property. */
+        drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].value == 1024 &&
         xf86ReturnOptValBool(drmmode->Options, OPTION_USE_GAMMA_LUT, TRUE);
 
     if (drmmode_crtc->use_gamma_lut &&

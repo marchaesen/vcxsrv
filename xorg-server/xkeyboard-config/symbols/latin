@@ -17,7 +17,7 @@ xkb_symbols "basic" {
     key <AE12>	{ [     equal,       plus, dead_cedilla,  dead_ogonek ]	};
 
     key <AD01>	{ [         q,          Q,           at,  Greek_OMEGA ]	};
-    key <AD02>	{ [         w,          W,      lstroke,      Lstroke ]	};
+    key <AD02>	{ [         w,          W,        U017F,      section ]	};
     key <AD03>	{ [         e,          E,            e,            E ]	};
     key <AD04>	{ [         r,          R,    paragraph,   registered ]	};
     key <AD05>	{ [         t,          T,       tslash,       Tslash ]	};
@@ -30,7 +30,7 @@ xkb_symbols "basic" {
     key <AD12>	{ [bracketright, braceright, dead_tilde,  dead_macron ]	};
 
     key <AC01>	{ [         a,          A,           ae,           AE ]	};
-    key <AC02>	{ [         s,          S,       ssharp,      section ]	};
+    key <AC02>	{ [         s,          S,       ssharp,        U1E9E ]	};
     key <AC03>	{ [         d,          D,          eth,          ETH ]	};
     key <AC04>	{ [         f,          F,      dstroke,  ordfeminine ]	};
     key <AC05>	{ [         g,          G,          eng,          ENG ]	};
@@ -43,12 +43,12 @@ xkb_symbols "basic" {
     key <TLDE>	{ [     grave, asciitilde,      notsign,      notsign ]	};
 
     key <BKSL>	{ [ backslash,        bar,   dead_grave,   dead_breve ]	};
-    key <AB01>	{ [         z,          Z, guillemotleft,        less ]	};
-    key <AB02>	{ [         x,          X, guillemotright,    greater ]	};
+    key <AB01>	{ [         z,          Z, guillemotleft,       U2039 ]	};
+    key <AB02>	{ [         x,          X, guillemotright,      U203A ]	};
     key <AB03>	{ [         c,          C,         cent,    copyright ]	};
-    key <AB04>	{ [         v,          V, leftdoublequotemark, leftsinglequotemark ]	};
-    key <AB05>	{ [         b,          B, rightdoublequotemark, rightsinglequotemark ] };
-    key <AB06>	{ [         n,          N,            n,            N ]	};
+    key <AB04>	{ [         v,          V,   doublelowquotemark, singlelowquotemark ]	};
+    key <AB05>	{ [         b,          B,  leftdoublequotemark, leftsinglequotemark ] };
+    key <AB06>	{ [         n,          N, rightdoublequotemark, rightsinglequotemark ]	};
     key <AB07>	{ [         m,          M,           mu,    masculine ]	};
     key <AB08>	{ [     comma,       less, horizconnector,   multiply ]	};
     key <AB09>	{ [    period,    greater, periodcentered,   division ]	};
@@ -97,14 +97,14 @@ xkb_symbols "type3" {
     include "latin"
 
     key <AD01>	{ [         q,          Q,    backslash,  Greek_OMEGA ]	};
-    key <AD02>	{ [         w,          W,          bar,      Lstroke ]	};
+    key <AD02>	{ [         w,          W,          bar,      section ]	};
     key <AD06>	{ [         z,          Z,    leftarrow,          yen ]	};
 
     key <AC04>	{ [         f,          F,  bracketleft,  ordfeminine ]	};
     key <AC05>	{ [         g,          G, bracketright,          ENG ]	};
     key <AC08>	{ [         k,          K,      lstroke,    ampersand ]	};
 
-    key <AB01>	{ [         y,          Y, guillemotleft,        less ]	};
+    key <AB01>	{ [         y,          Y, guillemotleft,       U2039 ]	};
     key <AB04>	{ [         v,          V,           at,        grave ]	};
     key <AB05>	{ [         b,          B,    braceleft,   apostrophe ]	};
     key <AB06>	{ [         n,          N,   braceright,   braceright ]	};

@@ -139,21 +139,6 @@ typedef struct present_screen_info {
 
 } present_screen_info_rec, *present_screen_info_ptr;
 
-typedef struct present_wnmd_info {
-    uint32_t                            version;
-
-    present_get_crtc_ptr                get_crtc;
-    present_wnmd_get_ust_msc_ptr        get_ust_msc;
-    present_wnmd_queue_vblank_ptr       queue_vblank;
-    present_wnmd_abort_vblank_ptr       abort_vblank;
-    present_flush_ptr                   flush;
-    uint32_t                            capabilities;
-    present_check_flip2_ptr             check_flip2;
-    present_wnmd_flip_ptr               flip;
-    present_wnmd_flips_stop_ptr         flips_stop;
-
-} present_wnmd_info_rec, *present_wnmd_info_ptr;
-
 /*
  * Called when 'event_id' occurs. 'ust' and 'msc' indicate when the
  * event actually happened
@@ -161,30 +146,8 @@ typedef struct present_wnmd_info {
 extern _X_EXPORT void
 present_event_notify(uint64_t event_id, uint64_t ust, uint64_t msc);
 
-/*
- * Called when 'event_id' occurs for 'window'.
- * 'ust' and 'msc' indicate when the event actually happened
- */
-extern _X_EXPORT void
-present_wnmd_event_notify(WindowPtr window, uint64_t event_id, uint64_t ust, uint64_t msc);
-
-/*
- * Called when presentation 'event_id' occurs for 'window'.
- * 'ust' and 'msc' indicate when the presentation actually happened.
- */
-extern _X_EXPORT void
-present_wnmd_flip_notify(WindowPtr window, uint64_t event_id, uint64_t ust, uint64_t msc);
-
-/*
- * Called when the flipped Pixmap associated with 'event_id' is not used anymore by the DDX.
- */
-extern _X_EXPORT void
-present_wnmd_idle_notify(WindowPtr window, uint64_t event_id);
-
 extern _X_EXPORT Bool
 present_screen_init(ScreenPtr screen, present_screen_info_ptr info);
-extern _X_EXPORT Bool
-present_wnmd_screen_init(ScreenPtr screen, present_wnmd_info_ptr info);
 
 typedef void (*present_complete_notify_proc)(WindowPtr window,
                                              CARD8 kind,
@@ -198,5 +161,7 @@ present_register_complete_notify(present_complete_notify_proc proc);
 
 extern _X_EXPORT Bool
 present_can_window_flip(WindowPtr window);
+
+extern _X_EXPORT uint32_t FakeScreenFps;
 
 #endif /* _PRESENT_H_ */

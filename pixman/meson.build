@@ -281,6 +281,22 @@ elif use_neon.enabled()
   error('NEON Support unavailable, but required')
 endif
 
+use_a64neon = get_option('a64-neon')
+have_a64neon = false
+if not use_a64neon.disabled()
+  if host_machine.cpu_family() == 'aarch64'
+    if cc.compiles(files('a64-neon-test.S'), name : 'NEON A64 Intrinsic Support')
+      have_a64neon = true
+    endif
+  endif
+endif
+
+if have_a64neon
+  config.set10('USE_ARM_A64_NEON', true)
+elif use_a64neon.enabled()
+  error('A64 NEON Support unavailable, but required')
+endif
+
 use_iwmmxt = get_option('iwmmxt')
 have_iwmmxt = false
 iwmmxt_flags = ['-flax-vector-conversions', '-Winline']
