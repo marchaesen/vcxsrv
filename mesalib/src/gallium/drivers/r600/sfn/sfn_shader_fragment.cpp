@@ -400,8 +400,6 @@ void FragmentShaderFromNir::emit_shader_start()
          auto v = new GPRValue(m_frag_pos_index, i);
          v->set_as_input();
          auto reg = PValue(v);
-         if (i == 3)
-            emit_instruction(new AluInstruction(op1_recip_ieee, reg, reg, {alu_write, alu_last_instr}));
          m_frag_pos[i] = reg;
       }
    }

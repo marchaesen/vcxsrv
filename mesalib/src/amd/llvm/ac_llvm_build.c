@@ -69,8 +69,7 @@ void ac_llvm_context_init(struct ac_llvm_context *ctx, struct ac_llvm_compiler *
    ctx->wave_size = wave_size;
    ctx->ballot_mask_bits = ballot_mask_bits;
    ctx->float_mode = float_mode;
-   ctx->module =
-      ac_create_module(wave_size == 32 ? compiler->tm_wave32 : compiler->tm, ctx->context);
+   ctx->module = ac_create_module(compiler->tm, ctx->context);
    ctx->builder = ac_create_builder(ctx->context, float_mode);
 
    ctx->voidt = LLVMVoidTypeInContext(ctx->context);
@@ -402,25 +401,46 @@ void ac_build_s_barrier(struct ac_llvm_context *ctx)
  * Optionally, a value can be passed through the inline assembly to prevent
  * LLVM from hoisting calls to ReadNone functions.
  */
-void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pvgpr)
+void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pgpr, bool sgpr)
 {
    static int counter = 0;
 
    LLVMBuilderRef builder = ctx->builder;
    char code[16];
+   const char *constraint = sgpr ? "=s,0" : "=v,0";
 
    snprintf(code, sizeof(code), "; %d", (int)p_atomic_inc_return(&counter));
 
-   if (!pvgpr) {
+   if (!pgpr) {
       LLVMTypeRef ftype = LLVMFunctionType(ctx->voidt, NULL, 0, false);
       LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, "", true, false);
       LLVMBuildCall(builder, inlineasm, NULL, 0, "");
+   } else if (LLVMTypeOf(*pgpr) == ctx->i32) {
+      /* Simple version for i32 that allows the caller to set LLVM metadata on the call
+       * instruction. */
+      LLVMTypeRef ftype = LLVMFunctionType(ctx->i32, &ctx->i32, 1, false);
+      LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, constraint, true, false);
+
+      *pgpr = LLVMBuildCall(builder, inlineasm, pgpr, 1, "");
+   } else if (LLVMTypeOf(*pgpr) == ctx->i16) {
+      /* Simple version for i16 that allows the caller to set LLVM metadata on the call
+       * instruction. */
+      LLVMTypeRef ftype = LLVMFunctionType(ctx->i16, &ctx->i16, 1, false);
+      LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, constraint, true, false);
+
+      *pgpr = LLVMBuildCall(builder, inlineasm, pgpr, 1, "");
+   } else if (LLVMGetTypeKind(LLVMTypeOf(*pgpr)) == LLVMPointerTypeKind) {
+      LLVMTypeRef type = LLVMTypeOf(*pgpr);
+      LLVMTypeRef ftype = LLVMFunctionType(type, &type, 1, false);
+      LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, constraint, true, false);
+
+      *pgpr = LLVMBuildCall(builder, inlineasm, pgpr, 1, "");
    } else {
       LLVMTypeRef ftype = LLVMFunctionType(ctx->i32, &ctx->i32, 1, false);
-      LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, "=v,0", true, false);
-      LLVMTypeRef type = LLVMTypeOf(*pvgpr);
+      LLVMValueRef inlineasm = LLVMConstInlineAsm(ftype, code, constraint, true, false);
+      LLVMTypeRef type = LLVMTypeOf(*pgpr);
       unsigned bitsize = ac_get_elem_bits(ctx, type);
-      LLVMValueRef vgpr = *pvgpr;
+      LLVMValueRef vgpr = *pgpr;
       LLVMTypeRef vgpr_type;
       unsigned vgpr_size;
       LLVMValueRef vgpr0;
@@ -442,7 +462,7 @@ void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pv
       if (bitsize < 32)
          vgpr = LLVMBuildTrunc(builder, vgpr, type, "");
 
-      *pvgpr = vgpr;
+      *pgpr = vgpr;
    }
 }
 
@@ -472,7 +492,7 @@ LLVMValueRef ac_build_ballot(struct ac_llvm_context *ctx, LLVMValueRef value)
    /* We currently have no other way to prevent LLVM from lifting the icmp
     * calls to a dominating basic block.
     */
-   ac_build_optimization_barrier(ctx, &args[0]);
+   ac_build_optimization_barrier(ctx, &args[0], false);
 
    args[0] = ac_to_integer(ctx, args[0]);
 
@@ -1729,8 +1749,8 @@ void ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx, LLVMValueRef rsrc,
  * \p lo is the minimum value inclusive.
  * \p hi is the maximum value exclusive.
  */
-static void set_range_metadata(struct ac_llvm_context *ctx, LLVMValueRef value, unsigned lo,
-                               unsigned hi)
+void ac_set_range_metadata(struct ac_llvm_context *ctx, LLVMValueRef value, unsigned lo,
+                           unsigned hi)
 {
    LLVMValueRef range_md, md_args[2];
    LLVMTypeRef type = LLVMTypeOf(value);
@@ -1744,22 +1764,7 @@ static void set_range_metadata(struct ac_llvm_context *ctx, LLVMValueRef value, 
 
 LLVMValueRef ac_get_thread_id(struct ac_llvm_context *ctx)
 {
-   LLVMValueRef tid;
-
-   LLVMValueRef tid_args[2];
-   tid_args[0] = LLVMConstInt(ctx->i32, 0xffffffff, false);
-   tid_args[1] = ctx->i32_0;
-   tid_args[1] =
-      ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.lo", ctx->i32, tid_args, 2, AC_FUNC_ATTR_READNONE);
-
-   if (ctx->wave_size == 32) {
-      tid = tid_args[1];
-   } else {
-      tid = ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.hi", ctx->i32, tid_args, 2,
-                               AC_FUNC_ATTR_READNONE);
-   }
-   set_range_metadata(ctx, tid, 0, ctx->wave_size);
-   return tid;
+   return ac_build_mbcnt(ctx, LLVMConstInt(ctx->iN_wavemask, ~0ull, 0));
 }
 
 /*
@@ -2071,6 +2076,10 @@ static const char *get_atomic_name(enum ac_atomic_op op)
       return "inc";
    case ac_atomic_dec_wrap:
       return "dec";
+   case ac_atomic_fmin:
+      return "fmin";
+   case ac_atomic_fmax:
+      return "fmax";
    }
    unreachable("bad atomic op");
 }
@@ -2494,7 +2503,7 @@ LLVMValueRef ac_build_fsat(struct ac_llvm_context *ctx, LLVMValueRef src,
    LLVMValueRef one = LLVMConstReal(type, 1.0);
    LLVMValueRef result;
 
-   if (bitsize == 64 || (bitsize == 16 && ctx->chip_class <= GFX8)) {
+   if (bitsize == 64 || (bitsize == 16 && ctx->chip_class <= GFX8) || type == ctx->v2f16) {
       /* Use fmin/fmax for 64-bit fsat or 16-bit on GFX6-GFX8 because LLVM
        * doesn't expose an intrinsic.
        */
@@ -3288,17 +3297,21 @@ LLVMValueRef ac_trim_vector(struct ac_llvm_context *ctx, LLVMValueRef value, uns
    return LLVMBuildShuffleVector(ctx->builder, value, value, swizzle, "");
 }
 
+/* If param is i64 and bitwidth <= 32, the return value will be i32. */
 LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param, unsigned rshift,
                              unsigned bitwidth)
 {
    LLVMValueRef value = param;
    if (rshift)
-      value = LLVMBuildLShr(ctx->builder, value, LLVMConstInt(ctx->i32, rshift, false), "");
+      value = LLVMBuildLShr(ctx->builder, value, LLVMConstInt(LLVMTypeOf(param), rshift, false), "");
 
    if (rshift + bitwidth < 32) {
-      unsigned mask = (1 << bitwidth) - 1;
-      value = LLVMBuildAnd(ctx->builder, value, LLVMConstInt(ctx->i32, mask, false), "");
+      uint64_t mask = (1ull << bitwidth) - 1;
+      value = LLVMBuildAnd(ctx->builder, value, LLVMConstInt(LLVMTypeOf(param), mask, false), "");
    }
+
+   if (bitwidth <= 32 && LLVMTypeOf(param) == ctx->i64)
+      value = LLVMBuildTrunc(ctx->builder, value, ctx->i32, "");
    return value;
 }
 
@@ -3367,7 +3380,7 @@ static LLVMValueRef _ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef
    LLVMValueRef result;
 
    if (with_opt_barrier)
-      ac_build_optimization_barrier(ctx, &src);
+      ac_build_optimization_barrier(ctx, &src, false);
 
    src = LLVMBuildZExt(ctx->builder, src, ctx->i32, "");
    if (lane)
@@ -3443,21 +3456,29 @@ LLVMValueRef ac_build_writelane(struct ac_llvm_context *ctx, LLVMValueRef src, L
                              AC_FUNC_ATTR_READNONE | AC_FUNC_ATTR_CONVERGENT);
 }
 
-LLVMValueRef ac_build_mbcnt(struct ac_llvm_context *ctx, LLVMValueRef mask)
+LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef add_src)
 {
    if (ctx->wave_size == 32) {
-      return ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.lo", ctx->i32,
+      LLVMValueRef val = ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.lo", ctx->i32,
                                 (LLVMValueRef[]){mask, ctx->i32_0}, 2, AC_FUNC_ATTR_READNONE);
+      ac_set_range_metadata(ctx, val, 0, ctx->wave_size);
+      return val;
    }
    LLVMValueRef mask_vec = LLVMBuildBitCast(ctx->builder, mask, ctx->v2i32, "");
    LLVMValueRef mask_lo = LLVMBuildExtractElement(ctx->builder, mask_vec, ctx->i32_0, "");
    LLVMValueRef mask_hi = LLVMBuildExtractElement(ctx->builder, mask_vec, ctx->i32_1, "");
    LLVMValueRef val =
       ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.lo", ctx->i32,
-                         (LLVMValueRef[]){mask_lo, ctx->i32_0}, 2, AC_FUNC_ATTR_READNONE);
+                         (LLVMValueRef[]){mask_lo, add_src}, 2, AC_FUNC_ATTR_READNONE);
    val = ac_build_intrinsic(ctx, "llvm.amdgcn.mbcnt.hi", ctx->i32, (LLVMValueRef[]){mask_hi, val},
                             2, AC_FUNC_ATTR_READNONE);
+   ac_set_range_metadata(ctx, val, 0, ctx->wave_size);
    return val;
+}
+
+LLVMValueRef ac_build_mbcnt(struct ac_llvm_context *ctx, LLVMValueRef mask)
+{
+   return ac_build_mbcnt_add(ctx, mask, ctx->i32_0);
 }
 
 enum dpp_ctrl
@@ -4062,7 +4083,7 @@ LLVMValueRef ac_build_inclusive_scan(struct ac_llvm_context *ctx, LLVMValueRef s
       return result;
    }
 
-   ac_build_optimization_barrier(ctx, &src);
+   ac_build_optimization_barrier(ctx, &src, false);
 
    LLVMValueRef identity = get_reduction_identity(ctx, op, ac_get_type_size(LLVMTypeOf(src)));
    result = LLVMBuildBitCast(ctx->builder, ac_build_set_inactive(ctx, src, identity),
@@ -4084,7 +4105,7 @@ LLVMValueRef ac_build_exclusive_scan(struct ac_llvm_context *ctx, LLVMValueRef s
       return result;
    }
 
-   ac_build_optimization_barrier(ctx, &src);
+   ac_build_optimization_barrier(ctx, &src, false);
 
    LLVMValueRef identity = get_reduction_identity(ctx, op, ac_get_type_size(LLVMTypeOf(src)));
    result = LLVMBuildBitCast(ctx->builder, ac_build_set_inactive(ctx, src, identity),
@@ -4099,7 +4120,7 @@ LLVMValueRef ac_build_reduce(struct ac_llvm_context *ctx, LLVMValueRef src, nir_
 {
    if (cluster_size == 1)
       return src;
-   ac_build_optimization_barrier(ctx, &src);
+   ac_build_optimization_barrier(ctx, &src, false);
    LLVMValueRef result, swap;
    LLVMValueRef identity = get_reduction_identity(ctx, op, ac_get_type_size(LLVMTypeOf(src)));
    result = LLVMBuildBitCast(ctx->builder, ac_build_set_inactive(ctx, src, identity),
@@ -4220,7 +4241,7 @@ void ac_build_wg_wavescan_bottom(struct ac_llvm_context *ctx, struct ac_wg_scan 
    {
       tmp = LLVMBuildLoad(builder, LLVMBuildGEP(builder, ws->scratch, &tid, 1, ""), "");
 
-      ac_build_optimization_barrier(ctx, &tmp);
+      ac_build_optimization_barrier(ctx, &tmp, false);
 
       bbs[1] = LLVMGetInsertBlock(builder);
       phivalues_scan[1] = ac_build_scan(ctx, ws->op, tmp, identity, ws->maxwaves, true);
@@ -4564,7 +4585,8 @@ void ac_build_sendmsg_gs_alloc_req(struct ac_llvm_context *ctx, LLVMValueRef wav
       prim.passthrough = ctx->i32_0;
 
       struct ac_export_args pos = {0};
-      pos.out[0] = pos.out[1] = pos.out[2] = pos.out[3] = ctx->f32_0;
+      /* The hw culls primitives with NaN. */
+      pos.out[0] = pos.out[1] = pos.out[2] = pos.out[3] = LLVMConstReal(ctx->f32, NAN);
       pos.target = V_008DFC_SQ_EXP_POS;
       pos.enabled_channels = 0xf;
       pos.done = true;
@@ -4577,6 +4599,22 @@ void ac_build_sendmsg_gs_alloc_req(struct ac_llvm_context *ctx, LLVMValueRef wav
    }
 
    ac_build_endif(ctx, 5020);
+}
+
+
+LLVMValueRef ac_pack_edgeflags_for_export(struct ac_llvm_context *ctx,
+                                          const struct ac_shader_args *args)
+{
+   /* Use the following trick to extract the edge flags:
+    *   extracted = v_and_b32 gs_invocation_id, 0x700 ; get edge flags at bits 8, 9, 10
+    *   shifted = v_mul_u32_u24 extracted, 0x80402u   ; shift the bits: 8->9, 9->19, 10->29
+    *   result = v_and_b32 shifted, 0x20080200        ; remove garbage
+    */
+   LLVMValueRef tmp = LLVMBuildAnd(ctx->builder,
+                                   ac_get_arg(ctx, args->gs_invocation_id),
+                                   LLVMConstInt(ctx->i32, 0x700, 0), "");
+   tmp = LLVMBuildMul(ctx->builder, tmp, LLVMConstInt(ctx->i32, 0x80402u, 0), "");
+   return LLVMBuildAnd(ctx->builder, tmp, LLVMConstInt(ctx->i32, 0x20080200, 0), "");
 }
 
 LLVMValueRef ac_pack_prim_export(struct ac_llvm_context *ctx, const struct ac_ngg_prim *prim)
@@ -4593,12 +4631,10 @@ LLVMValueRef ac_pack_prim_export(struct ac_llvm_context *ctx, const struct ac_ng
    LLVMBuilderRef builder = ctx->builder;
    LLVMValueRef tmp = LLVMBuildZExt(builder, prim->isnull, ctx->i32, "");
    LLVMValueRef result = LLVMBuildShl(builder, tmp, LLVMConstInt(ctx->i32, 31, false), "");
+   result = LLVMBuildOr(ctx->builder, result, prim->edgeflags, "");
 
    for (unsigned i = 0; i < prim->num_vertices; ++i) {
       tmp = LLVMBuildShl(builder, prim->index[i], LLVMConstInt(ctx->i32, 10 * i, false), "");
-      result = LLVMBuildOr(builder, result, tmp, "");
-      tmp = LLVMBuildZExt(builder, prim->edgeflag[i], ctx->i32, "");
-      tmp = LLVMBuildShl(builder, tmp, LLVMConstInt(ctx->i32, 10 * i + 9, false), "");
       result = LLVMBuildOr(builder, result, tmp, "");
    }
    return result;
@@ -4712,64 +4748,6 @@ void ac_build_s_endpgm(struct ac_llvm_context *ctx)
    LLVMTypeRef calltype = LLVMFunctionType(ctx->voidt, NULL, 0, false);
    LLVMValueRef code = LLVMConstInlineAsm(calltype, "s_endpgm", "", true, false);
    LLVMBuildCall(ctx->builder, code, NULL, 0, "");
-}
-
-LLVMValueRef ac_prefix_bitcount(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef index)
-{
-   LLVMBuilderRef builder = ctx->builder;
-   LLVMTypeRef type = LLVMTypeOf(mask);
-
-   LLVMValueRef bit =
-      LLVMBuildShl(builder, LLVMConstInt(type, 1, 0), LLVMBuildZExt(builder, index, type, ""), "");
-   LLVMValueRef prefix_bits = LLVMBuildSub(builder, bit, LLVMConstInt(type, 1, 0), "");
-   LLVMValueRef prefix_mask = LLVMBuildAnd(builder, mask, prefix_bits, "");
-   return ac_build_bit_count(ctx, prefix_mask);
-}
-
-/* Compute the prefix sum of the "mask" bit array with 128 elements (bits). */
-LLVMValueRef ac_prefix_bitcount_2x64(struct ac_llvm_context *ctx, LLVMValueRef mask[2],
-                                     LLVMValueRef index)
-{
-   LLVMBuilderRef builder = ctx->builder;
-#if 0
-	/* Reference version using i128. */
-	LLVMValueRef input_mask =
-		LLVMBuildBitCast(builder, ac_build_gather_values(ctx, mask, 2), ctx->i128, "");
-
-	return ac_prefix_bitcount(ctx, input_mask, index);
-#else
-   /* Optimized version using 2 64-bit masks. */
-   LLVMValueRef is_hi, is_0, c64, c128, all_bits;
-   LLVMValueRef prefix_mask[2], shift[2], mask_bcnt0, prefix_bcnt[2];
-
-   /* Compute the 128-bit prefix mask. */
-   c64 = LLVMConstInt(ctx->i32, 64, 0);
-   c128 = LLVMConstInt(ctx->i32, 128, 0);
-   all_bits = LLVMConstInt(ctx->i64, UINT64_MAX, 0);
-   /* The first index that can have non-zero high bits in the prefix mask is 65. */
-   is_hi = LLVMBuildICmp(builder, LLVMIntUGT, index, c64, "");
-   is_0 = LLVMBuildICmp(builder, LLVMIntEQ, index, ctx->i32_0, "");
-   mask_bcnt0 = ac_build_bit_count(ctx, mask[0]);
-
-   for (unsigned i = 0; i < 2; i++) {
-      shift[i] = LLVMBuildSub(builder, i ? c128 : c64, index, "");
-      /* For i==0, index==0, the right shift by 64 doesn't give the desired result,
-       * so we handle it by the is_0 select.
-       * For i==1, index==64, same story, so we handle it by the last is_hi select.
-       * For i==0, index==64, we shift by 0, which is what we want.
-       */
-      prefix_mask[i] =
-         LLVMBuildLShr(builder, all_bits, LLVMBuildZExt(builder, shift[i], ctx->i64, ""), "");
-      prefix_mask[i] = LLVMBuildAnd(builder, mask[i], prefix_mask[i], "");
-      prefix_bcnt[i] = ac_build_bit_count(ctx, prefix_mask[i]);
-   }
-
-   prefix_bcnt[0] = LLVMBuildSelect(builder, is_0, ctx->i32_0, prefix_bcnt[0], "");
-   prefix_bcnt[0] = LLVMBuildSelect(builder, is_hi, mask_bcnt0, prefix_bcnt[0], "");
-   prefix_bcnt[1] = LLVMBuildSelect(builder, is_hi, prefix_bcnt[1], ctx->i32_0, "");
-
-   return LLVMBuildAdd(builder, prefix_bcnt[0], prefix_bcnt[1], "");
-#endif
 }
 
 /**

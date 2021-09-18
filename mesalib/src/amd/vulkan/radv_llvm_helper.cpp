@@ -28,8 +28,7 @@ class radv_llvm_per_thread_info {
  public:
    radv_llvm_per_thread_info(enum radeon_family arg_family,
                              enum ac_target_machine_options arg_tm_options, unsigned arg_wave_size)
-       : family(arg_family), tm_options(arg_tm_options), wave_size(arg_wave_size), passes(NULL),
-         passes_wave32(NULL)
+       : family(arg_family), tm_options(arg_tm_options), wave_size(arg_wave_size), passes(NULL)
    {
    }
 
@@ -47,19 +46,12 @@ class radv_llvm_per_thread_info {
       if (!passes)
          return false;
 
-      if (llvm_info.tm_wave32) {
-         passes_wave32 = ac_create_llvm_passes(llvm_info.tm_wave32);
-         if (!passes_wave32)
-            return false;
-      }
-
       return true;
    }
 
    bool compile_to_memory_buffer(LLVMModuleRef module, char **pelf_buffer, size_t *pelf_size)
    {
-      struct ac_compiler_passes *p = wave_size == 32 ? passes_wave32 : passes;
-      return ac_compile_module_to_elf(p, module, pelf_buffer, pelf_size);
+      return ac_compile_module_to_elf(passes, module, pelf_buffer, pelf_size);
    }
 
    bool is_same(enum radeon_family arg_family, enum ac_target_machine_options arg_tm_options,
@@ -76,7 +68,6 @@ class radv_llvm_per_thread_info {
    enum ac_target_machine_options tm_options;
    unsigned wave_size;
    struct ac_compiler_passes *passes;
-   struct ac_compiler_passes *passes_wave32;
 };
 
 /* we have to store a linked list per thread due to the possiblity of multiple gpus being required */

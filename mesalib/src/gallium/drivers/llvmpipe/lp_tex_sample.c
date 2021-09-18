@@ -248,6 +248,7 @@ LP_LLVM_SAMPLER_MEMBER(min_lod,    LP_JIT_SAMPLER_MIN_LOD, TRUE)
 LP_LLVM_SAMPLER_MEMBER(max_lod,    LP_JIT_SAMPLER_MAX_LOD, TRUE)
 LP_LLVM_SAMPLER_MEMBER(lod_bias,   LP_JIT_SAMPLER_LOD_BIAS, TRUE)
 LP_LLVM_SAMPLER_MEMBER(border_color, LP_JIT_SAMPLER_BORDER_COLOR, FALSE)
+LP_LLVM_SAMPLER_MEMBER(max_aniso, LP_JIT_SAMPLER_MAX_ANISO, TRUE)
 
 
 /**
@@ -446,6 +447,7 @@ lp_llvm_sampler_soa_create(const struct lp_sampler_static_state *static_state,
    sampler->dynamic_state.base.max_lod = lp_llvm_sampler_max_lod;
    sampler->dynamic_state.base.lod_bias = lp_llvm_sampler_lod_bias;
    sampler->dynamic_state.base.border_color = lp_llvm_sampler_border_color;
+   sampler->dynamic_state.base.max_aniso = lp_llvm_sampler_max_aniso;
 
 #if LP_USE_TEXTURE_CACHE
    sampler->dynamic_state.base.cache_ptr = lp_llvm_texture_cache_ptr;

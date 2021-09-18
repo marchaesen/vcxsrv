@@ -228,6 +228,7 @@ ADDR_E_RETURNCODE Lib::Create(
                         break;
                     case FAMILY_NV:
                     case FAMILY_VGH:
+                    case FAMILY_YC:
                         pLib = Gfx10HwlInit(&client);
                         break;
                     default:

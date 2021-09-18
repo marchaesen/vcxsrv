@@ -25,6 +25,7 @@ v3dv_entrypoints = custom_target(
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'v3dv',
+    '--device-prefix', 'ver42',
   ],
   depend_files : vk_entrypoints_gen_depend_files,
 )
@@ -51,13 +52,26 @@ libv3dv_files = files(
   'v3dv_uniforms.c',
   'v3dv_util.c',
   'v3dv_wsi.c',
-  'v3d_tiling.c',
+)
+
+files_per_version = files(
+  'v3dvx_cmd_buffer.c',
+  'v3dvx_descriptor_set.c',
+  'v3dvx_device.c',
+  'v3dvx_formats.c',
+  'v3dvx_image.c',
+  'v3dvx_pipeline.c',
+  'v3dvx_meta_common.c',
+  'v3dvx_pipeline.c',
+  'v3dvx_queue.c',
 )
 
 # The vulkan driver only supports version >= 42, which is the version present in
 # Rpi4. We need to explicitly set it as we are reusing pieces from the GL v3d
 # driver.
-v3dv_flags = ['-DV3D_VERSION=42']
+v3d_versions = ['42']
+
+v3dv_flags = []
 
 dep_v3dv3 = dependency('v3dv3', required : false)
 if dep_v3dv3.found()
@@ -95,6 +109,21 @@ if system_has_kms_drm and not with_platform_android
  libv3dv_files += files('v3dv_wsi_display.c')
 endif
 
+per_version_libs = []
+foreach ver : v3d_versions
+  per_version_libs += static_library(
+    'v3dv-v' + ver,
+    [files_per_version, v3d_xml_pack, v3dv_entrypoints[0]],
+    include_directories : [
+      inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom,
+      inc_compiler, inc_util, inc_vulkan_wsi,
+    ],
+    c_args : [v3dv_flags, '-DV3D_VERSION=' + ver],
+    gnu_symbol_visibility : 'hidden',
+    dependencies : [v3dv_deps],
+)
+endforeach
+
 libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
   [libv3dv_files, v3dv_entrypoints, sha1_h],
@@ -105,6 +134,7 @@ libvulkan_broadcom = shared_library(
     libbroadcom_cle,
     libbroadcom_v3d,
     libvulkan_wsi,
+    per_version_libs,
   ],
   dependencies : v3dv_deps,
   c_args : v3dv_flags,

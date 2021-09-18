@@ -46,6 +46,7 @@
 #include "util/u_debug.h"
 #include "util/u_math.h"
 
+#include "freedreno_dev_info.h"
 #include "freedreno_drmif.h"
 #include "freedreno_ringbuffer.h"
 
@@ -55,11 +56,16 @@ extern simple_mtx_t table_lock;
  * Stupid/simple growable array implementation:
  */
 
+#define MAX_ARRAY_SIZE ((unsigned short)~0)
+
 static inline void
 grow(void **ptr, uint16_t nr, uint16_t *max, uint16_t sz)
 {
+   assert((nr + 1) < MAX_ARRAY_SIZE);
    if ((nr + 1) > *max) {
-      if ((*max * 2) < (nr + 1))
+      if (*max > MAX_ARRAY_SIZE/2)
+         *max = MAX_ARRAY_SIZE;
+      else if ((*max * 2) < (nr + 1))
          *max = nr + 5;
       else
          *max = *max * 2;
@@ -124,7 +130,9 @@ struct fd_device {
    struct fd_bo_cache bo_cache;
    struct fd_bo_cache ring_cache;
 
-   int closefd; /* call close(fd) upon destruction */
+   bool has_cached_coherent;
+
+   bool closefd; /* call close(fd) upon destruction */
 
    /* just for valgrind: */
    int bo_size;
@@ -187,7 +195,7 @@ struct fd_pipe_control {
 struct fd_pipe {
    struct fd_device *dev;
    enum fd_pipe_id id;
-   uint32_t gpu_id;
+   struct fd_dev_id dev_id;
 
    /**
     * Note refcnt is *not* atomic, but protected by table_lock, since the
@@ -278,7 +286,8 @@ struct fd_bo {
    uint32_t handle;
    uint32_t name;
    int32_t refcnt;
-   uint32_t flags; /* flags like FD_RELOC_DUMP to use for relocs to this BO */
+   uint32_t reloc_flags; /* flags like FD_RELOC_DUMP to use for relocs to this BO */
+   uint32_t alloc_flags; /* flags that control allocation/mapping, ie. FD_BO_x */
    uint64_t iova;
    void *map;
    const struct fd_bo_funcs *funcs;

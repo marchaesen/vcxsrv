@@ -99,6 +99,8 @@ void v3d_job_add_bo(struct v3d_job *job, struct v3d_bo *bo);
 
 #define V3D_MAX_FS_INPUTS 64
 
+#define MAX_JOB_SCISSORS 16
+
 enum v3d_sampler_state_variant {
         V3D_SAMPLER_STATE_BORDER_0,
         V3D_SAMPLER_STATE_F16,
@@ -302,6 +304,19 @@ struct v3d_shaderimg_stateobj {
         uint32_t enabled_mask;
 };
 
+struct v3d_perfmon_state {
+        /* The kernel perfmon id */
+        uint32_t kperfmon_id;
+        /* True if at least one job was submitted with this perfmon. */
+        bool job_submitted;
+        /* Fence to be signaled when the last job submitted with this perfmon
+         * is executed by the GPU.
+         */
+        struct v3d_fence *last_job_fence;
+        uint8_t counters[DRM_V3D_MAX_PERF_COUNTERS];
+        uint64_t values[DRM_V3D_MAX_PERF_COUNTERS];
+};
+
 /**
  * A complete bin/render job.
  *
@@ -356,11 +371,31 @@ struct v3d_job {
         uint32_t draw_min_y;
         uint32_t draw_max_x;
         uint32_t draw_max_y;
+
+        /** @} */
+        /** @{
+         * List of scissor rects used for all queued drawing. All scissor
+         * rects will be contained in the draw_{min/max}_{x/y} bounding box.
+         *
+         * This is used as an optimization when all drawing is scissored to
+         * limit tile flushing only to tiles that intersect a scissor rect.
+         * If scissor is used together with non-scissored drawing, then
+         * the optimization is disabled.
+         */
+        struct {
+                bool disabled;
+                uint32_t count;
+                struct {
+                        uint32_t min_x, min_y;
+                        uint32_t max_x, max_y;
+                } rects[MAX_JOB_SCISSORS];
+        } scissor;
+
         /** @} */
         /** @{
          * Width/height of the color framebuffer being rendered to,
          * for V3D_TILE_RENDERING_MODE_CONFIG.
-        */
+         */
         uint32_t draw_width;
         uint32_t draw_height;
         uint32_t num_layers;
@@ -465,8 +500,6 @@ struct v3d_context {
         /** bitfield of V3D_DIRTY_* */
         uint64_t dirty;
 
-        struct primconvert_context *primconvert;
-
         uint32_t next_uncompiled_program_id;
         uint64_t next_compiled_program_id;
 
@@ -554,6 +587,8 @@ struct v3d_context {
         struct pipe_resource *prim_counts;
         uint32_t prim_counts_offset;
         struct pipe_debug_callback debug;
+        struct v3d_perfmon_state *active_perfmon;
+        struct v3d_perfmon_state *last_perfmon;
         /** @} */
 };
 
@@ -618,6 +653,12 @@ v3d_stream_output_target_get_vertex_count(struct pipe_stream_output_target *ptar
 {
     return v3d_stream_output_target(ptarget)->recorded_vertex_count;
 }
+
+int v3d_get_driver_query_group_info(struct pipe_screen *pscreen,
+                                    unsigned index,
+                                    struct pipe_driver_query_group_info *info);
+int v3d_get_driver_query_info(struct pipe_screen *pscreen, unsigned index,
+                              struct pipe_driver_query_info *info);
 
 struct pipe_context *v3d_context_create(struct pipe_screen *pscreen,
                                         void *priv, unsigned flags);
@@ -708,7 +749,14 @@ bool v3d_generate_mipmap(struct pipe_context *pctx,
                          unsigned int first_layer,
                          unsigned int last_layer);
 
+void
+v3d_fence_unreference(struct v3d_fence **fence);
+
 struct v3d_fence *v3d_fence_create(struct v3d_context *v3d);
+
+bool v3d_fence_wait(struct v3d_screen *screen,
+                    struct v3d_fence *fence,
+                    uint64_t timeout_ns);
 
 void v3d_update_primitive_counters(struct v3d_context *v3d);
 

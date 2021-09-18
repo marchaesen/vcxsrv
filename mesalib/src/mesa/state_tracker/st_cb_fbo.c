@@ -447,6 +447,32 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
    return &strb->Base;
 }
 
+void
+st_regen_renderbuffer_surface(struct st_context *st,
+                              struct st_renderbuffer *strb)
+{
+   struct pipe_context *pipe = st->pipe;
+   struct pipe_resource *resource = strb->texture;
+
+   struct pipe_surface **psurf =
+      strb->surface_srgb ? &strb->surface_srgb : &strb->surface_linear;
+   struct pipe_surface *surf = *psurf;
+   /* create a new pipe_surface */
+   struct pipe_surface surf_tmpl;
+   memset(&surf_tmpl, 0, sizeof(surf_tmpl));
+   surf_tmpl.format = surf->format;
+   surf_tmpl.nr_samples = strb->rtt_nr_samples;
+   surf_tmpl.u.tex.level = surf->u.tex.level;
+   surf_tmpl.u.tex.first_layer = surf->u.tex.first_layer;
+   surf_tmpl.u.tex.last_layer = surf->u.tex.last_layer;
+
+   /* create -> destroy to avoid blowing up cached surfaces */
+   surf = pipe->create_surface(pipe, resource, &surf_tmpl);
+   pipe_surface_release(pipe, psurf);
+   *psurf = surf;
+
+   strb->surface = *psurf;
+}
 
 /**
  * Create or update the pipe_surface of a FBO renderbuffer.
@@ -545,9 +571,10 @@ st_update_renderbuffer_surface(struct st_context *st,
       surf_tmpl.u.tex.first_layer = first_layer;
       surf_tmpl.u.tex.last_layer = last_layer;
 
+      /* create -> destroy to avoid blowing up cached surfaces */
+      struct pipe_surface *surf = pipe->create_surface(pipe, resource, &surf_tmpl);
       pipe_surface_release(pipe, psurf);
-
-      *psurf = pipe->create_surface(pipe, resource, &surf_tmpl);
+      *psurf = surf;
    }
    strb->surface = *psurf;
 }
@@ -906,7 +933,7 @@ st_MapRenderbuffer(struct gl_context *ctx,
    else
       y2 = y;
 
-    map = pipe_transfer_map(pipe,
+    map = pipe_texture_map(pipe,
                             strb->texture,
                             strb->surface->u.tex.level,
                             strb->surface->u.tex.first_layer,
@@ -944,7 +971,7 @@ st_UnmapRenderbuffer(struct gl_context *ctx,
       return;
    }
 
-   pipe_transfer_unmap(pipe, strb->transfer);
+   pipe_texture_unmap(pipe, strb->transfer);
    strb->transfer = NULL;
 }
 

@@ -28,8 +28,9 @@
 #define __PAN_ENCODER_H
 
 #include <stdbool.h>
+#include "util/format/u_format.h"
 #include "pan_bo.h"
-#include "midgard_pack.h"
+#include "gen_macros.h"
 
 /* Indices for named (non-XFB) varyings that are present. These are packed
  * tightly so they correspond to a bitfield present (P) indexed by (1 <<
@@ -54,19 +55,6 @@ enum pan_special_varying {
         /* Keep last */
         PAN_VARY_MAX,
 };
-
-/* Invocation packing */
-
-void
-panfrost_pack_work_groups_compute(
-        struct mali_invocation_packed *out,
-        unsigned num_x,
-        unsigned num_y,
-        unsigned num_z,
-        unsigned size_x,
-        unsigned size_y,
-        unsigned size_z,
-        bool quirk_graphics);
 
 /* Tiler structure size computation */
 
@@ -109,14 +97,141 @@ panfrost_padded_vertex_count(unsigned vertex_count);
 unsigned
 panfrost_compute_magic_divisor(unsigned hw_divisor, unsigned *o_shift, unsigned *extra_flags);
 
-void panfrost_vertex_id(unsigned padded_count, struct mali_attribute_buffer_packed *attr, bool instanced);
-void panfrost_instance_id(unsigned padded_count, struct mali_attribute_buffer_packed *attr, bool instanced);
+/* Records for gl_VertexID and gl_InstanceID use special encodings on Midgard */
 
-/* Samplers */
+static inline void
+panfrost_vertex_id(unsigned padded_count,
+                   struct mali_attribute_buffer_packed *attr,
+                   bool instanced)
+{
+        pan_pack(attr, ATTRIBUTE_VERTEX_ID, cfg) {
+                if (instanced) {
+                        cfg.divisor_r = __builtin_ctz(padded_count);
+                        cfg.divisor_p = padded_count >> (cfg.divisor_r + 1);
+                } else {
+                        /* Large values so the modulo is a no-op */
+                        cfg.divisor_r = 0x1F;
+                        cfg.divisor_p = 0x4;
+                }
+        }
+}
 
-enum mali_func
-panfrost_flip_compare_func(enum mali_func f);
+static inline void
+panfrost_instance_id(unsigned padded_count,
+                     struct mali_attribute_buffer_packed *attr,
+                     bool instanced)
+{
+        pan_pack(attr, ATTRIBUTE_INSTANCE_ID, cfg) {
+                if (!instanced || padded_count <= 1) {
+                        /* Divide by large number to force to 0 */
+                        cfg.divisor_p = ((1u << 31) - 1);
+                        cfg.divisor_r = 0x1F;
+                        cfg.divisor_e = 0x1;
+                } else if(util_is_power_of_two_or_zero(padded_count)) {
+                        /* Can't underflow since padded_count >= 2 */
+                        cfg.divisor_r = __builtin_ctz(padded_count) - 1;
+                } else {
+                        cfg.divisor_p =
+                                panfrost_compute_magic_divisor(padded_count,
+                                        &cfg.divisor_r, &cfg.divisor_e);
+                }
+        }
+}
 
+/* Sampler comparison functions are flipped in OpenGL from the hardware, so we
+ * need to be able to flip accordingly */
 
+static inline enum mali_func
+panfrost_flip_compare_func(enum mali_func f)
+{
+        switch (f) {
+        case MALI_FUNC_LESS: return MALI_FUNC_GREATER;
+        case MALI_FUNC_GREATER: return MALI_FUNC_LESS;
+        case MALI_FUNC_LEQUAL: return MALI_FUNC_GEQUAL;
+        case MALI_FUNC_GEQUAL: return MALI_FUNC_LEQUAL;
+        default: return f;
+        }
+
+}
+
+/* Compute shaders are invoked with a gl_NumWorkGroups X/Y/Z triplet. Vertex
+ * shaders are invoked as (1, vertex_count, instance_count). Compute shaders
+ * also have a gl_WorkGroupSize X/Y/Z triplet. These 6 values are packed
+ * together in a dynamic bitfield, packed by this routine. */
+
+static inline void
+panfrost_pack_work_groups_compute(
+        struct mali_invocation_packed *out,
+        unsigned num_x, unsigned num_y, unsigned num_z,
+        unsigned size_x, unsigned size_y, unsigned size_z,
+        bool quirk_graphics, bool indirect_dispatch)
+{
+        /* The values needing packing, in order, and the corresponding shifts.
+         * Indicies into shift are off-by-one to make the logic easier */
+
+        unsigned values[6] = { size_x, size_y, size_z, num_x, num_y, num_z };
+        unsigned shifts[7] = { 0 };
+        uint32_t packed = 0;
+
+        for (unsigned i = 0; i < 6; ++i) {
+                /* Must be positive, otherwise we underflow */
+                assert(values[i] >= 1);
+
+                /* OR it in, shifting as required */
+                packed |= ((values[i] - 1) << shifts[i]);
+
+                /* How many bits did we use? */
+                unsigned bit_count = util_logbase2_ceil(values[i]);
+
+                /* Set the next shift accordingly */
+                shifts[i + 1] = shifts[i] + bit_count;
+        }
+
+        pan_pack(out, INVOCATION, cfg) {
+                cfg.invocations = packed;
+                cfg.size_y_shift = shifts[1];
+                cfg.size_z_shift = shifts[2];
+                cfg.workgroups_x_shift = shifts[3];
+
+                if (!indirect_dispatch) {
+                        /* Leave zero for the dispatch shader */
+                        cfg.workgroups_y_shift = shifts[4];
+                        cfg.workgroups_z_shift = shifts[5];
+                }
+
+                /* Quirk: for non-instanced graphics, the blob sets
+                 * workgroups_z_shift = 32. This doesn't appear to matter to
+                 * the hardware, but it's good to be bit-identical. */
+
+                if (quirk_graphics && (num_z <= 1))
+                        cfg.workgroups_z_shift = 32;
+
+                /* For graphics, set to the minimum efficient value. For
+                 * compute, must equal the workgroup X shift for barriers to
+                 * function correctly */
+
+                cfg.thread_group_split = quirk_graphics ?
+                        MALI_SPLIT_MIN_EFFICIENT : cfg.workgroups_x_shift;
+        }
+}
+
+/* Format conversion */
+static inline enum mali_z_internal_format
+panfrost_get_z_internal_format(enum pipe_format fmt)
+{
+         switch (fmt) {
+         case PIPE_FORMAT_Z16_UNORM:
+         case PIPE_FORMAT_Z16_UNORM_S8_UINT:
+                return MALI_Z_INTERNAL_FORMAT_D16;
+         case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+         case PIPE_FORMAT_Z24X8_UNORM:
+                return MALI_Z_INTERNAL_FORMAT_D24;
+         case PIPE_FORMAT_Z32_FLOAT:
+         case PIPE_FORMAT_Z32_FLOAT_S8X24_UINT:
+                return MALI_Z_INTERNAL_FORMAT_D32;
+         default:
+                unreachable("Unsupported depth/stencil format.");
+         }
+}
 
 #endif

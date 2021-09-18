@@ -29,6 +29,12 @@
 
 #define SQTT_BUFFER_ALIGN_SHIFT 12
 
+bool
+radv_is_instruction_timing_enabled(void)
+{
+   return getenv("RADV_THREAD_TRACE_PIPELINE");
+}
+
 static bool
 radv_se_is_disabled(struct radv_device *device, unsigned se)
 {
@@ -66,8 +72,7 @@ radv_emit_thread_trace_start(struct radv_device *device, struct radeon_cmdbuf *c
             cs, R_008D04_SQ_THREAD_TRACE_BUF0_SIZE,
             S_008D04_SIZE(shifted_size) | S_008D04_BASE_HI(shifted_va >> 32));
 
-         radeon_set_privileged_config_reg(cs, R_008D00_SQ_THREAD_TRACE_BUF0_BASE,
-                                          S_008D00_BASE_LO(shifted_va));
+         radeon_set_privileged_config_reg(cs, R_008D00_SQ_THREAD_TRACE_BUF0_BASE, shifted_va);
 
          radeon_set_privileged_config_reg(
             cs, R_008D14_SQ_THREAD_TRACE_MASK,
@@ -78,10 +83,18 @@ radv_emit_thread_trace_start(struct radv_device *device, struct radeon_cmdbuf *c
             V_008D18_REG_INCLUDE_SQDEC | V_008D18_REG_INCLUDE_SHDEC | V_008D18_REG_INCLUDE_GFXUDEC |
             V_008D18_REG_INCLUDE_COMP | V_008D18_REG_INCLUDE_CONTEXT | V_008D18_REG_INCLUDE_CONFIG);
 
-         /* Performance counters with SQTT are considered
-          * deprecated.
-          */
-         thread_trace_token_mask |= S_008D18_TOKEN_EXCLUDE(V_008D18_TOKEN_EXCLUDE_PERF);
+         /* Performance counters with SQTT are considered deprecated. */
+         uint32_t token_exclude = V_008D18_TOKEN_EXCLUDE_PERF;
+
+         if (!radv_is_instruction_timing_enabled()) {
+            /* Reduce SQTT traffic when instruction timing isn't enabled. */
+            token_exclude |= V_008D18_TOKEN_EXCLUDE_VMEMEXEC |
+                             V_008D18_TOKEN_EXCLUDE_ALUEXEC |
+                             V_008D18_TOKEN_EXCLUDE_VALUINST |
+                             V_008D18_TOKEN_EXCLUDE_IMMEDIATE |
+                             V_008D18_TOKEN_EXCLUDE_INST;
+         }
+         thread_trace_token_mask |= S_008D18_TOKEN_EXCLUDE(token_exclude);
 
          radeon_set_privileged_config_reg(cs, R_008D18_SQ_THREAD_TRACE_TOKEN_MASK,
                                           thread_trace_token_mask);
@@ -102,7 +115,7 @@ radv_emit_thread_trace_start(struct radv_device *device, struct radeon_cmdbuf *c
          radeon_set_uconfig_reg(cs, R_030CDC_SQ_THREAD_TRACE_BASE2,
                                 S_030CDC_ADDR_HI(shifted_va >> 32));
 
-         radeon_set_uconfig_reg(cs, R_030CC0_SQ_THREAD_TRACE_BASE, S_030CC0_ADDR(shifted_va));
+         radeon_set_uconfig_reg(cs, R_030CC0_SQ_THREAD_TRACE_BASE, shifted_va);
 
          radeon_set_uconfig_reg(cs, R_030CC4_SQ_THREAD_TRACE_SIZE, S_030CC4_SIZE(shifted_size));
 
@@ -128,8 +141,7 @@ radv_emit_thread_trace_start(struct radv_device *device, struct radeon_cmdbuf *c
          radeon_set_uconfig_reg(cs, R_030CD0_SQ_THREAD_TRACE_PERF_MASK,
                                 S_030CD0_SH0_MASK(0xffff) | S_030CD0_SH1_MASK(0xffff));
 
-         radeon_set_uconfig_reg(cs, R_030CE0_SQ_THREAD_TRACE_TOKEN_MASK2,
-                                S_030CE0_INST_MASK(0xffffffff));
+         radeon_set_uconfig_reg(cs, R_030CE0_SQ_THREAD_TRACE_TOKEN_MASK2, 0xffffffff);
 
          radeon_set_uconfig_reg(cs, R_030CEC_SQ_THREAD_TRACE_HIWATER, S_030CEC_HIWATER(4));
 
@@ -383,11 +395,13 @@ radv_thread_trace_init_bo(struct radv_device *device)
    size = align64(sizeof(struct ac_thread_trace_info) * max_se, 1 << SQTT_BUFFER_ALIGN_SHIFT);
    size += device->thread_trace.buffer_size * (uint64_t)max_se;
 
-   device->thread_trace.bo = ws->buffer_create(
+   struct radeon_winsys_bo *bo = NULL;
+   VkResult result = ws->buffer_create(
       ws, size, 4096, RADEON_DOMAIN_VRAM,
       RADEON_FLAG_CPU_ACCESS | RADEON_FLAG_NO_INTERPROCESS_SHARING | RADEON_FLAG_ZERO_VRAM,
-      RADV_BO_PRIORITY_SCRATCH);
-   if (!device->thread_trace.bo)
+      RADV_BO_PRIORITY_SCRATCH, 0, &bo);
+   device->thread_trace.bo = bo;
+   if (result != VK_SUCCESS)
       return false;
 
    device->thread_trace.ptr = ws->buffer_map(device->thread_trace.bo);
@@ -625,11 +639,10 @@ radv_get_thread_trace(struct radv_queue *queue, struct ac_thread_trace *thread_t
                                         ? (first_active_cu / 2)
                                         : first_active_cu;
 
-      thread_trace_se.compute_unit = 0;
-
       thread_trace->traces[thread_trace->num_traces] = thread_trace_se;
       thread_trace->num_traces++;
    }
 
+   thread_trace->data = &device->thread_trace;
    return true;
 }

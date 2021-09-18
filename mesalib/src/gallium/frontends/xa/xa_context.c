@@ -114,7 +114,7 @@ xa_surface_dma(struct xa_context *ctx,
 	w = boxes->x2 - boxes->x1;
 	h = boxes->y2 - boxes->y1;
 
-	map = pipe_transfer_map(pipe, srf->tex, 0, 0,
+	map = pipe_texture_map(pipe, srf->tex, 0, 0,
                                 transfer_direction, boxes->x1, boxes->y1,
                                 w, h, &transfer);
 	if (!map)
@@ -128,7 +128,7 @@ xa_surface_dma(struct xa_context *ctx,
 			   boxes->x1, boxes->y1, w, h, map, transfer->stride, 0,
 			   0);
 	}
-	pipe->transfer_unmap(pipe, transfer);
+	pipe->texture_unmap(pipe, transfer);
     }
     return XA_ERR_NONE;
 }
@@ -163,7 +163,7 @@ xa_surface_map(struct xa_context *ctx,
     if (!(gallium_usage & (PIPE_MAP_READ_WRITE)))
 	return NULL;
 
-    map = pipe_transfer_map(pipe, srf->tex, 0, 0,
+    map = pipe_texture_map(pipe, srf->tex, 0, 0,
                             gallium_usage, 0, 0,
                             srf->tex->width0, srf->tex->height0,
                             &srf->transfer);
@@ -180,7 +180,7 @@ xa_surface_unmap(struct xa_surface *srf)
     if (srf->transfer) {
 	struct pipe_context *pipe = srf->mapping_pipe;
 
-	pipe->transfer_unmap(pipe, srf->transfer);
+	pipe->texture_unmap(pipe, srf->transfer);
 	srf->transfer = NULL;
     }
 }
@@ -327,7 +327,8 @@ xa_solid_prepare(struct xa_context *ctx, struct xa_surface *dst,
     renderer_bind_destination(ctx, ctx->srf);
     bind_solid_blend_state(ctx);
     cso_set_samplers(ctx->cso, PIPE_SHADER_FRAGMENT, 0, NULL);
-    ctx->pipe->set_sampler_views(ctx->pipe, PIPE_SHADER_FRAGMENT, 0, 0, XA_MAX_SAMPLERS, NULL);
+    ctx->pipe->set_sampler_views(ctx->pipe, PIPE_SHADER_FRAGMENT, 0, 0,
+                                 XA_MAX_SAMPLERS, false, NULL);
 
     shader = xa_shaders_get(ctx->shaders, vs_traits, fs_traits);
     cso_set_vertex_shader_handle(ctx->cso, shader.vs);

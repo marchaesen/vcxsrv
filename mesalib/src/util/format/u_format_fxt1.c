@@ -189,9 +189,9 @@ fxt1_worst (float vec[MAX_COMP],
 
 
 static int32_t
-fxt1_variance (double variance[MAX_COMP],
-               uint8_t input[N_TEXELS][MAX_COMP], int32_t nc, int32_t n)
+fxt1_variance (uint8_t input[N_TEXELS / 2][MAX_COMP], int32_t nc)
 {
+   const int n = N_TEXELS / 2;
    int32_t i, k, best = 0;
    int32_t sx, sx2;
    double var, maxvar = -1; /* small enough */
@@ -208,9 +208,6 @@ fxt1_variance (double variance[MAX_COMP],
       if (maxvar < var) {
          maxvar = var;
          best = i;
-      }
-      if (variance) {
-         variance[i] = var;
       }
    }
 
@@ -935,8 +932,8 @@ fxt1_quantize_MIXED0 (uint32_t *cc,
 #else
    int32_t minVal;
    int32_t maxVal;
-   int32_t maxVarL = fxt1_variance(NULL, input, n_comp, N_TEXELS / 2);
-   int32_t maxVarR = fxt1_variance(NULL, &input[N_TEXELS / 2], n_comp, N_TEXELS / 2);
+   int32_t maxVarL = fxt1_variance(input, n_comp);
+   int32_t maxVarR = fxt1_variance(&input[N_TEXELS / 2], n_comp);
 
    /* Scan the channel with max variance for lo & hi
     * and use those as the two representative colors.

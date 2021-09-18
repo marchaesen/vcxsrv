@@ -270,7 +270,7 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder,
 	struct pipe_h264_enc_picture_desc *pic = (struct pipe_h264_enc_picture_desc *)picture;
 
 	bool need_rate_control =
-		enc->pic.rate_ctrl.rate_ctrl_method != pic->rate_ctrl.rate_ctrl_method ||
+		enc->pic.rate_ctrl[0].rate_ctrl_method != pic->rate_ctrl[0].rate_ctrl_method ||
 		enc->pic.quant_i_frames != pic->quant_i_frames ||
 		enc->pic.quant_p_frames != pic->quant_p_frames ||
 		enc->pic.quant_b_frames != pic->quant_b_frames;

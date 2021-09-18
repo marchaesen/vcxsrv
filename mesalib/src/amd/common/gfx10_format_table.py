@@ -24,8 +24,6 @@
 Script that generates the mapping from Gallium PIPE_FORMAT_xxx to GFX10_FORMAT_xxx enums.
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import json
 import mako.template
 import os

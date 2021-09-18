@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 
-static char* r300_vs_ve_ops[] = {
+static const char* r300_vs_ve_ops[] = {
 	/* R300 vector ops */
 	"                 VE_NO_OP",
 	"           VE_DOT_PRODUCT",
@@ -63,7 +63,7 @@ static char* r300_vs_ve_ops[] = {
 	"               (reserved)",
 };
 
-static char* r300_vs_me_ops[] = {
+static const char* r300_vs_me_ops[] = {
 	/* R300 math ops */
 	"                 ME_NO_OP",
 	"          ME_EXP_BASE2_DX",
@@ -101,14 +101,14 @@ static char* r300_vs_me_ops[] = {
 };
 
 /* XXX refactor to avoid clashing symbols */
-static char* r300_vs_src_debug[] = {
+static const char* r300_vs_src_debug[] = {
 	"t",
 	"i",
 	"c",
 	"a",
 };
 
-static char* r300_vs_dst_debug[] = {
+static const char* r300_vs_dst_debug[] = {
 	"t",
 	"a0",
 	"o",
@@ -119,7 +119,7 @@ static char* r300_vs_dst_debug[] = {
 	"u",
 };
 
-static char* r300_vs_swiz_debug[] = {
+static const char* r300_vs_swiz_debug[] = {
 	"X",
 	"Y",
 	"Z",

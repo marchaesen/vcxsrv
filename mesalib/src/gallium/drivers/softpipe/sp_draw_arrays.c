@@ -141,7 +141,7 @@ softpipe_draw_vbo(struct pipe_context *pipe,
                                     sp->active_statistics_queries > 0);
 
    /* draw! */
-   draw_vbo(draw, info, drawid_offset, indirect, draws, num_draws);
+   draw_vbo(draw, info, drawid_offset, indirect, draws, num_draws, 0);
 
    /* unmap vertex/index buffers - will cause draw module to flush */
    for (i = 0; i < sp->num_vertex_buffers; i++) {

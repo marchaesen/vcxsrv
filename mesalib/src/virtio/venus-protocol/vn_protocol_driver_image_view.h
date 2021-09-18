@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_IMAGE_VIEW_H
 #define VN_PROTOCOL_DRIVER_IMAGE_VIEW_H
 
-#include "vn_device.h"
+#include "vn_instance.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkImageViewUsageCreateInfo chain */

@@ -96,7 +96,7 @@ rewrite_dest(nir_dest *dest, void *_state)
 
    list_del(&dest->reg.def_link);
    nir_ssa_dest_init(instr, dest, reg->num_components,
-                     reg->bit_size, reg->name);
+                     reg->bit_size, NULL);
 
    nir_phi_builder_value_set_block_def(value, instr->block, &dest->ssa);
 
@@ -179,7 +179,7 @@ rewrite_alu_instr(nir_alu_instr *alu, struct regs_to_ssa_state *state)
    alu->dest.write_mask = (1 << num_components) - 1;
    list_del(&alu->dest.dest.reg.def_link);
    nir_ssa_dest_init(&alu->instr, &alu->dest.dest, num_components,
-                     reg->bit_size, reg->name);
+                     reg->bit_size, NULL);
 
    nir_op vecN_op = nir_op_vec(reg->num_components);
 
@@ -200,7 +200,7 @@ rewrite_alu_instr(nir_alu_instr *alu, struct regs_to_ssa_state *state)
    }
 
    nir_ssa_dest_init(&vec->instr, &vec->dest.dest, reg->num_components,
-                     reg->bit_size, reg->name);
+                     reg->bit_size, NULL);
    nir_instr_insert(nir_after_instr(&alu->instr), &vec->instr);
 
    nir_phi_builder_value_set_block_def(value, alu->instr.block,

@@ -471,6 +471,7 @@ _mesa_texenvfv_indexed( struct gl_context* ctx, GLuint texunit, GLenum target,
 	    return;
 	 FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
          texUnit->LodBias = param[0];
+         texUnit->LodBiasQuantized = util_quantize_lod_bias(param[0]);
       }
       else {
          TE_ERROR(GL_INVALID_ENUM, "glTexEnv(pname=%s)", pname);

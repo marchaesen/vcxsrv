@@ -55,7 +55,7 @@ __gen_combine_address(struct iris_batch *batch, void *location,
       iris_use_pinned_bo(batch, addr.bo,
                          !iris_domain_is_read_only(addr.access), addr.access);
       /* Assume this is a general address, not relative to a base. */
-      result += addr.bo->gtt_offset;
+      result += addr.bo->address;
    }
 
    return result;

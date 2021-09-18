@@ -29,35 +29,27 @@ from xml.etree import ElementTree
 from zink_extensions import Extension,Layer,ExtensionRegistry,Version
 import sys
 
-# constructor: Extension(name, core_since=None, functions=[])
+# constructor: Extension(name, conditions=[], nonstandard=False)
 # The attributes:
-#  - core_since: the Vulkan version where this extension is promoted to core.
-#                When instance_info->loader_version is greater than or equal to this
-#                instance_info.have_{name} is set to true unconditionally. This
-#                is done because loading extensions that are promoted to core is
-#                considered to be an error.
-#
-#  - functions: functions which are added by the extension. The function names
-#               should not include the "vk" prefix and the vendor suffix - these
-#               will be added by the codegen accordingly.
+#  - conditions: If the extension is provided by the Vulkan implementation, then
+#                these are the extra conditions needed to enable the extension.
+#  - nonstandard: Disables validation (cross-checking with vk.xml) if True.
 EXTENSIONS = [
     Extension("VK_EXT_debug_utils"),
-    Extension("VK_KHR_get_physical_device_properties2",
-        functions=["GetPhysicalDeviceFeatures2", "GetPhysicalDeviceProperties2",
-                   "GetPhysicalDeviceFormatProperties2", "GetPhysicalDeviceImageFormatProperties2",
-                   "GetPhysicalDeviceMemoryProperties2"]),
+    Extension("VK_KHR_get_physical_device_properties2"),
     Extension("VK_MVK_moltenvk",
         nonstandard=True),
     Extension("VK_KHR_surface"),
 ]
 
 # constructor: Layer(name, conditions=[])
+# - conditions: See documentation of EXTENSIONS.
 LAYERS = [
     # if we have debug_util, allow a validation layer to be added.
     Layer("VK_LAYER_KHRONOS_validation",
-      conditions=["have_EXT_debug_utils"]),
+      conditions=["zink_debug & ZINK_DEBUG_VALIDATION"]),
     Layer("VK_LAYER_LUNARG_standard_validation",
-      conditions=["have_EXT_debug_utils", "!have_layer_KHRONOS_validation"]),
+      conditions=["zink_debug & ZINK_DEBUG_VALIDATION", "!have_layer_KHRONOS_validation"]),
 ]
 
 REPLACEMENTS = {
@@ -74,7 +66,6 @@ header_code = """
 
 #if defined(__APPLE__)
 // Source of MVK_VERSION
-// Source of VK_EXTX_PORTABILITY_SUBSET_EXTENSION_NAME
 #include "MoltenVK/vk_mvk_moltenvk.h"
 #endif
 
@@ -95,8 +86,22 @@ struct zink_instance_info {
 VkInstance
 zink_create_instance(struct zink_instance_info *instance_info);
 
-bool
-zink_load_instance_extensions(struct zink_screen *screen);
+void
+zink_verify_instance_extensions(struct zink_screen *screen);
+
+/* stub functions that get inserted into the dispatch table if they are not
+ * properly loaded.
+ */
+%for ext in extensions:
+%if registry.in_registry(ext.name):
+%for cmd in registry.get_registry_entry(ext.name).instance_commands:
+void zink_stub_${cmd.lstrip("vk")}(void);
+%endfor
+%for cmd in registry.get_registry_entry(ext.name).pdevice_commands:
+void zink_stub_${cmd.lstrip("vk")}(void);
+%endfor
+%endif
+%endfor
 
 #endif
 """
@@ -109,10 +114,10 @@ VkInstance
 zink_create_instance(struct zink_instance_info *instance_info)
 {
    /* reserve one slot for MoltenVK */
-   const char *layers[${len(layers) + 1}] = { 0 };
+   const char *layers[${len(layers) + 1}] = {0};
    uint32_t num_layers = 0;
    
-   const char *extensions[${len(extensions) + 1}] = { 0 };
+   const char *extensions[${len(extensions) + 1}] = {0};
    uint32_t num_extensions = 0;
 
 %for ext in extensions:
@@ -137,18 +142,12 @@ zink_create_instance(struct zink_instance_info *instance_info)
         %for ext in extensions:
                 if (!strcmp(extension_props[i].extensionName, ${ext.extension_name_literal()})) {
                     have_${ext.name_with_vendor()} = true;
-                    extensions[num_extensions++] = ${ext.extension_name_literal()};
                 }
         %endfor
               }
            }
        free(extension_props);
        }
-   }
-
-   // Clear have_EXT_debug_utils if we do not want debug info
-   if (!(zink_debug & ZINK_DEBUG_VALIDATION)) {
-      have_EXT_debug_utils = false;
    }
 
     // Build up the layers from the reported ones
@@ -177,7 +176,17 @@ zink_create_instance(struct zink_instance_info *instance_info)
     }
 
 %for ext in extensions:
-   instance_info->have_${ext.name_with_vendor()} = have_${ext.name_with_vendor()};
+<%
+    conditions = ""
+    if ext.enable_conds:
+        for cond in ext.enable_conds:
+            conditions += "&& (" + cond + ") "
+    conditions = conditions.strip()
+%>\
+   if (have_${ext.name_with_vendor()} ${conditions}) {
+      instance_info->have_${ext.name_with_vendor()} = have_${ext.name_with_vendor()};
+      extensions[num_extensions++] = ${ext.extension_name_literal()};
+   }
 %endfor
 
 %for layer in layers:
@@ -194,7 +203,7 @@ zink_create_instance(struct zink_instance_info *instance_info)
    }
 %endfor
 
-   VkApplicationInfo ai = {};
+   VkApplicationInfo ai = {0};
    ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
    char proc_name[128];
@@ -206,7 +215,7 @@ zink_create_instance(struct zink_instance_info *instance_info)
    ai.pEngineName = "mesa zink";
    ai.apiVersion = instance_info->loader_version;
 
-   VkInstanceCreateInfo ici = {};
+   VkInstanceCreateInfo ici = {0};
    ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
    ici.pApplicationInfo = &ai;
    ici.ppEnabledExtensionNames = extensions;
@@ -222,40 +231,59 @@ zink_create_instance(struct zink_instance_info *instance_info)
    return instance;
 }
 
-bool
-zink_load_instance_extensions(struct zink_screen *screen)
+void
+zink_verify_instance_extensions(struct zink_screen *screen)
 {
-   if (zink_debug & ZINK_DEBUG_VALIDATION) {
-      printf("zink: Loader %d.%d.%d \\n", VK_VERSION_MAJOR(screen->instance_info.loader_version), VK_VERSION_MINOR(screen->instance_info.loader_version), VK_VERSION_PATCH(screen->instance_info.loader_version));
-   }
-
 %for ext in extensions:
-%if bool(ext.instance_funcs) and not ext.core_since:
+%if registry.in_registry(ext.name):
    if (screen->instance_info.have_${ext.name_with_vendor()}) {
-   %for func in ext.instance_funcs:
-      GET_PROC_ADDR_INSTANCE_LOCAL(screen->instance, ${func}${ext.vendor()});
-      screen->vk_${func} = vk_${func}${ext.vendor()};
-   %endfor
-   }
-%elif bool(ext.instance_funcs):
-   if (screen->instance_info.have_${ext.name_with_vendor()}) {
-      if (screen->vk_version < ${ext.core_since.version()}) {
-      %for func in ext.instance_funcs:
-         GET_PROC_ADDR_INSTANCE_LOCAL(screen->instance, ${func}${ext.vendor()});
-         screen->vk_${func} = vk_${func}${ext.vendor()};
-         if (!screen->vk_${func}) return false;
-      %endfor
-      } else {
-      %for func in ext.instance_funcs:
-         GET_PROC_ADDR_INSTANCE(${func});
-      %endfor
+%for cmd in registry.get_registry_entry(ext.name).instance_commands:
+      if (!screen->vk.${cmd.lstrip("vk")}) {
+#ifndef NDEBUG
+         screen->vk.${cmd.lstrip("vk")} = (PFN_${cmd})zink_stub_${cmd.lstrip("vk")};
+#else
+         screen->vk.${cmd.lstrip("vk")} = (PFN_${cmd})zink_stub_function_not_loaded;
+#endif
       }
+%endfor
+%for cmd in registry.get_registry_entry(ext.name).pdevice_commands:
+      if (!screen->vk.${cmd.lstrip("vk")}) {
+#ifndef NDEBUG
+         screen->vk.${cmd.lstrip("vk")} = (PFN_${cmd})zink_stub_${cmd.lstrip("vk")};
+#else
+         screen->vk.${cmd.lstrip("vk")} = (PFN_${cmd})zink_stub_function_not_loaded;
+#endif
+      }
+%endfor
    }
 %endif
 %endfor
-
-   return true;
 }
+
+#ifndef NDEBUG
+/* generated stub functions */
+## see zink_device_info.py for why this is needed
+<% generated_funcs = set() %>
+
+%for ext in extensions:
+%if registry.in_registry(ext.name):
+%for cmd in registry.get_registry_entry(ext.name).instance_commands + registry.get_registry_entry(ext.name).pdevice_commands:
+%if cmd in generated_funcs:
+   <% continue %>
+%else:
+   <% generated_funcs.add(cmd) %>
+%endif
+void
+zink_stub_${cmd.lstrip("vk")}()
+{
+   mesa_loge("ZINK: ${cmd} is not loaded properly!");
+   abort();
+}
+%endfor
+%endif
+%endfor
+
+#endif
 """
 
 
@@ -304,12 +332,6 @@ if __name__ == "__main__":
             print("The extension {} is {} extension - expected an instance extension.".format(ext.name, entry.ext_type))
             continue
 
-        if entry.commands and ext.instance_funcs:
-            for func in map(lambda f: "vk" + f + ext.vendor(), ext.instance_funcs):
-                if func not in entry.commands:
-                    error_count += 1
-                    print("The instance function {} is not added by the extension {}.".format(func, ext.name))
-
         if entry.promoted_in:
             ext.core_since = Version((*entry.promoted_in, 0))
 
@@ -318,11 +340,11 @@ if __name__ == "__main__":
         exit(1)
 
     with open(header_path, "w") as header_file:
-        header = Template(header_code).render(extensions=extensions, layers=layers).strip()
+        header = Template(header_code).render(extensions=extensions, layers=layers, registry=registry).strip()
         header = replace_code(header, replacement)
         print(header, file=header_file)
 
     with open(impl_path, "w") as impl_file:
-        impl = Template(impl_code).render(extensions=extensions, layers=layers).strip()
+        impl = Template(impl_code).render(extensions=extensions, layers=layers, registry=registry).strip()
         impl = replace_code(impl, replacement)
         print(impl, file=impl_file)

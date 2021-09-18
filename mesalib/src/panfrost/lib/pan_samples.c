@@ -139,7 +139,7 @@ void
 panfrost_upload_sample_positions(struct panfrost_device *dev)
 {
         STATIC_ASSERT(sizeof(sample_position_lut) < 4096);
-        dev->sample_positions = panfrost_bo_create(dev, 4096, 0);
+        dev->sample_positions = panfrost_bo_create(dev, 4096, 0, "Sample positions");
 
         memcpy(dev->sample_positions->ptr.cpu, sample_position_lut,
                         sizeof(sample_position_lut));

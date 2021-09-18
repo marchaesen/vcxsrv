@@ -169,14 +169,16 @@ remove_dead_write_vars_local(void *mem_ctx, nir_shader *shader, nir_block *block
          break;
       }
 
-      case nir_intrinsic_execute_callable: {
+      case nir_intrinsic_execute_callable:
+      case nir_intrinsic_rt_execute_callable: {
          /* Mark payload as it can be used by the callee */
          nir_deref_instr *src = nir_src_as_deref(intrin->src[1]);
          clear_unused_for_read(&unused_writes, src);
          break;
       }
 
-      case nir_intrinsic_trace_ray: {
+      case nir_intrinsic_trace_ray:
+      case nir_intrinsic_rt_trace_ray: {
          /* Mark payload as it can be used by the callees */
          nir_deref_instr *src = nir_src_as_deref(intrin->src[10]);
          clear_unused_for_read(&unused_writes, src);

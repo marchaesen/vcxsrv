@@ -180,12 +180,12 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
       }
       break;
    case GL_SHADER_STORAGE_BUFFER:
-      if (ctx->Extensions.ARB_shader_storage_buffer_object) {
+      if (ctx->Extensions.ARB_shader_storage_buffer_object || _mesa_is_gles31(ctx)) {
          return &ctx->ShaderStorageBuffer;
       }
       break;
    case GL_ATOMIC_COUNTER_BUFFER:
-      if (ctx->Extensions.ARB_shader_atomic_counters) {
+      if (ctx->Extensions.ARB_shader_atomic_counters || _mesa_is_gles31(ctx)) {
          return &ctx->AtomicBuffer;
       }
       break;
@@ -1084,8 +1084,18 @@ _mesa_handle_bind_buffer_gen(struct gl_context *ctx,
 	 _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
 	 return false;
       }
-      _mesa_HashInsertMaybeLocked(ctx->Shared->BufferObjects, buffer,
-                                  *buf_handle, buf != NULL,
+      _mesa_HashLockMaybeLocked(ctx->Shared->BufferObjects,
+                                ctx->BufferObjectsLocked);
+      _mesa_HashInsertLocked(ctx->Shared->BufferObjects, buffer,
+                             *buf_handle, buf != NULL);
+      /* If one context only creates buffers and another context only deletes
+       * buffers, buffers don't get released because it only produces zombie
+       * buffers. Only the context that has created the buffers can release
+       * them. Thus, when we create buffers, we prune the list of zombie
+       * buffers.
+       */
+      unreference_zombie_buffers_for_ctx(ctx);
+      _mesa_HashUnlockMaybeLocked(ctx->Shared->BufferObjects,
                                   ctx->BufferObjectsLocked);
    }
 
@@ -1763,6 +1773,13 @@ create_buffers(struct gl_context *ctx, GLsizei n, GLuint *buffers, bool dsa)
     */
    _mesa_HashLockMaybeLocked(ctx->Shared->BufferObjects,
                              ctx->BufferObjectsLocked);
+   /* If one context only creates buffers and another context only deletes
+    * buffers, buffers don't get released because it only produces zombie
+    * buffers. Only the context that has created the buffers can release
+    * them. Thus, when we create buffers, we prune the list of zombie
+    * buffers.
+    */
+   unreference_zombie_buffers_for_ctx(ctx);
 
    _mesa_HashFindFreeKeys(ctx->Shared->BufferObjects, buffers, n);
 

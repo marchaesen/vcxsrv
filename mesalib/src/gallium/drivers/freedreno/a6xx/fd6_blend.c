@@ -125,9 +125,9 @@ __fd6_setup_blend_variant(struct fd6_blend_stateobj *blend,
             .dither_mode_mrt7 =
                cso->dither ? DITHER_ALWAYS : DITHER_DISABLE, ));
 
-   OUT_REG(ring, A6XX_SP_BLEND_CNTL(.unk8 = true,
+   OUT_REG(ring, A6XX_SP_BLEND_CNTL(.enable_blend = mrt_blend,
+                                    .unk8 = true,
                                     .alpha_to_coverage = cso->alpha_to_coverage,
-                                    .enabled = !!mrt_blend,
                                     .dual_color_in_enable =
                                        blend->use_dual_src_blend, ));
 

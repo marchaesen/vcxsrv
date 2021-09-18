@@ -68,7 +68,7 @@ bind_sampler_states(struct fd_texture_stateobj *tex, unsigned start,
 
 static void
 set_sampler_views(struct fd_texture_stateobj *tex, unsigned start, unsigned nr,
-                  unsigned unbind_num_trailing_slots,
+                  unsigned unbind_num_trailing_slots, bool take_ownership,
                   struct pipe_sampler_view **views)
 {
    unsigned i;
@@ -76,7 +76,14 @@ set_sampler_views(struct fd_texture_stateobj *tex, unsigned start, unsigned nr,
    for (i = 0; i < nr; i++) {
       struct pipe_sampler_view *view = views ? views[i] : NULL;
       unsigned p = i + start;
-      pipe_sampler_view_reference(&tex->textures[p], view);
+
+      if (take_ownership) {
+         pipe_sampler_view_reference(&tex->textures[p], NULL);
+         tex->textures[p] = view;
+      } else {
+         pipe_sampler_view_reference(&tex->textures[p], view);
+      }
+
       if (tex->textures[p]) {
          fd_resource_set_usage(tex->textures[p]->texture, FD_DIRTY_TEX);
          tex->valid_textures |= (1 << p);
@@ -107,12 +114,13 @@ void
 fd_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
                      unsigned start, unsigned nr,
                      unsigned unbind_num_trailing_slots,
+                     bool take_ownership,
                      struct pipe_sampler_view **views) in_dt
 {
    struct fd_context *ctx = fd_context(pctx);
 
    set_sampler_views(&ctx->tex[shader], start, nr, unbind_num_trailing_slots,
-                     views);
+                     take_ownership, views);
    fd_context_dirty_shader(ctx, shader, FD_DIRTY_SHADER_TEX);
 }
 

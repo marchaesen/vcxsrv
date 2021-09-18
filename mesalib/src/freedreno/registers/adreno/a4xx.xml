@@ -1052,14 +1052,14 @@ perhaps they should be taken with a grain of salt
 			moved out into RB_STENCIL_CONTROL?
 		 -->
 		<bitfield name="FRAG_WRITES_Z" pos="0" type="boolean"/>
-		<bitfield name="Z_ENABLE" pos="1" type="boolean"/>
+		<bitfield name="Z_TEST_ENABLE" pos="1" type="boolean"/>
 		<bitfield name="Z_WRITE_ENABLE" pos="2" type="boolean"/>
 		<bitfield name="ZFUNC" low="4" high="6" type="adreno_compare_func"/>
 		<bitfield name="Z_CLAMP_ENABLE" pos="7" type="boolean"/>
 		<bitfield name="EARLY_Z_DISABLE" pos="16" type="boolean"/>
 		<bitfield name="FORCE_FRAGZ_TO_FS" pos="17" type="boolean"/>
-		<doc>Z_TEST_ENABLE bit is set for zfunc other than GL_ALWAYS or GL_NEVER</doc>
-		<bitfield name="Z_TEST_ENABLE" pos="31" type="boolean"/>
+		<doc>Z_READ_ENABLE bit is set for zfunc other than GL_ALWAYS or GL_NEVER</doc>
+		<bitfield name="Z_READ_ENABLE" pos="31" type="boolean"/>
 	</reg32>
 	<reg32 offset="0x2102" name="RB_DEPTH_CLEAR"/>
 	<reg32 offset="0x2103" name="RB_DEPTH_INFO">
@@ -1670,7 +1670,7 @@ perhaps they should be taken with a grain of salt
 			<bitfield name="COLOR_SRGB" pos="18" type="boolean"/>
 		</reg32>
 	</array>
-	<reg32 offset="0x2300" name="SP_CS_CTRL_REG0"/>
+	<reg32 offset="0x2300" name="SP_CS_CTRL_REG0" type="a4xx_sp_vs_fs_ctrl_reg0"/>
 	<reg32 offset="0x2301" name="SP_CS_OBJ_OFFSET_REG"/>
 	<reg32 offset="0x2302" name="SP_CS_OBJ_START"/>
 	<reg32 offset="0x2303" name="SP_CS_PVT_MEM_PARAM"/>
@@ -2097,15 +2097,24 @@ perhaps they should be taken with a grain of salt
 	</reg32>
 	<reg32 offset="0x23d3" name="HLSQ_CL_NDRANGE_6"/>
 	<reg32 offset="0x23d4" name="HLSQ_CL_CONTROL_0">
-		<bitfield name="WGIDCONSTID" low="0" high="7" type="a3xx_regid"/>
+		<bitfield name="WGIDCONSTID" low="0" high="11" type="a3xx_regid"/>
+		<bitfield name="UNK12CONSTID" low="12" high="23" type="a3xx_regid"/>
 		<bitfield name="LOCALIDREGID" low="24" high="31" type="a3xx_regid"/>
 	</reg32>
-	<reg32 offset="0x23d5" name="HLSQ_CL_CONTROL_1"/>
-	<reg32 offset="0x23d6" name="HLSQ_CL_KERNEL_CONST"/>
+	<reg32 offset="0x23d5" name="HLSQ_CL_CONTROL_1">
+		<bitfield name="UNK0CONSTID" low="0" high="11" type="a3xx_regid"/>
+		<bitfield name="UNK12CONSTID" low="12" high="23" type="a3xx_regid"/>
+	</reg32>
+	<reg32 offset="0x23d6" name="HLSQ_CL_KERNEL_CONST">
+		<bitfield name="UNK0CONSTID" low="0" high="11" type="a3xx_regid"/>
+		<bitfield name="NUMWGCONSTID" low="12" high="23" type="a3xx_regid"/>
+	</reg32>
 	<reg32 offset="0x23d7" name="HLSQ_CL_KERNEL_GROUP_X"/>
 	<reg32 offset="0x23d8" name="HLSQ_CL_KERNEL_GROUP_Y"/>
 	<reg32 offset="0x23d9" name="HLSQ_CL_KERNEL_GROUP_Z"/>
-	<reg32 offset="0x23da" name="HLSQ_CL_WG_OFFSET"/>
+	<reg32 offset="0x23da" name="HLSQ_CL_WG_OFFSET">
+		<bitfield name="UNK0CONSTID" low="0" high="11" type="a3xx_regid"/>
+	</reg32>
 	<reg32 offset="0x23db" name="HLSQ_UPDATE_CONTROL"/>
 
 	<!-- PC registers -->

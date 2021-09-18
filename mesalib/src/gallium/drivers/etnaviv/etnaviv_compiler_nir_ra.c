@@ -90,11 +90,12 @@ etna_ra_setup(void *mem_ctx)
    /* classes always be created from index 0, so equal to the class enum
     * which represents a register with (c+1) components
     */
+   struct ra_class *classes[NUM_REG_CLASSES];
    for (int c = 0; c < NUM_REG_CLASSES; c++)
-      ra_alloc_reg_class(regs);
+      classes[c] = ra_alloc_reg_class(regs);
    /* add each register of each class */
    for (int r = 0; r < NUM_REG_TYPES * ETNA_MAX_TEMPS; r++)
-      ra_class_add_reg(regs, reg_get_class(r), r);
+      ra_class_add_reg(classes[reg_get_class(r)], r);
    /* set conflicts */
    for (int r = 0; r < ETNA_MAX_TEMPS; r++) {
       for (int i = 0; i < NUM_REG_TYPES; i++) {
@@ -172,7 +173,7 @@ etna_ra_assign(struct etna_compile *c, nir_shader *shader)
          }
       }
 
-      ra_set_node_class(g, i, comp);
+      ra_set_node_class(g, i, ra_get_class_from_index(regs, comp));
    }
 
    nir_foreach_block(block, impl) {
@@ -197,7 +198,7 @@ etna_ra_assign(struct etna_compile *c, nir_shader *shader)
                 deref->var->data.location == FRAG_RESULT_DEPTH) {
                ra_set_node_reg(g, index, REG_FRAG_DEPTH);
             } else {
-               ra_set_node_class(g, index, REG_CLASS_VEC4);
+               ra_set_node_class(g, index, ra_get_class_from_index(regs, REG_CLASS_VEC4));
             }
          } continue;
          case nir_intrinsic_load_input:

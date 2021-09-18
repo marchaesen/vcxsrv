@@ -149,7 +149,7 @@ sp_destroy_tile_cache(struct softpipe_tile_cache *tc)
          int i;
          for (i = 0; i < tc->num_maps; i++)
             if (tc->transfer[i]) {
-               tc->pipe->transfer_unmap(tc->pipe, tc->transfer[i]);
+               tc->pipe->texture_unmap(tc->pipe, tc->transfer[i]);
             }
          FREE(tc->transfer);
          FREE(tc->transfer_map);
@@ -176,7 +176,7 @@ sp_tile_cache_set_surface(struct softpipe_tile_cache *tc,
          return;
 
       for (i = 0; i < tc->num_maps; i++) {
-         pipe->transfer_unmap(pipe, tc->transfer[i]);
+         pipe->texture_unmap(pipe, tc->transfer[i]);
          tc->transfer[i] = NULL;
          tc->transfer_map[i] = NULL;
       }
@@ -200,7 +200,7 @@ sp_tile_cache_set_surface(struct softpipe_tile_cache *tc,
 
       if (ps->texture->target != PIPE_BUFFER) {
          for (i = 0; i < tc->num_maps; i++) {
-            tc->transfer_map[i] = pipe_transfer_map(pipe, ps->texture,
+            tc->transfer_map[i] = pipe_texture_map(pipe, ps->texture,
                                                     ps->u.tex.level, ps->u.tex.first_layer + i,
                                                     PIPE_MAP_READ_WRITE |
                                                     PIPE_MAP_UNSYNCHRONIZED,

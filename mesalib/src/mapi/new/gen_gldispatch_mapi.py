@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (C) 2010 LunarG Inc.
 # (C) Copyright 2015, NVIDIA CORPORATION.

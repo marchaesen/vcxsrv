@@ -73,13 +73,14 @@ static void
 init_legacy_currval(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   GLuint i;
 
    /* Set up a constant (Stride == 0) array for each current
     * attribute:
     */
-   for (i = 0; i < VERT_ATTRIB_FF_MAX; i++) {
-      const unsigned attr = VERT_ATTRIB_FF(i);
+   for (int attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
+      if (VERT_BIT(attr) & VERT_BIT_GENERIC_ALL)
+         continue;
+
       struct gl_array_attributes *attrib = &vbo->current[attr];
 
       init_array(ctx, attrib, check_size(ctx->Current.Attrib[attr]),

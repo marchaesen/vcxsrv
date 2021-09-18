@@ -318,7 +318,7 @@ v3d_uncompiled_shader_create(struct pipe_context *pctx,
 
         NIR_PASS_V(s, nir_lower_load_const_to_scalar);
 
-        v3d_optimize_nir(s);
+        v3d_optimize_nir(NULL, s);
 
         NIR_PASS_V(s, nir_remove_dead_variables, nir_var_function_temp, NULL);
 
@@ -543,6 +543,7 @@ v3d_update_compiled_fs(struct v3d_context *v3d, uint8_t prim_mode)
                          prim_mode <= PIPE_PRIM_LINE_STRIP);
         key->line_smoothing = (key->is_lines &&
                                v3d_line_smoothing_enabled(v3d));
+        key->has_gs = v3d->prog.bind_gs != NULL;
         if (v3d->blend->base.logicop_enable) {
                 key->logicop_func = v3d->blend->base.logicop_func;
         } else {
@@ -599,9 +600,8 @@ v3d_update_compiled_fs(struct v3d_context *v3d, uint8_t prim_mode)
         if (key->is_points) {
                 key->point_sprite_mask =
                         v3d->rasterizer->base.sprite_coord_enable;
-                key->point_coord_upper_left =
-                        (v3d->rasterizer->base.sprite_coord_mode ==
-                         PIPE_SPRITE_COORD_UPPER_LEFT);
+                /* this is handled by lower_wpos_pntc */
+                key->point_coord_upper_left = false;
         }
 
         struct v3d_compiled_shader *old_fs = v3d->prog.fs;

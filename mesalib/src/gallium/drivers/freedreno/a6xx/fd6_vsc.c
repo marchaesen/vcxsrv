@@ -151,12 +151,12 @@ fd6_vsc_update_sizes(struct fd_batch *batch, const struct pipe_draw_info *info,
       draw_stream_size_bits(info, batch->num_bins_per_pipe, prim_strm_bits);
 
 #if 0
-   printf("vsc: prim_strm_bits=%d, draw_strm_bits=%d, nb=%u, ic=%u, c=%u, pc=%u (%s)\n",
-          prim_strm_bits, draw_strm_bits, batch->num_bins_per_pipe,
-          info->instance_count, info->count,
-          (info->count * info->instance_count) /
-          u_vertices_per_prim(info->mode),
-          u_prim_name(info->mode));
+   mesa_logd("vsc: prim_strm_bits=%d, draw_strm_bits=%d, nb=%u, ic=%u, c=%u, pc=%u (%s)",
+             prim_strm_bits, draw_strm_bits, batch->num_bins_per_pipe,
+             info->instance_count, info->count,
+             (info->count * info->instance_count) /
+             u_vertices_per_prim(info->mode),
+             u_prim_name(info->mode));
 #endif
 
    batch->prim_strm_bits += prim_strm_bits;

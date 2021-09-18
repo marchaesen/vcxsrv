@@ -22,8 +22,6 @@
  */
 
 #include "v3dv_private.h"
-#include "broadcom/cle/v3dx_pack.h"
-#include "util/half_float.h"
 #include "util/u_pack_color.h"
 #include "vk_format_info.h"
 #include "vk_util.h"
@@ -57,6 +55,7 @@ const struct v3dv_dynamic_state default_dynamic_state = {
       .slope_factor = 0.0f,
    },
    .line_width = 1.0f,
+   .color_write_enable = (1ull << (4 * V3D_MAX_DRAW_BUFFERS)) - 1,
 };
 
 void
@@ -84,10 +83,7 @@ v3dv_job_add_bo_unchecked(struct v3dv_job *job, struct v3dv_bo *bo)
    job->bo_handle_mask |= bo->handle_bit;
 }
 
-static void
-cmd_buffer_emit_render_pass_rcl(struct v3dv_cmd_buffer *cmd_buffer);
-
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_CreateCommandPool(VkDevice _device,
                        const VkCommandPoolCreateInfo *pCreateInfo,
                        const VkAllocationCallbacks *pAllocator,
@@ -347,17 +343,6 @@ cmd_buffer_destroy(struct v3dv_cmd_buffer *cmd_buffer)
    vk_object_free(&cmd_buffer->device->vk, &cmd_buffer->pool->alloc, cmd_buffer);
 }
 
-void
-v3dv_job_emit_binning_flush(struct v3dv_job *job)
-{
-   assert(job);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(FLUSH));
-   v3dv_return_if_oom(NULL, job);
-
-   cl_emit(&job->bcl, FLUSH, flush);
-}
-
 static bool
 attachment_list_is_subset(struct v3dv_subpass_attachment *l1, uint32_t l1_count,
                           struct v3dv_subpass_attachment *l2, uint32_t l2_count)
@@ -413,6 +398,13 @@ cmd_buffer_can_merge_subpass(struct v3dv_cmd_buffer *cmd_buffer,
    assert(state->subpass_idx == subpass_idx - 1);
    struct v3dv_subpass *prev_subpass = &state->pass->subpasses[state->subpass_idx];
    struct v3dv_subpass *subpass = &state->pass->subpasses[subpass_idx];
+
+   /* Don't merge if the subpasses have different view masks, since in that
+    * case the framebuffer setup is different and we need to emit different
+    * RCLs.
+    */
+   if (subpass->view_mask != prev_subpass->view_mask)
+      return false;
 
    /* Because the list of subpass attachments can include VK_ATTACHMENT_UNUSED,
     * we need to check that for each subpass all its used attachments are
@@ -529,6 +521,7 @@ v3dv_job_start_frame(struct v3dv_job *job,
                      uint32_t width,
                      uint32_t height,
                      uint32_t layers,
+                     bool allocate_tile_state_for_all_layers,
                      uint32_t render_target_count,
                      uint8_t max_internal_bpp,
                      bool msaa)
@@ -543,6 +536,16 @@ v3dv_job_start_frame(struct v3dv_job *job,
 
    v3dv_cl_ensure_space_with_branch(&job->bcl, 256);
    v3dv_return_if_oom(NULL, job);
+
+   /* We only need to allocate tile state for all layers if the binner
+    * writes primitives to layers other than the first. This can only be
+    * done using layered rendering (writing gl_Layer from a geometry shader),
+    * so for other cases of multilayered framebuffers (typically with
+    * meta copy/clear operations) that won't use layered rendering, we only
+    * need one layer worth of of tile state for the binner.
+    */
+   if (!allocate_tile_state_for_all_layers)
+      layers = 1;
 
    /* The PTB will request the tile alloc initial size per tile at start
     * of tile binning.
@@ -588,28 +591,7 @@ v3dv_job_start_frame(struct v3dv_job *job,
 
    v3dv_job_add_bo_unchecked(job, job->tile_state);
 
-   /* This must go before the binning mode configuration. It is
-    * required for layered framebuffers to work.
-    */
-   cl_emit(&job->bcl, NUMBER_OF_LAYERS, config) {
-      config.number_of_layers = layers;
-   }
-
-   cl_emit(&job->bcl, TILE_BINNING_MODE_CFG, config) {
-      config.width_in_pixels = tiling->width;
-      config.height_in_pixels = tiling->height;
-      config.number_of_render_targets = MAX2(tiling->render_target_count, 1);
-      config.multisample_mode_4x = tiling->msaa;
-      config.maximum_bpp_of_all_render_targets = tiling->internal_bpp;
-   }
-
-   /* There's definitely nothing in the VCD cache we want. */
-   cl_emit(&job->bcl, FLUSH_VCD_CACHE, bin);
-
-   /* "Binning mode lists must have a Start Tile Binning item (6) after
-    *  any prefix state data before the binning list proper starts."
-    */
-   cl_emit(&job->bcl, START_TILE_BINNING, bin);
+   v3dv_X(job->device, job_emit_binning_prolog)(job, tiling, layers);
 
    job->ez_state = V3D_EZ_UNDECIDED;
    job->first_ez_state = V3D_EZ_UNDECIDED;
@@ -629,19 +611,9 @@ cmd_buffer_end_render_pass_frame(struct v3dv_cmd_buffer *cmd_buffer)
     * any RCL commands of its own.
     */
    if (v3dv_cl_offset(&cmd_buffer->state.job->rcl) == 0)
-      cmd_buffer_emit_render_pass_rcl(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_render_pass_rcl)(cmd_buffer);
 
-   v3dv_job_emit_binning_flush(cmd_buffer->state.job);
-}
-
-static void
-cmd_buffer_end_render_pass_secondary(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   assert(cmd_buffer->state.job);
-   v3dv_cl_ensure_space_with_branch(&cmd_buffer->state.job->bcl,
-                                    cl_packet_length(RETURN_FROM_SUB_LIST));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-   cl_emit(&cmd_buffer->state.job->bcl, RETURN_FROM_SUB_LIST, ret);
+   v3dv_X(cmd_buffer->device, job_emit_binning_flush)(cmd_buffer->state.job);
 }
 
 struct v3dv_job *
@@ -728,7 +700,7 @@ v3dv_cmd_buffer_finish_job(struct v3dv_cmd_buffer *cmd_buffer)
          cmd_buffer_end_render_pass_frame(cmd_buffer);
       } else {
          assert(job->type == V3DV_JOB_TYPE_GPU_CL_SECONDARY);
-         cmd_buffer_end_render_pass_secondary(cmd_buffer);
+         v3dv_X(cmd_buffer->device, cmd_buffer_end_render_pass_secondary)(cmd_buffer);
       }
    }
 
@@ -915,7 +887,7 @@ cmd_buffer_reset(struct v3dv_cmd_buffer *cmd_buffer,
    return VK_SUCCESS;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_AllocateCommandBuffers(VkDevice _device,
                             const VkCommandBufferAllocateInfo *pAllocateInfo,
                             VkCommandBuffer *pCommandBuffers)
@@ -943,7 +915,7 @@ v3dv_AllocateCommandBuffers(VkDevice _device,
    return result;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_FreeCommandBuffers(VkDevice device,
                         VkCommandPool commandPool,
                         uint32_t commandBufferCount,
@@ -959,7 +931,7 @@ v3dv_FreeCommandBuffers(VkDevice device,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_DestroyCommandPool(VkDevice _device,
                         VkCommandPool commandPool,
                         const VkAllocationCallbacks *pAllocator)
@@ -978,7 +950,7 @@ v3dv_DestroyCommandPool(VkDevice _device,
    vk_object_free(&device->vk, pAllocator, pool);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_TrimCommandPool(VkDevice device,
                      VkCommandPool commandPool,
                      VkCommandPoolTrimFlags flags)
@@ -1039,34 +1011,37 @@ cmd_buffer_subpass_handle_pending_resolves(struct v3dv_cmd_buffer *cmd_buffer)
       struct v3dv_image_view *src_iview = fb->attachments[src_attachment_idx];
       struct v3dv_image_view *dst_iview = fb->attachments[dst_attachment_idx];
 
-      VkImageResolve region = {
+      VkImageResolve2KHR region = {
+         .sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR,
          .srcSubresource = {
             VK_IMAGE_ASPECT_COLOR_BIT,
-            src_iview->base_level,
-            src_iview->first_layer,
-            src_iview->last_layer - src_iview->first_layer + 1,
+            src_iview->vk.base_mip_level,
+            src_iview->vk.base_array_layer,
+            src_iview->vk.layer_count,
          },
          .srcOffset = { 0, 0, 0 },
          .dstSubresource =  {
             VK_IMAGE_ASPECT_COLOR_BIT,
-            dst_iview->base_level,
-            dst_iview->first_layer,
-            dst_iview->last_layer - dst_iview->first_layer + 1,
+            dst_iview->vk.base_mip_level,
+            dst_iview->vk.base_array_layer,
+            dst_iview->vk.layer_count,
          },
          .dstOffset = { 0, 0, 0 },
-         .extent = src_iview->image->extent,
+         .extent = src_iview->vk.image->extent,
       };
 
-      VkImage src_image_handle =
-         v3dv_image_to_handle((struct v3dv_image *) src_iview->image);
-      VkImage dst_image_handle =
-         v3dv_image_to_handle((struct v3dv_image *) dst_iview->image);
-      v3dv_CmdResolveImage(cmd_buffer_handle,
-                           src_image_handle,
-                           VK_IMAGE_LAYOUT_GENERAL,
-                           dst_image_handle,
-                           VK_IMAGE_LAYOUT_GENERAL,
-                           1, &region);
+      struct v3dv_image *src_image = (struct v3dv_image *) src_iview->vk.image;
+      struct v3dv_image *dst_image = (struct v3dv_image *) dst_iview->vk.image;
+      VkResolveImageInfo2KHR resolve_info = {
+         .sType = VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2_KHR,
+         .srcImage = v3dv_image_to_handle(src_image),
+         .srcImageLayout = VK_IMAGE_LAYOUT_GENERAL,
+         .dstImage = v3dv_image_to_handle(dst_image),
+         .dstImageLayout = VK_IMAGE_LAYOUT_GENERAL,
+         .regionCount = 1,
+         .pRegions = &region,
+      };
+      v3dv_CmdResolveImage2KHR(cmd_buffer_handle, &resolve_info);
    }
 
    cmd_buffer->state.framebuffer = restore_fb;
@@ -1129,7 +1104,7 @@ cmd_buffer_begin_render_pass_secondary(
    return VK_SUCCESS;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_BeginCommandBuffer(VkCommandBuffer commandBuffer,
                         const VkCommandBufferBeginInfo *pBeginInfo)
 {
@@ -1162,7 +1137,7 @@ v3dv_BeginCommandBuffer(VkCommandBuffer commandBuffer,
    return VK_SUCCESS;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_ResetCommandBuffer(VkCommandBuffer commandBuffer,
                         VkCommandBufferResetFlags flags)
 {
@@ -1170,7 +1145,7 @@ v3dv_ResetCommandBuffer(VkCommandBuffer commandBuffer,
    return cmd_buffer_reset(cmd_buffer, flags);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_ResetCommandPool(VkDevice device,
                       VkCommandPool commandPool,
                       VkCommandPoolResetFlags flags)
@@ -1189,22 +1164,6 @@ v3dv_ResetCommandPool(VkDevice device,
 }
 
 static void
-emit_clip_window(struct v3dv_job *job, const VkRect2D *rect)
-{
-   assert(job);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(CLIP_WINDOW));
-   v3dv_return_if_oom(NULL, job);
-
-   cl_emit(&job->bcl, CLIP_WINDOW, clip) {
-      clip.clip_window_left_pixel_coordinate = rect->offset.x;
-      clip.clip_window_bottom_pixel_coordinate = rect->offset.y;
-      clip.clip_window_width_in_pixels = rect->extent.width;
-      clip.clip_window_height_in_pixels = rect->extent.height;
-   }
-}
-
-static void
 cmd_buffer_update_tile_alignment(struct v3dv_cmd_buffer *cmd_buffer)
 {
    /* Render areas and scissor/viewport are only relevant inside render passes,
@@ -1219,7 +1178,7 @@ cmd_buffer_update_tile_alignment(struct v3dv_cmd_buffer *cmd_buffer)
     */
    assert(cmd_buffer->state.framebuffer);
    cmd_buffer->state.tile_aligned_render_area =
-      v3dv_subpass_area_is_tile_aligned(rect,
+      v3dv_subpass_area_is_tile_aligned(cmd_buffer->device, rect,
                                         cmd_buffer->state.framebuffer,
                                         cmd_buffer->state.pass,
                                         cmd_buffer->state.subpass_idx);
@@ -1228,42 +1187,6 @@ cmd_buffer_update_tile_alignment(struct v3dv_cmd_buffer *cmd_buffer)
       perf_debug("Render area for subpass %d of render pass %p doesn't "
                  "match render pass granularity.\n",
                  cmd_buffer->state.subpass_idx, cmd_buffer->state.pass);
-   }
-}
-
-void
-v3dv_get_hw_clear_color(const VkClearColorValue *color,
-                        uint32_t internal_type,
-                        uint32_t internal_size,
-                        uint32_t *hw_color)
-{
-   union util_color uc;
-   switch (internal_type) {
-   case V3D_INTERNAL_TYPE_8:
-      util_pack_color(color->float32, PIPE_FORMAT_R8G8B8A8_UNORM, &uc);
-      memcpy(hw_color, uc.ui, internal_size);
-   break;
-   case V3D_INTERNAL_TYPE_8I:
-   case V3D_INTERNAL_TYPE_8UI:
-      hw_color[0] = ((color->uint32[0] & 0xff) |
-                     (color->uint32[1] & 0xff) << 8 |
-                     (color->uint32[2] & 0xff) << 16 |
-                     (color->uint32[3] & 0xff) << 24);
-   break;
-   case V3D_INTERNAL_TYPE_16F:
-      util_pack_color(color->float32, PIPE_FORMAT_R16G16B16A16_FLOAT, &uc);
-      memcpy(hw_color, uc.ui, internal_size);
-   break;
-   case V3D_INTERNAL_TYPE_16I:
-   case V3D_INTERNAL_TYPE_16UI:
-      hw_color[0] = ((color->uint32[0] & 0xffff) | color->uint32[1] << 16);
-      hw_color[1] = ((color->uint32[2] & 0xffff) | color->uint32[3] << 16);
-   break;
-   case V3D_INTERNAL_TYPE_32F:
-   case V3D_INTERNAL_TYPE_32I:
-   case V3D_INTERNAL_TYPE_32UI:
-      memcpy(hw_color, color->uint32, internal_size);
-      break;
    }
 }
 
@@ -1278,18 +1201,19 @@ cmd_buffer_state_set_attachment_clear_color(struct v3dv_cmd_buffer *cmd_buffer,
       &cmd_buffer->state.pass->attachments[attachment_idx];
 
    uint32_t internal_type, internal_bpp;
-   const struct v3dv_format *format = v3dv_get_format(attachment->desc.format);
-   v3dv_get_internal_type_bpp_for_output_format(format->rt_type,
-                                                &internal_type,
-                                                &internal_bpp);
+   const struct v3dv_format *format =
+      v3dv_X(cmd_buffer->device, get_format)(attachment->desc.format);
+
+   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_output_format)
+      (format->rt_type, &internal_type, &internal_bpp);
 
    uint32_t internal_size = 4 << internal_bpp;
 
    struct v3dv_cmd_buffer_attachment_state *attachment_state =
       &cmd_buffer->state.attachments[attachment_idx];
 
-   v3dv_get_hw_clear_color(color, internal_type, internal_size,
-                           &attachment_state->clear_value.color[0]);
+   v3dv_X(cmd_buffer->device, get_hw_clear_color)
+      (color, internal_type, internal_size, &attachment_state->clear_value.color[0]);
 
    attachment_state->vk_clear_value.color = *color;
 }
@@ -1383,7 +1307,7 @@ cmd_buffer_ensure_render_pass_attachment_state(struct v3dv_cmd_buffer *cmd_buffe
    assert(state->attachment_alloc_count >= pass->attachment_count);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
                         const VkRenderPassBeginInfo *pRenderPassBegin,
                         VkSubpassContents contents)
@@ -1407,7 +1331,7 @@ v3dv_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
     * to emit a new clip window to constraint it to the render area.
     */
    uint32_t min_render_x = state->render_area.offset.x;
-   uint32_t min_render_y = state->render_area.offset.x;
+   uint32_t min_render_y = state->render_area.offset.y;
    uint32_t max_render_x = min_render_x + state->render_area.extent.width - 1;
    uint32_t max_render_y = min_render_y + state->render_area.extent.height - 1;
    uint32_t min_clip_x = state->clip_window.offset.x;
@@ -1423,7 +1347,7 @@ v3dv_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
    v3dv_cmd_buffer_subpass_start(cmd_buffer, 0);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents contents)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
@@ -1437,884 +1361,6 @@ v3dv_CmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents contents)
 
    /* Start the next subpass */
    v3dv_cmd_buffer_subpass_start(cmd_buffer, state->subpass_idx + 1);
-}
-
-void
-v3dv_render_pass_setup_render_target(struct v3dv_cmd_buffer *cmd_buffer,
-                                     int rt,
-                                     uint32_t *rt_bpp,
-                                     uint32_t *rt_type,
-                                     uint32_t *rt_clamp)
-{
-   const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-
-   assert(state->subpass_idx < state->pass->subpass_count);
-   const struct v3dv_subpass *subpass =
-      &state->pass->subpasses[state->subpass_idx];
-
-   if (rt >= subpass->color_count)
-      return;
-
-   struct v3dv_subpass_attachment *attachment = &subpass->color_attachments[rt];
-   const uint32_t attachment_idx = attachment->attachment;
-   if (attachment_idx == VK_ATTACHMENT_UNUSED)
-      return;
-
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
-   assert(attachment_idx < framebuffer->attachment_count);
-   struct v3dv_image_view *iview = framebuffer->attachments[attachment_idx];
-   assert(iview->aspects & VK_IMAGE_ASPECT_COLOR_BIT);
-
-   *rt_bpp = iview->internal_bpp;
-   *rt_type = iview->internal_type;
-   *rt_clamp =vk_format_is_int(iview->vk_format) ?
-      V3D_RENDER_TARGET_CLAMP_INT : V3D_RENDER_TARGET_CLAMP_NONE;
-}
-
-static void
-cmd_buffer_render_pass_emit_load(struct v3dv_cmd_buffer *cmd_buffer,
-                                 struct v3dv_cl *cl,
-                                 struct v3dv_image_view *iview,
-                                 uint32_t layer,
-                                 uint32_t buffer)
-{
-   const struct v3dv_image *image = iview->image;
-   const struct v3d_resource_slice *slice = &image->slices[iview->base_level];
-   uint32_t layer_offset = v3dv_layer_offset(image,
-                                             iview->base_level,
-                                             iview->first_layer + layer);
-
-   cl_emit(cl, LOAD_TILE_BUFFER_GENERAL, load) {
-      load.buffer_to_load = buffer;
-      load.address = v3dv_cl_address(image->mem->bo, layer_offset);
-
-      load.input_image_format = iview->format->rt_type;
-      load.r_b_swap = iview->swap_rb;
-      load.memory_format = slice->tiling;
-
-      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
-          slice->tiling == V3D_TILING_UIF_XOR) {
-         load.height_in_ub_or_stride =
-            slice->padded_height_of_output_image_in_uif_blocks;
-      } else if (slice->tiling == V3D_TILING_RASTER) {
-         load.height_in_ub_or_stride = slice->stride;
-      }
-
-      if (image->samples > VK_SAMPLE_COUNT_1_BIT)
-         load.decimate_mode = V3D_DECIMATE_MODE_ALL_SAMPLES;
-      else
-         load.decimate_mode = V3D_DECIMATE_MODE_SAMPLE_0;
-   }
-}
-
-static bool
-check_needs_load(const struct v3dv_cmd_buffer_state *state,
-                 VkImageAspectFlags aspect,
-                 uint32_t att_first_subpass_idx,
-                 VkAttachmentLoadOp load_op)
-{
-   /* We call this with image->aspects & aspect, so 0 means the aspect we are
-    * testing does not exist in the image.
-    */
-   if (!aspect)
-      return false;
-
-   /* Attachment load operations apply on the first subpass that uses the
-    * attachment, otherwise we always need to load.
-    */
-   if (state->job->first_subpass > att_first_subpass_idx)
-      return true;
-
-   /* If the job is continuing a subpass started in another job, we always
-    * need to load.
-    */
-   if (state->job->is_subpass_continue)
-      return true;
-
-   /* If the area is not aligned to tile boundaries, we always need to load */
-   if (!state->tile_aligned_render_area)
-      return true;
-
-   /* The attachment load operations must be LOAD */
-   return load_op == VK_ATTACHMENT_LOAD_OP_LOAD;
-}
-
-static bool
-check_needs_clear(const struct v3dv_cmd_buffer_state *state,
-                  VkImageAspectFlags aspect,
-                  uint32_t att_first_subpass_idx,
-                  VkAttachmentLoadOp load_op,
-                  bool do_clear_with_draw)
-{
-   /* We call this with image->aspects & aspect, so 0 means the aspect we are
-    * testing does not exist in the image.
-    */
-   if (!aspect)
-      return false;
-
-   /* If the aspect needs to be cleared with a draw call then we won't emit
-    * the clear here.
-    */
-   if (do_clear_with_draw)
-      return false;
-
-   /* If this is resuming a subpass started with another job, then attachment
-    * load operations don't apply.
-    */
-   if (state->job->is_subpass_continue)
-      return false;
-
-   /* If the render area is not aligned to tile boudaries we can't use the
-    * TLB for a clear.
-    */
-   if (!state->tile_aligned_render_area)
-      return false;
-
-   /* If this job is running in a subpass other than the first subpass in
-    * which this attachment is used then attachment load operations don't apply.
-    */
-   if (state->job->first_subpass != att_first_subpass_idx)
-      return false;
-
-   /* The attachment load operation must be CLEAR */
-   return load_op == VK_ATTACHMENT_LOAD_OP_CLEAR;
-}
-
-static bool
-check_needs_store(const struct v3dv_cmd_buffer_state *state,
-                  VkImageAspectFlags aspect,
-                  uint32_t att_last_subpass_idx,
-                  VkAttachmentStoreOp store_op)
-{
-   /* We call this with image->aspects & aspect, so 0 means the aspect we are
-    * testing does not exist in the image.
-    */
-   if (!aspect)
-       return false;
-
-   /* Attachment store operations only apply on the last subpass where the
-    * attachment is used, in other subpasses we always need to store.
-    */
-   if (state->subpass_idx < att_last_subpass_idx)
-      return true;
-
-   /* Attachment store operations only apply on the last job we emit on the the
-    * last subpass where the attachment is used, otherwise we always need to
-    * store.
-    */
-   if (!state->job->is_subpass_finish)
-      return true;
-
-   /* The attachment store operation must be STORE */
-   return store_op == VK_ATTACHMENT_STORE_OP_STORE;
-}
-
-static void
-cmd_buffer_render_pass_emit_loads(struct v3dv_cmd_buffer *cmd_buffer,
-                                  struct v3dv_cl *cl,
-                                  uint32_t layer)
-{
-   const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
-   const struct v3dv_render_pass *pass = state->pass;
-   const struct v3dv_subpass *subpass = &pass->subpasses[state->subpass_idx];
-
-   for (uint32_t i = 0; i < subpass->color_count; i++) {
-      uint32_t attachment_idx = subpass->color_attachments[i].attachment;
-
-      if (attachment_idx == VK_ATTACHMENT_UNUSED)
-         continue;
-
-      const struct v3dv_render_pass_attachment *attachment =
-         &state->pass->attachments[attachment_idx];
-
-      /* According to the Vulkan spec:
-       *
-       *    "The load operation for each sample in an attachment happens before
-       *     any recorded command which accesses the sample in the first subpass
-       *     where the attachment is used."
-       *
-       * If the load operation is CLEAR, we must only clear once on the first
-       * subpass that uses the attachment (and in that case we don't LOAD).
-       * After that, we always want to load so we don't lose any rendering done
-       * by a previous subpass to the same attachment. We also want to load
-       * if the current job is continuing subpass work started by a previous
-       * job, for the same reason.
-       *
-       * If the render area is not aligned to tile boundaries then we have
-       * tiles which are partially covered by it. In this case, we need to
-       * load the tiles so we can preserve the pixels that are outside the
-       * render area for any such tiles.
-       */
-      bool needs_load = check_needs_load(state,
-                                         VK_IMAGE_ASPECT_COLOR_BIT,
-                                         attachment->first_subpass,
-                                         attachment->desc.loadOp);
-      if (needs_load) {
-         struct v3dv_image_view *iview = framebuffer->attachments[attachment_idx];
-         cmd_buffer_render_pass_emit_load(cmd_buffer, cl, iview,
-                                          layer, RENDER_TARGET_0 + i);
-      }
-   }
-
-   uint32_t ds_attachment_idx = subpass->ds_attachment.attachment;
-   if (ds_attachment_idx != VK_ATTACHMENT_UNUSED) {
-      const struct v3dv_render_pass_attachment *ds_attachment =
-         &state->pass->attachments[ds_attachment_idx];
-
-      const VkImageAspectFlags ds_aspects =
-         vk_format_aspects(ds_attachment->desc.format);
-
-      const bool needs_depth_load =
-         check_needs_load(state,
-                          ds_aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
-                          ds_attachment->first_subpass,
-                          ds_attachment->desc.loadOp);
-
-      const bool needs_stencil_load =
-         check_needs_load(state,
-                          ds_aspects & VK_IMAGE_ASPECT_STENCIL_BIT,
-                          ds_attachment->first_subpass,
-                          ds_attachment->desc.stencilLoadOp);
-
-      if (needs_depth_load || needs_stencil_load) {
-         struct v3dv_image_view *iview =
-            framebuffer->attachments[ds_attachment_idx];
-         /* From the Vulkan spec:
-          *
-          *   "When an image view of a depth/stencil image is used as a
-          *   depth/stencil framebuffer attachment, the aspectMask is ignored
-          *   and both depth and stencil image subresources are used."
-          *
-          * So we ignore the aspects from the subresource range of the image
-          * view for the depth/stencil attachment, but we still need to restrict
-          * the to aspects compatible with the render pass and the image.
-          */
-         const uint32_t zs_buffer =
-            v3dv_zs_buffer(needs_depth_load, needs_stencil_load);
-         cmd_buffer_render_pass_emit_load(cmd_buffer, cl,
-                                          iview, layer, zs_buffer);
-      }
-   }
-
-   cl_emit(cl, END_OF_LOADS, end);
-}
-
-static void
-cmd_buffer_render_pass_emit_store(struct v3dv_cmd_buffer *cmd_buffer,
-                                  struct v3dv_cl *cl,
-                                  uint32_t attachment_idx,
-                                  uint32_t layer,
-                                  uint32_t buffer,
-                                  bool clear,
-                                  bool is_multisample_resolve)
-{
-   const struct v3dv_image_view *iview =
-      cmd_buffer->state.framebuffer->attachments[attachment_idx];
-   const struct v3dv_image *image = iview->image;
-   const struct v3d_resource_slice *slice = &image->slices[iview->base_level];
-   uint32_t layer_offset = v3dv_layer_offset(image,
-                                             iview->base_level,
-                                             iview->first_layer + layer);
-
-   cl_emit(cl, STORE_TILE_BUFFER_GENERAL, store) {
-      store.buffer_to_store = buffer;
-      store.address = v3dv_cl_address(image->mem->bo, layer_offset);
-      store.clear_buffer_being_stored = clear;
-
-      store.output_image_format = iview->format->rt_type;
-      store.r_b_swap = iview->swap_rb;
-      store.memory_format = slice->tiling;
-
-      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
-          slice->tiling == V3D_TILING_UIF_XOR) {
-         store.height_in_ub_or_stride =
-            slice->padded_height_of_output_image_in_uif_blocks;
-      } else if (slice->tiling == V3D_TILING_RASTER) {
-         store.height_in_ub_or_stride = slice->stride;
-      }
-
-      if (image->samples > VK_SAMPLE_COUNT_1_BIT)
-         store.decimate_mode = V3D_DECIMATE_MODE_ALL_SAMPLES;
-      else if (is_multisample_resolve)
-         store.decimate_mode = V3D_DECIMATE_MODE_4X;
-      else
-         store.decimate_mode = V3D_DECIMATE_MODE_SAMPLE_0;
-   }
-}
-
-static void
-cmd_buffer_render_pass_emit_stores(struct v3dv_cmd_buffer *cmd_buffer,
-                                   struct v3dv_cl *cl,
-                                   uint32_t layer)
-{
-   struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_subpass *subpass =
-      &state->pass->subpasses[state->subpass_idx];
-
-   bool has_stores = false;
-   bool use_global_zs_clear = false;
-   bool use_global_rt_clear = false;
-
-   /* FIXME: separate stencil */
-   uint32_t ds_attachment_idx = subpass->ds_attachment.attachment;
-   if (ds_attachment_idx != VK_ATTACHMENT_UNUSED) {
-      const struct v3dv_render_pass_attachment *ds_attachment =
-         &state->pass->attachments[ds_attachment_idx];
-
-      assert(state->job->first_subpass >= ds_attachment->first_subpass);
-      assert(state->subpass_idx >= ds_attachment->first_subpass);
-      assert(state->subpass_idx <= ds_attachment->last_subpass);
-
-      /* From the Vulkan spec, VkImageSubresourceRange:
-       *
-       *   "When an image view of a depth/stencil image is used as a
-       *   depth/stencil framebuffer attachment, the aspectMask is ignored
-       *   and both depth and stencil image subresources are used."
-       *
-       * So we ignore the aspects from the subresource range of the image
-       * view for the depth/stencil attachment, but we still need to restrict
-       * the to aspects compatible with the render pass and the image.
-       */
-      const VkImageAspectFlags aspects =
-         vk_format_aspects(ds_attachment->desc.format);
-
-      /* Only clear once on the first subpass that uses the attachment */
-      bool needs_depth_clear =
-         check_needs_clear(state,
-                           aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
-                           ds_attachment->first_subpass,
-                           ds_attachment->desc.loadOp,
-                           subpass->do_depth_clear_with_draw);
-
-      bool needs_stencil_clear =
-         check_needs_clear(state,
-                           aspects & VK_IMAGE_ASPECT_STENCIL_BIT,
-                           ds_attachment->first_subpass,
-                           ds_attachment->desc.stencilLoadOp,
-                           subpass->do_stencil_clear_with_draw);
-
-      /* Skip the last store if it is not required */
-      bool needs_depth_store =
-         check_needs_store(state,
-                           aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
-                           ds_attachment->last_subpass,
-                           ds_attachment->desc.storeOp);
-
-      bool needs_stencil_store =
-         check_needs_store(state,
-                           aspects & VK_IMAGE_ASPECT_STENCIL_BIT,
-                           ds_attachment->last_subpass,
-                           ds_attachment->desc.stencilStoreOp);
-
-      /* GFXH-1689: The per-buffer store command's clear buffer bit is broken
-       * for depth/stencil.
-       *
-       * There used to be some confusion regarding the Clear Tile Buffers
-       * Z/S bit also being broken, but we confirmed with Broadcom that this
-       * is not the case, it was just that some other hardware bugs (that we
-       * need to work around, such as GFXH-1461) could cause this bit to behave
-       * incorrectly.
-       *
-       * There used to be another issue where the RTs bit in the Clear Tile
-       * Buffers packet also cleared Z/S, but Broadcom confirmed this is
-       * fixed since V3D 4.1.
-       *
-       * So if we have to emit a clear of depth or stencil we don't use
-       * the per-buffer store clear bit, even if we need to store the buffers,
-       * instead we always have to use the Clear Tile Buffers Z/S bit.
-       * If we have configured the job to do early Z/S clearing, then we
-       * don't want to emit any Clear Tile Buffers command at all here.
-       *
-       * Note that GFXH-1689 is not reproduced in the simulator, where
-       * using the clear buffer bit in depth/stencil stores works fine.
-       */
-      use_global_zs_clear = !state->job->early_zs_clear &&
-                            (needs_depth_clear || needs_stencil_clear);
-      if (needs_depth_store || needs_stencil_store) {
-         const uint32_t zs_buffer =
-            v3dv_zs_buffer(needs_depth_store, needs_stencil_store);
-         cmd_buffer_render_pass_emit_store(cmd_buffer, cl,
-                                           ds_attachment_idx, layer,
-                                           zs_buffer, false, false);
-         has_stores = true;
-      }
-   }
-
-   for (uint32_t i = 0; i < subpass->color_count; i++) {
-      uint32_t attachment_idx = subpass->color_attachments[i].attachment;
-
-      if (attachment_idx == VK_ATTACHMENT_UNUSED)
-         continue;
-
-      const struct v3dv_render_pass_attachment *attachment =
-         &state->pass->attachments[attachment_idx];
-
-      assert(state->job->first_subpass >= attachment->first_subpass);
-      assert(state->subpass_idx >= attachment->first_subpass);
-      assert(state->subpass_idx <= attachment->last_subpass);
-
-      /* Only clear once on the first subpass that uses the attachment */
-      bool needs_clear =
-         check_needs_clear(state,
-                           VK_IMAGE_ASPECT_COLOR_BIT,
-                           attachment->first_subpass,
-                           attachment->desc.loadOp,
-                           false);
-
-      /* Skip the last store if it is not required  */
-      bool needs_store =
-         check_needs_store(state,
-                           VK_IMAGE_ASPECT_COLOR_BIT,
-                           attachment->last_subpass,
-                           attachment->desc.storeOp);
-
-      /* If we need to resolve this attachment emit that store first. Notice
-       * that we must not request a tile buffer clear here in that case, since
-       * that would clear the tile buffer before we get to emit the actual
-       * color attachment store below, since the clear happens after the
-       * store is completed.
-       *
-       * If the attachment doesn't support TLB resolves then we will have to
-       * fallback to doing the resolve in a shader separately after this
-       * job, so we will need to store the multisampled sttachment even if that
-       * wansn't requested by the client.
-       */
-      const bool needs_resolve =
-         subpass->resolve_attachments &&
-         subpass->resolve_attachments[i].attachment != VK_ATTACHMENT_UNUSED;
-      if (needs_resolve && attachment->use_tlb_resolve) {
-         const uint32_t resolve_attachment_idx =
-            subpass->resolve_attachments[i].attachment;
-         cmd_buffer_render_pass_emit_store(cmd_buffer, cl,
-                                           resolve_attachment_idx, layer,
-                                           RENDER_TARGET_0 + i,
-                                           false, true);
-         has_stores = true;
-      } else if (needs_resolve) {
-         needs_store = true;
-      }
-
-      /* Emit the color attachment store if needed */
-      if (needs_store) {
-         cmd_buffer_render_pass_emit_store(cmd_buffer, cl,
-                                           attachment_idx, layer,
-                                           RENDER_TARGET_0 + i,
-                                           needs_clear && !use_global_rt_clear,
-                                           false);
-         has_stores = true;
-      } else if (needs_clear) {
-         use_global_rt_clear = true;
-      }
-   }
-
-   /* We always need to emit at least one dummy store */
-   if (!has_stores) {
-      cl_emit(cl, STORE_TILE_BUFFER_GENERAL, store) {
-         store.buffer_to_store = NONE;
-      }
-   }
-
-   /* If we have any depth/stencil clears we can't use the per-buffer clear
-    * bit and instead we have to emit a single clear of all tile buffers.
-    */
-   if (use_global_zs_clear || use_global_rt_clear) {
-      cl_emit(cl, CLEAR_TILE_BUFFERS, clear) {
-         clear.clear_z_stencil_buffer = use_global_zs_clear;
-         clear.clear_all_render_targets = use_global_rt_clear;
-      }
-   }
-}
-
-static void
-cmd_buffer_render_pass_emit_per_tile_rcl(struct v3dv_cmd_buffer *cmd_buffer,
-                                         uint32_t layer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   /* Emit the generic list in our indirect state -- the rcl will just
-    * have pointers into it.
-    */
-   struct v3dv_cl *cl = &job->indirect;
-   v3dv_cl_ensure_space(cl, 200, 1);
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   struct v3dv_cl_reloc tile_list_start = v3dv_cl_get_address(cl);
-
-   cl_emit(cl, TILE_COORDINATES_IMPLICIT, coords);
-
-   cmd_buffer_render_pass_emit_loads(cmd_buffer, cl, layer);
-
-   /* The binner starts out writing tiles assuming that the initial mode
-    * is triangles, so make sure that's the case.
-    */
-   cl_emit(cl, PRIM_LIST_FORMAT, fmt) {
-      fmt.primitive_type = LIST_TRIANGLES;
-   }
-
-   /* PTB assumes that value to be 0, but hw will not set it. */
-   cl_emit(cl, SET_INSTANCEID, set) {
-      set.instance_id = 0;
-   }
-
-   cl_emit(cl, BRANCH_TO_IMPLICIT_TILE_LIST, branch);
-
-   cmd_buffer_render_pass_emit_stores(cmd_buffer, cl, layer);
-
-   cl_emit(cl, END_OF_TILE_MARKER, end);
-
-   cl_emit(cl, RETURN_FROM_SUB_LIST, ret);
-
-   cl_emit(&job->rcl, START_ADDRESS_OF_GENERIC_TILE_LIST, branch) {
-      branch.start = tile_list_start;
-      branch.end = v3dv_cl_get_address(cl);
-   }
-}
-
-static void
-cmd_buffer_emit_render_pass_layer_rcl(struct v3dv_cmd_buffer *cmd_buffer,
-                                      uint32_t layer)
-{
-   const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-
-   struct v3dv_job *job = cmd_buffer->state.job;
-   struct v3dv_cl *rcl = &job->rcl;
-
-   /* If doing multicore binning, we would need to initialize each
-    * core's tile list here.
-    */
-   const struct v3dv_frame_tiling *tiling = &job->frame_tiling;
-   const uint32_t tile_alloc_offset =
-      64 * layer * tiling->draw_tiles_x * tiling->draw_tiles_y;
-   cl_emit(rcl, MULTICORE_RENDERING_TILE_LIST_SET_BASE, list) {
-      list.address = v3dv_cl_address(job->tile_alloc, tile_alloc_offset);
-   }
-
-   cl_emit(rcl, MULTICORE_RENDERING_SUPERTILE_CFG, config) {
-      config.number_of_bin_tile_lists = 1;
-      config.total_frame_width_in_tiles = tiling->draw_tiles_x;
-      config.total_frame_height_in_tiles = tiling->draw_tiles_y;
-
-      config.supertile_width_in_tiles = tiling->supertile_width;
-      config.supertile_height_in_tiles = tiling->supertile_height;
-
-      config.total_frame_width_in_supertiles =
-         tiling->frame_width_in_supertiles;
-      config.total_frame_height_in_supertiles =
-         tiling->frame_height_in_supertiles;
-   }
-
-   /* Start by clearing the tile buffer. */
-   cl_emit(rcl, TILE_COORDINATES, coords) {
-      coords.tile_column_number = 0;
-      coords.tile_row_number = 0;
-   }
-
-   /* Emit an initial clear of the tile buffers. This is necessary
-    * for any buffers that should be cleared (since clearing
-    * normally happens at the *end* of the generic tile list), but
-    * it's also nice to clear everything so the first tile doesn't
-    * inherit any contents from some previous frame.
-    *
-    * Also, implement the GFXH-1742 workaround. There's a race in
-    * the HW between the RCL updating the TLB's internal type/size
-    * and the spawning of the QPU instances using the TLB's current
-    * internal type/size. To make sure the QPUs get the right
-    * state, we need 1 dummy store in between internal type/size
-    * changes on V3D 3.x, and 2 dummy stores on 4.x.
-    */
-   for (int i = 0; i < 2; i++) {
-      if (i > 0)
-         cl_emit(rcl, TILE_COORDINATES, coords);
-      cl_emit(rcl, END_OF_LOADS, end);
-      cl_emit(rcl, STORE_TILE_BUFFER_GENERAL, store) {
-         store.buffer_to_store = NONE;
-      }
-      if (i == 0 && cmd_buffer->state.tile_aligned_render_area) {
-         cl_emit(rcl, CLEAR_TILE_BUFFERS, clear) {
-            clear.clear_z_stencil_buffer = !job->early_zs_clear;
-            clear.clear_all_render_targets = true;
-         }
-      }
-      cl_emit(rcl, END_OF_TILE_MARKER, end);
-   }
-
-   cl_emit(rcl, FLUSH_VCD_CACHE, flush);
-
-   cmd_buffer_render_pass_emit_per_tile_rcl(cmd_buffer, layer);
-
-   uint32_t supertile_w_in_pixels =
-      tiling->tile_width * tiling->supertile_width;
-   uint32_t supertile_h_in_pixels =
-      tiling->tile_height * tiling->supertile_height;
-   const uint32_t min_x_supertile =
-      state->render_area.offset.x / supertile_w_in_pixels;
-   const uint32_t min_y_supertile =
-      state->render_area.offset.y / supertile_h_in_pixels;
-
-   uint32_t max_render_x = state->render_area.offset.x;
-   if (state->render_area.extent.width > 0)
-      max_render_x += state->render_area.extent.width - 1;
-   uint32_t max_render_y = state->render_area.offset.y;
-   if (state->render_area.extent.height > 0)
-      max_render_y += state->render_area.extent.height - 1;
-   const uint32_t max_x_supertile = max_render_x / supertile_w_in_pixels;
-   const uint32_t max_y_supertile = max_render_y / supertile_h_in_pixels;
-
-   for (int y = min_y_supertile; y <= max_y_supertile; y++) {
-      for (int x = min_x_supertile; x <= max_x_supertile; x++) {
-         cl_emit(rcl, SUPERTILE_COORDINATES, coords) {
-            coords.column_number_in_supertiles = x;
-            coords.row_number_in_supertiles = y;
-         }
-      }
-   }
-}
-
-static void
-set_rcl_early_z_config(struct v3dv_job *job,
-                       bool *early_z_disable,
-                       uint32_t *early_z_test_and_update_direction)
-{
-   /* If this is true then we have not emitted any draw calls in this job
-    * and we don't get any benefits form early Z.
-    */
-   if (!job->decided_global_ez_enable) {
-      assert(job->draw_count == 0);
-      *early_z_disable = true;
-      return;
-   }
-
-   switch (job->first_ez_state) {
-   case V3D_EZ_UNDECIDED:
-   case V3D_EZ_LT_LE:
-      *early_z_disable = false;
-      *early_z_test_and_update_direction = EARLY_Z_DIRECTION_LT_LE;
-      break;
-   case V3D_EZ_GT_GE:
-      *early_z_disable = false;
-      *early_z_test_and_update_direction = EARLY_Z_DIRECTION_GT_GE;
-      break;
-   case V3D_EZ_DISABLED:
-      *early_z_disable = true;
-      break;
-   }
-}
-
-static void
-cmd_buffer_emit_render_pass_rcl(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
-
-   /* We can't emit the RCL until we have a framebuffer, which we may not have
-    * if we are recording a secondary command buffer. In that case, we will
-    * have to wait until vkCmdExecuteCommands is called from a primary command
-    * buffer.
-    */
-   if (!framebuffer) {
-      assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
-      return;
-   }
-
-   const struct v3dv_frame_tiling *tiling = &job->frame_tiling;
-
-   const uint32_t fb_layers = framebuffer->layers;
-   v3dv_cl_ensure_space_with_branch(&job->rcl, 200 +
-                                    MAX2(fb_layers, 1) * 256 *
-                                    cl_packet_length(SUPERTILE_COORDINATES));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   assert(state->subpass_idx < state->pass->subpass_count);
-   const struct v3dv_render_pass *pass = state->pass;
-   const struct v3dv_subpass *subpass = &pass->subpasses[state->subpass_idx];
-   struct v3dv_cl *rcl = &job->rcl;
-
-   /* Comon config must be the first TILE_RENDERING_MODE_CFG and
-    * Z_STENCIL_CLEAR_VALUES must be last. The ones in between are optional
-    * updates to the previous HW state.
-    */
-   bool do_early_zs_clear = false;
-   const uint32_t ds_attachment_idx = subpass->ds_attachment.attachment;
-   cl_emit(rcl, TILE_RENDERING_MODE_CFG_COMMON, config) {
-      config.image_width_pixels = framebuffer->width;
-      config.image_height_pixels = framebuffer->height;
-      config.number_of_render_targets = MAX2(subpass->color_count, 1);
-      config.multisample_mode_4x = tiling->msaa;
-      config.maximum_bpp_of_all_render_targets = tiling->internal_bpp;
-
-      if (ds_attachment_idx != VK_ATTACHMENT_UNUSED) {
-         const struct v3dv_image_view *iview =
-            framebuffer->attachments[ds_attachment_idx];
-         config.internal_depth_type = iview->internal_type;
-
-         set_rcl_early_z_config(job,
-                                &config.early_z_disable,
-                                &config.early_z_test_and_update_direction);
-
-         /* Early-Z/S clear can be enabled if the job is clearing and not
-          * storing (or loading) depth. If a stencil aspect is also present
-          * we have the same requirements for it, however, in this case we
-          * can accept stencil loadOp DONT_CARE as well, so instead of
-          * checking that stencil is cleared we check that is not loaded.
-          *
-          * Early-Z/S clearing is independent of Early Z/S testing, so it is
-          * possible to enable one but not the other so long as their
-          * respective requirements are met.
-          */
-         struct v3dv_render_pass_attachment *ds_attachment =
-            &pass->attachments[ds_attachment_idx];
-
-         const VkImageAspectFlags ds_aspects =
-            vk_format_aspects(ds_attachment->desc.format);
-
-         bool needs_depth_clear =
-            check_needs_clear(state,
-                              ds_aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
-                              ds_attachment->first_subpass,
-                              ds_attachment->desc.loadOp,
-                              subpass->do_depth_clear_with_draw);
-
-         bool needs_depth_store =
-            check_needs_store(state,
-                              ds_aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
-                              ds_attachment->last_subpass,
-                              ds_attachment->desc.storeOp);
-
-         do_early_zs_clear = needs_depth_clear && !needs_depth_store;
-         if (do_early_zs_clear &&
-             vk_format_has_stencil(ds_attachment->desc.format)) {
-            bool needs_stencil_load =
-               check_needs_load(state,
-                                ds_aspects & VK_IMAGE_ASPECT_STENCIL_BIT,
-                                ds_attachment->first_subpass,
-                                ds_attachment->desc.stencilLoadOp);
-
-            bool needs_stencil_store =
-               check_needs_store(state,
-                                 ds_aspects & VK_IMAGE_ASPECT_STENCIL_BIT,
-                                 ds_attachment->last_subpass,
-                                 ds_attachment->desc.stencilStoreOp);
-
-            do_early_zs_clear = !needs_stencil_load && !needs_stencil_store;
-         }
-
-         config.early_depth_stencil_clear = do_early_zs_clear;
-      } else {
-         config.early_z_disable = true;
-      }
-   }
-
-   /* If we enabled early Z/S clear, then we can't emit any "Clear Tile Buffers"
-    * commands with the Z/S bit set, so keep track of whether we enabled this
-    * in the job so we can skip these later.
-    */
-   job->early_zs_clear = do_early_zs_clear;
-
-   for (uint32_t i = 0; i < subpass->color_count; i++) {
-      uint32_t attachment_idx = subpass->color_attachments[i].attachment;
-      if (attachment_idx == VK_ATTACHMENT_UNUSED)
-         continue;
-
-      struct v3dv_image_view *iview =
-         state->framebuffer->attachments[attachment_idx];
-
-      const struct v3dv_image *image = iview->image;
-      const struct v3d_resource_slice *slice = &image->slices[iview->base_level];
-
-      const uint32_t *clear_color =
-         &state->attachments[attachment_idx].clear_value.color[0];
-
-      uint32_t clear_pad = 0;
-      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
-          slice->tiling == V3D_TILING_UIF_XOR) {
-         int uif_block_height = v3d_utile_height(image->cpp) * 2;
-
-         uint32_t implicit_padded_height =
-            align(framebuffer->height, uif_block_height) / uif_block_height;
-
-         if (slice->padded_height_of_output_image_in_uif_blocks -
-             implicit_padded_height >= 15) {
-            clear_pad = slice->padded_height_of_output_image_in_uif_blocks;
-         }
-      }
-
-      cl_emit(rcl, TILE_RENDERING_MODE_CFG_CLEAR_COLORS_PART1, clear) {
-         clear.clear_color_low_32_bits = clear_color[0];
-         clear.clear_color_next_24_bits = clear_color[1] & 0xffffff;
-         clear.render_target_number = i;
-      };
-
-      if (iview->internal_bpp >= V3D_INTERNAL_BPP_64) {
-         cl_emit(rcl, TILE_RENDERING_MODE_CFG_CLEAR_COLORS_PART2, clear) {
-            clear.clear_color_mid_low_32_bits =
-              ((clear_color[1] >> 24) | (clear_color[2] << 8));
-            clear.clear_color_mid_high_24_bits =
-              ((clear_color[2] >> 24) | ((clear_color[3] & 0xffff) << 8));
-            clear.render_target_number = i;
-         };
-      }
-
-      if (iview->internal_bpp >= V3D_INTERNAL_BPP_128 || clear_pad) {
-         cl_emit(rcl, TILE_RENDERING_MODE_CFG_CLEAR_COLORS_PART3, clear) {
-            clear.uif_padded_height_in_uif_blocks = clear_pad;
-            clear.clear_color_high_16_bits = clear_color[3] >> 16;
-            clear.render_target_number = i;
-         };
-      }
-   }
-
-   cl_emit(rcl, TILE_RENDERING_MODE_CFG_COLOR, rt) {
-      v3dv_render_pass_setup_render_target(cmd_buffer, 0,
-                                           &rt.render_target_0_internal_bpp,
-                                           &rt.render_target_0_internal_type,
-                                           &rt.render_target_0_clamp);
-      v3dv_render_pass_setup_render_target(cmd_buffer, 1,
-                                           &rt.render_target_1_internal_bpp,
-                                           &rt.render_target_1_internal_type,
-                                           &rt.render_target_1_clamp);
-      v3dv_render_pass_setup_render_target(cmd_buffer, 2,
-                                           &rt.render_target_2_internal_bpp,
-                                           &rt.render_target_2_internal_type,
-                                           &rt.render_target_2_clamp);
-      v3dv_render_pass_setup_render_target(cmd_buffer, 3,
-                                           &rt.render_target_3_internal_bpp,
-                                           &rt.render_target_3_internal_type,
-                                           &rt.render_target_3_clamp);
-   }
-
-   /* Ends rendering mode config. */
-   if (ds_attachment_idx != VK_ATTACHMENT_UNUSED) {
-      cl_emit(rcl, TILE_RENDERING_MODE_CFG_ZS_CLEAR_VALUES, clear) {
-         clear.z_clear_value =
-            state->attachments[ds_attachment_idx].clear_value.z;
-         clear.stencil_clear_value =
-            state->attachments[ds_attachment_idx].clear_value.s;
-      };
-   } else {
-      cl_emit(rcl, TILE_RENDERING_MODE_CFG_ZS_CLEAR_VALUES, clear) {
-         clear.z_clear_value = 1.0f;
-         clear.stencil_clear_value = 0;
-      };
-   }
-
-   /* Always set initial block size before the first branch, which needs
-    * to match the value from binning mode config.
-    */
-   cl_emit(rcl, TILE_LIST_INITIAL_BLOCK_SIZE, init) {
-      init.use_auto_chained_tile_lists = true;
-      init.size_of_first_block_in_chained_tile_lists =
-         TILE_ALLOCATION_BLOCK_SIZE_64B;
-   }
-
-   for (int layer = 0; layer < MAX2(1, fb_layers); layer++)
-      cmd_buffer_emit_render_pass_layer_rcl(cmd_buffer, layer);
-
-   cl_emit(rcl, END_OF_RENDERING, end);
 }
 
 static void
@@ -2458,13 +1504,30 @@ cmd_buffer_subpass_create_job(struct v3dv_cmd_buffer *cmd_buffer,
 
       uint8_t internal_bpp;
       bool msaa;
-      v3dv_framebuffer_compute_internal_bpp_msaa(framebuffer, subpass,
-                                                 &internal_bpp, &msaa);
+      v3dv_X(job->device, framebuffer_compute_internal_bpp_msaa)
+         (framebuffer, subpass, &internal_bpp, &msaa);
+
+      /* From the Vulkan spec:
+       *
+       *    "If the render pass uses multiview, then layers must be one and
+       *     each attachment requires a number of layers that is greater than
+       *     the maximum bit index set in the view mask in the subpasses in
+       *     which it is used."
+       *
+       * So when multiview is enabled, we take the number of layers from the
+       * last bit set in the view mask.
+       */
+      uint32_t layers = framebuffer->layers;
+      if (subpass->view_mask != 0) {
+         assert(framebuffer->layers == 1);
+         layers = util_last_bit(subpass->view_mask);
+      }
 
       v3dv_job_start_frame(job,
                            framebuffer->width,
                            framebuffer->height,
-                           framebuffer->layers,
+                           layers,
+                           true,
                            subpass->color_count,
                            internal_bpp,
                            msaa);
@@ -2547,7 +1610,7 @@ v3dv_cmd_buffer_subpass_finish(struct v3dv_cmd_buffer *cmd_buffer)
       job->is_subpass_finish = true;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdEndRenderPass(VkCommandBuffer commandBuffer)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
@@ -2566,7 +1629,7 @@ v3dv_CmdEndRenderPass(VkCommandBuffer commandBuffer)
    state->subpass_idx = -1;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_EndCommandBuffer(VkCommandBuffer commandBuffer)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
@@ -2590,44 +1653,6 @@ v3dv_EndCommandBuffer(VkCommandBuffer commandBuffer)
    cmd_buffer->status = V3DV_CMD_BUFFER_STATUS_EXECUTABLE;
 
    return VK_SUCCESS;
-}
-
-static void
-emit_occlusion_query(struct v3dv_cmd_buffer *cmd_buffer);
-
-static void
-ensure_array_state(struct v3dv_cmd_buffer *cmd_buffer,
-                   uint32_t slot_size,
-                   uint32_t used_count,
-                   uint32_t *alloc_count,
-                   void **ptr);
-
-static void
-cmd_buffer_copy_secondary_end_query_state(struct v3dv_cmd_buffer *primary,
-                                          struct v3dv_cmd_buffer *secondary)
-{
-   struct v3dv_cmd_buffer_state *p_state = &primary->state;
-   struct v3dv_cmd_buffer_state *s_state = &secondary->state;
-
-   const uint32_t total_state_count =
-      p_state->query.end.used_count + s_state->query.end.used_count;
-   ensure_array_state(primary,
-                      sizeof(struct v3dv_end_query_cpu_job_info),
-                      total_state_count,
-                      &p_state->query.end.alloc_count,
-                      (void **) &p_state->query.end.states);
-   v3dv_return_if_oom(primary, NULL);
-
-   for (uint32_t i = 0; i < s_state->query.end.used_count; i++) {
-      const struct v3dv_end_query_cpu_job_info *s_qstate =
-         &secondary->state.query.end.states[i];
-
-      struct v3dv_end_query_cpu_job_info *p_qstate =
-         &p_state->query.end.states[p_state->query.end.used_count++];
-
-      p_qstate->pool = s_qstate->pool;
-      p_qstate->query = s_qstate->query;
-   }
 }
 
 static void
@@ -2658,9 +1683,9 @@ clone_bo_list(struct v3dv_cmd_buffer *cmd_buffer,
  * for jobs recorded in secondary command buffers when we want to execute
  * them in primaries.
  */
-static struct v3dv_job *
-job_clone_in_cmd_buffer(struct v3dv_job *job,
-                        struct v3dv_cmd_buffer *cmd_buffer)
+struct v3dv_job *
+v3dv_job_clone_in_cmd_buffer(struct v3dv_job *job,
+                             struct v3dv_cmd_buffer *cmd_buffer)
 {
    struct v3dv_job *clone_job = vk_alloc(&job->device->vk.alloc,
                                          sizeof(struct v3dv_job), 8,
@@ -2687,163 +1712,6 @@ job_clone_in_cmd_buffer(struct v3dv_job *job,
    }
 
    return clone_job;
-}
-
-static struct v3dv_job *
-cmd_buffer_subpass_split_for_barrier(struct v3dv_cmd_buffer *cmd_buffer,
-                                     bool is_bcl_barrier)
-{
-   assert(cmd_buffer->state.subpass_idx != -1);
-   v3dv_cmd_buffer_finish_job(cmd_buffer);
-   struct v3dv_job *job =
-      v3dv_cmd_buffer_subpass_resume(cmd_buffer,
-                                     cmd_buffer->state.subpass_idx);
-   if (!job)
-      return NULL;
-
-   job->serialize = true;
-   job->needs_bcl_sync = is_bcl_barrier;
-   return job;
-}
-
-static void
-cmd_buffer_execute_inside_pass(struct v3dv_cmd_buffer *primary,
-                               uint32_t cmd_buffer_count,
-                               const VkCommandBuffer *cmd_buffers)
-{
-   assert(primary->state.job);
-
-   /* Emit occlusion query state if needed so the draw calls inside our
-    * secondaries update the counters.
-    */
-   bool has_occlusion_query =
-      primary->state.dirty & V3DV_CMD_DIRTY_OCCLUSION_QUERY;
-   if (has_occlusion_query)
-      emit_occlusion_query(primary);
-
-   /* FIXME: if our primary job tiling doesn't enable MSSA but any of the
-    * pipelines used by the secondaries do, we need to re-start the primary
-    * job to enable MSAA. See cmd_buffer_restart_job_for_msaa_if_needed.
-    */
-   bool pending_barrier = false;
-   bool pending_bcl_barrier = false;
-   for (uint32_t i = 0; i < cmd_buffer_count; i++) {
-      V3DV_FROM_HANDLE(v3dv_cmd_buffer, secondary, cmd_buffers[i]);
-
-      assert(secondary->usage_flags &
-             VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT);
-
-      list_for_each_entry(struct v3dv_job, secondary_job,
-                          &secondary->jobs, list_link) {
-         if (secondary_job->type == V3DV_JOB_TYPE_GPU_CL_SECONDARY) {
-            /* If the job is a CL, then we branch to it from the primary BCL.
-             * In this case the secondary's BCL is finished with a
-             * RETURN_FROM_SUB_LIST command to return back to the primary BCL
-             * once we are done executing it.
-             */
-            assert(v3dv_cl_offset(&secondary_job->rcl) == 0);
-            assert(secondary_job->bcl.bo);
-
-            /* Sanity check that secondary BCL ends with RETURN_FROM_SUB_LIST */
-            STATIC_ASSERT(cl_packet_length(RETURN_FROM_SUB_LIST) == 1);
-            assert(v3dv_cl_offset(&secondary_job->bcl) >= 1);
-            assert(*(((uint8_t *)secondary_job->bcl.next) - 1) ==
-                   V3D42_RETURN_FROM_SUB_LIST_opcode);
-
-            /* If this secondary has any barriers (or we had any pending barrier
-             * to apply), then we can't just branch to it from the primary, we
-             * need to split the primary to create a new job that can consume
-             * the barriers first.
-             *
-             * FIXME: in this case, maybe just copy the secondary BCL without
-             * the RETURN_FROM_SUB_LIST into the primary job to skip the
-             * branch?
-             */
-            struct v3dv_job *primary_job = primary->state.job;
-            if (!primary_job || secondary_job->serialize || pending_barrier) {
-               const bool needs_bcl_barrier =
-                  secondary_job->needs_bcl_sync || pending_bcl_barrier;
-               primary_job =
-                  cmd_buffer_subpass_split_for_barrier(primary,
-                                                       needs_bcl_barrier);
-               v3dv_return_if_oom(primary, NULL);
-
-               /* Since we have created a new primary we need to re-emit
-                * occlusion query state.
-                */
-               if (has_occlusion_query)
-                  emit_occlusion_query(primary);
-            }
-
-            /* Make sure our primary job has all required BO references */
-            set_foreach(secondary_job->bos, entry) {
-               struct v3dv_bo *bo = (struct v3dv_bo *)entry->key;
-               v3dv_job_add_bo(primary_job, bo);
-            }
-
-            /* Emit required branch instructions. We expect each of these
-             * to end with a corresponding 'return from sub list' item.
-             */
-            list_for_each_entry(struct v3dv_bo, bcl_bo,
-                                &secondary_job->bcl.bo_list, list_link) {
-               v3dv_cl_ensure_space_with_branch(&primary_job->bcl,
-                                                cl_packet_length(BRANCH_TO_SUB_LIST));
-               v3dv_return_if_oom(primary, NULL);
-               cl_emit(&primary_job->bcl, BRANCH_TO_SUB_LIST, branch) {
-                  branch.address = v3dv_cl_address(bcl_bo, 0);
-               }
-            }
-
-            primary_job->tmu_dirty_rcl |= secondary_job->tmu_dirty_rcl;
-         } else if (secondary_job->type == V3DV_JOB_TYPE_CPU_CLEAR_ATTACHMENTS) {
-            if (pending_barrier) {
-               cmd_buffer_subpass_split_for_barrier(primary, pending_bcl_barrier);
-               v3dv_return_if_oom(primary, NULL);
-            }
-
-            const struct v3dv_clear_attachments_cpu_job_info *info =
-               &secondary_job->cpu.clear_attachments;
-            v3dv_CmdClearAttachments(v3dv_cmd_buffer_to_handle(primary),
-                                     info->attachment_count,
-                                     info->attachments,
-                                     info->rect_count,
-                                     info->rects);
-         } else {
-            /* This is a regular job (CPU or GPU), so just finish the current
-             * primary job (if any) and then add the secondary job to the
-             * primary's job list right after it.
-             */
-            v3dv_cmd_buffer_finish_job(primary);
-            job_clone_in_cmd_buffer(secondary_job, primary);
-            if (pending_barrier) {
-               secondary_job->serialize = true;
-               if (pending_bcl_barrier)
-                  secondary_job->needs_bcl_sync = true;
-            }
-         }
-
-         pending_barrier = false;
-         pending_bcl_barrier = false;
-      }
-
-      /* If the secondary has recorded any vkCmdEndQuery commands, we need to
-       * copy this state to the primary so it is processed properly when the
-       * current primary job is finished.
-       */
-      cmd_buffer_copy_secondary_end_query_state(primary, secondary);
-
-      /* If this secondary had any pending barrier state we will need that
-       * barrier state consumed with whatever comes next in the primary.
-       */
-      assert(secondary->state.has_barrier || !secondary->state.has_bcl_barrier);
-      pending_barrier = secondary->state.has_barrier;
-      pending_bcl_barrier = secondary->state.has_bcl_barrier;
-   }
-
-   if (pending_barrier) {
-      primary->state.has_barrier = true;
-      primary->state.has_bcl_barrier |= pending_bcl_barrier;
-   }
 }
 
 static void
@@ -2875,9 +1743,8 @@ cmd_buffer_execute_outside_pass(struct v3dv_cmd_buffer *primary,
       list_for_each_entry(struct v3dv_job, secondary_job,
                           &secondary->jobs, list_link) {
          /* These can only happen inside a render pass */
-         assert(secondary_job->type != V3DV_JOB_TYPE_CPU_CLEAR_ATTACHMENTS);
          assert(secondary_job->type != V3DV_JOB_TYPE_GPU_CL_SECONDARY);
-         struct v3dv_job *job = job_clone_in_cmd_buffer(secondary_job, primary);
+         struct v3dv_job *job = v3dv_job_clone_in_cmd_buffer(secondary_job, primary);
          if (!job)
             return;
 
@@ -2905,7 +1772,7 @@ cmd_buffer_execute_outside_pass(struct v3dv_cmd_buffer *primary,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdExecuteCommands(VkCommandBuffer commandBuffer,
                         uint32_t commandBufferCount,
                         const VkCommandBuffer *pCommandBuffers)
@@ -2913,8 +1780,8 @@ v3dv_CmdExecuteCommands(VkCommandBuffer commandBuffer,
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, primary, commandBuffer);
 
    if (primary->state.pass != NULL) {
-      cmd_buffer_execute_inside_pass(primary,
-                                     commandBufferCount, pCommandBuffers);
+      v3dv_X(primary->device, cmd_buffer_execute_inside_pass)
+         (primary, commandBufferCount, pCommandBuffers);
    } else {
       cmd_buffer_execute_outside_pass(primary,
                                       commandBufferCount, pCommandBuffers);
@@ -3006,131 +1873,15 @@ cmd_buffer_bind_pipeline_static_state(struct v3dv_cmd_buffer *cmd_buffer,
       }
    }
 
+   if (!(dynamic_mask & V3DV_DYNAMIC_COLOR_WRITE_ENABLE)) {
+      if (dest->color_write_enable != src->color_write_enable) {
+         dest->color_write_enable = src->color_write_enable;
+         dirty |= V3DV_CMD_DIRTY_COLOR_WRITE_ENABLE;
+      }
+   }
+
    cmd_buffer->state.dynamic.mask = dynamic_mask;
    cmd_buffer->state.dirty |= dirty;
-}
-
-static void
-job_update_ez_state(struct v3dv_job *job,
-                    struct v3dv_pipeline *pipeline,
-                    struct v3dv_cmd_buffer *cmd_buffer)
-{
-   /* If first_ez_state is V3D_EZ_DISABLED it means that we have already
-    * determined that we should disable EZ completely for all draw calls in
-    * this job. This will cause us to disable EZ for the entire job in the
-    * Tile Rendering Mode RCL packet and when we do that we need to make sure
-    * we never emit a draw call in the job with EZ enabled in the CFG_BITS
-    * packet, so ez_state must also be V3D_EZ_DISABLED;
-    */
-   if (job->first_ez_state == V3D_EZ_DISABLED) {
-      assert(job->ez_state == V3D_EZ_DISABLED);
-      return;
-   }
-
-   /* This is part of the pre draw call handling, so we should be inside a
-    * render pass.
-    */
-   assert(cmd_buffer->state.pass);
-
-   /* If this is the first time we update EZ state for this job we first check
-    * if there is anything that requires disabling it completely for the entire
-    * job (based on state that is not related to the current draw call and
-    * pipeline state).
-    */
-   if (!job->decided_global_ez_enable) {
-      job->decided_global_ez_enable = true;
-
-      struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-      assert(state->subpass_idx < state->pass->subpass_count);
-      struct v3dv_subpass *subpass = &state->pass->subpasses[state->subpass_idx];
-      if (subpass->ds_attachment.attachment == VK_ATTACHMENT_UNUSED) {
-         job->first_ez_state = V3D_EZ_DISABLED;
-         job->ez_state = V3D_EZ_DISABLED;
-         return;
-      }
-
-      /* GFXH-1918: the early-z buffer may load incorrect depth values
-       * if the frame has odd width or height.
-       *
-       * So we need to disable EZ in this case.
-       */
-      const struct v3dv_render_pass_attachment *ds_attachment =
-         &state->pass->attachments[subpass->ds_attachment.attachment];
-
-      const VkImageAspectFlags ds_aspects =
-         vk_format_aspects(ds_attachment->desc.format);
-
-      bool needs_depth_load =
-         check_needs_load(state,
-                          ds_aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
-                          ds_attachment->first_subpass,
-                          ds_attachment->desc.loadOp);
-
-      if (needs_depth_load) {
-         struct v3dv_framebuffer *fb = state->framebuffer;
-
-         if (!fb) {
-            assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_SECONDARY);
-            perf_debug("Loading depth aspect in a secondary command buffer "
-                       "without framebuffer info disables early-z tests.\n");
-            job->first_ez_state = V3D_EZ_DISABLED;
-            job->ez_state = V3D_EZ_DISABLED;
-            return;
-         }
-
-         if (((fb->width % 2) != 0 || (fb->height % 2) != 0)) {
-            perf_debug("Loading depth aspect for framebuffer with odd width "
-                       "or height disables early-Z tests.\n");
-            job->first_ez_state = V3D_EZ_DISABLED;
-            job->ez_state = V3D_EZ_DISABLED;
-            return;
-         }
-      }
-   }
-
-   /* Otherwise, we can decide to selectively enable or disable EZ for draw
-    * calls using the CFG_BITS packet based on the bound pipeline state.
-    */
-
-   /* If the FS writes Z, then it may update against the chosen EZ direction */
-   struct v3dv_shader_variant *fs_variant =
-      pipeline->shared_data->variants[BROADCOM_SHADER_FRAGMENT];
-   if (fs_variant->prog_data.fs->writes_z) {
-      job->ez_state = V3D_EZ_DISABLED;
-      return;
-   }
-
-   switch (pipeline->ez_state) {
-   case V3D_EZ_UNDECIDED:
-      /* If the pipeline didn't pick a direction but didn't disable, then go
-       * along with the current EZ state. This allows EZ optimization for Z
-       * func == EQUAL or NEVER.
-       */
-      break;
-
-   case V3D_EZ_LT_LE:
-   case V3D_EZ_GT_GE:
-      /* If the pipeline picked a direction, then it needs to match the current
-       * direction if we've decided on one.
-       */
-      if (job->ez_state == V3D_EZ_UNDECIDED)
-         job->ez_state = pipeline->ez_state;
-      else if (job->ez_state != pipeline->ez_state)
-         job->ez_state = V3D_EZ_DISABLED;
-      break;
-
-   case V3D_EZ_DISABLED:
-      /* If the pipeline disables EZ because of a bad Z func or stencil
-       * operation, then we can't do any more EZ in this frame.
-       */
-      job->ez_state = V3D_EZ_DISABLED;
-      break;
-   }
-
-   if (job->first_ez_state == V3D_EZ_UNDECIDED &&
-       job->ez_state != V3D_EZ_DISABLED) {
-      job->first_ez_state = job->ez_state;
-   }
 }
 
 static void
@@ -3161,7 +1912,7 @@ bind_compute_pipeline(struct v3dv_cmd_buffer *cmd_buffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_COMPUTE_PIPELINE;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdBindPipeline(VkCommandBuffer commandBuffer,
                      VkPipelineBindPoint pipelineBindPoint,
                      VkPipeline _pipeline)
@@ -3217,7 +1968,7 @@ v3dv_viewport_compute_xform(const VkViewport *viewport,
       scale[2] = min_abs_scale * (scale[2] < 0 ? -1.0f : 1.0f);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetViewport(VkCommandBuffer commandBuffer,
                     uint32_t firstViewport,
                     uint32_t viewportCount,
@@ -3250,7 +2001,7 @@ v3dv_CmdSetViewport(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_VIEWPORT;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetScissor(VkCommandBuffer commandBuffer,
                    uint32_t firstScissor,
                    uint32_t scissorCount,
@@ -3354,376 +2105,10 @@ emit_scissor(struct v3dv_cmd_buffer *cmd_buffer)
    cmd_buffer->state.clip_window.extent.width = maxx - minx;
    cmd_buffer->state.clip_window.extent.height = maxy - miny;
 
-   emit_clip_window(cmd_buffer->state.job, &cmd_buffer->state.clip_window);
+   v3dv_X(cmd_buffer->device, job_emit_clip_window)
+      (cmd_buffer->state.job, &cmd_buffer->state.clip_window);
 
    cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_SCISSOR;
-}
-
-static void
-emit_viewport(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_dynamic_state *dynamic = &cmd_buffer->state.dynamic;
-   /* FIXME: right now we only support one viewport. viewporst[0] would work
-    * now, would need to change if we allow multiple viewports
-    */
-   float *vptranslate = dynamic->viewport.translate[0];
-   float *vpscale = dynamic->viewport.scale[0];
-
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   const uint32_t required_cl_size =
-      cl_packet_length(CLIPPER_XY_SCALING) +
-      cl_packet_length(CLIPPER_Z_SCALE_AND_OFFSET) +
-      cl_packet_length(CLIPPER_Z_MIN_MAX_CLIPPING_PLANES) +
-      cl_packet_length(VIEWPORT_OFFSET);
-   v3dv_cl_ensure_space_with_branch(&job->bcl, required_cl_size);
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, CLIPPER_XY_SCALING, clip) {
-      clip.viewport_half_width_in_1_256th_of_pixel = vpscale[0] * 256.0f;
-      clip.viewport_half_height_in_1_256th_of_pixel = vpscale[1] * 256.0f;
-   }
-
-   cl_emit(&job->bcl, CLIPPER_Z_SCALE_AND_OFFSET, clip) {
-      clip.viewport_z_offset_zc_to_zs = vptranslate[2];
-      clip.viewport_z_scale_zc_to_zs = vpscale[2];
-   }
-   cl_emit(&job->bcl, CLIPPER_Z_MIN_MAX_CLIPPING_PLANES, clip) {
-      /* Vulkan's Z NDC is [0..1], unlile OpenGL which is [-1, 1] */
-      float z1 = vptranslate[2];
-      float z2 = vptranslate[2] + vpscale[2];
-      clip.minimum_zw = MIN2(z1, z2);
-      clip.maximum_zw = MAX2(z1, z2);
-   }
-
-   cl_emit(&job->bcl, VIEWPORT_OFFSET, vp) {
-      vp.viewport_centre_x_coordinate = vptranslate[0];
-      vp.viewport_centre_y_coordinate = vptranslate[1];
-   }
-
-   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_VIEWPORT;
-}
-
-static void
-emit_stencil(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   struct v3dv_dynamic_state *dynamic_state = &cmd_buffer->state.dynamic;
-
-   const uint32_t dynamic_stencil_states = V3DV_DYNAMIC_STENCIL_COMPARE_MASK |
-                                           V3DV_DYNAMIC_STENCIL_WRITE_MASK |
-                                           V3DV_DYNAMIC_STENCIL_REFERENCE;
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                    2 * cl_packet_length(STENCIL_CFG));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   bool emitted_stencil = false;
-   for (uint32_t i = 0; i < 2; i++) {
-      if (pipeline->emit_stencil_cfg[i]) {
-         if (dynamic_state->mask & dynamic_stencil_states) {
-            cl_emit_with_prepacked(&job->bcl, STENCIL_CFG,
-                                   pipeline->stencil_cfg[i], config) {
-               if (dynamic_state->mask & V3DV_DYNAMIC_STENCIL_COMPARE_MASK) {
-                  config.stencil_test_mask =
-                     i == 0 ? dynamic_state->stencil_compare_mask.front :
-                              dynamic_state->stencil_compare_mask.back;
-               }
-               if (dynamic_state->mask & V3DV_DYNAMIC_STENCIL_WRITE_MASK) {
-                  config.stencil_write_mask =
-                     i == 0 ? dynamic_state->stencil_write_mask.front :
-                              dynamic_state->stencil_write_mask.back;
-               }
-               if (dynamic_state->mask & V3DV_DYNAMIC_STENCIL_REFERENCE) {
-                  config.stencil_ref_value =
-                     i == 0 ? dynamic_state->stencil_reference.front :
-                              dynamic_state->stencil_reference.back;
-               }
-            }
-         } else {
-            cl_emit_prepacked(&job->bcl, &pipeline->stencil_cfg[i]);
-         }
-
-         emitted_stencil = true;
-      }
-   }
-
-   if (emitted_stencil) {
-      const uint32_t dynamic_stencil_dirty_flags =
-               V3DV_CMD_DIRTY_STENCIL_COMPARE_MASK |
-               V3DV_CMD_DIRTY_STENCIL_WRITE_MASK |
-               V3DV_CMD_DIRTY_STENCIL_REFERENCE;
-      cmd_buffer->state.dirty &= ~dynamic_stencil_dirty_flags;
-   }
-}
-
-static void
-emit_depth_bias(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   assert(pipeline);
-
-   if (!pipeline->depth_bias.enabled)
-      return;
-
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(DEPTH_OFFSET));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   struct v3dv_dynamic_state *dynamic = &cmd_buffer->state.dynamic;
-   cl_emit(&job->bcl, DEPTH_OFFSET, bias) {
-      bias.depth_offset_factor = dynamic->depth_bias.slope_factor;
-      bias.depth_offset_units = dynamic->depth_bias.constant_factor;
-      if (pipeline->depth_bias.is_z16)
-         bias.depth_offset_units *= 256.0f;
-      bias.limit = dynamic->depth_bias.depth_bias_clamp;
-   }
-
-   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_DEPTH_BIAS;
-}
-
-static void
-emit_line_width(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(LINE_WIDTH));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, LINE_WIDTH, line) {
-      line.line_width = cmd_buffer->state.dynamic.line_width;
-   }
-
-   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_LINE_WIDTH;
-}
-
-static void
-emit_sample_state(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   assert(pipeline);
-
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(SAMPLE_STATE));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, SAMPLE_STATE, state) {
-      state.coverage = 1.0f;
-      state.mask = pipeline->sample_mask;
-   }
-}
-
-static void
-emit_blend(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   assert(pipeline);
-
-   const uint32_t blend_packets_size =
-      cl_packet_length(BLEND_ENABLES) +
-      cl_packet_length(BLEND_CONSTANT_COLOR) +
-      cl_packet_length(BLEND_CFG) * V3D_MAX_DRAW_BUFFERS +
-      cl_packet_length(COLOR_WRITE_MASKS);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, blend_packets_size);
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   if (cmd_buffer->state.dirty & V3DV_CMD_DIRTY_PIPELINE) {
-      if (pipeline->blend.enables) {
-         cl_emit(&job->bcl, BLEND_ENABLES, enables) {
-            enables.mask = pipeline->blend.enables;
-         }
-      }
-
-      for (uint32_t i = 0; i < V3D_MAX_DRAW_BUFFERS; i++) {
-         if (pipeline->blend.enables & (1 << i))
-            cl_emit_prepacked(&job->bcl, &pipeline->blend.cfg[i]);
-      }
-
-      cl_emit(&job->bcl, COLOR_WRITE_MASKS, mask) {
-         mask.mask = pipeline->blend.color_write_masks;
-      }
-   }
-
-   if (pipeline->blend.needs_color_constants &&
-       cmd_buffer->state.dirty & V3DV_CMD_DIRTY_BLEND_CONSTANTS) {
-      struct v3dv_dynamic_state *dynamic = &cmd_buffer->state.dynamic;
-      cl_emit(&job->bcl, BLEND_CONSTANT_COLOR, color) {
-         color.red_f16 = _mesa_float_to_half(dynamic->blend_constants[0]);
-         color.green_f16 = _mesa_float_to_half(dynamic->blend_constants[1]);
-         color.blue_f16 = _mesa_float_to_half(dynamic->blend_constants[2]);
-         color.alpha_f16 = _mesa_float_to_half(dynamic->blend_constants[3]);
-      }
-      cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_BLEND_CONSTANTS;
-   }
-}
-
-static void
-emit_flat_shade_flags(struct v3dv_job *job,
-                      int varying_offset,
-                      uint32_t varyings,
-                      enum V3DX(Varying_Flags_Action) lower,
-                      enum V3DX(Varying_Flags_Action) higher)
-{
-   v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                    cl_packet_length(FLAT_SHADE_FLAGS));
-   v3dv_return_if_oom(NULL, job);
-
-   cl_emit(&job->bcl, FLAT_SHADE_FLAGS, flags) {
-      flags.varying_offset_v0 = varying_offset;
-      flags.flat_shade_flags_for_varyings_v024 = varyings;
-      flags.action_for_flat_shade_flags_of_lower_numbered_varyings = lower;
-      flags.action_for_flat_shade_flags_of_higher_numbered_varyings = higher;
-   }
-}
-
-static void
-emit_noperspective_flags(struct v3dv_job *job,
-                         int varying_offset,
-                         uint32_t varyings,
-                         enum V3DX(Varying_Flags_Action) lower,
-                         enum V3DX(Varying_Flags_Action) higher)
-{
-   v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                    cl_packet_length(NON_PERSPECTIVE_FLAGS));
-   v3dv_return_if_oom(NULL, job);
-
-   cl_emit(&job->bcl, NON_PERSPECTIVE_FLAGS, flags) {
-      flags.varying_offset_v0 = varying_offset;
-      flags.non_perspective_flags_for_varyings_v024 = varyings;
-      flags.action_for_non_perspective_flags_of_lower_numbered_varyings = lower;
-      flags.action_for_non_perspective_flags_of_higher_numbered_varyings = higher;
-   }
-}
-
-static void
-emit_centroid_flags(struct v3dv_job *job,
-                    int varying_offset,
-                    uint32_t varyings,
-                    enum V3DX(Varying_Flags_Action) lower,
-                    enum V3DX(Varying_Flags_Action) higher)
-{
-   v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                    cl_packet_length(CENTROID_FLAGS));
-   v3dv_return_if_oom(NULL, job);
-
-   cl_emit(&job->bcl, CENTROID_FLAGS, flags) {
-      flags.varying_offset_v0 = varying_offset;
-      flags.centroid_flags_for_varyings_v024 = varyings;
-      flags.action_for_centroid_flags_of_lower_numbered_varyings = lower;
-      flags.action_for_centroid_flags_of_higher_numbered_varyings = higher;
-   }
-}
-
-static bool
-emit_varying_flags(struct v3dv_job *job,
-                   uint32_t num_flags,
-                   const uint32_t *flags,
-                   void (*flag_emit_callback)(struct v3dv_job *job,
-                                              int varying_offset,
-                                              uint32_t flags,
-                                              enum V3DX(Varying_Flags_Action) lower,
-                                              enum V3DX(Varying_Flags_Action) higher))
-{
-   bool emitted_any = false;
-   for (int i = 0; i < num_flags; i++) {
-      if (!flags[i])
-         continue;
-
-      if (emitted_any) {
-        flag_emit_callback(job, i, flags[i],
-                           V3D_VARYING_FLAGS_ACTION_UNCHANGED,
-                           V3D_VARYING_FLAGS_ACTION_UNCHANGED);
-      } else if (i == 0) {
-        flag_emit_callback(job, i, flags[i],
-                           V3D_VARYING_FLAGS_ACTION_UNCHANGED,
-                           V3D_VARYING_FLAGS_ACTION_ZEROED);
-      } else {
-        flag_emit_callback(job, i, flags[i],
-                           V3D_VARYING_FLAGS_ACTION_ZEROED,
-                           V3D_VARYING_FLAGS_ACTION_ZEROED);
-      }
-
-      emitted_any = true;
-   }
-
-   return emitted_any;
-}
-
-static void
-emit_varyings_state(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-
-   struct v3d_fs_prog_data *prog_data_fs =
-      pipeline->shared_data->variants[BROADCOM_SHADER_FRAGMENT]->prog_data.fs;
-
-   const uint32_t num_flags =
-      ARRAY_SIZE(prog_data_fs->flat_shade_flags);
-   const uint32_t *flat_shade_flags = prog_data_fs->flat_shade_flags;
-   const uint32_t *noperspective_flags =  prog_data_fs->noperspective_flags;
-   const uint32_t *centroid_flags = prog_data_fs->centroid_flags;
-
-   if (!emit_varying_flags(job, num_flags, flat_shade_flags,
-                           emit_flat_shade_flags)) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(ZERO_ALL_FLAT_SHADE_FLAGS));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, ZERO_ALL_FLAT_SHADE_FLAGS, flags);
-   }
-
-   if (!emit_varying_flags(job, num_flags, noperspective_flags,
-                           emit_noperspective_flags)) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(ZERO_ALL_NON_PERSPECTIVE_FLAGS));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, ZERO_ALL_NON_PERSPECTIVE_FLAGS, flags);
-   }
-
-   if (!emit_varying_flags(job, num_flags, centroid_flags,
-                           emit_centroid_flags)) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(ZERO_ALL_CENTROID_FLAGS));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, ZERO_ALL_CENTROID_FLAGS, flags);
-   }
-}
-
-static void
-emit_configuration_bits(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   assert(pipeline);
-
-   job_update_ez_state(job, pipeline, cmd_buffer);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(CFG_BITS));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit_with_prepacked(&job->bcl, CFG_BITS, pipeline->cfg_bits, config) {
-      config.early_z_enable = job->ez_state != V3D_EZ_DISABLED;
-      config.early_z_updates_enable = config.early_z_enable &&
-                                      pipeline->z_updates_enable;
-   }
 }
 
 static void
@@ -3744,7 +2129,9 @@ update_gfx_uniform_state(struct v3dv_cmd_buffer *cmd_buffer,
    const bool has_new_viewport = dirty_uniform_state & V3DV_CMD_DIRTY_VIEWPORT;
    const bool has_new_push_constants = dirty_uniform_state & V3DV_CMD_DIRTY_PUSH_CONSTANTS;
    const bool has_new_descriptors = dirty_uniform_state & V3DV_CMD_DIRTY_DESCRIPTOR_SETS;
+   const bool has_new_view_index = dirty_uniform_state & V3DV_CMD_DIRTY_VIEW_INDEX;
 
+   /* VK_SHADER_STAGE_FRAGMENT_BIT */
    const bool has_new_descriptors_fs =
       has_new_descriptors &&
       (cmd_buffer->state.dirty_descriptor_stages & VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -3754,8 +2141,10 @@ update_gfx_uniform_state(struct v3dv_cmd_buffer *cmd_buffer,
       (cmd_buffer->state.dirty_push_constants_stages & VK_SHADER_STAGE_FRAGMENT_BIT);
 
    const bool needs_fs_update = has_new_pipeline ||
+                                has_new_view_index ||
                                 has_new_push_constants_fs ||
-                                has_new_descriptors_fs;
+                                has_new_descriptors_fs ||
+                                has_new_view_index;
 
    if (needs_fs_update) {
       struct v3dv_shader_variant *fs_variant =
@@ -3765,6 +2154,40 @@ update_gfx_uniform_state(struct v3dv_cmd_buffer *cmd_buffer,
          v3dv_write_uniforms(cmd_buffer, pipeline, fs_variant);
    }
 
+   /* VK_SHADER_STAGE_GEOMETRY_BIT */
+   if (pipeline->has_gs) {
+      const bool has_new_descriptors_gs =
+         has_new_descriptors &&
+         (cmd_buffer->state.dirty_descriptor_stages &
+          VK_SHADER_STAGE_GEOMETRY_BIT);
+
+      const bool has_new_push_constants_gs =
+         has_new_push_constants &&
+         (cmd_buffer->state.dirty_push_constants_stages &
+          VK_SHADER_STAGE_GEOMETRY_BIT);
+
+      const bool needs_gs_update = has_new_viewport ||
+                                   has_new_view_index ||
+                                   has_new_pipeline ||
+                                   has_new_push_constants_gs ||
+                                   has_new_descriptors_gs;
+
+      if (needs_gs_update) {
+         struct v3dv_shader_variant *gs_variant =
+            pipeline->shared_data->variants[BROADCOM_SHADER_GEOMETRY];
+
+          struct v3dv_shader_variant *gs_bin_variant =
+            pipeline->shared_data->variants[BROADCOM_SHADER_GEOMETRY_BIN];
+
+         cmd_buffer->state.uniforms.gs =
+            v3dv_write_uniforms(cmd_buffer, pipeline, gs_variant);
+
+         cmd_buffer->state.uniforms.gs_bin =
+            v3dv_write_uniforms(cmd_buffer, pipeline, gs_bin_variant);
+      }
+   }
+
+   /* VK_SHADER_STAGE_VERTEX_BIT */
    const bool has_new_descriptors_vs =
       has_new_descriptors &&
       (cmd_buffer->state.dirty_descriptor_stages & VK_SHADER_STAGE_VERTEX_BIT);
@@ -3774,6 +2197,7 @@ update_gfx_uniform_state(struct v3dv_cmd_buffer *cmd_buffer,
       (cmd_buffer->state.dirty_push_constants_stages & VK_SHADER_STAGE_VERTEX_BIT);
 
    const bool needs_vs_update = has_new_viewport ||
+                                has_new_view_index ||
                                 has_new_pipeline ||
                                 has_new_push_constants_vs ||
                                 has_new_descriptors_vs;
@@ -3791,207 +2215,8 @@ update_gfx_uniform_state(struct v3dv_cmd_buffer *cmd_buffer,
       cmd_buffer->state.uniforms.vs_bin =
          v3dv_write_uniforms(cmd_buffer, pipeline, vs_bin_variant);
    }
-}
 
-static void
-emit_gl_shader_state(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   struct v3dv_pipeline *pipeline = state->gfx.pipeline;
-   assert(pipeline);
-
-   struct v3d_vs_prog_data *prog_data_vs =
-      pipeline->shared_data->variants[BROADCOM_SHADER_VERTEX]->prog_data.vs;
-   struct v3d_vs_prog_data *prog_data_vs_bin =
-      pipeline->shared_data->variants[BROADCOM_SHADER_VERTEX_BIN]->prog_data.vs;
-   struct v3d_fs_prog_data *prog_data_fs =
-      pipeline->shared_data->variants[BROADCOM_SHADER_FRAGMENT]->prog_data.fs;
-
-   /* Update the cache dirty flag based on the shader progs data */
-   job->tmu_dirty_rcl |= prog_data_vs_bin->base.tmu_dirty_rcl;
-   job->tmu_dirty_rcl |= prog_data_vs->base.tmu_dirty_rcl;
-   job->tmu_dirty_rcl |= prog_data_fs->base.tmu_dirty_rcl;
-
-   /* See GFXH-930 workaround below */
-   uint32_t num_elements_to_emit = MAX2(pipeline->va_count, 1);
-
-   uint32_t shader_rec_offset =
-      v3dv_cl_ensure_space(&job->indirect,
-                           cl_packet_length(GL_SHADER_STATE_RECORD) +
-                           num_elements_to_emit *
-                           cl_packet_length(GL_SHADER_STATE_ATTRIBUTE_RECORD),
-                           32);
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   struct v3dv_shader_variant *vs_variant =
-      pipeline->shared_data->variants[BROADCOM_SHADER_VERTEX];
-   struct v3dv_shader_variant *vs_bin_variant =
-      pipeline->shared_data->variants[BROADCOM_SHADER_VERTEX_BIN];
-   struct v3dv_shader_variant *fs_variant =
-      pipeline->shared_data->variants[BROADCOM_SHADER_FRAGMENT];
-   struct v3dv_bo *assembly_bo = pipeline->shared_data->assembly_bo;
-
-   struct v3dv_bo *default_attribute_values =
-      pipeline->default_attribute_values != NULL ?
-      pipeline->default_attribute_values :
-      pipeline->device->default_attribute_float;
-
-   cl_emit_with_prepacked(&job->indirect, GL_SHADER_STATE_RECORD,
-                          pipeline->shader_state_record, shader) {
-
-      /* FIXME: we are setting this values here and during the
-       * prepacking. This is because both cl_emit_with_prepacked and v3dv_pack
-       * asserts for minimum values of these. It would be good to get
-       * v3dv_pack to assert on the final value if possible
-       */
-      shader.min_coord_shader_input_segments_required_in_play =
-         pipeline->vpm_cfg_bin.As;
-      shader.min_vertex_shader_input_segments_required_in_play =
-         pipeline->vpm_cfg.As;
-
-      shader.coordinate_shader_code_address =
-         v3dv_cl_address(assembly_bo, vs_bin_variant->assembly_offset);
-      shader.vertex_shader_code_address =
-         v3dv_cl_address(assembly_bo, vs_variant->assembly_offset);
-      shader.fragment_shader_code_address =
-         v3dv_cl_address(assembly_bo, fs_variant->assembly_offset);
-
-      shader.coordinate_shader_uniforms_address = cmd_buffer->state.uniforms.vs_bin;
-      shader.vertex_shader_uniforms_address = cmd_buffer->state.uniforms.vs;
-      shader.fragment_shader_uniforms_address = cmd_buffer->state.uniforms.fs;
-
-      shader.address_of_default_attribute_values =
-         v3dv_cl_address(default_attribute_values, 0);
-   }
-
-   /* Upload vertex element attributes (SHADER_STATE_ATTRIBUTE_RECORD) */
-   bool cs_loaded_any = false;
-   const bool cs_uses_builtins = prog_data_vs_bin->uses_iid ||
-                                 prog_data_vs_bin->uses_biid ||
-                                 prog_data_vs_bin->uses_vid;
-   const uint32_t packet_length =
-      cl_packet_length(GL_SHADER_STATE_ATTRIBUTE_RECORD);
-
-   uint32_t emitted_va_count = 0;
-   for (uint32_t i = 0; emitted_va_count < pipeline->va_count; i++) {
-      assert(i < MAX_VERTEX_ATTRIBS);
-
-      if (pipeline->va[i].vk_format == VK_FORMAT_UNDEFINED)
-         continue;
-
-      const uint32_t binding = pipeline->va[i].binding;
-
-      /* We store each vertex attribute in the array using its driver location
-       * as index.
-       */
-      const uint32_t location = i;
-
-      struct v3dv_vertex_binding *c_vb = &cmd_buffer->state.vertex_bindings[binding];
-
-      cl_emit_with_prepacked(&job->indirect, GL_SHADER_STATE_ATTRIBUTE_RECORD,
-                             &pipeline->vertex_attrs[i * packet_length], attr) {
-
-         assert(c_vb->buffer->mem->bo);
-         attr.address = v3dv_cl_address(c_vb->buffer->mem->bo,
-                                        c_vb->buffer->mem_offset +
-                                        pipeline->va[i].offset +
-                                        c_vb->offset);
-
-         attr.number_of_values_read_by_coordinate_shader =
-            prog_data_vs_bin->vattr_sizes[location];
-         attr.number_of_values_read_by_vertex_shader =
-            prog_data_vs->vattr_sizes[location];
-
-         /* GFXH-930: At least one attribute must be enabled and read by CS
-          * and VS.  If we have attributes being consumed by the VS but not
-          * the CS, then set up a dummy load of the last attribute into the
-          * CS's VPM inputs.  (Since CS is just dead-code-elimination compared
-          * to VS, we can't have CS loading but not VS).
-          *
-          * GFXH-1602: first attribute must be active if using builtins.
-          */
-         if (prog_data_vs_bin->vattr_sizes[location])
-            cs_loaded_any = true;
-
-         if (i == 0 && cs_uses_builtins && !cs_loaded_any) {
-            attr.number_of_values_read_by_coordinate_shader = 1;
-            cs_loaded_any = true;
-         } else if (i == pipeline->va_count - 1 && !cs_loaded_any) {
-            attr.number_of_values_read_by_coordinate_shader = 1;
-            cs_loaded_any = true;
-         }
-
-         attr.maximum_index = 0xffffff;
-      }
-
-      emitted_va_count++;
-   }
-
-   if (pipeline->va_count == 0) {
-      /* GFXH-930: At least one attribute must be enabled and read
-       * by CS and VS.  If we have no attributes being consumed by
-       * the shader, set up a dummy to be loaded into the VPM.
-       */
-      cl_emit(&job->indirect, GL_SHADER_STATE_ATTRIBUTE_RECORD, attr) {
-         /* Valid address of data whose value will be unused. */
-         attr.address = v3dv_cl_address(job->indirect.bo, 0);
-
-         attr.type = ATTRIBUTE_FLOAT;
-         attr.stride = 0;
-         attr.vec_size = 1;
-
-         attr.number_of_values_read_by_coordinate_shader = 1;
-         attr.number_of_values_read_by_vertex_shader = 1;
-      }
-   }
-
-   if (cmd_buffer->state.dirty & V3DV_CMD_DIRTY_PIPELINE) {
-      v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                       sizeof(pipeline->vcm_cache_size));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit_prepacked(&job->bcl, &pipeline->vcm_cache_size);
-   }
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                    cl_packet_length(GL_SHADER_STATE));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, GL_SHADER_STATE, state) {
-      state.address = v3dv_cl_address(job->indirect.bo,
-                                      shader_rec_offset);
-      state.number_of_attribute_arrays = num_elements_to_emit;
-   }
-
-   cmd_buffer->state.dirty &= ~(V3DV_CMD_DIRTY_VERTEX_BUFFER |
-                                V3DV_CMD_DIRTY_DESCRIPTOR_SETS |
-                                V3DV_CMD_DIRTY_PUSH_CONSTANTS);
-   cmd_buffer->state.dirty_descriptor_stages &= ~VK_SHADER_STAGE_ALL_GRAPHICS;
-   cmd_buffer->state.dirty_push_constants_stages &= ~VK_SHADER_STAGE_ALL_GRAPHICS;
-}
-
-static void
-emit_occlusion_query(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   v3dv_cl_ensure_space_with_branch(&job->bcl,
-                                    cl_packet_length(OCCLUSION_QUERY_COUNTER));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, OCCLUSION_QUERY_COUNTER, counter) {
-      if (cmd_buffer->state.query.active_query.bo) {
-         counter.address =
-            v3dv_cl_address(cmd_buffer->state.query.active_query.bo,
-                            cmd_buffer->state.query.active_query.offset);
-      }
-   }
-
-   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_OCCLUSION_QUERY;
+   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_VIEW_INDEX;
 }
 
 /* This stores command buffer state that we might be about to stomp for
@@ -4130,86 +2355,6 @@ v3dv_cmd_buffer_meta_state_pop(struct v3dv_cmd_buffer *cmd_buffer,
    state->meta.has_descriptor_state = false;
 }
 
-/* FIXME: C&P from v3dx_draw. Refactor to common place? */
-static uint32_t
-v3d_hw_prim_type(enum pipe_prim_type prim_type)
-{
-   switch (prim_type) {
-   case PIPE_PRIM_POINTS:
-   case PIPE_PRIM_LINES:
-   case PIPE_PRIM_LINE_LOOP:
-   case PIPE_PRIM_LINE_STRIP:
-   case PIPE_PRIM_TRIANGLES:
-   case PIPE_PRIM_TRIANGLE_STRIP:
-   case PIPE_PRIM_TRIANGLE_FAN:
-      return prim_type;
-
-   case PIPE_PRIM_LINES_ADJACENCY:
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-   case PIPE_PRIM_TRIANGLES_ADJACENCY:
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-      return 8 + (prim_type - PIPE_PRIM_LINES_ADJACENCY);
-
-   default:
-      unreachable("Unsupported primitive type");
-   }
-}
-
-struct v3dv_draw_info {
-   uint32_t vertex_count;
-   uint32_t instance_count;
-   uint32_t first_vertex;
-   uint32_t first_instance;
-};
-
-static void
-cmd_buffer_emit_draw(struct v3dv_cmd_buffer *cmd_buffer,
-                     struct v3dv_draw_info *info)
-{
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   struct v3dv_pipeline *pipeline = state->gfx.pipeline;
-
-   assert(pipeline);
-
-   uint32_t hw_prim_type = v3d_hw_prim_type(pipeline->topology);
-
-   if (info->first_instance > 0) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(BASE_VERTEX_BASE_INSTANCE));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, BASE_VERTEX_BASE_INSTANCE, base) {
-         base.base_instance = info->first_instance;
-         base.base_vertex = 0;
-      }
-   }
-
-   if (info->instance_count > 1) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(VERTEX_ARRAY_INSTANCED_PRIMS));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, VERTEX_ARRAY_INSTANCED_PRIMS, prim) {
-         prim.mode = hw_prim_type;
-         prim.index_of_first_vertex = info->first_vertex;
-         prim.number_of_instances = info->instance_count;
-         prim.instance_length = info->vertex_count;
-      }
-   } else {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(VERTEX_ARRAY_PRIMS));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-      cl_emit(&job->bcl, VERTEX_ARRAY_PRIMS, prim) {
-         prim.mode = hw_prim_type;
-         prim.length = info->vertex_count;
-         prim.index_of_first_vertex = info->first_vertex;
-      }
-   }
-}
-
 static struct v3dv_job *
 cmd_buffer_pre_draw_split_job(struct v3dv_cmd_buffer *cmd_buffer)
 {
@@ -4312,6 +2457,7 @@ cmd_buffer_restart_job_for_msaa_if_needed(struct v3dv_cmd_buffer *cmd_buffer)
                         old_job->frame_tiling.width,
                         old_job->frame_tiling.height,
                         old_job->frame_tiling.layers,
+                        true,
                         old_job->frame_tiling.render_target_count,
                         old_job->frame_tiling.internal_bpp,
                         true /* msaa */);
@@ -4319,39 +2465,11 @@ cmd_buffer_restart_job_for_msaa_if_needed(struct v3dv_cmd_buffer *cmd_buffer)
    v3dv_job_destroy(old_job);
 }
 
-static void
-emit_index_buffer(struct v3dv_cmd_buffer *cmd_buffer)
+void
+v3dv_cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
 {
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   /* We flag all state as dirty when we create a new job so make sure we
-    * have a valid index buffer before attempting to emit state for it.
-    */
-   struct v3dv_buffer *ibuffer =
-      v3dv_buffer_from_handle(cmd_buffer->state.index_buffer.buffer);
-   if (ibuffer) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(INDEX_BUFFER_SETUP));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      const uint32_t offset = cmd_buffer->state.index_buffer.offset;
-      cl_emit(&job->bcl, INDEX_BUFFER_SETUP, ib) {
-         ib.address = v3dv_cl_address(ibuffer->mem->bo,
-                                      ibuffer->mem_offset + offset);
-         ib.size = ibuffer->mem->bo->size;
-      }
-   }
-
-   cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_INDEX_BUFFER;
-}
-
-static void
-cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
-{
-   struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   assert(pipeline);
-   assert(!(pipeline->active_stages & VK_SHADER_STAGE_COMPUTE_BIT));
+   assert(cmd_buffer->state.gfx.pipeline);
+   assert(!(cmd_buffer->state.gfx.pipeline->active_stages & VK_SHADER_STAGE_COMPUTE_BIT));
 
    /* If we emitted a pipeline barrier right before this draw we won't have
     * an active job. In that case, create a new job continuing the current
@@ -4364,25 +2482,6 @@ cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
 
    /* Restart single sample job for MSAA pipeline if needed */
    cmd_buffer_restart_job_for_msaa_if_needed(cmd_buffer);
-
-   /* Enable always flush if we are blending to sRGB render targets. This
-    * fixes test failures in:
-    * dEQP-VK.pipeline.blend.format.r8g8b8a8_srgb.*
-    *
-    * FIXME: not sure why we need this. The tile buffer is always linear, with
-    * conversion from/to sRGB happening on tile load/store operations. This
-    * means that when we enable flushing the only difference is that we convert
-    * to sRGB on the store after each draw call and we convert from sRGB on the
-    * load before each draw call, but the blend happens in linear format in the
-    * tile buffer anyway, which is the same scenario as if we didn't flush.
-    */
-   assert(pipeline->subpass);
-   assert(cmd_buffer->state.job);
-   if (pipeline->subpass->has_srgb_rt && pipeline->blend.enables) {
-      cmd_buffer->state.job->always_flush = true;
-      perf_debug("flushing draw calls for subpass %d because bound pipeline "
-                 "uses sRGB blending\n", cmd_buffer->state.subpass_idx);
-   }
 
    /* If the job is configured to flush on every draw call we need to create
     * a new job now.
@@ -4403,17 +2502,20 @@ cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
       *dirty & (V3DV_CMD_DIRTY_PIPELINE |
                 V3DV_CMD_DIRTY_PUSH_CONSTANTS |
                 V3DV_CMD_DIRTY_DESCRIPTOR_SETS |
-                V3DV_CMD_DIRTY_VIEWPORT);
+                V3DV_CMD_DIRTY_VIEWPORT |
+                V3DV_CMD_DIRTY_VIEW_INDEX);
 
    if (dirty_uniform_state)
       update_gfx_uniform_state(cmd_buffer, dirty_uniform_state);
 
+   struct v3dv_device *device = cmd_buffer->device;
+
    if (dirty_uniform_state || (*dirty & V3DV_CMD_DIRTY_VERTEX_BUFFER))
-      emit_gl_shader_state(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_gl_shader_state)(cmd_buffer);
 
    if (*dirty & (V3DV_CMD_DIRTY_PIPELINE)) {
-      emit_configuration_bits(cmd_buffer);
-      emit_varyings_state(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_configuration_bits)(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_varyings_state)(cmd_buffer);
    }
 
    if (*dirty & (V3DV_CMD_DIRTY_VIEWPORT | V3DV_CMD_DIRTY_SCISSOR)) {
@@ -4421,46 +2523,69 @@ cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer)
    }
 
    if (*dirty & V3DV_CMD_DIRTY_VIEWPORT) {
-      emit_viewport(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_viewport)(cmd_buffer);
    }
 
    if (*dirty & V3DV_CMD_DIRTY_INDEX_BUFFER)
-      emit_index_buffer(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_index_buffer)(cmd_buffer);
 
    const uint32_t dynamic_stencil_dirty_flags =
       V3DV_CMD_DIRTY_STENCIL_COMPARE_MASK |
       V3DV_CMD_DIRTY_STENCIL_WRITE_MASK |
       V3DV_CMD_DIRTY_STENCIL_REFERENCE;
    if (*dirty & (V3DV_CMD_DIRTY_PIPELINE | dynamic_stencil_dirty_flags))
-      emit_stencil(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_stencil)(cmd_buffer);
 
    if (*dirty & (V3DV_CMD_DIRTY_PIPELINE | V3DV_CMD_DIRTY_DEPTH_BIAS))
-      emit_depth_bias(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_depth_bias)(cmd_buffer);
 
    if (*dirty & (V3DV_CMD_DIRTY_PIPELINE | V3DV_CMD_DIRTY_BLEND_CONSTANTS))
-      emit_blend(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_blend)(cmd_buffer);
 
    if (*dirty & V3DV_CMD_DIRTY_OCCLUSION_QUERY)
-      emit_occlusion_query(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_occlusion_query)(cmd_buffer);
 
    if (*dirty & V3DV_CMD_DIRTY_LINE_WIDTH)
-      emit_line_width(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_line_width)(cmd_buffer);
 
    if (*dirty & V3DV_CMD_DIRTY_PIPELINE)
-      emit_sample_state(cmd_buffer);
+      v3dv_X(device, cmd_buffer_emit_sample_state)(cmd_buffer);
+
+   if (*dirty & (V3DV_CMD_DIRTY_PIPELINE | V3DV_CMD_DIRTY_COLOR_WRITE_ENABLE))
+      v3dv_X(device, cmd_buffer_emit_color_write_mask)(cmd_buffer);
 
    cmd_buffer->state.dirty &= ~V3DV_CMD_DIRTY_PIPELINE;
+}
+
+static inline void
+cmd_buffer_set_view_index(struct v3dv_cmd_buffer *cmd_buffer,
+                          uint32_t view_index)
+{
+   cmd_buffer->state.view_index = view_index;
+   cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_VIEW_INDEX;
 }
 
 static void
 cmd_buffer_draw(struct v3dv_cmd_buffer *cmd_buffer,
                 struct v3dv_draw_info *info)
 {
-   cmd_buffer_emit_pre_draw(cmd_buffer);
-   cmd_buffer_emit_draw(cmd_buffer, info);
+
+   struct v3dv_render_pass *pass = cmd_buffer->state.pass;
+   if (likely(!pass->multiview_enabled)) {
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_draw)(cmd_buffer, info);
+      return;
+   }
+
+   uint32_t view_mask = pass->subpasses[cmd_buffer->state.subpass_idx].view_mask;
+   while (view_mask) {
+      cmd_buffer_set_view_index(cmd_buffer, u_bit_scan(&view_mask));
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_draw)(cmd_buffer, info);
+   }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdDraw(VkCommandBuffer commandBuffer,
              uint32_t vertexCount,
              uint32_t instanceCount,
@@ -4480,7 +2605,7 @@ v3dv_CmdDraw(VkCommandBuffer commandBuffer,
    cmd_buffer_draw(cmd_buffer, &info);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdDrawIndexed(VkCommandBuffer commandBuffer,
                     uint32_t indexCount,
                     uint32_t instanceCount,
@@ -4493,56 +2618,26 @@ v3dv_CmdDrawIndexed(VkCommandBuffer commandBuffer,
 
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
 
-   cmd_buffer_emit_pre_draw(cmd_buffer);
-
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   const struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   uint32_t hw_prim_type = v3d_hw_prim_type(pipeline->topology);
-   uint8_t index_type = ffs(cmd_buffer->state.index_buffer.index_size) - 1;
-   uint32_t index_offset = firstIndex * cmd_buffer->state.index_buffer.index_size;
-
-   if (vertexOffset != 0 || firstInstance != 0) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(BASE_VERTEX_BASE_INSTANCE));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, BASE_VERTEX_BASE_INSTANCE, base) {
-         base.base_instance = firstInstance;
-         base.base_vertex = vertexOffset;
-      }
+   struct v3dv_render_pass *pass = cmd_buffer->state.pass;
+   if (likely(!pass->multiview_enabled)) {
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_draw_indexed)
+         (cmd_buffer, indexCount, instanceCount,
+          firstIndex, vertexOffset, firstInstance);
+      return;
    }
 
-   if (instanceCount == 1) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(INDEXED_PRIM_LIST));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, INDEXED_PRIM_LIST, prim) {
-         prim.index_type = index_type;
-         prim.length = indexCount;
-         prim.index_offset = index_offset;
-         prim.mode = hw_prim_type;
-         prim.enable_primitive_restarts = pipeline->primitive_restart;
-      }
-   } else if (instanceCount > 1) {
-      v3dv_cl_ensure_space_with_branch(
-         &job->bcl, cl_packet_length(INDEXED_INSTANCED_PRIM_LIST));
-      v3dv_return_if_oom(cmd_buffer, NULL);
-
-      cl_emit(&job->bcl, INDEXED_INSTANCED_PRIM_LIST, prim) {
-         prim.index_type = index_type;
-         prim.index_offset = index_offset;
-         prim.mode = hw_prim_type;
-         prim.enable_primitive_restarts = pipeline->primitive_restart;
-         prim.number_of_instances = instanceCount;
-         prim.instance_length = indexCount;
-      }
+   uint32_t view_mask = pass->subpasses[cmd_buffer->state.subpass_idx].view_mask;
+   while (view_mask) {
+      cmd_buffer_set_view_index(cmd_buffer, u_bit_scan(&view_mask));
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_draw_indexed)
+         (cmd_buffer, indexCount, instanceCount,
+          firstIndex, vertexOffset, firstInstance);
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdDrawIndirect(VkCommandBuffer commandBuffer,
                      VkBuffer _buffer,
                      VkDeviceSize offset,
@@ -4556,28 +2651,24 @@ v3dv_CmdDrawIndirect(VkCommandBuffer commandBuffer,
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
    V3DV_FROM_HANDLE(v3dv_buffer, buffer, _buffer);
 
-   cmd_buffer_emit_pre_draw(cmd_buffer);
+   struct v3dv_render_pass *pass = cmd_buffer->state.pass;
+   if (likely(!pass->multiview_enabled)) {
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_draw_indirect)
+         (cmd_buffer, buffer, offset, drawCount, stride);
+      return;
+   }
 
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   const struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   uint32_t hw_prim_type = v3d_hw_prim_type(pipeline->topology);
-
-   v3dv_cl_ensure_space_with_branch(
-      &job->bcl, cl_packet_length(INDIRECT_VERTEX_ARRAY_INSTANCED_PRIMS));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, INDIRECT_VERTEX_ARRAY_INSTANCED_PRIMS, prim) {
-      prim.mode = hw_prim_type;
-      prim.number_of_draw_indirect_array_records = drawCount;
-      prim.stride_in_multiples_of_4_bytes = stride >> 2;
-      prim.address = v3dv_cl_address(buffer->mem->bo,
-                                     buffer->mem_offset + offset);
+   uint32_t view_mask = pass->subpasses[cmd_buffer->state.subpass_idx].view_mask;
+   while (view_mask) {
+      cmd_buffer_set_view_index(cmd_buffer, u_bit_scan(&view_mask));
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_draw_indirect)
+         (cmd_buffer, buffer, offset, drawCount, stride);
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdDrawIndexedIndirect(VkCommandBuffer commandBuffer,
                             VkBuffer _buffer,
                             VkDeviceSize offset,
@@ -4591,31 +2682,24 @@ v3dv_CmdDrawIndexedIndirect(VkCommandBuffer commandBuffer,
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
    V3DV_FROM_HANDLE(v3dv_buffer, buffer, _buffer);
 
-   cmd_buffer_emit_pre_draw(cmd_buffer);
+   struct v3dv_render_pass *pass = cmd_buffer->state.pass;
+   if (likely(!pass->multiview_enabled)) {
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_indexed_indirect)
+         (cmd_buffer, buffer, offset, drawCount, stride);
+      return;
+   }
 
-   struct v3dv_job *job = cmd_buffer->state.job;
-   assert(job);
-
-   const struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
-   uint32_t hw_prim_type = v3d_hw_prim_type(pipeline->topology);
-   uint8_t index_type = ffs(cmd_buffer->state.index_buffer.index_size) - 1;
-
-   v3dv_cl_ensure_space_with_branch(
-      &job->bcl, cl_packet_length(INDIRECT_INDEXED_INSTANCED_PRIM_LIST));
-   v3dv_return_if_oom(cmd_buffer, NULL);
-
-   cl_emit(&job->bcl, INDIRECT_INDEXED_INSTANCED_PRIM_LIST, prim) {
-      prim.index_type = index_type;
-      prim.mode = hw_prim_type;
-      prim.enable_primitive_restarts = pipeline->primitive_restart;
-      prim.number_of_draw_indirect_indexed_records = drawCount;
-      prim.stride_in_multiples_of_4_bytes = stride >> 2;
-      prim.address = v3dv_cl_address(buffer->mem->bo,
-                                     buffer->mem_offset + offset);
+   uint32_t view_mask = pass->subpasses[cmd_buffer->state.subpass_idx].view_mask;
+   while (view_mask) {
+      cmd_buffer_set_view_index(cmd_buffer, u_bit_scan(&view_mask));
+      v3dv_cmd_buffer_emit_pre_draw(cmd_buffer);
+      v3dv_X(cmd_buffer->device, cmd_buffer_emit_indexed_indirect)
+         (cmd_buffer, buffer, offset, drawCount, stride);
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdPipelineBarrier(VkCommandBuffer commandBuffer,
                         VkPipelineStageFlags srcStageMask,
                         VkPipelineStageFlags dstStageMask,
@@ -4651,7 +2735,7 @@ v3dv_CmdPipelineBarrier(VkCommandBuffer commandBuffer,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdBindVertexBuffers(VkCommandBuffer commandBuffer,
                           uint32_t firstBinding,
                           uint32_t bindingCount,
@@ -4686,6 +2770,9 @@ static uint32_t
 get_index_size(VkIndexType index_type)
 {
    switch (index_type) {
+   case VK_INDEX_TYPE_UINT8_EXT:
+      return 1;
+      break;
    case VK_INDEX_TYPE_UINT16:
       return 2;
       break;
@@ -4697,7 +2784,7 @@ get_index_size(VkIndexType index_type)
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
                         VkBuffer buffer,
                         VkDeviceSize offset,
@@ -4718,7 +2805,7 @@ v3dv_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_INDEX_BUFFER;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetStencilCompareMask(VkCommandBuffer commandBuffer,
                               VkStencilFaceFlags faceMask,
                               uint32_t compareMask)
@@ -4733,7 +2820,7 @@ v3dv_CmdSetStencilCompareMask(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_STENCIL_COMPARE_MASK;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetStencilWriteMask(VkCommandBuffer commandBuffer,
                             VkStencilFaceFlags faceMask,
                             uint32_t writeMask)
@@ -4748,7 +2835,7 @@ v3dv_CmdSetStencilWriteMask(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_STENCIL_WRITE_MASK;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetStencilReference(VkCommandBuffer commandBuffer,
                             VkStencilFaceFlags faceMask,
                             uint32_t reference)
@@ -4763,7 +2850,7 @@ v3dv_CmdSetStencilReference(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_STENCIL_REFERENCE;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetDepthBias(VkCommandBuffer commandBuffer,
                      float depthBiasConstantFactor,
                      float depthBiasClamp,
@@ -4777,7 +2864,7 @@ v3dv_CmdSetDepthBias(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_DEPTH_BIAS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetDepthBounds(VkCommandBuffer commandBuffer,
                        float minDepthBounds,
                        float maxDepthBounds)
@@ -4787,7 +2874,7 @@ v3dv_CmdSetDepthBounds(VkCommandBuffer commandBuffer,
     */
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetLineWidth(VkCommandBuffer commandBuffer,
                      float lineWidth)
 {
@@ -4797,7 +2884,7 @@ v3dv_CmdSetLineWidth(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_LINE_WIDTH;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdBindDescriptorSets(VkCommandBuffer commandBuffer,
                            VkPipelineBindPoint pipelineBindPoint,
                            VkPipelineLayout _layout,
@@ -4854,7 +2941,7 @@ v3dv_CmdBindDescriptorSets(VkCommandBuffer commandBuffer,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdPushConstants(VkCommandBuffer commandBuffer,
                       VkPipelineLayout layout,
                       VkShaderStageFlags stageFlags,
@@ -4873,7 +2960,7 @@ v3dv_CmdPushConstants(VkCommandBuffer commandBuffer,
    cmd_buffer->state.dirty_push_constants_stages |= stageFlags;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetBlendConstants(VkCommandBuffer commandBuffer,
                           const float blendConstants[4])
 {
@@ -4889,6 +2976,26 @@ v3dv_CmdSetBlendConstants(VkCommandBuffer commandBuffer,
           sizeof(state->dynamic.blend_constants));
 
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_BLEND_CONSTANTS;
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_CmdSetColorWriteEnableEXT(VkCommandBuffer commandBuffer,
+                               uint32_t attachmentCount,
+                               const VkBool32 *pColorWriteEnables)
+{
+   V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
+   struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
+   uint32_t color_write_enable = 0;
+
+   for (uint32_t i = 0; i < attachmentCount; i++)
+      color_write_enable |= pColorWriteEnables[i] ? (0xfu << (i * 4)) : 0;
+
+   if (state->dynamic.color_write_enable == color_write_enable)
+      return;
+
+   state->dynamic.color_write_enable = color_write_enable;
+
+   state->dirty |= V3DV_CMD_DIRTY_COLOR_WRITE_ENABLE;
 }
 
 void
@@ -4919,12 +3026,12 @@ v3dv_cmd_buffer_reset_queries(struct v3dv_cmd_buffer *cmd_buffer,
    list_addtail(&job->list_link, &cmd_buffer->jobs);
 }
 
-static void
-ensure_array_state(struct v3dv_cmd_buffer *cmd_buffer,
-                   uint32_t slot_size,
-                   uint32_t used_count,
-                   uint32_t *alloc_count,
-                   void **ptr)
+void
+v3dv_cmd_buffer_ensure_array_state(struct v3dv_cmd_buffer *cmd_buffer,
+                                   uint32_t slot_size,
+                                   uint32_t used_count,
+                                   uint32_t *alloc_count,
+                                   void **ptr)
 {
    if (used_count >= *alloc_count) {
       const uint32_t prev_slot_count = *alloc_count;
@@ -4975,11 +3082,11 @@ v3dv_cmd_buffer_end_query(struct v3dv_cmd_buffer *cmd_buffer,
        * render pass job in which they have been recorded.
        */
       struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-      ensure_array_state(cmd_buffer,
-                         sizeof(struct v3dv_end_query_cpu_job_info),
-                         state->query.end.used_count,
-                         &state->query.end.alloc_count,
-                         (void **) &state->query.end.states);
+      v3dv_cmd_buffer_ensure_array_state(cmd_buffer,
+                                         sizeof(struct v3dv_end_query_cpu_job_info),
+                                         state->query.end.used_count,
+                                         &state->query.end.alloc_count,
+                                         (void **) &state->query.end.states);
       v3dv_return_if_oom(cmd_buffer, NULL);
 
       struct v3dv_end_query_cpu_job_info *info =
@@ -4987,6 +3094,27 @@ v3dv_cmd_buffer_end_query(struct v3dv_cmd_buffer *cmd_buffer,
 
       info->pool = pool;
       info->query = query;
+
+      /* From the Vulkan spec:
+       *
+       *   "If queries are used while executing a render pass instance that has
+       *    multiview enabled, the query uses N consecutive query indices in
+       *    the query pool (starting at query) where N is the number of bits set
+       *    in the view mask in the subpass the query is used in. How the
+       *    numerical results of the query are distributed among the queries is
+       *    implementation-dependent."
+       *
+       * In our case, only the first query is used but this means we still need
+       * to flag the other queries as available so we don't emit errors when
+       * the applications attempt to retrive values from them.
+       */
+      struct v3dv_render_pass *pass = cmd_buffer->state.pass;
+      if (!pass->multiview_enabled) {
+         info->count = 1;
+      } else {
+         struct v3dv_subpass *subpass = &pass->subpasses[state->subpass_idx];
+         info->count = util_bitcount(subpass->view_mask);
+      }
    } else {
       /* Otherwise, schedule the CPU job immediately */
       struct v3dv_job *job =
@@ -4997,6 +3125,10 @@ v3dv_cmd_buffer_end_query(struct v3dv_cmd_buffer *cmd_buffer,
 
       job->cpu.query_end.pool = pool;
       job->cpu.query_end.query = query;
+
+      /* Multiview queries cannot cross subpass boundaries */
+      job->cpu.query_end.count = 1;
+
       list_addtail(&job->list_link, &cmd_buffer->jobs);
    }
 
@@ -5058,7 +3190,7 @@ v3dv_cmd_buffer_add_tfu_job(struct v3dv_cmd_buffer *cmd_buffer,
    list_addtail(&job->list_link, &cmd_buffer->jobs);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdSetEvent(VkCommandBuffer commandBuffer,
                  VkEvent _event,
                  VkPipelineStageFlags stageMask)
@@ -5084,7 +3216,7 @@ v3dv_CmdSetEvent(VkCommandBuffer commandBuffer,
    list_addtail(&job->list_link, &cmd_buffer->jobs);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdResetEvent(VkCommandBuffer commandBuffer,
                    VkEvent _event,
                    VkPipelineStageFlags stageMask)
@@ -5110,7 +3242,7 @@ v3dv_CmdResetEvent(VkCommandBuffer commandBuffer,
    list_addtail(&job->list_link, &cmd_buffer->jobs);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdWaitEvents(VkCommandBuffer commandBuffer,
                    uint32_t eventCount,
                    const VkEvent *pEvents,
@@ -5163,7 +3295,7 @@ v3dv_CmdWaitEvents(VkCommandBuffer commandBuffer,
    list_addtail(&job->list_link, &cmd_buffer->jobs);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
                        VkPipelineStageFlagBits pipelineStage,
                        VkQueryPool queryPool,
@@ -5175,7 +3307,8 @@ v3dv_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
    /* If this is called inside a render pass we need to finish the current
     * job here...
     */
-   if (cmd_buffer->state.pass)
+   struct v3dv_render_pass *pass = cmd_buffer->state.pass;
+   if (pass)
       v3dv_cmd_buffer_finish_job(cmd_buffer);
 
    struct v3dv_job *job =
@@ -5186,6 +3319,14 @@ v3dv_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
 
    job->cpu.query_timestamp.pool = query_pool;
    job->cpu.query_timestamp.query = query;
+
+   if (!pass || !pass->multiview_enabled) {
+      job->cpu.query_timestamp.count = 1;
+   } else {
+      struct v3dv_subpass *subpass =
+         &pass->subpasses[cmd_buffer->state.subpass_idx];
+      job->cpu.query_timestamp.count = util_bitcount(subpass->view_mask);
+   }
 
    list_addtail(&job->list_link, &cmd_buffer->jobs);
    cmd_buffer->state.job = NULL;
@@ -5270,6 +3411,9 @@ v3dv_cmd_buffer_rewrite_indirect_csd_job(
 
 static struct v3dv_job *
 cmd_buffer_create_csd_job(struct v3dv_cmd_buffer *cmd_buffer,
+                          uint32_t base_offset_x,
+                          uint32_t base_offset_y,
+                          uint32_t base_offset_z,
                           uint32_t group_count_x,
                           uint32_t group_count_y,
                           uint32_t group_count_z,
@@ -5298,6 +3442,10 @@ cmd_buffer_create_csd_job(struct v3dv_cmd_buffer *cmd_buffer,
    job->csd.wg_count[1] = group_count_y;
    job->csd.wg_count[2] = group_count_z;
 
+   job->csd.wg_base[0] = base_offset_x;
+   job->csd.wg_base[1] = base_offset_y;
+   job->csd.wg_base[2] = base_offset_z;
+
    submit->cfg[0] |= group_count_x << V3D_CSD_CFG012_WG_COUNT_SHIFT;
    submit->cfg[1] |= group_count_y << V3D_CSD_CFG012_WG_COUNT_SHIFT;
    submit->cfg[2] |= group_count_z << V3D_CSD_CFG012_WG_COUNT_SHIFT;
@@ -5313,6 +3461,7 @@ cmd_buffer_create_csd_job(struct v3dv_cmd_buffer *cmd_buffer,
    uint32_t wgs_per_sg =
       v3d_csd_choose_workgroups_per_supergroup(
          &cmd_buffer->device->devinfo,
+         cs_variant->prog_data.cs->has_subgroups,
          cs_variant->prog_data.cs->base.has_control_barrier,
          cs_variant->prog_data.cs->base.threads,
          num_wgs, wg_size);
@@ -5367,6 +3516,9 @@ cmd_buffer_create_csd_job(struct v3dv_cmd_buffer *cmd_buffer,
 
 static void
 cmd_buffer_dispatch(struct v3dv_cmd_buffer *cmd_buffer,
+                    uint32_t base_offset_x,
+                    uint32_t base_offset_y,
+                    uint32_t base_offset_z,
                     uint32_t group_count_x,
                     uint32_t group_count_y,
                     uint32_t group_count_z)
@@ -5376,6 +3528,9 @@ cmd_buffer_dispatch(struct v3dv_cmd_buffer *cmd_buffer,
 
    struct v3dv_job *job =
       cmd_buffer_create_csd_job(cmd_buffer,
+                                base_offset_x,
+                                base_offset_y,
+                                base_offset_z,
                                 group_count_x,
                                 group_count_y,
                                 group_count_z,
@@ -5385,7 +3540,7 @@ cmd_buffer_dispatch(struct v3dv_cmd_buffer *cmd_buffer,
    cmd_buffer->state.job = NULL;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdDispatch(VkCommandBuffer commandBuffer,
                  uint32_t groupCountX,
                  uint32_t groupCountY,
@@ -5394,8 +3549,27 @@ v3dv_CmdDispatch(VkCommandBuffer commandBuffer,
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
 
    cmd_buffer_emit_pre_dispatch(cmd_buffer);
-   cmd_buffer_dispatch(cmd_buffer, groupCountX, groupCountY, groupCountZ);
+   cmd_buffer_dispatch(cmd_buffer, 0, 0, 0,
+                       groupCountX, groupCountY, groupCountZ);
 }
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_CmdDispatchBase(VkCommandBuffer commandBuffer,
+                     uint32_t baseGroupX,
+                     uint32_t baseGroupY,
+                     uint32_t baseGroupZ,
+                     uint32_t groupCountX,
+                     uint32_t groupCountY,
+                     uint32_t groupCountZ)
+{
+   V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
+
+   cmd_buffer_emit_pre_dispatch(cmd_buffer);
+   cmd_buffer_dispatch(cmd_buffer,
+                       baseGroupX, baseGroupY, baseGroupZ,
+                       groupCountX, groupCountY, groupCountZ);
+}
+
 
 static void
 cmd_buffer_dispatch_indirect(struct v3dv_cmd_buffer *cmd_buffer,
@@ -5421,6 +3595,7 @@ cmd_buffer_dispatch_indirect(struct v3dv_cmd_buffer *cmd_buffer,
     */
    struct v3dv_job *csd_job =
       cmd_buffer_create_csd_job(cmd_buffer,
+                                0, 0, 0,
                                 1, 1, 1,
                                 &job->cpu.csd_indirect.wg_uniform_offsets[0],
                                 &job->cpu.csd_indirect.wg_size);
@@ -5443,7 +3618,7 @@ cmd_buffer_dispatch_indirect(struct v3dv_cmd_buffer *cmd_buffer,
    cmd_buffer->state.job = NULL;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_CmdDispatchIndirect(VkCommandBuffer commandBuffer,
                          VkBuffer _buffer,
                          VkDeviceSize offset)
@@ -5455,4 +3630,11 @@ v3dv_CmdDispatchIndirect(VkCommandBuffer commandBuffer,
 
    cmd_buffer_emit_pre_dispatch(cmd_buffer);
    cmd_buffer_dispatch_indirect(cmd_buffer, buffer, offset);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_CmdSetDeviceMask(VkCommandBuffer commandBuffer, uint32_t deviceMask)
+{
+   /* Nothing to do here since we only support a single device */
+   assert(deviceMask == 0x1);
 }

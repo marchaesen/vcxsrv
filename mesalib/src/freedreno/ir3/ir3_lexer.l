@@ -116,6 +116,7 @@ static int parse_w(const char *str)
 "@in"                             return TOKEN(T_A_IN);
 "@out"                            return TOKEN(T_A_OUT);
 "@tex"                            return TOKEN(T_A_TEX);
+"@pvtmem"                         return TOKEN(T_A_PVTMEM);
 "(sy)"                            return TOKEN(T_SY);
 "(ss)"                            return TOKEN(T_SS);
 "(absneg)"                        return TOKEN(T_ABSNEG);
@@ -251,6 +252,7 @@ static int parse_w(const char *str)
 "sel.f32"                         return TOKEN(T_OP_SEL_F32);
 "sad.s16"                         return TOKEN(T_OP_SAD_S16);
 "sad.s32"                         return TOKEN(T_OP_SAD_S32);
+"shlg.b16"                        return TOKEN(T_OP_SHLG_B16);
 
                                   /* category 4: */
 "rcp"                             return TOKEN(T_OP_RCP);
@@ -296,9 +298,11 @@ static int parse_w(const char *str)
 
                                   /* category 6: */
 "ldg"                             return TOKEN(T_OP_LDG);
+"ldg.a"                           return TOKEN(T_OP_LDG_A);
 "ldl"                             return TOKEN(T_OP_LDL);
 "ldp"                             return TOKEN(T_OP_LDP);
 "stg"                             return TOKEN(T_OP_STG);
+"stg.a"                           return TOKEN(T_OP_STG_A);
 "stl"                             return TOKEN(T_OP_STL);
 "stp"                             return TOKEN(T_OP_STP);
 "ldib"                            return TOKEN(T_OP_LDIB);

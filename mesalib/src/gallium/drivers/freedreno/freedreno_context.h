@@ -27,7 +27,6 @@
 #ifndef FREEDRENO_CONTEXT_H_
 #define FREEDRENO_CONTEXT_H_
 
-#include "indices/u_primconvert.h"
 #include "pipe/p_context.h"
 #include "util/libsync.h"
 #include "util/list.h"
@@ -35,12 +34,18 @@
 #include "util/u_blitter.h"
 #include "util/u_string.h"
 #include "util/u_threaded_context.h"
-#include "util/u_trace.h"
+#include "util/perf/u_trace.h"
 
 #include "freedreno_autotune.h"
+#include "freedreno_batch_cache.h"
 #include "freedreno_gmem.h"
+#include "freedreno_perfetto.h"
 #include "freedreno_screen.h"
 #include "freedreno_util.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define BORDER_COLOR_UPLOAD_SIZE (2 * PIPE_MAX_SAMPLERS * BORDERCOLOR_SIZE)
 
@@ -208,13 +213,14 @@ struct fd_context {
     */
    simple_mtx_t gmem_lock;
 
+   struct fd_batch_cache batch_cache;
+
    struct fd_device *dev;
    struct fd_screen *screen;
    struct fd_pipe *pipe;
 
    struct blitter_context *blitter dt;
    void *clear_rs_state[2] dt;
-   struct primconvert_context *primconvert dt;
 
    /* slab for pipe_transfer allocations: */
    struct slab_child_pool transfer_pool dt;
@@ -245,6 +251,8 @@ struct fd_context {
    struct list_head acc_active_queries dt;
    /*@}*/
 
+   uint8_t patch_vertices;
+
    /* Whether we need to recheck the active_queries list next
     * fd_batch_update_queries().
     */
@@ -254,13 +262,6 @@ struct fd_context {
     * be counted against non-perfcounter queries")
     */
    bool active_queries dt;
-
-   /* table with PIPE_PRIM_MAX entries mapping PIPE_PRIM_x to
-    * DI_PT_x value to use for draw initiator.  There are some
-    * slight differences between generation:
-    */
-   const uint8_t *primtypes;
-   uint32_t primtype_mask;
 
    /* shaders used by clear, and gmem->mem blits: */
    struct fd_program_stateobj solid_prog; // TODO move to screen?
@@ -339,11 +340,8 @@ struct fd_context {
     */
    bool in_shadow : 1 dt;
 
-   /* Ie. in blit situation where we no longer care about previous framebuffer
-    * contents.  Main point is to eliminate blits from fd_try_shadow_resource().
-    * For example, in case of texture upload + gen-mipmaps.
-    */
-   bool in_discard_blit : 1 dt;
+   /* For catching recursion problems with blit fallback: */
+   bool in_blit : 1 dt;
 
    /* points to either scissor or disabled_scissor depending on rast state: */
    struct pipe_scissor_state *current_scissor dt;
@@ -439,6 +437,15 @@ struct fd_context {
 
    struct u_trace_context trace_context dt;
 
+#ifdef HAVE_PERFETTO
+   struct fd_perfetto_state perfetto;
+#endif
+
+   /*
+    * Counter to generate submit-ids
+    */
+   uint32_t submit_count;
+
    /* Called on rebind_resource() for any per-gen cleanup required: */
    void (*rebind_resource)(struct fd_context *ctx, struct fd_resource *rsc) dt;
 
@@ -484,6 +491,10 @@ struct fd_context {
    /* blitter: */
    bool (*blit)(struct fd_context *ctx, const struct pipe_blit_info *info) dt;
    void (*clear_ubwc)(struct fd_batch *batch, struct fd_resource *rsc) dt;
+
+   /* uncompress resource, if necessary, to use as the specified format: */
+   void (*validate_format)(struct fd_context *ctx, struct fd_resource *rsc,
+                           enum pipe_format format) dt;
 
    /* handling for barriers: */
    void (*framebuffer_barrier)(struct fd_context *ctx) dt;
@@ -576,6 +587,19 @@ fd_context_dirty_resource(enum fd_dirty_3d_state dirty)
                    FD_DIRTY_TEX | FD_DIRTY_STREAMOUT);
 }
 
+#ifdef __cplusplus
+#define or_dirty(d, mask)                                                      \
+   do {                                                                        \
+      decltype(mask) _d = (d);                                                 \
+      d = (decltype(mask))(_d | (mask));                                       \
+   } while (0)
+#else
+#define or_dirty(d, mask)                                                      \
+   do {                                                                        \
+      d |= (mask);                                                             \
+   } while (0)
+#endif
+
 /* Mark specified non-shader-stage related state as dirty: */
 static inline void
 fd_context_dirty(struct fd_context *ctx, enum fd_dirty_3d_state dirty) assert_dt
@@ -586,9 +610,9 @@ fd_context_dirty(struct fd_context *ctx, enum fd_dirty_3d_state dirty) assert_dt
    ctx->gen_dirty |= ctx->gen_dirty_map[ffs(dirty) - 1];
 
    if (fd_context_dirty_resource(dirty))
-      dirty |= FD_DIRTY_RESOURCE;
+      or_dirty(dirty, FD_DIRTY_RESOURCE);
 
-   ctx->dirty |= dirty;
+   or_dirty(ctx->dirty, dirty);
 }
 
 static inline void
@@ -612,7 +636,7 @@ fd_context_dirty_shader(struct fd_context *ctx, enum pipe_shader_type shader,
 
    ctx->gen_dirty |= ctx->gen_dirty_shader_map[shader][ffs(dirty) - 1];
 
-   ctx->dirty_shader[shader] |= dirty;
+   or_dirty(ctx->dirty_shader[shader], dirty);
    fd_context_dirty(ctx, map[ffs(dirty) - 1]);
 }
 
@@ -621,7 +645,7 @@ static inline void
 fd_context_all_dirty(struct fd_context *ctx) assert_dt
 {
    ctx->last.dirty = true;
-   ctx->dirty = ~0;
+   ctx->dirty = (enum fd_dirty_3d_state) ~0;
 
    /* NOTE: don't use ~0 for gen_dirty, because the gen specific
     * emit code will loop over all the bits:
@@ -629,14 +653,14 @@ fd_context_all_dirty(struct fd_context *ctx) assert_dt
    ctx->gen_dirty = ctx->gen_all_dirty;
 
    for (unsigned i = 0; i < PIPE_SHADER_TYPES; i++)
-      ctx->dirty_shader[i] = ~0;
+      ctx->dirty_shader[i] = (enum fd_dirty_shader_state) ~0;
 }
 
 static inline void
 fd_context_all_clean(struct fd_context *ctx) assert_dt
 {
    ctx->last.dirty = false;
-   ctx->dirty = 0;
+   ctx->dirty = (enum fd_dirty_3d_state)0;
    ctx->gen_dirty = 0;
    for (unsigned i = 0; i < PIPE_SHADER_TYPES; i++) {
       /* don't mark compute state as clean, since it is not emitted
@@ -646,7 +670,7 @@ fd_context_all_clean(struct fd_context *ctx) assert_dt
        */
       if (i == PIPE_SHADER_COMPUTE)
          continue;
-      ctx->dirty_shader[i] = 0;
+      ctx->dirty_shader[i] = (enum fd_dirty_shader_state)0;
    }
 }
 
@@ -684,12 +708,6 @@ fd_context_get_scissor(struct fd_context *ctx) assert_dt
    return ctx->current_scissor;
 }
 
-static inline bool
-fd_supported_prim(struct fd_context *ctx, unsigned prim)
-{
-   return (1 << prim) & ctx->primtype_mask;
-}
-
 void fd_context_switch_from(struct fd_context *ctx) assert_dt;
 void fd_context_switch_to(struct fd_context *ctx,
                           struct fd_batch *batch) assert_dt;
@@ -703,11 +721,14 @@ void fd_emit_string5(struct fd_ringbuffer *ring, const char *string, int len);
 
 struct pipe_context *fd_context_init(struct fd_context *ctx,
                                      struct pipe_screen *pscreen,
-                                     const uint8_t *primtypes, void *priv,
-                                     unsigned flags);
+                                     void *priv, unsigned flags);
 struct pipe_context *fd_context_init_tc(struct pipe_context *pctx,
                                         unsigned flags);
 
 void fd_context_destroy(struct pipe_context *pctx) assert_dt;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* FREEDRENO_CONTEXT_H_ */

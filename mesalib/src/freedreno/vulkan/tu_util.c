@@ -84,9 +84,9 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
                                     const struct tu_render_pass *pass)
 {
    const uint32_t tile_align_w = pass->tile_align_w;
-   const uint32_t tile_align_h = dev->physical_device->info.tile_align_h;
-   const uint32_t max_tile_width = dev->physical_device->info.tile_max_w;
-   const uint32_t max_tile_height = dev->physical_device->info.tile_max_h;
+   const uint32_t tile_align_h = dev->physical_device->info->tile_align_h;
+   const uint32_t max_tile_width = dev->physical_device->info->tile_max_w;
+   const uint32_t max_tile_height = dev->physical_device->info->tile_max_h;
 
    /* start from 1 tile */
    fb->tile_count = (VkExtent2D) {

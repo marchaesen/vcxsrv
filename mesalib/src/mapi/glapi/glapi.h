@@ -45,6 +45,7 @@
 #define _GLAPI_H
 
 #include "util/macros.h"
+#include "util/u_thread.h"
 
 
 #ifdef __cplusplus
@@ -82,11 +83,9 @@ struct _glapi_table;
 extern __declspec(thread) struct _glapi_table * _glapi_tls_Dispatch;
 extern __declspec(thread) void * _glapi_tls_Context;
 #else
-_GLAPI_EXPORT extern __thread struct _glapi_table * _glapi_tls_Dispatch
-    __attribute__((tls_model("initial-exec")));
+_GLAPI_EXPORT extern __THREAD_INITIAL_EXEC struct _glapi_table * _glapi_tls_Dispatch;
 
-_GLAPI_EXPORT extern __thread void * _glapi_tls_Context
-    __attribute__((tls_model("initial-exec")));
+_GLAPI_EXPORT extern __THREAD_INITIAL_EXEC void * _glapi_tls_Context;
 #endif
 
 _GLAPI_EXPORT extern const struct _glapi_table *_glapi_Dispatch;

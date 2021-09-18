@@ -169,6 +169,13 @@ fd_set_shader_buffers(struct pipe_context *pctx, enum pipe_shader_type shader,
          fd_resource_set_usage(buffers[i].buffer, FD_DIRTY_SSBO);
 
          so->enabled_mask |= BIT(n);
+
+         if (writable_bitmask & BIT(i)) {
+            struct fd_resource *rsc = fd_resource(buf->buffer);
+            util_range_add(&rsc->b.b, &rsc->valid_buffer_range,
+                           buf->buffer_offset,
+                           buf->buffer_offset + buf->buffer_size);
+         }
       } else {
          pipe_resource_reference(&buf->buffer, NULL);
       }
@@ -205,6 +212,15 @@ fd_set_shader_images(struct pipe_context *pctx, enum pipe_shader_type shader,
          if (buf->resource) {
             fd_resource_set_usage(buf->resource, FD_DIRTY_IMAGE);
             so->enabled_mask |= BIT(n);
+
+            if ((buf->access & PIPE_IMAGE_ACCESS_WRITE) &&
+                (buf->resource->target == PIPE_BUFFER)) {
+
+               struct fd_resource *rsc = fd_resource(buf->resource);
+               util_range_add(&rsc->b.b, &rsc->valid_buffer_range,
+                              buf->u.buf.offset,
+                              buf->u.buf.offset + buf->u.buf.size);
+            }
          } else {
             so->enabled_mask &= ~BIT(n);
          }
@@ -231,9 +247,9 @@ fd_set_shader_images(struct pipe_context *pctx, enum pipe_shader_type shader,
    fd_context_dirty_shader(ctx, shader, FD_DIRTY_SHADER_IMAGE);
 }
 
-static void
+void
 fd_set_framebuffer_state(struct pipe_context *pctx,
-                         const struct pipe_framebuffer_state *framebuffer) in_dt
+                         const struct pipe_framebuffer_state *framebuffer)
 {
    struct fd_context *ctx = fd_context(pctx);
    struct pipe_framebuffer_state *cso;
@@ -260,27 +276,13 @@ fd_set_framebuffer_state(struct pipe_context *pctx,
    cso->samples = util_framebuffer_get_num_samples(cso);
 
    if (ctx->screen->reorder) {
-      struct fd_batch *old_batch = NULL;
-
-      fd_batch_reference(&old_batch, ctx->batch);
-
-      if (likely(old_batch))
-         fd_batch_finish_queries(old_batch);
-
-      fd_batch_reference(&ctx->batch, NULL);
-      fd_context_all_dirty(ctx);
-      ctx->update_active_queries = true;
-
-      if (old_batch && old_batch->blit && !old_batch->back_blit) {
-         /* for blits, there is not really much point in hanging on
-          * to the uncommitted batch (ie. you probably don't blit
-          * multiple times to the same surface), so we might as
-          * well go ahead and flush this one:
-          */
-         fd_batch_flush(old_batch);
+      if (ctx->batch) {
+         fd_batch_finish_queries(ctx->batch);
+         fd_batch_reference(&ctx->batch, NULL);
       }
 
-      fd_batch_reference(&old_batch, NULL);
+      fd_context_all_dirty(ctx);
+      ctx->update_active_queries = true;
    } else if (ctx->batch) {
       DBG("%d: cbufs[0]=%p, zsbuf=%p", ctx->batch->needs_flush,
           framebuffer->cbufs[0], framebuffer->zsbuf);
@@ -345,7 +347,7 @@ fd_set_viewport_states(struct pipe_context *pctx, unsigned start_slot,
       swap(miny, maxy);
    }
 
-   const float max_dims = ctx->screen->gpu_id >= 400 ? 16384.f : 4096.f;
+   const float max_dims = ctx->screen->gen >= 4 ? 16384.f : 4096.f;
 
    /* Clamp, convert to integer and round up the max bounds. */
    scissor->minx = CLAMP(minx, 0.f, max_dims);
@@ -370,7 +372,7 @@ fd_set_vertex_buffers(struct pipe_context *pctx, unsigned start_slot,
     * we need to mark VTXSTATE as dirty as well to trigger patching
     * and re-emitting the vtx shader:
     */
-   if (ctx->screen->gpu_id < 300) {
+   if (ctx->screen->gen < 3) {
       for (i = 0; i < count; i++) {
          bool new_enabled = vb && vb[i].buffer.resource;
          bool old_enabled = so->vb[i].buffer.resource != NULL;
@@ -553,7 +555,7 @@ fd_set_stream_output_targets(struct pipe_context *pctx, unsigned num_targets,
    debug_assert(num_targets <= ARRAY_SIZE(so->targets));
 
    /* Older targets need sw stats enabled for streamout emulation in VS: */
-   if (ctx->screen->gpu_id < 500) {
+   if (ctx->screen->gen < 5) {
       if (num_targets && !so->num_targets) {
          ctx->stats_users++;
       } else if (so->num_targets && !num_targets) {

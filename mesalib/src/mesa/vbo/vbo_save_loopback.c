@@ -146,7 +146,8 @@ append_attr(GLuint *nr, struct loopback_attr la[], int i, int shift,
 
 void
 _vbo_loopback_vertex_list(struct gl_context *ctx,
-                          const struct vbo_save_vertex_list* node)
+                          const struct vbo_save_vertex_list* node,
+                          fi_type *buffer)
 {
    struct loopback_attr la[VBO_ATTRIB_MAX];
    GLuint nr = 0;
@@ -175,34 +176,15 @@ _vbo_loopback_vertex_list(struct gl_context *ctx,
       append_attr(&nr, la, VERT_ATTRIB_POS, 0, vao);
    }
 
-   const GLuint wrap_count = node->wrap_count;
+   const GLuint wrap_count = node->cold->wrap_count;
    const GLuint stride = _vbo_save_get_stride(node);
-   const GLubyte *buffer = NULL;
-   if (0 < nr) {
-      /* Compute the minimal offset into the vertex buffer object */
-      GLuint offset = ~0u;
-      for (GLuint i = 0; i < nr; ++i)
-         offset = MIN2(offset, la[i].offset);
-      for (GLuint i = 0; i < nr; ++i)
-         la[i].offset -= offset;
-
-      /* Get the mapped base pointer, assert sufficient mapping */
-      struct gl_buffer_object *bufferobj = vao->BufferBinding[0].BufferObj;
-      assert(bufferobj && bufferobj->Mappings[MAP_INTERNAL].Pointer);
-      buffer = bufferobj->Mappings[MAP_INTERNAL].Pointer;
-      assert(bufferobj->Mappings[MAP_INTERNAL].Offset
-             <= vao->BufferBinding[0].Offset + offset
-             + stride*(_vbo_save_get_min_index(node) + wrap_count));
-      buffer += vao->BufferBinding[0].Offset + offset
-         - bufferobj->Mappings[MAP_INTERNAL].Offset;
-      assert(stride*(_vbo_save_get_vertex_count(node) - wrap_count)
-             <= bufferobj->Mappings[MAP_INTERNAL].Length);
-   }
 
    /* Replay the primitives */
-   const struct _mesa_prim *prims = node->prims;
-   const GLuint prim_count = node->prim_count;
+   const struct _mesa_prim *prims = node->cold->prims;
+   const GLuint prim_count = node->cold->prim_count;
+
    for (GLuint i = 0; i < prim_count; i++) {
-      loopback_prim(ctx, buffer, &prims[i], wrap_count, stride, la, nr);
+      loopback_prim(ctx, (GLubyte*)buffer + vao->BufferBinding[0].Offset,
+                    &prims[i], wrap_count, stride, la, nr);
    }
 }

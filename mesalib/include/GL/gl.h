@@ -38,9 +38,7 @@
 #if defined(__WIN32__) && !defined(__CYGWIN__)
 #  if (defined(_MSC_VER) || defined(__MINGW32__)) && defined(BUILD_GL32) /* tag specify we're building mesa as a DLL */
 #    define GLAPI __declspec(dllexport)
-#  elif (defined(_MSC_VER) || defined(__MINGW32__)) && defined(_DLL) /* tag specifying we're building for DLL runtime support */
-#    define GLAPI __declspec(dllimport)
-#  else /* for use with static link lib build of Win32 edition only */
+#  else
 #    define GLAPI extern
 #  endif
 #  if defined(__MINGW32__) && defined(GL_NO_STDCALL) || defined(UNDER_CE)  /* The generated DLLs by MingW with STDCALL are not compatible with the ones done by Microsoft's compilers */
@@ -1898,13 +1896,13 @@ GLAPI void GLAPIENTRY glMultiTexCoord4s( GLenum target, GLshort s, GLshort t, GL
 GLAPI void GLAPIENTRY glMultiTexCoord4sv( GLenum target, const GLshort *v );
 
 
-GLAPI void GLAPIENTRY glLoadTransposeMatrixd( const GLdouble m[16] );
+GLAPI void GLAPIENTRY glLoadTransposeMatrixd( const GLdouble * m );
 
-GLAPI void GLAPIENTRY glLoadTransposeMatrixf( const GLfloat m[16] );
+GLAPI void GLAPIENTRY glLoadTransposeMatrixf( const GLfloat * m );
 
-GLAPI void GLAPIENTRY glMultTransposeMatrixd( const GLdouble m[16] );
+GLAPI void GLAPIENTRY glMultTransposeMatrixd( const GLdouble * m );
 
-GLAPI void GLAPIENTRY glMultTransposeMatrixf( const GLfloat m[16] );
+GLAPI void GLAPIENTRY glMultTransposeMatrixf( const GLfloat * m );
 
 GLAPI void GLAPIENTRY glSampleCoverage( GLclampf value, GLboolean invert );
 

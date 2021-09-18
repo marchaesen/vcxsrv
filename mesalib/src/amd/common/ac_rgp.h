@@ -33,6 +33,7 @@
 
 struct radeon_info;
 struct ac_thread_trace;
+struct ac_thread_trace_data;
 
 enum rgp_hardware_stages {
    RGP_HW_STAGE_VS = 0,
@@ -51,6 +52,8 @@ struct rgp_shader_data {
    uint8_t *code;
    uint32_t vgpr_count;
    uint32_t sgpr_count;
+   uint32_t scratch_memory_size;
+   uint32_t wavefront_size;
    uint64_t base_address;
    uint32_t elf_symbol_offset;
    uint32_t hw_stage;
@@ -104,6 +107,10 @@ struct rgp_pso_correlation {
    struct list_head record;
    simple_mtx_t lock;
 };
+
+int
+ac_dump_rgp_capture(struct radeon_info *info,
+                    struct ac_thread_trace *thread_trace);
 
 void
 ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,

@@ -87,11 +87,11 @@ static boolean r300_texture_macro_switch(struct r300_resource *tex,
 {
     unsigned tile, texdim;
 
-    if (tex->b.b.nr_samples > 1) {
+    if (tex->b.nr_samples > 1) {
         return TRUE;
     }
 
-    tile = r300_get_pixel_alignment(tex->b.b.format, tex->b.b.nr_samples,
+    tile = r300_get_pixel_alignment(tex->b.format, tex->b.nr_samples,
                                     tex->tex.microtile, RADEON_LAYOUT_TILED, dim, 0);
     if (dim == DIM_WIDTH) {
         texdim = u_minify(tex->tex.width0, level);
@@ -124,27 +124,27 @@ static unsigned r300_texture_get_stride(struct r300_screen *screen,
         return tex->tex.stride_in_bytes_override;
 
     /* Check the level. */
-    if (level > tex->b.b.last_level) {
+    if (level > tex->b.last_level) {
         SCREEN_DBG(screen, DBG_TEX, "%s: level (%u) > last_level (%u)\n",
-                   __FUNCTION__, level, tex->b.b.last_level);
+                   __FUNCTION__, level, tex->b.last_level);
         return 0;
     }
 
     width = u_minify(tex->tex.width0, level);
 
-    if (util_format_is_plain(tex->b.b.format)) {
-        tile_width = r300_get_pixel_alignment(tex->b.b.format,
-                                              tex->b.b.nr_samples,
+    if (util_format_is_plain(tex->b.format)) {
+        tile_width = r300_get_pixel_alignment(tex->b.format,
+                                              tex->b.nr_samples,
                                               tex->tex.microtile,
                                               tex->tex.macrotile[level],
                                               DIM_WIDTH, is_rs690);
         width = align(width, tile_width);
 
-        stride = util_format_get_stride(tex->b.b.format, width);
+        stride = util_format_get_stride(tex->b.format, width);
         /* The alignment to 32 bytes is sort of implied by the layout... */
         return stride;
     } else {
-        return align(util_format_get_stride(tex->b.b.format, width), is_rs690 ? 64 : 32);
+        return align(util_format_get_stride(tex->b.format, width), is_rs690 ? 64 : 32);
     }
 }
 
@@ -157,16 +157,16 @@ static unsigned r300_texture_get_nblocksy(struct r300_resource *tex,
     height = u_minify(tex->tex.height0, level);
 
     /* Mipmapped and 3D textures must have their height aligned to POT. */
-    if ((tex->b.b.target != PIPE_TEXTURE_1D &&
-         tex->b.b.target != PIPE_TEXTURE_2D &&
-         tex->b.b.target != PIPE_TEXTURE_RECT) ||
-        tex->b.b.last_level != 0) {
+    if ((tex->b.target != PIPE_TEXTURE_1D &&
+         tex->b.target != PIPE_TEXTURE_2D &&
+         tex->b.target != PIPE_TEXTURE_RECT) ||
+        tex->b.last_level != 0) {
         height = util_next_power_of_two(height);
     }
 
-    if (util_format_is_plain(tex->b.b.format)) {
-        tile_height = r300_get_pixel_alignment(tex->b.b.format,
-                                               tex->b.b.nr_samples,
+    if (util_format_is_plain(tex->b.format)) {
+        tile_height = r300_get_pixel_alignment(tex->b.format,
+                                               tex->b.nr_samples,
                                                tex->tex.microtile,
                                                tex->tex.macrotile[level],
                                                DIM_HEIGHT, 0);
@@ -183,10 +183,10 @@ static unsigned r300_texture_get_nblocksy(struct r300_resource *tex,
 
                 /* Align the height so that there is an even number of macrotiles.
                  * Do so for 3 or more macrotiles in the Y direction. */
-                if (level == 0 && tex->b.b.last_level == 0 &&
-                    (tex->b.b.target == PIPE_TEXTURE_1D ||
-                     tex->b.b.target == PIPE_TEXTURE_2D ||
-                     tex->b.b.target == PIPE_TEXTURE_RECT) &&
+                if (level == 0 && tex->b.last_level == 0 &&
+                    (tex->b.target == PIPE_TEXTURE_1D ||
+                     tex->b.target == PIPE_TEXTURE_2D ||
+                     tex->b.target == PIPE_TEXTURE_RECT) &&
                     height >= tile_height * 3) {
                     height = align(height, tile_height * 2);
                 }
@@ -198,7 +198,7 @@ static unsigned r300_texture_get_nblocksy(struct r300_resource *tex,
         }
     }
 
-    return util_format_get_nblocksy(tex->b.b.format, height);
+    return util_format_get_nblocksy(tex->b.format, height);
 }
 
 /* Get a width in pixels from a stride in bytes. */
@@ -213,7 +213,7 @@ static void r300_setup_miptree(struct r300_screen *screen,
                                struct r300_resource *tex,
                                boolean align_for_cbzb)
 {
-    struct pipe_resource *base = &tex->b.b;
+    struct pipe_resource *base = &tex->b;
     unsigned stride, size, layer_size, nblocksy, i;
     boolean rv350_mode = screen->caps.family >= CHIP_R350;
     boolean aligned_for_cbzb;
@@ -270,15 +270,15 @@ static void r300_setup_miptree(struct r300_screen *screen,
 static void r300_setup_flags(struct r300_resource *tex)
 {
     tex->tex.uses_stride_addressing =
-        !util_is_power_of_two_or_zero(tex->b.b.width0) ||
+        !util_is_power_of_two_or_zero(tex->b.width0) ||
         (tex->tex.stride_in_bytes_override &&
-         r300_stride_to_width(tex->b.b.format,
-                         tex->tex.stride_in_bytes_override) != tex->b.b.width0);
+         r300_stride_to_width(tex->b.format,
+                         tex->tex.stride_in_bytes_override) != tex->b.width0);
 
     tex->tex.is_npot =
         tex->tex.uses_stride_addressing ||
-        !util_is_power_of_two_or_zero(tex->b.b.height0) ||
-        !util_is_power_of_two_or_zero(tex->b.b.depth0);
+        !util_is_power_of_two_or_zero(tex->b.height0) ||
+        !util_is_power_of_two_or_zero(tex->b.depth0);
 }
 
 static void r300_setup_cbzb_flags(struct r300_screen *rscreen,
@@ -287,20 +287,20 @@ static void r300_setup_cbzb_flags(struct r300_screen *rscreen,
     unsigned i, bpp;
     boolean first_level_valid;
 
-    bpp = util_format_get_blocksizebits(tex->b.b.format);
+    bpp = util_format_get_blocksizebits(tex->b.format);
 
     /* 1) The texture must be point-sampled,
      * 2) The depth must be 16 or 32 bits.
      * 3) If the midpoint ZB offset is not aligned to 2048, it returns garbage
      *    with certain texture sizes. Macrotiling ensures the alignment. */
-    first_level_valid = tex->b.b.nr_samples <= 1 &&
+    first_level_valid = tex->b.nr_samples <= 1 &&
                        (bpp == 16 || bpp == 32) &&
                        tex->tex.macrotile[0];
 
     if (SCREEN_DBG_ON(rscreen, DBG_NO_CBZB))
         first_level_valid = FALSE;
 
-    for (i = 0; i <= tex->b.b.last_level; i++)
+    for (i = 0; i <= tex->b.last_level; i++)
         tex->tex.cbzb_allowed[i] = first_level_valid && tex->tex.macrotile[i];
 }
 
@@ -349,8 +349,8 @@ static void r300_setup_hyperz_properties(struct r300_screen *screen,
     static unsigned hiz_align_x[4] = {8, 32, 48, 32};
     static unsigned hiz_align_y[4] = {8, 8, 8, 32};
 
-    if (util_format_is_depth_or_stencil(tex->b.b.format) &&
-        util_format_get_blocksizebits(tex->b.b.format) == 32 &&
+    if (util_format_is_depth_or_stencil(tex->b.format) &&
+        util_format_get_blocksizebits(tex->b.format) == 32 &&
         tex->tex.microtile) {
         unsigned i, pipes;
 
@@ -360,18 +360,18 @@ static void r300_setup_hyperz_properties(struct r300_screen *screen,
             pipes = screen->info.r300_num_gb_pipes;
         }
 
-        for (i = 0; i <= tex->b.b.last_level; i++) {
+        for (i = 0; i <= tex->b.last_level; i++) {
             unsigned zcomp_numdw, zcompsize, hiz_numdw, stride, height;
 
-            stride = r300_stride_to_width(tex->b.b.format,
+            stride = r300_stride_to_width(tex->b.format,
                                           tex->tex.stride_in_bytes[i]);
             stride = align(stride, 16);
-            height = u_minify(tex->b.b.height0, i);
+            height = u_minify(tex->b.height0, i);
 
             /* The 8x8 compression mode needs macrotiling. */
             zcompsize = screen->caps.z_compress == R300_ZCOMP_8X8 &&
                        tex->tex.macrotile[i] &&
-                       tex->b.b.nr_samples <= 1 ? 8 : 4;
+                       tex->b.nr_samples <= 1 ? 8 : 4;
 
             /* Get the ZMASK buffer size in dwords. */
             zcomp_numdw = r300_pixels_to_dwords(stride, height,
@@ -379,7 +379,7 @@ static void r300_setup_hyperz_properties(struct r300_screen *screen,
                                 zmask_blocks_y_per_dw[pipes-1] * zcompsize);
 
             /* Check whether we have enough ZMASK memory. */
-            if (util_format_get_blocksizebits(tex->b.b.format) == 32 &&
+            if (util_format_get_blocksizebits(tex->b.format) == 32 &&
                 zcomp_numdw <= screen->caps.zmask_ram * pipes) {
                 tex->tex.zmask_dwords[i] = zcomp_numdw;
                 tex->tex.zcomp8x8[i] = zcompsize == 8;
@@ -423,15 +423,15 @@ static void r300_setup_cmask_properties(struct r300_screen *screen,
     }
 
     /* We need an AA colorbuffer, no mipmaps. */
-    if (tex->b.b.nr_samples <= 1 ||
-        tex->b.b.last_level > 0 ||
-        util_format_is_depth_or_stencil(tex->b.b.format)) {
+    if (tex->b.nr_samples <= 1 ||
+        tex->b.last_level > 0 ||
+        util_format_is_depth_or_stencil(tex->b.format)) {
         return;
     }
 
     /* FP16 AA needs R500 and a fairly new DRM. */
-    if ((tex->b.b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
-         tex->b.b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
+    if ((tex->b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
+         tex->b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
         (!screen->caps.is_r500 || screen->info.drm_minor < 29)) {
         return;
     }
@@ -447,12 +447,12 @@ static void r300_setup_cmask_properties(struct r300_screen *screen,
      * the other cards have 4096 dwords of CMASK RAM per pipe. */
     cmask_max_size = pipes == 1 ? 5120 : pipes * 4096;
 
-    stride = r300_stride_to_width(tex->b.b.format,
+    stride = r300_stride_to_width(tex->b.format,
                                   tex->tex.stride_in_bytes[0]);
     stride = align(stride, 16);
 
     /* Get the CMASK size in dwords. */
-    cmask_num_dw = r300_pixels_to_dwords(stride, tex->b.b.height0,
+    cmask_num_dw = r300_pixels_to_dwords(stride, tex->b.height0,
                                          cmask_align_x[pipes-1],
                                          cmask_align_y[pipes-1]);
 
@@ -467,14 +467,14 @@ static void r300_setup_cmask_properties(struct r300_screen *screen,
 static void r300_setup_tiling(struct r300_screen *screen,
                               struct r300_resource *tex)
 {
-    enum pipe_format format = tex->b.b.format;
+    enum pipe_format format = tex->b.format;
     boolean rv350_mode = screen->caps.family >= CHIP_R350;
     boolean is_zb = util_format_is_depth_or_stencil(format);
     boolean dbg_no_tiling = SCREEN_DBG_ON(screen, DBG_NO_TILING);
     boolean force_microtiling =
-        (tex->b.b.flags & R300_RESOURCE_FORCE_MICROTILING) != 0;
+        (tex->b.flags & R300_RESOURCE_FORCE_MICROTILING) != 0;
 
-    if (tex->b.b.nr_samples > 1) {
+    if (tex->b.nr_samples > 1) {
         tex->tex.microtile = RADEON_LAYOUT_TILED;
         tex->tex.macrotile[0] = RADEON_LAYOUT_TILED;
         return;
@@ -483,7 +483,7 @@ static void r300_setup_tiling(struct r300_screen *screen,
     tex->tex.microtile = RADEON_LAYOUT_LINEAR;
     tex->tex.macrotile[0] = RADEON_LAYOUT_LINEAR;
 
-    if (tex->b.b.usage == PIPE_USAGE_STAGING) {
+    if (tex->b.usage == PIPE_USAGE_STAGING) {
        return;
     }
 
@@ -493,7 +493,7 @@ static void r300_setup_tiling(struct r300_screen *screen,
 
     /* If height == 1, disable microtiling except for zbuffer. */
     if (!force_microtiling && !is_zb &&
-        (tex->b.b.height0 == 1 || dbg_no_tiling)) {
+        (tex->b.height0 == 1 || dbg_no_tiling)) {
         return;
     }
 
@@ -530,25 +530,25 @@ static void r300_tex_print_info(struct r300_resource *tex,
             func,
             tex->tex.macrotile[0] ? "YES" : " NO",
             tex->tex.microtile ? "YES" : " NO",
-            r300_stride_to_width(tex->b.b.format, tex->tex.stride_in_bytes[0]),
-            tex->b.b.width0, tex->b.b.height0, tex->b.b.depth0,
-            tex->b.b.last_level, tex->tex.size_in_bytes,
-            util_format_short_name(tex->b.b.format),
-            tex->b.b.nr_samples);
+            r300_stride_to_width(tex->b.format, tex->tex.stride_in_bytes[0]),
+            tex->b.width0, tex->b.height0, tex->b.depth0,
+            tex->b.last_level, tex->tex.size_in_bytes,
+            util_format_short_name(tex->b.format),
+            tex->b.nr_samples);
 }
 
 void r300_texture_desc_init(struct r300_screen *rscreen,
                             struct r300_resource *tex,
                             const struct pipe_resource *base)
 {
-    tex->b.b.target = base->target;
-    tex->b.b.format = base->format;
-    tex->b.b.width0 = base->width0;
-    tex->b.b.height0 = base->height0;
-    tex->b.b.depth0 = base->depth0;
-    tex->b.b.array_size = base->array_size;
-    tex->b.b.last_level = base->last_level;
-    tex->b.b.nr_samples = base->nr_samples;
+    tex->b.target = base->target;
+    tex->b.format = base->format;
+    tex->b.width0 = base->width0;
+    tex->b.height0 = base->height0;
+    tex->b.depth0 = base->depth0;
+    tex->b.array_size = base->array_size;
+    tex->b.last_level = base->last_level;
+    tex->b.nr_samples = base->nr_samples;
     tex->tex.width0 = base->width0;
     tex->tex.height0 = base->height0;
     tex->tex.depth0 = base->depth0;
@@ -564,26 +564,26 @@ void r300_texture_desc_init(struct r300_screen *rscreen,
      * for rendering. */
     if (rscreen->caps.is_r500) {
         /* FP16 6x MSAA buffers are limited to a width of 1360 pixels. */
-        if ((tex->b.b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
-             tex->b.b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
-            tex->b.b.nr_samples == 6 && tex->b.b.width0 > 1360) {
-            tex->b.b.nr_samples = 4;
+        if ((tex->b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
+             tex->b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
+            tex->b.nr_samples == 6 && tex->b.width0 > 1360) {
+            tex->b.nr_samples = 4;
         }
 
         /* FP16 4x MSAA buffers are limited to a width of 2048 pixels. */
-        if ((tex->b.b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
-             tex->b.b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
-            tex->b.b.nr_samples == 4 && tex->b.b.width0 > 2048) {
-            tex->b.b.nr_samples = 2;
+        if ((tex->b.format == PIPE_FORMAT_R16G16B16A16_FLOAT ||
+             tex->b.format == PIPE_FORMAT_R16G16B16X16_FLOAT) &&
+            tex->b.nr_samples == 4 && tex->b.width0 > 2048) {
+            tex->b.nr_samples = 2;
         }
     }
 
     /* 32-bit 6x MSAA buffers are limited to a width of 2720 pixels.
      * This applies to all R300-R500 cards. */
-    if (util_format_get_blocksizebits(tex->b.b.format) == 32 &&
-        !util_format_is_depth_or_stencil(tex->b.b.format) &&
-        tex->b.b.nr_samples == 6 && tex->b.b.width0 > 2720) {
-        tex->b.b.nr_samples = 4;
+    if (util_format_get_blocksizebits(tex->b.format) == 32 &&
+        !util_format_is_depth_or_stencil(tex->b.format) &&
+        tex->b.nr_samples == 6 && tex->b.width0 > 2720) {
+        tex->b.nr_samples = 4;
     }
 
     r300_setup_flags(tex);
@@ -635,7 +635,7 @@ unsigned r300_texture_get_offset(struct r300_resource *tex,
 {
     unsigned offset = tex->tex.offset_in_bytes[level];
 
-    switch (tex->b.b.target) {
+    switch (tex->b.target) {
         case PIPE_TEXTURE_3D:
         case PIPE_TEXTURE_CUBE:
             return offset + layer * tex->tex.layer_size_in_bytes[level];

@@ -29,7 +29,6 @@
 #include "util/u_pack_color.h"
 #include "util/u_split_draw.h"
 #include "util/u_upload_mgr.h"
-#include "indices/u_primconvert.h"
 
 #include "vc4_context.h"
 #include "vc4_resource.h"
@@ -304,28 +303,11 @@ vc4_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
            return;
 
         struct vc4_context *vc4 = vc4_context(pctx);
-        struct pipe_draw_info local_info;
 
 	if (!indirect &&
 	    !info->primitive_restart &&
 	    !u_trim_pipe_prim(info->mode, (unsigned*)&draws[0].count))
 		return;
-
-        if (info->mode >= PIPE_PRIM_QUADS) {
-                if (info->mode == PIPE_PRIM_QUADS &&
-                    draws[0].count == 4 &&
-                    !vc4->rasterizer->base.flatshade) {
-                        local_info = *info;
-                        local_info.mode = PIPE_PRIM_TRIANGLE_FAN;
-                        info = &local_info;
-                } else {
-                        util_primconvert_save_rasterizer_state(vc4->primconvert, &vc4->rasterizer->base);
-                        util_primconvert_draw_vbo(vc4->primconvert, info, drawid_offset, indirect, draws, num_draws);
-                        perf_debug("Fallback conversion for %d %s vertices\n",
-                                   draws[0].count, u_prim_name(info->mode));
-                        return;
-                }
-        }
 
         /* Before setting up the draw, do any fixup blits necessary. */
         vc4_predraw_check_textures(pctx, &vc4->verttex);

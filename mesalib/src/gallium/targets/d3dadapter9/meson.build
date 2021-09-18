@@ -64,7 +64,7 @@ libgallium_nine = shared_library(
     dep_selinux, dep_libdrm, dep_llvm, dep_thread,
     idep_xmlconfig, idep_mesautil, idep_nir,
     driver_swrast, driver_r300, driver_r600, driver_radeonsi, driver_nouveau,
-    driver_i915, driver_svga, driver_iris
+    driver_i915, driver_svga, driver_iris, driver_crocus, driver_zink
   ],
   name_prefix : '',
   version : '.'.join(nine_version),

@@ -130,9 +130,9 @@ public:
       return !this->next_buffer_separator && !this->skip_components;
    }
 
-   bool is_aligned(unsigned dmul, unsigned offset) const
+   bool subscripted() const
    {
-      return (dmul * (this->array_subscript + offset)) % 4 == 0;
+      return this->is_subscripted;
    }
 
    const char *name() const

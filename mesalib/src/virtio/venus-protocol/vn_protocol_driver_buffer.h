@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_BUFFER_H
 #define VN_PROTOCOL_DRIVER_BUFFER_H
 
-#include "vn_device.h"
+#include "vn_instance.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkExternalMemoryBufferCreateInfo chain */
@@ -317,7 +317,7 @@ vn_decode_VkBindBufferMemoryDeviceGroupInfo_self(struct vn_cs_decoder *dec, VkBi
         const size_t array_size = vn_decode_array_size(dec, val->deviceIndexCount);
         vn_decode_uint32_t_array(dec, (uint32_t *)val->pDeviceIndices, array_size);
     } else {
-        vn_decode_array_size(dec, 0);
+        vn_decode_array_size_unchecked(dec);
         val->pDeviceIndices = NULL;
     }
 }

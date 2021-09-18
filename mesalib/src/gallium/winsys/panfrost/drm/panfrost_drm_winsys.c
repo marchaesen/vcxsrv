@@ -22,14 +22,93 @@
  * IN THE SOFTWARE.
  */
 
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "util/format/u_format.h"
 #include "util/os_file.h"
+#include "util/u_math.h"
+#include "util/u_memory.h"
 
+#include "drm-uapi/drm.h"
 #include "renderonly/renderonly.h"
 #include "panfrost_drm_public.h"
 #include "panfrost/pan_public.h"
+#include "xf86drm.h"
+
+static struct renderonly_scanout *
+panfrost_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
+                                             struct renderonly *ro,
+                                             struct winsys_handle *out_handle)
+{
+   /* Find the smallest width alignment that gives us a 64byte aligned stride */
+   unsigned blk_sz = util_format_get_blocksize(rsc->format);
+
+   assert(blk_sz);
+
+   unsigned align_w = 1;
+   for (unsigned i = 1; i <= blk_sz; i++) {
+      if (!((64 * i) % blk_sz)) {
+         align_w = (64 * i) / blk_sz;
+	 break;
+      }
+   }
+
+   struct drm_mode_create_dumb create_dumb = {
+      .width = ALIGN_NPOT(rsc->width0, align_w),
+      .height = rsc->height0,
+      .bpp = util_format_get_blocksizebits(rsc->format),
+   };
+   struct drm_mode_destroy_dumb destroy_dumb = {0};
+
+   /* Align width to end up with a buffer that's aligned on 64 bytes. */
+
+   struct renderonly_scanout *scanout = CALLOC_STRUCT(renderonly_scanout);
+   if (!scanout)
+      return NULL;
+
+   /* create dumb buffer at scanout GPU */
+   int err = drmIoctl(ro->kms_fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb);
+   if (err < 0) {
+      fprintf(stderr, "DRM_IOCTL_MODE_CREATE_DUMB failed: %s\n",
+            strerror(errno));
+      goto free_scanout;
+   }
+
+   if (create_dumb.pitch % 64)
+      goto free_dumb;
+
+   scanout->handle = create_dumb.handle;
+   scanout->stride = create_dumb.pitch;
+
+   if (!out_handle)
+      return scanout;
+
+   /* fill in winsys handle */
+   memset(out_handle, 0, sizeof(*out_handle));
+   out_handle->type = WINSYS_HANDLE_TYPE_FD;
+   out_handle->stride = create_dumb.pitch;
+
+   err = drmPrimeHandleToFD(ro->kms_fd, create_dumb.handle, O_CLOEXEC,
+                            (int *)&out_handle->handle);
+   if (err < 0) {
+      fprintf(stderr, "failed to export dumb buffer: %s\n", strerror(errno));
+      goto free_dumb;
+   }
+
+   return scanout;
+
+free_dumb:
+   destroy_dumb.handle = scanout->handle;
+   drmIoctl(ro->kms_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+
+free_scanout:
+   FREE(scanout);
+
+   return NULL;
+
+}
 
 struct pipe_screen *
 panfrost_drm_screen_create(int fd)
@@ -40,5 +119,6 @@ panfrost_drm_screen_create(int fd)
 struct pipe_screen *
 panfrost_drm_screen_create_renderonly(struct renderonly *ro)
 {
+   ro->create_for_resource = panfrost_create_kms_dumb_buffer_for_resource;
    return panfrost_create_screen(os_dupfd_cloexec(ro->gpu_fd), ro);
 }

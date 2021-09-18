@@ -483,7 +483,7 @@ iris_destroy_query(struct pipe_context *ctx, struct pipe_query *p_query)
       iris_destroy_monitor_object(ctx, query->monitor);
       query->monitor = NULL;
    } else {
-      iris_syncobj_reference(screen, &query->syncobj, NULL);
+      iris_syncobj_reference(screen->bufmgr, &query->syncobj, NULL);
       screen->base.fence_reference(ctx->screen, &query->fence, NULL);
    }
    pipe_resource_reference(&query->query_state_ref.res, NULL);
@@ -612,7 +612,7 @@ iris_get_query_result(struct pipe_context *ctx,
    struct iris_screen *screen = (void *) ctx->screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
 
-   if (unlikely(screen->no_hw)) {
+   if (unlikely(screen->devinfo.no_hw)) {
       result->u64 = 0;
       return true;
    }
@@ -632,7 +632,7 @@ iris_get_query_result(struct pipe_context *ctx,
 
       while (!READ_ONCE(q->map->snapshots_landed)) {
          if (wait)
-            iris_wait_syncobj(ctx->screen, q->syncobj, INT64_MAX);
+            iris_wait_syncobj(screen->bufmgr, q->syncobj, INT64_MAX);
          else
             return false;
       }

@@ -65,6 +65,9 @@ hgl_st_framebuffer_flush_front(struct st_context_iface* stctxi,
 	struct hgl_buffer* buffer = hgl_st_framebuffer(stfbi);
 	struct pipe_resource* ptex = buffer->textures[statt];
 
+	if (statt != ST_ATTACHMENT_FRONT_LEFT)
+		return false;
+
 	if (!ptex)
 		return true;
 
@@ -307,12 +310,10 @@ hgl_create_st_visual(ulong options)
 		? PIPE_FORMAT_R16G16B16A16_SNORM : PIPE_FORMAT_NONE;
 
 	visual->buffer_mask |= ST_ATTACHMENT_FRONT_LEFT_MASK;
-	visual->render_buffer = ST_ATTACHMENT_FRONT_LEFT;
 
 	if ((options & BGL_DOUBLE) != 0) {
 		TRACE("double buffer enabled\n");
 		visual->buffer_mask |= ST_ATTACHMENT_BACK_LEFT_MASK;
-		visual->render_buffer = ST_ATTACHMENT_BACK_LEFT;
 	}
 
 	#if 0

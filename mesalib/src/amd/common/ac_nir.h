@@ -28,11 +28,16 @@
 
 #include "nir.h"
 #include "ac_shader_args.h"
+#include "ac_shader_util.h"
 #include "amd_family.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Forward declaration of nir_builder so we don't have to include nir_builder.h here */
+struct nir_builder;
+typedef struct nir_builder nir_builder;
 
 void
 ac_nir_lower_ls_outputs_to_mem(nir_shader *ls,
@@ -85,6 +90,42 @@ ac_nir_lower_gs_inputs_to_mem(nir_shader *shader,
 bool
 ac_nir_lower_indirect_derefs(nir_shader *shader,
                              enum chip_class chip_class);
+
+typedef struct
+{
+   unsigned lds_bytes_if_culling_off;
+   bool can_cull;
+   bool passthrough;
+   bool early_prim_export;
+   uint64_t nggc_inputs_read_by_pos;
+   uint64_t nggc_inputs_read_by_others;
+} ac_nir_ngg_config;
+
+ac_nir_ngg_config
+ac_nir_lower_ngg_nogs(nir_shader *shader,
+                      unsigned max_num_es_vertices,
+                      unsigned num_vertices_per_primitive,
+                      unsigned max_workgroup_size,
+                      unsigned wave_size,
+                      bool consider_culling,
+                      bool consider_passthrough,
+                      bool export_prim_id,
+                      bool provoking_vtx_last,
+                      uint32_t instance_rate_inputs);
+
+void
+ac_nir_lower_ngg_gs(nir_shader *shader,
+                    unsigned wave_size,
+                    unsigned max_workgroup_size,
+                    unsigned esgs_ring_lds_bytes,
+                    unsigned gs_out_vtx_bytes,
+                    unsigned gs_total_out_vtx_bytes,
+                    bool provoking_vtx_last);
+
+nir_ssa_def *
+ac_nir_cull_triangle(nir_builder *b,
+                     nir_ssa_def *initially_accepted,
+                     nir_ssa_def *pos[3][4]);
 
 #ifdef __cplusplus
 }

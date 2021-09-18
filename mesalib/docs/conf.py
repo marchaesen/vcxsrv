@@ -38,7 +38,7 @@ sys.path.append(os.path.abspath('_exts'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.graphviz', 'formatting', 'redirects']
+extensions = ['sphinx.ext.graphviz', 'breathe', 'formatting', 'nir', 'redirects']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -114,7 +114,7 @@ html_context = {
   'gitlab_host': 'gitlab.freedesktop.org',
   'gitlab_user': 'mesa',
   'gitlab_repo': 'mesa',
-  'gitlab_version': 'master',
+  'gitlab_version': 'main',
   'conf_py_path': '/docs/',
 }
 
@@ -135,6 +135,7 @@ html_extra_path = [
 ]
 
 html_redirects = [
+  ('drivers/vmware-guest', 'drivers/svga3d.html'),
   ('gallium/drivers/freedreno', 'drivers/freedreno.html'),
   ('gallium/drivers/freedreno/ir3-notes', 'drivers/freedreno/ir3-notes.html'),
   ('gallium/drivers/llvmpipe', 'drivers/llvmpipe.html'),
@@ -211,3 +212,11 @@ texinfo_documents = [
 # -- Options for Graphviz -------------------------------------------------
 
 graphviz_output_format = 'svg'
+
+# -- Options for breathe --------------------------------------------------
+breathe_projects = {
+    'mesa' : 'doxygen_xml',
+}
+breathe_default_project = 'mesa'
+breathe_show_define_initializer = True
+breathe_show_enumvalue_initializer = True

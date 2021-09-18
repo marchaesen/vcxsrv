@@ -116,7 +116,6 @@ os_create_anonymous_file(off_t size, const char *debug_name)
 {
    int fd, ret;
 #ifdef __FreeBSD__
-   (void*)debug_name;
    fd = shm_open(SHM_ANON, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
 #elif defined(__OpenBSD__)
    char template[] = "/tmp/mesa-XXXXXXXXXX";

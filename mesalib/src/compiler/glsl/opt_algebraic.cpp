@@ -708,8 +708,6 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       }
       break;
 
-   case ir_binop_less:
-   case ir_binop_gequal:
    case ir_binop_equal:
    case ir_binop_nequal:
       for (int add_pos = 0; add_pos < 2; add_pos++) {

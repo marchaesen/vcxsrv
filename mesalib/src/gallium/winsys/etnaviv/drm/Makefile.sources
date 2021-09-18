@@ -1,3 +1,0 @@
-C_SOURCES := \
-	etnaviv_drm_public.h \
-	etnaviv_drm_winsys.c

@@ -136,8 +136,8 @@ draw_impl(struct fd_context *ctx, const struct pipe_draw_info *info,
    if (binning || info->mode == PIPE_PRIM_POINTS)
       vismode = IGNORE_VISIBILITY;
 
-   fd_draw_emit(ctx->batch, ring, ctx->primtypes[info->mode], vismode, info,
-                draw, index_offset);
+   fd_draw_emit(ctx->batch, ring, ctx->screen->primtypes[info->mode],
+                vismode, info, draw, index_offset);
 
    if (is_a20x(ctx->screen)) {
       /* not sure why this is required, but it fixes some hangs */

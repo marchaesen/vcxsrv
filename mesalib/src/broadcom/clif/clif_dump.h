@@ -32,7 +32,7 @@ struct clif_dump;
 struct drm_v3d_submit_cl;
 
 struct clif_dump *clif_dump_init(const struct v3d_device_info *devinfo,
-                                 FILE *output, bool pretty);
+                                 FILE *output, bool pretty, bool nobin);
 void clif_dump(struct clif_dump *clif, const struct drm_v3d_submit_cl *submit);
 void clif_dump_destroy(struct clif_dump *clif);
 

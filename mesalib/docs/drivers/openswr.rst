@@ -11,6 +11,9 @@ This rasterizer is x86 specific and requires AVX or above.  The driver
 fits into the gallium framework, and reuses gallivm for doing the TGSI
 to vectorized llvm-IR conversion of the shader kernels.
 
+You can read more about OpenSWR on the `project website
+<https://www.openswr.org/>`__.
+
 .. toctree::
    :glob:
 

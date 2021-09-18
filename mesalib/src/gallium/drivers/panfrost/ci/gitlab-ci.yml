@@ -1,131 +1,159 @@
+.panfrost-test:
+  variables:
+    FLAKES_CHANNEL: "#panfrost-ci"
+    PAN_MESA_DEBUG: sync
+    HWCI_FREQ_MAX: "true"
+
 panfrost-t720-gles2:arm64:
   extends:
     - .lava-test:arm64
-    - .panfrost-rules
+    - .panfrost-midgard-rules
+    - .panfrost-test
   variables:
     DEVICE_TYPE: sun50i-h6-pine-h64
-    DTB: ${DEVICE_TYPE}
+    DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-t720
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T720"
+    DEQP_SUITE: panfrost-t720
+    DEQP_PARALLEL: 6
+    DEQP_EXPECTED_RENDERER: T720
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-sun50i-h6-pine-h64
 
 panfrost-t760-gles2:armhf:
   extends:
     - .lava-test:armhf
-    - .panfrost-rules
+    - .panfrost-midgard-rules
+    - .panfrost-test
   variables:
     DEVICE_TYPE: rk3288-veyron-jaq
-    DTB: ${DEVICE_TYPE}
+    DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-t760
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T760"
+    DEQP_SUITE: panfrost-t720
+    DEQP_PARALLEL: 6
+    DEQP_EXPECTED_RENDERER: T760
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-rk3288-veyron-jaq
 
 panfrost-t760-traces:armhf:
   extends:
     - .lava-piglit-traces:armhf
-    - .panfrost-rules
+    - .panfrost-midgard-rules
+    - .panfrost-test
   variables:
     DEVICE_TYPE: rk3288-veyron-jaq
-    DTB: ${DEVICE_TYPE}
+    DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-t760
     DRIVER_NAME: panfrost
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
-    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330 EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_JUNIT_RESULTS=1"
+    PAN_MESA_DEBUG: "deqp,sync"
+    MESA_GLES_VERSION_OVERRIDE: "3.1"
+    MESA_GL_VERSION_OVERRIDE: "3.3"
+    MESA_GLSL_VERSION_OVERRIDE: 330
+    EGL_PLATFORM: surfaceless
+    PIGLIT_PROFILES: replay
+    PIGLIT_JUNIT_RESULTS: 1
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-panfrost.yml"
+    PIGLIT_REPLAY_EXTRA_ARGS: "--keep-image"
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-rk3288-veyron-jaq
 
 .lava-rk3399-gru-kevin:
   extends:
-    - .panfrost-rules
+    - .panfrost-midgard-rules
+    - .panfrost-test
   variables:
     DEVICE_TYPE: rk3399-gru-kevin
-    DTB: ${DEVICE_TYPE}
+    DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-t860
     DRIVER_NAME: panfrost
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-rk3399-gru-kevin
 
-panfrost-t860-gles2:arm64:
+panfrost-t860-gl:arm64:
+  parallel: 3
   extends:
     - .lava-test:arm64
     - .lava-rk3399-gru-kevin
   variables:
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
-
-panfrost-t860-gles3:arm64:
-  parallel: 2
-  extends:
-    - .lava-test:arm64
-    - .lava-rk3399-gru-kevin
-  variables:
-    DEQP_VERSION: gles3
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T860"
-
-panfrost-t860-gles31:arm64:
-  extends:
-    - .lava-test:arm64
-    - .lava-rk3399-gru-kevin
-  variables:
-    DEQP_VERSION: gles31
-    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GLSL_VERSION_OVERRIDE=310 DEQP_PARALLEL=1 DEQP_EXPECTED_RENDERER=T860"
+    DEQP_PARALLEL: 6
+    DEQP_EXPECTED_RENDERER: T860
+    DEQP_SUITE: panfrost-t860
 
 panfrost-t860-traces:arm64:
   extends:
     - .lava-piglit-traces:arm64
     - .lava-rk3399-gru-kevin
   variables:
-    ENV_VARS: "PAN_MESA_DEBUG=deqp MESA_GLES_VERSION_OVERRIDE=3.1 MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330 EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_JUNIT_RESULTS=1"
+    PAN_MESA_DEBUG: "deqp,sync"
+    MESA_GLES_VERSION_OVERRIDE: "3.1"
+    MESA_GL_VERSION_OVERRIDE: "3.3"
+    MESA_GLSL_VERSION_OVERRIDE: 330
+    EGL_PLATFORM: surfaceless
+    PIGLIT_PROFILES: replay
+    PIGLIT_JUNIT_RESULTS: 1
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-panfrost.yml"
+    PIGLIT_REPLAY_EXTRA_ARGS: --keep-image
 
 .lava-meson-g12b-a311d-khadas-vim3:
   extends:
-    - .panfrost-rules
+    - .panfrost-bifrost-rules
+    - .panfrost-test
   variables:
     DEVICE_TYPE: meson-g12b-a311d-khadas-vim3
-    DTB: ${DEVICE_TYPE}
+    DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-g52
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-meson-g12b-a311d-khadas-vim3
 
-panfrost-g52-gles2:arm64:
+panfrost-g52-gl:arm64:
+  parallel: 3
   extends:
     - .lava-test:arm64
     - .lava-meson-g12b-a311d-khadas-vim3
   variables:
-    ENV_VARS: "DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=G52"
+    DEQP_PARALLEL: 6
+    DEQP_SUITE: panfrost-g52
+    DEQP_EXPECTED_RENDERER: G52
+    PAN_MESA_DEBUG: "deqp,sync,indirect"
 
-panfrost-g52-gles3:arm64:
-  parallel: 2
+.lava-mt8183-kukui-jacuzzi-juniper-sku16:
+  extends:
+    - .panfrost-bifrost-rules
+    - .panfrost-test
+  variables:
+    DEVICE_TYPE: mt8183-kukui-jacuzzi-juniper-sku16
+    DTB: mt8183-kukui-jacuzzi-juniper-sku16
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+    GPU_VERSION: panfrost-g72
+  tags:
+    - mesa-ci-x86-64-lava-mt8183-kukui-jacuzzi-juniper-sku16
+
+panfrost-g72-gl:arm64:
+  parallel: 3
   extends:
     - .lava-test:arm64
-    - .lava-meson-g12b-a311d-khadas-vim3
+    - .lava-mt8183-kukui-jacuzzi-juniper-sku16
   variables:
-    DEQP_VERSION: gles3
-    ENV_VARS: "PAN_MESA_DEBUG=deqp DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=G52"
-
-panfrost-g52-gles31:arm64:
-  extends:
-    - .lava-test:arm64
-    - .lava-meson-g12b-a311d-khadas-vim3
-  variables:
-    DEQP_VERSION: gles31
-    ENV_VARS: "PAN_MESA_DEBUG=deqp DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=G52"
+    DEQP_EXPECTED_RENDERER: G72
+    DEQP_SUITE: panfrost-g72
 
 .panfrost-t820-gles2:arm64:
   extends:
     - .lava-test:arm64
-    - .panfrost-rules
+    - .panfrost-midgard-rules
+    - .panfrost-test
   variables:
     DEVICE_TYPE: meson-gxm-khadas-vim2
-    DTB: ${DEVICE_TYPE}
+    DTB: $DEVICE_TYPE
     GPU_VERSION: panfrost-t820
-    LAVA_TAGS: panfrost
-    ENV_VARS: "PAN_MESA_DEBUG=gles3 DEQP_PARALLEL=6 DEQP_EXPECTED_RENDERER=T820"
+    DEQP_PARALLEL: 6
+    DEQP_EXPECTED_RENDERER: T820
+    DEQP_SUITE: panfrost-t720
   tags:
     - mesa-ci-aarch64-lava-baylibre

@@ -218,31 +218,6 @@ debug_symbol_name_dbghelp(const void *addr, char* buf, unsigned size)
 
 #endif /* PIPE_OS_WINDOWS */
 
-
-#if defined(HAVE_EXECINFO_H)
-
-#include <execinfo.h>
-
-/* This can only provide dynamic symbols, or binary offsets into a file.
- *
- * To fix this, post-process the output with tools/addr2line.sh
- */
-static inline boolean
-debug_symbol_name_glibc(const void *addr, char* buf, unsigned size)
-{
-   char** syms = backtrace_symbols((void**)&addr, 1);
-   if (!syms) {
-      return FALSE;
-   }
-   strncpy(buf, syms[0], size - 1);
-   buf[size - 1] = 0;
-   free(syms);
-   return TRUE;
-}
-
-#endif /* defined(HAVE_EXECINFO_H) */
-
-
 void
 debug_symbol_name(const void *addr, char* buf, unsigned size)
 {
@@ -251,12 +226,6 @@ debug_symbol_name(const void *addr, char* buf, unsigned size)
       return;
    }
 #endif
-
-#if defined(HAVE_EXECINFO_H)
-   if (debug_symbol_name_glibc(addr, buf, size)) {
-       return;
-   }
-#endif /* defined(HAVE_EXECINFO_H) */
 
    snprintf(buf, size, "%p", addr);
    buf[size - 1] = 0;

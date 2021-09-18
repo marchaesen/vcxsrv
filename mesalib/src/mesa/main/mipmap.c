@@ -1913,6 +1913,10 @@ _mesa_prepare_mipmap_levels(struct gl_context *ctx,
 {
    const struct gl_texture_image *baseImage =
       _mesa_select_tex_image(texObj, texObj->Target, baseLevel);
+
+   if (baseImage == NULL)
+      return;
+
    const GLint border = 0;
    GLint width = baseImage->Width;
    GLint height = baseImage->Height;

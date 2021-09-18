@@ -59,8 +59,6 @@ lvp_image_create(VkDevice _device,
       default:
       case VK_IMAGE_TYPE_2D:
          template.target = pCreateInfo->arrayLayers > 1 ? PIPE_TEXTURE_2D_ARRAY : PIPE_TEXTURE_2D;
-         if (pCreateInfo->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)
-            template.target = pCreateInfo->arrayLayers == 6 ? PIPE_TEXTURE_CUBE : PIPE_TEXTURE_CUBE_ARRAY;
          break;
       case VK_IMAGE_TYPE_3D:
          template.target = PIPE_TEXTURE_3D;
@@ -79,7 +77,7 @@ lvp_image_create(VkDevice _device,
       if (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
          template.bind |= PIPE_BIND_SHADER_IMAGE;
 
-      template.format = vk_format_to_pipe(pCreateInfo->format);
+      template.format = lvp_vk_format_to_pipe_format(pCreateInfo->format);
       template.width0 = pCreateInfo->extent.width;
       template.height0 = pCreateInfo->extent.height;
       template.depth0 = pCreateInfo->extent.depth;
@@ -92,6 +90,8 @@ lvp_image_create(VkDevice _device,
       image->bo = device->pscreen->resource_create_unbacked(device->pscreen,
                                                             &template,
                                                             &image->size);
+      if (!image->bo)
+         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
    *pImage = lvp_image_to_handle(image);
 
@@ -199,7 +199,7 @@ lvp_CreateImageView(VkDevice _device,
                        VK_OBJECT_TYPE_IMAGE_VIEW);
    view->view_type = pCreateInfo->viewType;
    view->format = pCreateInfo->format;
-   view->pformat = vk_format_to_pipe(pCreateInfo->format);
+   view->pformat = lvp_vk_format_to_pipe_format(pCreateInfo->format);
    view->components = pCreateInfo->components;
    view->subresourceRange = pCreateInfo->subresourceRange;
    view->image = image;
@@ -402,7 +402,7 @@ lvp_CreateBufferView(VkDevice _device,
                        VK_OBJECT_TYPE_BUFFER_VIEW);
    view->buffer = buffer;
    view->format = pCreateInfo->format;
-   view->pformat = vk_format_to_pipe(pCreateInfo->format);
+   view->pformat = lvp_vk_format_to_pipe_format(pCreateInfo->format);
    view->offset = pCreateInfo->offset;
    view->range = pCreateInfo->range;
    *pView = lvp_buffer_view_to_handle(view);

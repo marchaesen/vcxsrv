@@ -439,7 +439,7 @@ static struct ureg register_input( struct tnl_program *p, GLuint input )
    assert(input < VERT_ATTRIB_MAX);
 
    if (p->state->varying_vp_inputs & VERT_BIT(input)) {
-      p->program->info.inputs_read |= VERT_BIT(input);
+      p->program->info.inputs_read |= (uint64_t)VERT_BIT(input);
       return make_ureg(PROGRAM_INPUT, input);
    }
    else {

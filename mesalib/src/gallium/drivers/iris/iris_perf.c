@@ -26,7 +26,7 @@
 static void *
 iris_oa_bo_alloc(void *bufmgr, const char *name, uint64_t size)
 {
-   return iris_bo_alloc(bufmgr, name, size, IRIS_MEMZONE_OTHER);
+   return iris_bo_alloc(bufmgr, name, size, 1, IRIS_MEMZONE_OTHER, BO_ALLOC_SMEM);
 }
 
 static void

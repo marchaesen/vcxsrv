@@ -23,8 +23,6 @@
 # Authors:
 #    Connor Abbott (cwabbott0@gmail.com)
 
-from __future__ import print_function
-
 from nir_opcodes import opcodes, type_sizes
 from mako.template import Template
 

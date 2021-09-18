@@ -193,7 +193,8 @@ void
 _mesa_debug_get_id(GLuint *id)
 {
    if (!(*id)) {
-      *id = p_atomic_inc_return(&PrevDynamicID);
+      /* Don't update *id if we raced with some other thread. */
+      p_atomic_cmpxchg(id, 0, p_atomic_inc_return(&PrevDynamicID));
    }
 }
 

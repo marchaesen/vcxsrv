@@ -231,7 +231,7 @@ static void printbitfield (struct rnnbitfield *bf, int shift) {
 	printtypeinfo (&bf->typeinfo, bf, bf->fullname, bf->file);
 }
 
-static void printdelem (struct rnndelem *elem, uint64_t offset) {
+static void printdelem (struct rnndelem *elem, uint64_t offset, const char *str) {
 	int use_offset_fxn;
 	char *offsetfn = NULL;
 
@@ -251,7 +251,11 @@ static void printdelem (struct rnndelem *elem, uint64_t offset) {
 
 	if (elem->name) {
 		char *regname;
-		asprintf(&regname, "REG_%s", elem->fullname);
+		if (str) {
+			asprintf(&regname, "REG_%s_%s", elem->fullname, str);
+		} else {
+			asprintf(&regname, "REG_%s", elem->fullname);
+		}
 		if (elemsnum) {
 			int len;
 			FILE *dst = findfout(elem->file);
@@ -333,7 +337,7 @@ static void printdelem (struct rnndelem *elem, uint64_t offset) {
 	fprintf (findfout(elem->file), "\n");
 	int j;
 	for (j = 0; j < elem->subelemsnum; j++) {
-		printdelem(elem->subelems[j], offset + elem->offset);
+		printdelem(elem->subelems[j], offset + elem->offset, elem->varinfo.prefixstr);
 	}
 	if (elem->length != 1) {
 		elemsnum--;
@@ -492,7 +496,7 @@ int main(int argc, char **argv) {
 			printdef (db->domains[i]->fullname, "SIZE", 0, db->domains[i]->size, db->domains[i]->file);
 		int j;
 		for (j = 0; j < db->domains[i]->subelemsnum; j++) {
-			printdelem(db->domains[i]->subelems[j], 0);
+			printdelem(db->domains[i]->subelems[j], 0, NULL);
 		}
 	}
 	for(i = 0; i < foutsnum; ++i) {

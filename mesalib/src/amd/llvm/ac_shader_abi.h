@@ -58,17 +58,12 @@ struct ac_shader_abi {
    LLVMValueRef color0, color1;
    LLVMValueRef user_data;
 
-   /* For VS and PS: pre-loaded shader inputs.
-    *
-    * Currently only used for NIR shaders; indexed by variables'
-    * driver_location.
-    */
-   LLVMValueRef *inputs;
-
    /* Varying -> attribute number mapping. Also NIR-only */
    unsigned fs_input_attr_indices[MAX_VARYING];
 
-   void (*emit_outputs)(struct ac_shader_abi *abi, unsigned max_outputs, LLVMValueRef *addrs);
+   void (*export_vertex)(struct ac_shader_abi *abi);
+
+   void (*emit_outputs)(struct ac_shader_abi *abi);
 
    void (*emit_vertex)(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addrs);
 
@@ -92,8 +87,6 @@ struct ac_shader_abi {
                              LLVMValueRef vertex_index, LLVMValueRef param_index,
                              LLVMValueRef src, unsigned writemask,
                              unsigned component, unsigned location, unsigned driver_location);
-
-   LLVMValueRef (*load_tess_coord)(struct ac_shader_abi *abi);
 
    LLVMValueRef (*load_patch_vertices_in)(struct ac_shader_abi *abi);
 

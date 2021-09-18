@@ -33,11 +33,11 @@ get_global_ids(nir_builder *b, unsigned num_components)
    unsigned mask = BITFIELD_MASK(num_components);
 
    nir_ssa_def *local_ids = nir_channels(b, nir_load_local_invocation_id(b), mask);
-   nir_ssa_def *block_ids = nir_channels(b, nir_load_work_group_id(b, 32), mask);
+   nir_ssa_def *block_ids = nir_channels(b, nir_load_workgroup_id(b, 32), mask);
    nir_ssa_def *block_size = nir_channels(
       b,
-      nir_imm_ivec4(b, b->shader->info.cs.local_size[0], b->shader->info.cs.local_size[1],
-                    b->shader->info.cs.local_size[2], 0),
+      nir_imm_ivec4(b, b->shader->info.workgroup_size[0], b->shader->info.workgroup_size[1],
+                    b->shader->info.workgroup_size[2], 0),
       mask);
 
    return nir_iadd(b, nir_imul(b, block_ids, block_size), local_ids);
@@ -49,9 +49,9 @@ build_dcc_retile_compute_shader(struct radv_device *dev, struct radeon_surf *sur
    const struct glsl_type *buf_type = glsl_image_type(GLSL_SAMPLER_DIM_BUF, false, GLSL_TYPE_UINT);
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "dcc_retile_compute");
 
-   b.shader->info.cs.local_size[0] = 8;
-   b.shader->info.cs.local_size[1] = 8;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
 
    nir_ssa_def *src_dcc_size = nir_load_push_constant(&b, 2, 32, nir_imm_int(&b, 0), .range = 8);
    nir_ssa_def *src_dcc_pitch = nir_channels(&b, src_dcc_size, 1);
@@ -93,6 +93,7 @@ build_dcc_retile_compute_shader(struct radv_device *dev, struct radeon_surf *sur
    dcc_val->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
    dcc_val->src[3] = nir_src_for_ssa(nir_imm_int(&b, 0));
    nir_ssa_dest_init(&dcc_val->instr, &dcc_val->dest, 1, 32, "dcc_val");
+   nir_intrinsic_set_image_dim(dcc_val, GLSL_SAMPLER_DIM_BUF);
    nir_builder_instr_insert(&b, &dcc_val->instr);
 
    nir_intrinsic_instr *store =
@@ -103,6 +104,7 @@ build_dcc_retile_compute_shader(struct radv_device *dev, struct radeon_surf *sur
    store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
    store->src[3] = nir_src_for_ssa(&dcc_val->dest.ssa);
    store->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
+   nir_intrinsic_set_image_dim(store, GLSL_SAMPLER_DIM_BUF);
 
    nir_builder_instr_insert(&b, &store->instr);
    return b.shader;
@@ -113,7 +115,10 @@ radv_device_finish_meta_dcc_retile_state(struct radv_device *device)
 {
    struct radv_meta_state *state = &device->meta_state;
 
-   radv_DestroyPipeline(radv_device_to_handle(device), state->dcc_retile.pipeline, &state->alloc);
+   for (unsigned i = 0; i < ARRAY_SIZE(state->dcc_retile.pipeline); i++) {
+      radv_DestroyPipeline(radv_device_to_handle(device), state->dcc_retile.pipeline[i],
+                           &state->alloc);
+   }
    radv_DestroyPipelineLayout(radv_device_to_handle(device), state->dcc_retile.p_layout,
                               &state->alloc);
    radv_DestroyDescriptorSetLayout(radv_device_to_handle(device), state->dcc_retile.ds_layout,
@@ -129,9 +134,7 @@ radv_device_finish_meta_dcc_retile_state(struct radv_device *device)
  * - DCC equations
  * - DCC block size
  *
- * BPE is always 4 at the moment and the rest is derived from the tilemode,
- * and ac_surface limits displayable DCC to at most 1 tiling mode. So in effect
- * this shader is indepedent of the surface.
+ * BPE is always 4 at the moment and the rest is derived from the tilemode.
  */
 static VkResult
 radv_device_init_meta_dcc_retile_state(struct radv_device *device, struct radeon_surf *surf)
@@ -195,7 +198,7 @@ radv_device_init_meta_dcc_retile_state(struct radv_device *device, struct radeon
 
    result = radv_CreateComputePipelines(
       radv_device_to_handle(device), radv_pipeline_cache_to_handle(&device->meta_state.cache), 1,
-      &vk_pipeline_info, NULL, &device->meta_state.dcc_retile.pipeline);
+      &vk_pipeline_info, NULL, &device->meta_state.dcc_retile.pipeline[surf->u.gfx9.swizzle_mode]);
    if (result != VK_SUCCESS)
       goto cleanup;
 
@@ -220,8 +223,10 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
    state->flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_READ_BIT, image) |
                         radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
 
+   unsigned swizzle_mode = image->planes[0].surface.u.gfx9.swizzle_mode;
+
    /* Compile pipelines if not already done so. */
-   if (!cmd_buffer->device->meta_state.dcc_retile.pipeline) {
+   if (!cmd_buffer->device->meta_state.dcc_retile.pipeline[swizzle_mode]) {
       VkResult ret =
          radv_device_init_meta_dcc_retile_state(cmd_buffer->device, &image->planes[0].surface);
       if (ret != VK_SUCCESS) {
@@ -235,7 +240,7 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
       RADV_META_SAVE_DESCRIPTORS | RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_CONSTANTS);
 
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
-                        device->meta_state.dcc_retile.pipeline);
+                        device->meta_state.dcc_retile.pipeline[swizzle_mode]);
 
    struct radv_buffer buffer = {.size = image->size, .bo = image->bo, .offset = image->offset};
 

@@ -81,7 +81,7 @@ dx_get_texture_lod(nir_builder *b, nir_tex_instr *tex)
    nir_ssa_def *ssa_src = nir_channels(b, tex->src[coord_index].src.ssa,
                                        (1 << coord_components) - 1);
    nir_src src = nir_src_for_ssa(ssa_src);
-   nir_src_copy(&tql->src[0].src, &src, tql);
+   nir_src_copy(&tql->src[0].src, &src);
    tql->src[0].src_type = nir_tex_src_coord;
 
    unsigned idx = 1;
@@ -92,7 +92,7 @@ dx_get_texture_lod(nir_builder *b, nir_tex_instr *tex)
           tex->src[i].src_type == nir_tex_src_sampler_offset ||
           tex->src[i].src_type == nir_tex_src_texture_handle ||
           tex->src[i].src_type == nir_tex_src_sampler_handle) {
-         nir_src_copy(&tql->src[idx].src, &tex->src[i].src, tql);
+         nir_src_copy(&tql->src[idx].src, &tex->src[i].src);
          tql->src[idx].src_type = tex->src[i].src_type;
          idx++;
       }
@@ -264,6 +264,7 @@ create_txf_from_tex(nir_builder *b, nir_tex_instr *tex)
 
    txf = nir_tex_instr_create(b->shader, num_srcs);
    txf->op = nir_texop_txf;
+   txf->coord_components = tex->coord_components;
    txf->sampler_dim = tex->sampler_dim;
    txf->is_array = tex->is_array;
    txf->is_shadow = tex->is_shadow;
@@ -277,7 +278,7 @@ create_txf_from_tex(nir_builder *b, nir_tex_instr *tex)
       if (tex->src[i].src_type == nir_tex_src_texture_deref ||
           tex->src[i].src_type == nir_tex_src_texture_offset ||
           tex->src[i].src_type == nir_tex_src_texture_handle) {
-         nir_src_copy(&txf->src[idx].src, &tex->src[i].src, txf);
+         nir_src_copy(&txf->src[idx].src, &tex->src[i].src);
          txf->src[idx].src_type = tex->src[i].src_type;
          idx++;
       }

@@ -574,8 +574,7 @@ static bool r600_texture_get_handle(struct pipe_screen* screen,
 	return rscreen->ws->buffer_get_handle(rscreen->ws, res->buf, whandle);
 }
 
-static void r600_texture_destroy(struct pipe_screen *screen,
-				 struct pipe_resource *ptex)
+void r600_texture_destroy(struct pipe_screen *screen, struct pipe_resource *ptex)
 {
 	struct r600_texture *rtex = (struct r600_texture*)ptex;
 	struct r600_resource *resource = &rtex->resource;
@@ -589,8 +588,6 @@ static void r600_texture_destroy(struct pipe_screen *screen,
 	pb_reference(&resource->buf, NULL);
 	FREE(rtex);
 }
-
-static const struct u_resource_vtbl r600_texture_vtbl;
 
 /* The number of samples can be specified independently of the texture. */
 void r600_texture_get_fmask_info(struct r600_common_screen *rscreen,
@@ -916,7 +913,6 @@ r600_texture_create_object(struct pipe_screen *screen,
 
 	resource = &rtex->resource;
 	resource->b.b = *base;
-	resource->b.vtbl = &r600_texture_vtbl;
 	pipe_reference_init(&resource->b.b.reference, 1);
 	resource->b.b.screen = screen;
 
@@ -1288,12 +1284,12 @@ static void r600_texture_invalidate_storage(struct r600_common_context *rctx,
 	rctx->num_alloc_tex_transfer_bytes += rtex->size;
 }
 
-static void *r600_texture_transfer_map(struct pipe_context *ctx,
-				       struct pipe_resource *texture,
-				       unsigned level,
-				       unsigned usage,
-				       const struct pipe_box *box,
-				       struct pipe_transfer **ptransfer)
+void *r600_texture_transfer_map(struct pipe_context *ctx,
+			       struct pipe_resource *texture,
+			       unsigned level,
+			       unsigned usage,
+			       const struct pipe_box *box,
+			       struct pipe_transfer **ptransfer)
 {
 	struct r600_common_context *rctx = (struct r600_common_context*)ctx;
 	struct r600_texture *rtex = (struct r600_texture*)texture;
@@ -1473,8 +1469,8 @@ static void *r600_texture_transfer_map(struct pipe_context *ctx,
 	return map + offset;
 }
 
-static void r600_texture_transfer_unmap(struct pipe_context *ctx,
-					struct pipe_transfer* transfer)
+void r600_texture_transfer_unmap(struct pipe_context *ctx,
+				struct pipe_transfer* transfer)
 {
 	struct r600_common_context *rctx = (struct r600_common_context*)ctx;
 	struct r600_transfer *rtransfer = (struct r600_transfer*)transfer;
@@ -1518,15 +1514,6 @@ static void r600_texture_transfer_unmap(struct pipe_context *ctx,
 	pipe_resource_reference(&transfer->resource, NULL);
 	FREE(transfer);
 }
-
-static const struct u_resource_vtbl r600_texture_vtbl =
-{
-	NULL,				/* get_handle */
-	r600_texture_destroy,		/* resource_destroy */
-	r600_texture_transfer_map,	/* transfer_map */
-	u_default_transfer_flush_region, /* transfer_flush_region */
-	r600_texture_transfer_unmap,	/* transfer_unmap */
-};
 
 struct pipe_surface *r600_create_surface_custom(struct pipe_context *pipe,
 						struct pipe_resource *texture,

@@ -39,6 +39,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "freedreno_pm4.h"
+
 #include "buffers.h"
 #include "cffdec.h"
 #include "disasm.h"
@@ -166,9 +168,6 @@ static void dump_tex_const(uint32_t *texsamp, int num_unit, int level);
 static bool
 highlight_gpuaddr(uint64_t gpuaddr)
 {
-   if (!options->color)
-      return false;
-
    if (!options->ibs[ib].base)
       return false;
 
@@ -176,7 +175,7 @@ highlight_gpuaddr(uint64_t gpuaddr)
       return false;
 
    if (ibs[ib].triggered)
-      return true;
+      return options->color;
 
    if (options->ibs[ib].base != ibs[ib].base)
       return false;
@@ -191,7 +190,7 @@ highlight_gpuaddr(uint64_t gpuaddr)
    if (triggered)
       printf("ESTIMATED CRASH LOCATION!\n");
 
-   return triggered;
+   return triggered & options->color;
 }
 
 static void
@@ -2191,6 +2190,50 @@ cp_indirect(uint32_t *dwords, uint32_t sizedwords, int level)
 }
 
 static void
+cp_start_bin(uint32_t *dwords, uint32_t sizedwords, int level)
+{
+   uint64_t ibaddr;
+   uint32_t ibsize;
+   uint32_t loopcount;
+   uint32_t *ptr = NULL;
+
+   loopcount = dwords[0];
+   ibaddr = dwords[1];
+   ibaddr |= ((uint64_t)dwords[2]) << 32;
+   ibsize = dwords[3];
+
+   /* map gpuaddr back to hostptr: */
+   ptr = hostptr(ibaddr);
+
+   if (ptr) {
+      /* If the GPU hung within the target IB, the trigger point will be
+       * just after the current CP_START_BIN.  Because the IB is
+       * executed but never returns.  Account for this by checking if
+       * the IB returned:
+       */
+      highlight_gpuaddr(gpuaddr(&dwords[5]));
+
+      /* TODO: we should duplicate the body of the loop after each bin, so
+       * that draws get the correct state. We should also figure out if there
+       * are any registers that can tell us what bin we're in when we hang so
+       * that crashdec points to the right place.
+       */
+      ib++;
+      for (uint32_t i = 0; i < loopcount; i++) {
+         ibs[ib].base = ibaddr;
+         ibs[ib].size = ibsize;
+         printf("%sbin %u\n", levels[level], i);
+         dump_commands(ptr, ibsize, level);
+         ibaddr += ibsize;
+         ptr += ibsize;
+      }
+      ib--;
+   } else {
+      fprintf(stderr, "could not find: %016" PRIx64 " (%d)\n", ibaddr, ibsize);
+   }
+}
+
+static void
 cp_wfi(uint32_t *dwords, uint32_t sizedwords, int level)
 {
    needs_wfi = false;
@@ -2419,7 +2462,7 @@ cp_exec_cs_indirect(uint32_t *dwords, uint32_t sizedwords, int level)
 static void
 cp_set_marker(uint32_t *dwords, uint32_t sizedwords, int level)
 {
-   render_mode = rnn_enumname(rnn, "a6xx_render_mode", dwords[0] & 0xf);
+   render_mode = rnn_enumname(rnn, "a6xx_marker", dwords[0] & 0xf);
 
    if (!strcmp(render_mode, "RM6_BINNING")) {
       enable_mask = MODE_BINNING;
@@ -2573,7 +2616,10 @@ cp_set_ctxswitch_ib(uint32_t *dwords, uint32_t sizedwords, int level)
 
    addr = dwords[0] | ((uint64_t)dwords[1] << 32);
 
-   printf("addr=%" PRIx64 "\n", addr);
+   if (!quiet(3)) {
+      printf("%saddr=%" PRIx64 "\n", levels[level], addr);
+   }
+
    ptr = hostptr(addr);
    if (ptr) {
       dump_commands(ptr, size, level + 1);
@@ -2647,6 +2693,8 @@ static const struct type3_op {
    CP(REG_WRITE, cp_reg_write),
 
    CP(SET_CTXSWITCH_IB, cp_set_ctxswitch_ib),
+
+   CP(START_BIN, cp_start_bin),
 };
 
 static void

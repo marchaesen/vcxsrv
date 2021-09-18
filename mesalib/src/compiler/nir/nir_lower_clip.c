@@ -258,7 +258,7 @@ lower_clip_outputs(nir_builder *b, nir_variable *position,
          nir_ssa_def *ucp = get_ucp(b, plane, clipplane_state_tokens);
 
          /* calculate clipdist[plane] - dot(ucp, cv): */
-         clipdist[plane] = nir_fdot4(b, ucp, cv);
+         clipdist[plane] = nir_fdot(b, ucp, cv);
       } else {
          /* 0.0 == don't-clip == disabled: */
          clipdist[plane] = nir_imm_float(b, 0.0);

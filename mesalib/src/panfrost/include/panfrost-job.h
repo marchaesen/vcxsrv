@@ -232,14 +232,11 @@ typedef uint64_t mali_ptr;
 
 #define MALI_POSITIVE(dim) (dim - 1)
 
-/* 8192x8192 */
-#define MAX_MIP_LEVELS (13)
-
-/* Cubemap bloats everything up */
-#define MAX_CUBE_FACES (6)
-
-/* For each pointer, there is an address and optionally also a stride */
-#define MAX_ELEMENTS (2)
+/* Mali hardware can texture up to 65536 x 65536 x 65536 and render up to 16384
+ * x 16384, but 8192 x 8192 should be enough for anyone.  The OpenGL game
+ * "Cathedral" requires a texture of width 8192 to start.
+ */
+#define MAX_MIP_LEVELS (14)
 
 /* Used for lod encoding. Thanks @urjaman for pointing out these routines can
  * be cleaned up a lot. */

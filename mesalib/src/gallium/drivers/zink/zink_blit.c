@@ -1,5 +1,6 @@
 #include "zink_context.h"
 #include "zink_helpers.h"
+#include "zink_query.h"
 #include "zink_resource.h"
 #include "zink_screen.h"
 
@@ -7,6 +8,17 @@
 #include "util/u_rect.h"
 #include "util/u_surface.h"
 #include "util/format/u_format.h"
+
+static void
+apply_dst_clears(struct zink_context *ctx, const struct pipe_blit_info *info, bool discard_only)
+{
+   if (info->scissor_enable) {
+      struct u_rect rect = { info->scissor.minx, info->scissor.maxx,
+                             info->scissor.miny, info->scissor.maxy };
+      zink_fb_clears_apply_or_discard(ctx, info->dst.resource, rect, discard_only);
+   } else
+      zink_fb_clears_apply_or_discard(ctx, info->dst.resource, zink_rect_from_box(&info->dst.box), discard_only);
+}
 
 static bool
 blit_resolve(struct zink_context *ctx, const struct pipe_blit_info *info)
@@ -38,16 +50,17 @@ blit_resolve(struct zink_context *ctx, const struct pipe_blit_info *info)
       util_range_add(info->dst.resource, &dst->valid_buffer_range,
                      info->dst.box.x, info->dst.box.x + info->dst.box.width);
 
-   zink_fb_clears_apply_or_discard(ctx, info->dst.resource, zink_rect_from_box(&info->dst.box), false);
+   apply_dst_clears(ctx, info, false);
    zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box));
-   struct zink_batch *batch = zink_batch_no_rp(ctx);
 
+   struct zink_batch *batch = &ctx->batch;
+   zink_batch_no_rp(ctx);
    zink_batch_reference_resource_rw(batch, src, false);
    zink_batch_reference_resource_rw(batch, dst, true);
 
    zink_resource_setup_transfer_layouts(ctx, src, dst);
 
-   VkImageResolve region = {};
+   VkImageResolve region = {0};
 
    region.srcSubresource.aspectMask = src->aspect;
    region.srcSubresource.mipLevel = info->src.level;
@@ -84,7 +97,7 @@ blit_resolve(struct zink_context *ctx, const struct pipe_blit_info *info)
    region.extent.width = info->dst.box.width;
    region.extent.height = info->dst.box.height;
    region.extent.depth = info->dst.box.depth;
-   vkCmdResolveImage(batch->state->cmdbuf, src->obj->image, src->layout,
+   VKCTX(CmdResolveImage)(batch->state->cmdbuf, src->obj->image, src->layout,
                      dst->obj->image, dst->layout,
                      1, &region);
 
@@ -132,14 +145,22 @@ blit_native(struct zink_context *ctx, const struct pipe_blit_info *info)
        !(get_resource_features(screen, dst) & VK_FORMAT_FEATURE_BLIT_DST_BIT))
       return false;
 
+   if ((util_format_is_pure_sint(info->src.format) !=
+        util_format_is_pure_sint(info->dst.format)) ||
+       (util_format_is_pure_uint(info->src.format) !=
+        util_format_is_pure_uint(info->dst.format)))
+      return false;
+
    if (info->filter == PIPE_TEX_FILTER_LINEAR &&
        !(get_resource_features(screen, src) &
           VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
       return false;
 
-   zink_fb_clears_apply_or_discard(ctx, info->dst.resource, zink_rect_from_box(&info->dst.box), false);
+   apply_dst_clears(ctx, info, false);
    zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box));
-   struct zink_batch *batch = zink_batch_no_rp(ctx);
+
+   struct zink_batch *batch = &ctx->batch;
+   zink_batch_no_rp(ctx);
    zink_batch_reference_resource_rw(batch, src, false);
    zink_batch_reference_resource_rw(batch, dst, true);
 
@@ -147,7 +168,7 @@ blit_native(struct zink_context *ctx, const struct pipe_blit_info *info)
    if (info->dst.resource->target == PIPE_BUFFER)
       util_range_add(info->dst.resource, &dst->valid_buffer_range,
                      info->dst.box.x, info->dst.box.x + info->dst.box.width);
-   VkImageBlit region = {};
+   VkImageBlit region = {0};
    region.srcSubresource.aspectMask = src->aspect;
    region.srcSubresource.mipLevel = info->src.level;
    region.srcOffsets[0].x = info->src.box.x;
@@ -217,7 +238,7 @@ blit_native(struct zink_context *ctx, const struct pipe_blit_info *info)
    }
    assert(region.dstOffsets[0].z != region.dstOffsets[1].z);
 
-   vkCmdBlitImage(batch->state->cmdbuf, src->obj->image, src->layout,
+   VKCTX(CmdBlitImage)(batch->state->cmdbuf, src->obj->image, src->layout,
                   dst->obj->image, dst->layout,
                   1, &region,
                   zink_filter(info->filter));
@@ -232,6 +253,11 @@ zink_blit(struct pipe_context *pctx,
    struct zink_context *ctx = zink_context(pctx);
    const struct util_format_description *src_desc = util_format_description(info->src.format);
    const struct util_format_description *dst_desc = util_format_description(info->dst.format);
+
+   if (info->render_condition_enable &&
+       unlikely(!zink_screen(pctx->screen)->info.have_EXT_conditional_rendering && !zink_check_conditional_render(ctx)))
+      return;
+
    if (src_desc == dst_desc ||
        src_desc->nr_channels != 4 || src_desc->layout != UTIL_FORMAT_LAYOUT_PLAIN ||
        (src_desc->nr_channels == 4 && src_desc->channel[3].type != UTIL_FORMAT_TYPE_VOID)) {
@@ -270,7 +296,10 @@ zink_blit(struct pipe_context *pctx,
       return;
    }
 
-   zink_fb_clears_apply_or_discard(ctx, info->dst.resource, zink_rect_from_box(&info->dst.box), true);
+   /* this is discard_only because we're about to start a renderpass that will
+    * flush all pending clears anyway
+    */
+   apply_dst_clears(ctx, info, true);
 
    if (info->dst.resource->target == PIPE_BUFFER)
       util_range_add(info->dst.resource, &dst->valid_buffer_range,
@@ -313,12 +342,15 @@ zink_blit_begin(struct zink_context *ctx, enum zink_blit_flags flags)
 
    if (flags & ZINK_BLIT_SAVE_TEXTURES) {
       util_blitter_save_fragment_sampler_states(ctx->blitter,
-                                                ctx->num_samplers[PIPE_SHADER_FRAGMENT],
-                                                ctx->sampler_states[PIPE_SHADER_FRAGMENT]);
+                                                ctx->di.num_samplers[PIPE_SHADER_FRAGMENT],
+                                                (void**)ctx->sampler_states[PIPE_SHADER_FRAGMENT]);
       util_blitter_save_fragment_sampler_views(ctx->blitter,
-                                               ctx->num_sampler_views[PIPE_SHADER_FRAGMENT],
+                                               ctx->di.num_sampler_views[PIPE_SHADER_FRAGMENT],
                                                ctx->sampler_views[PIPE_SHADER_FRAGMENT]);
    }
+
+   if (flags & ZINK_BLIT_NO_COND_RENDER && ctx->render_condition_active)
+      zink_stop_conditional_render(ctx);
 }
 
 bool
@@ -330,12 +362,12 @@ zink_blit_region_fills(struct u_rect region, unsigned width, unsigned height)
       /* is this even a thing? */
       return false;
 
-    u_rect_find_intersection(&region, &intersect);
-    if (intersect.x0 != 0 || intersect.y0 != 0 ||
-        intersect.x1 != width || intersect.y1 != height)
-       return false;
+   u_rect_find_intersection(&region, &intersect);
+   if (intersect.x0 != 0 || intersect.y0 != 0 ||
+       intersect.x1 != width || intersect.y1 != height)
+      return false;
 
-   return false;
+   return true;
 }
 
 bool

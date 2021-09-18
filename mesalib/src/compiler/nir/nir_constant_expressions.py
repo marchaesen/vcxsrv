@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import re
 from nir_opcodes import opcodes
 from nir_opcodes import type_has_size, type_size, type_sizes, type_base_type
@@ -67,8 +65,6 @@ template = """\
 #include "util/softfloat.h"
 #include "util/bigmath.h"
 #include "nir_constant_expressions.h"
-
-#define MAX_UINT_FOR_SIZE(bits) (UINT64_MAX >> (64 - (bits)))
 
 /**
  * \brief Checks if the provided value is a denorm and flushes it to zero.

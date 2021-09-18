@@ -41,6 +41,7 @@
 
 #define RADV_VERT_ATTRIB_MAX MAX2(VERT_ATTRIB_MAX, VERT_ATTRIB_GENERIC0 + MAX_VERTEX_ATTRIBS)
 
+struct radv_physical_device;
 struct radv_device;
 struct radv_pipeline;
 struct radv_pipeline_cache;
@@ -66,6 +67,7 @@ struct radv_vs_variant_key {
    uint32_t vertex_attribute_bindings[MAX_VERTEX_ATTRIBS];
    uint32_t vertex_attribute_offsets[MAX_VERTEX_ATTRIBS];
    uint32_t vertex_attribute_strides[MAX_VERTEX_ATTRIBS];
+   uint8_t vertex_binding_align[MAX_VBS];
 
    /* For 2_10_10_10 formats the alpha is handled as unsigned by pre-vega HW.
     * so we may need to fix it up. */
@@ -128,7 +130,6 @@ struct radv_nir_compiler_options {
    bool explicit_scratch_args;
    bool clamp_shadow_reference;
    bool robust_buffer_access;
-   bool robust_buffer_access2;
    bool adjust_frag_coord_z;
    bool dump_shader;
    bool dump_preoptir;
@@ -137,7 +138,6 @@ struct radv_nir_compiler_options {
    bool check_ir;
    bool has_ls_vgpr_init_bug;
    bool has_image_load_dcc_bug;
-   bool use_ngg_streamout;
    bool enable_mrt_output_nan_fixup;
    bool disable_optimizations; /* only used by ACO */
    bool wgp_mode;
@@ -162,12 +162,15 @@ enum radv_ud_index {
    AC_UD_VIEW_INDEX = 4,
    AC_UD_STREAMOUT_BUFFERS = 5,
    AC_UD_NGG_GS_STATE = 6,
-   AC_UD_SHADER_START = 7,
+   AC_UD_NGG_CULLING_SETTINGS = 7,
+   AC_UD_NGG_VIEWPORT = 8,
+   AC_UD_SHADER_START = 9,
    AC_UD_VS_VERTEX_BUFFERS = AC_UD_SHADER_START,
    AC_UD_VS_BASE_VERTEX_START_INSTANCE,
    AC_UD_VS_MAX_UD,
    AC_UD_PS_MAX_UD,
    AC_UD_CS_GRID_SIZE = AC_UD_SHADER_START,
+   AC_UD_CS_SBT_DESCRIPTORS,
    AC_UD_CS_MAX_UD,
    AC_UD_GS_MAX_UD,
    AC_UD_TCS_MAX_UD,
@@ -234,6 +237,7 @@ struct gfx10_ngg_info {
    uint32_t vgt_esgs_ring_itemsize;
    uint32_t esgs_ring_size;
    bool max_vert_out_per_gs_instance;
+   bool enable_vertex_grouping;
 };
 
 struct radv_shader_info {
@@ -259,11 +263,14 @@ struct radv_shader_info {
    bool need_indirect_descriptor_sets;
    bool is_ngg;
    bool is_ngg_passthrough;
+   bool has_ngg_culling;
+   bool has_ngg_early_prim_export;
+   uint32_t num_lds_blocks_when_not_culling;
    uint32_t num_tess_patches;
+   unsigned workgroup_size;
    struct {
       uint8_t input_usage_mask[RADV_VERT_ATTRIB_MAX];
       uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
-      bool has_vertex_buffers; /* needs vertex buffers and base/start */
       bool needs_draw_id;
       bool needs_instance_id;
       struct radv_vs_output_info outinfo;
@@ -275,6 +282,8 @@ struct radv_shader_info {
       uint64_t tcs_temp_only_input_mask;
       uint8_t num_linked_outputs;
       bool needs_base_instance;
+      bool use_per_attribute_vb_descs;
+      uint32_t vb_desc_usage_mask;
    } vs;
    struct {
       uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -335,6 +344,8 @@ struct radv_shader_info {
       bool uses_thread_id[3];
       bool uses_local_invocation_idx;
       unsigned block_size[3];
+
+      bool uses_sbt;
    } cs;
    struct {
       uint64_t tes_inputs_read;
@@ -421,6 +432,7 @@ struct radv_shader_slab {
 
 void radv_optimize_nir(const struct radv_device *device, struct nir_shader *shader,
                        bool optimize_conservatively, bool allow_copies);
+void radv_optimize_nir_algebraic(nir_shader *shader, bool opt_offsets);
 bool radv_nir_lower_ycbcr_textures(nir_shader *shader, const struct radv_pipeline_layout *layout);
 
 nir_shader *radv_shader_compile_to_nir(struct radv_device *device, struct vk_shader_module *module,
@@ -458,16 +470,13 @@ struct radv_shader_variant *radv_create_trap_handler_shader(struct radv_device *
 
 void radv_shader_variant_destroy(struct radv_device *device, struct radv_shader_variant *variant);
 
-unsigned radv_get_max_waves(struct radv_device *device, struct radv_shader_variant *variant,
+unsigned radv_get_max_waves(const struct radv_device *device, struct radv_shader_variant *variant,
                             gl_shader_stage stage);
-
-unsigned radv_get_max_workgroup_size(enum chip_class chip_class, gl_shader_stage stage,
-                                     const unsigned *sizes);
 
 const char *radv_get_shader_name(struct radv_shader_info *info, gl_shader_stage stage);
 
 bool radv_can_dump_shader(struct radv_device *device, struct vk_shader_module *module,
-                          bool is_gs_copy_shader);
+                          bool meta_shader);
 
 bool radv_can_dump_shader_stats(struct radv_device *device, struct vk_shader_module *module);
 
@@ -555,5 +564,16 @@ void radv_lower_io(struct radv_device *device, nir_shader *nir);
 
 bool radv_lower_io_to_mem(struct radv_device *device, struct nir_shader *nir,
                           struct radv_shader_info *info, const struct radv_pipeline_key *pl_key);
+
+void radv_lower_ngg(struct radv_device *device, struct nir_shader *nir,
+                    struct radv_shader_info *info,
+                    const struct radv_pipeline_key *pl_key,
+                    struct radv_shader_variant_key *key,
+                    bool consider_culling);
+
+bool radv_consider_culling(struct radv_device *device, struct nir_shader *nir,
+                           uint64_t ps_inputs_read);
+
+void radv_get_nir_options(struct radv_physical_device *device);
 
 #endif

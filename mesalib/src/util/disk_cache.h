@@ -208,6 +208,22 @@ disk_cache_put(struct disk_cache *cache, const cache_key key,
                struct cache_item_metadata *cache_item_metadata);
 
 /**
+ * Store an item in the cache under the name \key without copying the data param.
+ *
+ * The item can be retrieved later with disk_cache_get(), (unless the item has
+ * been evicted in the interim).
+ *
+ * Any call to disk_cache_put() may cause an existing, random item to be
+ * evicted from the cache.
+ *
+ * @p data will be freed
+ */
+void
+disk_cache_put_nocopy(struct disk_cache *cache, const cache_key key,
+                      void *data, size_t size,
+                      struct cache_item_metadata *cache_item_metadata);
+
+/**
  * Retrieve an item previously stored in the cache with the name <key>.
  *
  * The item must have been previously stored with a call to disk_cache_put().
@@ -277,6 +293,14 @@ static inline void
 disk_cache_put(struct disk_cache *cache, const cache_key key,
                const void *data, size_t size,
                struct cache_item_metadata *cache_item_metadata)
+{
+   return;
+}
+
+static inline void
+disk_cache_put_nocopy(struct disk_cache *cache, const cache_key key,
+                      void *data, size_t size,
+                      struct cache_item_metadata *cache_item_metadata)
 {
    return;
 }

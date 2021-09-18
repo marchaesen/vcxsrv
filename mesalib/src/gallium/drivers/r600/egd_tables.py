@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 CopyRight = '''
 /*
  * Copyright 2015 Advanced Micro Devices, Inc.

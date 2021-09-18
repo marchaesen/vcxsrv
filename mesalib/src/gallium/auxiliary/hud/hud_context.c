@@ -541,7 +541,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_vertex_shader_handle(cso, hud->vs_color);
    cso_set_vertex_elements(cso, &hud->velems);
    cso_set_render_condition(cso, NULL, FALSE, 0);
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0,
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, false,
                            &hud->font_sampler_view);
    cso_set_samplers(cso, PIPE_SHADER_FRAGMENT, 1, sampler_states);
    pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, &hud->constbuf);
@@ -609,12 +609,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    }
 
 done:
-   cso_restore_state(cso);
-
-   /* Unbind resources that we have bound. */
-   pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, NULL);
-   pipe->set_vertex_buffers(pipe, 0, 0, 1, false, NULL);
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0, 1, NULL);
+   cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEW0 | CSO_UNBIND_VS_CONSTANTS | CSO_UNBIND_VERTEX_BUFFER0);
 
    /* restore states not restored by cso */
    if (hud->st) {

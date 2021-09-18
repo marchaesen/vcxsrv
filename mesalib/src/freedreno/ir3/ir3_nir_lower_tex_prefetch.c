@@ -31,97 +31,97 @@
 static int
 coord_offset(nir_ssa_def *ssa)
 {
-	nir_instr *parent_instr = ssa->parent_instr;
+   nir_instr *parent_instr = ssa->parent_instr;
 
-	/* The coordinate of a texture sampling instruction eligible for
-	 * pre-fetch is either going to be a load_interpolated_input/
-	 * load_input, or a vec2 assembling non-swizzled components of
-	 * a load_interpolated_input/load_input (due to varying packing)
-	 */
+   /* The coordinate of a texture sampling instruction eligible for
+    * pre-fetch is either going to be a load_interpolated_input/
+    * load_input, or a vec2 assembling non-swizzled components of
+    * a load_interpolated_input/load_input (due to varying packing)
+    */
 
-	if (parent_instr->type == nir_instr_type_alu) {
-		nir_alu_instr *alu = nir_instr_as_alu(parent_instr);
+   if (parent_instr->type == nir_instr_type_alu) {
+      nir_alu_instr *alu = nir_instr_as_alu(parent_instr);
 
-		if (alu->op != nir_op_vec2)
-			return -1;
+      if (alu->op != nir_op_vec2)
+         return -1;
 
-		if (!alu->src[0].src.is_ssa)
-			return -1;
+      if (!alu->src[0].src.is_ssa)
+         return -1;
 
-		int base_offset = coord_offset(alu->src[0].src.ssa) +
-				alu->src[0].swizzle[0];
+      int base_offset =
+         coord_offset(alu->src[0].src.ssa) + alu->src[0].swizzle[0];
 
-		/* NOTE it might be possible to support more than 2D? */
-		for (int i = 1; i < 2; i++) {
-			if (!alu->src[i].src.is_ssa)
-				return -1;
+      /* NOTE it might be possible to support more than 2D? */
+      for (int i = 1; i < 2; i++) {
+         if (!alu->src[i].src.is_ssa)
+            return -1;
 
-			int nth_offset = coord_offset(alu->src[i].src.ssa) +
-					alu->src[i].swizzle[0];
+         int nth_offset =
+            coord_offset(alu->src[i].src.ssa) + alu->src[i].swizzle[0];
 
-			if (nth_offset != (base_offset + i))
-				return -1;
-		}
+         if (nth_offset != (base_offset + i))
+            return -1;
+      }
 
-		return base_offset;
-	}
+      return base_offset;
+   }
 
-	if (parent_instr->type != nir_instr_type_intrinsic)
-		return -1;
+   if (parent_instr->type != nir_instr_type_intrinsic)
+      return -1;
 
-	nir_intrinsic_instr *input = nir_instr_as_intrinsic(parent_instr);
+   nir_intrinsic_instr *input = nir_instr_as_intrinsic(parent_instr);
 
-	if (input->intrinsic != nir_intrinsic_load_interpolated_input)
-		return -1;
+   if (input->intrinsic != nir_intrinsic_load_interpolated_input)
+      return -1;
 
-	/* limit to load_barycentric_pixel, other interpolation modes don't seem
-	 * to be supported:
-	 */
-	if (!input->src[0].is_ssa)
-		return -1;
+   /* limit to load_barycentric_pixel, other interpolation modes don't seem
+    * to be supported:
+    */
+   if (!input->src[0].is_ssa)
+      return -1;
 
-	nir_intrinsic_instr *interp =
-		nir_instr_as_intrinsic(input->src[0].ssa->parent_instr);
+   nir_intrinsic_instr *interp =
+      nir_instr_as_intrinsic(input->src[0].ssa->parent_instr);
 
-	if (interp->intrinsic != nir_intrinsic_load_barycentric_pixel)
-		return -1;
+   if (interp->intrinsic != nir_intrinsic_load_barycentric_pixel)
+      return -1;
 
-	/* we also need a const input offset: */
-	if (!nir_src_is_const(input->src[1]))
-		return -1;
+   /* we also need a const input offset: */
+   if (!nir_src_is_const(input->src[1]))
+      return -1;
 
-	unsigned base = nir_src_as_uint(input->src[1]) + nir_intrinsic_base(input);
-	unsigned comp = nir_intrinsic_component(input);
+   unsigned base = nir_src_as_uint(input->src[1]) + nir_intrinsic_base(input);
+   unsigned comp = nir_intrinsic_component(input);
 
-	return (4 * base) + comp;
+   return (4 * base) + comp;
 }
 
 int
 ir3_nir_coord_offset(nir_ssa_def *ssa)
 {
 
-	assert (ssa->num_components == 2);
-	return coord_offset(ssa);
+   assert(ssa->num_components == 2);
+   return coord_offset(ssa);
 }
 
 static bool
 has_src(nir_tex_instr *tex, nir_tex_src_type type)
 {
-	return nir_tex_instr_src_index(tex, type) >= 0;
+   return nir_tex_instr_src_index(tex, type) >= 0;
 }
 
 static bool
 ok_bindless_src(nir_tex_instr *tex, nir_tex_src_type type)
 {
-	int idx = nir_tex_instr_src_index(tex, type);
-	assert(idx >= 0);
-	nir_intrinsic_instr *bindless = ir3_bindless_resource(tex->src[idx].src);
+   int idx = nir_tex_instr_src_index(tex, type);
+   assert(idx >= 0);
+   nir_intrinsic_instr *bindless = ir3_bindless_resource(tex->src[idx].src);
 
-	/* TODO from SP_FS_BINDLESS_PREFETCH[n] it looks like this limit should
-	 * be 1<<8 ?
-	 */
-	return nir_src_is_const(bindless->src[0]) &&
-			(nir_src_as_uint(bindless->src[0]) < (1 << 16));
+   /* TODO from SP_FS_BINDLESS_PREFETCH[n] it looks like this limit should
+    * be 1<<8 ?
+    */
+   return nir_src_is_const(bindless->src[0]) &&
+          (nir_src_as_uint(bindless->src[0]) < (1 << 16));
 }
 
 /**
@@ -134,107 +134,103 @@ ok_bindless_src(nir_tex_instr *tex, nir_tex_src_type type)
 static bool
 ok_tex_samp(nir_tex_instr *tex)
 {
-	if (has_src(tex, nir_tex_src_texture_handle)) {
-		/* bindless case: */
+   if (has_src(tex, nir_tex_src_texture_handle)) {
+      /* bindless case: */
 
-		assert(has_src(tex, nir_tex_src_sampler_handle));
+      assert(has_src(tex, nir_tex_src_sampler_handle));
 
-		return ok_bindless_src(tex, nir_tex_src_texture_handle) &&
-				ok_bindless_src(tex, nir_tex_src_sampler_handle);
-	} else {
-		assert(!has_src(tex, nir_tex_src_texture_offset));
-		assert(!has_src(tex, nir_tex_src_sampler_offset));
+      return ok_bindless_src(tex, nir_tex_src_texture_handle) &&
+             ok_bindless_src(tex, nir_tex_src_sampler_handle);
+   } else {
+      assert(!has_src(tex, nir_tex_src_texture_offset));
+      assert(!has_src(tex, nir_tex_src_sampler_offset));
 
-		return (tex->texture_index <= 0x1f) &&
-				(tex->sampler_index <= 0xf);
-	}
+      return (tex->texture_index <= 0x1f) && (tex->sampler_index <= 0xf);
+   }
 }
 
 static bool
 lower_tex_prefetch_block(nir_block *block)
 {
-	bool progress = false;
+   bool progress = false;
 
-	nir_foreach_instr_safe (instr, block) {
-		if (instr->type != nir_instr_type_tex)
-			continue;
+   nir_foreach_instr_safe (instr, block) {
+      if (instr->type != nir_instr_type_tex)
+         continue;
 
-		nir_tex_instr *tex = nir_instr_as_tex(instr);
-		if (tex->op != nir_texop_tex)
-			continue;
+      nir_tex_instr *tex = nir_instr_as_tex(instr);
+      if (tex->op != nir_texop_tex)
+         continue;
 
-		if (has_src(tex, nir_tex_src_bias) ||
-				has_src(tex, nir_tex_src_lod) ||
-				has_src(tex, nir_tex_src_comparator) ||
-				has_src(tex, nir_tex_src_projector) ||
-				has_src(tex, nir_tex_src_offset) ||
-				has_src(tex, nir_tex_src_ddx) ||
-				has_src(tex, nir_tex_src_ddy) ||
-				has_src(tex, nir_tex_src_ms_index) ||
-				has_src(tex, nir_tex_src_texture_offset) ||
-				has_src(tex, nir_tex_src_sampler_offset))
-			continue;
+      if (has_src(tex, nir_tex_src_bias) || has_src(tex, nir_tex_src_lod) ||
+          has_src(tex, nir_tex_src_comparator) ||
+          has_src(tex, nir_tex_src_projector) ||
+          has_src(tex, nir_tex_src_offset) || has_src(tex, nir_tex_src_ddx) ||
+          has_src(tex, nir_tex_src_ddy) || has_src(tex, nir_tex_src_ms_index) ||
+          has_src(tex, nir_tex_src_texture_offset) ||
+          has_src(tex, nir_tex_src_sampler_offset))
+         continue;
 
-		/* only prefetch for simple 2d tex fetch case */
-		if (tex->sampler_dim != GLSL_SAMPLER_DIM_2D || tex->is_array)
-			continue;
+      /* only prefetch for simple 2d tex fetch case */
+      if (tex->sampler_dim != GLSL_SAMPLER_DIM_2D || tex->is_array)
+         continue;
 
-		if (!ok_tex_samp(tex))
-			continue;
+      if (!ok_tex_samp(tex))
+         continue;
 
-		int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
-		/* First source should be the sampling coordinate. */
-		nir_tex_src *coord = &tex->src[idx];
-		debug_assert(coord->src.is_ssa);
+      int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+      /* First source should be the sampling coordinate. */
+      nir_tex_src *coord = &tex->src[idx];
+      debug_assert(coord->src.is_ssa);
 
-		if (ir3_nir_coord_offset(coord->src.ssa) >= 0) {
-			tex->op = nir_texop_tex_prefetch;
+      if (ir3_nir_coord_offset(coord->src.ssa) >= 0) {
+         tex->op = nir_texop_tex_prefetch;
 
-			progress |= true;
-		}
-	}
+         progress |= true;
+      }
+   }
 
-	return progress;
+   return progress;
 }
 
 static bool
 lower_tex_prefetch_func(nir_function_impl *impl)
 {
-	/* Only instructions in the the outer-most block are considered
-	 * eligible for pre-dispatch, because they need to be move-able
-	 * to the beginning of the shader to avoid locking down the
-	 * register holding the pre-fetched result for too long.
-	 */
-	nir_block *block = nir_start_block(impl);
-	if (!block)
-		return false;
+   /* Only instructions in the the outer-most block are considered
+    * eligible for pre-dispatch, because they need to be move-able
+    * to the beginning of the shader to avoid locking down the
+    * register holding the pre-fetched result for too long.
+    */
+   nir_block *block = nir_start_block(impl);
+   if (!block)
+      return false;
 
-	bool progress = lower_tex_prefetch_block(block);
+   bool progress = lower_tex_prefetch_block(block);
 
-	if (progress) {
-		nir_metadata_preserve(impl, nir_metadata_block_index |
-				nir_metadata_dominance);
-	}
+   if (progress) {
+      nir_metadata_preserve(impl,
+                            nir_metadata_block_index | nir_metadata_dominance);
+   }
 
-	return progress;
+   return progress;
 }
 
 bool
 ir3_nir_lower_tex_prefetch(nir_shader *shader)
 {
-	bool progress = false;
+   bool progress = false;
 
-	assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
-	nir_foreach_function (function, shader) {
-		/* Only texture sampling instructions inside the main function
-		 * are eligible for pre-dispatch.
-		 */
-		if (!function->impl || !function->is_entrypoint)
-			continue;
+   nir_foreach_function (function, shader) {
+      /* Only texture sampling instructions inside the main function
+       * are eligible for pre-dispatch.
+       */
+      if (!function->impl || !function->is_entrypoint)
+         continue;
 
-		progress |= lower_tex_prefetch_func(function->impl);
-	}
+      progress |= lower_tex_prefetch_func(function->impl);
+   }
 
-	return progress;
+   return progress;
 }

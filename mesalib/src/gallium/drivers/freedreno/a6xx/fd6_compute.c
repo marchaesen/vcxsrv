@@ -75,10 +75,16 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
    OUT_RING(ring, A6XX_SP_CS_UNKNOWN_A9B1_SHARED_SIZE(shared_size) |
                      A6XX_SP_CS_UNKNOWN_A9B1_UNK6);
 
+   if (ctx->screen->info->a6xx.has_lpac) {
+      OUT_PKT4(ring, REG_A6XX_HLSQ_CS_UNKNOWN_B9D0, 1);
+      OUT_RING(ring, A6XX_HLSQ_CS_UNKNOWN_B9D0_SHARED_SIZE(shared_size) |
+                        A6XX_HLSQ_CS_UNKNOWN_B9D0_UNK6);
+   }
+
    uint32_t local_invocation_id, work_group_id;
    local_invocation_id =
       ir3_find_sysval_regid(v, SYSTEM_VALUE_LOCAL_INVOCATION_ID);
-   work_group_id = ir3_find_sysval_regid(v, SYSTEM_VALUE_WORK_GROUP_ID);
+   work_group_id = ir3_find_sysval_regid(v, SYSTEM_VALUE_WORKGROUP_ID);
 
    OUT_PKT4(ring, REG_A6XX_HLSQ_CS_CNTL_0, 2);
    OUT_RING(ring, A6XX_HLSQ_CS_CNTL_0_WGIDCONSTID(work_group_id) |
@@ -87,6 +93,16 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
                      A6XX_HLSQ_CS_CNTL_0_LOCALIDREGID(local_invocation_id));
    OUT_RING(ring, A6XX_HLSQ_CS_CNTL_1_LINEARLOCALIDREGID(regid(63, 0)) |
                      A6XX_HLSQ_CS_CNTL_1_THREADSIZE(thrsz));
+
+   if (ctx->screen->info->a6xx.has_lpac) {
+      OUT_PKT4(ring, REG_A6XX_SP_CS_CNTL_0, 2);
+      OUT_RING(ring, A6XX_SP_CS_CNTL_0_WGIDCONSTID(work_group_id) |
+                        A6XX_SP_CS_CNTL_0_WGSIZECONSTID(regid(63, 0)) |
+                        A6XX_SP_CS_CNTL_0_WGOFFSETCONSTID(regid(63, 0)) |
+                        A6XX_SP_CS_CNTL_0_LOCALIDREGID(local_invocation_id));
+      OUT_RING(ring, A6XX_SP_CS_CNTL_1_LINEARLOCALIDREGID(regid(63, 0)) |
+                        A6XX_SP_CS_CNTL_1_THREADSIZE(thrsz));
+   }
 
    OUT_PKT4(ring, REG_A6XX_SP_CS_OBJ_START, 2);
    OUT_RELOC(ring, v->bo, 0, 0, 0); /* SP_CS_OBJ_START_LO/HI */
@@ -134,7 +150,7 @@ fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info) in_dt
    OUT_RING(ring, A6XX_CP_SET_MARKER_0_MODE(RM6_COMPUTE));
 
    const unsigned *local_size =
-      info->block; // v->shader->nir->info->cs.local_size;
+      info->block; // v->shader->nir->info->workgroup_size;
    const unsigned *num_groups = info->grid;
    /* for some reason, mesa/st doesn't set info->work_dim, so just assume 3: */
    const unsigned work_dim = info->work_dim ? info->work_dim : 3;
@@ -158,8 +174,8 @@ fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info) in_dt
    OUT_RING(ring, 1); /* HLSQ_CS_KERNEL_GROUP_Y */
    OUT_RING(ring, 1); /* HLSQ_CS_KERNEL_GROUP_Z */
 
-   trace_grid_info(&ctx->batch->trace, info);
-   trace_start_compute(&ctx->batch->trace);
+   trace_grid_info(&ctx->batch->trace, ring, info);
+   trace_start_compute(&ctx->batch->trace, ring);
 
    if (info->indirect) {
       struct fd_resource *rsc = fd_resource(info->indirect);
@@ -179,7 +195,7 @@ fd6_launch_grid(struct fd_context *ctx, const struct pipe_grid_info *info) in_dt
       OUT_RING(ring, CP_EXEC_CS_3_NGROUPS_Z(info->grid[2]));
    }
 
-   trace_end_compute(&ctx->batch->trace);
+   trace_end_compute(&ctx->batch->trace, ring);
 
    OUT_WFI5(ring);
 

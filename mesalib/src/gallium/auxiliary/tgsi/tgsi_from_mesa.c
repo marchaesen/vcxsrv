@@ -265,11 +265,11 @@ tgsi_get_sysval_semantic(unsigned sysval)
    /* Compute shader */
    case SYSTEM_VALUE_LOCAL_INVOCATION_ID:
       return TGSI_SEMANTIC_THREAD_ID;
-   case SYSTEM_VALUE_WORK_GROUP_ID:
+   case SYSTEM_VALUE_WORKGROUP_ID:
       return TGSI_SEMANTIC_BLOCK_ID;
-   case SYSTEM_VALUE_NUM_WORK_GROUPS:
+   case SYSTEM_VALUE_NUM_WORKGROUPS:
       return TGSI_SEMANTIC_GRID_SIZE;
-   case SYSTEM_VALUE_LOCAL_GROUP_SIZE:
+   case SYSTEM_VALUE_WORKGROUP_SIZE:
       return TGSI_SEMANTIC_BLOCK_SIZE;
 
    /* ARB_shader_ballot */

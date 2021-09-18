@@ -150,6 +150,30 @@ static LLVMValueRef force_dcc_off(struct si_shader_context *ctx, LLVMValueRef rs
    }
 }
 
+static LLVMValueRef force_write_compress_off(struct si_shader_context *ctx, LLVMValueRef rsrc)
+{
+   LLVMValueRef i32_6 = LLVMConstInt(ctx->ac.i32, 6, 0);
+   LLVMValueRef i32_C = LLVMConstInt(ctx->ac.i32, C_00A018_WRITE_COMPRESS_ENABLE, 0);
+   LLVMValueRef tmp;
+
+   tmp = LLVMBuildExtractElement(ctx->ac.builder, rsrc, i32_6, "");
+   tmp = LLVMBuildAnd(ctx->ac.builder, tmp, i32_C, "");
+   return LLVMBuildInsertElement(ctx->ac.builder, rsrc, tmp, i32_6, "");
+}
+
+static LLVMValueRef fixup_image_desc(struct si_shader_context *ctx, LLVMValueRef rsrc,
+                                     bool uses_store)
+{
+   if (uses_store && ctx->ac.chip_class <= GFX9)
+      rsrc = force_dcc_off(ctx, rsrc);
+
+   if (!uses_store && ctx->screen->info.has_image_load_dcc_bug &&
+       ctx->screen->always_allow_dcc_stores)
+      rsrc = force_write_compress_off(ctx, rsrc);
+
+   return rsrc;
+}
+
 /* AC_DESC_FMASK is handled exactly like AC_DESC_IMAGE. The caller should
  * adjust "index" to point to FMASK. */
 static LLVMValueRef si_load_image_desc(struct si_shader_context *ctx, LLVMValueRef list,
@@ -171,8 +195,9 @@ static LLVMValueRef si_load_image_desc(struct si_shader_context *ctx, LLVMValueR
    else
       rsrc = ac_build_load_to_sgpr(&ctx->ac, list, index);
 
-   if (desc_type == AC_DESC_IMAGE && uses_store && ctx->ac.chip_class <= GFX9)
-      rsrc = force_dcc_off(ctx, rsrc);
+   if (desc_type == AC_DESC_IMAGE)
+      rsrc = fixup_image_desc(ctx, rsrc, uses_store);
+
    return rsrc;
 }
 
@@ -281,8 +306,13 @@ static LLVMValueRef si_nir_load_sampler_desc(struct ac_shader_abi *abi, unsigned
       /* Fast path if the image is in user SGPRs. */
       if (!dynamic_index &&
           const_index < ctx->shader->selector->cs_num_images_in_user_sgprs &&
-          (desc_type == AC_DESC_IMAGE || desc_type == AC_DESC_BUFFER))
-         return ac_get_arg(&ctx->ac, ctx->cs_image[const_index]);
+          (desc_type == AC_DESC_IMAGE || desc_type == AC_DESC_BUFFER)) {
+         LLVMValueRef rsrc = ac_get_arg(&ctx->ac, ctx->cs_image[const_index]);
+
+         if (desc_type == AC_DESC_IMAGE)
+            rsrc = fixup_image_desc(ctx, rsrc, write);
+         return rsrc;
+      }
 
       /* FMASKs are separate from images. */
       if (desc_type == AC_DESC_FMASK) {

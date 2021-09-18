@@ -29,6 +29,38 @@
 [01000001]
 [01000000]
 loc02:
+; packet table loading:
+mov $01, 0x0830 ; CP_SQE_INSTR_BASE
+mov $02, 0x0002
+cwrite $01, [$00 + @REG_READ_ADDR], 0x0
+cwrite $02, [$00 + @REG_READ_DWORDS], 0x0
+; move hi/lo of SQE fw addrs to registers:
+mov $01, $regdata
+mov $02, $regdata
+; skip first dword
+add $01, $01, 0x0004
+addhi $02, $02, 0x0000
+mov $03, 0x0001
+cwrite $01, [$00 + @MEM_READ_ADDR], 0x0
+cwrite $02, [$00 + @MEM_READ_ADDR+0x1], 0x0
+cwrite $03, [$00 + @MEM_READ_DWORDS], 0x0
+; read 2nd dword of fw, and add offset (minus 4 because we skipped first dword)
+; to base address of sqe fw
+rot $04, $memdata, 0x0008
+ushr $04, $04, 0x0006
+sub $04, $04, 0x0004
+add $01, $01, $04
+addhi $02, $02, 0x0000
+
+; load packet table:
+mov $rem, 0x0080
+cwrite $01, [$00 + @MEM_READ_ADDR], 0x0
+cwrite $02, [$00 + @MEM_READ_ADDR+0x1], 0x0
+cwrite $02, [$00 + @LOAD_STORE_HI], 0x0
+cwrite $rem, [$00 + @MEM_READ_DWORDS], 0x0
+cwrite $00, [$00 + @PACKET_TABLE_WRITE_ADDR], 0x0
+(rep)cwrite $memdata, [$00 + @PACKET_TABLE_WRITE], 0x0
+
 mov $02, 0x883
 mov $03, 0xbeef
 mov $04, 0xdead << 16
@@ -97,26 +129,26 @@ ret
 nop
 
 CP_REG_RMW:
-; Test various ALU instructions, and read/write $addr2
+; Test various ALU instructions, and read/write $regdata
 cwrite $data, [$00 + @REG_READ_ADDR], 0x0
-add $02, $addr2, 0x42
-addhi $03, $00, $addr2
-sub $02, $02, $addr2
+add $02, $regdata, 0x42
+addhi $03, $00, $regdata
+sub $02, $02, $regdata
 call #euclid
-subhi $03, $03, $addr2
-and $02, $02, $addr2
+subhi $03, $03, $regdata
+and $02, $02, $regdata
 or $02, $02, 0x1
 xor $02, $02, 0x1
 not $02, $02
-shl $02, $02, $addr2
-ushr $02, $02, $addr2
-ishr $02, $02, $addr2
-rot $02, $02, $addr2
-min $02, $02, $addr2
-max $02, $02, $addr2
-mul8 $02, $02, $addr2
+shl $02, $02, $regdata
+ushr $02, $02, $regdata
+ishr $02, $02, $regdata
+rot $02, $02, $regdata
+min $02, $02, $regdata
+max $02, $02, $regdata
+mul8 $02, $02, $regdata
 msb $02, $02
-mov $addr2, $data
+mov $usraddr, $data
 mov $data, $02
 waitin
 mov $01, $data
@@ -148,7 +180,7 @@ mov $02, $data
 cwrite $data, [$00 + @LOAD_STORE_HI], 0x0
 mov $rem, $data
 cwrite $rem, [$00 + @MEM_READ_DWORDS], 0x0
-(rep)store $addr, [$02 + 0x004], 0x4
+(rep)store $memdata, [$02 + 0x004], 0x4
 waitin
 mov $01, $data
 
@@ -242,8 +274,8 @@ CP_SET_DRAW_INIT_FLAGS:
 CP_SCRATCH_TO_REG:
 CP_DRAW_PRED_SET:
 CP_MEM_WRITE_CNTR:
-UNKN80:
-CP_SET_BIN_SELECT:
+CP_START_BIN:
+CP_END_BIN:
 CP_WAIT_REG_EQ:
 CP_SMMU_TABLE_UPDATE:
 UNKN84:

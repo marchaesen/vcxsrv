@@ -152,6 +152,9 @@ st_update_framebuffer_state( struct st_context *st )
          }
 
          if (strb->surface) {
+            if (strb->surface->context != st->pipe) {
+               st_regen_renderbuffer_surface(st, strb);
+            }
             framebuffer.cbufs[i] = strb->surface;
             update_framebuffer_size(&framebuffer, strb->surface);
          }
@@ -180,6 +183,9 @@ st_update_framebuffer_state( struct st_context *st )
       if (strb->is_rtt) {
          /* rendering to a GL texture, may have to update surface */
          st_update_renderbuffer_surface(st, strb);
+      }
+      if (strb->surface && strb->surface->context != st->pipe) {
+         st_regen_renderbuffer_surface(st, strb);
       }
       framebuffer.zsbuf = strb->surface;
       if (strb->surface)

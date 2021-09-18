@@ -1,15 +1,21 @@
 #!/bin/sh
 
+if test -f /etc/debian_version; then
+    CCACHE_PATH=/usr/lib/ccache
+else
+    CCACHE_PATH=/usr/lib64/ccache
+fi
+
 # Common setup among container builds before we get to building code.
 
 export CCACHE_COMPILERCHECK=content
 export CCACHE_COMPRESS=true
 export CCACHE_DIR=/cache/mesa/ccache
-export PATH=/usr/lib/ccache:$PATH
+export PATH=$CCACHE_PATH:$PATH
 
 # CMake ignores $PATH, so we have to force CC/GCC to the ccache versions.
-export CC="/usr/lib/ccache/gcc"
-export CXX="/usr/lib/ccache/g++"
+export CC="${CCACHE_PATH}/gcc"
+export CXX="${CCACHE_PATH}/g++"
 
 # Force linkers to gold, since it's so much faster for building.  We can't use
 # lld because we're on old debian and it's buggy.  ming fails meson builds

@@ -99,6 +99,8 @@ msm_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
       return query_queue_param(pipe, MSM_SUBMITQUEUE_PARAM_FAULTS, value);
    case FD_GLOBAL_FAULTS:
       return query_param(pipe, MSM_PARAM_FAULTS, value);
+   case FD_SUSPEND_COUNT:
+      return query_param(pipe, MSM_PARAM_SUSPENDS, value);
    default:
       ERROR_MSG("invalid param id: %d", param);
       return -1;
@@ -169,6 +171,10 @@ static void
 msm_pipe_destroy(struct fd_pipe *pipe)
 {
    struct msm_pipe *msm_pipe = to_msm_pipe(pipe);
+
+   if (msm_pipe->suballoc_bo)
+      fd_bo_del_locked(msm_pipe->suballoc_bo);
+
    close_submitqueue(pipe, msm_pipe->queue_id);
    msm_pipe_sp_ringpool_init(msm_pipe);
    free(msm_pipe);
@@ -239,12 +245,12 @@ msm_pipe_new(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
    if (fd_device_version(pipe->dev) >= FD_VERSION_GMEM_BASE)
       msm_pipe->gmem_base = get_param(pipe, MSM_PARAM_GMEM_BASE);
 
-   if (!msm_pipe->gpu_id)
+   if (!(msm_pipe->gpu_id || msm_pipe->chip_id))
       goto fail;
 
    INFO_MSG("Pipe Info:");
    INFO_MSG(" GPU-id:          %d", msm_pipe->gpu_id);
-   INFO_MSG(" Chip-id:         0x%08x", msm_pipe->chip_id);
+   INFO_MSG(" Chip-id:         0x%016"PRIx64, msm_pipe->chip_id);
    INFO_MSG(" GMEM size:       0x%08x", msm_pipe->gmem);
 
    if (open_submitqueue(pipe, prio))

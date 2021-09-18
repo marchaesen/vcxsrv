@@ -33,6 +33,10 @@
 static void
 bi_lower_swizzle_16(bi_context *ctx, bi_instr *ins, unsigned src)
 {
+        /* Identity is ok */
+        if (ins->src[src].swizzle == BI_SWIZZLE_H01)
+                return;
+
         /* TODO: Use the opcode table and be a lot more methodical about this... */
         switch (ins->op) {
         /* Some instructions used with 16-bit data never have swizzles */
@@ -44,8 +48,8 @@ bi_lower_swizzle_16(bi_context *ctx, bi_instr *ins, unsigned src)
         /* Despite ostensibly being 32-bit instructions, CLPER does not
          * inherently interpret the data, so it can be used for v2f16
          * derivatives, which might require swizzle lowering */
+        case BI_OPCODE_CLPER_I32:
         case BI_OPCODE_CLPER_V6_I32:
-        case BI_OPCODE_CLPER_V7_I32:
             break;
 
         case BI_OPCODE_IADD_V2S16:
@@ -66,18 +70,31 @@ bi_lower_swizzle_16(bi_context *ctx, bi_instr *ins, unsigned src)
                     return;
             else
                     break;
+
+        /* We don't want to deal with reswizzling logic in modifier prop. Move
+         * the swizzle outside, it's easier for clamp propagation. */
+        case BI_OPCODE_FCLAMP_V2F16:
+        {
+                bi_builder b = bi_init_builder(ctx, bi_after_instr(ins));
+                bi_index dest = ins->dest[0];
+                bi_index tmp = bi_temp(ctx);
+
+                ins->dest[0] = tmp;
+                bi_swz_v2i16_to(&b, dest, bi_replace_index(ins->src[0], tmp));
+                return;
+        }
+
         default:
             return;
         }
 
-        /* Identity is ok (TODO: what about replicate only?) */
-        if (ins->src[src].swizzle == BI_SWIZZLE_H01)
-                return;
-
         /* If the instruction is scalar we can ignore the other component */
         if (ins->dest[0].swizzle == BI_SWIZZLE_H00 &&
                         ins->src[src].swizzle == BI_SWIZZLE_H00)
+        {
+                ins->src[src].swizzle = BI_SWIZZLE_H01;
                 return;
+        }
 
         /* Lower it away */
         bi_builder b = bi_init_builder(ctx, bi_before_instr(ins));

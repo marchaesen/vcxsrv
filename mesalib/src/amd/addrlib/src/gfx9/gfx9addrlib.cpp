@@ -350,6 +350,50 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeCmaskInfo(
 
     pOut->metaBlkNumPerSlice = numMetaBlkX * numMetaBlkY;
 
+    // Get the CMASK address equation (copied from CmaskAddrFromCoord)
+    UINT_32 fmaskBpp              = GetFmaskBpp(1, 1);
+    UINT_32 fmaskElementBytesLog2 = Log2(fmaskBpp >> 3);
+    UINT_32 metaBlkWidthLog2      = Log2(pOut->metaBlkWidth);
+    UINT_32 metaBlkHeightLog2     = Log2(pOut->metaBlkHeight);
+
+    MetaEqParams metaEqParams = {0, fmaskElementBytesLog2, 0, pIn->cMaskFlags,
+                                Gfx9DataFmask, pIn->swizzleMode, pIn->resourceType,
+                                metaBlkWidthLog2, metaBlkHeightLog2, 0, 3, 3, 0};
+
+    CoordEq *eq = (CoordEq *)((Gfx9Lib *)this)->GetMetaEquation(metaEqParams);
+
+    // Generate the CMASK address equation.
+    pOut->equation.gfx9.num_bits = Min(32u, eq->getsize());
+    bool checked = false;
+    for (unsigned b = 0; b < pOut->equation.gfx9.num_bits; b++) {
+       CoordTerm &bit = (*eq)[b];
+
+       unsigned c;
+       for (c = 0; c < bit.getsize(); c++) {
+          Coordinate &coord = bit[c];
+          pOut->equation.gfx9.bit[b].coord[c].dim = coord.getdim();
+          pOut->equation.gfx9.bit[b].coord[c].ord = coord.getord();
+       }
+       for (; c < 5; c++)
+          pOut->equation.gfx9.bit[b].coord[c].dim = 5; /* meaning invalid */
+    }
+
+    // Reduce num_bits because DIM_M fills the rest of the bits monotonically.
+    for (int b = pOut->equation.gfx9.num_bits - 1; b >= 1; b--) {
+       CoordTerm &prev = (*eq)[b - 1];
+       CoordTerm &cur = (*eq)[b];
+
+       if (cur.getsize() == 1 && cur[0].getdim() == DIM_M &&
+          prev.getsize() == 1 && prev[0].getdim() == DIM_M &&
+          prev[0].getord() + 1 == cur[0].getord())
+          pOut->equation.gfx9.num_bits = b;
+       else
+          break;
+    }
+
+    pOut->equation.gfx9.numPipeBits = GetPipeLog2ForMetaAddressing(pIn->cMaskFlags.pipeAligned,
+                                                                   pIn->swizzleMode);
+
     return ADDR_OK;
 }
 

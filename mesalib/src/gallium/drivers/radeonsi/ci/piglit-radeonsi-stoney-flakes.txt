@@ -1,1 +1,0 @@
-glx@glx_arb_sync_control@timing -fullscreen -divisor 2

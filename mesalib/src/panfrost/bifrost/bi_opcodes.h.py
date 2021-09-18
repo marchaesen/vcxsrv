@@ -64,11 +64,23 @@ enum bi_sr_count {
     BI_SR_COUNT_SR_COUNT = 7
 };
 
+enum bi_size {
+   BI_SIZE_8 = 0,
+   BI_SIZE_16,
+   BI_SIZE_24,
+   BI_SIZE_32,
+   BI_SIZE_48,
+   BI_SIZE_64,
+   BI_SIZE_96,
+   BI_SIZE_128,
+};
+
 /* Description of an opcode in the IR */
 struct bi_op_props {
         const char *name;
 
         enum bifrost_message_type message : 4;
+        enum bi_size size : 3;
         enum bi_sr_count sr_count : 3;
         bool sr_read : 1;
         bool sr_write : 1;
@@ -77,6 +89,13 @@ struct bi_op_props {
         bool table : 1;
         bool fma : 1;
         bool add : 1;
+
+        /* Supported propagable modifiers */
+        bool clamp : 1;
+        bool not_result : 1;
+        unsigned abs : 3;
+        unsigned neg : 3;
+        bool not : 1;
 };
 
 /* Generated in bi_opcodes.c.py */

@@ -49,6 +49,7 @@ typedef uint64_t __u64;
 #define AMD_FMT_MOD_DCC_BLOCK_64B 0
 #define AMD_FMT_MOD_DCC_BLOCK_128B 1
 #define AMD_FMT_MOD_TILE_VERSION_SHIFT 0
+#define AMD_FMT_MOD_TILE_VERSION_MASK 0xFF
 #define AMD_FMT_MOD_TILE_SHIFT 8
 #define AMD_FMT_MOD_TILE_MASK 0x1F
 #define AMD_FMT_MOD_DCC_SHIFT 13
@@ -68,6 +69,7 @@ typedef uint64_t __u64;
 #define AMD_FMT_MOD_BANK_XOR_BITS_SHIFT 24
 #define AMD_FMT_MOD_PACKERS_SHIFT 27 /* aliases with BANK_XOR_BITS */
 #define AMD_FMT_MOD_RB_SHIFT 30
+#define AMD_FMT_MOD_RB_MASK 0x7
 #define AMD_FMT_MOD_PIPE_SHIFT 33
 #define AMD_FMT_MOD_SET(field, value) \
 	((uint64_t)(value) << AMD_FMT_MOD_##field##_SHIFT)

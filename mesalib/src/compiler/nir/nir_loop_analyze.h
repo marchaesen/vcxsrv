@@ -63,7 +63,8 @@ contains_other_jump(nir_cf_node *node, nir_instr *expected_jump)
       return false;
    }
    case nir_cf_node_loop:
-      return true;
+      /* the jumps of nested loops are unrelated */
+      return false;
 
    default:
       unreachable("Unhandled cf node type");
@@ -93,14 +94,14 @@ nir_is_trivial_loop_if(nir_if *nif, nir_block *break_block)
 }
 
 static inline bool
-nir_block_ends_in_break(nir_block *block)
+nir_is_supported_terminator_condition(nir_ssa_scalar cond)
 {
-   if (exec_list_is_empty(&block->instr_list))
+   if (!nir_ssa_scalar_is_alu(cond))
       return false;
 
-   nir_instr *instr = nir_block_last_instr(block);
-   return instr->type == nir_instr_type_jump &&
-      nir_instr_as_jump(instr)->type == nir_jump_break;
+   nir_alu_instr *alu = nir_instr_as_alu(cond.def->parent_instr);
+   return nir_alu_instr_is_comparison(alu) &&
+          nir_op_infos[alu->op].num_inputs == 2;
 }
 
 #endif /* NIR_LOOP_ANALYZE_H */

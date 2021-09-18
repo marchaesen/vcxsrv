@@ -22,7 +22,6 @@
  */
 
 #include "v3dv_private.h"
-#include "vk_format_info.h"
 
 static uint32_t
 num_subpass_attachments(const VkSubpassDescription *desc)
@@ -34,18 +33,26 @@ num_subpass_attachments(const VkSubpassDescription *desc)
 }
 
 static void
-set_use_tlb_resolve(struct v3dv_render_pass_attachment *att)
+set_use_tlb_resolve(struct v3dv_device *device,
+                    struct v3dv_render_pass_attachment *att)
 {
-   const struct v3dv_format *format = v3dv_get_format(att->desc.format);
-   att->use_tlb_resolve = v3dv_format_supports_tlb_resolve(format);
+   const struct v3dv_format *format = v3dv_X(device, get_format)(att->desc.format);
+   att->use_tlb_resolve = v3dv_X(device, format_supports_tlb_resolve)(format);
 }
 
 static void
-pass_find_subpass_range_for_attachments(struct v3dv_render_pass *pass)
+pass_find_subpass_range_for_attachments(struct v3dv_device *device,
+                                        struct v3dv_render_pass *pass)
 {
    for (uint32_t i = 0; i < pass->attachment_count; i++) {
       pass->attachments[i].first_subpass = pass->subpass_count - 1;
       pass->attachments[i].last_subpass = 0;
+      if (pass->multiview_enabled) {
+         for (uint32_t j = 0; j < MAX_MULTIVIEW_VIEW_COUNT; j++) {
+            pass->attachments[i].views[j].first_subpass = pass->subpass_count - 1;
+            pass->attachments[i].views[j].last_subpass = 0;
+         }
+      }
    }
 
    for (uint32_t i = 0; i < pass->subpass_count; i++) {
@@ -56,14 +63,26 @@ pass_find_subpass_range_for_attachments(struct v3dv_render_pass *pass)
          if (attachment_idx == VK_ATTACHMENT_UNUSED)
             continue;
 
-         if (i < pass->attachments[attachment_idx].first_subpass)
-            pass->attachments[attachment_idx].first_subpass = i;
-         if (i > pass->attachments[attachment_idx].last_subpass)
-            pass->attachments[attachment_idx].last_subpass = i;
+         struct v3dv_render_pass_attachment *att =
+            &pass->attachments[attachment_idx];
+
+         if (i < att->first_subpass)
+            att->first_subpass = i;
+         if (i > att->last_subpass)
+            att->last_subpass = i;
+
+         uint32_t view_mask = subpass->view_mask;
+         while (view_mask) {
+            uint32_t view_index = u_bit_scan(&view_mask);
+            if (i < att->views[view_index].first_subpass)
+               att->views[view_index].first_subpass = i;
+            if (i > att->views[view_index].last_subpass)
+               att->views[view_index].last_subpass = i;
+         }
 
          if (subpass->resolve_attachments &&
              subpass->resolve_attachments[j].attachment != VK_ATTACHMENT_UNUSED) {
-            set_use_tlb_resolve(&pass->attachments[attachment_idx]);
+            set_use_tlb_resolve(device, att);
          }
       }
 
@@ -100,7 +119,7 @@ pass_find_subpass_range_for_attachments(struct v3dv_render_pass *pass)
 }
 
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_CreateRenderPass(VkDevice _device,
                       const VkRenderPassCreateInfo *pCreateInfo,
                       const VkAllocationCallbacks *pAllocator,
@@ -110,6 +129,10 @@ v3dv_CreateRenderPass(VkDevice _device,
    struct v3dv_render_pass *pass;
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
+
+   const VkRenderPassMultiviewCreateInfo *multiview_info =
+      vk_find_struct_const(pCreateInfo->pNext, RENDER_PASS_MULTIVIEW_CREATE_INFO);
+   bool multiview_enabled = multiview_info && multiview_info->subpassCount > 0;
 
    size_t size = sizeof(*pass);
    size_t subpasses_offset = size;
@@ -122,6 +145,7 @@ v3dv_CreateRenderPass(VkDevice _device,
    if (pass == NULL)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   pass->multiview_enabled = multiview_enabled;
    pass->attachment_count = pCreateInfo->attachmentCount;
    pass->attachments = (void *) pass + attachments_offset;
    pass->subpass_count = pCreateInfo->subpassCount;
@@ -157,6 +181,8 @@ v3dv_CreateRenderPass(VkDevice _device,
 
       subpass->input_count = desc->inputAttachmentCount;
       subpass->color_count = desc->colorAttachmentCount;
+      if (multiview_enabled)
+         subpass->view_mask = multiview_info->pViewMasks[i];
 
       if (desc->inputAttachmentCount > 0) {
          subpass->input_attachments = p;
@@ -175,16 +201,10 @@ v3dv_CreateRenderPass(VkDevice _device,
          p += desc->colorAttachmentCount;
 
          for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-            const uint32_t attachment_idx =
-               desc->pColorAttachments[j].attachment;
             subpass->color_attachments[j] = (struct v3dv_subpass_attachment) {
-               .attachment = attachment_idx,
+               .attachment = desc->pColorAttachments[j].attachment,
                .layout = desc->pColorAttachments[j].layout,
             };
-            if (attachment_idx != VK_ATTACHMENT_UNUSED) {
-               VkFormat format = pass->attachments[attachment_idx].desc.format;
-               subpass->has_srgb_rt |= vk_format_is_srgb(format);
-            }
          }
       }
 
@@ -230,7 +250,7 @@ v3dv_CreateRenderPass(VkDevice _device,
       }
    }
 
-   pass_find_subpass_range_for_attachments(pass);
+   pass_find_subpass_range_for_attachments(device, pass);
 
    /* FIXME: handle subpass dependencies */
 
@@ -239,7 +259,7 @@ v3dv_CreateRenderPass(VkDevice _device,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 v3dv_DestroyRenderPass(VkDevice _device,
                        VkRenderPass _pass,
                        const VkAllocationCallbacks *pAllocator)
@@ -255,7 +275,8 @@ v3dv_DestroyRenderPass(VkDevice _device,
 }
 
 static void
-subpass_get_granularity(struct v3dv_render_pass *pass,
+subpass_get_granularity(struct v3dv_device *device,
+                        struct v3dv_render_pass *pass,
                         uint32_t subpass_idx,
                         VkExtent2D *granularity)
 {
@@ -283,11 +304,11 @@ subpass_get_granularity(struct v3dv_render_pass *pass,
          continue;
       const VkAttachmentDescription *desc =
          &pass->attachments[attachment_idx].desc;
-      const struct v3dv_format *format = v3dv_get_format(desc->format);
+      const struct v3dv_format *format = v3dv_X(device, get_format)(desc->format);
       uint32_t internal_type, internal_bpp;
-      v3dv_get_internal_type_bpp_for_output_format(format->rt_type,
-                                                   &internal_type,
-                                                   &internal_bpp);
+      v3dv_X(device, get_internal_type_bpp_for_output_format)
+         (format->rt_type, &internal_type, &internal_bpp);
+
       max_internal_bpp = MAX2(max_internal_bpp, internal_bpp);
    }
 
@@ -306,12 +327,13 @@ subpass_get_granularity(struct v3dv_render_pass *pass,
    };
 }
 
-void
-v3dv_GetRenderAreaGranularity(VkDevice device,
+VKAPI_ATTR void VKAPI_CALL
+v3dv_GetRenderAreaGranularity(VkDevice _device,
                               VkRenderPass renderPass,
                               VkExtent2D *pGranularity)
 {
    V3DV_FROM_HANDLE(v3dv_render_pass, pass, renderPass);
+   V3DV_FROM_HANDLE(v3dv_device, device, _device);
 
    *pGranularity = (VkExtent2D) {
       .width = 64,
@@ -320,7 +342,7 @@ v3dv_GetRenderAreaGranularity(VkDevice device,
 
    for (uint32_t i = 0; i < pass->subpass_count; i++) {
       VkExtent2D sg;
-      subpass_get_granularity(pass, i, &sg);
+      subpass_get_granularity(device, pass, i, &sg);
       pGranularity->width = MIN2(pGranularity->width, sg.width);
       pGranularity->height = MIN2(pGranularity->height, sg.height);
    }
@@ -348,7 +370,8 @@ v3dv_GetRenderAreaGranularity(VkDevice device,
  * In that case, we can't flag the area as being aligned.
  */
 bool
-v3dv_subpass_area_is_tile_aligned(const VkRect2D *area,
+v3dv_subpass_area_is_tile_aligned(struct v3dv_device *device,
+                                  const VkRect2D *area,
                                   struct v3dv_framebuffer *fb,
                                   struct v3dv_render_pass *pass,
                                   uint32_t subpass_idx)
@@ -356,7 +379,7 @@ v3dv_subpass_area_is_tile_aligned(const VkRect2D *area,
    assert(subpass_idx < pass->subpass_count);
 
    VkExtent2D granularity;
-   subpass_get_granularity(pass, subpass_idx, &granularity);
+   subpass_get_granularity(device, pass, subpass_idx, &granularity);
 
    return area->offset.x % granularity.width == 0 &&
           area->offset.y % granularity.height == 0 &&

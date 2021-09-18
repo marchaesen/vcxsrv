@@ -202,19 +202,17 @@ build_asin(nir_builder *b, nir_ssa_def *x, float p0, float p1, bool piecewise)
    nir_ssa_def *half = nir_imm_floatN_t(b, 0.5f, x->bit_size);
    nir_ssa_def *abs_x = nir_fabs(b, x);
 
-   nir_ssa_def *p0_plus_xp1 = nir_fadd_imm(b, nir_fmul_imm(b, abs_x, p1), p0);
+   nir_ssa_def *p0_plus_xp1 = nir_ffma_imm12(b, abs_x, p1, p0);
 
    nir_ssa_def *expr_tail =
-      nir_fadd_imm(b, nir_fmul(b, abs_x,
-                                  nir_fadd_imm(b, nir_fmul(b, abs_x,
-                                                               p0_plus_xp1),
-                                                  M_PI_4f - 1.0f)),
-                      M_PI_2f);
+      nir_ffma_imm2(b, abs_x,
+                       nir_ffma_imm2(b, abs_x, p0_plus_xp1, M_PI_4f - 1.0f),
+                       M_PI_2f);
 
    nir_ssa_def *result0 = nir_fmul(b, nir_fsign(b, x),
-                      nir_fsub(b, nir_imm_floatN_t(b, M_PI_2f, x->bit_size),
-                                  nir_fmul(b, nir_fsqrt(b, nir_fsub(b, one, abs_x)),
-                                                           expr_tail)));
+                      nir_a_minus_bc(b, nir_imm_floatN_t(b, M_PI_2f, x->bit_size),
+                                        nir_fsqrt(b, nir_fsub(b, one, abs_x)),
+                                        expr_tail));
    if (piecewise) {
       /* approximation for |x| < 0.5 */
       const float pS0 =  1.6666586697e-01f;
@@ -225,15 +223,12 @@ build_asin(nir_builder *b, nir_ssa_def *x, float p0, float p1, bool piecewise)
       nir_ssa_def *x2 = nir_fmul(b, x, x);
       nir_ssa_def *p = nir_fmul(b,
                                 x2,
-                                nir_fadd_imm(b,
-                                             nir_fmul(b,
-                                                      x2,
-                                                      nir_fadd_imm(b, nir_fmul_imm(b, x2, pS2),
-                                                                   pS1)),
-                                             pS0));
+                                nir_ffma_imm2(b, x2,
+                                                 nir_ffma_imm12(b, x2, pS2, pS1),
+                                                 pS0));
 
-      nir_ssa_def *q = nir_fadd(b, one, nir_fmul_imm(b, x2, qS1));
-      nir_ssa_def *result1 = nir_fadd(b, x, nir_fmul(b, x, nir_fdiv(b, p, q)));
+      nir_ssa_def *q = nir_ffma_imm1(b, x2, qS1, one);
+      nir_ssa_def *result1 = nir_ffma(b, x, nir_fdiv(b, p, q), x);
       return nir_bcsel(b, nir_flt(b, abs_x, half), result1, result0);
    } else {
       return result0;
@@ -414,9 +409,10 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    case GLSLstd450Reflect:
       /* I - 2 * dot(N, I) * N */
       dest->def =
-         nir_fsub(nb, src[0], nir_fmul(nb, NIR_IMM_FP(nb, 2.0),
-                              nir_fmul(nb, nir_fdot(nb, src[0], src[1]),
-                                           src[1])));
+         nir_a_minus_bc(nb, src[0],
+                            src[1],
+                            nir_fmul(nb, nir_fdot(nb, src[0], src[1]),
+                                         NIR_IMM_FP(nb, 2.0)));
       break;
 
    case GLSLstd450Refract: {
@@ -442,12 +438,12 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       }
       /* k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I)) */
       nir_ssa_def *k =
-         nir_fsub(nb, one, nir_fmul(nb, eta, nir_fmul(nb, eta,
-                      nir_fsub(nb, one, nir_fmul(nb, n_dot_i, n_dot_i)))));
+         nir_a_minus_bc(nb, one, eta,
+                            nir_fmul(nb, eta, nir_a_minus_bc(nb, one, n_dot_i, n_dot_i)));
       nir_ssa_def *result =
-         nir_fsub(nb, nir_fmul(nb, eta, I),
-                      nir_fmul(nb, nir_fadd(nb, nir_fmul(nb, eta, n_dot_i),
-                                                nir_fsqrt(nb, k)), N));
+         nir_a_minus_bc(nb, nir_fmul(nb, eta, I),
+                            nir_ffma(nb, eta, n_dot_i, nir_fsqrt(nb, k)),
+                            N);
       /* XXX: bcsel, or if statement? */
       dest->def = nir_bcsel(nb, nir_flt(nb, k, zero), zero, result);
       break;
@@ -494,13 +490,11 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    case GLSLstd450Asinh:
       dest->def = nir_fmul(nb, nir_fsign(nb, src[0]),
          nir_flog(nb, nir_fadd(nb, nir_fabs(nb, src[0]),
-                      nir_fsqrt(nb, nir_fadd_imm(nb, nir_fmul(nb, src[0], src[0]),
-                                                    1.0f)))));
+                      nir_fsqrt(nb, nir_ffma_imm2(nb, src[0], src[0], 1.0f)))));
       break;
    case GLSLstd450Acosh:
       dest->def = nir_flog(nb, nir_fadd(nb, src[0],
-         nir_fsqrt(nb, nir_fadd_imm(nb, nir_fmul(nb, src[0], src[0]),
-                                        -1.0f))));
+         nir_fsqrt(nb, nir_ffma_imm2(nb, src[0], src[0], -1.0f))));
       break;
    case GLSLstd450Atanh: {
       nir_ssa_def *one = nir_imm_floatN_t(nb, 1.0, src[0]->bit_size);

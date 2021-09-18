@@ -21,47 +21,50 @@
  * IN THE SOFTWARE.
  */
 
-/**
- * Gallium query object support.
- *
- * The HW has native support for occlusion queries, with the query result
- * being loaded and stored by the TLB unit. From a SW perspective, we have to
- * be careful to make sure that the jobs that need to be tracking queries are
- * bracketed by the start and end of counting, even across FBO transitions.
- *
- * For the transform feedback PRIMITIVES_GENERATED/WRITTEN queries, we have to
- * do the calculations in software at draw time.
- */
+#include "v3d_query.h"
 
-#include "v3d_context.h"
-#include "broadcom/cle/v3d_packet_v33_pack.h"
-
-struct v3d_query
+int
+v3d_get_driver_query_group_info(struct pipe_screen *pscreen, unsigned index,
+                                struct pipe_driver_query_group_info *info)
 {
-        enum pipe_query_type type;
-        struct v3d_bo *bo;
+        struct v3d_screen *screen = v3d_screen(pscreen);
 
-        uint32_t start, end;
-};
+        return v3d_get_driver_query_group_info_perfcnt(screen, index, info);
+}
+
+int
+v3d_get_driver_query_info(struct pipe_screen *pscreen, unsigned index,
+                          struct pipe_driver_query_info *info)
+{
+        struct v3d_screen *screen = v3d_screen(pscreen);
+
+        return v3d_get_driver_query_info_perfcnt(screen, index, info);
+}
 
 static struct pipe_query *
 v3d_create_query(struct pipe_context *pctx, unsigned query_type, unsigned index)
 {
-        struct v3d_query *q = calloc(1, sizeof(*q));
+        struct v3d_context *v3d = v3d_context(pctx);
 
-        q->type = query_type;
+        return v3d_create_query_pipe(v3d, query_type, index);
+}
 
-        /* Note that struct pipe_query isn't actually defined anywhere. */
-        return (struct pipe_query *)q;
+static struct pipe_query *
+v3d_create_batch_query(struct pipe_context *pctx, unsigned num_queries,
+                       unsigned *query_types)
+{
+        return v3d_create_batch_query_perfcnt(v3d_context(pctx),
+                                              num_queries,
+                                              query_types);
 }
 
 static void
 v3d_destroy_query(struct pipe_context *pctx, struct pipe_query *query)
 {
+        struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_query *q = (struct v3d_query *)query;
 
-        v3d_bo_unreference(&q->bo);
-        free(q);
+        q->funcs->destroy_query(v3d, q);
 }
 
 static bool
@@ -70,40 +73,7 @@ v3d_begin_query(struct pipe_context *pctx, struct pipe_query *query)
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_query *q = (struct v3d_query *)query;
 
-        switch (q->type) {
-        case PIPE_QUERY_PRIMITIVES_GENERATED:
-                /* If we are using PRIMITIVE_COUNTS_FEEDBACK to retrieve
-                 * primitive counts from the GPU (which we need when a GS
-                 * is present), then we need to update our counters now
-                 * to discard any primitives generated before this.
-                 */
-                if (v3d->prog.gs)
-                        v3d_update_primitive_counters(v3d);
-                q->start = v3d->prims_generated;
-                break;
-        case PIPE_QUERY_PRIMITIVES_EMITTED:
-                /* If we are inside transform feedback we need to update the
-                 * primitive counts to skip primitives recorded before this.
-                 */
-                if (v3d->streamout.num_targets > 0)
-                        v3d_update_primitive_counters(v3d);
-                q->start = v3d->tf_prims_generated;
-                break;
-        case PIPE_QUERY_OCCLUSION_COUNTER:
-        case PIPE_QUERY_OCCLUSION_PREDICATE:
-        case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-                q->bo = v3d_bo_alloc(v3d->screen, 4096, "query");
-                uint32_t *map = v3d_bo_map(q->bo);
-                *map = 0;
-
-                v3d->current_oq = q->bo;
-                v3d->dirty |= V3D_DIRTY_OQ;
-                break;
-        default:
-                unreachable("unsupported query type");
-        }
-
-        return true;
+        return q->funcs->begin_query(v3d, q);
 }
 
 static bool
@@ -112,36 +82,7 @@ v3d_end_query(struct pipe_context *pctx, struct pipe_query *query)
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_query *q = (struct v3d_query *)query;
 
-        switch (q->type) {
-        case PIPE_QUERY_PRIMITIVES_GENERATED:
-                /* If we are using PRIMITIVE_COUNTS_FEEDBACK to retrieve
-                 * primitive counts from the GPU (which we need when a GS
-                 * is present), then we need to update our counters now.
-                 */
-                if (v3d->prog.gs)
-                        v3d_update_primitive_counters(v3d);
-                q->end = v3d->prims_generated;
-                break;
-        case PIPE_QUERY_PRIMITIVES_EMITTED:
-                /* If transform feedback has ended, then we have already
-                 * updated the primitive counts at glEndTransformFeedback()
-                 * time. Otherwise, we have to do it now.
-                 */
-                if (v3d->streamout.num_targets > 0)
-                        v3d_update_primitive_counters(v3d);
-                q->end = v3d->tf_prims_generated;
-                break;
-        case PIPE_QUERY_OCCLUSION_COUNTER:
-        case PIPE_QUERY_OCCLUSION_PREDICATE:
-        case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-                v3d->current_oq = NULL;
-                v3d->dirty |= V3D_DIRTY_OQ;
-                break;
-        default:
-                unreachable("unsupported query type");
-        }
-
-        return true;
+        return q->funcs->end_query(v3d, q);
 }
 
 static bool
@@ -150,43 +91,8 @@ v3d_get_query_result(struct pipe_context *pctx, struct pipe_query *query,
 {
         struct v3d_context *v3d = v3d_context(pctx);
         struct v3d_query *q = (struct v3d_query *)query;
-        uint32_t result = 0;
 
-        if (q->bo) {
-                v3d_flush_jobs_using_bo(v3d, q->bo);
-
-                if (wait) {
-                        if (!v3d_bo_wait(q->bo, ~0ull, "query"))
-                                return false;
-                } else {
-                        if (!v3d_bo_wait(q->bo, 0, "query"))
-                                return false;
-                }
-
-                /* XXX: Sum up per-core values. */
-                uint32_t *map = v3d_bo_map(q->bo);
-                result = *map;
-
-                v3d_bo_unreference(&q->bo);
-        }
-
-        switch (q->type) {
-        case PIPE_QUERY_OCCLUSION_COUNTER:
-                vresult->u64 = result;
-                break;
-        case PIPE_QUERY_OCCLUSION_PREDICATE:
-        case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-                vresult->b = result != 0;
-                break;
-        case PIPE_QUERY_PRIMITIVES_GENERATED:
-        case PIPE_QUERY_PRIMITIVES_EMITTED:
-                vresult->u64 = q->end - q->start;
-                break;
-        default:
-                unreachable("unsupported query type");
-        }
-
-        return true;
+        return q->funcs->get_query_result(v3d, q, wait, vresult);
 }
 
 static void
@@ -203,10 +109,10 @@ void
 v3d_query_init(struct pipe_context *pctx)
 {
         pctx->create_query = v3d_create_query;
+        pctx->create_batch_query = v3d_create_batch_query;
         pctx->destroy_query = v3d_destroy_query;
         pctx->begin_query = v3d_begin_query;
         pctx->end_query = v3d_end_query;
         pctx->get_query_result = v3d_get_query_result;
         pctx->set_active_query_state = v3d_set_active_query_state;
 }
-

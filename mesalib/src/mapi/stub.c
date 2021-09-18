@@ -65,7 +65,7 @@ stub_compare(const void *key, const void *elem)
    const struct mapi_stub *stub = (const struct mapi_stub *) elem;
    const char *stub_name;
 
-   stub_name = &public_string_pool[(unsigned long) stub->name];
+   stub_name = &public_string_pool[(size_t) stub->name];
 
    return strcmp(name, stub_name);
 }
@@ -193,7 +193,7 @@ stub_get_name(const struct mapi_stub *stub)
 
    if (stub >= public_stubs &&
        stub < public_stubs + ARRAY_SIZE(public_stubs))
-      name = &public_string_pool[(unsigned long) stub->name];
+      name = &public_string_pool[(size_t) stub->name];
    else
       name = (const char *) stub->name;
 

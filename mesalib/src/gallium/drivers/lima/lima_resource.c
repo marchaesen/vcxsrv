@@ -370,9 +370,9 @@ lima_resource_from_handle(struct pipe_screen *pscreen,
          goto err_out;
       }
 
-      if (res->bo->size < size) {
+      if ((res->bo->size - res->levels[0].offset) < size) {
          fprintf(stderr, "imported bo size is smaller than expected: %d (BO) < %d (expected)\n",
-                 res->bo->size, size);
+                 (res->bo->size - res->levels[0].offset), size);
          goto err_out;
       }
 
@@ -416,9 +416,8 @@ lima_resource_get_handle(struct pipe_screen *pscreen,
 
    res->modifier_constant = true;
 
-   if (handle->type == WINSYS_HANDLE_TYPE_KMS && screen->ro &&
-       renderonly_get_handle(res->scanout, handle))
-      return true;
+   if (handle->type == WINSYS_HANDLE_TYPE_KMS && screen->ro)
+      return renderonly_get_handle(res->scanout, handle);
 
    if (!lima_bo_export(res->bo, handle))
       return false;
@@ -426,6 +425,35 @@ lima_resource_get_handle(struct pipe_screen *pscreen,
    handle->offset = res->levels[0].offset;
    handle->stride = res->levels[0].stride;
    return true;
+}
+
+static bool
+lima_resource_get_param(struct pipe_screen *pscreen,
+                        struct pipe_context *pctx,
+                        struct pipe_resource *pres,
+                        unsigned plane, unsigned layer, unsigned level,
+                        enum pipe_resource_param param,
+                        unsigned usage, uint64_t *value)
+{
+   struct lima_resource *res = lima_resource(pres);
+
+   switch (param) {
+   case PIPE_RESOURCE_PARAM_STRIDE:
+      *value = res->levels[level].stride;
+      return true;
+   case PIPE_RESOURCE_PARAM_OFFSET:
+      *value = res->levels[level].offset;
+      return true;
+   case PIPE_RESOURCE_PARAM_MODIFIER:
+      if (res->tiled)
+         *value = DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
+      else
+         *value = DRM_FORMAT_MOD_LINEAR;
+
+      return true;
+   default:
+      return false;
+   }
 }
 
 static void
@@ -523,6 +551,7 @@ lima_resource_screen_init(struct lima_screen *screen)
    screen->base.resource_from_handle = lima_resource_from_handle;
    screen->base.resource_destroy = lima_resource_destroy;
    screen->base.resource_get_handle = lima_resource_get_handle;
+   screen->base.resource_get_param = lima_resource_get_param;
    screen->base.set_damage_region = lima_resource_set_damage_region;
 }
 
@@ -903,9 +932,11 @@ lima_resource_context_init(struct lima_context *ctx)
 
    ctx->base.blit = lima_blit;
 
-   ctx->base.transfer_map = lima_transfer_map;
+   ctx->base.buffer_map = lima_transfer_map;
+   ctx->base.texture_map = lima_transfer_map;
    ctx->base.transfer_flush_region = lima_transfer_flush_region;
-   ctx->base.transfer_unmap = lima_transfer_unmap;
+   ctx->base.buffer_unmap = lima_transfer_unmap;
+   ctx->base.texture_unmap = lima_transfer_unmap;
 
    ctx->base.flush_resource = lima_flush_resource;
 }

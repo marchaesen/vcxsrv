@@ -54,7 +54,7 @@ public:
    explicit lower_cs_derived_visitor(gl_linked_shader *shader)
       : progress(false),
         shader(shader),
-        local_size_variable(shader->Program->info.cs.local_size_variable),
+        local_size_variable(shader->Program->info.workgroup_size_variable),
         gl_WorkGroupSize(NULL),
         gl_WorkGroupID(NULL),
         gl_LocalInvocationID(NULL),
@@ -129,7 +129,7 @@ lower_cs_derived_visitor::find_sysvals()
 
    if (!gl_WorkGroupID)
       gl_WorkGroupID = add_system_value(
-            SYSTEM_VALUE_WORK_GROUP_ID, glsl_type::uvec3_type, "gl_WorkGroupID");
+            SYSTEM_VALUE_WORKGROUP_ID, glsl_type::uvec3_type, "gl_WorkGroupID");
    if (!gl_LocalInvocationID)
       gl_LocalInvocationID = add_system_value(
             SYSTEM_VALUE_LOCAL_INVOCATION_ID, glsl_type::uvec3_type,
@@ -138,13 +138,13 @@ lower_cs_derived_visitor::find_sysvals()
       if (local_size_variable) {
          gl_WorkGroupSize = new(shader) ir_dereference_variable(
                add_system_value(
-                     SYSTEM_VALUE_LOCAL_GROUP_SIZE, glsl_type::uvec3_type,
+                     SYSTEM_VALUE_WORKGROUP_SIZE, glsl_type::uvec3_type,
                      "gl_LocalGroupSizeARB"));
       } else {
          ir_constant_data data;
          memset(&data, 0, sizeof(data));
          for (int i = 0; i < 3; i++)
-            data.u[i] = shader->Program->info.cs.local_size[i];
+            data.u[i] = shader->Program->info.workgroup_size[i];
          gl_WorkGroupSize = new(shader) ir_constant(glsl_type::uvec3_type, &data);
       }
    }

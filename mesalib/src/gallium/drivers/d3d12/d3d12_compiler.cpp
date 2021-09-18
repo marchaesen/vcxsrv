@@ -400,7 +400,7 @@ get_provoking_vertex(struct d3d12_selection_context *sel_ctx, bool *alternate)
       mode = (enum pipe_prim_type)last_vertex_stage->current->nir->info.gs.output_primitive;
       break;
    case PIPE_SHADER_VERTEX:
-      mode = sel_ctx->dinfo ? sel_ctx->dinfo->mode : PIPE_PRIM_TRIANGLES;
+      mode = sel_ctx->dinfo ? (enum pipe_prim_type)sel_ctx->dinfo->mode : PIPE_PRIM_TRIANGLES;
       break;
    default:
       unreachable("Tesselation shaders are not supported");
@@ -885,7 +885,7 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
          int slot = u_bit_scan64(&mask);
          create_varying_from_info(new_nir_variant, &key.required_varying_inputs, slot, nir_var_shader_in);
       }
-      d3d12_reassign_driver_locations(new_nir_variant, nir_var_shader_in,
+      dxil_reassign_driver_locations(new_nir_variant, nir_var_shader_in,
                                       key.prev_varying_outputs);
    }
 
@@ -896,7 +896,7 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
          int slot = u_bit_scan64(&mask);
          create_varying_from_info(new_nir_variant, &key.required_varying_outputs, slot, nir_var_shader_out);
       }
-      d3d12_reassign_driver_locations(new_nir_variant, nir_var_shader_out,
+      dxil_reassign_driver_locations(new_nir_variant, nir_var_shader_out,
                                       key.next_varying_inputs);
    }
 
@@ -1051,18 +1051,18 @@ d3d12_create_shader(struct d3d12_context *ctx,
 
    if (nir->info.stage != MESA_SHADER_VERTEX)
       nir->info.inputs_read =
-            d3d12_reassign_driver_locations(nir, nir_var_shader_in,
+            dxil_reassign_driver_locations(nir, nir_var_shader_in,
                                             prev ? prev->current->nir->info.outputs_written : 0);
    else
-      nir->info.inputs_read = d3d12_sort_by_driver_location(nir, nir_var_shader_in);
+      nir->info.inputs_read = dxil_sort_by_driver_location(nir, nir_var_shader_in);
 
    if (nir->info.stage != MESA_SHADER_FRAGMENT) {
       nir->info.outputs_written =
-            d3d12_reassign_driver_locations(nir, nir_var_shader_out,
+            dxil_reassign_driver_locations(nir, nir_var_shader_out,
                                             next ? next->current->nir->info.inputs_read : 0);
    } else {
       NIR_PASS_V(nir, nir_lower_fragcoord_wtrans);
-      d3d12_sort_ps_outputs(nir);
+      dxil_sort_ps_outputs(nir);
    }
 
    /* Integer cube maps are not supported in DirectX because sampling is not supported
@@ -1317,101 +1317,4 @@ void d3d12_validation_tools::disassemble(struct blob *dxil)
            "%s\n"
            "== END SHADER ==============================================\n",
            disassembly);
-}
-
-/* Sort io values so that first come normal varyings,
- * then system values, and then system generated values.
- */
-static void insert_sorted(struct exec_list *var_list, nir_variable *new_var)
-{
-   nir_foreach_variable_in_list(var, var_list) {
-      if (var->data.driver_location > new_var->data.driver_location ||
-          (var->data.driver_location == new_var->data.driver_location &&
-           var->data.location > new_var->data.location)) {
-         exec_node_insert_node_before(&var->node, &new_var->node);
-         return;
-      }
-   }
-   exec_list_push_tail(var_list, &new_var->node);
-}
-
-/* Order varyings according to driver location */
-uint64_t
-d3d12_sort_by_driver_location(nir_shader *s, nir_variable_mode modes)
-{
-   uint64_t result = 0;
-   struct exec_list new_list;
-   exec_list_make_empty(&new_list);
-
-   nir_foreach_variable_with_modes_safe(var, s, modes) {
-      exec_node_remove(&var->node);
-      insert_sorted(&new_list, var);
-      result |= 1ull << var->data.location;
-   }
-   exec_list_append(&s->variables, &new_list);
-   return result;
-}
-
-/* Sort PS outputs so that color outputs come first */
-void
-d3d12_sort_ps_outputs(nir_shader *s)
-{
-   struct exec_list new_list;
-   exec_list_make_empty(&new_list);
-
-   nir_foreach_variable_with_modes_safe(var, s, nir_var_shader_out) {
-      exec_node_remove(&var->node);
-      /* We use the driver_location here to avoid introducing a new
-       * struct or member variable here. The true, updated driver location
-       * will be written below, after sorting */
-      switch (var->data.location) {
-      case FRAG_RESULT_DEPTH:
-         var->data.driver_location = 1;
-         break;
-      case FRAG_RESULT_STENCIL:
-         var->data.driver_location = 2;
-         break;
-      case FRAG_RESULT_SAMPLE_MASK:
-         var->data.driver_location = 3;
-         break;
-      default:
-         var->data.driver_location = 0;
-      }
-      insert_sorted(&new_list, var);
-   }
-   exec_list_append(&s->variables, &new_list);
-
-   unsigned driver_loc = 0;
-   nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
-      var->data.driver_location = driver_loc++;
-   }
-}
-
-/* Order between stage values so that normal varyings come first,
- * then sysvalues and then system generated values.
- */
-uint64_t
-d3d12_reassign_driver_locations(nir_shader *s, nir_variable_mode modes,
-                                uint64_t other_stage_mask)
-{
-   struct exec_list new_list;
-   exec_list_make_empty(&new_list);
-
-   uint64_t result = 0;
-   nir_foreach_variable_with_modes_safe(var, s, modes) {
-      exec_node_remove(&var->node);
-      /* We use the driver_location here to avoid introducing a new
-       * struct or member variable here. The true, updated driver location
-       * will be written below, after sorting */
-      var->data.driver_location = nir_var_to_dxil_sysvalue_type(var, other_stage_mask);
-      insert_sorted(&new_list, var);
-   }
-   exec_list_append(&s->variables, &new_list);
-
-   unsigned driver_loc = 0;
-   nir_foreach_variable_with_modes(var, s, modes) {
-      result |= 1ull << var->data.location;
-      var->data.driver_location = driver_loc++;
-   }
-   return result;
 }

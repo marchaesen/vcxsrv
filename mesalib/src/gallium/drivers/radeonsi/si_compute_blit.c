@@ -26,10 +26,9 @@
 #include "si_pipe.h"
 #include "util/format/u_format.h"
 #include "util/format_srgb.h"
+#include "util/u_helpers.h"
 
-/* Note: Compute shaders always use SI_COMPUTE_DST_CACHE_POLICY for dst
- * and L2_STREAM for src.
- */
+/* Determine the cache policy. */
 static enum si_cache_policy get_cache_policy(struct si_context *sctx, enum si_coherency coher,
                                              uint64_t size)
 {
@@ -37,7 +36,7 @@ static enum si_cache_policy get_cache_policy(struct si_context *sctx, enum si_co
                                      coher == SI_COHERENCY_DB_META ||
                                      coher == SI_COHERENCY_CP)) ||
        (sctx->chip_class >= GFX7 && coher == SI_COHERENCY_SHADER))
-      return size <= sctx->screen->info.l2_cache_size / 8 ? L2_LRU : L2_STREAM;
+      return L2_LRU; /* it's faster if L2 doesn't evict anything  */
 
    return L2_BYPASS;
 }
@@ -323,35 +322,9 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
    assert(size % clear_alignment == 0);
    assert(size < (UINT_MAX & ~0xf)); /* TODO: test 64-bit sizes in all codepaths */
 
-   /* Reduce a large clear value size if possible. */
-   if (clear_value_size > 4) {
-      bool clear_dword_duplicated = true;
-
-      /* See if we can lower large fills to dword fills. */
-      for (unsigned i = 1; i < clear_value_size / 4; i++) {
-         if (clear_value[0] != clear_value[i]) {
-            clear_dword_duplicated = false;
-            break;
-         }
-      }
-      if (clear_dword_duplicated)
-         clear_value_size = 4;
-   }
-
-   /* Expand a small clear value size. */
-   uint32_t tmp_clear_value;
-   if (clear_value_size <= 2) {
-      if (clear_value_size == 1) {
-         tmp_clear_value = *(uint8_t *)clear_value;
-         tmp_clear_value |=
-            (tmp_clear_value << 8) | (tmp_clear_value << 16) | (tmp_clear_value << 24);
-      } else {
-         tmp_clear_value = *(uint16_t *)clear_value;
-         tmp_clear_value |= tmp_clear_value << 16;
-      }
-      clear_value = &tmp_clear_value;
-      clear_value_size = 4;
-   }
+   uint32_t clamped;
+   if (util_lower_clearsize_to_dword(clear_value, (int*)&clear_value_size, &clamped))
+      clear_value = &clamped;
 
    if (clear_value_size == 12) {
       si_compute_clear_12bytes_buffer(sctx, dst, offset, size, clear_value, flags, coher);
@@ -449,18 +422,19 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
                            bool is_dcc_decompress, unsigned flags)
 {
    struct pipe_context *ctx = &sctx->b;
+   struct si_texture *ssrc = (struct si_texture*)src;
+   struct si_texture *sdst = (struct si_texture*)dst;
    unsigned width = src_box->width;
    unsigned height = src_box->height;
    unsigned depth = src_box->depth;
    enum pipe_format src_format = util_format_linear(src->format);
    enum pipe_format dst_format = util_format_linear(dst->format);
-   bool is_linear = ((struct si_texture*)src)->surface.is_linear ||
-                    ((struct si_texture*)dst)->surface.is_linear;
+   bool is_linear = ssrc->surface.is_linear || sdst->surface.is_linear;
 
    assert(util_format_is_subsampled_422(src_format) == util_format_is_subsampled_422(dst_format));
 
-   if (!vi_dcc_enabled((struct si_texture*)src, src_level) &&
-       !vi_dcc_enabled((struct si_texture*)dst, dst_level) &&
+   if (!vi_dcc_enabled(ssrc, src_level) &&
+       !vi_dcc_enabled(sdst, dst_level) &&
        src_format == dst_format &&
        util_format_is_float(src_format) &&
        !util_format_is_compressed(src_format)) {
@@ -504,8 +478,12 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
 
    /* src and dst have the same number of samples. */
    si_make_CB_shader_coherent(sctx, src->nr_samples, true,
-                              /* Only src can have DCC.*/
-                              ((struct si_texture *)src)->surface.u.gfx9.color.dcc.pipe_aligned);
+                              ssrc->surface.u.gfx9.color.dcc.pipe_aligned);
+   if (sctx->chip_class >= GFX10) {
+      /* GFX10+ uses DCC stores so si_make_CB_shader_coherent is required for dst too */
+      si_make_CB_shader_coherent(sctx, dst->nr_samples, true,
+                                 sdst->surface.u.gfx9.color.dcc.pipe_aligned);
+   }
 
    struct si_images *images = &sctx->images[PIPE_SHADER_COMPUTE];
    struct pipe_image_view saved_image[2] = {0};
@@ -538,7 +516,7 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
    if (is_dcc_decompress)
       image[1].access |= SI_IMAGE_ACCESS_DCC_OFF;
    else if (sctx->chip_class >= GFX10)
-      image[1].access |= SI_IMAGE_ACCESS_DCC_WRITE;
+      image[1].access |= SI_IMAGE_ACCESS_ALLOW_DCC_STORE;
 
    ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 2, 0, image);
 
@@ -556,7 +534,6 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
        * the DCC block size or a multiple thereof. The shader uses a barrier
        * between loads and stores to safely overwrite each DCC block of pixels.
        */
-      struct si_texture *tex = (struct si_texture*)src;
       unsigned dim[3] = {src_box->width, src_box->height, src_box->depth};
 
       assert(src == dst);
@@ -565,9 +542,9 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
       if (!sctx->cs_dcc_decompress)
          sctx->cs_dcc_decompress = si_create_dcc_decompress_cs(ctx);
 
-      info.block[0] = tex->surface.u.gfx9.color.dcc_block_width;
-      info.block[1] = tex->surface.u.gfx9.color.dcc_block_height;
-      info.block[2] = tex->surface.u.gfx9.color.dcc_block_depth;
+      info.block[0] = ssrc->surface.u.gfx9.color.dcc_block_width;
+      info.block[1] = ssrc->surface.u.gfx9.color.dcc_block_height;
+      info.block[2] = ssrc->surface.u.gfx9.color.dcc_block_depth;
 
       /* Make sure the block size is at least the same as wave size. */
       while (info.block[0] * info.block[1] * info.block[2] <
@@ -640,16 +617,12 @@ void si_retile_dcc(struct si_context *sctx, struct si_texture *tex)
    sctx->cs_user_data[2] = (tex->surface.u.gfx9.color.display_dcc_pitch_max + 1) |
                            (tex->surface.u.gfx9.color.display_dcc_height << 16);
 
-   /* There is only 1 shader variant because ac_surface only supports displayable DCC
-    * with one swizzle mode and 32bpp.
-    */
+   /* We have only 1 variant per bpp for now, so expect 32 bpp. */
    assert(tex->surface.bpe == 4);
-   assert(sctx->chip_class != GFX9 || tex->surface.u.gfx9.swizzle_mode == 25);  /* 64KB_S_X */
-   assert(sctx->chip_class != GFX10 || tex->surface.u.gfx9.swizzle_mode == 27); /* 64KB_R_X */
-   assert(sctx->chip_class != GFX10_3 || tex->surface.u.gfx9.swizzle_mode == 27); /* 64KB_R_X */
 
-   if (!sctx->cs_dcc_retile)
-      sctx->cs_dcc_retile = si_create_dcc_retile_cs(sctx, &tex->surface);
+   void **shader = &sctx->cs_dcc_retile[tex->surface.u.gfx9.swizzle_mode];
+   if (!*shader)
+      *shader = si_create_dcc_retile_cs(sctx, &tex->surface);
 
    /* Dispatch compute. */
    unsigned width = DIV_ROUND_UP(tex->buffer.b.b.width0, tex->surface.u.gfx9.color.dcc_block_width);
@@ -665,7 +638,7 @@ void si_retile_dcc(struct si_context *sctx, struct si_texture *tex)
    info.grid[1] = DIV_ROUND_UP(height, info.block[1]);
    info.grid[2] = 1;
 
-   si_launch_grid_internal_ssbos(sctx, &info, sctx->cs_dcc_retile, SI_OP_SYNC_BEFORE,
+   si_launch_grid_internal_ssbos(sctx, &info, *shader, SI_OP_SYNC_BEFORE,
                                  SI_COHERENCY_CB_META, 1, &sb, 0x1);
 
    /* Don't flush caches. L2 will be flushed by the kernel fence. */
@@ -733,7 +706,7 @@ void si_compute_expand_fmask(struct pipe_context *ctx, struct pipe_resource *tex
       return;
 
    si_make_CB_shader_coherent(sctx, tex->nr_samples, true,
-                              true /* DCC is not possible with image stores */);
+                              ((struct si_texture*)tex)->surface.u.gfx9.color.dcc.pipe_aligned);
 
    /* Save states. */
    struct pipe_image_view saved_image = {0};
@@ -804,6 +777,7 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
                                     bool render_condition_enabled)
 {
    struct si_context *sctx = (struct si_context *)ctx;
+   struct si_texture *tex = (struct si_texture*)dstsurf->texture;
    unsigned num_layers = dstsurf->u.tex.last_layer - dstsurf->u.tex.first_layer + 1;
    unsigned data[4 + sizeof(color->ui)] = {dstx, dsty, dstsurf->u.tex.first_layer, 0};
 
@@ -825,7 +799,7 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
    }
 
    si_make_CB_shader_coherent(sctx, dstsurf->texture->nr_samples, true,
-                              true /* DCC is not possible with image stores */);
+                              tex->surface.u.gfx9.color.dcc.pipe_aligned);
 
    struct pipe_constant_buffer saved_cb = {};
    si_get_pipe_constant_buffer(sctx, PIPE_SHADER_COMPUTE, 0, &saved_cb);
@@ -841,7 +815,7 @@ void si_compute_clear_render_target(struct pipe_context *ctx, struct pipe_surfac
 
    struct pipe_image_view image = {0};
    image.resource = dstsurf->texture;
-   image.shader_access = image.access = PIPE_IMAGE_ACCESS_WRITE;
+   image.shader_access = image.access = PIPE_IMAGE_ACCESS_WRITE | SI_IMAGE_ACCESS_ALLOW_DCC_STORE;
    image.format = util_format_linear(dstsurf->format);
    image.u.tex.level = dstsurf->u.tex.level;
    image.u.tex.first_layer = 0; /* 3D images ignore first_layer (BASE_ARRAY) */

@@ -27,8 +27,8 @@
 #include "util/u_inlines.h"
 
 struct pipe_screen;
-struct iris_screen;
 struct iris_batch;
+struct iris_bufmgr;
 
 /**
  * A refcounted DRM Sync Object (drm_syncobj).
@@ -38,24 +38,25 @@ struct iris_syncobj {
    uint32_t handle;
 };
 
-struct iris_syncobj *iris_create_syncobj(struct iris_screen *screen);
-void iris_syncobj_destroy(struct iris_screen *, struct iris_syncobj *);
+struct iris_syncobj *iris_create_syncobj(struct iris_bufmgr *bufmgr);
+void iris_syncobj_destroy(struct iris_bufmgr *, struct iris_syncobj *);
+void iris_syncobj_signal(struct iris_bufmgr *, struct iris_syncobj *);
 
 void iris_batch_add_syncobj(struct iris_batch *batch,
                             struct iris_syncobj *syncobj,
                             unsigned flags);
-bool iris_wait_syncobj(struct pipe_screen *screen,
+bool iris_wait_syncobj(struct iris_bufmgr *bufmgr,
                        struct iris_syncobj *syncobj,
                        int64_t timeout_nsec);
 
 static inline void
-iris_syncobj_reference(struct iris_screen *screen,
+iris_syncobj_reference(struct iris_bufmgr *bufmgr,
                        struct iris_syncobj **dst,
                        struct iris_syncobj *src)
 {
    if (pipe_reference(*dst ? &(*dst)->ref : NULL,
                       src ? &src->ref : NULL))
-      iris_syncobj_destroy(screen, *dst);
+      iris_syncobj_destroy(bufmgr, *dst);
 
    *dst = src;
 }

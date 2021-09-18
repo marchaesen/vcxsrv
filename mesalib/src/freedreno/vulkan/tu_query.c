@@ -214,7 +214,7 @@ compare_perfcntr_pass(const void *a, const void *b)
           ((struct tu_perf_query_data *)b)->pass;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_CreateQueryPool(VkDevice _device,
                    const VkQueryPoolCreateInfo *pCreateInfo,
                    const VkAllocationCallbacks *pAllocator,
@@ -268,7 +268,7 @@ tu_CreateQueryPool(VkDevice _device,
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (pCreateInfo->queryType == VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR) {
-      pool->perf_group = fd_perfcntrs(device->physical_device->gpu_id,
+      pool->perf_group = fd_perfcntrs(&device->physical_device->dev_id,
                                       &pool->perf_group_count);
 
       pool->counter_index_count = perf_query_info->counterIndexCount;
@@ -317,7 +317,7 @@ tu_CreateQueryPool(VkDevice _device,
    }
 
    VkResult result = tu_bo_init_new(device, &pool->bo,
-         pCreateInfo->queryCount * slot_size, false);
+         pCreateInfo->queryCount * slot_size, TU_BO_ALLOC_NO_FLAGS);
    if (result != VK_SUCCESS) {
       vk_object_free(&device->vk, pAllocator, pool);
       return result;
@@ -342,7 +342,7 @@ tu_CreateQueryPool(VkDevice _device,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_DestroyQueryPool(VkDevice _device,
                     VkQueryPool _pool,
                     const VkAllocationCallbacks *pAllocator)
@@ -527,7 +527,7 @@ get_query_pool_results(struct tu_device *device,
    return result;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetQueryPoolResults(VkDevice _device,
                        VkQueryPool queryPool,
                        uint32_t firstQuery,
@@ -669,7 +669,7 @@ emit_copy_query_pool_results(struct tu_cmd_buffer *cmdbuf,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer,
                            VkQueryPool queryPool,
                            uint32_t firstQuery,
@@ -736,7 +736,7 @@ emit_reset_query_pool(struct tu_cmd_buffer *cmdbuf,
 
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdResetQueryPool(VkCommandBuffer commandBuffer,
                      VkQueryPool queryPool,
                      uint32_t firstQuery,
@@ -758,7 +758,7 @@ tu_CmdResetQueryPool(VkCommandBuffer commandBuffer,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_ResetQueryPool(VkDevice device,
                   VkQueryPool queryPool,
                   uint32_t firstQuery,
@@ -936,7 +936,7 @@ emit_begin_xfb_query(struct tu_cmd_buffer *cmdbuf,
    tu6_emit_event_write(cmdbuf, cs, WRITE_PRIMITIVE_COUNTS);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdBeginQuery(VkCommandBuffer commandBuffer,
                  VkQueryPool queryPool,
                  uint32_t query,
@@ -970,7 +970,7 @@ tu_CmdBeginQuery(VkCommandBuffer commandBuffer,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdBeginQueryIndexedEXT(VkCommandBuffer commandBuffer,
                            VkQueryPool queryPool,
                            uint32_t query,
@@ -1280,7 +1280,7 @@ handle_multiview_queries(struct tu_cmd_buffer *cmd,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdEndQuery(VkCommandBuffer commandBuffer,
                VkQueryPool queryPool,
                uint32_t query)
@@ -1311,7 +1311,7 @@ tu_CmdEndQuery(VkCommandBuffer commandBuffer,
    handle_multiview_queries(cmdbuf, pool, query);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdEndQueryIndexedEXT(VkCommandBuffer commandBuffer,
                          VkQueryPool queryPool,
                          uint32_t query,
@@ -1331,7 +1331,7 @@ tu_CmdEndQueryIndexedEXT(VkCommandBuffer commandBuffer,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
                      VkPipelineStageFlagBits pipelineStage,
                      VkQueryPool queryPool,
@@ -1409,7 +1409,7 @@ tu_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
    handle_multiview_queries(cmd, pool, query);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
     VkPhysicalDevice                            physicalDevice,
     uint32_t                                    queueFamilyIndex,
@@ -1422,7 +1422,7 @@ tu_EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
    uint32_t desc_count = *pCounterCount;
    uint32_t group_count;
    const struct fd_perfcntr_group *group =
-         fd_perfcntrs(phydev->gpu_id, &group_count);
+         fd_perfcntrs(&phydev->dev_id, &group_count);
 
    VK_OUTARRAY_MAKE(out, pCounters, pCounterCount);
    VK_OUTARRAY_MAKE(out_desc, pCounterDescriptions, &desc_count);
@@ -1460,7 +1460,7 @@ tu_EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
    return vk_outarray_status(&out);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
       VkPhysicalDevice                            physicalDevice,
       const VkQueryPoolPerformanceCreateInfoKHR*  pPerformanceQueryCreateInfo,
@@ -1470,7 +1470,7 @@ tu_GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
    uint32_t group_count = 0;
    uint32_t gid = 0, cid = 0, n_passes;
    const struct fd_perfcntr_group *group =
-         fd_perfcntrs(phydev->gpu_id, &group_count);
+         fd_perfcntrs(&phydev->dev_id, &group_count);
 
    uint32_t counters_requested[group_count];
    memset(counters_requested, 0x0, sizeof(counters_requested));
@@ -1490,7 +1490,7 @@ tu_GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
    }
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_AcquireProfilingLockKHR(VkDevice device,
                            const VkAcquireProfilingLockInfoKHR* pInfo)
 {
@@ -1498,7 +1498,7 @@ tu_AcquireProfilingLockKHR(VkDevice device,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_ReleaseProfilingLockKHR(VkDevice device)
 {
    /* TODO. Probably there's something to do for kgsl. */

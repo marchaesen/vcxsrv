@@ -131,7 +131,7 @@ struct dxil_mdnode;
 struct dxil_module;
 
 const struct dxil_mdnode *
-get_signatures(struct dxil_module *mod, nir_shader *s);
+get_signatures(struct dxil_module *mod, nir_shader *s, bool vulkan);
 
 #ifdef __cplusplus
 }

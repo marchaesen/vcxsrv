@@ -510,7 +510,7 @@ is_sampler_border_color_valid(struct gl_sampler_object *samp)
       { 1, 1, 1, 0 },
       { 1, 1, 1, 1 },
    };
-   size_t size = sizeof(samp->Attrib.BorderColor.ui);
+   size_t size = sizeof(samp->Attrib.state.border_color.ui);
 
    /* The ARB_bindless_texture spec says:
     *
@@ -523,16 +523,16 @@ is_sampler_border_color_valid(struct gl_sampler_object *samp)
     *  (0.0,0.0,0.0,0.0), (0.0,0.0,0.0,1.0), (1.0,1.0,1.0,0.0), and
     *  (1.0,1.0,1.0,1.0)."
     */
-   if (!memcmp(samp->Attrib.BorderColor.f, valid_float_border_colors[0], size) ||
-       !memcmp(samp->Attrib.BorderColor.f, valid_float_border_colors[1], size) ||
-       !memcmp(samp->Attrib.BorderColor.f, valid_float_border_colors[2], size) ||
-       !memcmp(samp->Attrib.BorderColor.f, valid_float_border_colors[3], size))
+   if (!memcmp(samp->Attrib.state.border_color.f, valid_float_border_colors[0], size) ||
+       !memcmp(samp->Attrib.state.border_color.f, valid_float_border_colors[1], size) ||
+       !memcmp(samp->Attrib.state.border_color.f, valid_float_border_colors[2], size) ||
+       !memcmp(samp->Attrib.state.border_color.f, valid_float_border_colors[3], size))
       return GL_TRUE;
 
-   if (!memcmp(samp->Attrib.BorderColor.ui, valid_integer_border_colors[0], size) ||
-       !memcmp(samp->Attrib.BorderColor.ui, valid_integer_border_colors[1], size) ||
-       !memcmp(samp->Attrib.BorderColor.ui, valid_integer_border_colors[2], size) ||
-       !memcmp(samp->Attrib.BorderColor.ui, valid_integer_border_colors[3], size))
+   if (!memcmp(samp->Attrib.state.border_color.ui, valid_integer_border_colors[0], size) ||
+       !memcmp(samp->Attrib.state.border_color.ui, valid_integer_border_colors[1], size) ||
+       !memcmp(samp->Attrib.state.border_color.ui, valid_integer_border_colors[2], size) ||
+       !memcmp(samp->Attrib.state.border_color.ui, valid_integer_border_colors[3], size))
       return GL_TRUE;
 
    return GL_FALSE;

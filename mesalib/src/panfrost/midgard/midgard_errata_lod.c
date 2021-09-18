@@ -53,7 +53,7 @@ nir_lod_errata_instr(nir_builder *b, nir_instr *instr, void *data)
 
         /* TODO: Indirect samplers, separate sampler objects XXX */
         nir_src idx = nir_src_for_ssa(nir_imm_int(b, tex->texture_index));
-        nir_src_copy(&l->src[0], &idx, l);
+        nir_src_copy(&l->src[0], &idx);
 
         nir_builder_instr_insert(b, &l->instr);
         nir_ssa_def *params = &l->dest.ssa;

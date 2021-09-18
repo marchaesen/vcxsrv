@@ -84,7 +84,7 @@ static OMX_ERRORTYPE h264e_outport_FreeBuffer(const void * ap_obj, OMX_HANDLETYP
 
    if (outp) {
       if (outp->transfer)
-         pipe_transfer_unmap(priv->t_pipe, outp->transfer);
+         pipe_buffer_unmap(priv->t_pipe, outp->transfer);
       pipe_resource_reference(&outp->bitstream, NULL);
       FREE(outp);
       buf->pOutputPortPrivate = NULL;

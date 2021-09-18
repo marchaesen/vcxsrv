@@ -163,14 +163,14 @@ Meta Instructions
 **phi**
     TODO
 
-**fanin**
+**collect**
     Groups registers which need to be assigned to consecutive scalar
     registers, for example `sam` (texture fetch) src instructions (see
     `register groups`_) or array element dereference
     (see `relative addressing`_).
 
-**fanout**
-    The counterpart to **fanin**, when an instruction such as `sam`
+**split**
+    The counterpart to **collect**, when an instruction such as `sam`
     writes multiple components, splits the result into individual
     scalar components to be consumed by other instructions.
 
@@ -202,22 +202,22 @@ Before register assignment, to group the two components of the texture src toget
 
   digraph G {
     { rank=same;
-      fanin;
+      collect;
     };
     { rank=same;
       coord_x;
       coord_y;
     };
-    sam -> fanin [label="regs[1]"];
-    fanin -> coord_x [label="regs[1]"];
-    fanin -> coord_y [label="regs[2]"];
+    sam -> collect [label="regs[1]"];
+    collect -> coord_x [label="regs[1]"];
+    collect -> coord_y [label="regs[2]"];
     coord_x -> coord_y [label="right",style=dotted];
     coord_y -> coord_x [label="left",style=dotted];
     coord_x [label="coord.x"];
     coord_y [label="coord.y"];
   }
 
-The frontend sets up the SSA ptrs from ``sam`` source register to the ``fanin`` meta instruction, which in turn points to the instructions producing the ``coord.x`` and ``coord.y`` values.  And the grouping_ pass sets up the ``left`` and ``right`` neighbor pointers to the ``fanin``\'s sources, used later by the `register assignment`_ pass to assign blocks of scalar registers.
+The frontend sets up the SSA ptrs from ``sam`` source register to the ``collect`` meta instruction, which in turn points to the instructions producing the ``coord.x`` and ``coord.y`` values.  And the grouping_ pass sets up the ``left`` and ``right`` neighbor pointers to the ``collect``\'s sources, used later by the `register assignment`_ pass to assign blocks of scalar registers.
 
 And likewise, for the consecutive scalar registers for the destination:
 
@@ -230,23 +230,23 @@ And likewise, for the consecutive scalar registers for the destination:
       C;
     };
     { rank=same;
-      fanout_0;
-      fanout_1;
-      fanout_2;
+      split_0;
+      split_1;
+      split_2;
     };
-    A -> fanout_0;
-    B -> fanout_1;
-    C -> fanout_2;
-    fanout_0 [label="fanout\noff=0"];
-    fanout_0 -> sam;
-    fanout_1 [label="fanout\noff=1"];
-    fanout_1 -> sam;
-    fanout_2 [label="fanout\noff=2"];
-    fanout_2 -> sam;
-    fanout_0 -> fanout_1 [label="right",style=dotted];
-    fanout_1 -> fanout_0 [label="left",style=dotted];
-    fanout_1 -> fanout_2 [label="right",style=dotted];
-    fanout_2 -> fanout_1 [label="left",style=dotted];
+    A -> split_0;
+    B -> split_1;
+    C -> split_2;
+    split_0 [label="split\noff=0"];
+    split_0 -> sam;
+    split_1 [label="split\noff=1"];
+    split_1 -> sam;
+    split_2 [label="split\noff=2"];
+    split_2 -> sam;
+    split_0 -> split_1 [label="right",style=dotted];
+    split_1 -> split_0 [label="left",style=dotted];
+    split_1 -> split_2 [label="right",style=dotted];
+    split_2 -> split_1 [label="left",style=dotted];
     sam;
   }
 
@@ -292,81 +292,52 @@ results in:
 
 The scheduling pass has some smarts to schedule things such that only a single ``a0.x`` value is used at any one time.
 
-To implement variable arrays, values are stored in consecutive scalar registers.  This has some overlap with `register groups`_, in that ``fanin`` and ``fanout`` are used to help group things for the `register assignment`_ pass.
-
-To use a variable array as a src register, a slight variation of what is done for const array src.  The instruction src is a `fanin` instruction that groups all the array members:
+To implement variable arrays, the NIR registers are stored as an ``ir3_array``,
+which will be register allocated to consecutive hardware registers.  The array
+access uses the id field in the ``ir3_register`` to map to the array being
+accessed, and the offset field for the fixed offset within the array.  A NIR
+indirect register read such as:
 
 ::
 
-  mova a0.x, hr1.y
-  sub r1.y, r2.x, r3.x
-  add r0.x, r1.y, r<a0.x + 2>
+  decl_reg vec2 32 r0[2]
+  ...
+  vec2 32 ssa_19 = mov r0[0 + ssa_9]
+
 
 results in:
 
-.. graphviz::
+::
 
-  digraph {
-    a0 [label="r0.z"];
-    a1 [label="r0.w"];
-    a2 [label="r1.x"];
-    a3 [label="r1.y"];
-    sub;
-    fanin;
-    mova;
-    add;
-    add -> sub;
-    add -> fanin [label="off=2"];
-    add -> mova;
-    fanin -> a0;
-    fanin -> a1;
-    fanin -> a2;
-    fanin -> a3;
-  }
+  0000:0000:001:  shl.b hssa_19, hssa_17, himm[0.000000,1,0x1]
+  0000:0000:002:  mov.s16s16 hr61.x, hssa_19
+  0000:0000:002:  mov.u32u32 ssa_21, arr[id=1, offset=0, size=4, ssa_12], address=_[0000:0000:002:  mov.s16s16]
+  0000:0000:002:  mov.u32u32 ssa_22, arr[id=1, offset=1, size=4, ssa_12], address=_[0000:0000:002:  mov.s16s16]
 
-TODO better describe how actual deref offset is derived, i.e. based on array base register.
 
-To do an indirect write to a variable array, a ``fanout`` is used.  Say the array was assigned to registers ``r0.z`` through ``r1.y`` (hence the constant offset of 2):
-
-    Note that only cat1 (mov) can do indirect write.
+Array writes write to the array in ``instr->regs[0]->array.id``.  A NIR indirect
+register write such as:
 
 ::
 
-  mova a0.x, hr1.y
-  min r2.x, r2.x, c0.x
-  mov r<a0.x + 2>, r2.x
-  mul r0.x, r0.z, c0.z
+  decl_reg vec2 32 r0[2]
+  ...
+  r0[0 + ssa_12] = mov ssa_13
 
+results in:
 
-In this case, the ``mov`` instruction does not write all elements of the array (compared to usage of ``fanout`` for ``sam`` instructions in grouping_).  But the ``mov`` instruction does need an additional dependency (via ``fanin``) on instructions that last wrote the array element members, to ensure that they get scheduled before the ``mov`` in scheduling_ stage (which also serves to group the array elements for the `register assignment`_ stage).
+::
 
-.. graphviz::
+  0000:0000:001:  shl.b hssa_29, hssa_27, himm[0.000000,1,0x1]
+  0000:0000:002:  mov.s16s16 hr61.x, hssa_29
+  0000:0000:001:  mov.u32u32 arr[id=1, offset=0, size=4, ssa_17], c2.y, address=_[0000:0000:002:  mov.s16s16]
+  0000:0000:004:  mov.u32u32 arr[id=1, offset=1, size=4, ssa_31], c2.z, address=_[0000:0000:002:  mov.s16s16]
 
-  digraph {
-    a0 [label="r0.z"];
-    a1 [label="r0.w"];
-    a2 [label="r1.x"];
-    a3 [label="r1.y"];
-    min;
-    mova;
-    mov;
-    mul;
-    fanout [label="fanout\noff=0"];
-    mul -> fanout;
-    fanout -> mov;
-    fanin;
-    fanin -> a0;
-    fanin -> a1;
-    fanin -> a2;
-    fanin -> a3;
-    mov -> min;
-    mov -> mova;
-    mov -> fanin;
-  }
+Note that only cat1 (mov) can do indirect write, and thus NIR register stores
+may need to introduce an extra mov.
 
-Note that there would in fact be ``fanout`` nodes generated for each array element (although only the reachable ones will be scheduled, etc).
-
-
+ir3 array accesses in the DAG get serialized by the ``instr->barrier_class`` and
+containing ``IR3_BARRIER_ARRAY_W`` or ``IR3_BARRIER_ARRAY_R``.
 
 Shader Passes
 -------------
@@ -401,7 +372,7 @@ The eventual plan is to invert that, with the front-end inserting no ``mov``\s a
 Grouping
 ~~~~~~~~
 
-In the grouping pass, instructions which need to be grouped (for ``fanin``\s, etc) have their ``left`` / ``right`` neighbor pointers setup.  In cases where there is a conflict (i.e. one instruction cannot have two unique left or right neighbors), an additional ``mov`` instruction is inserted.  This ensures that there is some possible valid `register assignment`_ at the later stages.
+In the grouping pass, instructions which need to be grouped (for ``collect``\s, etc) have their ``left`` / ``right`` neighbor pointers setup.  In cases where there is a conflict (i.e. one instruction cannot have two unique left or right neighbors), an additional ``mov`` instruction is inserted.  This ensures that there is some possible valid `register assignment`_ at the later stages.
 
 
 .. _depth:

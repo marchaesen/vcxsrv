@@ -66,6 +66,8 @@ struct lp_cs_tpool_task {
    unsigned iter_total;
    unsigned iter_start;
    unsigned iter_finished;
+   unsigned iter_per_thread;
+   unsigned iter_remainder;
 };
 
 struct lp_cs_tpool *lp_cs_tpool_create(unsigned num_threads);

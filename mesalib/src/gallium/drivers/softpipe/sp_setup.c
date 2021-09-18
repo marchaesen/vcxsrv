@@ -395,52 +395,6 @@ setup_sort_vertices(struct setup_context *setup,
 }
 
 
-/* Apply cylindrical wrapping to v0, v1, v2 coordinates, if enabled.
- * Input coordinates must be in [0, 1] range, otherwise results are undefined.
- * Some combinations of coordinates produce invalid results,
- * but this behaviour is acceptable.
- */
-static void
-tri_apply_cylindrical_wrap(float v0,
-                           float v1,
-                           float v2,
-                           uint cylindrical_wrap,
-                           float output[3])
-{
-   if (cylindrical_wrap) {
-      float delta;
-
-      delta = v1 - v0;
-      if (delta > 0.5f) {
-         v0 += 1.0f;
-      }
-      else if (delta < -0.5f) {
-         v1 += 1.0f;
-      }
-
-      delta = v2 - v1;
-      if (delta > 0.5f) {
-         v1 += 1.0f;
-      }
-      else if (delta < -0.5f) {
-         v2 += 1.0f;
-      }
-
-      delta = v0 - v2;
-      if (delta > 0.5f) {
-         v2 += 1.0f;
-      }
-      else if (delta < -0.5f) {
-         v0 += 1.0f;
-      }
-   }
-
-   output[0] = v0;
-   output[1] = v1;
-   output[2] = v2;
-}
-
-
 /**
  * Compute a0 for a constant-valued coefficient (GL_FLAT shading).
  * The value value comes from vertex[slot][i].
@@ -620,21 +574,17 @@ setup_tri_coefficients(struct setup_context *setup)
          break;
       case SP_INTERP_LINEAR:
          for (j = 0; j < TGSI_NUM_CHANNELS; j++) {
-            tri_apply_cylindrical_wrap(setup->vmin[vertSlot][j],
-                                       setup->vmid[vertSlot][j],
-                                       setup->vmax[vertSlot][j],
-                                       fsInfo->input_cylindrical_wrap[fragSlot] & (1 << j),
-                                       v);
+            v[0] = setup->vmin[vertSlot][j];
+            v[1] = setup->vmid[vertSlot][j];
+            v[2] = setup->vmax[vertSlot][j];
             tri_linear_coeff(setup, &setup->coef[fragSlot], j, v);
          }
          break;
       case SP_INTERP_PERSPECTIVE:
          for (j = 0; j < TGSI_NUM_CHANNELS; j++) {
-            tri_apply_cylindrical_wrap(setup->vmin[vertSlot][j],
-                                       setup->vmid[vertSlot][j],
-                                       setup->vmax[vertSlot][j],
-                                       fsInfo->input_cylindrical_wrap[fragSlot] & (1 << j),
-                                       v);
+            v[0] = setup->vmin[vertSlot][j];
+            v[1] = setup->vmid[vertSlot][j];
+            v[2] = setup->vmax[vertSlot][j];
             tri_persp_coeff(setup, &setup->coef[fragSlot], j, v);
          }
          break;
@@ -876,32 +826,6 @@ sp_setup_tri(struct setup_context *setup,
 }
 
 
-/* Apply cylindrical wrapping to v0, v1 coordinates, if enabled.
- * Input coordinates must be in [0, 1] range, otherwise results are undefined.
- */
-static void
-line_apply_cylindrical_wrap(float v0,
-                            float v1,
-                            uint cylindrical_wrap,
-                            float output[2])
-{
-   if (cylindrical_wrap) {
-      float delta;
-
-      delta = v1 - v0;
-      if (delta > 0.5f) {
-         v0 += 1.0f;
-      }
-      else if (delta < -0.5f) {
-         v1 += 1.0f;
-      }
-   }
-
-   output[0] = v0;
-   output[1] = v1;
-}
-
-
 /**
  * Compute a0, dadx and dady for a linearly interpolated coefficient,
  * for a line.
@@ -1006,19 +930,15 @@ setup_line_coefficients(struct setup_context *setup,
          break;
       case SP_INTERP_LINEAR:
          for (j = 0; j < TGSI_NUM_CHANNELS; j++) {
-            line_apply_cylindrical_wrap(setup->vmin[vertSlot][j],
-                                        setup->vmax[vertSlot][j],
-                                        fsInfo->input_cylindrical_wrap[fragSlot] & (1 << j),
-                                        v);
+            v[0] = setup->vmin[vertSlot][j];
+            v[1] = setup->vmax[vertSlot][j];
             line_linear_coeff(setup, &setup->coef[fragSlot], j, v);
          }
          break;
       case SP_INTERP_PERSPECTIVE:
          for (j = 0; j < TGSI_NUM_CHANNELS; j++) {
-            line_apply_cylindrical_wrap(setup->vmin[vertSlot][j],
-                                        setup->vmax[vertSlot][j],
-                                        fsInfo->input_cylindrical_wrap[fragSlot] & (1 << j),
-                                        v);
+            v[0] = setup->vmin[vertSlot][j];
+            v[1] = setup->vmax[vertSlot][j];
             line_persp_coeff(setup, &setup->coef[fragSlot], j, v);
          }
          break;

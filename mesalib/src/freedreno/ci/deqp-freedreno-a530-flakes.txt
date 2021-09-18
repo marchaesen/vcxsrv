@@ -13,6 +13,9 @@ dEQP-GLES3.functional.transform_feedback.*
 
 dEQP-GLES3.functional.fragment_ops.interaction.basic_shader.70
 
+# First appeared 2021-06-11 on an unrelated MR.
+dEQP-GLES31.functional.image_load_store.3d.load_store.*_single_layer
+
 # These are in the xfails list (they usually do), but the random
 # behavior occasionally results in UnexpectedPass results.
 dEQP-GLES31.functional.separate_shader.random.99
@@ -25,7 +28,33 @@ dEQP-GLES31.functional.separate_shader.interface.same_name_vertex_centroid_fragm
 
 # Flaky since running more of GLES31
 dEQP-GLES31.functional.texture.border_clamp.*
+KHR-GLES31.core.texture_border_clamp.*
+
+# Occasionally passes
+KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls1
+KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2
+
+# Occasionally passes
+KHR-GLES31.core.layout_binding.buffer_layout_binding_atomicAdd_ComputeShader
+KHR-GLES31.core.layout_binding.buffer_layout_binding_atomicAdd_FragmentShader
+
+# " Counter value is 1024 should be 896."
+# 1. Create atomic counter buffers and init them with start values.
+# 2. Increment (decrement) buffer values in the shader.
+# 3. Map buffers with MapBufferRange command. Increment (decrement) buffer values manually.
+# 4. Unmap buffers with UnmapBuffer command.
+# 5. Again increment (decrement) buffer values in the shader.
+# Verify that this scenario works as expected and final values in the buffer objects are correct.
+KHR-GLES31.core.shader_atomic_counters.advanced-usage-draw-update-draw
+
+KHR-GLES31.core.shader_image_load_store.basic-allTargets-atomicCS
+KHR-GLES31.core.shader_image_load_store.basic-glsl-misc-cs
+KHR-GLES31.core.shader_storage_buffer_object.advanced-switchBuffers-cs
+KHR-GLES31.core.shader_storage_buffer_object.advanced-switchPrograms-cs
+KHR-GLES31.core.shader_storage_buffer_object.basic-syntax-cs
 
 # Flaky since around Feb 26, first appearing on a seemingly-unrelated CI change
 # (ci-fd-fastboot-nfs)
 dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.*
+
+dEQP-GLES31.functional.texture.gather.basic.2d_array.rgba8.filter_mode.min_nearest_mipmap_nearest_mag_linear

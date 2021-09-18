@@ -195,7 +195,7 @@ static char *loader_get_dri_config_driver(int fd)
    driParseOptionInfo(&defaultInitOptions, __driConfigOptionsLoader,
                       ARRAY_SIZE(__driConfigOptionsLoader));
    driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0,
-                       "loader", kernel_driver, NULL, 0, NULL, 0);
+                       "loader", kernel_driver, NULL, NULL, 0, NULL, 0);
    if (driCheckOption(&userInitOptions, "dri_driver", DRI_STRING)) {
       char *opt = driQueryOptionstr(&userInitOptions, "dri_driver");
       /* not an empty string */
@@ -218,7 +218,7 @@ static char *loader_get_dri_config_device_id(void)
    driParseOptionInfo(&defaultInitOptions, __driConfigOptionsLoader,
                       ARRAY_SIZE(__driConfigOptionsLoader));
    driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0,
-                       "loader", NULL, NULL, 0, NULL, 0);
+                       "loader", NULL, NULL, NULL, 0, NULL, 0);
    if (driCheckOption(&userInitOptions, "device_id", DRI_STRING))
       prime = strdup(driQueryOptionstr(&userInitOptions, "device_id"));
    driDestroyOptionCache(&userInitOptions);
@@ -517,23 +517,25 @@ loader_get_extensions_name(const char *driver_name)
 }
 
 /**
- * Opens a DRI driver using its driver name, returning the __DRIextension
- * entrypoints.
+ * Opens a driver or backend using its name, returning the library handle.
  *
  * \param driverName - a name like "i965", "radeon", "nouveau", etc.
- * \param out_driver - Address where the dlopen() return value will be stored.
+ * \param lib_suffix - a suffix to append to the driver name to generate the
+ * full library name.
  * \param search_path_vars - NULL-terminated list of env vars that can be used
- * to override the DEFAULT_DRIVER_DIR search path.
+ * \param default_search_path - a colon-separted list of directories used if
+ * search_path_vars is NULL or none of the vars are set in the environment.
+ * \param warn_on_fail - Log a warning if the driver is not found.
  */
-const struct __DRIextensionRec **
-loader_open_driver(const char *driver_name,
-                   void **out_driver_handle,
-                   const char **search_path_vars)
+void *
+loader_open_driver_lib(const char *driver_name,
+                       const char *lib_suffix,
+                       const char **search_path_vars,
+                       const char *default_search_path,
+                       bool warn_on_fail)
 {
-   char path[PATH_MAX], *search_paths, *next, *end;
-   char *get_extensions_name;
-   const struct __DRIextensionRec **extensions = NULL;
-   const struct __DRIextensionRec **(*get_extensions)(void);
+   char path[PATH_MAX];
+   const char *search_paths, *next, *end;
 
    search_paths = NULL;
    if (geteuid() == getuid() && search_path_vars) {
@@ -544,12 +546,12 @@ loader_open_driver(const char *driver_name,
       }
    }
    if (search_paths == NULL)
-      search_paths = DEFAULT_DRIVER_DIR;
+      search_paths = default_search_path;
 
    void *driver = NULL;
-   char *dl_error = NULL;
+   const char *dl_error = NULL;
    end = search_paths + strlen(search_paths);
-   for (char *p = search_paths; p < end; p = next + 1) {
+   for (const char *p = search_paths; p < end; p = next + 1) {
       int len;
       next = strchr(p, ':');
       if (next == NULL)
@@ -557,11 +559,13 @@ loader_open_driver(const char *driver_name,
 
       len = next - p;
 #if USE_ELF_TLS
-      snprintf(path, sizeof(path), "%.*s/tls/%s_dri.so", len, p, driver_name);
+      snprintf(path, sizeof(path), "%.*s/tls/%s%s.so", len,
+               p, driver_name, lib_suffix);
       driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
 #endif
       if (driver == NULL) {
-         snprintf(path, sizeof(path), "%.*s/%s_dri.so", len, p, driver_name);
+         snprintf(path, sizeof(path), "%.*s/%s%s.so", len,
+                  p, driver_name, lib_suffix);
          driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
          if (driver == NULL) {
             dl_error = dlerror();
@@ -575,13 +579,41 @@ loader_open_driver(const char *driver_name,
    }
 
    if (driver == NULL) {
-      log_(_LOADER_WARNING, "MESA-LOADER: failed to open %s: %s (search paths %s)\n",
-           driver_name, dl_error, search_paths);
-      *out_driver_handle = NULL;
+      if (warn_on_fail) {
+         log_(_LOADER_WARNING,
+              "MESA-LOADER: failed to open %s: %s (search paths %s, suffix %s)\n",
+              driver_name, dl_error, search_paths, lib_suffix);
+      }
       return NULL;
    }
 
    log_(_LOADER_DEBUG, "MESA-LOADER: dlopen(%s)\n", path);
+
+   return driver;
+}
+
+/**
+ * Opens a DRI driver using its driver name, returning the __DRIextension
+ * entrypoints.
+ *
+ * \param driverName - a name like "i965", "radeon", "nouveau", etc.
+ * \param out_driver - Address where the dlopen() return value will be stored.
+ * \param search_path_vars - NULL-terminated list of env vars that can be used
+ * to override the DEFAULT_DRIVER_DIR search path.
+ */
+const struct __DRIextensionRec **
+loader_open_driver(const char *driver_name,
+                   void **out_driver_handle,
+                   const char **search_path_vars)
+{
+   char *get_extensions_name;
+   const struct __DRIextensionRec **extensions = NULL;
+   const struct __DRIextensionRec **(*get_extensions)(void);
+   void *driver = loader_open_driver_lib(driver_name, "_dri", search_path_vars,
+                                         DEFAULT_DRIVER_DIR, true);
+
+   if (!driver)
+      goto failed;
 
    get_extensions_name = loader_get_extensions_name(driver_name);
    if (get_extensions_name) {
@@ -601,8 +633,10 @@ loader_open_driver(const char *driver_name,
       log_(_LOADER_WARNING,
            "MESA-LOADER: driver exports no extensions (%s)\n", dlerror());
       dlclose(driver);
+      driver = NULL;
    }
 
+failed:
    *out_driver_handle = driver;
    return extensions;
 }

@@ -31,10 +31,14 @@
 
 #include "util/macros.h"
 #include "util/list.h"
+#include "util/u_dynarray.h"
+#include "util/simple_mtx.h"
+#include "util/u_queue.h"
 
 #include "compiler/shader_enums.h"
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
+#include "cso_cache/cso_context.h"
 #include "nir.h"
 
 /* Pre-declarations needed for WSI entrypoints */
@@ -54,6 +58,8 @@ typedef uint32_t xcb_window_t;
 #include "vk_physical_device.h"
 #include "vk_shader_module.h"
 #include "vk_util.h"
+#include "vk_format.h"
+#include "vk_cmd_queue.h"
 
 #include "wsi_common.h"
 
@@ -162,19 +168,33 @@ struct lvp_queue {
    VkDeviceQueueCreateFlags flags;
    struct lvp_device *                         device;
    struct pipe_context *ctx;
+   struct cso_context *cso;
    bool shutdown;
-   thrd_t exec_thread;
-   mtx_t m;
-   cnd_t new_work;
-   struct list_head workqueue;
+   uint64_t timeline;
+   struct util_queue queue;
+   simple_mtx_t last_lock;
+   uint64_t last_finished;
+   uint64_t last_fence_timeline;
+   struct pipe_fence_handle *last_fence;
    volatile int count;
+};
+
+struct lvp_semaphore_wait {
+   struct lvp_semaphore *sema;
+   uint64_t wait;
 };
 
 struct lvp_queue_work {
    struct list_head list;
    uint32_t cmd_buffer_count;
-   struct lvp_cmd_buffer **cmd_buffers;
+   uint32_t timeline_count;
+   uint32_t wait_count;
+   uint64_t timeline;
    struct lvp_fence *fence;
+   struct lvp_cmd_buffer **cmd_buffers;
+   struct lvp_semaphore_timeline **timelines;
+   VkSemaphore *waits;
+   uint64_t *wait_vals;
 };
 
 struct lvp_pipeline_cache {
@@ -190,8 +210,6 @@ struct lvp_device {
    struct lvp_instance *                       instance;
    struct lvp_physical_device *physical_device;
    struct pipe_screen *pscreen;
-
-   mtx_t fence_lock;
 };
 
 void lvp_device_get_cache_uuid(void *uuid);
@@ -202,6 +220,7 @@ struct lvp_device_memory {
    uint32_t                                     type_index;
    VkDeviceSize                                 map_size;
    void *                                       map;
+   bool is_user_ptr;
 };
 
 struct lvp_image {
@@ -272,6 +291,8 @@ struct lvp_subpass {
    struct lvp_subpass_attachment *              resolve_attachments;
    struct lvp_subpass_attachment *              depth_stencil_attachment;
    struct lvp_subpass_attachment *              ds_resolve_attachment;
+   VkResolveModeFlagBits                        depth_resolve_mode;
+   VkResolveModeFlagBits                        stencil_resolve_mode;
 
    /** Subpass has at least one color resolve attachment */
    bool                                         has_color_resolve;
@@ -303,6 +324,8 @@ struct lvp_render_pass {
    uint32_t                                     subpass_count;
    struct lvp_subpass_attachment *              subpass_attachments;
    struct lvp_render_pass_attachment *          attachments;
+   bool has_color_attachment;
+   bool has_zs_attachment;
    struct lvp_subpass                           subpasses[0];
 };
 
@@ -475,6 +498,13 @@ struct lvp_pipeline {
    void *shader_cso[PIPE_SHADER_TYPES];
    VkGraphicsPipelineCreateInfo graphics_create_info;
    VkComputePipelineCreateInfo compute_create_info;
+   uint32_t line_stipple_factor;
+   uint16_t line_stipple_pattern;
+   bool line_stipple_enable;
+   bool line_smooth;
+   bool disable_multisample;
+   bool line_rectangular;
+   bool gs_output_lines;
    bool provoking_vertex_last;
 };
 
@@ -485,13 +515,30 @@ struct lvp_event {
 
 struct lvp_fence {
    struct vk_object_base base;
-   bool signaled;
+   uint64_t timeline;
+   struct util_queue_fence fence;
    struct pipe_fence_handle *handle;
+   bool signalled;
+};
+
+struct lvp_semaphore_timeline {
+   struct lvp_semaphore_timeline *next;
+   uint64_t signal; //api
+   uint64_t timeline; //queue
+   struct pipe_fence_handle *fence;
 };
 
 struct lvp_semaphore {
    struct vk_object_base base;
-   bool dummy;
+   bool is_timeline;
+   uint64_t current;
+   simple_mtx_t lock;
+   mtx_t submit_lock;
+   cnd_t submit;
+   void *mem;
+   struct util_dynarray links;
+   struct lvp_semaphore_timeline *timeline;
+   struct lvp_semaphore_timeline *latest;
 };
 
 struct lvp_buffer {
@@ -551,8 +598,7 @@ struct lvp_cmd_buffer {
    struct lvp_cmd_pool *                        pool;
    struct list_head                             pool_link;
 
-   struct list_head                             cmds;
-   struct list_head                            *last_emit;
+   struct vk_cmd_queue                          queue;
 
    uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
 };
@@ -607,347 +653,9 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_fence, base, VkFence, VK_OBJECT_TYPE_FENCE);
 VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_semaphore, base, VkSemaphore,
                                VK_OBJECT_TYPE_SEMAPHORE);
 
-/* in same order and buffer building commands in spec. */
-enum lvp_cmds {
-   LVP_CMD_BIND_PIPELINE,
-   LVP_CMD_SET_VIEWPORT,
-   LVP_CMD_SET_SCISSOR,
-   LVP_CMD_SET_LINE_WIDTH,
-   LVP_CMD_SET_DEPTH_BIAS,
-   LVP_CMD_SET_BLEND_CONSTANTS,
-   LVP_CMD_SET_DEPTH_BOUNDS,
-   LVP_CMD_SET_STENCIL_COMPARE_MASK,
-   LVP_CMD_SET_STENCIL_WRITE_MASK,
-   LVP_CMD_SET_STENCIL_REFERENCE,
-   LVP_CMD_BIND_DESCRIPTOR_SETS,
-   LVP_CMD_BIND_INDEX_BUFFER,
-   LVP_CMD_BIND_VERTEX_BUFFERS,
-   LVP_CMD_DRAW,
-   LVP_CMD_DRAW_INDEXED,
-   LVP_CMD_DRAW_INDIRECT,
-   LVP_CMD_DRAW_INDEXED_INDIRECT,
-   LVP_CMD_DISPATCH,
-   LVP_CMD_DISPATCH_INDIRECT,
-   LVP_CMD_COPY_BUFFER,
-   LVP_CMD_COPY_IMAGE,
-   LVP_CMD_BLIT_IMAGE,
-   LVP_CMD_COPY_BUFFER_TO_IMAGE,
-   LVP_CMD_COPY_IMAGE_TO_BUFFER,
-   LVP_CMD_UPDATE_BUFFER,
-   LVP_CMD_FILL_BUFFER,
-   LVP_CMD_CLEAR_COLOR_IMAGE,
-   LVP_CMD_CLEAR_DEPTH_STENCIL_IMAGE,
-   LVP_CMD_CLEAR_ATTACHMENTS,
-   LVP_CMD_RESOLVE_IMAGE,
-   LVP_CMD_SET_EVENT,
-   LVP_CMD_RESET_EVENT,
-   LVP_CMD_WAIT_EVENTS,
-   LVP_CMD_PIPELINE_BARRIER,
-   LVP_CMD_BEGIN_QUERY,
-   LVP_CMD_END_QUERY,
-   LVP_CMD_RESET_QUERY_POOL,
-   LVP_CMD_WRITE_TIMESTAMP,
-   LVP_CMD_COPY_QUERY_POOL_RESULTS,
-   LVP_CMD_PUSH_CONSTANTS,
-   LVP_CMD_BEGIN_RENDER_PASS,
-   LVP_CMD_NEXT_SUBPASS,
-   LVP_CMD_END_RENDER_PASS,
-   LVP_CMD_EXECUTE_COMMANDS,
-   LVP_CMD_DRAW_INDIRECT_COUNT,
-   LVP_CMD_DRAW_INDEXED_INDIRECT_COUNT,
-   LVP_CMD_PUSH_DESCRIPTOR_SET,
-   LVP_CMD_BIND_TRANSFORM_FEEDBACK_BUFFERS,
-   LVP_CMD_BEGIN_TRANSFORM_FEEDBACK,
-   LVP_CMD_END_TRANSFORM_FEEDBACK,
-   LVP_CMD_DRAW_INDIRECT_BYTE_COUNT,
-   LVP_CMD_BEGIN_CONDITIONAL_RENDERING,
-   LVP_CMD_END_CONDITIONAL_RENDERING,
-   LVP_CMD_SET_CULL_MODE,
-   LVP_CMD_SET_FRONT_FACE,
-   LVP_CMD_SET_PRIMITIVE_TOPOLOGY,
-   LVP_CMD_SET_DEPTH_TEST_ENABLE,
-   LVP_CMD_SET_DEPTH_WRITE_ENABLE,
-   LVP_CMD_SET_DEPTH_COMPARE_OP,
-   LVP_CMD_SET_DEPTH_BOUNDS_TEST_ENABLE,
-   LVP_CMD_SET_STENCIL_TEST_ENABLE,
-   LVP_CMD_SET_STENCIL_OP,
-};
-
-struct lvp_cmd_bind_pipeline {
-   VkPipelineBindPoint bind_point;
-   struct lvp_pipeline *pipeline;
-};
-
-struct lvp_cmd_set_viewport {
-   uint32_t first_viewport;
-   uint32_t viewport_count;
-   VkViewport viewports[16];
-};
-
-struct lvp_cmd_set_scissor {
-   uint32_t first_scissor;
-   uint32_t scissor_count;
-   VkRect2D scissors[16];
-};
-
-struct lvp_cmd_set_line_width {
-   float line_width;
-};
-
-struct lvp_cmd_set_depth_bias {
-   float constant_factor;
-   float clamp;
-   float slope_factor;
-};
-
-struct lvp_cmd_set_blend_constants {
-   float blend_constants[4];
-};
-
-struct lvp_cmd_set_depth_bounds {
-   float min_depth;
-   float max_depth;
-};
-
-struct lvp_cmd_set_stencil_vals {
-   VkStencilFaceFlags face_mask;
-   uint32_t value;
-};
-
-struct lvp_cmd_bind_descriptor_sets {
-   VkPipelineBindPoint bind_point;
-   struct lvp_descriptor_set_layout *set_layout[MAX_SETS];
-   uint32_t first;
-   uint32_t count;
-   struct lvp_descriptor_set **sets;
-   uint32_t dynamic_offset_count;
-   const uint32_t *dynamic_offsets;
-};
-
-struct lvp_cmd_bind_index_buffer {
-   const struct lvp_buffer *buffer;
-   VkDeviceSize offset;
-   VkIndexType index_type;
-};
-
-struct lvp_cmd_bind_vertex_buffers {
-   uint32_t first;
-   uint32_t binding_count;
-   struct lvp_buffer **buffers;
-   const VkDeviceSize *offsets;
-   const VkDeviceSize *sizes;
-   const VkDeviceSize *strides;
-};
-
-struct lvp_cmd_draw {
-   uint32_t instance_count;
-   uint32_t first_instance;
-   uint32_t draw_count;
-   struct pipe_draw_start_count_bias draws[0];
-};
-
-struct lvp_cmd_draw_indexed {
-   uint32_t instance_count;
-   uint32_t first_instance;
-   bool calc_start;
-   uint32_t draw_count;
-   struct pipe_draw_start_count_bias draws[0];
-};
-
-struct lvp_cmd_draw_indirect {
-   VkDeviceSize offset;
-   struct lvp_buffer *buffer;
-   uint32_t draw_count;
-   uint32_t stride;
-};
-
-struct lvp_cmd_dispatch {
-   uint32_t x;
-   uint32_t y;
-   uint32_t z;
-   uint32_t base_x;
-   uint32_t base_y;
-   uint32_t base_z;
-};
-
-struct lvp_cmd_dispatch_indirect {
-   const struct lvp_buffer *buffer;
-   VkDeviceSize offset;
-};
-
-struct lvp_cmd_copy_buffer {
-   struct lvp_buffer *src;
-   struct lvp_buffer *dst;
-   uint32_t region_count;
-   const VkBufferCopy *regions;
-};
-
-struct lvp_cmd_copy_image {
-   struct lvp_image *src;
-   struct lvp_image *dst;
-   VkImageLayout src_layout;
-   VkImageLayout dst_layout;
-   uint32_t region_count;
-   const VkImageCopy *regions;
-};
-
-struct lvp_cmd_blit_image {
-  struct lvp_image *src;
-  struct lvp_image *dst;
-  VkImageLayout src_layout;
-  VkImageLayout dst_layout;
-  uint32_t region_count;
-  const VkImageBlit *regions;
-  VkFilter filter;
-};
-
-struct lvp_cmd_copy_buffer_to_image {
-   struct lvp_buffer *src;
-   struct lvp_image *dst;
-   VkImageLayout dst_layout;
-   uint32_t region_count;
-   const VkBufferImageCopy *regions;
-};
-
-struct lvp_cmd_copy_image_to_buffer {
-   struct lvp_image *src;
-   struct lvp_buffer *dst;
-   VkImageLayout src_layout;
-   uint32_t region_count;
-   const VkBufferImageCopy *regions;
-};
-
-struct lvp_cmd_update_buffer {
-   struct lvp_buffer *buffer;
-   VkDeviceSize offset;
-   VkDeviceSize data_size;
-   char data[0];
-};
-
-struct lvp_cmd_fill_buffer {
-   struct lvp_buffer *buffer;
-   VkDeviceSize offset;
-   VkDeviceSize fill_size;
-   uint32_t data;
-};
-
-struct lvp_cmd_clear_color_image {
-   struct lvp_image *image;
-   VkImageLayout layout;
-   VkClearColorValue clear_val;
-   uint32_t range_count;
-   VkImageSubresourceRange *ranges;
-};
-
-struct lvp_cmd_clear_ds_image {
-   struct lvp_image *image;
-   VkImageLayout layout;
-   VkClearDepthStencilValue clear_val;
-   uint32_t range_count;
-   VkImageSubresourceRange *ranges;
-};
-
-struct lvp_cmd_clear_attachments {
-   uint32_t attachment_count;
-   VkClearAttachment *attachments;
-   uint32_t rect_count;
-   VkClearRect *rects;
-};
-
-struct lvp_cmd_resolve_image {
-   struct lvp_image *src;
-   struct lvp_image *dst;
-   VkImageLayout src_layout;
-   VkImageLayout dst_layout;
-   uint32_t region_count;
-   VkImageResolve *regions;
-};
-
-struct lvp_cmd_event_set {
-   struct lvp_event *event;
-   bool value;
-   bool flush;
-};
-
-struct lvp_cmd_wait_events {
-   uint32_t event_count;
-   struct lvp_event **events;
-   VkPipelineStageFlags src_stage_mask;
-   VkPipelineStageFlags dst_stage_mask;
-   uint32_t memory_barrier_count;
-   VkMemoryBarrier *memory_barriers;
-   uint32_t buffer_memory_barrier_count;
-   VkBufferMemoryBarrier *buffer_memory_barriers;
-   uint32_t image_memory_barrier_count;
-   VkImageMemoryBarrier *image_memory_barriers;
-};
-
-struct lvp_cmd_pipeline_barrier {
-   VkPipelineStageFlags src_stage_mask;
-   VkPipelineStageFlags dst_stage_mask;
-   bool by_region;
-   uint32_t memory_barrier_count;
-   VkMemoryBarrier *memory_barriers;
-   uint32_t buffer_memory_barrier_count;
-   VkBufferMemoryBarrier *buffer_memory_barriers;
-   uint32_t image_memory_barrier_count;
-   VkImageMemoryBarrier *image_memory_barriers;
-};
-
-struct lvp_cmd_query_cmd {
-   struct lvp_query_pool *pool;
-   uint32_t query;
-   uint32_t index;
-   bool precise;
-   bool flush;
-};
-
-struct lvp_cmd_copy_query_pool_results {
-   struct lvp_query_pool *pool;
-   uint32_t first_query;
-   uint32_t query_count;
-   struct lvp_buffer *dst;
-   VkDeviceSize dst_offset;
-   VkDeviceSize stride;
-   VkQueryResultFlags flags;
-};
-
-struct lvp_cmd_push_constants {
-   VkShaderStageFlags stage;
-   uint32_t offset;
-   uint32_t size;
-   uint32_t val[1];
-};
-
 struct lvp_attachment_state {
    VkImageAspectFlags pending_clear_aspects;
    VkClearValue clear_value;
-};
-
-struct lvp_cmd_begin_render_pass {
-   struct lvp_framebuffer *framebuffer;
-   struct lvp_render_pass *render_pass;
-   VkRect2D render_area;
-   struct lvp_attachment_state *attachments;
-   struct lvp_image_view **imageless_views;
-};
-
-struct lvp_cmd_next_subpass {
-   VkSubpassContents contents;
-};
-
-struct lvp_cmd_execute_commands {
-   uint32_t command_buffer_count;
-   struct lvp_cmd_buffer *cmd_buffers[0];
-};
-
-struct lvp_cmd_draw_indirect_count {
-   VkDeviceSize offset;
-   struct lvp_buffer *buffer;
-   VkDeviceSize count_buffer_offset;
-   struct lvp_buffer *count_buffer;
-   uint32_t max_draw_count;
-   uint32_t stride;
 };
 
 struct lvp_write_descriptor {
@@ -966,176 +674,49 @@ struct lvp_cmd_push_descriptor_set {
    union lvp_descriptor_info *infos;
 };
 
-struct lvp_cmd_bind_transform_feedback_buffers {
-   uint32_t first_binding;
-   uint32_t binding_count;
-   struct lvp_buffer **buffers;
-   VkDeviceSize *offsets;
-   VkDeviceSize *sizes;
-};
-
-struct lvp_cmd_begin_transform_feedback {
-   uint32_t first_counter_buffer;
-   uint32_t counter_buffer_count;
-   struct lvp_buffer **counter_buffers;
-   VkDeviceSize *counter_buffer_offsets;
-};
-
-struct lvp_cmd_end_transform_feedback {
-   uint32_t first_counter_buffer;
-   uint32_t counter_buffer_count;
-   struct lvp_buffer **counter_buffers;
-   VkDeviceSize *counter_buffer_offsets;
-};
-
-struct lvp_cmd_draw_indirect_byte_count {
-   uint32_t instance_count;
-   uint32_t first_instance;
-   struct lvp_buffer *counter_buffer;
-   VkDeviceSize counter_buffer_offset;
-   uint32_t counter_offset;
-   uint32_t vertex_stride;
-};
-
-struct lvp_cmd_begin_conditional_rendering {
-   struct lvp_buffer *buffer;
-   VkDeviceSize offset;
-   bool inverted;
-};
-
-struct lvp_cmd_set_cull_mode {
-   VkCullModeFlags cull_mode;
-};
-
-struct lvp_cmd_set_front_face {
-   VkFrontFace front_face;
-};
-
-struct lvp_cmd_set_primitive_topology {
-   VkPrimitiveTopology prim;
-};
-
-struct lvp_cmd_set_depth_test_enable {
-   VkBool32 depth_test_enable;
-};
-
-struct lvp_cmd_set_depth_write_enable {
-   VkBool32 depth_write_enable;
-};
-
-struct lvp_cmd_set_depth_bounds_test_enable {
-   VkBool32 depth_bounds_test_enable;
-};
-
-struct lvp_cmd_set_depth_compare_op {
-   VkCompareOp depth_op;
-};
-
-struct lvp_cmd_set_stencil_test_enable {
-   VkBool32 stencil_test_enable;
-};
-
-struct lvp_cmd_set_stencil_op {
-   VkStencilFaceFlags face_mask;
-   VkStencilOp fail_op;
-   VkStencilOp pass_op;
-   VkStencilOp depth_fail_op;
-   VkCompareOp compare_op;
-};
-
-struct lvp_cmd_buffer_entry {
-   struct list_head cmd_link;
-   uint32_t cmd_type;
-   union {
-      struct lvp_cmd_bind_pipeline pipeline;
-      struct lvp_cmd_set_viewport set_viewport;
-      struct lvp_cmd_set_scissor set_scissor;
-      struct lvp_cmd_set_line_width set_line_width;
-      struct lvp_cmd_set_depth_bias set_depth_bias;
-      struct lvp_cmd_set_blend_constants set_blend_constants;
-      struct lvp_cmd_set_depth_bounds set_depth_bounds;
-      struct lvp_cmd_set_stencil_vals stencil_vals;
-      struct lvp_cmd_bind_descriptor_sets descriptor_sets;
-      struct lvp_cmd_bind_vertex_buffers vertex_buffers;
-      struct lvp_cmd_bind_index_buffer index_buffer;
-      struct lvp_cmd_draw draw;
-      struct lvp_cmd_draw_indexed draw_indexed;
-      struct lvp_cmd_draw_indirect draw_indirect;
-      struct lvp_cmd_dispatch dispatch;
-      struct lvp_cmd_dispatch_indirect dispatch_indirect;
-      struct lvp_cmd_copy_buffer copy_buffer;
-      struct lvp_cmd_copy_image copy_image;
-      struct lvp_cmd_blit_image blit_image;
-      struct lvp_cmd_copy_buffer_to_image buffer_to_img;
-      struct lvp_cmd_copy_image_to_buffer img_to_buffer;
-      struct lvp_cmd_update_buffer update_buffer;
-      struct lvp_cmd_fill_buffer fill_buffer;
-      struct lvp_cmd_clear_color_image clear_color_image;
-      struct lvp_cmd_clear_ds_image clear_ds_image;
-      struct lvp_cmd_clear_attachments clear_attachments;
-      struct lvp_cmd_resolve_image resolve_image;
-      struct lvp_cmd_event_set event_set;
-      struct lvp_cmd_wait_events wait_events;
-      struct lvp_cmd_pipeline_barrier pipeline_barrier;
-      struct lvp_cmd_query_cmd query;
-      struct lvp_cmd_copy_query_pool_results copy_query_pool_results;
-      struct lvp_cmd_push_constants push_constants;
-      struct lvp_cmd_begin_render_pass begin_render_pass;
-      struct lvp_cmd_next_subpass next_subpass;
-      struct lvp_cmd_execute_commands execute_commands;
-      struct lvp_cmd_draw_indirect_count draw_indirect_count;
-      struct lvp_cmd_push_descriptor_set push_descriptor_set;
-      struct lvp_cmd_bind_transform_feedback_buffers bind_transform_feedback_buffers;
-      struct lvp_cmd_begin_transform_feedback begin_transform_feedback;
-      struct lvp_cmd_end_transform_feedback end_transform_feedback;
-      struct lvp_cmd_draw_indirect_byte_count draw_indirect_byte_count;
-      struct lvp_cmd_begin_conditional_rendering begin_conditional_rendering;
-      struct lvp_cmd_set_cull_mode set_cull_mode;
-      struct lvp_cmd_set_front_face set_front_face;
-      struct lvp_cmd_set_primitive_topology set_primitive_topology;
-      struct lvp_cmd_set_depth_test_enable set_depth_test_enable;
-      struct lvp_cmd_set_depth_write_enable set_depth_write_enable;
-      struct lvp_cmd_set_depth_compare_op set_depth_compare_op;
-      struct lvp_cmd_set_depth_bounds_test_enable set_depth_bounds_test_enable;
-      struct lvp_cmd_set_stencil_test_enable set_stencil_test_enable;
-      struct lvp_cmd_set_stencil_op set_stencil_op;
-   } u;
-};
-
 VkResult lvp_execute_cmds(struct lvp_device *device,
                           struct lvp_queue *queue,
-                          struct lvp_fence *fence,
                           struct lvp_cmd_buffer *cmd_buffer);
 
 struct lvp_image *lvp_swapchain_get_image(VkSwapchainKHR swapchain,
 					  uint32_t index);
-enum pipe_format vk_format_to_pipe(VkFormat format);
 
-static inline VkImageAspectFlags
-vk_format_aspects(VkFormat format)
+static inline enum pipe_format
+lvp_vk_format_to_pipe_format(VkFormat format)
 {
-   switch (format) {
-   case VK_FORMAT_UNDEFINED:
-      return 0;
+   /* Some formats cause problems with CTS right now.*/
+   if (format == VK_FORMAT_R4G4B4A4_UNORM_PACK16 ||
+       format == VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT || /* VK_EXT_4444_formats */
+       format == VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT || /* VK_EXT_4444_formats */
+       format == VK_FORMAT_R5G5B5A1_UNORM_PACK16 ||
+       format == VK_FORMAT_R8_SRGB ||
+       format == VK_FORMAT_R8G8_SRGB ||
+       format == VK_FORMAT_R64G64B64A64_SFLOAT ||
+       format == VK_FORMAT_R64_SFLOAT ||
+       format == VK_FORMAT_R64G64_SFLOAT ||
+       format == VK_FORMAT_R64G64B64_SFLOAT ||
+       format == VK_FORMAT_A2R10G10B10_SINT_PACK32 ||
+       format == VK_FORMAT_A2B10G10R10_SINT_PACK32 ||
+       format == VK_FORMAT_G8B8G8R8_422_UNORM ||
+       format == VK_FORMAT_B8G8R8G8_422_UNORM ||
+       format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM ||
+       format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM ||
+       format == VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM ||
+       format == VK_FORMAT_G8_B8R8_2PLANE_422_UNORM ||
+       format == VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM ||
+       format == VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM ||
+       format == VK_FORMAT_G16_B16R16_2PLANE_420_UNORM ||
+       format == VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM ||
+       format == VK_FORMAT_G16_B16R16_2PLANE_422_UNORM ||
+       format == VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM ||
+       format == VK_FORMAT_D16_UNORM_S8_UINT)
+      return PIPE_FORMAT_NONE;
 
-   case VK_FORMAT_S8_UINT:
-      return VK_IMAGE_ASPECT_STENCIL_BIT;
-
-   case VK_FORMAT_D16_UNORM_S8_UINT:
-   case VK_FORMAT_D24_UNORM_S8_UINT:
-   case VK_FORMAT_D32_SFLOAT_S8_UINT:
-      return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-
-   case VK_FORMAT_D16_UNORM:
-   case VK_FORMAT_X8_D24_UNORM_PACK32:
-   case VK_FORMAT_D32_SFLOAT:
-      return VK_IMAGE_ASPECT_DEPTH_BIT;
-
-   default:
-      return VK_IMAGE_ASPECT_COLOR_BIT;
-   }
+   return vk_format_to_pipe_format(format);
 }
 
+void
+queue_thread_noop(void *data, void *gdata, int thread_index);
 #ifdef __cplusplus
 }
 #endif

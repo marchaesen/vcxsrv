@@ -68,9 +68,7 @@ lp_scene_create( struct pipe_context *pipe )
       return NULL;
 
    scene->pipe = pipe;
-
-   scene->data.head =
-      CALLOC_STRUCT(data_block);
+   scene->data.head = &scene->data.first;
 
    (void) mtx_init(&scene->mutex, mtx_plain);
 
@@ -101,8 +99,7 @@ lp_scene_destroy(struct lp_scene *scene)
 {
    lp_fence_reference(&scene->fence, NULL);
    mtx_destroy(&scene->mutex);
-   assert(scene->data.head->next == NULL);
-   FREE(scene->data.head);
+   assert(scene->data.head == &scene->data.first);
    FREE(scene);
 }
 
@@ -129,8 +126,8 @@ lp_scene_is_empty(struct lp_scene *scene )
 
 
 /* Returns true if there has ever been a failed allocation attempt in
- * this scene.  Used in triangle emit to avoid having to check success
- * at each bin.
+ * this scene.  Used in triangle/rectangle emit to avoid having to
+ * check success at each bin.
  */
 boolean
 lp_scene_is_oom(struct lp_scene *scene)
@@ -155,6 +152,44 @@ lp_scene_bin_reset(struct lp_scene *scene, unsigned x, unsigned y)
    }
 }
 
+static void
+init_scene_texture(struct lp_scene_surface *ssurf, struct pipe_surface *psurf)
+{
+   if (!psurf) {
+      ssurf->stride = 0;
+      ssurf->layer_stride = 0;
+      ssurf->sample_stride = 0;
+      ssurf->nr_samples = 0;
+      ssurf->map = NULL;
+      return;
+   }
+
+   if (llvmpipe_resource_is_texture(psurf->texture)) {
+      ssurf->stride = llvmpipe_resource_stride(psurf->texture,
+                                               psurf->u.tex.level);
+      ssurf->layer_stride = llvmpipe_layer_stride(psurf->texture,
+                                                           psurf->u.tex.level);
+      ssurf->sample_stride = llvmpipe_sample_stride(psurf->texture);
+
+      ssurf->map = llvmpipe_resource_map(psurf->texture,
+                                         psurf->u.tex.level,
+                                         psurf->u.tex.first_layer,
+                                         LP_TEX_USAGE_READ_WRITE);
+      ssurf->format_bytes = util_format_get_blocksize(psurf->format);
+      ssurf->nr_samples = util_res_sample_count(psurf->texture);
+   }
+   else {
+      struct llvmpipe_resource *lpr = llvmpipe_resource(psurf->texture);
+      unsigned pixstride = util_format_get_blocksize(psurf->format);
+      ssurf->stride = psurf->texture->width0;
+      ssurf->layer_stride = 0;
+      ssurf->sample_stride = 0;
+      ssurf->nr_samples = 1;
+      ssurf->map = lpr->data;
+      ssurf->map += psurf->u.buf.first_element * pixstride;
+      ssurf->format_bytes = util_format_get_blocksize(psurf->format);
+   }
+}
 
 void
 lp_scene_begin_rasterization(struct lp_scene *scene)
@@ -166,54 +201,12 @@ lp_scene_begin_rasterization(struct lp_scene *scene)
 
    for (i = 0; i < scene->fb.nr_cbufs; i++) {
       struct pipe_surface *cbuf = scene->fb.cbufs[i];
-
-      if (!cbuf) {
-         scene->cbufs[i].stride = 0;
-         scene->cbufs[i].layer_stride = 0;
-         scene->cbufs[i].sample_stride = 0;
-         scene->cbufs[i].nr_samples = 0;
-         scene->cbufs[i].map = NULL;
-         continue;
-      }
-
-      if (llvmpipe_resource_is_texture(cbuf->texture)) {
-         scene->cbufs[i].stride = llvmpipe_resource_stride(cbuf->texture,
-                                                           cbuf->u.tex.level);
-         scene->cbufs[i].layer_stride = llvmpipe_layer_stride(cbuf->texture,
-                                                              cbuf->u.tex.level);
-         scene->cbufs[i].sample_stride = llvmpipe_sample_stride(cbuf->texture);
-
-         scene->cbufs[i].map = llvmpipe_resource_map(cbuf->texture,
-                                                     cbuf->u.tex.level,
-                                                     cbuf->u.tex.first_layer,
-                                                     LP_TEX_USAGE_READ_WRITE);
-         scene->cbufs[i].format_bytes = util_format_get_blocksize(cbuf->format);
-         scene->cbufs[i].nr_samples = util_res_sample_count(cbuf->texture);
-      }
-      else {
-         struct llvmpipe_resource *lpr = llvmpipe_resource(cbuf->texture);
-         unsigned pixstride = util_format_get_blocksize(cbuf->format);
-         scene->cbufs[i].stride = cbuf->texture->width0;
-         scene->cbufs[i].layer_stride = 0;
-         scene->cbufs[i].sample_stride = 0;
-         scene->cbufs[i].nr_samples = 1;
-         scene->cbufs[i].map = lpr->data;
-         scene->cbufs[i].map += cbuf->u.buf.first_element * pixstride;
-         scene->cbufs[i].format_bytes = util_format_get_blocksize(cbuf->format);
-      }
+      init_scene_texture(&scene->cbufs[i], cbuf);
    }
 
    if (fb->zsbuf) {
       struct pipe_surface *zsbuf = scene->fb.zsbuf;
-      scene->zsbuf.stride = llvmpipe_resource_stride(zsbuf->texture, zsbuf->u.tex.level);
-      scene->zsbuf.layer_stride = llvmpipe_layer_stride(zsbuf->texture, zsbuf->u.tex.level);
-      scene->zsbuf.sample_stride = llvmpipe_sample_stride(zsbuf->texture);
-      scene->zsbuf.nr_samples = util_res_sample_count(zsbuf->texture);
-      scene->zsbuf.map = llvmpipe_resource_map(zsbuf->texture,
-                                               zsbuf->u.tex.level,
-                                               zsbuf->u.tex.first_layer,
-                                               LP_TEX_USAGE_READ_WRITE);
-      scene->zsbuf.format_bytes = util_format_get_blocksize(zsbuf->format);
+      init_scene_texture(&scene->zsbuf, zsbuf);
    }
 }
 
@@ -226,7 +219,7 @@ lp_scene_begin_rasterization(struct lp_scene *scene)
 void
 lp_scene_end_rasterization(struct lp_scene *scene )
 {
-   int i, j;
+   int i;
 
    /* Unmap color buffers */
    for (i = 0; i < scene->fb.nr_cbufs; i++) {
@@ -252,19 +245,7 @@ lp_scene_end_rasterization(struct lp_scene *scene )
 
    /* Reset all command lists:
     */
-   for (i = 0; i < scene->tiles_x; i++) {
-      for (j = 0; j < scene->tiles_y; j++) {
-         struct cmd_bin *bin = lp_scene_get_bin(scene, i, j);
-         bin->head = NULL;
-         bin->tail = NULL;
-         bin->last_state = NULL;
-      }
-   }
-
-   /* If there are any bins which weren't cleared by the loop above,
-    * they will be caught (on debug builds at least) by this assert:
-    */
-   assert(lp_scene_is_empty(scene));
+   memset(scene->tile, 0, sizeof scene->tile);
 
    /* Decrement texture ref counts
     */
@@ -282,6 +263,7 @@ lp_scene_end_rasterization(struct lp_scene *scene )
                             ref->resource[i]->height0,
                             llvmpipe_resource_size(ref->resource[i]));
             j++;
+            llvmpipe_resource_unmap(ref->resource[i], 0, 0);
             pipe_resource_reference(&ref->resource[i], NULL);
          }
       }
@@ -313,13 +295,14 @@ lp_scene_end_rasterization(struct lp_scene *scene )
       struct data_block_list *list = &scene->data;
       struct data_block *block, *tmp;
 
-      for (block = list->head->next; block; block = tmp) {
+      for (block = list->head; block; block = tmp) {
          tmp = block->next;
-	 FREE(block);
+         if (block != &list->first)
+            FREE(block);
       }
 
+      list->head = &list->first;
       list->head->next = NULL;
-      list->head->used = 0;
    }
 
    lp_fence_reference(&scene->fence, NULL);
@@ -442,6 +425,12 @@ lp_scene_add_resource_reference(struct lp_scene *scene,
       ref = *last;
       memset(ref, 0, sizeof *ref);
    }
+
+   /* Map resource again to increment the map count. We likely use the
+    * already-mapped pointer in a texture of the jit context, and that pointer
+    * needs to stay mapped during rasterization. This map is unmap'ed when
+    * finalizing scene rasterization. */
+   llvmpipe_resource_map(resource, 0, 0, LP_TEX_USAGE_READ);
 
    /* Append the reference to the reference block.
     */

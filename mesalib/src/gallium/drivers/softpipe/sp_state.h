@@ -176,6 +176,7 @@ softpipe_set_sampler_views(struct pipe_context *pipe,
                            unsigned start,
                            unsigned num,
                            unsigned unbind_num_trailing_slots,
+                           bool take_ownership,
                            struct pipe_sampler_view **views);
 
 

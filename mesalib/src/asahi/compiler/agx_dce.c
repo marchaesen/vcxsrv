@@ -37,6 +37,8 @@ agx_dce(agx_context *ctx)
          agx_foreach_dest(I, d) {
             if (I->dest[d].type == AGX_INDEX_NORMAL)
                needed |= BITSET_TEST(seen, I->dest[d].value);
+            else if (I->dest[d].type != AGX_INDEX_NULL)
+               needed = true;
          }
 
          if (!needed) {

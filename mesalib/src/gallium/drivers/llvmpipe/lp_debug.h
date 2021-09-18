@@ -47,6 +47,11 @@
 #define DEBUG_CS            0x10000
 #define DEBUG_TGSI_IR       0x20000
 #define DEBUG_CACHE_STATS   0x40000
+#define DEBUG_NO_FASTPATH   0x80000
+#define DEBUG_LINEAR        0x100000
+#define DEBUG_LINEAR2       0x200000
+#define DEBUG_SHOW_DEPTH    0x400000
+#define DEBUG_ACCURATE_A0   0x800000 /* verbose */
 
 /* Performance flags.  These are active even on release builds.
  */
@@ -58,6 +63,8 @@
 #define PERF_NO_BLEND       0x20  	/* disable blending */
 #define PERF_NO_DEPTH       0x40  	/* disable depth buffering entirely */
 #define PERF_NO_ALPHATEST   0x80  	/* disable alpha testing */
+#define PERF_NO_RAST_LINEAR 0x100  	/* disable linear rast */
+#define PERF_NO_SHADE       0x200  	/* disable fragment shaders */
 
 
 extern int LP_PERF;

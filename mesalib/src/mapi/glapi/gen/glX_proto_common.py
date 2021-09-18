@@ -24,8 +24,6 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
-from __future__ import print_function
-
 import gl_XML, glX_XML
 
 

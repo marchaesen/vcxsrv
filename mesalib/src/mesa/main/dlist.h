@@ -100,19 +100,14 @@ void GLAPIENTRY
 _mesa_ListBase(GLuint base);
 
 struct gl_display_list *
-_mesa_lookup_list(struct gl_context *ctx, GLuint list);
+_mesa_lookup_list(struct gl_context *ctx, GLuint list, bool locked);
 
 void
 _mesa_compile_error(struct gl_context *ctx, GLenum error, const char *s);
 
 void *
-_mesa_dlist_alloc(struct gl_context *ctx, GLuint opcode, GLuint sz);
-
-void *
-_mesa_dlist_alloc_aligned(struct gl_context *ctx, GLuint opcode, GLuint bytes);
-
-void *
-_mesa_dlist_alloc_vertex_list(struct gl_context *ctx);
+_mesa_dlist_alloc_vertex_list(struct gl_context *ctx,
+                              bool copy_to_current);
 
 void
 _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist);
@@ -129,6 +124,7 @@ _mesa_init_display_list(struct gl_context * ctx);
 
 bool
 _mesa_get_list(struct gl_context *ctx, GLuint list,
-               struct gl_display_list **dlist);
+               struct gl_display_list **dlist,
+               bool locked);
 
 #endif /* DLIST_H */

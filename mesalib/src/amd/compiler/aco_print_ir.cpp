@@ -1,8 +1,32 @@
-#include "aco_ir.h"
-#include "aco_builder.h"
+/*
+ * Copyright © 2018 Valve Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ */
 
-#include "sid.h"
-#include "ac_shader_util.h"
+#include "aco_builder.h"
+#include "aco_ir.h"
+
+#include "common/ac_shader_util.h"
+#include "common/sid.h"
 
 #include <array>
 
@@ -62,36 +86,22 @@ const std::array<const char*, num_reduce_ops> reduce_ops = []()
    return ret;
 }();
 
-static void print_reg_class(const RegClass rc, FILE *output)
+static void
+print_reg_class(const RegClass rc, FILE* output)
 {
-   switch (rc) {
-      case RegClass::s1: fprintf(output, " s1: "); return;
-      case RegClass::s2: fprintf(output, " s2: "); return;
-      case RegClass::s3: fprintf(output, " s3: "); return;
-      case RegClass::s4: fprintf(output, " s4: "); return;
-      case RegClass::s6: fprintf(output, " s6: "); return;
-      case RegClass::s8: fprintf(output, " s8: "); return;
-      case RegClass::s16: fprintf(output, "s16: "); return;
-      case RegClass::v1: fprintf(output, " v1: "); return;
-      case RegClass::v2: fprintf(output, " v2: "); return;
-      case RegClass::v3: fprintf(output, " v3: "); return;
-      case RegClass::v4: fprintf(output, " v4: "); return;
-      case RegClass::v5: fprintf(output, " v5: "); return;
-      case RegClass::v6: fprintf(output, " v6: "); return;
-      case RegClass::v7: fprintf(output, " v7: "); return;
-      case RegClass::v8: fprintf(output, " v8: "); return;
-      case RegClass::v1b: fprintf(output, " v1b: "); return;
-      case RegClass::v2b: fprintf(output, " v2b: "); return;
-      case RegClass::v3b: fprintf(output, " v3b: "); return;
-      case RegClass::v4b: fprintf(output, " v4b: "); return;
-      case RegClass::v6b: fprintf(output, " v6b: "); return;
-      case RegClass::v8b: fprintf(output, " v8b: "); return;
-      case RegClass::v1_linear: fprintf(output, " v1: "); return;
-      case RegClass::v2_linear: fprintf(output, " v2: "); return;
+   if (rc.is_subdword()) {
+      fprintf(output, " v%ub: ", rc.bytes());
+   } else if (rc.type() == RegType::sgpr) {
+      fprintf(output, " s%u: ", rc.size());
+   } else if (rc.is_linear()) {
+      fprintf(output, " lv%u: ", rc.size());
+   } else {
+      fprintf(output, " v%u: ", rc.size());
    }
 }
 
-void print_physReg(PhysReg reg, unsigned bytes, FILE *output, unsigned flags)
+void
+print_physReg(PhysReg reg, unsigned bytes, FILE* output, unsigned flags)
 {
    if (reg == 124) {
       fprintf(output, "m0");
@@ -110,16 +120,17 @@ void print_physReg(PhysReg reg, unsigned bytes, FILE *output, unsigned flags)
       } else {
          fprintf(output, "%c[%d", is_vgpr ? 'v' : 's', r);
          if (size > 1)
-            fprintf(output, "-%d]", r + size -1);
+            fprintf(output, "-%d]", r + size - 1);
          else
             fprintf(output, "]");
       }
       if (reg.byte() || bytes % 4)
-         fprintf(output, "[%d:%d]", reg.byte()*8, (reg.byte()+bytes) * 8);
+         fprintf(output, "[%d:%d]", reg.byte() * 8, (reg.byte() + bytes) * 8);
    }
 }
 
-static void print_constant(uint8_t reg, FILE *output)
+static void
+print_constant(uint8_t reg, FILE* output)
 {
    if (reg >= 128 && reg <= 192) {
       fprintf(output, "%d", reg - 128);
@@ -130,37 +141,20 @@ static void print_constant(uint8_t reg, FILE *output)
    }
 
    switch (reg) {
-   case 240:
-      fprintf(output, "0.5");
-      break;
-   case 241:
-      fprintf(output, "-0.5");
-      break;
-   case 242:
-      fprintf(output, "1.0");
-      break;
-   case 243:
-      fprintf(output, "-1.0");
-      break;
-   case 244:
-      fprintf(output, "2.0");
-      break;
-   case 245:
-      fprintf(output, "-2.0");
-      break;
-   case 246:
-      fprintf(output, "4.0");
-      break;
-   case 247:
-      fprintf(output, "-4.0");
-      break;
-   case 248:
-      fprintf(output, "1/(2*PI)");
-      break;
+   case 240: fprintf(output, "0.5"); break;
+   case 241: fprintf(output, "-0.5"); break;
+   case 242: fprintf(output, "1.0"); break;
+   case 243: fprintf(output, "-1.0"); break;
+   case 244: fprintf(output, "2.0"); break;
+   case 245: fprintf(output, "-2.0"); break;
+   case 246: fprintf(output, "4.0"); break;
+   case 247: fprintf(output, "-4.0"); break;
+   case 248: fprintf(output, "1/(2*PI)"); break;
    }
 }
 
-void aco_print_operand(const Operand *operand, FILE *output, unsigned flags)
+void
+aco_print_operand(const Operand* operand, FILE* output, unsigned flags)
 {
    if (operand->isLiteral() || (operand->isConstant() && operand->bytes() == 1)) {
       if (operand->bytes() == 1)
@@ -192,7 +186,8 @@ void aco_print_operand(const Operand *operand, FILE *output, unsigned flags)
    }
 }
 
-static void print_definition(const Definition *definition, FILE *output, unsigned flags)
+static void
+print_definition(const Definition* definition, FILE* output, unsigned flags)
 {
    if (!(flags & print_no_ssa))
       print_reg_class(definition->regClass(), output);
@@ -211,7 +206,8 @@ static void print_definition(const Definition *definition, FILE *output, unsigne
       print_physReg(definition->physReg(), definition->bytes(), output, flags);
 }
 
-static void print_storage(storage_class storage, FILE *output)
+static void
+print_storage(storage_class storage, FILE* output)
 {
    fprintf(output, " storage:");
    int printed = 0;
@@ -231,7 +227,8 @@ static void print_storage(storage_class storage, FILE *output)
       printed += fprintf(output, "%svgpr_spill", printed ? "," : "");
 }
 
-static void print_semantics(memory_semantics sem, FILE *output)
+static void
+print_semantics(memory_semantics sem, FILE* output)
 {
    fprintf(output, " semantics:");
    int printed = 0;
@@ -251,36 +248,29 @@ static void print_semantics(memory_semantics sem, FILE *output)
       printed += fprintf(output, "%srmw", printed ? "," : "");
 }
 
-static void print_scope(sync_scope scope, FILE *output, const char *prefix="scope")
+static void
+print_scope(sync_scope scope, FILE* output, const char* prefix = "scope")
 {
    fprintf(output, " %s:", prefix);
    switch (scope) {
-   case scope_invocation:
-      fprintf(output, "invocation");
-      break;
-   case scope_subgroup:
-      fprintf(output, "subgroup");
-      break;
-   case scope_workgroup:
-      fprintf(output, "workgroup");
-      break;
-   case scope_queuefamily:
-      fprintf(output, "queuefamily");
-      break;
-   case scope_device:
-      fprintf(output, "device");
-      break;
+   case scope_invocation: fprintf(output, "invocation"); break;
+   case scope_subgroup: fprintf(output, "subgroup"); break;
+   case scope_workgroup: fprintf(output, "workgroup"); break;
+   case scope_queuefamily: fprintf(output, "queuefamily"); break;
+   case scope_device: fprintf(output, "device"); break;
    }
 }
 
-static void print_sync(memory_sync_info sync, FILE *output)
+static void
+print_sync(memory_sync_info sync, FILE* output)
 {
    print_storage(sync.storage, output);
    print_semantics(sync.semantics, output);
    print_scope(sync.scope, output);
 }
 
-static void print_instr_format_specific(const Instruction *instr, FILE *output)
+static void
+print_instr_format_specific(const Instruction* instr, FILE* output)
 {
    switch (instr->format) {
    case Format::SOPK: {
@@ -295,9 +285,12 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
          /* we usually should check the chip class for vmcnt/lgkm, but
           * insert_waitcnt() should fill it in regardless. */
          unsigned vmcnt = (imm & 0xF) | ((imm & (0x3 << 14)) >> 10);
-         if (vmcnt != 63) fprintf(output, " vmcnt(%d)", vmcnt);
-         if (((imm >> 4) & 0x7) < 0x7) fprintf(output, " expcnt(%d)", (imm >> 4) & 0x7);
-         if (((imm >> 8) & 0x3F) < 0x3F) fprintf(output, " lgkmcnt(%d)", (imm >> 8) & 0x3F);
+         if (vmcnt != 63)
+            fprintf(output, " vmcnt(%d)", vmcnt);
+         if (((imm >> 4) & 0x7) < 0x7)
+            fprintf(output, " expcnt(%d)", (imm >> 4) & 0x7);
+         if (((imm >> 8) & 0x3F) < 0x3F)
+            fprintf(output, " lgkmcnt(%d)", (imm >> 8) & 0x3F);
          break;
       }
       case aco_opcode::s_endpgm:
@@ -313,35 +306,21 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
       case aco_opcode::s_sendmsg: {
          unsigned id = imm & sendmsg_id_mask;
          switch (id) {
-         case sendmsg_none:
-            fprintf(output, " sendmsg(MSG_NONE)");
-            break;
+         case sendmsg_none: fprintf(output, " sendmsg(MSG_NONE)"); break;
          case _sendmsg_gs:
-            fprintf(output, " sendmsg(gs%s%s, %u)",
-                    imm & 0x10 ? ", cut" : "", imm & 0x20 ? ", emit" : "", imm >> 8);
+            fprintf(output, " sendmsg(gs%s%s, %u)", imm & 0x10 ? ", cut" : "",
+                    imm & 0x20 ? ", emit" : "", imm >> 8);
             break;
          case _sendmsg_gs_done:
-            fprintf(output, " sendmsg(gs_done%s%s, %u)",
-                    imm & 0x10 ? ", cut" : "", imm & 0x20 ? ", emit" : "", imm >> 8);
+            fprintf(output, " sendmsg(gs_done%s%s, %u)", imm & 0x10 ? ", cut" : "",
+                    imm & 0x20 ? ", emit" : "", imm >> 8);
             break;
-         case sendmsg_save_wave:
-            fprintf(output, " sendmsg(save_wave)");
-            break;
-         case sendmsg_stall_wave_gen:
-            fprintf(output, " sendmsg(stall_wave_gen)");
-            break;
-         case sendmsg_halt_waves:
-            fprintf(output, " sendmsg(halt_waves)");
-            break;
-         case sendmsg_ordered_ps_done:
-            fprintf(output, " sendmsg(ordered_ps_done)");
-            break;
-         case sendmsg_early_prim_dealloc:
-            fprintf(output, " sendmsg(early_prim_dealloc)");
-            break;
-         case sendmsg_gs_alloc_req:
-            fprintf(output, " sendmsg(gs_alloc_req)");
-            break;
+         case sendmsg_save_wave: fprintf(output, " sendmsg(save_wave)"); break;
+         case sendmsg_stall_wave_gen: fprintf(output, " sendmsg(stall_wave_gen)"); break;
+         case sendmsg_halt_waves: fprintf(output, " sendmsg(halt_waves)"); break;
+         case sendmsg_ordered_ps_done: fprintf(output, " sendmsg(ordered_ps_done)"); break;
+         case sendmsg_early_prim_dealloc: fprintf(output, " sendmsg(early_prim_dealloc)"); break;
+         case sendmsg_gs_alloc_req: fprintf(output, " sendmsg(gs_alloc_req)"); break;
          }
          break;
       }
@@ -409,40 +388,21 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
    }
    case Format::MIMG: {
       const MIMG_instruction& mimg = instr->mimg();
-      unsigned identity_dmask = !instr->definitions.empty() ?
-                                (1 << instr->definitions[0].size()) - 1 :
-                                0xf;
+      unsigned identity_dmask =
+         !instr->definitions.empty() ? (1 << instr->definitions[0].size()) - 1 : 0xf;
       if ((mimg.dmask & identity_dmask) != identity_dmask)
-         fprintf(output, " dmask:%s%s%s%s",
-                 mimg.dmask & 0x1 ? "x" : "",
-                 mimg.dmask & 0x2 ? "y" : "",
-                 mimg.dmask & 0x4 ? "z" : "",
+         fprintf(output, " dmask:%s%s%s%s", mimg.dmask & 0x1 ? "x" : "",
+                 mimg.dmask & 0x2 ? "y" : "", mimg.dmask & 0x4 ? "z" : "",
                  mimg.dmask & 0x8 ? "w" : "");
       switch (mimg.dim) {
-      case ac_image_1d:
-         fprintf(output, " 1d");
-         break;
-      case ac_image_2d:
-         fprintf(output, " 2d");
-         break;
-      case ac_image_3d:
-         fprintf(output, " 3d");
-         break;
-      case ac_image_cube:
-         fprintf(output, " cube");
-         break;
-      case ac_image_1darray:
-         fprintf(output, " 1darray");
-         break;
-      case ac_image_2darray:
-         fprintf(output, " 2darray");
-         break;
-      case ac_image_2dmsaa:
-         fprintf(output, " 2dmsaa");
-         break;
-      case ac_image_2darraymsaa:
-         fprintf(output, " 2darraymsaa");
-         break;
+      case ac_image_1d: fprintf(output, " 1d"); break;
+      case ac_image_2d: fprintf(output, " 2d"); break;
+      case ac_image_3d: fprintf(output, " 3d"); break;
+      case ac_image_cube: fprintf(output, " cube"); break;
+      case ac_image_1darray: fprintf(output, " 1darray"); break;
+      case ac_image_2darray: fprintf(output, " 2darray"); break;
+      case ac_image_2dmsaa: fprintf(output, " 2dmsaa"); break;
+      case ac_image_2darraymsaa: fprintf(output, " 2darraymsaa"); break;
       }
       if (mimg.unrm)
          fprintf(output, " unrm");
@@ -471,10 +431,8 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
       const Export_instruction& exp = instr->exp();
       unsigned identity_mask = exp.compressed ? 0x5 : 0xf;
       if ((exp.enabled_mask & identity_mask) != identity_mask)
-         fprintf(output, " en:%c%c%c%c",
-                 exp.enabled_mask & 0x1 ? 'r' : '*',
-                 exp.enabled_mask & 0x2 ? 'g' : '*',
-                 exp.enabled_mask & 0x4 ? 'b' : '*',
+         fprintf(output, " en:%c%c%c%c", exp.enabled_mask & 0x1 ? 'r' : '*',
+                 exp.enabled_mask & 0x2 ? 'g' : '*', exp.enabled_mask & 0x4 ? 'b' : '*',
                  exp.enabled_mask & 0x8 ? 'a' : '*');
       if (exp.compressed)
          fprintf(output, " compr");
@@ -600,15 +558,9 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
    if (instr->isVOP3()) {
       const VOP3_instruction& vop3 = instr->vop3();
       switch (vop3.omod) {
-      case 1:
-         fprintf(output, " *2");
-         break;
-      case 2:
-         fprintf(output, " *4");
-         break;
-      case 3:
-         fprintf(output, " *0.5");
-         break;
+      case 1: fprintf(output, " *2"); break;
+      case 2: fprintf(output, " *4"); break;
+      case 3: fprintf(output, " *0.5"); break;
       }
       if (vop3.clamp)
          fprintf(output, " clamp");
@@ -617,8 +569,7 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
    } else if (instr->isDPP()) {
       const DPP_instruction& dpp = instr->dpp();
       if (dpp.dpp_ctrl <= 0xff) {
-         fprintf(output, " quad_perm:[%d,%d,%d,%d]",
-                 dpp.dpp_ctrl & 0x3, (dpp.dpp_ctrl >> 2) & 0x3,
+         fprintf(output, " quad_perm:[%d,%d,%d,%d]", dpp.dpp_ctrl & 0x3, (dpp.dpp_ctrl >> 2) & 0x3,
                  (dpp.dpp_ctrl >> 4) & 0x3, (dpp.dpp_ctrl >> 6) & 0x3);
       } else if (dpp.dpp_ctrl >= 0x101 && dpp.dpp_ctrl <= 0x10f) {
          fprintf(output, " row_shl:%d", dpp.dpp_ctrl & 0xf);
@@ -654,40 +605,43 @@ static void print_instr_format_specific(const Instruction *instr, FILE *output)
    } else if (instr->isSDWA()) {
       const SDWA_instruction& sdwa = instr->sdwa();
       switch (sdwa.omod) {
-      case 1:
-         fprintf(output, " *2");
-         break;
-      case 2:
-         fprintf(output, " *4");
-         break;
-      case 3:
-         fprintf(output, " *0.5");
-         break;
+      case 1: fprintf(output, " *2"); break;
+      case 2: fprintf(output, " *4"); break;
+      case 3: fprintf(output, " *0.5"); break;
       }
       if (sdwa.clamp)
          fprintf(output, " clamp");
-      switch (sdwa.dst_sel & sdwa_asuint) {
-      case sdwa_udword:
-         break;
-      case sdwa_ubyte0:
-      case sdwa_ubyte1:
-      case sdwa_ubyte2:
-      case sdwa_ubyte3:
-         fprintf(output, " dst_sel:%sbyte%u", sdwa.dst_sel & sdwa_sext ? "s" : "u",
-                 sdwa.dst_sel & sdwa_bytenum);
-         break;
-      case sdwa_uword0:
-      case sdwa_uword1:
-         fprintf(output, " dst_sel:%sword%u", sdwa.dst_sel & sdwa_sext ? "s" : "u",
-                 sdwa.dst_sel & sdwa_wordnum);
-         break;
+      if (!instr->isVOPC()) {
+         char sext = sdwa.dst_sel.sign_extend() ? 's' : 'u';
+         unsigned offset = sdwa.dst_sel.offset();
+         if (instr->definitions[0].isFixed())
+            offset += instr->definitions[0].physReg().byte();
+         switch (sdwa.dst_sel.size()) {
+         case 1: fprintf(output, " dst_sel:%cbyte%u", sext, offset); break;
+         case 2: fprintf(output, " dst_sel:%cword%u", sext, offset >> 1); break;
+         case 4: fprintf(output, " dst_sel:dword"); break;
+         default: break;
+         }
+         if (instr->definitions[0].bytes() < 4)
+            fprintf(output, " dst_preserve");
       }
-      if (sdwa.dst_preserve)
-         fprintf(output, " dst_preserve");
+      for (unsigned i = 0; i < std::min<unsigned>(2, instr->operands.size()); i++) {
+         char sext = sdwa.sel[i].sign_extend() ? 's' : 'u';
+         unsigned offset = sdwa.sel[i].offset();
+         if (instr->operands[i].isFixed())
+            offset += instr->operands[i].physReg().byte();
+         switch (sdwa.sel[i].size()) {
+         case 1: fprintf(output, " src%d_sel:%cbyte%u", i, sext, offset); break;
+         case 2: fprintf(output, " src%d_sel:%cword%u", i, sext, offset >> 1); break;
+         case 4: fprintf(output, " src%d_sel:dword", i); break;
+         default: break;
+         }
+      }
    }
 }
 
-void aco_print_instr(const Instruction *instr, FILE *output, unsigned flags)
+void
+aco_print_instr(const Instruction* instr, FILE* output, unsigned flags)
 {
    if (!instr->definitions.empty()) {
       for (unsigned i = 0; i < instr->definitions.size(); ++i) {
@@ -699,40 +653,34 @@ void aco_print_instr(const Instruction *instr, FILE *output, unsigned flags)
    }
    fprintf(output, "%s", instr_info.name[(int)instr->opcode]);
    if (instr->operands.size()) {
-      bool *const abs = (bool *)alloca(instr->operands.size() * sizeof(bool));
-      bool *const neg = (bool *)alloca(instr->operands.size() * sizeof(bool));
-      bool *const opsel = (bool *)alloca(instr->operands.size() * sizeof(bool));
-      uint8_t *const sel = (uint8_t *)alloca(instr->operands.size() * sizeof(uint8_t));
+      bool* const abs = (bool*)alloca(instr->operands.size() * sizeof(bool));
+      bool* const neg = (bool*)alloca(instr->operands.size() * sizeof(bool));
+      bool* const opsel = (bool*)alloca(instr->operands.size() * sizeof(bool));
+      for (unsigned i = 0; i < instr->operands.size(); ++i) {
+         abs[i] = false;
+         neg[i] = false;
+         opsel[i] = false;
+      }
       if (instr->isVOP3()) {
          const VOP3_instruction& vop3 = instr->vop3();
-         for (unsigned i = 0; i < instr->operands.size(); ++i) {
+         for (unsigned i = 0; i < 3; ++i) {
             abs[i] = vop3.abs[i];
             neg[i] = vop3.neg[i];
             opsel[i] = vop3.opsel & (1 << i);
-            sel[i] = sdwa_udword;
          }
       } else if (instr->isDPP()) {
          const DPP_instruction& dpp = instr->dpp();
-         for (unsigned i = 0; i < instr->operands.size(); ++i) {
-            abs[i] = i < 2 ? dpp.abs[i] : false;
-            neg[i] = i < 2 ? dpp.neg[i] : false;
+         for (unsigned i = 0; i < 2; ++i) {
+            abs[i] = dpp.abs[i];
+            neg[i] = dpp.neg[i];
             opsel[i] = false;
-            sel[i] = sdwa_udword;
          }
       } else if (instr->isSDWA()) {
          const SDWA_instruction& sdwa = instr->sdwa();
-         for (unsigned i = 0; i < instr->operands.size(); ++i) {
-            abs[i] = i < 2 ? sdwa.abs[i] : false;
-            neg[i] = i < 2 ? sdwa.neg[i] : false;
+         for (unsigned i = 0; i < 2; ++i) {
+            abs[i] = sdwa.abs[i];
+            neg[i] = sdwa.neg[i];
             opsel[i] = false;
-            sel[i] = i < 2 ? sdwa.sel[i] : sdwa_udword;
-         }
-      } else {
-         for (unsigned i = 0; i < instr->operands.size(); ++i) {
-            abs[i] = false;
-            neg[i] = false;
-            opsel[i] = false;
-            sel[i] = sdwa_udword;
          }
       }
       for (unsigned i = 0; i < instr->operands.size(); ++i) {
@@ -747,30 +695,16 @@ void aco_print_instr(const Instruction *instr, FILE *output, unsigned flags)
             fprintf(output, "|");
          if (opsel[i])
             fprintf(output, "hi(");
-         else if (sel[i] & sdwa_sext)
-            fprintf(output, "sext(");
          aco_print_operand(&instr->operands[i], output, flags);
-         if (opsel[i] || (sel[i] & sdwa_sext))
+         if (opsel[i])
             fprintf(output, ")");
-         if (!(sel[i] & sdwa_isra)) {
-            if (sel[i] == sdwa_udword || sel[i] == sdwa_sdword) {
-               /* print nothing */
-            } else if (sel[i] & sdwa_isword) {
-               unsigned index = sel[i] & sdwa_wordnum;
-               fprintf(output, "[%u:%u]", index * 16, index * 16 + 15);
-            } else {
-               unsigned index = sel[i] & sdwa_bytenum;
-               fprintf(output, "[%u:%u]", index * 8, index * 8 + 7);
-            }
-         }
          if (abs[i])
             fprintf(output, "|");
 
          if (instr->isVOP3P()) {
             const VOP3P_instruction& vop3 = instr->vop3p();
             if ((vop3.opsel_lo & (1 << i)) || !(vop3.opsel_hi & (1 << i))) {
-               fprintf(output, ".%c%c",
-                       vop3.opsel_lo & (1 << i) ? 'y' : 'x',
+               fprintf(output, ".%c%c", vop3.opsel_lo & (1 << i) ? 'y' : 'x',
                        vop3.opsel_hi & (1 << i) ? 'y' : 'x');
             }
             if (vop3.neg_lo[i] && vop3.neg_hi[i])
@@ -785,7 +719,8 @@ void aco_print_instr(const Instruction *instr, FILE *output, unsigned flags)
    print_instr_format_specific(instr, output);
 }
 
-static void print_block_kind(uint16_t kind, FILE *output)
+static void
+print_block_kind(uint16_t kind, FILE* output)
 {
    if (kind & block_kind_uniform)
       fprintf(output, "uniform, ");
@@ -821,7 +756,8 @@ static void print_block_kind(uint16_t kind, FILE *output)
       fprintf(output, "export_end, ");
 }
 
-static void print_stage(Stage stage, FILE *output)
+static void
+print_stage(Stage stage, FILE* output)
 {
    fprintf(output, "ACO shader stage: ");
 
@@ -865,7 +801,8 @@ static void print_stage(Stage stage, FILE *output)
    fprintf(output, "\n");
 }
 
-void aco_print_block(const Block* block, FILE *output, unsigned flags, const live& live_vars)
+void
+aco_print_block(const Block* block, FILE* output, unsigned flags, const live& live_vars)
 {
    fprintf(output, "BB%d\n", block->index);
    fprintf(output, "/* logical preds: ");
@@ -904,19 +841,16 @@ void aco_print_block(const Block* block, FILE *output, unsigned flags, const liv
    }
 }
 
-void aco_print_program(const Program *program, FILE *output, const live& live_vars, unsigned flags)
+void
+aco_print_program(const Program* program, FILE* output, const live& live_vars, unsigned flags)
 {
    switch (program->progress) {
-   case CompilationProgress::after_isel:
-      fprintf(output, "After Instruction Selection:\n");
-      break;
+   case CompilationProgress::after_isel: fprintf(output, "After Instruction Selection:\n"); break;
    case CompilationProgress::after_spilling:
       fprintf(output, "After Spilling:\n");
       flags |= print_kill;
       break;
-   case CompilationProgress::after_ra:
-      fprintf(output, "After RA:\n");
-      break;
+   case CompilationProgress::after_ra: fprintf(output, "After RA:\n"); break;
    }
 
    print_stage(program->stage, output);
@@ -942,9 +876,10 @@ void aco_print_program(const Program *program, FILE *output, const live& live_va
    fprintf(output, "\n");
 }
 
-void aco_print_program(const Program *program, FILE *output, unsigned flags)
+void
+aco_print_program(const Program* program, FILE* output, unsigned flags)
 {
    aco_print_program(program, output, live(), flags);
 }
 
-}
+} // namespace aco

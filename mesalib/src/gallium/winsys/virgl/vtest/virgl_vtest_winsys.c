@@ -238,6 +238,17 @@ virgl_vtest_winsys_resource_create(struct virgl_winsys *vws,
    struct virgl_hw_res *res;
    static int handle = 1;
    int fd = -1;
+   struct virgl_resource_params params = { .size = size,
+                                           .bind = bind,
+                                           .format = format,
+                                           .flags = 0,
+                                           .nr_samples = nr_samples,
+                                           .width = width,
+                                           .height = height,
+                                           .depth = depth,
+                                           .array_size = array_size,
+                                           .last_level = last_level,
+                                           .target = target };
 
    res = CALLOC_STRUCT(virgl_hw_res);
    if (!res)
@@ -291,7 +302,7 @@ virgl_vtest_winsys_resource_create(struct virgl_winsys *vws,
    }
 
 out:
-   virgl_resource_cache_entry_init(&res->cache_entry, size, bind, format, 0);
+   virgl_resource_cache_entry_init(&res->cache_entry, params);
    res->res_handle = handle++;
    pipe_reference_init(&res->reference, 1);
    p_atomic_set(&res->num_cs_references, 0);
@@ -353,14 +364,24 @@ virgl_vtest_winsys_resource_cache_create(struct virgl_winsys *vws,
    struct virgl_vtest_winsys *vtws = virgl_vtest_winsys(vws);
    struct virgl_hw_res *res;
    struct virgl_resource_cache_entry *entry;
+   struct virgl_resource_params params = { .size = size,
+                                           .bind = bind,
+                                           .format = format,
+                                           .flags = 0,
+                                           .nr_samples = nr_samples,
+                                           .width = width,
+                                           .height = height,
+                                           .depth = depth,
+                                           .array_size = array_size,
+                                           .last_level = last_level,
+                                           .target = target };
 
    if (!can_cache_resource_with_bind(bind))
       goto alloc;
 
    mtx_lock(&vtws->mutex);
 
-   entry = virgl_resource_cache_remove_compatible(&vtws->cache, size,
-                                                  bind, format, 0);
+   entry = virgl_resource_cache_remove_compatible(&vtws->cache, params);
    if (entry) {
       res = cache_entry_container_res(entry);
       mtx_unlock(&vtws->mutex);

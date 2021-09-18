@@ -2099,7 +2099,7 @@ compressed_texture_error_check(struct gl_context *ctx, GLint dimensions,
    /* No compressed formats support borders at this time */
    if (border != 0) {
       reason = "border != 0";
-      error = GL_INVALID_VALUE;
+      error = _mesa_is_desktop_gl(ctx) ? GL_INVALID_OPERATION : GL_INVALID_VALUE;
       goto error;
    }
 
@@ -3132,6 +3132,8 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
 
       _mesa_lock_texture(ctx, texObj);
       {
+         texObj->External = GL_FALSE;
+
          texImage = _mesa_get_tex_image(ctx, texObj, target, level);
 
          if (!texImage) {
@@ -3419,7 +3421,8 @@ egl_image_target_texture(struct gl_context *ctx,
       return;
    }
 
-   if (!image) {
+   if (!image || (ctx->Driver.ValidateEGLImage &&
+                  !ctx->Driver.ValidateEGLImage(ctx, image))) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(image=%p)", caller, image);
       return;
    }
@@ -3438,6 +3441,8 @@ egl_image_target_texture(struct gl_context *ctx,
    } else {
       ctx->Driver.FreeTextureImageBuffer(ctx, texImage);
 
+      texObj->External = GL_TRUE;
+
       if (tex_storage) {
          ctx->Driver.EGLImageTargetTexStorage(ctx, target, texObj, texImage,
                                               image);
@@ -3451,6 +3456,8 @@ egl_image_target_texture(struct gl_context *ctx,
 
    if (tex_storage)
       _mesa_set_texture_view_state(ctx, texObj, target, 1);
+
+   _mesa_update_fbo_texture(ctx, texObj, 0, 0);
 
    _mesa_unlock_texture(ctx, texObj);
 }
@@ -4408,6 +4415,7 @@ copyteximage(struct gl_context *ctx, GLuint dims, struct gl_texture_object *texO
 
    _mesa_lock_texture(ctx, texObj);
    {
+      texObj->External = GL_FALSE;
       texImage = _mesa_get_tex_image(ctx, texObj, target, level);
 
       if (!texImage) {
@@ -5404,9 +5412,26 @@ compressed_subtexture_error_check(struct gl_context *ctx, GLint dims,
    struct gl_texture_image *texImage;
    GLint expectedSize;
 
+   GLenum is_generic_compressed_token =
+      _mesa_generic_compressed_format_to_uncompressed_format(format) !=
+      format;
+
+   /* OpenGL 4.6 and OpenGL ES 3.2 spec:
+    *
+    *   "An INVALID_OPERATION error is generated if format does not match the
+    *    internal format of the texture image being modified, since these commands do
+    *    not provide for image format conversion."
+    *
+    *  Desktop spec has an additional rule for GL_INVALID_ENUM:
+    *
+    *   "An INVALID_ENUM error is generated if format is one of the generic
+    *    compressed internal formats."
+    */
    /* this will catch any invalid compressed format token */
    if (!_mesa_is_compressed_format(ctx, format)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(format)", callerName);
+      GLenum error = _mesa_is_desktop_gl(ctx) && is_generic_compressed_token ?
+         GL_INVALID_ENUM : GL_INVALID_OPERATION;
+      _mesa_error(ctx, error, "%s(format)", callerName);
       return GL_TRUE;
    }
 
@@ -6888,6 +6913,7 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
          }
       }
 
+      texObj->External = GL_FALSE;
       texObj->Immutable |= immutable;
 
       if (immutable) {

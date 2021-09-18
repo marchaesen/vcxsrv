@@ -48,6 +48,7 @@
     <value name="Tiler" value="7"/>
     <value name="Fused" value="8"/>
     <value name="Fragment" value="9"/>
+    <value name="Indexed Vertex" value="10"/>
   </enum>
 
   <enum name="Draw Mode">
@@ -466,6 +467,21 @@
     <field name="Offset" size="32" start="32" type="int"/>
   </struct>
 
+  <struct name="Attribute Vertex ID" align="32">
+    <field name="Type" size="8" start="0" type="Attribute Special" default="Vertex ID"/>
+    <field name="Divisor R" size="5" start="56" type="uint"/>
+    <field name="Divisor P" size="3" start="61" type="uint"/>
+    <field name="Offset" size="32" start="96" type="int"/>
+  </struct>
+
+  <struct name="Attribute Instance ID" align="32">
+    <field name="Type" size="8" start="0" type="Attribute Special" default="Instance ID"/>
+    <field name="Divisor R" size="5" start="56" type="uint"/>
+    <field name="Divisor E" size="1" start="61" type="uint"/>
+    <field name="Divisor P" size="32" start="64" type="uint"/>
+    <field name="Offset" size="32" start="96" type="int"/>
+  </struct>
+
   <struct name="Attribute Buffer" align="32">
     <field name="Special" size="8" start="0" type="Attribute Special"/>
     <field name="Type" size="6" start="0" type="Attribute Type" default="1D"/>
@@ -550,6 +566,17 @@
     <value name="U16" value="5"/>
   </enum>
 
+  <enum name="Message Type">
+    <value name="Disabled" value="0"/>
+    <value name="LD_VAR" value="1"/>
+    <value name="VAR_TEX" value="2"/>
+  </enum>
+
+  <enum name="Message Preload Register Format">
+    <value name="F32" value="0"/>
+    <value name="F16" value="1"/>
+  </enum>
+
   <enum name="Bifrost Blend Mode">
     <value name="Shader" value="0"/>
     <value name="Opaque" value="1"/>
@@ -615,7 +642,9 @@
     <field name="Workgroups X shift" size="6" start="1:10" type="uint"/>
     <field name="Workgroups Y shift" size="6" start="1:16" type="uint"/>
     <field name="Workgroups Z shift" size="6" start="1:22" type="uint"/>
-    <field name="Unknown shift" size="4" start="1:28" type="uint"/>
+    <field name="Thread group split" size="4" start="1:28" type="uint" prefix="MALI_SPLIT">
+      <value name="Min efficient" value="2"/>
+    </field>
   </struct>
 
   <enum name="Point Size Array Format">
@@ -739,8 +768,8 @@
     <field name="Clamp integer coordinates" size="1" start="0:24" type="bool"/>
     <field name="Normalized Coordinates" size="1" start="0:25" type="bool" default="true"/>
     <field name="Clamp integer array indices" size="1" start="0:26" type="bool" default="true"/>
-    <field name="Point sample minify" size="1" start="0:27" type="bool" default="false"/>
-    <field name="Point sample magnify" size="1" start="0:28" type="bool" default="false"/>
+    <field name="Minify nearest" size="1" start="0:27" type="bool" default="false"/>
+    <field name="Magnify nearest" size="1" start="0:28" type="bool" default="false"/>
     <!--- Set for 0.5, clear for 0.0 -->
     <field name="Magnify cutoff" size="1" start="0:29" type="bool" default="false"/>
     <field name="Mipmap Mode" size="2" start="0:30" type="Mipmap Mode" default="Nearest"/>
@@ -918,6 +947,26 @@
     <field name="Depth Pass" size="3" start="25" type="Stencil Op"/>
   </struct>
 
+  <struct name="LD_VAR Preload" size="1" no-direct-packing="true">
+    <field name="Varying Index" size="5" start="4" type="uint"/>
+    <field name="Register Format" size="2" start="9" type="Message Preload Register Format"/>
+    <field name="Num Components" size="2" start="11" type="uint" modifier="minus(1)" default="1"/>
+  </struct>
+
+  <struct name="VAR_TEX Preload" size="1" no-direct-packing="true">
+    <field name="Varying Index" size="3" start="4" type="uint"/>
+    <field name="Sampler Index" size="2" start="7" type="uint"/>
+    <field name="Register Format" size="2" start="9" type="Message Preload Register Format"/>
+    <field name="Skip" size="1" start="14" type="bool"/>
+    <field name="Zero LOD" size="1" start="15" type="bool"/>
+  </struct>
+
+  <struct name="Message Preload" size="1">
+    <field name="Type" size="4" start="0" type="Message Type"/>
+    <field name="LD_VAR" size="16" start="0" type="LD_VAR Preload"/>
+    <field name="VAR_TEX" size="16" start="0" type="VAR_TEX Preload"/>
+  </struct>
+
   <struct name="Renderer State" align="64">
     <field name="Shader" size="128" start="0:0" type="Shader"/>
     <field name="Properties" size="32" start="4:0" type="Renderer Properties"/>
@@ -934,6 +983,12 @@
     <field name="SFBD Blend Shader" size="64" start="14:0" type="address"/>
     <field name="SFBD Blend Equation" size="32" start="14:0" type="Blend Equation"/>
     <field name="SFBD Blend Constant" size="32" start="15:0" type="float"/>
+    <!-- New in v6, only without message preloading -->
+    <field name="Secondary preload" size="32" start="13:0" type="Preload"/>
+    <field name="Secondary shader" size="64" start="13:0" type="address"/>
+    <!-- New in v7, only with a single shader (XXX: type Message Preload) -->
+    <field name="Message Preload 1" size="16" start="15:0" type="uint"/>
+    <field name="Message Preload 2" size="16" start="15:16" type="uint"/>
   </struct>
 
   <struct name="Uniform Buffer" align="8">
@@ -957,7 +1012,7 @@
   <struct name="Local Storage" size="8" align="64">
     <field name="TLS Size" size="5" start="0:0" type="uint"/>
     <field name="TLS Initial Stack Pointer Offset" size="27" start="0:5" type="uint"/>
-    <field name="WLS Instances" size="5" start="1:0" type="uint" modifier="log2" prefix="MALI_LOCAL_STORAGE">
+    <field name="WLS Instances" size="5" start="1:0" type="uint" modifier="log2" prefix="MALI_LOCAL_STORAGE" default="MALI_LOCAL_STORAGE_NO_WORKGROUP_MEM">
       <value name="No Workgroup Mem" value="0x80000000"/>
     </field>
     <field name="WLS Size Base" size="2" start="1:5" type="uint"/>
@@ -1354,6 +1409,11 @@
   <struct name="Render Target Bifrost AFBC Overlay" size="16">
     <field name="AFBC Split Block Enable" size="1" start="7:18" type="bool"/>
     <field name="AFBC Wide Block Enable" size="1" start="7:19" type="bool"/>
+
+    <!-- Flag in v7 to effectively disable AFBC as a race condition workaround
+    when in-place rendering is used with the AFBC block size differing
+    from the effective tile size (XXX: does v6 need a different workaround?) -->
+    <field name="Reverse Issue Order" size="1" start="7:20" type="bool"/>
   </struct>
 
   <struct name="RT Clear">
@@ -1469,7 +1529,7 @@
     <section name="Bifrost Padding" offset="64" type="Bifrost Framebuffer Padding"/>
   </aggregate>
 
-  <struct name="Job Header">
+  <struct name="Job Header" align="64">
     <field name="Exception Status" size="32" start="0:0" type="uint"/>
     <field name="First Incomplete Task" size="32" start="1:0" type="uint"/>
     <field name="Fault Pointer" size="64" start="2:0" type="address"/>
@@ -1519,9 +1579,26 @@
     <field name="Immediate Value" size="64" start="4:0" type="uint"/>
   </struct>
 
-  <aggregate name="Write Value Job">
+  <struct name="Cache Flush Job Payload" size="2">
+    <field name="Clean Shader Core LS" size="1" start="0:0" type="bool"/>
+    <field name="Invalidate Shader Core LS" size="1" start="0:1" type="bool"/>
+    <field name="Invalidate Shader Core Other" size="1" start="0:2" type="bool"/>
+    <field name="Job Manager Clean" size="1" start="0:16" type="bool"/>
+    <field name="Job Manager Invalidate" size="1" start="0:17" type="bool"/>
+    <field name="Tiler Clean" size="1" start="0:24" type="bool"/>
+    <field name="Tiler Invalidate" size="1" start="0:25" type="bool"/>
+    <field name="L2 Clean" size="1" start="1:0" type="bool"/>
+    <field name="L2 Invalidate" size="1" start="1:1" type="bool"/>
+  </struct>
+
+  <aggregate name="Write Value Job" align="64">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Payload" offset="32" type="Write Value Job Payload"/>
+  </aggregate>
+
+  <aggregate name="Cache Flush Job" align="64">
+    <section name="Header" offset="0" type="Job Header"/>
+    <section name="Payload" offset="32" type="Cache Flush Job Payload"/>
   </aggregate>
 
   <struct name="Compute Job Parameters" size="6">
@@ -1562,5 +1639,18 @@
     <section name="Padding" offset="80" type="Bifrost Tiler Job Padding"/>
     <section name="Draw" offset="128" type="Draw"/>
     <section name="Draw Padding" offset="248" type="Draw Padding"/>
+  </aggregate>
+
+  <aggregate name="Bifrost Indexed Vertex Job" size="384" align="64">
+    <section name="Header" offset="0" type="Job Header"/>
+    <section name="Invocation" offset="32" type="Invocation"/>
+    <section name="Primitive" offset="40" type="Primitive"/>
+    <section name="Primitive Size" offset="64" type="Primitive Size"/>
+    <section name="Tiler" offset="72" type="Bifrost Tiler Pointer"/>
+    <section name="Padding" offset="80" type="Bifrost Tiler Job Padding"/>
+    <section name="Fragment Draw" offset="128" type="Draw"/>
+    <section name="Fragment Draw Padding" offset="248" type="Draw Padding"/>
+    <section name="Vertex Draw" offset="256" type="Draw"/>
+    <section name="Vertex Draw Padding" offset="376" type="Draw Padding"/>
   </aggregate>
 </panxml>

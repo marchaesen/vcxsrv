@@ -52,15 +52,16 @@ enum fd_pipe_id {
 enum fd_param_id {
    FD_DEVICE_ID,
    FD_GMEM_SIZE,
-   FD_GMEM_BASE,
+   FD_GMEM_BASE,     /* 64b */
    FD_GPU_ID,
-   FD_CHIP_ID,
+   FD_CHIP_ID,       /* 64b */
    FD_MAX_FREQ,
    FD_TIMESTAMP,
    FD_NR_RINGS,      /* # of rings == # of distinct priority levels */
    FD_PP_PGTABLE,    /* are per-process pagetables used for the pipe/ctx */
    FD_CTX_FAULTS,    /* # of per context faults */
    FD_GLOBAL_FAULTS, /* # of global (all context) faults */
+   FD_SUSPEND_COUNT, /* # of times the GPU has suspended, and potentially lost state */
 };
 
 /**
@@ -96,9 +97,10 @@ struct fd_fence {
 };
 
 /* bo flags: */
-#define FD_BO_GPUREADONLY  BITSET_BIT(1)
-#define FD_BO_SCANOUT      BITSET_BIT(2)
-/* Default caching is WRITECOMBINE, we can add new bo flags later for cached/etc */
+#define FD_BO_GPUREADONLY         BITSET_BIT(1)
+#define FD_BO_SCANOUT             BITSET_BIT(2)
+#define FD_BO_CACHED_COHERENT     BITSET_BIT(3)
+/* Default caching is WRITECOMBINE */
 
 /* bo access flags: (keep aligned to MSM_PREP_x) */
 #define FD_BO_PREP_READ   BITSET_BIT(0)
@@ -127,6 +129,8 @@ enum fd_version {
    FD_VERSION_SOFTPIN = 4,             /* adds softpin, bo name, and dump flag */
    FD_VERSION_ROBUSTNESS = 5,          /* adds FD_NR_FAULTS and FD_PP_PGTABLE */
    FD_VERSION_MEMORY_FD = 2,           /* supports shared memory objects */
+   FD_VERSION_SUSPENDS = 7,            /* Adds MSM_PARAM_SUSPENDS to detect device suspend */
+   FD_VERSION_CACHED_COHERENT = 8,     /* Adds cached-coherent support (a6xx+) */
 };
 enum fd_version fd_device_version(struct fd_device *dev);
 
@@ -142,6 +146,7 @@ struct fd_pipe *fd_pipe_ref(struct fd_pipe *pipe);
 struct fd_pipe *fd_pipe_ref_locked(struct fd_pipe *pipe);
 void fd_pipe_del(struct fd_pipe *pipe);
 void fd_pipe_purge(struct fd_pipe *pipe);
+const struct fd_dev_id * fd_pipe_dev_id(struct fd_pipe *pipe);
 int fd_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
                       uint64_t *value);
 int fd_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence);
@@ -199,11 +204,13 @@ struct fd_bo *fd_bo_ref(struct fd_bo *bo);
 void fd_bo_del(struct fd_bo *bo);
 int fd_bo_get_name(struct fd_bo *bo, uint32_t *name);
 uint32_t fd_bo_handle(struct fd_bo *bo);
+uint32_t fd_bo_id(struct fd_bo *bo);
 int fd_bo_dmabuf(struct fd_bo *bo);
 uint32_t fd_bo_size(struct fd_bo *bo);
 void *fd_bo_map(struct fd_bo *bo);
 int fd_bo_cpu_prep(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);
 void fd_bo_cpu_fini(struct fd_bo *bo);
+bool fd_bo_is_cached(struct fd_bo *bo);
 
 #ifdef __cplusplus
 } /* end of extern "C" */

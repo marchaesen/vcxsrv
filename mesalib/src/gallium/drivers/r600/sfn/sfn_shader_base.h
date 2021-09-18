@@ -93,6 +93,7 @@ public:
    void get_array_info(r600_shader& shader) const;
 
    virtual bool scan_inputs_read(const nir_shader *sh);
+   void set_shader_info(const nir_shader *sh);
 
 protected:
 
@@ -122,6 +123,8 @@ protected:
                              bool as_last = true);
 
    void inc_atomic_file_count();
+
+   virtual void do_set_shader_info(const nir_shader *sh);
 
    enum ESlots {
       es_face,

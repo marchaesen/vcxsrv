@@ -50,13 +50,30 @@ enum cpu_family {
    CPU_AMD_ZEN1_ZEN2,
    CPU_AMD_ZEN_HYGON,
    CPU_AMD_ZEN3,
+   CPU_AMD_ZEN_NEXT,
    CPU_AMD_LAST,
 };
 
 typedef uint32_t util_affinity_mask[UTIL_MAX_CPUS / 32];
 
 struct util_cpu_caps_t {
-   int nr_cpus;
+   /**
+    * Number of CPUs available to the process.
+    *
+    * This will be less than or equal to \c max_cpus.  This is the number of
+    * CPUs that are online and available to the process.
+    */
+   int16_t nr_cpus;
+
+   /**
+    * Maximum number of CPUs that can be online in the system.
+    *
+    * This will be greater than or equal to \c nr_cpus.  This is the number of
+    * CPUs installed in the system.  \c nr_cpus will be less if some CPUs are
+    * offline.
+    */
+   int16_t max_cpus;
+
    enum cpu_family family;
 
    /* Feature flags */
@@ -85,6 +102,7 @@ struct util_cpu_caps_t {
    unsigned has_vsx:1;
    unsigned has_daz:1;
    unsigned has_neon:1;
+   unsigned has_msa:1;
 
    unsigned has_avx512f:1;
    unsigned has_avx512dq:1;

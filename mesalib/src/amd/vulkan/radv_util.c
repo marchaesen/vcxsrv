@@ -72,18 +72,6 @@ radv_logi_v(const char *format, va_list va)
    fprintf(stderr, "\n");
 }
 
-void radv_printflike(3, 4) __radv_finishme(const char *file, int line, const char *format, ...)
-{
-   va_list ap;
-   char buffer[256];
-
-   va_start(ap, format);
-   vsnprintf(buffer, sizeof(buffer), format, ap);
-   va_end(ap);
-
-   fprintf(stderr, "%s:%d: FINISHME: %s\n", file, line, buffer);
-}
-
 VkResult
 __vk_errorv(struct radv_instance *instance, const void *object, VkDebugReportObjectTypeEXT type,
             VkResult error, const char *file, int line, const char *format, va_list ap)

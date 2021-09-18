@@ -15,6 +15,10 @@ fi
 
 dest=include/android_stub
 
+# Persist the frozen Android N system/window.h for backward compatibility
+
+cp -av ${dest}/system/window.h platform-system-core/libsystem/include/system
+
 rm -rf ${dest}
 mkdir ${dest}
 
@@ -28,7 +32,6 @@ cp -av platform-frameworks-native/libs/nativewindow/include/vndk        \
     platform-system-core/libsystem/include/system                       \
     platform-system-core/liblog/include/log                             \
     platform-frameworks-native/libs/nativewindow/include/apex           \
-    platform-frameworks-native/libs/nativewindow/include/system         \
     platform-frameworks-native/libs/nativebase/include/nativebase       \
     ${dest}
 

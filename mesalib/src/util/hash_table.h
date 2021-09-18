@@ -73,6 +73,9 @@ _mesa_hash_table_init(struct hash_table *ht,
                                                   const void *b));
 
 struct hash_table *
+_mesa_hash_table_create_u32_keys(void *mem_ctx);
+
+struct hash_table *
 _mesa_hash_table_clone(struct hash_table *src, void *dst_mem_ctx);
 void _mesa_hash_table_destroy(struct hash_table *ht,
                               void (*delete_function)(struct hash_entry *entry));

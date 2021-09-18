@@ -231,10 +231,10 @@ util_probe_rect_rgba_multi(struct pipe_context *ctx, struct pipe_resource *tex,
    unsigned x,y,e,c;
    bool pass = true;
 
-   map = pipe_transfer_map(ctx, tex, 0, 0, PIPE_MAP_READ,
+   map = pipe_texture_map(ctx, tex, 0, 0, PIPE_MAP_READ,
                            offx, offy, w, h, &transfer);
    pipe_get_tile_rgba(transfer, map, 0, 0, w, h, tex->format, pixels);
-   pipe_transfer_unmap(ctx, transfer);
+   pipe_texture_unmap(ctx, transfer);
 
    for (e = 0; e < num_expected_colors; e++) {
       for (y = 0; y < h; y++) {
@@ -392,7 +392,7 @@ null_sampler_view(struct pipe_context *ctx, unsigned tgsi_tex_target)
                               PIPE_FORMAT_R8G8B8A8_UNORM, 0);
    util_set_common_states_and_clear(cso, ctx, cb);
 
-   ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 0, 1, NULL);
+   ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 0, 1, false, NULL);
 
    /* Fragment shader. */
    fs = util_make_fragment_tex_shader(ctx, tgsi_tex_target,
@@ -447,7 +447,7 @@ util_test_constant_buffer(struct pipe_context *ctx,
             "MOV OUT[0], CONST[0][0]\n"
             "END\n";
       struct tgsi_token tokens[1000];
-      struct pipe_shader_state state;
+      struct pipe_shader_state state = {0};
 
       if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
          puts("Can't compile a fragment shader.");
@@ -706,7 +706,7 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
       templ.swizzle_b = PIPE_SWIZZLE_Z;
       templ.swizzle_a = PIPE_SWIZZLE_W;
       view = ctx->create_sampler_view(ctx, cb, &templ);
-      ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 1, 0, &view);
+      ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 1, 0, false, &view);
 
       /* Fragment shader. */
       if (num_samples > 1) {
@@ -743,7 +743,7 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
    }
 
    struct tgsi_token tokens[1000];
-   struct pipe_shader_state state;
+   struct pipe_shader_state state = {0};
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       assert(0);

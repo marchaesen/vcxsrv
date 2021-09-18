@@ -3,7 +3,31 @@
 ; Version: 01000001
 
         [01000001]  ; nop
-        [01000060]  ; nop
+        [01000078]  ; nop
+        mov $01, 0x0830	; CP_SQE_INSTR_BASE
+        mov $02, 0x0002
+        cwrite $01, [$00 + @REG_READ_ADDR], 0x0
+        cwrite $02, [$00 + @REG_READ_DWORDS], 0x0
+        mov $01, $regdata
+        mov $02, $regdata
+        add $01, $01, 0x0004
+        addhi $02, $02, 0x0000
+        mov $03, 0x0001
+        cwrite $01, [$00 + @MEM_READ_ADDR], 0x0
+        cwrite $02, [$00 + @MEM_READ_ADDR+0x1], 0x0
+        cwrite $03, [$00 + @MEM_READ_DWORDS], 0x0
+        rot $04, $memdata, 0x0008
+        ushr $04, $04, 0x0006
+        sub $04, $04, 0x0004
+        add $01, $01, $04
+        addhi $02, $02, 0x0000
+        mov $rem, 0x0080
+        cwrite $01, [$00 + @MEM_READ_ADDR], 0x0
+        cwrite $02, [$00 + @MEM_READ_ADDR+0x1], 0x0
+        cwrite $02, [$00 + @LOAD_STORE_HI], 0x0
+        cwrite $rem, [$00 + @MEM_READ_DWORDS], 0x0
+        cwrite $00, [$00 + @PACKET_TABLE_WRITE_ADDR], 0x0
+        (rep)cwrite $memdata, [$00 + @PACKET_TABLE_WRITE], 0x0
         mov $02, 0x0883	; CP_SCRATCH[0].REG
         mov $03, 0xbeef
         mov $04, 0xdead << 16
@@ -19,10 +43,10 @@ CP_ME_INIT:
         mov $01, $data
 
 CP_MEM_WRITE:
-        mov $addr, 0x00a0 << 24
+        mov $addr, 0x00a0 << 24	; |NRT_ADDR
         mov $02, 0x0004
         (xmov1)add $data, $02, $data
-        mov $addr, 0xa204 << 16
+        mov $addr, 0xa204 << 16	; |NRT_DATA
         (rep)(xmov3)mov $data, $data
         waitin
         mov $01, $data
@@ -53,24 +77,24 @@ fxn00:
 
 CP_REG_RMW:
         cwrite $data, [$00 + @REG_READ_ADDR], 0x0
-        add $02, $addr2, 0x0042
-        addhi $03, $00, $addr2
-        sub $02, $02, $addr2
+        add $02, $regdata, 0x0042
+        addhi $03, $00, $regdata
+        sub $02, $02, $regdata
         call #fxn00
-        subhi $03, $03, $addr2
-        and $02, $02, $addr2
+        subhi $03, $03, $regdata
+        and $02, $02, $regdata
         or $02, $02, 0x0001
         xor $02, $02, 0x0001
         not $02, $02
-        shl $02, $02, $addr2
-        ushr $02, $02, $addr2
-        ishr $02, $02, $addr2
-        rot $02, $02, $addr2
-        min $02, $02, $addr2
-        max $02, $02, $addr2
-        mul8 $02, $02, $addr2
+        shl $02, $02, $regdata
+        ushr $02, $02, $regdata
+        ishr $02, $02, $regdata
+        rot $02, $02, $regdata
+        min $02, $02, $regdata
+        max $02, $02, $regdata
+        mul8 $02, $02, $regdata
         msb $02, $02
-        mov $addr2, $data
+        mov $usraddr, $data
         mov $data, $02
         waitin
         mov $01, $data
@@ -97,7 +121,7 @@ CP_MEM_TO_MEM:
         cwrite $data, [$00 + @LOAD_STORE_HI], 0x0
         mov $rem, $data
         cwrite $rem, [$00 + @MEM_READ_DWORDS], 0x0
-        (rep)store $addr, [$02 + 0x004], 0x4
+        (rep)store $memdata, [$02 + 0x004], 0x4
         waitin
         mov $01, $data
 
@@ -189,8 +213,8 @@ CP_SET_DRAW_INIT_FLAGS:
 CP_SCRATCH_TO_REG:
 CP_DRAW_PRED_SET:
 CP_MEM_WRITE_CNTR:
-UNKN80:
-CP_SET_BIN_SELECT:
+CP_START_BIN:
+CP_END_BIN:
 CP_WAIT_REG_EQ:
 CP_SMMU_TABLE_UPDATE:
 UNKN84:
@@ -236,3 +260,131 @@ UNKN126:
 UNKN127:
         waitin
         mov $01, $data
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [0000006b]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [0000003f]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000025]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000022]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [0000002c]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000030]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000062]  ; nop
+        [00000076]  ; nop
+        [00000055]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop
+        [00000076]  ; nop

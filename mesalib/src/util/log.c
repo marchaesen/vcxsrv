@@ -29,8 +29,11 @@
 #include <stdio.h>
 #endif
 
+#include <stdlib.h>
+#include <string.h>
 #include "util/detect_os.h"
 #include "util/log.h"
+#include "util/ralloc.h"
 
 #ifdef ANDROID
 static inline android_LogPriority
@@ -89,4 +92,69 @@ mesa_log_v(enum mesa_log_level level, const char *tag, const char *format,
    funlockfile(stderr);
 #endif
 #endif
+}
+
+struct log_stream *
+_mesa_log_stream_create(enum mesa_log_level level, char *tag)
+{
+   struct log_stream *stream = ralloc(NULL, struct log_stream);
+   stream->level = level;
+   stream->tag = tag;
+   stream->msg = ralloc_strdup(stream, "");
+   stream->pos = 0;
+   return stream;
+}
+
+void
+mesa_log_stream_destroy(struct log_stream *stream)
+{
+   /* If you left trailing stuff in the log stream, flush it out as a line. */
+   if (stream->pos != 0)
+      mesa_log(stream->level, stream->tag, "%s", stream->msg);
+
+   ralloc_free(stream);
+}
+
+static void
+mesa_log_stream_flush(struct log_stream *stream, size_t scan_offset)
+{
+   char *end;
+   char *next = stream->msg;
+   while ((end = strchr(stream->msg + scan_offset, '\n'))) {
+      *end = 0;
+      mesa_log(stream->level, stream->tag, "%s", next);
+      next = end + 1;
+      scan_offset = next - stream->msg;
+   }
+   if (next != stream->msg) {
+      /* Clear out the lines we printed and move any trailing chars to the start. */
+      size_t remaining = stream->msg + stream->pos - next;
+      memmove(stream->msg, next, remaining);
+      stream->pos = remaining;
+   }
+}
+
+void mesa_log_stream_printf(struct log_stream *stream, const char *format, ...)
+{
+   size_t old_pos = stream->pos;
+
+   va_list va;
+   va_start(va, format);
+   ralloc_vasprintf_rewrite_tail(&stream->msg, &stream->pos, format, va);
+   va_end(va);
+
+   mesa_log_stream_flush(stream, old_pos);
+}
+
+void
+_mesa_log_multiline(enum mesa_log_level level, const char *tag, const char *lines)
+{
+   struct log_stream tmp = {
+      .level = level,
+      .tag = tag,
+      .msg = strdup(lines),
+      .pos = strlen(lines),
+   };
+   mesa_log_stream_flush(&tmp, 0);
+   free(tmp.msg);
 }

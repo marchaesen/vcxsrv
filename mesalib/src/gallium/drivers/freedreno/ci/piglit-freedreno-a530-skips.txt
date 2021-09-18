@@ -1,5 +1,6 @@
 # Intermittent timeouts
 spec@ext_texture_lod_bias@lodbias
+spec@!opengl 1.0@gl-1.0-blend-func
 
 # Skip over a bunch of extensions since we don't have extension fast skipping yet.
 spec@glsl-1.50
@@ -28,3 +29,14 @@ spec@!opengl 2.0@tex3d-npot
 # depending on what else was running at the time:
 spec@arb_texture_cube_map_array@texsubimage cube_map_array
 spec@arb_pixel_buffer_object@texsubimage cube_map_array pbo
+
+# Causes faults that need the HUPCF fix to actually work to avoid killing the
+# run.
+spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9
+
+# If we let these tests run in parallel with other piglit tests, we end up
+# intermittent GL_OUT_OF_MEMORY errors in innocent tests.
+arb_texture_buffer_object@max-size
+fbo-maxsize
+max-texture-size
+copypixels-draw-sync

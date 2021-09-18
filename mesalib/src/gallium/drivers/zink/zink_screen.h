@@ -26,28 +26,52 @@
 
 #include "zink_device_info.h"
 #include "zink_instance.h"
+#include "vk_dispatch_table.h"
 
+#include "util/u_idalloc.h"
 #include "pipe/p_screen.h"
 #include "util/slab.h"
 #include "compiler/nir/nir.h"
 #include "util/disk_cache.h"
 #include "util/log.h"
 #include "util/simple_mtx.h"
-
+#include "util/u_queue.h"
+#include "util/u_live_shader_cache.h"
+#include "pipebuffer/pb_cache.h"
+#include "pipebuffer/pb_slab.h"
 #include <vulkan/vulkan.h>
-
-#if defined(__APPLE__)
-// Source of MVK_VERSION
-#include "MoltenVK/vk_mvk_moltenvk.h"
-#endif
 
 extern uint32_t zink_debug;
 struct hash_table;
+
+struct zink_batch_state;
+struct zink_context;
+struct zink_descriptor_layout_key;
+struct zink_program;
+struct zink_shader;
+enum zink_descriptor_type;
+
+/* this is the spec minimum */
+#define ZINK_SPARSE_BUFFER_PAGE_SIZE (64 * 1024)
 
 #define ZINK_DEBUG_NIR 0x1
 #define ZINK_DEBUG_SPIRV 0x2
 #define ZINK_DEBUG_TGSI 0x4
 #define ZINK_DEBUG_VALIDATION 0x8
+
+#define NUM_SLAB_ALLOCATORS 3
+
+enum zink_descriptor_mode {
+   ZINK_DESCRIPTOR_MODE_AUTO,
+   ZINK_DESCRIPTOR_MODE_LAZY,
+   ZINK_DESCRIPTOR_MODE_NOFALLBACK,
+   ZINK_DESCRIPTOR_MODE_NOTEMPLATES,
+};
+
+struct zink_modifier_prop {
+    uint32_t                             drmFormatModifierCount;
+    VkDrmFormatModifierPropertiesEXT*    pDrmFormatModifierProperties;
+};
 
 struct zink_screen {
    struct pipe_screen base;
@@ -56,36 +80,45 @@ struct zink_screen {
    uint32_t last_finished; //this is racy but ultimately doesn't matter
    VkSemaphore sem;
    VkSemaphore prev_sem;
+   struct util_queue flush_queue;
+
+   unsigned buffer_rebind_counter;
 
    bool device_lost;
    struct sw_winsys *winsys;
+   int drm_fd;
 
    struct hash_table framebuffer_cache;
    simple_mtx_t framebuffer_mtx;
-   struct hash_table surface_cache;
-   simple_mtx_t surface_mtx;
-   struct hash_table bufferview_cache;
-   simple_mtx_t bufferview_mtx;
 
    struct slab_parent_pool transfer_pool;
-   VkPipelineCache pipeline_cache;
-   size_t pipeline_cache_size;
    struct disk_cache *disk_cache;
-   cache_key disk_cache_key;
+   struct util_queue cache_put_thread;
+   struct util_queue cache_get_thread;
 
-   simple_mtx_t mem_cache_mtx;
-   struct hash_table *resource_mem_cache;
+   struct util_live_shader_cache shaders;
 
-   unsigned shader_id;
+   struct {
+      struct pb_cache bo_cache;
+      struct pb_slabs bo_slabs[NUM_SLAB_ALLOCATORS];
+      unsigned min_alloc_size;
+      struct hash_table *bo_export_table;
+      simple_mtx_t bo_export_table_lock;
+      uint32_t next_bo_unique_id;
+   } pb;
+   uint8_t heap_map[VK_MAX_MEMORY_TYPES];
+   bool resizable_bar;
 
    uint64_t total_video_mem;
+   uint64_t clamp_video_mem;
    uint64_t total_mem;
 
    VkInstance instance;
    struct zink_instance_info instance_info;
 
    VkPhysicalDevice pdev;
-   uint32_t vk_version;
+   uint32_t vk_version, spirv_version;
+   struct util_idalloc_mt buffer_ids;
 
    struct zink_device_info info;
    struct nir_shader_compiler_options nir_options;
@@ -98,6 +131,8 @@ struct zink_screen {
    uint32_t max_queues;
    uint32_t timestamp_valid_bits;
    VkDevice dev;
+   VkQueue queue; //gfx+compute
+   VkQueue thread_queue; //gfx+compute
    VkDebugUtilsMessengerEXT debugUtilsCallbackHandle;
 
    uint32_t cur_custom_border_color_samplers;
@@ -105,66 +140,35 @@ struct zink_screen {
    bool needs_mesa_wsi;
    bool needs_mesa_flush_wsi;
 
-   PFN_vkGetPhysicalDeviceFeatures2 vk_GetPhysicalDeviceFeatures2;
-   PFN_vkGetPhysicalDeviceProperties2 vk_GetPhysicalDeviceProperties2;
-   PFN_vkGetPhysicalDeviceFormatProperties2 vk_GetPhysicalDeviceFormatProperties2;
-   PFN_vkGetPhysicalDeviceImageFormatProperties2 vk_GetPhysicalDeviceImageFormatProperties2;
-   PFN_vkGetPhysicalDeviceMemoryProperties2 vk_GetPhysicalDeviceMemoryProperties2;
+   struct vk_dispatch_table vk;
 
-   PFN_vkCmdDrawIndirectCount vk_CmdDrawIndirectCount;
-   PFN_vkCmdDrawIndexedIndirectCount vk_CmdDrawIndexedIndirectCount;
-
-   PFN_vkWaitSemaphores vk_WaitSemaphores;
-
-   PFN_vkGetMemoryFdKHR vk_GetMemoryFdKHR;
-   PFN_vkCmdBeginConditionalRenderingEXT vk_CmdBeginConditionalRenderingEXT;
-   PFN_vkCmdEndConditionalRenderingEXT vk_CmdEndConditionalRenderingEXT;
-
-   PFN_vkCmdBindTransformFeedbackBuffersEXT vk_CmdBindTransformFeedbackBuffersEXT;
-   PFN_vkCmdBeginTransformFeedbackEXT vk_CmdBeginTransformFeedbackEXT;
-   PFN_vkCmdEndTransformFeedbackEXT vk_CmdEndTransformFeedbackEXT;
-   PFN_vkCmdBeginQueryIndexedEXT vk_CmdBeginQueryIndexedEXT;
-   PFN_vkCmdEndQueryIndexedEXT vk_CmdEndQueryIndexedEXT;
-   PFN_vkCmdDrawIndirectByteCountEXT vk_CmdDrawIndirectByteCountEXT;
-
-   PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vk_GetPhysicalDeviceCalibrateableTimeDomainsEXT;
-   PFN_vkGetCalibratedTimestampsEXT vk_GetCalibratedTimestampsEXT;
-
-   PFN_vkCmdSetViewportWithCountEXT vk_CmdSetViewportWithCountEXT;
-   PFN_vkCmdSetScissorWithCountEXT vk_CmdSetScissorWithCountEXT;
-   PFN_vkCmdBindVertexBuffers2EXT vk_CmdBindVertexBuffers2EXT;
-
-   PFN_vkCreateDebugUtilsMessengerEXT vk_CreateDebugUtilsMessengerEXT;
-   PFN_vkDestroyDebugUtilsMessengerEXT vk_DestroyDebugUtilsMessengerEXT;
-
-#if defined(MVK_VERSION)
-   PFN_vkGetMoltenVKConfigurationMVK vk_GetMoltenVKConfigurationMVK;
-   PFN_vkSetMoltenVKConfigurationMVK vk_SetMoltenVKConfigurationMVK;
-
-   PFN_vkGetPhysicalDeviceMetalFeaturesMVK vk_GetPhysicalDeviceMetalFeaturesMVK;
-   PFN_vkGetVersionStringsMVK vk_GetVersionStringsMVK;
-   PFN_vkUseIOSurfaceMVK vk_UseIOSurfaceMVK;
-   PFN_vkGetIOSurfaceMVK vk_GetIOSurfaceMVK;
-#endif
-
-   PFN_vkCreateSwapchainKHR vk_CreateSwapchainKHR;
-   PFN_vkDestroySwapchainKHR vk_DestroySwapchainKHR;
+   bool (*descriptor_program_init)(struct zink_context *ctx, struct zink_program *pg);
+   void (*descriptor_program_deinit)(struct zink_screen *screen, struct zink_program *pg);
+   void (*descriptors_update)(struct zink_context *ctx, bool is_compute);
+   void (*context_update_descriptor_states)(struct zink_context *ctx, bool is_compute);
+   void (*context_invalidate_descriptor_state)(struct zink_context *ctx, enum pipe_shader_type shader,
+                                               enum zink_descriptor_type type,
+                                               unsigned start, unsigned count);
+   bool (*batch_descriptor_init)(struct zink_screen *screen, struct zink_batch_state *bs);
+   void (*batch_descriptor_reset)(struct zink_screen *screen, struct zink_batch_state *bs);
+   void (*batch_descriptor_deinit)(struct zink_screen *screen, struct zink_batch_state *bs);
+   bool (*descriptors_init)(struct zink_context *ctx);
+   void (*descriptors_deinit)(struct zink_context *ctx);
+   enum zink_descriptor_mode descriptor_mode;
 
    struct {
       bool dual_color_blend_by_location;
       bool inline_uniforms;
    } driconf;
 
-   PFN_vkGetImageDrmFormatModifierPropertiesEXT vk_GetImageDrmFormatModifierPropertiesEXT;
-
    VkFormatProperties format_props[PIPE_FORMAT_COUNT];
+   struct zink_modifier_prop modifier_props[PIPE_FORMAT_COUNT];
    struct {
       uint32_t image_view;
       uint32_t buffer_view;
    } null_descriptor_hashes;
 
-   PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT vk_GetPhysicalDeviceMultisamplePropertiesEXT;
-   PFN_vkCmdSetSampleLocationsEXT vk_CmdSetSampleLocationsEXT;
+   VkExtent2D maxSampleLocationGridSize[5];
 };
 
 
@@ -235,39 +239,44 @@ struct mem_cache_entry {
    void *map;
 };
 
+#define VKCTX(fn) zink_screen(ctx->base.screen)->vk.fn
+#define VKSCR(fn) screen->vk.fn
+
 VkFormat
 zink_get_format(struct zink_screen *screen, enum pipe_format format);
 
 bool
+zink_screen_batch_id_wait(struct zink_screen *screen, uint32_t batch_id, uint64_t timeout);
+
+bool
+zink_screen_timeline_wait(struct zink_screen *screen, uint32_t batch_id, uint64_t timeout);
+
+bool
 zink_is_depth_format_supported(struct zink_screen *screen, VkFormat format);
-
-#define GET_PROC_ADDR(x) do {                                               \
-      screen->vk_##x = (PFN_vk##x)vkGetDeviceProcAddr(screen->dev, "vk"#x); \
-      if (!screen->vk_##x) {                                                \
-         mesa_loge("ZINK: vkGetDeviceProcAddr failed: vk"#x"\n");           \
-         return false;                                                      \
-      } \
-   } while (0)
-
-#define GET_PROC_ADDR_KHR(x) do {                                               \
-      screen->vk_##x = (PFN_vk##x)vkGetDeviceProcAddr(screen->dev, "vk"#x"KHR"); \
-      if (!screen->vk_##x) {                                                \
-         mesa_loge("ZINK: vkGetDeviceProcAddr failed: vk"#x"KHR\n");           \
-         return false;                                                      \
-      } \
-   } while (0)
-
-#define GET_PROC_ADDR_INSTANCE(x) do {                                          \
-      screen->vk_##x = (PFN_vk##x)vkGetInstanceProcAddr(screen->instance, "vk"#x); \
-      if (!screen->vk_##x) {                                                \
-         mesa_loge("ZINK: GetInstanceProcAddr failed: vk"#x"\n");           \
-         return false;                                                      \
-      } \
-   } while (0)
 
 #define GET_PROC_ADDR_INSTANCE_LOCAL(instance, x) PFN_vk##x vk_##x = (PFN_vk##x)vkGetInstanceProcAddr(instance, "vk"#x)
 
 void
-zink_screen_update_pipeline_cache(struct zink_screen *screen);
+zink_screen_update_pipeline_cache(struct zink_screen *screen, struct zink_program *pg);
+
+void
+zink_screen_get_pipeline_cache(struct zink_screen *screen, struct zink_program *pg);
+
+void
+zink_screen_init_descriptor_funcs(struct zink_screen *screen, bool fallback);
+
+void
+zink_stub_function_not_loaded(void);
+
+#define warn_missing_feature(feat) \
+   do { \
+      static bool warned = false; \
+      if (!warned) { \
+         fprintf(stderr, "WARNING: Incorrect rendering will happen, " \
+                         "because the Vulkan device doesn't support " \
+                         "the %s feature\n", feat); \
+         warned = true; \
+      } \
+   } while (0)
 
 #endif

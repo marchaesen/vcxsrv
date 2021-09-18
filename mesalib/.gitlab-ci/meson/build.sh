@@ -44,7 +44,7 @@ fi
 case $CI_JOB_NAME in
     # strace and wine don't seem to mix well
     # ASAN leak detection is incompatible with strace
-    meson-mingw32-x86_64|*-asan*)
+    debian-mingw32-x86_64|*-asan*)
         if test -f /usr/bin/time; then
             MESON_TEST_ARGS+=--wrapper=$PWD/.gitlab-ci/meson/time.sh
         fi

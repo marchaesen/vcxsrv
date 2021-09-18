@@ -181,14 +181,13 @@ struct vtn_loop {
 struct vtn_if {
    struct vtn_cf_node node;
 
-   uint32_t condition;
-
    enum vtn_branch_type then_type;
    struct list_head then_body;
 
    enum vtn_branch_type else_type;
    struct list_head else_body;
 
+   struct vtn_block *header_block;
    struct vtn_block *merge_block;
 
    SpvSelectionControlMask control;
@@ -919,6 +918,9 @@ nir_op vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
 
 void vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
                     const uint32_t *w, unsigned count);
+
+void vtn_handle_integer_dot(struct vtn_builder *b, SpvOp opcode,
+                            const uint32_t *w, unsigned count);
 
 void vtn_handle_bitcast(struct vtn_builder *b, const uint32_t *w,
                         unsigned count);

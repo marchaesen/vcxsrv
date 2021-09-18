@@ -242,7 +242,7 @@ tu_pipeline_cache_load(struct tu_pipeline_cache *cache,
    }
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_CreatePipelineCache(VkDevice _device,
                        const VkPipelineCacheCreateInfo *pCreateInfo,
                        const VkAllocationCallbacks *pAllocator,
@@ -276,7 +276,7 @@ tu_CreatePipelineCache(VkDevice _device,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 tu_DestroyPipelineCache(VkDevice _device,
                         VkPipelineCache _cache,
                         const VkAllocationCallbacks *pAllocator)
@@ -291,7 +291,7 @@ tu_DestroyPipelineCache(VkDevice _device,
    vk_object_free(&device->vk, pAllocator, cache);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetPipelineCacheData(VkDevice _device,
                         VkPipelineCache _cache,
                         size_t *pDataSize,
@@ -361,7 +361,7 @@ tu_pipeline_cache_merge(struct tu_pipeline_cache *dst,
    }
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_MergePipelineCaches(VkDevice _device,
                        VkPipelineCache destCache,
                        uint32_t srcCacheCount,

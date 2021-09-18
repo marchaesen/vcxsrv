@@ -438,6 +438,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
 
    case ir_unop_get_buffer_size:
    case ir_unop_ssbo_unsized_array_length:
+   case ir_unop_implicitly_sized_array_length:
       this->type = glsl_type::int_type;
       break;
 
@@ -2073,6 +2074,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.stream = 0;
    this->data.xfb_buffer = -1;
    this->data.xfb_stride = -1;
+   this->data.implicit_conversion_prohibited = false;
 
    this->interface_type = NULL;
 

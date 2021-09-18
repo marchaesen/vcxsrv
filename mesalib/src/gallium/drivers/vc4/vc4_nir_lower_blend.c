@@ -159,7 +159,7 @@ vc4_blend_channel_i(nir_builder *b,
                 return dst;
         case PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE:
                 return vc4_nir_set_packed_chan(b,
-                                               nir_umin_4x8(b,
+                                               nir_umin_4x8_vc4(b,
                                                             src_a,
                                                             nir_inot(b, dst_a)),
                                                nir_imm_int(b, ~0),
@@ -226,15 +226,15 @@ vc4_blend_func_i(nir_builder *b, nir_ssa_def *src, nir_ssa_def *dst,
 {
         switch (func) {
         case PIPE_BLEND_ADD:
-                return nir_usadd_4x8(b, src, dst);
+                return nir_usadd_4x8_vc4(b, src, dst);
         case PIPE_BLEND_SUBTRACT:
-                return nir_ussub_4x8(b, src, dst);
+                return nir_ussub_4x8_vc4(b, src, dst);
         case PIPE_BLEND_REVERSE_SUBTRACT:
-                return nir_ussub_4x8(b, dst, src);
+                return nir_ussub_4x8_vc4(b, dst, src);
         case PIPE_BLEND_MIN:
-                return nir_umin_4x8(b, src, dst);
+                return nir_umin_4x8_vc4(b, src, dst);
         case PIPE_BLEND_MAX:
-                return nir_umax_4x8(b, src, dst);
+                return nir_umax_4x8_vc4(b, src, dst);
 
         default:
                 /* Unsupported. */
@@ -353,8 +353,8 @@ vc4_do_blending_i(struct vc4_compile *c, nir_builder *b,
                                                      dst_alpha_factor,
                                                      alpha_chan);
         }
-        nir_ssa_def *src_blend = nir_umul_unorm_4x8(b, src_color, src_factor);
-        nir_ssa_def *dst_blend = nir_umul_unorm_4x8(b, dst_color, dst_factor);
+        nir_ssa_def *src_blend = nir_umul_unorm_4x8_vc4(b, src_color, src_factor);
+        nir_ssa_def *dst_blend = nir_umul_unorm_4x8_vc4(b, dst_color, dst_factor);
 
         nir_ssa_def *result =
                 vc4_blend_func_i(b, src_blend, dst_blend, blend->rgb_func);

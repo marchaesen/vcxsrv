@@ -36,7 +36,7 @@ void
 iris_fine_fence_destroy(struct iris_screen *screen,
                         struct iris_fine_fence *fine)
 {
-   iris_syncobj_reference(screen, &fine->syncobj, NULL);
+   iris_syncobj_reference(screen->bufmgr, &fine->syncobj, NULL);
    pipe_resource_reference(&fine->ref.res, NULL);
    free(fine);
 }
@@ -52,7 +52,7 @@ iris_fine_fence_new(struct iris_batch *batch, unsigned flags)
 
    fine->seqno = iris_fine_fence_next(batch);
 
-   iris_syncobj_reference(batch->screen, &fine->syncobj,
+   iris_syncobj_reference(batch->screen->bufmgr, &fine->syncobj,
                           iris_batch_get_signal_syncobj(batch));
 
    pipe_resource_reference(&fine->ref.res, batch->fine_fences.ref.res);

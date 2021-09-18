@@ -78,28 +78,24 @@
 bool
 panfrost_format_supports_afbc(const struct panfrost_device *dev, enum pipe_format format)
 {
-        const struct util_format_description *desc =
-                util_format_description(format);
-
-        /* sRGB cannot be AFBC, but it can be tiled. TODO: Verify. The blob
-         * does not do AFBC for SRGB8_ALPHA8, but it's not clear why it
-         * shouldn't be able to. */
-
-        if (desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB)
-                return false;
-
-        if (util_format_is_rgba8_variant(desc))
-                return true;
-
         switch (format) {
+        case PIPE_FORMAT_R8G8B8A8_UNORM:
+        case PIPE_FORMAT_R8G8B8X8_UNORM:
         case PIPE_FORMAT_R8G8B8_UNORM:
-        case PIPE_FORMAT_B8G8R8_UNORM:
         case PIPE_FORMAT_R5G6B5_UNORM:
-        case PIPE_FORMAT_B5G6R5_UNORM:
         case PIPE_FORMAT_Z24_UNORM_S8_UINT:
         case PIPE_FORMAT_Z24X8_UNORM:
         case PIPE_FORMAT_Z16_UNORM:
                 return true;
+        case PIPE_FORMAT_B8G8R8A8_UNORM:
+        case PIPE_FORMAT_B8G8R8X8_UNORM:
+        case PIPE_FORMAT_A8R8G8B8_UNORM:
+        case PIPE_FORMAT_X8R8G8B8_UNORM:
+        case PIPE_FORMAT_X8B8G8R8_UNORM:
+        case PIPE_FORMAT_A8B8G8R8_UNORM:
+        case PIPE_FORMAT_B8G8R8_UNORM:
+        case PIPE_FORMAT_B5G6R5_UNORM:
+                return (dev->arch < 7);
         default:
                 return false;
         }
@@ -139,60 +135,4 @@ panfrost_afbc_can_ytr(enum pipe_format format)
 
         /* The fourth channel if it exists doesn't matter */
         return desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB;
-}
-
-bool
-panfrost_afbc_format_needs_fixup(const struct panfrost_device *dev,
-                                 enum pipe_format format)
-{
-        if (dev->arch < 7)
-                return false;
-
-        const struct util_format_description *desc =
-                util_format_description(format);
-
-        unsigned nr_channels = desc->nr_channels;
-
-        /* rgb1 is a valid component order, don't test channel 3 in that
-         * case.
-         */
-        if (nr_channels == 4 && desc->swizzle[3] == PIPE_SWIZZLE_1)
-                nr_channels = 3;
-
-        bool identity_swizzle = true;
-        for (unsigned c = 0; c < nr_channels; c++) {
-                if (desc->swizzle[c] != c) {
-                        identity_swizzle = false;
-                        break;
-                }
-        }
-
-        if (identity_swizzle ||
-            desc->colorspace == UTIL_FORMAT_COLORSPACE_ZS)
-                return false;
-
-        return true;
-}
-
-enum pipe_format
-panfrost_afbc_format_fixup(const struct panfrost_device *dev,
-                           enum pipe_format format)
-{
-        if (!panfrost_afbc_format_needs_fixup(dev, format))
-                return format;
-
-        const struct util_format_description *desc =
-                util_format_description(format);
-
-        switch (format) {
-        case PIPE_FORMAT_B8G8R8_UNORM:
-                return PIPE_FORMAT_R8G8B8_UNORM;
-        case PIPE_FORMAT_B5G6R5_UNORM:
-                return PIPE_FORMAT_R5G6B5_UNORM;
-        default:
-                if (util_format_is_rgba8_variant(desc))
-                        return PIPE_FORMAT_R8G8B8A8_UNORM;
-
-                unreachable("Invalid format");
-        }
 }

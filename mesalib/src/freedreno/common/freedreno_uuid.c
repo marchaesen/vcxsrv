@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 
+#include "freedreno_dev_info.h"
 #include "freedreno_uuid.h"
 
 #include <assert.h>
@@ -57,7 +58,7 @@ fd_get_driver_uuid(void *uuid)
 }
 
 void
-fd_get_device_uuid(void *uuid, unsigned gpu_id)
+fd_get_device_uuid(void *uuid, const struct fd_dev_id *id)
 {
    struct mesa_sha1 sha1_ctx;
    _mesa_sha1_init(&sha1_ctx);
@@ -83,7 +84,7 @@ fd_get_device_uuid(void *uuid, unsigned gpu_id)
    static const char *device_name = "freedreno";
    _mesa_sha1_update(&sha1_ctx, device_name, strlen(device_name));
 
-   _mesa_sha1_update(&sha1_ctx, &gpu_id, sizeof(gpu_id));
+   _mesa_sha1_update(&sha1_ctx, id, sizeof(*id));
 
    uint8_t sha1[SHA1_DIGEST_LENGTH];
    _mesa_sha1_final(&sha1_ctx, sha1);

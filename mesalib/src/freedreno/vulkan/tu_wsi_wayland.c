@@ -27,7 +27,7 @@
 
 #include "wsi_common_wayland.h"
 
-VkBool32
+VKAPI_ATTR VkBool32 VKAPI_CALL
 tu_GetPhysicalDeviceWaylandPresentationSupportKHR(
    VkPhysicalDevice physicalDevice,
    uint32_t queueFamilyIndex,
@@ -39,7 +39,7 @@ tu_GetPhysicalDeviceWaylandPresentationSupportKHR(
                                           display);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_CreateWaylandSurfaceKHR(VkInstance _instance,
                            const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
                            const VkAllocationCallbacks *pAllocator,

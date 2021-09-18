@@ -374,17 +374,21 @@ iterate_type_fill_variables(const struct glsl_type *type,
                             struct gl_shader_program *prog,
                             struct gl_uniform_block *block)
 {
-   unsigned int struct_base_offset;
+   unsigned length = glsl_get_length(type);
+   if (length == 0)
+      return;
 
-   for (unsigned i = 0; i < glsl_get_length(type); i++) {
+   unsigned struct_base_offset;
+
+   bool struct_or_ifc = glsl_type_is_struct_or_ifc(type);
+   if (struct_or_ifc)
+      struct_base_offset = *offset;
+
+   for (unsigned i = 0; i < length; i++) {
       const struct glsl_type *field_type;
 
-      if (glsl_type_is_struct_or_ifc(type)) {
+      if (struct_or_ifc) {
          field_type = glsl_get_struct_field(type, i);
-
-         if (i == 0) {
-            struct_base_offset = *offset;
-         }
 
          *offset = struct_base_offset + glsl_get_struct_field_offset(type, i);
       } else {

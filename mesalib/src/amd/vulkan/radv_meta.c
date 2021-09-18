@@ -57,6 +57,8 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
       state->viewport.count = cmd_buffer->state.dynamic.viewport.count;
       typed_memcpy(state->viewport.viewports, cmd_buffer->state.dynamic.viewport.viewports,
                    MAX_VIEWPORTS);
+      typed_memcpy(state->viewport.xform, cmd_buffer->state.dynamic.viewport.xform,
+                   MAX_VIEWPORTS);
 
       /* Save all scissors. */
       state->scissor.count = cmd_buffer->state.dynamic.scissor.count;
@@ -91,6 +93,16 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
          cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[0];
       state->fragment_shading_rate.combiner_ops[1] =
          cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[1];
+
+      state->depth_bias_enable = cmd_buffer->state.dynamic.depth_bias_enable;
+
+      state->primitive_restart_enable = cmd_buffer->state.dynamic.primitive_restart_enable;
+
+      state->rasterizer_discard_enable = cmd_buffer->state.dynamic.rasterizer_discard_enable;
+
+      state->logic_op = cmd_buffer->state.dynamic.logic_op;
+
+      state->color_write_enable = cmd_buffer->state.dynamic.color_write_enable;
    }
 
    if (state->flags & RADV_META_SAVE_SAMPLE_LOCATIONS) {
@@ -139,6 +151,8 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
       cmd_buffer->state.dynamic.viewport.count = state->viewport.count;
       typed_memcpy(cmd_buffer->state.dynamic.viewport.viewports, state->viewport.viewports,
                    MAX_VIEWPORTS);
+      typed_memcpy(cmd_buffer->state.dynamic.viewport.xform, state->viewport.xform,
+                   MAX_VIEWPORTS);
 
       /* Restore all scissors. */
       cmd_buffer->state.dynamic.scissor.count = state->scissor.count;
@@ -174,6 +188,16 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
       cmd_buffer->state.dynamic.fragment_shading_rate.combiner_ops[1] =
          state->fragment_shading_rate.combiner_ops[1];
 
+      cmd_buffer->state.dynamic.depth_bias_enable = state->depth_bias_enable;
+
+      cmd_buffer->state.dynamic.primitive_restart_enable = state->primitive_restart_enable;
+
+      cmd_buffer->state.dynamic.rasterizer_discard_enable = state->rasterizer_discard_enable;
+
+      cmd_buffer->state.dynamic.logic_op = state->logic_op;
+
+      cmd_buffer->state.dynamic.color_write_enable = state->color_write_enable;
+
       cmd_buffer->state.dirty |=
          RADV_CMD_DIRTY_DYNAMIC_VIEWPORT | RADV_CMD_DIRTY_DYNAMIC_SCISSOR |
          RADV_CMD_DIRTY_DYNAMIC_CULL_MODE | RADV_CMD_DIRTY_DYNAMIC_FRONT_FACE |
@@ -181,7 +205,10 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
          RADV_CMD_DIRTY_DYNAMIC_DEPTH_WRITE_ENABLE | RADV_CMD_DIRTY_DYNAMIC_DEPTH_COMPARE_OP |
          RADV_CMD_DIRTY_DYNAMIC_DEPTH_BOUNDS_TEST_ENABLE |
          RADV_CMD_DIRTY_DYNAMIC_STENCIL_TEST_ENABLE | RADV_CMD_DIRTY_DYNAMIC_STENCIL_OP |
-         RADV_CMD_DIRTY_DYNAMIC_FRAGMENT_SHADING_RATE;
+         RADV_CMD_DIRTY_DYNAMIC_FRAGMENT_SHADING_RATE | RADV_CMD_DIRTY_DYNAMIC_DEPTH_BIAS_ENABLE |
+         RADV_CMD_DIRTY_DYNAMIC_PRIMITIVE_RESTART_ENABLE |
+         RADV_CMD_DIRTY_DYNAMIC_RASTERIZER_DISCARD_ENABLE | RADV_CMD_DIRTY_DYNAMIC_LOGIC_OP |
+         RADV_CMD_DIRTY_DYNAMIC_COLOR_WRITE_ENABLE;
    }
 
    if (state->flags & RADV_META_SAVE_SAMPLE_LOCATIONS) {
@@ -460,8 +487,14 @@ radv_device_init_meta(struct radv_device *device)
    if (result != VK_SUCCESS)
       goto fail_fmask_expand;
 
+   result = radv_device_init_accel_struct_build_state(device);
+   if (result != VK_SUCCESS)
+      goto fail_accel_struct_build;
+
    return VK_SUCCESS;
 
+fail_accel_struct_build:
+   radv_device_finish_meta_fmask_expand_state(device);
 fail_fmask_expand:
    radv_device_finish_meta_resolve_fragment_state(device);
 fail_resolve_fragment:
@@ -493,6 +526,7 @@ fail_clear:
 void
 radv_device_finish_meta(struct radv_device *device)
 {
+   radv_device_finish_accel_struct_build_state(device);
    radv_device_finish_meta_clear_state(device);
    radv_device_finish_meta_resolve_state(device);
    radv_device_finish_meta_blit_state(device);

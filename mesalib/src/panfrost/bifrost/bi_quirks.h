@@ -39,19 +39,53 @@
 
 #define BIFROST_NO_FP32_TRANSCENDENTALS (1 << 1)
 
+/* Whether this GPU lacks support for the full form of the CLPER instruction.
+ * These GPUs use a simple encoding of CLPER that does not support
+ * inactive_result, subgroup_size, or lane_op. Using those features requires
+ * lowering to additional ALU instructions. The encoding forces inactive_result
+ * = zero, subgroup_size = subgroup4, and lane_op = none. */
+
+#define BIFROST_LIMITED_CLPER (1 << 2)
+
 static inline unsigned
 bifrost_get_quirks(unsigned product_id)
 {
         switch (product_id >> 8) {
         case 0x60:
-                return BIFROST_NO_PRELOAD | BIFROST_NO_FP32_TRANSCENDENTALS;
+                return BIFROST_NO_PRELOAD | BIFROST_NO_FP32_TRANSCENDENTALS |
+                       BIFROST_LIMITED_CLPER;
         case 0x62:
-                return BIFROST_NO_PRELOAD;
-        case 0x70:
+                return BIFROST_NO_PRELOAD | BIFROST_LIMITED_CLPER;
+        case 0x70: /* G31 */
+                return BIFROST_LIMITED_CLPER;
+        case 0x71:
         case 0x72:
+        case 0x73:
+        case 0x74:
                 return 0;
+        case 0x90:
+        case 0x91:
+        case 0x92:
+        case 0x93:
+        case 0x94:
+        case 0x95:
+                return BIFROST_NO_PRELOAD;
         default:
-                unreachable("Unknown Bifrost GPU ID");
+                unreachable("Unknown Bifrost/Valhall GPU ID");
+        }
+}
+
+/* How many lanes per architectural warp (subgroup)? Used to lower divergent
+ * indirects. */
+
+static inline unsigned
+bifrost_lanes_per_warp(unsigned product_id)
+{
+        switch (product_id >> 12) {
+        case 6: return 4;
+        case 7: return 8;
+        case 9: return 16;
+        default: unreachable("Invalid Bifrost/Valhall GPU major");
         }
 }
 

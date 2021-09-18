@@ -104,8 +104,7 @@ static void init_name_reuse(struct _mesa_HashTable *table)
 {
    assert(_mesa_hash_table_num_entries(table->ht) == 0);
    table->id_alloc = MALLOC_STRUCT(util_idalloc);
-   util_idalloc_init(table->id_alloc);
-   util_idalloc_resize(table->id_alloc, 8);
+   util_idalloc_init(table->id_alloc, 8);
    ASSERTED GLuint reserve0 = util_idalloc_alloc(table->id_alloc);
    assert (reserve0 == 0);
 }

@@ -27,7 +27,7 @@
 #include "compiler.h"
 
 bool
-bi_has_arg(bi_instr *ins, bi_index arg)
+bi_has_arg(const bi_instr *ins, bi_index arg)
 {
         if (!ins)
                 return false;
@@ -44,7 +44,7 @@ bi_has_arg(bi_instr *ins, bi_index arg)
  * 32-bit. Note auto reads to 32-bit registers even if the memory format is
  * 16-bit, so is considered as such here */
 
-static bool
+bool
 bi_is_regfmt_16(enum bi_register_format fmt)
 {
         switch  (fmt) {
@@ -63,7 +63,7 @@ bi_is_regfmt_16(enum bi_register_format fmt)
 }
 
 static unsigned
-bi_count_staging_registers(bi_instr *ins)
+bi_count_staging_registers(const bi_instr *ins)
 {
         enum bi_sr_count count = bi_opcode_props[ins->op].sr_count;
         unsigned vecsize = ins->vecsize + 1; /* XXX: off-by-one */
@@ -84,57 +84,62 @@ bi_count_staging_registers(bi_instr *ins)
 }
 
 unsigned
-bi_count_read_registers(bi_instr *ins, unsigned s)
+bi_count_read_registers(const bi_instr *ins, unsigned s)
 {
-        if (s == 0 && bi_opcode_props[ins->op].sr_read)
+        /* PATOM_C reads 1 but writes 2 */
+        if (s == 0 && ins->op == BI_OPCODE_PATOM_C_I32)
+                return 1;
+        else if (s == 0 && bi_opcode_props[ins->op].sr_read)
                 return bi_count_staging_registers(ins);
         else
                 return 1;
 }
 
 unsigned
-bi_writemask(bi_instr *ins, unsigned d)
+bi_count_write_registers(const bi_instr *ins, unsigned d)
 {
-        /* Assume we write a scalar */
-        unsigned mask = 0xF;
-
         if (d == 0 && bi_opcode_props[ins->op].sr_write) {
-                unsigned count = bi_count_staging_registers(ins);
-
                 /* TODO: this special case is even more special, TEXC has a
                  * generic write mask stuffed in the desc... */
                 if (ins->op == BI_OPCODE_TEXC)
-                        count = 4;
-
-                mask = (1 << (count * 4)) - 1;
+                        return 4;
+                else
+                        return bi_count_staging_registers(ins);
+        } else if (ins->op == BI_OPCODE_SEG_ADD_I64) {
+                return 2;
         }
 
-        unsigned shift = ins->dest[d].offset * 4; /* 32-bit words */
+        return 1;
+}
+
+unsigned
+bi_writemask(const bi_instr *ins, unsigned d)
+{
+        unsigned mask = BITFIELD_MASK(bi_count_write_registers(ins, d));
+        unsigned shift = ins->dest[d].offset;
         return (mask << shift);
 }
 
 bi_clause *
-bi_next_clause(bi_context *ctx, pan_block *block, bi_clause *clause)
+bi_next_clause(bi_context *ctx, bi_block *block, bi_clause *clause)
 {
         if (!block && !clause)
                 return NULL;
 
         /* Try the first clause in this block if we're starting from scratch */
-        if (!clause && !list_is_empty(&((bi_block *) block)->clauses))
-                return list_first_entry(&((bi_block *) block)->clauses, bi_clause, link);
+        if (!clause && !list_is_empty(&block->clauses))
+                return list_first_entry(&block->clauses, bi_clause, link);
 
         /* Try the next clause in this block */
-        if (clause && clause->link.next != &((bi_block *) block)->clauses)
+        if (clause && clause->link.next != &block->clauses)
                 return list_first_entry(&(clause->link), bi_clause, link);
 
         /* Try the next block, or the one after that if it's empty, etc .*/
-        pan_block *next_block = pan_next_block(block);
+        bi_block *next_block = bi_next_block(block);
 
         bi_foreach_block_from(ctx, next_block, block) {
-                bi_block *blk = (bi_block *) block;
-
-                if (!list_is_empty(&blk->clauses))
-                        return list_first_entry(&(blk->clauses), bi_clause, link);
+                if (!list_is_empty(&block->clauses))
+                        return list_first_entry(&block->clauses, bi_clause, link);
         }
 
         return NULL;
@@ -149,8 +154,16 @@ bi_next_clause(bi_context *ctx, pan_block *block, bi_clause *clause)
 bool
 bi_side_effects(enum bi_opcode op)
 {
-        if (bi_opcode_props[op].last || op == BI_OPCODE_DISCARD_F32)
+        if (bi_opcode_props[op].last)
                 return true;
+
+        switch (op) {
+        case BI_OPCODE_DISCARD_F32:
+        case BI_OPCODE_DISCARD_B32:
+                return true;
+        default:
+                break;
+        }
 
         switch (bi_opcode_props[op].message) {
         case BIFROST_MESSAGE_NONE:
@@ -176,4 +189,31 @@ bi_side_effects(enum bi_opcode op)
         }
 
         unreachable("Invalid message type");
+}
+
+/* Branch reconvergence is required when the execution mask may change
+ * between adjacent instructions (clauses). This occurs for conditional
+ * branches and for the last instruction (clause) in a block whose
+ * fallthrough successor has multiple predecessors.
+ */
+
+bool
+bi_reconverge_branches(bi_block *block)
+{
+        /* Last block of a program */
+        if (!block->successors[0]) {
+                assert(!block->successors[1]);
+                return true;
+        }
+
+        /* Multiple successors? We're branching */
+        if (block->successors[1])
+                return true;
+
+        /* Must have at least one successor */
+        struct bi_block *succ = block->successors[0];
+        assert(succ->predecessors);
+
+        /* Reconverge if the successor has multiple predecessors */
+        return (succ->predecessors->entries > 1);
 }

@@ -49,6 +49,7 @@ extern "C" {
 #define UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY      (1 << 0)
 #define UTIL_QUEUE_INIT_RESIZE_IF_FULL            (1 << 1)
 #define UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY  (1 << 2)
+#define UTIL_QUEUE_INIT_SCALE_THREADS             (1 << 3)
 
 #if UTIL_FUTEX_SUPPORTED
 #define UTIL_QUEUE_FENCE_FUTEX
@@ -189,10 +190,11 @@ util_queue_fence_wait_timeout(struct util_queue_fence *fence,
    return _util_queue_fence_wait_timeout(fence, abs_timeout);
 }
 
-typedef void (*util_queue_execute_func)(void *job, int thread_index);
+typedef void (*util_queue_execute_func)(void *job, void *gdata, int thread_index);
 
 struct util_queue_job {
    void *job;
+   void *global_data;
    size_t job_size;
    struct util_queue_fence *fence;
    util_queue_execute_func execute;
@@ -215,6 +217,7 @@ struct util_queue {
    int write_idx, read_idx; /* ring buffer pointers */
    size_t total_jobs_size;  /* memory use of all jobs in the queue */
    struct util_queue_job *jobs;
+   void *global_data;
 
    /* for cleanup at exit(), protected by exit_mutex */
    struct list_head head;
@@ -224,7 +227,8 @@ bool util_queue_init(struct util_queue *queue,
                      const char *name,
                      unsigned max_jobs,
                      unsigned num_threads,
-                     unsigned flags);
+                     unsigned flags,
+                     void *global_data);
 void util_queue_destroy(struct util_queue *queue);
 
 /* optional cleanup callback is called after fence is signaled: */

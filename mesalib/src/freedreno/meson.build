@@ -50,6 +50,10 @@ subdir('fdl')
 subdir('perfcntrs')
 subdir('computerator')
 
+if with_perfetto and (with_datasources.contains('freedreno') or with_datasources.contains('auto'))
+  subdir('ds')
+endif
+
 # Everything that depends on rnn requires (indirectly) libxml2:
 if dep_libxml2.found()
   subdir('rnn')

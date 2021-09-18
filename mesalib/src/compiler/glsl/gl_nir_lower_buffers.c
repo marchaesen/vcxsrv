@@ -39,7 +39,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
     * blocks later on as well as an optional dynamic index which gets added
     * to the block index later.
     */
-   int binding = 0;
+   int const_array_offset = 0;
    const char *block_name = "";
    nir_ssa_def *nonconst_index = NULL;
    while (deref->deref_type == nir_deref_type_array) {
@@ -54,7 +54,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
          block_name = ralloc_asprintf(b->shader, "[%u]%s", arr_index,
                                       block_name);
 
-         binding += arr_index * array_elements;
+         const_array_offset += arr_index * array_elements;
       } else {
          nir_ssa_def *arr_index = nir_ssa_for_src(b, deref->arr.index, 1);
          arr_index = nir_umin(b, arr_index, nir_imm_int(b, arr_size - 1));
@@ -73,7 +73,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
    }
 
    assert(deref->deref_type == nir_deref_type_var);
-   binding += deref->var->data.binding;
+   int binding = const_array_offset + deref->var->data.binding;
    block_name = ralloc_asprintf(b->shader, "%s%s",
                                 glsl_get_type_name(deref->var->interface_type),
                                 block_name);
@@ -98,6 +98,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
    for (unsigned i = 0; i < num_blocks; i++) {
       if (( use_bindings && binding == blocks[i]->Binding) ||
           (!use_bindings && strcmp(block_name, blocks[i]->Name) == 0)) {
+         deref->var->data.driver_location = i - const_array_offset;
          if (nonconst_index)
             return nir_iadd_imm(b, nonconst_index, i);
          else
@@ -144,6 +145,7 @@ get_block_index_offset(nir_variable *var,
       const char *block_name = glsl_get_type_name(var->interface_type);
       if (( use_bindings && blocks[i]->Binding == var->data.binding) ||
           (!use_bindings && strcmp(block_name, blocks[i]->Name) == 0)) {
+         var->data.driver_location = i;
          *index = i;
          *offset = blocks[i]->Uniforms[var->data.location].Offset;
          return;
@@ -328,6 +330,11 @@ gl_nir_lower_buffers(nir_shader *shader,
                      const struct gl_shader_program *shader_program)
 {
    bool progress = false;
+
+   nir_foreach_variable_with_modes(var, shader, nir_var_mem_ubo | nir_var_mem_ssbo) {
+      var->data.driver_location = -1;
+      progress = true;
+   }
 
    /* First, we lower the derefs to turn block variable and array derefs into
     * a nir_address_format_32bit_index_offset pointer.  From there forward,

@@ -131,4 +131,11 @@ pidx(unsigned query_type)
    }
 }
 
+/** Returns true if get_query_result is being called from the driver thread. */
+static inline bool
+fd_get_query_result_in_driver_thread(struct fd_query *q)
+{
+   return !q->base.flushed;
+}
+
 #endif /* FREEDRENO_QUERY_H_ */

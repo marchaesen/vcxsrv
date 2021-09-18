@@ -409,12 +409,6 @@ _mesa_GetFragDataIndex(GLuint program, const GLchar *name)
    if (!name)
       return -1;
 
-   if (strncmp(name, "gl_", 3) == 0) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetFragDataIndex(illegal name)");
-      return -1;
-   }
-
    /* Not having a fragment shader is not an error.
     */
    if (shProg->_LinkedShaders[MESA_SHADER_FRAGMENT] == NULL)
@@ -443,12 +437,6 @@ _mesa_GetFragDataLocation(GLuint program, const GLchar *name)
 
    if (!name)
       return -1;
-
-   if (strncmp(name, "gl_", 3) == 0) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetFragDataLocation(illegal name)");
-      return -1;
-   }
 
    /* Not having a fragment shader is not an error.
     */

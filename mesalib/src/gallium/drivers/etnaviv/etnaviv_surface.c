@@ -112,7 +112,6 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
       etna_screen_resource_alloc_ts(pctx->screen, rsc);
    }
 
-   surf->base.texture = &rsc->base;
    surf->base.format = templat->format;
    surf->base.width = rsc->levels[level].width;
    surf->base.height = rsc->levels[level].height;

@@ -141,7 +141,7 @@ SOFTWARE.
 		<map name="FULL">extract_cat5_FULL(src)</map>
 		<map name="TEX">src</map>
 		<map name="SAMP">src</map>
-		<map name="WRMASK">src->regs[0]->wrmask</map>
+		<map name="WRMASK">src->dsts[0]->wrmask</map>
 		<map name="BASE">src</map>
 		<map name="TYPE">src</map>
 		<map name="BASE_HI">src->cat5.tex_base >> 1</map>
@@ -153,12 +153,12 @@ SOFTWARE.
 		<map name="P">!!(src->flags &amp; IR3_INSTR_P)</map>
 		<map name="DESC_MODE">extract_cat5_DESC_MODE(src)</map>
 		<!--
-			TODO the src order is currently a bit messy due to ir3 using regs[1]
+			TODO the src order is currently a bit messy due to ir3 using srcs[0]
 			for s2en src in the s2en case
 		 -->
-		<map name="SRC1">extract_cat5_SRC(src, 1)</map>
-		<map name="SRC2">extract_cat5_SRC(src, 2)</map>
-		<map name="SRC3">(src->regs_count > 1) ? src->regs[1] : NULL</map>
+		<map name="SRC1">extract_cat5_SRC(src, 0)</map>
+		<map name="SRC2">extract_cat5_SRC(src, 1)</map>
+		<map name="SRC3">(src->srcs_count > 0) ? src->srcs[0] : NULL</map>
 	</encode>
 </bitset>
 

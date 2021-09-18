@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_INSTANCE_H
 #define VN_PROTOCOL_DRIVER_INSTANCE_H
 
-#include "vn_device.h"
+#include "vn_instance.h"
 #include "vn_protocol_driver_structs.h"
 
 /*
@@ -34,7 +34,7 @@ vn_sizeof_VkApplicationInfo_self(const VkApplicationInfo *val)
     if (val->pApplicationName) {
         const size_t string_size = strlen(val->pApplicationName) + 1;
         size += vn_sizeof_array_size(string_size);
-        size += vn_sizeof_blob_array(val->pApplicationName, string_size);
+        size += vn_sizeof_char_array(val->pApplicationName, string_size);
     } else {
         size += vn_sizeof_array_size(0);
     }
@@ -42,7 +42,7 @@ vn_sizeof_VkApplicationInfo_self(const VkApplicationInfo *val)
     if (val->pEngineName) {
         const size_t string_size = strlen(val->pEngineName) + 1;
         size += vn_sizeof_array_size(string_size);
-        size += vn_sizeof_blob_array(val->pEngineName, string_size);
+        size += vn_sizeof_char_array(val->pEngineName, string_size);
     } else {
         size += vn_sizeof_array_size(0);
     }
@@ -77,7 +77,7 @@ vn_encode_VkApplicationInfo_self(struct vn_cs_encoder *enc, const VkApplicationI
     if (val->pApplicationName) {
         const size_t string_size = strlen(val->pApplicationName) + 1;
         vn_encode_array_size(enc, string_size);
-        vn_encode_blob_array(enc, val->pApplicationName, string_size);
+        vn_encode_char_array(enc, val->pApplicationName, string_size);
     } else {
         vn_encode_array_size(enc, 0);
     }
@@ -85,7 +85,7 @@ vn_encode_VkApplicationInfo_self(struct vn_cs_encoder *enc, const VkApplicationI
     if (val->pEngineName) {
         const size_t string_size = strlen(val->pEngineName) + 1;
         vn_encode_array_size(enc, string_size);
-        vn_encode_blob_array(enc, val->pEngineName, string_size);
+        vn_encode_char_array(enc, val->pEngineName, string_size);
     } else {
         vn_encode_array_size(enc, 0);
     }
@@ -126,7 +126,7 @@ vn_sizeof_VkInstanceCreateInfo_self(const VkInstanceCreateInfo *val)
         for (uint32_t i = 0; i < val->enabledLayerCount; i++) {
             const size_t string_size = strlen(val->ppEnabledLayerNames[i]) + 1;
             size += vn_sizeof_array_size(string_size);
-            size += vn_sizeof_blob_array(val->ppEnabledLayerNames[i], string_size);
+            size += vn_sizeof_char_array(val->ppEnabledLayerNames[i], string_size);
         }
     } else {
         size += vn_sizeof_array_size(0);
@@ -137,7 +137,7 @@ vn_sizeof_VkInstanceCreateInfo_self(const VkInstanceCreateInfo *val)
         for (uint32_t i = 0; i < val->enabledExtensionCount; i++) {
             const size_t string_size = strlen(val->ppEnabledExtensionNames[i]) + 1;
             size += vn_sizeof_array_size(string_size);
-            size += vn_sizeof_blob_array(val->ppEnabledExtensionNames[i], string_size);
+            size += vn_sizeof_char_array(val->ppEnabledExtensionNames[i], string_size);
         }
     } else {
         size += vn_sizeof_array_size(0);
@@ -177,7 +177,7 @@ vn_encode_VkInstanceCreateInfo_self(struct vn_cs_encoder *enc, const VkInstanceC
         for (uint32_t i = 0; i < val->enabledLayerCount; i++) {
             const size_t string_size = strlen(val->ppEnabledLayerNames[i]) + 1;
             vn_encode_array_size(enc, string_size);
-            vn_encode_blob_array(enc, val->ppEnabledLayerNames[i], string_size);
+            vn_encode_char_array(enc, val->ppEnabledLayerNames[i], string_size);
         }
     } else {
         vn_encode_array_size(enc, 0);
@@ -188,7 +188,7 @@ vn_encode_VkInstanceCreateInfo_self(struct vn_cs_encoder *enc, const VkInstanceC
         for (uint32_t i = 0; i < val->enabledExtensionCount; i++) {
             const size_t string_size = strlen(val->ppEnabledExtensionNames[i]) + 1;
             vn_encode_array_size(enc, string_size);
-            vn_encode_blob_array(enc, val->ppEnabledExtensionNames[i], string_size);
+            vn_encode_char_array(enc, val->ppEnabledExtensionNames[i], string_size);
         }
     } else {
         vn_encode_array_size(enc, 0);
@@ -382,8 +382,8 @@ static inline size_t vn_sizeof_vkEnumerateInstanceLayerProperties(uint32_t* pPro
     if (pPropertyCount)
         cmd_size += vn_sizeof_uint32_t(pPropertyCount);
     if (pProperties) {
-        cmd_size += vn_sizeof_array_size(*pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        cmd_size += vn_sizeof_array_size((pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < (pPropertyCount ? *pPropertyCount : 0); i++)
             cmd_size += vn_sizeof_VkLayerProperties_partial(&pProperties[i]);
     } else {
         cmd_size += vn_sizeof_array_size(0);
@@ -402,8 +402,8 @@ static inline void vn_encode_vkEnumerateInstanceLayerProperties(struct vn_cs_enc
     if (vn_encode_simple_pointer(enc, pPropertyCount))
         vn_encode_uint32_t(enc, pPropertyCount);
     if (pProperties) {
-        vn_encode_array_size(enc, *pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        vn_encode_array_size(enc, (pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < (pPropertyCount ? *pPropertyCount : 0); i++)
             vn_encode_VkLayerProperties_partial(enc, &pProperties[i]);
     } else {
         vn_encode_array_size(enc, 0);
@@ -421,8 +421,8 @@ static inline size_t vn_sizeof_vkEnumerateInstanceLayerProperties_reply(uint32_t
     if (pPropertyCount)
         cmd_size += vn_sizeof_uint32_t(pPropertyCount);
     if (pProperties) {
-        cmd_size += vn_sizeof_array_size(*pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        cmd_size += vn_sizeof_array_size((pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < (pPropertyCount ? *pPropertyCount : 0); i++)
             cmd_size += vn_sizeof_VkLayerProperties(&pProperties[i]);
     } else {
         cmd_size += vn_sizeof_array_size(0);
@@ -445,11 +445,11 @@ static inline VkResult vn_decode_vkEnumerateInstanceLayerProperties_reply(struct
         pPropertyCount = NULL;
     }
     if (vn_peek_array_size(dec)) {
-        vn_decode_array_size(dec, *pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        const uint32_t iter_count = vn_decode_array_size(dec, (pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkLayerProperties(dec, &pProperties[i]);
     } else {
-        vn_decode_array_size(dec, 0);
+        vn_decode_array_size_unchecked(dec);
         pProperties = NULL;
     }
 
@@ -465,7 +465,7 @@ static inline size_t vn_sizeof_vkEnumerateInstanceExtensionProperties(const char
     if (pLayerName) {
         const size_t string_size = strlen(pLayerName) + 1;
         cmd_size += vn_sizeof_array_size(string_size);
-        cmd_size += vn_sizeof_blob_array(pLayerName, string_size);
+        cmd_size += vn_sizeof_char_array(pLayerName, string_size);
     } else {
         cmd_size += vn_sizeof_array_size(0);
     }
@@ -473,8 +473,8 @@ static inline size_t vn_sizeof_vkEnumerateInstanceExtensionProperties(const char
     if (pPropertyCount)
         cmd_size += vn_sizeof_uint32_t(pPropertyCount);
     if (pProperties) {
-        cmd_size += vn_sizeof_array_size(*pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        cmd_size += vn_sizeof_array_size((pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < (pPropertyCount ? *pPropertyCount : 0); i++)
             cmd_size += vn_sizeof_VkExtensionProperties_partial(&pProperties[i]);
     } else {
         cmd_size += vn_sizeof_array_size(0);
@@ -493,15 +493,15 @@ static inline void vn_encode_vkEnumerateInstanceExtensionProperties(struct vn_cs
     if (pLayerName) {
         const size_t string_size = strlen(pLayerName) + 1;
         vn_encode_array_size(enc, string_size);
-        vn_encode_blob_array(enc, pLayerName, string_size);
+        vn_encode_char_array(enc, pLayerName, string_size);
     } else {
         vn_encode_array_size(enc, 0);
     }
     if (vn_encode_simple_pointer(enc, pPropertyCount))
         vn_encode_uint32_t(enc, pPropertyCount);
     if (pProperties) {
-        vn_encode_array_size(enc, *pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        vn_encode_array_size(enc, (pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < (pPropertyCount ? *pPropertyCount : 0); i++)
             vn_encode_VkExtensionProperties_partial(enc, &pProperties[i]);
     } else {
         vn_encode_array_size(enc, 0);
@@ -520,8 +520,8 @@ static inline size_t vn_sizeof_vkEnumerateInstanceExtensionProperties_reply(cons
     if (pPropertyCount)
         cmd_size += vn_sizeof_uint32_t(pPropertyCount);
     if (pProperties) {
-        cmd_size += vn_sizeof_array_size(*pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        cmd_size += vn_sizeof_array_size((pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < (pPropertyCount ? *pPropertyCount : 0); i++)
             cmd_size += vn_sizeof_VkExtensionProperties(&pProperties[i]);
     } else {
         cmd_size += vn_sizeof_array_size(0);
@@ -545,11 +545,11 @@ static inline VkResult vn_decode_vkEnumerateInstanceExtensionProperties_reply(st
         pPropertyCount = NULL;
     }
     if (vn_peek_array_size(dec)) {
-        vn_decode_array_size(dec, *pPropertyCount);
-        for (uint32_t i = 0; i < *pPropertyCount; i++)
+        const uint32_t iter_count = vn_decode_array_size(dec, (pPropertyCount ? *pPropertyCount : 0));
+        for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkExtensionProperties(dec, &pProperties[i]);
     } else {
-        vn_decode_array_size(dec, 0);
+        vn_decode_array_size_unchecked(dec);
         pProperties = NULL;
     }
 

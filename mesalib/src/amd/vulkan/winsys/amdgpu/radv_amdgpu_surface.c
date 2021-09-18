@@ -26,8 +26,6 @@
  * IN THE SOFTWARE.
  */
 
-#include <errno.h>
-
 #include "util/bitset.h"
 #include "radv_amdgpu_surface.h"
 #include "radv_amdgpu_winsys.h"

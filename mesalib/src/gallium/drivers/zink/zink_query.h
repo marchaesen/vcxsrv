@@ -24,11 +24,17 @@
 #ifndef ZINK_QUERY_H
 #define ZINK_QUERY_H
 
+#include <stdbool.h>
+
 struct zink_batch;
+struct zink_batch_state;
 struct zink_context;
 struct zink_fence;
 struct zink_query;
 struct zink_screen;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void
 zink_suspend_queries(struct zink_context *ctx, struct zink_batch *batch);
@@ -37,7 +43,7 @@ void
 zink_resume_queries(struct zink_context *ctx, struct zink_batch *batch);
 
 void
-zink_prune_query(struct zink_screen *screen, struct zink_query *query);
+zink_prune_query(struct zink_screen *screen, struct zink_batch_state *bs, struct zink_query *query);
 
 void
 zink_query_update_gs_states(struct zink_context *ctx);
@@ -47,4 +53,11 @@ zink_start_conditional_render(struct zink_context *ctx);
 
 void
 zink_stop_conditional_render(struct zink_context *ctx);
+
+bool
+zink_check_conditional_render(struct zink_context *ctx);
+#ifdef __cplusplus
+}
+#endif
+
 #endif

@@ -1340,7 +1340,10 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
          ctx_flushed = true;
       }
    }
-   if (!ctx_flushed)
+   /* Return early if possible. Bindless samplers need to be processed
+    * because of the !sampler->bound codepath below.
+    */
+   if (!ctx_flushed && !(uni->type->is_sampler() && uni->is_bindless))
       return; /* no change in uniform values */
 
    /* If the uniform is a sampler, do the extra magic necessary to propagate

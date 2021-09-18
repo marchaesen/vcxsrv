@@ -32,6 +32,9 @@ CP_WAIT_MEM_WRITES:
 	<doc>Special type to mark registers with no payload.</doc>
 </bitset>
 
+<domain name="A5XX_PIPE_REG" width="32">
+</domain>
+
 <domain name="A6XX_PIPE_REG" width="32">
 	<!-- This replaces CP_WFI_PEND_CTR on a3xx-a5xx -->
 	<reg32 name="WFI_PEND_DECR" offset="0x81" type="void"/>

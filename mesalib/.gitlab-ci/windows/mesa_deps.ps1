@@ -21,7 +21,7 @@ Write-Host "Installing Chocolatey packages"
 For ($i = 0; $i -lt 5; $i++) {
   choco install -y python3 --params="/InstallDir:C:\python3"
   $python_install = $?
-  choco install --allow-empty-checksums -y cmake git git-lfs ninja pkgconfiglite winflexbison --installargs "ADD_CMAKE_TO_PATH=System"
+  choco install --allow-empty-checksums -y cmake git git-lfs ninja pkgconfiglite winflexbison vulkan-sdk --installargs "ADD_CMAKE_TO_PATH=System"
   $other_install = $?
   $choco_installed = $other_install -and $python_install
   if ($choco_installed) {
@@ -128,6 +128,17 @@ if (!$buildstatus) {
   Write-Host "Failed to compile SPIRV-Tools"
   Exit 1
 }
+
+Get-Date
+Write-Host "Downloading Vulkan-Runtime"
+Invoke-WebRequest -Uri 'https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-runtime.exe' -OutFile 'C:\vulkan-runtime.exe' | Out-Null
+Write-Host "Installing Vulkan-Runtime"
+Start-Process -NoNewWindow -Wait C:\vulkan-runtime.exe -ArgumentList '/S'
+if (!$?) {
+  Write-Host "Failed to install Vulkan-Runtime"
+  Exit 1
+}
+Remove-Item C:\vulkan-runtime.exe -Force
 
 Get-Date
 Write-Host "Downloading Freeglut"

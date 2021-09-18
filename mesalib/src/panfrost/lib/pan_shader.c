@@ -83,17 +83,17 @@ varying_format(nir_alu_type t, unsigned ncomps)
 static void
 collect_varyings(nir_shader *s, nir_variable_mode varying_mode,
                  struct pan_shader_varying *varyings,
-                 unsigned *varying_count)
+                 unsigned *varying_count, bool is_bifrost)
 {
         *varying_count = 0;
 
+        unsigned comps[MAX_VARYING] = { 0 };
+
         nir_foreach_variable_with_modes(var, s, varying_mode) {
                 unsigned loc = var->data.driver_location;
-                unsigned sz = glsl_count_attribute_slots(var->type, FALSE);
                 const struct glsl_type *column =
                         glsl_without_array_or_matrix(var->type);
                 unsigned chan = glsl_get_components(column);
-                enum glsl_base_type base_type = glsl_get_base_type(column);
 
                 /* If we have a fractional location added, we need to increase the size
                  * so it will fit, i.e. a vec3 in YZW requires us to allocate a vec4.
@@ -101,11 +101,23 @@ collect_varyings(nir_shader *s, nir_variable_mode varying_mode,
                  * packed varyings will be aligned.
                  */
                 chan += var->data.location_frac;
-                assert(chan >= 1 && chan <= 4);
+                comps[loc] = MAX2(comps[loc], chan);
+        }
+
+        nir_foreach_variable_with_modes(var, s, varying_mode) {
+                unsigned loc = var->data.driver_location;
+                unsigned sz = glsl_count_attribute_slots(var->type, FALSE);
+                const struct glsl_type *column =
+                        glsl_without_array_or_matrix(var->type);
+                enum glsl_base_type base_type = glsl_get_base_type(column);
+                unsigned chan = comps[loc];
 
                 nir_alu_type type = nir_get_nir_type_for_glsl_base_type(base_type);
-
                 type = nir_alu_type_get_base_type(type);
+
+                /* Can't do type conversion since GLSL IR packs in funny ways */
+                if (is_bifrost && var->data.interpolation == INTERP_MODE_FLAT)
+                        type = nir_type_uint;
 
                 /* Demote to fp16 where possible. int16 varyings are TODO as the hw
                  * will saturate instead of wrap which is not conformant, so we need to
@@ -114,7 +126,8 @@ collect_varyings(nir_shader *s, nir_variable_mode varying_mode,
                  */
                 if (type == nir_type_float &&
                     (var->data.precision == GLSL_PRECISION_MEDIUM ||
-                     var->data.precision == GLSL_PRECISION_LOW)) {
+                     var->data.precision == GLSL_PRECISION_LOW) &&
+                    !s->info.has_transform_feedback_varyings) {
                         type |= 16;
                 } else {
                         type |= 32;
@@ -129,6 +142,30 @@ collect_varyings(nir_shader *s, nir_variable_mode varying_mode,
                 }
 
                 *varying_count = MAX2(*varying_count, loc + sz);
+        }
+}
+
+static enum mali_bifrost_register_file_format
+bifrost_blend_type_from_nir(nir_alu_type nir_type)
+{
+        switch(nir_type) {
+        case 0: /* Render target not in use */
+                return 0;
+        case nir_type_float16:
+                return MALI_BIFROST_REGISTER_FILE_FORMAT_F16;
+        case nir_type_float32:
+                return MALI_BIFROST_REGISTER_FILE_FORMAT_F32;
+        case nir_type_int32:
+                return MALI_BIFROST_REGISTER_FILE_FORMAT_I32;
+        case nir_type_uint32:
+                return MALI_BIFROST_REGISTER_FILE_FORMAT_U32;
+        case nir_type_int16:
+                return MALI_BIFROST_REGISTER_FILE_FORMAT_I16;
+        case nir_type_uint16:
+                return MALI_BIFROST_REGISTER_FILE_FORMAT_U16;
+        default:
+                unreachable("Unsupported blend shader type for NIR alu type");
+                return 0;
         }
 }
 
@@ -149,13 +186,14 @@ pan_shader_compile(const struct panfrost_device *dev,
         info->stage = s->info.stage;
         info->contains_barrier = s->info.uses_memory_barrier ||
                                  s->info.uses_control_barrier;
+        info->separable = s->info.separate_shader;
 
         switch (info->stage) {
         case MESA_SHADER_VERTEX:
                 info->attribute_count = util_bitcount64(s->info.inputs_read);
 
                 bool vertex_id = BITSET_TEST(s->info.system_values_read,
-                                             SYSTEM_VALUE_VERTEX_ID);
+                                             SYSTEM_VALUE_VERTEX_ID_ZERO_BASE);
                 if (vertex_id && !pan_is_bifrost(dev))
                         info->attribute_count = MAX2(info->attribute_count, PAN_VERTEX_ID + 1);
 
@@ -167,7 +205,7 @@ pan_shader_compile(const struct panfrost_device *dev,
                 info->vs.writes_point_size =
                         s->info.outputs_written & (1 << VARYING_SLOT_PSIZ);
                 collect_varyings(s, nir_var_shader_out, info->varyings.output,
-                                 &info->varyings.output_count);
+                                 &info->varyings.output_count, pan_is_bifrost(dev));
                 break;
         case MESA_SHADER_FRAGMENT:
                 if (s->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_DEPTH))
@@ -194,6 +232,22 @@ pan_shader_compile(const struct panfrost_device *dev,
                 info->fs.sidefx = s->info.writes_memory ||
                                   s->info.fs.uses_discard ||
                                   s->info.fs.uses_demote;
+
+                /* With suitable ZSA/blend, is early-z possible? */
+                info->fs.can_early_z =
+                        !info->fs.sidefx &&
+                        !info->fs.writes_depth &&
+                        !info->fs.writes_stencil &&
+                        !info->fs.writes_coverage;
+
+                /* Similiarly with suitable state, is FPK possible? */
+                info->fs.can_fpk =
+                        !info->fs.writes_depth &&
+                        !info->fs.writes_stencil &&
+                        !info->fs.writes_coverage &&
+                        !info->fs.can_discard &&
+                        !info->fs.outputs_read;
+
                 info->fs.reads_frag_coord =
                         (s->info.inputs_read & (1 << VARYING_SLOT_POS)) ||
                         BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_FRAG_COORD);
@@ -211,7 +265,7 @@ pan_shader_compile(const struct panfrost_device *dev,
                 info->fs.reads_helper_invocation =
                         BITSET_TEST(s->info.system_values_read, SYSTEM_VALUE_HELPER_INVOCATION);
                 collect_varyings(s, nir_var_shader_in, info->varyings.input,
-                                 &info->varyings.input_count);
+                                 &info->varyings.input_count, pan_is_bifrost(dev));
                 break;
         case MESA_SHADER_COMPUTE:
                 info->wls_size = s->info.shared_size;
@@ -228,8 +282,16 @@ pan_shader_compile(const struct panfrost_device *dev,
         else
                 info->ubo_count = s->info.num_ubos;
 
-        info->attribute_count += util_bitcount(s->info.images_used);
+        info->attribute_count += util_last_bit(s->info.images_used);
         info->writes_global = s->info.writes_memory;
 
         info->sampler_count = info->texture_count = BITSET_LAST_BIT(s->info.textures_used);
+
+        /* This is "redundant" information, but is needed in a draw-time hot path */
+        if (pan_is_bifrost(dev)) {
+                for (unsigned i = 0; i < ARRAY_SIZE(info->bifrost.blend); ++i) {
+                        info->bifrost.blend[i].format =
+                                bifrost_blend_type_from_nir(info->bifrost.blend[i].type);
+                }
+        }
 }

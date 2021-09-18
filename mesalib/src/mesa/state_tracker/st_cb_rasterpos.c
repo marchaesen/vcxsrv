@@ -121,8 +121,8 @@ update_attrib(struct gl_context *ctx, const ubyte *outputMapping,
               GLuint result, GLuint defaultAttrib)
 {
    const GLfloat *src;
-   const GLuint k = outputMapping[result];
-   if (k != ~0U)
+   const ubyte k = outputMapping[result];
+   if (k != 0xff)
       src = vert->data[k];
    else
       src = ctx->Current.Attrib[defaultAttrib];

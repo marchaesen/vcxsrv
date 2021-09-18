@@ -45,6 +45,7 @@ enum lp_texture_usage
 struct pipe_context;
 struct pipe_screen;
 struct llvmpipe_context;
+struct llvmpipe_screen;
 
 struct sw_displaytarget;
 
@@ -60,14 +61,17 @@ struct llvmpipe_resource
 {
    struct pipe_resource base;
 
+   /** an extra screen pointer to avoid crashing in driver trace */
+   struct llvmpipe_screen *screen;
+
    /** Row stride in bytes */
    unsigned row_stride[LP_MAX_TEXTURE_LEVELS];
    /** Image stride (for cube maps, array or 3D textures) in bytes */
-   unsigned img_stride[LP_MAX_TEXTURE_LEVELS];
+   uint64_t img_stride[LP_MAX_TEXTURE_LEVELS];
    /** Offset to start of mipmap level, in bytes */
-   unsigned mip_offsets[LP_MAX_TEXTURE_LEVELS];
+   uint64_t mip_offsets[LP_MAX_TEXTURE_LEVELS];
    /** allocated total size (for non-display target texture resources only) */
-   unsigned total_alloc_size;
+   uint64_t total_alloc_size;
 
    /**
     * Display target, for textures with the PIPE_BIND_DISPLAY_TARGET
@@ -105,8 +109,6 @@ struct llvmpipe_resource
 struct llvmpipe_transfer
 {
    struct pipe_transfer base;
-
-   unsigned long offset;
 };
 
 

@@ -449,7 +449,7 @@ validate_constant_buffers(struct svga_context *svga)
           * Rebind the resource if needed.
           */
          if (buffer && !buffer->use_swbuf)
-            handle = svga_buffer_handle(svga, &buffer->b.b,
+            handle = svga_buffer_handle(svga, &buffer->b,
                                         PIPE_BIND_CONSTANT_BUFFER);
          else
             handle = svga->state.hw_draw.constbufoffsets[shader][i].handle;
@@ -545,12 +545,12 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
             svga_buffer(hwtnl->cmd.vbufs[i].buffer.resource);
 
          if (sbuf) {
-            vbuffer_handles[i] = svga_buffer_handle(svga, &sbuf->b.b,
+            vbuffer_handles[i] = svga_buffer_handle(svga, &sbuf->b,
                                                     PIPE_BIND_VERTEX_BUFFER);
             assert(sbuf->key.flags & SVGA3D_SURFACE_BIND_VERTEX_BUFFER);
             if (vbuffer_handles[i] == NULL)
                return PIPE_ERROR_OUT_OF_MEMORY;
-            vbuffers[i] = &sbuf->b.b;
+            vbuffers[i] = &sbuf->b;
             last_vbuf = i;
          }
          else {
@@ -571,12 +571,12 @@ validate_vertex_buffers(struct svga_hwtnl *hwtnl,
          svga_buffer(hwtnl->cmd.vbufs[i].buffer.resource);
 
       if (sbuf) {
-         vbuffer_handles[i] = svga_buffer_handle(svga, &sbuf->b.b,
+         vbuffer_handles[i] = svga_buffer_handle(svga, &sbuf->b,
                                                  PIPE_BIND_VERTEX_BUFFER);
          assert(sbuf->key.flags & SVGA3D_SURFACE_BIND_VERTEX_BUFFER);
          if (vbuffer_handles[i] == NULL)
             return PIPE_ERROR_OUT_OF_MEMORY;
-         vbuffers[i] = &sbuf->b.b;
+         vbuffers[i] = &sbuf->b;
          last_vbuf = i;
       }
       else {

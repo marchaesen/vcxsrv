@@ -841,14 +841,13 @@ update_vertex_elements(struct NineDevice9 *device)
     unsigned n, b, i;
     int index;
     char vdecl_index_map[16]; /* vs->num_inputs <= 16 */
-    char used_streams[device->caps.MaxStreams];
+    uint16_t used_streams = 0;
     int dummy_vbo_stream = -1;
     BOOL need_dummy_vbo = FALSE;
     struct cso_velems_state ve;
 
     context->stream_usage_mask = 0;
     memset(vdecl_index_map, -1, 16);
-    memset(used_streams, 0, device->caps.MaxStreams);
     vs = context->programmable_vs ? context->vs : device->ff.vs;
 
     if (vdecl) {
@@ -859,7 +858,7 @@ update_vertex_elements(struct NineDevice9 *device)
             for (i = 0; i < vdecl->nelems; i++) {
                 if (vdecl->usage_map[i] == vs->input_map[n].ndecl) {
                     vdecl_index_map[n] = i;
-                    used_streams[vdecl->elems[i].vertex_buffer_index] = 1;
+                    used_streams |= BITFIELD_BIT(vdecl->elems[i].vertex_buffer_index);
                     break;
                 }
             }
@@ -873,11 +872,9 @@ update_vertex_elements(struct NineDevice9 *device)
     }
 
     if (need_dummy_vbo) {
-        for (i = 0; i < device->caps.MaxStreams; i++ ) {
-            if (!used_streams[i]) {
-                dummy_vbo_stream = i;
+        u_foreach_bit(bit, BITFIELD_MASK(device->caps.MaxStreams) & ~used_streams) {
+                dummy_vbo_stream = bit;
                 break;
-            }
         }
     }
     /* there are less vertex shader inputs than stream slots,
@@ -902,6 +899,7 @@ update_vertex_elements(struct NineDevice9 *device)
             ve.velems[n].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
             ve.velems[n].src_offset = 0;
             ve.velems[n].instance_divisor = 0;
+            ve.velems[n].dual_slot = false;
         }
     }
 
@@ -994,105 +992,98 @@ update_textures_and_samplers(struct NineDevice9 *device)
     struct nine_context *context = &device->context;
     struct pipe_context *pipe = context->pipe;
     struct pipe_sampler_view *view[NINE_MAX_SAMPLERS];
-    unsigned num_textures;
-    unsigned i;
+    unsigned num_textures = 0;
     boolean commit_samplers;
     uint16_t sampler_mask = context->ps ? context->ps->sampler_mask :
                             device->ff.ps->sampler_mask;
 
-    /* TODO: Can we reduce iterations here ? */
-
     commit_samplers = FALSE;
-    context->bound_samplers_mask_ps = 0;
-    for (num_textures = 0, i = 0; i < NINE_MAX_SAMPLERS_PS; ++i) {
+    const uint16_t ps_mask = sampler_mask | context->enabled_samplers_mask_ps;
+    context->bound_samplers_mask_ps = ps_mask;
+    num_textures = util_last_bit(ps_mask) + 1;
+    /* iterate over the enabled samplers */
+    u_foreach_bit(i, context->enabled_samplers_mask_ps) {
         const unsigned s = NINE_SAMPLER_PS(i);
-        int sRGB;
+        int sRGB = context->samp[s][D3DSAMP_SRGBTEXTURE] ? 1 : 0;
 
-        if (!context->texture[s].enabled && !(sampler_mask & (1 << i))) {
-            view[i] = NULL;
-            continue;
-        }
+        view[i] = context->texture[s].view[sRGB];
 
-        if (context->texture[s].enabled) {
-            sRGB = context->samp[s][D3DSAMP_SRGBTEXTURE] ? 1 : 0;
-
-            view[i] = context->texture[s].view[sRGB];
-            num_textures = i + 1;
-
-            if (update_sampler_derived(context, s) || (context->changed.sampler[s] & 0x05fe)) {
-                context->changed.sampler[s] = 0;
-                commit_samplers = TRUE;
-                nine_convert_sampler_state(context->cso, s, context->samp[s]);
-            }
-        } else {
-            /* Bind dummy sampler. We do not bind dummy sampler when
-             * it is not needed because it could add overhead. The
-             * dummy sampler should have r=g=b=0 and a=1. We do not
-             * unbind dummy sampler directly when they are not needed
-             * anymore, but they're going to be removed as long as texture
-             * or sampler states are changed. */
-            view[i] = device->dummy_sampler_view;
-            num_textures = i + 1;
-
-            cso_single_sampler(context->cso, PIPE_SHADER_FRAGMENT,
-                               s - NINE_SAMPLER_PS(0), &device->dummy_sampler_state);
-
+        if (update_sampler_derived(context, s) || (context->changed.sampler[s] & 0x05fe)) {
+            context->changed.sampler[s] = 0;
             commit_samplers = TRUE;
-            context->changed.sampler[s] = ~0;
+            nine_convert_sampler_state(context->cso, s, context->samp[s]);
         }
-
-        context->bound_samplers_mask_ps |= (1 << s);
     }
+    /* iterate over the dummy samplers */
+    u_foreach_bit(i, sampler_mask & ~context->enabled_samplers_mask_ps) {
+        const unsigned s = NINE_SAMPLER_PS(i);
+        /* Bind dummy sampler. We do not bind dummy sampler when
+         * it is not needed because it could add overhead. The
+         * dummy sampler should have r=g=b=0 and a=1. We do not
+         * unbind dummy sampler directly when they are not needed
+         * anymore, but they're going to be removed as long as texture
+         * or sampler states are changed. */
+        view[i] = device->dummy_sampler_view;
 
-    pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, num_textures, 0, view);
+        cso_single_sampler(context->cso, PIPE_SHADER_FRAGMENT,
+                           s - NINE_SAMPLER_PS(0), &device->dummy_sampler_state);
+
+        commit_samplers = TRUE;
+        context->changed.sampler[s] = ~0;
+    }
+    /* fill in unused samplers */
+    u_foreach_bit(i, BITFIELD_MASK(num_textures) & ~ps_mask)
+       view[i] = NULL;
+
+    pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, num_textures,
+                            num_textures < context->enabled_sampler_count_ps ? context->enabled_sampler_count_ps - num_textures : 0,
+                            false, view);
+    context->enabled_sampler_count_ps = num_textures;
 
     if (commit_samplers)
         cso_single_sampler_done(context->cso, PIPE_SHADER_FRAGMENT);
 
     commit_samplers = FALSE;
     sampler_mask = context->programmable_vs ? context->vs->sampler_mask : 0;
-    context->bound_samplers_mask_vs = 0;
-    for (num_textures = 0, i = 0; i < NINE_MAX_SAMPLERS_VS; ++i) {
+    const uint16_t vs_mask = sampler_mask | context->enabled_samplers_mask_vs;
+    context->bound_samplers_mask_vs = vs_mask;
+    num_textures = util_last_bit(vs_mask) + 1;
+    u_foreach_bit(i, context->enabled_samplers_mask_vs) {
         const unsigned s = NINE_SAMPLER_VS(i);
-        int sRGB;
+        int sRGB = context->samp[s][D3DSAMP_SRGBTEXTURE] ? 1 : 0;
 
-        if (!context->texture[s].enabled && !(sampler_mask & (1 << i))) {
-            view[i] = NULL;
-            continue;
-        }
+        view[i] = context->texture[s].view[sRGB];
 
-        if (context->texture[s].enabled) {
-            sRGB = context->samp[s][D3DSAMP_SRGBTEXTURE] ? 1 : 0;
-
-            view[i] = context->texture[s].view[sRGB];
-            num_textures = i + 1;
-
-            if (update_sampler_derived(context, s) || (context->changed.sampler[s] & 0x05fe)) {
-                context->changed.sampler[s] = 0;
-                commit_samplers = TRUE;
-                nine_convert_sampler_state(context->cso, s, context->samp[s]);
-            }
-        } else {
-            /* Bind dummy sampler. We do not bind dummy sampler when
-             * it is not needed because it could add overhead. The
-             * dummy sampler should have r=g=b=0 and a=1. We do not
-             * unbind dummy sampler directly when they are not needed
-             * anymore, but they're going to be removed as long as texture
-             * or sampler states are changed. */
-            view[i] = device->dummy_sampler_view;
-            num_textures = i + 1;
-
-            cso_single_sampler(context->cso, PIPE_SHADER_VERTEX,
-                               s - NINE_SAMPLER_VS(0), &device->dummy_sampler_state);
-
+        if (update_sampler_derived(context, s) || (context->changed.sampler[s] & 0x05fe)) {
+            context->changed.sampler[s] = 0;
             commit_samplers = TRUE;
-            context->changed.sampler[s] = ~0;
+            nine_convert_sampler_state(context->cso, s, context->samp[s]);
         }
-
-        context->bound_samplers_mask_vs |= (1 << i);
     }
+    u_foreach_bit(i, sampler_mask & ~context->enabled_samplers_mask_vs) {
+        const unsigned s = NINE_SAMPLER_VS(i);
+        /* Bind dummy sampler. We do not bind dummy sampler when
+         * it is not needed because it could add overhead. The
+         * dummy sampler should have r=g=b=0 and a=1. We do not
+         * unbind dummy sampler directly when they are not needed
+         * anymore, but they're going to be removed as long as texture
+         * or sampler states are changed. */
+        view[i] = device->dummy_sampler_view;
 
-    pipe->set_sampler_views(pipe, PIPE_SHADER_VERTEX, 0, num_textures, 0, view);
+        cso_single_sampler(context->cso, PIPE_SHADER_VERTEX,
+                           s - NINE_SAMPLER_VS(0), &device->dummy_sampler_state);
+
+        commit_samplers = TRUE;
+        context->changed.sampler[s] = ~0;
+    }
+    /* fill in unused samplers */
+    u_foreach_bit(i, BITFIELD_MASK(num_textures) & ~vs_mask)
+       view[i] = NULL;
+
+    pipe->set_sampler_views(pipe, PIPE_SHADER_VERTEX, 0, num_textures,
+                            num_textures < context->enabled_sampler_count_vs ? context->enabled_sampler_count_vs - num_textures : 0,
+                            false, view);
+    context->enabled_sampler_count_vs = num_textures;
 
     if (commit_samplers)
         cso_single_sampler_done(context->cso, PIPE_SHADER_VERTEX);
@@ -1474,6 +1465,17 @@ CSMT_ITEM_NO_WAIT(nine_context_set_texture_apply,
     uint fetch4_compatible = (fetch4_shadow_enabled >> 2) & 1;
 
     context->texture[stage].enabled = enabled;
+    if (enabled) {
+       if (stage < NINE_MAX_SAMPLERS_PS)
+          context->enabled_samplers_mask_ps |= BITFIELD_BIT(stage - NINE_SAMPLER_PS(0));
+       else if (stage >= NINE_SAMPLER_VS(0))
+          context->enabled_samplers_mask_vs |= BITFIELD_BIT(stage - NINE_SAMPLER_VS(0));
+    } else {
+       if (stage < NINE_MAX_SAMPLERS_PS)
+          context->enabled_samplers_mask_ps &= ~BITFIELD_BIT(stage - NINE_SAMPLER_PS(0));
+       else if (stage >= NINE_SAMPLER_VS(0))
+          context->enabled_samplers_mask_vs &= ~BITFIELD_BIT(stage - NINE_SAMPLER_VS(0));
+    }
     context->samplers_shadow &= ~(1 << stage);
     context->samplers_shadow |= shadow << stage;
     context->samplers_fetch4 &= ~(1 << stage);
@@ -2366,6 +2368,9 @@ init_draw_info(struct pipe_draw_info *info,
         info->instance_count = MAX2(dev->context.stream_freq[0] & 0x7FFFFF, 1);
     info->primitive_restart = FALSE;
     info->has_user_indices = FALSE;
+    info->take_index_buffer_ownership = FALSE;
+    info->index_bias_varies = FALSE;
+    info->increment_draw_id = FALSE;
     info->restart_index = 0;
 }
 
@@ -2571,7 +2576,7 @@ CSMT_ITEM_NO_WAIT_WITH_COUNTER(nine_context_box_upload,
             return;
     }
 
-    map = pipe->transfer_map(pipe,
+    map = pipe->texture_map(pipe,
                              res,
                              level,
                              PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE,
@@ -2592,7 +2597,7 @@ CSMT_ITEM_NO_WAIT_WITH_COUNTER(nine_context_box_upload,
                                     dst_box->width, dst_box->height,
                                     dst_box->depth);
 
-    pipe_transfer_unmap(pipe, transfer);
+    pipe_texture_unmap(pipe, transfer);
 }
 
 struct pipe_query *
@@ -2833,6 +2838,8 @@ void nine_state_restore_non_cso(struct NineDevice9 *device)
     context->changed.vtxbuf = (1ULL << device->caps.MaxStreams) - 1;
     context->changed.ucp = TRUE;
     context->commit |= NINE_STATE_COMMIT_CONST_VS | NINE_STATE_COMMIT_CONST_PS;
+    context->enabled_sampler_count_vs = 0;
+    context->enabled_sampler_count_ps = 0;
 }
 
 void
@@ -2957,9 +2964,13 @@ nine_context_clear(struct NineDevice9 *device)
 
     cso_set_samplers(cso, PIPE_SHADER_VERTEX, 0, NULL);
     cso_set_samplers(cso, PIPE_SHADER_FRAGMENT, 0, NULL);
+    context->enabled_sampler_count_vs = 0;
+    context->enabled_sampler_count_ps = 0;
 
-    pipe->set_sampler_views(pipe, PIPE_SHADER_VERTEX, 0, 0, NINE_MAX_SAMPLERS_VS, NULL);
-    pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0, NINE_MAX_SAMPLERS_PS, NULL);
+    pipe->set_sampler_views(pipe, PIPE_SHADER_VERTEX, 0, 0,
+                            NINE_MAX_SAMPLERS_VS, false, NULL);
+    pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 0,
+                            NINE_MAX_SAMPLERS_PS, false, NULL);
 
     pipe->set_vertex_buffers(pipe, 0, 0, device->caps.MaxStreams, false, NULL);
 
@@ -3089,6 +3100,7 @@ update_vertex_elements_sw(struct NineDevice9 *device)
             ve.velems[n].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
             ve.velems[n].src_offset = 0;
             ve.velems[n].instance_divisor = 0;
+            ve.velems[n].dual_slot = false;
         }
     }
 
@@ -3128,7 +3140,7 @@ update_vertex_buffers_sw(struct NineDevice9 *device, int start_vertice, int num_
                 u_box_1d(vtxbuf.buffer_offset + offset + start_vertice * vtxbuf.stride,
                          num_vertices * vtxbuf.stride, &box);
 
-                userbuf = pipe->transfer_map(pipe, buf, 0, PIPE_MAP_READ, &box,
+                userbuf = pipe->buffer_map(pipe, buf, 0, PIPE_MAP_READ, &box,
                                              &(sw_internal->transfers_so[i]));
                 vtxbuf.is_user_buffer = true;
                 vtxbuf.buffer.user = userbuf;
@@ -3290,7 +3302,7 @@ nine_state_after_draw_sw(struct NineDevice9 *device)
     for (i = 0; i < 4; i++) {
         pipe_sw->set_vertex_buffers(pipe_sw, i, 0, 1, false, NULL);
         if (sw_internal->transfers_so[i])
-            pipe->transfer_unmap(pipe, sw_internal->transfers_so[i]);
+            pipe->buffer_unmap(pipe, sw_internal->transfers_so[i]);
         sw_internal->transfers_so[i] = NULL;
     }
     nine_context_get_pipe_release(device);

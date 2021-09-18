@@ -33,6 +33,7 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/ralloc.h"
+#ifdef DRAW_LLVM_AVAILABLE
 static inline int
 draw_tes_get_input_index(int semantic, int index,
                          const struct tgsi_shader_info *input_info)
@@ -48,7 +49,6 @@ draw_tes_get_input_index(int semantic, int index,
    return -1;
 }
 
-#ifdef DRAW_LLVM_AVAILABLE
 #define DEBUG_INPUTS 0
 static void
 llvm_fetch_tcs_input(struct draw_tess_ctrl_shader *shader,
@@ -558,18 +558,26 @@ draw_create_tess_eval_shader(struct draw_context *draw,
    tes->vector_length = 4;
 
    tes->position_output = -1;
+   bool found_clipvertex = false;
    for (unsigned i = 0; i < tes->info.num_outputs; i++) {
       if (tes->info.output_semantic_name[i] == TGSI_SEMANTIC_POSITION &&
           tes->info.output_semantic_index[i] == 0)
          tes->position_output = i;
       if (tes->info.output_semantic_name[i] == TGSI_SEMANTIC_VIEWPORT_INDEX)
          tes->viewport_index_output = i;
+      if (tes->info.output_semantic_name[i] == TGSI_SEMANTIC_CLIPVERTEX &&
+          tes->info.output_semantic_index[i] == 0) {
+         found_clipvertex = true;
+         tes->clipvertex_output = i;
+      }
       if (tes->info.output_semantic_name[i] == TGSI_SEMANTIC_CLIPDIST) {
          debug_assert(tes->info.output_semantic_index[i] <
                       PIPE_MAX_CLIP_OR_CULL_DISTANCE_ELEMENT_COUNT);
          tes->ccdistance_output[tes->info.output_semantic_index[i]] = i;
       }
    }
+   if (!found_clipvertex)
+      tes->clipvertex_output = tes->position_output;
 
 #ifdef DRAW_LLVM_AVAILABLE
    if (use_llvm) {
@@ -595,6 +603,7 @@ void draw_bind_tess_eval_shader(struct draw_context *draw,
    if (dtes) {
       draw->tes.tess_eval_shader = dtes;
       draw->tes.position_output = dtes->position_output;
+      draw->tes.clipvertex_output = dtes->clipvertex_output;
    } else {
       draw->tes.tess_eval_shader = NULL;
    }

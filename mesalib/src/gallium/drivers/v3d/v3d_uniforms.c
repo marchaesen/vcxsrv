@@ -27,6 +27,10 @@
 
 #include "v3d_context.h"
 #include "compiler/v3d_compiler.h"
+
+/* We don't expect that the packets we use in this file change across across
+ * hw versions, so we just include directly the v33 header
+ */
 #include "broadcom/cle/v3d_packet_v33_pack.h"
 
 static uint32_t

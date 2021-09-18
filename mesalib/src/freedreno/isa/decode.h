@@ -89,7 +89,8 @@ struct isa_field {
 		TYPE_INT,
 		TYPE_UINT,
 		TYPE_HEX,
-		TYPE_OFFSET,   /* Like INT but formated with +/- or ommited if ==0 */
+		TYPE_OFFSET,   /* Like INT but formated with +/- or omitted if ==0 */
+		TYPE_UOFFSET,  /* Like UINT but formated with + or omitted if ==0 */
 		TYPE_FLOAT,
 		TYPE_BOOL,
 		TYPE_ENUM,

@@ -92,6 +92,7 @@ struct vc4_screen {
 
         uint32_t bo_size;
         uint32_t bo_count;
+        uint32_t prim_types;
         bool has_control_flow;
         bool has_etc1;
         bool has_threaded_fs;

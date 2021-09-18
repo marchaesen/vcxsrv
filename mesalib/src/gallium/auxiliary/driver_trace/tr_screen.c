@@ -29,7 +29,6 @@
 #include "util/u_memory.h"
 #include "util/hash_table.h"
 #include "util/simple_list.h"
-#include "util/u_threaded_context.h"
 
 #include "tr_dump.h"
 #include "tr_dump_defines.h"
@@ -265,9 +264,77 @@ trace_screen_is_format_supported(struct pipe_screen *_screen,
    return result;
 }
 
+static void
+trace_context_replace_buffer_storage(struct pipe_context *_pipe,
+                                     struct pipe_resource *dst,
+                                     struct pipe_resource *src,
+                                     unsigned num_rebinds,
+                                     uint32_t rebind_mask,
+                                     unsigned delete_buffer_id)
+{
+   struct trace_context *tr_ctx = trace_context(_pipe);
+   struct pipe_context *pipe = tr_ctx->pipe;
+
+   trace_dump_call_begin("pipe_context", "replace_buffer_storage");
+
+   trace_dump_arg(ptr, pipe);
+   trace_dump_arg(ptr, dst);
+   trace_dump_arg(ptr, src);
+   trace_dump_arg(uint, num_rebinds);
+   trace_dump_arg(uint, rebind_mask);
+   trace_dump_arg(uint, delete_buffer_id);
+   trace_dump_call_end();
+
+   tr_ctx->replace_buffer_storage(pipe, dst, src, num_rebinds, rebind_mask, delete_buffer_id);
+}
+
+static struct pipe_fence_handle *
+trace_context_create_fence(struct pipe_context *_pipe, struct tc_unflushed_batch_token *token)
+{
+   struct trace_context *tr_ctx = trace_context(_pipe);
+   struct pipe_context *pipe = tr_ctx->pipe;
+
+   trace_dump_call_begin("pipe_context", "create_fence");
+
+   trace_dump_arg(ptr, pipe);
+   trace_dump_arg(ptr, token);
+
+   struct pipe_fence_handle *ret = tr_ctx->create_fence(pipe, token);
+   trace_dump_ret(ptr, ret);
+   trace_dump_call_end();
+
+   return ret;
+}
+
+static bool
+trace_context_is_resource_busy(struct pipe_screen *_screen,
+                               struct pipe_resource *resource,
+                               unsigned usage)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+   bool result;
+
+   trace_dump_call_begin("pipe_screen", "is_resource_busy");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(ptr, resource);
+   trace_dump_arg(uint, usage);
+
+   result = tr_scr->is_resource_busy(screen, resource, usage);
+
+   trace_dump_ret(bool, result);
+
+   trace_dump_call_end();
+
+   return result;
+}
 
 struct pipe_context *
-trace_context_create_threaded(struct pipe_screen *screen, struct pipe_context *pipe)
+trace_context_create_threaded(struct pipe_screen *screen, struct pipe_context *pipe,
+                              tc_replace_buffer_storage_func *replace_buffer,
+                              tc_create_fence_func *create_fence,
+                              tc_is_resource_busy *is_resource_busy)
 {
    if (!trace_screens)
       return pipe;
@@ -281,10 +348,19 @@ trace_context_create_threaded(struct pipe_screen *screen, struct pipe_context *p
       return pipe;
 
    struct pipe_context *ctx = trace_context_create(tr_scr, pipe);
-   if (ctx) {
-      struct trace_context *tr_ctx = trace_context(ctx);
-      tr_ctx->threaded = true;
-   }
+   if (!ctx)
+      return pipe;
+
+   struct trace_context *tr_ctx = trace_context(ctx);
+   tr_ctx->replace_buffer_storage = *replace_buffer;
+   tr_ctx->create_fence = *create_fence;
+   tr_scr->is_resource_busy = *is_resource_busy;
+   tr_ctx->threaded = true;
+   *replace_buffer = trace_context_replace_buffer_storage;
+   if (*create_fence)
+      *create_fence = trace_context_create_fence;
+   if (*is_resource_busy)
+      *is_resource_busy = trace_context_is_resource_busy;
    return ctx;
 }
 
@@ -325,7 +401,7 @@ trace_screen_flush_frontbuffer(struct pipe_screen *_screen,
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
    struct pipe_screen *screen = tr_scr->screen;
-   struct pipe_context *pipe = _pipe ? trace_context(_pipe)->pipe : NULL;
+   struct pipe_context *pipe = _pipe ? trace_get_possibly_threaded_context(_pipe) : NULL;
 
    trace_dump_call_begin("pipe_screen", "flush_frontbuffer");
 
@@ -337,9 +413,9 @@ trace_screen_flush_frontbuffer(struct pipe_screen *_screen,
    trace_dump_arg(ptr, context_private);
    */
 
-   screen->flush_frontbuffer(screen, pipe, resource, level, layer, context_private, sub_box);
-
    trace_dump_call_end();
+
+   screen->flush_frontbuffer(screen, pipe, resource, level, layer, context_private, sub_box);
 }
 
 
@@ -456,7 +532,7 @@ trace_screen_free_memory(struct pipe_screen *_screen,
    trace_dump_call_end();
 }
 
-static void
+static bool
 trace_screen_resource_bind_backing(struct pipe_screen *_screen,
                                    struct pipe_resource *resource,
                                    struct pipe_memory_allocation *pmem,
@@ -464,6 +540,7 @@ trace_screen_resource_bind_backing(struct pipe_screen *_screen,
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
    struct pipe_screen *screen = tr_scr->screen;
+   bool result;
 
    trace_dump_call_begin("pipe_screen", "resource_bind_backing");
 
@@ -472,9 +549,13 @@ trace_screen_resource_bind_backing(struct pipe_screen *_screen,
    trace_dump_arg(ptr, pmem);
    trace_dump_arg(uint, offset);
 
-   screen->resource_bind_backing(screen, resource, pmem, offset);
+   result = screen->resource_bind_backing(screen, resource, pmem, offset);
+
+   trace_dump_ret(bool, result);
 
    trace_dump_call_end();
+
+   return result;
 }
 
 static struct pipe_resource *
@@ -530,6 +611,31 @@ trace_screen_resource_create(struct pipe_screen *_screen,
 }
 
 static struct pipe_resource *
+trace_screen_resource_create_with_modifiers(struct pipe_screen *_screen, const struct pipe_resource *templat,
+                                            const uint64_t *modifiers, int modifiers_count)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+   struct pipe_resource *result;
+
+   trace_dump_call_begin("pipe_screen", "resource_create_with_modifiers");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(resource_template, templat);
+   trace_dump_arg_array(uint, modifiers, modifiers_count);
+
+   result = screen->resource_create_with_modifiers(screen, templat, modifiers, modifiers_count);
+
+   trace_dump_ret(ptr, result);
+
+   trace_dump_call_end();
+
+   if (result)
+      result->screen = _screen;
+   return result;
+}
+
+static struct pipe_resource *
 trace_screen_resource_from_handle(struct pipe_screen *_screen,
                                  const struct pipe_resource *templ,
                                  struct winsys_handle *handle,
@@ -566,12 +672,12 @@ trace_screen_resource_get_handle(struct pipe_screen *_screen,
                                  unsigned usage)
 {
    struct trace_screen *tr_screen = trace_screen(_screen);
-   struct trace_context *tr_pipe = _pipe ? trace_context(_pipe) : NULL;
+   struct pipe_context *pipe = _pipe ? trace_get_possibly_threaded_context(_pipe) : NULL;
    struct pipe_screen *screen = tr_screen->screen;
 
    /* TODO trace call */
 
-   return screen->resource_get_handle(screen, tr_pipe ? tr_pipe->pipe : NULL,
+   return screen->resource_get_handle(screen, pipe,
                                       resource, handle, usage);
 }
 
@@ -587,12 +693,12 @@ trace_screen_resource_get_param(struct pipe_screen *_screen,
                                 uint64_t *value)
 {
    struct trace_screen *tr_screen = trace_screen(_screen);
-   struct trace_context *tr_pipe = _pipe ? trace_context(_pipe) : NULL;
+   struct pipe_context *pipe = _pipe ? trace_get_possibly_threaded_context(_pipe) : NULL;
    struct pipe_screen *screen = tr_screen->screen;
 
    /* TODO trace call */
 
-   return screen->resource_get_param(screen, tr_pipe ? tr_pipe->pipe : NULL,
+   return screen->resource_get_param(screen, pipe,
                                      resource, plane, layer, level, param,
                                      handle_usage, value);
 }
@@ -730,7 +836,7 @@ trace_screen_fence_finish(struct pipe_screen *_screen,
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
    struct pipe_screen *screen = tr_scr->screen;
-   struct pipe_context *ctx = _ctx ? trace_context(_ctx)->pipe : NULL;
+   struct pipe_context *ctx = _ctx ? trace_get_possibly_threaded_context(_ctx) : NULL;
    int result;
 
    result = screen->fence_finish(screen, ctx, fence, timeout);
@@ -813,12 +919,12 @@ trace_screen_get_timestamp(struct pipe_screen *_screen)
    return result;
 }
 
-static void
-trace_screen_finalize_nir(struct pipe_screen *_screen, void *nir, bool optimize)
+static char *
+trace_screen_finalize_nir(struct pipe_screen *_screen, void *nir)
 {
    struct pipe_screen *screen = trace_screen(_screen)->screen;
 
-   screen->finalize_nir(screen, nir, optimize);
+   return screen->finalize_nir(screen, nir);
 }
 
 static void
@@ -845,6 +951,93 @@ trace_screen_destroy(struct pipe_screen *_screen)
    screen->destroy(screen);
 
    FREE(tr_scr);
+}
+
+static void
+trace_screen_query_memory_info(struct pipe_screen *_screen, struct pipe_memory_info *info)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "query_memory_info");
+
+   trace_dump_arg(ptr, screen);
+
+   screen->query_memory_info(screen, info);
+
+   trace_dump_ret(memory_info, info);
+
+   trace_dump_call_end();
+}
+
+static void
+trace_screen_query_dmabuf_modifiers(struct pipe_screen *_screen, enum pipe_format format, int max, uint64_t *modifiers, unsigned int *external_only, int *count)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "query_dmabuf_modifiers");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(format, format);
+   trace_dump_arg(int, max);
+
+   screen->query_dmabuf_modifiers(screen, format, max, modifiers, external_only, count);
+
+   if (max)
+      trace_dump_arg_array(uint, modifiers, *count);
+   else
+      trace_dump_arg_array(uint, modifiers, max);
+   trace_dump_arg_array(uint, external_only, max);
+   trace_dump_ret_begin();
+   trace_dump_uint(*count);
+   trace_dump_ret_end();
+
+   trace_dump_call_end();
+}
+
+static bool
+trace_screen_is_dmabuf_modifier_supported(struct pipe_screen *_screen, uint64_t modifier, enum pipe_format format, bool *external_only)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "is_dmabuf_modifier_supported");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(uint, modifier);
+   trace_dump_arg(format, format);
+
+   bool ret = screen->is_dmabuf_modifier_supported(screen, modifier, format, external_only);
+
+   trace_dump_arg_begin("external_only");
+   trace_dump_bool(external_only ? *external_only : false);
+   trace_dump_arg_end();
+
+   trace_dump_ret(bool, ret);
+
+   trace_dump_call_end();
+   return ret;
+}
+
+static unsigned int
+trace_screen_get_dmabuf_modifier_planes(struct pipe_screen *_screen, uint64_t modifier, enum pipe_format format)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "get_dmabuf_modifier_planes");
+
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(uint, modifier);
+   trace_dump_arg(format, format);
+
+   unsigned ret = screen->get_dmabuf_modifier_planes(screen, modifier, format);
+
+   trace_dump_ret(uint, ret);
+
+   trace_dump_call_end();
+   return ret;
 }
 
 bool
@@ -874,7 +1067,7 @@ trace_screen_create(struct pipe_screen *screen)
    const char *driver = debug_get_option("MESA_LOADER_DRIVER_OVERRIDE", NULL);
    if (driver && !strcmp(driver, "zink")) {
       /* the user wants zink: check whether they want to trace zink or lavapipe */
-      bool trace_lavapipe = debug_get_bool_option("ZINK_TRACE_LAVAPIPE", NULL);
+      bool trace_lavapipe = debug_get_bool_option("ZINK_TRACE_LAVAPIPE", false);
       if (!strncmp(screen->get_name(screen), "zink", 4)) {
          /* this is the zink screen: only trace if lavapipe tracing is disabled */
          if (trace_lavapipe)
@@ -912,6 +1105,7 @@ trace_screen_create(struct pipe_screen *screen)
    assert(screen->context_create);
    tr_scr->base.context_create = trace_screen_context_create;
    tr_scr->base.resource_create = trace_screen_resource_create;
+   SCR_INIT(resource_create_with_modifiers);
    tr_scr->base.resource_create_unbacked = trace_screen_resource_create_unbacked;
    tr_scr->base.resource_bind_backing = trace_screen_resource_bind_backing;
    tr_scr->base.resource_from_handle = trace_screen_resource_from_handle;
@@ -919,6 +1113,10 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.free_memory = trace_screen_free_memory;
    tr_scr->base.map_memory = trace_screen_map_memory;
    tr_scr->base.unmap_memory = trace_screen_unmap_memory;
+   SCR_INIT(query_memory_info);
+   SCR_INIT(query_dmabuf_modifiers);
+   SCR_INIT(is_dmabuf_modifier_supported);
+   SCR_INIT(get_dmabuf_modifier_planes);
    SCR_INIT(check_resource_capability);
    tr_scr->base.resource_get_handle = trace_screen_resource_get_handle;
    SCR_INIT(resource_get_param);
@@ -936,6 +1134,7 @@ trace_screen_create(struct pipe_screen *screen)
    SCR_INIT(get_driver_uuid);
    SCR_INIT(get_device_uuid);
    SCR_INIT(finalize_nir);
+   tr_scr->base.transfer_helper = screen->transfer_helper;
 
    tr_scr->screen = screen;
 

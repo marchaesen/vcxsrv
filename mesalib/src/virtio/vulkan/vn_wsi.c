@@ -10,8 +10,12 @@
 
 #include "vn_wsi.h"
 
+#include "vk_enum_to_str.h"
+
 #include "vn_device.h"
 #include "vn_image.h"
+#include "vn_instance.h"
+#include "vn_physical_device.h"
 #include "vn_queue.h"
 
 /* The common WSI support makes some assumptions about the driver.
@@ -55,6 +59,9 @@
  * (and renderer-side synchronization) to work well.
  */
 
+/* cast a WSI object to a pointer for logging */
+#define VN_WSI_PTR(obj) ((const void *)(uintptr_t)(obj))
+
 static PFN_vkVoidFunction
 vn_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
@@ -92,10 +99,11 @@ vn_wsi_fini(struct vn_physical_device *physical_dev)
 }
 
 VkResult
-vn_wsi_create_scanout_image(struct vn_device *dev,
-                            const VkImageCreateInfo *create_info,
-                            const VkAllocationCallbacks *alloc,
-                            struct vn_image **out_img)
+vn_wsi_create_image(struct vn_device *dev,
+                    const VkImageCreateInfo *create_info,
+                    const struct wsi_image_create_info *wsi_info,
+                    const VkAllocationCallbacks *alloc,
+                    struct vn_image **out_img)
 {
    /* TODO This is the legacy path used by wsi_create_native_image when there
     * is no modifier support.  Instead of forcing VK_IMAGE_TILING_LINEAR, we
@@ -105,14 +113,26 @@ vn_wsi_create_scanout_image(struct vn_device *dev,
     * the host compositor.  There can be requirements we fail to meet.  We
     * should require modifier support at some point.
     */
-   VkImageCreateInfo local_create_info = *create_info;
-   local_create_info.tiling = VK_IMAGE_TILING_LINEAR;
-   create_info = &local_create_info;
+   VkImageCreateInfo local_create_info;
+   if (wsi_info->scanout) {
+      local_create_info = *create_info;
+      local_create_info.tiling = VK_IMAGE_TILING_LINEAR;
+      create_info = &local_create_info;
 
-   if (VN_DEBUG(WSI))
-      vn_log(dev->instance, "forcing scanout image linear");
+      if (VN_DEBUG(WSI))
+         vn_log(dev->instance, "forcing scanout image linear");
+   }
 
-   return vn_image_create(dev, create_info, alloc, out_img);
+   struct vn_image *img;
+   VkResult result = vn_image_create(dev, create_info, alloc, &img);
+   if (result != VK_SUCCESS)
+      return result;
+
+   img->is_wsi = true;
+   img->is_prime_blit_src = wsi_info->prime_blit_src;
+
+   *out_img = img;
+   return VK_SUCCESS;
 }
 
 /* surface commands */
@@ -275,6 +295,16 @@ vn_CreateSwapchainKHR(VkDevice device,
    VkResult result =
       wsi_common_create_swapchain(&dev->physical_device->wsi_device, device,
                                   pCreateInfo, alloc, pSwapchain);
+   if (VN_DEBUG(WSI) && result == VK_SUCCESS) {
+      vn_log(dev->instance,
+             "swapchain %p: created with surface %p, min count %d, size "
+             "%dx%d, mode %s, old %p",
+             VN_WSI_PTR(*pSwapchain), VN_WSI_PTR(pCreateInfo->surface),
+             pCreateInfo->minImageCount, pCreateInfo->imageExtent.width,
+             pCreateInfo->imageExtent.height,
+             vk_PresentModeKHR_to_str(pCreateInfo->presentMode),
+             VN_WSI_PTR(pCreateInfo->oldSwapchain));
+   }
 
    return vn_result(dev->instance, result);
 }
@@ -289,6 +319,8 @@ vn_DestroySwapchainKHR(VkDevice device,
       pAllocator ? pAllocator : &dev->base.base.alloc;
 
    wsi_common_destroy_swapchain(device, swapchain, alloc);
+   if (VN_DEBUG(WSI))
+      vn_log(dev->instance, "swapchain %p: destroyed", VN_WSI_PTR(swapchain));
 }
 
 VkResult
@@ -334,6 +366,16 @@ vn_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
       wsi_common_queue_present(&queue->device->physical_device->wsi_device,
                                vn_device_to_handle(queue->device), _queue,
                                queue->family, pPresentInfo);
+   if (VN_DEBUG(WSI) && result != VK_SUCCESS) {
+      for (uint32_t i = 0; i < pPresentInfo->swapchainCount; i++) {
+         const VkResult r =
+            pPresentInfo->pResults ? pPresentInfo->pResults[i] : result;
+         vn_log(queue->device->instance,
+                "swapchain %p: presented image %d: %s",
+                VN_WSI_PTR(pPresentInfo->pSwapchains[i]),
+                pPresentInfo->pImageIndices[i], vk_Result_to_str(r));
+      }
+   }
 
    return vn_result(queue->device->instance, result);
 }
@@ -347,6 +389,12 @@ vn_AcquireNextImage2KHR(VkDevice device,
 
    VkResult result = wsi_common_acquire_next_image2(
       &dev->physical_device->wsi_device, device, pAcquireInfo, pImageIndex);
+   if (VN_DEBUG(WSI) && result != VK_SUCCESS) {
+      const int idx = result >= VK_SUCCESS ? *pImageIndex : -1;
+      vn_log(dev->instance, "swapchain %p: acquired image %d: %s",
+             VN_WSI_PTR(pAcquireInfo->swapchain), idx,
+             vk_Result_to_str(result));
+   }
 
    /* XXX this relies on implicit sync */
    if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {

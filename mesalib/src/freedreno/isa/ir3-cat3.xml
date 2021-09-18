@@ -49,7 +49,17 @@ SOFTWARE.
 	</encode>
 </bitset>
 
-<bitset name="#cat3-src-const" extends="#cat3-src">
+
+<bitset name="#cat3-src-const-or-immed" extends="#cat3-src">
+	<override>
+		<expr>{IMMED_ENCODING}</expr>
+		<display>
+			{IMMED}
+		</display>
+		<field name="IMMED" low="0" high="11" type="uint"/>
+		<pattern pos="12">1</pattern>
+	</override>
+
 	<display>
 		{HALF}c{CONST}.{SWIZ}
 	</display>
@@ -59,6 +69,7 @@ SOFTWARE.
 	<encode>
 		<map name="CONST">src->num >> 2</map>
 		<map name="SWIZ">src->num &amp; 0x3</map>
+		<map name="IMMED">src->uim_val</map>
 	</encode>
 </bitset>
 
@@ -85,7 +96,7 @@ SOFTWARE.
 	<pattern pos="10">1</pattern>
 </bitset>
 
-<bitset name="#instruction-cat3" extends="#instruction">
+<bitset name="#instruction-cat3-base" extends="#instruction">
 	<override expr="#cat2-cat3-nop-encoding">
 		<display>
 			{SY}{SS}{JP}{SAT}(nop{NOP}) {UL}{NAME} {DST_HALF}{DST}, {SRC1_NEG}{SRC1}, {SRC2_NEG}{HALF}{SRC2}, {SRC3_NEG}{SRC3}
@@ -95,19 +106,8 @@ SOFTWARE.
 	<display>
 		{SY}{SS}{JP}{SAT}{REPEAT}{UL}{NAME} {DST_HALF}{DST}, {SRC1_NEG}{SRC1_R}{SRC1}, {SRC2_NEG}{SRC2_R}{HALF}{SRC2}, {SRC3_NEG}{SRC3_R}{SRC3}
 	</display>
-	<field name="SRC1" low="0" high="12" type="#cat3-src">
-		<param name="HALF"/>
-	</field>
-	<!--
-		Note b13 triggers some different disasm, so possibly this
-		becomes OPC_HI ?
-	 -->
-	<pattern pos="13">x</pattern>
 	<field name="SRC1_NEG" pos="14" type="bool" display="(neg)"/>
 	<field name="SRC2_R" pos="15" type="bool" display="(r)"/>
-	<field name="SRC3" low="16" high="28" type="#cat3-src">
-		<param name="HALF"/>
-	</field>
 	<field name="SRC3_R" pos="29" type="bool" display="(r)"/>
 	<field name="SRC2_NEG" pos="30" type="bool" display="(neg)"/>
 	<field name="SRC3_NEG" pos="31" type="bool" display="(neg)"/>
@@ -132,18 +132,72 @@ SOFTWARE.
 	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
 	<derived name="DST_HALF" expr="#dest-half" type="bool" display="h"/>
 	<encode>
-		<map name="SRC1_NEG">!!(src->regs[1]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
+		<map name="SRC1_NEG">!!(src->srcs[0]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
 		<map name="SRC1_R">extract_SRC1_R(src)</map>
 		<map name="SRC2_R">extract_SRC2_R(src)</map>
-		<map name="SRC3_R">!!(src->regs[3]->flags &amp; IR3_REG_R)</map>
-		<map name="SRC2_NEG">!!(src->regs[2]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
-		<map name="SRC3_NEG">!!(src->regs[3]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
-		<map name="SRC1">src->regs[1]</map>
+		<map name="SRC3_R">!!(src->srcs[2]->flags &amp; IR3_REG_R)</map>
+		<map name="SRC2_NEG">!!(src->srcs[1]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
+		<map name="SRC3_NEG">!!(src->srcs[2]->flags &amp; (IR3_REG_FNEG | IR3_REG_SNEG | IR3_REG_BNOT))</map>
+		<map name="SRC1">src->srcs[0]</map>
 		<map name="DST_CONV">
-			((src->regs[0]->num >> 2) == 62) ? 0 :
-			!!((src->regs[1]->flags ^ src->regs[0]->flags) &amp; IR3_REG_HALF)
+			((src->dsts[0]->num >> 2) == 62) ? 0 :
+			!!((src->srcs[0]->flags ^ src->dsts[0]->flags) &amp; IR3_REG_HALF)
 		</map>
 	</encode>
+</bitset>
+
+<bitset name="#instruction-cat3" extends="#instruction-cat3-base">
+	<pattern pos="13">0</pattern>
+
+	<derived name="IMMED_ENCODING" expr="#false" type="bool" display="h"/>
+
+	<field name="SRC1" low="0" high="12" type="#cat3-src">
+		<param name="HALF"/>
+		<param name="IMMED_ENCODING"/>
+	</field>
+	<field name="SRC3" low="16" high="28" type="#cat3-src">
+		<param name="HALF"/>
+		<param name="IMMED_ENCODING"/>
+	</field>
+</bitset>
+
+<bitset name="#instruction-cat3-alt" extends="#instruction-cat3-base">
+	<doc>
+		The difference is that this cat3 version does not support plain
+		const registers as src1/src3 but does support inmidiate values.
+		On the other hand it still supports relative gpr and consts.
+	</doc>
+
+	<pattern pos="13">1</pattern>
+
+	<derived name="IMMED_ENCODING" expr="#true" type="bool" display="h"/>
+
+	<field name="SRC1" low="0" high="12" type="#cat3-src">
+		<param name="HALF"/>
+		<param name="IMMED_ENCODING"/>
+	</field>
+	<field name="SRC3" low="16" high="28" type="#cat3-src">
+		<param name="HALF"/>
+		<param name="IMMED_ENCODING"/>
+	</field>
+
+	<encode>
+		<map name="SRC3">src->srcs[2]</map>
+		<map name="DST_CONV">false</map>
+	</encode>
+</bitset>
+
+<!-- TODO find shlg.b32 -->
+<bitset name="shlg.b16" extends="#instruction-cat3-alt">
+	<doc>
+		(src2 &lt;&lt; src1) | src3
+	</doc>
+
+	<!-- TODO check older gens -->
+	<gen min="600"/>
+
+	<pattern low="55" high="58">1011</pattern>   <!-- OPC -->
+	<derived name="FULL" expr="#false" type="bool"/>
 </bitset>
 
 <bitset name="mad.u16" extends="#instruction-cat3">

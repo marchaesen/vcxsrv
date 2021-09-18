@@ -28,11 +28,7 @@
  * may be errata requiring a workaround, or features. We're trying to be
  * quirk-positive here; quirky is the best! */
 
-/* Whether an explicit LOD is required via textureLod in a vertex shader. If
- * set, vertex texturing will *always* textureLod. If unset, normal texture ops
- * may be emitted in a vertex shader */
-
-#define MIDGARD_EXPLICIT_LOD (1 << 0)
+/* bit 0 unused */
 
 /* Whether output texture registers (normally r28/r29) overlap with work
  * registers r0/r1 and input texture registers (also normally r28/r29) overlap
@@ -90,12 +86,11 @@ midgard_get_quirks(unsigned gpu_id)
                 return MIDGARD_INTERPIPE_REG_ALIASING;
 
         case 0x750:
-                return MIDGARD_EXPLICIT_LOD |
-                        MIDGARD_NO_UPPER_ALU;
+                return MIDGARD_NO_UPPER_ALU;
 
         case 0x860:
         case 0x880:
-                return MIDGARD_EXPLICIT_LOD;
+                return 0;
 
         default:
                 unreachable("Invalid Midgard GPU ID");

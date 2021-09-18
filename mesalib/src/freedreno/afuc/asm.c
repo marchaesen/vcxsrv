@@ -37,15 +37,9 @@
 #include "afuc.h"
 #include "asm.h"
 #include "parser.h"
-#include "rnn.h"
-#include "rnndec.h"
+#include "util.h"
 
 int gpuver;
-
-static struct rnndeccontext *ctx;
-static struct rnndb *db;
-static struct rnndomain *control_regs;
-struct rnndomain *dom[2];
 
 /* bit lame to hard-code max but fw sizes are small */
 static struct asm_instruction instructions[0x2000];
@@ -329,52 +323,22 @@ emit_instructions(int outfd)
    }
 }
 
-static int
-find_enum_val(struct rnnenum *en, const char *name)
-{
-   int i;
-
-   for (i = 0; i < en->valsnum; i++)
-      if (en->vals[i]->valvalid && !strcmp(name, en->vals[i]->name))
-         return en->vals[i]->value;
-
-   return -1;
-}
-
-static int
-find_reg(struct rnndomain *dom, const char *name)
-{
-   int i;
-
-   for (i = 0; i < dom->subelemsnum; i++)
-      if (!strcmp(name, dom->subelems[i]->name))
-         return dom->subelems[i]->offset;
-
-   return -1;
-}
-
 unsigned
 parse_control_reg(const char *name)
 {
    /* skip leading "@" */
-   int val = find_reg(control_regs, name + 1);
-   if (val < 0) {
-      printf("invalid control reg: %s\n", name);
-      exit(2);
-   }
-   return (unsigned)val;
+   return afuc_control_reg(name + 1);
 }
 
 static void
 emit_jumptable(int outfd)
 {
-   struct rnnenum *en = rnn_findenum(ctx->db, "adreno_pm4_type3_packets");
    uint32_t jmptable[0x80] = {0};
    int i;
 
    for (i = 0; i < num_labels; i++) {
       struct asm_label *label = &labels[i];
-      int id = find_enum_val(en, label->label);
+      int id = afuc_pm4_id(label->label);
 
       /* if it doesn't match a known PM4 packet-id, try to match UNKN%d: */
       if (id < 0) {
@@ -403,7 +367,7 @@ int
 main(int argc, char **argv)
 {
    FILE *in;
-   char *file, *outfile, *name, *control_reg_name;
+   char *file, *outfile;
    int c, ret, outfd;
 
    /* Argument parsing: */
@@ -448,32 +412,10 @@ main(int argc, char **argv)
       }
    }
 
-   switch (gpuver) {
-   case 6:
-      name = "A6XX";
-      control_reg_name = "A6XX_CONTROL_REG";
-      break;
-   case 5:
-      name = "A5XX";
-      control_reg_name = "A5XX_CONTROL_REG";
-      break;
-   default:
-      fprintf(stderr, "unknown GPU version!\n");
+   ret = afuc_util_init(gpuver, false);
+   if (ret < 0) {
       usage();
    }
-
-   rnn_init();
-   db = rnn_newdb();
-
-   ctx = rnndec_newcontext(db);
-
-   rnn_parsefile(db, "adreno.xml");
-   rnn_prepdb(db);
-   if (db->estatus)
-      errx(db->estatus, "failed to parse register database");
-   dom[0] = rnn_finddomain(db, name);
-   dom[1] = rnn_finddomain(db, "AXXX");
-   control_regs = rnn_finddomain(db, control_reg_name);
 
    ret = yyparse();
    if (ret) {

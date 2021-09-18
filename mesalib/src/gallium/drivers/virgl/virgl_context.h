@@ -85,6 +85,7 @@ struct virgl_context {
    struct virgl_staging_mgr staging;
    bool encoded_transfers;
    bool supports_staging;
+   uint8_t patch_vertices;
 
    struct pipe_vertex_buffer vertex_buffer[PIPE_MAX_ATTRIBS];
    unsigned num_vertex_buffers;

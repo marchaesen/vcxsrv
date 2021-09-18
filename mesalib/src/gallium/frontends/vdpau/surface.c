@@ -260,7 +260,7 @@ vlVdpVideoSurfaceGetBitsYCbCr(VdpVideoSurface surface,
          struct pipe_transfer *transfer;
          uint8_t *map;
 
-         map = pipe->transfer_map(pipe, sv->texture, 0,
+         map = pipe->texture_map(pipe, sv->texture, 0,
                                        PIPE_MAP_READ, &box, &transfer);
          if (!map) {
             mtx_unlock(&vlsurface->device->mutex);
@@ -285,7 +285,7 @@ vlVdpVideoSurfaceGetBitsYCbCr(VdpVideoSurface surface,
                            box.width, box.height, map, transfer->stride, 0, 0);
          }
 
-         pipe_transfer_unmap(pipe, transfer);
+         pipe_texture_unmap(pipe, transfer);
       }
    }
    mtx_unlock(&vlsurface->device->mutex);
@@ -400,7 +400,7 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
             struct pipe_transfer *transfer;
             uint8_t *map;
 
-            map = pipe->transfer_map(pipe, tex, 0, usage,
+            map = pipe->texture_map(pipe, tex, 0, usage,
                                      &dst_box, &transfer);
             if (!map) {
                mtx_unlock(&p_surf->device->mutex);
@@ -411,7 +411,7 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
                                   i, j, transfer->stride, tex->array_size,
                                   map, dst_box.width, dst_box.height);
 
-            pipe_transfer_unmap(pipe, transfer);
+            pipe_texture_unmap(pipe, transfer);
          } else {
             pipe->texture_subdata(pipe, tex, 0,
                                   PIPE_MAP_WRITE, &dst_box,

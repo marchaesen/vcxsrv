@@ -222,6 +222,8 @@ void GLAPIENTRY
 _mesa_GetnUniformdvARB(GLuint, GLint, GLsizei, GLdouble *);
 void GLAPIENTRY
 _mesa_GetUniformdv(GLuint, GLint, GLdouble *);
+GLint
+_mesa_GetUniformLocation_impl(GLuint, const GLcharARB *, bool glthread);
 GLint GLAPIENTRY
 _mesa_GetUniformLocation(GLuint, const GLcharARB *);
 GLint GLAPIENTRY

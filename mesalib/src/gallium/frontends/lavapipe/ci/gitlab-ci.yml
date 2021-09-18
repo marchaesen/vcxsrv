@@ -1,23 +1,39 @@
+.lavapipe-test:
+  stage: software-renderer
+  extends:
+    - .test-vk
+    - .lavapipe-rules
+    - .deqp-test-vk
+  variables:
+    GPU_VERSION: lvp
+    VK_DRIVER: lvp
+    DEQP_EXPECTED_RENDERER: llvmpipe
+
 lavapipe-vk:
   stage: software-renderer
   extends:
-    - .test-vk
-    - .lavapipe-rules
-    - .deqp-test-vk
+    - .lavapipe-test
   variables:
-    GPU_VERSION: lvp
-    VK_DRIVER: lvp
     DEQP_FRACTION: 10
 
 lavapipe-nir-stress:
-  stage: software-renderer
   extends:
-    - .test-vk
-    - .lavapipe-rules
-    - .deqp-test-vk
+    - .lavapipe-test
   variables:
-    GPU_VERSION: lvp
-    VK_DRIVER: lvp
     DEQP_FRACTION: 100
     NIR_TEST_CLONE: "true"
     NIR_TEST_SERIALIZE: "true"
+
+lavapipe-vk-asan:
+  extends:
+    - .lavapipe-test
+  variables:
+    GPU_VERSION: lvp-asan
+    DEQP_FRACTION: 50
+    TEST_LD_PRELOAD: libasan.so.6
+    # Disable the leak checks, since the library gets dlclose()d and thus get
+    # totally useless leak reports.  We can still catch buffer overflows.
+    ASAN_OPTIONS: "detect_leaks=0"
+  needs:
+    - debian/x86_test-vk
+    - debian-testing-asan

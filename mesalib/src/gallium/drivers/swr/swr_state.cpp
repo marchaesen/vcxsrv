@@ -301,6 +301,7 @@ swr_set_sampler_views(struct pipe_context *pipe,
                       unsigned start,
                       unsigned num,
                       unsigned unbind_num_trailing_slots,
+                      bool take_ownership,
                       struct pipe_sampler_view **views)
 {
    struct swr_context *ctx = swr_context(pipe);
@@ -314,8 +315,14 @@ swr_set_sampler_views(struct pipe_context *pipe,
    /* set the new sampler views */
    ctx->num_sampler_views[shader] = num;
    for (i = 0; i < num; i++) {
-      pipe_sampler_view_reference(&ctx->sampler_views[shader][start + i],
-                                  views[i]);
+      if (take_ownership) {
+         pipe_sampler_view_reference(&ctx->sampler_views[shader][start + i],
+                                     NULL);
+         ctx->sampler_views[shader][start + i] = views[i];
+      } else {
+         pipe_sampler_view_reference(&ctx->sampler_views[shader][start + i],
+                                     views[i]);
+      }
    }
    for (; i < num + unbind_num_trailing_slots; i++) {
       pipe_sampler_view_reference(&ctx->sampler_views[shader][start + i],
@@ -596,11 +603,11 @@ swr_create_vertex_elements_state(struct pipe_context *pipe,
          // XXX: we should do this keyed on the VS usage info
 
          const struct util_format_description *desc =
-            util_format_description(attribs[i].src_format);
+            util_format_description((enum pipe_format)attribs[i].src_format);
 
          velems->fsState.layout[i].AlignedByteOffset = attribs[i].src_offset;
          velems->fsState.layout[i].Format =
-            mesa_to_swr_format(attribs[i].src_format);
+            mesa_to_swr_format((enum pipe_format)attribs[i].src_format);
          velems->fsState.layout[i].StreamIndex =
             attribs[i].vertex_buffer_index;
          velems->fsState.layout[i].InstanceEnable =
@@ -627,7 +634,7 @@ swr_create_vertex_elements_state(struct pipe_context *pipe,
 
          /* Calculate the pitch of each stream */
          const SWR_FORMAT_INFO &swr_desc = GetFormatInfo(
-            mesa_to_swr_format(attribs[i].src_format));
+            mesa_to_swr_format((enum pipe_format)attribs[i].src_format));
          velems->stream_pitch[attribs[i].vertex_buffer_index] += swr_desc.Bpp;
 
          if (attribs[i].instance_divisor != 0) {
@@ -1651,7 +1658,7 @@ swr_update_derived(struct pipe_context *pipe,
                      SWR_NEW_SAMPLER |
                      SWR_NEW_SAMPLER_VIEW)) {
       if (ctx->tcs) {
-         ctx->tcs->vertices_per_patch = p_draw_info->vertices_per_patch;
+         ctx->tcs->vertices_per_patch = ctx->patch_vertices;
 
          swr_jit_tcs_key key;
          swr_generate_tcs_key(key, ctx, ctx->tcs);
@@ -2155,6 +2162,14 @@ swr_set_so_targets(struct pipe_context *pipe,
    swr->dirty |= SWR_NEW_SO;
 }
 
+static void
+swr_set_patch_vertices(struct pipe_context *pipe, uint8_t patch_vertices)
+{
+   struct swr_context *swr = swr_context(pipe);
+
+   swr->patch_vertices = patch_vertices;
+}
+
 
 void
 swr_state_init(struct pipe_context *pipe)
@@ -2223,4 +2238,6 @@ swr_state_init(struct pipe_context *pipe)
    pipe->create_stream_output_target = swr_create_so_target;
    pipe->stream_output_target_destroy = swr_destroy_so_target;
    pipe->set_stream_output_targets = swr_set_so_targets;
+
+   pipe->set_patch_vertices = swr_set_patch_vertices;
 }

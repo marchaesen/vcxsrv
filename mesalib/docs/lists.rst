@@ -46,8 +46,8 @@ archives are still available, however:
 IRC
 ---
 
-join `#dri-devel channel <irc://chat.freenode.net#dri-devel>`__ on
-`irc.freenode.net <https://webchat.freenode.net/>`__
+join `#dri-devel channel <irc://irc.oftc.net/dri-devel>`__ on
+`irc.oftc.net <https://webchat.oftc.net/>`__
 
 OpenGL Forums
 -------------

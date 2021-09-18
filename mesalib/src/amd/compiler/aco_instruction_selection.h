@@ -22,10 +22,16 @@
  *
  */
 
+#ifndef ACO_INSTRUCTION_SELECTION_H
+#define ACO_INSTRUCTION_SELECTION_H
+
+#include "aco_ir.h"
+
+#include "vulkan/radv_shader_args.h"
+
 #include <array>
 #include <unordered_map>
-#include "aco_ir.h"
-#include "vulkan/radv_shader_args.h"
+#include <vector>
 
 namespace aco {
 
@@ -33,32 +39,22 @@ struct shader_io_state {
    uint8_t mask[VARYING_SLOT_MAX];
    Temp temps[VARYING_SLOT_MAX * 4u];
 
-   shader_io_state() {
+   shader_io_state()
+   {
       memset(mask, 0, sizeof(mask));
       std::fill_n(temps, VARYING_SLOT_MAX * 4u, Temp(0, RegClass::v1));
    }
 };
 
-enum resource_flags {
-   has_glc_vmem_load = 0x1,
-   has_nonglc_vmem_load = 0x2,
-   has_glc_vmem_store = 0x4,
-   has_nonglc_vmem_store = 0x8,
-
-   has_vmem_store = has_glc_vmem_store | has_nonglc_vmem_store,
-
-   buffer_is_restrict = 0x10,
-};
-
 struct isel_context {
-   const struct radv_nir_compiler_options *options;
-   struct radv_shader_args *args;
-   Program *program;
-   nir_shader *shader;
+   const struct radv_nir_compiler_options* options;
+   struct radv_shader_args* args;
+   Program* program;
+   nir_shader* shader;
    uint32_t constant_data_offset;
-   Block *block;
+   Block* block;
    uint32_t first_temp_id;
-   std::unordered_map<unsigned, std::array<Temp,NIR_MAX_VEC_COMPONENTS>> allocated_vec;
+   std::unordered_map<unsigned, std::array<Temp, NIR_MAX_VEC_COMPONENTS>> allocated_vec;
    Stage stage;
    struct {
       bool has_branch;
@@ -71,7 +67,8 @@ struct isel_context {
       struct {
          bool is_divergent = false;
       } parent_if;
-      bool exec_potentially_empty_discard = false; /* set to false when loop_nest_depth==0 && parent_if.is_divergent==false */
+      bool exec_potentially_empty_discard =
+         false; /* set to false when loop_nest_depth==0 && parent_if.is_divergent==false */
       uint16_t exec_potentially_empty_break_depth = UINT16_MAX;
       /* Set to false when loop_nest_depth==exec_potentially_empty_break_depth
        * and parent_if.is_divergent==false. Called _break but it's also used for
@@ -81,11 +78,8 @@ struct isel_context {
    } cf_info;
 
    /* NIR range analysis. */
-   struct hash_table *range_ht;
+   struct hash_table* range_ht;
    nir_unsigned_upper_bound_config ub_config;
-
-   uint32_t resource_flag_offsets[MAX_SETS];
-   std::vector<uint8_t> buffer_resource_flags;
 
    Temp arg_temps[AC_MAX_ARGS];
 
@@ -93,16 +87,7 @@ struct isel_context {
    Temp persp_centroid, linear_centroid;
 
    /* GS inputs */
-   bool ngg_nogs_early_prim_export = false;
-   bool ngg_gs_early_alloc = false;
-   bool ngg_gs_known_vtxcnt[4] = {false, false, false, false};
    Temp gs_wave_id;
-   unsigned ngg_gs_emit_addr = 0;
-   unsigned ngg_gs_emit_vtx_bytes = 0;
-   unsigned ngg_gs_scratch_addr = 0;
-   unsigned ngg_gs_primflags_offset = 0;
-   int ngg_gs_const_vtxcnt[4];
-   int ngg_gs_const_prmcnt[4];
 
    /* VS output information */
    bool export_clip_dists;
@@ -119,73 +104,20 @@ struct isel_context {
    shader_io_state outputs;
 };
 
-inline Temp get_arg(isel_context *ctx, struct ac_arg arg)
+inline Temp
+get_arg(isel_context* ctx, struct ac_arg arg)
 {
    assert(arg.used);
    return ctx->arg_temps[arg.arg_index];
 }
 
-inline void get_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def, unsigned access,
-                                      uint8_t **flags, uint32_t *count)
-{
-   nir_binding binding = {0};
-   /* global resources (def=NULL) are considered aliasing with all other buffers and
-    * buffer images */
-   // TODO: only merge flags of resources which can really alias.
-   if (def)
-      binding = nir_chase_binding(nir_src_for_ssa(def));
+void init_context(isel_context* ctx, nir_shader* shader);
+void cleanup_context(isel_context* ctx);
 
-   if (binding.var) {
-      const glsl_type *type = binding.var->type->without_array();
-      assert(type->is_image());
-      if (type->sampler_dimensionality != GLSL_SAMPLER_DIM_BUF) {
-         *flags = NULL;
-         *count = 0;
-         return;
-      }
-   }
+isel_context setup_isel_context(Program* program, unsigned shader_count,
+                                struct nir_shader* const* shaders, ac_shader_config* config,
+                                struct radv_shader_args* args, bool is_gs_copy_shader);
 
-   if (!binding.success) {
-      *flags = ctx->buffer_resource_flags.data();
-      *count = ctx->buffer_resource_flags.size();
-      return;
-   }
+} // namespace aco
 
-   unsigned set_offset = ctx->resource_flag_offsets[binding.desc_set];
-
-   if (!(ctx->buffer_resource_flags[set_offset + binding.binding] & buffer_is_restrict)) {
-      /* Non-restrict buffers alias only with other non-restrict buffers.
-       * We reserve flags[0] for these. */
-      *flags = ctx->buffer_resource_flags.data();
-      *count = 1;
-      return;
-   }
-
-   *flags = ctx->buffer_resource_flags.data() + set_offset + binding.binding;
-   *count = 1;
-}
-
-inline uint8_t get_all_buffer_resource_flags(isel_context *ctx, nir_ssa_def *def, unsigned access)
-{
-   uint8_t *flags;
-   uint32_t count;
-   get_buffer_resource_flags(ctx, def, access, &flags, &count);
-
-   uint8_t res = 0;
-   for (unsigned i = 0; i < count; i++)
-      res |= flags[i];
-   return res;
-}
-
-void init_context(isel_context *ctx, nir_shader *shader);
-void cleanup_context(isel_context *ctx);
-
-isel_context
-setup_isel_context(Program* program,
-                   unsigned shader_count,
-                   struct nir_shader *const *shaders,
-                   ac_shader_config* config,
-                   struct radv_shader_args *args,
-                   bool is_gs_copy_shader);
-
-}
+#endif /* ACO_INSTRUCTION_SELECTION_H */

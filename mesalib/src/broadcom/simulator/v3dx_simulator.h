@@ -44,3 +44,9 @@ int v3dX(simulator_submit_tfu_ioctl)(struct v3d_hw *v3d,
 int v3dX(simulator_submit_csd_ioctl)(struct v3d_hw *v3d,
                                      struct drm_v3d_submit_csd *args,
                                      uint32_t gmp_offset);
+void v3dX(simulator_perfmon_start)(struct v3d_hw *v3d,
+                                   uint32_t ncounters,
+                                   uint8_t *events);
+void v3dX(simulator_perfmon_stop)(struct v3d_hw *v3d,
+                                  uint32_t ncounters,
+                                  uint64_t *values);

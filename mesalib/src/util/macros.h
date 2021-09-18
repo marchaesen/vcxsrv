@@ -30,6 +30,8 @@
 #include "c99_compat.h"
 #include "c11_compat.h"
 
+#include <stdint.h>
+
 /* Compute the size of an array */
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -325,6 +327,13 @@ do {                       \
 #define ATTRIBUTE_NOINLINE
 #endif
 
+/* Use as: enum name { X, Y } ENUM_PACKED; */
+#if defined(__GNUC__)
+#define ENUM_PACKED __attribute__((packed))
+#else
+#define ENUM_PACKED
+#endif
+
 
 /**
  * Check that STRUCT::FIELD can hold MAXVAL.  We use a lot of bitfields
@@ -391,6 +400,30 @@ do {                       \
 /** Set count bits starting from bit b  */
 #define BITFIELD64_RANGE(b, count) \
    (BITFIELD64_MASK((b) + (count)) & ~BITFIELD64_MASK(b))
+
+static inline int64_t
+u_intN_max(unsigned bit_size)
+{
+   assert(bit_size <= 64 && bit_size > 0);
+   return INT64_MAX >> (64 - bit_size);
+}
+
+static inline int64_t
+u_intN_min(unsigned bit_size)
+{
+   /* On 2's compliment platforms, which is every platform Mesa is likely to
+    * every worry about, stdint.h generally calculated INT##_MIN in this
+    * manner.
+    */
+   return (-u_intN_max(bit_size)) - 1;
+}
+
+static inline uint64_t
+u_uintN_max(unsigned bit_size)
+{
+   assert(bit_size <= 64 && bit_size > 0);
+   return UINT64_MAX >> (64 - bit_size);
+}
 
 /* TODO: In future we should try to move this to u_debug.h once header
  * dependencies are reorganised to allow this.

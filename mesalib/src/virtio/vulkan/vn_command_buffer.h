@@ -19,6 +19,8 @@ struct vn_command_pool {
    struct vn_object_base base;
 
    VkAllocationCallbacks allocator;
+   uint32_t queue_family_index;
+
    struct list_head command_buffers;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_command_pool,
@@ -33,17 +35,28 @@ enum vn_command_buffer_state {
    VN_COMMAND_BUFFER_STATE_INVALID,
 };
 
+struct vn_command_buffer_builder {
+   /* for scrubbing VK_IMAGE_LAYOUT_PRESENT_SRC_KHR */
+   uint32_t image_barrier_count;
+   VkImageMemoryBarrier *image_barriers;
+
+   const struct vn_render_pass *render_pass;
+   const struct vn_framebuffer *framebuffer;
+   const struct vn_image **present_src_images;
+};
+
 struct vn_command_buffer {
    struct vn_object_base base;
 
    struct vn_device *device;
 
-   /* for scrubbing VK_IMAGE_LAYOUT_PRESENT_SRC_KHR */
    VkAllocationCallbacks allocator;
-   uint32_t image_barrier_count;
-   VkImageMemoryBarrier *image_barriers;
+   VkCommandBufferLevel level;
+   uint32_t queue_family_index;
 
    struct list_head head;
+
+   struct vn_command_buffer_builder builder;
 
    enum vn_command_buffer_state state;
    struct vn_cs_encoder cs;

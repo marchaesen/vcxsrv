@@ -310,7 +310,7 @@ bi_pack_${'fma' if unit == '*' else 'add'}(bi_instr *I,
     enum bifrost_packed_src src3)
 {
     if (!I)
-        return bi_pack_${opname_to_c(unit + 'NOP.i32')}(I, src0, src1, src2, src3);
+        return bi_pack_${opname_to_c(unit + 'NOP')}(I, src0, src1, src2, src3);
 
 % if unit == '*':
     assert((1 << src0) & 0xfb);

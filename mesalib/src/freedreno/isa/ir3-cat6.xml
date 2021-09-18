@@ -42,84 +42,148 @@ SOFTWARE.
 	<!-- TODO pull more fields up to this level, when they are common across sub-encodings -->
 </bitset>
 
-<bitset name="ldg" extends="#instruction-cat6-a3xx">
-	<doc>
-		LoaD Global
-	</doc>
-	<display>
-		{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}+{SRC2}], {SIZE}
-	</display>
-
-	<override>
-		<display>
-			{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}{OFF}], {SIZE}
-		</display>
-		<expr>!{SRC2_REG}</expr>
-		<field low="1" high="13" name="OFF" type="offset"/>
-	</override>
-
+<bitset name="#instruction-cat6-ldg" extends="#instruction-cat6-a3xx">
 	<pattern pos="0"           >1</pattern>
-	<field   low="1"  high="8"  name="SRC2"  type="#reg-gpr"/>
-	<assert  low="9"  high="13">00000</assert>
 	<field   low="14" high="21" name="SRC1" type="#reg-gpr"/>
-	<field   pos="22"           name="SRC2_REG" type="bool"/>
 	<pattern pos="23"          >1</pattern>
 	<field   low="24" high="31" name="SIZE" type="uint"/>
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
 	<pattern low="40" high="48">xxxxxxxxx</pattern>
 	<pattern low="52" high="53">00</pattern>
 	<pattern low="54" high="58">00000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="ldg" extends="#instruction-cat6-ldg">
+	<doc>
+		LoaD Global
+	</doc>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}{OFF}], {SIZE}
+	</display>
+
+	<field low="1" high="13" name="OFF" type="offset"/>
+	<pattern pos="22"          >0</pattern> <!-- Imm offset ldg form -->
+
 	<encode>
-		<map name="SRC2_REG">!(src->regs[2]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC2">src->regs[2]</map>
-		<map name="OFF">src->regs[2]->iim_val</map>
-		<map name="SIZE">src->regs[3]->uim_val</map>
+		<map name="OFF">src->srcs[1]->iim_val</map>
+		<map name="SIZE">src->srcs[2]->uim_val</map>
 	</encode>
 </bitset>
 
-<bitset name="stg" extends="#instruction-cat6-a3xx">
+<bitset name="ldg.a" extends="#instruction-cat6-ldg">
 	<doc>
-		STore Global
+		LoaD Global
 	</doc>
+
+	<gen min="600"/>
+
 	<display>
-		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}], {SRC3}, {SIZE}
+		{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}+({SRC2}{OFF})&lt;&lt;{SRC2_BYTE_SHIFT}], {SIZE}
 	</display>
 
 	<override>
 		<display>
-			{SY}{JP}{NAME}.{TYPE} g[{SRC1}{OFF}], {SRC3}, {SIZE}
+			{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}+{SRC2}&lt;&lt;{SRC2_BYTE_SHIFT}{OFF}&lt;&lt;2], {SIZE}
 		</display>
-		<expr>!{G}</expr>
-		<derived name="OFF" width="13" type="offset">
-			<expr>({OFF_HI} &lt;&lt; 8) | {OFF_LO}</expr>
-		</derived>
-		<field   low="9"  high="13" name="OFF_HI" type="uint"/>
-		<field   low="32" high="39" name="OFF_LO" type="uint"/>
+		<expr>{SRC2_ADD_DWORD_SHIFT} > 0</expr>
 	</override>
 
-	<pattern pos="0"           >x</pattern>
-	<field   low="1"  high="8"  name="SRC3" type="#reg-gpr"/>
-	<assert  low="9"  high="13">00000</assert>  <!-- OFF_HI -->
-	<pattern low="14" high="21">xxxxxxxx</pattern>
-	<pattern low="22" high="23">1x</pattern>
-	<field   low="24" high="31" name="SIZE" type="uint"/>
-	<field   low="32" high="39" name="SRC2" type="#reg-gpr"/>
-	<field   pos="40"           name="DST_OFF" type="bool"/>
-	<field   low="41" high="48" name="SRC1" type="#reg-gpr"/>
-	<field   pos="52"           name="G" type="bool"/>
-	<pattern pos="53"          >x</pattern>
-	<pattern low="54" high="58">00011</pattern>  <!-- OPC -->
+	<field   low="1"  high="8"  name="SRC2"  type="#reg-gpr"/>
+	<field   low="9"  high="10" name="OFF" type="uoffset"/>
+	<assert  pos="11"          >0</assert>
+	<field   low="12" high="13" name="SRC2_ADD_DWORD_SHIFT" type="uint"/>
+	<pattern pos="22"          >1</pattern> <!-- Reg offset ldg form -->
+
+	<derived name="SRC2_BYTE_SHIFT" width="3" type="uint">
+		<expr>{SRC2_ADD_DWORD_SHIFT} + 2</expr>
+	</derived>
+
 	<encode>
-		<map name="SIZE">src->regs[3]->uim_val</map>
-		<map name="SRC2">src->regs[4]</map>
-		<map name="DST_OFF" force="true">1</map>
-		<map name="SRC3">src->regs[2]</map>
-		<map name="G">(src->flags &amp; IR3_INSTR_G) &amp;&amp; !(src->regs[4]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="OFF_LO">src->cat6.dst_offset</map>
-		<map name="OFF_HI">src->cat6.dst_offset >> 8</map>
+		<map name="SRC2">src->srcs[1]</map>
+		<map name="SRC2_ADD_DWORD_SHIFT">src->srcs[2]->uim_val</map>
+		<map name="OFF">src->srcs[3]->uim_val</map>
+		<map name="SIZE">src->srcs[4]->uim_val</map>
 	</encode>
 </bitset>
 
+<bitset name="#instruction-cat6-stg" extends="#instruction-cat6-a3xx">
+	<pattern pos="0"           >x</pattern>
+	<field   low="1"  high="8"  name="SRC3" type="#reg-gpr"/>
+	<pattern low="14" high="21">xxxxxxxx</pattern>
+	<pattern low="22" high="23">1x</pattern>
+	<field   low="24" high="31" name="SIZE" type="uint"/>
+	<field   pos="40"           name="DST_OFF" type="bool"/>
+	<field   low="41" high="48" name="SRC1" type="#reg-gpr"/>
+	<pattern pos="53"          >x</pattern>
+	<pattern low="54" high="58">00011</pattern>  <!-- OPC -->
+
+	<encode>
+		<map name="DST_OFF" force="true">1</map>
+	</encode>
+</bitset>
+
+<bitset name="stg" extends="#instruction-cat6-stg">
+	<doc>
+		STore Global
+	</doc>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} g[{SRC1}{OFF}], {SRC3}, {SIZE}
+	</display>
+
+	<derived name="OFF" width="13" type="offset">
+		<expr>({OFF_HI} &lt;&lt; 8) | {OFF_LO}</expr>
+	</derived>
+
+	<field   low="9"  high="13" name="OFF_HI" type="uint"/>
+	<field   low="32" high="39" name="OFF_LO" type="uint"/>
+	<pattern pos="52" >0</pattern> <!-- Imm offset stg form -->
+
+	<encode>
+		<map name="OFF_LO">src->srcs[1]->iim_val</map>
+		<map name="OFF_HI">src->srcs[1]->iim_val >> 8</map>
+		<map name="SRC3">src->srcs[2]</map>
+		<map name="SIZE">src->srcs[3]->uim_val</map>
+	</encode>
+</bitset>
+
+<bitset name="stg.a" extends="#instruction-cat6-stg">
+	<doc>
+		STore Global
+	</doc>
+
+	<gen min="600"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+({SRC2}{OFF})&lt;&lt;{DST_BYTE_SHIFT}], {SRC3}, {SIZE}
+	</display>
+
+	<override>
+		<display>
+			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}&lt;&lt;{DST_BYTE_SHIFT}{OFF}&lt;&lt;2], {SRC3}, {SIZE}
+		</display>
+		<expr>{SRC2_ADD_DWORD_SHIFT} > 0</expr>
+	</override>
+
+	<derived name="DST_BYTE_SHIFT" width="3" type="uint">
+		<expr>{SRC2_ADD_DWORD_SHIFT} + 2</expr>
+	</derived>
+
+	<field   low="9"  high="10" name="OFF" type="uoffset"/>
+	<assert  pos="11"          >0</assert>
+	<field   low="12" high="13" name="SRC2_ADD_DWORD_SHIFT" type="uint"/>
+	<field   low="32" high="39" name="SRC2" type="#reg-gpr"/>
+	<pattern pos="52" >1</pattern> <!-- Reg offset stg form -->
+
+	<encode>
+		<map name="SRC2">src->srcs[1]</map>
+		<map name="SRC2_ADD_DWORD_SHIFT">src->srcs[2]->uim_val</map>
+		<map name="OFF">src->srcs[3]->uim_val</map>
+		<map name="SRC3">src->srcs[4]</map>
+		<map name="SIZE">src->srcs[5]->uim_val</map>
+	</encode>
+</bitset>
 
 <bitset name="#instruction-cat6-a3xx-ld" extends="#instruction-cat6-a3xx">
 	<pattern pos="0"           >1</pattern>
@@ -132,9 +196,9 @@ SOFTWARE.
 	<pattern low="40" high="48">xxxxxxxxx</pattern>
 	<pattern low="52" high="53">xx</pattern>
 	<encode>
-		<map name="OFF">src->regs[2]->uim_val</map>
-		<map name="SRC">src->regs[1]</map>
-		<map name="SIZE">src->regs[3]->uim_val</map>
+		<map name="OFF">src->srcs[1]->uim_val</map>
+		<map name="SRC">src->srcs[0]</map>
+		<map name="SIZE">src->srcs[2]->uim_val</map>
 	</encode>
 </bitset>
 
@@ -185,8 +249,8 @@ SOFTWARE.
 	<pattern low="52" high="53">xx</pattern>
 	<pattern low="54" high="58">11111</pattern>  <!-- OPC -->
 	<encode>
-		<map name="SIZE">src->regs[2]->uim_val</map>
-		<map name="OFF">src->regs[1]->uim_val</map>
+		<map name="SIZE">src->srcs[1]->uim_val</map>
+		<map name="OFF">src->srcs[0]->uim_val</map>
 	</encode>
 </bitset>
 
@@ -212,9 +276,9 @@ SOFTWARE.
 		 -->
 		<map name="OFF_HI">src->cat6.dst_offset >> 8</map>
 		<map name="OFF_LO">src->cat6.dst_offset &amp; 0xff</map>
-		<map name="SRC">src->regs[2]</map>
-		<map name="DST">src->regs[1]</map>"
-		<map name="SIZE">src->regs[3]->uim_val</map>
+		<map name="SRC">src->srcs[1]</map>
+		<map name="DST">src->srcs[0]</map>"
+		<map name="SIZE">src->srcs[2]->uim_val</map>
 	</encode>
 </bitset>
 
@@ -279,8 +343,8 @@ SOFTWARE.
 	<pattern low="52" high="53">xx</pattern>
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
 	<encode>
-		<map name="DST">src->regs[1]->uim_val</map>
-		<map name="SRC">src->regs[2]</map>
+		<map name="DST">src->srcs[0]->uim_val</map>
+		<map name="SRC">src->srcs[1]</map>
 	</encode>
 </bitset>
 
@@ -309,26 +373,40 @@ SOFTWARE.
 	<pattern low="54" high="58">01111</pattern>  <!-- OPC -->
 	<encode>
 		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
-		<map name="SSBO">src->regs[1]</map>
-		<map name="SSBO_IM">!!(src->regs[1]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SSBO">src->srcs[0]</map>
+		<map name="SSBO_IM">!!(src->srcs[0]->flags &amp; IR3_REG_IMMED)</map>
 	</encode>
 </bitset>
 
-<!-- ldgb.untyped.4d.f32.4 r0.x, g[0], r0.x, r1.z -->
-<bitset name="ldgb" extends="#instruction-cat6-a3xx">
+<!-- base pattern for a3xx cat6 ssbo/ibo load/store instructions -->
+<bitset name="#instruction-cat6-a3xx-ibo" extends="#instruction-cat6-a3xx">
+	<derived name="D" expr="#cat6-d" type="uint"/>
+	<derived name="TYPE_SIZE" expr="#cat6-type-size" type="uint"/>
+
+	<field   low="9"  high="10" name="D_MINUS_ONE" type="uint"/>
+	<field   pos="11"           name="TYPED" type="#cat6-typed"/>
+	<field   low="12" high="13" name="TYPE_SIZE_MINUS_ONE" type="uint"/>
+	<field   low="41" high="48" name="SSBO" type="#cat6-src">   <!-- SSBO/image binding point -->
+		<param name="SSBO_IM" as="SRC_IM"/>
+	</field>
+	<pattern pos="52"          >x</pattern>         <!-- G -->
+	<field   pos="53"          name="SSBO_IM" type="bool"/>
+	<encode>
+		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
+		<map name="TYPED">src</map>
+		<map name="TYPE_SIZE_MINUS_ONE">src->cat6.iim_val - 1</map>
+		<map name="SSBO">src->srcs[0]</map>
+		<map name="SSBO_IM">!!(src->srcs[0]->flags &amp; IR3_REG_IMMED)</map>
+	</encode>
+</bitset>
+
+<bitset name="#instruction-cat6-a3xx-ibo-load" extends="#instruction-cat6-a3xx-ibo">
 	<display>
 		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE} {DST}, g[{SSBO}], {SRC1}, {SRC2}
 	</display>
 	<gen max="599"/>
 
-	<derived name="D" expr="#cat6-d" type="uint"/>
-	<derived name="TYPE_SIZE" expr="#cat6-type-size" type="uint"/>
-
-	<pattern pos="0"           >x</pattern>
 	<pattern low="1"  high="8" >xxxxxxxx</pattern>  <!-- SRC3 -->
-	<field   low="9"  high="10" name="D_MINUS_ONE" type="uint"/>
-	<field   pos="11"           name="TYPED" type="#cat6-typed"/>
-	<field   low="12" high="13" name="TYPE_SIZE_MINUS_ONE" type="uint"/>
 	<field   low="14" high="21" name="SRC1" type="#cat6-src">
 		<param name="SRC1_IM" as="SRC_IM"/>
 	</field>
@@ -338,40 +416,33 @@ SOFTWARE.
 		<param name="SRC2_IM" as="SRC_IM"/>
 	</field>
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
-	<pattern pos="40"          >0</pattern>
-	<field   low="41" high="48" name="SSBO" type="#cat6-src">   <!-- SSBO/image binding point -->
-		<param name="SSBO_IM" as="SRC_IM"/>
-	</field>
-	<pattern pos="52"          >x</pattern>         <!-- G -->
-	<field   pos="53"          name="SSBO_IM" type="bool"/>
-	<pattern low="54" high="58">11011</pattern>  <!-- OPC -->
+	<pattern pos="40"          >x</pattern> <!-- .rck -->
 	<encode>
-		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
-		<map name="TYPED">src</map>
-		<map name="TYPE_SIZE_MINUS_ONE">src->cat6.iim_val - 1</map>
-		<map name="SSBO">src->regs[1]</map>
-		<map name="SSBO_IM">!!(src->regs[1]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC1">src->regs[2]</map>
-		<map name="SRC1_IM">!!(src->regs[2]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC2">src->regs[3]</map>
-		<map name="SRC2_IM">!!(src->regs[3]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC1">src->srcs[1]</map>
+		<map name="SRC1_IM">!!(src->srcs[1]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC2">src->srcs[2]</map>
+		<map name="SRC2_IM">!!(src->srcs[2]->flags &amp; IR3_REG_IMMED)</map>
 	</encode>
 </bitset>
 
-<bitset name="#instruction-cat6-a3xx-ibo" extends="#instruction-cat6-a3xx">
+<bitset name="ldgb" extends="#instruction-cat6-a3xx-ibo-load">
+	<pattern low="54" high="58">11011</pattern>  <!-- OPC -->
+        <pattern pos="0"           >x</pattern> <!-- .a -->
+</bitset>
+
+<bitset name="ldib" extends="#instruction-cat6-a3xx-ibo-load">
+	<pattern low="54" high="58">00110</pattern>  <!-- OPC -->
+        <pattern pos="0"           >1</pattern> <!-- .a -->
+</bitset>
+
+<bitset name="#instruction-cat6-a3xx-ibo-store" extends="#instruction-cat6-a3xx-ibo">
 	<display>
 		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE} g[{SSBO}], {SRC1}, {SRC2}, {SRC3}
 	</display>
 	<gen max="599"/>
 
-	<derived name="D" expr="#cat6-d" type="uint"/>
-	<derived name="TYPE_SIZE" expr="#cat6-type-size" type="uint"/>
-
-	<pattern pos="0"           >1</pattern>
+        <pattern pos="0"           >1</pattern> <!-- .a -->
 	<field   low="1"  high="8"  name="SRC1" type="#reg-gpr"/>
-	<field   low="9"  high="10" name="D_MINUS_ONE" type="uint"/>
-	<field   pos="11"           name="TYPED" type="#cat6-typed"/>
-	<field   low="12" high="13" name="TYPE_SIZE_MINUS_ONE" type="uint"/>
 	<pattern low="14" high="22">xxxxxxxxx</pattern>
 	<field   pos="23"           name="SRC2_IM" type="bool"/>
 	<field   low="24" high="31" name="SRC2" type="#cat6-src">
@@ -381,31 +452,21 @@ SOFTWARE.
 		<param name="SRC3_IM" as="SRC_IM"/>
 	</field>
 	<field   pos="40"           name="SRC3_IM" type="bool"/>
-	<field   low="41" high="48" name="SSBO" type="#cat6-src">   <!-- SSBO/image binding point -->
-		<param name="SSBO_IM" as="SRC_IM"/>
-	</field>
-	<pattern pos="52"          >x</pattern>         <!-- G -->
-	<field   pos="53"          name="SSBO_IM" type="bool"/>
 	<encode>
-		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
-		<map name="TYPED">src</map>
-		<map name="TYPE_SIZE_MINUS_ONE">src->cat6.iim_val - 1</map>
-		<map name="SSBO">src->regs[1]</map>
-		<map name="SSBO_IM">!!(src->regs[1]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC1">src->regs[2]</map>
-		<map name="SRC1_IM">!!(src->regs[2]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC2">src->regs[3]</map>
-		<map name="SRC2_IM">!!(src->regs[3]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC3">src->regs[4]</map>
-		<map name="SRC3_IM">!!(src->regs[4]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC1">src->srcs[1]</map>
+		<map name="SRC1_IM">!!(src->srcs[1]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC2">src->srcs[2]</map>
+		<map name="SRC2_IM">!!(src->srcs[2]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC3">src->srcs[3]</map>
+		<map name="SRC3_IM">!!(src->srcs[3]->flags &amp; IR3_REG_IMMED)</map>
 	</encode>
 </bitset>
 
-<bitset name="stgb" extends="#instruction-cat6-a3xx-ibo">
+<bitset name="stgb" extends="#instruction-cat6-a3xx-ibo-store">
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="stib" extends="#instruction-cat6-a3xx-ibo">
+<bitset name="stib" extends="#instruction-cat6-a3xx-ibo-store">
 	<pattern low="54" high="58">11101</pattern>  <!-- OPC -->
 </bitset>
 
@@ -459,14 +520,14 @@ SOFTWARE.
 		<map name="TYPED">src</map>
 		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
 		<map name="TYPE_SIZE_MINUS_ONE">src->cat6.iim_val - 1</map>
-		<map name="SSBO">src->regs[1]</map>
-		<map name="SSBO_IM">!!(src->regs[1]->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC1">extract_cat6_SRC(src, 1)</map>
-		<map name="SRC1_IM">!!(extract_cat6_SRC(src, 1)->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC2">extract_cat6_SRC(src, 2)</map>
-		<map name="SRC2_IM">!!(extract_cat6_SRC(src, 2)->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC3">extract_cat6_SRC(src, 3)</map>
-		<map name="SRC3_IM">!!(extract_cat6_SRC(src, 3)->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SSBO">src->srcs[0]</map>
+		<map name="SSBO_IM">!!(src->srcs[0]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC1">extract_cat6_SRC(src, 0)</map>
+		<map name="SRC1_IM">!!(extract_cat6_SRC(src, 0)->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC2">extract_cat6_SRC(src, 1)</map>
+		<map name="SRC2_IM">!!(extract_cat6_SRC(src, 1)->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC3">extract_cat6_SRC(src, 2)</map>
+		<map name="SRC3_IM">!!(extract_cat6_SRC(src, 2)->flags &amp; IR3_REG_IMMED)</map>
 	</encode>
 </bitset>
 
@@ -591,10 +652,10 @@ SOFTWARE.
 	<pattern pos="53"          >1</pattern>
 	<encode>
 		<map name="K">0</map>  <!-- TODO.. once we figure out what this is -->
-		<map name="SRC1_IM">!!(src->regs[2]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC1_IM">!!(src->srcs[1]->flags &amp; IR3_REG_IMMED)</map>
 		<map name="OFFSET">src->cat6.d</map>
-		<map name="SRC1">src->regs[2]</map>
-		<map name="SRC2">src->regs[1]</map>
+		<map name="SRC1">src->srcs[1]</map>
+		<map name="SRC2">src->srcs[0]</map>
 	</encode>
 </bitset>
 
@@ -664,8 +725,8 @@ SOFTWARE.
 	<encode>
 		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
 		<map name="TYPED">src</map>
-		<map name="SSBO">src->regs[1]</map>
-		<map name="SRC1">src->regs[2]</map>
+		<map name="SSBO">src->srcs[0]</map>
+		<map name="SRC1">src->srcs[1]</map>
 	</encode>
 </bitset>
 
@@ -693,9 +754,9 @@ SOFTWARE.
 	<encode>
 		<map name="TYPED">src</map>
 		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
-		<map name="SSBO">src->regs[1]</map>
-		<map name="SRC1">src->regs[3]</map>
-		<map name="SRC2">src->regs[2]</map>
+		<map name="SSBO">src->srcs[0]</map>
+		<map name="SRC1">src->srcs[2]</map>
+		<map name="SRC2">src->srcs[1]</map>
 	</encode>
 </bitset>
 
@@ -716,7 +777,7 @@ SOFTWARE.
 	<pattern low="14" high="19">000110</pattern>   <!-- OPC -->
 	<pattern low="52" high="53">10</pattern>
 	<encode>
-		<map name="SRC1">src->regs[0]</map>
+		<map name="SRC1">src->dsts[0]</map>
 	</encode>
 </bitset>
 

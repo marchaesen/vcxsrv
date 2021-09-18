@@ -652,6 +652,7 @@ vc4_set_sampler_views(struct pipe_context *pctx,
                       enum pipe_shader_type shader,
                       unsigned start, unsigned nr,
                       unsigned unbind_num_trailing_slots,
+                      bool take_ownership,
                       struct pipe_sampler_view **views)
 {
         struct vc4_context *vc4 = vc4_context(pctx);
@@ -664,7 +665,12 @@ vc4_set_sampler_views(struct pipe_context *pctx,
         for (i = 0; i < nr; i++) {
                 if (views[i])
                         new_nr = i + 1;
-                pipe_sampler_view_reference(&stage_tex->textures[i], views[i]);
+                if (take_ownership) {
+                        pipe_sampler_view_reference(&stage_tex->textures[i], NULL);
+                        stage_tex->textures[i] = views[i];
+                } else {
+                        pipe_sampler_view_reference(&stage_tex->textures[i], views[i]);
+                }
         }
 
         for (; i < stage_tex->num_textures; i++) {

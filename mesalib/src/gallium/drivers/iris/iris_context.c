@@ -44,6 +44,9 @@ iris_set_debug_callback(struct pipe_context *ctx,
                         const struct pipe_debug_callback *cb)
 {
    struct iris_context *ice = (struct iris_context *)ctx;
+   struct iris_screen *screen = (struct iris_screen *)ctx->screen;
+
+   util_queue_finish(&screen->shader_compiler_queue);
 
    if (cb)
       ice->dbg = *cb;
@@ -217,16 +220,23 @@ iris_destroy_context(struct pipe_context *ctx)
 
    if (ctx->stream_uploader)
       u_upload_destroy(ctx->stream_uploader);
+   if (ctx->const_uploader)
+      u_upload_destroy(ctx->const_uploader);
 
    clear_dirty_dmabuf_set(ice);
 
    screen->vtbl.destroy_state(ice);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(ice->shaders.scratch_surfs); i++)
+      pipe_resource_reference(&ice->shaders.scratch_surfs[i].res, NULL);
+
    iris_destroy_program_cache(ice);
    iris_destroy_border_color_pool(ice);
    if (screen->measure.config)
       iris_destroy_ctx_measure(ice);
 
    u_upload_destroy(ice->state.surface_uploader);
+   u_upload_destroy(ice->state.bindless_uploader);
    u_upload_destroy(ice->state.dynamic_uploader);
    u_upload_destroy(ice->query_buffer_uploader);
 
@@ -286,7 +296,15 @@ iris_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
       free(ctx);
       return NULL;
    }
-   ctx->const_uploader = ctx->stream_uploader;
+   ctx->const_uploader = u_upload_create(ctx, 1024 * 1024,
+                                         PIPE_BIND_CONSTANT_BUFFER,
+                                         PIPE_USAGE_IMMUTABLE,
+                                         IRIS_RESOURCE_FLAG_DEVICE_MEM);
+   if (!ctx->const_uploader) {
+      u_upload_destroy(ctx->stream_uploader);
+      free(ctx);
+      return NULL;
+   }
 
    if (!create_dirty_dmabuf_set(ice)) {
       ralloc_free(ice);
@@ -315,14 +333,20 @@ iris_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
    slab_create_child(&ice->transfer_pool_unsync, &screen->transfer_pool);
 
    ice->state.surface_uploader =
-      u_upload_create(ctx, 16384, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
-                      IRIS_RESOURCE_FLAG_SURFACE_MEMZONE);
+      u_upload_create(ctx, 64 * 1024, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
+                      IRIS_RESOURCE_FLAG_SURFACE_MEMZONE |
+                      IRIS_RESOURCE_FLAG_DEVICE_MEM);
+   ice->state.bindless_uploader =
+      u_upload_create(ctx, 64 * 1024, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
+                      IRIS_RESOURCE_FLAG_BINDLESS_MEMZONE |
+                      IRIS_RESOURCE_FLAG_DEVICE_MEM);
    ice->state.dynamic_uploader =
-      u_upload_create(ctx, 16384, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
-                      IRIS_RESOURCE_FLAG_DYNAMIC_MEMZONE);
+      u_upload_create(ctx, 64 * 1024, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,
+                      IRIS_RESOURCE_FLAG_DYNAMIC_MEMZONE |
+                      IRIS_RESOURCE_FLAG_DEVICE_MEM);
 
    ice->query_buffer_uploader =
-      u_upload_create(ctx, 4096, PIPE_BIND_CUSTOM, PIPE_USAGE_STAGING,
+      u_upload_create(ctx, 16 * 1024, PIPE_BIND_CUSTOM, PIPE_USAGE_STAGING,
                       0);
 
    genX_call(devinfo, init_state, ice);
@@ -355,5 +379,7 @@ iris_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
    return threaded_context_create(ctx, &screen->transfer_pool,
                                   iris_replace_buffer_storage,
                                   NULL, /* TODO: asynchronous flushes? */
+                                  NULL,
+                                  false,
                                   &ice->thrctx);
 }

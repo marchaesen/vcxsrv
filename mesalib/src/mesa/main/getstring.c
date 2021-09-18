@@ -128,6 +128,10 @@ _mesa_GetString( GLenum name )
       return (const GLubyte *) ctx->Const.VendorOverride;
    }
 
+   if (ctx->Const.RendererOverride && name == GL_RENDERER) {
+      return (const GLubyte *) ctx->Const.RendererOverride;
+   }
+
    /* this is a required driver function */
    assert(ctx->Driver.GetString);
    {

@@ -1,2 +1,16 @@
-zink supports GL_ARB_texture_filter_minmax, GL_ARB_shader_clock
-VK_EXT_provoking_vertex on RADV.
+VK_EXT_color_write_enable on lavapipe
+GL_ARB_texture_filter_anisotropic in llvmpipe
+Anisotropic texture filtering in lavapipe
+VK_EXT_shader_atomic_float2 on Intel and RADV.
+VK_KHR_timeline_semaphore on lavapipe
+VK_EXT_external_memory_host on lavapipe
+GL_AMD_pinned_memory on llvmpipe
+GL 4.5 compatibility on llvmpipe
+VK_EXT_primitive_topology_list_restart on RADV and lavapipe.
+ES 3.2 on zink
+VK_KHR_depth_stencil_resolve on lavapipe
+VK_KHR_shader_integer_dot_product on RADV.
+OpenGL FP16 support on llvmpipe
+VK_KHR_shader_float16_int8 on lavapipe
+VK_KHR_shader_subgroup_extended_types on lavapipe
+VK_KHR_spirv_1_4 on lavapipe

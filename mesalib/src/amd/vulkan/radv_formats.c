@@ -180,11 +180,6 @@ radv_translate_tex_dataformat(VkFormat format, const struct util_format_descript
    case UTIL_FORMAT_COLORSPACE_YUV:
       goto out_unknown; /* TODO */
 
-   case UTIL_FORMAT_COLORSPACE_SRGB:
-      if (desc->nr_channels != 4 && desc->nr_channels != 1)
-         goto out_unknown;
-      break;
-
    default:
       break;
    }
@@ -550,6 +545,8 @@ radv_is_storage_image_format_supported(struct radv_physical_device *physical_dev
    case V_008F14_IMG_DATA_FORMAT_4_4_4_4:
       /* TODO: FMASK formats. */
       return true;
+   case V_008F14_IMG_DATA_FORMAT_5_9_9_9:
+      return physical_device->rad_info.chip_class >= GFX10_3;
    default:
       return false;
    }
@@ -781,6 +778,16 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
       break;
    }
 
+   switch (format) {
+   case VK_FORMAT_R32G32B32_SFLOAT:
+   case VK_FORMAT_R32G32B32A32_SFLOAT:
+   case VK_FORMAT_R16G16B16_SFLOAT:
+   case VK_FORMAT_R16G16B16A16_SFLOAT:
+      buffer |= VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR;
+      break;
+   default:
+      break;
+   }
    /* addrlib does not support linear compressed textures. */
    if (vk_format_is_compressed(format))
       linear = 0;
@@ -1106,15 +1113,6 @@ radv_format_pack_clear_color(VkFormat format, uint32_t clear_vals[2], VkClearCol
    return true;
 }
 
-void
-radv_GetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice, VkFormat format,
-                                       VkFormatProperties *pFormatProperties)
-{
-   RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
-
-   radv_physical_device_get_format_properties(physical_device, format, pFormatProperties);
-}
-
 static const struct ac_modifier_options radv_modifier_options = {
    .dcc = true,
    .dcc_retile = true,
@@ -1134,11 +1132,12 @@ radv_get_modifier_flags(struct radv_physical_device *dev, VkFormat format, uint6
    else
       features = props->optimalTilingFeatures;
 
-   if (modifier != DRM_FORMAT_MOD_LINEAR && vk_format_get_plane_count(format) > 1)
-      return 0;
-
    if (ac_modifier_has_dcc(modifier)) {
-      features &= ~VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+      /* Only disable support for STORAGE_IMAGE on modifiers that
+       * do not support DCC image stores.
+       */
+      if (!ac_modifier_supports_dcc_image_stores(modifier) || radv_is_atomic_format_supported(format))
+         features &= ~VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
 
       if (dev->instance->debug_flags & (RADV_DEBUG_NO_DCC | RADV_DEBUG_NO_DISPLAY_DCC))
          return 0;
@@ -1261,8 +1260,11 @@ radv_check_modifier_support(struct radv_physical_device *dev,
    if (!found)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
+   bool need_dcc_sign_reinterpret = false;
    if (ac_modifier_has_dcc(modifier) &&
-       !radv_are_formats_dcc_compatible(dev, info->pNext, format, info->flags))
+       !radv_are_formats_dcc_compatible(dev, info->pNext, format, info->flags,
+                                        &need_dcc_sign_reinterpret) &&
+       !need_dcc_sign_reinterpret)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
    /* We can expand this as needed and implemented but there is not much demand
@@ -1484,27 +1486,6 @@ unsupported:
    return result;
 }
 
-VkResult
-radv_GetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice, VkFormat format,
-                                            VkImageType type, VkImageTiling tiling,
-                                            VkImageUsageFlags usage, VkImageCreateFlags createFlags,
-                                            VkImageFormatProperties *pImageFormatProperties)
-{
-   RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
-
-   const VkPhysicalDeviceImageFormatInfo2 info = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
-      .pNext = NULL,
-      .format = format,
-      .type = type,
-      .tiling = tiling,
-      .usage = usage,
-      .flags = createFlags,
-   };
-
-   return radv_get_image_format_properties(physical_device, &info, format, pImageFormatProperties);
-}
-
 static void
 get_external_image_format_properties(struct radv_physical_device *physical_device,
                                      const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
@@ -1529,7 +1510,7 @@ get_external_image_format_properties(struct radv_physical_device *physical_devic
          flags =
             VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
 
-         compat_flags = export_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+         compat_flags = export_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
          break;
       default:
          break;
@@ -1757,41 +1738,6 @@ radv_GetPhysicalDeviceSparseImageFormatProperties2(
 }
 
 void
-radv_GetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice physicalDevice, VkFormat format,
-                                                  VkImageType type, uint32_t samples,
-                                                  VkImageUsageFlags usage, VkImageTiling tiling,
-                                                  uint32_t *pNumProperties,
-                                                  VkSparseImageFormatProperties *pProperties)
-{
-   const VkPhysicalDeviceSparseImageFormatInfo2 info = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2,
-      .format = format,
-      .type = type,
-      .samples = samples,
-      .usage = usage,
-      .tiling = tiling};
-
-   if (!pProperties) {
-      radv_GetPhysicalDeviceSparseImageFormatProperties2(physicalDevice, &info, pNumProperties,
-                                                         NULL);
-      return;
-   }
-
-   VkSparseImageFormatProperties2 props[4];
-   uint32_t prop_cnt = MIN2(ARRAY_SIZE(props), *pNumProperties);
-
-   memset(props, 0, sizeof(props));
-   for (unsigned i = 0; i < ARRAY_SIZE(props); ++i)
-      props[i].sType = VK_STRUCTURE_TYPE_SPARSE_IMAGE_FORMAT_PROPERTIES_2;
-
-   radv_GetPhysicalDeviceSparseImageFormatProperties2(physicalDevice, &info, &prop_cnt, props);
-
-   for (unsigned i = 0; i < prop_cnt; ++i)
-      pProperties[i] = props[i].properties;
-   *pNumProperties = prop_cnt;
-}
-
-void
 radv_GetImageSparseMemoryRequirements2(VkDevice _device,
                                        const VkImageSparseMemoryRequirementsInfo2 *pInfo,
                                        uint32_t *pSparseMemoryRequirementCount,
@@ -1842,34 +1788,6 @@ radv_GetImageSparseMemoryRequirements2(VkDevice _device,
 }
 
 void
-radv_GetImageSparseMemoryRequirements(VkDevice device, VkImage image,
-                                      uint32_t *pSparseMemoryRequirementCount,
-                                      VkSparseImageMemoryRequirements *pSparseMemoryRequirements)
-{
-   const VkImageSparseMemoryRequirementsInfo2 info = {
-      .sType = VK_STRUCTURE_TYPE_IMAGE_SPARSE_MEMORY_REQUIREMENTS_INFO_2,
-      .image = image};
-
-   if (!pSparseMemoryRequirements) {
-      radv_GetImageSparseMemoryRequirements2(device, &info, pSparseMemoryRequirementCount, NULL);
-      return;
-   }
-
-   VkSparseImageMemoryRequirements2 reqs[4];
-   uint32_t reqs_cnt = MIN2(ARRAY_SIZE(reqs), *pSparseMemoryRequirementCount);
-
-   memset(reqs, 0, sizeof(reqs));
-   for (unsigned i = 0; i < ARRAY_SIZE(reqs); ++i)
-      reqs[i].sType = VK_STRUCTURE_TYPE_SPARSE_IMAGE_MEMORY_REQUIREMENTS_2;
-
-   radv_GetImageSparseMemoryRequirements2(device, &info, &reqs_cnt, reqs);
-
-   for (unsigned i = 0; i < reqs_cnt; ++i)
-      pSparseMemoryRequirements[i] = reqs[i].memoryRequirements;
-   *pSparseMemoryRequirementCount = reqs_cnt;
-}
-
-void
 radv_GetPhysicalDeviceExternalBufferProperties(
    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
    VkExternalBufferProperties *pExternalBufferProperties)
@@ -1901,21 +1819,16 @@ radv_GetPhysicalDeviceExternalBufferProperties(
 /* DCC channel type categories within which formats can be reinterpreted
  * while keeping the same DCC encoding. The swizzle must also match. */
 enum dcc_channel_type {
-   dcc_channel_float32,
-   dcc_channel_uint32,
-   dcc_channel_sint32,
-   dcc_channel_float16,
-   dcc_channel_uint16,
-   dcc_channel_sint16,
-   dcc_channel_uint_10_10_10_2,
-   dcc_channel_uint8,
-   dcc_channel_sint8,
+   dcc_channel_float,
+   dcc_channel_uint,
+   dcc_channel_sint,
    dcc_channel_incompatible,
 };
 
 /* Return the type of DCC encoding. */
-static enum dcc_channel_type
-radv_get_dcc_channel_type(const struct util_format_description *desc)
+static void
+radv_get_dcc_channel_type(const struct util_format_description *desc, enum dcc_channel_type *type,
+                          unsigned *size)
 {
    int i;
 
@@ -1923,39 +1836,37 @@ radv_get_dcc_channel_type(const struct util_format_description *desc)
    for (i = 0; i < desc->nr_channels; i++)
       if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID)
          break;
-   if (i == desc->nr_channels)
-      return dcc_channel_incompatible;
+   if (i == desc->nr_channels) {
+      *type = dcc_channel_incompatible;
+      return;
+   }
 
    switch (desc->channel[i].size) {
    case 32:
-      if (desc->channel[i].type == UTIL_FORMAT_TYPE_FLOAT)
-         return dcc_channel_float32;
-      if (desc->channel[i].type == UTIL_FORMAT_TYPE_UNSIGNED)
-         return dcc_channel_uint32;
-      return dcc_channel_sint32;
    case 16:
-      if (desc->channel[i].type == UTIL_FORMAT_TYPE_FLOAT)
-         return dcc_channel_float16;
-      if (desc->channel[i].type == UTIL_FORMAT_TYPE_UNSIGNED)
-         return dcc_channel_uint16;
-      return dcc_channel_sint16;
    case 10:
-      return dcc_channel_uint_10_10_10_2;
    case 8:
-      if (desc->channel[i].type == UTIL_FORMAT_TYPE_UNSIGNED)
-         return dcc_channel_uint8;
-      return dcc_channel_sint8;
+      *size = desc->channel[i].size;
+      if (desc->channel[i].type == UTIL_FORMAT_TYPE_FLOAT)
+         *type = dcc_channel_float;
+      else if (desc->channel[i].type == UTIL_FORMAT_TYPE_UNSIGNED)
+         *type = dcc_channel_uint;
+      else
+         *type = dcc_channel_sint;
+      break;
    default:
-      return dcc_channel_incompatible;
+      *type = dcc_channel_incompatible;
+      break;
    }
 }
 
 /* Return if it's allowed to reinterpret one format as another with DCC enabled. */
 bool
-radv_dcc_formats_compatible(VkFormat format1, VkFormat format2)
+radv_dcc_formats_compatible(VkFormat format1, VkFormat format2, bool *sign_reinterpret)
 {
    const struct util_format_description *desc1, *desc2;
    enum dcc_channel_type type1, type2;
+   unsigned size1, size2;
    int i;
 
    if (format1 == format2)
@@ -1973,8 +1884,15 @@ radv_dcc_formats_compatible(VkFormat format1, VkFormat format2)
           desc1->swizzle[i] != desc2->swizzle[i])
          return false;
 
-   type1 = radv_get_dcc_channel_type(desc1);
-   type2 = radv_get_dcc_channel_type(desc2);
+   radv_get_dcc_channel_type(desc1, &type1, &size1);
+   radv_get_dcc_channel_type(desc2, &type2, &size2);
 
-   return type1 != dcc_channel_incompatible && type2 != dcc_channel_incompatible && type1 == type2;
+   if (type1 == dcc_channel_incompatible || type2 == dcc_channel_incompatible ||
+       (type1 == dcc_channel_float) != (type2 == dcc_channel_float) || size1 != size2)
+      return false;
+
+   if (type1 != type2)
+      *sign_reinterpret = true;
+
+   return true;
 }

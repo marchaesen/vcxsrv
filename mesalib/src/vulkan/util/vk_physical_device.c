@@ -139,7 +139,21 @@ vk_common_GetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevice,
 
    pdevice->dispatch_table.GetPhysicalDeviceMemoryProperties2(physicalDevice,
                                                               &props2);
-   *pMemoryProperties = props2.memoryProperties;
+   /* dEQP-VK.api.info.get_physical_device_properties2.memory_properties memsets
+    * the struct to 0xcd and expects that the unused array elements are
+    * untouched.
+    */
+   pMemoryProperties->memoryHeapCount = props2.memoryProperties.memoryHeapCount;
+   for (int i = 0; i < pMemoryProperties->memoryHeapCount; i++) {
+      pMemoryProperties->memoryHeaps[i].flags = props2.memoryProperties.memoryHeaps[i].flags;
+      pMemoryProperties->memoryHeaps[i].size = props2.memoryProperties.memoryHeaps[i].size;
+   }
+
+   pMemoryProperties->memoryTypeCount = props2.memoryProperties.memoryTypeCount;
+   for (int i = 0; i < pMemoryProperties->memoryTypeCount; i++) {
+      pMemoryProperties->memoryTypes[i].heapIndex = props2.memoryProperties.memoryTypes[i].heapIndex;
+      pMemoryProperties->memoryTypes[i].propertyFlags = props2.memoryProperties.memoryTypes[i].propertyFlags;
+   }
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -190,4 +204,51 @@ vk_common_GetPhysicalDeviceImageFormatProperties(VkPhysicalDevice physicalDevice
    *pImageFormatProperties = props2.imageFormatProperties;
 
    return result;
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_GetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice physicalDevice,
+                                                       VkFormat format,
+                                                       VkImageType type,
+                                                       uint32_t samples,
+                                                       VkImageUsageFlags usage,
+                                                       VkImageTiling tiling,
+                                                       uint32_t *pNumProperties,
+                                                       VkSparseImageFormatProperties *pProperties)
+{
+   VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
+
+   VkPhysicalDeviceSparseImageFormatInfo2 info = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2,
+      .format = format,
+      .type = type,
+      .samples = samples,
+      .usage = usage,
+      .tiling = tiling
+   };
+
+   if (!pProperties) {
+      pdevice->dispatch_table.GetPhysicalDeviceSparseImageFormatProperties2(physicalDevice,
+                                                                            &info,
+                                                                            pNumProperties,
+                                                                            NULL);
+      return;
+   }
+
+   STACK_ARRAY(VkSparseImageFormatProperties2, props2, *pNumProperties);
+
+   for (unsigned i = 0; i < *pNumProperties; ++i) {
+      props2[i].sType = VK_STRUCTURE_TYPE_SPARSE_IMAGE_FORMAT_PROPERTIES_2;
+      props2[i].pNext = NULL;
+   }
+
+   pdevice->dispatch_table.GetPhysicalDeviceSparseImageFormatProperties2(physicalDevice,
+                                                                         &info,
+                                                                         pNumProperties,
+                                                                         props2);
+
+   for (unsigned i = 0; i < *pNumProperties; ++i)
+      pProperties[i] = props2[i].properties;
+
+   STACK_ARRAY_FINISH(props2);
 }

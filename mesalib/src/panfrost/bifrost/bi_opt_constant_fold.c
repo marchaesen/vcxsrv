@@ -28,62 +28,63 @@
  * adding a new pattern here, check why you need it and whether we can avoid
  * generating the constant BIR at all. */
 
-static uint32_t
+uint32_t
 bi_fold_constant(bi_instr *I, bool *unsupported)
 {
-        uint32_t a = I->src[0].value;
-        uint32_t b = I->src[1].value;
-
-        switch (I->op) {
-        case BI_OPCODE_SWZ_V2I16:
-        {
-                uint16_t lo = (a & 0xFFFF);
-                uint16_t hi = (a >> 16);
-
-                enum bi_swizzle swz = I->src[0].swizzle;
-                assert(swz < BI_SWIZZLE_H11);
-
-                /* Note order is H00, H01, H10, H11 */
-                return (((swz & (1 << 1)) ? hi : lo) << 0) |
-                        (((swz & (1 << 0)) ? hi : lo) << 16);
-        }
-
-        case BI_OPCODE_MKVEC_V2I16:
-        {
-                bool hi_a = I->src[0].swizzle & BI_SWIZZLE_H11;
-                bool hi_b = I->src[1].swizzle & BI_SWIZZLE_H11;
-
-                uint16_t lo = (hi_a ? (a >> 16) : (a & 0xFFFF));
-                uint16_t hi = (hi_b ? (b >> 16) : (b & 0xFFFF));
-
-                return (hi << 16) | lo;
-        }
-
-        default:
-                *unsupported = true;
-                return 0;
-        }
-}
-
-static bool
-bi_all_srcs_const(bi_instr *I)
-{
+        /* We can only fold instructions where all sources are constant */
         bi_foreach_src(I, s) {
                 enum bi_index_type type = I->src[s].type;
 
-                if (!(type == BI_INDEX_NULL || type == BI_INDEX_CONSTANT))
-                        return false;
+                if (!(type == BI_INDEX_NULL || type == BI_INDEX_CONSTANT)) {
+                        *unsupported = true;
+                        return 0;
+                }
         }
 
-        return true;
+        /* Grab the sources */
+        uint32_t a = bi_apply_swizzle(I->src[0].value, I->src[0].swizzle);
+        uint32_t b = bi_apply_swizzle(I->src[1].value, I->src[1].swizzle);
+        uint32_t c = bi_apply_swizzle(I->src[2].value, I->src[2].swizzle);
+        uint32_t d = bi_apply_swizzle(I->src[3].value, I->src[3].swizzle);
+
+        /* Evaluate the instruction */
+        switch (I->op) {
+        case BI_OPCODE_SWZ_V2I16:
+                return a;
+
+        case BI_OPCODE_MKVEC_V2I16:
+                return (b << 16) | (a & 0xFFFF);
+
+        case BI_OPCODE_MKVEC_V4I8:
+                return (d << 24) | ((c & 0xFF) << 16) | ((b & 0xFF) << 8) | (a & 0xFF);
+
+        case BI_OPCODE_LSHIFT_OR_I32:
+                if (I->not_result || I->src[0].neg || I->src[1].neg)
+                        break;
+
+                return (a << c) | b;
+
+        case BI_OPCODE_F32_TO_U32:
+                if (I->round == BI_ROUND_NONE) {
+                        /* Explicitly clamp to prevent undefined behaviour and
+                         * match hardware rules */
+                        float f = uif(a);
+                        return (f >= 0.0) ? (uint32_t) f : 0;
+                } else
+                        break;
+
+        default:
+                break;
+        }
+
+        *unsupported = true;
+        return 0;
 }
 
 void
 bi_opt_constant_fold(bi_context *ctx)
 {
         bi_foreach_instr_global_safe(ctx, ins) {
-                if (!bi_all_srcs_const(ins)) continue;
-
                 bool unsupported = false;
                 uint32_t replace = bi_fold_constant(ins, &unsupported);
                 if (unsupported) continue;

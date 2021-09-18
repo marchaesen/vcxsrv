@@ -32,4 +32,17 @@ if [[ $arch == "arm64" ]]; then
     done
 
     popd
+elif [[ $arch == "armhf" ]]; then
+    mkdir -p /baremetal-files
+    pushd /baremetal-files
+
+    wget ${ARTIFACTS_URL}/zImage
+
+    DEVICE_TREES="imx6q-cubox-i.dtb"
+
+    for DTB in $DEVICE_TREES; do
+        wget ${ARTIFACTS_URL}/$DTB
+    done
+
+    popd
 fi

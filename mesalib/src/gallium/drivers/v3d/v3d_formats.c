@@ -102,6 +102,12 @@ v3d_get_tex_return_size(const struct v3d_device_info *devinfo,
         if (!vf)
                 return 0;
 
+        if (unlikely(V3D_DEBUG & V3D_DEBUG_TMU_16BIT))
+                return 16;
+
+        if (unlikely(V3D_DEBUG & V3D_DEBUG_TMU_32BIT))
+                return 32;
+
         if (compare == PIPE_TEX_COMPARE_R_TO_TEXTURE)
                 return 16;
 

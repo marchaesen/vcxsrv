@@ -218,7 +218,6 @@ tgsi_default_declaration_interp( void )
 
    di.Interpolate = TGSI_INTERPOLATE_CONSTANT;
    di.Location = TGSI_INTERPOLATE_LOC_CENTER;
-   di.CylindricalWrap = 0;
    di.Padding = 0;
 
    return di;
@@ -227,7 +226,6 @@ tgsi_default_declaration_interp( void )
 static struct tgsi_declaration_interp
 tgsi_build_declaration_interp(unsigned interpolate,
                               unsigned interpolate_location,
-                              unsigned cylindrical_wrap,
                               struct tgsi_declaration *declaration,
                               struct tgsi_header *header)
 {
@@ -235,7 +233,6 @@ tgsi_build_declaration_interp(unsigned interpolate,
 
    di.Interpolate = interpolate;
    di.Location = interpolate_location;
-   di.CylindricalWrap = cylindrical_wrap;
    di.Padding = 0;
 
    declaration_grow(declaration, header);
@@ -467,7 +464,6 @@ tgsi_build_full_declaration(
 
       *di = tgsi_build_declaration_interp(full_decl->Interp.Interpolate,
                                           full_decl->Interp.Location,
-                                          full_decl->Interp.CylindricalWrap,
                                           declaration,
                                           header);
    }

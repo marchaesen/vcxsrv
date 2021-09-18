@@ -893,6 +893,12 @@ public:
       unsigned bound:1;
 
       /**
+       * Non-zero if the variable shall not be implicitly converted during
+       * functions matching.
+       */
+      unsigned implicit_conversion_prohibited:1;
+
+      /**
        * Emit a warning if this variable is accessed.
        */
    private:

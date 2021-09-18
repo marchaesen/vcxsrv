@@ -204,6 +204,10 @@
    DRI_CONF_OPT_B(glsl_correct_derivatives_after_discard, def, \
                   "Implicit and explicit derivatives after a discard behave as if the discard didn't happen")
 
+#define DRI_CONF_GLSL_IGNORE_WRITE_TO_READONLY_VAR(def) \
+   DRI_CONF_OPT_B(glsl_ignore_write_to_readonly_var, def, \
+                  "Forces the GLSL compiler to ignore writes to readonly vars rather than throwing an error")
+
 #define DRI_CONF_ALLOW_GLSL_CROSS_STAGE_INTERPOLATION_MISMATCH(def) \
    DRI_CONF_OPT_B(allow_glsl_cross_stage_interpolation_mismatch, def,   \
                   "Allow interpolation qualifier mismatch across shader stages")
@@ -212,12 +216,11 @@
    DRI_CONF_OPT_B(allow_draw_out_of_order, def, \
                   "Allow out-of-order draw optimizations. Set when Z fighting doesn't have to be accurate.")
 
-#define DRI_CONF_ALLOW_INCORRECT_PRIMITIVE_ID(def) \
-   DRI_CONF_OPT_B(allow_incorrect_primitive_id, def, \
-                  "Allows drawing display list using merged draws (might cause invalid gl_PrimitiveID values).")
-
 #define DRI_CONF_FORCE_GL_VENDOR() \
    DRI_CONF_OPT_S_NODEF(force_gl_vendor, "Override GPU vendor string.")
+
+#define DRI_CONF_FORCE_GL_RENDERER() \
+   DRI_CONF_OPT_S_NODEF(force_gl_renderer, "Override GPU renderer string.")
 
 #define DRI_CONF_FORCE_COMPAT_PROFILE(def) \
    DRI_CONF_OPT_B(force_compat_profile, def, \
@@ -325,6 +328,10 @@
 #define DRI_CONF_VK_X11_ENSURE_MIN_IMAGE_COUNT(def) \
    DRI_CONF_OPT_B(vk_x11_ensure_min_image_count, def, \
                   "Force the X11 WSI to create at least the number of image specified by the driver in VkSurfaceCapabilitiesKHR::minImageCount")
+
+#define DRI_CONF_VK_XWAYLAND_WAIT_READY(def) \
+   DRI_CONF_OPT_B(vk_xwayland_wait_ready, def, \
+                  "Wait for fences before submitting buffers to Xwayland")
 
 #define DRI_CONF_MESA_GLTHREAD(def) \
    DRI_CONF_OPT_B(mesa_glthread, def, \
@@ -481,8 +488,36 @@
    DRI_CONF_OPT_B(radv_disable_shrink_image_store, def, \
                   "Disabling shrinking of image stores based on the format")
 
+#define DRI_CONF_RADV_ABSOLUTE_DEPTH_BIAS(def) \
+   DRI_CONF_OPT_B(radv_absolute_depth_bias, def, \
+                  "Consider depthBiasConstantFactor an absolute depth bias (like D3D9)")
+
 #define DRI_CONF_RADV_OVERRIDE_UNIFORM_OFFSET_ALIGNMENT(def) \
    DRI_CONF_OPT_I(radv_override_uniform_offset_alignment, def, 0, 128, \
                   "Override the minUniformBufferOffsetAlignment exposed to the application. (0 = default)")
+
+#define DRI_CONF_RADV_ZERO_VRAM(def) \
+   DRI_CONF_OPT_B(radv_zero_vram, def, \
+                  "Initialize to zero all VRAM allocations")
+
+#define DRI_CONF_RADV_LOWER_DISCARD_TO_DEMOTE(def) \
+   DRI_CONF_OPT_B(radv_lower_discard_to_demote, def, \
+                  "Lower discard instructions to demote")
+
+#define DRI_CONF_RADV_INVARIANT_GEOM(def) \
+   DRI_CONF_OPT_B(radv_invariant_geom, def, \
+                  "Mark geometry-affecting outputs as invariant")
+
+#define DRI_CONF_RADV_DISABLE_TC_COMPAT_HTILE_GENERAL(def) \
+   DRI_CONF_OPT_B(radv_disable_tc_compat_htile_general, def, \
+                  "Disable TC-compat HTILE in GENERAL layout")
+
+#define DRI_CONF_RADV_DISABLE_DCC(def) \
+   DRI_CONF_OPT_B(radv_disable_dcc, def, \
+                  "Disable DCC for color images")
+
+#define DRI_CONF_RADV_REPORT_APU_AS_DGPU(def) \
+   DRI_CONF_OPT_B(radv_report_apu_as_dgpu, def, \
+                  "Report APUs as discrete GPUs instead of integrated GPUs")
 
 #endif

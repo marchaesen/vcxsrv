@@ -34,7 +34,7 @@
 #include "util/debug.h"
 #include "wsi_common_display.h"
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physical_device,
                                          uint32_t *property_count,
                                          VkDisplayPropertiesKHR *properties)
@@ -48,7 +48,7 @@ tu_GetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physical_device,
              properties);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetPhysicalDeviceDisplayProperties2KHR(VkPhysicalDevice physical_device,
                                           uint32_t *property_count,
                                           VkDisplayProperties2KHR *properties)
@@ -62,7 +62,7 @@ tu_GetPhysicalDeviceDisplayProperties2KHR(VkPhysicalDevice physical_device,
              properties);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetPhysicalDeviceDisplayPlanePropertiesKHR(
    VkPhysicalDevice physical_device,
    uint32_t *property_count,
@@ -77,7 +77,7 @@ tu_GetPhysicalDeviceDisplayPlanePropertiesKHR(
              properties);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetPhysicalDeviceDisplayPlaneProperties2KHR(
    VkPhysicalDevice physical_device,
    uint32_t *property_count,
@@ -92,7 +92,7 @@ tu_GetPhysicalDeviceDisplayPlaneProperties2KHR(
              properties);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetDisplayPlaneSupportedDisplaysKHR(VkPhysicalDevice physical_device,
                                        uint32_t plane_index,
                                        uint32_t *display_count,
@@ -109,7 +109,7 @@ tu_GetDisplayPlaneSupportedDisplaysKHR(VkPhysicalDevice physical_device,
 }
 
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetDisplayModePropertiesKHR(VkPhysicalDevice physical_device,
                                VkDisplayKHR display,
                                uint32_t *property_count,
@@ -124,7 +124,7 @@ tu_GetDisplayModePropertiesKHR(VkPhysicalDevice physical_device,
                                                   properties);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetDisplayModeProperties2KHR(VkPhysicalDevice physical_device,
                                 VkDisplayKHR display,
                                 uint32_t *property_count,
@@ -139,7 +139,7 @@ tu_GetDisplayModeProperties2KHR(VkPhysicalDevice physical_device,
                                                    properties);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_CreateDisplayModeKHR(VkPhysicalDevice physical_device,
                         VkDisplayKHR display,
                         const VkDisplayModeCreateInfoKHR *create_info,
@@ -156,7 +156,7 @@ tu_CreateDisplayModeKHR(VkPhysicalDevice physical_device,
                                           mode);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physical_device,
                                   VkDisplayModeKHR mode_khr,
                                   uint32_t plane_index,
@@ -171,7 +171,7 @@ tu_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physical_device,
                                              capabilities);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physical_device,
                                    const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
                                    VkDisplayPlaneCapabilities2KHR *capabilities)
@@ -184,7 +184,7 @@ tu_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physical_device,
                                               capabilities);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_CreateDisplayPlaneSurfaceKHR(
    VkInstance _instance,
    const VkDisplaySurfaceCreateInfoKHR *create_info,
@@ -203,7 +203,7 @@ tu_CreateDisplayPlaneSurfaceKHR(
                                      create_info, surface);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_ReleaseDisplayEXT(VkPhysicalDevice physical_device,
                      VkDisplayKHR     display)
 {
@@ -215,7 +215,7 @@ tu_ReleaseDisplayEXT(VkPhysicalDevice physical_device,
 }
 
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_AcquireXlibDisplayEXT(VkPhysicalDevice     physical_device,
                          Display              *dpy,
                          VkDisplayKHR         display)
@@ -228,7 +228,7 @@ tu_AcquireXlibDisplayEXT(VkPhysicalDevice     physical_device,
                                    display);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetRandROutputDisplayEXT(VkPhysicalDevice  physical_device,
                             Display           *dpy,
                             RROutput          output,
@@ -246,7 +246,7 @@ tu_GetRandROutputDisplayEXT(VkPhysicalDevice  physical_device,
 
 /* VK_EXT_display_control */
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_DisplayPowerControlEXT(VkDevice                    _device,
                           VkDisplayKHR                display,
                           const VkDisplayPowerInfoEXT *display_power_info)
@@ -259,7 +259,7 @@ tu_DisplayPowerControlEXT(VkDevice                    _device,
                                     display_power_info);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_RegisterDeviceEventEXT(VkDevice                    _device,
                           const VkDeviceEventInfoEXT  *device_event_info,
                           const VkAllocationCallbacks *allocator,
@@ -297,7 +297,7 @@ tu_RegisterDeviceEventEXT(VkDevice                    _device,
    return ret;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_RegisterDisplayEventEXT(VkDevice                           _device,
                            VkDisplayKHR                       display,
                            const VkDisplayEventInfoEXT        *display_event_info,
@@ -334,7 +334,7 @@ tu_RegisterDisplayEventEXT(VkDevice                           _device,
    return ret;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 tu_GetSwapchainCounterEXT(VkDevice                    _device,
                           VkSwapchainKHR              swapchain,
                           VkSurfaceCounterFlagBitsEXT flag_bits,

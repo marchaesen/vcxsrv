@@ -30,7 +30,7 @@ before_install:
 
   # Install xquartz for prereqs ...
   - XQUARTZ_VERSION="2.7.11"
-  - wget -nv https://dl.bintray.com/xquartz/downloads/XQuartz-${XQUARTZ_VERSION}.dmg
+  - wget -nv https://github.com/XQuartz/XQuartz/releases/download/XQuartz-${XQUARTZ_VERSION}/XQuartz-${XQUARTZ_VERSION}.dmg
   - hdiutil attach XQuartz-${XQUARTZ_VERSION}.dmg
   - sudo installer -pkg /Volumes/XQuartz-${XQUARTZ_VERSION}/XQuartz.pkg -target /
   - hdiutil detach /Volumes/XQuartz-${XQUARTZ_VERSION}

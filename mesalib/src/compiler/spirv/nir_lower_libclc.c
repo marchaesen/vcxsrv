@@ -38,6 +38,10 @@ lower_clc_call_instr(nir_instr *instr, nir_builder *b,
 {
    nir_call_instr *call = nir_instr_as_call(instr);
    nir_function *func = NULL;
+
+   if (!call->callee->name)
+      return false;
+
    nir_foreach_function(function, clc_shader) {
       if (strcmp(function->name, call->callee->name) == 0) {
          func = function;

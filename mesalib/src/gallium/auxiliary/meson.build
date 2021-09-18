@@ -60,7 +60,6 @@ files_libgallium = files(
   'draw/draw_pt_decompose.h',
   'draw/draw_pt_emit.c',
   'draw/draw_pt_fetch.c',
-  'draw/draw_pt_fetch_emit.c',
   'draw/draw_pt_fetch_shade_emit.c',
   'draw/draw_pt_fetch_shade_pipeline.c',
   'draw/draw_pt.h',
@@ -255,11 +254,12 @@ files_libgallium = files(
   'util/u_draw.h',
   'util/u_draw_quad.c',
   'util/u_draw_quad.h',
+  'util/u_driconf.c',
+  'util/u_driconf.h',
   'util/u_dual_blend.h',
   'util/u_dump_defines.c',
   'util/u_dump.h',
   'util/u_dump_state.c',
-  'util/u_fifo.h',
   'util/u_framebuffer.c',
   'util/u_framebuffer.h',
   'util/u_gen_mipmap.c',
@@ -314,9 +314,6 @@ files_libgallium = files(
   'util/u_texture.h',
   'util/u_tile.c',
   'util/u_tile.h',
-  'util/u_trace.c',
-  'util/u_trace.h',
-  'util/u_trace_priv.h',
   'util/u_transfer.c',
   'util/u_transfer.h',
   'util/u_transfer_helper.c',
@@ -324,6 +321,8 @@ files_libgallium = files(
   'util/u_threaded_context.c',
   'util/u_threaded_context.h',
   'util/u_threaded_context_calls.h',
+  'util/u_trace_gallium.c',
+  'util/u_trace_gallium.h',
   'util/u_upload_mgr.c',
   'util/u_upload_mgr.h',
   'util/u_vbuf.c',
@@ -483,15 +482,13 @@ if with_dri2 and with_platform_x11
   endif
 endif
 
-u_trace_py = files('util/u_trace.py')
-
 files_libgallium += custom_target(
   'u_tracepoints.c',
   input: 'util/u_tracepoints.py',
   output: 'u_tracepoints.c',
   command: [
     prog_python, '@INPUT@',
-    '-p', join_paths(meson.source_root(), 'src/gallium/auxiliary/util/'),
+    '-p', join_paths(meson.source_root(), 'src/util/perf/'),
     '-C', '@OUTPUT@',
   ],
   depend_files: u_trace_py,
@@ -503,7 +500,7 @@ files_u_tracepoints = custom_target(
   output: 'u_tracepoints.h',
   command: [
     prog_python, '@INPUT@',
-    '-p', join_paths(meson.source_root(), 'src/gallium/auxiliary/util/'),
+    '-p', join_paths(meson.source_root(), 'src/util/perf/'),
     '-H', '@OUTPUT@',
   ],
   depend_files: u_trace_py,

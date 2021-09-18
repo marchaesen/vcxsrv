@@ -389,5 +389,6 @@ panfrost_tiler_get_polygon_list_size(const struct panfrost_device *dev,
         unsigned hierarchy_mask =
                 panfrost_choose_hierarchy_mask(fb_width, fb_height, 1, hierarchy);
 
-        return panfrost_tiler_full_size(fb_width, fb_height, hierarchy_mask, hierarchy);
+        return panfrost_tiler_full_size(fb_width, fb_height, hierarchy_mask, hierarchy) +
+                panfrost_tiler_header_size(fb_width, fb_height, hierarchy_mask, hierarchy);
 }

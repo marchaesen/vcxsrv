@@ -447,7 +447,7 @@ can_blit_via_surface_copy(struct svga_context *svga,
     * This is what we've been using before, but it can probably be
     * relaxed. The device checks are less stringent.
     */
-   return (stex->b.b.format == dtex->b.b.format);
+   return (stex->b.format == dtex->b.format);
 }
 
 

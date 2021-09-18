@@ -47,6 +47,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "freedreno_pm4.h"
+
 #include "ir3/instr-a3xx.h"
 #include "buffers.h"
 #include "cffdec.h"
@@ -342,6 +344,11 @@ dump_cmdstream(void)
        * many dwords are unread
        */
       unsigned ringszdw = ringbuffers[id].size >> 2; /* in dwords */
+
+      if (verbose) {
+         dump_commands(ringbuffers[id].buf, ringszdw, 0);
+         return;
+      }
 
 /* helper macro to deal with modulo size math: */
 #define mod_add(b, v) ((ringszdw + (int)(b) + (int)(v)) % ringszdw)

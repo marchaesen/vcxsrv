@@ -38,8 +38,22 @@
 #include "util/u_debug.h"
 
 
-wglCreateContext_t wglCreateContext_func = 0;
-wglDeleteContext_t wglDeleteContext_func = 0;
+static wglCreateContext_t wglCreateContext_func = 0;
+static wglDeleteContext_t wglDeleteContext_func = 0;
+
+/* When this library is used as a opengl32.dll drop-in replacement, ensure we
+ * use the wglCreate/Destroy entrypoints above, and not the true opengl32.dll,
+ * which could happen if this library's name is not opengl32.dll exactly.
+ *
+ * For example, Qt 5.4 bundles this as opengl32sw.dll:
+ * https://blog.qt.io/blog/2014/11/27/qt-weekly-21-dynamic-opengl-implementation-loading-in-qt-5-4/
+ */
+void
+stw_override_opengl32_entry_points(wglCreateContext_t create, wglDeleteContext_t delete)
+{
+   wglCreateContext_func = create;
+   wglDeleteContext_func = delete;
+}
 
 
 /**
@@ -183,11 +197,20 @@ wglCreateContextAttribsARB(HDC hDC, HGLRC hShareContext, const int *attribList)
          share_dhglrc = (DHGLRC)(INT_PTR)hShareContext;
       }
 
-      c = stw_create_context_attribs(hDC, layerPlane, share_dhglrc,
-                                     majorVersion, minorVersion,
-                                     contextFlags, profileMask,
-                                     dhglrc);
+      struct stw_context *share_stw = stw_lookup_context(share_dhglrc);
+
+      struct stw_context *stw_ctx = stw_create_context_attribs(hDC, layerPlane, share_stw,
+                                                               majorVersion, minorVersion,
+                                                               contextFlags, profileMask, 0);
+
+      if (!stw_ctx) {
+         wglDeleteContext_func(context);
+         return 0;
+      }
+
+      c = stw_create_context_handle(stw_ctx, dhglrc);
       if (!c) {
+         stw_destroy_context(stw_ctx);
          wglDeleteContext_func(context);
          context = 0;
       }
@@ -208,5 +231,11 @@ wglMakeContextCurrentARB(HDC hDrawDC, HDC hReadDC, HGLRC hglrc)
       dhglrc = stw_dev->callbacks.pfnGetDhglrc(hglrc);
    }
 
-   return stw_make_current(hDrawDC, hReadDC, dhglrc);
+   return stw_make_current_by_handles(hDrawDC, hReadDC, dhglrc);
+}
+
+HDC APIENTRY
+wglGetCurrentReadDCARB(VOID)
+{
+   return stw_get_current_read_dc();
 }

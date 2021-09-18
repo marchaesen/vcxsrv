@@ -240,7 +240,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<doc>sets the 64-bit BIN_MASK register in the PFP</doc>
 	<value name="CP_SET_BIN_MASK" value="0x50" varset="chip" variants="A2XX-A4XX"/>
 	<doc>sets the 64-bit BIN_SELECT register in the PFP</doc>
-	<value name="CP_SET_BIN_SELECT" value="0x51"/>
+	<value name="CP_SET_BIN_SELECT" value="0x51" varset="chip" variants="A2XX-A4XX"/>
 	<doc>updates the current context, if needed</doc>
 	<value name="CP_CONTEXT_UPDATE" value="0x5e"/>
 	<doc>generate interrupt from the command stream</doc>
@@ -478,6 +478,20 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	 -->
 	<value name="CP_REG_WRITE" value="0x6d" varset="chip" variants="A6XX"/>
 
+	<doc>
+		These first appear in a650_sqe.bin. They can in theory be used
+		to loop any sequence of IB1 commands, but in practice they are
+		used to loop over bins. There is a fixed-size per-iteration
+		prefix, used to set per-bin state, and then the following IB1
+		commands are executed until CP_END_BIN which are always the same
+		for each iteration and usually contain a list of
+		CP_INDIRECT_BUFFER calls to IB2 commands which setup state and
+		execute restore/draw/save commands. This replaces the previous
+		technique of just repeating the CP_INDIRECT_BUFFER calls and
+		"unrolling" the loop.
+	</doc>
+	<value name="CP_START_BIN" value="0x50" varset="chip" variants="A6XX"/>
+	<value name="CP_END_BIN" value="0x51" varset="chip" variants="A6XX"/>
 </enum>
 
 
@@ -831,18 +845,18 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<reg64 offset="3" name="INDIRECT" type="address"/>
 		<reg32 offset="5" name="STRIDE" type="uint"/>
 	</stripe>
-	<stripe varset="a6xx_draw_indirect_opcode" variants="INDIRECT_OP_INDEXED">
+	<stripe varset="a6xx_draw_indirect_opcode" variants="INDIRECT_OP_INDEXED" prefix="INDEXED">
 		<reg64 offset="3" name="INDEX" type="address"/>
 		<reg32 offset="5" name="MAX_INDICES" type="uint"/>
 		<reg64 offset="6" name="INDIRECT" type="address"/>
 		<reg32 offset="8" name="STRIDE" type="uint"/>
 	</stripe>
-	<stripe varset="a6xx_draw_indirect_opcode" variants="INDIRECT_OP_INDIRECT_COUNT">
+	<stripe varset="a6xx_draw_indirect_opcode" variants="INDIRECT_OP_INDIRECT_COUNT" prefix="INDIRECT">
 		<reg64 offset="3" name="INDIRECT" type="address"/>
 		<reg64 offset="5" name="INDIRECT_COUNT" type="address"/>
 		<reg32 offset="7" name="STRIDE" type="uint"/>
 	</stripe>
-	<stripe varset="a6xx_draw_indirect_opcode" variants="INDIRECT_OP_INDIRECT_COUNT_INDEXED">
+	<stripe varset="a6xx_draw_indirect_opcode" variants="INDIRECT_OP_INDIRECT_COUNT_INDEXED" prefix="INDIRECT_INDEXED">
 		<reg64 offset="3" name="INDEX" type="address"/>
 		<reg32 offset="5" name="MAX_INDICES" type="uint"/>
 		<reg64 offset="6" name="INDIRECT" type="address"/>
@@ -1509,7 +1523,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 
 <domain name="CP_SET_MARKER" width="32" varset="chip" prefix="chip" variants="A6XX-">
 	<doc>Tell CP the current operation mode, indicates save and restore procedure</doc>
-	<enum name="a6xx_render_mode">
+	<enum name="a6xx_marker">
 		<value value="1" name="RM6_BYPASS"/>
 		<value value="2" name="RM6_BINNING"/>
 		<value value="4" name="RM6_GMEM"/>
@@ -1540,8 +1554,8 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 			model this, without getting confused by spurious b4, this is
 			described as two overlapping bitfields:
 		 -->
-		<bitfield name="MODE" low="0" high="8" type="a6xx_render_mode"/>
-		<bitfield name="MARKER" low="0" high="3" type="a6xx_render_mode"/>
+		<bitfield name="MODE" low="0" high="8" type="a6xx_marker"/>
+		<bitfield name="MARKER" low="0" high="3" type="a6xx_marker"/>
 	</reg32>
 </domain>
 
@@ -1755,6 +1769,22 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 	<reg32 offset="3" name="3">
 		<bitfield name="CONTEXTBANK" low="0" high="31"/>
+	</reg32>
+</domain>
+
+<domain name="CP_START_BIN" width="32">
+	<reg32 offset="0" name="BIN_COUNT" type="uint"/>
+	<reg64 offset="1" name="PREFIX_ADDR" type="address"/>
+	<reg32 offset="3" name="PREFIX_DWORDS">
+		<doc>
+			Size of prefix for each bin. For each bin index i, the
+			prefix commands at PREFIX_ADDR + i * PREFIX_DWORDS are
+			executed in an IB2 before the IB1 commands following
+			this packet.
+		</doc>
+	</reg32>
+	<reg32 offset="4" name="BODY_DWORDS">
+		<doc>Number of dwords after this packet until CP_END_BIN</doc>
 	</reg32>
 </domain>
 

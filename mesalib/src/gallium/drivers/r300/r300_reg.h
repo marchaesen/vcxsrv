@@ -2666,8 +2666,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #	define R500_CONTIGUOUS_6XAA_SAMPLES_DISABLE          (1 << 17)
 #	define R500_PEQ_PACKING_DISABLE                      (0 << 18)
 #	define R500_PEQ_PACKING_ENABLE                       (1 << 18)
-#	define R500_COVERED_PTR_MASKING_DISABLE              (0 << 18)
-#	define R500_COVERED_PTR_MASKING_ENABLE               (1 << 18)
+#	define R500_COVERED_PTR_MASKING_DISABLE              (0 << 19)
+#	define R500_COVERED_PTR_MASKING_ENABLE               (1 << 19)
 
 
 /* gap */

@@ -1373,6 +1373,12 @@ struct glsl_struct_field {
    int location;
 
    /**
+    * For interface blocks, members may explicitly assign the component used
+    * by a varying. Ignored for structs.
+    */
+   int component;
+
+   /**
     * For interface blocks, members may have an explicit byte offset
     * specified; -1 otherwise. Also used for xfb_offset layout qualifier.
     *
@@ -1391,6 +1397,7 @@ struct glsl_struct_field {
     * -1 otherwise.
     */
    int xfb_stride;
+
    /**
     * Layout format, applicable to image variables only.
     */
@@ -1455,8 +1462,8 @@ struct glsl_struct_field {
    };
 #ifdef __cplusplus
 #define DEFAULT_CONSTRUCTORS(_type, _name)                  \
-   type(_type), name(_name), location(-1), offset(-1), xfb_buffer(0),   \
-   xfb_stride(0), image_format(PIPE_FORMAT_NONE), flags(0) \
+   type(_type), name(_name), location(-1), component(-1), offset(-1), \
+   xfb_buffer(0),  xfb_stride(0), image_format(PIPE_FORMAT_NONE), flags(0) \
 
    glsl_struct_field(const struct glsl_type *_type,
                      int _precision,

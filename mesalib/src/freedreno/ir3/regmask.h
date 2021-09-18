@@ -32,100 +32,100 @@
 typedef BITSET_DECLARE(regmaskstate_t, 2 * MAX_REG);
 
 typedef struct {
-	bool mergedregs;
-	regmaskstate_t mask;
+   bool mergedregs;
+   regmaskstate_t mask;
 } regmask_t;
 
 static inline bool
 __regmask_get(regmask_t *regmask, bool half, unsigned n)
 {
-	if (regmask->mergedregs) {
-		/* a6xx+ case, with merged register file, we track things in terms
-		 * of half-precision registers, with a full precisions register
-		 * using two half-precision slots:
-		 */
-		if (half) {
-			return BITSET_TEST(regmask->mask, n);
-		} else {
-			n *= 2;
-			return BITSET_TEST(regmask->mask, n) ||
-				BITSET_TEST(regmask->mask, n+1);
-		}
-	} else {
-		/* pre a6xx case, with separate register file for half and full
-		 * precision:
-		 */
-		if (half)
-			n += MAX_REG;
-		return BITSET_TEST(regmask->mask, n);
-	}
+   if (regmask->mergedregs) {
+      /* a6xx+ case, with merged register file, we track things in terms
+       * of half-precision registers, with a full precisions register
+       * using two half-precision slots:
+       */
+      if (half) {
+         return BITSET_TEST(regmask->mask, n);
+      } else {
+         n *= 2;
+         return BITSET_TEST(regmask->mask, n) ||
+                BITSET_TEST(regmask->mask, n + 1);
+      }
+   } else {
+      /* pre a6xx case, with separate register file for half and full
+       * precision:
+       */
+      if (half)
+         n += MAX_REG;
+      return BITSET_TEST(regmask->mask, n);
+   }
 }
 
 static inline void
 __regmask_set(regmask_t *regmask, bool half, unsigned n)
 {
-	if (regmask->mergedregs) {
-		/* a6xx+ case, with merged register file, we track things in terms
-		 * of half-precision registers, with a full precisions register
-		 * using two half-precision slots:
-		 */
-		if (half) {
-			BITSET_SET(regmask->mask, n);
-		} else {
-			n *= 2;
-			BITSET_SET(regmask->mask, n);
-			BITSET_SET(regmask->mask, n+1);
-		}
-	} else {
-		/* pre a6xx case, with separate register file for half and full
-		 * precision:
-		 */
-		if (half)
-			n += MAX_REG;
-		BITSET_SET(regmask->mask, n);
-	}
+   if (regmask->mergedregs) {
+      /* a6xx+ case, with merged register file, we track things in terms
+       * of half-precision registers, with a full precisions register
+       * using two half-precision slots:
+       */
+      if (half) {
+         BITSET_SET(regmask->mask, n);
+      } else {
+         n *= 2;
+         BITSET_SET(regmask->mask, n);
+         BITSET_SET(regmask->mask, n + 1);
+      }
+   } else {
+      /* pre a6xx case, with separate register file for half and full
+       * precision:
+       */
+      if (half)
+         n += MAX_REG;
+      BITSET_SET(regmask->mask, n);
+   }
 }
 
 static inline void
 __regmask_clear(regmask_t *regmask, bool half, unsigned n)
 {
-	if (regmask->mergedregs) {
-		/* a6xx+ case, with merged register file, we track things in terms
-		 * of half-precision registers, with a full precisions register
-		 * using two half-precision slots:
-		 */
-		if (half) {
-			BITSET_CLEAR(regmask->mask, n);
-		} else {
-			n *= 2;
-			BITSET_CLEAR(regmask->mask, n);
-			BITSET_CLEAR(regmask->mask, n+1);
-		}
-	} else {
-		/* pre a6xx case, with separate register file for half and full
-		 * precision:
-		 */
-		if (half)
-			n += MAX_REG;
-		BITSET_CLEAR(regmask->mask, n);
-	}
+   if (regmask->mergedregs) {
+      /* a6xx+ case, with merged register file, we track things in terms
+       * of half-precision registers, with a full precisions register
+       * using two half-precision slots:
+       */
+      if (half) {
+         BITSET_CLEAR(regmask->mask, n);
+      } else {
+         n *= 2;
+         BITSET_CLEAR(regmask->mask, n);
+         BITSET_CLEAR(regmask->mask, n + 1);
+      }
+   } else {
+      /* pre a6xx case, with separate register file for half and full
+       * precision:
+       */
+      if (half)
+         n += MAX_REG;
+      BITSET_CLEAR(regmask->mask, n);
+   }
 }
 
 static inline void
 regmask_init(regmask_t *regmask, bool mergedregs)
 {
-	memset(&regmask->mask, 0, sizeof(regmask->mask));
-	regmask->mergedregs = mergedregs;
+   memset(&regmask->mask, 0, sizeof(regmask->mask));
+   regmask->mergedregs = mergedregs;
 }
 
 static inline void
 regmask_or(regmask_t *dst, regmask_t *a, regmask_t *b)
 {
-	assert(dst->mergedregs == a->mergedregs);
-	assert(dst->mergedregs == b->mergedregs);
+   assert(dst->mergedregs == a->mergedregs);
+   assert(dst->mergedregs == b->mergedregs);
 
-	for (unsigned i = 0; i < ARRAY_SIZE(dst->mask); i++)
-		dst->mask[i] = a->mask[i] | b->mask[i];
+   for (unsigned i = 0; i < ARRAY_SIZE(dst->mask); i++)
+      dst->mask[i] = a->mask[i] | b->mask[i];
 }
 
 #endif /* REGMASK_H_ */

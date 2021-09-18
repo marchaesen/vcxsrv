@@ -233,7 +233,7 @@ struct clc_runtime_kernel_conf {
    struct clc_runtime_arg_info *args;
    unsigned lower_bit_size;
    unsigned support_global_work_id_offsets;
-   unsigned support_work_group_id_offsets;
+   unsigned support_workgroup_id_offsets;
 };
 
 struct clc_dxil_object *

@@ -555,7 +555,7 @@ static void evergreen_compute_upload_input(struct pipe_context *ctx,
 	}
 
 	u_box_1d(0, input_size, &box);
-	num_work_groups_start = ctx->transfer_map(ctx,
+	num_work_groups_start = ctx->buffer_map(ctx,
 			(struct pipe_resource*)shader->kernel_param,
 			0, PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE,
 			&box, &transfer);
@@ -582,7 +582,7 @@ static void evergreen_compute_upload_input(struct pipe_context *ctx,
 			((unsigned*)num_work_groups_start)[i]);
 	}
 
-	ctx->transfer_unmap(ctx, transfer);
+	ctx->buffer_unmap(ctx, transfer);
 
 	/* ID=0 and ID=3 are reserved for the parameters.
 	 * LLVM will preferably use ID=0, but it does not work for dynamic
@@ -1230,12 +1230,12 @@ void evergreen_init_compute_state_functions(struct r600_context *rctx)
 
 }
 
-static void *r600_compute_global_transfer_map(struct pipe_context *ctx,
-					      struct pipe_resource *resource,
-					      unsigned level,
-					      unsigned usage,
-					      const struct pipe_box *box,
-					      struct pipe_transfer **ptransfer)
+void *r600_compute_global_transfer_map(struct pipe_context *ctx,
+				      struct pipe_resource *resource,
+				      unsigned level,
+				      unsigned usage,
+				      const struct pipe_box *box,
+				      struct pipe_transfer **ptransfer)
 {
 	struct r600_context *rctx = (struct r600_context*)ctx;
 	struct compute_memory_pool *pool = rctx->screen->global_pool;
@@ -1281,8 +1281,8 @@ static void *r600_compute_global_transfer_map(struct pipe_context *ctx,
 			offset, box->width, usage, ptransfer);
 }
 
-static void r600_compute_global_transfer_unmap(struct pipe_context *ctx,
-					       struct pipe_transfer *transfer)
+void r600_compute_global_transfer_unmap(struct pipe_context *ctx,
+					struct pipe_transfer *transfer)
 {
 	/* struct r600_resource_global are not real resources, they just map
 	 * to an offset within the compute memory pool.  The function
@@ -1297,15 +1297,8 @@ static void r600_compute_global_transfer_unmap(struct pipe_context *ctx,
 	assert (!"This function should not be called");
 }
 
-static void r600_compute_global_transfer_flush_region(struct pipe_context *ctx,
-						      struct pipe_transfer *transfer,
-						      const struct pipe_box *box)
-{
-	assert(0 && "TODO");
-}
-
-static void r600_compute_global_buffer_destroy(struct pipe_screen *screen,
-					       struct pipe_resource *res)
+void r600_compute_global_buffer_destroy(struct pipe_screen *screen,
+					struct pipe_resource *res)
 {
 	struct r600_resource_global* buffer = NULL;
 	struct r600_screen* rscreen = NULL;
@@ -1321,15 +1314,6 @@ static void r600_compute_global_buffer_destroy(struct pipe_screen *screen,
 	buffer->chunk = NULL;
 	free(res);
 }
-
-static const struct u_resource_vtbl r600_global_buffer_vtbl =
-{
-	u_default_resource_get_handle, /* get_handle */
-	r600_compute_global_buffer_destroy, /* resource_destroy */
-	r600_compute_global_transfer_map, /* transfer_map */
-	r600_compute_global_transfer_flush_region,/* transfer_flush_region */
-	r600_compute_global_transfer_unmap, /* transfer_unmap */
-};
 
 struct pipe_resource *r600_compute_global_buffer_create(struct pipe_screen *screen,
 							const struct pipe_resource *templ)
@@ -1352,9 +1336,9 @@ struct pipe_resource *r600_compute_global_buffer_create(struct pipe_screen *scre
 	COMPUTE_DBG(rscreen, "width = %u array_size = %u\n", templ->width0,
 			templ->array_size);
 
-	result->base.b.vtbl = &r600_global_buffer_vtbl;
 	result->base.b.b = *templ;
 	result->base.b.b.screen = screen;
+	result->base.compute_global_bo = true;
 	pipe_reference_init(&result->base.b.b.reference, 1);
 
 	size_in_dw = (templ->width0+3) / 4;

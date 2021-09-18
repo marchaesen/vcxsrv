@@ -195,7 +195,7 @@ static void r300_swizzle_split(
 	}
 }
 
-struct rc_swizzle_caps r300_swizzle_caps = {
+const struct rc_swizzle_caps r300_swizzle_caps = {
 	.IsNative = r300_swizzle_is_native,
 	.Split = r300_swizzle_split
 };

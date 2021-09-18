@@ -125,7 +125,6 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    /* Initialize pipe_draw_info. */
    info.primitive_restart = false;
    info.take_index_buffer_ownership = false;
-   info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
    info.restart_index = 0;
    info.view_mask = 0;
 
@@ -311,14 +310,16 @@ st_feedback_draw_vbo(struct gl_context *ctx,
                      st->state.num_vert_samplers);
 
    /* sampler views */
-   draw_set_sampler_views(draw, PIPE_SHADER_VERTEX,
-                          st->state.vert_sampler_views,
-                          st->state.num_sampler_views[PIPE_SHADER_VERTEX]);
+   struct pipe_sampler_view *views[PIPE_MAX_SAMPLERS];
+   unsigned num_views =
+      st_get_sampler_views(st, PIPE_SHADER_VERTEX, prog, views);
+
+   draw_set_sampler_views(draw, PIPE_SHADER_VERTEX, views, num_views);
 
    struct pipe_transfer *sv_transfer[PIPE_MAX_SAMPLERS][PIPE_MAX_TEXTURE_LEVELS];
 
-   for (unsigned i = 0; i < st->state.num_sampler_views[PIPE_SHADER_VERTEX]; i++) {
-      struct pipe_sampler_view *view = st->state.vert_sampler_views[i];
+   for (unsigned i = 0; i < num_views; i++) {
+      struct pipe_sampler_view *view = views[i];
       if (!view)
          continue;
 
@@ -345,7 +346,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
             sv_transfer[i][j] = NULL;
             mip_addr[j] = (uintptr_t)
-                          pipe_transfer_map_3d(pipe, res, j,
+                          pipe_texture_map_3d(pipe, res, j,
                                                PIPE_MAP_READ, 0, 0,
                                                view->u.tex.first_layer,
                                                u_minify(res->width0, j),
@@ -411,7 +412,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          height = u_minify(res->height0, img->u.tex.level);
          num_layers = img->u.tex.last_layer - img->u.tex.first_layer + 1;
 
-         addr = pipe_transfer_map_3d(pipe, res, img->u.tex.level,
+         addr = pipe_texture_map_3d(pipe, res, img->u.tex.level,
                                      PIPE_MAP_READ, 0, 0,
                                      img->u.tex.first_layer,
                                      width, height, num_layers,
@@ -457,30 +458,36 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          info.max_index = d.start + d.count - 1;
       }
 
-      draw_vbo(draw, &info, prims[i].draw_id, NULL, &d, 1);
+      draw_vbo(draw, &info, prims[i].draw_id, NULL, &d, 1,
+               ctx->TessCtrlProgram.patch_vertices);
    }
 
    /* unmap images */
    for (unsigned i = 0; i < prog->info.num_images; i++) {
       if (img_transfer[i]) {
          draw_set_mapped_image(draw, PIPE_SHADER_VERTEX, i, 0, 0, 0, NULL, 0, 0, 0, 0);
-         pipe_transfer_unmap(pipe, img_transfer[i]);
+         if (img_transfer[i]->resource->target == PIPE_BUFFER)
+            pipe_buffer_unmap(pipe, img_transfer[i]);
+         else
+            pipe_texture_unmap(pipe, img_transfer[i]);
       }
    }
 
    /* unmap sampler views */
-   for (unsigned i = 0; i < st->state.num_sampler_views[PIPE_SHADER_VERTEX]; i++) {
-      struct pipe_sampler_view *view = st->state.vert_sampler_views[i];
+   for (unsigned i = 0; i < num_views; i++) {
+      struct pipe_sampler_view *view = views[i];
 
       if (view) {
          if (view->texture->target != PIPE_BUFFER) {
             for (unsigned j = view->u.tex.first_level;
                  j <= view->u.tex.last_level; j++) {
-               pipe_transfer_unmap(pipe, sv_transfer[i][j]);
+               pipe_texture_unmap(pipe, sv_transfer[i][j]);
             }
          } else {
-            pipe_transfer_unmap(pipe, sv_transfer[i][0]);
+            pipe_buffer_unmap(pipe, sv_transfer[i][0]);
          }
+
+         pipe_sampler_view_reference(&views[i], NULL);
       }
    }
 

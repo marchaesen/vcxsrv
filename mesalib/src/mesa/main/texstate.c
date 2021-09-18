@@ -76,6 +76,7 @@ _mesa_copy_texture_state( const struct gl_context *src, struct gl_context *dst )
    /* per-unit state */
    for (u = 0; u < src->Const.MaxCombinedTextureImageUnits; u++) {
       dst->Texture.Unit[u].LodBias = src->Texture.Unit[u].LodBias;
+      dst->Texture.Unit[u].LodBiasQuantized = src->Texture.Unit[u].LodBiasQuantized;
 
       /*
        * XXX strictly speaking, we should compare texture names/ids and

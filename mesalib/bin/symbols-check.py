@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import os
@@ -21,6 +21,9 @@ PLATFORM_SYMBOLS = [
     '_end',
     '_fini',
     '_init',
+    '_fbss',
+    '_fdata',
+    '_ftext',
 ]
 
 def get_symbols_nm(nm, lib):
@@ -70,7 +73,7 @@ def get_symbols_dumpbin(dumpbin, lib):
             continue
         symbol_name = fields[3]
         # De-mangle symbols
-        if symbol_name[0] == '_':
+        if symbol_name[0] == '_' and '@' in symbol_name:
             symbol_name = symbol_name[1:].split('@')[0]
         symbols.append(symbol_name)
     return symbols

@@ -268,7 +268,7 @@ struct rc_opcode_info {
 	unsigned int IsStandardScalar:1;
 };
 
-extern struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE];
+extern const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE];
 
 static inline const struct rc_opcode_info * rc_get_opcode_info(rc_opcode opcode)
 {

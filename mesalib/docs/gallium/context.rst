@@ -118,6 +118,8 @@ objects. They all follow simple, one-method binding calls, e.g.
     levels. This corresponds to GL's ``PATCH_DEFAULT_OUTER_LEVEL``.
   * ``default_inner_level`` is the default value for the inner tessellation
     levels. This corresponds to GL's ``PATCH_DEFAULT_INNER_LEVEL``.
+* ``set_patch_vertices`` sets the number of vertices per input patch
+  for tessellation.
 
 * ``set_debug_callback`` sets the callback to be used for reporting
   various debug messages, eventually reported via KHR_debug and

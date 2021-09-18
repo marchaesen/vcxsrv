@@ -1122,8 +1122,7 @@
         <glx sop="102"/>
     </function>
 
-    <function name="CallList" deprecated="3.1"
-              marshal_call_after="_mesa_glthread_CallList(ctx, list);">
+    <function name="CallList" deprecated="3.1" marshal="custom">
         <param name="list" type="GLuint"/>
         <glx rop="1"/>
     </function>
@@ -2399,14 +2398,8 @@
         <glx sop="108" handcode="true"/>
     </function>
 
-    <!-- Shared contexts have to wait for glthread to finish execution after glFlush,
-         so that other contexts can see the effect of previous GL calls when glFlush returns.
-         This is harmless if the contexts run on different threads, because we only stall
-         1 thread that's asynchronous anyway. It's worse when the contexts run on the same
-         thread, but that's not a good use of multiple contexts.
-    -->
     <function name="Flush" es1="1.0" es2="2.0"
-              marshal_call_after="_mesa_glthread_flush_batch(ctx); if (ctx->Shared->RefCount > 1) _mesa_glthread_finish(ctx);">
+              marshal_call_after="_mesa_glthread_flush_batch(ctx); if (ctx->Shared->HasExternallySharedImages) _mesa_glthread_finish(ctx);">
         <glx sop="142" handcode="true"/>
     </function>
 
@@ -5490,7 +5483,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="GetUniformLocation" es2="2.0" no_error="true">
+    <function name="GetUniformLocation" es2="2.0" no_error="true" marshal="custom">
         <param name="program" type="GLuint"/>
         <param name="name" type="const GLchar *"/>
         <return type="GLint"/>

@@ -30,16 +30,19 @@
 #define MAX_BUFS 4
 
 struct ir3_kernel_info {
-	uint32_t num_bufs;
-	uint32_t buf_sizes[MAX_BUFS]; /* size in dwords */
+   uint32_t num_bufs;
+   uint32_t buf_sizes[MAX_BUFS]; /* size in dwords */
+   uint32_t buf_addr_regs[MAX_BUFS];
 
-	/* driver-param uniforms: */
-	unsigned numwg;
+   /* driver-param / replaced uniforms: */
+   unsigned numwg;
+   unsigned wgid;
 };
 
 struct ir3_shader;
 struct ir3_compiler;
 
-struct ir3_shader * ir3_parse_asm(struct ir3_compiler *c, struct ir3_kernel_info *info, FILE *in);
+struct ir3_shader *ir3_parse_asm(struct ir3_compiler *c,
+                                 struct ir3_kernel_info *info, FILE *in);
 
 #endif /* __IR3_ASSEMBLER_H__ */

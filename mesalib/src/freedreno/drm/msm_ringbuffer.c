@@ -149,7 +149,7 @@ append_bo(struct msm_submit *submit, struct fd_bo *bo)
          idx = APPEND(
             submit, submit_bos,
             (struct drm_msm_gem_submit_bo){
-               .flags = bo->flags & (MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE),
+               .flags = bo->reloc_flags & (MSM_SUBMIT_BO_READ | MSM_SUBMIT_BO_WRITE),
                .handle = bo->handle,
                .presumed = 0,
             });
@@ -512,7 +512,7 @@ msm_ringbuffer_emit_reloc(struct fd_ringbuffer *ring,
 
    ring->cur++;
 
-   if (pipe->gpu_id >= 500) {
+   if (fd_dev_64b(&pipe->dev_id)) {
       APPEND(msm_ring->cmd, relocs,
              (struct drm_msm_gem_submit_reloc){
                 .reloc_idx = reloc_idx,
@@ -597,6 +597,26 @@ msm_ringbuffer_cmd_count(struct fd_ringbuffer *ring)
    return 1;
 }
 
+static bool
+msm_ringbuffer_check_size(struct fd_ringbuffer *ring)
+{
+   assert(!(ring->flags & _FD_RINGBUFFER_OBJECT));
+   struct msm_ringbuffer *msm_ring = to_msm_ringbuffer(ring);
+   struct fd_submit *submit = msm_ring->u.submit;
+   struct fd_pipe *pipe = submit->pipe;
+
+   if ((fd_device_version(pipe->dev) < FD_VERSION_UNLIMITED_CMDS) &&
+       ((ring->cur - ring->start) > (ring->size / 4 - 0x1000))) {
+      return false;
+   }
+
+   if (to_msm_submit(submit)->nr_bos > MAX_ARRAY_SIZE/2) {
+      return false;
+   }
+
+   return true;
+}
+
 static void
 msm_ringbuffer_destroy(struct fd_ringbuffer *ring)
 {
@@ -632,6 +652,7 @@ static const struct fd_ringbuffer_funcs ring_funcs = {
    .emit_reloc = msm_ringbuffer_emit_reloc,
    .emit_reloc_ring = msm_ringbuffer_emit_reloc_ring,
    .cmd_count = msm_ringbuffer_cmd_count,
+   .check_size = msm_ringbuffer_check_size,
    .destroy = msm_ringbuffer_destroy,
 };
 

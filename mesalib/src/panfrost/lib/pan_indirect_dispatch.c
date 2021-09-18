@@ -70,7 +70,7 @@ static mali_ptr
 get_tls(const struct panfrost_device *dev)
 {
         return dev->indirect_dispatch.descs->ptr.gpu +
-               MALI_RENDERER_STATE_LENGTH;
+               pan_size(RENDERER_STATE);
 }
 
 static mali_ptr
@@ -78,24 +78,14 @@ get_ubos(struct pan_pool *pool,
          const struct indirect_dispatch_inputs *inputs)
 {
         struct panfrost_ptr inputs_buf =
-                panfrost_pool_alloc_aligned(pool, ALIGN_POT(sizeof(*inputs), 16), 16);
+                pan_pool_alloc_aligned(pool, ALIGN_POT(sizeof(*inputs), 16), 16);
 
         memcpy(inputs_buf.cpu, inputs, sizeof(*inputs));
 
-        /* The midgard compiler calls the uniform -> UBO lowering pass which
-         * increments UBOs index even if there's no uniform to move to UBO0.
-         */
-        unsigned num_ubos = pan_is_bifrost(pool->dev) ? 1 : 2;
         struct panfrost_ptr ubos_buf =
-                panfrost_pool_alloc_desc_array(pool, num_ubos, UNIFORM_BUFFER);
+                pan_pool_alloc_desc(pool, UNIFORM_BUFFER);
 
-        void *inputs_ubo = ubos_buf.cpu;
-        if (num_ubos > 1) {
-                memset(ubos_buf.cpu, 0, MALI_UNIFORM_BUFFER_LENGTH);
-                inputs_ubo += MALI_UNIFORM_BUFFER_LENGTH;
-        }
-
-        pan_pack(inputs_ubo, UNIFORM_BUFFER, cfg) {
+        pan_pack(ubos_buf.cpu, UNIFORM_BUFFER, cfg) {
                 cfg.entries = DIV_ROUND_UP(sizeof(*inputs), 16);
                 cfg.pointer = inputs_buf.gpu;
         }
@@ -109,9 +99,9 @@ get_push_uniforms(struct pan_pool *pool,
 {
         const struct panfrost_device *dev = pool->dev;
         struct panfrost_ptr push_consts_buf =
-                panfrost_pool_alloc_aligned(pool,
-                                            ALIGN(dev->indirect_dispatch.push.count * 4, 16),
-                                            16);
+                pan_pool_alloc_aligned(pool,
+                                       ALIGN(dev->indirect_dispatch.push.count * 4, 16),
+                                       16);
         uint32_t *out = push_consts_buf.cpu;
         uint8_t *in = (uint8_t *)inputs;
 
@@ -122,13 +112,13 @@ get_push_uniforms(struct pan_pool *pool,
 }
 
 unsigned
-pan_indirect_dispatch_emit(struct pan_pool *pool,
-                           struct pan_scoreboard *scoreboard,
-                           const struct pan_indirect_dispatch_info *dispatch_info)
+GENX(pan_indirect_dispatch_emit)(struct pan_pool *pool,
+                                 struct pan_scoreboard *scoreboard,
+                                 const struct pan_indirect_dispatch_info *dispatch_info)
 {
         struct panfrost_device *dev = pool->dev;
         struct panfrost_ptr job =
-                panfrost_pool_alloc_desc(pool, COMPUTE_JOB);
+                pan_pool_alloc_desc(pool, COMPUTE_JOB);
         void *invocation =
                 pan_section_ptr(job.cpu, COMPUTE_JOB, INVOCATION);
         struct indirect_dispatch_inputs inputs = {
@@ -143,7 +133,7 @@ pan_indirect_dispatch_emit(struct pan_pool *pool,
 
         panfrost_pack_work_groups_compute(invocation,
                                           1, 1, 1, 1, 1, 1,
-                                          false);
+                                          false, false);
 
         pan_section_pack(job.cpu, COMPUTE_JOB, PARAMETERS, cfg) {
                 cfg.job_task_split = 2;
@@ -151,7 +141,7 @@ pan_indirect_dispatch_emit(struct pan_pool *pool,
 
         pan_section_pack(job.cpu, COMPUTE_JOB, DRAW, cfg) {
                 cfg.draw_descriptor_is_64b = true;
-                cfg.texture_descriptor_is_64b = !pan_is_bifrost(dev);
+                cfg.texture_descriptor_is_64b = PAN_ARCH <= 5;
                 cfg.state = get_rsd(dev);
                 cfg.thread_storage = get_tls(pool->dev);
                 cfg.uniform_buffers = get_ubos(pool, &inputs);
@@ -165,12 +155,13 @@ pan_indirect_dispatch_emit(struct pan_pool *pool,
 }
 
 void
-pan_indirect_dispatch_init(struct panfrost_device *dev)
+GENX(pan_indirect_dispatch_init)(struct panfrost_device *dev)
 {
         nir_builder b =
                 nir_builder_init_simple_shader(MESA_SHADER_COMPUTE,
                                                pan_shader_get_compiler_options(dev),
                                                "%s", "indirect_dispatch");
+        b.shader->info.internal = true;
         nir_variable_create(b.shader, nir_var_mem_ubo,
                             glsl_uint_type(), "inputs");
         b.shader->info.num_ubos++;
@@ -184,52 +175,50 @@ pan_indirect_dispatch_init(struct panfrost_device *dev)
 
         nir_ssa_def *job_hdr_ptr = get_input_field(&b, job);
         nir_ssa_def *num_wg_flat = nir_imul(&b, num_wg_x, nir_imul(&b, num_wg_y, num_wg_z));
+
         nir_push_if(&b, nir_ieq(&b, num_wg_flat, zero));
-        nir_ssa_def *job_type_ptr = nir_iadd(&b, job_hdr_ptr, nir_imm_int64(&b, 4 * 4));
-        nir_ssa_def *w4 = nir_load_global(&b, job_type_ptr, 4, 1, 32);
-        w4 = nir_iand_imm(&b, w4, ~0xfe);
-        w4 = nir_ior(&b, w4, nir_imm_int(&b, MALI_JOB_TYPE_NULL << 1));
-        nir_store_global(&b, job_type_ptr, 4, w4, 1);
+        {
+                nir_ssa_def *type_ptr = nir_iadd(&b, job_hdr_ptr, nir_imm_int64(&b, 4 * 4));
+                nir_ssa_def *ntype = nir_imm_intN_t(&b, (MALI_JOB_TYPE_NULL << 1) | 1, 8);
+                nir_store_global(&b, type_ptr, 1, ntype, 1);
+        }
         nir_push_else(&b, NULL);
-        nir_ssa_def *job_dim_ptr =
-                nir_iadd(&b, job_hdr_ptr,
-                         nir_imm_int64(&b, pan_section_offset(COMPUTE_JOB, INVOCATION)));
-        num_wg_x = nir_isub(&b, num_wg_x, one);
-        num_wg_y = nir_isub(&b, num_wg_y, one);
-        num_wg_z = nir_isub(&b, num_wg_z, one);
-        nir_ssa_def *job_dim = nir_load_global(&b, job_dim_ptr, 8, 2, 32);
-        nir_ssa_def *dims = nir_channel(&b, job_dim, 0);
-        nir_ssa_def *split = nir_channel(&b, job_dim, 1);
-        nir_ssa_def *num_wg_x_split = nir_iand_imm(&b, nir_ushr_imm(&b, split, 10), 0x3f);
-        nir_ssa_def *num_wg_y_split =
-                nir_iadd(&b, num_wg_x_split,
-                         nir_bcsel(&b,
-                                   nir_ieq(&b, num_wg_x, zero),
-                                   zero,
-                                   nir_iadd(&b, nir_ufind_msb(&b, num_wg_x), one)));
-        nir_ssa_def *num_wg_z_split =
-                nir_iadd(&b, num_wg_y_split,
-                         nir_bcsel(&b,
-                                   nir_ieq(&b, num_wg_y, zero),
-                                   zero,
-                                   nir_iadd(&b, nir_ufind_msb(&b, num_wg_y), one)));
-        split = nir_ior(&b, split,
-                        nir_ior(&b,
-                                nir_ishl(&b, num_wg_y_split, nir_imm_int(&b, 16)),
-                                nir_ishl(&b, num_wg_z_split, nir_imm_int(&b, 22))));
-        dims = nir_ior(&b, dims,
-                       nir_ior(&b, nir_ishl(&b, num_wg_x, num_wg_x_split),
-                               nir_ior(&b, nir_ishl(&b, num_wg_y, num_wg_y_split),
-                                       nir_ishl(&b, num_wg_z, num_wg_z_split))));
+        {
+                nir_ssa_def *job_dim_ptr = nir_iadd(&b, job_hdr_ptr,
+                                nir_imm_int64(&b, pan_section_offset(COMPUTE_JOB, INVOCATION)));
+                nir_ssa_def *num_wg_x_m1 = nir_isub(&b, num_wg_x, one);
+                nir_ssa_def *num_wg_y_m1 = nir_isub(&b, num_wg_y, one);
+                nir_ssa_def *num_wg_z_m1 = nir_isub(&b, num_wg_z, one);
+                nir_ssa_def *job_dim = nir_load_global(&b, job_dim_ptr, 8, 2, 32);
+                nir_ssa_def *dims = nir_channel(&b, job_dim, 0);
+                nir_ssa_def *split = nir_channel(&b, job_dim, 1);
+                nir_ssa_def *num_wg_x_split = nir_iand_imm(&b, nir_ushr_imm(&b, split, 10), 0x3f);
+                nir_ssa_def *num_wg_y_split = nir_iadd(&b, num_wg_x_split,
+                                nir_isub_imm(&b, 32, nir_uclz(&b, num_wg_x_m1)));
+                nir_ssa_def *num_wg_z_split = nir_iadd(&b, num_wg_y_split,
+                                nir_isub_imm(&b, 32, nir_uclz(&b, num_wg_y_m1)));
+                split = nir_ior(&b, split,
+                                nir_ior(&b,
+                                        nir_ishl(&b, num_wg_y_split, nir_imm_int(&b, 16)),
+                                        nir_ishl(&b, num_wg_z_split, nir_imm_int(&b, 22))));
+                dims = nir_ior(&b, dims,
+                               nir_ior(&b, nir_ishl(&b, num_wg_x_m1, num_wg_x_split),
+                                       nir_ior(&b, nir_ishl(&b, num_wg_y_m1, num_wg_y_split),
+                                               nir_ishl(&b, num_wg_z_m1, num_wg_z_split))));
 
-        nir_store_global(&b, job_dim_ptr, 8, nir_vec2(&b, dims, split), 3);
+                nir_store_global(&b, job_dim_ptr, 8, nir_vec2(&b, dims, split), 3);
 
-        nir_ssa_def *num_wg_x_ptr = get_input_field(&b, num_wg_sysval[0]);
-        nir_push_if(&b, nir_ine(&b, num_wg_x_ptr, nir_imm_int64(&b, 0)));
-        nir_store_global(&b, num_wg_x_ptr, 8, nir_channel(&b, num_wg, 0), 1);
-        nir_store_global(&b, get_input_field(&b, num_wg_sysval[1]), 8, nir_channel(&b, num_wg, 1), 1);
-        nir_store_global(&b, get_input_field(&b, num_wg_sysval[2]), 8, nir_channel(&b, num_wg, 2), 1);
-        nir_pop_if(&b, NULL);
+                nir_ssa_def *num_wg_x_ptr = get_input_field(&b, num_wg_sysval[0]);
+
+                nir_push_if(&b, nir_ine(&b, num_wg_x_ptr, nir_imm_int64(&b, 0)));
+                {
+                        nir_store_global(&b, num_wg_x_ptr, 8, num_wg_x, 1);
+                        nir_store_global(&b, get_input_field(&b, num_wg_sysval[1]), 8, num_wg_y, 1);
+                        nir_store_global(&b, get_input_field(&b, num_wg_sysval[2]), 8, num_wg_z, 1);
+                }
+                nir_pop_if(&b, NULL);
+        }
+
         nir_pop_if(&b, NULL);
 
         struct panfrost_compile_inputs inputs = { .gpu_id = dev->gpu_id };
@@ -246,7 +235,8 @@ pan_indirect_dispatch_init(struct panfrost_device *dev)
         assert(!shader_info.sysvals.sysval_count);
 
         dev->indirect_dispatch.bin =
-                panfrost_bo_create(dev, binary.size, PAN_BO_EXECUTE);
+                panfrost_bo_create(dev, binary.size, PAN_BO_EXECUTE,
+                                "Indirect dispatch shader");
 
         memcpy(dev->indirect_dispatch.bin->ptr.cpu, binary.data, binary.size);
         util_dynarray_fini(&binary);
@@ -254,13 +244,15 @@ pan_indirect_dispatch_init(struct panfrost_device *dev)
         dev->indirect_dispatch.push = shader_info.push;
         dev->indirect_dispatch.descs =
                 panfrost_bo_create(dev,
-                                   MALI_RENDERER_STATE_LENGTH +
-                                   MALI_LOCAL_STORAGE_LENGTH,
-                                   0);
+                                   pan_size(RENDERER_STATE) +
+                                   pan_size(LOCAL_STORAGE),
+                                   0, "Indirect dispatch descriptors");
 
         mali_ptr address = dev->indirect_dispatch.bin->ptr.gpu;
-        if (!pan_is_bifrost(dev))
-                address |= shader_info.midgard.first_tag;
+
+#if PAN_ARCH <= 5
+        address |= shader_info.midgard.first_tag;
+#endif
 
         void *rsd = dev->indirect_dispatch.descs->ptr.cpu;
         pan_pack(rsd, RENDERER_STATE, cfg) {
@@ -268,14 +260,14 @@ pan_indirect_dispatch_init(struct panfrost_device *dev)
         }
 
         void *tsd = dev->indirect_dispatch.descs->ptr.cpu +
-                    MALI_RENDERER_STATE_LENGTH;
+                    pan_size(RENDERER_STATE);
         pan_pack(tsd, LOCAL_STORAGE, ls) {
                 ls.wls_instances = MALI_LOCAL_STORAGE_NO_WORKGROUP_MEM;
         };
 }
 
 void
-pan_indirect_dispatch_cleanup(struct panfrost_device *dev)
+GENX(pan_indirect_dispatch_cleanup)(struct panfrost_device *dev)
 {
         panfrost_bo_unreference(dev->indirect_dispatch.bin);
         panfrost_bo_unreference(dev->indirect_dispatch.descs);

@@ -110,7 +110,8 @@ tu_cs_add_bo(struct tu_cs *cs, uint32_t size)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    VkResult result =
-      tu_bo_init_new(cs->device, new_bo, size * sizeof(uint32_t), true);
+      tu_bo_init_new(cs->device, new_bo, size * sizeof(uint32_t),
+                     TU_BO_ALLOC_GPU_READ_ONLY | TU_BO_ALLOC_ALLOW_DUMP);
    if (result != VK_SUCCESS) {
       free(new_bo);
       return result;
@@ -371,8 +372,10 @@ tu_cs_reserve_space(struct tu_cs *cs, uint32_t reserved_size)
          tu_cs_emit(cs, CP_COND_REG_EXEC_1_DWORDS(0));
       }
 
-      /* double the size for the next bo */
-      new_size <<= 1;
+      /* double the size for the next bo, also there is an upper
+       * bound on IB size, which appears to be 0x0fffff
+       */
+      new_size = MIN2(new_size << 1, 0x0fffff);
       if (cs->next_bo_size < new_size)
          cs->next_bo_size = new_size;
    }

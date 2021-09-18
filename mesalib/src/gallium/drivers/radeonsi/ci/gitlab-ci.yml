@@ -7,10 +7,13 @@
     GPU_VERSION: radeonsi-stoney
     BOOT_METHOD: depthcharge
     KERNEL_IMAGE_TYPE: ""
+    HWCI_KERNEL_MODULES: amdgpu
     DRIVER_NAME: radeonsi
-    ENV_VARS: "DEQP_PARALLEL=4 DEQP_EXPECTED_RENDERER=STONEY"
+    DEQP_PARALLEL: 4
+    DEQP_EXPECTED_RENDERER: STONEY
+    HWCI_FREQ_MAX: "true"
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-hp-11A-G6-EE-grunt
 
 .radeonsi-stoney-deqp:amd64:
   extends:
@@ -21,7 +24,7 @@ radeonsi-stoney-gles2:amd64:
   extends:
     - .radeonsi-stoney-deqp:amd64
   variables:
-    DEQP_VERSION: gles2
+    DEQP_VER: gles2
 
 # Run two jobs in parallel each running 1/4th of the test suite
 radeonsi-stoney-gles3:amd64:
@@ -29,8 +32,11 @@ radeonsi-stoney-gles3:amd64:
     - .radeonsi-stoney-deqp:amd64
   parallel: 2
   variables:
-    DEQP_VERSION: gles3
-    ENV_VARS: "DEQP_PARALLEL=4 DEQP_EXPECTED_RENDERER=STONEY DEQP_FRACTION=2"
+    DEQP_VER: gles3
+    DEQP_PARALLEL: 4
+    DEQP_EXPECTED_RENDERER: STONEY
+    DEQP_FRACTION: 2
+
 
 # Run two jobs in parallel each running 1/4th of the test suite
 radeonsi-stoney-gles31:amd64:
@@ -38,21 +44,32 @@ radeonsi-stoney-gles31:amd64:
     - .radeonsi-stoney-deqp:amd64
   parallel: 2
   variables:
-    DEQP_VERSION: gles31
-    ENV_VARS: "DEQP_PARALLEL=4 DEQP_EXPECTED_RENDERER=STONEY DEQP_FRACTION=2"
+    DEQP_VER: gles31
+    DEQP_PARALLEL: 4
+    DEQP_EXPECTED_RENDERER: STONEY
+    DEQP_FRACTION: 2
+
 
 radeonsi-stoney-traces:amd64:
   extends:
     - .lava-piglit-traces:amd64
     - .radeonsi-stoney-test:amd64
   variables:
-    ENV_VARS: "EGL_PLATFORM=surfaceless PIGLIT_PROFILES=replay PIGLIT_JUNIT_RESULTS=1"
+    EGL_PLATFORM: surfaceless
+    PIGLIT_PROFILES: replay
+    PIGLIT_JUNIT_RESULTS: 1
+    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-radeonsi.yml"
+    PIGLIT_REPLAY_EXTRA_ARGS: --keep-image
   tags:
-    - mesa-ci-aarch64-lava-collabora
+    - mesa-ci-x86-64-lava-hp-11A-G6-EE-grunt
 
 radeonsi-stoney-piglit-gl:amd64:
   extends:
     - .lava-piglit:amd64
     - .radeonsi-stoney-test:amd64
   variables:
-    ENV_VARS: "PIGLIT_FRACTION=4 PIGLIT_PLATFORM=mixed_glx_egl PIGLIT_PROFILES=quick_gl PIGLIT_JUNIT_RESULTS=1 LAVA_START_XORG=1"
+    PIGLIT_FRACTION: 4
+    PIGLIT_PLATFORM: mixed_glx_egl
+    PIGLIT_PROFILES: quick_gl
+    PIGLIT_JUNIT_RESULTS: 1
+    HWCI_START_XORG: 1

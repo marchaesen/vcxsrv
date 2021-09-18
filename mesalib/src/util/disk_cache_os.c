@@ -125,65 +125,140 @@ concatenate_and_mkdir(void *ctx, const char *path, const char *name)
       return NULL;
 }
 
-/* Given a directory path and predicate function, find the entry with
- * the oldest access time in that directory for which the predicate
+struct lru_file {
+   struct list_head node;
+   char *lru_name;
+   size_t lru_file_size;
+   time_t lru_atime;
+};
+
+static void
+free_lru_file_list(struct list_head *lru_file_list)
+{
+   struct lru_file *e, *next;
+   LIST_FOR_EACH_ENTRY_SAFE(e, next, lru_file_list, node) {
+      free(e->lru_name);
+      free(e);
+   }
+   free(lru_file_list);
+}
+
+/* Given a directory path and predicate function, create a linked list of entrys
+ * with the oldest access time in that directory for which the predicate
  * returns true.
  *
- * Returns: A malloc'ed string for the path to the chosen file, (or
- * NULL on any error). The caller should free the string when
- * finished.
+ * Returns: A malloc'ed linkd list for the paths of chosen files, (or
+ * NULL on any error). The caller should free the linked list via
+ * free_lru_file_list() when finished.
  */
-static char *
+static struct list_head *
 choose_lru_file_matching(const char *dir_path,
                          bool (*predicate)(const char *dir_path,
                                            const struct stat *,
                                            const char *, const size_t))
 {
    DIR *dir;
-   struct dirent *entry;
-   char *filename;
-   char *lru_name = NULL;
-   time_t lru_atime = 0;
+   struct dirent *dir_ent;
 
    dir = opendir(dir_path);
    if (dir == NULL)
       return NULL;
 
+   /* First count the number of files in the directory */
+   unsigned total_file_count = 0;
+   while ((dir_ent = readdir(dir)) != NULL) {
+      if (dir_ent->d_type == DT_REG) { /* If the entry is a regular file */
+         total_file_count++;
+      }
+   }
+
+   /* Reset to the start of the directory */
+   rewinddir(dir);
+
+   /* Collect 10% of files in this directory for removal. Note: This should work
+    * out to only be around 0.04% of total cache items.
+    */
+   unsigned lru_file_count = total_file_count > 10 ? total_file_count / 10 : 1;
+   struct list_head *lru_file_list = malloc(sizeof(struct list_head));
+   list_inithead(lru_file_list);
+
+   unsigned processed_files = 0;
    while (1) {
-      entry = readdir(dir);
-      if (entry == NULL)
+      dir_ent = readdir(dir);
+      if (dir_ent == NULL)
          break;
 
       struct stat sb;
-      if (fstatat(dirfd(dir), entry->d_name, &sb, 0) == 0) {
-         if (!lru_atime || (sb.st_atime < lru_atime)) {
-            size_t len = strlen(entry->d_name);
+      if (fstatat(dirfd(dir), dir_ent->d_name, &sb, 0) == 0) {
+         struct lru_file *entry = NULL;
+         if (!list_is_empty(lru_file_list))
+            entry = list_first_entry(lru_file_list, struct lru_file, node);
 
-            if (!predicate(dir_path, &sb, entry->d_name, len))
+         if (!entry|| sb.st_atime < entry->lru_atime) {
+            size_t len = strlen(dir_ent->d_name);
+            if (!predicate(dir_path, &sb, dir_ent->d_name, len))
                continue;
 
-            char *tmp = realloc(lru_name, len + 1);
+            bool new_entry = false;
+            if (processed_files < lru_file_count) {
+               entry = calloc(1, sizeof(struct lru_file));
+               new_entry = true;
+            }
+            processed_files++;
+
+            char *tmp = realloc(entry->lru_name, len + 1);
             if (tmp) {
-               lru_name = tmp;
-               memcpy(lru_name, entry->d_name, len + 1);
-               lru_atime = sb.st_atime;
+               /* Find location to insert new lru item. We want to keep the
+                * list ordering from most recently used to least recently used.
+                * This allows us to just evict the head item from the list as
+                * we process the directory and find older entrys.
+                */
+               struct list_head *list_node = lru_file_list;
+               struct lru_file *e;
+               LIST_FOR_EACH_ENTRY(e, lru_file_list, node) {
+                  if (sb.st_atime < entry->lru_atime) {
+                     list_node = &e->node;
+                     break;
+                  }
+               }
+
+               if (new_entry) {
+                  list_addtail(&entry->node, list_node);
+               } else {
+                  if (list_node != lru_file_list) {
+                     list_del(lru_file_list);
+                     list_addtail(lru_file_list, list_node);
+                  }
+               }
+
+               entry->lru_name = tmp;
+               memcpy(entry->lru_name, dir_ent->d_name, len + 1);
+               entry->lru_atime = sb.st_atime;
+               entry->lru_file_size = sb.st_blocks * 512;
             }
          }
       }
    }
 
-   if (lru_name == NULL) {
+   if (list_is_empty(lru_file_list)) {
       closedir(dir);
+      free(lru_file_list);
       return NULL;
    }
 
-   if (asprintf(&filename, "%s/%s", dir_path, lru_name) < 0)
-      filename = NULL;
+   /* Create the full path for the file list we found */
+   struct lru_file *e;
+   LIST_FOR_EACH_ENTRY(e, lru_file_list, node) {
+      char *filename = e->lru_name;
+      if (asprintf(&e->lru_name, "%s/%s", dir_path, filename) < 0)
+         e->lru_name = NULL;
 
-   free(lru_name);
+      free(filename);
+   }
+
    closedir(dir);
 
-   return filename;
+   return lru_file_list;
 }
 
 /* Is entry a regular file, and not having a name with a trailing
@@ -206,22 +281,22 @@ is_regular_non_tmp_file(const char *path, const struct stat *sb,
 static size_t
 unlink_lru_file_from_directory(const char *path)
 {
-   struct stat sb;
-   char *filename;
-
-   filename = choose_lru_file_matching(path, is_regular_non_tmp_file);
-   if (filename == NULL)
+   struct list_head *lru_file_list =
+      choose_lru_file_matching(path, is_regular_non_tmp_file);
+   if (lru_file_list == NULL)
       return 0;
 
-   if (stat(filename, &sb) == -1) {
-      free (filename);
-      return 0;
+   assert(!list_is_empty(lru_file_list));
+
+   size_t total_unlinked_size = 0;
+   struct lru_file *e;
+   LIST_FOR_EACH_ENTRY(e, lru_file_list, node) {
+      if (unlink(e->lru_name) == 0)
+         total_unlinked_size += e->lru_file_size;
    }
+   free_lru_file_list(lru_file_list);
 
-   unlink(filename);
-   free (filename);
-
-   return sb.st_blocks * 512;
+   return total_unlinked_size;
 }
 
 /* Is entry a directory with a two-character name, (and not the
@@ -345,14 +420,19 @@ disk_cache_evict_lru_item(struct disk_cache *cache)
     * tests to work, (which use an artificially-small cache to be able
     * to force a single cached item to be evicted).
     */
-   dir_path = choose_lru_file_matching(cache->path,
-                                       is_two_character_sub_directory);
-   if (dir_path == NULL)
+   struct list_head *lru_file_list =
+      choose_lru_file_matching(cache->path, is_two_character_sub_directory);
+   if (lru_file_list == NULL)
       return;
 
-   size = unlink_lru_file_from_directory(dir_path);
+   assert(!list_is_empty(lru_file_list));
 
-   free(dir_path);
+   struct lru_file *lru_file_dir =
+      list_first_entry(lru_file_list, struct lru_file, node);
+
+   size = unlink_lru_file_from_directory(lru_file_dir->lru_name);
+
+   free_lru_file_list(lru_file_list);
 
    if (size)
       p_atomic_add(cache->size, - (uint64_t)size);

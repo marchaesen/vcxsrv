@@ -70,14 +70,20 @@ panfrost_nir_sysval_for_intrinsic(nir_intrinsic_instr *instr)
                 return PAN_SYSVAL_VIEWPORT_SCALE;
         case nir_intrinsic_load_viewport_offset:
                 return PAN_SYSVAL_VIEWPORT_OFFSET;
-        case nir_intrinsic_load_num_work_groups:
+        case nir_intrinsic_load_num_workgroups:
                 return PAN_SYSVAL_NUM_WORK_GROUPS;
-        case nir_intrinsic_load_local_group_size:
+        case nir_intrinsic_load_workgroup_size:
                 return PAN_SYSVAL_LOCAL_GROUP_SIZE;
         case nir_intrinsic_load_work_dim:
                 return PAN_SYSVAL_WORK_DIM;
         case nir_intrinsic_load_sample_positions_pan:
                 return PAN_SYSVAL_SAMPLE_POSITIONS;
+        case nir_intrinsic_load_first_vertex:
+        case nir_intrinsic_load_base_vertex:
+        case nir_intrinsic_load_base_instance:
+                return PAN_SYSVAL_VERTEX_INSTANCE_OFFSETS;
+        case nir_intrinsic_load_draw_id:
+                return PAN_SYSVAL_DRAWID;
         case nir_intrinsic_load_ssbo_address: 
         case nir_intrinsic_get_ssbo_size: 
                 return panfrost_sysval_for_ssbo(instr);

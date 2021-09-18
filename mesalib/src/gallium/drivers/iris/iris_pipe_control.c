@@ -190,13 +190,17 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
    const uint32_t flush_bits[NUM_IRIS_DOMAINS] = {
       [IRIS_DOMAIN_RENDER_WRITE] = PIPE_CONTROL_RENDER_TARGET_FLUSH,
       [IRIS_DOMAIN_DEPTH_WRITE] = PIPE_CONTROL_DEPTH_CACHE_FLUSH,
+      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_DATA_CACHE_FLUSH,
       [IRIS_DOMAIN_OTHER_WRITE] = PIPE_CONTROL_FLUSH_ENABLE,
+      [IRIS_DOMAIN_VF_READ] = PIPE_CONTROL_STALL_AT_SCOREBOARD,
       [IRIS_DOMAIN_OTHER_READ] = PIPE_CONTROL_STALL_AT_SCOREBOARD,
    };
    const uint32_t invalidate_bits[NUM_IRIS_DOMAINS] = {
       [IRIS_DOMAIN_RENDER_WRITE] = PIPE_CONTROL_RENDER_TARGET_FLUSH,
       [IRIS_DOMAIN_DEPTH_WRITE] = PIPE_CONTROL_DEPTH_CACHE_FLUSH,
+      [IRIS_DOMAIN_DATA_WRITE] = PIPE_CONTROL_DATA_CACHE_FLUSH,
       [IRIS_DOMAIN_OTHER_WRITE] = PIPE_CONTROL_FLUSH_ENABLE,
+      [IRIS_DOMAIN_VF_READ] = PIPE_CONTROL_VF_CACHE_INVALIDATE,
       [IRIS_DOMAIN_OTHER_READ] = (PIPE_CONTROL_TEXTURE_CACHE_INVALIDATE |
                                   PIPE_CONTROL_CONST_CACHE_INVALIDATE),
    };
@@ -231,7 +235,7 @@ iris_emit_buffer_barrier_for(struct iris_batch *batch,
     * in order to handle any WaR dependencies.
     */
    if (!iris_domain_is_read_only(access)) {
-      for (unsigned i = IRIS_DOMAIN_OTHER_READ; i < NUM_IRIS_DOMAINS; i++) {
+      for (unsigned i = IRIS_DOMAIN_VF_READ; i < NUM_IRIS_DOMAINS; i++) {
          assert(iris_domain_is_read_only(i));
          const uint64_t seqno = READ_ONCE(bo->last_seqnos[i]);
 

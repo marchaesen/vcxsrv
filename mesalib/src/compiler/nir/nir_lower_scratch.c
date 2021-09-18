@@ -75,12 +75,34 @@ lower_load_store(nir_builder *b,
    nir_deref_instr_remove_if_unused(deref);
 }
 
+static bool only_used_for_load_store(nir_deref_instr *deref)
+{
+   nir_foreach_use(src, &deref->dest.ssa) {
+      if (!src->parent_instr)
+         return false;
+      if (src->parent_instr->type == nir_instr_type_deref) {
+          if (!only_used_for_load_store(nir_instr_as_deref(src->parent_instr)))
+            return false;
+      } else if (src->parent_instr->type != nir_instr_type_intrinsic) {
+         return false;
+      } else {
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(src->parent_instr);
+         if (intrin->intrinsic != nir_intrinsic_load_deref &&
+             intrin->intrinsic != nir_intrinsic_store_deref)
+            return false;
+      }
+   }
+   return true;
+}
+
 bool
 nir_lower_vars_to_scratch(nir_shader *shader,
                           nir_variable_mode modes,
                           int size_threshold,
                           glsl_type_size_align_func size_align)
 {
+   struct set *set = _mesa_pointer_set_create(NULL);
+
    /* First, we walk the instructions and flag any variables we want to lower
     * by removing them from their respective list and setting the mode to 0.
     */
@@ -103,6 +125,8 @@ nir_lower_vars_to_scratch(nir_shader *shader,
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
+            if (!var)
+               continue;
 
             /* We set var->mode to 0 to indicate that a variable will be moved
              * to scratch.  Don't assign a scratch location twice.
@@ -115,15 +139,47 @@ nir_lower_vars_to_scratch(nir_shader *shader,
             if (var_size <= size_threshold)
                continue;
 
-            /* Remove it from its list */
-            exec_node_remove(&var->node);
-            /* Invalid mode used to flag "moving to scratch" */
-            var->data.mode = 0;
-
-            var->data.location = ALIGN_POT(shader->scratch_size, var_align);
-            shader->scratch_size = var->data.location + var_size;
+            _mesa_set_add(set, var);
          }
       }
+   }
+
+   if (set->entries == 0) {
+      _mesa_set_destroy(set, NULL);
+      return false;
+   }
+
+   nir_foreach_function(function, shader) {
+      nir_foreach_block(block, function->impl) {
+         nir_foreach_instr(instr, block) {
+            if (instr->type != nir_instr_type_deref)
+               continue;
+
+            nir_deref_instr *deref = nir_instr_as_deref(instr);
+            if (deref->deref_type != nir_deref_type_var)
+               continue;
+
+            struct set_entry *entry = _mesa_set_search(set, deref->var);
+            if (!entry)
+               continue;
+
+            if (!only_used_for_load_store(deref))
+               _mesa_set_remove(set, entry);
+         }
+      }
+   }
+
+   set_foreach(set, entry) {
+      nir_variable* var = (void*)entry->key;
+
+      /* Remove it from its list */
+      exec_node_remove(&var->node);
+      /* Invalid mode used to flag "moving to scratch" */
+      var->data.mode = 0;
+
+      /* We don't allocate space here as iteration in this loop is
+       * non-deterministic due to the nir_variable pointers. */
+      var->data.location = INT_MAX;
    }
 
    bool progress = false;
@@ -150,6 +206,14 @@ nir_lower_vars_to_scratch(nir_shader *shader,
             if (!var || var->data.mode)
                continue;
 
+            if (var->data.location == INT_MAX) {
+               unsigned var_size, var_align;
+               size_align(var->type, &var_size, &var_align);
+
+               var->data.location = ALIGN_POT(shader->scratch_size, var_align);
+               shader->scratch_size = var->data.location + var_size;
+            }
+
             lower_load_store(&build, intrin, size_align);
             impl_progress = true;
          }
@@ -163,6 +227,8 @@ nir_lower_vars_to_scratch(nir_shader *shader,
          nir_metadata_preserve(function->impl, nir_metadata_all);
       }
    }
+
+   _mesa_set_destroy(set, NULL);
 
    return progress;
 }

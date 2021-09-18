@@ -63,14 +63,15 @@ gem_syncobj_destroy(int fd, uint32_t handle)
  * Make a new sync-point.
  */
 struct iris_syncobj *
-iris_create_syncobj(struct iris_screen *screen)
+iris_create_syncobj(struct iris_bufmgr *bufmgr)
 {
+   int fd = iris_bufmgr_get_fd(bufmgr);
    struct iris_syncobj *syncobj = malloc(sizeof(*syncobj));
 
    if (!syncobj)
       return NULL;
 
-   syncobj->handle = gem_syncobj_create(screen->fd, 0);
+   syncobj->handle = gem_syncobj_create(fd, 0);
    assert(syncobj->handle);
 
    pipe_reference_init(&syncobj->ref, 1);
@@ -79,10 +80,26 @@ iris_create_syncobj(struct iris_screen *screen)
 }
 
 void
-iris_syncobj_destroy(struct iris_screen *screen, struct iris_syncobj *syncobj)
+iris_syncobj_destroy(struct iris_bufmgr *bufmgr, struct iris_syncobj *syncobj)
 {
-   gem_syncobj_destroy(screen->fd, syncobj->handle);
+   int fd = iris_bufmgr_get_fd(bufmgr);
+   gem_syncobj_destroy(fd, syncobj->handle);
    free(syncobj);
+}
+
+void
+iris_syncobj_signal(struct iris_bufmgr *bufmgr, struct iris_syncobj *syncobj)
+{
+   int fd = iris_bufmgr_get_fd(bufmgr);
+   struct drm_syncobj_array args = {
+      .handles = (uintptr_t)&syncobj->handle,
+      .count_handles = 1,
+   };
+
+   if (intel_ioctl(fd, DRM_IOCTL_SYNCOBJ_SIGNAL, &args)) {
+      fprintf(stderr, "failed to signal syncobj %"PRIu32"\n",
+              syncobj->handle);
+   }
 }
 
 /**
@@ -107,7 +124,7 @@ iris_batch_add_syncobj(struct iris_batch *batch,
       util_dynarray_grow(&batch->syncobjs, struct iris_syncobj *, 1);
 
    *store = NULL;
-   iris_syncobj_reference(batch->screen, store, syncobj);
+   iris_syncobj_reference(batch->screen->bufmgr, store, syncobj);
 }
 
 /**
@@ -122,6 +139,7 @@ static void
 clear_stale_syncobjs(struct iris_batch *batch)
 {
    struct iris_screen *screen = batch->screen;
+   struct iris_bufmgr *bufmgr = screen->bufmgr;
 
    int n = util_dynarray_num_elements(&batch->syncobjs, struct iris_syncobj *);
 
@@ -137,13 +155,13 @@ clear_stale_syncobjs(struct iris_batch *batch)
                                struct drm_i915_gem_exec_fence, i);
       assert(fence->flags & I915_EXEC_FENCE_WAIT);
 
-      if (iris_wait_syncobj(&screen->base, *syncobj, 0))
+      if (iris_wait_syncobj(bufmgr, *syncobj, 0))
          continue;
 
       /* This sync object has already passed, there's no need to continue
        * marking it as a dependency; we can stop holding on to the reference.
        */
-      iris_syncobj_reference(screen, syncobj, NULL);
+      iris_syncobj_reference(bufmgr, syncobj, NULL);
 
       /* Remove it from the lists; move the last element here. */
       struct iris_syncobj **nth_syncobj =
@@ -194,20 +212,21 @@ iris_fence_reference(struct pipe_screen *p_screen,
 }
 
 bool
-iris_wait_syncobj(struct pipe_screen *p_screen,
+iris_wait_syncobj(struct iris_bufmgr *bufmgr,
                   struct iris_syncobj *syncobj,
                   int64_t timeout_nsec)
 {
    if (!syncobj)
       return false;
 
-   struct iris_screen *screen = (struct iris_screen *)p_screen;
+   int fd = iris_bufmgr_get_fd(bufmgr);
+
    struct drm_syncobj_wait args = {
       .handles = (uintptr_t)&syncobj->handle,
       .count_handles = 1,
       .timeout_nsec = timeout_nsec,
    };
-   return intel_ioctl(screen->fd, DRM_IOCTL_SYNCOBJ_WAIT, &args);
+   return intel_ioctl(fd, DRM_IOCTL_SYNCOBJ_WAIT, &args);
 }
 
 #define CSI "\e["

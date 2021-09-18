@@ -219,6 +219,8 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    const char *proc = util_get_process_name();
    const char *derive_interlaced_allowlist[] = {
          "vlc",
+         "h264encode",
+         "hevcencode"
    };
 
    if (!ctx)
@@ -540,7 +542,7 @@ vlVaGetImage(VADriverContextP ctx, VASurfaceID surface, int x, int y,
          struct pipe_box box = {box_x, box_y, j, box_w, box_h, 1};
          struct pipe_transfer *transfer;
          uint8_t *map;
-         map = drv->pipe->transfer_map(drv->pipe, views[i]->texture, 0,
+         map = drv->pipe->texture_map(drv->pipe, views[i]->texture, 0,
                   PIPE_MAP_READ, &box, &transfer);
          if (!map) {
             mtx_unlock(&drv->mutex);
@@ -557,7 +559,7 @@ vlVaGetImage(VADriverContextP ctx, VASurfaceID surface, int x, int y,
                pitches[i] * views[i]->texture->array_size, 0, 0,
                box.width, box.height, map, transfer->stride, 0, 0);
          }
-         pipe_transfer_unmap(drv->pipe, transfer);
+         pipe_texture_unmap(drv->pipe, transfer);
       }
    }
    mtx_unlock(&drv->mutex);
@@ -675,7 +677,7 @@ vlVaPutImage(VADriverContextP ctx, VASurfaceID surface, VAImageID image,
             struct pipe_transfer *transfer = NULL;
             uint8_t *map = NULL;
 
-            map = drv->pipe->transfer_map(drv->pipe,
+            map = drv->pipe->texture_map(drv->pipe,
                                           tex,
                                           0,
                                           PIPE_MAP_WRITE |
@@ -689,7 +691,7 @@ vlVaPutImage(VADriverContextP ctx, VASurfaceID surface, VAImageID image,
             u_copy_nv12_from_yv12((const void * const*) data, pitches, i, j,
                                   transfer->stride, tex->array_size,
                                   map, dst_box.width, dst_box.height);
-            pipe_transfer_unmap(drv->pipe, transfer);
+            pipe_texture_unmap(drv->pipe, transfer);
          } else {
             drv->pipe->texture_subdata(drv->pipe, tex, 0,
                                        PIPE_MAP_WRITE, &dst_box,

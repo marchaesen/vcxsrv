@@ -95,14 +95,12 @@ bi_assign_scoreboard(bi_context *ctx)
         struct bi_scoreboard_state st = {};
 
         /* Assign slots */
-        bi_foreach_block(ctx, _block) {
-                bi_block *block = (bi_block *) _block;
-
+        bi_foreach_block(ctx, block) {
                 bi_foreach_clause_in_block(block, clause) {
                         unsigned slot = bi_choose_scoreboard_slot(&st, clause->message);
                         clause->scoreboard_id = slot;
 
-                        bi_clause *next = bi_next_clause(ctx, _block, clause);
+                        bi_clause *next = bi_next_clause(ctx, block, clause);
                         if (next)
                                 next->dependencies |= (1 << slot);
                 }

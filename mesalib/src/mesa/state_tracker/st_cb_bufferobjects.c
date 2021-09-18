@@ -250,16 +250,20 @@ static enum pipe_resource_usage
 buffer_usage(GLenum target, GLboolean immutable,
              GLbitfield storageFlags, GLenum usage)
 {
+   /* "immutable" means that "storageFlags" was set by the user and "usage"
+    * was guessed by Mesa. Otherwise, "usage" was set by the user and
+    * storageFlags was guessed by Mesa.
+    *
+    * Therefore, use storageFlags with immutable, else use "usage".
+    */
    if (immutable) {
       /* BufferStorage */
-      if (storageFlags & GL_CLIENT_STORAGE_BIT) {
-         if (storageFlags & GL_MAP_READ_BIT)
-            return PIPE_USAGE_STAGING;
-         else
-            return PIPE_USAGE_STREAM;
-      } else {
+      if (storageFlags & GL_MAP_READ_BIT)
+         return PIPE_USAGE_STAGING;
+      else if (storageFlags & GL_CLIENT_STORAGE_BIT)
+         return PIPE_USAGE_STREAM;
+      else
          return PIPE_USAGE_DEFAULT;
-      }
    }
    else {
       /* These are often read by the CPU, so enable CPU caches. */

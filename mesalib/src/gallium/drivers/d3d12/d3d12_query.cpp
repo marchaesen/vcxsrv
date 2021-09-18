@@ -367,7 +367,7 @@ end_query(struct d3d12_context *ctx, struct d3d12_query *q)
 
    offset += q->buffer_offset + resolve_index * q->query_size;
    ctx->cmdlist->EndQuery(q->query_heap, q->d3d12qtype, end_index);
-   d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_COPY_DEST);
+   d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_BIND_INVALIDATE_FULL);
    d3d12_apply_resource_states(ctx);
    ctx->cmdlist->ResolveQueryData(q->query_heap, q->d3d12qtype, resolve_index,
                                   resolve_count, d3d12_res, offset);
@@ -483,14 +483,14 @@ d3d12_render_condition(struct pipe_context *pctx,
    }
 
    struct d3d12_resource *res = (struct d3d12_resource *)query->buffer;
-   d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_COPY_SOURCE);
-   d3d12_transition_resource_state(ctx, query->predicate, D3D12_RESOURCE_STATE_COPY_DEST);
+   d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_BIND_INVALIDATE_FULL);
+   d3d12_transition_resource_state(ctx, query->predicate, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_BIND_INVALIDATE_NONE);
    d3d12_apply_resource_states(ctx);
    ctx->cmdlist->CopyBufferRegion(d3d12_resource_resource(query->predicate), 0,
                                   d3d12_resource_resource(res), 0,
                                   sizeof(uint64_t));
 
-   d3d12_transition_resource_state(ctx, query->predicate, D3D12_RESOURCE_STATE_PREDICATION);
+   d3d12_transition_resource_state(ctx, query->predicate, D3D12_RESOURCE_STATE_PREDICATION, D3D12_BIND_INVALIDATE_NONE);
    d3d12_apply_resource_states(ctx);
 
    ctx->current_predication = query->predicate;

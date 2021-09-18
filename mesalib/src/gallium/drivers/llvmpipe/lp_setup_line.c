@@ -357,10 +357,24 @@ try_setup_line( struct lp_setup_context *setup,
    info.v2 = v2;
 
   
-   /* X-MAJOR LINE */
-   if (fabsf(dx) >= fabsf(dy)) {
+   if (setup->rectangular_lines) {
+      float scale = (setup->line_width * 0.5f) / sqrtf(area);
+      int tx = subpixel_snap(-dy * scale);
+      int ty = subpixel_snap(+dx * scale);
+
+      x[0] = subpixel_snap(v1[0][0] - pixel_offset) - tx;
+      x[1] = subpixel_snap(v2[0][0] - pixel_offset) - tx;
+      x[2] = subpixel_snap(v2[0][0] - pixel_offset) + tx;
+      x[3] = subpixel_snap(v1[0][0] - pixel_offset) + tx;
+
+      y[0] = subpixel_snap(v1[0][1] - pixel_offset) - ty;
+      y[1] = subpixel_snap(v2[0][1] - pixel_offset) - ty;
+      y[2] = subpixel_snap(v2[0][1] - pixel_offset) + ty;
+      y[3] = subpixel_snap(v1[0][1] - pixel_offset) + ty;
+   } else if (fabsf(dx) >= fabsf(dy)) {
       float dydx = dy / dx;
 
+      /* X-MAJOR LINE */
       x1diff = v1[0][0] - floorf(v1[0][0]) - 0.5f;
       y1diff = v1[0][1] - floorf(v1[0][1]) - 0.5f;
       x2diff = v2[0][0] - floorf(v2[0][0]) - 0.5f;
@@ -411,6 +425,10 @@ try_setup_line( struct lp_setup_context *setup,
        */
       will_draw_start = sign(-x1diff) != sign(dx);
       will_draw_end = (sign(x2diff) == sign(-dx)) || x2diff==0;
+
+      /* interpolate using the preferred wide-lines formula */
+      info.dx *= 1 + dydx * dydx;
+      info.dy = 0;
 
       if (dx < 0) {
          /* if v2 is to the right of v1, swap pointers */
@@ -509,6 +527,10 @@ try_setup_line( struct lp_setup_context *setup,
       will_draw_start = sign(y1diff) == sign(dy);
       will_draw_end = (sign(-y2diff) == sign(dy)) || y2diff==0;
 
+      /* interpolate using the preferred wide-lines formula */
+      info.dx = 0;
+      info.dy *= 1 + dxdy * dxdy;
+
       if (dy > 0) {
          /* if v2 is on top of v1, swap pointers */
          const float (*temp)[4] = v1;
@@ -572,15 +594,8 @@ try_setup_line( struct lp_setup_context *setup,
       bbox.y1--;
    }
 
-   if (bbox.x1 < bbox.x0 ||
-       bbox.y1 < bbox.y0) {
-      if (0) debug_printf("empty bounding box\n");
-      LP_COUNT(nr_culled_tris);
-      return TRUE;
-   }
-
    if (!u_rect_test_intersection(&setup->draw_regions[viewport_index], &bbox)) {
-      if (0) debug_printf("offscreen\n");
+      if (0) debug_printf("no intersection\n");
       LP_COUNT(nr_culled_tris);
       return TRUE;
    }
@@ -671,7 +686,7 @@ try_setup_line( struct lp_setup_context *setup,
          plane[i].c++;
       }
       else if (plane[i].dcdx == 0) {
-         if (pixel_offset == 0) {
+         if (setup->bottom_edge_rule == 0) {
             /* correct for top-left fill convention:
              */
             if (plane[i].dcdy > 0) plane[i].c++;
@@ -696,60 +711,8 @@ try_setup_line( struct lp_setup_context *setup,
       if (plane[i].dcdy > 0) plane[i].eo += plane[i].dcdy;
    }
 
-
-   /* 
-    * When rasterizing scissored tris, use the intersection of the
-    * triangle bounding box and the scissor rect to generate the
-    * scissor planes.
-    *
-    * This permits us to cut off the triangle "tails" that are present
-    * in the intermediate recursive levels caused when two of the
-    * triangles edges don't diverge quickly enough to trivially reject
-    * exterior blocks from the triangle.
-    *
-    * It's not really clear if it's worth worrying about these tails,
-    * but since we generate the planes for each scissored tri, it's
-    * free to trim them in this case.
-    * 
-    * Note that otherwise, the scissor planes only vary in 'C' value,
-    * and even then only on state-changes.  Could alternatively store
-    * these planes elsewhere.
-    * (Or only store the c value together with a bit indicating which
-    * scissor edge this is, so rasterization would treat them differently
-    * (easier to evaluate) to ordinary planes.)
-    */
    if (nr_planes > 4) {
-      struct lp_rast_plane *plane_s = &plane[4];
-
-      if (s_planes[0]) {
-         plane_s->dcdx = ~0U << 8;
-         plane_s->dcdy = 0;
-         plane_s->c = (1-scissor->x0) << 8;
-         plane_s->eo = 1 << 8;
-         plane_s++;
-      }
-      if (s_planes[1]) {
-         plane_s->dcdx = 1 << 8;
-         plane_s->dcdy = 0;
-         plane_s->c = (scissor->x1+1) << 8;
-         plane_s->eo = 0 << 8;
-         plane_s++;
-      }
-      if (s_planes[2]) {
-         plane_s->dcdx = 0;
-         plane_s->dcdy = 1 << 8;
-         plane_s->c = (1-scissor->y0) << 8;
-         plane_s->eo = 1 << 8;
-         plane_s++;
-      }
-      if (s_planes[3]) {
-         plane_s->dcdx = 0;
-         plane_s->dcdy = ~0U << 8;
-         plane_s->c = (scissor->y1+1) << 8;
-         plane_s->eo = 0;
-         plane_s++;
-      }
-      assert(plane_s == &plane[nr_planes]);
+      lp_setup_add_scissor_planes(scissor, &plane[4], s_planes, setup->multisample);
    }
 
    return lp_setup_bin_triangle(setup, line, &bbox, &bboxpos, nr_planes, viewport_index);

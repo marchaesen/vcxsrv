@@ -125,7 +125,9 @@ namespace clover {
          type type;
          size_t size;
          size_t target_size;
-         size_t target_align;
+         size_t target_align; // For arguments of type local, this represents
+                              // the alignment requirement for the pointed
+                              // type and for the pointer itself.
          ext_type ext_type;
          semantic semantic;
          arg_info info;

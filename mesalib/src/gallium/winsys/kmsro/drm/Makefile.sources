@@ -1,3 +1,0 @@
-C_SOURCES := \
-   kmsro_drm_public.h \
-   kmsro_drm_winsys.c

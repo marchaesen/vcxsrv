@@ -35,19 +35,10 @@
  */
 '''
 
-
-from __future__ import division, print_function
-
 import sys
 
 from u_format_parse import *
 
-
-if sys.version_info < (3, 0):
-    integer_types = (int, long)
-
-else:
-    integer_types = (int, )
 
 def inv_swizzles(swizzles):
     '''Return an array[4] of inverse swizzle terms'''
@@ -220,7 +211,7 @@ def truncate_mantissa(x, bits):
     '''Truncate an integer so it can be represented exactly with a floating
     point mantissa'''
 
-    assert isinstance(x, integer_types)
+    assert isinstance(x, int)
 
     s = 1
     if x < 0:
@@ -244,7 +235,7 @@ def value_to_native(type, value):
     '''Get the value of unity for this type.'''
     if type.type == FLOAT:
         if type.size <= 32 \
-            and isinstance(value, integer_types):
+            and isinstance(value, int):
             return truncate_mantissa(value, 23)
         return value
     if type.type == FIXED:

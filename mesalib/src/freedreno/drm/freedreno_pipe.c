@@ -58,10 +58,14 @@ fd_pipe_new2(struct fd_device *dev, enum fd_pipe_id id, uint32_t prio)
    p_atomic_set(&pipe->refcnt, 1);
 
    fd_pipe_get_param(pipe, FD_GPU_ID, &val);
-   pipe->gpu_id = val;
+   pipe->dev_id.gpu_id = val;
+
+   fd_pipe_get_param(pipe, FD_CHIP_ID, &val);
+   pipe->dev_id.chip_id = val;
 
    pipe->control_mem = fd_bo_new(dev, sizeof(*pipe->control),
-                                 0, "pipe-control");
+                                 FD_BO_CACHED_COHERENT,
+                                 "pipe-control");
    pipe->control = fd_bo_map(pipe->control_mem);
 
    /* We could be getting a bo from the bo-cache, make sure the fence value
@@ -160,6 +164,12 @@ fd_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param, uint64_t *value)
    return pipe->funcs->get_param(pipe, param, value);
 }
 
+const struct fd_dev_id *
+fd_pipe_dev_id(struct fd_pipe *pipe)
+{
+   return &pipe->dev_id;
+}
+
 int
 fd_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence)
 {
@@ -183,7 +193,7 @@ fd_pipe_emit_fence(struct fd_pipe *pipe, struct fd_ringbuffer *ring)
 {
    uint32_t fence = ++pipe->last_fence;
 
-   if (pipe->gpu_id >= 500) {
+   if (fd_dev_64b(&pipe->dev_id)) {
       OUT_PKT7(ring, CP_EVENT_WRITE, 4);
       OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(CACHE_FLUSH_TS));
       OUT_RELOC(ring, control_ptr(pipe, fence));   /* ADDR_LO/HI */

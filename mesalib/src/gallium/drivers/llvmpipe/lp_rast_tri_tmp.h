@@ -363,6 +363,16 @@ TRI_16(struct lp_rasterizer_task *task,
 
    outmask = 0;                 /* outside one or more trivial reject planes */
    
+   if (x + 12 >= 64) {
+      int i = ((x + 12) - 64) / 4;
+      outmask |= right_mask_tab[i];
+   }
+
+   if (y + 12 >= 64) {
+      int i = ((y + 12) - 64) / 4;
+      outmask |= bottom_mask_tab[i];
+   }
+
    x += task->x;
    y += task->y;
 

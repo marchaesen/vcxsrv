@@ -50,6 +50,7 @@
 #include "compiler/glsl/gl_nir_linker.h"
 #include "compiler/glsl/ir.h"
 #include "compiler/glsl/ir_optimization.h"
+#include "compiler/glsl/linker_util.h"
 #include "compiler/glsl/string_to_uint_map.h"
 
 static int
@@ -68,6 +69,9 @@ st_nir_fixup_varying_slots(struct st_context *st, nir_shader *shader,
 {
    if (st->needs_texcoord_semantic)
       return;
+
+   /* This is called from finalize, but we don't want to do this adjustment twice. */
+   assert(!st->allow_st_finalize_nir_twice);
 
    nir_foreach_variable_with_modes(var, shader, mode) {
       if (var->data.location >= VARYING_SLOT_VAR0) {
@@ -272,8 +276,9 @@ st_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_dead_write_vars);
 
       if (nir->options->lower_to_scalar) {
-         NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
-         NIR_PASS_V(nir, nir_lower_phis_to_scalar);
+         NIR_PASS_V(nir, nir_lower_alu_to_scalar,
+                    nir->options->lower_to_scalar_filter, NULL);
+         NIR_PASS_V(nir, nir_lower_phis_to_scalar, false);
       }
 
       NIR_PASS_V(nir, nir_lower_alu);
@@ -291,6 +296,7 @@ st_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_cse);
       NIR_PASS(progress, nir, nir_opt_peephole_select, 8, true, true);
 
+      NIR_PASS(progress, nir, nir_opt_phi_precision);
       NIR_PASS(progress, nir, nir_opt_algebraic);
       NIR_PASS(progress, nir, nir_opt_constant_folding);
 
@@ -322,7 +328,7 @@ st_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_undef);
       NIR_PASS(progress, nir, nir_opt_conditional_discard);
       if (nir->options->max_unroll_iterations) {
-         NIR_PASS(progress, nir, nir_opt_loop_unroll, (nir_variable_mode)0);
+         NIR_PASS(progress, nir, nir_opt_loop_unroll);
       }
    } while (progress);
 }
@@ -403,7 +409,8 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, nir_lower_var_copies);
 
    if (options->lower_to_scalar) {
-     NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
+     NIR_PASS_V(nir, nir_lower_alu_to_scalar,
+                options->lower_to_scalar_filter, NULL);
    }
 
    /* before buffers and vars_to_ssa */
@@ -462,7 +469,7 @@ filter_64_bit_instr(const nir_instr *const_instr, UNUSED const void *data)
 /* Second third of converting glsl_to_nir. This creates uniforms, gathers
  * info on varyings, etc after NIR link time opts have been applied.
  */
-static void
+static char *
 st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
                          struct gl_shader_program *shader_program)
 {
@@ -527,18 +534,20 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
       NIR_PASS_V(nir, gl_nir_lower_atomics, shader_program, true);
 
    NIR_PASS_V(nir, nir_opt_intrinsics);
+   NIR_PASS_V(nir, nir_opt_fragdepth);
 
    /* Lower 64-bit ops. */
    if (nir->options->lower_int64_options ||
        nir->options->lower_doubles_options) {
       bool lowered_64bit_ops = false;
+      bool revectorize = false;
 
       /* nir_lower_doubles is not prepared for vector ops, so if the backend doesn't
        * request lower_alu_to_scalar until now, lower all 64 bit ops, and try to
        * vectorize them afterwards again */
       if (!nir->options->lower_to_scalar) {
-         NIR_PASS_V(nir, nir_lower_alu_to_scalar, filter_64_bit_instr, nullptr);
-         NIR_PASS_V(nir, nir_lower_phis_to_scalar);
+         NIR_PASS(revectorize, nir, nir_lower_alu_to_scalar, filter_64_bit_instr, nullptr);
+         NIR_PASS(revectorize, nir, nir_lower_phis_to_scalar, false);
       }
 
       if (nir->options->lower_doubles_options) {
@@ -548,11 +557,11 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
       if (nir->options->lower_int64_options)
          NIR_PASS(lowered_64bit_ops, nir, nir_lower_int64);
 
-      if (lowered_64bit_ops) {
-         if (!nir->options->lower_to_scalar)
-            NIR_PASS_V(nir, nir_opt_vectorize, nullptr, nullptr);
+      if (revectorize)
+         NIR_PASS_V(nir, nir_opt_vectorize, nullptr, nullptr);
+
+      if (revectorize || lowered_64bit_ops)
          st_nir_opts(nir);
-      }
    }
 
    nir_variable_mode mask =
@@ -564,8 +573,9 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
 
    st_finalize_nir_before_variants(nir);
 
+   char *msg = NULL;
    if (st->allow_st_finalize_nir_twice)
-      st_finalize_nir(st, prog, shader_program, nir, true, true);
+      msg = st_finalize_nir(st, prog, shader_program, nir, true, true);
 
    if (st->ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
@@ -575,6 +585,8 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
       nir_print_shader(nir, _mesa_get_log_file());
       _mesa_log("\n\n");
    }
+
+   return msg;
 }
 
 static void
@@ -882,7 +894,11 @@ st_link_nir(struct gl_context *ctx,
       struct gl_linked_shader *shader = linked_shader[i];
       struct shader_info *info = &shader->Program->nir->info;
 
-      st_glsl_to_nir_post_opts(st, shader->Program, shader_program);
+      char *msg = st_glsl_to_nir_post_opts(st, shader->Program, shader_program);
+      if (msg) {
+         linker_error(shader_program, msg);
+         break;
+      }
 
       if (prev_info &&
           ctx->Const.ShaderCompilerOptions[shader->Stage].NirOptions->unify_interfaces) {
@@ -917,7 +933,7 @@ st_link_nir(struct gl_context *ctx,
 
       /* Initialize st_vertex_program members. */
       if (shader->Stage == MESA_SHADER_VERTEX)
-         st_prepare_vertex_program(stp);
+         st_prepare_vertex_program(stp, NULL);
 
       /* Get pipe_stream_output_info. */
       if (shader->Stage == MESA_SHADER_VERTEX ||
@@ -1024,7 +1040,7 @@ st_nir_lower_uniforms(struct st_context *st, nir_shader *nir)
 /* Last third of preparing nir from glsl, which happens after shader
  * variant lowering.
  */
-void
+char *
 st_finalize_nir(struct st_context *st, struct gl_program *prog,
                 struct gl_shader_program *shader_program,
                 nir_shader *nir, bool finalize_by_driver,
@@ -1063,8 +1079,11 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    if (!screen->get_param(screen, PIPE_CAP_NIR_IMAGES_AS_DEREF))
       NIR_PASS_V(nir, gl_nir_lower_images, false);
 
+   char *msg = NULL;
    if (finalize_by_driver && screen->finalize_nir)
-      screen->finalize_nir(screen, nir, false);
+      msg = screen->finalize_nir(screen, nir);
+
+   return msg;
 }
 
 } /* extern "C" */

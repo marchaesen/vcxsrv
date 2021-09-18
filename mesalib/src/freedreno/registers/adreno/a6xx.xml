@@ -104,16 +104,29 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0x84" name="FMT6_32_32_32_32_SINT"/>
 	<value value="0x85" name="FMT6_32_32_32_32_FIXED"/>
 
-	<value value="0x8c" name="FMT6_G8R8B8R8_422_UNORM"/>
-	<value value="0x8d" name="FMT6_R8G8R8B8_422_UNORM"/>
-	<value value="0x8e" name="FMT6_R8_G8B8_2PLANE_420_UNORM"/>
-	<value value="0x90" name="FMT6_R8_G8_B8_3PLANE_420_UNORM"/>
+	<value value="0x8c" name="FMT6_G8R8B8R8_422_UNORM"/> <!-- UYVY -->
+	<value value="0x8d" name="FMT6_R8G8R8B8_422_UNORM"/> <!-- YUYV -->
+	<value value="0x8e" name="FMT6_R8_G8B8_2PLANE_420_UNORM"/> <!-- NV12 -->
+	<value value="0x8f" name="FMT6_NV21"/>
+	<value value="0x90" name="FMT6_R8_G8_B8_3PLANE_420_UNORM"/> <!-- YV12 -->
 
 	<value value="0x91" name="FMT6_Z24_UNORM_S8_UINT_AS_R8G8B8A8"/>
 
-	<!-- used with the Y plane of FMT6_R8_G8B8_2PLANE_420_UNORM
-	     which has different UBWC compression from regular 8_UNORM format -->
-	<value value="0x94" name="FMT6_8_PLANE_UNORM"/>
+	<!-- Note: tiling/UBWC for these may be different from equivalent formats
+	For example FMT6_NV12_Y is not compatible with FMT6_8_UNORM
+	-->
+	<value value="0x94" name="FMT6_NV12_Y"/>
+	<value value="0x95" name="FMT6_NV12_UV"/>
+	<value value="0x96" name="FMT6_NV12_VU"/>
+	<value value="0x97" name="FMT6_NV12_4R"/>
+	<value value="0x98" name="FMT6_NV12_4R_Y"/>
+	<value value="0x99" name="FMT6_NV12_4R_UV"/>
+	<value value="0x9a" name="FMT6_P010"/>
+	<value value="0x9b" name="FMT6_P010_Y"/>
+	<value value="0x9c" name="FMT6_P010_UV"/>
+	<value value="0x9d" name="FMT6_TP10"/>
+	<value value="0x9e" name="FMT6_TP10_Y"/>
+	<value value="0x9f" name="FMT6_TP10_UV"/>
 
 	<value value="0xa0" name="FMT6_Z24_UNORM_S8_UINT"/>
 
@@ -978,8 +991,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x0821" name="CP_HW_FAULT"/>
 	<reg32 offset="0x0823" name="CP_INTERRUPT_STATUS"/>
 	<reg32 offset="0x0824" name="CP_PROTECT_STATUS"/>
-	<reg32 offset="0x0830" name="CP_SQE_INSTR_BASE_LO"/>
-	<reg32 offset="0x0831" name="CP_SQE_INSTR_BASE_HI"/>
+	<reg64 offset="0x0830" name="CP_SQE_INSTR_BASE"/>
 	<reg32 offset="0x0840" name="CP_MISC_CNTL"/>
 	<reg32 offset="0x0844" name="CP_APRIV_CNTL"/>
 	<!-- all the threshold values seem to be in units of quad-dwords: -->
@@ -1094,6 +1106,8 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x098D" name="CP_AHB_CNTL"/>
 	<reg32 offset="0x0A00" name="CP_APERTURE_CNTL_HOST"/>
 	<reg32 offset="0x0A03" name="CP_APERTURE_CNTL_CD"/>
+	<reg32 offset="0x0B34" name="CP_LPAC_PROG_FIFO_SIZE"/>
+	<reg64 offset="0x0b82" name="CP_LPAC_SQE_INSTR_BASE"/>
 	<reg32 offset="0x0C01" name="VSC_ADDR_MODE_CNTL" type="a5xx_address_mode"/>
 	<reg32 offset="0x0201" name="RBBM_INT_0_STATUS" type="A6XX_RBBM_INT_0_MASK"/>
 	<reg32 offset="0x0210" name="RBBM_STATUS">
@@ -1378,6 +1392,8 @@ to upconvert to 32b float internally?
 		<bitfield high="7" low="0" name="PERFSEL"/>
 	</reg32>
 	<array offset="0x0E1C" name="UCHE_PERFCTR_UCHE_SEL" stride="1" length="12"/>
+	<reg32 offset="0x0e3c" name="UCHE_CMDQ_CONFIG"/>
+
 	<reg32 offset="0x3000" name="VBIF_VERSION"/>
 	<reg32 offset="0x3001" name="VBIF_CLKON">
 		<bitfield pos="1" name="FORCE_ON_TESTBUS" type="boolean"/>
@@ -1417,6 +1433,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x3119" name="VBIF_PERF_PWR_CNT_HIGH1"/>
 	<reg32 offset="0x311a" name="VBIF_PERF_PWR_CNT_HIGH2"/>
 
+	<reg32 offset="0x3c01" name="GBIF_SCACHE_CNTL0"/>
 	<reg32 offset="0x3c02" name="GBIF_SCACHE_CNTL1"/>
 	<reg32 offset="0x3c03" name="GBIF_QSB_SIDE0"/>
 	<reg32 offset="0x3c04" name="GBIF_QSB_SIDE1"/>
@@ -1442,6 +1459,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x3cd0" name="GBIF_PWR_CNT_HIGH1"/>
 	<reg32 offset="0x3cd1" name="GBIF_PWR_CNT_HIGH2"/>
 
+	<reg32 offset="0x0c00" name="VSC_DBG_ECO_CNTL"/>
 	<reg32 offset="0x0c02" name="VSC_BIN_SIZE">
 		<bitfield name="WIDTH" low="0" high="7" shr="5" type="uint"/>
 		<bitfield name="HEIGHT" low="8" high="16" shr="4" type="uint"/>
@@ -1614,8 +1632,16 @@ to upconvert to 32b float internally?
 		<bitfield name="UNK3" pos="3"/>
 	</reg32>
 
-	<reg32 offset="0x8099" name="GRAS_UNKNOWN_8099" low="0" high="5"/>
-	<reg32 offset="0x809a" name="GRAS_UNKNOWN_809A" low="0" high="1"/>
+	<reg32 offset="0x8099" name="GRAS_SU_CONSERVATIVE_RAS_CNTL">
+		<bitfield name="CONSERVATIVERASEN" pos="0" type="boolean"/>
+		<bitfield name="SHIFTAMOUNT" low="1" high="2"/>
+		<bitfield name="INNERCONSERVATIVERASEN" pos="3" type="boolean"/>
+		<bitfield name="UNK4" low="4" high="5"/>
+	</reg32>
+	<reg32 offset="0x809a" name="GRAS_SU_PATH_RENDERING_CNTL">
+		<bitfield name="UNK0" pos="0" type="boolean"/>
+		<bitfield name="LINELENGTHEN" pos="1" type="boolean"/>
+	</reg32>
 
 	<bitset name="a6xx_gras_layer_cntl" inline="yes">
 		<bitfield name="WRITES_LAYER" pos="0" type="boolean"/>
@@ -1625,15 +1651,82 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x809c" name="GRAS_GS_LAYER_CNTL" type="a6xx_gras_layer_cntl"/>
 	<reg32 offset="0x809d" name="GRAS_DS_LAYER_CNTL" type="a6xx_gras_layer_cntl"/>
 	<!-- 0x809e/0x809f invalid -->
-	<reg32 offset="0x80a0" name="GRAS_UNKNOWN_80A0" low="0" high="12"/>
+
+	<enum name="a6xx_sequenced_thread_dist">
+		<value value="0x0" name="DIST_SCREEN_COORD"/>
+		<value value="0x1" name="DIST_ALL_TO_RB0"/>
+	</enum>
+
+	<enum name="a6xx_single_prim_mode">
+		<value value="0x0" name="NO_FLUSH"/>
+		<doc>
+			In addition to FLUSH_PER_OVERLAP, guarantee that UCHE
+			and CCU don't get out of sync when fetching the previous
+			value for the current pixel. With NO_FLUSH, there's the
+			possibility that the flags for the current pixel are
+			flushed before the data or vice-versa, leading to
+			texture fetches via UCHE getting out of sync values.
+			This mode should eliminate that. It's used in bypass
+			mode for coherent blending
+			(GL_KHR_blend_equation_advanced_coherent) as well as
+			non-coherent blending.
+		</doc>
+		<value value="0x1" name="FLUSH_PER_OVERLAP_AND_OVERWRITE"/>
+		<doc>
+			Invalidate UCHE and wait for any pending work to finish
+			if there was possibly an overlapping primitive prior to
+			the current one. This is similar to a combination of
+			GRAS_SC_CONTROL::INJECT_L2_INVALIDATE_EVENT and
+			WAIT_RB_IDLE_ALL_TRI on a3xx. It's used in GMEM mode for
+			coherent blending
+			(GL_KHR_blend_equation_advanced_coherent).
+		</doc>
+		<value value="0x3" name="FLUSH_PER_OVERLAP"/>
+	</enum>
+
+	<!-- this probably has the same meaning as a3xx GRAS_SC_CONTROL::RASTER_MODE -->
+	<enum name="a6xx_raster_mode">
+		<value value="0x0" name="TYPE_TILED"/>
+		<value value="0x1" name="TYPE_WRITER"/>
+	</enum>
+
+	<!-- I'm guessing this is the same as a3xx -->
+	<enum name="a6xx_raster_direction">
+		<value value="0x0" name="LR_TB"/>
+		<value value="0x1" name="RL_TB"/>
+		<value value="0x2" name="LR_BT"/>
+		<value value="0x3" name="RB_BT"/>
+	</enum>
+
+	<reg32 offset="0x80a0" name="GRAS_SC_CNTL">
+		<bitfield name="CCUSINGLECACHELINESIZE" low="0" high="2"/>
+		<bitfield name="SINGLE_PRIM_MODE" low="3" high="4" type="a6xx_single_prim_mode"/>
+		<bitfield name="RASTER_MODE" pos="5" type="a6xx_raster_mode"/>
+		<bitfield name="RASTER_DIRECTION" low="6" high="7" type="a6xx_raster_direction"/>
+		<bitfield name="SEQUENCED_THREAD_DISTRIBUTION" pos="8" type="a6xx_sequenced_thread_dist"/>
+		<!-- CCUSINGLECACHELINESIZE is ignored unless bit 9 is set -->
+		<bitfield name="UNK9" low="9" high="11"/>
+		<bitfield name="EARLYVIZOUTEN" pos="12" type="boolean"/>
+	</reg32>
+
+	<enum name="a6xx_render_mode">
+		<value value="0x0" name="RENDERING_PASS"/>
+		<value value="0x1" name="BINNING_PASS"/>
+	</enum>
+
+	<enum name="a6xx_buffers_location">
+		<value value="0" name="BUFFERS_IN_GMEM"/>
+		<value value="3" name="BUFFERS_IN_SYSMEM"/>
+	</enum>
+
 	<reg32 offset="0x80a1" name="GRAS_BIN_CONTROL">
 		<bitfield name="BINW" low="0" high="5" shr="5" type="uint"/>
 		<bitfield name="BINH" low="8" high="14" shr="4" type="uint"/>
-		<bitfield name="BINNING_PASS" pos="18" type="boolean"/>
-		<bitfield name="UNK19" pos="19"/>
-		<bitfield name="UNK20" pos="20"/>
-		<bitfield name="USE_VIZ" pos="21" type="boolean"/>
-		<bitfield name="UNK22" low="22" high="27"/>
+		<bitfield name="RENDER_MODE" low="18" high="20" type="a6xx_render_mode"/>
+		<bitfield name="FORCE_LRZ_WRITE_DIS" pos="21" type="boolean"/>
+		<bitfield name="BUFFERS_LOCATION" low="22" high="23" type="a6xx_buffers_location"/>
+		<bitfield name="LRZ_FEEDBACK_ZMODE_MASK" low="24" high="26"/>
+		<bitfield name="UNK27" pos="27"/>
 	</reg32>
 
 	<reg32 offset="0x80a2" name="GRAS_RAS_MSAA_CNTL">
@@ -1701,7 +1794,17 @@ to upconvert to 32b float internally?
 		<bitfield name="Z_BOUNDS_ENABLE" pos="5" type="boolean"/>
 		<bitfield name="UNK6" low="6" high="9"/>
 	</reg32>
-	<reg32 offset="0x8101" name="GRAS_UNKNOWN_8101" low="0" high="2"/>
+
+	<enum name="a6xx_fragcoord_sample_mode">
+		<value value="0" name="FRAGCOORD_CENTER"/>
+		<value value="3" name="FRAGCOORD_SAMPLE"/>
+	</enum>
+
+	<reg32 offset="0x8101" name="GRAS_LRZ_PS_INPUT_CNTL" low="0" high="2">
+		<bitfield name="SAMPLEID" pos="0" type="boolean"/>
+		<bitfield name="FRAGCOORDSAMPLEMODE" low="1" high="2" type="a6xx_fragcoord_sample_mode"/>
+	</reg32>
+
 	<reg32 offset="0x8102" name="GRAS_2D_BLIT_INFO">
 		<bitfield name="COLOR_FORMAT" low="0" high="7" type="a6xx_format"/>
 	</reg32>
@@ -1770,7 +1873,8 @@ to upconvert to 32b float internally?
 
 	<bitset name="a6xx_2d_blit_cntl" inline="yes">
 		<bitfield name="ROTATE" low="0" high="2" type="a6xx_rotation"/>
-		<bitfield name="UNK3" low="3" high="6"/>
+		<bitfield name="OVERWRITEEN" pos="3" type="boolean"/>
+		<bitfield name="UNK4" low="4" high="6"/>
 		<bitfield name="SOLID_COLOR" pos="7" type="boolean"/>
 		<bitfield name="COLOR_FORMAT" low="8" high="15" type="a6xx_format"/>
 		<bitfield name="SCISSOR" pos="16" type="boolean"/>
@@ -1780,7 +1884,7 @@ to upconvert to 32b float internally?
 		<!-- some sort of channel mask, disabled channels are set to zero ? -->
 		<bitfield name="MASK" low="20" high="23"/>
 		<bitfield name="IFMT" low="24" high="28" type="a6xx_2d_ifmt"/>
-		<bitfield name="UNK29" pos="29"/>
+		<bitfield name="RASTER_MODE" pos="29" type="a6xx_raster_mode"/>
 	</bitset>
 
 	<reg32 offset="0x8400" name="GRAS_2D_BLIT_CNTL" type="a6xx_2d_blit_cntl"/>
@@ -1802,7 +1906,10 @@ to upconvert to 32b float internally?
 	<!-- 0x840c-0x85ff invalid -->
 
 	<!-- always 0x880 ? (and 0 in a640/a650 traces?) -->
-	<reg32 offset="0x8600" name="GRAS_UNKNOWN_8600" low="0" high="12" />
+	<reg32 offset="0x8600" name="GRAS_DBG_ECO_CNTL">
+		<bitfield name="UNK7" pos="7" type="boolean"/>
+		<bitfield name="LRZCACHELOCKDIS" pos="11" type="boolean"/>
+	</reg32>
 	<reg32 offset="0x8601" name="GRAS_ADDR_MODE_CNTL" pos="0" type="a5xx_address_mode"/>
 	<array offset="0x8610" name="GRAS_PERFCTR_TSE_SEL" stride="1" length="4"/>
 	<array offset="0x8614" name="GRAS_PERFCTR_RAS_SEL" stride="1" length="4"/>
@@ -1816,20 +1923,22 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x8800" name="RB_BIN_CONTROL">
 		<bitfield name="BINW" low="0" high="5" shr="5" type="uint"/>
 		<bitfield name="BINH" low="8" high="14" shr="4" type="uint"/>
-		<bitfield name="BINNING_PASS" pos="18" type="boolean"/>
-		<bitfield name="UNK19" pos="19"/>
-		<bitfield name="UNK20" pos="20"/>
-		<bitfield name="USE_VIZ" pos="21" type="boolean"/>
-		<bitfield name="UNK22" low="22" high="26"/>
+		<bitfield name="RENDER_MODE" low="18" high="20" type="a6xx_render_mode"/>
+		<bitfield name="FORCE_LRZ_WRITE_DIS" pos="21" type="boolean"/>
+		<bitfield name="BUFFERS_LOCATION" low="22" high="23" type="a6xx_buffers_location"/>
+		<bitfield name="LRZ_FEEDBACK_ZMODE_MASK" low="24" high="26"/>
 	</reg32>
+
 	<reg32 offset="0x8801" name="RB_RENDER_CNTL">
-		<bitfield name="UNK3" pos="3" type="boolean"/>
-		<!-- always set: ?? -->
-		<bitfield name="UNK4" pos="4" type="boolean"/>
-		<bitfield name="UNK5" low="5" high="6"/>
+		<bitfield name="CCUSINGLECACHELINESIZE" low="3" high="5"/>
+		<bitfield name="EARLYVIZOUTEN" pos="6" type="boolean"/>
 		<!-- set during binning pass: -->
 		<bitfield name="BINNING" pos="7" type="boolean"/>
-		<bitfield name="UNK8" low="8" high="12"/>
+		<bitfield name="UNK8" low="8" high="10"/>
+		<bitfield name="RASTER_MODE" pos="8" type="a6xx_raster_mode"/>
+		<bitfield name="RASTER_DIRECTION" low="9" high="10" type="a6xx_raster_direction"/>
+		<bitfield name="CONSERVATIVERASEN" pos="11" type="boolean"/>
+		<bitfield name="INNERCONSERVATIVERASEN" pos="12" type="boolean"/>
 		<!-- bit seems to be set whenever depth buffer enabled: -->
 		<bitfield name="FLAG_DEPTH" pos="14" type="boolean"/>
 		<!-- bitmask of MRTs using UBWC flag buffer: -->
@@ -1877,12 +1986,10 @@ to upconvert to 32b float internally?
 		<bitfield name="UNK1" pos="1" type="boolean"/>
 		<bitfield name="FACENESS" pos="2" type="boolean"/>
 		<bitfield name="SAMPLEID" pos="3" type="boolean"/>
-		<!-- b4 and b5 set in per-sample mode: -->
-		<bitfield name="UNK4" pos="4" type="boolean"/>
-		<bitfield name="UNK5" pos="5" type="boolean"/>
+		<bitfield name="FRAGCOORDSAMPLEMODE" low="4" high="5" type="a6xx_fragcoord_sample_mode"/>
 		<bitfield name="SIZE" pos="6" type="boolean"/>
-		<bitfield name="UNK7" pos="7" type="boolean"/>
-		<bitfield name="UNK8" pos="8" type="boolean"/>
+		<bitfield name="LINELENGTHEN" pos="7" type="boolean"/>
+		<bitfield name="FOVEATION" pos="8" type="boolean"/>
 	</reg32>
 
 	<reg32 offset="0x880b" name="RB_FS_OUTPUT_CNTL0">
@@ -2005,15 +2112,15 @@ to upconvert to 32b float internally?
 	</reg32>
 
 	<reg32 offset="0x8871" name="RB_DEPTH_CNTL">
-		<bitfield name="Z_ENABLE" pos="0" type="boolean"/>
+		<bitfield name="Z_TEST_ENABLE" pos="0" type="boolean"/>
 		<bitfield name="Z_WRITE_ENABLE" pos="1" type="boolean"/>
 		<bitfield name="ZFUNC" low="2" high="4" type="adreno_compare_func"/>
 		<bitfield name="Z_CLAMP_ENABLE" pos="5" type="boolean"/>
 		<doc>
-		Z_TEST_ENABLE bit is set for zfunc other than GL_ALWAYS or GL_NEVER
+		Z_READ_ENABLE bit is set for zfunc other than GL_ALWAYS or GL_NEVER
 		also set when Z_BOUNDS_ENABLE is set
 		</doc>
-		<bitfield name="Z_TEST_ENABLE" pos="6" type="boolean"/>
+		<bitfield name="Z_READ_ENABLE" pos="6" type="boolean"/>
 		<bitfield name="Z_BOUNDS_ENABLE" pos="7" type="boolean"/>
 	</reg32>
 	<!-- duplicates GRAS_SU_DEPTH_BUFFER_INFO: -->
@@ -2172,6 +2279,15 @@ to upconvert to 32b float internally?
 
 	<!-- TODO: there are some registers in the 0x8a00-0x8bff range -->
 
+	<!--
+		These show up in a6xx gen3+ but so far haven't found an example of
+		blob writing non-zero:
+	 -->
+	<reg32 offset="0x8a00" name="RB_UNKNOWN_8A00"/>
+	<reg32 offset="0x8a10" name="RB_UNKNOWN_8A10"/>
+	<reg32 offset="0x8a20" name="RB_UNKNOWN_8A20"/>
+	<reg32 offset="0x8a30" name="RB_UNKNOWN_8A30"/>
+
 	<reg32 offset="0x8c00" name="RB_2D_BLIT_CNTL" type="a6xx_2d_blit_cntl"/>
 	<reg32 offset="0x8c01" name="RB_2D_UNKNOWN_8C01" low="0" high="31"/>
 
@@ -2225,18 +2341,18 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x8e05" name="RB_ADDR_MODE_CNTL" pos="0" type="a5xx_address_mode"/>
 	<!-- 0x8e06 invalid -->
 	<reg32 offset="0x8e07" name="RB_CCU_CNTL">
-		<!-- offset into GMEM for something.
-			important for sysmem path
-			BLIT_OP_SCALE also writes to GMEM at this offset for GMEM store
-			blob values for GMEM path (note: close to GMEM size):
-			a618: 0x7c000 a630/a640: 0xf8000 a650: 0x114000
-			SYSMEM path values:
-			a618: 0x10000 a630/a640: 0x20000 a650: 0x30000
-			TODO: valid mask 0xfffffc1f
+		<!-- GMEM offset of CCU color cache
+			for GMEM rendering, we set it to GMEM size minus the minimum
+			CCU color cache size. CCU color cache will be needed in some
+			resolve cases, and in those cases we need to reserve the end
+			of GMEM for color cache.
 		-->
-		<bitfield name="OFFSET" low="23" high="31" shr="12" type="hex"/>
+		<bitfield name="COLOR_OFFSET" low="23" high="31" shr="12" type="hex"/>
+		<!-- GMEM offset of CCU depth cache -->
+		<bitfield name="DEPTH_OFFSET" low="12" high="20" shr="12" type="hex"/>
 		<bitfield name="GMEM" pos="22" type="boolean"/> <!-- set for GMEM path -->
 		<bitfield name="UNK2" pos="2" type="boolean"/> <!-- sometimes set with GMEM? -->
+		<!--TODO: valid mask 0xfffffc1f -->
 	</reg32>
 	<reg32 offset="0x8e08" name="RB_NC_MODE_CNTL">
 		<bitfield name="MODE" pos="0" type="boolean"/>
@@ -2269,8 +2385,9 @@ to upconvert to 32b float internally?
 
 	<!-- 0x9000-0x90ff invalid -->
 
-	<!-- something to do with geometry shader: -->
-	<reg32 offset="0x9100" name="VPC_UNKNOWN_9100" low="0" high="7"/>
+	<reg32 offset="0x9100" name="VPC_GS_PARAM">
+		<bitfield name="LINELENGTHLOC" low="0" high="7" type="uint"/>
+	</reg32>
 
 	<bitset name="a6xx_vpc_xs_clip_cntl" inline="yes">
 		<bitfield name="CLIP_MASK" low="0" high="7" type="uint"/>
@@ -2443,7 +2560,7 @@ to upconvert to 32b float internally?
 
 	<!-- always 0x0 ? -->
 	<reg32 offset="0x9801" name="PC_HS_INPUT_SIZE">
-		<bitfield name="SIZE" low="0" high="10"/>
+		<bitfield name="SIZE" low="0" high="10" type="uint"/>
 		<bitfield name="UNK13" pos="13"/>
 	</reg32>
 
@@ -2466,11 +2583,19 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x9803" name="PC_RESTART_INDEX" low="0" high="31" type="uint"/>
 	<reg32 offset="0x9804" name="PC_MODE_CNTL" low="0" high="7"/>
 
-	<!-- always 0x1 ? -->
-	<reg32 offset="0x9805" name="PC_UNKNOWN_9805" low="0" high="2"/>
+	<reg32 offset="0x9805" name="PC_POWER_CNTL" low="0" high="2"/>
 
 	<!-- probably a mirror of VFD_CONTROL_6 -->
 	<reg32 offset="0x9806" name="PC_PRIMID_PASSTHRU" pos="0" type="boolean"/>
+
+	<!-- New in a6xx gen3+ -->
+	<reg32 offset="0x9808" name="PC_SO_STREAM_CNTL">
+		<bitfield name="STREAM_ENABLE" pos="15" type="boolean"/>
+	</reg32>
+
+	<reg32 offset="0x980a" name="PC_DGEN_SU_CONSERVATIVE_RAS_CNTL">
+		<bitfield name="CONSERVATIVERASEN" pos="0" type="boolean"/>
+	</reg32>
 	<!-- 0x980b-0x983f invalid -->
 
 	<!-- 0x9840 - 0x9842 are not readable -->
@@ -2487,6 +2612,13 @@ to upconvert to 32b float internally?
 		<bitfield name="STATE_ID" low="16" high="23"/>
 		<bitfield name="EVENT" low="0" high="6" type="vgt_event_type"/>
 	</reg32>
+
+	<!--
+		0x9880 written in a lot of places by SQE, same value gets written
+		to control reg 0x12a.  Set by CP_SET_MARKER, so lets name it after
+		that
+	 -->
+	<reg32 offset="0x9880" name="PC_MARKER"/>
 
 	<!-- 0x9843-0x997f invalid -->
 
@@ -2528,7 +2660,8 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x9b01" name="PC_VS_OUT_CNTL" type="a6xx_xs_out_cntl"/>
 	<reg32 offset="0x9b02" name="PC_GS_OUT_CNTL" type="a6xx_xs_out_cntl"/>
-	<reg32 offset="0x9b03" name="PC_PRIMITIVE_CNTL_3" pos="11"/>
+	<!-- since HS can't output anything, only PRIMITIVE_ID is valid -->
+	<reg32 offset="0x9b03" name="PC_HS_OUT_CNTL" type="a6xx_xs_out_cntl"/>
 	<reg32 offset="0x9b04" name="PC_DS_OUT_CNTL" type="a6xx_xs_out_cntl"/>
 
 	<reg32 offset="0x9b05" name="PC_PRIMITIVE_CNTL_5">
@@ -2538,6 +2671,7 @@ to upconvert to 32b float internally?
 		<!-- TODO: first 16 bits are valid so something is wrong or missing here -->
 		<bitfield name="GS_VERTICES_OUT" low="0" high="7" type="uint"/>
 		<bitfield name="GS_INVOCATIONS" low="10" high="14" type="uint"/>
+		<bitfield name="LINELENGTHEN" pos="15" type="boolean"/>
 		<bitfield name="GS_OUTPUT" low="16" high="17" type="a6xx_tess_output"/>
 		<bitfield name="UNK18" pos="18"/>
 	</reg32>
@@ -2576,7 +2710,19 @@ to upconvert to 32b float internally?
 	<!-- TODO: 0x9e00-0xa000 range incomplete -->
 	<reg32 offset="0x9e00" name="PC_DBG_ECO_CNTL"/>
 	<reg32 offset="0x9e01" name="PC_ADDR_MODE_CNTL" type="a5xx_address_mode"/>
+	<reg64 offset="0x9e04" name="PC_DRAW_INDX_BASE"/>
+	<reg32 offset="0x9e06" name="PC_DRAW_FIRST_INDX" type="uint"/>
+	<reg32 offset="0x9e07" name="PC_DRAW_MAX_INDICES" type="uint"/>
 	<reg64 offset="0x9e08" name="PC_TESSFACTOR_ADDR" type="waddress" align="32"/>
+
+	<reg32 offset="0x9e0b" name="PC_DRAW_INITIATOR" type="vgt_draw_initiator_a4xx">
+		<doc>
+			Possibly not really "initiating" the draw but the layout is similar
+			to VGT_DRAW_INITIATOR on older gens
+		</doc>
+	</reg32>
+	<reg32 offset="0x9e0c" name="PC_DRAW_NUM_INSTANCES" type="uint"/>
+	<reg32 offset="0x9e0d" name="PC_DRAW_NUM_INDICES" type="uint"/>
 
 	<!-- These match the contents of CP_SET_BIN_DATA (not written directly) -->
 	<reg32 offset="0x9e11" name="PC_VSTREAM_CONTROL">
@@ -2586,6 +2732,11 @@ to upconvert to 32b float internally?
 	</reg32>
 	<reg64 offset="0x9e12" name="PC_BIN_PRIM_STRM" type="waddress" align="32"/>
 	<reg64 offset="0x9e14" name="PC_BIN_DRAW_STRM" type="waddress" align="32"/>
+
+	<reg32 offset="0x9e1c" name="PC_VISIBILITY_OVERRIDE">
+		<doc>Written by CP_SET_VISIBILITY_OVERRIDE handler</doc>
+		<bitfield name="OVERRIDE" pos="0" type="boolean"/>
+	</reg32>
 
 	<array offset="0x9e34" name="PC_PERFCTR_PC_SEL" stride="1" length="8"/>
 
@@ -2604,12 +2755,21 @@ to upconvert to 32b float internally?
 		<bitfield name="REGID4VIEWID" low="24" high="31" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xa002" name="VFD_CONTROL_2">
-		<bitfield name="REGID_HSPATCHID" low="0" high="7" type="a3xx_regid"/>
+		<bitfield name="REGID_HSRELPATCHID" low="0" high="7" type="a3xx_regid">
+			<doc>
+                                This is the ID of the current patch within the
+                                subdraw, used to calculate the offset of the
+                                patch within the HS->DS buffers. When a draw is
+                                split into multiple subdraws then this differs
+                                from gl_PrimitiveID on the second, third, etc.
+                                subdraws.
+			</doc>
+		</bitfield>
 		<bitfield name="REGID_INVOCATIONID" low="8" high="15" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xa003" name="VFD_CONTROL_3">
-		<bitfield name="UNK0" low="0" high="7" type="a3xx_regid"/>
-		<bitfield name="REGID_DSPATCHID" low="8" high="15" type="a3xx_regid"/>
+		<bitfield name="REGID_DSPRIMID" low="0" high="7" type="a3xx_regid"/>
+		<bitfield name="REGID_DSRELPATCHID" low="8" high="15" type="a3xx_regid"/>
 		<bitfield name="REGID_TESSX" low="16" high="23" type="a3xx_regid"/>
 		<bitfield name="REGID_TESSY" low="24" high="31" type="a3xx_regid"/>
 	</reg32>
@@ -2630,9 +2790,7 @@ to upconvert to 32b float internally?
 	</reg32>
 
 	<reg32 offset="0xa007" name="VFD_MODE_CNTL">
-		<bitfield name="BINNING_PASS" pos="0" type="boolean"/>
-		<bitfield name="UNK1" pos="1" type="boolean"/>
-		<bitfield name="UNK2" pos="2" type="boolean"/>
+		<bitfield name="RENDER_MODE" low="0" high="2" type="a6xx_render_mode"/>
 	</reg32>
 
 	<reg32 offset="0xa008" name="VFD_MULTIVIEW_CNTL" type="a6xx_multiview_cntl"/>
@@ -2670,8 +2828,7 @@ to upconvert to 32b float internally?
 		</reg32>
 	</array>
 
-	<!-- 0 on 618, 1 on 630/640, 2 on a650? (SP count - 1) ? -->
-	<reg32 offset="0xa0f8" name="SP_UNKNOWN_A0F8" low="0" high="2"/>
+	<reg32 offset="0xa0f8" name="VFD_POWER_CNTL" low="0" high="2"/>
 
 	<!--
 	Note: this seems to always be paired with another bit in another
@@ -2830,6 +2987,17 @@ to upconvert to 32b float internally?
 		</bitfield>
 	</bitset>
 
+	<bitset name="a6xx_sp_xs_pvt_mem_hw_stack_offset" inline="yes">
+		<doc>
+			This seems to be be the equivalent of HWSTACKOFFSET in
+			a3xx. The ldp/stp offset formula above isn't affected by
+			HWSTACKSIZEPERTHREAD at all, so the HW return address
+			stack seems to be after all the normal per-SP private
+			memory.
+		</doc>
+		<bitfield name="OFFSET" low="0" high="18" shr="11"/>
+	</bitset>
+
 	<reg32 offset="0xa81b" name="SP_VS_OBJ_FIRST_EXEC_OFFSET" type="uint"/>
 	<reg64 offset="0xa81c" name="SP_VS_OBJ_START" type="address" align="32"/>
 	<reg32 offset="0xa81e" name="SP_VS_PVT_MEM_PARAM" type="a6xx_sp_xs_pvt_mem_param"/>
@@ -2838,7 +3006,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa822" name="SP_VS_TEX_COUNT" low="0" high="7" type="uint"/>
 	<reg32 offset="0xa823" name="SP_VS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa824" name="SP_VS_INSTRLEN" low="0" high="27" type="uint"/>
-	<reg32 offset="0xa825" name="SP_VS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
+	<reg32 offset="0xa825" name="SP_VS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset"/>
 
 	<reg32 offset="0xa830" name="SP_HS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0">
 		<!--
@@ -2865,7 +3033,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa83a" name="SP_HS_TEX_COUNT" low="0" high="7" type="uint"/>
 	<reg32 offset="0xa83b" name="SP_HS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa83c" name="SP_HS_INSTRLEN" low="0" high="27" type="uint"/>
-	<reg32 offset="0xa83d" name="SP_HS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
+	<reg32 offset="0xa83d" name="SP_HS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset"/>
 
 	<reg32 offset="0xa840" name="SP_DS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0">
 		<bitfield name="MERGEDREGS" pos="20" type="boolean"/>
@@ -2900,7 +3068,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa862" name="SP_DS_TEX_COUNT" low="0" high="7" type="uint"/>
 	<reg32 offset="0xa863" name="SP_DS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa864" name="SP_DS_INSTRLEN" low="0" high="27" type="uint"/>
-	<reg32 offset="0xa865" name="SP_DS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
+	<reg32 offset="0xa865" name="SP_DS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset"/>
 
 	<reg32 offset="0xa870" name="SP_GS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0">
 		<!--
@@ -2954,7 +3122,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa893" name="SP_GS_TEX_COUNT" low="0" high="7" type="uint"/>
 	<reg32 offset="0xa894" name="SP_GS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa895" name="SP_GS_INSTRLEN" low="0" high="27" type="uint"/>
-	<reg32 offset="0xa896" name="SP_GS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
+	<reg32 offset="0xa896" name="SP_GS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset"/>
 
 	<reg64 offset="0xa8a0" name="SP_VS_TEX_SAMP" type="address" align="16"/>
 	<reg64 offset="0xa8a2" name="SP_HS_TEX_SAMP" type="address" align="16"/>
@@ -2987,7 +3155,8 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa988" name="SP_FS_PVT_MEM_SIZE" type="a6xx_sp_xs_pvt_mem_size"/>
 
 	<reg32 offset="0xa989" name="SP_BLEND_CNTL">
-		<bitfield name="ENABLED" pos="0" type="boolean"/>
+		<!-- per-mrt enable bit -->
+		<bitfield name="ENABLE_BLEND" low="0" high="7"/>
 		<bitfield name="UNK8" pos="8" type="boolean"/>
 		<bitfield name="DUAL_COLOR_IN_ENABLE" pos="9" type="boolean"/>
 		<bitfield name="ALPHA_TO_COVERAGE" pos="10" type="boolean"/>
@@ -3074,7 +3243,7 @@ to upconvert to 32b float internally?
 	</array>
 	<reg32 offset="0xa9a7" name="SP_FS_TEX_COUNT" low="0" high="7" type="uint"/>
 	<reg32 offset="0xa9a8" name="SP_UNKNOWN_A9A8" low="0" high="16" /> <!-- always 0x0 ? -->
-	<reg32 offset="0xa9a9" name="SP_FS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11"/>
+	<reg32 offset="0xa9a9" name="SP_FS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset"/>
 
 	<!-- TODO: unknown bool register at 0xa9aa, likely same as 0xa8c0-0xa8c3 but for FS -->
 
@@ -3117,14 +3286,26 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa9ba" name="SP_CS_TEX_COUNT" low="0" high="7" type="uint"/>
 	<reg32 offset="0xa9bb" name="SP_CS_CONFIG" type="a6xx_sp_xs_config"/>
 	<reg32 offset="0xa9bc" name="SP_CS_INSTRLEN" low="0" high="27" type="uint"/>
-	<reg32 offset="0xa9bd" name="SP_CS_PVT_MEM_HW_STACK_OFFSET" low="0" high="18" shr="11">
-		<doc>
-			This seems to be be the equivalent of HWSTACKOFFSET in
-			a3xx. The offset formula isn't affected by
-			HWSTACKOFFSETPERTHREAD at all, so the HW return address
-			stack seems to be after all the normal per-SP private
-			memory.
-		</doc>
+	<reg32 offset="0xa9bd" name="SP_CS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset"/>
+
+	<!-- new in a6xx gen4, matches HLSQ_CS_CNTL_0 -->
+	<reg32 offset="0xa9c2" name="SP_CS_CNTL_0">
+		<bitfield name="WGIDCONSTID" low="0" high="7" type="a3xx_regid"/>
+		<bitfield name="WGSIZECONSTID" low="8" high="15" type="a3xx_regid"/>
+		<bitfield name="WGOFFSETCONSTID" low="16" high="23" type="a3xx_regid"/>
+		<bitfield name="LOCALIDREGID" low="24" high="31" type="a3xx_regid"/>
+	</reg32>
+	<!-- new in a6xx gen4, matches HLSQ_CS_CNTL_1 -->
+	<reg32 offset="0xa9c3" name="SP_CS_CNTL_1">
+		<!-- gl_LocalInvocationIndex -->
+		<bitfield name="LINEARLOCALIDREGID" low="0" high="7" type="a3xx_regid"/>
+		<!-- a650 has 6 "SP cores" (but 3 "SP"). this makes it use only
+		     one of those 6 "SP cores" -->
+		<bitfield name="SINGLE_SP_CORE" pos="8" type="boolean"/>
+		<!-- Must match SP_CS_CTRL -->
+		<bitfield name="THREADSIZE" pos="9" type="a6xx_threadsize"/>
+		<!-- 1 thread per wave (ignored if bit9 set) -->
+		<bitfield name="THREADSIZE_SCALAR" pos="10" type="boolean"/>
 	</reg32>
 
 	<!-- TODO: two 64kb aligned addresses at a9d0/a9d2 -->
@@ -3145,6 +3326,16 @@ to upconvert to 32b float internally?
 	<reg64 offset="0xa9f2" name="SP_CS_IBO" type="address" align="16"/>
 	<reg32 offset="0xaa00" name="SP_CS_IBO_COUNT" low="0" high="6" type="uint"/>
 
+	<!--
+                This enum is probably similar in purpose to SNORMMODE on a3xx,
+                minus the snorm stuff, i.e. it controls what happens with an
+                out-of-bounds isam/isamm. GL and Vulkan robustness require us to
+                return 0 on out-of-bound textureFetch().
+	-->
+	<enum name="a6xx_isam_mode">
+		<value value="0x2" name="ISAMMODE_GL"/>
+	</enum>
+
 	<reg32 offset="0xab00" name="SP_MODE_CONTROL">
 	  <!--
 	  When set, half register loads from the constant file will
@@ -3155,8 +3346,7 @@ to upconvert to 32b float internally?
 	  file (so hc0.y loads the top 16 bits of the value of c0.x)
 	  -->
 		<bitfield name="CONSTANT_DEMOTION_ENABLE" pos="0" type="boolean"/>
-		<bitfield name="UNK1" pos="1" type="boolean"/> <!-- never set by VK blob -->
-		<bitfield name="UNK2" pos="2" type="boolean"/> <!-- always set by VK blob -->
+		<bitfield name="ISAMMODE" low="1" high="2" type="a6xx_isam_mode"/>
 		<bitfield name="SHARED_CONSTS_ENABLE" pos="3" type="boolean"/> <!-- see HLSQ_SHARED_CONSTS -->
 	</reg32>
 
@@ -3193,7 +3383,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xae02" name="SP_NC_MODE_CNTL">
 		<!-- TODO: valid bits 0x3c3f, see kernel -->
 	</reg32>
-	<reg32 offset="0xae03" name="SP_UNKNOWN_AE03"/>
+	<reg32 offset="0xae03" name="SP_CHICKEN_BITS"/>
 	<reg32 offset="0xae04" name="SP_FLOAT_CNTL">
 		<bitfield name="F16_NO_INF" pos="3" type="boolean"/>
 	</reg32>
@@ -3212,6 +3402,7 @@ to upconvert to 32b float internally?
 	<array offset="0xae10" name="SP_PERFCTR_SP_SEL" stride="1" length="24"/>
 	<!-- TODO: there are 4 more percntr select registers (0xae28-0xae2b) -->
 	<!-- TODO: there are a few unknown registers in the 0xae30-0xae52 range -->
+	<reg32 offset="0xbe22" name="SP_CONTEXT_SWITCH_GFX_PREEMPTION_SAFE_MODE"/>
 
 	<!--
 	The downstream kernel calls the debug cluster of registers
@@ -3242,7 +3433,10 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xb305" name="SP_TP_SAMPLE_LOCATION_0" type="a6xx_sample_locations"/>
 	<reg32 offset="0xb306" name="SP_TP_SAMPLE_LOCATION_1" type="a6xx_sample_locations"/>
 	<reg32 offset="0xb307" name="SP_TP_WINDOW_OFFSET" type="a6xx_reg_xy"/>
-	<reg32 offset="0xb309" name="SP_TP_UNKNOWN_B309" low="0" high="7" type="uint"/>
+	<reg32 offset="0xb309" name="SP_TP_MODE_CNTL">
+		<bitfield name="ISAMMODE" low="0" high="1" type="a6xx_isam_mode"/>
+		<bitfield name="UNK3" low="2" high="7"/>
+	</reg32>
 
 	<!--
 	Equiv to corresponding RB_2D_SRC_* regs on a5xx.. which were either
@@ -3346,8 +3540,8 @@ to upconvert to 32b float internally?
 		<bitfield name="ZWCOORDREGID" low="24" high="31" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xb986" name="HLSQ_CONTROL_5_REG">
-		<bitfield name="UNK0" low="0" high="7" type="a3xx_regid"/>
-		<bitfield name="UNK8" low="8" high="15" type="a3xx_regid"/>
+		<bitfield name="LINELENGTHREGID" low="0" high="7" type="a3xx_regid"/>
+		<bitfield name="FOVEATIONQUALITYREGID" low="8" high="15" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xb987" name="HLSQ_CS_CNTL" type="a6xx_hlsq_xs_cntl"/>
 
@@ -3412,6 +3606,14 @@ to upconvert to 32b float internally?
 		<!-- 64 alignment, 2 low bits for unknown flags (always 0x3 when enabled?) -->
 		<reg64 offset="0" name="ADDR" type="waddress"/>
 	</array>
+
+	<!-- new in a6xx gen4, mirror of SP_CS_UNKNOWN_A9B1? -->
+	<reg32 offset="0xb9d0" name="HLSQ_CS_UNKNOWN_B9D0">
+		<bitfield name="SHARED_SIZE" low="0" high="4" type="uint"/>
+		<bitfield name="UNK5" pos="5" type="boolean"/>
+		<!-- always 1 ? -->
+		<bitfield name="UNK6" pos="6" type="boolean"/>
+	</reg32>
 
 	<reg32 offset="0xbb00" name="HLSQ_DRAW_CMD">
 		<bitfield name="STATE_ID" low="0" high="7"/>
@@ -3497,6 +3699,7 @@ to upconvert to 32b float internally?
 	<array offset="0xbe10" name="HLSQ_PERFCTR_HLSQ_SEL" stride="1" length="6"/>
 
 	<!-- TODO: some valid registers between 0xbe20 and 0xbe33 -->
+	<reg32 offset="0xbe22" name="HLSQ_CONTEXT_SWITCH_GFX_PREEMPTION_SAFE_MODE"/>
 
 	<!--
 		These special registers signal the beginning/end of an event

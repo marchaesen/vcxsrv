@@ -16,6 +16,7 @@
 #include "venus-protocol/vn_protocol_driver_shader_module.h"
 
 #include "vn_device.h"
+#include "vn_physical_device.h"
 
 /* shader module commands */
 
@@ -237,6 +238,55 @@ vn_MergePipelineCaches(VkDevice device,
 
 /* pipeline commands */
 
+static const VkGraphicsPipelineCreateInfo *
+vn_fix_graphics_pipeline_create_info(
+   struct vn_device *dev,
+   uint32_t create_info_count,
+   const VkGraphicsPipelineCreateInfo *create_infos,
+   const VkAllocationCallbacks *alloc,
+   VkGraphicsPipelineCreateInfo **out)
+{
+   VkGraphicsPipelineCreateInfo *infos = NULL;
+   bool has_ignored_state = false;
+
+   for (uint32_t i = 0; i < create_info_count; i++) {
+      if (create_infos[i].pRasterizationState->rasterizerDiscardEnable ==
+          VK_FALSE)
+         continue;
+
+      if (create_infos[i].pViewportState ||
+          create_infos[i].pMultisampleState ||
+          create_infos[i].pDepthStencilState ||
+          create_infos[i].pColorBlendState) {
+         has_ignored_state = true;
+         break;
+      }
+   }
+
+   if (!has_ignored_state)
+      return create_infos;
+
+   infos = vk_alloc(alloc, sizeof(*infos) * create_info_count,
+                    VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   if (!infos)
+      return NULL;
+
+   memcpy(infos, create_infos, sizeof(*infos) * create_info_count);
+
+   for (uint32_t i = 0; i < create_info_count; i++) {
+      if (infos[i].pRasterizationState->rasterizerDiscardEnable == VK_FALSE)
+         continue;
+
+      infos[i].pViewportState = NULL;
+      infos[i].pMultisampleState = NULL;
+      infos[i].pDepthStencilState = NULL;
+      infos[i].pColorBlendState = NULL;
+   }
+
+   *out = infos;
+   return infos;
+}
+
 VkResult
 vn_CreateGraphicsPipelines(VkDevice device,
                            VkPipelineCache pipelineCache,
@@ -248,6 +298,12 @@ vn_CreateGraphicsPipelines(VkDevice device,
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
+   VkGraphicsPipelineCreateInfo *local_infos = NULL;
+
+   pCreateInfos = vn_fix_graphics_pipeline_create_info(
+      dev, createInfoCount, pCreateInfos, alloc, &local_infos);
+   if (!pCreateInfos)
+      return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    for (uint32_t i = 0; i < createInfoCount; i++) {
       struct vn_pipeline *pipeline =
@@ -256,6 +312,10 @@ vn_CreateGraphicsPipelines(VkDevice device,
       if (!pipeline) {
          for (uint32_t j = 0; j < i; j++)
             vk_free(alloc, vn_pipeline_from_handle(pPipelines[j]));
+
+         if (local_infos)
+            vk_free(alloc, local_infos);
+
          memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
          return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
@@ -270,6 +330,9 @@ vn_CreateGraphicsPipelines(VkDevice device,
    vn_async_vkCreateGraphicsPipelines(dev->instance, device, pipelineCache,
                                       createInfoCount, pCreateInfos, NULL,
                                       pPipelines);
+
+   if (local_infos)
+      vk_free(alloc, local_infos);
 
    return VK_SUCCESS;
 }

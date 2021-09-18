@@ -463,7 +463,9 @@ get_main(gl_linked_shader *sh)
 bool
 lower_blend_equation_advanced(struct gl_linked_shader *sh, bool coherent)
 {
-   if (sh->Program->sh.fs.BlendSupport == 0)
+   assert(sh->Stage == MESA_SHADER_FRAGMENT);
+
+   if (sh->Program->info.fs.advanced_blend_modes == 0)
       return false;
 
    /* Lower early returns in main() so there's a single exit point
@@ -548,7 +550,7 @@ lower_blend_equation_advanced(struct gl_linked_shader *sh, bool coherent)
 
    ir_variable *result_dest =
       calc_blend_result(f, mode, fb, blend_source,
-                        sh->Program->sh.fs.BlendSupport);
+                        sh->Program->info.fs.advanced_blend_modes);
 
    /* Copy the result back to the original values.  It would be simpler
     * to demote the program's output variables, and create a new vec4

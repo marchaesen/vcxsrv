@@ -65,6 +65,25 @@ zink_clear_texture(struct pipe_context *ctx,
                    unsigned level,
                    const struct pipe_box *box,
                    const void *data);
+void
+zink_clear_buffer(struct pipe_context *pctx,
+                  struct pipe_resource *pres,
+                  unsigned offset,
+                  unsigned size,
+                  const void *clear_value,
+                  int clear_value_size);
+
+void
+zink_clear_render_target(struct pipe_context *ctx, struct pipe_surface *dst,
+                         const union pipe_color_union *color, unsigned dstx,
+                         unsigned dsty, unsigned width, unsigned height,
+                         bool render_condition_enabled);
+
+void
+zink_clear_depth_stencil(struct pipe_context *ctx, struct pipe_surface *dst,
+                         unsigned clear_flags, double depth, unsigned stencil,
+                         unsigned dstx, unsigned dsty, unsigned width, unsigned height,
+                         bool render_condition_enabled);
 
 bool
 zink_fb_clear_needs_explicit(struct zink_framebuffer_clear *fb_clear);

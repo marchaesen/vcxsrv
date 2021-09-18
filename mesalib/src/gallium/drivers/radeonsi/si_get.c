@@ -197,6 +197,9 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
       return SI_MAP_BUFFER_ALIGNMENT;
 
+   case PIPE_CAP_MAX_VERTEX_BUFFERS:
+      return SI_MAX_ATTRIBS;
+
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
    case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
@@ -478,9 +481,9 @@ static const char *si_get_name(struct pipe_screen *pscreen)
    return sscreen->renderer_string;
 }
 
-static int si_get_video_param_no_decode(struct pipe_screen *screen, enum pipe_video_profile profile,
-                                        enum pipe_video_entrypoint entrypoint,
-                                        enum pipe_video_cap param)
+static int si_get_video_param_no_video_hw(struct pipe_screen *screen, enum pipe_video_profile profile,
+                                          enum pipe_video_entrypoint entrypoint,
+                                          enum pipe_video_cap param)
 {
    switch (param) {
    case PIPE_VIDEO_CAP_SUPPORTED:
@@ -512,6 +515,11 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
    enum pipe_video_format codec = u_reduce_video_profile(profile);
 
    if (entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
+      if (!(sscreen->info.has_video_hw.vce_encode ||
+            sscreen->info.has_video_hw.uvd_encode ||
+            sscreen->info.has_video_hw.vcn_encode))
+         return 0;
+
       switch (param) {
       case PIPE_VIDEO_CAP_SUPPORTED:
          return (
@@ -535,7 +543,10 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
          else
             return (sscreen->info.family < CHIP_TONGA) ? 1152 : 2304;
       case PIPE_VIDEO_CAP_PREFERED_FORMAT:
-         return PIPE_FORMAT_NV12;
+         if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10)
+            return PIPE_FORMAT_P010;
+         else
+            return PIPE_FORMAT_NV12;
       case PIPE_VIDEO_CAP_PREFERS_INTERLACED:
          return false;
       case PIPE_VIDEO_CAP_SUPPORTS_INTERLACED:
@@ -544,6 +555,12 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
          return true;
       case PIPE_VIDEO_CAP_STACKED_FRAMES:
          return (sscreen->info.family < CHIP_TONGA) ? 1 : 2;
+      case PIPE_VIDEO_CAP_MAX_TEMPORAL_LAYERS:
+         if (codec == PIPE_VIDEO_FORMAT_MPEG4_AVC &&
+             sscreen->info.family >= CHIP_RAVEN)
+            return 4;
+         else
+            return 0;
       default:
          return 0;
       }
@@ -551,6 +568,14 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
 
    switch (param) {
    case PIPE_VIDEO_CAP_SUPPORTED:
+      if (codec < PIPE_VIDEO_FORMAT_MPEG4_AVC &&
+          sscreen->info.family >= CHIP_BEIGE_GOBY)
+         return false;
+      if (codec != PIPE_VIDEO_FORMAT_JPEG &&
+          !(sscreen->info.has_video_hw.uvd_decode ||
+            sscreen->info.has_video_hw.vcn_decode))
+         return false;
+
       switch (codec) {
       case PIPE_VIDEO_FORMAT_MPEG12:
          return profile != PIPE_VIDEO_PROFILE_MPEG1;
@@ -574,8 +599,12 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
             return profile == PIPE_VIDEO_PROFILE_HEVC_MAIN;
          return false;
       case PIPE_VIDEO_FORMAT_JPEG:
-         if (sscreen->info.family >= CHIP_RAVEN)
-            return true;
+         if (sscreen->info.family >= CHIP_RAVEN) {
+            if (!sscreen->info.has_video_hw.jpeg_decode)
+               return false;
+            else
+               return true;
+         }
          if (sscreen->info.family < CHIP_CARRIZO || sscreen->info.family >= CHIP_VEGA10)
             return false;
          if (!(sscreen->info.is_amdgpu && sscreen->info.drm_minor >= 19)) {
@@ -946,11 +975,13 @@ void si_init_screen_get_functions(struct si_screen *sscreen)
    sscreen->b.query_memory_info = si_query_memory_info;
    sscreen->b.get_disk_shader_cache = si_get_disk_shader_cache;
 
-   if (sscreen->info.has_hw_decode) {
+   if (sscreen->info.has_video_hw.uvd_decode || sscreen->info.has_video_hw.vcn_decode ||
+       sscreen->info.has_video_hw.jpeg_decode || sscreen->info.has_video_hw.vce_encode ||
+       sscreen->info.has_video_hw.uvd_encode || sscreen->info.has_video_hw.vcn_encode) {
       sscreen->b.get_video_param = si_get_video_param;
       sscreen->b.is_video_format_supported = si_vid_is_format_supported;
    } else {
-      sscreen->b.get_video_param = si_get_video_param_no_decode;
+      sscreen->b.get_video_param = si_get_video_param_no_video_hw;
       sscreen->b.is_video_format_supported = vl_video_buffer_is_format_supported;
    }
 
@@ -998,14 +1029,26 @@ void si_init_screen_get_functions(struct si_screen *sscreen)
       .lower_unpack_unorm_4x8 = true,
       .lower_extract_byte = true,
       .lower_extract_word = true,
+      .lower_insert_byte = true,
+      .lower_insert_word = true,
       .lower_rotate = true,
       .lower_to_scalar = true,
+      .has_dot_4x8 = sscreen->info.has_accelerated_dot_product,
+      .has_dot_2x16 = sscreen->info.has_accelerated_dot_product,
       .optimize_sample_mask_in = true,
       .max_unroll_iterations = 32,
+      .max_unroll_iterations_aggressive = 128,
       .use_interpolated_input_intrinsics = true,
       .lower_uniforms_to_ubo = true,
       .support_16bit_alu = sscreen->options.fp16,
       .vectorize_vec2_16bit = sscreen->options.fp16,
+      .pack_varying_options =
+         nir_pack_varying_interp_mode_none |
+         nir_pack_varying_interp_mode_smooth |
+         nir_pack_varying_interp_mode_noperspective |
+         nir_pack_varying_interp_loc_center |
+         nir_pack_varying_interp_loc_sample |
+         nir_pack_varying_interp_loc_centroid,
    };
    sscreen->nir_options = nir_options;
 }

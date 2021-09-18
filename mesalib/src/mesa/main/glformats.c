@@ -2859,7 +2859,17 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
 
    switch (format) {
    case GL_BGRA_EXT:
-      if (type != GL_UNSIGNED_BYTE || internalFormat != GL_BGRA)
+      if (type != GL_UNSIGNED_BYTE ||
+              (internalFormat != GL_BGRA &&
+               internalFormat != GL_RGBA8 &&
+               internalFormat != GL_SRGB8_ALPHA8))
+         return GL_INVALID_OPERATION;
+      break;
+
+   case GL_BGR_EXT:
+      if (type != GL_UNSIGNED_BYTE ||
+              (internalFormat != GL_RGB8 &&
+               internalFormat != GL_SRGB8))
          return GL_INVALID_OPERATION;
       break;
 

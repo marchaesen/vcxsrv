@@ -58,19 +58,6 @@ def nirtypes(opcode):
     else:
         return None
 
-def typesize(opcode):
-    if opcode[-3:] == '128':
-        return 128
-    if opcode[-2:] == '48':
-        return 48
-    elif opcode[-1] == '8':
-        return 8
-    else:
-        try:
-            return int(opcode[-2:])
-        except:
-            return None
-
 def condition(opcode, typecheck, sizecheck):
     cond = ''
     if typecheck == True:
@@ -211,4 +198,4 @@ def arguments(op, temp_dest = True):
         modifier_signature(op) +
         op["immediates"])
 
-print(Template(COPYRIGHT + TEMPLATE).render(ops = ir_instructions, modifiers = modifier_lists, signature = signature, arguments = arguments, src_count = src_count, SKIP = SKIP))
+print(Template(COPYRIGHT + TEMPLATE).render(ops = ir_instructions, modifiers = modifier_lists, signature = signature, arguments = arguments, src_count = src_count, typesize = typesize, SKIP = SKIP))

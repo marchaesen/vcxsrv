@@ -38,7 +38,7 @@ static nir_ssa_def *convert_to_bit_size(nir_builder *bld, nir_ssa_def *src,
    if ((type & (nir_type_uint | nir_type_int)) && bit_size == 32 &&
        alu && (alu->op == nir_op_b2i8 || alu->op == nir_op_b2i16)) {
       nir_alu_instr *instr = nir_alu_instr_create(bld->shader, nir_op_b2i32);
-      nir_alu_src_copy(&instr->src[0], &alu->src[0], instr);
+      nir_alu_src_copy(&instr->src[0], &alu->src[0]);
       return nir_builder_alu_instr_finish_and_insert(bld, instr);
    }
 
@@ -74,13 +74,30 @@ lower_alu_instr(nir_builder *bld, nir_alu_instr *alu, unsigned bit_size)
    nir_ssa_def *lowered_dst = NULL;
    if (op == nir_op_imul_high || op == nir_op_umul_high) {
       assert(dst_bit_size * 2 <= bit_size);
-      nir_ssa_def *lowered_dst = nir_imul(bld, srcs[0], srcs[1]);
+      lowered_dst = nir_imul(bld, srcs[0], srcs[1]);
       if (nir_op_infos[op].output_type & nir_type_uint)
          lowered_dst = nir_ushr_imm(bld, lowered_dst, dst_bit_size);
       else
          lowered_dst = nir_ishr_imm(bld, lowered_dst, dst_bit_size);
    } else {
       lowered_dst = nir_build_alu_src_arr(bld, op, srcs);
+
+      /* The add_sat and sub_sat instructions need to clamp the result to the
+       * range of the original type.
+       */
+      if (op == nir_op_iadd_sat || op == nir_op_isub_sat) {
+         const int64_t int_max = u_intN_max(dst_bit_size);
+         const int64_t int_min = u_intN_min(dst_bit_size);
+
+         lowered_dst = nir_iclamp(bld, lowered_dst,
+                                  nir_imm_intN_t(bld, int_min, bit_size),
+                                  nir_imm_intN_t(bld, int_max, bit_size));
+      } else if (op == nir_op_uadd_sat || op == nir_op_usub_sat) {
+         const uint64_t uint_max = u_uintN_max(dst_bit_size);
+
+         lowered_dst = nir_umin(bld, lowered_dst,
+                                nir_imm_intN_t(bld, uint_max, bit_size));
+      }
    }
 
 
@@ -292,15 +309,8 @@ split_phi(nir_builder *b, nir_phi_instr *phi)
       nir_ssa_def *x = nir_unpack_64_2x32_split_x(b, src->src.ssa);
       nir_ssa_def *y = nir_unpack_64_2x32_split_y(b, src->src.ssa);
 
-      nir_phi_src *xsrc = rzalloc(lowered[0], nir_phi_src);
-      xsrc->pred = src->pred;
-      xsrc->src = nir_src_for_ssa(x);
-      exec_list_push_tail(&lowered[0]->srcs, &xsrc->node);
-
-      nir_phi_src *ysrc = rzalloc(lowered[1], nir_phi_src);
-      ysrc->pred = src->pred;
-      ysrc->src = nir_src_for_ssa(y);
-      exec_list_push_tail(&lowered[1]->srcs, &ysrc->node);
+      nir_phi_instr_add_src(lowered[0], src->pred, nir_src_for_ssa(x));
+      nir_phi_instr_add_src(lowered[1], src->pred, nir_src_for_ssa(y));
    }
 
    nir_ssa_dest_init(&lowered[0]->instr, &lowered[0]->dest,

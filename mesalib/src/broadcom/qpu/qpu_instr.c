@@ -137,6 +137,8 @@ v3d_qpu_add_op_name(enum v3d_qpu_add_op op)
                 [V3D_QPU_A_TMUWT] = "tmuwt",
                 [V3D_QPU_A_VPMSETUP] = "vpmsetup",
                 [V3D_QPU_A_VPMWT] = "vpmwt",
+                [V3D_QPU_A_FLAFIRST] = "flafirst",
+                [V3D_QPU_A_FLNAFIRST] = "flnafirst",
                 [V3D_QPU_A_LDVPMV_IN] = "ldvpmv_in",
                 [V3D_QPU_A_LDVPMV_OUT] = "ldvpmv_out",
                 [V3D_QPU_A_LDVPMD_IN] = "ldvpmd_in",
@@ -406,6 +408,8 @@ static const uint8_t add_op_args[] = {
         [V3D_QPU_A_BARRIERID] = D,
         [V3D_QPU_A_TMUWT] = D,
         [V3D_QPU_A_VPMWT] = D,
+        [V3D_QPU_A_FLAFIRST] = D,
+        [V3D_QPU_A_FLNAFIRST] = D,
 
         [V3D_QPU_A_VPMSETUP] = D | A,
 
@@ -930,6 +934,8 @@ v3d_qpu_reads_flags(const struct v3d_qpu_instr *inst)
                 case V3D_QPU_A_VFLNB:
                 case V3D_QPU_A_FLAPUSH:
                 case V3D_QPU_A_FLBPUSH:
+                case V3D_QPU_A_FLAFIRST:
+                case V3D_QPU_A_FLNAFIRST:
                         return true;
                 default:
                         break;

@@ -48,6 +48,7 @@
 #include "compiler/shader_info.h"
 #include "main/formats.h"       /* MESA_FORMAT_COUNT */
 #include "compiler/glsl/list.h"
+#include "util/u_idalloc.h"
 #include "util/simple_mtx.h"
 #include "util/u_dynarray.h"
 #include "vbo/vbo.h"
@@ -907,7 +908,6 @@ struct gl_sampler_attrib
    GLenum16 MinFilter;		/**< minification filter */
    GLenum16 MagFilter;		/**< magnification filter */
    GLenum16 sRGBDecode;         /**< GL_DECODE_EXT or GL_SKIP_DECODE_EXT */
-   union gl_color_union BorderColor;  /**< Interpreted according to texture format */
    GLfloat MinLod;		/**< min lambda, OpenGL 1.2 */
    GLfloat MaxLod;		/**< max lambda, OpenGL 1.2 */
    GLfloat LodBias;		/**< OpenGL 1.4 */
@@ -915,7 +915,10 @@ struct gl_sampler_attrib
    GLenum16 CompareMode;	/**< GL_ARB_shadow */
    GLenum16 CompareFunc;	/**< GL_ARB_shadow */
    GLboolean CubeMapSeamless;   /**< GL_AMD_seamless_cubemap_per_texture */
+   GLboolean IsBorderColorNonZero; /**< Does the border color have any effect? */
    GLenum16 ReductionMode;      /**< GL_EXT_texture_filter_minmax */
+
+   struct pipe_sampler_state state;  /**< Gallium representation */
 };
 
 /**
@@ -947,7 +950,6 @@ struct gl_texture_object_attrib
  */
 struct gl_sampler_object
 {
-   simple_mtx_t Mutex;
    GLuint Name;
    GLchar *Label;               /**< GL_KHR_debug */
    GLint RefCount;
@@ -966,7 +968,6 @@ struct gl_sampler_object
  */
 struct gl_texture_object
 {
-   simple_mtx_t Mutex;         /**< for thread safety */
    GLint RefCount;             /**< reference count */
    GLuint Name;                /**< the user-visible texture object ID */
    GLenum16 Target;            /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
@@ -995,6 +996,7 @@ struct gl_texture_object
    bool StencilSampling;       /**< Should we sample stencil instead of depth? */
 
    /** GL_OES_EGL_image_external */
+   GLboolean External;
    GLubyte RequiredTextureImageUnits;
 
    /** GL_EXT_memory_object */
@@ -1181,6 +1183,7 @@ struct gl_texgen
 struct gl_texture_unit
 {
    GLfloat LodBias;		/**< for biasing mipmap levels */
+   float LodBiasQuantized;      /**< to reduce pipe_sampler_state variants */
 
    /** Texture targets that have a non-default texture bound */
    GLbitfield _BoundTextures;
@@ -1608,6 +1611,15 @@ struct gl_vertex_array_object
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield Enabled;
+
+   /**
+    * Mask indicating which VertexAttrib and BufferBinding structures have
+    * been changed since the VAO creation. No bit is ever cleared to 0 by
+    * state updates. Setting to the default state doesn't update this.
+    * (e.g. unbinding) Setting the derived state (_* fields) doesn't update
+    * this either.
+    */
+   GLbitfield NonDefaultStateMask;
 
    /**
     * Mask of VERT_BIT_* enabled arrays past position/generic0 mapping
@@ -2127,8 +2139,6 @@ struct gl_program
    void *driver_cache_blob;
    size_t driver_cache_blob_size;
 
-   bool is_arb_asm; /** Is this an ARB assembly-style program */
-
    /** Is this program written to on disk shader cache */
    bool program_written_to_cache;
 
@@ -2248,15 +2258,6 @@ struct gl_program
          GLuint NumBindlessImages;
          GLboolean HasBoundBindlessImage;
          struct gl_bindless_image *BindlessImages;
-
-         union {
-            struct {
-               /**
-                * A bitmask of gl_advanced_blend_mode values
-                */
-               GLbitfield BlendSupport;
-            } fs;
-         };
       } sh;
 
       /** ARB assembly-style program fields */
@@ -3465,6 +3466,21 @@ struct gl_shared_state
     * frequency changes.
     */
    bool DisjointOperation;
+
+   /**
+    * Whether at least one image has been imported or exported, excluding
+    * the default framebuffer. If this is false, glFlush can be executed
+    * asynchronously because there is no invisible dependency on external
+    * users.
+    */
+   bool HasExternallySharedImages;
+
+   /* Small display list storage */
+   struct {
+      union gl_dlist_node *ptr;
+      struct util_idalloc free_idx;
+      unsigned size;
+   } small_dlist_store;
 };
 
 
@@ -3476,7 +3492,6 @@ struct gl_shared_state
  */
 struct gl_renderbuffer
 {
-   simple_mtx_t Mutex; /**< for thread safety */
    GLuint ClassID;        /**< Useful for drivers */
    GLuint Name;
    GLchar *Label;         /**< GL_KHR_debug */
@@ -3943,6 +3958,12 @@ struct gl_constants
    GLboolean ForceGLSLAbsSqrt;
 
    /**
+    * Forces the GLSL compiler to ignore writes to readonly vars rather than
+    * throwing an error.
+    */
+   GLboolean GLSLIgnoreWriteToReadonlyVar;
+
+   /**
     * Types of variable to default initialized to zero. Supported values are:
     *   - 0: no zero initialization
     *   - 1: all shader variables and gl_FragColor are initialiazed to 0
@@ -4255,10 +4276,6 @@ struct gl_constants
    /** Whether out-of-order draw (Begin/End) optimizations are allowed. */
    bool AllowDrawOutOfOrder;
 
-   /** Whether draw merging optimizations are allowed (might cause
-    *  incorrect results). */
-   bool AllowIncorrectPrimitiveId;
-
    /** Whether to allow the fast path for frequently updated VAOs. */
    bool AllowDynamicVAOFastPath;
 
@@ -4276,6 +4293,7 @@ struct gl_constants
    struct spirv_supported_extensions *SpirVExtensions;
 
    char *VendorOverride;
+   char *RendererOverride;
 
    /** Buffer size used to upload vertices from glBegin/glEnd. */
    unsigned glBeginEndBufferSize;
@@ -4676,10 +4694,23 @@ union gl_dlist_node;
 struct gl_display_list
 {
    GLuint Name;
-   GLbitfield Flags;  /**< DLIST_x flags */
+   bool small_list;
+   /* If small_list and begins_with_a_nop are true, this means
+    * the 'start' has been incremented to skip a NOP at the
+    * beginning.
+    */
+   bool begins_with_a_nop;
    GLchar *Label;     /**< GL_KHR_debug */
    /** The dlist commands are in a linked list of nodes */
-   union gl_dlist_node *Head;
+   union {
+      /* Big lists allocate their own storage */
+      union gl_dlist_node *Head;
+      /* Small lists use ctx->Shared->small_dlist_store */
+      struct {
+         unsigned start;
+         unsigned count;
+      };
+   };
 };
 
 
@@ -4706,6 +4737,7 @@ struct gl_dlist_state
        * list.  Used to eliminate some redundant state changes.
        */
       GLenum16 ShadeModel;
+      bool UseLoopback;
    } Current;
 };
 
@@ -4759,8 +4791,9 @@ struct gl_driver_flags
 
    /**
     * gl_context::TessCtrlProgram::patch_default_*
+    * gl_context::TessCtrlProgram::patch_vertices
     */
-   uint64_t NewDefaultTessLevels;
+   uint64_t NewTessState;
 
    /**
     * gl_context::IntelConservativeRasterization
@@ -5079,6 +5112,7 @@ struct gl_texture_attrib_node
    GLuint NumTexSaved;
    struct gl_fixedfunc_texture_unit FixedFuncUnit[MAX_TEXTURE_COORD_UNITS];
    GLfloat LodBias[MAX_TEXTURE_UNITS];
+   float LodBiasQuantized[MAX_TEXTURE_UNITS];
 
    /** Saved default texture object state. */
    struct gl_texture_object SavedDefaultObj[NUM_TEXTURE_TARGETS];
@@ -5447,8 +5481,6 @@ struct gl_context
 
    GLboolean ViewportInitialized;  /**< has viewport size been initialized? */
    GLboolean _AllowDrawOutOfOrder;
-   /* Is gl_PrimitiveID unused by the current shaders? */
-   bool _PrimitiveIDIsUnused;
 
    /** \name Derived state */
    GLbitfield _ImageTransferState;/**< bitwise-or of IMAGE_*_BIT flags */

@@ -150,9 +150,6 @@
 
 /**
  * Display list opcodes.
- *
- * The fact that these identifiers are assigned consecutive
- * integer values starting at 0 is very important, see InstSize array usage)
  */
 typedef enum
 {
@@ -630,13 +627,14 @@ typedef enum
    OPCODE_NAMED_PROGRAM_LOCAL_PARAMETER,
 
    OPCODE_VERTEX_LIST,
+   OPCODE_VERTEX_LIST_LOOPBACK,
+   OPCODE_VERTEX_LIST_COPY_CURRENT,
 
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
    OPCODE_CONTINUE,
    OPCODE_NOP,                  /* No-op (used for 8-byte alignment */
-   OPCODE_END_OF_LIST,
-   OPCODE_EXT_0
+   OPCODE_END_OF_LIST
 } OpCode;
 
 
@@ -658,7 +656,15 @@ typedef enum
  */
 union gl_dlist_node
 {
-   OpCode opcode;
+   struct {
+#if !DETECT_OS_WINDOWS
+      OpCode opcode:16;
+#else
+      /* sizeof(Node) is 8 with MSVC/mingw, so use an explicit 16 bits type. */
+      uint16_t opcode;
+#endif
+      uint16_t InstSize;
+   };
    GLboolean b;
    GLbitfield bf;
    GLubyte ub;
@@ -779,14 +785,6 @@ union int64_pair
 #define BLOCK_SIZE 256
 
 
-
-/**
- * Number of nodes of storage needed for each instruction.
- * Sizes for dynamically allocated opcodes are stored in the context struct.
- */
-static GLuint InstSize[OPCODE_END_OF_LIST + 1];
-
-
 void mesa_print_display_list(GLuint list);
 
 
@@ -799,34 +797,38 @@ vbo_destroy_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *nod
    for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
       _mesa_reference_vao(ctx, &node->VAO[vpm], NULL);
 
-   if (--node->prim_store->refcount == 0) {
-      free(node->prim_store->prims);
-      free(node->prim_store);
+   if (node->merged.mode) {
+      free(node->merged.mode);
+      free(node->merged.start_counts);
    }
 
-   free(node->merged.mode);
-   free(node->merged.start_count);
+   _mesa_reference_buffer_object(ctx, &node->cold->ib.obj, NULL);
+   free(node->cold->current_data);
+   node->cold->current_data = NULL;
 
-   _mesa_reference_buffer_object(ctx, &node->merged.ib.obj, NULL);
-   free(node->current_data);
-   node->current_data = NULL;
+   free(node->cold);
 }
 
 static void
-vbo_print_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node, FILE *f)
+vbo_print_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node, OpCode op, FILE *f)
 {
    GLuint i;
    struct gl_buffer_object *buffer = node->VAO[0]->BufferBinding[0].BufferObj;
    const GLuint vertex_size = _vbo_save_get_stride(node)/sizeof(GLfloat);
    (void) ctx;
 
-   fprintf(f, "VBO-VERTEX-LIST, %u vertices, %d primitives, %d vertsize, "
+   const char *label[] = {
+      "VBO-VERTEX-LIST", "VBO-VERTEX-LIST-LOOPBACK", "VBO-VERTEX-LIST-COPY-CURRENT"
+   };
+
+   fprintf(f, "%s, %u vertices, %d primitives, %d vertsize, "
            "buffer %p\n",
-           node->vertex_count, node->prim_count, vertex_size,
+           label[op - OPCODE_VERTEX_LIST],
+           node->cold->vertex_count, node->cold->prim_count, vertex_size,
            buffer);
 
-   for (i = 0; i < node->prim_count; i++) {
-      struct _mesa_prim *prim = &node->prims[i];
+   for (i = 0; i < node->cold->prim_count; i++) {
+      struct _mesa_prim *prim = &node->cold->prims[i];
       fprintf(f, "   prim %d: %s %d..%d %s %s\n",
              i,
              _mesa_lookup_prim_by_nr(prim->mode),
@@ -838,15 +840,24 @@ vbo_print_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node,
 }
 
 
+static inline
+Node *get_list_head(struct gl_context *ctx, struct gl_display_list *dlist)
+{
+   return dlist->small_list ?
+      &ctx->Shared->small_dlist_store.ptr[dlist->start] :
+      dlist->Head;
+}
+
+
 /**
  * Does the given display list only contain a single glBitmap call?
  */
 static bool
-is_bitmap_list(const struct gl_display_list *dlist)
+is_bitmap_list(struct gl_context *ctx, struct gl_display_list *dlist)
 {
-   const Node *n = dlist->Head;
+   Node *n = get_list_head(ctx, dlist);
    if (n[0].opcode == OPCODE_BITMAP) {
-      n += InstSize[OPCODE_BITMAP];
+      n += n[0].InstSize;
       if (n[0].opcode == OPCODE_END_OF_LIST)
          return true;
    }
@@ -858,9 +869,9 @@ is_bitmap_list(const struct gl_display_list *dlist)
  * Is the given display list an empty list?
  */
 static bool
-is_empty_list(const struct gl_display_list *dlist)
+is_empty_list(struct gl_context *ctx, struct gl_display_list *dlist)
 {
-   const Node *n = dlist->Head;
+   Node *n = get_list_head(ctx, dlist);
    return n[0].opcode == OPCODE_END_OF_LIST;
 }
 
@@ -952,26 +963,26 @@ build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
     * bitmap in the atlas to determine the texture atlas size.
     */
    for (i = 0; i < atlas->numBitmaps; i++) {
-      const struct gl_display_list *list = _mesa_lookup_list(ctx, listBase + i);
+      struct gl_display_list *list = _mesa_lookup_list(ctx, listBase + i, true);
       const Node *n;
       struct gl_bitmap_glyph *g = &atlas->glyphs[i];
       unsigned bitmap_width, bitmap_height;
       float bitmap_xmove, bitmap_ymove, bitmap_xorig, bitmap_yorig;
 
-      if (!list || is_empty_list(list)) {
+      if (!list || is_empty_list(ctx, list)) {
          /* stop here */
          atlas->numBitmaps = i;
          break;
       }
 
-      if (!is_bitmap_list(list)) {
+      if (!is_bitmap_list(ctx, list)) {
          /* This list does not contain exactly one glBitmap command. Give up. */
          atlas->incomplete = true;
          return;
       }
 
       /* get bitmap info from the display list command */
-      n = list->Head;
+      n = get_list_head(ctx, list);
       assert(n[0].opcode == OPCODE_BITMAP);
       bitmap_width = n[1].i;
       bitmap_height = n[2].i;
@@ -1023,6 +1034,9 @@ build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
 
    atlas->texObj->Sampler.Attrib.MinFilter = GL_NEAREST;
    atlas->texObj->Sampler.Attrib.MagFilter = GL_NEAREST;
+   atlas->texObj->Sampler.Attrib.state.min_img_filter = PIPE_TEX_FILTER_NEAREST;
+   atlas->texObj->Sampler.Attrib.state.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
+   atlas->texObj->Sampler.Attrib.state.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
    atlas->texObj->Attrib.MaxLevel = 0;
    atlas->texObj->Immutable = GL_TRUE;
 
@@ -1058,8 +1072,8 @@ build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
    memset(map, 0xff, map_stride * atlas->texHeight);
 
    for (i = 0; i < atlas->numBitmaps; i++) {
-      const struct gl_display_list *list = _mesa_lookup_list(ctx, listBase + i);
-      const Node *n = list->Head;
+      struct gl_display_list *list = _mesa_lookup_list(ctx, listBase + i, true);
+      const Node *n = get_list_head(ctx, list);
 
       assert(n[0].opcode == OPCODE_BITMAP ||
              n[0].opcode == OPCODE_END_OF_LIST);
@@ -1111,8 +1125,6 @@ make_list(GLuint name, GLuint count)
    dlist->Name = name;
    dlist->Head = malloc(sizeof(Node) * count);
    dlist->Head[0].opcode = OPCODE_END_OF_LIST;
-   /* All InstSize[] entries must be non-zero */
-   InstSize[OPCODE_END_OF_LIST] = 1;
    return dlist;
 }
 
@@ -1121,10 +1133,10 @@ make_list(GLuint name, GLuint count)
  * Lookup function to just encapsulate casting.
  */
 struct gl_display_list *
-_mesa_lookup_list(struct gl_context *ctx, GLuint list)
+_mesa_lookup_list(struct gl_context *ctx, GLuint list, bool locked)
 {
    return (struct gl_display_list *)
-      _mesa_HashLookup(ctx->Shared->DisplayList, list);
+      _mesa_HashLookupMaybeLocked(ctx->Shared->DisplayList, list, locked);
 }
 
 
@@ -1137,13 +1149,13 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
 {
    Node *n, *block;
 
-   if (!dlist->Head) {
+   n = block = get_list_head(ctx, dlist);
+
+   if (!n) {
       free(dlist->Label);
       free(dlist);
       return;
    }
-
-   n = block = dlist->Head;
 
    while (1) {
       const OpCode opcode = n[0].opcode;
@@ -1355,15 +1367,27 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             free(get_pointer(&n[5]));
             break;
          case OPCODE_VERTEX_LIST:
+         case OPCODE_VERTEX_LIST_LOOPBACK:
+         case OPCODE_VERTEX_LIST_COPY_CURRENT:
             vbo_destroy_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1]);
             break;
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
+            assert (!dlist->small_list);
             free(block);
             block = n;
             continue;
          case OPCODE_END_OF_LIST:
-            free(block);
+            if (dlist->small_list) {
+               unsigned start = dlist->begins_with_a_nop ? dlist->start - 1 :
+                                                           dlist->start;
+               for (int i = 0; i < dlist->count; i++) {
+                  util_idalloc_free(&ctx->Shared->small_dlist_store.free_idx,
+                                    start + i);
+               }
+            } else {
+               free(block);
+            }
             free(dlist->Label);
             free(dlist);
             return;
@@ -1372,8 +1396,8 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             ;
       }
 
-      assert(InstSize[opcode] > 0);
-      n += InstSize[opcode];
+      assert(n[0].InstSize > 0);
+      n += n[0].InstSize;
    }
 }
 
@@ -1415,11 +1439,11 @@ destroy_list(struct gl_context *ctx, GLuint list)
    if (list == 0)
       return;
 
-   dlist = _mesa_lookup_list(ctx, list);
+   dlist = _mesa_lookup_list(ctx, list, false);
    if (!dlist)
       return;
 
-   if (is_bitmap_list(dlist)) {
+   if (is_bitmap_list(ctx, dlist)) {
       /* If we're destroying a simple glBitmap display list, there's a
        * chance that we're destroying a bitmap image that's in a texture
        * atlas.  Examine all atlases to see if that's the case.  There's
@@ -1429,8 +1453,10 @@ destroy_list(struct gl_context *ctx, GLuint list)
                      check_atlas_for_deleted_list, &list);
    }
 
+   _mesa_HashLockMutex(ctx->Shared->DisplayList);
    _mesa_delete_list(ctx, dlist);
-   _mesa_HashRemove(ctx->Shared->DisplayList, list);
+   _mesa_HashRemoveLocked(ctx->Shared->DisplayList, list);
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 }
 
 
@@ -1530,17 +1556,6 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
 
    assert(bytes <= BLOCK_SIZE * sizeof(Node));
 
-   if (opcode < OPCODE_EXT_0) {
-      if (InstSize[opcode] == 0) {
-         /* save instruction size now */
-         InstSize[opcode] = numNodes;
-      }
-      else {
-         /* make sure instruction size agrees */
-         assert(numNodes == InstSize[opcode]);
-      }
-   }
-
    if (sizeof(void *) > sizeof(Node) && align8
        && ctx->ListState.CurrentPos % 2 == 0) {
       /* The opcode would get placed at node[0] and the payload would start
@@ -1586,6 +1601,7 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
    if (nopNode) {
       assert(ctx->ListState.CurrentPos % 2 == 0); /* even value */
       n[0].opcode = OPCODE_NOP;
+      n[0].InstSize = 1;
       n++;
       /* The "real" opcode will now be at an odd location and the payload
        * will be at an even location.
@@ -1594,52 +1610,24 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
    ctx->ListState.CurrentPos += nopNode + numNodes;
 
    n[0].opcode = opcode;
+   n[0].InstSize = numNodes;
 
    return n;
 }
 
 
-
-/**
- * Allocate space for a display list instruction.  Used by callers outside
- * this file for things like VBO vertex data.
- *
- * \param opcode  the instruction opcode (OPCODE_* value)
- * \param bytes   instruction size in bytes, not counting opcode.
- * \return pointer to the usable data area (not including the internal
- *         opcode).
- */
 void *
-_mesa_dlist_alloc(struct gl_context *ctx, GLuint opcode, GLuint bytes)
+_mesa_dlist_alloc_vertex_list(struct gl_context *ctx, bool copy_to_current)
 {
-   Node *n = dlist_alloc(ctx, (OpCode) opcode, bytes, false);
+   Node *n =  dlist_alloc(ctx,
+                          copy_to_current ? OPCODE_VERTEX_LIST_COPY_CURRENT :
+                                            OPCODE_VERTEX_LIST,
+                          sizeof(struct vbo_save_vertex_list),
+                          true);
    if (n)
       return n + 1;  /* return pointer to payload area, after opcode */
    else
       return NULL;
-}
-
-
-/**
- * Same as _mesa_dlist_alloc(), but return a pointer which is 8-byte
- * aligned in 64-bit environments, 4-byte aligned otherwise.
- */
-void *
-_mesa_dlist_alloc_aligned(struct gl_context *ctx, GLuint opcode, GLuint bytes)
-{
-   Node *n = dlist_alloc(ctx, (OpCode) opcode, bytes, true);
-   if (n)
-      return n + 1;  /* return pointer to payload area, after opcode */
-   else
-      return NULL;
-}
-
-
-void *
-_mesa_dlist_alloc_vertex_list(struct gl_context *ctx)
-{
-   return _mesa_dlist_alloc_aligned(ctx, OPCODE_VERTEX_LIST,
-                                    sizeof(struct vbo_save_vertex_list));
 }
 
 
@@ -1657,38 +1645,6 @@ alloc_instruction(struct gl_context *ctx, OpCode opcode, GLuint nparams)
 {
    return dlist_alloc(ctx, opcode, nparams * sizeof(Node), false);
 }
-
-
-/**
- * Called by EndList to try to reduce memory used for the list.
- */
-static void
-trim_list(struct gl_context *ctx)
-{
-   /* If the list we're ending only has one allocated block of nodes/tokens
-    * and its size isn't a full block size, realloc the block to use less
-    * memory.  This is important for apps that create many small display
-    * lists and apps that use glXUseXFont (many lists each containing one
-    * glBitmap call).
-    * Note: we currently only trim display lists that allocated one block
-    * of tokens.  That hits the short list case which is what we're mainly
-    * concerned with.  Trimming longer lists would involve traversing the
-    * linked list of blocks.
-    */
-   struct gl_dlist_state *list = &ctx->ListState;
-
-   if ((list->CurrentList->Head == list->CurrentBlock) &&
-       (list->CurrentPos < BLOCK_SIZE)) {
-      /* There's only one block and it's not full, so realloc */
-      GLuint newSize = list->CurrentPos * sizeof(Node);
-      list->CurrentList->Head =
-      list->CurrentBlock = realloc(list->CurrentBlock, newSize);
-      if (!list->CurrentBlock) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glEndList");
-      }
-   }
-}
-
 
 
 /*
@@ -2062,7 +2018,10 @@ invalidate_saved_current_state(struct gl_context *ctx)
    for (i = 0; i < MAT_ATTRIB_MAX; i++)
       ctx->ListState.ActiveMaterialSize[i] = 0;
 
+   /* Loopback usage applies recursively, so remember this state */
+   bool use_loopback = ctx->ListState.Current.UseLoopback;
    memset(&ctx->ListState.Current, 0, sizeof ctx->ListState.Current);
+   ctx->ListState.Current.UseLoopback = use_loopback;
 
    ctx->Driver.CurrentSavePrimitive = PRIM_UNKNOWN;
 }
@@ -6237,7 +6196,7 @@ save_Attr32bit(struct gl_context *ctx, unsigned attr, unsigned size,
     * FLOAT and INT.
     */
    if (type == GL_FLOAT) {
-      if (attr >= VERT_ATTRIB_GENERIC0) {
+      if (VERT_BIT(attr) & VERT_BIT_GENERIC_ALL) {
          base_op = OPCODE_ATTR_1F_ARB;
          attr -= VERT_ATTRIB_GENERIC0;
       } else {
@@ -11190,10 +11149,11 @@ _mesa_compile_error(struct gl_context *ctx, GLenum error, const char *s)
  */
 bool
 _mesa_get_list(struct gl_context *ctx, GLuint list,
-               struct gl_display_list **dlist)
+               struct gl_display_list **dlist,
+               bool locked)
 {
    struct gl_display_list * dl =
-      list > 0 ? _mesa_lookup_list(ctx, list) : NULL;
+      list > 0 ? _mesa_lookup_list(ctx, list, locked) : NULL;
 
    if (dlist)
       *dlist = dl;
@@ -11212,6 +11172,7 @@ _mesa_get_list(struct gl_context *ctx, GLuint list,
  * Execute a display list.  Note that the ListBase offset must have already
  * been added before calling this function.  I.e. the list argument is
  * the absolute list number, not relative to ListBase.
+ * Must be called with ctx->Shared->DisplayList locked.
  * \param list - display list number
  */
 static void
@@ -11220,19 +11181,10 @@ execute_list(struct gl_context *ctx, GLuint list)
    struct gl_display_list *dlist;
    Node *n;
 
-   if (list == 0 || !_mesa_get_list(ctx, list, &dlist))
+   if (list == 0 || !_mesa_get_list(ctx, list, &dlist, true))
       return;
 
-   if (ctx->ListState.CallDepth == MAX_LIST_NESTING) {
-      /* raise an error? */
-      return;
-   }
-
-   ctx->ListState.CallDepth++;
-
-   vbo_save_BeginCallList(ctx, dlist);
-
-   n = dlist->Head;
+   n = get_list_head(ctx, dlist);
 
    while (1) {
       const OpCode opcode = n[0].opcode;
@@ -11296,12 +11248,18 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_CALL_LIST:
             /* Generated by glCallList(), don't add ListBase */
             if (ctx->ListState.CallDepth < MAX_LIST_NESTING) {
+               ctx->ListState.CallDepth++;
                execute_list(ctx, n[1].ui);
+               ctx->ListState.CallDepth--;
             }
             break;
          case OPCODE_CALL_LISTS:
             if (ctx->ListState.CallDepth < MAX_LIST_NESTING) {
+               ctx->ListState.CallDepth++;
+               _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
                CALL_CallLists(ctx->Exec, (n[1].i, n[2].e, get_pointer(&n[3])));
+               _mesa_HashLockMutex(ctx->Shared->DisplayList);
+               ctx->ListState.CallDepth--;
             }
             break;
          case OPCODE_CLEAR:
@@ -13406,7 +13364,15 @@ execute_list(struct gl_context *ctx, GLuint list)
             break;
 
          case OPCODE_VERTEX_LIST:
-            vbo_save_playback_vertex_list(ctx, &n[1]);
+            vbo_save_playback_vertex_list(ctx, &n[1], false);
+            break;
+
+         case OPCODE_VERTEX_LIST_COPY_CURRENT:
+            vbo_save_playback_vertex_list(ctx, &n[1], true);
+            break;
+
+         case OPCODE_VERTEX_LIST_LOOPBACK:
+            vbo_save_playback_vertex_list_loopback(ctx, &n[1]);
             break;
 
          case OPCODE_CONTINUE:
@@ -13424,14 +13390,12 @@ execute_list(struct gl_context *ctx, GLuint list)
             }
             FALLTHROUGH;
          case OPCODE_END_OF_LIST:
-            vbo_save_EndCallList(ctx);
-            ctx->ListState.CallDepth--;
             return;
       }
 
       /* increment n to point to next compiled command */
-      assert(InstSize[opcode] > 0);
-      n += InstSize[opcode];
+      assert(n[0].InstSize > 0);
+      n += n[0].InstSize;
    }
 }
 
@@ -13450,7 +13414,7 @@ _mesa_IsList(GLuint list)
    GET_CURRENT_CONTEXT(ctx);
    FLUSH_VERTICES(ctx, 0, 0);      /* must be called before assert */
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, GL_FALSE);
-   return _mesa_get_list(ctx, list, NULL);
+   return _mesa_get_list(ctx, list, NULL, false);
 }
 
 
@@ -13587,6 +13551,7 @@ _mesa_NewList(GLuint name, GLenum mode)
    ctx->ListState.CurrentList = make_list(name, BLOCK_SIZE);
    ctx->ListState.CurrentBlock = ctx->ListState.CurrentList->Head;
    ctx->ListState.CurrentPos = 0;
+   ctx->ListState.Current.UseLoopback = false;
 
    vbo_save_NewList(ctx, name, mode);
 
@@ -13594,6 +13559,111 @@ _mesa_NewList(GLuint name, GLenum mode)
    _glapi_set_dispatch(ctx->CurrentServerDispatch);
    if (ctx->MarshalExec == NULL) {
       ctx->CurrentClientDispatch = ctx->CurrentServerDispatch;
+   }
+}
+
+
+/**
+ * Walk all the opcode from a given list, recursively if OPCODE_CALL_LIST(S) is used,
+ * and replace OPCODE_VERTEX_LIST[_COPY_CURRENT] occurences by OPCODE_VERTEX_LIST_LOOPBACK.
+ */
+static void
+replace_op_vertex_list_recursively(struct gl_context *ctx, struct gl_display_list *dlist)
+{
+   Node *n = get_list_head(ctx, dlist);
+   while (true) {
+      const OpCode opcode = n[0].opcode;
+      switch (opcode) {
+         case OPCODE_VERTEX_LIST:
+         case OPCODE_VERTEX_LIST_COPY_CURRENT:
+            n[0].opcode = OPCODE_VERTEX_LIST_LOOPBACK;
+            break;
+         case OPCODE_CONTINUE:
+            n = (Node *)get_pointer(&n[1]);
+            continue;
+         case OPCODE_CALL_LIST:
+            replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)n[1].ui, true));
+            break;
+         case OPCODE_CALL_LISTS: {
+            GLbyte *bptr;
+            GLubyte *ubptr;
+            GLshort *sptr;
+            GLushort *usptr;
+            GLint *iptr;
+            GLuint *uiptr;
+            GLfloat *fptr;
+            switch(n[2].e) {
+               case GL_BYTE:
+                  bptr = (GLbyte *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)bptr[i], true));
+                  break;
+               case GL_UNSIGNED_BYTE:
+                  ubptr = (GLubyte *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)ubptr[i], true));
+                  break;
+               case GL_SHORT:
+                  sptr = (GLshort *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)sptr[i], true));
+                  break;
+               case GL_UNSIGNED_SHORT:
+                  usptr = (GLushort *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)usptr[i], true));
+                  break;
+               case GL_INT:
+                  iptr = (GLint *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)iptr[i], true));
+                  break;
+               case GL_UNSIGNED_INT:
+                  uiptr = (GLuint *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)uiptr[i], true));
+                  break;
+               case GL_FLOAT:
+                  fptr = (GLfloat *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++)
+                     replace_op_vertex_list_recursively(ctx, _mesa_lookup_list(ctx, (int)fptr[i], true));
+                  break;
+               case GL_2_BYTES:
+                  ubptr = (GLubyte *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++) {
+                     replace_op_vertex_list_recursively(ctx,
+                                                _mesa_lookup_list(ctx, (int)ubptr[2 * i] * 256 +
+                                                                       (int)ubptr[2 * i + 1], true));
+                  }
+                  break;
+               case GL_3_BYTES:
+                  ubptr = (GLubyte *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++) {
+                     replace_op_vertex_list_recursively(ctx,
+                                                _mesa_lookup_list(ctx, (int)ubptr[3 * i] * 65536 +
+                                                                  (int)ubptr[3 * i + 1] * 256 +
+                                                                  (int)ubptr[3 * i + 2], true));
+                  }
+                  break;
+               case GL_4_BYTES:
+                  ubptr = (GLubyte *) get_pointer(&n[3]);
+                  for (unsigned i = 0; i < n[1].i; i++) {
+                     replace_op_vertex_list_recursively(ctx,
+                                                _mesa_lookup_list(ctx, (int)ubptr[4 * i] * 16777216 +
+                                                                  (int)ubptr[4 * i + 1] * 65536 +
+                                                                  (int)ubptr[4 * i + 2] * 256 +
+                                                                  (int)ubptr[4 * i + 3], true));
+                  }
+                  break;
+               }
+            break;
+         }
+         case OPCODE_END_OF_LIST:
+            return;
+         default:
+            break;
+      }
+      n += n[0].InstSize;
    }
 }
 
@@ -13629,15 +13699,69 @@ _mesa_EndList(void)
 
    (void) alloc_instruction(ctx, OPCODE_END_OF_LIST, 0);
 
-   trim_list(ctx);
+   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+
+   if (ctx->ListState.Current.UseLoopback)
+      replace_op_vertex_list_recursively(ctx, ctx->ListState.CurrentList);
+
+   struct gl_dlist_state *list = &ctx->ListState;
+
+   if ((list->CurrentList->Head == list->CurrentBlock) &&
+       (list->CurrentPos < BLOCK_SIZE)) {
+      /* This list has a low number of commands. Instead of storing them in a malloc-ed block
+       * of memory (list->CurrentBlock), we store them in ctx->Shared->small_dlist_store.ptr.
+       * This reduces cache misses in execute_list on successive lists since their commands
+       * are now stored in the same array instead of being scattered in memory.
+       */
+      list->CurrentList->small_list = true;
+      unsigned start;
+
+      if (ctx->Shared->small_dlist_store.size == 0) {
+         util_idalloc_init(&ctx->Shared->small_dlist_store.free_idx, MAX2(1, list->CurrentPos));
+      }
+
+      start = util_idalloc_alloc_range(&ctx->Shared->small_dlist_store.free_idx, list->CurrentPos);
+
+      if ((start + list->CurrentPos) > ctx->Shared->small_dlist_store.size) {
+         ctx->Shared->small_dlist_store.size =
+            ctx->Shared->small_dlist_store.free_idx.num_elements * 32;
+         ctx->Shared->small_dlist_store.ptr = realloc(
+            ctx->Shared->small_dlist_store.ptr,
+            ctx->Shared->small_dlist_store.size * sizeof(Node));
+      }
+      list->CurrentList->start = start;
+      list->CurrentList->count = list->CurrentPos;
+
+      memcpy(&ctx->Shared->small_dlist_store.ptr[start],
+             list->CurrentBlock,
+             list->CurrentList->count * sizeof(Node));
+
+      assert (ctx->Shared->small_dlist_store.ptr[start + list->CurrentList->count - 1].opcode == OPCODE_END_OF_LIST);
+
+      /* If the first opcode is a NOP, adjust start */
+      if (ctx->Shared->small_dlist_store.ptr[start].opcode == OPCODE_NOP) {
+         list->CurrentList->start++;
+         list->CurrentList->begins_with_a_nop = true;
+      } else {
+         list->CurrentList->begins_with_a_nop = false;
+      }
+
+      free(list->CurrentBlock);
+   } else {
+      /* Keep the mallocated storage */
+      list->CurrentList->small_list = false;
+      list->CurrentList->begins_with_a_nop = false;
+   }
+
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 
    /* Destroy old list, if any */
    destroy_list(ctx, ctx->ListState.CurrentList->Name);
 
    /* Install the new list */
-   _mesa_HashInsert(ctx->Shared->DisplayList,
-                    ctx->ListState.CurrentList->Name,
-                    ctx->ListState.CurrentList, true);
+   _mesa_HashInsertLocked(ctx->Shared->DisplayList,
+                          ctx->ListState.CurrentList->Name,
+                          ctx->ListState.CurrentList, true);
 
 
    if (MESA_VERBOSE & VERBOSE_DISPLAY_LIST)
@@ -13684,7 +13808,9 @@ _mesa_CallList(GLuint list)
       ctx->CompileFlag = GL_FALSE;
    }
 
+   _mesa_HashLockMutex(ctx->Shared->DisplayList);
    execute_list(ctx, list);
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
    ctx->CompileFlag = save_compile_flag;
 
    /* also restore API function pointers to point to "save" versions */
@@ -13803,6 +13929,8 @@ _mesa_CallLists(GLsizei n, GLenum type, const GLvoid * lists)
 
    GLuint base = ctx->List.ListBase;
 
+   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+
    /* A loop inside a switch is faster than a switch inside a loop. */
    switch (type) {
    case GL_BYTE:
@@ -13869,6 +13997,7 @@ _mesa_CallLists(GLsizei n, GLenum type, const GLvoid * lists)
       break;
    }
 
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
    ctx->CompileFlag = save_compile_flag;
 
    /* also restore API function pointers to point to "save" versions */
@@ -14570,7 +14699,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
          return;
    }
 
-   if (!_mesa_get_list(ctx, list, &dlist)) {
+   if (!_mesa_get_list(ctx, list, &dlist, true)) {
       fprintf(f, "%u is not a display list ID\n", list);
       fflush(f);
       if (fname)
@@ -14578,7 +14707,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
       return;
    }
 
-   n = dlist->Head;
+   n = get_list_head(ctx, dlist);
 
    fprintf(f, "START-LIST %u, address %p\n", list, (void *) n);
 
@@ -14830,7 +14959,9 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
             fprintf(f, "NOP\n");
             break;
          case OPCODE_VERTEX_LIST:
-            vbo_print_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1], f);
+         case OPCODE_VERTEX_LIST_LOOPBACK:
+         case OPCODE_VERTEX_LIST_COPY_CURRENT:
+            vbo_print_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1], opcode, f);
             break;
          default:
             if (opcode < 0 || opcode > OPCODE_END_OF_LIST) {
@@ -14839,7 +14970,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
                    opcode, (void *) n);
             } else {
                fprintf(f, "command %d, %u operands\n", opcode,
-                            InstSize[opcode]);
+                            n[0].InstSize);
                break;
             }
             FALLTHROUGH;
@@ -14852,8 +14983,8 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
       }
 
       /* increment n to point to next compiled command */
-      assert(InstSize[opcode] > 0);
-      n += InstSize[opcode];
+      assert(n[0].InstSize > 0);
+      n += n[0].InstSize;
    }
 }
 
@@ -14864,13 +14995,10 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
    struct gl_display_list *dlist;
 
    if (list == 0 ||
-       ctx->GLThread.ListCallDepth == MAX_LIST_NESTING ||
-       !_mesa_get_list(ctx, list, &dlist))
+       !_mesa_get_list(ctx, list, &dlist, true))
       return;
 
-   ctx->GLThread.ListCallDepth++;
-
-   Node *n = dlist->Head;
+   Node *n = get_list_head(ctx, dlist);
 
    while (1) {
       const OpCode opcode = n[0].opcode;
@@ -14878,12 +15006,18 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
       switch (opcode) {
          case OPCODE_CALL_LIST:
             /* Generated by glCallList(), don't add ListBase */
-            if (ctx->GLThread.ListCallDepth < MAX_LIST_NESTING)
+            if (ctx->GLThread.ListCallDepth < MAX_LIST_NESTING) {
+               ctx->GLThread.ListCallDepth++;
                _mesa_glthread_execute_list(ctx, n[1].ui);
+               ctx->GLThread.ListCallDepth--;
+            }
             break;
          case OPCODE_CALL_LISTS:
-            if (ctx->GLThread.ListCallDepth < MAX_LIST_NESTING)
+            if (ctx->GLThread.ListCallDepth < MAX_LIST_NESTING) {
+               ctx->GLThread.ListCallDepth++;
                _mesa_glthread_CallLists(ctx, n[1].i, n[2].e, get_pointer(&n[3]));
+               ctx->GLThread.ListCallDepth--;
+            }
             break;
          case OPCODE_DISABLE:
             _mesa_glthread_Disable(ctx, n[1].e);
@@ -14930,8 +15064,8 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
       }
 
       /* increment n to point to next compiled command */
-      assert(InstSize[opcode] > 0);
-      n += InstSize[opcode];
+      assert(n[0].InstSize > 0);
+      n += n[0].InstSize;
    }
 }
 
@@ -14968,17 +15102,10 @@ _mesa_install_dlist_vtxfmt(struct _glapi_table *disp,
 void
 _mesa_init_display_list(struct gl_context *ctx)
 {
-   static GLboolean tableInitialized = GL_FALSE;
    GLvertexformat *vfmt = &ctx->ListState.ListVtxfmt;
 
-   /* zero-out the instruction size table, just once */
-   if (!tableInitialized) {
-      memset(InstSize, 0, sizeof(InstSize));
-      tableInitialized = GL_TRUE;
-   }
-
    /* Display list */
-   ctx->ListState.CallDepth = 0;
+   ctx->ListState.CallDepth = 1;
    ctx->ExecuteFlag = GL_TRUE;
    ctx->CompileFlag = GL_FALSE;
    ctx->ListState.CurrentBlock = NULL;
@@ -14986,9 +15113,6 @@ _mesa_init_display_list(struct gl_context *ctx)
 
    /* Display List group */
    ctx->List.ListBase = 0;
-
-   InstSize[OPCODE_NOP] = 1;
-   InstSize[OPCODE_VERTEX_LIST] = 1 + align(sizeof(struct vbo_save_vertex_list), sizeof(Node)) / sizeof(Node);
 
 #define NAME_AE(x) _ae_##x
 #define NAME_CALLLIST(x) save_##x

@@ -1,5 +1,0 @@
-C_SOURCES := \
-	virgl_vtest_public.h \
-	virgl_vtest_socket.c \
-	virgl_vtest_winsys.c \
-	virgl_vtest_winsys.h

@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_PIPELINE_CACHE_H
 #define VN_PROTOCOL_DRIVER_PIPELINE_CACHE_H
 
-#include "vn_device.h"
+#include "vn_instance.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkPipelineCacheCreateInfo chain */
@@ -229,7 +229,7 @@ static inline void vn_encode_vkGetPipelineCacheData(struct vn_cs_encoder *enc, V
     vn_encode_VkPipelineCache(enc, &pipelineCache);
     if (vn_encode_simple_pointer(enc, pDataSize))
         vn_encode_size_t(enc, pDataSize);
-    vn_encode_array_size(enc, pData ? *pDataSize : 0); /* out */
+    vn_encode_array_size(enc, pData ? (pDataSize ? *pDataSize : 0) : 0); /* out */
 }
 
 static inline size_t vn_sizeof_vkGetPipelineCacheData_reply(VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData)
@@ -245,8 +245,8 @@ static inline size_t vn_sizeof_vkGetPipelineCacheData_reply(VkDevice device, VkP
     if (pDataSize)
         cmd_size += vn_sizeof_size_t(pDataSize);
     if (pData) {
-        cmd_size += vn_sizeof_array_size(*pDataSize);
-        cmd_size += vn_sizeof_blob_array(pData, *pDataSize);
+        cmd_size += vn_sizeof_array_size((pDataSize ? *pDataSize : 0));
+        cmd_size += vn_sizeof_blob_array(pData, (pDataSize ? *pDataSize : 0));
     } else {
         cmd_size += vn_sizeof_array_size(0);
     }
@@ -270,10 +270,10 @@ static inline VkResult vn_decode_vkGetPipelineCacheData_reply(struct vn_cs_decod
         pDataSize = NULL;
     }
     if (vn_peek_array_size(dec)) {
-        const size_t array_size = vn_decode_array_size(dec, *pDataSize);
+        const size_t array_size = vn_decode_array_size(dec, (pDataSize ? *pDataSize : 0));
         vn_decode_blob_array(dec, pData, array_size);
     } else {
-        vn_decode_array_size(dec, 0);
+        vn_decode_array_size_unchecked(dec);
         pData = NULL;
     }
 

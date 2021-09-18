@@ -35,6 +35,8 @@
 #include "util/u_memory.h"
 
 #include "pipe/p_shader_tokens.h"
+#include "pipe/p_context.h"
+#include "pipe/p_screen.h"
 
 #include "draw_private.h"
 #include "draw_context.h"
@@ -46,6 +48,8 @@
 #include "tgsi/tgsi_dump.h"
 #include "tgsi/tgsi_exec.h"
 
+#include "nir/nir_to_tgsi.h"
+
 DEBUG_GET_ONCE_BOOL_OPTION(gallium_dump_vs, "GALLIUM_DUMP_VS", FALSE)
 
 
@@ -54,6 +58,7 @@ draw_create_vertex_shader(struct draw_context *draw,
                           const struct pipe_shader_state *shader)
 {
    struct draw_vertex_shader *vs = NULL;
+   struct pipe_shader_state state = *shader;
 
    if (draw->dump_vs) {
       tgsi_dump(shader->tokens, 0);
@@ -61,12 +66,22 @@ draw_create_vertex_shader(struct draw_context *draw,
 
 #ifdef DRAW_LLVM_AVAILABLE
    if (draw->pt.middle.llvm) {
-      vs = draw_create_vs_llvm(draw, shader);
+      struct pipe_screen *screen = draw->pipe->screen;
+      if (shader->type == PIPE_SHADER_IR_NIR &&
+          ((!screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                                     PIPE_SHADER_CAP_INTEGERS)) ||
+           (screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                                     PIPE_SHADER_CAP_PREFERRED_IR) ==
+            PIPE_SHADER_IR_TGSI))) {
+        state.type = PIPE_SHADER_IR_TGSI;
+        state.tokens = nir_to_tgsi(shader->ir.nir, screen);
+      }
+      vs = draw_create_vs_llvm(draw, &state);
    }
 #endif
 
    if (!vs) {
-      vs = draw_create_vs_exec( draw, shader );
+      vs = draw_create_vs_exec( draw, &state );
    }
 
    if (vs)

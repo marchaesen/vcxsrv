@@ -112,4 +112,8 @@ st_update_renderbuffer_surface(struct st_context *st,
 extern void
 st_init_fbo_functions(struct dd_function_table *functions);
 
+extern void
+st_regen_renderbuffer_surface(struct st_context *st,
+                              struct st_renderbuffer *strb);
+
 #endif /* ST_CB_FBO_H */

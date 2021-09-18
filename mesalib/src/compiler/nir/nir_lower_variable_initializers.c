@@ -154,10 +154,10 @@ nir_zero_initialize_shared_memory(nir_shader *shader,
    nir_builder_init(&b, nir_shader_get_entrypoint(shader));
    b.cursor = nir_before_cf_list(&b.impl->body);
 
-   assert(!shader->info.cs.local_size_variable);
-   const unsigned local_count = shader->info.cs.local_size[0] *
-                                shader->info.cs.local_size[1] *
-                                shader->info.cs.local_size[2];
+   assert(!shader->info.workgroup_size_variable);
+   const unsigned local_count = shader->info.workgroup_size[0] *
+                                shader->info.workgroup_size[1] *
+                                shader->info.workgroup_size[2];
 
    /* The initialization logic is simplified if we can always split the memory
     * in full chunk_size units.

@@ -14,37 +14,30 @@
  * limitations under the License.
  */
 
-/*************************************************************************************************
- *
- * IMPORTANT:
- *
- * There is an old copy of this file in system/core/include/system/window.h, which exists only
- * for backward source compatibility.
- * But there are binaries out there as well, so this version of window.h must stay binary
- * backward compatible with the one found in system/core.
- *
- *
- * Source compatibility is also required for now, because this is how we're handling the
- * transition from system/core/include (global include path) to nativewindow/include.
- *
- *************************************************************************************************/
+/*****************************************************************************
+ *****************************************************************************
+ ****                                                                     ****
+ ****  FOR BUILDING WITH ANDROID NOUGAT (7.0, 7.1) AND BELOW.             ****
+ ****                                                                     ****
+ ****  THIS FILE EXISTS ONLY FOR BACKWARD SOURCE COMPATIBILITY.           ****
+ ****                                                                     ****
+ ****  DO NOT ADD TO THIS FILE.                                           ****
+ ****                                                                     ****
+ *****************************************************************************
+ *****************************************************************************/
 
-#pragma once
+#ifndef SYSTEM_CORE_INCLUDE_ANDROID_WINDOW_H
+#define SYSTEM_CORE_INCLUDE_ANDROID_WINDOW_H
 
 #include <cutils/native_handle.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/cdefs.h>
 #include <system/graphics.h>
 #include <unistd.h>
-
-// system/window.h is a superset of the vndk and apex apis
-#include <apex/window.h>
-#include <vndk/window.h>
-
+#include <stdbool.h>
 
 #ifndef __UNUSED
 #define __UNUSED __attribute__((__unused__))
@@ -57,18 +50,118 @@ __BEGIN_DECLS
 
 /*****************************************************************************/
 
-#define ANDROID_NATIVE_WINDOW_MAGIC     ANDROID_NATIVE_MAKE_CONSTANT('_','w','n','d')
+#define ANDROID_NATIVE_MAKE_CONSTANT(a,b,c,d) \
+    (((unsigned)(a)<<24)|((unsigned)(b)<<16)|((unsigned)(c)<<8)|(unsigned)(d))
+
+#define ANDROID_NATIVE_WINDOW_MAGIC \
+    ANDROID_NATIVE_MAKE_CONSTANT('_','w','n','d')
+
+#define ANDROID_NATIVE_BUFFER_MAGIC \
+    ANDROID_NATIVE_MAKE_CONSTANT('_','b','f','r')
+
+// ---------------------------------------------------------------------------
+
+// This #define may be used to conditionally compile device-specific code to
+// support either the prior ANativeWindow interface, which did not pass libsync
+// fences around, or the new interface that does.  This #define is only present
+// when the ANativeWindow interface does include libsync support.
+#define ANDROID_NATIVE_WINDOW_HAS_SYNC 1
+
+// ---------------------------------------------------------------------------
+
+typedef const native_handle_t* buffer_handle_t;
+
+// ---------------------------------------------------------------------------
+
+typedef struct android_native_rect_t
+{
+    int32_t left;
+    int32_t top;
+    int32_t right;
+    int32_t bottom;
+} android_native_rect_t;
+
+// ---------------------------------------------------------------------------
+
+typedef struct android_native_base_t
+{
+    /* a magic value defined by the actual EGL native type */
+    int magic;
+
+    /* the sizeof() of the actual EGL native type */
+    int version;
+
+    void* reserved[4];
+
+    /* reference-counting interface */
+    void (*incRef)(struct android_native_base_t* base);
+    void (*decRef)(struct android_native_base_t* base);
+} android_native_base_t;
+
+typedef struct ANativeWindowBuffer
+{
+#ifdef __cplusplus
+    ANativeWindowBuffer() {
+        common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
+        common.version = sizeof(ANativeWindowBuffer);
+        memset(common.reserved, 0, sizeof(common.reserved));
+    }
+
+    // Implement the methods that sp<ANativeWindowBuffer> expects so that it
+    // can be used to automatically refcount ANativeWindowBuffer's.
+    void incStrong(const void* /*id*/) const {
+        common.incRef(const_cast<android_native_base_t*>(&common));
+    }
+    void decStrong(const void* /*id*/) const {
+        common.decRef(const_cast<android_native_base_t*>(&common));
+    }
+#endif
+
+    struct android_native_base_t common;
+
+    int width;
+    int height;
+    int stride;
+    int format;
+    int usage;
+
+    void* reserved[2];
+
+    buffer_handle_t handle;
+
+    void* reserved_proc[8];
+} ANativeWindowBuffer_t;
+
+// Old typedef for backwards compatibility.
+typedef ANativeWindowBuffer_t android_native_buffer_t;
 
 // ---------------------------------------------------------------------------
 
 /* attributes queriable with query() */
 enum {
-    NATIVE_WINDOW_WIDTH = 0,
-    NATIVE_WINDOW_HEIGHT = 1,
-    NATIVE_WINDOW_FORMAT = 2,
+    NATIVE_WINDOW_WIDTH     = 0,
+    NATIVE_WINDOW_HEIGHT    = 1,
+    NATIVE_WINDOW_FORMAT    = 2,
 
-    /* see ANativeWindowQuery in vndk/window.h */
-    NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS = ANATIVEWINDOW_QUERY_MIN_UNDEQUEUED_BUFFERS,
+    /* The minimum number of buffers that must remain un-dequeued after a buffer
+     * has been queued.  This value applies only if set_buffer_count was used to
+     * override the number of buffers and if a buffer has since been queued.
+     * Users of the set_buffer_count ANativeWindow method should query this
+     * value before calling set_buffer_count.  If it is necessary to have N
+     * buffers simultaneously dequeued as part of the steady-state operation,
+     * and this query returns M then N+M buffers should be requested via
+     * native_window_set_buffer_count.
+     *
+     * Note that this value does NOT apply until a single buffer has been
+     * queued.  In particular this means that it is possible to:
+     *
+     * 1. Query M = min undequeued buffers
+     * 2. Set the buffer count to N + M
+     * 3. Dequeue all N + M buffers
+     * 4. Cancel M buffers
+     * 5. Queue, dequeue, queue, dequeue, ad infinitum
+     */
+    NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS = 3,
 
     /* Check whether queueBuffer operations on the ANativeWindow send the buffer
      * to the window compositor.  The query sets the returned 'value' argument
@@ -93,17 +186,64 @@ enum {
      */
     NATIVE_WINDOW_CONCRETE_TYPE = 5,
 
+
     /*
      * Default width and height of ANativeWindow buffers, these are the
      * dimensions of the window buffers irrespective of the
      * NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS call and match the native window
      * size unless overridden by NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS.
      */
-    NATIVE_WINDOW_DEFAULT_WIDTH = ANATIVEWINDOW_QUERY_DEFAULT_WIDTH,
-    NATIVE_WINDOW_DEFAULT_HEIGHT = ANATIVEWINDOW_QUERY_DEFAULT_HEIGHT,
+    NATIVE_WINDOW_DEFAULT_WIDTH = 6,
+    NATIVE_WINDOW_DEFAULT_HEIGHT = 7,
 
-    /* see ANativeWindowQuery in vndk/window.h */
-    NATIVE_WINDOW_TRANSFORM_HINT = ANATIVEWINDOW_QUERY_TRANSFORM_HINT,
+    /*
+     * transformation that will most-likely be applied to buffers. This is only
+     * a hint, the actual transformation applied might be different.
+     *
+     * INTENDED USE:
+     *
+     * The transform hint can be used by a producer, for instance the GLES
+     * driver, to pre-rotate the rendering such that the final transformation
+     * in the composer is identity. This can be very useful when used in
+     * conjunction with the h/w composer HAL, in situations where it
+     * cannot handle arbitrary rotations.
+     *
+     * 1. Before dequeuing a buffer, the GL driver (or any other ANW client)
+     *    queries the ANW for NATIVE_WINDOW_TRANSFORM_HINT.
+     *
+     * 2. The GL driver overrides the width and height of the ANW to
+     *    account for NATIVE_WINDOW_TRANSFORM_HINT. This is done by querying
+     *    NATIVE_WINDOW_DEFAULT_{WIDTH | HEIGHT}, swapping the dimensions
+     *    according to NATIVE_WINDOW_TRANSFORM_HINT and calling
+     *    native_window_set_buffers_dimensions().
+     *
+     * 3. The GL driver dequeues a buffer of the new pre-rotated size.
+     *
+     * 4. The GL driver renders to the buffer such that the image is
+     *    already transformed, that is applying NATIVE_WINDOW_TRANSFORM_HINT
+     *    to the rendering.
+     *
+     * 5. The GL driver calls native_window_set_transform to apply
+     *    inverse transformation to the buffer it just rendered.
+     *    In order to do this, the GL driver needs
+     *    to calculate the inverse of NATIVE_WINDOW_TRANSFORM_HINT, this is
+     *    done easily:
+     *
+     *        int hintTransform, inverseTransform;
+     *        query(..., NATIVE_WINDOW_TRANSFORM_HINT, &hintTransform);
+     *        inverseTransform = hintTransform;
+     *        if (hintTransform & HAL_TRANSFORM_ROT_90)
+     *            inverseTransform ^= HAL_TRANSFORM_ROT_180;
+     *
+     *
+     * 6. The GL driver queues the pre-transformed buffer.
+     *
+     * 7. The composer combines the buffer transform with the display
+     *    transform.  If the buffer transform happens to cancel out the
+     *    display transform then no rotation is needed.
+     *
+     */
+    NATIVE_WINDOW_TRANSFORM_HINT = 8,
 
     /*
      * Boolean that indicates whether the consumer is running more than
@@ -115,7 +255,7 @@ enum {
      * The consumer gralloc usage bits currently set by the consumer.
      * The values are defined in hardware/libhardware/include/gralloc.h.
      */
-    NATIVE_WINDOW_CONSUMER_USAGE_BITS = 10, /* deprecated */
+    NATIVE_WINDOW_CONSUMER_USAGE_BITS = 10,
 
     /**
      * Transformation that will by applied to buffers by the hwcomposer.
@@ -142,57 +282,14 @@ enum {
      */
     NATIVE_WINDOW_DEFAULT_DATASPACE = 12,
 
-    /* see ANativeWindowQuery in vndk/window.h */
-    NATIVE_WINDOW_BUFFER_AGE = ANATIVEWINDOW_QUERY_BUFFER_AGE,
-
     /*
-     * Returns the duration of the last dequeueBuffer call in microseconds
-     * Deprecated: please use NATIVE_WINDOW_GET_LAST_DEQUEUE_DURATION in
-     * perform() instead, which supports nanosecond precision.
+     * Returns the age of the contents of the most recently dequeued buffer as
+     * the number of frames that have elapsed since it was last queued. For
+     * example, if the window is double-buffered, the age of any given buffer in
+     * steady state will be 2. If the dequeued buffer has never been queued, its
+     * age will be 0.
      */
-    NATIVE_WINDOW_LAST_DEQUEUE_DURATION = 14,
-
-    /*
-     * Returns the duration of the last queueBuffer call in microseconds
-     * Deprecated: please use NATIVE_WINDOW_GET_LAST_QUEUE_DURATION in
-     * perform() instead, which supports nanosecond precision.
-     */
-    NATIVE_WINDOW_LAST_QUEUE_DURATION = 15,
-
-    /*
-     * Returns the number of image layers that the ANativeWindow buffer
-     * contains. By default this is 1, unless a buffer is explicitly allocated
-     * to contain multiple layers.
-     */
-    NATIVE_WINDOW_LAYER_COUNT = 16,
-
-    /*
-     * Returns 1 if the native window is valid, 0 otherwise. native window is valid
-     * if it is safe (i.e. no crash will occur) to call any method on it.
-     */
-    NATIVE_WINDOW_IS_VALID = 17,
-
-    /*
-     * Returns 1 if NATIVE_WINDOW_GET_FRAME_TIMESTAMPS will return display
-     * present info, 0 if it won't.
-     */
-    NATIVE_WINDOW_FRAME_TIMESTAMPS_SUPPORTS_PRESENT = 18,
-
-    /*
-     * The consumer end is capable of handling protected buffers, i.e. buffer
-     * with GRALLOC_USAGE_PROTECTED usage bits on.
-     */
-    NATIVE_WINDOW_CONSUMER_IS_PROTECTED = 19,
-
-    /*
-     * Returns data space for the buffers.
-     */
-    NATIVE_WINDOW_DATASPACE = 20,
-
-    /*
-     * Returns maxBufferCount set by BufferQueueConsumer
-     */
-    NATIVE_WINDOW_MAX_BUFFER_COUNT = 21,
+    NATIVE_WINDOW_BUFFER_AGE = 13,
 };
 
 /* Valid operations for the (*perform)() hook.
@@ -206,56 +303,29 @@ enum {
  * ANativeWindow.
  */
 enum {
-    // clang-format off
-    NATIVE_WINDOW_SET_USAGE                       =  ANATIVEWINDOW_PERFORM_SET_USAGE,   /* deprecated */
-    NATIVE_WINDOW_CONNECT                         =  1,   /* deprecated */
-    NATIVE_WINDOW_DISCONNECT                      =  2,   /* deprecated */
-    NATIVE_WINDOW_SET_CROP                        =  3,   /* private */
-    NATIVE_WINDOW_SET_BUFFER_COUNT                =  4,
-    NATIVE_WINDOW_SET_BUFFERS_GEOMETRY            =  ANATIVEWINDOW_PERFORM_SET_BUFFERS_GEOMETRY,   /* deprecated */
-    NATIVE_WINDOW_SET_BUFFERS_TRANSFORM           =  6,
-    NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP           =  7,
-    NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS          =  8,
-    NATIVE_WINDOW_SET_BUFFERS_FORMAT              =  ANATIVEWINDOW_PERFORM_SET_BUFFERS_FORMAT,
-    NATIVE_WINDOW_SET_SCALING_MODE                = 10,   /* private */
-    NATIVE_WINDOW_LOCK                            = 11,   /* private */
-    NATIVE_WINDOW_UNLOCK_AND_POST                 = 12,   /* private */
-    NATIVE_WINDOW_API_CONNECT                     = 13,   /* private */
-    NATIVE_WINDOW_API_DISCONNECT                  = 14,   /* private */
-    NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS     = 15,   /* private */
-    NATIVE_WINDOW_SET_POST_TRANSFORM_CROP         = 16,   /* deprecated, unimplemented */
-    NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM    = 17,   /* private */
-    NATIVE_WINDOW_SET_SIDEBAND_STREAM             = 18,
-    NATIVE_WINDOW_SET_BUFFERS_DATASPACE           = 19,
-    NATIVE_WINDOW_SET_SURFACE_DAMAGE              = 20,   /* private */
-    NATIVE_WINDOW_SET_SHARED_BUFFER_MODE          = 21,
-    NATIVE_WINDOW_SET_AUTO_REFRESH                = 22,
-    NATIVE_WINDOW_GET_REFRESH_CYCLE_DURATION      = 23,
-    NATIVE_WINDOW_GET_NEXT_FRAME_ID               = 24,
-    NATIVE_WINDOW_ENABLE_FRAME_TIMESTAMPS         = 25,
-    NATIVE_WINDOW_GET_COMPOSITOR_TIMING           = 26,
-    NATIVE_WINDOW_GET_FRAME_TIMESTAMPS            = 27,
-    NATIVE_WINDOW_GET_WIDE_COLOR_SUPPORT          = 28,
-    NATIVE_WINDOW_GET_HDR_SUPPORT                 = 29,
-    NATIVE_WINDOW_SET_USAGE64                     = ANATIVEWINDOW_PERFORM_SET_USAGE64,
-    NATIVE_WINDOW_GET_CONSUMER_USAGE64            = 31,
-    NATIVE_WINDOW_SET_BUFFERS_SMPTE2086_METADATA  = 32,
-    NATIVE_WINDOW_SET_BUFFERS_CTA861_3_METADATA   = 33,
-    NATIVE_WINDOW_SET_BUFFERS_HDR10_PLUS_METADATA = 34,
-    NATIVE_WINDOW_SET_AUTO_PREROTATION            = 35,
-    NATIVE_WINDOW_GET_LAST_DEQUEUE_START          = 36,    /* private */
-    NATIVE_WINDOW_SET_DEQUEUE_TIMEOUT             = 37,    /* private */
-    NATIVE_WINDOW_GET_LAST_DEQUEUE_DURATION       = 38,    /* private */
-    NATIVE_WINDOW_GET_LAST_QUEUE_DURATION         = 39,    /* private */
-    NATIVE_WINDOW_SET_FRAME_RATE                  = 40,
-    NATIVE_WINDOW_SET_CANCEL_INTERCEPTOR          = 41,    /* private */
-    NATIVE_WINDOW_SET_DEQUEUE_INTERCEPTOR         = 42,    /* private */
-    NATIVE_WINDOW_SET_PERFORM_INTERCEPTOR         = 43,    /* private */
-    NATIVE_WINDOW_SET_QUEUE_INTERCEPTOR           = 44,    /* private */
-    NATIVE_WINDOW_ALLOCATE_BUFFERS                = 45,    /* private */
-    NATIVE_WINDOW_GET_LAST_QUEUED_BUFFER          = 46,    /* private */
-    NATIVE_WINDOW_SET_QUERY_INTERCEPTOR           = 47,    /* private */
-    // clang-format on
+    NATIVE_WINDOW_SET_USAGE                 =  0,
+    NATIVE_WINDOW_CONNECT                   =  1,   /* deprecated */
+    NATIVE_WINDOW_DISCONNECT                =  2,   /* deprecated */
+    NATIVE_WINDOW_SET_CROP                  =  3,   /* private */
+    NATIVE_WINDOW_SET_BUFFER_COUNT          =  4,
+    NATIVE_WINDOW_SET_BUFFERS_GEOMETRY      =  5,   /* deprecated */
+    NATIVE_WINDOW_SET_BUFFERS_TRANSFORM     =  6,
+    NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP     =  7,
+    NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS    =  8,
+    NATIVE_WINDOW_SET_BUFFERS_FORMAT        =  9,
+    NATIVE_WINDOW_SET_SCALING_MODE          = 10,   /* private */
+    NATIVE_WINDOW_LOCK                      = 11,   /* private */
+    NATIVE_WINDOW_UNLOCK_AND_POST           = 12,   /* private */
+    NATIVE_WINDOW_API_CONNECT               = 13,   /* private */
+    NATIVE_WINDOW_API_DISCONNECT            = 14,   /* private */
+    NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS = 15, /* private */
+    NATIVE_WINDOW_SET_POST_TRANSFORM_CROP   = 16,   /* private */
+    NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM = 17,/* private */
+    NATIVE_WINDOW_SET_SIDEBAND_STREAM       = 18,
+    NATIVE_WINDOW_SET_BUFFERS_DATASPACE     = 19,
+    NATIVE_WINDOW_SET_SURFACE_DAMAGE        = 20,   /* private */
+    NATIVE_WINDOW_SET_SHARED_BUFFER_MODE    = 21,
+    NATIVE_WINDOW_SET_AUTO_REFRESH          = 22,
 };
 
 /* parameter for NATIVE_WINDOW_[API_][DIS]CONNECT */
@@ -329,14 +399,6 @@ enum {
  * defined directly to avoid problems with C99/C++ inclusion of stdint.h.
  */
 static const int64_t NATIVE_WINDOW_TIMESTAMP_AUTO = (-9223372036854775807LL-1);
-
-/* parameter for NATIVE_WINDOW_GET_FRAME_TIMESTAMPS
- *
- * Special timestamp value to indicate the timestamps aren't yet known or
- * that they are invalid.
- */
-static const int64_t NATIVE_WINDOW_TIMESTAMP_PENDING = -2;
-static const int64_t NATIVE_WINDOW_TIMESTAMP_INVALID = -1;
 
 struct ANativeWindow
 {
@@ -562,21 +624,24 @@ struct ANativeWindow
  /* Backwards compatibility: use ANativeWindow (struct ANativeWindow in C).
   * android_native_window_t is deprecated.
   */
+typedef struct ANativeWindow ANativeWindow;
 typedef struct ANativeWindow android_native_window_t __deprecated;
 
 /*
- *  native_window_set_usage64(..., usage)
+ *  native_window_set_usage(..., usage)
  *  Sets the intended usage flags for the next buffers
  *  acquired with (*lockBuffer)() and on.
- *
- *  Valid usage flags are defined in android/hardware_buffer.h
- *  All AHARDWAREBUFFER_USAGE_* flags can be specified as needed.
- *
+ *  By default (if this function is never called), a usage of
+ *      GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE
+ *  is assumed.
  *  Calling this function will usually cause following buffers to be
  *  reallocated.
  */
-static inline int native_window_set_usage(struct ANativeWindow* window, uint64_t usage) {
-    return window->perform(window, NATIVE_WINDOW_SET_USAGE64, usage);
+
+static inline int native_window_set_usage(
+        struct ANativeWindow* window, int usage)
+{
+    return window->perform(window, NATIVE_WINDOW_SET_USAGE, usage);
 }
 
 /* deprecated. Always returns 0. Don't call. */
@@ -616,6 +681,45 @@ static inline int native_window_set_crop(
         android_native_rect_t const * crop)
 {
     return window->perform(window, NATIVE_WINDOW_SET_CROP, crop);
+}
+
+/*
+ * native_window_set_post_transform_crop(..., crop)
+ * Sets which region of the next queued buffers needs to be considered.
+ * Depending on the scaling mode, a buffer's crop region is scaled and/or
+ * cropped to match the surface's size.  This function sets the crop in
+ * post-transformed pixel coordinates.
+ *
+ * The specified crop region applies to all buffers queued after it is called.
+ *
+ * If 'crop' is NULL, subsequently queued buffers won't be cropped.
+ *
+ * An error is returned if for instance the crop region is invalid, out of the
+ * buffer's bound or if the window is invalid.
+ */
+static inline int native_window_set_post_transform_crop(
+        struct ANativeWindow* window,
+        android_native_rect_t const * crop)
+{
+    return window->perform(window, NATIVE_WINDOW_SET_POST_TRANSFORM_CROP, crop);
+}
+
+/*
+ * native_window_set_active_rect(..., active_rect)
+ *
+ * This function is deprecated and will be removed soon.  For now it simply
+ * sets the post-transform crop for compatibility while multi-project commits
+ * get checked.
+ */
+static inline int native_window_set_active_rect(
+        struct ANativeWindow* window,
+        android_native_rect_t const * active_rect) __deprecated;
+
+static inline int native_window_set_active_rect(
+        struct ANativeWindow* window,
+        android_native_rect_t const * active_rect)
+{
+    return native_window_set_post_transform_crop(window, active_rect);
 }
 
 /*
@@ -727,63 +831,6 @@ static inline int native_window_set_buffers_data_space(
 {
     return window->perform(window, NATIVE_WINDOW_SET_BUFFERS_DATASPACE,
             dataSpace);
-}
-
-/*
- * native_window_set_buffers_smpte2086_metadata(..., metadata)
- * All buffers queued after this call will be associated with the SMPTE
- * ST.2086 metadata specified.
- *
- * metadata specifies additional information about the contents of the buffer
- * that may affect how it's displayed.  When it is nullptr, it means no such
- * information is available.  No SMPTE ST.2086 metadata is associated with the
- * buffers by default.
- */
-static inline int native_window_set_buffers_smpte2086_metadata(
-        struct ANativeWindow* window,
-        const struct android_smpte2086_metadata* metadata)
-{
-    return window->perform(window, NATIVE_WINDOW_SET_BUFFERS_SMPTE2086_METADATA,
-            metadata);
-}
-
-/*
- * native_window_set_buffers_cta861_3_metadata(..., metadata)
- * All buffers queued after this call will be associated with the CTA-861.3
- * metadata specified.
- *
- * metadata specifies additional information about the contents of the buffer
- * that may affect how it's displayed.  When it is nullptr, it means no such
- * information is available.  No CTA-861.3 metadata is associated with the
- * buffers by default.
- */
-static inline int native_window_set_buffers_cta861_3_metadata(
-        struct ANativeWindow* window,
-        const struct android_cta861_3_metadata* metadata)
-{
-    return window->perform(window, NATIVE_WINDOW_SET_BUFFERS_CTA861_3_METADATA,
-            metadata);
-}
-
-/*
- * native_window_set_buffers_hdr10_plus_metadata(..., metadata)
- * All buffers queued after this call will be associated with the
- * HDR10+ dynamic metadata specified.
- *
- * metadata specifies additional dynamic information about the
- * contents of the buffer that may affect how it is displayed.  When
- * it is nullptr, it means no such information is available.  No
- * HDR10+ dynamic emtadata is associated with the buffers by default.
- *
- * Parameter "size" refers to the length of the metadata blob pointed to
- * by parameter "data".  The metadata blob will adhere to the HDR10+ SEI
- * message standard.
- */
-static inline int native_window_set_buffers_hdr10_plus_metadata(struct ANativeWindow* window,
-                                                           const size_t size,
-                                                           const uint8_t* metadata) {
-    return window->perform(window, NATIVE_WINDOW_SET_BUFFERS_HDR10_PLUS_METADATA, size,
-                           metadata);
 }
 
 /*
@@ -941,160 +988,6 @@ static inline int native_window_set_auto_refresh(
     return window->perform(window, NATIVE_WINDOW_SET_AUTO_REFRESH, autoRefresh);
 }
 
-static inline int native_window_get_refresh_cycle_duration(
-        struct ANativeWindow* window,
-        int64_t* outRefreshDuration)
-{
-    return window->perform(window, NATIVE_WINDOW_GET_REFRESH_CYCLE_DURATION,
-            outRefreshDuration);
-}
-
-static inline int native_window_get_next_frame_id(
-        struct ANativeWindow* window, uint64_t* frameId)
-{
-    return window->perform(window, NATIVE_WINDOW_GET_NEXT_FRAME_ID, frameId);
-}
-
-static inline int native_window_enable_frame_timestamps(
-        struct ANativeWindow* window, bool enable)
-{
-    return window->perform(window, NATIVE_WINDOW_ENABLE_FRAME_TIMESTAMPS,
-            enable);
-}
-
-static inline int native_window_get_compositor_timing(
-        struct ANativeWindow* window,
-        int64_t* compositeDeadline, int64_t* compositeInterval,
-        int64_t* compositeToPresentLatency)
-{
-    return window->perform(window, NATIVE_WINDOW_GET_COMPOSITOR_TIMING,
-            compositeDeadline, compositeInterval, compositeToPresentLatency);
-}
-
-static inline int native_window_get_frame_timestamps(
-        struct ANativeWindow* window, uint64_t frameId,
-        int64_t* outRequestedPresentTime, int64_t* outAcquireTime,
-        int64_t* outLatchTime, int64_t* outFirstRefreshStartTime,
-        int64_t* outLastRefreshStartTime, int64_t* outGpuCompositionDoneTime,
-        int64_t* outDisplayPresentTime, int64_t* outDequeueReadyTime,
-        int64_t* outReleaseTime)
-{
-    return window->perform(window, NATIVE_WINDOW_GET_FRAME_TIMESTAMPS,
-            frameId, outRequestedPresentTime, outAcquireTime, outLatchTime,
-            outFirstRefreshStartTime, outLastRefreshStartTime,
-            outGpuCompositionDoneTime, outDisplayPresentTime,
-            outDequeueReadyTime, outReleaseTime);
-}
-
-static inline int native_window_get_wide_color_support(
-    struct ANativeWindow* window, bool* outSupport) {
-    return window->perform(window, NATIVE_WINDOW_GET_WIDE_COLOR_SUPPORT,
-            outSupport);
-}
-
-static inline int native_window_get_hdr_support(struct ANativeWindow* window,
-                                                bool* outSupport) {
-    return window->perform(window, NATIVE_WINDOW_GET_HDR_SUPPORT, outSupport);
-}
-
-static inline int native_window_get_consumer_usage(struct ANativeWindow* window,
-                                                   uint64_t* outUsage) {
-    return window->perform(window, NATIVE_WINDOW_GET_CONSUMER_USAGE64, outUsage);
-}
-
-/*
- * native_window_set_auto_prerotation(..., autoPrerotation)
- * Enable/disable the auto prerotation at buffer allocation when the buffer size
- * is driven by the consumer.
- *
- * When buffer size is driven by the consumer and the transform hint specifies
- * a 90 or 270 degree rotation, if auto prerotation is enabled, the width and
- * height used for dequeueBuffer will be additionally swapped.
- */
-static inline int native_window_set_auto_prerotation(struct ANativeWindow* window,
-                                                     bool autoPrerotation) {
-    return window->perform(window, NATIVE_WINDOW_SET_AUTO_PREROTATION, autoPrerotation);
-}
-
-static inline int native_window_set_frame_rate(struct ANativeWindow* window, float frameRate,
-                                               int8_t compatibility) {
-    return window->perform(window, NATIVE_WINDOW_SET_FRAME_RATE, (double)frameRate,
-                           (int)compatibility);
-}
-
-// ------------------------------------------------------------------------------------------------
-// Candidates for APEX visibility
-// These functions are planned to be made stable for APEX modules, but have not
-// yet been stabilized to a specific api version.
-// ------------------------------------------------------------------------------------------------
-
-/**
- * Retrieves the last queued buffer for this window, along with the fence that
- * fires when the buffer is ready to be read, and the 4x4 coordinate
- * transform matrix that should be applied to the buffer's content. The
- * transform matrix is represented in column-major order.
- *
- * If there was no buffer previously queued, then outBuffer will be NULL and
- * the value of outFence will be -1.
- *
- * Note that if outBuffer is not NULL, then the caller will hold a reference
- * onto the buffer. Accordingly, the caller must call AHardwareBuffer_release
- * when the buffer is no longer needed so that the system may reclaim the
- * buffer.
- *
- * \return NO_ERROR on success.
- * \return NO_MEMORY if there was insufficient memory.
- */
-static inline int ANativeWindow_getLastQueuedBuffer(ANativeWindow* window,
-                                                    AHardwareBuffer** outBuffer, int* outFence,
-                                                    float outTransformMatrix[16]) {
-    return window->perform(window, NATIVE_WINDOW_GET_LAST_QUEUED_BUFFER, outBuffer, outFence,
-                           outTransformMatrix);
-}
-
-/**
- * Retrieves an identifier for the next frame to be queued by this window.
- *
- * \return the next frame id.
- */
-static inline int64_t ANativeWindow_getNextFrameId(ANativeWindow* window) {
-    int64_t value;
-    window->perform(window, NATIVE_WINDOW_GET_NEXT_FRAME_ID, &value);
-    return value;
-}
-
-/**
- * Prototype of the function that an ANativeWindow implementation would call
- * when ANativeWindow_query is called.
- */
-typedef int (*ANativeWindow_queryFn)(const ANativeWindow* window, int what, int* value);
-
-/**
- * Prototype of the function that intercepts an invocation of
- * ANativeWindow_queryFn, along with a data pointer that's passed by the
- * caller who set the interceptor, as well as arguments that would be
- * passed to ANativeWindow_queryFn if it were to be called.
- */
-typedef int (*ANativeWindow_queryInterceptor)(const ANativeWindow* window,
-                                                ANativeWindow_queryFn perform, void* data,
-                                                int what, int* value);
-
-/**
- * Registers an interceptor for ANativeWindow_query. Instead of calling
- * the underlying query function, instead the provided interceptor is
- * called, which may optionally call the underlying query function. An
- * optional data pointer is also provided to side-channel additional arguments.
- *
- * Note that usage of this should only be used for specialized use-cases by
- * either the system partition or to Mainline modules. This should never be
- * exposed to NDK or LL-NDK.
- *
- * Returns NO_ERROR on success, -errno if registration failed.
- */
-static inline int ANativeWindow_setQueryInterceptor(ANativeWindow* window,
-                                            ANativeWindow_queryInterceptor interceptor,
-                                            void* data) {
-    return window->perform(window, NATIVE_WINDOW_SET_QUERY_INTERCEPTOR, interceptor, data);
-}
-
 __END_DECLS
+
+#endif /* SYSTEM_CORE_INCLUDE_ANDROID_WINDOW_H */

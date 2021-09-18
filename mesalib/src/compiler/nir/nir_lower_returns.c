@@ -129,6 +129,16 @@ lower_returns_in_if(nir_if *if_stmt, struct lower_returns_state *state)
          /* If there are no nested returns we can just add the instructions to
           * the end of the branch that doesn't have the return.
           */
+
+         /* nir_cf_extract will not extract phis at the start of the block. In
+          * this case we know that any phis will have to have a single
+          * predecessor, so we can just replace the phi with its single source.
+          */
+         nir_block *succ_block = nir_after_cf_node(&if_stmt->cf_node).block;
+         nir_opt_remove_phis_block(succ_block);
+         assert(nir_block_first_instr(succ_block) == NULL ||
+                nir_block_first_instr(succ_block)->type != nir_instr_type_phi);
+
          nir_cf_list list;
          nir_cf_extract(&list, nir_after_cf_node(&if_stmt->cf_node),
                         nir_after_cf_list(state->cf_list));

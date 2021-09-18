@@ -140,7 +140,7 @@ _mesa_update_valid_to_render_state(struct gl_context *ctx)
        */
       const struct gl_program *prog =
          ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
-      const GLbitfield blend_support = !prog ? 0 : prog->sh.fs.BlendSupport;
+      const GLbitfield blend_support = !prog ? 0 : prog->info.fs.advanced_blend_modes;
 
       if ((blend_support & BITFIELD_BIT(ctx->Color._AdvancedBlendMode)) == 0)
          return;

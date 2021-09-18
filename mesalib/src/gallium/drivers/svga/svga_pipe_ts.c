@@ -47,6 +47,15 @@ svga_set_tess_state(struct pipe_context *pipe,
 }
 
 
+static void
+svga_set_patch_vertices(struct pipe_context *pipe, uint8_t patch_vertices)
+{
+   struct svga_context *svga = svga_context(pipe);
+
+   svga->patch_vertices = patch_vertices;
+}
+
+
 static void *
 svga_create_tcs_state(struct pipe_context *pipe,
                       const struct pipe_shader_state *templ)
@@ -210,6 +219,7 @@ void
 svga_init_ts_functions(struct svga_context *svga)
 {
    svga->pipe.set_tess_state = svga_set_tess_state;
+   svga->pipe.set_patch_vertices = svga_set_patch_vertices;
    svga->pipe.create_tcs_state = svga_create_tcs_state;
    svga->pipe.bind_tcs_state = svga_bind_tcs_state;
    svga->pipe.delete_tcs_state = svga_delete_tcs_state;

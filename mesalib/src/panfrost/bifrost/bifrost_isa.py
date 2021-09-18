@@ -334,3 +334,17 @@ def order_modifiers(ir_instructions):
 def src_count(op):
     staging = 1 if (op["staging"] in ["r", "rw"]) else 0
     return op["srcs"] + staging
+
+# Parses out the size part of an opocde name
+def typesize(opcode):
+    if opcode[-3:] == '128':
+        return 128
+    if opcode[-2:] == '48':
+        return 48
+    elif opcode[-1] == '8':
+        return 8
+    else:
+        try:
+            return int(opcode[-2:])
+        except:
+            return 32

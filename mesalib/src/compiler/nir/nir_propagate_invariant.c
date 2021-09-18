@@ -188,11 +188,35 @@ propagate_invariant_impl(nir_function_impl *impl, struct set *invariants)
    return progress;
 }
 
+/* If invariant_prim=true, this pass considers all geometry-affecting
+ * outputs as invariant. Doing this works around a common class of application
+ * bugs appearing as flickering.
+ */
 bool
-nir_propagate_invariant(nir_shader *shader)
+nir_propagate_invariant(nir_shader *shader, bool invariant_prim)
 {
    /* Hash set of invariant things */
    struct set *invariants = _mesa_pointer_set_create(NULL);
+
+   if (shader->info.stage != MESA_SHADER_FRAGMENT && invariant_prim) {
+      nir_foreach_shader_out_variable(var, shader) {
+         switch (var->data.location) {
+         case VARYING_SLOT_POS:
+         case VARYING_SLOT_PSIZ:
+         case VARYING_SLOT_CLIP_DIST0:
+         case VARYING_SLOT_CLIP_DIST1:
+         case VARYING_SLOT_CULL_DIST0:
+         case VARYING_SLOT_CULL_DIST1:
+         case VARYING_SLOT_TESS_LEVEL_OUTER:
+         case VARYING_SLOT_TESS_LEVEL_INNER:
+            if (!var->data.invariant)
+               _mesa_set_add(invariants, var);
+            break;
+         default:
+            break;
+         }
+      }
+   }
 
    bool progress = false;
    nir_foreach_function(function, shader) {

@@ -100,6 +100,8 @@ typedef struct {
 
    /* map of instruction/var/etc to failed assert string */
    struct hash_table *errors;
+
+   struct set *shader_gc_list;
 } validate_state;
 
 static void
@@ -120,10 +122,18 @@ log_error(validate_state *state, const char *cond, const char *file, int line)
    _mesa_hash_table_insert(state->errors, obj, msg);
 }
 
-#define validate_assert(state, cond) do {             \
-      if (!(cond))                                    \
-         log_error(state, #cond, __FILE__, __LINE__); \
-   } while (0)
+static bool
+validate_assert_impl(validate_state *state, bool cond, const char *str,
+                     const char *file, unsigned line)
+{
+   if (!cond)
+      log_error(state, str, file, line);
+   return cond;
+}
+
+#define validate_assert(state, cond) \
+   validate_assert_impl(state, (cond), #cond, __FILE__, __LINE__)
+
 
 static void validate_src(nir_src *src, validate_state *state,
                          unsigned bit_sizes, unsigned num_components);
@@ -559,8 +569,12 @@ vectorized_intrinsic(nir_intrinsic_instr *intr)
 static enum pipe_format
 image_intrin_format(nir_intrinsic_instr *instr)
 {
-   if (nir_intrinsic_has_format(instr))
+   if (nir_intrinsic_format(instr) != PIPE_FORMAT_NONE)
       return nir_intrinsic_format(instr);
+
+   /* If this not a deref intrinsic, PIPE_FORMAT_NONE is the best we can do */
+   if (nir_intrinsic_infos[instr->intrinsic].src_components[0] != -1)
+      return PIPE_FORMAT_NONE;
 
    nir_variable *var = nir_intrinsic_get_var(instr, 0);
    if (var == NULL)
@@ -664,6 +678,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    case nir_intrinsic_load_interpolated_input:
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_per_vertex_output:
+   case nir_intrinsic_load_per_primitive_output:
    case nir_intrinsic_load_push_constant:
       /* All memory load operations must load at least a byte */
       validate_assert(state, nir_dest_bit_size(instr->dest) >= 8);
@@ -823,16 +838,87 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
                    0, nir_tex_instr_src_size(instr, i));
 
       switch (instr->src[i].src_type) {
-      case nir_tex_src_texture_deref:
-      case nir_tex_src_sampler_deref:
-         validate_assert(state, instr->src[i].src.is_ssa);
-         validate_assert(state,
-                         instr->src[i].src.ssa->parent_instr->type == nir_instr_type_deref);
+      case nir_tex_src_coord:
+         validate_assert(state, nir_src_num_components(instr->src[i].src) ==
+                                instr->coord_components);
          break;
+
+      case nir_tex_src_projector:
+         validate_assert(state, nir_src_num_components(instr->src[i].src) == 1);
+         break;
+
+      case nir_tex_src_comparator:
+         validate_assert(state, instr->is_shadow);
+         validate_assert(state, nir_src_num_components(instr->src[i].src) == 1);
+         break;
+
+      case nir_tex_src_offset:
+         validate_assert(state, nir_src_num_components(instr->src[i].src) ==
+                                instr->coord_components - instr->is_array);
+         break;
+
+      case nir_tex_src_bias:
+         validate_assert(state, instr->op == nir_texop_txb ||
+                                instr->op == nir_texop_tg4);
+         validate_assert(state, nir_src_num_components(instr->src[i].src) == 1);
+         break;
+
+      case nir_tex_src_lod:
+         validate_assert(state, instr->op != nir_texop_tex &&
+                                instr->op != nir_texop_txb &&
+                                instr->op != nir_texop_txd &&
+                                instr->op != nir_texop_lod);
+         validate_assert(state, nir_src_num_components(instr->src[i].src) == 1);
+         break;
+
+      case nir_tex_src_min_lod:
+      case nir_tex_src_ms_index:
+         validate_assert(state, nir_src_num_components(instr->src[i].src) == 1);
+         break;
+
+      case nir_tex_src_ddx:
+      case nir_tex_src_ddy:
+         validate_assert(state, instr->op == nir_texop_txd);
+         validate_assert(state, nir_src_num_components(instr->src[i].src) ==
+                                instr->coord_components - instr->is_array);
+         break;
+
+      case nir_tex_src_texture_deref: {
+         nir_deref_instr *deref = nir_src_as_deref(instr->src[i].src);
+         if (!validate_assert(state, deref))
+            break;
+
+         validate_assert(state, glsl_type_is_image(deref->type) ||
+                                glsl_type_is_sampler(deref->type));
+         break;
+      }
+
+      case nir_tex_src_sampler_deref: {
+         nir_deref_instr *deref = nir_src_as_deref(instr->src[i].src);
+         if (!validate_assert(state, deref))
+            break;
+
+         validate_assert(state, glsl_type_is_sampler(deref->type));
+         break;
+      }
+
+      case nir_tex_src_texture_offset:
+      case nir_tex_src_sampler_offset:
+      case nir_tex_src_plane:
+         validate_assert(state, nir_src_num_components(instr->src[i].src) == 1);
+         break;
+
+      case nir_tex_src_texture_handle:
+      case nir_tex_src_sampler_handle:
+         break;
+
       default:
          break;
       }
    }
+
+   if (instr->op != nir_texop_tg4)
+      validate_assert(state, instr->component == 0);
 
    if (nir_tex_instr_has_explicit_tg4_offsets(instr)) {
       validate_assert(state, instr->op == nir_texop_tg4);
@@ -988,6 +1074,8 @@ validate_instr(nir_instr *instr, validate_state *state)
    validate_assert(state, instr->block == state->block);
 
    state->instr = instr;
+
+   validate_assert(state, _mesa_set_search(state->shader_gc_list, instr));
 
    switch (instr->type) {
    case nir_instr_type_alu:
@@ -1409,7 +1497,7 @@ validate_var_decl(nir_variable *var, nir_variable_mode valid_modes,
       assert(glsl_type_is_array(var->type));
 
       const struct glsl_type *type = glsl_get_array_element(var->type);
-      if (nir_is_per_vertex_io(var, state->shader->info.stage)) {
+      if (nir_is_arrayed_io(var, state->shader->info.stage)) {
          assert(glsl_type_is_array(type));
          assert(glsl_type_is_scalar(glsl_get_array_element(type)));
       } else {
@@ -1583,6 +1671,7 @@ init_validate_state(validate_state *state)
    state->blocks = _mesa_pointer_set_create(state->mem_ctx);
    state->var_defs = _mesa_pointer_hash_table_create(state->mem_ctx);
    state->errors = _mesa_pointer_hash_table_create(state->mem_ctx);
+   state->shader_gc_list = _mesa_pointer_set_create(state->mem_ctx);
 
    state->loop = NULL;
    state->instr = NULL;
@@ -1641,6 +1730,10 @@ nir_validate_shader(nir_shader *shader, const char *when)
 
    validate_state state;
    init_validate_state(&state);
+
+   list_for_each_entry(nir_instr, instr, &shader->gc_list, gc_node) {
+      _mesa_set_add(state.shader_gc_list, instr);
+   }
 
    state.shader = shader;
 

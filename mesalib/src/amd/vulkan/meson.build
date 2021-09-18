@@ -38,6 +38,7 @@ libradv_files = files(
   'winsys/null/radv_null_cs.h',
   'winsys/null/radv_null_winsys.c',
   'winsys/null/radv_null_winsys_public.h',
+  'radv_acceleration_structure.c',
   'radv_android.c',
   'radv_cmd_buffer.c',
   'radv_cs.h',
@@ -138,7 +139,6 @@ endif
 if with_platform_windows
   radv_flags += [
     '-DVK_USE_PLATFORM_WIN32_KHR',
-    '-DVK_NO_PROTOTYPES',
   ]
 endif
 
@@ -152,9 +152,12 @@ if with_llvm and with_ld_version_script
   libvulkan_radeon_link_depends += files('vulkan.sym')
 endif
 
+vulkan_radv_def = 'vulkan_radv.def'
+
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
   [libradv_files, radv_entrypoints, sha1_h],
+  vs_module_defs : vulkan_radv_def,
   include_directories : [
     inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_amd, inc_amd_common, inc_amd_common_llvm, inc_compiler, inc_util, inc_vulkan_wsi,
   ],
@@ -166,8 +169,8 @@ libvulkan_radeon = shared_library(
     dep_valgrind, radv_deps, idep_aco,
     idep_mesautil, idep_nir, idep_vulkan_util, idep_amdgfxregs_h, idep_xmlconfig,
   ],
-  c_args : [no_override_init_args, radv_flags],
-  cpp_args : [radv_flags],
+  c_args : [no_override_init_args, radv_flags, c_msvc_compat_args],
+  cpp_args : [radv_flags, cpp_msvc_compat_args],
   link_args : [
     ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections, libvulkan_radeon_ld_args,
   ],

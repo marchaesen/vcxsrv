@@ -36,6 +36,9 @@
 #define BIFROST_DBG_VERBOSE     0x0008
 #define BIFROST_DBG_INTERNAL    0x0010
 #define BIFROST_DBG_NOSCHED     0x0020
+#define BIFROST_DBG_INORDER     0x0040
+#define BIFROST_DBG_NOVALIDATE  0x0080
+#define BIFROST_DBG_NOOPT       0x0100
 
 extern int bifrost_debug;
 

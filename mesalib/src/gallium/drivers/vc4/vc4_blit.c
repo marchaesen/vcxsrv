@@ -381,7 +381,7 @@ vc4_yuv_blit(struct pipe_context *pctx, const struct pipe_blit_info *info)
         /* Unbind the textures, to make sure we don't try to recurse into the
          * shadow blit.
          */
-        pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 0, 0, NULL);
+        pctx->set_sampler_views(pctx, PIPE_SHADER_FRAGMENT, 0, 0, 0, false, NULL);
         pctx->bind_sampler_states(pctx, PIPE_SHADER_FRAGMENT, 0, 0, NULL);
 
         util_blitter_custom_shader(vc4->blitter, dst_surf,

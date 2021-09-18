@@ -87,7 +87,7 @@ feedback_vertex(struct gl_context *ctx, const struct draw_context *draw,
    struct st_vertex_program *stvp = (struct st_vertex_program *)st->vp;
    GLfloat win[4];
    const GLfloat *color, *texcoord;
-   GLuint slot;
+   ubyte slot;
 
    win[0] = v->data[0][0];
    if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP)
@@ -103,13 +103,13 @@ feedback_vertex(struct gl_context *ctx, const struct draw_context *draw,
     */
 
    slot = stvp->result_to_output[VARYING_SLOT_COL0];
-   if (slot != ~0U)
+   if (slot != 0xff)
       color = v->data[slot];
    else
       color = ctx->Current.Attrib[VERT_ATTRIB_COLOR0];
 
    slot = stvp->result_to_output[VARYING_SLOT_TEX0];
-   if (slot != ~0U)
+   if (slot != 0xff)
       texcoord = v->data[slot];
    else
       texcoord = ctx->Current.Attrib[VERT_ATTRIB_TEX0];

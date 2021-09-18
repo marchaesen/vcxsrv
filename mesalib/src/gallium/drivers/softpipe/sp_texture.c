@@ -512,8 +512,10 @@ softpipe_user_buffer_create(struct pipe_screen *screen,
 void
 softpipe_init_texture_funcs(struct pipe_context *pipe)
 {
-   pipe->transfer_map = softpipe_transfer_map;
-   pipe->transfer_unmap = softpipe_transfer_unmap;
+   pipe->buffer_map = softpipe_transfer_map;
+   pipe->buffer_unmap = softpipe_transfer_unmap;
+   pipe->texture_map = softpipe_transfer_map;
+   pipe->texture_unmap = softpipe_transfer_unmap;
 
    pipe->transfer_flush_region = u_default_transfer_flush_region;
    pipe->buffer_subdata = u_default_buffer_subdata;

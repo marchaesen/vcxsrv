@@ -25,6 +25,7 @@
 
 #include "nir_builder.h"
 #include "nir_deref.h"
+#include "nir_to_dxil.h"
 #include "util/u_math.h"
 
 static void
@@ -773,7 +774,7 @@ lower_shared_atomic(nir_builder *b, nir_intrinsic_instr *intr,
       atomic->src[2] = nir_src_for_ssa(intr->src[2].ssa);
    }
    atomic->num_components = 0;
-   nir_ssa_dest_init(&atomic->instr, &atomic->dest, 1, 32, intr->dest.ssa.name);
+   nir_ssa_dest_init(&atomic->instr, &atomic->dest, 1, 32, NULL);
 
    nir_builder_instr_insert(b, &atomic->instr);
    nir_ssa_def_rewrite_uses(&intr->dest.ssa, &atomic->dest.ssa);
@@ -1068,11 +1069,7 @@ cast_phi(nir_builder *b, nir_phi_instr *phi, unsigned new_bit_size)
       b->cursor = nir_after_instr_and_phis(src->src.ssa->parent_instr);
 
       nir_ssa_def *cast = nir_build_alu(b, upcast_op, src->src.ssa, NULL, NULL, NULL);
-
-      nir_phi_src *new_src = rzalloc(lowered, nir_phi_src);
-      new_src->pred = src->pred;
-      new_src->src = nir_src_for_ssa(cast);
-      exec_list_push_tail(&lowered->srcs, &new_src->node);
+      nir_phi_instr_add_src(lowered, src->pred, nir_src_for_ssa(cast));
    }
 
    nir_ssa_dest_init(&lowered->instr, &lowered->dest,
@@ -1115,6 +1112,8 @@ upcast_phi_impl(nir_function_impl *impl, unsigned min_bit_size)
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return progress;
@@ -1133,6 +1132,11 @@ dxil_nir_lower_upcast_phis(nir_shader *shader, unsigned min_bit_size)
    return progress;
 }
 
+struct dxil_nir_split_clip_cull_distance_params {
+   nir_variable *new_var;
+   nir_shader *shader;
+};
+
 /* In GLSL and SPIR-V, clip and cull distance are arrays of floats (with a limit of 8).
  * In DXIL, clip and cull distances are up to 2 float4s combined.
  * Coming from GLSL, we can request this 2 float4 format, but coming from SPIR-V,
@@ -1141,159 +1145,154 @@ dxil_nir_lower_upcast_phis(nir_shader *shader, unsigned min_bit_size)
  * To help emitting a valid input signature for this case, split the variables so that they
  * match what we need to put in the signature (e.g. { float clip[4]; float clip1; float cull[3]; })
  */
+static bool
+dxil_nir_split_clip_cull_distance_instr(nir_builder *b,
+                                        nir_instr *instr,
+                                        void *cb_data)
+{
+   struct dxil_nir_split_clip_cull_distance_params *params = cb_data;
+   nir_variable *new_var = params->new_var;
+
+   if (instr->type != nir_instr_type_deref)
+      return false;
+
+   nir_deref_instr *deref = nir_instr_as_deref(instr);
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+   if (!var ||
+       var->data.location < VARYING_SLOT_CLIP_DIST0 ||
+       var->data.location > VARYING_SLOT_CULL_DIST1 ||
+       !var->data.compact)
+      return false;
+
+   /* The location should only be inside clip distance, because clip
+    * and cull should've been merged by nir_lower_clip_cull_distance_arrays()
+    */
+   assert(var->data.location == VARYING_SLOT_CLIP_DIST0 ||
+          var->data.location == VARYING_SLOT_CLIP_DIST1);
+
+   /* The deref chain to the clip/cull variables should be simple, just the
+    * var and an array with a constant index, otherwise more lowering/optimization
+    * might be needed before this pass, e.g. copy prop, lower_io_to_temporaries,
+    * split_var_copies, and/or lower_var_copies
+    */
+   assert(deref->deref_type == nir_deref_type_var ||
+          deref->deref_type == nir_deref_type_array);
+
+   b->cursor = nir_before_instr(instr);
+   if (!new_var) {
+      /* Update lengths for new and old vars */
+      int old_length = glsl_array_size(var->type);
+      int new_length = (old_length + var->data.location_frac) - 4;
+      old_length -= new_length;
+
+      /* The existing variable fits in the float4 */
+      if (new_length <= 0)
+         return false;
+
+      new_var = nir_variable_clone(var, params->shader);
+      nir_shader_add_variable(params->shader, new_var);
+      assert(glsl_get_base_type(glsl_get_array_element(var->type)) == GLSL_TYPE_FLOAT);
+      var->type = glsl_array_type(glsl_float_type(), old_length, 0);
+      new_var->type = glsl_array_type(glsl_float_type(), new_length, 0);
+      new_var->data.location++;
+      new_var->data.location_frac = 0;
+      params->new_var = new_var;
+   }
+
+   /* Update the type for derefs of the old var */
+   if (deref->deref_type == nir_deref_type_var) {
+      deref->type = var->type;
+      return false;
+   }
+
+   nir_const_value *index = nir_src_as_const_value(deref->arr.index);
+   assert(index);
+
+   /* Treat this array as a vector starting at the component index in location_frac,
+    * so if location_frac is 1 and index is 0, then it's accessing the 'y' component
+    * of the vector. If index + location_frac is >= 4, there's no component there,
+    * so we need to add a new variable and adjust the index.
+    */
+   unsigned total_index = index->u32 + var->data.location_frac;
+   if (total_index < 4)
+      return false;
+
+   nir_deref_instr *new_var_deref = nir_build_deref_var(b, new_var);
+   nir_deref_instr *new_array_deref = nir_build_deref_array(b, new_var_deref, nir_imm_int(b, total_index % 4));
+   nir_ssa_def_rewrite_uses(&deref->dest.ssa, &new_array_deref->dest.ssa);
+   return true;
+}
+
 bool
 dxil_nir_split_clip_cull_distance(nir_shader *shader)
 {
-   nir_variable *new_var = NULL;
-   nir_foreach_function(function, shader) {
-      if (!function->impl)
-         continue;
+   struct dxil_nir_split_clip_cull_distance_params params = {
+      .new_var = NULL,
+      .shader = shader,
+   };
+   nir_shader_instructions_pass(shader,
+                                dxil_nir_split_clip_cull_distance_instr,
+                                nir_metadata_block_index |
+                                nir_metadata_dominance |
+                                nir_metadata_loop_analysis,
+                                &params);
+   return params.new_var != NULL;
+}
 
-      bool progress = false;
-      nir_builder b;
-      nir_builder_init(&b, function->impl);
-      nir_foreach_block(block, function->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_deref)
-               continue;
-            nir_deref_instr *deref = nir_instr_as_deref(instr);
-            nir_variable *var = nir_deref_instr_get_variable(deref);
-            if (!var ||
-                var->data.location < VARYING_SLOT_CLIP_DIST0 ||
-                var->data.location > VARYING_SLOT_CULL_DIST1 ||
-                !var->data.compact)
-               continue;
+static bool
+dxil_nir_lower_double_math_instr(nir_builder *b,
+                                 nir_instr *instr,
+                                 UNUSED void *cb_data)
+{
+   if (instr->type != nir_instr_type_alu)
+      return false;
 
-            /* The location should only be inside clip distance, because clip
-             * and cull should've been merged by nir_lower_clip_cull_distance_arrays()
-             */
-            assert(var->data.location == VARYING_SLOT_CLIP_DIST0 ||
-                   var->data.location == VARYING_SLOT_CLIP_DIST1);
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-            /* The deref chain to the clip/cull variables should be simple, just the 
-             * var and an array with a constant index, otherwise more lowering/optimization
-             * might be needed before this pass, e.g. copy prop, lower_io_to_temporaries,
-             * split_var_copies, and/or lower_var_copies
-             */
-            assert(deref->deref_type == nir_deref_type_var ||
-                   deref->deref_type == nir_deref_type_array);
+   /* TODO: See if we can apply this explicitly to packs/unpacks that are then
+    * used as a double. As-is, if we had an app explicitly do a 64bit integer op,
+    * then try to bitcast to double (not expressible in HLSL, but it is in other
+    * source languages), this would unpack the integer and repack as a double, when
+    * we probably want to just send the bitcast through to the backend.
+    */
 
-            b.cursor = nir_before_instr(instr);
-            if (!new_var) {
-               /* Update lengths for new and old vars */
-               int old_length = glsl_array_size(var->type);
-               int new_length = (old_length + var->data.location_frac) - 4;
-               old_length -= new_length;
+   b->cursor = nir_before_instr(&alu->instr);
 
-               /* The existing variable fits in the float4 */
-               if (new_length <= 0)
-                  continue;
-
-               new_var = nir_variable_clone(var, shader);
-               nir_shader_add_variable(shader, new_var);
-               assert(glsl_get_base_type(glsl_get_array_element(var->type)) == GLSL_TYPE_FLOAT);
-               var->type = glsl_array_type(glsl_float_type(), old_length, 0);
-               new_var->type = glsl_array_type(glsl_float_type(), new_length, 0);
-               new_var->data.location++;
-               new_var->data.location_frac = 0;
-            }
-
-            /* Update the type for derefs of the old var */
-            if (deref->deref_type == nir_deref_type_var) {
-               deref->type = var->type;
-               continue;
-            }
-
-            nir_const_value *index = nir_src_as_const_value(deref->arr.index);
-            assert(index);
-
-            /* Treat this array as a vector starting at the component index in location_frac,
-             * so if location_frac is 1 and index is 0, then it's accessing the 'y' component
-             * of the vector. If index + location_frac is >= 4, there's no component there,
-             * so we need to add a new variable and adjust the index.
-             */
-            unsigned total_index = index->u32 + var->data.location_frac;
-            if (total_index < 4)
-               continue;
-
-            nir_deref_instr *new_var_deref = nir_build_deref_var(&b, new_var);
-            nir_deref_instr *new_array_deref = nir_build_deref_array(&b, new_var_deref, nir_imm_int(&b, total_index % 4));
-            nir_ssa_def_rewrite_uses(&deref->dest.ssa, &new_array_deref->dest.ssa);
-            progress = true;
-         }
+   bool progress = false;
+   for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; ++i) {
+      if (nir_alu_type_get_base_type(nir_op_infos[alu->op].input_types[i]) == nir_type_float &&
+          alu->src[i].src.ssa->bit_size == 64) {
+         nir_ssa_def *packed_double = nir_channel(b, alu->src[i].src.ssa, alu->src[i].swizzle[0]);
+         nir_ssa_def *unpacked_double = nir_unpack_64_2x32(b, packed_double);
+         nir_ssa_def *repacked_double = nir_pack_double_2x32_dxil(b, unpacked_double);
+         nir_instr_rewrite_src_ssa(instr, &alu->src[i].src, repacked_double);
+         memset(alu->src[i].swizzle, 0, ARRAY_SIZE(alu->src[i].swizzle));
+         progress = true;
       }
-      if (progress)
-         nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                               nir_metadata_dominance |
-                                               nir_metadata_loop_analysis);
-      else
-         nir_metadata_preserve(function->impl, nir_metadata_all);
    }
 
-   return new_var != NULL;
+   if (nir_alu_type_get_base_type(nir_op_infos[alu->op].output_type) == nir_type_float &&
+       alu->dest.dest.ssa.bit_size == 64) {
+      b->cursor = nir_after_instr(&alu->instr);
+      nir_ssa_def *packed_double = &alu->dest.dest.ssa;
+      nir_ssa_def *unpacked_double = nir_unpack_double_2x32_dxil(b, packed_double);
+      nir_ssa_def *repacked_double = nir_pack_64_2x32(b, unpacked_double);
+      nir_ssa_def_rewrite_uses_after(packed_double, repacked_double, unpacked_double->parent_instr);
+      progress = true;
+   }
+
+   return progress;
 }
 
 bool
 dxil_nir_lower_double_math(nir_shader *shader)
 {
-   bool progress = false;
-   nir_foreach_function(func, shader) {
-      bool func_progress = false;
-      if (!func->impl)
-         continue;
-
-      nir_builder b;
-      nir_builder_init(&b, func->impl);
-      nir_foreach_block(block, func->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_alu)
-               continue;
-
-            nir_alu_instr *alu = nir_instr_as_alu(instr);
-
-            /* TODO: See if we can apply this explicitly to packs/unpacks that are then
-             * used as a double. As-is, if we had an app explicitly do a 64bit integer op,
-             * then try to bitcast to double (not expressible in HLSL, but it is in other
-             * source languages), this would unpack the integer and repack as a double, when
-             * we probably want to just send the bitcast through to the backend.
-             */
-
-            b.cursor = nir_before_instr(&alu->instr);
-
-            for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; ++i) {
-               if (nir_alu_type_get_base_type(nir_op_infos[alu->op].input_types[i]) == nir_type_float &&
-                   alu->src[i].src.ssa->bit_size == 64) {
-                  nir_ssa_def *packed_double = nir_channel(&b, alu->src[i].src.ssa, alu->src[i].swizzle[0]);
-                  nir_ssa_def *unpacked_double = nir_unpack_64_2x32(&b, packed_double);
-                  nir_ssa_def *repacked_double = nir_pack_double_2x32_dxil(&b, unpacked_double);
-                  nir_instr_rewrite_src_ssa(instr, &alu->src[i].src, repacked_double);
-                  memset(alu->src[i].swizzle, 0, ARRAY_SIZE(alu->src[i].swizzle));
-                  func_progress = true;
-               }
-            }
-
-            if (nir_alu_type_get_base_type(nir_op_infos[alu->op].output_type) == nir_type_float &&
-                alu->dest.dest.ssa.bit_size == 64) {
-               b.cursor = nir_after_instr(&alu->instr);
-               nir_ssa_def *packed_double = &alu->dest.dest.ssa;
-               nir_ssa_def *unpacked_double = nir_unpack_double_2x32_dxil(&b, packed_double);
-               nir_ssa_def *repacked_double = nir_pack_64_2x32(&b, unpacked_double);
-               nir_ssa_def_rewrite_uses_after(packed_double, repacked_double, unpacked_double->parent_instr);
-               func_progress = true;
-            }
-         }
-      }
-      
-      if (func_progress)
-         nir_metadata_preserve(func->impl, nir_metadata_block_index |
-                                           nir_metadata_dominance |
-                                           nir_metadata_loop_analysis);
-      else
-         nir_metadata_preserve(func->impl, nir_metadata_all);
-      progress |= func_progress;
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader,
+                                       dxil_nir_lower_double_math_instr,
+                                       nir_metadata_block_index |
+                                       nir_metadata_dominance |
+                                       nir_metadata_loop_analysis,
+                                       NULL);
 }
 
 typedef struct {
@@ -1464,4 +1463,89 @@ dxil_nir_create_bare_samplers(nir_shader *nir)
 
    _mesa_hash_table_u64_destroy(sampler_to_bare);
    return progress;
+}
+
+
+/* Comparison function to sort io values so that first come normal varyings,
+ * then system values, and then system generated values.
+ */
+static int
+variable_location_cmp(const nir_variable* a, const nir_variable* b)
+{
+   // Sort by driver_location, location, then index
+   return a->data.driver_location != b->data.driver_location ?
+            a->data.driver_location - b->data.driver_location : 
+            a->data.location !=  b->data.location ?
+               a->data.location - b->data.location :
+               a->data.index - b->data.index;
+}
+
+/* Order varyings according to driver location */
+uint64_t
+dxil_sort_by_driver_location(nir_shader* s, nir_variable_mode modes)
+{
+   nir_sort_variables_with_modes(s, variable_location_cmp, modes);
+
+   uint64_t result = 0;
+   nir_foreach_variable_with_modes(var, s, modes) {
+      result |= 1ull << var->data.location;
+   }
+   return result;
+}
+
+/* Sort PS outputs so that color outputs come first */
+void
+dxil_sort_ps_outputs(nir_shader* s)
+{
+   nir_foreach_variable_with_modes_safe(var, s, nir_var_shader_out) {
+      /* We use the driver_location here to avoid introducing a new
+       * struct or member variable here. The true, updated driver location
+       * will be written below, after sorting */
+      switch (var->data.location) {
+      case FRAG_RESULT_DEPTH:
+         var->data.driver_location = 1;
+         break;
+      case FRAG_RESULT_STENCIL:
+         var->data.driver_location = 2;
+         break;
+      case FRAG_RESULT_SAMPLE_MASK:
+         var->data.driver_location = 3;
+         break;
+      default:
+         var->data.driver_location = 0;
+      }
+   }
+
+   nir_sort_variables_with_modes(s, variable_location_cmp,
+                                 nir_var_shader_out);
+
+   unsigned driver_loc = 0;
+   nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
+      var->data.driver_location = driver_loc++;
+   }
+}
+
+/* Order between stage values so that normal varyings come first,
+ * then sysvalues and then system generated values.
+ */
+uint64_t
+dxil_reassign_driver_locations(nir_shader* s, nir_variable_mode modes,
+   uint64_t other_stage_mask)
+{
+   nir_foreach_variable_with_modes_safe(var, s, modes) {
+      /* We use the driver_location here to avoid introducing a new
+       * struct or member variable here. The true, updated driver location
+       * will be written below, after sorting */
+      var->data.driver_location = nir_var_to_dxil_sysvalue_type(var, other_stage_mask);
+   }
+
+   nir_sort_variables_with_modes(s, variable_location_cmp, modes);
+
+   uint64_t result = 0;
+   unsigned driver_loc = 0;
+   nir_foreach_variable_with_modes(var, s, modes) {
+      result |= 1ull << var->data.location;
+      var->data.driver_location = driver_loc++;
+   }
+   return result;
 }

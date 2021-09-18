@@ -4,6 +4,7 @@ spec@!opengl 1.2@tex3d-maxsize
 spec@ext_texture_env_combine@texture-env-combine
 spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion
 spec@glsl-1.10@execution@loops@glsl-vs-unroll-explosion
+spec@!opengl 1.0@gl-1.0-blend-func
 
 # Extensions not supported
 spec@arb_gpu_shader_fp64.*

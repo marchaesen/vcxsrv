@@ -100,10 +100,7 @@ st_serialise_ir_program(struct gl_context *ctx, struct gl_program *prog,
       struct st_vertex_program *stvp = (struct st_vertex_program *)stp;
 
       blob_write_uint32(&blob, stvp->num_inputs);
-      blob_write_bytes(&blob, stvp->index_to_input,
-                       sizeof(stvp->index_to_input));
-      blob_write_bytes(&blob, stvp->input_to_index,
-                       sizeof(stvp->input_to_index));
+      blob_write_uint32(&blob, stvp->vert_attrib_mask);
       blob_write_bytes(&blob, stvp->result_to_output,
                        sizeof(stvp->result_to_output));
    }
@@ -198,10 +195,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
    if (prog->info.stage == MESA_SHADER_VERTEX) {
       struct st_vertex_program *stvp = (struct st_vertex_program *)stp;
       stvp->num_inputs = blob_read_uint32(&blob_reader);
-      blob_copy_bytes(&blob_reader, (uint8_t *) stvp->index_to_input,
-                      sizeof(stvp->index_to_input));
-      blob_copy_bytes(&blob_reader, (uint8_t *) stvp->input_to_index,
-                      sizeof(stvp->input_to_index));
+      stvp->vert_attrib_mask = blob_read_uint32(&blob_reader);
       blob_copy_bytes(&blob_reader, (uint8_t *) stvp->result_to_output,
                       sizeof(stvp->result_to_output));
    }

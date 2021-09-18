@@ -26,6 +26,7 @@
 
 #include "util/sparse_array.h"
 #include "io.h"
+#include "agx_formats.h"
 
 #if __APPLE__
 #include <mach/mach.h>
@@ -34,6 +35,8 @@
 
 enum agx_dbg {
    AGX_DBG_TRACE = BITFIELD_BIT(0),
+   AGX_DBG_DEQP  = BITFIELD_BIT(1),
+   AGX_DBG_NO16  = BITFIELD_BIT(2),
 };
 
 struct agx_device {
@@ -43,6 +46,7 @@ struct agx_device {
    /* XXX What to bind to? I don't understand the IOGPU UABI */
    struct agx_command_queue queue;
    struct agx_bo cmdbuf, memmap;
+   uint64_t next_global_id, last_global_id;
 
    /* Device handle */
 #if __APPLE__
@@ -60,6 +64,11 @@ struct agx_device {
       uint32_t clear;
       uint32_t store;
    } internal;
+
+   struct {
+      struct agx_bo *bo;
+      uint32_t format[AGX_NUM_FORMATS];
+   } reload;
 };
 
 bool
@@ -81,7 +90,7 @@ void
 agx_shmem_free(struct agx_device *dev, unsigned handle);
 
 uint64_t
-agx_cmdbuf_global_ids(struct agx_device *dev);
+agx_get_global_id(struct agx_device *dev);
 
 struct agx_command_queue
 agx_create_command_queue(struct agx_device *dev);

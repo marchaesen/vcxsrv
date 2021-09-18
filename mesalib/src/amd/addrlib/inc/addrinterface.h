@@ -2954,6 +2954,20 @@ typedef struct _ADDR2_COMPUTE_CMASKINFO_INPUT
                                             ///  Only for GFX10
 } ADDR2_COMPUTE_CMASK_INFO_INPUT;
 
+/* DCC addr meta equation for GFX9. */
+struct gfx9_addr_meta_equation {
+   UINT_8 num_bits;
+
+   struct {
+      struct {
+         UINT_8 dim; /* 0..4 as index, 5 means invalid */
+         UINT_8 ord; /* 0..31 */
+      } coord[8]; /* 0..num_coords */
+   } bit[32]; /* 0..num_bits */
+
+   UINT_8 numPipeBits;
+};
+
 /**
 ****************************************************************************************************
 *   ADDR2_COMPUTE_CMASK_INFO_OUTPUT
@@ -2980,6 +2994,21 @@ typedef struct _ADDR2_COMPUTE_CMASK_INFO_OUTPUT
     UINT_32    metaBlkNumPerSlice;  ///< Number of metablock within one slice
 
     ADDR2_META_MIP_INFO* pMipInfo;  ///< CMASK mip information
+
+    /* The equation for doing CMASK address computations in shaders. */
+    union {
+       /* This is chip-specific, and it varies with:
+        * - resource type
+        * - swizzle_mode
+        * - bpp
+        * - pipe_aligned
+        * - rb_aligned
+        */
+       struct gfx9_addr_meta_equation gfx9;
+
+       /* This is chip-specific, it requires 64KB_Z_X. */
+       UINT_16 *gfx10_bits; /* 68 2-byte elements */
+    } equation;
 } ADDR2_COMPUTE_CMASK_INFO_OUTPUT;
 
 /**
@@ -3409,17 +3438,7 @@ typedef struct _ADDR2_COMPUTE_DCCINFO_OUTPUT
         * - pipe_aligned
         * - rb_aligned
         */
-       struct {
-          UINT_8 num_bits;
-
-          struct {
-             struct {
-                UINT_8 dim; /* 0..4 as index, 5 means invalid */
-                UINT_8 ord; /* 0..31 */
-             } coord[8]; /* 0..num_coords */
-          } bit[32]; /* 0..num_bits */
-          UINT_8 numPipeBits;
-       } gfx9;
+       struct gfx9_addr_meta_equation gfx9;
 
        /* This is chip-specific, it requires 64KB_R_X, and it varies with:
         * - bpp

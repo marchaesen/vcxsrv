@@ -39,6 +39,7 @@
 
 #include "fast_idiv_by_const.h"
 #include "u_math.h"
+#include "util/macros.h"
 #include <limits.h>
 #include <assert.h>
 
@@ -65,8 +66,7 @@ util_compute_fast_udiv_info(uint64_t D, unsigned num_bits, unsigned UINT_BITS)
       } else {
          /* Dividing by 1. */
          /* Assuming: floor((num + 1) * (2^32 - 1) / 2^32) = num */
-         result.multiplier = UINT_BITS == 64 ? UINT64_MAX :
-                                               (1ull << UINT_BITS) - 1;
+         result.multiplier = u_uintN_max(UINT_BITS);
          result.pre_shift = 0;
          result.post_shift = 0;
          result.increment = 1;

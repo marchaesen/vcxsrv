@@ -23,7 +23,6 @@
 # Authors:
 #    Jason Ekstrand (jason@jlekstrand.net)
 
-from __future__ import print_function
 import ast
 from collections import defaultdict
 import itertools
@@ -59,15 +58,6 @@ def get_c_opcode(op):
          return 'nir_search_op_' + op
       else:
          return 'nir_op_' + op
-
-
-if sys.version_info < (3, 0):
-    integer_types = (int, long)
-    string_type = unicode
-
-else:
-    integer_types = (int, )
-    string_type = str
 
 _type_re = re.compile(r"(?P<type>int|uint|bool|float)?(?P<bits>\d+)?")
 
@@ -107,9 +97,9 @@ class Value(object):
          return Expression(val, name_base, varset)
       elif isinstance(val, Expression):
          return val
-      elif isinstance(val, string_type):
+      elif isinstance(val, str):
          return Variable(val, name_base, varset)
-      elif isinstance(val, (bool, float) + integer_types):
+      elif isinstance(val, (bool, float, int)):
          return Constant(val, name_base)
 
    def __init__(self, val, name, type_str):
@@ -246,26 +236,17 @@ class Constant(Value):
    def hex(self):
       if isinstance(self.value, (bool)):
          return 'NIR_TRUE' if self.value else 'NIR_FALSE'
-      if isinstance(self.value, integer_types):
+      if isinstance(self.value, int):
          return hex(self.value)
       elif isinstance(self.value, float):
-         i = struct.unpack('Q', struct.pack('d', self.value))[0]
-         h = hex(i)
-
-         # On Python 2 this 'L' suffix is automatically added, but not on Python 3
-         # Adding it explicitly makes the generated file identical, regardless
-         # of the Python version running this script.
-         if h[-1] != 'L' and i > sys.maxsize:
-            h += 'L'
-
-         return h
+         return hex(struct.unpack('Q', struct.pack('d', self.value))[0])
       else:
          assert False
 
    def type(self):
       if isinstance(self.value, (bool)):
          return "nir_type_bool"
-      elif isinstance(self.value, integer_types):
+      elif isinstance(self.value, int):
          return "nir_type_int"
       elif isinstance(self.value, float):
          return "nir_type_float"

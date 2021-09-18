@@ -27,6 +27,8 @@
 
 #include "util/u_threaded_context.h"
 
+#include "ac_perfcounter.h"
+
 struct pipe_context;
 struct pipe_query;
 struct pipe_resource;
@@ -109,9 +111,6 @@ enum
    SI_QUERY_GPIN_NUM_RB,
    SI_QUERY_GPIN_NUM_SPI,
    SI_QUERY_GPIN_NUM_SE,
-   SI_QUERY_PD_NUM_PRIMS_ACCEPTED,
-   SI_QUERY_PD_NUM_PRIMS_REJECTED,
-   SI_QUERY_PD_NUM_PRIMS_INELIGIBLE,
    SI_QUERY_LIVE_SHADER_CACHE_HITS,
    SI_QUERY_LIVE_SHADER_CACHE_MISSES,
    SI_QUERY_MEMORY_SHADER_CACHE_HITS,
@@ -272,15 +271,10 @@ struct pipe_query *gfx10_sh_query_create(struct si_screen *screen, enum pipe_que
 
 /* Performance counters */
 struct si_perfcounters {
-   unsigned num_groups;
-   unsigned num_blocks;
-   struct si_pc_block *blocks;
+   struct ac_perfcounters base;
 
    unsigned num_stop_cs_dwords;
    unsigned num_instance_cs_dwords;
-
-   bool separate_se;
-   bool separate_instance;
 };
 
 struct pipe_query *si_create_batch_query(struct pipe_context *ctx, unsigned num_queries,

@@ -33,7 +33,7 @@
 #include "sfn_instruction_lds.h"
 
 #include "../r600_shader.h"
-#include "../r600_sq.h"
+#include "../eg_sq.h"
 
 namespace r600 {
 
@@ -96,8 +96,9 @@ public:
    bool has_param_output;
    PValue m_last_addr;
    int m_loop_nesting;
-   int m_nliterals_in_group;
+   std::set<uint32_t> m_nliterals_in_group;
    std::set<int> vtx_fetch_results;
+   std::set<int> tex_fetch_results;
    bool m_last_op_was_barrier;
 };
 
@@ -158,8 +159,11 @@ bool AssemblyFromShaderLegacyImpl::visit(const InstructionBlock& block)
 {
    for (const auto& i : block) {
 
-      if (i->type() != Instruction::vtx)
+      if (i->type() != Instruction::vtx) {
           vtx_fetch_results.clear();
+          if (i->type() != Instruction::tex)
+              tex_fetch_results.clear();
+      }
 
       m_last_op_was_barrier &= i->type() == Instruction::alu;
 
@@ -184,7 +188,6 @@ AssemblyFromShaderLegacyImpl::AssemblyFromShaderLegacyImpl(r600_shader *sh,
    has_pos_output(false),
    has_param_output(false),
    m_loop_nesting(0),
-   m_nliterals_in_group(0),
    m_last_op_was_barrier(false)
 {
    m_max_color_exports = MAX2(m_key->ps.nr_cbufs, 1);
@@ -222,19 +225,25 @@ bool AssemblyFromShaderLegacyImpl::visit(const AluInstruction& ai)
 
    m_last_op_was_barrier = ai.opcode() == op0_group_barrier;
 
-   unsigned old_nliterals_in_group = m_nliterals_in_group;
    for (unsigned i = 0; i < ai.n_sources(); ++i) {
       auto& s = ai.src(i);
-      if (s.type() == Value::literal)
-         ++m_nliterals_in_group;
+      if (s.type() == Value::literal) {
+         auto& v = static_cast<const LiteralValue&>(s);
+         if (v.value() != 0 &&
+             v.value() != 1 &&
+             v.value_float() != 1.0f &&
+             v.value_float() != 0.5f &&
+             v.value() != 0xffffffff)
+            m_nliterals_in_group.insert(v.value());
+      }
    }
 
    /* This instruction group would exceed the limit of literals, so
     * force a new instruction group by adding a NOP as last
     * instruction. This will no loner be needed with a real
     * scheduler */
-   if (m_nliterals_in_group > 4) {
-      sfn_log << SfnLog::assembly << "  Have " << m_nliterals_in_group << " inject a last op (nop)\n";
+   if (m_nliterals_in_group.size() > 4) {
+      sfn_log << SfnLog::assembly << "  Have " << m_nliterals_in_group.size() << " inject a last op (nop)\n";
       alu.op = ALU_OP0_NOP;
       alu.last = 1;
       alu.dst.chan = 3;
@@ -242,7 +251,14 @@ bool AssemblyFromShaderLegacyImpl::visit(const AluInstruction& ai)
       if (retval)
          return false;
       memset(&alu, 0, sizeof(alu));
-      m_nliterals_in_group -= old_nliterals_in_group;
+      m_nliterals_in_group.clear();
+      for (unsigned i = 0; i < ai.n_sources(); ++i) {
+         auto& s = ai.src(i);
+         if (s.type() == Value::literal) {
+            auto& v = static_cast<const LiteralValue&>(s);
+            m_nliterals_in_group.insert(v.value());
+         }
+      }
    }
 
    alu.op = opcode_map.at(ai.opcode());
@@ -333,7 +349,7 @@ bool AssemblyFromShaderLegacyImpl::visit(const AluInstruction& ai)
    }
 
    if (alu.last)
-      m_nliterals_in_group = 0;
+      m_nliterals_in_group.clear();
 
    bool retval = !r600_bytecode_add_alu_type(m_bc, &alu, type);
 
@@ -617,45 +633,30 @@ bool AssemblyFromShaderLegacyImpl::visit(const MemRingOutIntruction& instr)
 
 bool AssemblyFromShaderLegacyImpl::visit(const TexInstruction & tex_instr)
 {
+   int sampler_offset = 0;
    auto addr = tex_instr.sampler_offset();
-   if (addr && (!m_bc->index_loaded[1] || m_loop_nesting
-                ||  m_bc->index_reg[1] != addr->sel()
-                ||  m_bc->index_reg_chan[1] != addr->chan())) {
-      struct r600_bytecode_alu alu;
-      memset(&alu, 0, sizeof(alu));
-      alu.op = opcode_map.at(op1_mova_int);
-      alu.dst.chan = 0;
-      alu.src[0].sel = addr->sel();
-      alu.src[0].chan = addr->chan();
-      alu.last = 1;
-      int r = r600_bytecode_add_alu(m_bc, &alu);
-      if (r)
-         return false;
+   EBufferIndexMode index_mode = bim_none;
 
-      m_bc->ar_loaded = 0;
+   if (addr) {
+      if (addr->type() == Value::literal) {
+         const auto& boffs = static_cast<const LiteralValue&>(*addr);
+         sampler_offset = boffs.value();
+      } else {
+         index_mode = emit_index_reg(*addr, 1);
+      }
+   }
 
-      alu.op = opcode_map.at(op1_set_cf_idx1);
-      alu.dst.chan = 0;
-      alu.src[0].sel = 0;
-      alu.src[0].chan = 0;
-      alu.last = 1;
-
-      r = r600_bytecode_add_alu(m_bc, &alu);
-      if (r)
-         return false;
-
-      m_bc->index_reg[1] = addr->sel();
-      m_bc->index_reg_chan[1] = addr->chan();
-      m_bc->index_loaded[1] = true;
+   if (tex_fetch_results.find(tex_instr.src().sel()) !=
+       tex_fetch_results.end()) {
+      m_bc->force_add_cf = 1;
+      tex_fetch_results.clear();
    }
 
    r600_bytecode_tex tex;
    memset(&tex, 0, sizeof(struct r600_bytecode_tex));
    tex.op = tex_instr.opcode();
-   tex.sampler_id = tex_instr.sampler_id();
-   tex.sampler_index_mode = 0;
-   tex.resource_id = tex_instr.resource_id();;
-   tex.resource_index_mode = 0;
+   tex.sampler_id = tex_instr.sampler_id() + sampler_offset;
+   tex.resource_id = tex_instr.resource_id() + sampler_offset;
    tex.src_gpr = tex_instr.src().sel();
    tex.dst_gpr = tex_instr.dst().sel();
    tex.dst_sel_x = tex_instr.dest_swizzle(0);
@@ -673,8 +674,14 @@ bool AssemblyFromShaderLegacyImpl::visit(const TexInstruction & tex_instr)
    tex.offset_x = tex_instr.get_offset(0);
    tex.offset_y = tex_instr.get_offset(1);
    tex.offset_z = tex_instr.get_offset(2);
-   tex.resource_index_mode = (!!addr) ? 2 : 0;
-   tex.sampler_index_mode = tex.resource_index_mode;
+   tex.resource_index_mode = index_mode;
+   tex.sampler_index_mode = index_mode;
+
+   if (tex.dst_sel_x < 4 &&
+       tex.dst_sel_y < 4 &&
+       tex.dst_sel_z < 4 &&
+       tex.dst_sel_w < 4)
+      tex_fetch_results.insert(tex.dst_gpr);
 
    if (tex_instr.opcode() == TexInstruction::get_gradient_h ||
        tex_instr.opcode() == TexInstruction::get_gradient_v)
@@ -710,12 +717,25 @@ bool AssemblyFromShaderLegacyImpl::visit(const FetchInstruction& fetch_instr)
       }
    }
 
-   if (vtx_fetch_results.find(fetch_instr.src().sel()) !=
+   bool use_tc = fetch_instr.use_tc() || (m_bc->chip_class == CAYMAN);
+   if (!use_tc &&
+       vtx_fetch_results.find(fetch_instr.src().sel()) !=
        vtx_fetch_results.end()) {
       m_bc->force_add_cf = 1;
       vtx_fetch_results.clear();
    }
-   vtx_fetch_results.insert(fetch_instr.dst().sel());
+
+   if (fetch_instr.use_tc() &&
+       tex_fetch_results.find(fetch_instr.src().sel()) !=
+       tex_fetch_results.end()) {
+      m_bc->force_add_cf = 1;
+      tex_fetch_results.clear();
+   }
+
+   if (use_tc)
+      tex_fetch_results.insert(fetch_instr.dst().sel());
+   else
+      vtx_fetch_results.insert(fetch_instr.dst().sel());
 
    struct r600_bytecode_vtx vtx;
    memset(&vtx, 0, sizeof(vtx));
@@ -744,6 +764,7 @@ bool AssemblyFromShaderLegacyImpl::visit(const FetchInstruction& fetch_instr)
    vtx.array_size = fetch_instr.array_size();
    vtx.srf_mode_all = fetch_instr.srf_mode_no_zero();
 
+
    if (fetch_instr.use_tc()) {
       if ((r600_bytecode_add_vtx_tc(m_bc, &vtx))) {
          R600_ERR("shader_from_nir: Error creating tex assembly instruction\n");
@@ -757,7 +778,7 @@ bool AssemblyFromShaderLegacyImpl::visit(const FetchInstruction& fetch_instr)
       }
    }
 
-   m_bc->cf_last->vpm = fetch_instr.use_vpm();
+   m_bc->cf_last->vpm = (m_bc->type == PIPE_SHADER_FRAGMENT) && fetch_instr.use_vpm();
    m_bc->cf_last->barrier = 1;
 
    return true;
@@ -776,8 +797,10 @@ bool AssemblyFromShaderLegacyImpl::visit(const EmitVertex &instr)
 bool AssemblyFromShaderLegacyImpl::visit(const WaitAck& instr)
 {
    int r = r600_bytecode_add_cfinst(m_bc, instr.op());
-   if (!r)
+   if (!r) {
       m_bc->cf_last->cf_addr = instr.n_ack();
+      m_bc->cf_last->barrier = 1;
+   }
 
    return r == 0;
 }
@@ -858,7 +881,7 @@ bool AssemblyFromShaderLegacyImpl::visit(const GDSInstr& instr)
    int r = r600_bytecode_add_gds(m_bc, &gds);
    if (r)
       return false;
-   m_bc->cf_last->vpm = 1;
+   m_bc->cf_last->vpm = PIPE_SHADER_FRAGMENT == m_bc->type;
    m_bc->cf_last->barrier = 1;
    return true;
 }
@@ -1041,7 +1064,7 @@ bool AssemblyFromShaderLegacyImpl::visit(const RatInstruction& instr)
              instr.data_swz(2) == PIPE_SWIZZLE_MAX) ;
    }
 
-   cf->vpm = 1;
+   cf->vpm = m_bc->type == PIPE_SHADER_FRAGMENT;
    cf->barrier = 1;
    cf->mark = instr.need_ack();
    cf->output.elem_size = instr.elm_size();
@@ -1053,8 +1076,6 @@ AssemblyFromShaderLegacyImpl::emit_index_reg(const Value& addr, unsigned idx)
 {
    assert(idx < 2);
 
-   EAluOp idxop = idx ? op1_set_cf_idx1 : op1_set_cf_idx0;
-
    if (!m_bc->index_loaded[idx] || m_loop_nesting ||
        m_bc->index_reg[idx] != addr.sel()
        ||  m_bc->index_reg_chan[idx] != addr.chan()) {
@@ -1062,31 +1083,46 @@ AssemblyFromShaderLegacyImpl::emit_index_reg(const Value& addr, unsigned idx)
 
       // Make sure MOVA is not last instr in clause
       if ((m_bc->cf_last->ndw>>1) >= 110)
-              m_bc->force_add_cf = 1;
+         m_bc->force_add_cf = 1;
 
-      memset(&alu, 0, sizeof(alu));
-      alu.op = opcode_map.at(op1_mova_int);
-      alu.dst.chan = 0;
-      alu.src[0].sel = addr.sel();
-      alu.src[0].chan = addr.chan();
-      alu.last = 1;
-      sfn_log << SfnLog::assembly << "   mova_int, ";
-      int r = r600_bytecode_add_alu(m_bc, &alu);
-      if (r)
-         return bim_invalid;
+      if (m_bc->chip_class != CAYMAN) {
+
+         EAluOp idxop = idx ? op1_set_cf_idx1 : op1_set_cf_idx0;
+         memset(&alu, 0, sizeof(alu));
+         alu.op = opcode_map.at(op1_mova_int);
+         alu.dst.chan = 0;
+         alu.src[0].sel = addr.sel();
+         alu.src[0].chan = addr.chan();
+         alu.last = 1;
+         sfn_log << SfnLog::assembly << "   mova_int, ";
+         int r = r600_bytecode_add_alu(m_bc, &alu);
+         if (r)
+            return bim_invalid;
+
+         alu.op = opcode_map.at(idxop);
+         alu.dst.chan = 0;
+         alu.src[0].sel = 0;
+         alu.src[0].chan = 0;
+         alu.last = 1;
+         sfn_log << SfnLog::assembly << "op1_set_cf_idx" << idx;
+         r = r600_bytecode_add_alu(m_bc, &alu);
+         if (r)
+            return bim_invalid;
+      } else {
+         memset(&alu, 0, sizeof(alu));
+         alu.op = opcode_map.at(op1_mova_int);
+         alu.dst.sel = idx == 0 ? CM_V_SQ_MOVA_DST_CF_IDX0 : CM_V_SQ_MOVA_DST_CF_IDX1;
+         alu.dst.chan = 0;
+         alu.src[0].sel = addr.sel();
+         alu.src[0].chan = addr.chan();
+         alu.last = 1;
+         sfn_log << SfnLog::assembly << "   mova_int, ";
+         int r = r600_bytecode_add_alu(m_bc, &alu);
+         if (r)
+            return bim_invalid;
+      }
 
       m_bc->ar_loaded = 0;
-
-      alu.op = opcode_map.at(idxop);
-      alu.dst.chan = 0;
-      alu.src[0].sel = 0;
-      alu.src[0].chan = 0;
-      alu.last = 1;
-      sfn_log << SfnLog::assembly << "op1_set_cf_idx" << idx;
-      r = r600_bytecode_add_alu(m_bc, &alu);
-      if (r)
-         return bim_invalid;
-
       m_bc->index_reg[idx] = addr.sel();
       m_bc->index_reg_chan[idx] = addr.chan();
       m_bc->index_loaded[idx] = true;
@@ -1142,31 +1178,26 @@ bool AssemblyFromShaderLegacyImpl::copy_src(r600_bytecode_alu_src& src, const Va
       if (v.value() == 0) {
          src.sel = ALU_SRC_0;
          src.chan = 0;
-         --m_nliterals_in_group;
          return true;
       }
       if (v.value() == 1) {
          src.sel = ALU_SRC_1_INT;
          src.chan = 0;
-         --m_nliterals_in_group;
          return true;
       }
       if (v.value_float() == 1.0f) {
          src.sel = ALU_SRC_1;
          src.chan = 0;
-         --m_nliterals_in_group;
          return true;
       }
       if (v.value_float() == 0.5f) {
          src.sel = ALU_SRC_0_5;
          src.chan = 0;
-         --m_nliterals_in_group;
          return true;
       }
       if (v.value() == 0xffffffff) {
          src.sel = ALU_SRC_M_1_INT;
          src.chan = 0;
-         --m_nliterals_in_group;
          return true;
       }
       src.value = v.value();

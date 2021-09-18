@@ -23,12 +23,13 @@
  * SOFTWARE.
  */
 
-#include <midgard_pack.h>
+#include <gen_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <ctype.h>
 #include "decode.h"
 
@@ -55,7 +56,7 @@
         const uint8_t *cl = 0; \
         { \
                 struct pandecode_mapped_memory *mapped_mem = pandecode_find_mapped_gpu_mem_containing(addr); \
-                cl = pandecode_fetch_gpu_mem(mapped_mem, addr, MALI_ ## T ## _LENGTH); \
+                cl = pandecode_fetch_gpu_mem(mapped_mem, addr, pan_size(T)); \
         }
 
 #define DUMP_ADDR(T, addr, ...) {\
@@ -242,7 +243,7 @@ pandecode_render_target(uint64_t gpu_va, unsigned job_no, bool is_bifrost, unsig
         pandecode_indent++;
 
         for (int i = 0; i < (fb->render_target_count); i++) {
-                mali_ptr rt_va = gpu_va + i * MALI_RENDER_TARGET_LENGTH;
+                mali_ptr rt_va = gpu_va + i * pan_size(RENDER_TARGET);
                 struct pandecode_mapped_memory *mem =
                         pandecode_find_mapped_gpu_mem_containing(rt_va);
                 const struct mali_render_target_packed *PANDECODE_PTR_VAR(rtp, mem, (mali_ptr) rt_va);
@@ -289,7 +290,7 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_bifros
                 pandecode_sample_locations(fb, job_no);
 
                 pan_section_unpack(fb, MULTI_TARGET_FRAMEBUFFER, BIFROST_PARAMETERS, bparams);
-                unsigned dcd_size = MALI_DRAW_LENGTH + MALI_DRAW_PADDING_LENGTH;
+                unsigned dcd_size = pan_size(DRAW) + pan_size(DRAW_PADDING);
                 struct pandecode_mapped_memory *dcdmem =
                         pandecode_find_mapped_gpu_mem_containing(bparams.frame_shader_dcds);
 
@@ -341,7 +342,7 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_bifros
         pandecode_indent--;
         pandecode_log("\n");
 
-        gpu_va += MALI_MULTI_TARGET_FRAMEBUFFER_LENGTH;
+        gpu_va += pan_size(MULTI_TARGET_FRAMEBUFFER);
 
         info.has_extra = params.has_zs_crc_extension;
 
@@ -352,7 +353,7 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_bifros
                 DUMP_CL(ZS_CRC_EXTENSION, zs_crc, "ZS CRC Extension:\n");
                 pandecode_log("\n");
 
-                gpu_va += MALI_ZS_CRC_EXTENSION_LENGTH;
+                gpu_va += pan_size(ZS_CRC_EXTENSION);
         }
 
         if (is_fragment)
@@ -377,26 +378,26 @@ pandecode_attributes(const struct pandecode_mapped_memory *mem,
         MAP_ADDR(ATTRIBUTE_BUFFER, addr, cl);
 
         for (int i = 0; i < count; ++i) {
-                pan_unpack(cl + i * MALI_ATTRIBUTE_BUFFER_LENGTH, ATTRIBUTE_BUFFER, temp);
+                pan_unpack(cl + i * pan_size(ATTRIBUTE_BUFFER), ATTRIBUTE_BUFFER, temp);
                 DUMP_UNPACKED(ATTRIBUTE_BUFFER, temp, "%s:\n", prefix);
 
                 switch (temp.type) {
                 case MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR_WRITE_REDUCTION:
                 case MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR: {
-                        pan_unpack(cl + (i + 1) * MALI_ATTRIBUTE_BUFFER_LENGTH,
+                        pan_unpack(cl + (i + 1) * pan_size(ATTRIBUTE_BUFFER),
                                    ATTRIBUTE_BUFFER_CONTINUATION_NPOT, temp2);
                         pan_print(pandecode_dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_NPOT,
                                   temp2, (pandecode_indent + 1) * 2);
-                        i++; count++;
+                        i++;
                         break;
                 }
                 case MALI_ATTRIBUTE_TYPE_3D_LINEAR:
                 case MALI_ATTRIBUTE_TYPE_3D_INTERLEAVED: {
-                        pan_unpack(cl + (i + 1) * MALI_ATTRIBUTE_BUFFER_CONTINUATION_3D_LENGTH,
+                        pan_unpack(cl + (i + 1) * pan_size(ATTRIBUTE_BUFFER_CONTINUATION_3D),
                                    ATTRIBUTE_BUFFER_CONTINUATION_3D, temp2);
                         pan_print(pandecode_dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_3D,
                                   temp2, (pandecode_indent + 1) * 2);
-                        i++; count++;
+                        i++;
                         break;
                 }
                 default:
@@ -411,7 +412,7 @@ pandecode_attributes(const struct pandecode_mapped_memory *mem,
 static mali_ptr
 pandecode_bifrost_blend(void *descs, int job_no, int rt_no, mali_ptr frag_shader)
 {
-        pan_unpack(descs + (rt_no * MALI_BLEND_LENGTH), BLEND, b);
+        pan_unpack(descs + (rt_no * pan_size(BLEND)), BLEND, b);
         DUMP_UNPACKED(BLEND, b, "Blend RT %d:\n", rt_no);
         if (b.bifrost.internal.mode != MALI_BIFROST_BLEND_MODE_SHADER)
                 return 0;
@@ -422,24 +423,25 @@ pandecode_bifrost_blend(void *descs, int job_no, int rt_no, mali_ptr frag_shader
 static mali_ptr
 pandecode_midgard_blend_mrt(void *descs, int job_no, int rt_no)
 {
-        pan_unpack(descs + (rt_no * MALI_BLEND_LENGTH), BLEND, b);
+        pan_unpack(descs + (rt_no * pan_size(BLEND)), BLEND, b);
         DUMP_UNPACKED(BLEND, b, "Blend RT %d:\n", rt_no);
         return b.midgard.blend_shader ? (b.midgard.shader_pc & ~0xf) : 0;
 }
 
-/* Attributes and varyings have descriptor records, which contain information
- * about their format and ordering with the attribute/varying buffers. We'll
- * want to validate that the combinations specified are self-consistent.
- */
-
-static int
-pandecode_attribute_meta(int count, mali_ptr attribute, bool varying, char *suffix)
+static unsigned
+pandecode_attribute_meta(int count, mali_ptr attribute, bool varying)
 {
-        for (int i = 0; i < count; ++i, attribute += MALI_ATTRIBUTE_LENGTH)
-                DUMP_ADDR(ATTRIBUTE, attribute, "%s:\n", varying ? "Varying" : "Attribute");
+        unsigned max = 0;
+
+        for (int i = 0; i < count; ++i, attribute += pan_size(ATTRIBUTE)) {
+                MAP_ADDR(ATTRIBUTE, attribute, cl);
+                pan_unpack(cl, ATTRIBUTE, a);
+                DUMP_UNPACKED(ATTRIBUTE, a, "%s:\n", varying ? "Varying" : "Attribute");
+                max = MAX2(max, a.buffer_index);
+        }
 
         pandecode_log("\n");
-        return count;
+        return MIN2(max + 1, 256);
 }
 
 /* return bits [lo, hi) of word */
@@ -448,6 +450,9 @@ bits(u32 word, u32 lo, u32 hi)
 {
         if (hi - lo >= 32)
                 return word; // avoid undefined behavior with the shift
+
+        if (lo >= 32)
+                return 0;
 
         return (word >> lo) & ((1 << (hi - lo)) - 1);
 }
@@ -664,7 +669,7 @@ pandecode_texture(mali_ptr u,
                 unsigned job_no, unsigned tex)
 {
         struct pandecode_mapped_memory *mapped_mem = pandecode_find_mapped_gpu_mem_containing(u);
-        const uint8_t *cl = pandecode_fetch_gpu_mem(mapped_mem, u, MALI_MIDGARD_TEXTURE_LENGTH);
+        const uint8_t *cl = pandecode_fetch_gpu_mem(mapped_mem, u, pan_size(MIDGARD_TEXTURE));
 
         pan_unpack(cl, MIDGARD_TEXTURE, temp);
         DUMP_UNPACKED(MIDGARD_TEXTURE, temp, "Texture:\n")
@@ -672,7 +677,7 @@ pandecode_texture(mali_ptr u,
         pandecode_indent++;
         unsigned nr_samples = temp.dimension == MALI_TEXTURE_DIMENSION_3D ?
                               1 : temp.sample_count;
-        pandecode_texture_payload(u + MALI_MIDGARD_TEXTURE_LENGTH,
+        pandecode_texture_payload(u + pan_size(MIDGARD_TEXTURE),
                         temp.dimension, temp.texel_ordering, temp.manual_stride,
                         temp.levels, nr_samples, temp.array_size, mapped_mem);
         pandecode_indent--;
@@ -733,12 +738,12 @@ pandecode_textures(mali_ptr textures, unsigned texture_count, int job_no, bool i
 
         if (is_bifrost) {
                 const void *cl = pandecode_fetch_gpu_mem(mmem,
-                                textures, MALI_BIFROST_TEXTURE_LENGTH *
+                                textures, pan_size(BIFROST_TEXTURE) *
                                 texture_count);
 
                 for (unsigned tex = 0; tex < texture_count; ++tex) {
                         pandecode_bifrost_texture(cl +
-                                        MALI_BIFROST_TEXTURE_LENGTH * tex,
+                                        pan_size(BIFROST_TEXTURE) * tex,
                                         job_no, tex);
                 }
         } else {
@@ -771,9 +776,9 @@ pandecode_samplers(mali_ptr samplers, unsigned sampler_count, int job_no, bool i
 
         for (int i = 0; i < sampler_count; ++i) {
                 if (is_bifrost) {
-                        DUMP_ADDR(BIFROST_SAMPLER, samplers + (MALI_BIFROST_SAMPLER_LENGTH * i), "Sampler %d:\n", i);
+                        DUMP_ADDR(BIFROST_SAMPLER, samplers + (pan_size(BIFROST_SAMPLER) * i), "Sampler %d:\n", i);
                 } else {
-                        DUMP_ADDR(MIDGARD_SAMPLER, samplers + (MALI_MIDGARD_SAMPLER_LENGTH * i), "Sampler %d:\n", i);
+                        DUMP_ADDR(MIDGARD_SAMPLER, samplers + (pan_size(MIDGARD_SAMPLER) * i), "Sampler %d:\n", i);
                 }
         }
 
@@ -787,6 +792,8 @@ pandecode_dcd(const struct MALI_DRAW *p,
               char *suffix, bool is_bifrost, unsigned gpu_id)
 {
         struct pandecode_mapped_memory *attr_mem;
+
+        bool idvs = (job_type == MALI_JOB_TYPE_INDEXED_VERTEX);
 
         struct pandecode_fbd fbd_info = {
                 /* Default for Bifrost */
@@ -806,13 +813,15 @@ pandecode_dcd(const struct MALI_DRAW *p,
 
         if (p->state) {
                 struct pandecode_mapped_memory *smem = pandecode_find_mapped_gpu_mem_containing(p->state);
-                uint32_t *cl = pandecode_fetch_gpu_mem(smem, p->state, MALI_RENDERER_STATE_LENGTH);
+                uint32_t *cl = pandecode_fetch_gpu_mem(smem, p->state, pan_size(RENDERER_STATE));
 
                 pan_unpack(cl, RENDERER_STATE, state);
 
                 if (state.shader.shader & ~0xF)
                         pandecode_shader_disassemble(state.shader.shader & ~0xF, job_no, job_type, is_bifrost, gpu_id);
 
+                if (idvs && state.secondary_shader)
+                        pandecode_shader_disassemble(state.secondary_shader, job_no, job_type, is_bifrost, gpu_id);
                 DUMP_UNPACKED(RENDERER_STATE, state, "State:\n");
                 pandecode_indent++;
 
@@ -844,7 +853,7 @@ pandecode_dcd(const struct MALI_DRAW *p,
 
                 if ((job_type == MALI_JOB_TYPE_TILER || job_type == MALI_JOB_TYPE_FRAGMENT) &&
                     (is_bifrost || p->fbd & MALI_FBD_TAG_IS_MFBD)) {
-                        void* blend_base = ((void *) cl) + MALI_RENDERER_STATE_LENGTH;
+                        void* blend_base = ((void *) cl) + pan_size(RENDERER_STATE);
 
                         for (unsigned i = 0; i < fbd_info.rt_count; i++) {
                                 mali_ptr shader = 0;
@@ -871,7 +880,7 @@ pandecode_dcd(const struct MALI_DRAW *p,
         unsigned max_attr_index = 0;
 
         if (p->attributes)
-                max_attr_index = pandecode_attribute_meta(attribute_count, p->attributes, false, suffix);
+                max_attr_index = pandecode_attribute_meta(attribute_count, p->attributes, false);
 
         if (p->attribute_buffers) {
                 attr_mem = pandecode_find_mapped_gpu_mem_containing(p->attribute_buffers);
@@ -879,7 +888,7 @@ pandecode_dcd(const struct MALI_DRAW *p,
         }
 
         if (p->varyings) {
-                varying_count = pandecode_attribute_meta(varying_count, p->varyings, true, suffix);
+                varying_count = pandecode_attribute_meta(varying_count, p->varyings, true);
         }
 
         if (p->varying_buffers) {
@@ -968,6 +977,41 @@ pandecode_vertex_compute_geometry_job(const struct MALI_JOB_HEADER *h,
         DUMP_UNPACKED(DRAW, draw, "Draw:\n");
         pandecode_indent--;
         pandecode_log("\n");
+}
+
+static void
+pandecode_indexed_vertex_job(const struct MALI_JOB_HEADER *h,
+                             const struct pandecode_mapped_memory *mem,
+                             mali_ptr job, int job_no, bool is_bifrost,
+                             unsigned gpu_id)
+{
+        struct mali_bifrost_indexed_vertex_job_packed *PANDECODE_PTR_VAR(p, mem, job);
+
+        pandecode_log("Vertex:\n");
+        pan_section_unpack(p, BIFROST_INDEXED_VERTEX_JOB, VERTEX_DRAW, vert_draw);
+        pandecode_dcd(&vert_draw, job_no, h->type, "", is_bifrost, gpu_id);
+        DUMP_UNPACKED(DRAW, vert_draw, "Vertex Draw:\n");
+
+        pandecode_log("Fragment:\n");
+        pan_section_unpack(p, BIFROST_INDEXED_VERTEX_JOB, FRAGMENT_DRAW, frag_draw);
+        pandecode_dcd(&frag_draw, job_no, MALI_JOB_TYPE_FRAGMENT, "", is_bifrost, gpu_id);
+        DUMP_UNPACKED(DRAW, frag_draw, "Fragment Draw:\n");
+
+        pan_section_unpack(p, BIFROST_INDEXED_VERTEX_JOB, TILER, tiler_ptr);
+        pandecode_log("Tiler Job Payload:\n");
+        pandecode_indent++;
+        pandecode_bifrost_tiler(tiler_ptr.address, job_no);
+        pandecode_indent--;
+
+        pandecode_invocation(pan_section_ptr(p, BIFROST_INDEXED_VERTEX_JOB, INVOCATION));
+        pandecode_primitive(pan_section_ptr(p, BIFROST_INDEXED_VERTEX_JOB, PRIMITIVE));
+
+        /* TODO: gl_PointSize on Bifrost */
+        pandecode_primitive_size(pan_section_ptr(p, BIFROST_INDEXED_VERTEX_JOB, PRIMITIVE_SIZE), true);
+
+        pan_section_unpack(p, BIFROST_INDEXED_VERTEX_JOB, PADDING, padding);
+        pan_section_unpack(p, BIFROST_INDEXED_VERTEX_JOB, FRAGMENT_DRAW_PADDING, f_padding);
+        pan_section_unpack(p, BIFROST_INDEXED_VERTEX_JOB, VERTEX_DRAW_PADDING, v_padding);
 }
 
 static void
@@ -1075,17 +1119,24 @@ pandecode_write_value_job(const struct pandecode_mapped_memory *mem,
         pandecode_log("\n");
 }
 
+static void
+pandecode_cache_flush_job(const struct pandecode_mapped_memory *mem,
+                          mali_ptr job, int job_no)
+{
+        struct mali_cache_flush_job_packed *PANDECODE_PTR_VAR(p, mem, job);
+        pan_section_unpack(p, CACHE_FLUSH_JOB, PAYLOAD, u);
+        DUMP_SECTION(CACHE_FLUSH_JOB, PAYLOAD, p, "Cache Flush Payload:\n");
+        pandecode_log("\n");
+}
+
 /* Entrypoint to start tracing. jc_gpu_va is the GPU address for the first job
  * in the chain; later jobs are found by walking the chain. Bifrost is, well,
  * if it's bifrost or not. GPU ID is the more finegrained ID (at some point, we
  * might wish to combine this with the bifrost parameter) because some details
- * are model-specific even within a particular architecture. Minimal traces
- * *only* examine the job descriptors, skipping printing entirely if there is
- * no faults, and only descends into the payload if there are faults. This is
- * useful for looking for faults without the overhead of invasive traces. */
+ * are model-specific even within a particular architecture. */
 
 void
-pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id, bool minimal)
+pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id)
 {
         pandecode_dump_file_open();
 
@@ -1102,16 +1153,16 @@ pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id, bool minimal)
 
                 int job_no = job_descriptor_number++;
 
-                /* If the job is good to go, skip it in minimal mode */
-                if (minimal && (h.exception_status == 0x0 || h.exception_status == 0x1))
-                        continue;
-
                 DUMP_UNPACKED(JOB_HEADER, h, "Job Header:\n");
                 pandecode_log("\n");
 
                 switch (h.type) {
                 case MALI_JOB_TYPE_WRITE_VALUE:
                         pandecode_write_value_job(mem, jc_gpu_va, job_no);
+                        break;
+
+                case MALI_JOB_TYPE_CACHE_FLUSH:
+                        pandecode_cache_flush_job(mem, jc_gpu_va, job_no);
                         break;
 
                 case MALI_JOB_TYPE_TILER:
@@ -1127,12 +1178,41 @@ pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id, bool minimal)
                                                               bifrost, gpu_id);
                         break;
 
+                case MALI_JOB_TYPE_INDEXED_VERTEX:
+                        pandecode_indexed_vertex_job(&h, mem, jc_gpu_va, job_no,
+                                                              bifrost, gpu_id);
+                        break;
+
                 case MALI_JOB_TYPE_FRAGMENT:
                         pandecode_fragment_job(mem, jc_gpu_va, job_no, bifrost, gpu_id);
                         break;
 
                 default:
                         break;
+                }
+        } while ((jc_gpu_va = next_job));
+
+        fflush(pandecode_dump_stream);
+        pandecode_map_read_write();
+}
+
+void
+pandecode_abort_on_fault(mali_ptr jc_gpu_va)
+{
+        mali_ptr next_job = 0;
+
+        do {
+                struct pandecode_mapped_memory *mem =
+                        pandecode_find_mapped_gpu_mem_containing(jc_gpu_va);
+
+                pan_unpack(PANDECODE_PTR(mem, jc_gpu_va, struct mali_job_header_packed),
+                           JOB_HEADER, h);
+                next_job = h.next;
+
+                /* Ensure the job is marked COMPLETE */
+                if (h.exception_status != 0x1) {
+                        fprintf(stderr, "Incomplete job or timeout");
+                        abort();
                 }
         } while ((jc_gpu_va = next_job));
 

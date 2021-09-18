@@ -234,11 +234,7 @@ convert_loop_exit_for_ssa(nir_ssa_def *def, void *void_state)
     */
    uint32_t num_exits = state->block_after_loop->predecessors->entries;
    for (uint32_t i = 0; i < num_exits; i++) {
-      nir_phi_src *phi_src = ralloc(phi, nir_phi_src);
-      phi_src->src = nir_src_for_ssa(def);
-      phi_src->pred = state->exit_blocks[i];
-
-      exec_list_push_tail(&phi->srcs, &phi_src->node);
+      nir_phi_instr_add_src(phi, state->exit_blocks[i], nir_src_for_ssa(def));
    }
 
    nir_instr_insert_before_block(state->block_after_loop, &phi->instr);

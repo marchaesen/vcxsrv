@@ -46,13 +46,6 @@ struct agx_ptr {
    uint64_t gpu;
 };
 
-enum agx_bo_access {
-   AGX_BO_ACCESS_NONE = 0,
-   AGX_BO_ACCESS_R = 1,
-   AGX_BO_ACCESS_W = 2,
-   AGX_BO_ACCESS_RW = 3
-};
-
 struct agx_bo {
    enum agx_alloc_type type;
 
@@ -71,9 +64,6 @@ struct agx_bo {
     * accelerators, and channels. Corresponds to Instruments' magic table
     * metal-gpu-submission-to-command-buffer-id */
    uint64_t guid;
-
-   /* Outstanding access for bo_wait */
-   enum agx_bo_access access;
 
    /* Human-readable label, or NULL if none */
    char *name;

@@ -35,9 +35,9 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
 
    nir_builder b =
       nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_fmask_expand_cs-%d", samples);
-   b.shader->info.cs.local_size[0] = 8;
-   b.shader->info.cs.local_size[1] = 8;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
 
    nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, type, "s_tex");
    input_img->data.descriptor_set = 0;
@@ -49,10 +49,10 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
    output_img->data.access = ACCESS_NON_READABLE;
 
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
 
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
    nir_ssa_def *layer_id = nir_channel(&b, wg_id, 2);
@@ -92,7 +92,7 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
       nir_ssa_def *outval = &tex_instr[i]->dest.ssa;
 
       nir_image_deref_store(&b, output_img_deref, img_coord, nir_imm_int(&b, i), outval,
-                            nir_imm_int(&b, 0));
+                            nir_imm_int(&b, 0), .image_dim = GLSL_SAMPLER_DIM_MS, .image_array = true);
    }
 
    return b.shader;

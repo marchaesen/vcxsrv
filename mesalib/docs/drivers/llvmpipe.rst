@@ -27,8 +27,7 @@ Requirements
 
    See ``/proc/cpuinfo`` to know what your CPU supports.
 
--  Unless otherwise stated, LLVM version 3.4 is recommended; 3.3 or
-   later is required.
+-  Unless otherwise stated, LLVM version 3.9 or later is required.
 
    For Linux, on a recent Debian based distribution do:
 
@@ -107,9 +106,10 @@ Windows
 
 On Windows, building will create
 ``build/windows-x86-debug/gallium/targets/libgl-gdi/opengl32.dll`` which
-is a drop-in alternative for system's ``opengl32.dll``. To use it put it
-in the same directory as your application. It can also be used by
-replacing the native ICD driver, but it's quite an advanced usage, so if
+is a drop-in alternative for system's ``opengl32.dll``, which will use
+the Mesa ICD, ``build/windows-x86-debug/gallium/targets/wgl/libgallium_wgl.dll``.
+To use it put both dlls in the same directory as your application. It can also
+be used by replacing the native ICD driver, but it's quite an advanced usage, so if
 you need to ask, don't even try it.
 
 There is however an easy way to replace the OpenGL software renderer
@@ -117,7 +117,7 @@ that comes with Microsoft Windows 7 (or later) with llvmpipe (that is,
 on systems without any OpenGL drivers):
 
 -  copy
-   ``build/windows-x86-debug/gallium/targets/libgl-gdi/opengl32.dll`` to
+   ``build/windows-x86-debug/gallium/targets/wgl/libgallium_wgl.dll`` to
    ``C:\Windows\SysWOW64\mesadrv.dll``
 
 -  load this registry settings:

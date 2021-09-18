@@ -77,11 +77,18 @@ REAL_FUNCTION_POINTER(readdir64);
 REAL_FUNCTION_POINTER(readlink);
 REAL_FUNCTION_POINTER(realpath);
 
-#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
+#define HAS_XSTAT __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
+
+#if HAS_XSTAT
 REAL_FUNCTION_POINTER(__xstat);
 REAL_FUNCTION_POINTER(__xstat64);
 REAL_FUNCTION_POINTER(__fxstat);
 REAL_FUNCTION_POINTER(__fxstat64);
+#else
+REAL_FUNCTION_POINTER(stat);
+REAL_FUNCTION_POINTER(stat64);
+REAL_FUNCTION_POINTER(fstat);
+REAL_FUNCTION_POINTER(fstat64);
 #endif
 
 /* Full path of /dev/dri/renderD* */
@@ -209,11 +216,16 @@ init_shim(void)
    GET_FUNCTION_POINTER(readlink);
    GET_FUNCTION_POINTER(realpath);
 
-#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
+#if HAS_XSTAT
    GET_FUNCTION_POINTER(__xstat);
    GET_FUNCTION_POINTER(__xstat64);
    GET_FUNCTION_POINTER(__fxstat);
    GET_FUNCTION_POINTER(__fxstat64);
+#else
+   GET_FUNCTION_POINTER(stat);
+   GET_FUNCTION_POINTER(stat64);
+   GET_FUNCTION_POINTER(fstat);
+   GET_FUNCTION_POINTER(fstat64);
 #endif
 
    get_dri_render_node_minor();
@@ -278,7 +290,7 @@ PUBLIC int open(const char *path, int flags, ...)
 }
 PUBLIC int open64(const char*, int, ...) __attribute__((alias("open")));
 
-#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
+#if HAS_XSTAT
 /* Fakes stat to return character device stuff for our fake render node. */
 PUBLIC int __xstat(int ver, const char *path, struct stat *st)
 {
@@ -376,6 +388,106 @@ PUBLIC int __fxstat64(int ver, int fd, struct stat64 *st)
    memset(st, 0, sizeof(*st));
    st->st_rdev = makedev(DRM_MAJOR, render_node_minor);
    st->st_mode = S_IFCHR;
+
+   return 0;
+}
+
+#else
+
+PUBLIC int stat(const char* path, struct stat* stat_buf)
+{
+   init_shim();
+
+   /* Note: call real stat if we're in the process of probing for a free
+    * render node!
+    */
+   if (render_node_minor == -1)
+      return real_stat(path, stat_buf);
+
+   /* Fool libdrm's probe of whether the /sys dir for this char dev is
+    * there.
+    */
+   char *sys_dev_drm_dir;
+   nfasprintf(&sys_dev_drm_dir,
+              "/sys/dev/char/%d:%d/device/drm",
+              DRM_MAJOR, render_node_minor);
+   if (strcmp(path, sys_dev_drm_dir) == 0) {
+      free(sys_dev_drm_dir);
+      return 0;
+   }
+   free(sys_dev_drm_dir);
+
+   if (strcmp(path, render_node_path) != 0)
+      return real_stat(path, stat_buf);
+
+   memset(stat_buf, 0, sizeof(*stat_buf));
+   stat_buf->st_rdev = makedev(DRM_MAJOR, render_node_minor);
+   stat_buf->st_mode = S_IFCHR;
+
+   return 0;
+}
+
+PUBLIC int stat64(const char* path, struct stat64* stat_buf)
+{
+   init_shim();
+
+   /* Note: call real stat if we're in the process of probing for a free
+    * render node!
+    */
+   if (render_node_minor == -1)
+      return real_stat64(path, stat_buf);
+
+   /* Fool libdrm's probe of whether the /sys dir for this char dev is
+    * there.
+    */
+   char *sys_dev_drm_dir;
+   nfasprintf(&sys_dev_drm_dir,
+              "/sys/dev/char/%d:%d/device/drm",
+              DRM_MAJOR, render_node_minor);
+   if (strcmp(path, sys_dev_drm_dir) == 0) {
+      free(sys_dev_drm_dir);
+      return 0;
+   }
+   free(sys_dev_drm_dir);
+
+   if (strcmp(path, render_node_path) != 0)
+      return real_stat64(path, stat_buf);
+
+   memset(stat_buf, 0, sizeof(*stat_buf));
+   stat_buf->st_rdev = makedev(DRM_MAJOR, render_node_minor);
+   stat_buf->st_mode = S_IFCHR;
+
+   return 0;
+}
+
+PUBLIC int fstat(int fd, struct stat* stat_buf)
+{
+   init_shim();
+
+   struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
+
+   if (!shim_fd)
+      return real_fstat(fd, stat_buf);
+
+   memset(stat_buf, 0, sizeof(*stat_buf));
+   stat_buf->st_rdev = makedev(DRM_MAJOR, render_node_minor);
+   stat_buf->st_mode = S_IFCHR;
+
+   return 0;
+}
+
+PUBLIC int fstat64(int fd, struct stat64* stat_buf)
+{
+   init_shim();
+
+   struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
+
+   if (!shim_fd)
+      return real_fstat64(fd, stat_buf);
+
+   memset(stat_buf, 0, sizeof(*stat_buf));
+   stat_buf->st_rdev = makedev(DRM_MAJOR, render_node_minor);
+   stat_buf->st_mode = S_IFCHR;
 
    return 0;
 }

@@ -98,9 +98,7 @@ panfrost_get_quirks(unsigned gpu_id, unsigned gpu_revision)
                 return MIDGARD_QUIRKS | MIDGARD_NO_HIER_TILING;
 
         case 0x750:
-                /* Someone should investigate the broken loads? */
-                return MIDGARD_QUIRKS | MIDGARD_NO_TYPED_BLEND_LOADS
-                        | NO_BLEND_PACKS;
+                return MIDGARD_QUIRKS;
 
         case 0x860:
         case 0x880:
@@ -116,6 +114,7 @@ panfrost_get_quirks(unsigned gpu_id, unsigned gpu_revision)
 
         case 0x7093: /* G31 */
         case 0x7212: /* G52 */
+        case 0x7402: /* G52r1 */
                 return BIFROST_QUIRKS | HAS_ANISOTROPIC;
 
         default:

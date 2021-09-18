@@ -200,23 +200,18 @@ panfrost_texture_num_elements(
 
 unsigned
 panfrost_estimate_texture_payload_size(const struct panfrost_device *dev,
-                                       unsigned first_level,
-                                       unsigned last_level,
-                                       unsigned first_layer,
-                                       unsigned last_layer,
-                                       unsigned nr_samples,
-                                       enum mali_texture_dimension dim,
-                                       uint64_t modifier)
+                                       const struct pan_image_view *iview)
 {
         /* Assume worst case */
         unsigned manual_stride = pan_is_bifrost(dev) ||
-                                 (modifier == DRM_FORMAT_MOD_LINEAR);
+                                 (iview->image->layout.modifier == DRM_FORMAT_MOD_LINEAR);
 
-        unsigned elements = panfrost_texture_num_elements(
-                        first_level, last_level,
-                        first_layer, last_layer,
-                        nr_samples,
-                        dim == MALI_TEXTURE_DIMENSION_CUBE, manual_stride);
+        unsigned elements =
+                panfrost_texture_num_elements(iview->first_level, iview->last_level,
+                                              iview->first_layer, iview->last_layer,
+                                              iview->image->layout.nr_samples,
+                                              iview->dim == MALI_TEXTURE_DIMENSION_CUBE,
+                                              manual_stride);
 
         return sizeof(mali_ptr) * elements;
 }
@@ -396,7 +391,7 @@ panfrost_emit_texture_payload(const struct panfrost_device *dev,
                         pan_pack(payload, SURFACE, cfg) {
                                 cfg.pointer = pointer;
                         }
-                        payload += MALI_SURFACE_LENGTH;
+                        payload += pan_size(SURFACE);
                 } else {
                         pan_pack(payload, SURFACE_WITH_STRIDE, cfg) {
                                 cfg.pointer = pointer;
@@ -404,9 +399,24 @@ panfrost_emit_texture_payload(const struct panfrost_device *dev,
                                                              &cfg.row_stride,
                                                              &cfg.surface_stride);
                         }
-                        payload += MALI_SURFACE_WITH_STRIDE_LENGTH;
+                        payload += pan_size(SURFACE_WITH_STRIDE);
                 }
         }
+}
+
+/* Map modifiers to mali_texture_layout for packing in a texture descriptor */
+
+static enum mali_texture_layout
+panfrost_modifier_to_layout(uint64_t modifier)
+{
+        if (drm_is_afbc(modifier))
+                return MALI_TEXTURE_LAYOUT_AFBC;
+        else if (modifier == DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED)
+                return MALI_TEXTURE_LAYOUT_TILED;
+        else if (modifier == DRM_FORMAT_MOD_LINEAR)
+                return MALI_TEXTURE_LAYOUT_LINEAR;
+        else
+                unreachable("Invalid modifer");
 }
 
 void
@@ -417,9 +427,6 @@ panfrost_new_texture(const struct panfrost_device *dev,
         const struct pan_image_layout *layout = &iview->image->layout;
         enum pipe_format format = iview->format;
         unsigned swizzle;
-
-        if (drm_is_afbc(layout->modifier))
-                format = panfrost_afbc_format_fixup(dev, format);
 
         if (dev->arch == 7 && util_format_is_depth_or_stencil(format)) {
                 /* v7 doesn't have an _RRRR component order, combine the
@@ -524,11 +531,8 @@ panfrost_compute_checksum_size(
         unsigned width,
         unsigned height)
 {
-        unsigned aligned_width = ALIGN_POT(width, CHECKSUM_TILE_WIDTH);
-        unsigned aligned_height = ALIGN_POT(height, CHECKSUM_TILE_HEIGHT);
-
-        unsigned tile_count_x = aligned_width / CHECKSUM_TILE_WIDTH;
-        unsigned tile_count_y = aligned_height / CHECKSUM_TILE_HEIGHT;
+        unsigned tile_count_x = DIV_ROUND_UP(width, CHECKSUM_TILE_WIDTH);
+        unsigned tile_count_y = DIV_ROUND_UP(height, CHECKSUM_TILE_HEIGHT);
 
         slice->crc.stride = tile_count_x * CHECKSUM_BYTES_PER_TILE;
 
@@ -643,20 +647,15 @@ pan_image_layout_init(const struct panfrost_device *dev,
                 /* Compute the would-be stride */
                 unsigned stride = bytes_per_pixel * effective_width;
 
-                /* On Bifrost, pixel lines have to be aligned on 64 bytes otherwise
-                 * we end up with DATA_INVALID faults. That doesn't seem to be
-                 * mandatory on Midgard, but we keep the alignment for performance.
-                 */
-                if (linear)
-                        stride = ALIGN_POT(stride, 64);
-
                 if (explicit_layout) {
                         /* Make sure the explicit stride is valid */
-                        if (explicit_layout->line_stride < stride ||
-                            (explicit_layout->line_stride & 63))
+                        if (explicit_layout->line_stride < stride)
                                 return false;
 
                         stride = explicit_layout->line_stride;
+                } else if (linear) {
+                        /* Keep lines alignment on 64 byte for performance */
+                        stride = ALIGN_POT(stride, 64);
                 }
 
                 slice->line_stride = stride;

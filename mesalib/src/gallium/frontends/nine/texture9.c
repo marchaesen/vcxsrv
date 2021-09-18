@@ -50,7 +50,7 @@ NineTexture9_ctor( struct NineTexture9 *This,
     struct pipe_screen *screen = pParams->device->screen;
     struct pipe_resource *info = &This->base.base.info;
     enum pipe_format pf;
-    unsigned *level_offsets;
+    unsigned *level_offsets = NULL;
     unsigned l;
     D3DSURFACE_DESC sfdesc;
     HRESULT hr;

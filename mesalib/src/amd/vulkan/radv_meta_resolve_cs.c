@@ -67,9 +67,9 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
    nir_builder b =
       nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "meta_resolve_cs-%d-%s", samples,
                                      is_integer ? "int" : (is_srgb ? "srgb" : "float"));
-   b.shader->info.cs.local_size[0] = 8;
-   b.shader->info.cs.local_size[1] = 8;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
 
    nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, sampler_type, "s_tex");
    input_img->data.descriptor_set = 0;
@@ -79,10 +79,10 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
    output_img->data.descriptor_set = 0;
    output_img->data.binding = 1;
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
 
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
 
@@ -100,7 +100,8 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
 
    nir_ssa_def *coord = nir_iadd(&b, global_id, dst_offset);
    nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->dest.ssa, coord,
-                         nir_ssa_undef(&b, 1, 32), outval, nir_imm_int(&b, 0));
+                         nir_ssa_undef(&b, 1, 32), outval, nir_imm_int(&b, 0),
+                         .image_dim = GLSL_SAMPLER_DIM_2D);
    return b.shader;
 }
 
@@ -137,9 +138,9 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
    nir_builder b = nir_builder_init_simple_shader(
       MESA_SHADER_COMPUTE, NULL, "meta_resolve_cs_%s-%s-%d",
       index == DEPTH_RESOLVE ? "depth" : "stencil", get_resolve_mode_str(resolve_mode), samples);
-   b.shader->info.cs.local_size[0] = 8;
-   b.shader->info.cs.local_size[1] = 8;
-   b.shader->info.cs.local_size[2] = 1;
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
 
    nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, sampler_type, "s_tex");
    input_img->data.descriptor_set = 0;
@@ -149,10 +150,10 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
    output_img->data.descriptor_set = 0;
    output_img->data.binding = 1;
    nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_work_group_id(&b, 32);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
    nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.cs.local_size[0], b.shader->info.cs.local_size[1],
-                    b.shader->info.cs.local_size[2], 0);
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
 
    nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
    nir_ssa_def *layer_id = nir_channel(&b, wg_id, 2);
@@ -229,7 +230,8 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
    nir_ssa_def *coord = nir_vec4(&b, nir_channel(&b, img_coord, 0), nir_channel(&b, img_coord, 1),
                                  nir_channel(&b, img_coord, 2), nir_imm_int(&b, 0));
    nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->dest.ssa, coord,
-                         nir_ssa_undef(&b, 1, 32), outval, nir_imm_int(&b, 0));
+                         nir_ssa_undef(&b, 1, 32), outval, nir_imm_int(&b, 0),
+                         .image_dim = GLSL_SAMPLER_DIM_2D, .image_array = true);
    return b.shader;
 }
 
@@ -678,9 +680,9 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
    uint32_t queue_mask = radv_image_queue_family_mask(dest_image, cmd_buffer->queue_family_index,
                                                       cmd_buffer->queue_family_index);
 
-   if (radv_dcc_enabled(dest_image, region->dstSubresource.mipLevel) &&
-       radv_layout_dcc_compressed(cmd_buffer->device, dest_image, dest_image_layout, false,
-                                  queue_mask) &&
+   if (!radv_image_use_dcc_image_stores(cmd_buffer->device, dest_image) &&
+       radv_layout_dcc_compressed(cmd_buffer->device, dest_image, region->dstSubresource.mipLevel,
+                                  dest_image_layout, false, queue_mask) &&
        (region->dstOffset.x || region->dstOffset.y || region->dstOffset.z ||
         region->extent.width != dest_image->info.width ||
         region->extent.height != dest_image->info.height ||
@@ -761,9 +763,8 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
    radv_meta_restore(&saved_state, cmd_buffer);
 
    if (!radv_image_use_dcc_image_stores(cmd_buffer->device, dest_image) &&
-       radv_dcc_enabled(dest_image, region->dstSubresource.mipLevel) &&
-       radv_layout_dcc_compressed(cmd_buffer->device, dest_image, dest_image_layout, false,
-                                  queue_mask)) {
+       radv_layout_dcc_compressed(cmd_buffer->device, dest_image, region->dstSubresource.mipLevel,
+                                  dest_image_layout, false, queue_mask)) {
 
       cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE;
 

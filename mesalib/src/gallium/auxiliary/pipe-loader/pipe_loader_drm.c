@@ -70,6 +70,7 @@ static const struct pipe_loader_ops pipe_loader_drm_ops;
 static const struct drm_driver_descriptor *driver_descriptors[] = {
    &i915_driver_descriptor,
    &iris_driver_descriptor,
+   &crocus_driver_descriptor,
    &nouveau_driver_descriptor,
    &r300_driver_descriptor,
    &r600_driver_descriptor,
@@ -261,7 +262,7 @@ pipe_loader_drm_get_driconf(struct pipe_loader_device *dev, unsigned *count)
 
 static struct pipe_screen *
 pipe_loader_drm_create_screen(struct pipe_loader_device *dev,
-                              const struct pipe_screen_config *config)
+                              const struct pipe_screen_config *config, bool sw_vk)
 {
    struct pipe_loader_drm_device *ddev = pipe_loader_drm_device(dev);
 

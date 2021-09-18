@@ -36,7 +36,7 @@ struct pan_compute_dim {
 
 struct pan_fb_color_attachment {
         const struct pan_image_view *view;
-        struct pan_image_state *state;
+        bool *crc_valid;
         bool clear;
         bool preload;
         bool discard;
@@ -47,10 +47,6 @@ struct pan_fb_zs_attachment {
         struct {
                 const struct pan_image_view *zs, *s;
         } view;
-
-        struct {
-                struct pan_image_state *zs, *s;
-        } state;
 
         struct {
                 bool z, s;
@@ -134,6 +130,10 @@ pan_emit_tls(const struct panfrost_device *dev,
 bool
 pan_fbd_has_zs_crc_ext(const struct panfrost_device *dev,
                        const struct pan_fb_info *fb);
+
+int
+pan_select_crc_rt(const struct panfrost_device *dev,
+                  const struct pan_fb_info *fb);
 
 unsigned
 pan_emit_fbd(const struct panfrost_device *dev,

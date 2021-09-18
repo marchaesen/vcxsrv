@@ -389,7 +389,7 @@ struct r300_texture_desc {
 
 struct r300_resource
 {
-    struct u_resource b;
+    struct pipe_resource b;
 
     /* Winsys buffer backing this resource. */
     struct pb_buffer *buf;

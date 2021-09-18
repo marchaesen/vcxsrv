@@ -32,6 +32,7 @@
 struct dd_function_table;
 
 extern void
-st_init_eglimage_functions(struct dd_function_table *functions);
+st_init_eglimage_functions(struct dd_function_table *functions,
+                           bool has_egl_image_validate);
 
 #endif /* ST_CB_EGLIMAGE_H */

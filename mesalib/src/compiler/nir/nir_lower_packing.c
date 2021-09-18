@@ -86,81 +86,71 @@ lower_unpack_64_to_16(nir_builder *b, nir_ssa_def *src)
                       nir_unpack_32_2x16_split_y(b, zw));
 }
 
-static bool
-lower_pack_impl(nir_function_impl *impl)
+static nir_ssa_def *
+lower_pack_32_from_8(nir_builder *b, nir_ssa_def *src)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
-   bool progress = false;
+   return nir_pack_32_4x8_split(b, nir_channel(b, src, 0),
+                                   nir_channel(b, src, 1),
+                                   nir_channel(b, src, 2),
+                                   nir_channel(b, src, 3));
+}
 
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_alu)
-            continue;
+static bool
+lower_pack_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_alu)
+      return false;
 
-         nir_alu_instr *alu_instr = (nir_alu_instr *) instr;
+   nir_alu_instr *alu_instr = (nir_alu_instr *) instr;
 
-         if (alu_instr->op != nir_op_pack_64_2x32 &&
-             alu_instr->op != nir_op_unpack_64_2x32 &&
-             alu_instr->op != nir_op_pack_64_4x16 &&
-             alu_instr->op != nir_op_unpack_64_4x16 &&
-             alu_instr->op != nir_op_pack_32_2x16 &&
-             alu_instr->op != nir_op_unpack_32_2x16)
-            continue;
+   if (alu_instr->op != nir_op_pack_64_2x32 &&
+       alu_instr->op != nir_op_unpack_64_2x32 &&
+       alu_instr->op != nir_op_pack_64_4x16 &&
+       alu_instr->op != nir_op_unpack_64_4x16 &&
+       alu_instr->op != nir_op_pack_32_2x16 &&
+       alu_instr->op != nir_op_unpack_32_2x16 &&
+       alu_instr->op != nir_op_pack_32_4x8)
+      return false;
 
-         b.cursor = nir_before_instr(&alu_instr->instr);
+   b->cursor = nir_before_instr(&alu_instr->instr);
 
-         nir_ssa_def *src = nir_ssa_for_alu_src(&b, alu_instr, 0);
-         nir_ssa_def *dest;
+   nir_ssa_def *src = nir_ssa_for_alu_src(b, alu_instr, 0);
+   nir_ssa_def *dest;
 
-         switch (alu_instr->op) {
-         case nir_op_pack_64_2x32:
-            dest = lower_pack_64_from_32(&b, src);
-            break;
-         case nir_op_unpack_64_2x32:
-            dest = lower_unpack_64_to_32(&b, src);
-            break;
-         case nir_op_pack_64_4x16:
-            dest = lower_pack_64_from_16(&b, src);
-            break;
-         case nir_op_unpack_64_4x16:
-            dest = lower_unpack_64_to_16(&b, src);
-            break;
-         case nir_op_pack_32_2x16:
-            dest = lower_pack_32_from_16(&b, src);
-            break;
-         case nir_op_unpack_32_2x16:
-            dest = lower_unpack_32_to_16(&b, src);
-            break;
-         default:
-            unreachable("Impossible opcode");
-         }
-
-         nir_ssa_def_rewrite_uses(&alu_instr->dest.dest.ssa, dest);
-         nir_instr_remove(&alu_instr->instr);
-         progress = true;
-      }
+   switch (alu_instr->op) {
+   case nir_op_pack_64_2x32:
+      dest = lower_pack_64_from_32(b, src);
+      break;
+   case nir_op_unpack_64_2x32:
+      dest = lower_unpack_64_to_32(b, src);
+      break;
+   case nir_op_pack_64_4x16:
+      dest = lower_pack_64_from_16(b, src);
+      break;
+   case nir_op_unpack_64_4x16:
+      dest = lower_unpack_64_to_16(b, src);
+      break;
+   case nir_op_pack_32_2x16:
+      dest = lower_pack_32_from_16(b, src);
+      break;
+   case nir_op_unpack_32_2x16:
+      dest = lower_unpack_32_to_16(b, src);
+      break;
+   case nir_op_pack_32_4x8:
+      dest = lower_pack_32_from_8(b, src);
+      break;
+   default:
+      unreachable("Impossible opcode");
    }
+   nir_ssa_def_rewrite_uses(&alu_instr->dest.dest.ssa, dest);
+   nir_instr_remove(&alu_instr->instr);
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return true;
 }
 
 bool
 nir_lower_pack(nir_shader *shader)
 {
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= lower_pack_impl(function->impl);
-   }
-
-   return false;
+   return nir_shader_instructions_pass(shader, lower_pack_instr,
+         nir_metadata_block_index | nir_metadata_dominance, NULL);
 }

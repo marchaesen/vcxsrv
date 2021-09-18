@@ -25,42 +25,6 @@
 #include "compiler.h"
 #include "midgard_ops.h"
 
-/* Special case for copypropagating the results of vectors */
-
-static bool
-midgard_opt_copy_prop_reg(compiler_context *ctx, midgard_block *block)
-{
-        bool progress = false;
-
-        mir_foreach_instr_in_block_safe(block, ins) {
-                if (ins->type != TAG_ALU_4) continue;
-                if (!OP_IS_MOVE(ins->op)) continue;
-                if (ins->is_pack) continue;
-
-                unsigned from = ins->src[1];
-                unsigned to = ins->dest;
-
-                if (!(to & PAN_IS_REG))  continue;
-                if (from & PAN_IS_REG) continue;
-
-                if (ins->has_inline_constant) continue;
-                if (ins->has_constants) continue;
-                if (mir_nontrivial_mod(ins, 1, true)) continue;
-                if (mir_nontrivial_outmod(ins)) continue;
-                if (!mir_single_use(ctx, from)) continue;
-
-                /* Ensure mask is continguous from 0 */
-                if (!(ins->mask & (1 << COMPONENT_X))) continue;
-                if (ins->mask & (ins->mask + 1)) continue;
-
-                mir_rewrite_index_dst(ctx, from, ins->dest);
-                mir_remove_instruction(ins);
-                progress |= true;
-        }
-
-        return progress;
-}
-
 bool
 midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
 {
@@ -129,5 +93,5 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
                 progress |= true;
         }
 
-        return progress | midgard_opt_copy_prop_reg(ctx, block);
+        return progress;
 }

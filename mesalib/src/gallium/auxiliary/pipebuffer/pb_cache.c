@@ -133,7 +133,7 @@ pb_cache_is_buffer_compat(struct pb_cache_entry *entry,
    if (usage & mgr->bypass_usage)
       return 0;
 
-   if (!pb_check_alignment(alignment, 1ull << buf->alignment_log2))
+   if (!pb_check_alignment(alignment, 1u << buf->alignment_log2))
       return 0;
 
    return mgr->can_reclaim(mgr->winsys, buf) ? 1 : -1;

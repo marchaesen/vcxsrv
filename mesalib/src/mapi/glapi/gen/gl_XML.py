@@ -24,8 +24,6 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
-from __future__ import print_function
-
 from collections import OrderedDict
 from decimal import Decimal
 import xml.etree.ElementTree as ET

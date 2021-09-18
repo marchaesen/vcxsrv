@@ -122,4 +122,17 @@ static inline bool r600_is_vertex_format_supported(enum pipe_format format)
 	return true;
 }
 
+static inline bool r600_is_index_format_supported(enum pipe_format format)
+{
+	switch (format) {
+	case PIPE_FORMAT_R8_UINT:
+	case PIPE_FORMAT_R16_UINT:
+	case PIPE_FORMAT_R32_UINT:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 #endif

@@ -130,6 +130,7 @@ files_libnir = files(
   'nir_lower_array_deref_of_vec.c',
   'nir_lower_atomics_to_ssbo.c',
   'nir_lower_bitmap.c',
+  'nir_lower_blend.c',
   'nir_lower_bool_to_bitsize.c',
   'nir_lower_bool_to_float.c',
   'nir_lower_bool_to_int32.c',
@@ -156,6 +157,7 @@ files_libnir = files(
   'nir_lower_load_const_to_scalar.c',
   'nir_lower_locals_to_regs.c',
   'nir_lower_idiv.c',
+  'nir_lower_image.c',
   'nir_lower_indirect_derefs.c',
   'nir_lower_input_attachments.c',
   'nir_lower_int64.c',
@@ -185,6 +187,7 @@ files_libnir = files(
   'nir_lower_returns.c',
   'nir_lower_samplers.c',
   'nir_lower_scratch.c',
+  'nir_lower_shader_calls.c',
   'nir_lower_ssbo.c',
   'nir_lower_subgroups.c',
   'nir_lower_system_values.c',
@@ -220,6 +223,7 @@ files_libnir = files(
   'nir_opt_dead_cf.c',
   'nir_opt_dead_write_vars.c',
   'nir_opt_find_array_copies.c',
+  'nir_opt_fragdepth.c',
   'nir_opt_gcm.c',
   'nir_opt_idiv_const.c',
   'nir_opt_if.c',
@@ -229,8 +233,10 @@ files_libnir = files(
   'nir_opt_loop_unroll.c',
   'nir_opt_memcpy.c',
   'nir_opt_move.c',
+  'nir_opt_move_discards_to_top.c',
   'nir_opt_offsets.c',
   'nir_opt_peephole_select.c',
+  'nir_opt_phi_precision.c',
   'nir_opt_rematerialize_compares.c',
   'nir_opt_remove_phis.c',
   'nir_opt_shrink_vectors.c',
@@ -389,6 +395,19 @@ if with_tests
   )
 
   test(
+    'nir_core',
+    executable(
+      'nir_core_test',
+      files('tests/core_tests.cpp'),
+      cpp_args : [cpp_msvc_compat_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'nir'],
+  )
+
+  test(
     'nir_vars',
     executable(
       'nir_vars_test',
@@ -494,6 +513,19 @@ if with_tests
     executable(
       'ssa_def_bits_used',
       files('tests/ssa_def_bits_used_tests.cpp'),
+      c_args : [c_msvc_compat_args, no_override_init_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'nir'],
+  )
+
+  test(
+    'algebraic',
+    executable(
+      'algebraic',
+      files('tests/algebraic_tests.cpp'),
       c_args : [c_msvc_compat_args, no_override_init_args],
       gnu_symbol_visibility : 'hidden',
       include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],

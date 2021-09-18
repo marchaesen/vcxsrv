@@ -204,6 +204,7 @@ static void
 fd2_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
                       unsigned start, unsigned nr,
                       unsigned unbind_num_trailing_slots,
+                      bool take_ownership,
                       struct pipe_sampler_view **views) in_dt
 {
    if (shader == PIPE_SHADER_FRAGMENT) {
@@ -218,7 +219,7 @@ fd2_set_sampler_views(struct pipe_context *pctx, enum pipe_shader_type shader,
    }
 
    fd_set_sampler_views(pctx, shader, start, nr, unbind_num_trailing_slots,
-                        views);
+                        take_ownership, views);
 }
 
 /* map gallium sampler-id to hw const-idx.. adreno uses a flat address

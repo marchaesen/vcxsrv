@@ -157,4 +157,18 @@ wsi_get_swapchain_counter(VkDevice                      device,
                           VkSurfaceCounterFlagBitsEXT   flag_bits,
                           uint64_t                      *value);
 
+/* VK_EXT_acquire_drm_display */
+VkResult
+wsi_acquire_drm_display(VkPhysicalDevice     pDevice,
+                        struct wsi_device    *wsi_device,
+                        int                  drmFd,
+                        VkDisplayKHR         display);
+
+VkResult
+wsi_get_drm_display(VkPhysicalDevice      pDevice,
+                    struct wsi_device     *wsi_device,
+                    int                   drmFd,
+                    int                   connectorId,
+                    VkDisplayKHR          *display);
+
 #endif

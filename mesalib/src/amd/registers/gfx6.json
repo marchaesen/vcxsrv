@@ -1073,8 +1073,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 96, "to": "mm"},
-   "name": "SQ_WAVE_PC_LO",
-   "type_ref": "SQ_WAVE_PC_LO"
+   "name": "SQ_WAVE_PC_LO"
   },
   {
    "chips": ["gfx6"],
@@ -1085,14 +1084,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 104, "to": "mm"},
-   "name": "SQ_WAVE_INST_DW0",
-   "type_ref": "SQ_WAVE_INST_DW0"
+   "name": "SQ_WAVE_INST_DW0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 108, "to": "mm"},
-   "name": "SQ_WAVE_INST_DW1",
-   "type_ref": "SQ_WAVE_INST_DW1"
+   "name": "SQ_WAVE_INST_DW1"
   },
   {
    "chips": ["gfx6"],
@@ -1103,8 +1100,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 2480, "to": "mm"},
-   "name": "SQ_WAVE_TBA_LO",
-   "type_ref": "SQ_WAVE_TBA_LO"
+   "name": "SQ_WAVE_TBA_LO"
   },
   {
    "chips": ["gfx6"],
@@ -1115,8 +1111,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 2488, "to": "mm"},
-   "name": "SQ_WAVE_TMA_LO",
-   "type_ref": "SQ_WAVE_TBA_LO"
+   "name": "SQ_WAVE_TMA_LO"
   },
   {
    "chips": ["gfx6"],
@@ -1127,92 +1122,77 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 2496, "to": "mm"},
-   "name": "SQ_WAVE_TTMP0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2500, "to": "mm"},
-   "name": "SQ_WAVE_TTMP1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2504, "to": "mm"},
-   "name": "SQ_WAVE_TTMP2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2508, "to": "mm"},
-   "name": "SQ_WAVE_TTMP3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2512, "to": "mm"},
-   "name": "SQ_WAVE_TTMP4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2516, "to": "mm"},
-   "name": "SQ_WAVE_TTMP5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2520, "to": "mm"},
-   "name": "SQ_WAVE_TTMP6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2524, "to": "mm"},
-   "name": "SQ_WAVE_TTMP7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2528, "to": "mm"},
-   "name": "SQ_WAVE_TTMP8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2532, "to": "mm"},
-   "name": "SQ_WAVE_TTMP9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2536, "to": "mm"},
-   "name": "SQ_WAVE_TTMP10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2540, "to": "mm"},
-   "name": "SQ_WAVE_TTMP11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_WAVE_TTMP11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2544, "to": "mm"},
-   "name": "SQ_WAVE_M0",
-   "type_ref": "SQ_WAVE_M0"
+   "name": "SQ_WAVE_M0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2552, "to": "mm"},
-   "name": "SQ_WAVE_EXEC_LO",
-   "type_ref": "SQ_WAVE_EXEC_LO"
+   "name": "SQ_WAVE_EXEC_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 2556, "to": "mm"},
-   "name": "SQ_WAVE_EXEC_HI",
-   "type_ref": "SQ_WAVE_EXEC_HI"
+   "name": "SQ_WAVE_EXEC_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1271,8 +1251,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 32808, "to": "mm"},
-   "name": "GRBM_DEBUG_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "GRBM_DEBUG_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -1331,26 +1310,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 32888, "to": "mm"},
-   "name": "GRBM_PERFCOUNTER0_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "GRBM_PERFCOUNTER0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 32892, "to": "mm"},
-   "name": "GRBM_PERFCOUNTER0_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "GRBM_PERFCOUNTER0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 32896, "to": "mm"},
-   "name": "GRBM_PERFCOUNTER1_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "GRBM_PERFCOUNTER1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 32900, "to": "mm"},
-   "name": "GRBM_PERFCOUNTER1_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "GRBM_PERFCOUNTER1_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1367,26 +1342,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 32936, "to": "mm"},
-   "name": "GRBM_SE0_PERFCOUNTER_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "GRBM_SE0_PERFCOUNTER_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 32940, "to": "mm"},
-   "name": "GRBM_SE0_PERFCOUNTER_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "GRBM_SE0_PERFCOUNTER_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 32944, "to": "mm"},
-   "name": "GRBM_SE1_PERFCOUNTER_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "GRBM_SE1_PERFCOUNTER_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 32948, "to": "mm"},
-   "name": "GRBM_SE1_PERFCOUNTER_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "GRBM_SE1_PERFCOUNTER_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1397,62 +1368,52 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 33012, "to": "mm"},
-   "name": "DEBUG_DATA",
-   "type_ref": "DEBUG_DATA"
+   "name": "DEBUG_DATA"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33020, "to": "mm"},
-   "name": "GRBM_NOWHERE",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "GRBM_NOWHERE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33024, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG0",
-   "type_ref": "GRBM_SCRATCH_REG0"
+   "name": "GRBM_SCRATCH_REG0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33028, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG1",
-   "type_ref": "GRBM_SCRATCH_REG1"
+   "name": "GRBM_SCRATCH_REG1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33032, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG2",
-   "type_ref": "GRBM_SCRATCH_REG2"
+   "name": "GRBM_SCRATCH_REG2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33036, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG3",
-   "type_ref": "GRBM_SCRATCH_REG3"
+   "name": "GRBM_SCRATCH_REG3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33040, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG4",
-   "type_ref": "GRBM_SCRATCH_REG4"
+   "name": "GRBM_SCRATCH_REG4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33044, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG5",
-   "type_ref": "GRBM_SCRATCH_REG5"
+   "name": "GRBM_SCRATCH_REG5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33048, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG6",
-   "type_ref": "GRBM_SCRATCH_REG6"
+   "name": "GRBM_SCRATCH_REG6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33052, "to": "mm"},
-   "name": "GRBM_SCRATCH_REG7",
-   "type_ref": "GRBM_SCRATCH_REG7"
+   "name": "GRBM_SCRATCH_REG7"
   },
   {
    "chips": ["gfx6"],
@@ -1475,26 +1436,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 33800, "to": "mm"},
-   "name": "CP_EOP_DONE_DATA_LO",
-   "type_ref": "CP_EOP_DONE_DATA_LO"
+   "name": "CP_EOP_DONE_DATA_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33804, "to": "mm"},
-   "name": "CP_EOP_DONE_DATA_HI",
-   "type_ref": "CP_EOP_DONE_DATA_HI"
+   "name": "CP_EOP_DONE_DATA_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33808, "to": "mm"},
-   "name": "CP_EOP_LAST_FENCE_LO",
-   "type_ref": "CP_EOP_LAST_FENCE_LO"
+   "name": "CP_EOP_LAST_FENCE_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33812, "to": "mm"},
-   "name": "CP_EOP_LAST_FENCE_HI",
-   "type_ref": "CP_EOP_LAST_FENCE_HI"
+   "name": "CP_EOP_LAST_FENCE_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1505,104 +1462,87 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 33820, "to": "mm"},
-   "name": "CP_STREAM_OUT_ADDR_HI",
-   "type_ref": "CP_STREAM_OUT_ADDR_HI"
+   "name": "CP_STREAM_OUT_ADDR_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33824, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT0_LO",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT0_LO"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33828, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT0_HI",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT0_HI"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33832, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT0_LO",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT0_LO"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33836, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT0_HI",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT0_HI"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33840, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT1_LO",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT1_LO"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33844, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT1_HI",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT1_HI"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33848, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT1_LO",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT1_LO"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33852, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT1_HI",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT1_HI"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33856, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT2_LO",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT2_LO"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT2_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33860, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT2_HI",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT2_HI"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT2_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33864, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT2_LO",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT2_LO"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT2_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33868, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT2_HI",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT2_HI"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT2_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33872, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT3_LO",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT3_LO"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT3_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33876, "to": "mm"},
-   "name": "CP_NUM_PRIM_WRITTEN_COUNT3_HI",
-   "type_ref": "CP_NUM_PRIM_WRITTEN_COUNT3_HI"
+   "name": "CP_NUM_PRIM_WRITTEN_COUNT3_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33880, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT3_LO",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT3_LO"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT3_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33884, "to": "mm"},
-   "name": "CP_NUM_PRIM_NEEDED_COUNT3_HI",
-   "type_ref": "CP_NUM_PRIM_NEEDED_COUNT3_HI"
+   "name": "CP_NUM_PRIM_NEEDED_COUNT3_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1613,152 +1553,127 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 33892, "to": "mm"},
-   "name": "CP_PIPE_STATS_ADDR_HI",
-   "type_ref": "CP_PIPE_STATS_ADDR_HI"
+   "name": "CP_PIPE_STATS_ADDR_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33896, "to": "mm"},
-   "name": "CP_VGT_IAVERT_COUNT_LO",
-   "type_ref": "CP_VGT_IAVERT_COUNT_LO"
+   "name": "CP_VGT_IAVERT_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33900, "to": "mm"},
-   "name": "CP_VGT_IAVERT_COUNT_HI",
-   "type_ref": "CP_VGT_IAVERT_COUNT_HI"
+   "name": "CP_VGT_IAVERT_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33904, "to": "mm"},
-   "name": "CP_VGT_IAPRIM_COUNT_LO",
-   "type_ref": "CP_VGT_IAPRIM_COUNT_LO"
+   "name": "CP_VGT_IAPRIM_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33908, "to": "mm"},
-   "name": "CP_VGT_IAPRIM_COUNT_HI",
-   "type_ref": "CP_VGT_IAPRIM_COUNT_HI"
+   "name": "CP_VGT_IAPRIM_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33912, "to": "mm"},
-   "name": "CP_VGT_GSPRIM_COUNT_LO",
-   "type_ref": "CP_VGT_GSPRIM_COUNT_LO"
+   "name": "CP_VGT_GSPRIM_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33916, "to": "mm"},
-   "name": "CP_VGT_GSPRIM_COUNT_HI",
-   "type_ref": "CP_VGT_GSPRIM_COUNT_HI"
+   "name": "CP_VGT_GSPRIM_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33920, "to": "mm"},
-   "name": "CP_VGT_VSINVOC_COUNT_LO",
-   "type_ref": "CP_VGT_VSINVOC_COUNT_LO"
+   "name": "CP_VGT_VSINVOC_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33924, "to": "mm"},
-   "name": "CP_VGT_VSINVOC_COUNT_HI",
-   "type_ref": "CP_VGT_VSINVOC_COUNT_HI"
+   "name": "CP_VGT_VSINVOC_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33928, "to": "mm"},
-   "name": "CP_VGT_GSINVOC_COUNT_LO",
-   "type_ref": "CP_VGT_GSINVOC_COUNT_LO"
+   "name": "CP_VGT_GSINVOC_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33932, "to": "mm"},
-   "name": "CP_VGT_GSINVOC_COUNT_HI",
-   "type_ref": "CP_VGT_GSINVOC_COUNT_HI"
+   "name": "CP_VGT_GSINVOC_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33936, "to": "mm"},
-   "name": "CP_VGT_HSINVOC_COUNT_LO",
-   "type_ref": "CP_VGT_HSINVOC_COUNT_LO"
+   "name": "CP_VGT_HSINVOC_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33940, "to": "mm"},
-   "name": "CP_VGT_HSINVOC_COUNT_HI",
-   "type_ref": "CP_VGT_HSINVOC_COUNT_HI"
+   "name": "CP_VGT_HSINVOC_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33944, "to": "mm"},
-   "name": "CP_VGT_DSINVOC_COUNT_LO",
-   "type_ref": "CP_VGT_DSINVOC_COUNT_LO"
+   "name": "CP_VGT_DSINVOC_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33948, "to": "mm"},
-   "name": "CP_VGT_DSINVOC_COUNT_HI",
-   "type_ref": "CP_VGT_DSINVOC_COUNT_HI"
+   "name": "CP_VGT_DSINVOC_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33952, "to": "mm"},
-   "name": "CP_PA_CINVOC_COUNT_LO",
-   "type_ref": "CP_PA_CINVOC_COUNT_LO"
+   "name": "CP_PA_CINVOC_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33956, "to": "mm"},
-   "name": "CP_PA_CINVOC_COUNT_HI",
-   "type_ref": "CP_PA_CINVOC_COUNT_HI"
+   "name": "CP_PA_CINVOC_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33960, "to": "mm"},
-   "name": "CP_PA_CPRIM_COUNT_LO",
-   "type_ref": "CP_PA_CPRIM_COUNT_LO"
+   "name": "CP_PA_CPRIM_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33964, "to": "mm"},
-   "name": "CP_PA_CPRIM_COUNT_HI",
-   "type_ref": "CP_PA_CPRIM_COUNT_HI"
+   "name": "CP_PA_CPRIM_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33968, "to": "mm"},
-   "name": "CP_SC_PSINVOC_COUNT0_LO",
-   "type_ref": "CP_SC_PSINVOC_COUNT0_LO"
+   "name": "CP_SC_PSINVOC_COUNT0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33972, "to": "mm"},
-   "name": "CP_SC_PSINVOC_COUNT0_HI",
-   "type_ref": "CP_SC_PSINVOC_COUNT0_HI"
+   "name": "CP_SC_PSINVOC_COUNT0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33976, "to": "mm"},
-   "name": "CP_SC_PSINVOC_COUNT1_LO",
-   "type_ref": "CP_SC_PSINVOC_COUNT1_HI"
+   "name": "CP_SC_PSINVOC_COUNT1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33980, "to": "mm"},
-   "name": "CP_SC_PSINVOC_COUNT1_HI",
-   "type_ref": "CP_SC_PSINVOC_COUNT1_HI"
+   "name": "CP_SC_PSINVOC_COUNT1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33984, "to": "mm"},
-   "name": "CP_VGT_CSINVOC_COUNT_LO",
-   "type_ref": "CP_VGT_CSINVOC_COUNT_LO"
+   "name": "CP_VGT_CSINVOC_COUNT_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 33988, "to": "mm"},
-   "name": "CP_VGT_CSINVOC_COUNT_HI",
-   "type_ref": "CP_VGT_CSINVOC_COUNT_HI"
+   "name": "CP_VGT_CSINVOC_COUNT_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1769,50 +1684,42 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34048, "to": "mm"},
-   "name": "SCRATCH_REG0",
-   "type_ref": "GRBM_SCRATCH_REG0"
+   "name": "SCRATCH_REG0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34052, "to": "mm"},
-   "name": "SCRATCH_REG1",
-   "type_ref": "GRBM_SCRATCH_REG1"
+   "name": "SCRATCH_REG1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34056, "to": "mm"},
-   "name": "SCRATCH_REG2",
-   "type_ref": "GRBM_SCRATCH_REG2"
+   "name": "SCRATCH_REG2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34060, "to": "mm"},
-   "name": "SCRATCH_REG3",
-   "type_ref": "GRBM_SCRATCH_REG3"
+   "name": "SCRATCH_REG3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34064, "to": "mm"},
-   "name": "SCRATCH_REG4",
-   "type_ref": "GRBM_SCRATCH_REG4"
+   "name": "SCRATCH_REG4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34068, "to": "mm"},
-   "name": "SCRATCH_REG5",
-   "type_ref": "GRBM_SCRATCH_REG5"
+   "name": "SCRATCH_REG5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34072, "to": "mm"},
-   "name": "SCRATCH_REG6",
-   "type_ref": "GRBM_SCRATCH_REG6"
+   "name": "SCRATCH_REG6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34076, "to": "mm"},
-   "name": "SCRATCH_REG7",
-   "type_ref": "GRBM_SCRATCH_REG7"
+   "name": "SCRATCH_REG7"
   },
   {
    "chips": ["gfx6"],
@@ -1823,8 +1730,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34116, "to": "mm"},
-   "name": "SCRATCH_ADDR",
-   "type_ref": "SCRATCH_ADDR"
+   "name": "SCRATCH_ADDR"
   },
   {
    "chips": ["gfx6"],
@@ -1841,56 +1747,47 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34152, "to": "mm"},
-   "name": "CP_APPEND_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "CP_APPEND_DATA"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34156, "to": "mm"},
-   "name": "CP_APPEND_LAST_CS_FENCE",
-   "type_ref": "CP_APPEND_LAST_CS_FENCE"
+   "name": "CP_APPEND_LAST_CS_FENCE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34160, "to": "mm"},
-   "name": "CP_APPEND_LAST_PS_FENCE",
-   "type_ref": "CP_APPEND_LAST_CS_FENCE"
+   "name": "CP_APPEND_LAST_PS_FENCE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34164, "to": "mm"},
-   "name": "CP_ATOMIC_PREOP_LO",
-   "type_ref": "CP_ATOMIC_PREOP_LO"
+   "name": "CP_ATOMIC_PREOP_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34168, "to": "mm"},
-   "name": "CP_ATOMIC_PREOP_HI",
-   "type_ref": "CP_ATOMIC_PREOP_HI"
+   "name": "CP_ATOMIC_PREOP_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34172, "to": "mm"},
-   "name": "CP_GDS_ATOMIC0_PREOP_LO",
-   "type_ref": "CP_GDS_ATOMIC0_PREOP_LO"
+   "name": "CP_GDS_ATOMIC0_PREOP_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34176, "to": "mm"},
-   "name": "CP_GDS_ATOMIC0_PREOP_HI",
-   "type_ref": "CP_GDS_ATOMIC0_PREOP_HI"
+   "name": "CP_GDS_ATOMIC0_PREOP_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34180, "to": "mm"},
-   "name": "CP_GDS_ATOMIC1_PREOP_LO",
-   "type_ref": "CP_GDS_ATOMIC1_PREOP_LO"
+   "name": "CP_GDS_ATOMIC1_PREOP_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34184, "to": "mm"},
-   "name": "CP_GDS_ATOMIC1_PREOP_HI",
-   "type_ref": "CP_GDS_ATOMIC1_PREOP_HI"
+   "name": "CP_GDS_ATOMIC1_PREOP_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1907,14 +1804,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34220, "to": "mm"},
-   "name": "CP_ME_MC_WDATA_LO",
-   "type_ref": "CP_ME_MC_WDATA_LO"
+   "name": "CP_ME_MC_WDATA_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34224, "to": "mm"},
-   "name": "CP_ME_MC_WDATA_HI",
-   "type_ref": "CP_ME_MC_WDATA_HI"
+   "name": "CP_ME_MC_WDATA_HI"
   },
   {
    "chips": ["gfx6"],
@@ -1931,8 +1826,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34236, "to": "mm"},
-   "name": "CP_SEM_WAIT_TIMER",
-   "type_ref": "CP_SEM_WAIT_TIMER"
+   "name": "CP_SEM_WAIT_TIMER"
   },
   {
    "chips": ["gfx6"],
@@ -1949,8 +1843,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34256, "to": "mm"},
-   "name": "CP_WAIT_REG_MEM_TIMEOUT",
-   "type_ref": "CP_WAIT_REG_MEM_TIMEOUT"
+   "name": "CP_WAIT_REG_MEM_TIMEOUT"
   },
   {
    "chips": ["gfx6"],
@@ -1979,14 +1872,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34292, "to": "mm"},
-   "name": "CP_COHER_SIZE",
-   "type_ref": "CP_COHER_SIZE"
+   "name": "CP_COHER_SIZE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34296, "to": "mm"},
-   "name": "CP_COHER_BASE",
-   "type_ref": "CP_COHER_BASE"
+   "name": "CP_COHER_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -1997,8 +1888,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34304, "to": "mm"},
-   "name": "CP_DMA_ME_SRC_ADDR",
-   "type_ref": "CP_DMA_ME_SRC_ADDR"
+   "name": "CP_DMA_ME_SRC_ADDR"
   },
   {
    "chips": ["gfx6"],
@@ -2009,8 +1899,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34312, "to": "mm"},
-   "name": "CP_DMA_ME_DST_ADDR",
-   "type_ref": "CP_DMA_ME_DST_ADDR"
+   "name": "CP_DMA_ME_DST_ADDR"
   },
   {
    "chips": ["gfx6"],
@@ -2027,8 +1916,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34324, "to": "mm"},
-   "name": "CP_DMA_PFP_SRC_ADDR",
-   "type_ref": "CP_DMA_ME_SRC_ADDR"
+   "name": "CP_DMA_PFP_SRC_ADDR"
   },
   {
    "chips": ["gfx6"],
@@ -2039,8 +1927,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34332, "to": "mm"},
-   "name": "CP_DMA_PFP_DST_ADDR",
-   "type_ref": "CP_DMA_ME_DST_ADDR"
+   "name": "CP_DMA_PFP_DST_ADDR"
   },
   {
    "chips": ["gfx6"],
@@ -2087,8 +1974,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34368, "to": "mm"},
-   "name": "CP_SCRATCH_DATA",
-   "type_ref": "CP_SCRATCH_DATA"
+   "name": "CP_SCRATCH_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -2165,14 +2051,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34436, "to": "mm"},
-   "name": "CP_ME_HEADER_DUMP",
-   "type_ref": "CP_ME_HEADER_DUMP"
+   "name": "CP_ME_HEADER_DUMP"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34440, "to": "mm"},
-   "name": "CP_PFP_HEADER_DUMP",
-   "type_ref": "CP_PFP_HEADER_DUMP"
+   "name": "CP_PFP_HEADER_DUMP"
   },
   {
    "chips": ["gfx6"],
@@ -2183,8 +2067,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34448, "to": "mm"},
-   "name": "CP_CE_HEADER_DUMP",
-   "type_ref": "CP_CE_HEADER_DUMP"
+   "name": "CP_CE_HEADER_DUMP"
   },
   {
    "chips": ["gfx6"],
@@ -2423,8 +2306,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34684, "to": "mm"},
-   "name": "CP_CMD_DATA",
-   "type_ref": "CP_CMD_DATA"
+   "name": "CP_CMD_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -2525,50 +2407,42 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 34960, "to": "mm"},
-   "name": "IA_PERFCOUNTER0_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "IA_PERFCOUNTER0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34964, "to": "mm"},
-   "name": "IA_PERFCOUNTER0_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "IA_PERFCOUNTER0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34968, "to": "mm"},
-   "name": "IA_PERFCOUNTER1_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "IA_PERFCOUNTER1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34972, "to": "mm"},
-   "name": "IA_PERFCOUNTER1_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "IA_PERFCOUNTER1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34976, "to": "mm"},
-   "name": "IA_PERFCOUNTER2_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "IA_PERFCOUNTER2_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34980, "to": "mm"},
-   "name": "IA_PERFCOUNTER2_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "IA_PERFCOUNTER2_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34984, "to": "mm"},
-   "name": "IA_PERFCOUNTER3_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "IA_PERFCOUNTER3_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 34988, "to": "mm"},
-   "name": "IA_PERFCOUNTER3_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "IA_PERFCOUNTER3_HI"
   },
   {
    "chips": ["gfx6"],
@@ -2609,14 +2483,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35016, "to": "mm"},
-   "name": "VGT_ESGS_RING_SIZE",
-   "type_ref": "VGT_ESGS_RING_SIZE"
+   "name": "VGT_ESGS_RING_SIZE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35020, "to": "mm"},
-   "name": "VGT_GSVS_RING_SIZE",
-   "type_ref": "VGT_ESGS_RING_SIZE"
+   "name": "VGT_GSVS_RING_SIZE"
   },
   {
    "chips": ["gfx6"],
@@ -2651,8 +2523,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35044, "to": "mm"},
-   "name": "VGT_DEBUG_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "VGT_DEBUG_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -2663,8 +2534,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35052, "to": "mm"},
-   "name": "IA_DEBUG_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "IA_DEBUG_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -2705,50 +2575,42 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35120, "to": "mm"},
-   "name": "VGT_PERFCOUNTER0_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "VGT_PERFCOUNTER0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35124, "to": "mm"},
-   "name": "VGT_PERFCOUNTER0_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "VGT_PERFCOUNTER0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35128, "to": "mm"},
-   "name": "VGT_PERFCOUNTER1_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "VGT_PERFCOUNTER1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35132, "to": "mm"},
-   "name": "VGT_PERFCOUNTER1_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "VGT_PERFCOUNTER1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35136, "to": "mm"},
-   "name": "VGT_PERFCOUNTER2_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "VGT_PERFCOUNTER2_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35140, "to": "mm"},
-   "name": "VGT_PERFCOUNTER2_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "VGT_PERFCOUNTER2_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35144, "to": "mm"},
-   "name": "VGT_PERFCOUNTER3_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "VGT_PERFCOUNTER3_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35148, "to": "mm"},
-   "name": "VGT_PERFCOUNTER3_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "VGT_PERFCOUNTER3_HI"
   },
   {
    "chips": ["gfx6"],
@@ -2765,38 +2627,32 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35168, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_0",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35172, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_1",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35176, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_2",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35180, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_3",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_FILLED_SIZE_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35184, "to": "mm"},
-   "name": "VGT_NUM_INDICES",
-   "type_ref": "VGT_DMA_SIZE"
+   "name": "VGT_NUM_INDICES"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35188, "to": "mm"},
-   "name": "VGT_NUM_INSTANCES",
-   "type_ref": "VGT_DMA_NUM_INSTANCES"
+   "name": "VGT_NUM_INSTANCES"
   },
   {
    "chips": ["gfx6"],
@@ -2837,8 +2693,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35256, "to": "mm"},
-   "name": "VGT_TF_MEMORY_BASE",
-   "type_ref": "VGT_TF_MEMORY_BASE"
+   "name": "VGT_TF_MEMORY_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -2861,8 +2716,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35332, "to": "mm"},
-   "name": "PA_SU_DEBUG_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "PA_SU_DEBUG_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -2909,8 +2763,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35376, "to": "mm"},
-   "name": "PA_SU_PERFCOUNTER0_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SU_PERFCOUNTER0_LO"
   },
   {
    "chips": ["gfx6"],
@@ -2921,8 +2774,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35384, "to": "mm"},
-   "name": "PA_SU_PERFCOUNTER1_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SU_PERFCOUNTER1_LO"
   },
   {
    "chips": ["gfx6"],
@@ -2933,8 +2785,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35392, "to": "mm"},
-   "name": "PA_SU_PERFCOUNTER2_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SU_PERFCOUNTER2_LO"
   },
   {
    "chips": ["gfx6"],
@@ -2945,8 +2796,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35400, "to": "mm"},
-   "name": "PA_SU_PERFCOUNTER3_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SU_PERFCOUNTER3_LO"
   },
   {
    "chips": ["gfx6"],
@@ -3023,98 +2873,82 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35488, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER0_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35492, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER0_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35496, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER1_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35500, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER1_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35504, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER2_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER2_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35508, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER2_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER2_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35512, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER3_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER3_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35516, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER3_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER3_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35520, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER4_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER4_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35524, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER4_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER4_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35528, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER5_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER5_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35532, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER5_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER5_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35536, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER6_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER6_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35540, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER6_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER6_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35544, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER7_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "PA_SC_PERFCOUNTER7_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35548, "to": "mm"},
-   "name": "PA_SC_PERFCOUNTER7_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "PA_SC_PERFCOUNTER7_HI"
   },
   {
    "chips": ["gfx6"],
@@ -3155,8 +2989,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35804, "to": "mm"},
-   "name": "PA_SC_DEBUG_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "PA_SC_DEBUG_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -3227,194 +3060,162 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 35968, "to": "mm"},
-   "name": "SQ_PERFCOUNTER0_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER0_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35972, "to": "mm"},
-   "name": "SQ_PERFCOUNTER0_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER0_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35976, "to": "mm"},
-   "name": "SQ_PERFCOUNTER1_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER1_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35980, "to": "mm"},
-   "name": "SQ_PERFCOUNTER1_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER1_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35984, "to": "mm"},
-   "name": "SQ_PERFCOUNTER2_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER2_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35988, "to": "mm"},
-   "name": "SQ_PERFCOUNTER2_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER2_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35992, "to": "mm"},
-   "name": "SQ_PERFCOUNTER3_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER3_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 35996, "to": "mm"},
-   "name": "SQ_PERFCOUNTER3_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER3_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36000, "to": "mm"},
-   "name": "SQ_PERFCOUNTER4_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER4_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36004, "to": "mm"},
-   "name": "SQ_PERFCOUNTER4_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER4_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36008, "to": "mm"},
-   "name": "SQ_PERFCOUNTER5_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER5_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36012, "to": "mm"},
-   "name": "SQ_PERFCOUNTER5_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER5_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36016, "to": "mm"},
-   "name": "SQ_PERFCOUNTER6_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER6_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36020, "to": "mm"},
-   "name": "SQ_PERFCOUNTER6_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER6_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36024, "to": "mm"},
-   "name": "SQ_PERFCOUNTER7_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER7_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36028, "to": "mm"},
-   "name": "SQ_PERFCOUNTER7_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER7_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36032, "to": "mm"},
-   "name": "SQ_PERFCOUNTER8_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER8_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36036, "to": "mm"},
-   "name": "SQ_PERFCOUNTER8_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER8_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36040, "to": "mm"},
-   "name": "SQ_PERFCOUNTER9_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER9_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36044, "to": "mm"},
-   "name": "SQ_PERFCOUNTER9_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER9_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36048, "to": "mm"},
-   "name": "SQ_PERFCOUNTER10_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER10_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36052, "to": "mm"},
-   "name": "SQ_PERFCOUNTER10_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER10_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36056, "to": "mm"},
-   "name": "SQ_PERFCOUNTER11_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER11_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36060, "to": "mm"},
-   "name": "SQ_PERFCOUNTER11_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER11_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36064, "to": "mm"},
-   "name": "SQ_PERFCOUNTER12_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER12_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36068, "to": "mm"},
-   "name": "SQ_PERFCOUNTER12_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER12_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36072, "to": "mm"},
-   "name": "SQ_PERFCOUNTER13_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER13_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36076, "to": "mm"},
-   "name": "SQ_PERFCOUNTER13_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER13_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36080, "to": "mm"},
-   "name": "SQ_PERFCOUNTER14_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER14_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36084, "to": "mm"},
-   "name": "SQ_PERFCOUNTER14_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER14_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36088, "to": "mm"},
-   "name": "SQ_PERFCOUNTER15_LO",
-   "type_ref": "GRBM_PERFCOUNTER0_LO"
+   "name": "SQ_PERFCOUNTER15_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36092, "to": "mm"},
-   "name": "SQ_PERFCOUNTER15_HI",
-   "type_ref": "GRBM_PERFCOUNTER0_HI"
+   "name": "SQ_PERFCOUNTER15_HI"
   },
   {
    "chips": ["gfx6"],
@@ -3545,26 +3346,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36324, "to": "mm"},
-   "name": "SQ_IND_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_IND_DATA"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36336, "to": "mm"},
-   "name": "SQ_TIME_HI",
-   "type_ref": "SQ_TIME_HI"
+   "name": "SQ_TIME_HI"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36340, "to": "mm"},
-   "name": "SQ_TIME_LO",
-   "type_ref": "SQ_TIME_HI"
+   "name": "SQ_TIME_LO"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36352, "to": "mm"},
-   "name": "SQ_THREAD_TRACE_BASE",
-   "type_ref": "SQ_THREAD_TRACE_BASE"
+   "name": "SQ_THREAD_TRACE_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -3593,26 +3390,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36384, "to": "mm"},
-   "name": "SQ_THREAD_TRACE_USERDATA_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_THREAD_TRACE_USERDATA_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36388, "to": "mm"},
-   "name": "SQ_THREAD_TRACE_USERDATA_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_THREAD_TRACE_USERDATA_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36392, "to": "mm"},
-   "name": "SQ_THREAD_TRACE_USERDATA_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_THREAD_TRACE_USERDATA_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36396, "to": "mm"},
-   "name": "SQ_THREAD_TRACE_USERDATA_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_THREAD_TRACE_USERDATA_3"
   },
   {
    "chips": ["gfx6"],
@@ -3641,8 +3434,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36416, "to": "mm"},
-   "name": "SQ_THREAD_TRACE_CNTR",
-   "type_ref": "SQ_THREAD_TRACE_CNTR"
+   "name": "SQ_THREAD_TRACE_CNTR"
   },
   {
    "chips": ["gfx6"],
@@ -3671,26 +3463,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36452, "to": "mm"},
-   "name": "SQ_LB_DATA_ALU_CYCLES",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_LB_DATA_ALU_CYCLES"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36456, "to": "mm"},
-   "name": "SQ_LB_DATA_TEX_CYCLES",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_LB_DATA_TEX_CYCLES"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36460, "to": "mm"},
-   "name": "SQ_LB_DATA_ALU_STALLS",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_LB_DATA_ALU_STALLS"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 36464, "to": "mm"},
-   "name": "SQ_LB_DATA_TEX_STALLS",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SQ_LB_DATA_TEX_STALLS"
   },
   {
    "chips": ["gfx6"],
@@ -3719,8 +3507,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36608, "to": "mm"},
-   "name": "SQ_BUF_RSRC_WORD0",
-   "type_ref": "SQ_BUF_RSRC_WORD0"
+   "name": "SQ_BUF_RSRC_WORD0"
   },
   {
    "chips": ["gfx6"],
@@ -3731,8 +3518,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36616, "to": "mm"},
-   "name": "SQ_BUF_RSRC_WORD2",
-   "type_ref": "SQ_BUF_RSRC_WORD2"
+   "name": "SQ_BUF_RSRC_WORD2"
   },
   {
    "chips": ["gfx6"],
@@ -3743,8 +3529,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36624, "to": "mm"},
-   "name": "SQ_IMG_RSRC_WORD0",
-   "type_ref": "SQ_BUF_RSRC_WORD0"
+   "name": "SQ_IMG_RSRC_WORD0"
   },
   {
    "chips": ["gfx6"],
@@ -3785,8 +3570,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 36652, "to": "mm"},
-   "name": "SQ_IMG_RSRC_WORD7",
-   "type_ref": "SQ_IMG_RSRC_WORD7"
+   "name": "SQ_IMG_RSRC_WORD7"
   },
   {
    "chips": ["gfx6"],
@@ -3821,8 +3605,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 38156, "to": "mm"},
-   "name": "TA_CS_BC_BASE_ADDR",
-   "type_ref": "TA_BC_BASE_ADDR"
+   "name": "TA_CS_BC_BASE_ADDR"
   },
   {
    "chips": ["gfx6"],
@@ -4025,8 +3808,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45056, "to": "mm"},
-   "name": "SPI_SHADER_TBA_LO_PS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TBA_LO_PS"
   },
   {
    "chips": ["gfx6"],
@@ -4037,8 +3819,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45064, "to": "mm"},
-   "name": "SPI_SHADER_TMA_LO_PS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TMA_LO_PS"
   },
   {
    "chips": ["gfx6"],
@@ -4049,8 +3830,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45088, "to": "mm"},
-   "name": "SPI_SHADER_PGM_LO_PS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_PGM_LO_PS"
   },
   {
    "chips": ["gfx6"],
@@ -4073,104 +3853,87 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45104, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45108, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45112, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45116, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45120, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45124, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45128, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45132, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45136, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45140, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45144, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45148, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45152, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45156, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45160, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45164, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_PS_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_PS_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45312, "to": "mm"},
-   "name": "SPI_SHADER_TBA_LO_VS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TBA_LO_VS"
   },
   {
    "chips": ["gfx6"],
@@ -4181,8 +3944,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45320, "to": "mm"},
-   "name": "SPI_SHADER_TMA_LO_VS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TMA_LO_VS"
   },
   {
    "chips": ["gfx6"],
@@ -4193,8 +3955,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45344, "to": "mm"},
-   "name": "SPI_SHADER_PGM_LO_VS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_PGM_LO_VS"
   },
   {
    "chips": ["gfx6"],
@@ -4217,104 +3978,87 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45360, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45364, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45368, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45372, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45376, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45380, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45384, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45388, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45392, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45396, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45400, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45404, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45408, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45412, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45416, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45420, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_VS_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_VS_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45568, "to": "mm"},
-   "name": "SPI_SHADER_TBA_LO_GS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TBA_LO_GS"
   },
   {
    "chips": ["gfx6"],
@@ -4325,8 +4069,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45576, "to": "mm"},
-   "name": "SPI_SHADER_TMA_LO_GS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TMA_LO_GS"
   },
   {
    "chips": ["gfx6"],
@@ -4337,8 +4080,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45600, "to": "mm"},
-   "name": "SPI_SHADER_PGM_LO_GS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_PGM_LO_GS"
   },
   {
    "chips": ["gfx6"],
@@ -4361,104 +4103,87 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45616, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45620, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45624, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45628, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45632, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45636, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45640, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45644, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45648, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45652, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45656, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45660, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45664, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45668, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45672, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45676, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_GS_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_GS_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45824, "to": "mm"},
-   "name": "SPI_SHADER_TBA_LO_ES",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TBA_LO_ES"
   },
   {
    "chips": ["gfx6"],
@@ -4469,8 +4194,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45832, "to": "mm"},
-   "name": "SPI_SHADER_TMA_LO_ES",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TMA_LO_ES"
   },
   {
    "chips": ["gfx6"],
@@ -4481,8 +4205,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45856, "to": "mm"},
-   "name": "SPI_SHADER_PGM_LO_ES",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_PGM_LO_ES"
   },
   {
    "chips": ["gfx6"],
@@ -4505,104 +4228,87 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 45872, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45876, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45880, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45884, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45888, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45892, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45896, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45900, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45904, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45908, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45912, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45916, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45920, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45924, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45928, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 45932, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_ES_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_ES_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46080, "to": "mm"},
-   "name": "SPI_SHADER_TBA_LO_HS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TBA_LO_HS"
   },
   {
    "chips": ["gfx6"],
@@ -4613,8 +4319,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 46088, "to": "mm"},
-   "name": "SPI_SHADER_TMA_LO_HS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TMA_LO_HS"
   },
   {
    "chips": ["gfx6"],
@@ -4625,8 +4330,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 46112, "to": "mm"},
-   "name": "SPI_SHADER_PGM_LO_HS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_PGM_LO_HS"
   },
   {
    "chips": ["gfx6"],
@@ -4649,104 +4353,87 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 46128, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46132, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46136, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46140, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46144, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46148, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46152, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46156, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46160, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46164, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46168, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46172, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46176, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46180, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46184, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46188, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_HS_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_HS_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46336, "to": "mm"},
-   "name": "SPI_SHADER_TBA_LO_LS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TBA_LO_LS"
   },
   {
    "chips": ["gfx6"],
@@ -4757,8 +4444,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 46344, "to": "mm"},
-   "name": "SPI_SHADER_TMA_LO_LS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_TMA_LO_LS"
   },
   {
    "chips": ["gfx6"],
@@ -4769,8 +4455,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 46368, "to": "mm"},
-   "name": "SPI_SHADER_PGM_LO_LS",
-   "type_ref": "SPI_SHADER_PGM_LO_ES"
+   "name": "SPI_SHADER_PGM_LO_LS"
   },
   {
    "chips": ["gfx6"],
@@ -4793,98 +4478,82 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 46384, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46388, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46392, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46396, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46400, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46404, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46408, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46412, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46416, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46420, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46424, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46428, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46432, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46436, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46440, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 46444, "to": "mm"},
-   "name": "SPI_SHADER_USER_DATA_LS_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "SPI_SHADER_USER_DATA_LS_15"
   },
   {
    "chips": ["gfx6"],
@@ -4895,38 +4564,32 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 47108, "to": "mm"},
-   "name": "COMPUTE_DIM_X",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "COMPUTE_DIM_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47112, "to": "mm"},
-   "name": "COMPUTE_DIM_Y",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "COMPUTE_DIM_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47116, "to": "mm"},
-   "name": "COMPUTE_DIM_Z",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "COMPUTE_DIM_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47120, "to": "mm"},
-   "name": "COMPUTE_START_X",
-   "type_ref": "COMPUTE_START_X"
+   "name": "COMPUTE_START_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47124, "to": "mm"},
-   "name": "COMPUTE_START_Y",
-   "type_ref": "COMPUTE_START_X"
+   "name": "COMPUTE_START_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47128, "to": "mm"},
-   "name": "COMPUTE_START_Z",
-   "type_ref": "COMPUTE_START_X"
+   "name": "COMPUTE_START_Z"
   },
   {
    "chips": ["gfx6"],
@@ -4949,8 +4612,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 47152, "to": "mm"},
-   "name": "COMPUTE_PGM_LO",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_PGM_LO"
   },
   {
    "chips": ["gfx6"],
@@ -4961,8 +4623,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 47160, "to": "mm"},
-   "name": "COMPUTE_TBA_LO",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_TBA_LO"
   },
   {
    "chips": ["gfx6"],
@@ -4973,8 +4634,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 47168, "to": "mm"},
-   "name": "COMPUTE_TMA_LO",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_TMA_LO"
   },
   {
    "chips": ["gfx6"],
@@ -5027,98 +4687,82 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 47360, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_0",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47364, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_1",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47368, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_2",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47372, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_3",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47376, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_4",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47380, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_5",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47384, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_6",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47388, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_7",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47392, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_8",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47396, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_9",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47400, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_10",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47404, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_11",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47408, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_12",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47412, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_13",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47416, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_14",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 47420, "to": "mm"},
-   "name": "COMPUTE_USER_DATA_15",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "COMPUTE_USER_DATA_15"
   },
   {
    "chips": ["gfx6"],
@@ -5153,20 +4797,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 163860, "to": "mm"},
-   "name": "DB_HTILE_DATA_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "DB_HTILE_DATA_BASE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 163872, "to": "mm"},
-   "name": "DB_DEPTH_BOUNDS_MIN",
-   "type_ref": "DB_DEPTH_BOUNDS_MIN"
+   "name": "DB_DEPTH_BOUNDS_MIN"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 163876, "to": "mm"},
-   "name": "DB_DEPTH_BOUNDS_MAX",
-   "type_ref": "DB_DEPTH_BOUNDS_MAX"
+   "name": "DB_DEPTH_BOUNDS_MAX"
   },
   {
    "chips": ["gfx6"],
@@ -5177,8 +4818,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 163884, "to": "mm"},
-   "name": "DB_DEPTH_CLEAR",
-   "type_ref": "DB_DEPTH_CLEAR"
+   "name": "DB_DEPTH_CLEAR"
   },
   {
    "chips": ["gfx6"],
@@ -5213,26 +4853,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 163912, "to": "mm"},
-   "name": "DB_Z_READ_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "DB_Z_READ_BASE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 163916, "to": "mm"},
-   "name": "DB_STENCIL_READ_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "DB_STENCIL_READ_BASE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 163920, "to": "mm"},
-   "name": "DB_Z_WRITE_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "DB_Z_WRITE_BASE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 163924, "to": "mm"},
-   "name": "DB_STENCIL_WRITE_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "DB_STENCIL_WRITE_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -5249,20 +4885,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 163968, "to": "mm"},
-   "name": "TA_BC_BASE_ADDR",
-   "type_ref": "TA_BC_BASE_ADDR"
+   "name": "TA_BC_BASE_ADDR"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164344, "to": "mm"},
-   "name": "COHER_DEST_BASE_2",
-   "type_ref": "COHER_DEST_BASE_0"
+   "name": "COHER_DEST_BASE_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164348, "to": "mm"},
-   "name": "COHER_DEST_BASE_3",
-   "type_ref": "COHER_DEST_BASE_0"
+   "name": "COHER_DEST_BASE_3"
   },
   {
    "chips": ["gfx6"],
@@ -5375,14 +5008,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 164424, "to": "mm"},
-   "name": "COHER_DEST_BASE_0",
-   "type_ref": "COHER_DEST_BASE_0"
+   "name": "COHER_DEST_BASE_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164428, "to": "mm"},
-   "name": "COHER_DEST_BASE_1",
-   "type_ref": "COHER_DEST_BASE_0"
+   "name": "COHER_DEST_BASE_1"
   },
   {
    "chips": ["gfx6"],
@@ -5579,194 +5210,162 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 164560, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_0",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164564, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_0",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164568, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_1",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164572, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_1",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164576, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_2",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164580, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_2",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164584, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_3",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164588, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_3",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164592, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_4",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164596, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_4",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164600, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_5",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164604, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_5",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164608, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_6",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164612, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_6",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164616, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_7",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164620, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_7",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164624, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_8",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164628, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_8",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164632, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_9",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164636, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_9",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164640, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_10",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164644, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_10",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164648, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_11",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164652, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_11",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164656, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_12",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164660, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_12",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164664, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_13",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164668, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_13",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164672, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_14",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164676, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_14",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164680, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMIN_15",
-   "type_ref": "PA_SC_VPORT_ZMIN_0"
+   "name": "PA_SC_VPORT_ZMIN_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164684, "to": "mm"},
-   "name": "PA_SC_VPORT_ZMAX_15",
-   "type_ref": "PA_SC_VPORT_ZMAX_0"
+   "name": "PA_SC_VPORT_ZMAX_15"
   },
   {
    "chips": ["gfx6"],
@@ -5795,50 +5394,42 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 164864, "to": "mm"},
-   "name": "VGT_MAX_VTX_INDX",
-   "type_ref": "VGT_MAX_VTX_INDX"
+   "name": "VGT_MAX_VTX_INDX"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164868, "to": "mm"},
-   "name": "VGT_MIN_VTX_INDX",
-   "type_ref": "VGT_MIN_VTX_INDX"
+   "name": "VGT_MIN_VTX_INDX"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164872, "to": "mm"},
-   "name": "VGT_INDX_OFFSET",
-   "type_ref": "VGT_INDX_OFFSET"
+   "name": "VGT_INDX_OFFSET"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164876, "to": "mm"},
-   "name": "VGT_MULTI_PRIM_IB_RESET_INDX",
-   "type_ref": "VGT_MULTI_PRIM_IB_RESET_INDX"
+   "name": "VGT_MULTI_PRIM_IB_RESET_INDX"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164884, "to": "mm"},
-   "name": "CB_BLEND_RED",
-   "type_ref": "CB_BLEND_RED"
+   "name": "CB_BLEND_RED"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164888, "to": "mm"},
-   "name": "CB_BLEND_GREEN",
-   "type_ref": "CB_BLEND_GREEN"
+   "name": "CB_BLEND_GREEN"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164892, "to": "mm"},
-   "name": "CB_BLEND_BLUE",
-   "type_ref": "CB_BLEND_BLUE"
+   "name": "CB_BLEND_BLUE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164896, "to": "mm"},
-   "name": "CB_BLEND_ALPHA",
-   "type_ref": "CB_BLEND_ALPHA"
+   "name": "CB_BLEND_ALPHA"
   },
   {
    "chips": ["gfx6"],
@@ -5861,722 +5452,602 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 164924, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164928, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164932, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164936, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164940, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164944, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164948, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_1",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164952, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_1",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164956, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_1",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164960, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_1",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164964, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_1",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164968, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_1",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164972, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_2",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164976, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_2",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164980, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_2",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164984, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_2",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164988, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_2",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164992, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_2",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 164996, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_3",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165000, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_3",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165004, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_3",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165008, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_3",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165012, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_3",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165016, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_3",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165020, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_4",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165024, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_4",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165028, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_4",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165032, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_4",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165036, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_4",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165040, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_4",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_4"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165044, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_5",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165048, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_5",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165052, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_5",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165056, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_5",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165060, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_5",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165064, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_5",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_5"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165068, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_6",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165072, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_6",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165076, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_6",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165080, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_6",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165084, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_6",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165088, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_6",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_6"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165092, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_7",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165096, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_7",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165100, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_7",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165104, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_7",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165108, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_7",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165112, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_7",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_7"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165116, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_8",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165120, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_8",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165124, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_8",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165128, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_8",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165132, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_8",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165136, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_8",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_8"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165140, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_9",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165144, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_9",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165148, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_9",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165152, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_9",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165156, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_9",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165160, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_9",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_9"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165164, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_10",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165168, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_10",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165172, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_10",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165176, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_10",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165180, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_10",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165184, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_10",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_10"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165188, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_11",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165192, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_11",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165196, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_11",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165200, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_11",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165204, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_11",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165208, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_11",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_11"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165212, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_12",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165216, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_12",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165220, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_12",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165224, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_12",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165228, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_12",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165232, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_12",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_12"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165236, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_13",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165240, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_13",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165244, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_13",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165248, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_13",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165252, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_13",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165256, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_13",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_13"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165260, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_14",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165264, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_14",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165268, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_14",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165272, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_14",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165276, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_14",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165280, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_14",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_14"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165284, "to": "mm"},
-   "name": "PA_CL_VPORT_XSCALE_15",
-   "type_ref": "PA_CL_VPORT_XSCALE"
+   "name": "PA_CL_VPORT_XSCALE_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165288, "to": "mm"},
-   "name": "PA_CL_VPORT_XOFFSET_15",
-   "type_ref": "PA_CL_VPORT_XOFFSET"
+   "name": "PA_CL_VPORT_XOFFSET_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165292, "to": "mm"},
-   "name": "PA_CL_VPORT_YSCALE_15",
-   "type_ref": "PA_CL_VPORT_YSCALE"
+   "name": "PA_CL_VPORT_YSCALE_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165296, "to": "mm"},
-   "name": "PA_CL_VPORT_YOFFSET_15",
-   "type_ref": "PA_CL_VPORT_YOFFSET"
+   "name": "PA_CL_VPORT_YOFFSET_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165300, "to": "mm"},
-   "name": "PA_CL_VPORT_ZSCALE_15",
-   "type_ref": "PA_CL_VPORT_ZSCALE"
+   "name": "PA_CL_VPORT_ZSCALE_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165304, "to": "mm"},
-   "name": "PA_CL_VPORT_ZOFFSET_15",
-   "type_ref": "PA_CL_VPORT_ZOFFSET"
+   "name": "PA_CL_VPORT_ZOFFSET_15"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165308, "to": "mm"},
-   "name": "PA_CL_UCP_0_X",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_0_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165312, "to": "mm"},
-   "name": "PA_CL_UCP_0_Y",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_0_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165316, "to": "mm"},
-   "name": "PA_CL_UCP_0_Z",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_0_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165320, "to": "mm"},
-   "name": "PA_CL_UCP_0_W",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_0_W"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165324, "to": "mm"},
-   "name": "PA_CL_UCP_1_X",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_1_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165328, "to": "mm"},
-   "name": "PA_CL_UCP_1_Y",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_1_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165332, "to": "mm"},
-   "name": "PA_CL_UCP_1_Z",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_1_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165336, "to": "mm"},
-   "name": "PA_CL_UCP_1_W",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_1_W"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165340, "to": "mm"},
-   "name": "PA_CL_UCP_2_X",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_2_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165344, "to": "mm"},
-   "name": "PA_CL_UCP_2_Y",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_2_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165348, "to": "mm"},
-   "name": "PA_CL_UCP_2_Z",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_2_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165352, "to": "mm"},
-   "name": "PA_CL_UCP_2_W",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_2_W"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165356, "to": "mm"},
-   "name": "PA_CL_UCP_3_X",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_3_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165360, "to": "mm"},
-   "name": "PA_CL_UCP_3_Y",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_3_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165364, "to": "mm"},
-   "name": "PA_CL_UCP_3_Z",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_3_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165368, "to": "mm"},
-   "name": "PA_CL_UCP_3_W",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_3_W"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165372, "to": "mm"},
-   "name": "PA_CL_UCP_4_X",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_4_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165376, "to": "mm"},
-   "name": "PA_CL_UCP_4_Y",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_4_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165380, "to": "mm"},
-   "name": "PA_CL_UCP_4_Z",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_4_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165384, "to": "mm"},
-   "name": "PA_CL_UCP_4_W",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_4_W"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165388, "to": "mm"},
-   "name": "PA_CL_UCP_5_X",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_5_X"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165392, "to": "mm"},
-   "name": "PA_CL_UCP_5_Y",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_5_Y"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165396, "to": "mm"},
-   "name": "PA_CL_UCP_5_Z",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_5_Z"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165400, "to": "mm"},
-   "name": "PA_CL_UCP_5_W",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_UCP_5_W"
   },
   {
    "chips": ["gfx6"],
@@ -6893,26 +6364,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 165844, "to": "mm"},
-   "name": "PA_CL_POINT_X_RAD",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_POINT_X_RAD"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165848, "to": "mm"},
-   "name": "PA_CL_POINT_Y_RAD",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_POINT_Y_RAD"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165852, "to": "mm"},
-   "name": "PA_CL_POINT_SIZE",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_POINT_SIZE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 165856, "to": "mm"},
-   "name": "PA_CL_POINT_CULL_RAD",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_POINT_CULL_RAD"
   },
   {
    "chips": ["gfx6"],
@@ -6923,8 +6390,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 165864, "to": "mm"},
-   "name": "VGT_DMA_BASE",
-   "type_ref": "VGT_DMA_BASE"
+   "name": "VGT_DMA_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -6935,8 +6401,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 165876, "to": "mm"},
-   "name": "VGT_IMMED_DATA",
-   "type_ref": "SQ_WAVE_TTMP0"
+   "name": "VGT_IMMED_DATA"
   },
   {
    "chips": ["gfx6"],
@@ -7007,8 +6472,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 165928, "to": "mm"},
-   "name": "PA_SU_LINE_STIPPLE_SCALE",
-   "type_ref": "PA_SU_LINE_STIPPLE_SCALE"
+   "name": "PA_SU_LINE_STIPPLE_SCALE"
   },
   {
    "chips": ["gfx6"],
@@ -7055,14 +6519,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166424, "to": "mm"},
-   "name": "VGT_HOS_MAX_TESS_LEVEL",
-   "type_ref": "VGT_HOS_MAX_TESS_LEVEL"
+   "name": "VGT_HOS_MAX_TESS_LEVEL"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166428, "to": "mm"},
-   "name": "VGT_HOS_MIN_TESS_LEVEL",
-   "type_ref": "VGT_HOS_MIN_TESS_LEVEL"
+   "name": "VGT_HOS_MIN_TESS_LEVEL"
   },
   {
    "chips": ["gfx6"],
@@ -7133,8 +6595,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166480, "to": "mm"},
-   "name": "VGT_ENHANCE",
-   "type_ref": "IA_ENHANCE"
+   "name": "VGT_ENHANCE"
   },
   {
    "chips": ["gfx6"],
@@ -7181,20 +6642,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166512, "to": "mm"},
-   "name": "IA_ENHANCE",
-   "type_ref": "IA_ENHANCE"
+   "name": "IA_ENHANCE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166516, "to": "mm"},
-   "name": "VGT_DMA_SIZE",
-   "type_ref": "VGT_DMA_SIZE"
+   "name": "VGT_DMA_SIZE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166520, "to": "mm"},
-   "name": "VGT_DMA_MAX_SIZE",
-   "type_ref": "VGT_DMA_MAX_SIZE"
+   "name": "VGT_DMA_MAX_SIZE"
   },
   {
    "chips": ["gfx6"],
@@ -7211,14 +6669,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166536, "to": "mm"},
-   "name": "VGT_DMA_NUM_INSTANCES",
-   "type_ref": "VGT_DMA_NUM_INSTANCES"
+   "name": "VGT_DMA_NUM_INSTANCES"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166540, "to": "mm"},
-   "name": "VGT_PRIMITIVEID_RESET",
-   "type_ref": "VGT_PRIMITIVEID_RESET"
+   "name": "VGT_PRIMITIVEID_RESET"
   },
   {
    "chips": ["gfx6"],
@@ -7235,14 +6691,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166560, "to": "mm"},
-   "name": "VGT_INSTANCE_STEP_RATE_0",
-   "type_ref": "VGT_INSTANCE_STEP_RATE_0"
+   "name": "VGT_INSTANCE_STEP_RATE_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166564, "to": "mm"},
-   "name": "VGT_INSTANCE_STEP_RATE_1",
-   "type_ref": "VGT_INSTANCE_STEP_RATE_0"
+   "name": "VGT_INSTANCE_STEP_RATE_1"
   },
   {
    "chips": ["gfx6"],
@@ -7301,8 +6755,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166608, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_SIZE_0",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_SIZE_0"
   },
   {
    "chips": ["gfx6"],
@@ -7313,14 +6766,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166620, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_OFFSET_0",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "VGT_STRMOUT_BUFFER_OFFSET_0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166624, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_SIZE_1",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_SIZE_1"
   },
   {
    "chips": ["gfx6"],
@@ -7331,14 +6782,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166636, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_OFFSET_1",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "VGT_STRMOUT_BUFFER_OFFSET_1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166640, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_SIZE_2",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_SIZE_2"
   },
   {
    "chips": ["gfx6"],
@@ -7349,14 +6798,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166652, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_OFFSET_2",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "VGT_STRMOUT_BUFFER_OFFSET_2"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166656, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_SIZE_3",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_BUFFER_SIZE_3"
   },
   {
    "chips": ["gfx6"],
@@ -7367,20 +6814,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166668, "to": "mm"},
-   "name": "VGT_STRMOUT_BUFFER_OFFSET_3",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "VGT_STRMOUT_BUFFER_OFFSET_3"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166696, "to": "mm"},
-   "name": "VGT_STRMOUT_DRAW_OPAQUE_OFFSET",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "VGT_STRMOUT_DRAW_OPAQUE_OFFSET"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166700, "to": "mm"},
-   "name": "VGT_STRMOUT_DRAW_OPAQUE_BUFFER_FILLED_SIZE",
-   "type_ref": "COMPUTE_DIM_X"
+   "name": "VGT_STRMOUT_DRAW_OPAQUE_BUFFER_FILLED_SIZE"
   },
   {
    "chips": ["gfx6"],
@@ -7451,32 +6895,27 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166780, "to": "mm"},
-   "name": "PA_SU_POLY_OFFSET_CLAMP",
-   "type_ref": "PA_SU_POLY_OFFSET_CLAMP"
+   "name": "PA_SU_POLY_OFFSET_CLAMP"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166784, "to": "mm"},
-   "name": "PA_SU_POLY_OFFSET_FRONT_SCALE",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_SCALE"
+   "name": "PA_SU_POLY_OFFSET_FRONT_SCALE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166788, "to": "mm"},
-   "name": "PA_SU_POLY_OFFSET_FRONT_OFFSET",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "PA_SU_POLY_OFFSET_FRONT_OFFSET"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166792, "to": "mm"},
-   "name": "PA_SU_POLY_OFFSET_BACK_SCALE",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_SCALE"
+   "name": "PA_SU_POLY_OFFSET_BACK_SCALE"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166796, "to": "mm"},
-   "name": "PA_SU_POLY_OFFSET_BACK_OFFSET",
-   "type_ref": "PA_SU_POLY_OFFSET_BACK_OFFSET"
+   "name": "PA_SU_POLY_OFFSET_BACK_OFFSET"
   },
   {
    "chips": ["gfx6"],
@@ -7529,26 +6968,22 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 166888, "to": "mm"},
-   "name": "PA_CL_GB_VERT_CLIP_ADJ",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_GB_VERT_CLIP_ADJ"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166892, "to": "mm"},
-   "name": "PA_CL_GB_VERT_DISC_ADJ",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_GB_VERT_DISC_ADJ"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166896, "to": "mm"},
-   "name": "PA_CL_GB_HORZ_CLIP_ADJ",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_GB_HORZ_CLIP_ADJ"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 166900, "to": "mm"},
-   "name": "PA_CL_GB_HORZ_DISC_ADJ",
-   "type_ref": "PA_CL_GB_HORZ_CLIP_ADJ"
+   "name": "PA_CL_GB_HORZ_DISC_ADJ"
   },
   {
    "chips": ["gfx6"],
@@ -7673,8 +7108,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167008, "to": "mm"},
-   "name": "CB_COLOR0_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR0_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -7709,8 +7143,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167036, "to": "mm"},
-   "name": "CB_COLOR0_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR0_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7721,8 +7154,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167044, "to": "mm"},
-   "name": "CB_COLOR0_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR0_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7733,20 +7165,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167052, "to": "mm"},
-   "name": "CB_COLOR0_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR0_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167056, "to": "mm"},
-   "name": "CB_COLOR0_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR0_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167068, "to": "mm"},
-   "name": "CB_COLOR1_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR1_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -7781,8 +7210,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167096, "to": "mm"},
-   "name": "CB_COLOR1_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR1_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7793,8 +7221,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167104, "to": "mm"},
-   "name": "CB_COLOR1_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR1_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7805,20 +7232,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167112, "to": "mm"},
-   "name": "CB_COLOR1_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR1_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167116, "to": "mm"},
-   "name": "CB_COLOR1_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR1_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167128, "to": "mm"},
-   "name": "CB_COLOR2_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR2_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -7853,8 +7277,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167156, "to": "mm"},
-   "name": "CB_COLOR2_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR2_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7865,8 +7288,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167164, "to": "mm"},
-   "name": "CB_COLOR2_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR2_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7877,20 +7299,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167172, "to": "mm"},
-   "name": "CB_COLOR2_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR2_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167176, "to": "mm"},
-   "name": "CB_COLOR2_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR2_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167188, "to": "mm"},
-   "name": "CB_COLOR3_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR3_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -7925,8 +7344,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167216, "to": "mm"},
-   "name": "CB_COLOR3_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR3_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7937,8 +7355,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167224, "to": "mm"},
-   "name": "CB_COLOR3_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR3_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -7949,20 +7366,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167232, "to": "mm"},
-   "name": "CB_COLOR3_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR3_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167236, "to": "mm"},
-   "name": "CB_COLOR3_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR3_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167248, "to": "mm"},
-   "name": "CB_COLOR4_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR4_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -7997,8 +7411,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167276, "to": "mm"},
-   "name": "CB_COLOR4_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR4_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8009,8 +7422,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167284, "to": "mm"},
-   "name": "CB_COLOR4_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR4_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8021,20 +7433,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167292, "to": "mm"},
-   "name": "CB_COLOR4_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR4_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167296, "to": "mm"},
-   "name": "CB_COLOR4_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR4_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167308, "to": "mm"},
-   "name": "CB_COLOR5_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR5_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -8069,8 +7478,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167336, "to": "mm"},
-   "name": "CB_COLOR5_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR5_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8081,8 +7489,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167344, "to": "mm"},
-   "name": "CB_COLOR5_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR5_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8093,20 +7500,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167352, "to": "mm"},
-   "name": "CB_COLOR5_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR5_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167356, "to": "mm"},
-   "name": "CB_COLOR5_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR5_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167368, "to": "mm"},
-   "name": "CB_COLOR6_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR6_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -8141,8 +7545,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167396, "to": "mm"},
-   "name": "CB_COLOR6_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR6_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8153,8 +7556,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167404, "to": "mm"},
-   "name": "CB_COLOR6_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR6_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8165,20 +7567,17 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167412, "to": "mm"},
-   "name": "CB_COLOR6_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR6_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167416, "to": "mm"},
-   "name": "CB_COLOR6_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR6_CLEAR_WORD1"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167428, "to": "mm"},
-   "name": "CB_COLOR7_BASE",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR7_BASE"
   },
   {
    "chips": ["gfx6"],
@@ -8213,8 +7612,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167456, "to": "mm"},
-   "name": "CB_COLOR7_CMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR7_CMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8225,8 +7623,7 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167464, "to": "mm"},
-   "name": "CB_COLOR7_FMASK",
-   "type_ref": "CB_COLOR0_BASE"
+   "name": "CB_COLOR7_FMASK"
   },
   {
    "chips": ["gfx6"],
@@ -8237,14 +7634,12 @@
   {
    "chips": ["gfx6"],
    "map": {"at": 167472, "to": "mm"},
-   "name": "CB_COLOR7_CLEAR_WORD0",
-   "type_ref": "CB_COLOR0_CLEAR_WORD0"
+   "name": "CB_COLOR7_CLEAR_WORD0"
   },
   {
    "chips": ["gfx6"],
    "map": {"at": 167476, "to": "mm"},
-   "name": "CB_COLOR7_CLEAR_WORD1",
-   "type_ref": "CB_COLOR0_CLEAR_WORD1"
+   "name": "CB_COLOR7_CLEAR_WORD1"
   }
  ],
  "register_types": {
@@ -8261,26 +7656,6 @@
     {"bits": [31, 31], "name": "DISABLE_ROP3"}
    ]
   },
-  "CB_BLEND_ALPHA": {
-   "fields": [
-    {"bits": [0, 31], "name": "BLEND_ALPHA"}
-   ]
-  },
-  "CB_BLEND_BLUE": {
-   "fields": [
-    {"bits": [0, 31], "name": "BLEND_BLUE"}
-   ]
-  },
-  "CB_BLEND_GREEN": {
-   "fields": [
-    {"bits": [0, 31], "name": "BLEND_GREEN"}
-   ]
-  },
-  "CB_BLEND_RED": {
-   "fields": [
-    {"bits": [0, 31], "name": "BLEND_RED"}
-   ]
-  },
   "CB_COLOR0_ATTRIB": {
    "fields": [
     {"bits": [0, 4], "name": "TILE_MODE_INDEX"},
@@ -8289,21 +7664,6 @@
     {"bits": [12, 14], "name": "NUM_SAMPLES"},
     {"bits": [15, 16], "name": "NUM_FRAGMENTS"},
     {"bits": [17, 17], "name": "FORCE_DST_ALPHA_1"}
-   ]
-  },
-  "CB_COLOR0_BASE": {
-   "fields": [
-    {"bits": [0, 31], "name": "BASE_256B"}
-   ]
-  },
-  "CB_COLOR0_CLEAR_WORD0": {
-   "fields": [
-    {"bits": [0, 31], "name": "CLEAR_WORD0"}
-   ]
-  },
-  "CB_COLOR0_CLEAR_WORD1": {
-   "fields": [
-    {"bits": [0, 31], "name": "CLEAR_WORD1"}
    ]
   },
   "CB_COLOR0_CMASK_SLICE": {
@@ -8458,16 +7818,6 @@
     {"bits": [31, 31], "name": "REG_OVERRIDE"}
    ]
   },
-  "COHER_DEST_BASE_0": {
-   "fields": [
-    {"bits": [0, 31], "name": "DEST_BASE_256B"}
-   ]
-  },
-  "COMPUTE_DIM_X": {
-   "fields": [
-    {"bits": [0, 31], "name": "SIZE"}
-   ]
-  },
   "COMPUTE_DISPATCH_INITIATOR": {
    "fields": [
     {"bits": [0, 0], "name": "COMPUTE_SHADER_EN"},
@@ -8536,11 +7886,6 @@
     {"bits": [24, 26], "name": "CU_GROUP_COUNT"}
    ]
   },
-  "COMPUTE_START_X": {
-   "fields": [
-    {"bits": [0, 31], "name": "START"}
-   ]
-  },
   "COMPUTE_STATIC_THREAD_MGMT_SE0": {
    "fields": [
     {"bits": [0, 15], "name": "SH0_CU_EN"},
@@ -8575,21 +7920,6 @@
     {"bits": [2, 31], "name": "MEM_ADDR_LO"}
    ]
   },
-  "CP_APPEND_LAST_CS_FENCE": {
-   "fields": [
-    {"bits": [0, 31], "name": "LAST_FENCE"}
-   ]
-  },
-  "CP_ATOMIC_PREOP_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "ATOMIC_PREOP_HI"}
-   ]
-  },
-  "CP_ATOMIC_PREOP_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "ATOMIC_PREOP_LO"}
-   ]
-  },
   "CP_BUSY_STAT": {
    "fields": [
     {"bits": [0, 0], "name": "REG_BUS_FIFO_BUSY"},
@@ -8619,11 +7949,6 @@
   "CP_CEQ2_AVAIL": {
    "fields": [
     {"bits": [0, 10], "name": "CEQ_CNT_IB2"}
-   ]
-  },
-  "CP_CE_HEADER_DUMP": {
-   "fields": [
-    {"bits": [0, 31], "name": "CE_HEADER_DUMP"}
    ]
   },
   "CP_CE_IB1_BASE_HI": {
@@ -8689,11 +8014,6 @@
     {"bits": [16, 25], "name": "CEQ_WPTR_PRIMARY"}
    ]
   },
-  "CP_CMD_DATA": {
-   "fields": [
-    {"bits": [0, 31], "name": "CMD_DATA"}
-   ]
-  },
   "CP_CMD_INDEX": {
    "fields": [
     {"bits": [0, 10], "name": "CMD_INDEX"},
@@ -8707,11 +8027,6 @@
     {"bits": [8, 10], "name": "CURRENT_HP3D_CONTEXT"},
     {"bits": [20, 27], "name": "ACTIVE_GFX_CONTEXTS"},
     {"bits": [28, 30], "name": "CURRENT_GFX_CONTEXT"}
-   ]
-  },
-  "CP_COHER_BASE": {
-   "fields": [
-    {"bits": [0, 31], "name": "COHER_BASE_256B"}
    ]
   },
   "CP_COHER_CNTL": {
@@ -8739,11 +8054,6 @@
     {"bits": [27, 27], "name": "SH_KCACHE_ACTION_ENA"},
     {"bits": [28, 28], "name": "SH_KCACHE_VOL_ACTION_ENA"},
     {"bits": [29, 29], "name": "SH_ICACHE_ACTION_ENA"}
-   ]
-  },
-  "CP_COHER_SIZE": {
-   "fields": [
-    {"bits": [0, 31], "name": "COHER_SIZE_256B"}
    ]
   },
   "CP_COHER_START_DELAY": {
@@ -8792,19 +8102,9 @@
     {"bits": [30, 30], "name": "RAW_WAIT"}
    ]
   },
-  "CP_DMA_ME_DST_ADDR": {
-   "fields": [
-    {"bits": [0, 31], "name": "DST_ADDR"}
-   ]
-  },
   "CP_DMA_ME_DST_ADDR_HI": {
    "fields": [
     {"bits": [0, 7], "name": "DST_ADDR_HI"}
-   ]
-  },
-  "CP_DMA_ME_SRC_ADDR": {
-   "fields": [
-    {"bits": [0, 31], "name": "SRC_ADDR"}
    ]
   },
   "CP_DMA_ME_SRC_ADDR_HI": {
@@ -8827,46 +8127,6 @@
    "fields": [
     {"bits": [0, 1], "name": "ADDR_SWAP"},
     {"bits": [2, 31], "name": "ADDR_LO"}
-   ]
-  },
-  "CP_EOP_DONE_DATA_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "DATA_HI"}
-   ]
-  },
-  "CP_EOP_DONE_DATA_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "DATA_LO"}
-   ]
-  },
-  "CP_EOP_LAST_FENCE_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "LAST_FENCE_HI"}
-   ]
-  },
-  "CP_EOP_LAST_FENCE_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "LAST_FENCE_LO"}
-   ]
-  },
-  "CP_GDS_ATOMIC0_PREOP_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "GDS_ATOMIC0_PREOP_HI"}
-   ]
-  },
-  "CP_GDS_ATOMIC0_PREOP_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "GDS_ATOMIC0_PREOP_LO"}
-   ]
-  },
-  "CP_GDS_ATOMIC1_PREOP_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "GDS_ATOMIC1_PREOP_HI"}
-   ]
-  },
-  "CP_GDS_ATOMIC1_PREOP_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "GDS_ATOMIC1_PREOP_LO"}
    ]
   },
   "CP_GRBM_FREE_COUNT": {
@@ -8957,11 +8217,6 @@
     {"bits": [29, 29], "name": "ME_STEP"}
    ]
   },
-  "CP_ME_HEADER_DUMP": {
-   "fields": [
-    {"bits": [0, 31], "name": "ME_HEADER_DUMP"}
-   ]
-  },
   "CP_ME_MC_RADDR_HI": {
    "fields": [
     {"bits": [0, 7], "name": "ME_MC_RADDR_HI"}
@@ -8984,119 +8239,9 @@
     {"bits": [2, 31], "name": "ME_MC_WADDR_LO"}
    ]
   },
-  "CP_ME_MC_WDATA_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "ME_MC_WDATA_HI"}
-   ]
-  },
-  "CP_ME_MC_WDATA_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "ME_MC_WDATA_LO"}
-   ]
-  },
   "CP_ME_PREEMPTION": {
    "fields": [
     {"bits": [0, 0], "name": "ME_CNTXSW_PREEMPTION"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT0_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT0_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT0_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT0_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT1_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT1_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT1_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT1_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT2_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT2_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT2_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT2_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT3_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT3_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_NEEDED_COUNT3_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_NEEDED_CNT3_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT0_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT0_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT0_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT0_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT1_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT1_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT1_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT1_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT2_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT2_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT2_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT2_LO"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT3_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT3_HI"}
-   ]
-  },
-  "CP_NUM_PRIM_WRITTEN_COUNT3_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_PRIM_WRITTEN_CNT3_LO"}
-   ]
-  },
-  "CP_PA_CINVOC_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "CINVOC_COUNT_HI"}
-   ]
-  },
-  "CP_PA_CINVOC_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "CINVOC_COUNT_LO"}
-   ]
-  },
-  "CP_PA_CPRIM_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "CPRIM_COUNT_HI"}
-   ]
-  },
-  "CP_PA_CPRIM_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "CPRIM_COUNT_LO"}
    ]
   },
   "CP_PERFMON_CNTL": {
@@ -9112,11 +8257,6 @@
     {"bits": [31, 31], "name": "PERFMON_ENABLE"}
    ]
   },
-  "CP_PFP_HEADER_DUMP": {
-   "fields": [
-    {"bits": [0, 31], "name": "PFP_HEADER_DUMP"}
-   ]
-  },
   "CP_PFP_IB_CONTROL": {
    "fields": [
     {"bits": [0, 0], "name": "IB_EN"}
@@ -9129,11 +8269,6 @@
     {"bits": [15, 15], "name": "UCONFIG_REG_EN"},
     {"bits": [16, 16], "name": "SH_GFX_REG_EN"},
     {"bits": [24, 24], "name": "SH_CS_REG_EN"}
-   ]
-  },
-  "CP_PIPE_STATS_ADDR_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "PIPE_STATS_ADDR_HI"}
    ]
   },
   "CP_PIPE_STATS_ADDR_LO": {
@@ -9220,34 +8355,9 @@
     {"bits": [16, 25], "name": "ROQ_WPTR_PRIMARY"}
    ]
   },
-  "CP_SCRATCH_DATA": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_DATA"}
-   ]
-  },
   "CP_SCRATCH_INDEX": {
    "fields": [
     {"bits": [0, 7], "name": "SCRATCH_INDEX"}
-   ]
-  },
-  "CP_SC_PSINVOC_COUNT0_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "PSINVOC_COUNT0_HI"}
-   ]
-  },
-  "CP_SC_PSINVOC_COUNT0_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "PSINVOC_COUNT0_LO"}
-   ]
-  },
-  "CP_SC_PSINVOC_COUNT1_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "OBSOLETE"}
-   ]
-  },
-  "CP_SEM_WAIT_TIMER": {
-   "fields": [
-    {"bits": [0, 31], "name": "SEM_WAIT_TIMER"}
    ]
   },
   "CP_SIG_SEM_ADDR_HI": {
@@ -9386,11 +8496,6 @@
     {"bits": [16, 23], "name": "STQ2_START"}
    ]
   },
-  "CP_STREAM_OUT_ADDR_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "STREAM_OUT_ADDR_HI"}
-   ]
-  },
   "CP_STREAM_OUT_ADDR_LO": {
    "fields": [
     {"bits": [0, 1], "name": "STREAM_OUT_ADDR_SWAP"},
@@ -9417,94 +8522,9 @@
     {"bits": [0, 19], "name": "ST_BUFSZ"}
    ]
   },
-  "CP_VGT_CSINVOC_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "CSINVOC_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_CSINVOC_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "CSINVOC_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_DSINVOC_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "DSINVOC_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_DSINVOC_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "DSINVOC_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_GSINVOC_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "GSINVOC_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_GSINVOC_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "GSINVOC_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_GSPRIM_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "GSPRIM_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_GSPRIM_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "GSPRIM_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_HSINVOC_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "HSINVOC_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_HSINVOC_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "HSINVOC_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_IAPRIM_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "IAPRIM_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_IAPRIM_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "IAPRIM_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_IAVERT_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "IAVERT_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_IAVERT_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "IAVERT_COUNT_LO"}
-   ]
-  },
-  "CP_VGT_VSINVOC_COUNT_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "VSINVOC_COUNT_HI"}
-   ]
-  },
-  "CP_VGT_VSINVOC_COUNT_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "VSINVOC_COUNT_LO"}
-   ]
-  },
   "CP_VMID": {
    "fields": [
     {"bits": [0, 3], "name": "VMID"}
-   ]
-  },
-  "CP_WAIT_REG_MEM_TIMEOUT": {
-   "fields": [
-    {"bits": [0, 31], "name": "WAIT_REG_MEM_TIMEOUT"}
    ]
   },
   "CS_COPY_STATE": {
@@ -9533,21 +8553,6 @@
     {"bits": [20, 23], "name": "DBFAIL_ENABLE"},
     {"bits": [24, 27], "name": "SLICE_EVEN_ENABLE"},
     {"bits": [28, 31], "name": "SLICE_ODD_ENABLE"}
-   ]
-  },
-  "DB_DEPTH_BOUNDS_MAX": {
-   "fields": [
-    {"bits": [0, 31], "name": "MAX"}
-   ]
-  },
-  "DB_DEPTH_BOUNDS_MIN": {
-   "fields": [
-    {"bits": [0, 31], "name": "MIN"}
-   ]
-  },
-  "DB_DEPTH_CLEAR": {
-   "fields": [
-    {"bits": [0, 31], "name": "DEPTH_CLEAR"}
    ]
   },
   "DB_DEPTH_CONTROL": {
@@ -9772,11 +8777,6 @@
     {"bits": [31, 31], "name": "ZRANGE_PRECISION"}
    ]
   },
-  "DEBUG_DATA": {
-   "fields": [
-    {"bits": [0, 31], "name": "DEBUG_DATA"}
-   ]
-  },
   "DEBUG_INDEX": {
    "fields": [
     {"bits": [0, 17], "name": "DEBUG_INDEX"}
@@ -9882,16 +8882,6 @@
     {"bits": [19, 19], "name": "GUI_IDLE_INT_ENABLE"}
    ]
   },
-  "GRBM_PERFCOUNTER0_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "PERFCOUNTER_HI"}
-   ]
-  },
-  "GRBM_PERFCOUNTER0_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "PERFCOUNTER_LO"}
-   ]
-  },
   "GRBM_PERFCOUNTER0_SELECT": {
    "fields": [
     {"bits": [0, 5], "name": "PERF_SEL"},
@@ -9927,46 +8917,6 @@
     {"bits": [20, 21], "name": "READ_PIPEID"},
     {"bits": [22, 23], "name": "READ_MEID"},
     {"bits": [31, 31], "name": "READ_ERROR"}
-   ]
-  },
-  "GRBM_SCRATCH_REG0": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG0"}
-   ]
-  },
-  "GRBM_SCRATCH_REG1": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG1"}
-   ]
-  },
-  "GRBM_SCRATCH_REG2": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG2"}
-   ]
-  },
-  "GRBM_SCRATCH_REG3": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG3"}
-   ]
-  },
-  "GRBM_SCRATCH_REG4": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG4"}
-   ]
-  },
-  "GRBM_SCRATCH_REG5": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG5"}
-   ]
-  },
-  "GRBM_SCRATCH_REG6": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG6"}
-   ]
-  },
-  "GRBM_SCRATCH_REG7": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCRATCH_REG7"}
    ]
   },
   "GRBM_SE0_PERFCOUNTER_SELECT": {
@@ -10085,11 +9035,6 @@
     {"bits": [6, 6], "name": "IA_DEBUG_SEL_BUS_B"}
    ]
   },
-  "IA_ENHANCE": {
-   "fields": [
-    {"bits": [0, 31], "name": "MISC"}
-   ]
-  },
   "IA_MULTI_VGT_PARAM": {
    "fields": [
     {"bits": [0, 15], "name": "PRIMGROUP_SIZE"},
@@ -10162,11 +9107,6 @@
     {"bits": [31, 31], "name": "ECO_SPARE0"}
    ]
   },
-  "PA_CL_GB_HORZ_CLIP_ADJ": {
-   "fields": [
-    {"bits": [0, 31], "name": "DATA_REGISTER"}
-   ]
-  },
   "PA_CL_NANINF_CNTL": {
    "fields": [
     {"bits": [0, 0], "name": "VTE_XY_INF_DISCARD"},
@@ -10185,36 +9125,6 @@
     {"bits": [13, 13], "name": "VS_W_INF_RETAIN"},
     {"bits": [14, 14], "name": "VS_CLIP_DIST_INF_DISCARD"},
     {"bits": [20, 20], "name": "VTE_NO_OUTPUT_NEG_0"}
-   ]
-  },
-  "PA_CL_VPORT_XOFFSET": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_XOFFSET"}
-   ]
-  },
-  "PA_CL_VPORT_XSCALE": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_XSCALE"}
-   ]
-  },
-  "PA_CL_VPORT_YOFFSET": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_YOFFSET"}
-   ]
-  },
-  "PA_CL_VPORT_YSCALE": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_YSCALE"}
-   ]
-  },
-  "PA_CL_VPORT_ZOFFSET": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_ZOFFSET"}
-   ]
-  },
-  "PA_CL_VPORT_ZSCALE": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_ZSCALE"}
    ]
   },
   "PA_CL_VS_OUT_CNTL": {
@@ -10552,16 +9462,6 @@
     {"bits": [16, 31], "name": "TL_Y"}
    ]
   },
-  "PA_SC_VPORT_ZMAX_0": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_ZMAX"}
-   ]
-  },
-  "PA_SC_VPORT_ZMIN_0": {
-   "fields": [
-    {"bits": [0, 31], "name": "VPORT_ZMIN"}
-   ]
-  },
   "PA_SC_WINDOW_OFFSET": {
    "fields": [
     {"bits": [0, 15], "name": "WINDOW_X_OFFSET"},
@@ -10597,11 +9497,6 @@
     {"bits": [4, 4], "name": "DIAMOND_ADJUST"}
    ]
   },
-  "PA_SU_LINE_STIPPLE_SCALE": {
-   "fields": [
-    {"bits": [0, 31], "name": "LINE_STIPPLE_SCALE"}
-   ]
-  },
   "PA_SU_LINE_STIPPLE_VALUE": {
    "fields": [
     {"bits": [0, 23], "name": "LINE_STIPPLE_VALUE"}
@@ -10635,21 +9530,6 @@
    "fields": [
     {"bits": [0, 15], "name": "HEIGHT"},
     {"bits": [16, 31], "name": "WIDTH"}
-   ]
-  },
-  "PA_SU_POLY_OFFSET_BACK_OFFSET": {
-   "fields": [
-    {"bits": [0, 31], "name": "OFFSET"}
-   ]
-  },
-  "PA_SU_POLY_OFFSET_BACK_SCALE": {
-   "fields": [
-    {"bits": [0, 31], "name": "SCALE"}
-   ]
-  },
-  "PA_SU_POLY_OFFSET_CLAMP": {
-   "fields": [
-    {"bits": [0, 31], "name": "CLAMP"}
    ]
   },
   "PA_SU_POLY_OFFSET_DB_FMT_CNTL": {
@@ -10695,11 +9575,6 @@
     {"bits": [0, 0], "name": "PIX_CENTER"},
     {"bits": [1, 2], "enum_ref": "PA_SU_VTX_CNTL__ROUND_MODE", "name": "ROUND_MODE"},
     {"bits": [3, 5], "enum_ref": "QUANT_MODE", "name": "QUANT_MODE"}
-   ]
-  },
-  "SCRATCH_ADDR": {
-   "fields": [
-    {"bits": [0, 31], "name": "OBSOLETE_ADDR"}
    ]
   },
   "SCRATCH_UMSK": {
@@ -10800,11 +9675,6 @@
   "SPI_SHADER_PGM_HI_ES": {
    "fields": [
     {"bits": [0, 7], "name": "MEM_BASE"}
-   ]
-  },
-  "SPI_SHADER_PGM_LO_ES": {
-   "fields": [
-    {"bits": [0, 31], "name": "MEM_BASE"}
    ]
   },
   "SPI_SHADER_PGM_RSRC1_ES": {
@@ -10996,22 +9866,12 @@
     {"bits": [16, 31], "name": "FORCE_CU_ON_SH1"}
    ]
   },
-  "SQ_BUF_RSRC_WORD0": {
-   "fields": [
-    {"bits": [0, 31], "name": "BASE_ADDRESS"}
-   ]
-  },
   "SQ_BUF_RSRC_WORD1": {
    "fields": [
     {"bits": [0, 15], "name": "BASE_ADDRESS_HI"},
     {"bits": [16, 29], "name": "STRIDE"},
     {"bits": [30, 30], "name": "CACHE_SWIZZLE"},
     {"bits": [31, 31], "name": "SWIZZLE_ENABLE"}
-   ]
-  },
-  "SQ_BUF_RSRC_WORD2": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_RECORDS"}
    ]
   },
   "SQ_BUF_RSRC_WORD3": {
@@ -11126,11 +9986,6 @@
     {"bits": [12, 19], "name": "COUNTER_BANK_ID"},
     {"bits": [20, 20], "name": "LOD_HDW_CNT_EN"},
     {"bits": [21, 31], "name": "UNUNSED"}
-   ]
-  },
-  "SQ_IMG_RSRC_WORD7": {
-   "fields": [
-    {"bits": [0, 31], "name": "UNUNSED"}
    ]
   },
   "SQ_IMG_SAMP_WORD0": {
@@ -11273,16 +10128,6 @@
     {"bits": [16, 24], "name": "VGPR_SEC"}
    ]
   },
-  "SQ_THREAD_TRACE_BASE": {
-   "fields": [
-    {"bits": [0, 31], "name": "ADDR"}
-   ]
-  },
-  "SQ_THREAD_TRACE_CNTR": {
-   "fields": [
-    {"bits": [0, 31], "name": "CNTR"}
-   ]
-  },
   "SQ_THREAD_TRACE_CTRL": {
    "fields": [
     {"bits": [31, 31], "name": "RESET_BUFFER"}
@@ -11357,21 +10202,6 @@
     {"bits": [30, 31], "name": "READ_OFFSET"}
    ]
   },
-  "SQ_TIME_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "TIME"}
-   ]
-  },
-  "SQ_WAVE_EXEC_HI": {
-   "fields": [
-    {"bits": [0, 31], "name": "EXEC_HI"}
-   ]
-  },
-  "SQ_WAVE_EXEC_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "EXEC_LO"}
-   ]
-  },
   "SQ_WAVE_GPR_ALLOC": {
    "fields": [
     {"bits": [0, 5], "name": "VGPR_BASE"},
@@ -11420,25 +10250,10 @@
     {"bits": [13, 15], "name": "VALU_CNT"}
    ]
   },
-  "SQ_WAVE_INST_DW0": {
-   "fields": [
-    {"bits": [0, 31], "name": "INST_DW0"}
-   ]
-  },
-  "SQ_WAVE_INST_DW1": {
-   "fields": [
-    {"bits": [0, 31], "name": "INST_DW1"}
-   ]
-  },
   "SQ_WAVE_LDS_ALLOC": {
    "fields": [
     {"bits": [0, 7], "name": "LDS_BASE"},
     {"bits": [12, 20], "name": "LDS_SIZE"}
-   ]
-  },
-  "SQ_WAVE_M0": {
-   "fields": [
-    {"bits": [0, 31], "name": "M0"}
    ]
   },
   "SQ_WAVE_MODE": {
@@ -11457,11 +10272,6 @@
   "SQ_WAVE_PC_HI": {
    "fields": [
     {"bits": [0, 7], "name": "PC_HI"}
-   ]
-  },
-  "SQ_WAVE_PC_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "PC_LO"}
    ]
   },
   "SQ_WAVE_STATUS": {
@@ -11497,26 +10307,11 @@
     {"bits": [0, 7], "name": "ADDR_HI"}
    ]
   },
-  "SQ_WAVE_TBA_LO": {
-   "fields": [
-    {"bits": [0, 31], "name": "ADDR_LO"}
-   ]
-  },
   "SQ_WAVE_TRAPSTS": {
    "fields": [
     {"bits": [0, 6], "enum_ref": "EXCP_EN", "name": "EXCP"},
     {"bits": [16, 21], "name": "EXCP_CYCLE"},
     {"bits": [29, 31], "name": "DP_RATE"}
-   ]
-  },
-  "SQ_WAVE_TTMP0": {
-   "fields": [
-    {"bits": [0, 31], "name": "DATA"}
-   ]
-  },
-  "TA_BC_BASE_ADDR": {
-   "fields": [
-    {"bits": [0, 31], "name": "ADDRESS"}
    ]
   },
   "VGT_CACHE_INVALIDATION": {
@@ -11551,11 +10346,6 @@
     {"bits": [6, 6], "name": "VGT_DEBUG_SEL_BUS_B"}
    ]
   },
-  "VGT_DMA_BASE": {
-   "fields": [
-    {"bits": [0, 31], "name": "BASE_ADDR"}
-   ]
-  },
   "VGT_DMA_BASE_HI": {
    "fields": [
     {"bits": [0, 7], "name": "BASE_ADDR"}
@@ -11577,24 +10367,9 @@
     {"bits": [10, 10], "name": "REQ_PATH"}
    ]
   },
-  "VGT_DMA_MAX_SIZE": {
-   "fields": [
-    {"bits": [0, 31], "name": "MAX_SIZE"}
-   ]
-  },
-  "VGT_DMA_NUM_INSTANCES": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_INSTANCES"}
-   ]
-  },
   "VGT_DMA_REQ_FIFO_DEPTH": {
    "fields": [
     {"bits": [0, 5], "name": "DMA_REQ_FIFO_DEPTH"}
-   ]
-  },
-  "VGT_DMA_SIZE": {
-   "fields": [
-    {"bits": [0, 31], "name": "NUM_INDICES"}
    ]
   },
   "VGT_DRAW_INITIATOR": {
@@ -11614,11 +10389,6 @@
   "VGT_ESGS_RING_ITEMSIZE": {
    "fields": [
     {"bits": [0, 14], "name": "ITEMSIZE"}
-   ]
-  },
-  "VGT_ESGS_RING_SIZE": {
-   "fields": [
-    {"bits": [0, 31], "name": "MEM_SIZE"}
    ]
   },
   "VGT_ES_PER_GS": {
@@ -11750,16 +10520,6 @@
     {"bits": [0, 1], "name": "TESS_MODE"}
    ]
   },
-  "VGT_HOS_MAX_TESS_LEVEL": {
-   "fields": [
-    {"bits": [0, 31], "name": "MAX_TESS"}
-   ]
-  },
-  "VGT_HOS_MIN_TESS_LEVEL": {
-   "fields": [
-    {"bits": [0, 31], "name": "MIN_TESS"}
-   ]
-  },
   "VGT_HOS_REUSE_DEPTH": {
    "fields": [
     {"bits": [0, 7], "name": "REUSE_DEPTH"}
@@ -11776,16 +10536,6 @@
     {"bits": [0, 1], "enum_ref": "VGT_INDEX_TYPE_MODE", "name": "INDEX_TYPE"}
    ]
   },
-  "VGT_INDX_OFFSET": {
-   "fields": [
-    {"bits": [0, 31], "name": "INDX_OFFSET"}
-   ]
-  },
-  "VGT_INSTANCE_STEP_RATE_0": {
-   "fields": [
-    {"bits": [0, 31], "name": "STEP_RATE"}
-   ]
-  },
   "VGT_LAST_COPY_STATE": {
    "fields": [
     {"bits": [0, 2], "name": "SRC_STATE_ID"},
@@ -11799,29 +10549,14 @@
     {"bits": [14, 19], "name": "HS_NUM_OUTPUT_CP"}
    ]
   },
-  "VGT_MAX_VTX_INDX": {
-   "fields": [
-    {"bits": [0, 31], "name": "MAX_INDX"}
-   ]
-  },
   "VGT_MC_LAT_CNTL": {
    "fields": [
     {"bits": [0, 1], "name": "MC_TIME_STAMP_RES"}
    ]
   },
-  "VGT_MIN_VTX_INDX": {
-   "fields": [
-    {"bits": [0, 31], "name": "MIN_INDX"}
-   ]
-  },
   "VGT_MULTI_PRIM_IB_RESET_EN": {
    "fields": [
     {"bits": [0, 0], "name": "RESET_EN"}
-   ]
-  },
-  "VGT_MULTI_PRIM_IB_RESET_INDX": {
-   "fields": [
-    {"bits": [0, 31], "name": "RESET_INDX"}
    ]
   },
   "VGT_OUTPUT_PATH_CNTL": {
@@ -11843,11 +10578,6 @@
    "fields": [
     {"bits": [0, 0], "name": "PRIMITIVEID_EN"},
     {"bits": [1, 1], "name": "DISABLE_RESET_ON_EOI"}
-   ]
-  },
-  "VGT_PRIMITIVEID_RESET": {
-   "fields": [
-    {"bits": [0, 31], "name": "VALUE"}
    ]
   },
   "VGT_PRIMITIVE_TYPE": {
@@ -11904,11 +10634,6 @@
     {"bits": [0, 0], "name": "DUAL_CORE_EN"},
     {"bits": [1, 6], "name": "MAX_LS_HS_THDGRP"},
     {"bits": [7, 7], "name": "ADC_EVENT_FILTER_DISABLE"}
-   ]
-  },
-  "VGT_TF_MEMORY_BASE": {
-   "fields": [
-    {"bits": [0, 31], "name": "BASE"}
    ]
   },
   "VGT_TF_PARAM": {

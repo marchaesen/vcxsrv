@@ -633,6 +633,11 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type->is_unsized_array());
       break;
 
+   case ir_unop_implicitly_sized_array_length:
+      assert(ir->type == glsl_type::int_type);
+      assert(ir->operands[0]->type->is_array());
+      break;
+
    case ir_unop_d2f:
       assert(ir->operands[0]->type->is_double());
       assert(ir->type->is_float());

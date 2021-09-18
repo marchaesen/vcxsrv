@@ -102,7 +102,8 @@ iris_monitor_init_metrics(struct iris_screen *screen)
    iris_perf_init_vtbl(perf_cfg);
 
    intel_perf_init_metrics(perf_cfg, &screen->devinfo, screen->fd,
-                         true /* pipeline stats*/);
+                           true /* pipeline stats*/,
+                           true /* register snapshots */);
 
    return perf_cfg->n_counters > 0;
 }

@@ -38,10 +38,17 @@
 #define VK_STRUCTURE_TYPE_WSI_SURFACE_SUPPORTED_COUNTERS_MESA (VkStructureType)1000001005
 #define VK_STRUCTURE_TYPE_WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA (VkStructureType)1000001006
 
+/* This is always chained to VkImageCreateInfo when a wsi image is created.
+ * It indicates that the image can be transitioned to/from
+ * VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+ */
 struct wsi_image_create_info {
     VkStructureType sType;
     const void *pNext;
     bool scanout;
+
+    /* if true, the image is a prime blit source */
+    bool prime_blit_src;
 };
 
 struct wsi_memory_allocate_info {
@@ -114,6 +121,11 @@ struct wsi_device {
        * driver in VkSurfaceCapabilitiesKHR::minImageCount.
        */
       bool ensure_minImageCount;
+
+      /* Wait for fences before submitting buffers to Xwayland. Defaults to
+       * true.
+       */
+      bool xwaylandWaitReady;
    } x11;
 
    bool sw;

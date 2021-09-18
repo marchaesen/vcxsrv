@@ -248,7 +248,7 @@ void GeometryShaderFromNir::emit_adj_fix()
                              {adjhelp0, m_per_vertex_offsets[i],
                               m_per_vertex_offsets[rotate_indices[i]]},
                              {alu_write});
-      if (i == 3)
+      if ((get_chip_class() == CAYMAN && i == 2) || (i  == 3))
          ir->set_flag(alu_last_instr);
       emit_instruction(ir);
    }

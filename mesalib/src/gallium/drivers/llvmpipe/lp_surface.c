@@ -65,7 +65,7 @@ lp_resource_copy_ms(struct pipe_context *pipe,
                                                   &dst_box,
                                                   &dst_trans);
       if (!dst_map) {
-         pipe->transfer_unmap(pipe, src_trans);
+         pipe->texture_unmap(pipe, src_trans);
          return;
       }
 
@@ -77,8 +77,8 @@ lp_resource_copy_ms(struct pipe_context *pipe,
                     src_map,
                     src_trans->stride, src_trans->layer_stride,
                     0, 0, 0);
-      pipe->transfer_unmap(pipe, dst_trans);
-      pipe->transfer_unmap(pipe, src_trans);
+      pipe->texture_unmap(pipe, dst_trans);
+      pipe->texture_unmap(pipe, src_trans);
    }
 }
 static void
@@ -295,7 +295,7 @@ lp_clear_color_texture_msaa(struct pipe_context *pipe,
       lp_clear_color_texture_helper(dst_trans, dst_map, format, color,
                                     box->width, box->height, box->depth);
    }
-   pipe->transfer_unmap(pipe, dst_trans);
+   pipe->texture_unmap(pipe, dst_trans);
 }
 
 static void
@@ -361,7 +361,7 @@ lp_clear_depth_stencil_texture_msaa(struct pipe_context *pipe,
 		    dst_trans->stride, dst_trans->layer_stride,
 		    box->width, box->height, box->depth, zstencil);
 
-   pipe->transfer_unmap(pipe, dst_trans);
+   pipe->texture_unmap(pipe, dst_trans);
 }
 
 static void
@@ -456,7 +456,7 @@ llvmpipe_clear_buffer(struct pipe_context *pipe,
    char *dst;
    u_box_1d(offset, size, &box);
 
-   dst = pipe->transfer_map(pipe,
+   dst = pipe->buffer_map(pipe,
                             res,
                             0,
                             PIPE_MAP_WRITE,
@@ -475,7 +475,7 @@ llvmpipe_clear_buffer(struct pipe_context *pipe,
          memcpy(&dst[i], clear_value, clear_value_size);
       break;
    }
-   pipe->transfer_unmap(pipe, dst_t);
+   pipe->buffer_unmap(pipe, dst_t);
 }
 
 void

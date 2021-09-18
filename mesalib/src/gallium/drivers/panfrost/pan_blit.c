@@ -69,37 +69,19 @@ panfrost_blitter_save(
 
 }
 
-static bool
-panfrost_u_blitter_blit(struct pipe_context *pipe,
-                        const struct pipe_blit_info *info)
-{
-        struct panfrost_context *ctx = pan_context(pipe);
-
-        if (!util_blitter_is_blit_supported(ctx->blitter, info))
-                unreachable("Unsupported blit\n");
-
-        /* TODO: Scissor */
-
-        panfrost_blitter_save(ctx, ctx->blitter, info->render_condition_enable);
-        util_blitter_blit(ctx->blitter, info);
-
-        return true;
-}
-
 void
 panfrost_blit(struct pipe_context *pipe,
               const struct pipe_blit_info *info)
 {
-        /* We don't have a hardware blit, so we just fake it with
-         * u_blitter. We could do a little better by culling
-         * vertex jobs, though. */
+        struct panfrost_context *ctx = pan_context(pipe);
 
         if (info->render_condition_enable &&
-            !panfrost_render_condition_check(pan_context(pipe)))
+            !panfrost_render_condition_check(ctx))
                 return;
 
-        if (panfrost_u_blitter_blit(pipe, info))
-                return;
+        if (!util_blitter_is_blit_supported(ctx->blitter, info))
+                unreachable("Unsupported blit\n");
 
-        return;
+        panfrost_blitter_save(ctx, ctx->blitter, info->render_condition_enable);
+        util_blitter_blit(ctx->blitter, info);
 }

@@ -214,7 +214,8 @@ draw_vertex_shader_run(struct draw_vertex_shader *vshader,
    output_verts->count = input_verts->count;
    output_verts->verts =
       (struct vertex_header *)MALLOC(output_verts->vertex_size *
-                                     align(output_verts->count, 4));
+                                     align(output_verts->count, 4) +
+                                     DRAW_EXTRA_VERTICES_PADDING);
 
    vshader->run_linear(vshader,
                        (const float (*)[4])input_verts->verts->data,
@@ -254,7 +255,8 @@ fetch_pipeline_generic(struct draw_pt_middle_end *middle,
    fetched_vert_info.stride = fpme->vertex_size;
    fetched_vert_info.verts =
       (struct vertex_header *)MALLOC(fpme->vertex_size *
-                                     align(fetch_info->count,  4));
+                                     align(fetch_info->count,  4) +
+                                     DRAW_EXTRA_VERTICES_PADDING);
    if (!fetched_vert_info.verts) {
       assert(0);
       return;

@@ -76,6 +76,7 @@ struct foz_db {
    FILE *file[FOZ_MAX_DBS];          /* An array of all foz dbs */
    FILE *db_idx;                     /* The default writable foz db idx */
    simple_mtx_t mtx;                 /* Mutex for file/hash table read/writes */
+   simple_mtx_t flock_mtx;           /* Mutex for flocking the file for writes */
    void *mem_ctx;
    struct hash_table_u64 *index_db;  /* Hash table of all foz db entries */
    bool alive;

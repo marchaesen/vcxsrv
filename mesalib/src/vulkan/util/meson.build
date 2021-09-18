@@ -34,12 +34,22 @@ vk_entrypoints_gen_depend_files = [
   files('vk_dispatch_table_gen.py'),
   vk_dispatch_table_gen_depend_files,
 ]
+vk_cmd_queue_gen_depend_files = [
+  files('vk_dispatch_table_gen.py'),
+  vk_dispatch_table_gen_depend_files,
+]
+vk_commands_gen_depend_files = [
+  files('vk_dispatch_table_gen.py'),
+  vk_dispatch_table_gen_depend_files,
+]
 
 vk_entrypoints_gen = files('vk_entrypoints_gen.py')
 vk_extensions_gen = files('vk_extensions_gen.py')
 vk_icd_gen = files('vk_icd_gen.py')
+vk_commands_gen = files('vk_commands_gen.py')
 
 files_vulkan_util = files(
+  'vk_alloc.c',
   'vk_alloc.h',
   'vk_cmd_copy.c',
   'vk_debug_report.c',
@@ -51,6 +61,8 @@ files_vulkan_util = files(
   'vk_device.c',
   'vk_device.h',
   'vk_format.c',
+  'vk_image.c',
+  'vk_image.h',
   'vk_instance.c',
   'vk_instance.h',
   'vk_object.c',
@@ -107,12 +119,23 @@ vk_extensions = custom_target(
   depend_files : vk_extensions_gen_depend_files,
 )
 
+vk_cmd_queue = custom_target(
+  'vk_cmd_queue',
+  input : ['vk_cmd_queue_gen.py', vk_api_xml],
+  output : ['vk_cmd_queue.c', 'vk_cmd_queue.h'],
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--out-c', '@OUTPUT0@', '--out-h', '@OUTPUT1@'
+  ],
+  depend_files : vk_cmd_queue_gen_depend_files,
+)
+
 libvulkan_util = static_library(
   'vulkan_util',
   [files_vulkan_util, vk_common_entrypoints, vk_dispatch_table,
-   vk_enum_to_str, vk_extensions],
+   vk_enum_to_str, vk_extensions, vk_cmd_queue],
   include_directories : [inc_include, inc_src, inc_gallium],
-  dependencies : [vulkan_wsi_deps, idep_mesautil],
+  dependencies : [vulkan_wsi_deps, idep_mesautil, idep_nir_headers],
   # For glsl_type_singleton
   link_with : libcompiler,
   c_args : [vulkan_wsi_args],

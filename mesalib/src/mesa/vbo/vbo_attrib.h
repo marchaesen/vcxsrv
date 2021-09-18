@@ -50,7 +50,6 @@ enum vbo_attrib {
    VBO_ATTRIB_COLOR1,
    VBO_ATTRIB_FOG,
    VBO_ATTRIB_COLOR_INDEX,
-   VBO_ATTRIB_EDGEFLAG,
    VBO_ATTRIB_TEX0,
    VBO_ATTRIB_TEX1,
    VBO_ATTRIB_TEX2,
@@ -77,6 +76,7 @@ enum vbo_attrib {
    VBO_ATTRIB_GENERIC13,
    VBO_ATTRIB_GENERIC14,
    VBO_ATTRIB_GENERIC15,
+   VBO_ATTRIB_EDGEFLAG,
 
    /* XXX: in the vertex program inputs_read flag, we alias
     * materials and generics and use knowledge about the program
@@ -104,15 +104,18 @@ enum vbo_attrib {
 
 
 /** VBO_ATTRIB_POS .. VBO_ATTRIB_POINT_SIZE */
-#define VBO_ATTRIBS_LEGACY  BITFIELD64_MASK(VBO_ATTRIB_GENERIC0)
+#define VBO_ATTRIBS_LEGACY  (BITFIELD64_MASK(VBO_ATTRIB_GENERIC0) | \
+                             BITFIELD64_BIT(VBO_ATTRIB_EDGEFLAG))
 
 /** VBO_ATTRIB_MAT_FRONT_AMBIENT .. VBO_ATTRIB_MAT_BACK_INDEXES */
 #define VBO_ATTRIBS_MATERIALS BITFIELD64_RANGE(VBO_ATTRIB_MAT_FRONT_AMBIENT, \
                      VBO_ATTRIB_LAST_MATERIAL - VBO_ATTRIB_FIRST_MATERIAL + 1)
 
-/** Shift to move legacy material attribs into generic slots */
-#define VBO_MATERIAL_SHIFT \
-   (VBO_ATTRIB_LAST_MATERIAL - VBO_ATTRIB_FIRST_MATERIAL + 1)
+/**
+ * Move material attribs to the last generic attribs, moving LAST_MATERIAL
+ * to GENERIC15, etc.
+ */
+#define VBO_MATERIAL_SHIFT (VBO_ATTRIB_LAST_MATERIAL - VBO_ATTRIB_GENERIC15)
 
 
 

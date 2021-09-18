@@ -351,10 +351,10 @@ clc_lower_64bit_semantics(nir_shader *nir)
                case nir_intrinsic_load_global_invocation_id_zero_base:
                case nir_intrinsic_load_base_global_invocation_id:
                case nir_intrinsic_load_local_invocation_id:
-               case nir_intrinsic_load_work_group_id:
-               case nir_intrinsic_load_work_group_id_zero_base:
-               case nir_intrinsic_load_base_work_group_id:
-               case nir_intrinsic_load_num_work_groups:
+               case nir_intrinsic_load_workgroup_id:
+               case nir_intrinsic_load_workgroup_id_zero_base:
+               case nir_intrinsic_load_base_workgroup_id:
+               case nir_intrinsic_load_num_workgroups:
                   break;
                default:
                   continue;
@@ -1053,6 +1053,7 @@ clc_to_dxil(struct clc_context *ctx,
          .int64 = true,
          .kernel = true,
          .kernel_image = true,
+         .kernel_image_read_write = true,
          .literal_sampler = true,
          .printf = true,
       },
@@ -1080,7 +1081,7 @@ clc_to_dxil(struct clc_context *ctx,
       clc_error(logger, "spirv_to_nir() failed");
       goto err_free_dxil;
    }
-   nir->info.cs.local_size_variable = true;
+   nir->info.workgroup_size_variable = true;
 
    NIR_PASS_V(nir, nir_lower_goto_ifs);
    NIR_PASS_V(nir, nir_opt_dead_cf);
@@ -1322,7 +1323,7 @@ clc_to_dxil(struct clc_context *ctx,
 
    nir_lower_compute_system_values_options compute_options = {
       .has_base_global_invocation_id = (conf && conf->support_global_work_id_offsets),
-      .has_base_work_group_id = (conf && conf->support_work_group_id_offsets),
+      .has_base_workgroup_id = (conf && conf->support_workgroup_id_offsets),
    };
    NIR_PASS_V(nir, nir_lower_compute_system_values, &compute_options);
 
@@ -1338,33 +1339,33 @@ clc_to_dxil(struct clc_context *ctx,
    nir_variable *work_properties_var =
       add_work_properties_var(dxil, nir, &cbv_id);
 
-   memcpy(metadata->local_size, nir->info.cs.local_size,
+   memcpy(metadata->local_size, nir->info.workgroup_size,
           sizeof(metadata->local_size));
-   memcpy(metadata->local_size_hint, nir->info.cs.local_size_hint,
+   memcpy(metadata->local_size_hint, nir->info.cs.workgroup_size_hint,
           sizeof(metadata->local_size));
 
    // Patch the localsize before calling clc_nir_lower_system_values().
    if (conf) {
-      for (unsigned i = 0; i < ARRAY_SIZE(nir->info.cs.local_size); i++) {
+      for (unsigned i = 0; i < ARRAY_SIZE(nir->info.workgroup_size); i++) {
          if (!conf->local_size[i] ||
-             conf->local_size[i] == nir->info.cs.local_size[i])
+             conf->local_size[i] == nir->info.workgroup_size[i])
             continue;
 
-         if (nir->info.cs.local_size[i] &&
-             nir->info.cs.local_size[i] != conf->local_size[i]) {
+         if (nir->info.workgroup_size[i] &&
+             nir->info.workgroup_size[i] != conf->local_size[i]) {
             debug_printf("D3D12: runtime local size does not match reqd_work_group_size() values\n");
             goto err_free_dxil;
          }
 
-         nir->info.cs.local_size[i] = conf->local_size[i];
+         nir->info.workgroup_size[i] = conf->local_size[i];
       }
-      memcpy(metadata->local_size, nir->info.cs.local_size,
+      memcpy(metadata->local_size, nir->info.workgroup_size,
             sizeof(metadata->local_size));
    } else {
       /* Make sure there's at least one thread that's set to run */
-      for (unsigned i = 0; i < ARRAY_SIZE(nir->info.cs.local_size); i++) {
-         if (nir->info.cs.local_size[i] == 0)
-            nir->info.cs.local_size[i] = 1;
+      for (unsigned i = 0; i < ARRAY_SIZE(nir->info.workgroup_size); i++) {
+         if (nir->info.workgroup_size[i] == 0)
+            nir->info.workgroup_size[i] = 1;
       }
    }
 

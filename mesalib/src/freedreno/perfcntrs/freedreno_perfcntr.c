@@ -38,16 +38,16 @@ extern const struct fd_perfcntr_group a6xx_perfcntr_groups[];
 extern const unsigned a6xx_num_perfcntr_groups;
 
 const struct fd_perfcntr_group *
-fd_perfcntrs(unsigned gpu_id, unsigned *count)
+fd_perfcntrs(const struct fd_dev_id *id, unsigned *count)
 {
-   switch (gpu_id) {
-   case 200 ... 299:
+   switch (fd_dev_gen(id)) {
+   case 2:
       *count = a2xx_num_perfcntr_groups;
       return a2xx_perfcntr_groups;
-   case 500 ... 599:
+   case 5:
       *count = a5xx_num_perfcntr_groups;
       return a5xx_perfcntr_groups;
-   case 600 ... 699:
+   case 6:
       *count = a6xx_num_perfcntr_groups;
       return a6xx_perfcntr_groups;
    default:

@@ -70,27 +70,6 @@ create_solid_vertexbuf(struct pipe_context *pctx)
    return prsc;
 }
 
-/* clang-format off */
-static const uint8_t a22x_primtypes[PIPE_PRIM_MAX] = {
-   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
-   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
-   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
-   [PIPE_PRIM_LINE_LOOP]      = DI_PT_LINELOOP,
-   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
-   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
-   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
-};
-
-static const uint8_t a20x_primtypes[PIPE_PRIM_MAX] = {
-   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
-   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
-   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
-   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
-   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
-   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
-};
-/* clang-format on */
-
 struct pipe_context *
 fd2_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 {
@@ -118,9 +97,7 @@ fd2_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    fd2_prog_init(pctx);
    fd2_emit_init(pctx);
 
-   pctx = fd_context_init(
-      &fd2_ctx->base, pscreen,
-      (screen->gpu_id >= 220) ? a22x_primtypes : a20x_primtypes, priv, flags);
+   pctx = fd_context_init(&fd2_ctx->base, pscreen, priv, flags);
    if (!pctx)
       return NULL;
 

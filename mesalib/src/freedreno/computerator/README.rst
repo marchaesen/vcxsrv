@@ -14,9 +14,10 @@ Headers
 The shader assembly can be prefixed with headers to control state setup:
 
 * ``@localsize X, Y, Z`` - configures local workgroup size
-* ``@buf SZ`` - configures an SSBO of the specified size (in dwords).
+* ``@buf SZ (cN.c)`` - configures an SSBO of the specified size (in dwords).
   The order of the ``@buf`` headers determines the index, ie the first
-  ``@buf`` header is ``g[0]``, the second ``g[1]``, and so on
+  ``@buf`` header is ``g[0]``, the second ``g[1]``, and so on.
+  The iova of the buffer is written as a vec2 to ``cN.c``
 * ``@const(cN.c)`` configures a const vec4 starting at specified
   const register, ie ``@const(c1.x) 1.0, 2.0, 3.0, 4.0`` will populate
   ``c1.xyzw`` with ``vec4(1.0, 2.0, 3.0, 4.0)``

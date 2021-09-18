@@ -26,7 +26,7 @@
 #include "util/format_rgb9e5.h"
 
 static inline nir_ssa_def *
-nir_shift(nir_builder *b, nir_ssa_def *value, int left_shift)
+nir_shift_imm(nir_builder *b, nir_ssa_def *value, int left_shift)
 {
    if (left_shift > 0)
       return nir_ishl(b, value, nir_imm_int(b, left_shift));
@@ -37,10 +37,19 @@ nir_shift(nir_builder *b, nir_ssa_def *value, int left_shift)
 }
 
 static inline nir_ssa_def *
+nir_shift(nir_builder *b, nir_ssa_def *value, nir_ssa_def *left_shift)
+{
+   return nir_bcsel(b,
+                    nir_ige(b, left_shift, nir_imm_int(b, 0)),
+                    nir_ishl(b, value, left_shift),
+                    nir_ushr(b, value, nir_ineg(b, left_shift)));
+}
+
+static inline nir_ssa_def *
 nir_mask_shift(struct nir_builder *b, nir_ssa_def *src,
                uint32_t mask, int left_shift)
 {
-   return nir_shift(b, nir_iand(b, src, nir_imm_int(b, mask)), left_shift);
+   return nir_shift_imm(b, nir_iand(b, src, nir_imm_int(b, mask)), left_shift);
 }
 
 static inline nir_ssa_def *
@@ -135,12 +144,25 @@ nir_format_pack_uint_unmasked(nir_builder *b, nir_ssa_def *color,
    nir_ssa_def *packed = nir_imm_int(b, 0);
    unsigned offset = 0;
    for (unsigned i = 0; i < num_components; i++) {
-      packed = nir_ior(b, packed, nir_shift(b, nir_channel(b, color, i),
+      packed = nir_ior(b, packed, nir_shift_imm(b, nir_channel(b, color, i),
                                                offset));
       offset += bits[i];
    }
    assert(offset <= packed->bit_size);
 
+   return packed;
+}
+
+static inline nir_ssa_def *
+nir_format_pack_uint_unmasked_ssa(nir_builder *b, nir_ssa_def *color,
+                                  nir_ssa_def *bits)
+{
+   nir_ssa_def *packed = nir_imm_int(b, 0);
+   nir_ssa_def *offset = nir_imm_int(b, 0);
+   for (unsigned i = 0; i < bits->num_components; i++) {
+      packed = nir_ior(b, packed, nir_ishl(b, nir_channel(b, color, i), offset));
+      offset = nir_iadd(b, offset, nir_channel(b, bits, i));
+   }
    return packed;
 }
 

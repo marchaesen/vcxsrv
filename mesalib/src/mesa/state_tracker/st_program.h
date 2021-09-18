@@ -47,8 +47,6 @@
 extern "C" {
 #endif
 
-#define ST_DOUBLE_ATTRIB_PLACEHOLDER 0xff
-
 struct st_external_sampler_key
 {
    GLuint lower_nv12;             /**< bitmask of 2 plane YUV samplers */
@@ -58,6 +56,8 @@ struct st_external_sampler_key
    GLuint lower_ayuv;
    GLuint lower_xyuv;
    GLuint lower_yuv;
+   GLuint lower_yu_yv;
+   GLuint lower_y41x;
 };
 
 static inline struct st_external_sampler_key
@@ -94,9 +94,21 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
          key.lower_iyuv |= (1 << unit);
          break;
       case PIPE_FORMAT_YUYV:
+         if (stObj->pt->format == PIPE_FORMAT_R8G8_R8B8_UNORM) {
+            key.lower_yu_yv |= (1 << unit);
+            break;
+         }
+         FALLTHROUGH;
+      case PIPE_FORMAT_Y210:
+      case PIPE_FORMAT_Y212:
+      case PIPE_FORMAT_Y216:
          key.lower_yx_xuxv |= (1 << unit);
          break;
       case PIPE_FORMAT_UYVY:
+         if (stObj->pt->format == PIPE_FORMAT_G8R8_B8R8_UNORM) {
+            key.lower_yu_yv |= (1 << unit);
+            break;
+         }
          key.lower_xy_uxvx |= (1 << unit);
          break;
       case PIPE_FORMAT_AYUV:
@@ -104,6 +116,11 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
          break;
       case PIPE_FORMAT_XYUV:
          key.lower_xyuv |= (1 << unit);
+         break;
+      case PIPE_FORMAT_Y410:
+      case PIPE_FORMAT_Y412:
+      case PIPE_FORMAT_Y416:
+         key.lower_y41x |= (1 << unit);
          break;
       default:
          printf("mesa: st_get_external_sampler_key: unhandled pipe format %u\n",
@@ -234,9 +251,7 @@ struct st_common_variant
    /* Parameters which generated this variant. */
    struct st_common_variant_key key;
 
-   /* Bitfield of VERT_BIT_* bits matching vertex shader inputs,
-    * but not include the high part of doubles.
-    */
+   /* Bitfield of VERT_BIT_* bits matching vertex shader inputs. */
    GLbitfield vert_attrib_mask;
 };
 
@@ -266,11 +281,8 @@ struct st_vertex_program
 {
    struct st_program Base;
 
-   /** maps a TGSI input index back to a Mesa VERT_ATTRIB_x */
-   ubyte index_to_input[PIPE_MAX_ATTRIBS];
+   uint32_t vert_attrib_mask; /**< mask of sourced vertex attribs */
    ubyte num_inputs;
-   /** Reverse mapping of the above */
-   ubyte input_to_index[VERT_ATTRIB_MAX];
 
    /** Maps VARYING_SLOT_x to slot */
    ubyte result_to_output[VARYING_SLOT_MAX];
@@ -342,7 +354,7 @@ extern void
 st_finalize_nir_before_variants(struct nir_shader *nir);
 
 extern void
-st_prepare_vertex_program(struct st_program *stvp);
+st_prepare_vertex_program(struct st_program *stvp, uint8_t *attrib_to_index);
 
 extern void
 st_translate_stream_output_info(struct gl_program *prog);

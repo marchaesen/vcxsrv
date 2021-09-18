@@ -29,6 +29,8 @@
 
 #include "util/macros.h"
 
+#include "freedreno_dev_info.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,7 +97,7 @@ struct fd_perfcntr_group {
    const struct fd_perfcntr_countable *countables;
 };
 
-const struct fd_perfcntr_group *fd_perfcntrs(unsigned gpu_id, unsigned *count);
+const struct fd_perfcntr_group *fd_perfcntrs(const struct fd_dev_id *id, unsigned *count);
 
 #define COUNTER(_sel, _lo, _hi) {                                              \
       .select_reg = REG(_sel), .counter_reg_lo = REG(_lo),                     \

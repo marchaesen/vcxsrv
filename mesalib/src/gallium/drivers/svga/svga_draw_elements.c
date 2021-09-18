@@ -284,7 +284,7 @@ svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
                                                   gen_prim, index_offset, count,
                                                   info->start_instance,
                                                   info->instance_count,
-                                                  info->vertices_per_patch);
+                                                  hwtnl->svga->patch_vertices);
       pipe_resource_reference(&index_buffer, NULL);
    }
    else {
@@ -313,7 +313,7 @@ svga_hwtnl_draw_range_elements(struct svga_hwtnl *hwtnl,
                                                      gen_nr,
                                                      info->start_instance,
                                                      info->instance_count,
-                                                     info->vertices_per_patch);
+                                                     hwtnl->svga->patch_vertices);
       }
 
       if (gen_buf) {

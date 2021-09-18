@@ -802,14 +802,20 @@ nir_instr_set_destroy(struct set *instr_set)
 }
 
 bool
-nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
+nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
+                             bool (*cond_function) (const nir_instr *a,
+                                                    const nir_instr *b))
 {
    if (!instr_can_rewrite(instr))
       return false;
 
    struct set_entry *e = _mesa_set_search_or_add(instr_set, instr, NULL);
    nir_instr *match = (nir_instr *) e->key;
-   if (match != instr) {
+   if (match == instr)
+      return false;
+
+   if (!cond_function || cond_function(match, instr)) {
+      /* rewrite instruction if condition is matched */
       nir_ssa_def *def = nir_instr_get_dest_ssa_def(instr);
       nir_ssa_def *new_def = nir_instr_get_dest_ssa_def(match);
 
@@ -822,10 +828,15 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
          nir_instr_as_alu(match)->exact = true;
 
       nir_ssa_def_rewrite_uses(def, new_def);
-      return true;
-   }
 
-   return false;
+      nir_instr_remove(instr);
+
+      return true;
+   } else {
+      /* otherwise, replace hashed instruction */
+      e->key = instr;
+      return false;
+   }
 }
 
 void

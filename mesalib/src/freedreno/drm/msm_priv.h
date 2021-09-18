@@ -30,6 +30,9 @@
 #include "freedreno_priv.h"
 
 #include "util/slab.h"
+#include "util/timespec.h"
+
+#include "pipe/p_defines.h"
 
 #ifndef __user
 #define __user
@@ -39,7 +42,6 @@
 
 struct msm_device {
    struct fd_device base;
-   struct fd_bo_cache ring_cache;
    struct util_queue submit_queue;
 };
 FD_DEFINE_CAST(fd_device, msm_device);
@@ -50,11 +52,15 @@ struct msm_pipe {
    struct fd_pipe base;
    uint32_t pipe;
    uint32_t gpu_id;
+   uint64_t chip_id;
    uint64_t gmem_base;
    uint32_t gmem;
-   uint32_t chip_id;
    uint32_t queue_id;
    struct slab_parent_pool ring_pool;
+
+   /* BO for suballocating long-lived objects on the pipe. */
+   struct fd_bo *suballoc_bo;
+   uint32_t suballoc_offset;
 
    /**
     * The last fence seqno that was flushed to kernel (doesn't mean that it
@@ -128,9 +134,17 @@ static inline void
 get_abs_timeout(struct drm_msm_timespec *tv, uint64_t ns)
 {
    struct timespec t;
+
+   if (ns == PIPE_TIMEOUT_INFINITE)
+      ns = 3600ULL * NSEC_PER_SEC; /* 1 hour timeout is almost infinite */
+
    clock_gettime(CLOCK_MONOTONIC, &t);
-   tv->tv_sec = t.tv_sec + ns / 1000000000;
-   tv->tv_nsec = t.tv_nsec + ns % 1000000000;
+   tv->tv_sec = t.tv_sec + ns / NSEC_PER_SEC;
+   tv->tv_nsec = t.tv_nsec + ns % NSEC_PER_SEC;
+   if (tv->tv_nsec >= NSEC_PER_SEC) { /* handle nsec overflow */
+      tv->tv_nsec -= NSEC_PER_SEC;
+      tv->tv_sec++;
+   }
 }
 
 #endif /* MSM_PRIV_H_ */

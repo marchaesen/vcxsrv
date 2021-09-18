@@ -210,7 +210,7 @@ upload_sampler(struct pipe_context *pipe, struct pipe_sampler_view *dst,
    struct pipe_transfer *transfer;
    void *map;
 
-   map = pipe->transfer_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
+   map = pipe->texture_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
                             dst_box, &transfer);
    if (!map)
       return;
@@ -219,7 +219,7 @@ upload_sampler(struct pipe_context *pipe, struct pipe_sampler_view *dst,
                   dst_box->width, dst_box->height,
                   src, src_stride, src_x, src_y);
 
-   pipe->transfer_unmap(pipe, transfer);
+   pipe->texture_unmap(pipe, transfer);
 }
 
 static void
@@ -231,7 +231,7 @@ upload_sampler_convert(struct pipe_context *pipe, struct pipe_sampler_view *dst,
    int i, j;
    char *map, *src;
 
-   map = pipe->transfer_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
+   map = pipe->texture_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
                             dst_box, &transfer);
    if (!map)
       return;
@@ -254,7 +254,7 @@ upload_sampler_convert(struct pipe_context *pipe, struct pipe_sampler_view *dst,
             map[j * 2 + 0] = map[j * 2 + 1] = (src[j] >> 4) | (src[j] << 4);
    }
 
-   pipe->transfer_unmap(pipe, transfer);
+   pipe->texture_unmap(pipe, transfer);
 }
 
 PUBLIC
@@ -393,7 +393,7 @@ Status XvMCClearSubpicture(Display *dpy, XvMCSubpicture *subpicture, short x, sh
    dst = subpicture_priv->sampler;
 
    /* TODO: Assert clear rect is within bounds? Or clip? */
-   map = pipe->transfer_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
+   map = pipe->texture_map(pipe, dst->texture, 0, PIPE_MAP_WRITE,
                             &dst_box, &transfer);
    if (!map)
       return XvMCBadSubpicture;
@@ -401,7 +401,7 @@ Status XvMCClearSubpicture(Display *dpy, XvMCSubpicture *subpicture, short x, sh
    util_fill_rect(map, dst->texture->format, transfer->stride, 0, 0,
                   dst_box.width, dst_box.height, &uc);
 
-   pipe->transfer_unmap(pipe, transfer);
+   pipe->texture_unmap(pipe, transfer);
    return Success;
 }
 

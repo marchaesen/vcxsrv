@@ -22,10 +22,13 @@
  *
  */
 
+#include "aco_builder.h"
+#include "aco_ir.h"
+
+#include <algorithm>
 #include <map>
 #include <unordered_map>
-#include "aco_ir.h"
-#include "aco_builder.h"
+#include <vector>
 
 /*
  * Implements an algorithm to lower to Concentional SSA Form (CSSA).
@@ -50,32 +53,32 @@ struct copy {
 
 struct merge_node {
    Operand value = Operand(); /* original value: can be an SSA-def or constant value */
-   uint32_t index = -1u; /* index into the vector of merge sets */
+   uint32_t index = -1u;      /* index into the vector of merge sets */
    uint32_t defined_at = -1u; /* defining block */
 
    /* we also remember two dominating defs with the same value: */
-   Temp equal_anc_in = Temp(); /* within the same merge set */
+   Temp equal_anc_in = Temp();  /* within the same merge set */
    Temp equal_anc_out = Temp(); /* from a different set */
 };
 
 struct cssa_ctx {
    Program* program;
-   std::vector<IDSet>& live_out; /* live-out sets per block */
+   std::vector<IDSet>& live_out;                  /* live-out sets per block */
    std::vector<std::vector<copy>> parallelcopies; /* copies per block */
-   std::vector<merge_set> merge_sets; /* each vector is one (ordered) merge set */
+   std::vector<merge_set> merge_sets;             /* each vector is one (ordered) merge set */
    std::unordered_map<uint32_t, merge_node> merge_node_table; /* tempid -> merge node */
 };
 
 /* create (virtual) parallelcopies for each phi instruction and
  * already merge copy-definitions with phi-defs into merge sets */
-void collect_parallelcopies(cssa_ctx& ctx)
+void
+collect_parallelcopies(cssa_ctx& ctx)
 {
    ctx.parallelcopies.resize(ctx.program->blocks.size());
    Builder bld(ctx.program);
    for (Block& block : ctx.program->blocks) {
       for (aco_ptr<Instruction>& phi : block.instructions) {
-         if (phi->opcode != aco_opcode::p_phi &&
-             phi->opcode != aco_opcode::p_linear_phi)
+         if (phi->opcode != aco_opcode::p_phi && phi->opcode != aco_opcode::p_linear_phi)
             break;
 
          const Definition& def = phi->definitions[0];
@@ -86,9 +89,8 @@ void collect_parallelcopies(cssa_ctx& ctx)
          if (!def.isTemp())
             continue;
 
-         std::vector<unsigned>& preds = phi->opcode == aco_opcode::p_phi ?
-                                        block.logical_preds :
-                                        block.linear_preds;
+         std::vector<unsigned>& preds =
+            phi->opcode == aco_opcode::p_phi ? block.logical_preds : block.linear_preds;
          uint32_t index = ctx.merge_sets.size();
          merge_set set;
 
@@ -148,8 +150,8 @@ void collect_parallelcopies(cssa_ctx& ctx)
 }
 
 /* check whether the definition of a comes after b. */
-inline
-bool defined_after(cssa_ctx& ctx, Temp a, Temp b)
+inline bool
+defined_after(cssa_ctx& ctx, Temp a, Temp b)
 {
    merge_node& node_a = ctx.merge_node_table[a.id()];
    merge_node& node_b = ctx.merge_node_table[b.id()];
@@ -160,25 +162,24 @@ bool defined_after(cssa_ctx& ctx, Temp a, Temp b)
 }
 
 /* check whether a dominates b where b is defined after a */
-inline
-bool dominates(cssa_ctx& ctx, Temp a, Temp b)
+inline bool
+dominates(cssa_ctx& ctx, Temp a, Temp b)
 {
    assert(defined_after(ctx, b, a));
    merge_node& node_a = ctx.merge_node_table[a.id()];
    merge_node& node_b = ctx.merge_node_table[b.id()];
    unsigned idom = node_b.defined_at;
    while (idom > node_a.defined_at)
-      idom = b.regClass().type() == RegType::vgpr ?
-             ctx.program->blocks[idom].logical_idom :
-             ctx.program->blocks[idom].linear_idom;
+      idom = b.regClass().type() == RegType::vgpr ? ctx.program->blocks[idom].logical_idom
+                                                  : ctx.program->blocks[idom].linear_idom;
 
    return idom == node_a.defined_at;
 }
 
 /* check intersection between var and parent:
  * We already know that parent dominates var. */
-inline
-bool intersects(cssa_ctx& ctx, Temp var, Temp parent)
+inline bool
+intersects(cssa_ctx& ctx, Temp var, Temp parent)
 {
    merge_node& node_var = ctx.merge_node_table[var.id()];
    merge_node& node_parent = ctx.merge_node_table[parent.id()];
@@ -193,9 +194,9 @@ bool intersects(cssa_ctx& ctx, Temp var, Temp parent)
    /* parent is defined in a different block than var */
    if (node_parent.defined_at < node_var.defined_at) {
       /* if the parent is not live-in, they don't interfere */
-      std::vector<uint32_t>& preds = var.type() == RegType::vgpr ?
-                                     ctx.program->blocks[block_idx].logical_preds :
-                                     ctx.program->blocks[block_idx].linear_preds;
+      std::vector<uint32_t>& preds = var.type() == RegType::vgpr
+                                        ? ctx.program->blocks[block_idx].logical_preds
+                                        : ctx.program->blocks[block_idx].linear_preds;
       for (uint32_t pred : preds) {
          if (!ctx.live_out[pred].count(parent.id()))
             return false;
@@ -243,8 +244,8 @@ bool intersects(cssa_ctx& ctx, Temp var, Temp parent)
 /* check interference between var and parent:
  * i.e. they have different values and intersect.
  * If parent and var share the same value, also updates the equal ancestor. */
-inline
-bool interference(cssa_ctx& ctx, Temp var, Temp parent)
+inline bool
+interference(cssa_ctx& ctx, Temp var, Temp parent)
 {
    assert(var != parent);
    merge_node& node_var = ctx.merge_node_table[var.id()];
@@ -278,13 +279,14 @@ bool interference(cssa_ctx& ctx, Temp var, Temp parent)
 
 /* tries to merge set_b into set_a of given temporary and
  * drops that temporary as it is being coalesced */
-bool try_merge_merge_set(cssa_ctx& ctx, Temp dst, merge_set& set_b)
+bool
+try_merge_merge_set(cssa_ctx& ctx, Temp dst, merge_set& set_b)
 {
    auto def_node_it = ctx.merge_node_table.find(dst.id());
    uint32_t index = def_node_it->second.index;
    merge_set& set_a = ctx.merge_sets[index];
    std::vector<Temp> dom; /* stack of the traversal */
-   merge_set union_set; /* the new merged merge-set */
+   merge_set union_set;   /* the new merged merge-set */
    uint32_t i_a = 0;
    uint32_t i_b = 0;
 
@@ -332,7 +334,8 @@ bool try_merge_merge_set(cssa_ctx& ctx, Temp dst, merge_set& set_b)
 }
 
 /* returns true if the copy can safely be omitted */
-bool try_coalesce_copy(cssa_ctx& ctx, copy copy, uint32_t block_idx)
+bool
+try_coalesce_copy(cssa_ctx& ctx, copy copy, uint32_t block_idx)
 {
    /* we can only coalesce temporaries */
    if (!copy.op.isTemp())
@@ -345,11 +348,9 @@ bool try_coalesce_copy(cssa_ctx& ctx, copy copy, uint32_t block_idx)
       uint32_t pred = block_idx;
       do {
          block_idx = pred;
-         pred = copy.op.regClass().type() == RegType::vgpr ?
-                ctx.program->blocks[pred].logical_idom :
-                ctx.program->blocks[pred].linear_idom;
-      } while (block_idx != pred &&
-               ctx.live_out[pred].count(copy.op.tempId()));
+         pred = copy.op.regClass().type() == RegType::vgpr ? ctx.program->blocks[pred].logical_idom
+                                                           : ctx.program->blocks[pred].linear_idom;
+      } while (block_idx != pred && ctx.live_out[pred].count(copy.op.tempId()));
       op_node.defined_at = block_idx;
       op_node.value = copy.op;
    }
@@ -382,7 +383,8 @@ struct ltg_node {
 
 /* emit the copies in an order that does not
  * create interferences within a merge-set */
-void emit_copies_block(Builder bld, std::map<uint32_t, ltg_node>& ltg, RegType type)
+void
+emit_copies_block(Builder& bld, std::map<uint32_t, ltg_node>& ltg, RegType type)
 {
    auto&& it = ltg.begin();
    while (it != ltg.end()) {
@@ -407,16 +409,16 @@ void emit_copies_block(Builder bld, std::map<uint32_t, ltg_node>& ltg, RegType t
    }
 
    /* count the number of remaining circular dependencies */
-   unsigned num = std::count_if(ltg.begin(), ltg.end(), [&] (auto& n){
-      return n.second.cp.def.regClass().type() == type;
-   });
+   unsigned num = std::count_if(ltg.begin(), ltg.end(),
+                                [&](auto& n) { return n.second.cp.def.regClass().type() == type; });
 
    /* if there are circular dependencies, we just emit them as single parallelcopy */
    if (num) {
       // TODO: this should be restricted to a feasible number of registers
       // and otherwise use a temporary to avoid having to reload more (spilled)
       // variables than we have registers.
-      aco_ptr<Pseudo_instruction> copy{create_instruction<Pseudo_instruction>(aco_opcode::p_parallelcopy, Format::PSEUDO, num, num)};
+      aco_ptr<Pseudo_instruction> copy{create_instruction<Pseudo_instruction>(
+         aco_opcode::p_parallelcopy, Format::PSEUDO, num, num)};
       it = ltg.begin();
       for (unsigned i = 0; i < num; i++) {
          while (it->second.cp.def.regClass().type() != type)
@@ -432,7 +434,8 @@ void emit_copies_block(Builder bld, std::map<uint32_t, ltg_node>& ltg, RegType t
 
 /* either emits or coalesces all parallelcopies and
  * renames the phi-operands accordingly. */
-void emit_parallelcopies(cssa_ctx& ctx)
+void
+emit_parallelcopies(cssa_ctx& ctx)
 {
    std::unordered_map<uint32_t, Operand> renames;
 
@@ -442,6 +445,9 @@ void emit_parallelcopies(cssa_ctx& ctx)
          continue;
 
       std::map<uint32_t, ltg_node> ltg;
+      bool has_vgpr_copy = false;
+      bool has_sgpr_copy = false;
+
       /* first, try to coalesce all parallelcopies */
       for (const copy& cp : ctx.parallelcopies[i]) {
          if (try_coalesce_copy(ctx, cp, i)) {
@@ -456,6 +462,10 @@ void emit_parallelcopies(cssa_ctx& ctx)
             uint32_t write_idx = ctx.merge_node_table[cp.def.tempId()].index;
             assert(write_idx != -1u);
             ltg[write_idx] = {cp, read_idx};
+
+            bool is_vgpr = cp.def.regClass().type() == RegType::vgpr;
+            has_vgpr_copy |= is_vgpr;
+            has_sgpr_copy |= !is_vgpr;
          }
       }
 
@@ -472,27 +482,29 @@ void emit_parallelcopies(cssa_ctx& ctx)
       Builder bld(ctx.program);
       Block& block = ctx.program->blocks[i];
 
-      /* emit VGPR copies */
-      auto IsLogicalEnd = [] (const aco_ptr<Instruction>& inst) -> bool {
-         return inst->opcode == aco_opcode::p_logical_end;
-      };
-      auto it = std::find_if(block.instructions.rbegin(), block.instructions.rend(), IsLogicalEnd);
-      bld.reset(&block.instructions, std::prev(it.base()));
-      emit_copies_block(bld, ltg, RegType::vgpr);
+      if (has_vgpr_copy) {
+         /* emit VGPR copies */
+         auto IsLogicalEnd = [](const aco_ptr<Instruction>& inst) -> bool
+         { return inst->opcode == aco_opcode::p_logical_end; };
+         auto it = std::find_if(block.instructions.rbegin(), block.instructions.rend(), IsLogicalEnd);
+         bld.reset(&block.instructions, std::prev(it.base()));
+         emit_copies_block(bld, ltg, RegType::vgpr);
+      }
 
-      /* emit SGPR copies */
-      aco_ptr<Instruction> branch = std::move(block.instructions.back());
-      block.instructions.pop_back();
-      bld.reset(&block.instructions);
-      emit_copies_block(bld, ltg, RegType::sgpr);
-      bld.insert(std::move(branch));
+      if (has_sgpr_copy) {
+         /* emit SGPR copies */
+         aco_ptr<Instruction> branch = std::move(block.instructions.back());
+         block.instructions.pop_back();
+         bld.reset(&block.instructions);
+         emit_copies_block(bld, ltg, RegType::sgpr);
+         bld.insert(std::move(branch));
+      }
    }
 
    /* finally, rename coalesced phi operands */
    for (Block& block : ctx.program->blocks) {
       for (aco_ptr<Instruction>& phi : block.instructions) {
-         if (phi->opcode != aco_opcode::p_phi &&
-             phi->opcode != aco_opcode::p_linear_phi)
+         if (phi->opcode != aco_opcode::p_phi && phi->opcode != aco_opcode::p_linear_phi)
             break;
 
          for (Operand& op : phi->operands) {
@@ -511,8 +523,8 @@ void emit_parallelcopies(cssa_ctx& ctx)
 
 } /* end namespace */
 
-
-void lower_to_cssa(Program* program, live& live_vars)
+void
+lower_to_cssa(Program* program, live& live_vars)
 {
    reindex_ssa(program, live_vars.live_out);
    cssa_ctx ctx = {program, live_vars.live_out};
@@ -522,5 +534,4 @@ void lower_to_cssa(Program* program, live& live_vars)
    /* update live variable information */
    live_vars = live_var_analysis(program);
 }
-}
-
+} // namespace aco

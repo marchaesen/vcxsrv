@@ -50,6 +50,8 @@ lp_print_counters(void)
 
       debug_printf("llvmpipe: nr_triangles:                 %9u\n", lp_count.nr_tris);
       debug_printf("llvmpipe: nr_culled_triangles:          %9u\n", lp_count.nr_culled_tris);
+      debug_printf("llvmpipe: nr_rectangles:                %9u\n", lp_count.nr_rects);
+      debug_printf("llvmpipe: nr_culled_rectangles:         %9u\n", lp_count.nr_culled_rects);
 
       total_64 = (lp_count.nr_empty_64 + 
                   lp_count.nr_fully_covered_64 +
@@ -58,11 +60,14 @@ lp_print_counters(void)
       p1 = 100.0 * (float) lp_count.nr_empty_64 / (float) total_64;
       p2 = 100.0 * (float) lp_count.nr_fully_covered_64 / (float) total_64;
       p3 = 100.0 * (float) lp_count.nr_partially_covered_64 / (float) total_64;
+      p4 = 100.0 * (float) lp_count.nr_blit_64 / (float) total_64;
       p5 = 100.0 * (float) lp_count.nr_shade_opaque_64 / (float) total_64;
       p6 = 100.0 * (float) lp_count.nr_shade_64 / (float) total_64;
 
       debug_printf("llvmpipe: nr_64x64:                     %9u\n", total_64);
       debug_printf("llvmpipe:   nr_fully_covered_64x64:     %9u (%3.0f%% of %u)\n", lp_count.nr_fully_covered_64, p2, total_64);
+      debug_printf("llvmpipe:     nr_blit_64x64:            %9u (%3.0f%% of %u)\n", lp_count.nr_blit_64, p4, total_64);
+      debug_printf("llvmpipe:        nr_pure_blit_64x64:    %9u (%3.0f%% of %u)\n", lp_count.nr_pure_blit_64, 0.0, lp_count.nr_blit_64);
       debug_printf("llvmpipe:     nr_shade_opaque_64x64:    %9u (%3.0f%% of %u)\n", lp_count.nr_shade_opaque_64, p5, total_64);
       debug_printf("llvmpipe:        nr_pure_shade_opaque:  %9u (%3.0f%% of %u)\n", lp_count.nr_pure_shade_opaque_64, 0.0, lp_count.nr_shade_opaque_64);
       debug_printf("llvmpipe:     nr_shade_64x64:           %9u (%3.0f%% of %u)\n", lp_count.nr_shade_64, p6, total_64);
@@ -97,6 +102,17 @@ lp_print_counters(void)
       debug_printf("llvmpipe:   nr_partially_covered_4x4:   %9u (%3.0f%% of %u)\n", lp_count.nr_partially_covered_4, p3, total_4);
       debug_printf("llvmpipe:   nr_empty_4x4:               %9u (%3.0f%% of %u)\n", lp_count.nr_empty_4, p1, total_4);
       debug_printf("llvmpipe:   nr_non_empty_4x4:           %9u (%3.0f%% of %u)\n", lp_count.nr_non_empty_4, p4, total_4);
+
+      total_4 = (lp_count.nr_rect_partially_covered_4 +
+                 lp_count.nr_rect_fully_covered_4);
+
+      p1 = 100.0 * (float) lp_count.nr_rect_partially_covered_4 / (float) total_4;
+      p2 = 100.0 * (float) lp_count.nr_rect_fully_covered_4 / (float) total_4;
+
+      debug_printf("llvmpipe: nr_rect_4x4:                  %9u\n", total_4);
+      debug_printf("llvmpipe:   nr_rect_full_4x4:           %9u (%3.0f%% of %u)\n", lp_count.nr_rect_fully_covered_4, p1, total_4);
+      debug_printf("llvmpipe:   nr_rect_part_4x4:           %9u (%3.0f%% of %u)\n", lp_count.nr_rect_partially_covered_4, p2, total_4);
+
 
       debug_printf("llvmpipe: nr_color_tile_clear:          %9u\n", lp_count.nr_color_tile_clear);
       debug_printf("llvmpipe: nr_color_tile_load:           %9u\n", lp_count.nr_color_tile_load);

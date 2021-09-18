@@ -134,7 +134,7 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
       const struct pipe_sampler_state *samplers[] = {&p->sampler_point};
       cso_set_samplers(p->cso, PIPE_SHADER_FRAGMENT, 1, samplers);
    }
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, &p->view);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, false, &p->view);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][1]);    /* offsetvs */
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][2]);
@@ -166,7 +166,7 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
    }
 
    arr[0] = p->view;
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 3, 0, arr);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 3, 0, false, arr);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][0]);    /* passvs */
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][3]);
@@ -198,7 +198,7 @@ pp_jimenezmlaa_run(struct pp_queue_t *ppq, struct pipe_resource *in,
    }
 
    arr[1] = p->view;
-   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 2, 0, arr);
+   pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 2, 0, false, arr);
 
    cso_set_vertex_shader_handle(p->cso, ppq->shaders[n][1]);    /* offsetvs */
    cso_set_fragment_shader_handle(p->cso, ppq->shaders[n][4]);

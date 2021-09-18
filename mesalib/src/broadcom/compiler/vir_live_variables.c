@@ -28,9 +28,12 @@
 #include "util/register_allocate.h"
 #include "v3d_compiler.h"
 
+/* Keeps track of conditional / partial writes in a block */
 struct partial_update_state {
-        struct qinst *insts[4];
-        uint8_t channels;
+        /* Instruction doing a conditional or partial write */
+        struct qinst *inst;
+        /* Instruction that set the flags for the conditional write */
+        struct qinst *flags_inst;
 };
 
 static int
@@ -44,7 +47,8 @@ vir_reg_to_var(struct qreg reg)
 
 static void
 vir_setup_use(struct v3d_compile *c, struct qblock *block, int ip,
-              struct qreg src)
+              struct partial_update_state *partial_update_ht, struct qinst *inst,
+              struct qreg src, struct qinst *flags_inst)
 {
         int var = vir_reg_to_var(src);
         if (var == -1)
@@ -57,39 +61,39 @@ vir_setup_use(struct v3d_compile *c, struct qblock *block, int ip,
          * use of a variable without having completely
          * defined that variable within the block.
          */
-        if (!BITSET_TEST(block->def, var))
+        if (!BITSET_TEST(block->def, var)) {
+                /* If this use of var is conditional and the condition
+                 * and flags match those of a previous instruction
+                 * in the same block partially defining var then we
+                 * consider var completely defined within the block.
+                 */
+                if (BITSET_TEST(block->defout, var)) {
+                        struct partial_update_state *state =
+                                &partial_update_ht[var];
+                        if (state->inst) {
+                                if (vir_get_cond(inst) == vir_get_cond(state->inst) &&
+                                    flags_inst == state->flags_inst) {
+                                        return;
+                                }
+                        }
+                }
+
                 BITSET_SET(block->use, var);
+        }
 }
 
-static struct partial_update_state *
-get_partial_update_state(struct hash_table *partial_update_ht,
-                         struct qinst *inst)
-{
-        struct hash_entry *entry =
-                _mesa_hash_table_search(partial_update_ht,
-                                        &inst->dst.index);
-        if (entry)
-                return entry->data;
-
-        struct partial_update_state *state =
-                rzalloc(partial_update_ht, struct partial_update_state);
-
-        _mesa_hash_table_insert(partial_update_ht, &inst->dst.index, state);
-
-        return state;
-}
-
+/* The def[] bitset marks when an initialization in a
+ * block completely screens off previous updates of
+ * that variable.
+ */
 static void
 vir_setup_def(struct v3d_compile *c, struct qblock *block, int ip,
-              struct hash_table *partial_update_ht, struct qinst *inst)
+              struct partial_update_state *partial_update, struct qinst *inst,
+              struct qinst *flags_inst)
 {
         if (inst->qpu.type != V3D_QPU_INSTR_TYPE_ALU)
                 return;
 
-        /* The def[] bitset marks when an initialization in a
-         * block completely screens off previous updates of
-         * that variable.
-         */
         int var = vir_reg_to_var(inst->dst);
         if (var == -1)
                 return;
@@ -115,62 +119,22 @@ vir_setup_def(struct v3d_compile *c, struct qblock *block, int ip,
                 return;
         }
 
-        /* Finally, look at the condition code and packing and mark it as a
-         * def.  We need to make sure that we understand sequences
-         * instructions like:
+        /* Keep track of conditional writes.
          *
-         *     mov.zs t0, t1
-         *     mov.zc t0, t2
+         * Notice that the dst's live range for a conditional or partial writes
+         * will get extended up the control flow to the top of the program until
+         * we find a full write, making register allocation more difficult, so
+         * we should try our best to keep track of these and figure out if a
+         * combination of them actually writes the entire register so we can
+         * stop that process early and reduce liveness.
          *
-         * or:
-         *
-         *     mmov t0.8a, t1
-         *     mmov t0.8b, t2
-         *     mmov t0.8c, t3
-         *     mmov t0.8d, t4
-         *
-         * as defining the temp within the block, because otherwise dst's live
-         * range will get extended up the control flow to the top of the
-         * program.
+         * FIXME: Track partial updates via pack/unpack.
          */
-        struct partial_update_state *state =
-                get_partial_update_state(partial_update_ht, inst);
-        uint8_t mask = 0xf; /* XXX vir_channels_written(inst); */
-
-        if (inst->qpu.flags.ac == V3D_QPU_COND_NONE &&
-            inst->qpu.flags.mc == V3D_QPU_COND_NONE) {
-                state->channels |= mask;
-        } else {
-                for (int i = 0; i < 4; i++) {
-                        if (!(mask & (1 << i)))
-                                continue;
-
-                        /* XXXif (state->insts[i] &&
-                            state->insts[i]->cond ==
-                            qpu_cond_complement(inst->cond))
-                                state->channels |= 1 << i;
-                        else
-                        */
-                                state->insts[i] = inst;
-                }
-        }
-
-        if (state->channels == 0xf)
-                BITSET_SET(block->def, var);
-}
-
-static void
-sf_state_clear(struct hash_table *partial_update_ht)
-{
-        hash_table_foreach(partial_update_ht, entry) {
-                struct partial_update_state *state = entry->data;
-
-                for (int i = 0; i < 4; i++) {
-                        if (state->insts[i] &&
-                            (state->insts[i]->qpu.flags.ac != V3D_QPU_COND_NONE ||
-                             state->insts[i]->qpu.flags.mc != V3D_QPU_COND_NONE))
-                                state->insts[i] = NULL;
-                }
+        struct partial_update_state *state = &partial_update[var];
+        if (inst->qpu.flags.ac != V3D_QPU_COND_NONE ||
+            inst->qpu.flags.mc != V3D_QPU_COND_NONE) {
+                state->inst = inst;
+                state->flags_inst = flags_inst;
         }
 }
 
@@ -184,23 +148,36 @@ sf_state_clear(struct hash_table *partial_update_ht)
 static void
 vir_setup_def_use(struct v3d_compile *c)
 {
-        struct hash_table *partial_update_ht =
-                _mesa_hash_table_create(c, _mesa_hash_int, _mesa_key_int_equal);
+        struct partial_update_state *partial_update =
+                rzalloc_array(c, struct partial_update_state, c->num_temps);
         int ip = 0;
 
         vir_for_each_block(block, c) {
                 block->start_ip = ip;
 
-                _mesa_hash_table_clear(partial_update_ht, NULL);
+                memset(partial_update, 0,
+                       sizeof(struct partial_update_state) * c->num_temps);
+
+                struct qinst *flags_inst = NULL;
 
                 vir_for_each_inst(inst, block) {
-                        for (int i = 0; i < vir_get_nsrc(inst); i++)
-                                vir_setup_use(c, block, ip, inst->src[i]);
+                        for (int i = 0; i < vir_get_nsrc(inst); i++) {
+                                vir_setup_use(c, block, ip, partial_update,
+                                              inst, inst->src[i], flags_inst);
+                        }
 
-                        vir_setup_def(c, block, ip, partial_update_ht, inst);
+                        vir_setup_def(c, block, ip, partial_update,
+                                      inst, flags_inst);
 
-                        if (false /* XXX inst->uf */)
-                                sf_state_clear(partial_update_ht);
+                        if (inst->qpu.flags.apf != V3D_QPU_PF_NONE ||
+                            inst->qpu.flags.mpf != V3D_QPU_PF_NONE) {
+                               flags_inst = inst;
+                        }
+
+                        if (inst->qpu.flags.auf != V3D_QPU_UF_NONE ||
+                            inst->qpu.flags.muf != V3D_QPU_UF_NONE) {
+                                flags_inst = NULL;
+                        }
 
                         /* Payload registers: r0/1/2 contain W, centroid W,
                          * and Z at program start.  Register allocation will
@@ -221,7 +198,7 @@ vir_setup_def_use(struct v3d_compile *c)
                 block->end_ip = ip;
         }
 
-        _mesa_hash_table_destroy(partial_update_ht, NULL);
+        ralloc_free(partial_update);
 }
 
 static bool

@@ -81,7 +81,7 @@ lima_nir_split_load_input_block(nir_block *block, nir_builder *b)
       nir_intrinsic_set_dest_type(new_intrin, nir_intrinsic_dest_type(intrin));
 
       /* offset */
-      nir_src_copy(&new_intrin->src[0], &intrin->src[0], new_intrin);
+      nir_src_copy(&new_intrin->src[0], &intrin->src[0]);
 
       nir_builder_instr_insert(b, &new_intrin->instr);
       nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,

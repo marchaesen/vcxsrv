@@ -1244,6 +1244,9 @@ glsl_type::record_compare(const glsl_type *b, bool match_name,
       if (match_locations && this->fields.structure[i].location
           != b->fields.structure[i].location)
          return false;
+      if (this->fields.structure[i].component
+          != b->fields.structure[i].component)
+         return false;
       if (this->fields.structure[i].offset
           != b->fields.structure[i].offset)
          return false;
@@ -2949,6 +2952,7 @@ encode_glsl_struct_field(blob *blob, const glsl_struct_field *struct_field)
    encode_type_to_blob(blob, struct_field->type);
    blob_write_string(blob, struct_field->name);
    blob_write_uint32(blob, struct_field->location);
+   blob_write_uint32(blob, struct_field->component);
    blob_write_uint32(blob, struct_field->offset);
    blob_write_uint32(blob, struct_field->xfb_buffer);
    blob_write_uint32(blob, struct_field->xfb_stride);
@@ -2962,6 +2966,7 @@ decode_glsl_struct_field_from_blob(blob_reader *blob, glsl_struct_field *struct_
    struct_field->type = decode_type_from_blob(blob);
    struct_field->name = blob_read_string(blob);
    struct_field->location = blob_read_uint32(blob);
+   struct_field->component = blob_read_uint32(blob);
    struct_field->offset = blob_read_uint32(blob);
    struct_field->xfb_buffer = blob_read_uint32(blob);
    struct_field->xfb_stride = blob_read_uint32(blob);

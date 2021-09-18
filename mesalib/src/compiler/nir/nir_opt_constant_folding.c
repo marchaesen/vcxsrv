@@ -105,8 +105,7 @@ try_fold_alu(nir_builder *b, nir_alu_instr *alu)
                                        dest);
    nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, imm);
    nir_instr_remove(&alu->instr);
-
-   ralloc_free(alu);
+   nir_instr_free(&alu->instr);
 
    return true;
 }

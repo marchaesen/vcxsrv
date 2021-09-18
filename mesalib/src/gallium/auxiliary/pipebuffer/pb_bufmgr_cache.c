@@ -232,7 +232,7 @@ pb_cache_manager_create_buffer(struct pb_manager *_mgr,
    }
    
    assert(pipe_is_referenced(&buf->buffer->reference));
-   assert(pb_check_alignment(desc->alignment, 1ull << buf->buffer->alignment_log2));
+   assert(pb_check_alignment(desc->alignment, 1u << buf->buffer->alignment_log2));
    assert(buf->buffer->size >= size);
    
    pipe_reference_init(&buf->base.reference, 1);

@@ -13,11 +13,11 @@ Mesa-LAVA software architecture
 -------------------------------
 
 The gitlab-runner will run on some host that has access to the LAVA
-lab, with tags like "lava-mesa-boardname" to control only taking in
-jobs for the hardware that the LAVA lab contains.  The gitlab-runner
-spawns a Docker container with lava-cli in it, and connects to the
-LAVA lab using a predefined token to submit jobs under a specific
-device type.
+lab, with tags like "mesa-ci-x86-64-lava-$DEVICE_TYPE" to control only
+taking in jobs for the hardware that the LAVA lab contains.  The
+gitlab-runner spawns a Docker container with lavacli in it, and
+connects to the LAVA lab using a predefined token to submit jobs under
+a specific device type.
 
 The LAVA instance manages scheduling those jobs to the boards present.
 For a job, it will deploy the kernel, device tree, and the ramdisk
@@ -46,14 +46,10 @@ and some public images, and figure out how to get your boards booting.
 Once you can boot your board using a custom job definition, it's time
 to connect Mesa CI to it.  Install gitlab-runner and register as a
 shared runner (you'll need a GitLab admin for help with this).  The
-runner *must* have a tag (like "mesa-lava-db410c") to restrict the
-jobs it takes or it will grab random jobs from tasks across
-``gitlab.freedesktop.org``, and your runner isn't ready for that.
-
-The runner will be running an ARM Docker image (we haven't done any
-x86 LAVA yet, so that isn't documented).  If your host for the
-gitlab-runner is x86, then you'll need to install qemu-user-static and
-the binfmt support.
+runner *must* have a tag (like "mesa-ci-x86-64-lava-rk3399-gru-kevin")
+to restrict the jobs it takes or it will grab random jobs from tasks
+across ``gitlab.freedesktop.org``, and your runner isn't ready for
+that.
 
 The Docker image will need access to the lava instance.  If it's on a
 public network it should be fine.  If you're running the LAVA instance
@@ -82,5 +78,5 @@ GitLab CI yml, but this way the current method of connecting to the
 LAVA instance is separated from the Mesa branches (particularly
 relevant as we have many stable branches all using CI).
 
-Now it's time to define your test runner in
-``.gitlab-ci/lava-gitlab-ci.yml``.
+Now it's time to define your test jobs in the driver-specific
+gitlab-ci.yml file, using the device-specific tags.

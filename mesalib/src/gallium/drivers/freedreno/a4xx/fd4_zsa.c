@@ -49,7 +49,7 @@ fd4_zsa_state_create(struct pipe_context *pctx,
 
    if (cso->depth_enabled)
       so->rb_depth_control |=
-         A4XX_RB_DEPTH_CONTROL_Z_ENABLE | A4XX_RB_DEPTH_CONTROL_Z_TEST_ENABLE;
+         A4XX_RB_DEPTH_CONTROL_Z_TEST_ENABLE | A4XX_RB_DEPTH_CONTROL_Z_READ_ENABLE;
 
    if (cso->depth_writemask)
       so->rb_depth_control |= A4XX_RB_DEPTH_CONTROL_Z_WRITE_ENABLE;

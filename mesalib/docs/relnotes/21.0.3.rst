@@ -2,6 +2,8 @@ Mesa 21.0.3 Release Notes / 2021-04-21
 ======================================
 
 Mesa 21.0.3 is a bug fix release which fixes bugs found since the 21.0.2 release.
+This is the last release of the 21.0 series, please migrate to 21.1 as soon as
+possible.
 
 Mesa 21.0.3 implements the OpenGL 4.6 API, but the version reported by
 glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /

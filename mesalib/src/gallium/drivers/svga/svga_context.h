@@ -655,6 +655,7 @@ struct svga_context
 
    boolean render_condition;
    boolean disable_rasterizer; /* Set if to disable rasterization */
+   uint8_t patch_vertices;
 
    struct {
       struct svga_tcs_shader *passthrough_tcs;

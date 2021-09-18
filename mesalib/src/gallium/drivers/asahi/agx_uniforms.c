@@ -71,7 +71,7 @@ agx_push_location_direct(struct agx_context *ctx, struct agx_push push,
       struct agx_ptr ptr = agx_pool_alloc_aligned(&batch->pool, count * sizeof(uint64_t), 8);
       uint64_t *addresses = ptr.cpu;
 
-      for (unsigned i = 0; i < count; ++i) {
+      u_foreach_bit(i, ctx->vb_mask) {
          struct pipe_vertex_buffer vb = ctx->vertex_buffers[i];
          assert(!vb.is_user_buffer);
 
@@ -82,6 +82,12 @@ agx_push_location_direct(struct agx_context *ctx, struct agx_push push,
       }
 
       return ptr.gpu;
+   }
+
+   case AGX_PUSH_BLEND_CONST:
+   {
+      return agx_pool_upload_aligned(&batch->pool, &ctx->blend_color,
+            sizeof(ctx->blend_color), 8);
    }
 
    default:

@@ -268,6 +268,13 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
 
    assert(attr < VBO_ATTRIB_MAX);
 
+   if (unlikely(!exec->vtx.buffer_ptr)) {
+      /* We should only hit this when use_buffer_objects=true */
+      assert(exec->vtx.bufferobj);
+      vbo_exec_vtx_map(exec);
+      assert(exec->vtx.buffer_ptr);
+   }
+
    /* Run pipeline on current vertices, copy wrapped vertices
     * to exec->vtx.copied.
     */
@@ -488,7 +495,6 @@ do {                                                                    \
    int sz = (sizeof(C) / sizeof(GLfloat));                              \
                                                                         \
    assert(sz == 1 || sz == 2);                                          \
-                                                                        \
    /* store a copy of the attribute in exec except for glVertex */      \
    if ((A) != 0) {                                                      \
       /* Check if attribute size or type is changing. */                \
@@ -1031,12 +1037,7 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects)
    if (use_buffer_objects) {
       /* Use buffer objects for immediate mode. */
       struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-
       exec->vtx.bufferobj = ctx->Driver.NewBufferObject(ctx, IMM_BUFFER_NAME);
-
-      /* Map the buffer. */
-      vbo_exec_vtx_map(exec);
-      assert(exec->vtx.buffer_ptr);
    } else {
       /* Use allocated memory for immediate mode. */
       exec->vtx.bufferobj = NULL;

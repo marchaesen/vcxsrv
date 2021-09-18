@@ -446,7 +446,7 @@ renderer_copy_prepare(struct xa_context *r,
 	u_sampler_view_default_template(&templ,
 					src_texture, src_texture->format);
 	src_view = pipe->create_sampler_view(pipe, src_texture, &templ);
-	pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, &src_view);
+	pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0, 1, 0, false, &src_view);
 	pipe_sampler_view_reference(&src_view, NULL);
     }
 

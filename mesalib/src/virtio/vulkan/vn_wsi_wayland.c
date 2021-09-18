@@ -10,7 +10,8 @@
 
 #include "wsi_common_wayland.h"
 
-#include "vn_device.h"
+#include "vn_instance.h"
+#include "vn_physical_device.h"
 #include "vn_wsi.h"
 
 VkResult

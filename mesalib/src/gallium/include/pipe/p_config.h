@@ -122,6 +122,14 @@
 #define PIPE_ARCH_AARCH64
 #endif
 
+#if defined(__mips64) && defined(__LP64__)
+#define PIPE_ARCH_MIPS64
+#endif
+
+#if defined(__mips__)
+#define  PIPE_ARCH_MIPS
+#endif
+
 /*
  * Endian detection.
  */

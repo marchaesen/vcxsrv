@@ -537,8 +537,10 @@ parse_rsw(FILE *fp, uint32_t *value, int i, uint32_t *helper)
               (*value & 0x0000ff00) >> 8); /* back writemask */
       /* add a few tabs for alignment */
       fprintf(fp, "\t\t\t\t\t\t/* %s(2)", render_state_infos[i].info);
-      fprintf(fp, ": unknown (bits 16-31) 0x%04x */\n",
-              (*value & 0xffff0000) >> 16); /* unknown, alpha ref_value? */
+      fprintf(fp, ": alpha_ref_value: 0x%02x */\n", (*value & 0x00ff0000) >> 16);
+      fprintf(fp, "\t\t\t\t\t\t/* %s(3)", render_state_infos[i].info);
+      fprintf(fp, ": unknown (bits 24-31) 0x%02x */\n",
+              (*value & 0xff000000) >> 24); /* unknown */
       break;
    case 8: /* MULTI SAMPLE */
       if ((*value & 0x00000f00) == 0x00000000)
@@ -556,6 +558,10 @@ parse_rsw(FILE *fp, uint32_t *value, int i, uint32_t *helper)
          fprintf(fp, " */\n");
       else
          fprintf(fp, ", UNKNOWN\n");
+      fprintf(fp, "\t\t\t\t\t\t/* %s(2)", render_state_infos[i].info);
+      fprintf(fp, ": alpha_test_func: %d (%s) */\n",
+              (*value & 0x00000007),
+              lima_get_compare_func_string((*value & 0x00000007))); /* alpha_test_func */
       break;
    case 9: /* SHADER ADDRESS */
       fprintf(fp, ": fs shader @ 0x%08x, first instr length %d */\n",

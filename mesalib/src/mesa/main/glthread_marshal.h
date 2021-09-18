@@ -48,7 +48,7 @@ struct marshal_cmd_base
    uint16_t cmd_size;
 };
 
-typedef void (*_mesa_unmarshal_func)(struct gl_context *ctx, const void *cmd);
+typedef uint32_t (*_mesa_unmarshal_func)(struct gl_context *ctx, const void *cmd, const uint64_t *last);
 extern const _mesa_unmarshal_func _mesa_unmarshal_dispatch[NUM_DISPATCH_CMD];
 
 static inline void *
@@ -720,5 +720,11 @@ _mesa_glthread_DeleteLists(struct gl_context *ctx, GLsizei range)
    p_atomic_set(&ctx->GLThread.LastDListChangeBatchIndex, ctx->GLThread.next);
    _mesa_glthread_flush_batch(ctx);
 }
+
+struct marshal_cmd_CallList
+{
+   struct marshal_cmd_base cmd_base;
+   GLuint list;
+};
 
 #endif /* MARSHAL_H */

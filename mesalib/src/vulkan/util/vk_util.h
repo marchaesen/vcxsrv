@@ -223,6 +223,8 @@ uint32_t vk_get_driver_version(void);
 
 uint32_t vk_get_version_override(void);
 
+void vk_warn_non_conformant_implementation(const char *driver_name);
+
 struct vk_pipeline_cache_header {
    uint32_t header_size;
    uint32_t header_version;
@@ -254,6 +256,36 @@ mesa_to_vk_shader_stage(gl_shader_stage mesa_stage)
 {
    return (VkShaderStageFlagBits) (1 << ((uint32_t) mesa_stage));
 }
+
+/* iterate over a sequence of indexed multidraws for VK_EXT_multi_draw extension */
+/* 'i' must be explicitly declared */
+#define vk_foreach_multi_draw_indexed(_draw, _i, _pDrawInfo, _num_draws, _stride) \
+   for (const VkMultiDrawIndexedInfoEXT *_draw = (const void*)(_pDrawInfo); \
+        (_i) < (_num_draws); \
+        (_i)++, (_draw) = (const VkMultiDrawIndexedInfoEXT*)((const uint8_t*)(_draw) + (_stride)))
+
+/* iterate over a sequence of multidraws for VK_EXT_multi_draw extension */
+/* 'i' must be explicitly declared */
+#define vk_foreach_multi_draw(_draw, _i, _pDrawInfo, _num_draws, _stride) \
+   for (const VkMultiDrawInfoEXT *_draw = (const void*)(_pDrawInfo); \
+        (_i) < (_num_draws); \
+        (_i)++, (_draw) = (const VkMultiDrawInfoEXT*)((const uint8_t*)(_draw) + (_stride)))
+
+
+struct nir_spirv_specialization;
+
+struct nir_spirv_specialization*
+vk_spec_info_to_nir_spirv(const VkSpecializationInfo *spec_info,
+                          uint32_t *out_num_spec_entries);
+
+#define STACK_ARRAY_SIZE 8
+
+#define STACK_ARRAY(type, name, size) \
+   type _stack_##name[STACK_ARRAY_SIZE], *const name = \
+      (size) <= STACK_ARRAY_SIZE ? _stack_##name : malloc((size) * sizeof(type))
+
+#define STACK_ARRAY_FINISH(name) \
+   if (name != _stack_##name) free(name)
 
 #ifdef __cplusplus
 }

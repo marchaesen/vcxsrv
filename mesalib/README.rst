@@ -28,8 +28,8 @@ Support
 -------
 
 Many Mesa devs hang on IRC; if you're not sure which channel is
-appropriate, you should ask your question on `Freenode's #dri-devel
-<irc://chat.freenode.net#dri-devel>`_, someone will redirect you if
+appropriate, you should ask your question on `OFTC's #dri-devel
+<irc://irc.oftc.net/dri-devel>`_, someone will redirect you if
 necessary.
 Remember that not everyone is in the same timezone as you, so it might
 take a while before someone qualified sees your question.

@@ -540,6 +540,11 @@ display_field(struct decode_scope *scope, const char *field_name)
 			fprintf(out, "%+"PRId64, util_sign_extend(val, width));
 		}
 		break;
+	case TYPE_UOFFSET:
+		if (val != 0) {
+			fprintf(out, "+%"PRIu64, val);
+		}
+		break;
 	case TYPE_FLOAT:
 		if (width == 16) {
 			fprintf(out, "%f", _mesa_half_to_float(val));

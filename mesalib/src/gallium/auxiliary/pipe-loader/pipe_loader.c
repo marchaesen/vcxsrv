@@ -105,7 +105,14 @@ merge_driconf(const driOptionDescription *driver_driconf, unsigned driver_count,
    return merged;
 }
 
-void
+/**
+ * Ensure that dev->option_cache is initialized appropriately for the driver.
+ *
+ * This function can be called multiple times.
+ *
+ * \param dev Device for which options should be loaded.
+ */
+static void
 pipe_loader_load_options(struct pipe_loader_device *dev)
 {
    if (dev->option_info.info)
@@ -117,11 +124,17 @@ pipe_loader_load_options(struct pipe_loader_device *dev)
 
    const driOptionDescription *merged_driconf =
       merge_driconf(driver_driconf, driver_count, &merged_count);
-
    driParseOptionInfo(&dev->option_info, merged_driconf, merged_count);
-   driParseConfigFiles(&dev->option_cache, &dev->option_info, 0,
-                       dev->driver_name, NULL, NULL, 0, NULL, 0);
    free((void *)merged_driconf);
+}
+
+void
+pipe_loader_config_options(struct pipe_loader_device *dev)
+{
+   if (!dev->option_cache.info) {
+      driParseConfigFiles(&dev->option_cache, &dev->option_info, 0,
+                          dev->driver_name, NULL, NULL, NULL, 0, NULL, 0);
+   }
 }
 
 char *
@@ -148,15 +161,22 @@ pipe_loader_get_driinfo_xml(const char *driver_name)
 }
 
 struct pipe_screen *
-pipe_loader_create_screen(struct pipe_loader_device *dev)
+pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk)
 {
    struct pipe_screen_config config;
 
    util_cpu_detect();
    pipe_loader_load_options(dev);
+   config.options_info = &dev->option_info;
    config.options = &dev->option_cache;
 
-   return dev->ops->create_screen(dev, &config);
+   return dev->ops->create_screen(dev, &config, sw_vk);
+}
+
+struct pipe_screen *
+pipe_loader_create_screen(struct pipe_loader_device *dev)
+{
+   return pipe_loader_create_screen_vk(dev, false);
 }
 
 struct util_dl_library *

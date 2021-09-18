@@ -62,10 +62,16 @@ namespace clover {
       static inline module
       link_program(const std::vector<module> &ms, const device &dev,
                    const std::string &opts, std::string &log) {
+         const bool create_library =
+            opts.find("-create-library") != std::string::npos;
          switch (dev.ir_format()) {
-         case PIPE_SHADER_IR_NIR_SERIALIZED:
-            return nir::spirv_to_nir(spirv::link_program(ms, dev, opts, log),
+         case PIPE_SHADER_IR_NIR_SERIALIZED: {
+            auto spirv_linked_module = spirv::link_program(ms, dev, opts, log);
+            if (create_library)
+               return spirv_linked_module;
+            return nir::spirv_to_nir(spirv_linked_module,
                                      dev, log);
+         }
          case PIPE_SHADER_IR_NATIVE:
             return llvm::link_program(ms, dev, opts, log);
          default:

@@ -34,32 +34,64 @@
 
 #include "common/v3d_debug.h"
 #include "util/macros.h"
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "c11/threads.h"
 
 uint32_t V3D_DEBUG = 0;
 
-static const struct debug_control debug_control[] = {
-        { "cl",          V3D_DEBUG_CL},
-        { "clif",        V3D_DEBUG_CLIF},
-        { "qpu",         V3D_DEBUG_QPU},
-        { "vir",         V3D_DEBUG_VIR},
-        { "nir",         V3D_DEBUG_NIR},
-        { "tgsi",        V3D_DEBUG_TGSI},
-        { "shaderdb",    V3D_DEBUG_SHADERDB},
-        { "surface",     V3D_DEBUG_SURFACE},
-        { "perf",        V3D_DEBUG_PERF},
-        { "norast",      V3D_DEBUG_NORAST},
-        { "fs",          V3D_DEBUG_FS},
-        { "gs",          V3D_DEBUG_GS},
-        { "vs",          V3D_DEBUG_VS},
-        { "cs",          V3D_DEBUG_CS},
-        { "always_flush", V3D_DEBUG_ALWAYS_FLUSH},
-        { "precompile",  V3D_DEBUG_PRECOMPILE},
-        { "ra",          V3D_DEBUG_RA},
-        { "dump_spirv",  V3D_DEBUG_DUMP_SPIRV},
-        { NULL,    0 }
+static const struct debug_named_value debug_control[] = {
+        { "cl",          V3D_DEBUG_CL,
+          "Dump command list during creation" },
+        { "cl_nobin",    V3D_DEBUG_CL_NO_BIN,
+          "Dump command listduring creation, excluding binary resources" },
+        { "clif",        V3D_DEBUG_CLIF,
+          "Dump command list (CLIF format) during creation", },
+        { "qpu",         V3D_DEBUG_QPU,
+          "Dump generated QPU instructions" },
+        { "vir",         V3D_DEBUG_VIR,
+          "Dump VIR during program compile" },
+        { "nir",         V3D_DEBUG_NIR,
+          "Dump NIR during program compile" },
+        { "tgsi",        V3D_DEBUG_TGSI,
+          "Dump TGSI during program compile" },
+        { "shaderdb",    V3D_DEBUG_SHADERDB,
+          "Dump program compile information for shader-db analysis" },
+        { "surface",     V3D_DEBUG_SURFACE,
+          "Print resource layout information" },
+        { "perf",        V3D_DEBUG_PERF,
+          "Print during runtime performance-related events" },
+        { "norast",      V3D_DEBUG_NORAST,
+          "Skip actual hardware execution of commands" },
+        { "fs",          V3D_DEBUG_FS,
+          "Dump fragment shaders" },
+        { "gs",          V3D_DEBUG_GS,
+          "Dump geometry shaders" },
+        { "vs",          V3D_DEBUG_VS,
+          "Dump vertex shaders" },
+        { "cs",          V3D_DEBUG_CS,
+          "Dump computer shaders" },
+        { "always_flush", V3D_DEBUG_ALWAYS_FLUSH,
+          "Flush after each draw call" },
+        { "precompile",  V3D_DEBUG_PRECOMPILE,
+          "Precompiles shader variant at shader state creation time" },
+        { "ra",          V3D_DEBUG_RA,
+          "Dump register allocation failures" },
+        { "dump_spirv",  V3D_DEBUG_DUMP_SPIRV,
+          "Dump SPIR-V code" },
+        { "tmu32",  V3D_DEBUG_TMU_32BIT,
+          "Force 32-bit precision on all TMU operations" },
+        /* This can lead to incorrect behavior for applications that do
+         * require full 32-bit precision, but can improve performance
+         * for those that don't.
+         */
+        { "tmu16",  V3D_DEBUG_TMU_16BIT,
+          "Force 16-bit precision on all TMU operations" },
+        { "noloopunroll",  V3D_DEBUG_NO_LOOP_UNROLL,
+          "Disable loop unrolling" },
+        { NULL }
 };
+
+DEBUG_GET_ONCE_FLAGS_OPTION(v3d_debug, "V3D_DEBUG", debug_control, 0)
 
 uint32_t
 v3d_debug_flag_for_shader_stage(gl_shader_stage stage)
@@ -76,20 +108,11 @@ v3d_debug_flag_for_shader_stage(gl_shader_stage stage)
         return flags[stage];
 }
 
-static void
-v3d_process_debug_variable_once(void)
-{
-        V3D_DEBUG = parse_debug_string(getenv("V3D_DEBUG"), debug_control);
-
-        if (V3D_DEBUG & V3D_DEBUG_SHADERDB)
-                V3D_DEBUG |= V3D_DEBUG_NORAST;
-}
-
 void
 v3d_process_debug_variable(void)
 {
-        static once_flag v3d_process_debug_variable_flag = ONCE_FLAG_INIT;
+        V3D_DEBUG = debug_get_option_v3d_debug();
 
-        call_once(&v3d_process_debug_variable_flag,
-                  v3d_process_debug_variable_once);
+        if (V3D_DEBUG & V3D_DEBUG_SHADERDB)
+                V3D_DEBUG |= V3D_DEBUG_NORAST;
 }

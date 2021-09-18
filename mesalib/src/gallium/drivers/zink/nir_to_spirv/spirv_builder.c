@@ -216,6 +216,13 @@ spirv_builder_emit_decoration(struct spirv_builder *b, SpvId target,
 }
 
 void
+spirv_builder_emit_input_attachment_index(struct spirv_builder *b, SpvId target, uint32_t id)
+{
+   uint32_t args[] = { id };
+   emit_decoration(b, target, SpvDecorationInputAttachmentIndex, args, ARRAY_SIZE(args));
+}
+
+void
 spirv_builder_emit_specid(struct spirv_builder *b, SpvId target, uint32_t id)
 {
    uint32_t args[] = { id };
@@ -1420,7 +1427,7 @@ spirv_builder_const_int(struct spirv_builder *b, int width, int64_t val)
 SpvId
 spirv_builder_const_uint(struct spirv_builder *b, int width, uint64_t val)
 {
-   assert(width >= 16);
+   assert(width >= 8);
    SpvId type = spirv_builder_type_uint(b, width);
    if (width <= 32)
       return emit_constant_32(b, type, val);
@@ -1547,13 +1554,13 @@ spirv_builder_get_num_words(struct spirv_builder *b)
 
 size_t
 spirv_builder_get_words(struct spirv_builder *b, uint32_t *words,
-                        size_t num_words, bool spirv_15)
+                        size_t num_words, uint32_t spirv_version)
 {
    assert(num_words >= spirv_builder_get_num_words(b));
 
    size_t written  = 0;
    words[written++] = SpvMagicNumber;
-   words[written++] = spirv_15 ? 0x00010500 : 0x00010000;
+   words[written++] = spirv_version;
    words[written++] = 0;
    words[written++] = b->prev_id + 1;
    words[written++] = 0;

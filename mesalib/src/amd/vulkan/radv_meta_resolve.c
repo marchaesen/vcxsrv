@@ -57,6 +57,7 @@ create_pass(struct radv_device *device, VkFormat vk_format, VkRenderPass *pass)
 
    for (i = 0; i < 2; i++) {
       attachments[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+      attachments[i].pNext = NULL;
       attachments[i].format = vk_format;
       attachments[i].samples = 1;
       attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -369,8 +370,8 @@ image_hw_resolve_compat(const struct radv_device *device, struct radv_image *src
 static void
 radv_pick_resolve_method_images(struct radv_device *device, struct radv_image *src_image,
                                 VkFormat src_format, struct radv_image *dest_image,
-                                VkImageLayout dest_image_layout, bool dest_render_loop,
-                                struct radv_cmd_buffer *cmd_buffer,
+                                unsigned dest_level, VkImageLayout dest_image_layout,
+                                bool dest_render_loop, struct radv_cmd_buffer *cmd_buffer,
                                 enum radv_resolve_method *method)
 
 {
@@ -383,8 +384,8 @@ radv_pick_resolve_method_images(struct radv_device *device, struct radv_image *s
        * re-initialize it after resolving using compute.
        * TODO: Add support for layered and int to the fragment path.
        */
-      if (radv_layout_dcc_compressed(device, dest_image, dest_image_layout, dest_render_loop,
-                                     queue_mask)) {
+      if (radv_layout_dcc_compressed(device, dest_image, dest_level, dest_image_layout,
+                                     dest_render_loop, queue_mask)) {
          *method = RESOLVE_FRAGMENT;
       } else if (!image_hw_resolve_compat(device, src_image, dest_image)) {
          /* The micro tile mode only needs to match for the HW
@@ -450,15 +451,7 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
    radv_meta_save(&saved_state, cmd_buffer, RADV_META_SAVE_GRAPHICS_PIPELINE);
 
    assert(src_image->info.samples > 1);
-   if (src_image->info.samples <= 1) {
-      /* this causes GPU hangs if we get past here */
-      fprintf(stderr, "radv: Illegal resolve operation (src not multisampled), will hang GPU.");
-      return;
-   }
    assert(dst_image->info.samples == 1);
-
-   if (src_image->info.array_size > 1)
-      radv_finishme("vkCmdResolveImage: multisample array images");
 
    unsigned fs_key = radv_format_meta_fs_key(device, dst_image->vk_format);
 
@@ -497,7 +490,11 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
    const struct VkOffset3D dstOffset =
       radv_sanitize_image_offset(dst_image->type, region->dstOffset);
 
-   if (radv_dcc_enabled(dst_image, region->dstSubresource.mipLevel)) {
+   uint32_t queue_mask = radv_image_queue_family_mask(dst_image, cmd_buffer->queue_family_index,
+                                                      cmd_buffer->queue_family_index);
+
+   if (radv_layout_dcc_compressed(cmd_buffer->device, dst_image, region->dstSubresource.mipLevel,
+                                  dst_image_layout, false, queue_mask)) {
       VkImageSubresourceRange range = {
          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
          .baseMipLevel = region->dstSubresource.mipLevel,
@@ -659,12 +656,15 @@ radv_CmdResolveImage2KHR(VkCommandBuffer commandBuffer,
    } else
       resolve_method = RESOLVE_COMPUTE;
 
-   radv_pick_resolve_method_images(cmd_buffer->device, src_image, src_image->vk_format, dst_image,
-                                   dst_image_layout, false, cmd_buffer, &resolve_method);
-
    for (uint32_t r = 0; r < pResolveImageInfo->regionCount; r++) {
-      resolve_image(cmd_buffer, src_image, src_image_layout, dst_image, dst_image_layout,
-                    &pResolveImageInfo->pRegions[r], resolve_method);
+      const VkImageResolve2KHR *region = &pResolveImageInfo->pRegions[r];
+
+      radv_pick_resolve_method_images(cmd_buffer->device, src_image, src_image->vk_format, dst_image,
+                                      region->dstSubresource.mipLevel, dst_image_layout, false,
+                                      cmd_buffer, &resolve_method);
+
+      resolve_image(cmd_buffer, src_image, src_image_layout, dst_image, dst_image_layout, region,
+                    resolve_method);
    }
 }
 
@@ -689,8 +689,13 @@ radv_cmd_buffer_resolve_subpass_hw(struct radv_cmd_buffer *cmd_buffer)
 
       struct radv_image_view *dest_iview = cmd_buffer->state.attachments[dest_att.attachment].iview;
       struct radv_image *dst_img = dest_iview->image;
+      VkImageLayout dst_image_layout = cmd_buffer->state.attachments[dest_att.attachment].current_layout;
 
-      if (radv_dcc_enabled(dst_img, dest_iview->base_mip)) {
+      uint32_t queue_mask = radv_image_queue_family_mask(dst_img, cmd_buffer->queue_family_index,
+                                                         cmd_buffer->queue_family_index);
+
+      if (radv_layout_dcc_compressed(cmd_buffer->device, dst_img, dest_iview->base_mip,
+                                     dst_image_layout, false, queue_mask)) {
          VkImageSubresourceRange range = {
             .aspectMask = dest_iview->aspect_mask,
             .baseMipLevel = dest_iview->base_mip,
@@ -752,8 +757,8 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
       cmd_buffer->state.attachments[dst_att.attachment].pending_clear_aspects = 0;
 
       radv_pick_resolve_method_images(cmd_buffer->device, src_iview->image, src_iview->vk_format,
-                                      dst_iview->image, dst_att.layout, dst_att.in_render_loop,
-                                      cmd_buffer, &resolve_method);
+                                      dst_iview->image, dst_iview->base_mip, dst_att.layout,
+                                      dst_att.in_render_loop, cmd_buffer, &resolve_method);
 
       if ((src_iview->aspect_mask & VK_IMAGE_ASPECT_DEPTH_BIT) &&
           subpass->depth_resolve_mode != VK_RESOLVE_MODE_NONE_KHR) {
@@ -811,15 +816,16 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
          /* Make sure to not clear color attachments after resolves. */
          cmd_buffer->state.attachments[dest_att.attachment].pending_clear_aspects = 0;
 
-         struct radv_image *dst_img =
-            cmd_buffer->state.attachments[dest_att.attachment].iview->image;
+         struct radv_image_view *dst_iview =
+            cmd_buffer->state.attachments[dest_att.attachment].iview;
+         struct radv_image *dst_img = dst_iview->image;
          struct radv_image_view *src_iview =
             cmd_buffer->state.attachments[src_att.attachment].iview;
          struct radv_image *src_img = src_iview->image;
 
          radv_pick_resolve_method_images(cmd_buffer->device, src_img, src_iview->vk_format, dst_img,
-                                         dest_att.layout, dest_att.in_render_loop, cmd_buffer,
-                                         &resolve_method);
+                                         dst_iview->base_mip, dest_att.layout,
+                                         dest_att.in_render_loop, cmd_buffer, &resolve_method);
 
          if (resolve_method == RESOLVE_FRAGMENT) {
             break;

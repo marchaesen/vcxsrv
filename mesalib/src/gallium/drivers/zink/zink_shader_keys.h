@@ -26,25 +26,40 @@
 #ifndef ZINK_SHADER_KEYS_H
 # define ZINK_SHADER_KEYS_H
 
-struct zink_vs_key {
-   unsigned shader_id;
+#include "compiler/shader_info.h"
+
+struct zink_vs_key_base {
    bool clip_halfz;
    bool push_drawid;
    bool last_vertex_stage;
 };
 
+struct zink_vs_key {
+   struct zink_vs_key_base base;
+   uint8_t pad;
+   union {
+      struct {
+         uint32_t decomposed_attrs;
+         uint32_t decomposed_attrs_without_w;
+      } u32;
+      struct {
+         uint16_t decomposed_attrs;
+         uint16_t decomposed_attrs_without_w;
+      } u16;
+      struct {
+         uint8_t decomposed_attrs;
+         uint8_t decomposed_attrs_without_w;
+      } u8;
+   };
+   // not hashed
+   unsigned size;
+};
+
 struct zink_fs_key {
-   unsigned shader_id;
    uint8_t coord_replace_bits;
    bool coord_replace_yinvert;
    bool samples;
    bool force_dual_color_blend;
-};
-
-struct zink_tcs_key {
-   unsigned shader_id;
-   unsigned vertices_per_patch;
-   uint64_t vs_outputs_written;
 };
 
 struct zink_shader_key_base {
@@ -60,24 +75,31 @@ struct zink_shader_key {
    union {
       /* reuse vs key for now with tes/gs since we only use clip_halfz */
       struct zink_vs_key vs;
+      struct zink_vs_key_base vs_base;
       struct zink_fs_key fs;
-      struct zink_tcs_key tcs;
    } key;
    struct zink_shader_key_base base;
    unsigned inline_uniforms:1;
    uint32_t size;
-   bool is_default_variant;
 };
 
 static inline const struct zink_fs_key *
 zink_fs_key(const struct zink_shader_key *key)
 {
+   assert(key);
    return &key->key.fs;
+}
+
+static inline const struct zink_vs_key_base *
+zink_vs_key_base(const struct zink_shader_key *key)
+{
+   return &key->key.vs_base;
 }
 
 static inline const struct zink_vs_key *
 zink_vs_key(const struct zink_shader_key *key)
 {
+   assert(key);
    return &key->key.vs;
 }
 

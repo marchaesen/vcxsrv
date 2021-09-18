@@ -37,6 +37,8 @@ sys.path.insert(0, args.import_path)
 
 from u_trace import Header
 from u_trace import Tracepoint
+from u_trace import TracepointArg as Arg
+from u_trace import TracepointArgStruct as ArgStruct
 from u_trace import utrace_generate
 
 #
@@ -47,11 +49,11 @@ Header('pipe/p_state.h')
 Header('util/format/u_format.h')
 
 Tracepoint('surface',
-    args=[['const struct pipe_surface *', 'psurf']],
-    tp_struct=[['uint16_t',     'width',      'psurf->width'],
-               ['uint16_t',     'height',     'psurf->height'],
-               ['uint8_t',      'nr_samples', 'psurf->nr_samples'],
-               ['const char *', 'format',     'util_format_short_name(psurf->format)']],
+    args=[ArgStruct(type='const struct pipe_surface *', var='psurf')],
+    tp_struct=[Arg(type='uint16_t',     name='width',      var='psurf->width',                          c_format='%u'),
+               Arg(type='uint16_t',     name='height',     var='psurf->height',                         c_format='%u'),
+               Arg(type='uint8_t',      name='nr_samples', var='psurf->nr_samples',                     c_format='%u'),
+               Arg(type='const char *', name='format',     var='util_format_short_name(psurf->format)', c_format='%s')],
     tp_print=['%ux%u@%u, fmt=%s',
         '__entry->width',
         '__entry->height',
@@ -61,12 +63,12 @@ Tracepoint('surface',
 
 # Note: called internally from trace_framebuffer_state()
 Tracepoint('framebuffer',
-    args=[['const struct pipe_framebuffer_state *', 'pfb']],
-    tp_struct=[['uint16_t',     'width',      'pfb->width'],
-               ['uint16_t',     'height',     'pfb->height'],
-               ['uint8_t',      'layers',     'pfb->layers'],
-               ['uint8_t',      'samples',    'pfb->samples'],
-               ['uint8_t',      'nr_cbufs',   'pfb->nr_cbufs']],
+    args=[ArgStruct(type='const struct pipe_framebuffer_state *', var='pfb')],
+    tp_struct=[Arg(type='uint16_t', name='width',    var='pfb->width',    c_format='%u'),
+               Arg(type='uint16_t', name='height',   var='pfb->height',   c_format='%u'),
+               Arg(type='uint8_t',  name='layers',   var='pfb->layers',   c_format='%u'),
+               Arg(type='uint8_t',  name='samples',  var='pfb->samples',  c_format='%u'),
+               Arg(type='uint8_t',  name='nr_cbufs', var='pfb->nr_cbufs', c_format='%u')],
     tp_print=['%ux%ux%u@%u, nr_cbufs: %u',
         '__entry->width',
         '__entry->height',
@@ -76,17 +78,17 @@ Tracepoint('framebuffer',
 )
 
 Tracepoint('grid_info',
-    args=[['const struct pipe_grid_info *', 'pgrid']],
-    tp_struct=[['uint8_t',  'work_dim',  'pgrid->work_dim'],
-               ['uint16_t', 'block_x',   'pgrid->block[0]'],
-               ['uint16_t', 'block_y',   'pgrid->block[1]'],
-               ['uint16_t', 'block_z',   'pgrid->block[2]'],
-               ['uint16_t', 'grid_x',    'pgrid->grid[0]'],
-               ['uint16_t', 'grid_y',    'pgrid->grid[1]'],
-               ['uint16_t', 'grid_z',    'pgrid->grid[2]']],
+    args=[ArgStruct(type='const struct pipe_grid_info *', var='pgrid')],
+    tp_struct=[Arg(type='uint8_t',  name='work_dim', var='pgrid->work_dim', c_format='%u'),
+               Arg(type='uint16_t', name='block_x',  var='pgrid->block[0]', c_format='%u'),
+               Arg(type='uint16_t', name='block_y',  var='pgrid->block[1]', c_format='%u'),
+               Arg(type='uint16_t', name='block_z',  var='pgrid->block[2]', c_format='%u'),
+               Arg(type='uint16_t', name='grid_x',   var='pgrid->grid[0]',  c_format='%u'),
+               Arg(type='uint16_t', name='grid_y',   var='pgrid->grid[1]',  c_format='%u'),
+               Arg(type='uint16_t', name='grid_z',   var='pgrid->grid[2]',  c_format='%u')],
     tp_print=['work_dim=%u, block=%ux%ux%u, grid=%ux%ux%u', '__entry->work_dim',
         '__entry->block_x', '__entry->block_y', '__entry->block_z',
         '__entry->grid_x', '__entry->grid_y', '__entry->grid_z'],
 )
 
-utrace_generate(cpath=args.src, hpath=args.hdr)
+utrace_generate(cpath=args.src, hpath=args.hdr, ctx_param='struct pipe_context *pctx')

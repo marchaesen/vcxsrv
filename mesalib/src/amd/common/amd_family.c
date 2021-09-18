@@ -96,6 +96,10 @@ const char *ac_get_family_name(enum radeon_family family)
       return "dimgrey_cavefish";
    case CHIP_VANGOGH:
       return "vangogh";
+   case CHIP_BEIGE_GOBY:
+      return "beige_goby";
+   case CHIP_YELLOW_CARP:
+      return "yellow_carp";
    default:
       unreachable("Unknown GPU family");
    }

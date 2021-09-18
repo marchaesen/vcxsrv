@@ -139,6 +139,17 @@ llvmpipe_get_query_result(struct pipe_context *pipe,
          }
       }
       break;
+   case PIPE_QUERY_TIME_ELAPSED: {
+      uint64_t start = (uint64_t)-1, end = 0;
+      for (i = 0; i < num_threads; i++) {
+         if (pq->start[i] && pq->start[i] < start)
+            start = pq->start[i];
+         if (pq->end[i] && pq->end[i] > end)
+            end = pq->end[i];
+      }
+      *result = end - start;
+      break;
+   }
    case PIPE_QUERY_TIMESTAMP_DISJOINT: {
       struct pipe_query_data_timestamp_disjoint *td =
          (struct pipe_query_data_timestamp_disjoint *)vresult;
@@ -203,15 +214,17 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
    unsigned num_threads = MAX2(1, screen->num_threads);
    struct llvmpipe_query *pq = llvmpipe_query(q);
    struct llvmpipe_resource *lpr = llvmpipe_resource(resource);
-   bool unflushed = false;
    bool unsignalled = false;
    if (pq->fence) {
       /* only have a fence if there was a scene */
       if (!lp_fence_signalled(pq->fence)) {
-         unsignalled = true;
          if (!lp_fence_issued(pq->fence))
-            unflushed = true;
+            llvmpipe_flush(pipe, NULL, __FUNCTION__);
+
+         if (wait)
+            lp_fence_wait(pq->fence);
       }
+      unsignalled = !lp_fence_signalled(pq->fence);
    }
 
 
@@ -224,15 +237,6 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
          value = 1;
    else {
       unsigned i;
-
-      if (unflushed) {
-         llvmpipe_flush(pipe, NULL, __FUNCTION__);
-
-         if (!wait)
-            return;
-
-         lp_fence_wait(pq->fence);
-      }
 
       switch (pq->type) {
       case PIPE_QUERY_OCCLUSION_COUNTER:
@@ -260,6 +264,17 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
             }
          }
          break;
+      case PIPE_QUERY_TIME_ELAPSED: {
+         uint64_t start = (uint64_t)-1, end = 0;
+         for (i = 0; i < num_threads; i++) {
+            if (pq->start[i] && pq->start[i] < start)
+               start = pq->start[i];
+            if (pq->end[i] && pq->end[i] > end)
+               end = pq->end[i];
+         }
+         value = end - start;
+         break;
+      }
       case PIPE_QUERY_SO_STATISTICS:
          value = pq->num_primitives_written[0];
          value2 = pq->num_primitives_generated[0];

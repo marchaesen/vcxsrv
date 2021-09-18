@@ -44,3 +44,14 @@ main_remap_helper_h = custom_target(
   depend_files : glapi_gen_depends,
   capture : true,
 )
+
+if _shader_replacement != ''
+  # shader replacement
+  shader_replacement_h = custom_target(
+    'shader_replacement.h',
+    input: [files(_shader_replacement + '/process_shaders.py')],
+    output: 'shader_replacement.h',
+    command: [prog_python, '@INPUT0@', _shader_replacement, '@OUTPUT@'],
+    build_always: true,
+  )
+endif

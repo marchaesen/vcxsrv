@@ -32,9 +32,11 @@
 #include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"
 #include "compiler/shader_enums.h"
-#include "midgard_pack.h"
+#include "gen_macros.h"
 #include "pan_bo.h"
 #include "pan_device.h"
+#include "pan_util.h"
+#include "pan_format.h"
 
 #define PAN_MODIFIER_COUNT 4
 extern uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT];
@@ -99,18 +101,6 @@ struct pan_image_layout {
         unsigned crc_size;
 };
 
-struct pan_image_slice_state {
-        /* Is the checksum for this slice valid? */
-        bool crc_valid;
-
-        /* Has anything been written to this slice? */
-        bool data_valid;
-};
-
-struct pan_image_state {
-        struct pan_image_slice_state slices[MAX_MIP_LEVELS];
-};
-
 struct pan_image_mem {
         struct panfrost_bo *bo;
         unsigned offset;
@@ -132,6 +122,10 @@ struct pan_image_view {
         unsigned first_layer, last_layer;
         unsigned char swizzle[4];
         const struct pan_image *image;
+
+        /* If EXT_multisampled_render_to_texture is used, this may be
+         * greater than image->layout.nr_samples. */
+        unsigned nr_samples;
 
         /* Only valid if dim == 1D, needed to implement buffer views */
         struct {
@@ -160,26 +154,12 @@ panfrost_afbc_header_size(unsigned width, unsigned height);
 bool
 panfrost_afbc_can_ytr(enum pipe_format format);
 
-bool
-panfrost_afbc_format_needs_fixup(const struct panfrost_device *dev,
-                                 enum pipe_format format);
-
-enum pipe_format
-panfrost_afbc_format_fixup(const struct panfrost_device *dev,
-                           enum pipe_format format);
-
 unsigned
 panfrost_block_dim(uint64_t modifier, bool width, unsigned plane);
 
 unsigned
 panfrost_estimate_texture_payload_size(const struct panfrost_device *dev,
-                                       unsigned first_level,
-                                       unsigned last_level,
-                                       unsigned first_layer,
-                                       unsigned last_layer,
-                                       unsigned nr_samples,
-                                       enum mali_texture_dimension dim,
-                                       uint64_t modifier);
+                                       const struct pan_image_view *iview);
 
 void
 panfrost_new_texture(const struct panfrost_device *dev,
@@ -196,63 +176,6 @@ panfrost_texture_offset(const struct pan_image_layout *layout,
                         unsigned level, unsigned array_idx,
                         unsigned surface_idx);
 
-/* Formats */
-
-struct pan_blendable_format {
-        enum mali_color_buffer_internal_format internal;
-        enum mali_mfbd_color_format writeback;
-        mali_pixel_format bifrost;
-};
-
-extern const struct pan_blendable_format panfrost_blendable_formats[PIPE_FORMAT_COUNT];
-extern const struct panfrost_format panfrost_pipe_format_v6[PIPE_FORMAT_COUNT];
-extern const struct panfrost_format panfrost_pipe_format_v7[PIPE_FORMAT_COUNT];
-
-enum mali_z_internal_format
-panfrost_get_z_internal_format(enum pipe_format fmt);
-
-unsigned
-panfrost_translate_swizzle_4(const unsigned char swizzle[4]);
-
-void
-panfrost_invert_swizzle(const unsigned char *in, unsigned char *out);
-
-/* Helpers to construct swizzles */
-
-#define PAN_V6_SWIZZLE(R, G, B, A) ( \
-        ((MALI_CHANNEL_ ## R) << 0) | \
-        ((MALI_CHANNEL_ ## G) << 3) | \
-        ((MALI_CHANNEL_ ## B) << 6) | \
-        ((MALI_CHANNEL_ ## A) << 9))
-
-static inline unsigned
-panfrost_get_default_swizzle(unsigned components)
-{
-        switch (components) {
-        case 1:
-                return PAN_V6_SWIZZLE(R, 0, 0, 1);
-        case 2:
-                return PAN_V6_SWIZZLE(R, G, 0, 1);
-        case 3:
-                return PAN_V6_SWIZZLE(R, G, B, 1);
-        case 4:
-                return PAN_V6_SWIZZLE(R, G, B, A);
-        default:
-                unreachable("Invalid number of components");
-        }
-}
-
-static inline unsigned
-panfrost_bifrost_swizzle(unsigned components)
-{
-        /* Set all components to 0 and force w if needed */
-        return components < 4 ? 0x10 : 0x00;
-}
-
-unsigned
-panfrost_format_to_bifrost_blend(const struct panfrost_device *dev,
-                                 enum pipe_format format);
-
 struct pan_pool;
 struct pan_scoreboard;
 
@@ -261,21 +184,6 @@ struct pan_scoreboard;
 #define drm_is_afbc(mod) \
         ((mod >> 52) == (DRM_FORMAT_MOD_ARM_TYPE_AFBC | \
                 (DRM_FORMAT_MOD_VENDOR_ARM << 4)))
-
-/* Map modifiers to mali_texture_layout for packing in a texture descriptor */
-
-static inline enum mali_texture_layout
-panfrost_modifier_to_layout(uint64_t modifier)
-{
-        if (drm_is_afbc(modifier))
-                return MALI_TEXTURE_LAYOUT_AFBC;
-        else if (modifier == DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED)
-                return MALI_TEXTURE_LAYOUT_TILED;
-        else if (modifier == DRM_FORMAT_MOD_LINEAR)
-                return MALI_TEXTURE_LAYOUT_LINEAR;
-        else
-                unreachable("Invalid modifer");
-}
 
 struct pan_image_explicit_layout {
         unsigned offset;

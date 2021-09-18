@@ -66,7 +66,9 @@ iris_init_perf_query_info(struct pipe_context *pipe)
 
    iris_perf_init_vtbl(perf_cfg);
 
-   intel_perf_init_metrics(perf_cfg, &screen->devinfo, screen->fd, true /* pipeline_statistics */);
+   intel_perf_init_metrics(perf_cfg, &screen->devinfo, screen->fd,
+                           true /* pipeline_statistics */,
+                           true /* register snapshots */);
 
    intel_perf_init_context(ice->perf_ctx,
                          perf_cfg,

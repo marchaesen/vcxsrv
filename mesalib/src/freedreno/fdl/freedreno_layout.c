@@ -42,6 +42,17 @@ fdl_layout_buffer(struct fdl_layout *layout, uint32_t size)
    layout->nr_samples = 1;
 }
 
+const char *
+fdl_tile_mode_desc(const struct fdl_layout *layout, int level)
+{
+   if (fdl_ubwc_enabled(layout, level))
+      return "UBWC";
+   else if (fdl_tile_mode(layout, level) == 0) /* TILE6_LINEAR and friends */
+      return "linear";
+   else
+      return "tiled";
+}
+
 void
 fdl_dump_layout(struct fdl_layout *layout)
 {
@@ -54,13 +65,13 @@ fdl_dump_layout(struct fdl_layout *layout)
       fprintf(
          stderr,
          "%s: %ux%ux%u@%ux%u:\t%2u: stride=%4u, size=%6u,%6u, "
-         "aligned_height=%3u, offset=0x%x,0x%x, layersz %5u,%5u tiling=%d\n",
+         "aligned_height=%3u, offset=0x%x,0x%x, layersz %5u,%5u %s\n",
          util_format_name(layout->format), u_minify(layout->width0, level),
          u_minify(layout->height0, level), u_minify(layout->depth0, level),
          layout->cpp, layout->nr_samples, level, fdl_pitch(layout, level),
          slice->size0, ubwc_slice->size0,
          slice->size0 / fdl_pitch(layout, level), slice->offset,
          ubwc_slice->offset, layout->layer_size, layout->ubwc_layer_size,
-         fdl_tile_mode(layout, level));
+         fdl_tile_mode_desc(layout, level));
    }
 }

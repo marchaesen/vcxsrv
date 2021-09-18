@@ -30,21 +30,49 @@
 
 struct pipe_context;
 
+struct zink_surface_info {
+   VkImageCreateFlags flags;
+   VkImageUsageFlags usage;
+   uint32_t width;
+   uint32_t height;
+   uint32_t layerCount;
+   VkFormat format;
+};
+
 struct zink_surface {
    struct pipe_surface base;
    VkImageViewCreateInfo ivci;
+   struct zink_surface_info info; //TODO: union with fb refs
+   uint32_t info_hash;
    VkImageView image_view;
    VkImageView simage_view;//old iview after storage replacement/rebind
    void *obj; //backing resource object
    uint32_t hash;
-   struct zink_batch_usage batch_uses;
+   struct zink_batch_usage *batch_uses;
    struct util_dynarray framebuffer_refs;
+   struct zink_descriptor_refs desc_set_refs;
 };
 
+/* wrapper object that preserves the gallium expectation of having
+ * pipe_surface::context match the context used to create the surface
+ */
+struct zink_ctx_surface {
+   struct pipe_surface base;
+   struct zink_surface *surf;
+};
+
+/* use this cast for framebuffer surfaces */
 static inline struct zink_surface *
-zink_surface(struct pipe_surface *pipe)
+zink_csurface(struct pipe_surface *psurface)
 {
-   return (struct zink_surface *)pipe;
+   return psurface ? ((struct zink_ctx_surface *)psurface)->surf : NULL;
+}
+
+/* use this cast for internal surfaces */
+static inline struct zink_surface *
+zink_surface(struct pipe_surface *psurface)
+{
+   return (struct zink_surface *)psurface;
 }
 
 void
@@ -69,7 +97,8 @@ zink_context_surface_init(struct pipe_context *context);
 VkImageViewCreateInfo
 create_ivci(struct zink_screen *screen,
             struct zink_resource *res,
-            const struct pipe_surface *templ);
+            const struct pipe_surface *templ,
+            enum pipe_texture_target target);
 
 struct pipe_surface *
 zink_get_surface(struct zink_context *ctx,
@@ -98,4 +127,14 @@ zink_surface_clamp_viewtype(VkImageViewType viewType, unsigned first_layer, unsi
 
 bool
 zink_rebind_surface(struct zink_context *ctx, struct pipe_surface **psurface);
+
+static inline bool
+zink_rebind_ctx_surface(struct zink_context *ctx, struct pipe_surface **psurface)
+{
+   struct zink_ctx_surface *csurf = (struct zink_ctx_surface*)*psurface;
+   return zink_rebind_surface(ctx, (struct pipe_surface**)&csurf->surf);
+}
+
+struct pipe_surface *
+zink_surface_create_null(struct zink_context *ctx, enum pipe_texture_target target, unsigned width, unsigned height, unsigned samples);
 #endif

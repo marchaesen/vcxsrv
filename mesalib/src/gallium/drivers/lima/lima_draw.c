@@ -72,14 +72,14 @@ lima_clip_scissor_to_viewport(struct lima_context *ctx)
 
    viewport_left = MAX2(ctx->viewport.left, 0);
    cscissor->minx = MAX2(cscissor->minx, viewport_left);
-   viewport_right = MIN2(ctx->viewport.right, fb->base.width);
+   viewport_right = MIN2(MAX2(ctx->viewport.right, 0), fb->base.width);
    cscissor->maxx = MIN2(cscissor->maxx, viewport_right);
    if (cscissor->minx > cscissor->maxx)
       cscissor->minx = cscissor->maxx;
 
    viewport_bottom = MAX2(ctx->viewport.bottom, 0);
    cscissor->miny = MAX2(cscissor->miny, viewport_bottom);
-   viewport_top = MIN2(ctx->viewport.top, fb->base.height);
+   viewport_top = MIN2(MAX2(ctx->viewport.top, 0), fb->base.height);
    cscissor->maxy = MIN2(cscissor->maxy, viewport_top);
    if (cscissor->miny > cscissor->maxy)
       cscissor->miny = cscissor->maxy;
@@ -195,6 +195,7 @@ enum lima_attrib_type {
    LIMA_ATTRIB_FLOAT = 0x000,
    LIMA_ATTRIB_I32   = 0x001,
    LIMA_ATTRIB_U32   = 0x002,
+   LIMA_ATTRIB_FP16  = 0x003,
    LIMA_ATTRIB_I16   = 0x004,
    LIMA_ATTRIB_U16   = 0x005,
    LIMA_ATTRIB_I8    = 0x006,
@@ -217,7 +218,10 @@ lima_pipe_format_to_attrib_type(enum pipe_format format)
 
    switch (c->type) {
    case UTIL_FORMAT_TYPE_FLOAT:
-      return LIMA_ATTRIB_FLOAT;
+      if (c->size == 16)
+         return LIMA_ATTRIB_FP16;
+      else
+         return LIMA_ATTRIB_FLOAT;
    case UTIL_FORMAT_TYPE_FIXED:
       return LIMA_ATTRIB_FIXED;
    case UTIL_FORMAT_TYPE_SIGNED:
@@ -681,11 +685,7 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
             (stencil[1].valuemask << 24);
          render->stencil_test = (stencil[0].writemask & 0xff) | (stencil[1].writemask & 0xff) << 8;
       }
-      /* TODO: Find out, what (render->stecil_test & 0xffff0000) is.
-       * 0x00ff0000 is probably (float_to_ubyte(alpha->ref_value) << 16)
-       * (render->multi_sample & 0x00000007 is probably the compare function
-       * of glAlphaFunc then.
-       */
+      /* TODO: Find out, what (render->stecil_test & 0xff000000) is */
    }
    else {
       /* Default values, when stencil is disabled:
@@ -700,13 +700,22 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
 
    /* need more investigation */
    if (info->mode == PIPE_PRIM_POINTS)
-      render->multi_sample = 0x0000F007;
+      render->multi_sample = 0x0000F000;
    else if (info->mode < PIPE_PRIM_TRIANGLES)
-      render->multi_sample = 0x0000F407;
+      render->multi_sample = 0x0000F400;
    else
-      render->multi_sample = 0x0000F807;
+      render->multi_sample = 0x0000F800;
    if (ctx->framebuffer.base.samples)
       render->multi_sample |= 0x68;
+
+   /* alpha test */
+   if (ctx->zsa->base.alpha_enabled) {
+      render->multi_sample |= ctx->zsa->base.alpha_func;
+      render->stencil_test |= float_to_ubyte(ctx->zsa->base.alpha_ref_value) << 16;
+   } else {
+      /* func = PIPE_FUNC_ALWAYS */
+      render->multi_sample |= 0x7;
+   }
 
    render->shader_address =
       ctx->fs->bo->va | (((uint32_t *)ctx->fs->bo->map)[0] & 0x1F);
@@ -721,7 +730,8 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
    if (ctx->blend->base.dither)
       render->aux1 |= 0x00002000;
 
-   if (fs->state.uses_discard) {
+   if (fs->state.uses_discard ||
+       ctx->zsa->base.alpha_enabled) {
       early_z = false;
       pixel_kill = false;
    }

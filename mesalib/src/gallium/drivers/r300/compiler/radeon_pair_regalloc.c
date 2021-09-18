@@ -516,7 +516,7 @@ static void do_advanced_regalloc(struct regalloc_state * s)
 {
 
 	unsigned int i, input_node, node_count, node_index;
-	unsigned int * node_classes;
+	struct ra_class ** node_classes;
 	struct rc_instruction * inst;
 	struct rc_list * var_ptr;
 	struct rc_list * variables;
@@ -527,7 +527,7 @@ static void do_advanced_regalloc(struct regalloc_state * s)
 	variables = rc_get_variables(s->C);
 	node_count = rc_list_count(variables);
 	node_classes = memory_pool_malloc(&s->C->Pool,
-			node_count * sizeof(unsigned int));
+			node_count * sizeof(struct ra_class *));
 
 	for (var_ptr = variables, node_index = 0; var_ptr;
 					var_ptr = var_ptr->Next, node_index++) {
@@ -536,7 +536,7 @@ static void do_advanced_regalloc(struct regalloc_state * s)
 		rc_variable_compute_live_intervals(var_ptr->Item);
 
 		class_index = variable_get_class(var_ptr->Item,	rc_class_list);
-		node_classes[node_index] = ra_state->class_ids[class_index];
+		node_classes[node_index] = ra_state->classes[class_index];
 	}
 
 
@@ -699,15 +699,14 @@ void rc_init_regalloc_state(struct rc_regalloc_state *s)
 	/* Create the register classes */
 	for (i = 0; i < RC_REG_CLASS_COUNT; i++) {
 		const struct rc_class *class = &rc_class_list[i];
-		s->class_ids[class->ID] = ra_alloc_reg_class(s->regs);
+		s->classes[class->ID] = ra_alloc_reg_class(s->regs);
 
 		/* Assign registers to the classes */
 		for (index = 0; index < R500_PFS_NUM_TEMP_REGS; index++) {
 			for (j = 0; j < class->WritemaskCount; j++) {
 				int reg_id = get_reg_id(index,
 						class->Writemasks[j]);
-				ra_class_add_reg(s->regs,
-					s->class_ids[class->ID], reg_id);
+				ra_class_add_reg(s->classes[class->ID], reg_id);
 			}
 		}
 	}
@@ -722,8 +721,7 @@ void rc_init_regalloc_state(struct rc_regalloc_state *s)
 	for (i = 0; i < RC_REG_CLASS_COUNT; i++) {
 		ra_q_values[i] = MALLOC(RC_REG_CLASS_COUNT * sizeof(unsigned));
 		for (j = 0; j < RC_REG_CLASS_COUNT; j++) {
-			ra_q_values[s->class_ids[i]][s->class_ids[j]] =
-							q_values[i][j];
+			ra_q_values[i][j] = q_values[i][j];
 		}
 	}
 

@@ -2,7 +2,7 @@
 
 set -ex
 
-export LIBDRM_VERSION=libdrm-2.4.105
+export LIBDRM_VERSION=libdrm-2.4.107
 
 wget https://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.xz
 tar -xvf $LIBDRM_VERSION.tar.xz && rm $LIBDRM_VERSION.tar.xz

@@ -230,12 +230,12 @@ static bool needs_resolve(struct pipe_screen *screen,
    return false;
 }
 
-static void *virgl_texture_transfer_map(struct pipe_context *ctx,
-                                        struct pipe_resource *resource,
-                                        unsigned level,
-                                        unsigned usage,
-                                        const struct pipe_box *box,
-                                        struct pipe_transfer **transfer)
+void *virgl_texture_transfer_map(struct pipe_context *ctx,
+                                 struct pipe_resource *resource,
+                                 unsigned level,
+                                 unsigned usage,
+                                 const struct pipe_box *box,
+                                 struct pipe_transfer **transfer)
 {
    if (needs_resolve(ctx->screen, resource, usage))
       return texture_transfer_map_resolve(ctx, resource, level, usage, box,
@@ -254,8 +254,8 @@ static void flush_data(struct pipe_context *ctx,
                      trans->base.level);
 }
 
-static void virgl_texture_transfer_unmap(struct pipe_context *ctx,
-                                         struct pipe_transfer *transfer)
+void virgl_texture_transfer_unmap(struct pipe_context *ctx,
+                                  struct pipe_transfer *transfer)
 {
    struct virgl_context *vctx = virgl_context(ctx);
    struct virgl_transfer *trans = virgl_transfer(transfer);
@@ -302,16 +302,6 @@ static void virgl_texture_transfer_unmap(struct pipe_context *ctx,
    }
 }
 
-static const struct u_resource_vtbl virgl_texture_vtbl =
-{
-   virgl_resource_get_handle,           /* get_handle */
-   virgl_resource_destroy,              /* resource_destroy */
-   virgl_texture_transfer_map,          /* transfer_map */
-   NULL,                                /* transfer_flush_region */
-   virgl_texture_transfer_unmap,        /* transfer_unmap */
-};
-
 void virgl_texture_init(struct virgl_resource *res)
 {
-   res->u.vtbl = &virgl_texture_vtbl;
 }

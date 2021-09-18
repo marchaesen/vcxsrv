@@ -950,11 +950,7 @@
     <field name="Double-buffer in non-ms mode" size="1" start="15" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="14" type="bool"/>
 
-    <field name="Maximum BPP of all render targets" size="2" start="12" type="uint">
-      <value name="Render target maximum 32bpp" value="0"/>
-      <value name="Render target maximum 64bpp" value="1"/>
-      <value name="Render target maximum 128bpp" value="2"/>
-    </field>
+    <field name="Maximum BPP of all render targets" size="2" start="12" type="Internal BPP"/>
 
     <field name="Number of Render Targets" size="4" start="8" type="uint" minus_one="true"/>
 
@@ -992,11 +988,7 @@
     <field name="Double-buffer in non-ms mode" size="1" start="43" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="42" type="bool"/>
 
-    <field name="Maximum BPP of all render targets" size="2" start="40" type="uint">
-      <value name="Render target maximum 32bpp" value="0"/>
-      <value name="Render target maximum 64bpp" value="1"/>
-      <value name="Render target maximum 128bpp" value="2"/>
-    </field>
+    <field name="Maximum BPP of all render targets" size="2" start="40" type="Internal BPP"/>
 
     <field name="Image Height (pixels)" size="16" start="24" type="uint"/>
     <field name="Image Width (pixels)" size="16" start="8" type="uint"/>

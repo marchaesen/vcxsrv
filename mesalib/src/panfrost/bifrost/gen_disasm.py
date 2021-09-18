@@ -326,7 +326,7 @@ def disasm_op(name, op):
 
     for i, (pos, mask) in enumerate(srcs):
         body += '    fputs(", ", fp);\n'
-        body += '    dump_src(fp, _BITS(bits, {}, 3), *srcs, consts, {});\n'.format(pos, "true" if is_fma else "false")
+        body += '    dump_src(fp, _BITS(bits, {}, 3), *srcs, branch_offset, consts, {});\n'.format(pos, "true" if is_fma else "false")
 
         # Error check if needed
         if (mask != 0xFF):

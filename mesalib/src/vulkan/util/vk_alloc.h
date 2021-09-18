@@ -31,6 +31,10 @@
 #include "util/u_math.h"
 #include "util/macros.h"
 
+
+const VkAllocationCallbacks *
+vk_default_allocator(void);
+
 static inline void *
 vk_alloc(const VkAllocationCallbacks *alloc,
          size_t size, size_t align,
@@ -236,6 +240,30 @@ vk_multialloc_alloc2(struct vk_multialloc *ma,
                      VkSystemAllocationScope scope)
 {
    return vk_multialloc_alloc(ma, alloc ? alloc : parent_alloc, scope);
+}
+
+static ALWAYS_INLINE void *
+vk_multialloc_zalloc(struct vk_multialloc *ma,
+                     const VkAllocationCallbacks *alloc,
+                     VkSystemAllocationScope scope)
+{
+   void *ptr = vk_multialloc_alloc(ma, alloc, scope);
+
+   if (ptr == NULL)
+      return NULL;
+
+   memset(ptr, 0, ma->size);
+
+   return ptr;
+}
+
+static ALWAYS_INLINE void *
+vk_multialloc_zalloc2(struct vk_multialloc *ma,
+                      const VkAllocationCallbacks *parent_alloc,
+                      const VkAllocationCallbacks *alloc,
+                      VkSystemAllocationScope scope)
+{
+   return vk_multialloc_zalloc(ma, alloc ? alloc : parent_alloc, scope);
 }
 
 #endif

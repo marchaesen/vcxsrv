@@ -26,138 +26,6 @@
 #include "util/u_math.h"
 #include "vk_util.h"
 
-#define COMMON_NAME(x) [VK_FORMAT_##x] = PIPE_FORMAT_##x
-
-#define FLOAT_NAME(x) [VK_FORMAT_##x##_SFLOAT] = PIPE_FORMAT_##x##_FLOAT
-
-static enum pipe_format format_to_vk_table[VK_FORMAT_ASTC_12x12_SRGB_BLOCK + 1] = {
-
-   COMMON_NAME(R8_UNORM),
-   COMMON_NAME(R8G8_UNORM),
-   COMMON_NAME(R8G8B8_UNORM),
-   COMMON_NAME(R8G8B8A8_UNORM),
-
-   COMMON_NAME(R8_SNORM),
-   COMMON_NAME(R8G8_SNORM),
-   COMMON_NAME(R8G8B8_SNORM),
-   COMMON_NAME(R8G8B8A8_SNORM),
-
-   //   COMMON_NAME(R8_SRGB),
-   COMMON_NAME(R8G8B8_SRGB),
-   COMMON_NAME(R8G8B8A8_SRGB),
-
-   COMMON_NAME(B8G8R8A8_UNORM),
-   COMMON_NAME(R8G8B8A8_SRGB),
-   COMMON_NAME(B8G8R8A8_SRGB),
-
-   COMMON_NAME(R8_UINT),
-   COMMON_NAME(R8G8_UINT),
-   COMMON_NAME(R8G8B8_UINT),
-   COMMON_NAME(R8G8B8A8_UINT),
-
-   COMMON_NAME(R16_UINT),
-   COMMON_NAME(R16G16_UINT),
-   COMMON_NAME(R16G16B16_UINT),
-   COMMON_NAME(R16G16B16A16_UINT),
-
-   COMMON_NAME(R32_UINT),
-   COMMON_NAME(R32G32_UINT),
-   COMMON_NAME(R32G32B32_UINT),
-   COMMON_NAME(R32G32B32A32_UINT),
-
-   COMMON_NAME(R8_SINT),
-   COMMON_NAME(R8G8_SINT),
-   COMMON_NAME(R8G8B8_SINT),
-   COMMON_NAME(R8G8B8A8_SINT),
-
-   COMMON_NAME(R16_SINT),
-   COMMON_NAME(R16G16_SINT),
-   COMMON_NAME(R16G16B16_SINT),
-   COMMON_NAME(R16G16B16A16_SINT),
-
-   COMMON_NAME(R32_SINT),
-   COMMON_NAME(R32G32_SINT),
-   COMMON_NAME(R32G32B32_SINT),
-   COMMON_NAME(R32G32B32A32_SINT),
-
-   COMMON_NAME(R16_UNORM),
-   COMMON_NAME(R16G16_UNORM),
-   COMMON_NAME(R16G16B16A16_UNORM),
-
-   COMMON_NAME(R16_SNORM),
-   COMMON_NAME(R16G16_SNORM),
-   COMMON_NAME(R16G16B16A16_SNORM),
-   FLOAT_NAME(R16),
-   FLOAT_NAME(R16G16),
-   FLOAT_NAME(R16G16B16),
-   FLOAT_NAME(R16G16B16A16),
-
-   FLOAT_NAME(R32),
-   FLOAT_NAME(R32G32),
-   FLOAT_NAME(R32G32B32),
-   FLOAT_NAME(R32G32B32A32),
-
-   COMMON_NAME(S8_UINT),
-   [VK_FORMAT_UNDEFINED] = PIPE_FORMAT_NONE,
-   [VK_FORMAT_R5G6B5_UNORM_PACK16] = PIPE_FORMAT_B5G6R5_UNORM,
-   [VK_FORMAT_A1R5G5B5_UNORM_PACK16] = PIPE_FORMAT_B5G5R5A1_UNORM,
-   [VK_FORMAT_B4G4R4A4_UNORM_PACK16] = PIPE_FORMAT_A4R4G4B4_UNORM,
-   [VK_FORMAT_D16_UNORM] = PIPE_FORMAT_Z16_UNORM,
-
-   [VK_FORMAT_A8B8G8R8_UNORM_PACK32] = PIPE_FORMAT_R8G8B8A8_UNORM,
-   [VK_FORMAT_A8B8G8R8_SNORM_PACK32] = PIPE_FORMAT_R8G8B8A8_SNORM,
-   [VK_FORMAT_A8B8G8R8_UINT_PACK32] = PIPE_FORMAT_R8G8B8A8_UINT,
-   [VK_FORMAT_A8B8G8R8_SINT_PACK32] = PIPE_FORMAT_R8G8B8A8_SINT,
-   [VK_FORMAT_A8B8G8R8_SRGB_PACK32] = PIPE_FORMAT_R8G8B8A8_SRGB,
-
-   [VK_FORMAT_A2B10G10R10_UNORM_PACK32] = PIPE_FORMAT_R10G10B10A2_UNORM,
-   [VK_FORMAT_A2B10G10R10_SNORM_PACK32] = PIPE_FORMAT_R10G10B10A2_SNORM,
-   [VK_FORMAT_A2R10G10B10_UNORM_PACK32] = PIPE_FORMAT_B10G10R10A2_UNORM,
-   [VK_FORMAT_A2R10G10B10_SNORM_PACK32] = PIPE_FORMAT_B10G10R10A2_SNORM,
-
-   [VK_FORMAT_A2B10G10R10_UINT_PACK32] = PIPE_FORMAT_R10G10B10A2_UINT,
-   [VK_FORMAT_A2R10G10B10_UINT_PACK32] = PIPE_FORMAT_B10G10R10A2_UINT,
-   [VK_FORMAT_A2B10G10R10_USCALED_PACK32] = PIPE_FORMAT_R10G10B10A2_USCALED,
-   [VK_FORMAT_A2B10G10R10_SSCALED_PACK32] = PIPE_FORMAT_R10G10B10A2_SSCALED,
-   [VK_FORMAT_A2R10G10B10_USCALED_PACK32] = PIPE_FORMAT_B10G10R10A2_USCALED,
-   [VK_FORMAT_A2R10G10B10_SSCALED_PACK32] = PIPE_FORMAT_B10G10R10A2_SSCALED,
-
-   [VK_FORMAT_B10G11R11_UFLOAT_PACK32] = PIPE_FORMAT_R11G11B10_FLOAT,
-   [VK_FORMAT_E5B9G9R9_UFLOAT_PACK32] = PIPE_FORMAT_R9G9B9E5_FLOAT,
-
-   [VK_FORMAT_X8_D24_UNORM_PACK32] = PIPE_FORMAT_Z24X8_UNORM,
-   [VK_FORMAT_D32_SFLOAT] = PIPE_FORMAT_Z32_FLOAT,
-   [VK_FORMAT_D24_UNORM_S8_UINT] = PIPE_FORMAT_Z24_UNORM_S8_UINT,
-   [VK_FORMAT_D32_SFLOAT_S8_UINT] = PIPE_FORMAT_Z32_FLOAT_S8X24_UINT,
-
-   [VK_FORMAT_BC1_RGB_UNORM_BLOCK] = PIPE_FORMAT_DXT1_RGB,
-   [VK_FORMAT_BC1_RGBA_UNORM_BLOCK] = PIPE_FORMAT_DXT1_RGBA,
-   [VK_FORMAT_BC2_UNORM_BLOCK] = PIPE_FORMAT_DXT3_RGBA,
-   [VK_FORMAT_BC3_UNORM_BLOCK] = PIPE_FORMAT_DXT5_RGBA,
-   [VK_FORMAT_BC4_UNORM_BLOCK] = PIPE_FORMAT_RGTC1_UNORM,
-   [VK_FORMAT_BC5_UNORM_BLOCK] = PIPE_FORMAT_RGTC2_UNORM,
-
-   [VK_FORMAT_BC1_RGB_SRGB_BLOCK] = PIPE_FORMAT_DXT1_SRGB,
-   [VK_FORMAT_BC1_RGBA_SRGB_BLOCK] = PIPE_FORMAT_DXT1_SRGBA,
-   [VK_FORMAT_BC2_SRGB_BLOCK] = PIPE_FORMAT_DXT3_SRGBA,
-   [VK_FORMAT_BC3_SRGB_BLOCK] = PIPE_FORMAT_DXT5_SRGBA,
-
-   [VK_FORMAT_BC4_SNORM_BLOCK] = PIPE_FORMAT_RGTC1_SNORM,
-   [VK_FORMAT_BC5_SNORM_BLOCK] = PIPE_FORMAT_RGTC2_SNORM,
-
-   [VK_FORMAT_BC6H_UFLOAT_BLOCK] = PIPE_FORMAT_BPTC_RGB_UFLOAT,
-   [VK_FORMAT_BC6H_SFLOAT_BLOCK] = PIPE_FORMAT_BPTC_RGB_FLOAT,
-   [VK_FORMAT_BC7_UNORM_BLOCK] = PIPE_FORMAT_BPTC_RGBA_UNORM,
-   [VK_FORMAT_BC7_SRGB_BLOCK] = PIPE_FORMAT_BPTC_SRGBA,
-};
-
-enum pipe_format vk_format_to_pipe(VkFormat format)
-{
-   if (format > VK_FORMAT_ASTC_12x12_SRGB_BLOCK)
-      return PIPE_FORMAT_NONE;
-   return format_to_vk_table[format];
-}
-
 static bool lvp_is_filter_minmax_format_supported(VkFormat format)
 {
    /* From the Vulkan spec 1.1.71:
@@ -192,7 +60,7 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
                                           VkFormat format,
                                           VkFormatProperties *out_properties)
 {
-   enum pipe_format pformat = vk_format_to_pipe(format);
+   enum pipe_format pformat = lvp_vk_format_to_pipe_format(format);
    unsigned features = 0, buffer_features = 0;
    if (pformat == PIPE_FORMAT_NONE) {
      out_properties->linearTilingFeatures = 0;
@@ -227,7 +95,7 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
       out_properties->bufferFeatures = buffer_features;
       return;
    }
-   buffer_features = VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+
    if (!util_format_is_srgb(pformat) &&
        physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_BUFFER, 0, 0, PIPE_BIND_VERTEX_BUFFER)) {
@@ -239,6 +107,10 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
       buffer_features |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
    }
 
+   if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
+                                                     PIPE_BUFFER, 0, 0, PIPE_BIND_SHADER_IMAGE)) {
+      buffer_features |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+   }
 
    if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
                                                      PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW)) {
@@ -255,6 +127,10 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
       /* SNORM blending on llvmpipe fails CTS - disable for now */
       if (!util_format_is_snorm(pformat))
          features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+   }
+
+   if (physical_device->pscreen->is_format_supported(physical_device->pscreen, pformat,
+                                                     PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SHADER_IMAGE)) {
       features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
    }
 
@@ -302,7 +178,7 @@ static VkResult lvp_get_image_format_properties(struct lvp_physical_device *phys
    uint32_t maxMipLevels;
    uint32_t maxArraySize;
    VkSampleCountFlags sampleCounts = VK_SAMPLE_COUNT_1_BIT;
-   enum pipe_format pformat = vk_format_to_pipe(info->format);
+   enum pipe_format pformat = lvp_vk_format_to_pipe_format(info->format);
    lvp_physical_device_get_format_properties(physical_device, info->format,
                                              &format_props);
    if (info->tiling == VK_IMAGE_TILING_LINEAR) {
@@ -459,10 +335,22 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_GetPhysicalDeviceImageFormatProperties2(
    }
 
    if (external_info && external_info->handleType != 0) {
+      VkExternalMemoryFeatureFlagBits flags = 0;
+      VkExternalMemoryHandleTypeFlags export_flags = 0;
+      VkExternalMemoryHandleTypeFlags compat_flags = 0;
+
+      switch (external_info->handleType) {
+      case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
+         flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
+         compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
+         break;
+      default:
+         break;
+      }
       external_props->externalMemoryProperties = (VkExternalMemoryProperties) {
-         .externalMemoryFeatures = 0,
-         .exportFromImportedHandleTypes = 0,
-         .compatibleHandleTypes = 0,
+         .externalMemoryFeatures = flags,
+         .exportFromImportedHandleTypes = export_flags,
+         .compatibleHandleTypes = compat_flags,
       };
    }
    if (ycbcr_props)
@@ -499,9 +387,21 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceExternalBufferProperties(
    const VkPhysicalDeviceExternalBufferInfo    *pExternalBufferInfo,
    VkExternalBufferProperties                  *pExternalBufferProperties)
 {
+   VkExternalMemoryFeatureFlagBits flags = 0;
+   VkExternalMemoryHandleTypeFlags export_flags = 0;
+   VkExternalMemoryHandleTypeFlags compat_flags = 0;
+   switch (pExternalBufferInfo->handleType) {
+   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
+      flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
+      compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
+      break;
+   default:
+      break;
+   }
+
    pExternalBufferProperties->externalMemoryProperties = (VkExternalMemoryProperties) {
-      .externalMemoryFeatures = 0,
-      .exportFromImportedHandleTypes = 0,
-      .compatibleHandleTypes = 0,
+      .externalMemoryFeatures = flags,
+      .exportFromImportedHandleTypes = export_flags,
+      .compatibleHandleTypes = compat_flags,
    };
 }

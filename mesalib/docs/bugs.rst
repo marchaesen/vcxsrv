@@ -1,12 +1,8 @@
 Report a Bug
 ============
 
-The Mesa bug database is hosted on
-`freedesktop.org <https://freedesktop.org>`__. The old bug database on
-SourceForge is no longer used.
-
 To file a Mesa bug, go to `GitLab on
-freedesktop.org <https://gitlab.freedesktop.org/mesa/mesa/-/issues>`__
+freedesktop.org <https://gitlab.freedesktop.org/mesa/mesa/-/issues>`__.
 
 Please follow these bug reporting guidelines:
 

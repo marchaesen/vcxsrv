@@ -485,17 +485,6 @@ extern void GLAPIENTRY
 _mesa_VertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bindingIndex,
                                          GLuint divisor);
 
-
-extern void
-_mesa_copy_vertex_attrib_array(struct gl_context *ctx,
-                               struct gl_array_attributes *dst,
-                               const struct gl_array_attributes *src);
-
-extern void
-_mesa_copy_vertex_buffer_binding(struct gl_context *ctx,
-                                 struct gl_vertex_buffer_binding *dst,
-                                 const struct gl_vertex_buffer_binding *src);
-
 extern void
 _mesa_print_arrays(struct gl_context *ctx);
 

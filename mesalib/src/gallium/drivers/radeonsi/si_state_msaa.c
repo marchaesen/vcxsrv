@@ -81,8 +81,8 @@
  *   Right half: {1,3,5,7,9,11,13,15}
  */
 
-/* Important note: We have to use the standard DX positions, because
- * the primitive discard compute shader relies on them.
+/* Important note: We have to use the standard DX positions because shader-based culling
+ * relies on them.
  */
 
 /* 1x MSAA */

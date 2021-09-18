@@ -1,0 +1,2 @@
+dEQP-VK.glsl.builtin.precision.pow.highp.vec2,Fail
+dEQP-VK.glsl.texture_functions.query.texturequerylod.sampler2d_fixed_fragment,Fail

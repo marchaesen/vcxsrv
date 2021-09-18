@@ -186,7 +186,10 @@ rbug_transfer_create(struct rbug_context *rb_context,
    return &rb_transfer->base;
 
 error:
-   rb_context->pipe->transfer_unmap(rb_context->pipe, transfer);
+   if (rb_resource->base.target == PIPE_BUFFER)
+      rb_context->pipe->buffer_unmap(rb_context->pipe, transfer);
+   else
+      rb_context->pipe->texture_unmap(rb_context->pipe, transfer);
    return NULL;
 }
 

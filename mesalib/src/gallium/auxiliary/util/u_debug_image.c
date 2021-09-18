@@ -113,10 +113,10 @@ debug_dump_surface(struct pipe_context *pipe,
     */
    texture = surface->texture;
 
-   data = pipe_transfer_map(pipe, texture, surface->u.tex.level,
-                            surface->u.tex.first_layer,
-                            PIPE_MAP_READ,
-                            0, 0, surface->width, surface->height, &transfer);
+   data = pipe_texture_map(pipe, texture, surface->u.tex.level,
+                           surface->u.tex.first_layer,
+                           PIPE_MAP_READ,
+                           0, 0, surface->width, surface->height, &transfer);
    if (!data)
       return;
 
@@ -128,7 +128,7 @@ debug_dump_surface(struct pipe_context *pipe,
                     transfer->stride,
                     data);
 
-   pipe->transfer_unmap(pipe, transfer);
+   pipe->texture_unmap(pipe, transfer);
 }
 
 
@@ -192,13 +192,13 @@ debug_dump_surface_bmp(struct pipe_context *pipe,
    struct pipe_resource *texture = surface->texture;
    void *ptr;
 
-   ptr = pipe_transfer_map(pipe, texture, surface->u.tex.level,
-                           surface->u.tex.first_layer, PIPE_MAP_READ,
-                           0, 0, surface->width, surface->height, &transfer);
+   ptr = pipe_texture_map(pipe, texture, surface->u.tex.level,
+                          surface->u.tex.first_layer, PIPE_MAP_READ,
+                          0, 0, surface->width, surface->height, &transfer);
 
    debug_dump_transfer_bmp(pipe, filename, transfer, ptr);
 
-   pipe->transfer_unmap(pipe, transfer);
+   pipe->texture_unmap(pipe, transfer);
 }
 
 void

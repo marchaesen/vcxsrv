@@ -103,11 +103,8 @@ translate_texture_format(unsigned wgl_format)
 BOOL WINAPI
 wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
 {
-   HDC prevDrawable = stw_get_current_dc();
-   HDC prevReadable = stw_get_current_read_dc();
-   HDC dc;
    struct stw_context *curctx = stw_current_context();
-   struct stw_framebuffer *fb;
+   struct stw_framebuffer *fb, *old_fb, *old_fbRead;
    GLenum texFormat, srcBuffer, target;
    boolean retVal;
    int pixelFormatSave;
@@ -162,6 +159,9 @@ wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
       return FALSE;
    }
 
+   old_fb = curctx->current_framebuffer;
+   old_fbRead = curctx->current_read_framebuffer;
+
    /*
     * Bind the pbuffer surface so we can read/copy from it.
     *
@@ -172,12 +172,10 @@ wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
     */
    pixelFormatSave = fb->iPixelFormat;
    fb->iPixelFormat = curctx->iPixelFormat;
-   dc = wglGetPbufferDCARB(hPbuffer);
-   retVal = stw_make_current(dc, dc, curctx->dhglrc);
+   retVal = stw_make_current(fb, fb, curctx);
    fb->iPixelFormat = pixelFormatSave;
    if (!retVal) {
       debug_printf("stw_make_current(#1) failed in wglBindTexImageARB()\n");
-      wglReleasePbufferDCARB(hPbuffer, dc);
       return FALSE;
    }
 
@@ -186,12 +184,10 @@ wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
                                   fb->textureFace, texFormat);
 
    /* rebind previous drawing surface */
-   retVal = stw_make_current(prevDrawable, prevReadable, curctx->dhglrc);
+   retVal = stw_make_current(old_fb, old_fbRead, curctx);
    if (!retVal) {
       debug_printf("stw_make_current(#2) failed in wglBindTexImageARB()\n");
    }
-
-   wglReleasePbufferDCARB(hPbuffer, dc);
 
    return retVal;
 }

@@ -776,28 +776,28 @@ get_border_color(const struct gl_sampler_object *samp,
 {
    switch (img->_BaseFormat) {
    case GL_RGB:
-      rgba[0] = samp->Attrib.BorderColor.f[0];
-      rgba[1] = samp->Attrib.BorderColor.f[1];
-      rgba[2] = samp->Attrib.BorderColor.f[2];
+      rgba[0] = samp->Attrib.state.border_color.f[0];
+      rgba[1] = samp->Attrib.state.border_color.f[1];
+      rgba[2] = samp->Attrib.state.border_color.f[2];
       rgba[3] = 1.0F;
       break;
    case GL_ALPHA:
       rgba[0] = rgba[1] = rgba[2] = 0.0;
-      rgba[3] = samp->Attrib.BorderColor.f[3];
+      rgba[3] = samp->Attrib.state.border_color.f[3];
       break;
    case GL_LUMINANCE:
-      rgba[0] = rgba[1] = rgba[2] = samp->Attrib.BorderColor.f[0];
+      rgba[0] = rgba[1] = rgba[2] = samp->Attrib.state.border_color.f[0];
       rgba[3] = 1.0;
       break;
    case GL_LUMINANCE_ALPHA:
-      rgba[0] = rgba[1] = rgba[2] = samp->Attrib.BorderColor.f[0];
-      rgba[3] = samp->Attrib.BorderColor.f[3];
+      rgba[0] = rgba[1] = rgba[2] = samp->Attrib.state.border_color.f[0];
+      rgba[3] = samp->Attrib.state.border_color.f[3];
       break;
    case GL_INTENSITY:
-      rgba[0] = rgba[1] = rgba[2] = rgba[3] = samp->Attrib.BorderColor.f[0];
+      rgba[0] = rgba[1] = rgba[2] = rgba[3] = samp->Attrib.state.border_color.f[0];
       break;
    default:
-      COPY_4V(rgba, samp->Attrib.BorderColor.f);
+      COPY_4V(rgba, samp->Attrib.state.border_color.f);
       break;
    }
 }
@@ -1116,7 +1116,7 @@ static void
 sample_2d_nearest(struct gl_context *ctx,
                   const struct gl_sampler_object *samp,
                   const struct gl_texture_image *img,
-                  const GLfloat texcoord[4],
+                  const GLfloat texcoord[2],
                   GLfloat rgba[])
 {
    const struct swrast_texture_image *swImg = swrast_texture_image_const(img);
@@ -2875,7 +2875,7 @@ sample_2d_array_linear(struct gl_context *ctx,
    array = tex_array_slice(texcoord[2], depth);
 
    if (array < 0 || array >= depth) {
-      COPY_4V(rgba, samp->Attrib.BorderColor.f);
+      COPY_4V(rgba, samp->Attrib.state.border_color.f);
    }
    else {
       if (img->Border) {
@@ -3584,7 +3584,7 @@ sample_depth_texture( struct gl_context *ctx,
             swImg->FetchTexel(swImg, col, row, slice, &depthSample);
          }
          else {
-            depthSample = samp->Attrib.BorderColor.f[0];
+            depthSample = samp->Attrib.state.border_color.f[0];
          }
 
          depthRef = CLAMP(texcoords[i][compare_coord], 0.0F, 1.0F);
@@ -3624,21 +3624,21 @@ sample_depth_texture( struct gl_context *ctx,
          }
 
          if (slice < 0 || slice >= (GLint) depth) {
-            depth00 = samp->Attrib.BorderColor.f[0];
-            depth01 = samp->Attrib.BorderColor.f[0];
-            depth10 = samp->Attrib.BorderColor.f[0];
-            depth11 = samp->Attrib.BorderColor.f[0];
+            depth00 = samp->Attrib.state.border_color.f[0];
+            depth01 = samp->Attrib.state.border_color.f[0];
+            depth10 = samp->Attrib.state.border_color.f[0];
+            depth11 = samp->Attrib.state.border_color.f[0];
          }
          else {
             /* get four depth samples from the texture */
             if (useBorderTexel & (I0BIT | J0BIT)) {
-               depth00 = samp->Attrib.BorderColor.f[0];
+               depth00 = samp->Attrib.state.border_color.f[0];
             }
             else {
                swImg->FetchTexel(swImg, i0, j0, slice, &depth00);
             }
             if (useBorderTexel & (I1BIT | J0BIT)) {
-               depth10 = samp->Attrib.BorderColor.f[0];
+               depth10 = samp->Attrib.state.border_color.f[0];
             }
             else {
                swImg->FetchTexel(swImg, i1, j0, slice, &depth10);
@@ -3646,13 +3646,13 @@ sample_depth_texture( struct gl_context *ctx,
 
             if (tObj->Target != GL_TEXTURE_1D_ARRAY_EXT) {
                if (useBorderTexel & (I0BIT | J1BIT)) {
-                  depth01 = samp->Attrib.BorderColor.f[0];
+                  depth01 = samp->Attrib.state.border_color.f[0];
                }
                else {
                   swImg->FetchTexel(swImg, i0, j1, slice, &depth01);
                }
                if (useBorderTexel & (I1BIT | J1BIT)) {
-                  depth11 = samp->Attrib.BorderColor.f[0];
+                  depth11 = samp->Attrib.state.border_color.f[0];
                }
                else {
                   swImg->FetchTexel(swImg, i1, j1, slice, &depth11);

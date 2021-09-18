@@ -60,20 +60,59 @@ get_dxcore_factory()
 }
 
 static IDXCoreAdapter *
-choose_dxcore_adapter(IDXCoreAdapterFactory *factory, LUID *adapter)
+choose_dxcore_adapter(IDXCoreAdapterFactory *factory, LUID *adapter_luid)
 {
-   IDXCoreAdapter *ret;
-   if (adapter) {
-      if (SUCCEEDED(factory->GetAdapterByLuid(*adapter, &ret)))
-         return ret;
+   IDXCoreAdapter *adapter = nullptr;
+   if (adapter_luid) {
+      if (SUCCEEDED(factory->GetAdapterByLuid(*adapter_luid, &adapter)))
+         return adapter;
       debug_printf("D3D12: requested adapter missing, falling back to auto-detection...\n");
    }
 
-   // The first adapter is the default
    IDXCoreAdapterList *list = nullptr;
    if (SUCCEEDED(factory->CreateAdapterList(1, &DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS, &list))) {
-      if (list->GetAdapterCount() > 0 && SUCCEEDED(list->GetAdapter(0, &ret)))
-         return ret;
+
+#ifndef _WIN32
+      // Pick the user selected adapter if any
+      char *adapter_name = getenv("MESA_D3D12_DEFAULT_ADAPTER_NAME");
+      if (adapter_name) {
+         for (unsigned i=0; i<list->GetAdapterCount(); i++) {
+            if (SUCCEEDED(list->GetAdapter(i, &adapter))) {
+
+               size_t desc_size;
+               if (!SUCCEEDED(adapter->GetPropertySize(DXCoreAdapterProperty::DriverDescription, &desc_size))) {
+                  adapter->Release();
+                  continue;
+               }
+
+               char *desc = (char*)malloc(desc_size);
+               if (!desc) {
+                  adapter->Release();
+                  continue;
+               }
+
+               if (!SUCCEEDED(adapter->GetProperty(DXCoreAdapterProperty::DriverDescription, desc_size, desc))) {
+                  free(desc);
+                  adapter->Release();
+                  continue;
+               }
+
+               if (strcasestr(desc, adapter_name)) {
+                  free(desc);
+                  return adapter;
+               } else {
+                  free(desc);
+                  adapter->Release();
+               }
+            }
+         }
+         debug_printf("D3D12: Couldn't find an adapter containing the substring (%s)\n", adapter_name);
+      }
+#endif
+
+      // No adapter specified or not found, pick 0 as the default
+      if (list->GetAdapterCount() > 0 && SUCCEEDED(list->GetAdapter(0, &adapter)))
+         return adapter;
    }
 
    return NULL;

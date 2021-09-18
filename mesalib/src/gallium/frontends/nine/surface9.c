@@ -217,7 +217,7 @@ NineSurface9_dtor( struct NineSurface9 *This )
 
     if (This->transfer) {
         struct pipe_context *pipe = nine_context_get_pipe_multithread(This->base.base.device);
-        pipe->transfer_unmap(pipe, This->transfer);
+        pipe->texture_unmap(pipe, This->transfer);
         This->transfer = NULL;
     }
 
@@ -529,13 +529,13 @@ NineSurface9_LockRect( struct NineSurface9 *This,
             pipe = nine_context_get_pipe_acquire(This->base.base.device);
         else
             pipe = NineDevice9_GetPipe(This->base.base.device);
-        pLockedRect->pBits = pipe->transfer_map(pipe, resource,
+        pLockedRect->pBits = pipe->texture_map(pipe, resource,
                                                 This->level, usage, &box,
                                                 &This->transfer);
         if (no_refs)
             nine_context_get_pipe_release(This->base.base.device);
         if (!This->transfer) {
-            DBG("transfer_map failed\n");
+            DBG("texture_map failed\n");
             if (Flags & D3DLOCK_DONOTWAIT)
                 return D3DERR_WASSTILLDRAWING;
             return D3DERR_INVALIDCALL;
@@ -561,7 +561,7 @@ NineSurface9_UnlockRect( struct NineSurface9 *This )
     user_assert(This->lock_count, D3DERR_INVALIDCALL);
     if (This->transfer) {
         pipe = nine_context_get_pipe_acquire(This->base.base.device);
-        pipe->transfer_unmap(pipe, This->transfer);
+        pipe->texture_unmap(pipe, This->transfer);
         nine_context_get_pipe_release(This->base.base.device);
         This->transfer = NULL;
     }
@@ -749,7 +749,7 @@ NineSurface9_CopyDefaultToMem( struct NineSurface9 *This,
         nine_csmt_process(This->base.base.device);
 
     pipe = NineDevice9_GetPipe(This->base.base.device);
-    p_src = pipe->transfer_map(pipe, r_src, From->level,
+    p_src = pipe->texture_map(pipe, r_src, From->level,
                                PIPE_MAP_READ,
                                &src_box, &transfer);
     p_dst = nine_get_pointer(This->base.base.device->allocator, This->data);
@@ -762,7 +762,7 @@ NineSurface9_CopyDefaultToMem( struct NineSurface9 *This,
                    p_src,
                    transfer->stride, 0, 0);
 
-    pipe->transfer_unmap(pipe, transfer);
+    pipe->texture_unmap(pipe, transfer);
 
     nine_pointer_weakrelease(This->base.base.device->allocator, This->data);
 }

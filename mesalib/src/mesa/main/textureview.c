@@ -486,6 +486,7 @@ _mesa_set_texture_view_state(struct gl_context *ctx,
     */
 
    texObj->Immutable = GL_TRUE;
+   texObj->External = GL_FALSE;
    texObj->Attrib.ImmutableLevels = levels;
    texObj->Attrib.MinLevel = 0;
    texObj->Attrib.NumLevels = levels;
@@ -692,6 +693,7 @@ texture_view(struct gl_context *ctx, struct gl_texture_object *origTexObj,
    texObj->Attrib.NumLevels = newViewNumLevels;
    texObj->Attrib.NumLayers = newViewNumLayers;
    texObj->Immutable = GL_TRUE;
+   texObj->External = GL_FALSE;
    texObj->Attrib.ImmutableLevels = origTexObj->Attrib.ImmutableLevels;
    texObj->Target = target;
    texObj->TargetIndex = _mesa_tex_target_to_index(ctx, target);

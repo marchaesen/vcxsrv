@@ -34,6 +34,9 @@ void genX(emit_hashing_mode)(struct iris_context *ice,
                              struct iris_batch *batch,
                              unsigned width, unsigned height,
                              unsigned scale);
+void genX(emit_depth_state_workarounds)(struct iris_context *ice,
+                                        struct iris_batch *batch,
+                                        const struct isl_surf *surf);
 void genX(update_pma_fix)(struct iris_context *ice,
                           struct iris_batch *batch,
                           bool enable);

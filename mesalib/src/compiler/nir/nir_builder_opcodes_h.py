@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 template = """\
 /* Copyright (C) 2015 Broadcom
  *

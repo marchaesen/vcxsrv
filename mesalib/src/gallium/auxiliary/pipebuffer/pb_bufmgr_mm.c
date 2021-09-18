@@ -180,8 +180,8 @@ mm_bufmgr_create_buffer(struct pb_manager *mgr,
    struct mm_buffer *mm_buf;
 
    /* We don't handle alignments larger then the one initially setup */
-   assert(pb_check_alignment(desc->alignment, (pb_size)1 << mm->align2));
-   if(!pb_check_alignment(desc->alignment, (pb_size)1 << mm->align2))
+   assert(pb_check_alignment(desc->alignment, 1u << mm->align2));
+   if(!pb_check_alignment(desc->alignment, 1u << mm->align2))
       return NULL;
    
    mtx_lock(&mm->mutex);

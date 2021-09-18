@@ -147,12 +147,7 @@ struct draw_pt_front_end *draw_pt_vsplit(struct draw_context *draw);
  * Currently one general-purpose case which can do all possibilities,
  * at the slight expense of creating a vertex_header in some cases
  * unecessarily.
- *
- * The special case fetch_emit code avoids pipeline vertices
- * altogether and builds hardware vertices directly from API
- * vertex_elements.
  */
-struct draw_pt_middle_end *draw_pt_fetch_emit( struct draw_context *draw );
 struct draw_pt_middle_end *draw_pt_middle_fse( struct draw_context *draw );
 struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit(struct draw_context *draw);
 struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit_llvm(struct draw_context *draw);

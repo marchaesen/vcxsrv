@@ -44,9 +44,11 @@ struct u_vbuf;
 
 #define CSO_NO_USER_VERTEX_BUFFERS (1 << 0)
 #define CSO_NO_64B_VERTEX_BUFFERS  (1 << 1)
+#define CSO_NO_VBUF  (1 << 2)
 
 struct cso_context *cso_create_context(struct pipe_context *pipe,
                                        unsigned flags);
+void cso_unbind_context(struct cso_context *ctx);
 void cso_destroy_context( struct cso_context *cso );
 struct pipe_context *cso_get_pipe_context(struct cso_context *cso);
 
@@ -95,6 +97,15 @@ void cso_set_stream_outputs(struct cso_context *ctx,
                             struct pipe_stream_output_target **targets,
                             const unsigned *offsets);
 
+
+enum cso_unbind_flags {
+   CSO_UNBIND_FS_SAMPLERVIEWS = (1 << 0),
+   CSO_UNBIND_FS_SAMPLERVIEW0 = (1 << 1),
+   CSO_UNBIND_FS_IMAGE0 = (1 << 2),
+   CSO_UNBIND_VS_CONSTANTS = (1 << 3),
+   CSO_UNBIND_FS_CONSTANTS = (1 << 4),
+   CSO_UNBIND_VERTEX_BUFFER0 = (1 << 5),
+};
 
 /*
  * We don't provide shader caching in CSO.  Most of the time the api provides
@@ -163,7 +174,7 @@ void cso_set_render_condition(struct cso_context *cso,
 #define CSO_BIT_COMPUTE_SAMPLERS (1<<1)
 
 void cso_save_state(struct cso_context *cso, unsigned state_mask);
-void cso_restore_state(struct cso_context *cso);
+void cso_restore_state(struct cso_context *cso, unsigned unbind);
 
 void cso_save_compute_state(struct cso_context *cso, unsigned state_mask);
 void cso_restore_compute_state(struct cso_context *cso);

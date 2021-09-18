@@ -32,6 +32,12 @@
 #include "util/u_memory.h"
 #include "drm-uapi/amdgpu_drm.h"
 
+/* Smaller submits means the GPU gets busy sooner and there is less
+ * waiting for buffers and fences. Proof:
+ *   http://www.phoronix.com/scan.php?page=article&item=mesa-111-si&num=1
+ */
+#define IB_MAX_SUBMIT_DWORDS (20 * 1024)
+
 struct amdgpu_ctx {
    struct amdgpu_winsys *ws;
    amdgpu_context_handle ctx;
@@ -58,7 +64,6 @@ struct amdgpu_cs_buffer {
 enum ib_type {
    IB_PREAMBLE,
    IB_MAIN,
-   IB_PARALLEL_COMPUTE,
    IB_NUM,
 };
 
@@ -90,6 +95,7 @@ struct amdgpu_fence_list {
 
 struct amdgpu_cs_context {
    struct drm_amdgpu_cs_chunk_ib ib[IB_NUM];
+   uint32_t                    *ib_main_addr; /* the beginning of IB before chaining */
 
    /* Buffers. */
    unsigned                    max_real_buffers;
@@ -104,7 +110,7 @@ struct amdgpu_cs_context {
    unsigned                    max_sparse_buffers;
    struct amdgpu_cs_buffer     *sparse_buffers;
 
-   int                         buffer_indices_hashlist[4096];
+   int16_t                     *buffer_indices_hashlist;
 
    struct amdgpu_winsys_bo     *last_added_bo;
    unsigned                    last_added_bo_index;
@@ -115,10 +121,6 @@ struct amdgpu_cs_context {
    struct amdgpu_fence_list    syncobj_dependencies;
    struct amdgpu_fence_list    syncobj_to_signal;
 
-   /* The compute IB uses the dependencies above + these: */
-   struct amdgpu_fence_list    compute_fence_dependencies;
-   struct amdgpu_fence_list    compute_start_fence_dependencies;
-
    struct pipe_fence_handle    *fence;
 
    /* the error returned from cs_flush for non-async submissions */
@@ -128,9 +130,10 @@ struct amdgpu_cs_context {
    bool secure;
 };
 
+#define BUFFER_HASHLIST_SIZE 4096
+
 struct amdgpu_cs {
    struct amdgpu_ib main; /* must be first because this is inherited */
-   struct amdgpu_ib compute_ib;      /* optional parallel compute IB */
    struct amdgpu_winsys *ws;
    struct amdgpu_ctx *ctx;
    enum ring_type ring_type;
@@ -145,12 +148,20 @@ struct amdgpu_cs {
    struct amdgpu_cs_context *csc;
    /* The CS being currently-owned by the other thread. */
    struct amdgpu_cs_context *cst;
+   /* buffer_indices_hashlist[hash(bo)] returns -1 if the bo
+    * isn't part of any buffer lists or the index where the bo could be found.
+    * Since 1) hash collisions of 2 different bo can happen and 2) we use a
+    * single hashlist for the 3 buffer list, this is only a hint.
+    * amdgpu_lookup_buffer uses this hint to speed up buffers look up.
+    */
+   int16_t buffer_indices_hashlist[BUFFER_HASHLIST_SIZE];
 
    /* Flush CS. */
    void (*flush_cs)(void *ctx, unsigned flags, struct pipe_fence_handle **fence);
    void *flush_data;
    bool stop_exec_on_failure;
    bool noop;
+   bool has_chaining;
 
    struct util_queue_fence flush_completed;
    struct pipe_fence_handle *next_fence;

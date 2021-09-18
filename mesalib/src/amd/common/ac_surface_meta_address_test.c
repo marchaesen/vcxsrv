@@ -51,18 +51,22 @@
  * functions match addrlib behavior.
  */
 
-/* DCC address computation without mipmapping. */
-static unsigned gfx9_dcc_addr_from_coord(const struct radeon_info *info,
-                                         /* Shader key inputs: */
-                                         /* equation varies with resource_type, swizzle_mode,
-                                          * bpp, number of fragments, pipe_aligned, rb_aligned */
-                                         ADDR2_COMPUTE_DCCINFO_OUTPUT *eq,
-                                         unsigned meta_block_width, unsigned meta_block_height,
-                                         unsigned meta_block_depth,
-                                         /* Shader inputs: */
-                                         unsigned dcc_pitch, unsigned dcc_height,
-                                         unsigned x, unsigned y, unsigned z,
-                                         unsigned sample, unsigned pipe_xor)
+/* DCC address computation without mipmapping.
+ * CMASK address computation without mipmapping and without multisampling.
+ */
+static unsigned gfx9_meta_addr_from_coord(const struct radeon_info *info,
+                                          /* Shader key inputs: */
+                                          /* equation varies with resource_type, swizzle_mode,
+                                           * bpp, number of fragments, pipe_aligned, rb_aligned */
+                                          const struct gfx9_addr_meta_equation *eq,
+                                          unsigned meta_block_width, unsigned meta_block_height,
+                                          unsigned meta_block_depth,
+                                          /* Shader inputs: */
+                                          unsigned meta_pitch, unsigned meta_height,
+                                          unsigned x, unsigned y, unsigned z,
+                                          unsigned sample, unsigned pipe_xor,
+                                          /* Shader outputs (CMASK only): */
+                                          unsigned *bit_position)
 {
    /* The compiled shader shouldn't be complicated considering there are a lot of constants here. */
    unsigned meta_block_width_log2 = util_logbase2(meta_block_width);
@@ -70,9 +74,9 @@ static unsigned gfx9_dcc_addr_from_coord(const struct radeon_info *info,
    unsigned meta_block_depth_log2 = util_logbase2(meta_block_depth);
 
    unsigned m_pipeInterleaveLog2 = 8 + G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config);
-   unsigned numPipeBits = eq->equation.gfx9.numPipeBits;
-   unsigned pitchInBlock = dcc_pitch >> meta_block_width_log2;
-   unsigned sliceSizeInBlock = (dcc_height >> meta_block_height_log2) * pitchInBlock;
+   unsigned numPipeBits = eq->numPipeBits;
+   unsigned pitchInBlock = meta_pitch >> meta_block_width_log2;
+   unsigned sliceSizeInBlock = (meta_height >> meta_block_height_log2) * pitchInBlock;
 
    unsigned xb = x >> meta_block_width_log2;
    unsigned yb = y >> meta_block_height_log2;
@@ -82,19 +86,19 @@ static unsigned gfx9_dcc_addr_from_coord(const struct radeon_info *info,
    unsigned coords[] = {x, y, z, sample, blockIndex};
 
    unsigned address = 0;
-   unsigned num_bits = eq->equation.gfx9.num_bits;
+   unsigned num_bits = eq->num_bits;
    assert(num_bits <= 32);
 
    /* Compute the address up until the last bit that doesn't use the block index. */
    for (unsigned b = 0; b < num_bits - 1; b++) {
       unsigned xor = 0;
       for (unsigned c = 0; c < 5; c++) {
-         if (eq->equation.gfx9.bit[b].coord[c].dim >= 5)
+         if (eq->bit[b].coord[c].dim >= 5)
             continue;
 
-         assert(eq->equation.gfx9.bit[b].coord[c].ord < 32);
-         unsigned ison = (coords[eq->equation.gfx9.bit[b].coord[c].dim] >>
-                                 eq->equation.gfx9.bit[b].coord[c].ord) & 0x1;
+         assert(eq->bit[b].coord[c].ord < 32);
+         unsigned ison = (coords[eq->bit[b].coord[c].dim] >>
+                                 eq->bit[b].coord[c].ord) & 0x1;
 
          xor ^= ison;
       }
@@ -103,13 +107,16 @@ static unsigned gfx9_dcc_addr_from_coord(const struct radeon_info *info,
 
    /* Fill the remaining bits with the block index. */
    unsigned last = num_bits - 1;
-   address |= (blockIndex >> eq->equation.gfx9.bit[last].coord[0].ord) << last;
+   address |= (blockIndex >> eq->bit[last].coord[0].ord) << last;
+
+   if (bit_position)
+      *bit_position = (address & 1) << 2;
 
    unsigned pipeXor = pipe_xor & ((1 << numPipeBits) - 1);
    return (address >> 1) ^ (pipeXor << m_pipeInterleaveLog2);
 }
 
-/* DCC/HTILE address computation for GFX10. */
+/* DCC/CMASK/HTILE address computation for GFX10. */
 static unsigned gfx10_meta_addr_from_coord(const struct radeon_info *info,
                                            /* Shader key inputs: */
                                            const uint16_t *equation,
@@ -118,7 +125,9 @@ static unsigned gfx10_meta_addr_from_coord(const struct radeon_info *info,
                                            /* Shader inputs: */
                                            unsigned meta_pitch, unsigned meta_slice_size,
                                            unsigned x, unsigned y, unsigned z,
-                                           unsigned pipe_xor)
+                                           unsigned pipe_xor,
+                                           /* Shader outputs: (CMASK only) */
+                                           unsigned *bit_position)
 {
    /* The compiled shader shouldn't be complicated considering there are a lot of constants here. */
    unsigned meta_block_width_log2 = util_logbase2(meta_block_width);
@@ -152,6 +161,9 @@ static unsigned gfx10_meta_addr_from_coord(const struct radeon_info *info,
    unsigned blkIndex = (yb * pb) + xb;
    unsigned pipeXor = ((pipe_xor & pipeMask) << m_pipeInterleaveLog2) & blkMask;
 
+   if (bit_position)
+      *bit_position = (address & 1) << 2;
+
    return (meta_slice_size * z) +
           (blkIndex * (1 << blkSizeLog2)) +
           ((address >> 1) ^ pipeXor);
@@ -177,7 +189,7 @@ static unsigned gfx10_dcc_addr_from_coord(const struct radeon_info *info,
                                      meta_block_width, meta_block_height,
                                      blkSizeLog2,
                                      dcc_pitch, dcc_slice_size,
-                                     x, y, z, pipe_xor);
+                                     x, y, z, pipe_xor, NULL);
 }
 
 static bool one_dcc_address_test(const char *name, const char *test, ADDR_HANDLE addrlib,
@@ -273,15 +285,15 @@ static bool one_dcc_address_test(const char *name, const char *test, ADDR_HANDLE
 
                unsigned addr;
                if (info->chip_class == GFX9) {
-                  addr = gfx9_dcc_addr_from_coord(info, &dout, dout.metaBlkWidth, dout.metaBlkHeight,
-                                                  dout.metaBlkDepth, dout.pitch, dout.height,
-                                                  in.x, in.y, in.slice, in.sample, in.pipeXor);
+                  addr = gfx9_meta_addr_from_coord(info, &dout.equation.gfx9, dout.metaBlkWidth, dout.metaBlkHeight,
+                                                   dout.metaBlkDepth, dout.pitch, dout.height,
+                                                   in.x, in.y, in.slice, in.sample, in.pipeXor, NULL);
                   if (in.sample == 1) {
                      /* Sample 0 should be one byte before sample 1. The DCC MSAA clear relies on it. */
                      assert(addr - 1 ==
-                            gfx9_dcc_addr_from_coord(info, &dout, dout.metaBlkWidth, dout.metaBlkHeight,
-                                                     dout.metaBlkDepth, dout.pitch, dout.height,
-                                                     in.x, in.y, in.slice, 0, in.pipeXor));
+                            gfx9_meta_addr_from_coord(info, &dout.equation.gfx9, dout.metaBlkWidth, dout.metaBlkHeight,
+                                                      dout.metaBlkDepth, dout.pitch, dout.height,
+                                                      in.x, in.y, in.slice, 0, in.pipeXor, NULL));
                   }
                } else {
                   addr = gfx10_dcc_addr_from_coord(info, dout.equation.gfx10_bits,
@@ -384,7 +396,7 @@ static unsigned gfx10_htile_addr_from_coord(const struct radeon_info *info,
                                      meta_block_width, meta_block_height,
                                      blkSizeLog2,
                                      htile_pitch, htile_slice_size,
-                                     x, y, z, pipe_xor);
+                                     x, y, z, pipe_xor, NULL);
 }
 
 static bool one_htile_address_test(const char *name, const char *test, ADDR_HANDLE addrlib,
@@ -500,6 +512,172 @@ static void run_htile_address_test(const char *name, const struct radeon_info *i
    }
    printf("%16s total: %u, fail: %u\n", name, total, fails);
 }
+
+/* CMASK address computation without mipmapping and MSAA. */
+static unsigned gfx10_cmask_addr_from_coord(const struct radeon_info *info,
+                                            /* Shader key inputs: */
+                                            /* equation varies with bpp and pipe_aligned */
+                                            const uint16_t *equation, unsigned bpp,
+                                            unsigned meta_block_width, unsigned meta_block_height,
+                                            /* Shader inputs: */
+                                            unsigned cmask_pitch, unsigned cmask_slice_size,
+                                            unsigned x, unsigned y, unsigned z,
+                                            unsigned pipe_xor,
+                                            /* Shader outputs: */
+                                            unsigned *bit_position)
+
+{
+   unsigned meta_block_width_log2 = util_logbase2(meta_block_width);
+   unsigned meta_block_height_log2 = util_logbase2(meta_block_height);
+   unsigned blkSizeLog2 = meta_block_width_log2 + meta_block_height_log2 - 7;
+
+   return gfx10_meta_addr_from_coord(info, equation,
+                                     meta_block_width, meta_block_height,
+                                     blkSizeLog2,
+                                     cmask_pitch, cmask_slice_size,
+                                     x, y, z, pipe_xor, bit_position);
+}
+
+static bool one_cmask_address_test(const char *name, const char *test, ADDR_HANDLE addrlib,
+                                   const struct radeon_info *info,
+                                   unsigned width, unsigned height, unsigned depth,
+                                   unsigned bpp, unsigned swizzle_mode,
+                                   bool pipe_aligned, bool rb_aligned, unsigned mrt_index,
+                                   unsigned start_x, unsigned start_y, unsigned start_z)
+{
+   ADDR2_COMPUTE_PIPEBANKXOR_INPUT xin = {sizeof(xin)};
+   ADDR2_COMPUTE_PIPEBANKXOR_OUTPUT xout = {sizeof(xout)};
+   ADDR2_COMPUTE_CMASK_INFO_INPUT cin = {sizeof(cin)};
+   ADDR2_COMPUTE_CMASK_INFO_OUTPUT cout = {sizeof(cout)};
+   ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_INPUT in = {sizeof(in)};
+   ADDR2_COMPUTE_CMASK_ADDRFROMCOORD_OUTPUT out = {sizeof(out)};
+
+   /* Compute CMASK info. */
+   cin.resourceType = xin.resourceType = in.resourceType = ADDR_RSRC_TEX_2D;
+   cin.swizzleMode = xin.swizzleMode = in.swizzleMode = swizzle_mode;
+   cin.unalignedWidth = in.unalignedWidth = width;
+   cin.unalignedHeight = in.unalignedHeight = height;
+   cin.numSlices = in.numSlices = depth;
+   cin.numMipLevels = 1;
+   cin.firstMipIdInTail = 1;
+   cin.cMaskFlags.pipeAligned = pipe_aligned;
+   cin.cMaskFlags.rbAligned = rb_aligned;
+   cin.cMaskFlags.linear = false;
+   cin.colorFlags.color = 1;
+   cin.colorFlags.texture = 1;
+   cin.colorFlags.opt4space = 1;
+   cin.colorFlags.metaRbUnaligned = !rb_aligned;
+   cin.colorFlags.metaPipeUnaligned = !pipe_aligned;
+
+   int ret = Addr2ComputeCmaskInfo(addrlib, &cin, &cout);
+   assert(ret == ADDR_OK);
+
+   /* Compute xor. */
+   static AddrFormat format[] = {
+      ADDR_FMT_8,
+      ADDR_FMT_16,
+      ADDR_FMT_32,
+      ADDR_FMT_32_32,
+      ADDR_FMT_32_32_32_32,
+   };
+   xin.flags = cin.colorFlags;
+   xin.format = format[util_logbase2(bpp / 8)];
+   xin.surfIndex = mrt_index;
+   xin.numSamples = in.numSamples = xin.numFrags = in.numFrags = 1;
+
+   ret = Addr2ComputePipeBankXor(addrlib, &xin, &xout);
+   assert(ret == ADDR_OK);
+
+   in.cMaskFlags = cin.cMaskFlags;
+   in.colorFlags = cin.colorFlags;
+   in.pipeXor = xout.pipeBankXor;
+
+   for (in.x = start_x; in.x < width; in.x++) {
+      for (in.y = start_y; in.y < height; in.y++) {
+         for (in.slice = start_z; in.slice < depth; in.slice++) {
+            int r = Addr2ComputeCmaskAddrFromCoord(addrlib, &in, &out);
+            if (r != ADDR_OK) {
+               printf("%s addrlib error: %s\n", name, test);
+               abort();
+            }
+
+            unsigned addr, bit_position;
+
+            if (info->chip_class == GFX9) {
+               addr = gfx9_meta_addr_from_coord(info, &cout.equation.gfx9,
+                                                cout.metaBlkWidth, cout.metaBlkHeight, 1,
+                                                cout.pitch, cout.height,
+                                                in.x, in.y, in.slice, 0, in.pipeXor,
+                                                &bit_position);
+            } else {
+               addr = gfx10_cmask_addr_from_coord(info, cout.equation.gfx10_bits,
+                                                  bpp, cout.metaBlkWidth,
+                                                  cout.metaBlkHeight,
+                                                  cout.pitch, cout.sliceSize,
+                                                  in.x, in.y, in.slice,
+                                                  in.pipeXor,
+                                                  &bit_position);
+            }
+
+            if (out.addr != addr || out.bitPosition != bit_position) {
+               printf("%s fail (%s) at %ux%ux%u: expected (addr) = %llu, got = %u, "
+                      "expected (bit_position) = %u, got = %u\n",
+                      name, test, in.x, in.y, in.slice, out.addr, addr,
+                      out.bitPosition, bit_position);
+               return false;
+            }
+         }
+      }
+   }
+
+   return true;
+}
+
+static void run_cmask_address_test(const char *name, const struct radeon_info *info, bool full)
+{
+   unsigned total = 0;
+   unsigned fails = 0;
+   unsigned swizzle_mode = info->chip_class == GFX9 ? ADDR_SW_64KB_S_X : ADDR_SW_64KB_Z_X;
+   unsigned first_size = 0, last_size = 6*6 - 1, max_bpp = 32;
+
+   /* The test coverage is reduced for Gitlab CI because it timeouts. */
+   if (!full) {
+      first_size = last_size = 0;
+   }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+   for (unsigned size = first_size; size <= last_size; size++) {
+      unsigned width = 8 + 379 * (size % 6);
+      unsigned height = 8 + 379 * (size / 6);
+
+      struct ac_addrlib *ac_addrlib = ac_addrlib_create(info, NULL);
+      ADDR_HANDLE addrlib = ac_addrlib_get_handle(ac_addrlib);
+
+      for (unsigned depth = 1; depth <= 2; depth *= 2) {
+         for (unsigned bpp = 16; bpp <= max_bpp; bpp *= 2) {
+            for (int rb_aligned = true; rb_aligned >= true; rb_aligned--) {
+               for (int pipe_aligned = true; pipe_aligned >= true; pipe_aligned--) {
+                  if (one_cmask_address_test(name, name, addrlib, info,
+                                             width, height, depth, bpp,
+                                             swizzle_mode,
+                                             pipe_aligned, rb_aligned,
+                                             0, 0, 0, 0)) {
+                  } else {
+                     p_atomic_inc(&fails);
+                  }
+                  p_atomic_inc(&total);
+               }
+            }
+         }
+      }
+
+      ac_addrlib_destroy(ac_addrlib);
+   }
+   printf("%16s total: %u, fail: %u\n", name, total, fails);
+}
+
 int main(int argc, char **argv)
 {
    bool full = false;
@@ -525,6 +703,13 @@ int main(int argc, char **argv)
          continue;
 
       run_htile_address_test(testcases[i].name, &info, full);
+   }
+
+   puts("CMASK:");
+   for (unsigned i = 0; i < ARRAY_SIZE(testcases); ++i) {
+      struct radeon_info info = get_radeon_info(&testcases[i]);
+
+      run_cmask_address_test(testcases[i].name, &info, full);
    }
 
    return 0;

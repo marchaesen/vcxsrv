@@ -1,4 +1,5 @@
 # From https://github.com/marekolsak/marek-build/blob/master/run-piglit.sh#L36
+spec@!opengl 1.0@gl-1.0-blend-func
 spec@!opengl 1.2@tex3d-maxsize
 spec@ext_framebuffer_object@fbo-maxsize
 spec@!opengl 1.1@max-texture-size
@@ -6,6 +7,10 @@ spec@!opengl 1.1@max-texture-size-level
 spec@!opengl 1.2@tex3d-maxsize
 spec@arb_texture_buffer_object@max-size
 spec@ext_framebuffer_object@fbo-maxsize
+
+# times out
+spec@arb_compute_shader@local-id-explosion
+
 spec@arb_uniform_buffer_object@maxuniformblocksize@vs
 spec@arb_uniform_buffer_object@maxuniformblocksize@vsexceed
 spec@arb_uniform_buffer_object@maxuniformblocksize@fs
@@ -27,3 +32,4 @@ spec@ext_external_objects@vk-pix-buf-update-errors
 spec@ext_external_objects_fd@semaphore-api-errors
 spec@ext_external_objects_fd@memory-object-api-errors
 spec@ext_external_objects@vk-vert-buf-reuse
+glx@glx-swap-copy

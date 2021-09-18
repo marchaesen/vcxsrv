@@ -70,6 +70,9 @@ struct fd6_context {
    struct u_upload_mgr *border_color_uploader;
    struct pipe_resource *border_color_buf;
 
+   /* pre-backed stateobj for stream-out disable: */
+   struct fd_ringbuffer *streamout_disable_stateobj;
+
    /* storage for ctx->last.key: */
    struct ir3_shader_key last_key;
 

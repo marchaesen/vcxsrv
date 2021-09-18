@@ -307,6 +307,11 @@ bool evergreen_is_format_supported(struct pipe_screen *screen,
 		retval |= PIPE_BIND_VERTEX_BUFFER;
 	}
 
+	if (usage & PIPE_BIND_INDEX_BUFFER &&
+	    r600_is_index_format_supported(format)) {
+		retval |= PIPE_BIND_INDEX_BUFFER;
+	}
+
 	if ((usage & PIPE_BIND_LINEAR) &&
 	    !util_format_is_compressed(format) &&
 	    !(usage & PIPE_BIND_DEPTH_STENCIL))
@@ -3992,6 +3997,13 @@ static void evergreen_set_tess_state(struct pipe_context *ctx,
 	rctx->driver_consts[PIPE_SHADER_TESS_CTRL].tcs_default_levels_dirty = true;
 }
 
+static void evergreen_set_patch_vertices(struct pipe_context *ctx, uint8_t patch_vertices)
+{
+	struct r600_context *rctx = (struct r600_context *)ctx;
+
+	rctx->patch_vertices = patch_vertices;
+}
+
 static void evergreen_setup_immed_buffer(struct r600_context *rctx,
 					 struct r600_image_view *rview,
 					 enum pipe_format pformat)
@@ -4484,6 +4496,7 @@ void evergreen_init_state_functions(struct r600_context *rctx)
 	rctx->b.b.set_polygon_stipple = evergreen_set_polygon_stipple;
 	rctx->b.b.set_min_samples = evergreen_set_min_samples;
 	rctx->b.b.set_tess_state = evergreen_set_tess_state;
+	rctx->b.b.set_patch_vertices = evergreen_set_patch_vertices;
 	rctx->b.b.set_hw_atomic_buffers = evergreen_set_hw_atomic_buffers;
 	rctx->b.b.set_shader_images = evergreen_set_shader_images;
 	rctx->b.b.set_shader_buffers = evergreen_set_shader_buffers;
@@ -4519,7 +4532,7 @@ void evergreen_setup_tess_constants(struct r600_context *rctx, const struct pipe
 	struct pipe_constant_buffer constbuf = {0};
 	struct r600_pipe_shader_selector *tcs = rctx->tcs_shader ? rctx->tcs_shader : rctx->tes_shader;
 	struct r600_pipe_shader_selector *ls = rctx->vs_shader;
-	unsigned num_tcs_input_cp = info->vertices_per_patch;
+	unsigned num_tcs_input_cp = rctx->patch_vertices;
 	unsigned num_tcs_outputs;
 	unsigned num_tcs_output_cp;
 	unsigned num_tcs_patch_outputs;
@@ -4619,10 +4632,10 @@ uint32_t evergreen_get_ls_hs_config(struct r600_context *rctx,
 
 	num_output_cp = rctx->tcs_shader ?
 		rctx->tcs_shader->info.properties[TGSI_PROPERTY_TCS_VERTICES_OUT] :
-		info->vertices_per_patch;
+		rctx->patch_vertices;
 
 	return S_028B58_NUM_PATCHES(num_patches) |
-		S_028B58_HS_NUM_INPUT_CP(info->vertices_per_patch) |
+		S_028B58_HS_NUM_INPUT_CP(rctx->patch_vertices) |
 		S_028B58_HS_NUM_OUTPUT_CP(num_output_cp);
 }
 

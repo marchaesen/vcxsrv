@@ -1188,7 +1188,6 @@ emit_twoside(struct tgsi_transform_context *tctx)
       decl.Declaration.Interpolate = true;
       decl.Interp.Interpolate = info->input_interpolate[in_idx];
       decl.Interp.Location = info->input_interpolate_loc[in_idx];
-      decl.Interp.CylindricalWrap = info->input_cylindrical_wrap[in_idx];
       tctx->emit_declaration(tctx, &decl);
    }
 

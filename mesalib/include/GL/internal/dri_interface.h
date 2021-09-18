@@ -1203,50 +1203,27 @@ struct __DRIdri2LoaderExtensionRec {
 
 #define __DRI_CTX_ATTRIB_MAJOR_VERSION		0
 #define __DRI_CTX_ATTRIB_MINOR_VERSION		1
+
 #define __DRI_CTX_ATTRIB_FLAGS			2
-
-/**
- * \requires __DRI2_ROBUSTNESS.
- */
-#define __DRI_CTX_ATTRIB_RESET_STRATEGY		3
-
 #define __DRI_CTX_FLAG_DEBUG			0x00000001
 #define __DRI_CTX_FLAG_FORWARD_COMPATIBLE	0x00000002
-
-/**
- * \requires __DRI2_ROBUSTNESS.
- */
 #define __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS	0x00000004
-
-/**
- * \requires __DRI2_NO_ERROR.
- *
- */
 #define __DRI_CTX_FLAG_NO_ERROR			0x00000008
 
-/**
- * \name Context reset strategies.
- */
-/*@{*/
+#define __DRI_CTX_ATTRIB_RESET_STRATEGY		3
 #define __DRI_CTX_RESET_NO_NOTIFICATION		0
 #define __DRI_CTX_RESET_LOSE_CONTEXT		1
-/*@}*/
 
 #define __DRI_CTX_ATTRIB_PRIORITY		4
-
 #define __DRI_CTX_PRIORITY_LOW			0
 #define __DRI_CTX_PRIORITY_MEDIUM		1
 #define __DRI_CTX_PRIORITY_HIGH			2
 
-/**
- * \name Context release behaviors.
- */
-/*@{*/
 #define __DRI_CTX_ATTRIB_RELEASE_BEHAVIOR	5
-
 #define __DRI_CTX_RELEASE_BEHAVIOR_NONE         0
 #define __DRI_CTX_RELEASE_BEHAVIOR_FLUSH        1
-/*@}*/
+
+#define __DRI_CTX_NUM_ATTRIBS                   6
 
 /**
  * \name Reasons that __DRIdri2Extension::createContextAttribs might fail
@@ -1328,7 +1305,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 18
+#define __DRI_IMAGE_VERSION 19
 
 /**
  * These formats correspond to the similarly named MESA_FORMAT_*
@@ -1366,6 +1343,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FORMAT_XBGR16161616F 0x1014
 #define __DRI_IMAGE_FORMAT_ABGR16161616F 0x1015
 #define __DRI_IMAGE_FORMAT_SXRGB8       0x1016
+#define __DRI_IMAGE_FORMAT_ABGR16161616 0x1017
 
 #define __DRI_IMAGE_USE_SHARE		0x0001
 #define __DRI_IMAGE_USE_SCANOUT		0x0002
@@ -1395,11 +1373,12 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FOURCC_SARGB8888	0x83324258
 #define __DRI_IMAGE_FOURCC_SABGR8888	0x84324258
 #define __DRI_IMAGE_FOURCC_SXRGB8888	0x85324258
+#define __DRI_IMAGE_FOURCC_RGBA16161616 0x38344152  /* fourcc_code('R', 'A', '4', '8' ) */
 
 /**
  * Queryable on images created by createImageFromNames.
  *
- * RGB and RGBA are may be usable directly as images but its still
+ * RGB and RGBA might be usable directly as images, but it's still
  * recommended to call fromPlanar with plane == 0.
  *
  * Y_U_V, Y_UV,Y_XUXV and Y_UXVX all requires call to fromPlanar to create
@@ -1803,6 +1782,28 @@ struct __DRIimageExtensionRec {
                                           uint32_t flags,
                                           unsigned *error,
                                           void *loaderPrivate);
+
+   /**
+    * Creates an image with implementation's favorite modifiers and the
+    * provided usage flags.
+    *
+    * This acts like createImageWithModifiers except usage is also specified.
+    *
+    * The created image should be destroyed with destroyImage().
+    *
+    * Returns the new DRIimage. The chosen modifier can be obtained later on
+    * and passed back to things like the kernel's AddFB2 interface.
+    *
+    * \sa __DRIimageRec::createImage
+    *
+    * \since 19
+    */
+   __DRIimage *(*createImageWithModifiers2)(__DRIscreen *screen,
+                                            int width, int height, int format,
+                                            const uint64_t *modifiers,
+                                            const unsigned int modifier_count,
+                                            unsigned int use,
+                                            void *loaderPrivate);
 };
 
 
@@ -1816,14 +1817,36 @@ struct __DRIimageExtensionRec {
  * with new lookup functions.
  */
 #define __DRI_IMAGE_LOOKUP "DRI_IMAGE_LOOKUP"
-#define __DRI_IMAGE_LOOKUP_VERSION 1
+#define __DRI_IMAGE_LOOKUP_VERSION 2
 
 typedef struct __DRIimageLookupExtensionRec __DRIimageLookupExtension;
 struct __DRIimageLookupExtensionRec {
     __DRIextension base;
 
+    /**
+     * Lookup EGLImage without validated. Equivalent to call
+     * validateEGLImage() then lookupEGLImageValidated().
+     *
+     * \since 1
+     */
     __DRIimage *(*lookupEGLImage)(__DRIscreen *screen, void *image,
 				  void *loaderPrivate);
+
+    /**
+     * Check if EGLImage is associated with the EGL display before lookup with
+     * lookupEGLImageValidated(). It will hold EGLDisplay.Mutex, so is separated
+     * out from lookupEGLImage() to avoid deadlock.
+     *
+     * \since 2
+     */
+    GLboolean (*validateEGLImage)(void *image, void *loaderPrivate);
+
+    /**
+     * Lookup EGLImage after validateEGLImage(). No lock in this function.
+     *
+     * \since 2
+     */
+    __DRIimage *(*lookupEGLImageValidated)(void *image, void *loaderPrivate);
 };
 
 /**

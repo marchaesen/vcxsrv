@@ -142,7 +142,7 @@ lower_var_copies_impl(nir_function_impl *impl)
          nir_deref_instr_remove_if_unused(nir_src_as_deref(copy->src[1]));
 
          progress = true;
-         ralloc_free(copy);
+         nir_instr_free(&copy->instr);
       }
    }
 

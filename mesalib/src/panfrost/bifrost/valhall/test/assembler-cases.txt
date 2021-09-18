@@ -1,0 +1,108 @@
+02 00 00 00 00 c1 91 00    MOV.i32 r1, r2
+8a 00 00 00 00 c1 91 00    MOV.i32 r1, u10
+e3 00 00 00 00 c1 91 02    MOV.i32.ts r1, tls_ptr_hi
+e6 00 00 00 00 c1 91 02    MOV.i32.ts r1, wls_ptr
+e2 00 00 00 00 c1 91 06    MOV.i32.id r1, lane_id
+e6 00 00 00 00 c1 91 06    MOV.i32.id r1, core_id
+01 02 00 00 00 c0 a4 00    FADD.f32 r0, r1, r2
+01 02 00 00 20 c0 a4 00    FADD.f32 r0, r1, r2.abs
+01 02 00 00 10 c0 a4 00    FADD.f32 r0, r1, r2.neg
+01 02 00 00 30 c0 a4 00    FADD.f32 r0, r1, r2.neg.abs
+01 02 00 00 32 c0 a4 00    FADD.f32.clamp_m1_1 r0, r1, r2.neg.abs
+03 20 c4 10 02 42 28 01    TEX.computed.2d.slot0 @r2, @r4:r5:r6:r7, r3
+03 20 c4 10 82 42 28 01    TEX.computed.2d.skip.slot0 @r2, @r4:r5:r6:r7, r3
+41 03 00 00 00 c0 1f 50    BRANCHZ.reconverge `r1, offset:3
+01 d0 00 00 00 c0 a4 00    FADD.f32 r0, r1, 0x3F800000
+01 d0 00 00 10 c0 a4 00    FADD.f32 r0, r1, 0x3F800000.neg
+01 c0 00 00 00 c0 a4 00    FADD.f32 r0, r1, 0x0
+01 c0 00 00 10 c0 a4 00    FADD.f32 r0, r1, 0x0.neg
+01 c9 00 00 00 c0 a0 00    IADD.u32 r0, r1, 0x7060504
+01 00 00 08 00 c0 a4 00    FADD.f32 r0, r1, r0.h1
+01 00 00 04 00 c0 a4 00    FADD.f32 r0, r1, r0.h0
+01 00 00 0c 00 c0 a5 00    FADD.v2f16 r0, r1.h00, r0.h11
+01 00 00 28 00 c0 a5 00    FADD.v2f16 r0, r1, r0
+01 00 00 24 00 c0 a5 00    FADD.v2f16 r0, r1, r0.h10
+01 02 00 08 00 c0 a0 00    IADD.u32 r0, r1, r2.h0
+01 02 00 0c 00 c0 a0 00    IADD.u32 r0, r1, r2.h1
+01 02 00 0c 70 c0 a0 00    IADD.u32 r0, r1.b3, r2.h1
+01 c9 00 18 00 c0 a0 00    IADD.u32 r0, r1, 0x7060504.b2
+01 02 00 08 20 c0 a1 00    IADD.v2u16 r0, r1, r2
+82 3c 27 20 00 c0 a3 01    SHADDX.u64 r0, u2, r60.w0, shift:0x2
+40 00 00 18 82 80 60 08    LOAD.i32.unsigned.slot0.wait0 @r0, `r0, offset:0
+80 7c 47 20 00 c0 a3 01    SHADDX.u64 r0, u0, `r60.w0, shift:0x4
+40 00 00 38 08 44 61 78    STORE.i128.slot0.return @r4:r5:r6:r7, `r0, offset:0
+00 00 00 00 00 c0 00 78    NOP.return 
+40 c4 c0 9c 01 c1 f0 00    ICMP.u32.gt.m1 r1, `r0, 0x1000000.b3, 0x0
+42 00 00 18 02 40 61 50    STORE.i32.slot0.reconverge @r0, `r2, offset:0
+00 c9 8f 12 30 c0 a0 00    CLPER.i32.f1 r0, r0, 0x7060504.b0
+00 00 00 30 00 c7 90 00    S8_TO_S32 r7, r0.b3
+00 00 00 20 00 c6 90 00    S8_TO_S32 r6, r0.b2
+00 00 00 00 00 c4 90 00    S8_TO_S32 r4, r0.b0
+40 00 00 10 00 c5 90 00    S8_TO_S32 r5, `r0.b1
+00 00 01 30 00 c7 90 00    S8_TO_F32 r7, r0.b3
+00 00 0f a0 00 40 90 00    FROUND.v2f16.rtn r0.h0, r0
+01 00 0f 90 00 40 90 00    FROUND.v2f16.rtn r0.h0, r1.h10
+01 00 0f a0 00 41 90 00    FROUND.v2f16.rtn r1.h0, r1
+00 00 0f 90 00 40 90 00    FROUND.v2f16.rtn r0.h0, r0.h10
+00 00 0b 00 00 c2 90 00    F16_TO_F32 r2, r0.h0
+40 00 0b 10 00 c3 90 00    F16_TO_F32 r3, `r0.h1
+00 00 00 00 00 c0 00 40    NOP.wait0126 
+42 43 04 00 00 c0 a5 00    V2F32_TO_V2F16 r0, `r2, `r3
+40 c0 00 28 90 c0 a5 48    FADD.v2f16.barrier r0, `r0.abs, 0x0.neg
+c0 00 00 00 00 f6 10 01    IADD_IMM.i32 r54, 0x0, #0x0
+3c d0 ea 00 02 bc 7d 68    ATEST.td @r60, r60, 0x3F800000, atest_datum
+40 db 05 04 00 c1 a1 00    MKVEC.v2i16 r1, `r0.h00, 0x3C000000.h10
+f0 00 3c 33 04 40 7f 78    BLEND.slot0.v4.f16.return @r0:r1, @r60, blend_descriptor_0_x, target:0x0
+7b 0d 00 40 04 84 5e 08    LEA_ATTR.slot1.wait0 @r4:r5, `r59, unk:0xD
+00 dd c0 08 14 c2 b2 00    FMA.f32 r2, r0, 0x44000000.neg.h1, 0x0.neg
+41 88 c0 00 04 c1 b2 00    FMA.f32 r1, `r1, u8, 0x0.neg
+40 88 c0 00 04 c0 b2 10    FMA.f32.wait1 r0, `r0, u8, 0x0.neg
+44 00 00 32 06 40 61 78    STORE.i96.vary.slot0.return @r0:r1:r2, `r4, offset:0
+00 00 00 c0 01 c0 45 48    BARRIER.slot7.barrier 
+80 00 00 00 82 82 60 00    LOAD.i8.unsigned.slot0 @r2, u0, offset:0
+80 00 00 08 82 82 60 00    LOAD.i16.unsigned.slot0 @r2, u0, offset:0
+80 00 00 10 82 82 60 00    LOAD.i24.unsigned.slot0 @r2, u0, offset:0
+80 00 00 18 82 82 60 00    LOAD.i32.unsigned.slot0 @r2, u0, offset:0
+80 00 00 20 c4 82 60 00    LOAD.i48.unsigned.slot0 @r2:r3, u0, offset:0
+80 00 00 28 f4 82 60 00    LOAD.i64.unsigned.slot0 @r2:r3, u0, offset:0
+80 00 00 30 e6 82 60 00    LOAD.i96.unsigned.slot0 @r2:r3:r4, u0, offset:0
+80 00 00 38 f8 84 60 00    LOAD.i128.unsigned.slot0 @r4:r5:r6:r7, u0, offset:0
+80 00 00 18 94 82 60 00    LOAD.i32.d0.unsigned.slot0 @r2:r3, u0, offset:0
+80 00 00 18 14 82 60 00    LOAD.i32.d0.slot0 @r2:r3, u0, offset:0
+80 00 00 08 34 82 60 00    LOAD.i16.d0.slot0 @r2:r3, u0, offset:0
+80 00 00 00 74 82 60 00    LOAD.i8.d0.slot0 @r2:r3, u0, offset:0
+80 00 00 00 f4 82 60 00    LOAD.i8.d0.unsigned.slot0 @r2:r3, u0, offset:0
+80 00 00 08 22 82 60 00    LOAD.i16.w0.slot0 @r2, u0, offset:0
+80 00 00 00 62 82 60 00    LOAD.i8.w0.slot0 @r2, u0, offset:0
+80 00 00 00 c2 82 60 00    LOAD.i8.h0.unsigned.slot0 @r2, u0, offset:0
+80 14 00 08 92 82 60 00    LOAD.i16.h1.unsigned.slot0 @r2, u0, offset:20
+80 00 00 08 82 82 60 00    LOAD.i16.unsigned.slot0 @r2, u0, offset:0
+42 00 0d 80 40 c2 90 00    FROUND.f32.rtn r2, `r2.neg
+42 00 0b 00 40 c2 90 00    F16_TO_F32 r2, `r2.neg.h0
+42 00 0c c0 40 c2 90 00    F32_TO_S32.rtz r2, `r2.neg
+42 00 0e e0 40 c2 90 00    V2F16_TO_V2S16.rtz r2, `r2.neg
+02 00 0a c0 40 c4 90 00    F16_TO_S32.rtz r4, r2.neg.h00
+42 00 0a d0 40 c5 90 00    F16_TO_S32.rtz r5, `r2.neg.h10
+42 c0 c6 47 48 c2 14 01    FADD_IMM.f32 r2, `r2, #0x4847C6C0
+42 84 67 ac 70 c2 15 01    FADD_IMM.v2f16 r2, `r2, #0x70AC6784
+42 14 13 12 ad c2 12 01    IADD_IMM.v4i8 r2, `r2, #0xAD121314
+42 14 00 13 00 c2 11 01    IADD_IMM.v2i16 r2, `r2, #0x130014
+42 ab 4b 00 00 c2 10 01    IADD_IMM.i32 r2, `r2, #0x4BAB
+43 42 c0 84 11 c2 f9 00    ICMP.v2s16.gt.m1 r2, `r3.h10, `r2.h10, 0x0
+43 42 c0 90 01 c2 f5 00    FCMP.v2f16.gt.m1 r2, `r3.h10, `r2.h00, 0x0
+42 00 07 00 20 c2 90 00    V2S16_TO_V2F16 r2, `r2
+00 c0 c0 00 43 c1 f2 00    ICMP.v4u8.ne.i1 r1, r0.b0000, 0x0, 0x0
+41 03 00 00 00 c0 1f 50    BRANCHZ.reconverge `r1, offset:3
+00 03 00 00 20 c0 1f 50    BRANCHZ.reconverge r0.h0, offset:3
+00 03 00 00 40 c0 1f 50    BRANCHZ.reconverge r0.h1, offset:3
+00 03 00 00 00 c0 1f 50    BRANCHZ.reconverge r0, offset:3
+c0 00 00 00 00 c0 10 01    IADD_IMM.i32 r0, 0x0, #0x0
+c0 01 00 00 00 c4 10 51    IADD_IMM.i32.reconverge r4, 0x0, #0x1
+80 00 27 20 00 c2 a3 01    SHADDX.u64 r2, u0, r0.w0, shift:0x2
+40 c9 00 10 00 c0 a0 00    IADD.u32 r0, `r0, 0x7060504.b0
+00 82 c0 80 03 c1 f0 00    ICMP.u32.ne.m1 r1, r0, u2, 0x0
+04 00 00 00 00 c5 91 00    MOV.i32 r5, r4
+04 00 00 00 00 c6 91 00    MOV.i32 r6, r4
+04 00 00 00 00 c7 91 08    MOV.i32.wait0 r7, r4
+42 00 00 38 08 44 61 00    STORE.i128.slot0 @r4:r5:r6:r7, `r2, offset:0
+41 f8 ff ff 07 c0 1f 50    BRANCHZ.reconverge `r1, offset:-8

@@ -223,7 +223,7 @@ mir_print_instruction(midgard_instruction *ins)
         }
 
         case TAG_TEXTURE_4: {
-                printf("texture");
+                printf("TEX");
 
                 if (ins->helper_terminate)
                         printf(".terminate");

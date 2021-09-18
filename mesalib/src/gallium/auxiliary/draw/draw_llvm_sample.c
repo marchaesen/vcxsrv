@@ -289,6 +289,7 @@ DRAW_LLVM_SAMPLER_MEMBER(min_lod,    DRAW_JIT_SAMPLER_MIN_LOD, TRUE)
 DRAW_LLVM_SAMPLER_MEMBER(max_lod,    DRAW_JIT_SAMPLER_MAX_LOD, TRUE)
 DRAW_LLVM_SAMPLER_MEMBER(lod_bias,   DRAW_JIT_SAMPLER_LOD_BIAS, TRUE)
 DRAW_LLVM_SAMPLER_MEMBER(border_color, DRAW_JIT_SAMPLER_BORDER_COLOR, FALSE)
+DRAW_LLVM_SAMPLER_MEMBER(max_aniso,  DRAW_JIT_SAMPLER_MAX_ANISO, TRUE)
 
 #define DRAW_LLVM_IMAGE_MEMBER(_name, _index, _emit_load)  \
    static LLVMValueRef \
@@ -405,6 +406,7 @@ draw_llvm_sampler_soa_create(const struct draw_sampler_static_state *static_stat
    sampler->dynamic_state.base.max_lod = draw_llvm_sampler_max_lod;
    sampler->dynamic_state.base.lod_bias = draw_llvm_sampler_lod_bias;
    sampler->dynamic_state.base.border_color = draw_llvm_sampler_border_color;
+   sampler->dynamic_state.base.max_aniso = draw_llvm_sampler_max_aniso;
    sampler->dynamic_state.static_state = static_state;
 
    sampler->nr_samplers = nr_samplers;

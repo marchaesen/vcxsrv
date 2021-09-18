@@ -31,6 +31,12 @@ struct pipe_screen;
 
 #include <directx/d3d12.h>
 
+enum d3d12_resource_binding_type {
+   D3D12_RESOURCE_BINDING_TYPE_SRV,
+   D3D12_RESOURCE_BINDING_TYPE_CBV,
+   D3D12_RESOURCE_BINDING_TYPES
+};
+
 struct d3d12_resource {
    struct pipe_resource base;
    struct d3d12_bo *bo;
@@ -39,6 +45,7 @@ struct d3d12_resource {
    struct sw_displaytarget *dt;
    unsigned dt_stride;
    struct util_range valid_buffer_range;
+   uint32_t bind_counts[PIPE_SHADER_TYPES][D3D12_RESOURCE_BINDING_TYPES];
 };
 
 struct d3d12_transfer {

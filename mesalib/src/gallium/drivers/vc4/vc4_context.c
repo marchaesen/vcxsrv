@@ -30,7 +30,6 @@
 #include "util/u_memory.h"
 #include "util/u_blitter.h"
 #include "util/u_upload_mgr.h"
-#include "indices/u_primconvert.h"
 #include "pipe/p_screen.h"
 
 #include "vc4_screen.h"
@@ -124,9 +123,6 @@ vc4_context_destroy(struct pipe_context *pctx)
         if (vc4->blitter)
                 util_blitter_destroy(vc4->blitter);
 
-        if (vc4->primconvert)
-                util_primconvert_destroy(vc4->primconvert);
-
         if (vc4->uploader)
                 u_upload_destroy(vc4->uploader);
 
@@ -204,11 +200,6 @@ vc4_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
 	vc4->blitter = util_blitter_create(pctx);
         if (!vc4->blitter)
-                goto fail;
-
-        vc4->primconvert = util_primconvert_create(pctx,
-                                                   (1 << PIPE_PRIM_QUADS) - 1);
-        if (!vc4->primconvert)
                 goto fail;
 
         vc4_debug |= saved_shaderdb_flag;

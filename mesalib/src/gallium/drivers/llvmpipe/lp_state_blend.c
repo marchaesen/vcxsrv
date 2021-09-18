@@ -177,6 +177,8 @@ llvmpipe_set_sample_mask(struct pipe_context *pipe,
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
 
    if (sample_mask != llvmpipe->sample_mask) {
+      draw_flush(llvmpipe->draw);
+
       llvmpipe->sample_mask = sample_mask;
 
       llvmpipe->dirty |= LP_NEW_SAMPLE_MASK;

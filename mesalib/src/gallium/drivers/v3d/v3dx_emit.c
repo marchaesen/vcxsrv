@@ -177,7 +177,8 @@ emit_one_texture(struct v3d_context *v3d, struct v3d_texture_stateobj *stage_tex
                                             MAX2(psampler->min_lod, 0),
                                             psview->u.tex.last_level),
                 .max_level_of_detail = MIN2(psview->u.tex.first_level +
-                                            psampler->max_lod,
+                                            MAX2(psampler->max_lod,
+                                                 psampler->min_lod),
                                             psview->u.tex.last_level),
 
                 .texture_base_pointer = cl_address(rsc->bo,
@@ -468,6 +469,26 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 job->draw_min_y = MIN2(job->draw_min_y, miny);
                 job->draw_max_x = MAX2(job->draw_max_x, maxx);
                 job->draw_max_y = MAX2(job->draw_max_y, maxy);
+
+                if (!v3d->rasterizer->base.scissor) {
+                    job->scissor.disabled = true;
+                } else if (!job->scissor.disabled &&
+                           (v3d->dirty & V3D_DIRTY_SCISSOR)) {
+                        if (job->scissor.count < MAX_JOB_SCISSORS) {
+                                job->scissor.rects[job->scissor.count].min_x =
+                                        v3d->scissor.minx;
+                                job->scissor.rects[job->scissor.count].min_y =
+                                        v3d->scissor.miny;
+                                job->scissor.rects[job->scissor.count].max_x =
+                                        v3d->scissor.maxx - 1;
+                                job->scissor.rects[job->scissor.count].max_y =
+                                        v3d->scissor.maxy - 1;
+                                job->scissor.count++;
+                        } else {
+                                job->scissor.disabled = true;
+                                perf_debug("Too many scissor rects.");
+                        }
+                }
         }
 
         if (v3d->dirty & (V3D_DIRTY_RASTERIZER |

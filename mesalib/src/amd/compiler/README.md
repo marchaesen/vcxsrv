@@ -242,6 +242,26 @@ Note that you need to **combine these options into a comma-separated list**, for
 RADV_DEBUG=nocache,shaders ACO_DEBUG=validateir,validatera vkcube
 ```
 
+### Using GCC sanitizers
+
+GCC has several sanitizers which can help figure out hard to diagnose issues. To use these, you need to pass
+the `-Dbsanitize` flag to `meson` when building mesa. For example `-Dbsanitize=undefined` will add support for
+the undefined behavior sanitizer.
+
+### Hardened builds and glibc++ assertions
+
+Several Linux distributions use "hardened" builds meaning several special compiler flags are added by
+downstream packaging which are not used in mesa builds by default. These may be responsible for
+some bug reports of inexplicable crashes with assertion failures you can't reproduce.
+
+Most notable are the glibc++ debug flags, which you can use by adding the `-D_GLIBCXX_ASSERTIONS=1` and
+`-D_GLIBCXX_DEBUG=1` flags.
+
+To see the full list of downstream compiler flags, you can use eg. `rpm --eval "%optflags"`
+on Red Hat based distros like Fedora.
+
+### Good practices
+
 Here are some good practices we learned while debugging visual corruption and hangs.
 
 1. Bisecting shaders:

@@ -381,6 +381,7 @@ lima_set_sampler_views(struct pipe_context *pctx,
                       enum pipe_shader_type shader,
                       unsigned start, unsigned nr,
                        unsigned unbind_num_trailing_slots,
+                       bool take_ownership,
                       struct pipe_sampler_view **views)
 {
    struct lima_context *ctx = lima_context(pctx);
@@ -393,7 +394,13 @@ lima_set_sampler_views(struct pipe_context *pctx,
    for (i = 0; i < nr; i++) {
       if (views[i])
          new_nr = i + 1;
-      pipe_sampler_view_reference(&lima_tex->textures[i], views[i]);
+
+      if (take_ownership) {
+         pipe_sampler_view_reference(&lima_tex->textures[i], NULL);
+         lima_tex->textures[i] = views[i];
+      } else {
+         pipe_sampler_view_reference(&lima_tex->textures[i], views[i]);
+      }
    }
 
    for (; i < lima_tex->num_textures; i++) {

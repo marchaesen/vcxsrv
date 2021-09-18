@@ -395,7 +395,9 @@ combine_stores_block(struct combine_stores_state *state, nir_block *block)
       }
 
       case nir_intrinsic_trace_ray:
-      case nir_intrinsic_execute_callable: {
+      case nir_intrinsic_execute_callable:
+      case nir_intrinsic_rt_trace_ray:
+      case nir_intrinsic_rt_execute_callable: {
          nir_deref_instr *payload =
             nir_src_as_deref(*nir_get_shader_call_payload_src(intrin));
          combine_stores_with_deref(state, payload);

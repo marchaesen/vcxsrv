@@ -1,4 +1,4 @@
-# Copyright © 2019 Intel Corporation
+# Copyright © 2019,2021 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+import textwrap
+import typing
+
 import pytest
+
+# AsyncMock is new in 3.8, so if we're using an older version we need the
+# backported version of mock
+if sys.version_info >= (3, 8):
+    from unittest import mock
+else:
+    import mock
 
 from .gen_release_notes import *
 
@@ -58,3 +69,93 @@ async def test_gather_commits():
     version = '19.2.0'
     out = await gather_commits(version)
     assert out
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'content, bugs',
+    [
+        # It is important to have the title on a new line, as
+        # textwrap.dedent wont work otherwise.
+
+        # Test the `Closes: #N` syntax
+        (
+            '''\
+            A commit
+
+            It has a message in it
+
+            Closes: #1
+            ''',
+            ['1'],
+        ),
+
+        # Test the Full url
+        (
+            '''\
+            A commit with no body
+
+            Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/3456
+            ''',
+            ['3456'],
+        ),
+
+        # Test projects that are not mesa
+        (
+            '''\
+            A commit for libdrm
+
+            Closes: https://gitlab.freedesktop.org/mesa/drm/-/3456
+            ''',
+            [],
+        ),
+        (
+            '''\
+            A commit for for something else completely
+
+            Closes: https://github.com/Organiztion/project/1234
+            ''',
+            [],
+        ),
+
+        # Test  multiple issues on one line
+        (
+            '''\
+            Fix many bugs
+
+            Closes: #1, #2
+            ''',
+            ['1', '2'],
+        ),
+
+        # Test multiple closes
+        (
+            '''\
+            Fix many bugs
+
+            Closes: #1
+            Closes: #2
+            ''',
+            ['1', '2'],
+        ),
+        (
+            '''\
+            With long form
+
+            Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/3456
+            Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/3457
+            Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/3458
+            ''',
+            ['3456', '3457', '3458'],
+        ),
+    ])
+async def test_parse_issues(content: str, bugs: typing.List[str]) -> None:
+    mock_com = mock.AsyncMock(return_value=(textwrap.dedent(content).encode(), ''))
+    mock_p = mock.Mock()
+    mock_p.communicate = mock_com
+    mock_exec = mock.AsyncMock(return_value=mock_p)
+
+    with mock.patch('bin.gen_release_notes.asyncio.create_subprocess_exec', mock_exec), \
+            mock.patch('bin.gen_release_notes.gather_commits', mock.AsyncMock(return_value='sha\n')):
+        ids = await parse_issues('1234 not used')
+        assert set(ids) == set(bugs)

@@ -28,7 +28,7 @@
  * bits on the wire (as well as fixup branches) */
 
 static uint64_t
-bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2, bool tdd)
+bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2)
 {
         /* next_dependencies are the union of the dependencies of successors'
          * dependencies */
@@ -36,13 +36,16 @@ bi_pack_header(bi_clause *clause, bi_clause *next_1, bi_clause *next_2, bool tdd
         unsigned dependency_wait = next_1 ? next_1->dependencies : 0;
         dependency_wait |= next_2 ? next_2->dependencies : 0;
 
+        bool staging_barrier = next_1 ? next_1->staging_barrier : false;
+        staging_barrier |= next_2 ? next_2->staging_barrier : 0;
+
         struct bifrost_header header = {
                 .flow_control =
                         (next_1 == NULL && next_2 == NULL) ?
                         BIFROST_FLOW_END :  clause->flow_control,
-                .terminate_discarded_threads = tdd,
+                .terminate_discarded_threads = clause->td,
                 .next_clause_prefetch = clause->next_clause_prefetch && next_1,
-                .staging_barrier = clause->staging_barrier,
+                .staging_barrier = staging_barrier,
                 .staging_register = clause->staging_register,
                 .dependency_wait = dependency_wait,
                 .dependency_slot = clause->scoreboard_id,
@@ -427,7 +430,7 @@ bi_pack_constants(unsigned tuple_count, uint64_t *constants,
         util_dynarray_append(emission, struct bifrost_fmt_constant, quad);
 }
 
-static inline uint8_t
+uint8_t
 bi_pack_literal(enum bi_clause_subword literal)
 {
         assert(literal >= BI_CLAUSE_SUBWORD_LITERAL_0);
@@ -448,7 +451,7 @@ bi_clause_upper(unsigned val,
         return (tuple.hi >> 11);
 }
 
-static inline uint8_t
+uint8_t
 bi_pack_upper(enum bi_clause_subword upper,
                 struct bi_packed_tuple *tuples,
                 ASSERTED unsigned tuple_count)
@@ -460,7 +463,7 @@ bi_pack_upper(enum bi_clause_subword upper,
                         tuple_count);
 }
 
-static inline uint64_t
+uint64_t
 bi_pack_tuple_bits(enum bi_clause_subword idx,
                 struct bi_packed_tuple *tuples,
                 ASSERTED unsigned tuple_count,
@@ -507,13 +510,13 @@ bi_pack_lu(enum bi_clause_subword word,
                 bi_pack_literal(word);
 }
 
-static uint8_t
+uint8_t
 bi_pack_sync(enum bi_clause_subword t1,
-                enum bi_clause_subword t2,
-                enum bi_clause_subword t3,
-                struct bi_packed_tuple *tuples,
-                ASSERTED unsigned tuple_count,
-                bool z)
+             enum bi_clause_subword t2,
+             enum bi_clause_subword t3,
+             struct bi_packed_tuple *tuples,
+             ASSERTED unsigned tuple_count,
+             bool z)
 {
         uint8_t sync =
                 (bi_pack_lu(t3, tuples, tuple_count) << 0) |
@@ -622,8 +625,7 @@ bi_pack_format(struct util_dynarray *emission,
 static void
 bi_pack_clause(bi_context *ctx, bi_clause *clause,
                 bi_clause *next_1, bi_clause *next_2,
-                struct util_dynarray *emission, gl_shader_stage stage,
-                bool tdd)
+                struct util_dynarray *emission, gl_shader_stage stage)
 {
         struct bi_packed_tuple ins[8] = { 0 };
 
@@ -641,7 +643,7 @@ bi_pack_clause(bi_context *ctx, bi_clause *clause,
         unsigned constant_quads =
                 DIV_ROUND_UP(clause->constant_count - (ec0_packed ? 1 : 0), 2);
 
-        uint64_t header = bi_pack_header(clause, next_1, next_2, tdd);
+        uint64_t header = bi_pack_header(clause, next_1, next_2);
         uint64_t ec0 = (clause->constants[0] >> 4);
         unsigned m0 = (clause->pcrel_idx == 0) ? 4 : 0;
 
@@ -684,20 +686,6 @@ bi_pack_clause(bi_context *ctx, bi_clause *clause,
         }
 }
 
-/* We should terminate discarded threads if there may be discarded threads (a
- * fragment shader) and helper invocations are not used. Further logic may be
- * required for future discard/demote differentiation
- */
-
-static bool
-bi_terminate_discarded_threads(bi_context *ctx)
-{
-        if (ctx->stage == MESA_SHADER_FRAGMENT)
-                return !ctx->nir->info.fs.needs_quad_helper_invocations;
-        else
-                return false;
-}
-
 static void
 bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
                           const bi_clause *clause)
@@ -724,13 +712,9 @@ bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
 unsigned
 bi_pack(bi_context *ctx, struct util_dynarray *emission)
 {
-        bool tdd = bi_terminate_discarded_threads(ctx);
-
         unsigned previous_size = emission->size;
 
-        bi_foreach_block(ctx, _block) {
-                bi_block *block = (bi_block *) _block;
-
+        bi_foreach_block(ctx, block) {
                 bi_assign_branch_offset(ctx, block);
 
                 bi_foreach_clause_in_block(block, clause) {
@@ -743,15 +727,16 @@ bi_pack(bi_context *ctx, struct util_dynarray *emission)
                         bi_clause *next = NULL, *next_2 = NULL;
 
                         if (is_last) {
-                                next = bi_next_clause(ctx, block->base.successors[0], NULL);
-                                next_2 = bi_next_clause(ctx, block->base.successors[1], NULL);
+                                next = bi_next_clause(ctx, block->successors[0], NULL);
+                                next_2 = bi_next_clause(ctx, block->successors[1], NULL);
                         } else {
-                                next = bi_next_clause(ctx, _block, clause);
+                                next = bi_next_clause(ctx, block, clause);
                         }
+
 
                         previous_size = emission->size;
 
-                        bi_pack_clause(ctx, clause, next, next_2, emission, ctx->stage, tdd);
+                        bi_pack_clause(ctx, clause, next, next_2, emission, ctx->stage);
 
                         if (!is_last)
                                 bi_collect_blend_ret_addr(ctx, emission, clause);
@@ -760,86 +745,3 @@ bi_pack(bi_context *ctx, struct util_dynarray *emission)
 
         return emission->size - previous_size;
 }
-
-#ifndef NDEBUG
-
-static void
-bi_test_pack_literal(void)
-{
-        for (unsigned x = 0; x <= 7; ++x)
-                assert(bi_pack_literal(BI_CLAUSE_SUBWORD_LITERAL_0 + x) == x);
-}
-
-static void
-bi_test_pack_upper(void)
-{
-        struct bi_packed_tuple tuples[] = {
-                { 0, 0x3 << (75 - 64) },
-                { 0, 0x1 << (75 - 64) },
-                { 0, 0x7 << (75 - 64) },
-                { 0, 0x0 << (75 - 64) },
-                { 0, 0x2 << (75 - 64) },
-                { 0, 0x6 << (75 - 64) },
-                { 0, 0x5 << (75 - 64) },
-                { 0, 0x4 << (75 - 64) },
-        };
-
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 0, tuples, 8) == 3);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 1, tuples, 8) == 1);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 2, tuples, 8) == 7);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 3, tuples, 8) == 0);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 4, tuples, 8) == 2);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 5, tuples, 8) == 6);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 6, tuples, 8) == 5);
-        assert(bi_pack_upper(BI_CLAUSE_SUBWORD_UPPER_0 + 7, tuples, 8) == 4);
-}
-
-static void
-bi_test_pack_tuple_bits(void)
-{
-        struct bi_packed_tuple tuples[] = {
-                { 0x1234567801234567, 0x3A },
-                { 0x9876543299999999, 0x1B },
-                { 0xABCDEF0101234567, 0x7C },
-        };
-
-        assert(bi_pack_tuple_bits(BI_CLAUSE_SUBWORD_TUPLE_0 + 0, tuples, 8, 0, 30) == 0x01234567);
-        assert(bi_pack_tuple_bits(BI_CLAUSE_SUBWORD_TUPLE_0 + 1, tuples, 8, 10, 30) == 0xca66666);
-        assert(bi_pack_tuple_bits(BI_CLAUSE_SUBWORD_TUPLE_0 + 2, tuples, 8, 40, 15) == 0x4def);
-}
-
-#define L(x) (BI_CLAUSE_SUBWORD_LITERAL_0 + x)
-#define U(x) (BI_CLAUSE_SUBWORD_UPPER_0 + x)
-#define Z    BI_CLAUSE_SUBWORD_Z
-
-static void
-bi_test_pack_sync(void)
-{
-        struct bi_packed_tuple tuples[] = {
-                { 0, 0x3 << (75 - 64) },
-                { 0, 0x5 << (75 - 64) },
-                { 0, 0x7 << (75 - 64) },
-                { 0, 0x0 << (75 - 64) },
-                { 0, 0x2 << (75 - 64) },
-                { 0, 0x6 << (75 - 64) },
-                { 0, 0x5 << (75 - 64) },
-                { 0, 0x4 << (75 - 64) },
-        };
-
-        assert(bi_pack_sync(L(3), L(1), L(7), tuples, 8, false) == 0xCF);
-        assert(bi_pack_sync(L(3), L(1), U(7), tuples, 8, false) == 0xCC);
-        assert(bi_pack_sync(L(3), U(1), U(7), tuples, 8, false) == 0xEC);
-        assert(bi_pack_sync(Z,    U(1), U(7), tuples, 8, false) == 0x2C);
-        assert(bi_pack_sync(Z,    U(1), U(7), tuples, 8, true)  == 0x6C);
-}
-
-int bi_test_packing(void)
-{
-        bi_test_pack_literal();
-        bi_test_pack_upper();
-        bi_test_pack_tuple_bits();
-        bi_test_pack_sync();
-
-        return 0;
-}
-#endif

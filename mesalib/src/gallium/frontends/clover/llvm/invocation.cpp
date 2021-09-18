@@ -224,8 +224,18 @@ namespace {
       // Parse the compiler options.  A file name should be present at the end
       // and must have the .cl extension in order for the CompilerInvocation
       // class to recognize it as an OpenCL source file.
+#if LLVM_VERSION_MAJOR >= 12
+      std::vector<const char *> copts;
+      for (auto &opt : opts) {
+         if (opt == "-cl-denorms-are-zero")
+            copts.push_back("-fdenormal-fp-math=positive-zero");
+         else
+            copts.push_back(opt.c_str());
+      }
+#else
       const std::vector<const char *> copts =
          map(std::mem_fn(&std::string::c_str), opts);
+#endif
 
       const target &target = ir_target;
       const cl_version device_clc_version = dev.device_clc_version();
@@ -241,6 +251,17 @@ namespace {
       c->getTargetOpts().CPU = target.cpu;
       c->getTargetOpts().Triple = target.triple;
       c->getLangOpts().NoBuiltin = true;
+
+#if LLVM_VERSION_MAJOR >= 13
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_generic_address_space");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_pipes");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_device_enqueue");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_program_scope_global_variables");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_subgroups");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_work_group_collective_functions");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_atomic_scope_device");
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("-__opencl_c_atomic_order_seq_cst");
+#endif
 
       // This is a workaround for a Clang bug which causes the number
       // of warnings and errors to be printed to stderr.

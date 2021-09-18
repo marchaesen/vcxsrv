@@ -70,11 +70,15 @@ parse_reg(const char *str)
    long int ret;
 
    if (!strcmp(str, "$rem"))
-      return 0x1c;
+      return REG_REM;
+   else if (!strcmp(str, "$memdata"))
+      return REG_MEMDATA;
    else if (!strcmp(str, "$addr"))
-      return 0x1d;
-   else if (!strcmp(str, "$addr2"))
-      return 0x1e;
+      return REG_ADDR;
+   else if (!strcmp(str, "$regdata"))
+      return REG_REGDATA;
+   else if (!strcmp(str, "$usraddr"))
+      return REG_USRADDR;
    else if (!strcmp(str, "$data"))
       return 0x1f;
 

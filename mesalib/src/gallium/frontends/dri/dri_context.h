@@ -52,6 +52,12 @@ struct dri_context
 
    unsigned int bind_count;
 
+   /**
+    * True if the __DRIdrawable's current __DRIimageBufferMask is
+    * __DRI_IMAGE_BUFFER_SHARED.
+    */
+   bool is_shared_buffer_bound;
+
    /* gallium */
    struct st_api *stapi;
    struct st_context_iface *st;

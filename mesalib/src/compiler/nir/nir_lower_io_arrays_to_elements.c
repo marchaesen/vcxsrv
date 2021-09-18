@@ -35,7 +35,7 @@
 static unsigned
 get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
               unsigned *element_index, unsigned *xfb_offset,
-              nir_ssa_def **vertex_index)
+              nir_ssa_def **array_index)
 {
    nir_deref_path path;
    nir_deref_path_init(&path, deref, NULL);
@@ -43,11 +43,11 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref, nir_variable *var,
    assert(path.path[0]->deref_type == nir_deref_type_var);
    nir_deref_instr **p = &path.path[1];
 
-   /* For per-vertex input arrays (i.e. geometry shader inputs), skip the
-    * outermost array index.  Process the rest normally.
+   /* For arrayed I/O (e.g., per-vertex input arrays in geometry shader
+    * inputs), skip the outermost array index.  Process the rest normally.
     */
-   if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
-      *vertex_index = nir_ssa_for_src(b, (*p)->arr.index, 1);
+   if (nir_is_arrayed_io(var, b->shader->info.stage)) {
+      *array_index = nir_ssa_for_src(b, (*p)->arr.index, 1);
       p++;
    }
 
@@ -89,7 +89,7 @@ get_array_elements(struct hash_table *ht, nir_variable *var,
    struct hash_entry *entry = _mesa_hash_table_search(ht, var);
    if (!entry) {
       const struct glsl_type *type = var->type;
-      if (nir_is_per_vertex_io(var, stage)) {
+      if (nir_is_arrayed_io(var, stage)) {
          assert(glsl_type_is_array(type));
          type = glsl_get_array_element(type);
       }
@@ -130,12 +130,12 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
    nir_variable **elements =
       get_array_elements(varyings, var, b->shader->info.stage);
 
-   nir_ssa_def *vertex_index = NULL;
+   nir_ssa_def *array_index = NULL;
    unsigned elements_index = 0;
    unsigned xfb_offset = 0;
    unsigned io_offset = get_io_offset(b, nir_src_as_deref(intr->src[0]),
                                       var, &elements_index, &xfb_offset,
-                                      &vertex_index);
+                                      &array_index);
 
    nir_variable *element = elements[elements_index];
    if (!element) {
@@ -151,7 +151,7 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
          if (glsl_type_is_matrix(type))
             type = glsl_get_column_type(type);
 
-         if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
+         if (nir_is_arrayed_io(var, b->shader->info.stage)) {
             type = glsl_array_type(type, glsl_get_length(element->type),
                                    glsl_get_explicit_stride(element->type));
          }
@@ -164,9 +164,9 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
 
    nir_deref_instr *element_deref = nir_build_deref_var(b, element);
 
-   if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
-      assert(vertex_index);
-      element_deref = nir_build_deref_array(b, element_deref, vertex_index);
+   if (nir_is_arrayed_io(var, b->shader->info.stage)) {
+      assert(array_index);
+      element_deref = nir_build_deref_array(b, element_deref, array_index);
    }
 
    nir_intrinsic_instr *element_intr =
@@ -181,8 +181,7 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
       if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_sample ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_vertex) {
-         nir_src_copy(&element_intr->src[1], &intr->src[1],
-                      &element_intr->instr);
+         nir_src_copy(&element_intr->src[1], &intr->src[1]);
       }
 
       nir_ssa_def_rewrite_uses(&intr->dest.ssa,
@@ -190,8 +189,7 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
    } else {
       nir_intrinsic_set_write_mask(element_intr,
                                    nir_intrinsic_write_mask(intr));
-      nir_src_copy(&element_intr->src[1], &intr->src[1],
-                   &element_intr->instr);
+      nir_src_copy(&element_intr->src[1], &intr->src[1]);
    }
 
    nir_builder_instr_insert(b, &element_intr->instr);
@@ -206,7 +204,7 @@ deref_has_indirect(nir_builder *b, nir_variable *var, nir_deref_path *path)
    assert(path->path[0]->deref_type == nir_deref_type_var);
    nir_deref_instr **p = &path->path[1];
 
-   if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
+   if (nir_is_arrayed_io(var, b->shader->info.stage)) {
       p++;
    }
 
@@ -317,7 +315,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                nir_variable_mode mode = var->data.mode;
 
                const struct glsl_type *type = var->type;
-               if (nir_is_per_vertex_io(var, b.shader->info.stage)) {
+               if (nir_is_arrayed_io(var, b.shader->info.stage)) {
                   assert(glsl_type_is_array(type));
                   type = glsl_get_array_element(type);
                }

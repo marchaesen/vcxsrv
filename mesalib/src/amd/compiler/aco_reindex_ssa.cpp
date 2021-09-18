@@ -22,7 +22,9 @@
  *
  */
 
-#include <aco_ir.h>
+#include "aco_ir.h"
+
+#include <vector>
 
 namespace aco {
 namespace {
@@ -32,8 +34,8 @@ struct idx_ctx {
    std::vector<uint32_t> renames;
 };
 
-inline
-void reindex_defs(idx_ctx& ctx, aco_ptr<Instruction>& instr)
+inline void
+reindex_defs(idx_ctx& ctx, aco_ptr<Instruction>& instr)
 {
    for (Definition& def : instr->definitions) {
       if (!def.isTemp())
@@ -46,8 +48,8 @@ void reindex_defs(idx_ctx& ctx, aco_ptr<Instruction>& instr)
    }
 }
 
-inline
-void reindex_ops(idx_ctx& ctx, aco_ptr<Instruction>& instr)
+inline void
+reindex_ops(idx_ctx& ctx, aco_ptr<Instruction>& instr)
 {
    for (Operand& op : instr->operands) {
       if (!op.isTemp())
@@ -58,7 +60,8 @@ void reindex_ops(idx_ctx& ctx, aco_ptr<Instruction>& instr)
    }
 }
 
-void reindex_program(idx_ctx& ctx, Program* program)
+void
+reindex_program(idx_ctx& ctx, Program* program)
 {
    ctx.renames.resize(program->peekAllocationId());
 
@@ -86,12 +89,13 @@ void reindex_program(idx_ctx& ctx, Program* program)
    /* update program members */
    program->private_segment_buffer = Temp(ctx.renames[program->private_segment_buffer.id()],
                                           program->private_segment_buffer.regClass());
-   program->scratch_offset = Temp(ctx.renames[program->scratch_offset.id()],
-                                  program->scratch_offset.regClass());
+   program->scratch_offset =
+      Temp(ctx.renames[program->scratch_offset.id()], program->scratch_offset.regClass());
    program->temp_rc = ctx.temp_rc;
 }
 
-void update_live_out(idx_ctx& ctx, std::vector<IDSet>& live_out)
+void
+update_live_out(idx_ctx& ctx, std::vector<IDSet>& live_out)
 {
    for (IDSet& set : live_out) {
       IDSet new_set;
@@ -103,7 +107,8 @@ void update_live_out(idx_ctx& ctx, std::vector<IDSet>& live_out)
 
 } /* end namespace */
 
-void reindex_ssa(Program* program)
+void
+reindex_ssa(Program* program)
 {
    idx_ctx ctx;
    reindex_program(ctx, program);
@@ -111,7 +116,8 @@ void reindex_ssa(Program* program)
    program->allocationID = program->temp_rc.size();
 }
 
-void reindex_ssa(Program* program, std::vector<IDSet>& live_out)
+void
+reindex_ssa(Program* program, std::vector<IDSet>& live_out)
 {
    idx_ctx ctx;
    reindex_program(ctx, program);
@@ -120,4 +126,4 @@ void reindex_ssa(Program* program, std::vector<IDSet>& live_out)
    program->allocationID = program->temp_rc.size();
 }
 
-}
+} // namespace aco

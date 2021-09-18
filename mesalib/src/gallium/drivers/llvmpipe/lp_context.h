@@ -117,6 +117,8 @@ struct llvmpipe_context {
    
    /** Vertex format */
    struct vertex_info vertex_info;
+
+   uint8_t patch_vertices;
    
    /** Which vertex shader output slot contains color */
    int8_t color_slot[2];
@@ -155,6 +157,9 @@ struct llvmpipe_context {
    struct lp_fs_variant_list_item fs_variants_list;
    unsigned nr_fs_variants;
    unsigned nr_fs_instrs;
+
+   boolean permit_linear_rasterizer;
+   boolean single_vp;
 
    struct lp_setup_variant_list_item setup_variants_list;
    unsigned nr_setup_variants;

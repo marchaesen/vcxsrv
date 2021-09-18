@@ -167,6 +167,7 @@ struct r600_resource {
 	/* Whether this resource is referenced by bindless handles. */
 	bool				texture_handle_allocated;
 	bool				image_handle_allocated;
+	bool                            compute_global_bo;
 
 	/*
 	 * EG/Cayman only - for RAT operations hw need an immediate buffer
@@ -640,6 +641,10 @@ void r600_init_resource_fields(struct r600_common_screen *rscreen,
 			       uint64_t size, unsigned alignment);
 bool r600_alloc_resource(struct r600_common_screen *rscreen,
 			 struct r600_resource *res);
+void r600_buffer_destroy(struct pipe_screen *screen, struct pipe_resource *buf);
+void r600_buffer_flush_region(struct pipe_context *ctx,
+			      struct pipe_transfer *transfer,
+			      const struct pipe_box *rel_box);
 struct pipe_resource *r600_buffer_create(struct pipe_screen *screen,
 					 const struct pipe_resource *templ,
 					 unsigned alignment);
@@ -658,6 +663,14 @@ r600_invalidate_resource(struct pipe_context *ctx,
 void r600_replace_buffer_storage(struct pipe_context *ctx,
 				 struct pipe_resource *dst,
 				 struct pipe_resource *src);
+void *r600_buffer_transfer_map(struct pipe_context *ctx,
+                               struct pipe_resource *resource,
+                               unsigned level,
+                               unsigned usage,
+                               const struct pipe_box *box,
+                               struct pipe_transfer **ptransfer);
+void r600_buffer_transfer_unmap(struct pipe_context *ctx,
+				struct pipe_transfer *transfer);
 
 /* r600_common_pipe.c */
 void r600_gfx_write_event_eop(struct r600_common_context *ctx,
@@ -739,6 +752,7 @@ bool r600_prepare_for_dma_blit(struct r600_common_context *rctx,
 				struct r600_texture *rsrc,
 				unsigned src_level,
 				const struct pipe_box *src_box);
+void r600_texture_destroy(struct pipe_screen *screen, struct pipe_resource *ptex);
 void r600_texture_get_fmask_info(struct r600_common_screen *rscreen,
 				 struct r600_texture *rtex,
 				 unsigned nr_samples,
@@ -769,6 +783,14 @@ void r600_init_context_texture_functions(struct r600_common_context *rctx);
 void eg_resource_alloc_immed(struct r600_common_screen *rscreen,
 			     struct r600_resource *res,
 			     unsigned immed_size);
+void *r600_texture_transfer_map(struct pipe_context *ctx,
+			       struct pipe_resource *texture,
+			       unsigned level,
+			       unsigned usage,
+			       const struct pipe_box *box,
+			       struct pipe_transfer **ptransfer);
+void r600_texture_transfer_unmap(struct pipe_context *ctx,
+				struct pipe_transfer* transfer);
 
 /* r600_viewport.c */
 void evergreen_apply_scissor_bug_workaround(struct r600_common_context *rctx,

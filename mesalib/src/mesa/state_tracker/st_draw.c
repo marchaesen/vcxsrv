@@ -189,11 +189,10 @@ st_draw_gallium(struct gl_context *ctx,
 
 static void
 st_draw_gallium_multimode(struct gl_context *ctx,
-                        struct pipe_draw_info *info,
-                        unsigned drawid_offset,
-                        const struct pipe_draw_start_count_bias *draws,
-                        const unsigned char *mode,
-                        unsigned num_draws)
+                          struct pipe_draw_info *info,
+                          const struct pipe_draw_start_count_bias *draws,
+                          const unsigned char *mode,
+                          unsigned num_draws)
 {
    struct st_context *st = st_context(ctx);
 
@@ -205,11 +204,11 @@ st_draw_gallium_multimode(struct gl_context *ctx,
    unsigned i, first;
    struct cso_context *cso = st->cso_context;
 
-   /* Find consecutive draws where mode and base_vertex don't vary. */
+   /* Find consecutive draws where mode doesn't vary. */
    for (i = 0, first = 0; i <= num_draws; i++) {
       if (i == num_draws || mode[i] != mode[first]) {
          info->mode = mode[first];
-         cso_multi_draw(cso, info, drawid_offset, &draws[first], i - first);
+         cso_multi_draw(cso, info, 0, &draws[first], i - first);
          first = i;
 
          /* We can pass the reference only once. st_buffer_object keeps
@@ -260,7 +259,6 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    }
 
    info.mode = translate_prim(ctx, mode);
-   info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
    indirect.buffer = st_buffer_object(indirect_data)->buffer;
    indirect.offset = indirect_offset;
 
@@ -301,7 +299,6 @@ st_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
    util_draw_init_info(&info);
    info.max_index = ~0u; /* so that u_vbuf can tell that it's unknown */
    info.mode = translate_prim(ctx, mode);
-   info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
    info.instance_count = num_instances;
 
    /* Transform feedback drawing is always non-indexed. */

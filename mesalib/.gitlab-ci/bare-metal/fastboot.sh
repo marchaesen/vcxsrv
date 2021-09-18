@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BM=$CI_PROJECT_DIR/install/bare-metal
+CI_COMMON=$CI_PROJECT_DIR/install/common
 
 if [ -z "$BM_SERIAL" -a -z "$BM_SERIAL_SCRIPT" ]; then
   echo "Must set BM_SERIAL OR BM_SERIAL_SCRIPT in your gitlab-runner config.toml [[runners]] environment"
@@ -49,15 +50,6 @@ if echo $BM_CMDLINE | grep -q "root=/dev/nfs"; then
   BM_FASTBOOT_NFSROOT=1
 fi
 
-if [ -z "$BM_FASTBOOT_NFSROOT" ]; then
-  if [ -z "$BM_WEBDAV_IP" -o -z "$BM_WEBDAV_PORT" ]; then
-    echo "BM_WEBDAV_IP and/or BM_WEBDAV_PORT is not set - no results will be uploaded from DUT!"
-    WEBDAV_CMDLINE=""
-  else
-    WEBDAV_CMDLINE="webdav=http://$BM_WEBDAV_IP:$BM_WEBDAV_PORT"
-  fi
-fi
-
 set -ex
 
 # Clear out any previous run's artifacts.
@@ -97,14 +89,6 @@ else
     cpio -H newc -o | \
     xz --check=crc32 -T4 - > $CI_PROJECT_DIR/rootfs.cpio.gz
   popd
-
-  # Start nginx to get results from DUT
-  if [ -n "$WEBDAV_CMDLINE" ]; then
-    ln -s `pwd`/results /results
-    sed -i s/80/$BM_WEBDAV_PORT/g /etc/nginx/sites-enabled/default
-    sed -i s/www-data/root/g /etc/nginx/nginx.conf
-    nginx
-  fi
 fi
 
 # Make the combined kernel image and dtb for passing to fastboot.  For normal
@@ -132,7 +116,7 @@ abootimg \
   --create artifacts/fastboot.img \
   -k Image.gz-dtb \
   -r rootfs.cpio.gz \
-  -c cmdline="$BM_CMDLINE $WEBDAV_CMDLINE"
+  -c cmdline="$BM_CMDLINE"
 rm Image.gz-dtb
 
 export PATH=$BM:$PATH

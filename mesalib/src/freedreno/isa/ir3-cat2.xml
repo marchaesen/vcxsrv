@@ -60,11 +60,11 @@ SOFTWARE.
 	<encode>
 		<map name="SAT">!!(src->flags &amp; IR3_INSTR_SAT)</map>
 		<map name="DST_CONV">
-			((src->regs[0]->num >> 2) == 62) ? 0 :
-			!!((src->regs[1]->flags ^ src->regs[0]->flags) &amp; IR3_REG_HALF)
+			((src->dsts[0]->num >> 2) == 62) ? 0 :
+			!!((src->srcs[0]->flags ^ src->dsts[0]->flags) &amp; IR3_REG_HALF)
 		</map>
-		<map name="EI">!!(src->regs[0]->flags &amp; IR3_REG_EI)</map>
-		<map name="FULL">!(src->regs[1]->flags &amp; IR3_REG_HALF)</map>
+		<map name="EI">!!(src->dsts[0]->flags &amp; IR3_REG_EI)</map>
+		<map name="FULL">!(src->srcs[0]->flags &amp; IR3_REG_HALF)</map>
 		<map name="SRC1_R">extract_SRC1_R(src)</map>
 		<map name="SRC2_R">extract_SRC2_R(src)</map>
 	</encode>

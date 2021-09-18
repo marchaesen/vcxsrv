@@ -134,7 +134,7 @@ upload_unmap_internal(struct u_upload_mgr *upload, boolean destroying)
                                      box->x, upload->offset - box->x);
    }
 
-   pipe_transfer_unmap(upload->pipe, upload->transfer);
+   pipe_buffer_unmap(upload->pipe, upload->transfer);
    upload->transfer = NULL;
    upload->map = NULL;
 }

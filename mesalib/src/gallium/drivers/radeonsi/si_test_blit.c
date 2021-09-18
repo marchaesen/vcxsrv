@@ -58,7 +58,7 @@ static void set_random_pixels(struct pipe_context *ctx, struct pipe_resource *te
    uint8_t *map;
    int x, y, z;
 
-   map = pipe_transfer_map_3d(ctx, tex, 0, PIPE_MAP_WRITE, 0, 0, 0, tex->width0, tex->height0,
+   map = pipe_texture_map_3d(ctx, tex, 0, PIPE_MAP_WRITE, 0, 0, 0, tex->width0, tex->height0,
                               tex->array_size, &t);
    assert(map);
 
@@ -77,7 +77,7 @@ static void set_random_pixels(struct pipe_context *ctx, struct pipe_resource *te
       }
    }
 
-   pipe_transfer_unmap(ctx, t);
+   pipe_texture_unmap(ctx, t);
 }
 
 static bool compare_textures(struct pipe_context *ctx, struct pipe_resource *tex,
@@ -89,7 +89,7 @@ static bool compare_textures(struct pipe_context *ctx, struct pipe_resource *tex
    bool pass = true;
    unsigned stride = util_format_get_stride(tex->format, tex->width0);
 
-   map = pipe_transfer_map_3d(ctx, tex, 0, PIPE_MAP_READ, 0, 0, 0, tex->width0, tex->height0,
+   map = pipe_texture_map_3d(ctx, tex, 0, PIPE_MAP_READ, 0, 0, 0, tex->width0, tex->height0,
                               tex->array_size, &t);
    assert(map);
 
@@ -105,7 +105,7 @@ static bool compare_textures(struct pipe_context *ctx, struct pipe_resource *tex
       }
    }
 done:
-   pipe_transfer_unmap(ctx, t);
+   pipe_texture_unmap(ctx, t);
    return pass;
 }
 

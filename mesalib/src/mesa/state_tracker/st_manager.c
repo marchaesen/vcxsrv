@@ -664,8 +664,8 @@ st_context_flush(struct st_context_iface *stctxi, unsigned flags,
    if (flags & ST_FLUSH_FENCE_FD)
       pipe_flags |= PIPE_FLUSH_FENCE_FD;
 
-   /* If both the bitmap cache is dirty and there are unflushed vertices,
-    * it means that glBitmap was called first and then glBegin.
+   /* We can do these in any order because FLUSH_VERTICES will also flush
+    * the bitmap cache if there are any unflushed vertices.
     */
    st_flush_bitmap_cache(st);
    FLUSH_VERTICES(st->ctx, 0, 0);
@@ -942,7 +942,8 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    if (attribs->visual.color_format == PIPE_FORMAT_NONE)
       mode_ptr = NULL;
    st = st_create_context(api, pipe, mode_ptr, shared_ctx,
-                          &attribs->options, no_error);
+                          &attribs->options, no_error,
+                          !!smapi->validate_egl_image);
    if (!st) {
       *error = ST_CONTEXT_ERROR_NO_MEMORY;
       pipe->destroy(pipe);
@@ -1167,15 +1168,22 @@ st_manager_flush_frontbuffer(struct st_context *st)
        !stfb->Base.Visual.doubleBufferMode)
       return;
 
+   /* Check front buffer used at the GL API level. */
+   enum st_attachment_type statt = ST_ATTACHMENT_FRONT_LEFT;
    strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].
                           Renderbuffer);
+   if (!strb) {
+       /* Check back buffer redirected by EGL_KHR_mutable_render_buffer. */
+       statt = ST_ATTACHMENT_BACK_LEFT;
+       strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_BACK_LEFT].
+                              Renderbuffer);
+   }
 
    /* Do we have a front color buffer and has it been drawn to since last
     * frontbuffer flush?
     */
-   if (strb && strb->defined) {
-      stfb->iface->flush_front(&st->iface, stfb->iface,
-                               ST_ATTACHMENT_FRONT_LEFT);
+   if (strb && strb->defined &&
+       stfb->iface->flush_front(&st->iface, stfb->iface, statt)) {
       strb->defined = GL_FALSE;
 
       /* Trigger an update of strb->defined on next draw */

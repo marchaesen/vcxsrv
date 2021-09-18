@@ -56,6 +56,16 @@ build_load_ubo_dxil(nir_builder *b, nir_ssa_def *buffer,
                     nir_ssa_def *offset, unsigned num_components,
                     unsigned bit_size);
 
+uint64_t
+dxil_sort_by_driver_location(nir_shader* s, nir_variable_mode modes);
+
+void
+dxil_sort_ps_outputs(nir_shader* s);
+
+uint64_t
+dxil_reassign_driver_locations(nir_shader* s, nir_variable_mode modes,
+   uint64_t other_stage_mask);
+
 #ifdef __cplusplus
 }
 #endif

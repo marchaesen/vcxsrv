@@ -291,3 +291,20 @@ radv_GetSwapchainCounterEXT(VkDevice _device, VkSwapchainKHR swapchain,
    return wsi_get_swapchain_counter(_device, &device->physical_device->wsi_device, swapchain,
                                     flag_bits, value);
 }
+
+VkResult
+radv_AcquireDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd, VkDisplayKHR display)
+{
+   RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
+
+   return wsi_acquire_drm_display(physicalDevice, &pdevice->wsi_device, drmFd, display);
+}
+
+VkResult radv_GetDrmDisplayEXT(VkPhysicalDevice physicalDevice, int32_t drmFd, uint32_t connectorId,
+                               VkDisplayKHR* display)
+{
+   RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
+
+   return wsi_get_drm_display(physicalDevice, &pdevice->wsi_device, drmFd, connectorId, display);
+}
+

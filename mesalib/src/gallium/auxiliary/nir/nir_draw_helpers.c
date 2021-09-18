@@ -167,7 +167,7 @@ nir_lower_aaline_block(nir_block *block,
       nir_variable *var = nir_intrinsic_get_var(intrin, 0);
       if (var->data.mode != nir_var_shader_out)
          continue;
-      if (var->data.location != FRAG_RESULT_COLOR)
+      if (var->data.location < FRAG_RESULT_DATA0 && var->data.location != FRAG_RESULT_COLOR)
          continue;
 
       nir_ssa_def *out_input = intrin->src[1].ssa;
@@ -262,7 +262,7 @@ nir_lower_aapoint_block(nir_block *block,
       nir_variable *var = nir_intrinsic_get_var(intrin, 0);
       if (var->data.mode != nir_var_shader_out)
          continue;
-      if (var->data.location != FRAG_RESULT_COLOR)
+      if (var->data.location < FRAG_RESULT_DATA0 && var->data.location != FRAG_RESULT_COLOR)
          continue;
 
       nir_ssa_def *out_input = intrin->src[1].ssa;

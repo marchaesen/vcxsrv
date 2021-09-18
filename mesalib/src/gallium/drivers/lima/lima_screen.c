@@ -104,6 +104,7 @@ lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_NATIVE_FENCE_FD:
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
    case PIPE_CAP_TEXTURE_SWIZZLE:
+   case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
       return 1;
 
    /* Unimplemented, but for exporting OpenGL 2.0 */
@@ -149,6 +150,8 @@ lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 0;
 
    case PIPE_CAP_ALPHA_TEST:
+      return 1;
+
    case PIPE_CAP_FLATSHADE:
    case PIPE_CAP_TWO_SIDED_COLOR:
    case PIPE_CAP_CLIP_PLANES:
@@ -331,6 +334,7 @@ lima_screen_is_format_supported(struct pipe_screen *pscreen,
 
    if (usage & PIPE_BIND_DEPTH_STENCIL) {
       switch (format) {
+      case PIPE_FORMAT_Z16_UNORM:
       case PIPE_FORMAT_Z24_UNORM_S8_UINT:
       case PIPE_FORMAT_Z24X8_UNORM:
          break;
@@ -409,9 +413,9 @@ lima_screen_is_format_supported(struct pipe_screen *pscreen,
 
    if (usage & PIPE_BIND_INDEX_BUFFER) {
       switch (format) {
-      case PIPE_FORMAT_I8_UINT:
-      case PIPE_FORMAT_I16_UINT:
-      case PIPE_FORMAT_I32_UINT:
+      case PIPE_FORMAT_R8_UINT:
+      case PIPE_FORMAT_R16_UINT:
+      case PIPE_FORMAT_R32_UINT:
          break;
       default:
          return false;

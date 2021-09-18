@@ -1,0 +1,5 @@
+KHR-GL46.gl_spirv.spirv_glsl_to_spirv_builtin_functions_test,Fail
+KHR-GL46.pipeline_statistics_query_tests_ARB.functional_geometry_shader_queries,Fail
+KHR-GL46.pipeline_statistics_query_tests_ARB.functional_primitives_vertices_submitted_and_clipping_input_output_primitives,Fail
+KHR-GL46.shader_ballot_tests.ShaderBallotFunctionRead,Fail
+KHR-GL46.shader_image_load_store.basic-api-bind,Fail

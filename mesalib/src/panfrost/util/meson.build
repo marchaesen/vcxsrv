@@ -22,7 +22,6 @@
 libpanfrost_util_files = files(
   'lcra.c',
   'lcra.h',
-  'nir_lower_blend.c',
   'nir_mod_helpers.c',
   'pan_ir.c',
   'pan_ir.h',

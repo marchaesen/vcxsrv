@@ -50,7 +50,7 @@ d3d12_wgl_get_pfd_flags(struct pipe_screen *screen);
 
 struct stw_winsys_framebuffer *
 d3d12_wgl_create_framebuffer(struct pipe_screen *screen,
-                             HDC hDC,
+                             HWND hWnd,
                              int iPixelFormat);
 
 #ifdef __cplusplus

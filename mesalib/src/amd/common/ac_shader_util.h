@@ -27,6 +27,7 @@
 #include "ac_binary.h"
 #include "amd_family.h"
 #include "compiler/nir/nir.h"
+#include "compiler/shader_enums.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -100,6 +101,22 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
 void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype,
                                  bool is_depth, bool use_rbplus,
                                  struct ac_spi_color_formats *formats);
+
+void ac_compute_late_alloc(const struct radeon_info *info, bool ngg, bool ngg_culling,
+                           bool uses_scratch, unsigned *late_alloc_wave64, unsigned *cu_mask);
+
+unsigned ac_compute_cs_workgroup_size(uint16_t sizes[3], bool variable, unsigned max);
+
+unsigned ac_compute_lshs_workgroup_size(enum chip_class chip_class, gl_shader_stage stage,
+                                        unsigned tess_num_patches,
+                                        unsigned tess_patch_in_vtx,
+                                        unsigned tess_patch_out_vtx);
+
+unsigned ac_compute_esgs_workgroup_size(enum chip_class chip_class, unsigned wave_size,
+                                        unsigned es_verts, unsigned gs_inst_prims);
+
+unsigned ac_compute_ngg_workgroup_size(unsigned es_verts, unsigned gs_inst_prims,
+                                       unsigned max_vtx_out, unsigned prim_amp_factor);
 
 #ifdef __cplusplus
 }

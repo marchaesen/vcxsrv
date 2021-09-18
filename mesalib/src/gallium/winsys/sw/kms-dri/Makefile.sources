@@ -1,3 +1,0 @@
-C_SOURCES := \
-	kms_dri_sw_winsys.c \
-	kms_dri_sw_winsys.h

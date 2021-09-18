@@ -100,6 +100,7 @@ struct fd6_emit {
    bool sprite_coord_mode;
    bool rasterflat;
    bool primitive_restart;
+   uint8_t patch_vertices;
 
    /* cached to avoid repeated lookups: */
    const struct fd6_program_state *prog;
@@ -170,6 +171,8 @@ fd6_event_write(struct fd_batch *batch, struct fd_ringbuffer *ring,
 static inline void
 fd6_cache_inv(struct fd_batch *batch, struct fd_ringbuffer *ring)
 {
+   fd6_event_write(batch, ring, PC_CCU_INVALIDATE_COLOR, false);
+   fd6_event_write(batch, ring, PC_CCU_INVALIDATE_DEPTH, false);
    fd6_event_write(batch, ring, CACHE_INVALIDATE, false);
 }
 
