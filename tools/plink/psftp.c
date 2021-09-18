@@ -41,7 +41,7 @@ static bool sent_eof = false;
  * Seat vtable.
  */
 
-static size_t psftp_output(Seat *, bool is_stderr, const void *, size_t);
+static size_t psftp_output(Seat *, SeatOutputType type, const void *, size_t);
 static bool psftp_eof(Seat *);
 
 static const SeatVtable psftp_seat_vt = {
@@ -49,6 +49,7 @@ static const SeatVtable psftp_seat_vt = {
     .eof = psftp_eof,
     .sent = nullseat_sent,
     .get_userpass_input = filexfer_get_userpass_input,
+    .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = console_connection_fatal,
@@ -64,7 +65,8 @@ static const SeatVtable psftp_seat_vt = {
     .get_windowid = nullseat_get_windowid,
     .get_window_pixel_size = nullseat_get_window_pixel_size,
     .stripctrl_new = console_stripctrl_new,
-    .set_trust_status = nullseat_set_trust_status_vacuously,
+    .set_trust_status = nullseat_set_trust_status,
+    .can_set_trust_status = nullseat_can_set_trust_status_yes,
     .verbose = cmdline_seat_verbose,
     .interactive = nullseat_interactive_yes,
     .get_cursor_position = nullseat_get_cursor_position,
@@ -2446,6 +2448,7 @@ int do_sftp(int mode, int modeflags, char *batchfile)
 static bool verbose = false;
 
 void ldisc_echoedit_update(Ldisc *ldisc) { }
+void ldisc_check_sendok(Ldisc *ldisc) { }
 
 /*
  * Receive a block of data from the SSH link. Block until all data
@@ -2458,13 +2461,14 @@ void ldisc_echoedit_update(Ldisc *ldisc) { }
 static bufchain received_data;
 static BinarySink *stderr_bs;
 static size_t psftp_output(
-    Seat *seat, bool is_stderr, const void *data, size_t len)
+    Seat *seat, SeatOutputType type, const void *data, size_t len)
 {
     /*
-     * stderr data is just spouted to local stderr (optionally via a
-     * sanitiser) and otherwise ignored.
+     * Non-stdout data (both stderr and SSH auth banners) is just
+     * spouted to local stderr (optionally via a sanitiser) and
+     * otherwise ignored.
      */
-    if (is_stderr) {
+    if (type != SEAT_OUTPUT_STDOUT) {
         put_data(stderr_bs, data, len);
         return 0;
     }

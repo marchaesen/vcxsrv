@@ -1,1695 +1,2442 @@
 /*
- * Pageant: the PuTTY Authentication Agent.
+ * pageant.c: cross-platform code to implement Pageant.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stddef.h>
-#include <ctype.h>
+#include <stdlib.h>
 #include <assert.h>
-#include <tchar.h>
 
 #include "putty.h"
+#include "mpint.h"
 #include "ssh.h"
-#include "misc.h"
-#include "tree234.h"
-#include "security-api.h"
-#include "cryptoapi.h"
+#include "sshcr.h"
 #include "pageant.h"
-#include "licence.h"
-#include "pageant-rc.h"
-
-#include <shellapi.h>
-
-#include <aclapi.h>
-#ifdef DEBUG_IPC
-#define _WIN32_WINNT 0x0500            /* for ConvertSidToStringSid */
-#include <sddl.h>
-#endif
-
-#define WM_SYSTRAY   (WM_APP + 6)
-#define WM_SYSTRAY2  (WM_APP + 7)
-
-#define AGENT_COPYDATA_ID 0x804e50ba   /* random goop */
-
-#define APPNAME "Pageant"
-
-/* Titles and class names for invisible windows. IPCWINTITLE and
- * IPCCLASSNAME are critical to backwards compatibility: WM_COPYDATA
- * based Pageant clients will call FindWindow with those parameters
- * and expect to find the Pageant IPC receiver. */
-#define TRAYWINTITLE  "Pageant"
-#define TRAYCLASSNAME "PageantSysTray"
-#define IPCWINTITLE   "Pageant"
-#define IPCCLASSNAME  "Pageant"
-
-static HWND traywindow;
-static HWND keylist;
-static HWND aboutbox;
-static HMENU systray_menu, session_menu;
-static bool already_running;
-static FingerprintType fptype = SSH_FPTYPE_DEFAULT;
-
-static char *putty_path;
-static bool restrict_putty_acl = false;
-
-/* CWD for "add key" file requester. */
-static filereq *keypath = NULL;
-
-/* From MSDN: In the WM_SYSCOMMAND message, the four low-order bits of
- * wParam are used by Windows, and should be masked off, so we shouldn't
- * attempt to store information in them. Hence all these identifiers have
- * the low 4 bits clear. Also, identifiers should < 0xF000. */
-
-#define IDM_CLOSE              0x0010
-#define IDM_VIEWKEYS           0x0020
-#define IDM_ADDKEY             0x0030
-#define IDM_ADDKEY_ENCRYPTED   0x0040
-#define IDM_REMOVE_ALL         0x0050
-#define IDM_REENCRYPT_ALL      0x0060
-#define IDM_HELP               0x0070
-#define IDM_ABOUT              0x0080
-#define IDM_PUTTY              0x0090
-#define IDM_SESSIONS_BASE      0x1000
-#define IDM_SESSIONS_MAX       0x2000
-#define PUTTY_REGKEY      "Software\\SimonTatham\\PuTTY\\Sessions"
-#define PUTTY_DEFAULT     "Default%20Settings"
-static int initial_menuitems_count;
 
 /*
- * Print a modal (Really Bad) message box and perform a fatal exit.
+ * We need this to link with the RSA code, because rsa_ssh1_encrypt()
+ * pads its data with random bytes. Since we only use rsa_ssh1_decrypt()
+ * and the signing functions, which are deterministic, this should
+ * never be called.
+ *
+ * If it _is_ called, there is a _serious_ problem, because it
+ * won't generate true random numbers. So we must scream, panic,
+ * and exit immediately if that should happen.
  */
-void modalfatalbox(const char *fmt, ...)
+void random_read(void *buf, size_t size)
 {
-    va_list ap;
-    char *buf;
-
-    va_start(ap, fmt);
-    buf = dupvprintf(fmt, ap);
-    va_end(ap);
-    MessageBox(traywindow, buf, "Pageant Fatal Error",
-               MB_SYSTEMMODAL | MB_ICONERROR | MB_OK);
-    sfree(buf);
-    exit(1);
+    modalfatalbox("Internal error: attempt to use random numbers in Pageant");
 }
 
-static bool has_security;
+static bool pageant_local = false;
 
-struct PassphraseProcStruct {
-    bool modal;
-    const char *help_topic;
-    PageantClientDialogId *dlgid;
-    char *passphrase;
-    const char *comment;
+struct PageantClientDialogId {
+    int dummy;
 };
 
-/*
- * Dialog-box function for the Licence box.
- */
-static INT_PTR CALLBACK LicenceProc(HWND hwnd, UINT msg,
-                                WPARAM wParam, LPARAM lParam)
-{
-    switch (msg) {
-      case WM_INITDIALOG:
-        SetDlgItemText(hwnd, IDC_LICENCE_TEXTBOX, LICENCE_TEXT("\r\n\r\n"));
-        return 1;
-      case WM_COMMAND:
-        switch (LOWORD(wParam)) {
-          case IDOK:
-          case IDCANCEL:
-            EndDialog(hwnd, 1);
-            return 0;
-        }
-        return 0;
-      case WM_CLOSE:
-        EndDialog(hwnd, 1);
-        return 0;
-    }
-    return 0;
-}
+typedef struct PageantKeySort PageantKeySort;
+typedef struct PageantKey PageantKey;
+typedef struct PageantAsyncOp PageantAsyncOp;
+typedef struct PageantAsyncOpVtable PageantAsyncOpVtable;
+typedef struct PageantClientRequestNode PageantClientRequestNode;
+typedef struct PageantKeyRequestNode PageantKeyRequestNode;
 
-/*
- * Dialog-box function for the About box.
- */
-static INT_PTR CALLBACK AboutProc(HWND hwnd, UINT msg,
-                              WPARAM wParam, LPARAM lParam)
-{
-    switch (msg) {
-      case WM_INITDIALOG: {
-        char *buildinfo_text = buildinfo("\r\n");
-        char *text = dupprintf
-            ("Pageant\r\n\r\n%s\r\n\r\n%s\r\n\r\n%s",
-             ver, buildinfo_text,
-             "\251 " SHORT_COPYRIGHT_DETAILS ". All rights reserved.");
-        sfree(buildinfo_text);
-        SetDlgItemText(hwnd, IDC_ABOUT_TEXTBOX, text);
-        MakeDlgItemBorderless(hwnd, IDC_ABOUT_TEXTBOX);
-        sfree(text);
-        return 1;
-      }
-      case WM_COMMAND:
-        switch (LOWORD(wParam)) {
-          case IDOK:
-          case IDCANCEL:
-            aboutbox = NULL;
-            DestroyWindow(hwnd);
-            return 0;
-          case IDC_ABOUT_LICENCE:
-            EnableWindow(hwnd, 0);
-            DialogBox(hinst, MAKEINTRESOURCE(IDD_LICENCE), hwnd, LicenceProc);
-            EnableWindow(hwnd, 1);
-            SetActiveWindow(hwnd);
-            return 0;
-          case IDC_ABOUT_WEBSITE:
-            /* Load web browser */
-            ShellExecute(hwnd, "open",
-                         "https://www.chiark.greenend.org.uk/~sgtatham/putty/",
-                         0, 0, SW_SHOWDEFAULT);
-            return 0;
-        }
-        return 0;
-      case WM_CLOSE:
-        aboutbox = NULL;
-        DestroyWindow(hwnd);
-        return 0;
-    }
-    return 0;
-}
-
-static HWND modal_passphrase_hwnd = NULL;
-static HWND nonmodal_passphrase_hwnd = NULL;
-
-static void end_passphrase_dialog(HWND hwnd, INT_PTR result)
-{
-    struct PassphraseProcStruct *p = (struct PassphraseProcStruct *)
-        GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
-    if (p->modal) {
-        EndDialog(hwnd, result);
-    } else {
-        /*
-         * Destroy this passphrase dialog box before passing the
-         * results back to pageant.c, to avoid re-entrancy issues.
-         *
-         * If we successfully got a passphrase from the user, but it
-         * was _wrong_, then pageant_passphrase_request_success will
-         * respond by calling back - synchronously - to our
-         * ask_passphrase() implementation, which will expect the
-         * previous value of nonmodal_passphrase_hwnd to have already
-         * been cleaned up.
-         */
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) NULL);
-        DestroyWindow(hwnd);
-        nonmodal_passphrase_hwnd = NULL;
-
-        if (result)
-            pageant_passphrase_request_success(
-                p->dlgid, ptrlen_from_asciz(p->passphrase));
-        else
-            pageant_passphrase_request_refused(p->dlgid);
-
-        burnstr(p->passphrase);
-        sfree(p);
-    }
-}
-
-/*
- * Dialog-box function for the passphrase box.
- */
-static INT_PTR CALLBACK PassphraseProc(HWND hwnd, UINT msg,
-                                   WPARAM wParam, LPARAM lParam)
-{
-    struct PassphraseProcStruct *p;
-
-    if (msg == WM_INITDIALOG) {
-        p = (struct PassphraseProcStruct *) lParam;
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) p);
-    } else {
-        p = (struct PassphraseProcStruct *)
-            GetWindowLongPtr(hwnd, GWLP_USERDATA);
-    }
-
-    switch (msg) {
-      case WM_INITDIALOG: {
-        if (p->modal)
-            modal_passphrase_hwnd = hwnd;
-
-        /*
-         * Centre the window.
-         */
-        RECT rs, rd;
-        HWND hw;
-
-        hw = GetDesktopWindow();
-        if (GetWindowRect(hw, &rs) && GetWindowRect(hwnd, &rd))
-            MoveWindow(hwnd,
-                       (rs.right + rs.left + rd.left - rd.right) / 2,
-                       (rs.bottom + rs.top + rd.top - rd.bottom) / 2,
-                       rd.right - rd.left, rd.bottom - rd.top, true);
-
-        SetForegroundWindow(hwnd);
-        SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-        if (!p->modal)
-            SetActiveWindow(hwnd); /* this won't have happened automatically */
-        if (p->comment)
-            SetDlgItemText(hwnd, IDC_PASSPHRASE_FINGERPRINT, p->comment);
-        burnstr(p->passphrase);
-        p->passphrase = dupstr("");
-        SetDlgItemText(hwnd, IDC_PASSPHRASE_EDITBOX, p->passphrase);
-        if (!p->help_topic || !has_help()) {
-            HWND item = GetDlgItem(hwnd, IDHELP);
-            if (item)
-                DestroyWindow(item);
-        }
-        return 0;
-      }
-      case WM_COMMAND:
-        switch (LOWORD(wParam)) {
-          case IDOK:
-            if (p->passphrase)
-                end_passphrase_dialog(hwnd, 1);
-            else
-                MessageBeep(0);
-            return 0;
-          case IDCANCEL:
-            end_passphrase_dialog(hwnd, 0);
-            return 0;
-          case IDHELP:
-            if (p->help_topic)
-                launch_help(hwnd, p->help_topic);
-            return 0;
-          case IDC_PASSPHRASE_EDITBOX:
-            if ((HIWORD(wParam) == EN_CHANGE) && p->passphrase) {
-                burnstr(p->passphrase);
-                p->passphrase = GetDlgItemText_alloc(
-                    hwnd, IDC_PASSPHRASE_EDITBOX);
-            }
-            return 0;
-        }
-        return 0;
-      case WM_CLOSE:
-        end_passphrase_dialog(hwnd, 0);
-        return 0;
-    }
-    return 0;
-}
-
-/*
- * Warn about the obsolescent key file format.
- */
-void old_keyfile_warning(void)
-{
-    static const char mbtitle[] = "PuTTY Key File Warning";
-    static const char message[] =
-        "You are loading an SSH-2 private key which has an\n"
-        "old version of the file format. This means your key\n"
-        "file is not fully tamperproof. Future versions of\n"
-        "PuTTY may stop supporting this private key format,\n"
-        "so we recommend you convert your key to the new\n"
-        "format.\n"
-        "\n"
-        "You can perform this conversion by loading the key\n"
-        "into PuTTYgen and then saving it again.";
-
-    MessageBox(NULL, message, mbtitle, MB_OK);
-}
-
-struct keylist_update_ctx {
-    bool enable_remove_controls;
-    bool enable_reencrypt_controls;
+struct PageantClientRequestNode {
+    PageantClientRequestNode *prev, *next;
+};
+struct PageantKeyRequestNode {
+    PageantKeyRequestNode *prev, *next;
 };
 
-static void keylist_update_callback(
-    void *vctx, char **fingerprints, const char *comment, uint32_t ext_flags,
-    struct pageant_pubkey *key)
+struct PageantClientInfo {
+    PageantClient *pc; /* goes to NULL when client is unregistered */
+    PageantClientRequestNode head;
+};
+
+struct PageantAsyncOp {
+    const PageantAsyncOpVtable *vt;
+    PageantClientInfo *info;
+    PageantClientRequestNode cr;
+    PageantClientRequestId *reqid;
+};
+struct PageantAsyncOpVtable {
+    void (*coroutine)(PageantAsyncOp *pao);
+    void (*free)(PageantAsyncOp *pao);
+};
+static inline void pageant_async_op_coroutine(PageantAsyncOp *pao)
+{ pao->vt->coroutine(pao); }
+static inline void pageant_async_op_free(PageantAsyncOp *pao)
 {
-    struct keylist_update_ctx *ctx = (struct keylist_update_ctx *)vctx;
-    FingerprintType this_type = ssh2_pick_fingerprint(fingerprints, fptype);
-    const char *fingerprint = fingerprints[this_type];
-    strbuf *listentry = strbuf_new();
-
-    /* There is at least one key, so the controls for removing keys
-     * should be enabled */
-    ctx->enable_remove_controls = true;
-
-    switch (key->ssh_version) {
-      case 1: {
-        strbuf_catf(listentry, "ssh1\t%s\t%s", fingerprint, comment);
-
-        /*
-         * Replace the space in the fingerprint (between bit count and
-         * hash) with a tab, for nice alignment in the box.
-         */
-        char *p = strchr(listentry->s, ' ');
-        if (p)
-            *p = '\t';
-        break;
-      }
-
-      case 2: {
-        /*
-         * For nice alignment in the list box, we would ideally want
-         * every entry to align to the tab stop settings, and have a
-         * column for algorithm name, one for bit count, one for hex
-         * fingerprint, and one for key comment.
-         *
-         * Unfortunately, some of the algorithm names are so long that
-         * they overflow into the bit-count field. Fortunately, at the
-         * moment, those are _precisely_ the algorithm names that
-         * don't need a bit count displayed anyway (because for
-         * NIST-style ECDSA the bit count is mentioned in the
-         * algorithm name, and for ssh-ed25519 there is only one
-         * possible value anyway). So we fudge this by simply omitting
-         * the bit count field in that situation.
-         *
-         * This is fragile not only in the face of further key types
-         * that don't follow this pattern, but also in the face of
-         * font metrics changes - the Windows semantics for list box
-         * tab stops is that \t aligns to the next one you haven't
-         * already exceeded, so I have to guess when the key type will
-         * overflow past the bit-count tab stop and leave out a tab
-         * character. Urgh.
-         */
-        BinarySource src[1];
-        BinarySource_BARE_INIT_PL(src, ptrlen_from_strbuf(key->blob));
-        ptrlen algname = get_string(src);
-        const ssh_keyalg *alg = find_pubkey_alg_len(algname);
-
-        bool include_bit_count = (alg == &ssh_dsa || alg == &ssh_rsa);
-
-        int wordnumber = 0;
-        for (const char *p = fingerprint; *p; p++) {
-            char c = *p;
-            if (c == ' ') {
-                if (wordnumber < 2)
-                    c = '\t';
-                wordnumber++;
-            }
-            if (include_bit_count || wordnumber != 1)
-                put_byte(listentry, c);
-        }
-
-        strbuf_catf(listentry, "\t%s", comment);
-        break;
-      }
-    }
-
-    if (ext_flags & LIST_EXTENDED_FLAG_HAS_NO_CLEARTEXT_KEY) {
-        strbuf_catf(listentry, "\t(encrypted)");
-    } else if (ext_flags & LIST_EXTENDED_FLAG_HAS_ENCRYPTED_KEY_FILE) {
-        strbuf_catf(listentry, "\t(re-encryptable)");
-
-        /* At least one key can be re-encrypted */
-        ctx->enable_reencrypt_controls = true;
-    }
-
-    SendDlgItemMessage(keylist, IDC_KEYLIST_LISTBOX,
-                       LB_ADDSTRING, 0, (LPARAM)listentry->s);
-    strbuf_free(listentry);
+    delete_callbacks_for_context(pao);
+    pao->vt->free(pao);
+}
+static inline void pageant_async_op_unlink(PageantAsyncOp *pao)
+{
+    pao->cr.prev->next = pao->cr.next;
+    pao->cr.next->prev = pao->cr.prev;
+}
+static inline void pageant_async_op_unlink_and_free(PageantAsyncOp *pao)
+{
+    pageant_async_op_unlink(pao);
+    pageant_async_op_free(pao);
+}
+static void pageant_async_op_callback(void *vctx)
+{
+    pageant_async_op_coroutine((PageantAsyncOp *)vctx);
 }
 
 /*
- * Update the visible key list.
+ * Master list of all the keys we have stored, in any form at all.
  */
-void keylist_update(void)
-{
-    if (keylist) {
-        SendDlgItemMessage(keylist, IDC_KEYLIST_LISTBOX,
-                           LB_RESETCONTENT, 0, 0);
-
-        char *errmsg;
-        struct keylist_update_ctx ctx[1];
-        ctx->enable_remove_controls = false;
-        ctx->enable_reencrypt_controls = false;
-        int status = pageant_enum_keys(keylist_update_callback, ctx, &errmsg);
-        assert(status == PAGEANT_ACTION_OK);
-        assert(!errmsg);
-
-        SendDlgItemMessage(keylist, IDC_KEYLIST_LISTBOX,
-                           LB_SETCURSEL, (WPARAM) - 1, 0);
-
-        EnableWindow(GetDlgItem(keylist, IDC_KEYLIST_REMOVE),
-                     ctx->enable_remove_controls);
-        EnableWindow(GetDlgItem(keylist, IDC_KEYLIST_REENCRYPT),
-                     ctx->enable_reencrypt_controls);
-    }
-}
-
-static void win_add_keyfile(Filename *filename, bool encrypted)
-{
-    char *err;
-    int ret;
-
-    /*
-     * Try loading the key without a passphrase. (Or rather, without a
-     * _new_ passphrase; pageant_add_keyfile will take care of trying
-     * all the passphrases we've already stored.)
-     */
-    ret = pageant_add_keyfile(filename, NULL, &err, encrypted);
-    if (ret == PAGEANT_ACTION_OK) {
-        goto done;
-    } else if (ret == PAGEANT_ACTION_FAILURE) {
-        goto error;
-    }
-
-    /*
-     * OK, a passphrase is needed, and we've been given the key
-     * comment to use in the passphrase prompt.
-     */
-    while (1) {
-        INT_PTR dlgret;
-        struct PassphraseProcStruct pps;
-        pps.modal = true;
-        pps.help_topic = NULL;         /* this dialog has no help button */
-        pps.dlgid = NULL;
-        pps.passphrase = NULL;
-        pps.comment = err;
-        dlgret = DialogBoxParam(
-            hinst, MAKEINTRESOURCE(IDD_LOAD_PASSPHRASE),
-            NULL, PassphraseProc, (LPARAM) &pps);
-        modal_passphrase_hwnd = NULL;
-
-        if (!dlgret) {
-            burnstr(pps.passphrase);
-            goto done;                 /* operation cancelled */
-        }
-
-        sfree(err);
-
-        assert(pps.passphrase != NULL);
-
-        ret = pageant_add_keyfile(filename, pps.passphrase, &err, false);
-        burnstr(pps.passphrase);
-
-        if (ret == PAGEANT_ACTION_OK) {
-            goto done;
-        } else if (ret == PAGEANT_ACTION_FAILURE) {
-            goto error;
-        }
-    }
-
-  error:
-    message_box(traywindow, err, APPNAME, MB_OK | MB_ICONERROR,
-                HELPCTXID(errors_cantloadkey));
-  done:
-    sfree(err);
-    return;
-}
-
-/*
- * Prompt for a key file to add, and add it.
- */
-static void prompt_add_keyfile(bool encrypted)
-{
-    OPENFILENAME of;
-    char *filelist = snewn(8192, char);
-
-    if (!keypath) keypath = filereq_new();
-    memset(&of, 0, sizeof(of));
-    of.hwndOwner = traywindow;
-    of.lpstrFilter = FILTER_KEY_FILES;
-    of.lpstrCustomFilter = NULL;
-    of.nFilterIndex = 1;
-    of.lpstrFile = filelist;
-    *filelist = '\0';
-    of.nMaxFile = 8192;
-    of.lpstrFileTitle = NULL;
-    of.lpstrTitle = "Select Private Key File";
-    of.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
-    if (request_file(keypath, &of, true, false)) {
-        if(strlen(filelist) > of.nFileOffset) {
-            /* Only one filename returned? */
-            Filename *fn = filename_from_str(filelist);
-            win_add_keyfile(fn, encrypted);
-            filename_free(fn);
-        } else {
-            /* we are returned a bunch of strings, end to
-             * end. first string is the directory, the
-             * rest the filenames. terminated with an
-             * empty string.
-             */
-            char *dir = filelist;
-            char *filewalker = filelist + strlen(dir) + 1;
-            while (*filewalker != '\0') {
-                char *filename = dupcat(dir, "\\", filewalker);
-                Filename *fn = filename_from_str(filename);
-                win_add_keyfile(fn, encrypted);
-                filename_free(fn);
-                sfree(filename);
-                filewalker += strlen(filewalker) + 1;
-            }
-        }
-
-        keylist_update();
-        pageant_forget_passphrases();
-    }
-    sfree(filelist);
-}
-
-/*
- * Dialog-box function for the key list box.
- */
-static INT_PTR CALLBACK KeyListProc(HWND hwnd, UINT msg,
-                                WPARAM wParam, LPARAM lParam)
-{
-    static const struct {
-        const char *name;
-        FingerprintType value;
-    } fptypes[] = {
-        {"SHA256", SSH_FPTYPE_SHA256},
-        {"MD5", SSH_FPTYPE_MD5},
+static tree234 *keytree;
+struct PageantKeySort {
+    /* Prefix of the main PageantKey structure which contains all the
+     * data that the sorting order depends on. Also simple enough that
+     * you can construct one for lookup purposes. */
+    int ssh_version; /* 1 or 2; primary sort key */
+    ptrlen public_blob; /* secondary sort key */
+};
+struct PageantKey {
+    PageantKeySort sort;
+    strbuf *public_blob; /* the true owner of sort.public_blob */
+    char *comment;       /* stored separately, whether or not in rkey/skey */
+    union {
+        RSAKey *rkey;       /* if ssh_version == 1 */
+        ssh2_userkey *skey; /* if ssh_version == 2 */
     };
-
-    switch (msg) {
-      case WM_INITDIALOG: {
-        /*
-         * Centre the window.
-         */
-        RECT rs, rd;
-        HWND hw;
-
-        hw = GetDesktopWindow();
-        if (GetWindowRect(hw, &rs) && GetWindowRect(hwnd, &rd))
-            MoveWindow(hwnd,
-                       (rs.right + rs.left + rd.left - rd.right) / 2,
-                       (rs.bottom + rs.top + rd.top - rd.bottom) / 2,
-                       rd.right - rd.left, rd.bottom - rd.top, true);
-
-        if (has_help())
-            SetWindowLongPtr(hwnd, GWL_EXSTYLE,
-                             GetWindowLongPtr(hwnd, GWL_EXSTYLE) |
-                             WS_EX_CONTEXTHELP);
-        else {
-          HWND item = GetDlgItem(hwnd, IDC_KEYLIST_HELP);
-          if (item)
-              DestroyWindow(item);
-        }
-
-        keylist = hwnd;
-        {
-          static int tabs[] = { 35, 75, 300 };
-          SendDlgItemMessage(hwnd, IDC_KEYLIST_LISTBOX, LB_SETTABSTOPS,
-                             sizeof(tabs) / sizeof(*tabs),
-                             (LPARAM) tabs);
-        }
-
-        int selection = 0;
-        for (size_t i = 0; i < lenof(fptypes); i++) {
-            SendDlgItemMessage(hwnd, IDC_KEYLIST_FPTYPE, CB_ADDSTRING,
-                               0, (LPARAM)fptypes[i].name);
-            if (fptype == fptypes[i].value)
-                selection = (int)i;
-        }
-        SendDlgItemMessage(hwnd, IDC_KEYLIST_FPTYPE,
-                           CB_SETCURSEL, 0, selection);
-
-        keylist_update();
-        return 0;
-      }
-      case WM_COMMAND:
-        switch (LOWORD(wParam)) {
-          case IDOK:
-          case IDCANCEL:
-            keylist = NULL;
-            DestroyWindow(hwnd);
-            return 0;
-          case IDC_KEYLIST_ADDKEY:
-          case IDC_KEYLIST_ADDKEY_ENC:
-            if (HIWORD(wParam) == BN_CLICKED ||
-                HIWORD(wParam) == BN_DOUBLECLICKED) {
-                if (modal_passphrase_hwnd) {
-                    MessageBeep(MB_ICONERROR);
-                    SetForegroundWindow(modal_passphrase_hwnd);
-                    break;
-                }
-                prompt_add_keyfile(LOWORD(wParam) == IDC_KEYLIST_ADDKEY_ENC);
-            }
-            return 0;
-          case IDC_KEYLIST_REMOVE:
-          case IDC_KEYLIST_REENCRYPT:
-            if (HIWORD(wParam) == BN_CLICKED ||
-                HIWORD(wParam) == BN_DOUBLECLICKED) {
-                int i;
-                int rCount, sCount;
-                int *selectedArray;
-
-                /* our counter within the array of selected items */
-                int itemNum;
-
-                /* get the number of items selected in the list */
-                int numSelected = SendDlgItemMessage(
-                    hwnd, IDC_KEYLIST_LISTBOX, LB_GETSELCOUNT, 0, 0);
-
-                /* none selected? that was silly */
-                if (numSelected == 0) {
-                    MessageBeep(0);
-                    break;
-                }
-
-                /* get item indices in an array */
-                selectedArray = snewn(numSelected, int);
-                SendDlgItemMessage(hwnd, IDC_KEYLIST_LISTBOX, LB_GETSELITEMS,
-                                   numSelected, (WPARAM)selectedArray);
-
-                itemNum = numSelected - 1;
-                rCount = pageant_count_ssh1_keys();
-                sCount = pageant_count_ssh2_keys();
-
-                /* go through the non-rsakeys until we've covered them all,
-                 * and/or we're out of selected items to check. note that
-                 * we go *backwards*, to avoid complications from deleting
-                 * things hence altering the offset of subsequent items
-                 */
-                for (i = sCount - 1; (itemNum >= 0) && (i >= 0); i--) {
-                    if (selectedArray[itemNum] == rCount + i) {
-                        switch (LOWORD(wParam)) {
-                          case IDC_KEYLIST_REMOVE:
-                            pageant_delete_nth_ssh2_key(i);
-                            break;
-                          case IDC_KEYLIST_REENCRYPT:
-                            pageant_reencrypt_nth_ssh2_key(i);
-                            break;
-                        }
-                        itemNum--;
-                    }
-                }
-
-                /* do the same for the rsa keys */
-                for (i = rCount - 1; (itemNum >= 0) && (i >= 0); i--) {
-                    if(selectedArray[itemNum] == i) {
-                        switch (LOWORD(wParam)) {
-                          case IDC_KEYLIST_REMOVE:
-                            pageant_delete_nth_ssh1_key(i);
-                            break;
-                          case IDC_KEYLIST_REENCRYPT:
-                            /* SSH-1 keys can't be re-encrypted */
-                            break;
-                        }
-                        itemNum--;
-                    }
-                }
-
-                sfree(selectedArray);
-                keylist_update();
-            }
-            return 0;
-          case IDC_KEYLIST_HELP:
-            if (HIWORD(wParam) == BN_CLICKED ||
-                HIWORD(wParam) == BN_DOUBLECLICKED) {
-                launch_help(hwnd, WINHELP_CTX_pageant_general);
-            }
-            return 0;
-          case IDC_KEYLIST_FPTYPE:
-            if (HIWORD(wParam) == CBN_SELCHANGE) {
-                int selection = SendDlgItemMessage(
-                    hwnd, IDC_KEYLIST_FPTYPE, CB_GETCURSEL, 0, 0);
-                if (selection >= 0 && (size_t)selection < lenof(fptypes)) {
-                    fptype = fptypes[selection].value;
-                    keylist_update();
-                }
-            }
-            return 0;
-        }
-        return 0;
-      case WM_HELP: {
-        int id = ((LPHELPINFO)lParam)->iCtrlId;
-        const char *topic = NULL;
-        switch (id) {
-          case IDC_KEYLIST_LISTBOX:
-          case IDC_KEYLIST_FPTYPE:
-          case IDC_KEYLIST_FPTYPE_STATIC:
-            topic = WINHELP_CTX_pageant_keylist; break;
-          case IDC_KEYLIST_ADDKEY: topic = WINHELP_CTX_pageant_addkey; break;
-          case IDC_KEYLIST_REMOVE: topic = WINHELP_CTX_pageant_remkey; break;
-          case IDC_KEYLIST_ADDKEY_ENC:
-          case IDC_KEYLIST_REENCRYPT:
-            topic = WINHELP_CTX_pageant_deferred; break;
-        }
-        if (topic) {
-          launch_help(hwnd, topic);
-        } else {
-          MessageBeep(0);
-        }
-        break;
-      }
-      case WM_CLOSE:
-        keylist = NULL;
-        DestroyWindow(hwnd);
-        return 0;
-    }
-    return 0;
-}
-
-/* Set up a system tray icon */
-static BOOL AddTrayIcon(HWND hwnd)
-{
-    BOOL res;
-    NOTIFYICONDATA tnid;
-    HICON hicon;
-
-#ifdef NIM_SETVERSION
-    tnid.uVersion = 0;
-    res = Shell_NotifyIcon(NIM_SETVERSION, &tnid);
-#endif
-
-    tnid.cbSize = sizeof(NOTIFYICONDATA);
-    tnid.hWnd = hwnd;
-    tnid.uID = 1;              /* unique within this systray use */
-    tnid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
-    tnid.uCallbackMessage = WM_SYSTRAY;
-    tnid.hIcon = hicon = LoadIcon(hinst, MAKEINTRESOURCE(201));
-    strcpy(tnid.szTip, "Pageant (PuTTY authentication agent)");
-
-    res = Shell_NotifyIcon(NIM_ADD, &tnid);
-
-    if (hicon) DestroyIcon(hicon);
-
-    return res;
-}
-
-/* Update the saved-sessions menu. */
-static void update_sessions(void)
-{
-    int num_entries;
-    HKEY hkey;
-    TCHAR buf[MAX_PATH + 1];
-    MENUITEMINFO mii;
-    strbuf *sb;
-
-    int index_key, index_menu;
-
-    if (!putty_path)
-        return;
-
-    if(ERROR_SUCCESS != RegOpenKey(HKEY_CURRENT_USER, PUTTY_REGKEY, &hkey))
-        return;
-
-    for(num_entries = GetMenuItemCount(session_menu);
-        num_entries > initial_menuitems_count;
-        num_entries--)
-        RemoveMenu(session_menu, 0, MF_BYPOSITION);
-
-    index_key = 0;
-    index_menu = 0;
-
-    sb = strbuf_new();
-    while(ERROR_SUCCESS == RegEnumKey(hkey, index_key, buf, MAX_PATH)) {
-        if(strcmp(buf, PUTTY_DEFAULT) != 0) {
-            strbuf_clear(sb);
-            unescape_registry_key(buf, sb);
-
-            memset(&mii, 0, sizeof(mii));
-            mii.cbSize = sizeof(mii);
-            mii.fMask = MIIM_TYPE | MIIM_STATE | MIIM_ID;
-            mii.fType = MFT_STRING;
-            mii.fState = MFS_ENABLED;
-            mii.wID = (index_menu * 16) + IDM_SESSIONS_BASE;
-            mii.dwTypeData = sb->s;
-            InsertMenuItem(session_menu, index_menu, true, &mii);
-            index_menu++;
-        }
-        index_key++;
-    }
-    strbuf_free(sb);
-
-    RegCloseKey(hkey);
-
-    if(index_menu == 0) {
-        mii.cbSize = sizeof(mii);
-        mii.fMask = MIIM_TYPE | MIIM_STATE;
-        mii.fType = MFT_STRING;
-        mii.fState = MFS_GRAYED;
-        mii.dwTypeData = _T("(No sessions)");
-        InsertMenuItem(session_menu, index_menu, true, &mii);
-    }
-}
-
-/*
- * Versions of Pageant prior to 0.61 expected this SID on incoming
- * communications. For backwards compatibility, and more particularly
- * for compatibility with derived works of PuTTY still using the old
- * Pageant client code, we accept it as an alternative to the one
- * returned from get_user_sid() in winpgntc.c.
- */
-PSID get_default_sid(void)
-{
-    HANDLE proc = NULL;
-    DWORD sidlen;
-    PSECURITY_DESCRIPTOR psd = NULL;
-    PSID sid = NULL, copy = NULL, ret = NULL;
-
-    if ((proc = OpenProcess(MAXIMUM_ALLOWED, false,
-                            GetCurrentProcessId())) == NULL)
-        goto cleanup;
-
-    if (p_GetSecurityInfo(proc, SE_KERNEL_OBJECT, OWNER_SECURITY_INFORMATION,
-                          &sid, NULL, NULL, NULL, &psd) != ERROR_SUCCESS)
-        goto cleanup;
-
-    sidlen = GetLengthSid(sid);
-
-    copy = (PSID)smalloc(sidlen);
-
-    if (!CopySid(sidlen, copy, sid))
-        goto cleanup;
-
-    /* Success. Move sid into the return value slot, and null it out
-     * to stop the cleanup code freeing it. */
-    ret = copy;
-    copy = NULL;
-
-  cleanup:
-    if (proc != NULL)
-        CloseHandle(proc);
-    if (psd != NULL)
-        LocalFree(psd);
-    if (copy != NULL)
-        sfree(copy);
-
-    return ret;
-}
-
-struct WmCopydataTransaction {
-    char *length, *body;
-    size_t bodysize, bodylen;
-    HANDLE ev_msg_ready, ev_reply_ready;
-} wmct;
-
-static struct PageantClient wmcpc;
-
-static void wm_copydata_got_msg(void *vctx)
-{
-    pageant_handle_msg(&wmcpc, NULL, make_ptrlen(wmct.body, wmct.bodylen));
-}
-
-static void wm_copydata_got_response(
-    PageantClient *pc, PageantClientRequestId *reqid, ptrlen response)
-{
-    if (response.len > wmct.bodysize) {
-        /* Output would overflow message buffer. Replace with a
-         * failure message. */
-        static const unsigned char failure[] = { SSH_AGENT_FAILURE };
-        response = make_ptrlen(failure, lenof(failure));
-        assert(response.len <= wmct.bodysize);
-    }
-
-    PUT_32BIT_MSB_FIRST(wmct.length, response.len);
-    memcpy(wmct.body, response.ptr, response.len);
-
-    SetEvent(wmct.ev_reply_ready);
-}
-
-static bool ask_passphrase_common(PageantClientDialogId *dlgid,
-                                  const char *comment)
-{
-    /* Pageant core should be serialising requests, so we never expect
-     * a passphrase prompt to exist already at this point */
-    assert(!nonmodal_passphrase_hwnd);
-
-    struct PassphraseProcStruct *pps = snew(struct PassphraseProcStruct);
-    pps->modal = false;
-    pps->help_topic = WINHELP_CTX_pageant_deferred;
-    pps->dlgid = dlgid;
-    pps->passphrase = NULL;
-    pps->comment = comment;
-
-    nonmodal_passphrase_hwnd = CreateDialogParam(
-        hinst, MAKEINTRESOURCE(IDD_ONDEMAND_PASSPHRASE),
-        NULL, PassphraseProc, (LPARAM)pps);
-
-    /*
-     * Try to put this passphrase prompt into the foreground.
-     *
-     * This will probably not succeed in giving it the actual keyboard
-     * focus, because Windows is quite opposed to applications being
-     * able to suddenly steal the focus on their own initiative.
-     *
-     * That makes sense in a lot of situations, as a defensive
-     * measure. If you were about to type a password or other secret
-     * data into the window you already had focused, and some
-     * malicious app stole the focus, it might manage to trick you
-     * into typing your secrets into _it_ instead.
-     *
-     * In this case it's possible to regard the same defensive measure
-     * as counterproductive, because the effect if we _do_ steal focus
-     * is that you type something into our passphrase prompt that
-     * isn't the passphrase, and we fail to decrypt the key, and no
-     * harm is done. Whereas the effect of the user wrongly _assuming_
-     * the new passphrase prompt has the focus is much worse: now you
-     * type your highly secret passphrase into some other window you
-     * didn't mean to trust with that information - such as the
-     * agent-forwarded PuTTY in which you just ran an ssh command,
-     * which the _whole point_ was to avoid telling your passphrase to!
-     *
-     * On the other hand, I'm sure _every_ application author can come
-     * up with an argument for why they think _they_ should be allowed
-     * to steal the focus. Probably most of them include the claim
-     * that no harm is done if their application receives data
-     * intended for something else, and of course that's not always
-     * true!
-     *
-     * In any case, I don't know of anything I can do about it, or
-     * anything I _should_ do about it if I could. If anyone thinks
-     * they can improve on all this, patches are welcome.
-     */
-    SetForegroundWindow(nonmodal_passphrase_hwnd);
-
-    return true;
-}
-
-static bool wm_copydata_ask_passphrase(
-    PageantClient *pc, PageantClientDialogId *dlgid, const char *comment)
-{
-    return ask_passphrase_common(dlgid, comment);
-}
-
-static const PageantClientVtable wmcpc_vtable = {
-    .log = NULL, /* no logging in this client */
-    .got_response = wm_copydata_got_response,
-    .ask_passphrase = wm_copydata_ask_passphrase,
+    strbuf *encrypted_key_file;
+    bool decryption_prompt_active;
+    PageantKeyRequestNode blocked_requests;
+    PageantClientDialogId dlgid;
 };
 
-static char *answer_filemapping_message(const char *mapname)
+typedef struct PageantSignOp PageantSignOp;
+struct PageantSignOp {
+    PageantKey *pk;
+    strbuf *data_to_sign;
+    unsigned flags;
+    int crLine;
+    unsigned char failure_type;
+
+    PageantKeyRequestNode pkr;
+    PageantAsyncOp pao;
+};
+
+/* Master lock that indicates whether a GUI request is currently in
+ * progress */
+static bool gui_request_in_progress = false;
+
+static void failure(PageantClient *pc, PageantClientRequestId *reqid,
+                    strbuf *sb, unsigned char type, const char *fmt, ...);
+static void fail_requests_for_key(PageantKey *pk, const char *reason);
+static PageantKey *pageant_nth_key(int ssh_version, int i);
+
+static void pk_free(PageantKey *pk)
 {
-    HANDLE maphandle = INVALID_HANDLE_VALUE;
-    void *mapaddr = NULL;
-    char *err = NULL;
-    size_t mapsize;
-    unsigned msglen;
-
-    PSID mapsid = NULL;
-    PSID expectedsid = NULL;
-    PSID expectedsid_bc = NULL;
-    PSECURITY_DESCRIPTOR psd = NULL;
-
-    wmct.length = wmct.body = NULL;
-
-#ifdef DEBUG_IPC
-    debug("mapname = \"%s\"\n", mapname);
-#endif
-
-    maphandle = OpenFileMapping(FILE_MAP_ALL_ACCESS, false, mapname);
-    if (maphandle == NULL || maphandle == INVALID_HANDLE_VALUE) {
-        err = dupprintf("OpenFileMapping(\"%s\"): %s",
-                        mapname, win_strerror(GetLastError()));
-        goto cleanup;
+    if (pk->public_blob) strbuf_free(pk->public_blob);
+    sfree(pk->comment);
+    if (pk->sort.ssh_version == 1 && pk->rkey) {
+        freersakey(pk->rkey);
+        sfree(pk->rkey);
     }
-
-#ifdef DEBUG_IPC
-    debug("maphandle = %p\n", maphandle);
-#endif
-
-    if (has_security) {
-        DWORD retd;
-
-        if ((expectedsid = get_user_sid()) == NULL) {
-            err = dupstr("unable to get user SID");
-            goto cleanup;
-        }
-
-        if ((expectedsid_bc = get_default_sid()) == NULL) {
-            err = dupstr("unable to get default SID");
-            goto cleanup;
-        }
-
-        if ((retd = p_GetSecurityInfo(
-                 maphandle, SE_KERNEL_OBJECT, OWNER_SECURITY_INFORMATION,
-                 &mapsid, NULL, NULL, NULL, &psd) != ERROR_SUCCESS)) {
-            err = dupprintf("unable to get owner of file mapping: "
-                            "GetSecurityInfo returned: %s",
-                            win_strerror(retd));
-            goto cleanup;
-        }
-
-#ifdef DEBUG_IPC
-        {
-            LPTSTR ours, ours2, theirs;
-            ConvertSidToStringSid(mapsid, &theirs);
-            ConvertSidToStringSid(expectedsid, &ours);
-            ConvertSidToStringSid(expectedsid_bc, &ours2);
-            debug("got sids:\n  oursnew=%s\n  oursold=%s\n"
-                  "  theirs=%s\n", ours, ours2, theirs);
-            LocalFree(ours);
-            LocalFree(ours2);
-            LocalFree(theirs);
-        }
-#endif
-
-        if (!EqualSid(mapsid, expectedsid) &&
-            !EqualSid(mapsid, expectedsid_bc)) {
-            err = dupstr("wrong owning SID of file mapping");
-            goto cleanup;
-        }
-    } else
-    {
-#ifdef DEBUG_IPC
-        debug("security APIs not present\n");
-#endif
+    if (pk->sort.ssh_version == 2 && pk->skey) {
+        sfree(pk->skey->comment);
+        ssh_key_free(pk->skey->key);
+        sfree(pk->skey);
     }
+    if (pk->encrypted_key_file) strbuf_free(pk->encrypted_key_file);
+    fail_requests_for_key(pk, "key deleted from Pageant while signing "
+                          "request was pending");
+    sfree(pk);
+}
 
-    mapaddr = MapViewOfFile(maphandle, FILE_MAP_WRITE, 0, 0, 0);
-    if (!mapaddr) {
-        err = dupprintf("unable to obtain view of file mapping: %s",
-                        win_strerror(GetLastError()));
-        goto cleanup;
-    }
+static int cmpkeys(void *av, void *bv)
+{
+    PageantKeySort *a = (PageantKeySort *)av, *b = (PageantKeySort *)bv;
 
-#ifdef DEBUG_IPC
-    debug("mapped address = %p\n", mapaddr);
-#endif
+    if (a->ssh_version != b->ssh_version)
+        return a->ssh_version < b->ssh_version ? -1 : +1;
+    else
+        return ptrlen_strcmp(a->public_blob, b->public_blob);
+}
 
-    {
-        MEMORY_BASIC_INFORMATION mbi;
-        size_t mbiSize = VirtualQuery(mapaddr, &mbi, sizeof(mbi));
-        if (mbiSize == 0) {
-            err = dupprintf("unable to query view of file mapping: %s",
-                            win_strerror(GetLastError()));
-            goto cleanup;
-        }
-        if (mbiSize < (offsetof(MEMORY_BASIC_INFORMATION, RegionSize) +
-                       sizeof(mbi.RegionSize))) {
-            err = dupstr("VirtualQuery returned too little data to get "
-                         "region size");
-            goto cleanup;
-        }
+static inline PageantKeySort keysort(int version, ptrlen blob)
+{
+    PageantKeySort sort;
+    sort.ssh_version = version;
+    sort.public_blob = blob;
+    return sort;
+}
 
-        mapsize = mbi.RegionSize;
-    }
-#ifdef DEBUG_IPC
-    debug("region size = %"SIZEu"\n", mapsize);
-#endif
-    if (mapsize < 5) {
-        err = dupstr("mapping smaller than smallest possible request");
-        goto cleanup;
-    }
+static strbuf *makeblob1(RSAKey *rkey)
+{
+    strbuf *blob = strbuf_new();
+    rsa_ssh1_public_blob(BinarySink_UPCAST(blob), rkey,
+                         RSA_SSH1_EXPONENT_FIRST);
+    return blob;
+}
 
-    wmct.length = (char *)mapaddr;
-    msglen = GET_32BIT_MSB_FIRST(wmct.length);
+static strbuf *makeblob2(ssh2_userkey *skey)
+{
+    strbuf *blob = strbuf_new();
+    ssh_key_public_blob(skey->key, BinarySink_UPCAST(blob));
+    return blob;
+}
 
-#ifdef DEBUG_IPC
-    debug("msg length=%08x, msg type=%02x\n",
-          msglen, (unsigned)((unsigned char *) mapaddr)[4]);
-#endif
+static PageantKey *findkey1(RSAKey *reqkey)
+{
+    strbuf *blob = makeblob1(reqkey);
+    PageantKeySort sort = keysort(1, ptrlen_from_strbuf(blob));
+    PageantKey *toret = find234(keytree, &sort, NULL);
+    strbuf_free(blob);
+    return toret;
+}
 
-    wmct.body = wmct.length + 4;
-    wmct.bodysize = mapsize - 4;
+static PageantKey *findkey2(ptrlen blob)
+{
+    PageantKeySort sort = keysort(2, blob);
+    return find234(keytree, &sort, NULL);
+}
 
-    if (msglen > wmct.bodysize) {
-        /* Incoming length field is too large. Emit a failure response
-         * without even trying to handle the request.
-         *
-         * (We know this must fit, because we checked mapsize >= 5
-         * above.) */
-        PUT_32BIT_MSB_FIRST(wmct.length, 1);
-        *wmct.body = SSH_AGENT_FAILURE;
+static int find_first_key_for_version(int ssh_version)
+{
+    PageantKeySort sort = keysort(ssh_version, PTRLEN_LITERAL(""));
+    int pos;
+    if (findrelpos234(keytree, &sort, NULL, REL234_GE, &pos))
+        return pos;
+    return count234(keytree);
+}
+
+static int count_keys(int ssh_version)
+{
+    return (find_first_key_for_version(ssh_version + 1) -
+            find_first_key_for_version(ssh_version));
+}
+int pageant_count_ssh1_keys(void) { return count_keys(1); }
+int pageant_count_ssh2_keys(void) { return count_keys(2); }
+
+static bool pageant_add_ssh1_key(RSAKey *rkey)
+{
+    PageantKey *pk = snew(PageantKey);
+    memset(pk, 0, sizeof(PageantKey));
+    pk->sort.ssh_version = 1;
+    pk->public_blob = makeblob1(rkey);
+    pk->sort.public_blob = ptrlen_from_strbuf(pk->public_blob);
+    pk->blocked_requests.next = pk->blocked_requests.prev =
+        &pk->blocked_requests;
+
+    if (add234(keytree, pk) == pk) {
+        pk->rkey = rkey;
+        if (rkey->comment)
+            pk->comment = dupstr(rkey->comment);
+        return true;
     } else {
-        wmct.bodylen = msglen;
-        SetEvent(wmct.ev_msg_ready);
-        WaitForSingleObject(wmct.ev_reply_ready, INFINITE);
+        pk_free(pk);
+        return false;
     }
-
-  cleanup:
-    /* expectedsid has the lifetime of the program, so we don't free it */
-    sfree(expectedsid_bc);
-    if (psd)
-        LocalFree(psd);
-    if (mapaddr)
-        UnmapViewOfFile(mapaddr);
-    if (maphandle != NULL && maphandle != INVALID_HANDLE_VALUE)
-        CloseHandle(maphandle);
-    return err;
 }
 
-static void create_keylist_window(void)
+static bool pageant_add_ssh2_key(ssh2_userkey *skey)
 {
-    if (keylist)
-        return;
+    PageantKey *pk = snew(PageantKey);
+    memset(pk, 0, sizeof(PageantKey));
+    pk->sort.ssh_version = 2;
+    pk->public_blob = makeblob2(skey);
+    pk->sort.public_blob = ptrlen_from_strbuf(pk->public_blob);
+    pk->blocked_requests.next = pk->blocked_requests.prev =
+        &pk->blocked_requests;
 
-    keylist = CreateDialog(hinst, MAKEINTRESOURCE(IDD_KEYLIST),
-                           NULL, KeyListProc);
-    ShowWindow(keylist, SW_SHOWNORMAL);
+    PageantKey *pk_in_tree = add234(keytree, pk);
+    if (pk_in_tree == pk) {
+        /* The key wasn't in the tree at all, and we've just added it. */
+        pk->skey = skey;
+        if (skey->comment)
+            pk->comment = dupstr(skey->comment);
+        return true;
+    } else if (!pk_in_tree->skey) {
+        /* The key was only stored encrypted, and now we have an
+         * unencrypted version to add to the existing record. */
+        pk_in_tree->skey = skey;
+        pk_free(pk);
+        return true;
+    } else {
+        /* The key was already in the tree in full. */
+        pk_free(pk);
+        return false;
+    }
 }
 
-static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
-                                    WPARAM wParam, LPARAM lParam)
+static void remove_all_keys(int ssh_version)
 {
-    static bool menuinprogress;
-    static UINT msgTaskbarCreated = 0;
+    int start = find_first_key_for_version(ssh_version);
+    int end = find_first_key_for_version(ssh_version + 1);
+    while (end > start) {
+        PageantKey *pk = delpos234(keytree, --end);
+        assert(pk->sort.ssh_version == ssh_version);
+        pk_free(pk);
+    }
+}
 
-    switch (message) {
-      case WM_CREATE:
-        msgTaskbarCreated = RegisterWindowMessage(_T("TaskbarCreated"));
-        break;
-      default:
-        if (message==msgTaskbarCreated) {
+static void list_keys(BinarySink *bs, int ssh_version, bool extended)
+{
+    int i;
+    PageantKey *pk;
+
+    put_uint32(bs, count_keys(ssh_version));
+    for (i = find_first_key_for_version(ssh_version);
+         NULL != (pk = index234(keytree, i)); i++) {
+        if (pk->sort.ssh_version != ssh_version)
+            break;
+
+        if (ssh_version > 1)
+            put_stringpl(bs, pk->sort.public_blob);
+        else
+            put_datapl(bs, pk->sort.public_blob); /* no header */
+
+        put_stringpl(bs, ptrlen_from_asciz(pk->comment));
+
+        if (extended) {
             /*
-             * Explorer has been restarted, so the tray icon will
-             * have been lost.
+             * Append to each key entry a string containing extension
+             * data. This string begins with a flags word, and may in
+             * future contain further data if flag bits are set saying
+             * that it does. Hence, it's wrapped in a containing
+             * string, so that clients that only partially understand
+             * it can still find the parts they do understand.
              */
-            AddTrayIcon(hwnd);
-        }
-        break;
+            strbuf *sb = strbuf_new();
 
-      case WM_SYSTRAY:
-        if (lParam == WM_RBUTTONUP) {
-            POINT cursorpos;
-            GetCursorPos(&cursorpos);
-            PostMessage(hwnd, WM_SYSTRAY2, cursorpos.x, cursorpos.y);
-        } else if (lParam == WM_LBUTTONDBLCLK) {
-            /* Run the default menu item. */
-            UINT menuitem = GetMenuDefaultItem(systray_menu, false, 0);
-            if (menuitem != -1)
-                PostMessage(hwnd, WM_COMMAND, menuitem, 0);
-        }
-        break;
-      case WM_SYSTRAY2:
-        if (!menuinprogress) {
-            menuinprogress = true;
-            update_sessions();
-            SetForegroundWindow(hwnd);
-            TrackPopupMenu(systray_menu,
-                           TPM_RIGHTALIGN | TPM_BOTTOMALIGN |
-                           TPM_RIGHTBUTTON,
-                           wParam, lParam, 0, hwnd, NULL);
-            menuinprogress = false;
-        }
-        break;
-      case WM_COMMAND:
-      case WM_SYSCOMMAND: {
-        unsigned command = wParam & ~0xF; /* low 4 bits reserved to Windows */
-        switch (command) {
-          case IDM_PUTTY: {
-            TCHAR cmdline[10];
-            cmdline[0] = '\0';
-            if (restrict_putty_acl)
-                strcat(cmdline, "&R");
+            uint32_t flags = 0;
+            if (!pk->skey)
+                flags |= LIST_EXTENDED_FLAG_HAS_NO_CLEARTEXT_KEY;
+            if (pk->encrypted_key_file)
+                flags |= LIST_EXTENDED_FLAG_HAS_ENCRYPTED_KEY_FILE;
+            put_uint32(sb, flags);
 
-            if((INT_PTR)ShellExecute(hwnd, NULL, putty_path, cmdline,
-                                     _T(""), SW_SHOW) <= 32) {
-              MessageBox(NULL, "Unable to execute PuTTY!",
-                         "Error", MB_OK | MB_ICONERROR);
-            }
-            break;
-          }
-          case IDM_CLOSE:
-            if (modal_passphrase_hwnd)
-                SendMessage(modal_passphrase_hwnd, WM_CLOSE, 0, 0);
-            SendMessage(hwnd, WM_CLOSE, 0, 0);
-            break;
-          case IDM_VIEWKEYS:
-            create_keylist_window();
-            /*
-             * Sometimes the window comes up minimised / hidden for
-             * no obvious reason. Prevent this. This also brings it
-             * to the front if it's already present (the user
-             * selected View Keys because they wanted to _see_ the
-             * thing).
-             */
-            SetForegroundWindow(keylist);
-            SetWindowPos(keylist, HWND_TOP, 0, 0, 0, 0,
-                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-            break;
-          case IDM_ADDKEY:
-          case IDM_ADDKEY_ENCRYPTED:
-            if (modal_passphrase_hwnd) {
-                MessageBeep(MB_ICONERROR);
-                SetForegroundWindow(modal_passphrase_hwnd);
-                break;
-            }
-            prompt_add_keyfile(command == IDM_ADDKEY_ENCRYPTED);
-            break;
-          case IDM_REMOVE_ALL:
-            pageant_delete_all();
-            keylist_update();
-            break;
-          case IDM_REENCRYPT_ALL:
-            pageant_reencrypt_all();
-            keylist_update();
-            break;
-          case IDM_ABOUT:
-            if (!aboutbox) {
-                aboutbox = CreateDialog(hinst, MAKEINTRESOURCE(IDD_ABOUT),
-                                        NULL, AboutProc);
-                ShowWindow(aboutbox, SW_SHOWNORMAL);
-                /*
-                 * Sometimes the window comes up minimised / hidden
-                 * for no obvious reason. Prevent this.
-                 */
-                SetForegroundWindow(aboutbox);
-                SetWindowPos(aboutbox, HWND_TOP, 0, 0, 0, 0,
-                             SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-            }
-            break;
-          case IDM_HELP:
-            launch_help(hwnd, WINHELP_CTX_pageant_general);
-            break;
-          default: {
-            if(wParam >= IDM_SESSIONS_BASE && wParam <= IDM_SESSIONS_MAX) {
-              MENUITEMINFO mii;
-              TCHAR buf[MAX_PATH + 1];
-              TCHAR param[MAX_PATH + 1];
-              memset(&mii, 0, sizeof(mii));
-              mii.cbSize = sizeof(mii);
-              mii.fMask = MIIM_TYPE;
-              mii.cch = MAX_PATH;
-              mii.dwTypeData = buf;
-              GetMenuItemInfo(session_menu, wParam, false, &mii);
-              param[0] = '\0';
-              if (restrict_putty_acl)
-                  strcat(param, "&R");
-              strcat(param, "@");
-              strcat(param, mii.dwTypeData);
-              if((INT_PTR)ShellExecute(hwnd, NULL, putty_path, param,
-                                       _T(""), SW_SHOW) <= 32) {
-                MessageBox(NULL, "Unable to execute PuTTY!", "Error",
-                           MB_OK | MB_ICONERROR);
-              }
-            }
-            break;
-          }
+            put_stringsb(bs, sb);
         }
-        break;
-      }
-      case WM_DESTROY:
-        quit_help(hwnd);
-        PostQuitMessage(0);
-        return 0;
     }
-
-    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
-static LRESULT CALLBACK wm_copydata_WndProc(HWND hwnd, UINT message,
-                                            WPARAM wParam, LPARAM lParam)
+void pageant_make_keylist1(BinarySink *bs) { list_keys(bs, 1, false); }
+void pageant_make_keylist2(BinarySink *bs) { list_keys(bs, 2, false); }
+void pageant_make_keylist_extended(BinarySink *bs) { list_keys(bs, 2, true); }
+
+void pageant_register_client(PageantClient *pc)
 {
-    switch (message) {
-      case WM_COPYDATA: {
-        COPYDATASTRUCT *cds;
-        char *mapname, *err;
-
-        cds = (COPYDATASTRUCT *) lParam;
-        if (cds->dwData != AGENT_COPYDATA_ID)
-            return 0;              /* not our message, mate */
-        mapname = (char *) cds->lpData;
-        if (mapname[cds->cbData - 1] != '\0')
-            return 0;              /* failure to be ASCIZ! */
-        err = answer_filemapping_message(mapname);
-        if (err) {
-#ifdef DEBUG_IPC
-          debug("IPC failed: %s\n", err);
-#endif
-          sfree(err);
-          return 0;
-        }
-        return 1;
-      }
-    }
-
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    pc->info = snew(PageantClientInfo);
+    pc->info->pc = pc;
+    pc->info->head.prev = pc->info->head.next = &pc->info->head;
 }
 
-static DWORD WINAPI wm_copydata_threadfunc(void *param)
+void pageant_unregister_client(PageantClient *pc)
 {
-    HINSTANCE inst = *(HINSTANCE *)param;
+    PageantClientInfo *info = pc->info;
+    assert(info);
+    assert(info->pc == pc);
 
-    HWND ipchwnd = CreateWindow(IPCCLASSNAME, IPCWINTITLE,
-                                WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-                                CW_USEDEFAULT, CW_USEDEFAULT,
-                                100, 100, NULL, NULL, inst, NULL);
-    ShowWindow(ipchwnd, SW_HIDE);
-
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0) == 1) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    while (pc->info->head.next != &pc->info->head) {
+        PageantAsyncOp *pao = container_of(pc->info->head.next,
+                                           PageantAsyncOp, cr);
+        pageant_async_op_unlink_and_free(pao);
     }
 
-    return 0;
+    sfree(pc->info);
 }
 
-/*
- * Fork and Exec the command in cmdline. [DBW]
- */
-void spawn_cmd(const char *cmdline, const char *args, int show)
+static PRINTF_LIKE(5, 6) void failure(
+    PageantClient *pc, PageantClientRequestId *reqid, strbuf *sb,
+    unsigned char type, const char *fmt, ...)
 {
-    if (ShellExecute(NULL, _T("open"), cmdline,
-                     args, NULL, show) <= (HINSTANCE) 32) {
-        char *msg;
-        msg = dupprintf("Failed to run \"%s\": %s", cmdline,
-                        win_strerror(GetLastError()));
-        MessageBox(NULL, msg, APPNAME, MB_OK | MB_ICONEXCLAMATION);
+    strbuf_clear(sb);
+    put_byte(sb, type);
+    if (!pc->suppress_logging) {
+        va_list ap;
+        va_start(ap, fmt);
+        char *msg = dupvprintf(fmt, ap);
+        va_end(ap);
+        pageant_client_log(pc, reqid, "reply: SSH_AGENT_FAILURE (%s)", msg);
         sfree(msg);
     }
 }
 
-void noise_ultralight(NoiseSourceId id, unsigned long data)
+static void signop_link(PageantSignOp *so)
 {
-    /* Pageant doesn't use random numbers, so we ignore this */
+    assert(!so->pkr.prev);
+    assert(!so->pkr.next);
+
+    so->pkr.prev = so->pk->blocked_requests.prev;
+    so->pkr.next = &so->pk->blocked_requests;
+    so->pkr.prev->next = &so->pkr;
+    so->pkr.next->prev = &so->pkr;
 }
 
-void cleanup_exit(int code)
+static void signop_unlink(PageantSignOp *so)
 {
-    shutdown_help();
-    exit(code);
+    if (so->pkr.next) {
+        assert(so->pkr.prev);
+        so->pkr.next->prev = so->pkr.prev;
+        so->pkr.prev->next = so->pkr.next;
+    } else {
+        assert(!so->pkr.prev);
+    }
 }
 
-static bool winpgnt_listener_ask_passphrase(
-    PageantListenerClient *plc, PageantClientDialogId *dlgid,
-    const char *comment)
+static void signop_free(PageantAsyncOp *pao)
 {
-    return ask_passphrase_common(dlgid, comment);
+    PageantSignOp *so = container_of(pao, PageantSignOp, pao);
+    strbuf_free(so->data_to_sign);
+    sfree(so);
 }
 
-struct winpgnt_client {
-    PageantListenerClient plc;
-};
-static const PageantListenerClientVtable winpgnt_vtable = {
-    .log = NULL, /* no logging */
-    .ask_passphrase = winpgnt_listener_ask_passphrase,
-};
-
-static struct winpgnt_client wpc[1];
-
-HINSTANCE hinst;
-
-int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
+static bool request_passphrase(PageantClient *pc, PageantKey *pk)
 {
-    MSG msg;
-    const char *command = NULL;
-    bool added_keys = false;
-    bool show_keylist_on_startup = false;
-    int argc, i;
-    char **argv, **argstart;
+    if (!pk->decryption_prompt_active) {
+        assert(!gui_request_in_progress);
 
-    dll_hijacking_protection();
+        bool created_dlg = pageant_client_ask_passphrase(
+            pc, &pk->dlgid, pk->comment);
 
-    hinst = inst;
+        if (!created_dlg)
+            return false;
 
-    /*
-     * Determine whether we're an NT system (should have security
-     * APIs) or a non-NT system (don't do security).
-     */
-    init_winver();
-    has_security = (osPlatformId == VER_PLATFORM_WIN32_NT);
+        gui_request_in_progress = true;
+        pk->decryption_prompt_active = true;
+    }
 
-    if (has_security) {
+    return true;
+}
+
+static void signop_coroutine(PageantAsyncOp *pao)
+{
+    PageantSignOp *so = container_of(pao, PageantSignOp, pao);
+    strbuf *response;
+
+    crBegin(so->crLine);
+
+    while (!so->pk->skey && gui_request_in_progress)
+        crReturnV;
+
+    if (!so->pk->skey) {
+        assert(so->pk->encrypted_key_file);
+
+        if (!request_passphrase(so->pao.info->pc, so->pk)) {
+            response = strbuf_new();
+            failure(so->pao.info->pc, so->pao.reqid, response,
+                    so->failure_type, "on-demand decryption could not "
+                    "prompt for a passphrase");
+            goto respond;
+        }
+
+        signop_link(so);
+        crReturnV;
+        signop_unlink(so);
+    }
+
+    uint32_t supported_flags = ssh_key_alg(so->pk->skey->key)->supported_flags;
+    if (so->flags & ~supported_flags) {
         /*
-         * Attempt to get the security API we need.
+         * We MUST reject any message containing flags we don't
+         * understand.
          */
-        if (!got_advapi()) {
-            MessageBox(NULL,
-                       "Unable to access security APIs. Pageant will\n"
-                       "not run, in case it causes a security breach.",
-                       "Pageant Fatal Error", MB_ICONERROR | MB_OK);
-            return 1;
-        }
+        response = strbuf_new();
+        failure(so->pao.info->pc, so->pao.reqid, response, so->failure_type,
+                "unsupported flag bits 0x%08"PRIx32,
+                so->flags & ~supported_flags);
+        goto respond;
     }
 
-    /*
-     * See if we can find our Help file.
-     */
-    init_help();
-
-    /*
-     * Look for the PuTTY binary (we will enable the saved session
-     * submenu if we find it).
-     */
-    {
-        char b[2048], *p, *q, *r;
-        FILE *fp;
-        GetModuleFileName(NULL, b, sizeof(b) - 16);
-        r = b;
-        p = strrchr(b, '\\');
-        if (p && p >= r) r = p+1;
-        q = strrchr(b, ':');
-        if (q && q >= r) r = q+1;
-        strcpy(r, "putty.exe");
-        if ( (fp = fopen(b, "r")) != NULL) {
-            putty_path = dupstr(b);
-            fclose(fp);
-        } else
-            putty_path = NULL;
+    char *invalid = ssh_key_invalid(so->pk->skey->key, so->flags);
+    if (invalid) {
+        response = strbuf_new();
+        failure(so->pao.info->pc, so->pao.reqid, response, so->failure_type,
+                "key invalid: %s", invalid);
+        sfree(invalid);
+        goto respond;
     }
 
-    /*
-     * Find out if Pageant is already running.
-     */
-    already_running = agent_exists();
+    strbuf *signature = strbuf_new();
+    ssh_key_sign(so->pk->skey->key, ptrlen_from_strbuf(so->data_to_sign),
+                 so->flags, BinarySink_UPCAST(signature));
 
-    /*
-     * Initialise the cross-platform Pageant code.
-     */
-    if (!already_running) {
-        pageant_init();
+    response = strbuf_new();
+    put_byte(response, SSH2_AGENT_SIGN_RESPONSE);
+    put_stringsb(response, signature);
+
+  respond:
+    pageant_client_got_response(so->pao.info->pc, so->pao.reqid,
+                                ptrlen_from_strbuf(response));
+    strbuf_free(response);
+
+    pageant_async_op_unlink_and_free(&so->pao);
+    crFinishFreedV;
+}
+
+static const PageantAsyncOpVtable signop_vtable = {
+    .coroutine = signop_coroutine,
+    .free = signop_free,
+};
+
+static void fail_requests_for_key(PageantKey *pk, const char *reason)
+{
+    while (pk->blocked_requests.next != &pk->blocked_requests) {
+        PageantSignOp *so = container_of(pk->blocked_requests.next,
+                                         PageantSignOp, pkr);
+        signop_unlink(so);
+        strbuf *sb = strbuf_new();
+        failure(so->pao.info->pc, so->pao.reqid, sb, so->failure_type,
+                "%s", reason);
+        pageant_client_got_response(so->pao.info->pc, so->pao.reqid,
+                                    ptrlen_from_strbuf(sb));
+        strbuf_free(sb);
+        pageant_async_op_unlink_and_free(&so->pao);
     }
+}
 
-    /*
-     * Process the command line and add keys as listed on it.
-     */
-    split_into_argv(cmdline, &argc, &argv, &argstart);
-    bool doing_opts = true;
-    bool add_keys_encrypted = false;
-    for (i = 0; i < argc; i++) {
-        char *p = argv[i];
-        if (*p == '-' && doing_opts) {
-            if (!strcmp(p, "-pgpfp")) {
-                pgp_fingerprints_msgbox(NULL);
-                return 1;
-            } else if (!strcmp(p, "-restrict-acl") ||
-                       !strcmp(p, "-restrict_acl") ||
-                       !strcmp(p, "-restrictacl")) {
-                restrict_process_acl();
-            } else if (!strcmp(p, "-restrict-putty-acl") ||
-                       !strcmp(p, "-restrict_putty_acl")) {
-                restrict_putty_acl = true;
-            } else if (!strcmp(p, "--no-decrypt") ||
-                       !strcmp(p, "-no-decrypt") ||
-                       !strcmp(p, "--no_decrypt") ||
-                       !strcmp(p, "-no_decrypt") ||
-                       !strcmp(p, "--nodecrypt") ||
-                       !strcmp(p, "-nodecrypt") ||
-                       !strcmp(p, "--encrypted") ||
-                       !strcmp(p, "-encrypted")) {
-                add_keys_encrypted = true;
-            } else if (!strcmp(p, "-keylist") || !strcmp(p, "--keylist")) {
-                show_keylist_on_startup = true;
-            } else if (!strcmp(p, "-c")) {
+static void unblock_requests_for_key(PageantKey *pk)
+{
+    for (PageantKeyRequestNode *pkr = pk->blocked_requests.next;
+         pkr != &pk->blocked_requests; pkr = pkr->next) {
+        PageantSignOp *so = container_of(pk->blocked_requests.next,
+                                         PageantSignOp, pkr);
+        queue_toplevel_callback(pageant_async_op_callback, &so->pao);
+    }
+}
+
+void pageant_passphrase_request_success(PageantClientDialogId *dlgid,
+                                        ptrlen passphrase)
+{
+    PageantKey *pk = container_of(dlgid, PageantKey, dlgid);
+
+    assert(gui_request_in_progress);
+    gui_request_in_progress = false;
+    pk->decryption_prompt_active = false;
+
+    if (!pk->skey) {
+        const char *error;
+
+        BinarySource src[1];
+        BinarySource_BARE_INIT_PL(src, ptrlen_from_strbuf(
+                                      pk->encrypted_key_file));
+
+        strbuf *ppsb = strbuf_new_nm();
+        put_datapl(ppsb, passphrase);
+
+        pk->skey = ppk_load_s(src, ppsb->s, &error);
+
+        strbuf_free(ppsb);
+
+        if (!pk->skey) {
+            fail_requests_for_key(pk, "unable to decrypt key");
+            return;
+        } else if (pk->skey == SSH2_WRONG_PASSPHRASE) {
+            pk->skey = NULL;
+
+            /*
+             * Find a PageantClient to use for another attempt at
+             * request_passphrase.
+             */
+            PageantKeyRequestNode *pkr = pk->blocked_requests.next;
+            if (pkr == &pk->blocked_requests) {
                 /*
-                 * If we see `-c', then the rest of the
-                 * command line should be treated as a
-                 * command to be spawned.
+                 * Special case: if all the requests have gone away at
+                 * this point, we need not bother putting up a request
+                 * at all any more.
                  */
-                if (i < argc-1)
-                    command = argstart[i+1];
-                else
-                    command = "";
-                break;
-            } else if (!strcmp(p, "--")) {
-                doing_opts = false;
-            } else {
-                char *msg = dupprintf("unrecognised command-line option\n"
-                                      "'%s'", p);
-                MessageBox(NULL, msg, "Pageant command-line syntax error",
-                           MB_ICONERROR | MB_OK);
-                exit(1);
+                return;
             }
+
+            PageantSignOp *so = container_of(pk->blocked_requests.next,
+                                             PageantSignOp, pkr);
+
+            pk->decryption_prompt_active = false;
+            if (!request_passphrase(so->pao.info->pc, pk)) {
+                fail_requests_for_key(pk, "unable to continue creating "
+                                      "passphrase prompts");
+            }
+            return;
         } else {
-            Filename *fn = filename_from_str(p);
-            win_add_keyfile(fn, add_keys_encrypted);
-            filename_free(fn);
-            added_keys = true;
+            keylist_update();
         }
     }
 
-    /*
-     * Forget any passphrase that we retained while going over
-     * command line keyfiles.
-     */
-    pageant_forget_passphrases();
+    unblock_requests_for_key(pk);
+}
 
-    if (command) {
-        char *args;
-        if (command[0] == '"')
-            args = strchr(++command, '"');
+void pageant_passphrase_request_refused(PageantClientDialogId *dlgid)
+{
+    PageantKey *pk = container_of(dlgid, PageantKey, dlgid);
+
+    assert(gui_request_in_progress);
+    gui_request_in_progress = false;
+    pk->decryption_prompt_active = false;
+
+    fail_requests_for_key(pk, "user refused to supply passphrase");
+}
+
+typedef struct PageantImmOp PageantImmOp;
+struct PageantImmOp {
+    int crLine;
+    strbuf *response;
+
+    PageantAsyncOp pao;
+};
+
+static void immop_free(PageantAsyncOp *pao)
+{
+    PageantImmOp *io = container_of(pao, PageantImmOp, pao);
+    if (io->response)
+        strbuf_free(io->response);
+    sfree(io);
+}
+
+static void immop_coroutine(PageantAsyncOp *pao)
+{
+    PageantImmOp *io = container_of(pao, PageantImmOp, pao);
+
+    crBegin(io->crLine);
+
+    if (0) crReturnV;
+
+    pageant_client_got_response(io->pao.info->pc, io->pao.reqid,
+                                ptrlen_from_strbuf(io->response));
+    pageant_async_op_unlink_and_free(&io->pao);
+    crFinishFreedV;
+}
+
+static const PageantAsyncOpVtable immop_vtable = {
+    .coroutine = immop_coroutine,
+    .free = immop_free,
+};
+
+static bool reencrypt_key(PageantKey *pk)
+{
+    if (pk->sort.ssh_version != 2) {
+        /*
+         * We don't support storing SSH-1 keys in encrypted form at
+         * all.
+         */
+        return false;
+    }
+
+    if (!pk->encrypted_key_file) {
+        /*
+         * We can't re-encrypt a key if it doesn't have an encrypted
+         * form. (We could make one up, of course - but with what
+         * passphrase that we could expect the user to know later?)
+         */
+        return false;
+    }
+
+    /* Only actually free pk->skey if it exists. But we return success
+     * regardless, so that 'please ensure this key isn't stored
+     * decrypted' is idempotent. */
+    if (pk->skey) {
+        sfree(pk->skey->comment);
+        ssh_key_free(pk->skey->key);
+        sfree(pk->skey);
+        pk->skey = NULL;
+    }
+
+    return true;
+}
+
+#define DECL_EXT_ENUM(id, name) id,
+enum Extension { KNOWN_EXTENSIONS(DECL_EXT_ENUM) EXT_UNKNOWN };
+#define DEF_EXT_NAMES(id, name) PTRLEN_DECL_LITERAL(name),
+static const ptrlen extension_names[] = { KNOWN_EXTENSIONS(DEF_EXT_NAMES) };
+
+static PageantAsyncOp *pageant_make_op(
+    PageantClient *pc, PageantClientRequestId *reqid, ptrlen msgpl)
+{
+    BinarySource msg[1];
+    strbuf *sb = strbuf_new_nm();
+    unsigned char failure_type = SSH_AGENT_FAILURE;
+    int type;
+
+#define fail(...) failure(pc, reqid, sb, failure_type, __VA_ARGS__)
+
+    BinarySource_BARE_INIT_PL(msg, msgpl);
+
+    type = get_byte(msg);
+    if (get_err(msg)) {
+        fail("message contained no type code");
+        goto responded;
+    }
+
+    switch (type) {
+      case SSH1_AGENTC_REQUEST_RSA_IDENTITIES: {
+        /*
+         * Reply with SSH1_AGENT_RSA_IDENTITIES_ANSWER.
+         */
+        pageant_client_log(pc, reqid,
+                           "request: SSH1_AGENTC_REQUEST_RSA_IDENTITIES");
+
+        put_byte(sb, SSH1_AGENT_RSA_IDENTITIES_ANSWER);
+        pageant_make_keylist1(BinarySink_UPCAST(sb));
+
+        pageant_client_log(pc, reqid,
+                           "reply: SSH1_AGENT_RSA_IDENTITIES_ANSWER");
+        if (!pc->suppress_logging) {
+            int i;
+            PageantKey *pk;
+            for (i = 0; NULL != (pk = pageant_nth_key(1, i)); i++) {
+                char *fingerprint = rsa_ssh1_fingerprint(pk->rkey);
+                pageant_client_log(pc, reqid, "returned key: %s",
+                                   fingerprint);
+                sfree(fingerprint);
+            }
+        }
+        break;
+      }
+      case SSH2_AGENTC_REQUEST_IDENTITIES: {
+        /*
+         * Reply with SSH2_AGENT_IDENTITIES_ANSWER.
+         */
+        pageant_client_log(pc, reqid,
+                           "request: SSH2_AGENTC_REQUEST_IDENTITIES");
+
+        put_byte(sb, SSH2_AGENT_IDENTITIES_ANSWER);
+        pageant_make_keylist2(BinarySink_UPCAST(sb));
+
+        pageant_client_log(pc, reqid, "reply: SSH2_AGENT_IDENTITIES_ANSWER");
+        if (!pc->suppress_logging) {
+            int i;
+            PageantKey *pk;
+            for (i = 0; NULL != (pk = pageant_nth_key(2, i)); i++) {
+                char *fingerprint = ssh2_fingerprint_blob(
+                    ptrlen_from_strbuf(pk->public_blob), SSH_FPTYPE_DEFAULT);
+                pageant_client_log(pc, reqid, "returned key: %s %s",
+                                   fingerprint, pk->comment);
+                sfree(fingerprint);
+            }
+        }
+        break;
+      }
+      case SSH1_AGENTC_RSA_CHALLENGE: {
+        /*
+         * Reply with either SSH1_AGENT_RSA_RESPONSE or
+         * SSH_AGENT_FAILURE, depending on whether we have that key
+         * or not.
+         */
+        RSAKey reqkey;
+        PageantKey *pk;
+        mp_int *challenge, *response;
+        ptrlen session_id;
+        unsigned response_type;
+        unsigned char response_md5[16];
+        int i;
+
+        pageant_client_log(pc, reqid, "request: SSH1_AGENTC_RSA_CHALLENGE");
+
+        response = NULL;
+        memset(&reqkey, 0, sizeof(reqkey));
+
+        get_rsa_ssh1_pub(msg, &reqkey, RSA_SSH1_EXPONENT_FIRST);
+        challenge = get_mp_ssh1(msg);
+        session_id = get_data(msg, 16);
+        response_type = get_uint32(msg);
+
+        if (get_err(msg)) {
+            fail("unable to decode request");
+            goto challenge1_cleanup;
+        }
+        if (response_type != 1) {
+            fail("response type other than 1 not supported");
+            goto challenge1_cleanup;
+        }
+
+        if (!pc->suppress_logging) {
+            char *fingerprint;
+            reqkey.comment = NULL;
+            fingerprint = rsa_ssh1_fingerprint(&reqkey);
+            pageant_client_log(pc, reqid, "requested key: %s", fingerprint);
+            sfree(fingerprint);
+        }
+
+        if ((pk = findkey1(&reqkey)) == NULL) {
+            fail("key not found");
+            goto challenge1_cleanup;
+        }
+        response = rsa_ssh1_decrypt(challenge, pk->rkey);
+
+        {
+            ssh_hash *h = ssh_hash_new(&ssh_md5);
+            for (i = 0; i < 32; i++)
+                put_byte(h, mp_get_byte(response, 31 - i));
+            put_datapl(h, session_id);
+            ssh_hash_final(h, response_md5);
+        }
+
+        put_byte(sb, SSH1_AGENT_RSA_RESPONSE);
+        put_data(sb, response_md5, 16);
+
+        pageant_client_log(pc, reqid, "reply: SSH1_AGENT_RSA_RESPONSE");
+
+          challenge1_cleanup:
+        if (response)
+            mp_free(response);
+        mp_free(challenge);
+        freersakey(&reqkey);
+        break;
+      }
+      case SSH2_AGENTC_SIGN_REQUEST: {
+        /*
+         * Reply with either SSH2_AGENT_SIGN_RESPONSE or
+         * SSH_AGENT_FAILURE, depending on whether we have that key
+         * or not.
+         */
+        PageantKey *pk;
+        ptrlen keyblob, sigdata;
+        uint32_t flags;
+
+        pageant_client_log(pc, reqid, "request: SSH2_AGENTC_SIGN_REQUEST");
+
+        keyblob = get_string(msg);
+        sigdata = get_string(msg);
+
+        if (get_err(msg)) {
+            fail("unable to decode request");
+            goto responded;
+        }
+
+        /*
+         * Later versions of the agent protocol added a flags word
+         * on the end of the sign request. That hasn't always been
+         * there, so we don't complain if we don't find it.
+         *
+         * get_uint32 will default to returning zero if no data is
+         * available.
+         */
+        bool have_flags = false;
+        flags = get_uint32(msg);
+        if (!get_err(msg))
+            have_flags = true;
+
+        if (!pc->suppress_logging) {
+            char *fingerprint = ssh2_fingerprint_blob(
+                keyblob, SSH_FPTYPE_DEFAULT);
+            pageant_client_log(pc, reqid, "requested key: %s", fingerprint);
+            sfree(fingerprint);
+        }
+        if ((pk = findkey2(keyblob)) == NULL) {
+            fail("key not found");
+            goto responded;
+        }
+
+        if (have_flags)
+            pageant_client_log(pc, reqid, "signature flags = 0x%08"PRIx32,
+                               flags);
         else
-            args = strchr(command, ' ');
-        if (args) {
-            *args++ = 0;
-            while(*args && isspace(*args)) args++;
+            pageant_client_log(pc, reqid, "no signature flags");
+
+        strbuf_free(sb); /* no immediate response */
+
+        PageantSignOp *so = snew(PageantSignOp);
+        so->pao.vt = &signop_vtable;
+        so->pao.info = pc->info;
+        so->pao.cr.prev = pc->info->head.prev;
+        so->pao.cr.next = &pc->info->head;
+        so->pao.reqid = reqid;
+        so->pk = pk;
+        so->pkr.prev = so->pkr.next = NULL;
+        so->data_to_sign = strbuf_new();
+        put_datapl(so->data_to_sign, sigdata);
+        so->flags = flags;
+        so->failure_type = failure_type;
+        so->crLine = 0;
+        return &so->pao;
+        break;
+      }
+      case SSH1_AGENTC_ADD_RSA_IDENTITY: {
+        /*
+         * Add to the list and return SSH_AGENT_SUCCESS, or
+         * SSH_AGENT_FAILURE if the key was malformed.
+         */
+        RSAKey *key;
+
+        pageant_client_log(pc, reqid, "request: SSH1_AGENTC_ADD_RSA_IDENTITY");
+
+        key = get_rsa_ssh1_priv_agent(msg);
+        key->comment = mkstr(get_string(msg));
+
+        if (get_err(msg)) {
+            fail("unable to decode request");
+            goto add1_cleanup;
         }
-        spawn_cmd(command, args, show);
+
+        if (!rsa_verify(key)) {
+            fail("key is invalid");
+            goto add1_cleanup;
+        }
+
+        if (!pc->suppress_logging) {
+            char *fingerprint = rsa_ssh1_fingerprint(key);
+            pageant_client_log(pc, reqid,
+                               "submitted key: %s", fingerprint);
+            sfree(fingerprint);
+        }
+
+        if (pageant_add_ssh1_key(key)) {
+            keylist_update();
+            put_byte(sb, SSH_AGENT_SUCCESS);
+            pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+            key = NULL;            /* don't free it in cleanup */
+        } else {
+            fail("key already present");
+        }
+
+          add1_cleanup:
+        if (key) {
+            freersakey(key);
+            sfree(key);
+        }
+        break;
+      }
+      case SSH2_AGENTC_ADD_IDENTITY: {
+        /*
+         * Add to the list and return SSH_AGENT_SUCCESS, or
+         * SSH_AGENT_FAILURE if the key was malformed.
+         */
+        ssh2_userkey *key = NULL;
+        ptrlen algpl;
+        const ssh_keyalg *alg;
+
+        pageant_client_log(pc, reqid, "request: SSH2_AGENTC_ADD_IDENTITY");
+
+        algpl = get_string(msg);
+
+        key = snew(ssh2_userkey);
+        key->key = NULL;
+        key->comment = NULL;
+        alg = find_pubkey_alg_len(algpl);
+        if (!alg) {
+            fail("algorithm unknown");
+            goto add2_cleanup;
+        }
+
+        key->key = ssh_key_new_priv_openssh(alg, msg);
+
+        if (!key->key) {
+            fail("key setup failed");
+            goto add2_cleanup;
+        }
+
+        key->comment = mkstr(get_string(msg));
+
+        if (get_err(msg)) {
+            fail("unable to decode request");
+            goto add2_cleanup;
+        }
+
+        if (!pc->suppress_logging) {
+            char *fingerprint = ssh2_fingerprint(key->key, SSH_FPTYPE_DEFAULT);
+            pageant_client_log(pc, reqid, "submitted key: %s %s",
+                               fingerprint, key->comment);
+            sfree(fingerprint);
+        }
+
+        if (pageant_add_ssh2_key(key)) {
+            keylist_update();
+            put_byte(sb, SSH_AGENT_SUCCESS);
+
+            pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+
+            key = NULL;            /* don't clean it up */
+        } else {
+            fail("key already present");
+        }
+
+          add2_cleanup:
+        if (key) {
+            if (key->key)
+                ssh_key_free(key->key);
+            if (key->comment)
+                sfree(key->comment);
+            sfree(key);
+        }
+        break;
+      }
+      case SSH1_AGENTC_REMOVE_RSA_IDENTITY: {
+        /*
+         * Remove from the list and return SSH_AGENT_SUCCESS, or
+         * perhaps SSH_AGENT_FAILURE if it wasn't in the list to
+         * start with.
+         */
+        RSAKey reqkey;
+        PageantKey *pk;
+
+        pageant_client_log(pc, reqid,
+                           "request: SSH1_AGENTC_REMOVE_RSA_IDENTITY");
+
+        memset(&reqkey, 0, sizeof(reqkey));
+        get_rsa_ssh1_pub(msg, &reqkey, RSA_SSH1_EXPONENT_FIRST);
+
+        if (get_err(msg)) {
+            fail("unable to decode request");
+            freersakey(&reqkey);
+            goto responded;
+        }
+
+        if (!pc->suppress_logging) {
+            char *fingerprint;
+            reqkey.comment = NULL;
+            fingerprint = rsa_ssh1_fingerprint(&reqkey);
+            pageant_client_log(pc, reqid, "unwanted key: %s", fingerprint);
+            sfree(fingerprint);
+        }
+
+        pk = findkey1(&reqkey);
+        freersakey(&reqkey);
+        if (pk) {
+            pageant_client_log(pc, reqid, "found with comment: %s",
+                               pk->rkey->comment);
+
+            del234(keytree, pk);
+            keylist_update();
+            pk_free(pk);
+            put_byte(sb, SSH_AGENT_SUCCESS);
+
+            pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+        } else {
+            fail("key not found");
+        }
+        break;
+      }
+      case SSH2_AGENTC_REMOVE_IDENTITY: {
+        /*
+         * Remove from the list and return SSH_AGENT_SUCCESS, or
+         * perhaps SSH_AGENT_FAILURE if it wasn't in the list to
+         * start with.
+         */
+        PageantKey *pk;
+        ptrlen blob;
+
+        pageant_client_log(pc, reqid, "request: SSH2_AGENTC_REMOVE_IDENTITY");
+
+        blob = get_string(msg);
+
+        if (get_err(msg)) {
+            fail("unable to decode request");
+            goto responded;
+        }
+
+        if (!pc->suppress_logging) {
+            char *fingerprint = ssh2_fingerprint_blob(
+                blob, SSH_FPTYPE_DEFAULT);
+            pageant_client_log(pc, reqid, "unwanted key: %s", fingerprint);
+            sfree(fingerprint);
+        }
+
+        pk = findkey2(blob);
+        if (!pk) {
+            fail("key not found");
+            goto responded;
+        }
+
+        pageant_client_log(pc, reqid, "found with comment: %s", pk->comment);
+
+        del234(keytree, pk);
+        keylist_update();
+        pk_free(pk);
+        put_byte(sb, SSH_AGENT_SUCCESS);
+
+        pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+        break;
+      }
+      case SSH1_AGENTC_REMOVE_ALL_RSA_IDENTITIES: {
+        /*
+         * Remove all SSH-1 keys. Always returns success.
+         */
+        pageant_client_log(pc, reqid,
+                           "request: SSH1_AGENTC_REMOVE_ALL_RSA_IDENTITIES");
+
+        remove_all_keys(1);
+        keylist_update();
+
+        put_byte(sb, SSH_AGENT_SUCCESS);
+
+        pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+        break;
+      }
+      case SSH2_AGENTC_REMOVE_ALL_IDENTITIES: {
+        /*
+         * Remove all SSH-2 keys. Always returns success.
+         */
+        pageant_client_log(pc, reqid,
+                           "request: SSH2_AGENTC_REMOVE_ALL_IDENTITIES");
+
+        remove_all_keys(2);
+        keylist_update();
+
+        put_byte(sb, SSH_AGENT_SUCCESS);
+
+        pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+        break;
+      }
+      case SSH2_AGENTC_EXTENSION: {
+        enum Extension exttype = EXT_UNKNOWN;
+        ptrlen extname = get_string(msg);
+        pageant_client_log(pc, reqid,
+                           "request: SSH2_AGENTC_EXTENSION \"%.*s\"",
+                           PTRLEN_PRINTF(extname));
+
+        for (size_t i = 0; i < lenof(extension_names); i++)
+            if (ptrlen_eq_ptrlen(extname, extension_names[i])) {
+                exttype = i;
+
+                /*
+                 * For SSH_AGENTC_EXTENSION requests, the message
+                 * code SSH_AGENT_FAILURE is reserved for "I don't
+                 * recognise this extension name at all". For any
+                 * other kind of failure while processing an
+                 * extension we _do_ recognise, we must switch to
+                 * returning a different failure code, with
+                 * semantics "I understood the extension name, but
+                 * something else went wrong".
+                 */
+                failure_type = SSH_AGENT_EXTENSION_FAILURE;
+                break;
+            }
+
+        switch (exttype) {
+          case EXT_UNKNOWN:
+            fail("unrecognised extension name '%.*s'",
+                 PTRLEN_PRINTF(extname));
+            break;
+
+          case EXT_QUERY:
+            /* Standard request to list the supported extensions. */
+            put_byte(sb, SSH_AGENT_SUCCESS);
+            for (size_t i = 0; i < lenof(extension_names); i++)
+                put_stringpl(sb, extension_names[i]);
+            pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS + names");
+            break;
+
+          case EXT_ADD_PPK: {
+            ptrlen keyfile = get_string(msg);
+
+            if (get_err(msg)) {
+                fail("unable to decode request");
+                goto responded;
+            }
+
+            BinarySource src[1];
+            const char *error;
+
+            strbuf *public_blob = strbuf_new();
+            char *comment;
+
+            BinarySource_BARE_INIT_PL(src, keyfile);
+            if (!ppk_loadpub_s(src, NULL, BinarySink_UPCAST(public_blob),
+                               &comment, &error)) {
+                fail("failed to extract public key blob: %s", error);
+                goto add_ppk_cleanup;
+            }
+
+            if (!pc->suppress_logging) {
+                char *fingerprint = ssh2_fingerprint_blob(
+                    ptrlen_from_strbuf(public_blob), SSH_FPTYPE_DEFAULT);
+                pageant_client_log(pc, reqid, "add-ppk: %s %s",
+                                   fingerprint, comment);
+                sfree(fingerprint);
+            }
+
+            BinarySource_BARE_INIT_PL(src, keyfile);
+            bool encrypted = ppk_encrypted_s(src, NULL);
+
+            if (!encrypted) {
+                /* If the key isn't encrypted, then we should just
+                 * load and add it in the obvious way. */
+                BinarySource_BARE_INIT_PL(src, keyfile);
+                ssh2_userkey *skey = ppk_load_s(src, NULL, &error);
+                if (!skey) {
+                    fail("failed to decode private key: %s", error);
+                } else if (pageant_add_ssh2_key(skey)) {
+                    keylist_update();
+                    put_byte(sb, SSH_AGENT_SUCCESS);
+
+                    pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS"
+                                       " (loaded unencrypted PPK)");
+                } else {
+                    fail("key already present");
+                    if (skey->key)
+                        ssh_key_free(skey->key);
+                    if (skey->comment)
+                        sfree(skey->comment);
+                    sfree(skey);
+                }
+                goto add_ppk_cleanup;
+            }
+
+            PageantKeySort sort =
+                keysort(2, ptrlen_from_strbuf(public_blob));
+
+            PageantKey *pk = find234(keytree, &sort, NULL);
+            if (pk) {
+                /*
+                 * This public key blob already exists in the
+                 * keytree. Add the encrypted key file to the
+                 * existing record, if it doesn't have one already.
+                 */
+                if (!pk->encrypted_key_file) {
+                    pk->encrypted_key_file = strbuf_new_nm();
+                    put_datapl(pk->encrypted_key_file, keyfile);
+
+                    keylist_update();
+                    put_byte(sb, SSH_AGENT_SUCCESS);
+                    pageant_client_log(
+                        pc, reqid, "reply: SSH_AGENT_SUCCESS (added encrypted"
+                        " PPK to existing key record)");
+                } else {
+                    fail("key already present");
+                }
+            } else {
+                /*
+                 * We're adding a new key record containing only
+                 * an encrypted key file.
+                 */
+                PageantKey *pk = snew(PageantKey);
+                memset(pk, 0, sizeof(PageantKey));
+                pk->blocked_requests.next = pk->blocked_requests.prev =
+                    &pk->blocked_requests;
+                pk->sort.ssh_version = 2;
+                pk->public_blob = public_blob;
+                public_blob = NULL;
+                pk->sort.public_blob = ptrlen_from_strbuf(pk->public_blob);
+                pk->comment = dupstr(comment);
+                pk->encrypted_key_file = strbuf_new_nm();
+                put_datapl(pk->encrypted_key_file, keyfile);
+
+                PageantKey *added = add234(keytree, pk);
+                assert(added == pk); (void)added;
+
+                keylist_update();
+                put_byte(sb, SSH_AGENT_SUCCESS);
+                pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS (made"
+                                   " new encrypted-only key record)");
+            }
+
+              add_ppk_cleanup:
+            if (public_blob)
+                strbuf_free(public_blob);
+            sfree(comment);
+            break;
+          }
+
+          case EXT_REENCRYPT: {
+            /*
+             * Re-encrypt a single key, in the sense of deleting
+             * its unencrypted copy, returning it to the state of
+             * only having the encrypted PPK form stored, so that
+             * the next attempt to use it will have to re-prompt
+             * for the passphrase.
+             */
+            ptrlen blob = get_string(msg);
+
+            if (get_err(msg)) {
+                fail("unable to decode request");
+                goto responded;
+            }
+
+            if (!pc->suppress_logging) {
+                char *fingerprint = ssh2_fingerprint_blob(
+                    blob, SSH_FPTYPE_DEFAULT);
+                pageant_client_log(pc, reqid, "key to re-encrypt: %s",
+                                   fingerprint);
+                sfree(fingerprint);
+            }
+
+            PageantKey *pk = findkey2(blob);
+            if (!pk) {
+                fail("key not found");
+                goto responded;
+            }
+
+            pageant_client_log(pc, reqid,
+                               "found with comment: %s", pk->comment);
+
+            if (!reencrypt_key(pk)) {
+                fail("this key couldn't be re-encrypted");
+                goto responded;
+            }
+
+            keylist_update();
+            put_byte(sb, SSH_AGENT_SUCCESS);
+            pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS");
+            break;
+          }
+
+          case EXT_REENCRYPT_ALL: {
+            /*
+             * Re-encrypt all keys that have an encrypted form
+             * stored. Usually, returns success, but with a uint32
+             * appended indicating how many keys remain
+             * unencrypted. The exception is if there is at least
+             * one key in the agent and _no_ key was successfully
+             * re-encrypted; in that situation we've done nothing,
+             * and the client didn't _want_ us to do nothing, so
+             * we return failure.
+             *
+             * (Rationale: the 'failure' message ought to be
+             * atomic, that is, you shouldn't return failure
+             * having made a state change.)
+             */
+            unsigned nfailures = 0, nsuccesses = 0;
+            PageantKey *pk;
+
+            for (int i = 0; (pk = index234(keytree, i)) != NULL; i++) {
+                if (reencrypt_key(pk))
+                    nsuccesses++;
+                else
+                    nfailures++;
+            }
+
+            if (nsuccesses == 0 && nfailures > 0) {
+                fail("no key could be re-encrypted");
+            } else {
+                keylist_update();
+                put_byte(sb, SSH_AGENT_SUCCESS);
+                put_uint32(sb, nfailures);
+                pageant_client_log(pc, reqid, "reply: SSH_AGENT_SUCCESS "
+                                   "(%u keys re-encrypted, %u failures)",
+                                   nsuccesses, nfailures);
+            }
+            break;
+          }
+
+          case EXT_LIST_EXTENDED: {
+            /*
+             * Return a key list like SSH2_AGENTC_REQUEST_IDENTITIES,
+             * except that each key is annotated with extra
+             * information such as whether it's currently encrypted.
+             *
+             * The return message type is AGENT_SUCCESS with auxiliary
+             * data, which is more like other extension messages. I
+             * think it would be confusing to reuse IDENTITIES_ANSWER
+             * for a reply message with an incompatible format.
+             */
+            put_byte(sb, SSH_AGENT_SUCCESS);
+            pageant_make_keylist_extended(BinarySink_UPCAST(sb));
+
+            pageant_client_log(pc, reqid,
+                               "reply: SSH2_AGENT_SUCCESS + key list");
+            if (!pc->suppress_logging) {
+                int i;
+                PageantKey *pk;
+                for (i = 0; NULL != (pk = pageant_nth_key(2, i)); i++) {
+                    char *fingerprint = ssh2_fingerprint_blob(
+                        ptrlen_from_strbuf(pk->public_blob),
+                        SSH_FPTYPE_DEFAULT);
+                    pageant_client_log(pc, reqid, "returned key: %s %s",
+                                       fingerprint, pk->comment);
+                    sfree(fingerprint);
+                }
+            }
+            break;
+          }
+        }
+        break;
+      }
+      default:
+        pageant_client_log(pc, reqid, "request: unknown message type %d",
+                           type);
+        fail("unrecognised message");
+        break;
     }
 
+#undef fail
+
+  responded:;
+
+    PageantImmOp *io = snew(PageantImmOp);
+    io->pao.vt = &immop_vtable;
+    io->pao.info = pc->info;
+    io->pao.cr.prev = pc->info->head.prev;
+    io->pao.cr.next = &pc->info->head;
+    io->pao.reqid = reqid;
+    io->response = sb;
+    io->crLine = 0;
+    return &io->pao;
+}
+
+void pageant_handle_msg(PageantClient *pc, PageantClientRequestId *reqid,
+                        ptrlen msgpl)
+{
+    PageantAsyncOp *pao = pageant_make_op(pc, reqid, msgpl);
+    queue_toplevel_callback(pageant_async_op_callback, pao);
+}
+
+void pageant_init(void)
+{
+    pageant_local = true;
+    keytree = newtree234(cmpkeys);
+}
+
+static PageantKey *pageant_nth_key(int ssh_version, int i)
+{
+    PageantKey *pk = index234(
+        keytree, find_first_key_for_version(ssh_version) + i);
+    if (pk && pk->sort.ssh_version == ssh_version)
+        return pk;
+    else
+        return NULL;
+}
+
+bool pageant_delete_nth_ssh1_key(int i)
+{
+    PageantKey *pk = delpos234(keytree, find_first_key_for_version(1) + i);
+    if (!pk)
+        return false;
+    pk_free(pk);
+    return true;
+}
+
+bool pageant_delete_nth_ssh2_key(int i)
+{
+    PageantKey *pk = delpos234(keytree, find_first_key_for_version(2) + i);
+    if (!pk)
+        return false;
+    pk_free(pk);
+    return true;
+}
+
+bool pageant_reencrypt_nth_ssh2_key(int i)
+{
+    PageantKey *pk = index234(keytree, find_first_key_for_version(2) + i);
+    if (!pk)
+        return false;
+    return reencrypt_key(pk);
+}
+
+void pageant_delete_all(void)
+{
+    remove_all_keys(1);
+    remove_all_keys(2);
+}
+
+void pageant_reencrypt_all(void)
+{
+    PageantKey *pk;
+    for (int i = 0; (pk = index234(keytree, i)) != NULL; i++)
+        reencrypt_key(pk);
+}
+
+/* ----------------------------------------------------------------------
+ * The agent plug.
+ */
+
+/*
+ * An extra coroutine macro, specific to this code which is consuming
+ * 'const char *data'.
+ */
+#define crGetChar(c) do                                         \
+    {                                                           \
+        while (len == 0) {                                      \
+            *crLine =__LINE__; return; case __LINE__:;          \
+        }                                                       \
+        len--;                                                  \
+        (c) = (unsigned char)*data++;                           \
+    } while (0)
+
+struct pageant_conn_queued_response {
+    struct pageant_conn_queued_response *next, *prev;
+    size_t req_index;      /* for indexing requests in log messages */
+    strbuf *sb;
+    PageantClientRequestId reqid;
+};
+
+struct pageant_conn_state {
+    Socket *connsock;
+    PageantListenerClient *plc;
+    unsigned char lenbuf[4], pktbuf[AGENT_MAX_MSGLEN];
+    unsigned len, got;
+    bool real_packet;
+    size_t conn_index;     /* for indexing connections in log messages */
+    size_t req_index;      /* for indexing requests in log messages */
+    int crLine;            /* for coroutine in pageant_conn_receive */
+
+    struct pageant_conn_queued_response response_queue;
+
+    PageantClient pc;
+    Plug plug;
+};
+
+static void pageant_conn_closing(Plug *plug, const char *error_msg,
+                                 int error_code, bool calling_back)
+{
+    struct pageant_conn_state *pc = container_of(
+        plug, struct pageant_conn_state, plug);
+    if (error_msg)
+        pageant_listener_client_log(pc->plc, "c#%"SIZEu": error: %s",
+                                    pc->conn_index, error_msg);
+    else
+        pageant_listener_client_log(pc->plc, "c#%"SIZEu": connection closed",
+                                    pc->conn_index);
+    sk_close(pc->connsock);
+    pageant_unregister_client(&pc->pc);
+    sfree(pc);
+}
+
+static void pageant_conn_sent(Plug *plug, size_t bufsize)
+{
+    /* struct pageant_conn_state *pc = container_of(
+        plug, struct pageant_conn_state, plug); */
+
     /*
-     * If Pageant was already running, we leave now. If we haven't
-     * even taken any auxiliary action (spawned a command or added
-     * keys), complain.
+     * We do nothing here, because we expect that there won't be a
+     * need to throttle and unthrottle the connection to an agent -
+     * clients will typically not send many requests, and will wait
+     * until they receive each reply before sending a new request.
      */
-    if (already_running) {
-        if (!command && !added_keys) {
-            MessageBox(NULL, "Pageant is already running", "Pageant Error",
-                       MB_ICONERROR | MB_OK);
+}
+
+static void pageant_conn_log(PageantClient *pc, PageantClientRequestId *reqid,
+                             const char *fmt, va_list ap)
+{
+    struct pageant_conn_state *pcs =
+        container_of(pc, struct pageant_conn_state, pc);
+    struct pageant_conn_queued_response *qr =
+        container_of(reqid, struct pageant_conn_queued_response, reqid);
+
+    char *formatted = dupvprintf(fmt, ap);
+    pageant_listener_client_log(pcs->plc, "c#%"SIZEu",r#%"SIZEu": %s",
+                                pcs->conn_index, qr->req_index, formatted);
+    sfree(formatted);
+}
+
+static void pageant_conn_got_response(
+    PageantClient *pc, PageantClientRequestId *reqid, ptrlen response)
+{
+    struct pageant_conn_state *pcs =
+        container_of(pc, struct pageant_conn_state, pc);
+    struct pageant_conn_queued_response *qr =
+        container_of(reqid, struct pageant_conn_queued_response, reqid);
+
+    qr->sb = strbuf_new_nm();
+    put_stringpl(qr->sb, response);
+
+    while (pcs->response_queue.next != &pcs->response_queue &&
+           pcs->response_queue.next->sb) {
+        qr = pcs->response_queue.next;
+        sk_write(pcs->connsock, qr->sb->u, qr->sb->len);
+        qr->next->prev = qr->prev;
+        qr->prev->next = qr->next;
+        strbuf_free(qr->sb);
+        sfree(qr);
+    }
+}
+
+static bool pageant_conn_ask_passphrase(
+    PageantClient *pc, PageantClientDialogId *dlgid, const char *comment)
+{
+    struct pageant_conn_state *pcs =
+        container_of(pc, struct pageant_conn_state, pc);
+    return pageant_listener_client_ask_passphrase(pcs->plc, dlgid, comment);
+}
+
+static const PageantClientVtable pageant_connection_clientvt = {
+    .log = pageant_conn_log,
+    .got_response = pageant_conn_got_response,
+    .ask_passphrase = pageant_conn_ask_passphrase,
+};
+
+static void pageant_conn_receive(
+    Plug *plug, int urgent, const char *data, size_t len)
+{
+    struct pageant_conn_state *pc = container_of(
+        plug, struct pageant_conn_state, plug);
+    char c;
+
+    crBegin(pc->crLine);
+
+    while (len > 0) {
+        pc->got = 0;
+        while (pc->got < 4) {
+            crGetChar(c);
+            pc->lenbuf[pc->got++] = c;
         }
-        return 0;
+
+        pc->len = GET_32BIT_MSB_FIRST(pc->lenbuf);
+        pc->got = 0;
+        pc->real_packet = (pc->len < AGENT_MAX_MSGLEN-4);
+
+        {
+            struct pageant_conn_queued_response *qr =
+                snew(struct pageant_conn_queued_response);
+            qr->prev = pc->response_queue.prev;
+            qr->next = &pc->response_queue;
+            qr->prev->next = qr->next->prev = qr;
+            qr->sb = NULL;
+            qr->req_index = pc->req_index++;
+        }
+
+        if (!pc->real_packet) {
+            /*
+             * Send failure immediately, before consuming the packet
+             * data. That way we notify the client reasonably early
+             * even if the data channel has just started spewing
+             * nonsense.
+             */
+            pageant_client_log(&pc->pc, &pc->response_queue.prev->reqid,
+                               "early reply: SSH_AGENT_FAILURE "
+                               "(overlong message, length %u)", pc->len);
+            static const unsigned char failure[] = { SSH_AGENT_FAILURE };
+            pageant_conn_got_response(&pc->pc, &pc->response_queue.prev->reqid,
+                                      make_ptrlen(failure, lenof(failure)));
+        }
+
+        while (pc->got < pc->len) {
+            crGetChar(c);
+            if (pc->real_packet)
+                pc->pktbuf[pc->got] = c;
+            pc->got++;
+        }
+
+        if (pc->real_packet)
+            pageant_handle_msg(&pc->pc, &pc->response_queue.prev->reqid,
+                               make_ptrlen(pc->pktbuf, pc->len));
+    }
+
+    crFinishV;
+}
+
+struct pageant_listen_state {
+    Socket *listensock;
+    PageantListenerClient *plc;
+    size_t conn_index;     /* for indexing connections in log messages */
+
+    Plug plug;
+};
+
+static void pageant_listen_closing(Plug *plug, const char *error_msg,
+                                   int error_code, bool calling_back)
+{
+    struct pageant_listen_state *pl = container_of(
+        plug, struct pageant_listen_state, plug);
+    if (error_msg)
+        pageant_listener_client_log(pl->plc, "listening socket: error: %s",
+                                    error_msg);
+    sk_close(pl->listensock);
+    pl->listensock = NULL;
+}
+
+static const PlugVtable pageant_connection_plugvt = {
+    .closing = pageant_conn_closing,
+    .receive = pageant_conn_receive,
+    .sent = pageant_conn_sent,
+    .log = nullplug_log,
+};
+
+static int pageant_listen_accepting(Plug *plug,
+                                    accept_fn_t constructor, accept_ctx_t ctx)
+{
+    struct pageant_listen_state *pl = container_of(
+        plug, struct pageant_listen_state, plug);
+    struct pageant_conn_state *pc;
+    const char *err;
+    SocketPeerInfo *peerinfo;
+
+    pc = snew(struct pageant_conn_state);
+    pc->plug.vt = &pageant_connection_plugvt;
+    pc->pc.vt = &pageant_connection_clientvt;
+    pc->plc = pl->plc;
+    pc->response_queue.next = pc->response_queue.prev = &pc->response_queue;
+    pc->conn_index = pl->conn_index++;
+    pc->req_index = 0;
+    pc->crLine = 0;
+
+    pc->connsock = constructor(ctx, &pc->plug);
+    if ((err = sk_socket_error(pc->connsock)) != NULL) {
+        sk_close(pc->connsock);
+        sfree(pc);
+        return 1;
+    }
+
+    sk_set_frozen(pc->connsock, false);
+
+    peerinfo = sk_peer_info(pc->connsock);
+    if (peerinfo && peerinfo->log_text) {
+        pageant_listener_client_log(pl->plc,
+                                    "c#%"SIZEu": new connection from %s",
+                                    pc->conn_index, peerinfo->log_text);
+    } else {
+        pageant_listener_client_log(pl->plc, "c#%"SIZEu": new connection",
+                                    pc->conn_index);
+    }
+    sk_free_peer_info(peerinfo);
+
+    pageant_register_client(&pc->pc);
+
+    return 0;
+}
+
+static const PlugVtable pageant_listener_plugvt = {
+    .closing = pageant_listen_closing,
+    .accepting = pageant_listen_accepting,
+    .log = nullplug_log,
+};
+
+struct pageant_listen_state *pageant_listener_new(
+    Plug **plug, PageantListenerClient *plc)
+{
+    struct pageant_listen_state *pl = snew(struct pageant_listen_state);
+    pl->plug.vt = &pageant_listener_plugvt;
+    pl->plc = plc;
+    pl->listensock = NULL;
+    pl->conn_index = 0;
+    *plug = &pl->plug;
+    return pl;
+}
+
+void pageant_listener_got_socket(struct pageant_listen_state *pl, Socket *sock)
+{
+    pl->listensock = sock;
+}
+
+void pageant_listener_free(struct pageant_listen_state *pl)
+{
+    if (pl->listensock)
+        sk_close(pl->listensock);
+    sfree(pl);
+}
+
+/* ----------------------------------------------------------------------
+ * Code to perform agent operations either as a client, or within the
+ * same process as the running agent.
+ */
+
+static tree234 *passphrases = NULL;
+
+typedef struct PageantInternalClient {
+    strbuf *response;
+    bool got_response;
+    PageantClient pc;
+} PageantInternalClient;
+
+static void internal_client_got_response(
+    PageantClient *pc, PageantClientRequestId *reqid, ptrlen response)
+{
+    PageantInternalClient *pic = container_of(pc, PageantInternalClient, pc);
+    strbuf_clear(pic->response);
+    put_datapl(pic->response, response);
+    pic->got_response = true;
+}
+
+static bool internal_client_ask_passphrase(
+    PageantClient *pc, PageantClientDialogId *dlgid, const char *comment)
+{
+    /* No delaying operations are permitted in this mode */
+    return false;
+}
+
+static const PageantClientVtable internal_clientvt = {
+    .log = NULL,
+    .got_response = internal_client_got_response,
+    .ask_passphrase = internal_client_ask_passphrase,
+};
+
+typedef struct PageantClientOp {
+    strbuf *buf;
+    bool request_made;
+    BinarySink_DELEGATE_IMPLEMENTATION;
+    BinarySource_IMPLEMENTATION;
+} PageantClientOp;
+
+static PageantClientOp *pageant_client_op_new(void)
+{
+    PageantClientOp *pco = snew(PageantClientOp);
+    pco->buf = strbuf_new_for_agent_query();
+    pco->request_made = false;
+    BinarySink_DELEGATE_INIT(pco, pco->buf);
+    BinarySource_INIT(pco, "", 0);
+    return pco;
+}
+
+static void pageant_client_op_free(PageantClientOp *pco)
+{
+    if (pco->buf)
+        strbuf_free(pco->buf);
+    sfree(pco);
+}
+
+static unsigned pageant_client_op_query(PageantClientOp *pco)
+{
+    /* Since we use the same strbuf for the request and the response,
+     * check by assertion that we aren't embarrassingly sending a
+     * previous response back to the agent */
+    assert(!pco->request_made);
+    pco->request_made = true;
+
+    if (!pageant_local) {
+        void *response_raw;
+        int resplen_raw;
+        agent_query_synchronous(pco->buf, &response_raw, &resplen_raw);
+        strbuf_clear(pco->buf);
+        put_data(pco->buf, response_raw, resplen_raw);
+        sfree(response_raw);
+
+        /* The data coming back from agent_query_synchronous will have
+         * its length field prepended. So we start by parsing it as an
+         * SSH-formatted string, and then reinitialise our
+         * BinarySource with the interior of that string. */
+        BinarySource_INIT_PL(pco, ptrlen_from_strbuf(pco->buf));
+        BinarySource_INIT_PL(pco, get_string(pco));
+    } else {
+        PageantInternalClient pic;
+        PageantClientRequestId reqid;
+
+        pic.pc.vt = &internal_clientvt;
+        pic.pc.suppress_logging = true;
+        pic.response = pco->buf;
+        pic.got_response = false;
+        pageant_register_client(&pic.pc);
+
+        assert(pco->buf->len > 4);
+        PageantAsyncOp *pao = pageant_make_op(
+            &pic.pc, &reqid, make_ptrlen(pco->buf->s + 4, pco->buf->len - 4));
+        while (!pic.got_response)
+            pageant_async_op_coroutine(pao);
+
+        pageant_unregister_client(&pic.pc);
+
+        BinarySource_INIT_PL(pco, ptrlen_from_strbuf(pco->buf));
+    }
+
+    /* Strip off and directly return the type byte, which every client
+     * will need, to save a boilerplate get_byte at each call site */
+    unsigned reply_type = get_byte(pco);
+    if (get_err(pco))
+        reply_type = 256;              /* out-of-range code */
+    return reply_type;
+}
+
+/*
+ * After processing a list of filenames, we want to forget the
+ * passphrases.
+ */
+void pageant_forget_passphrases(void)
+{
+    if (!passphrases)                  /* in case we never set it up at all */
+        return;
+
+    while (count234(passphrases) > 0) {
+        char *pp = index234(passphrases, 0);
+        smemclr(pp, strlen(pp));
+        delpos234(passphrases, 0);
+        sfree(pp);
+    }
+}
+
+typedef struct KeyListEntry {
+    ptrlen blob, comment;
+    uint32_t flags;
+} KeyListEntry;
+typedef struct KeyList {
+    strbuf *raw_data;
+    KeyListEntry *keys;
+    size_t nkeys;
+    bool broken;
+} KeyList;
+
+static void keylist_free(KeyList *kl)
+{
+    sfree(kl->keys);
+    strbuf_free(kl->raw_data);
+    sfree(kl);
+}
+
+static PageantClientOp *pageant_request_keylist_1(void)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+    put_byte(pco, SSH1_AGENTC_REQUEST_RSA_IDENTITIES);
+    if (pageant_client_op_query(pco) == SSH1_AGENT_RSA_IDENTITIES_ANSWER)
+        return pco;
+    pageant_client_op_free(pco);
+    return NULL;
+}
+
+static PageantClientOp *pageant_request_keylist_2(void)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+    put_byte(pco, SSH2_AGENTC_REQUEST_IDENTITIES);
+    if (pageant_client_op_query(pco) == SSH2_AGENT_IDENTITIES_ANSWER)
+        return pco;
+    pageant_client_op_free(pco);
+    return NULL;
+}
+
+static PageantClientOp *pageant_request_keylist_extended(void)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+    put_byte(pco, SSH2_AGENTC_EXTENSION);
+    put_stringpl(pco, extension_names[EXT_LIST_EXTENDED]);
+    if (pageant_client_op_query(pco) == SSH_AGENT_SUCCESS)
+        return pco;
+    pageant_client_op_free(pco);
+    return NULL;
+}
+
+static KeyList *pageant_get_keylist(unsigned ssh_version)
+{
+    PageantClientOp *pco;
+    bool list_is_extended = false;
+
+    if (ssh_version == 1) {
+        pco = pageant_request_keylist_1();
+    } else {
+        if ((pco = pageant_request_keylist_extended()) != NULL)
+            list_is_extended = true;
+        else
+            pco = pageant_request_keylist_2();
+    }
+
+    if (!pco)
+        return NULL;
+
+    KeyList *kl = snew(KeyList);
+    kl->nkeys = get_uint32(pco);
+    kl->keys = snewn(kl->nkeys, struct KeyListEntry);
+    kl->broken = false;
+
+    for (size_t i = 0; i < kl->nkeys && !get_err(pco); i++) {
+        if (ssh_version == 1) {
+            int bloblen = rsa_ssh1_public_blob_len(
+                make_ptrlen(get_ptr(pco), get_avail(pco)));
+            if (bloblen < 0) {
+                kl->broken = true;
+                bloblen = 0;
+            }
+            kl->keys[i].blob = get_data(pco, bloblen);
+        } else {
+            kl->keys[i].blob = get_string(pco);
+        }
+        kl->keys[i].comment = get_string(pco);
+
+        if (list_is_extended) {
+            ptrlen key_ext_info = get_string(pco);
+            BinarySource src[1];
+            BinarySource_BARE_INIT_PL(src, key_ext_info);
+
+            kl->keys[i].flags = get_uint32(src);
+        } else {
+            kl->keys[i].flags = 0;
+        }
+    }
+
+    if (get_err(pco))
+        kl->broken = true;
+    kl->raw_data = pco->buf;
+    pco->buf = NULL;
+    pageant_client_op_free(pco);
+    return kl;
+}
+
+int pageant_add_keyfile(Filename *filename, const char *passphrase,
+                        char **retstr, bool add_encrypted)
+{
+    RSAKey *rkey = NULL;
+    ssh2_userkey *skey = NULL;
+    bool needs_pass;
+    int ret;
+    int attempts;
+    char *comment;
+    const char *this_passphrase;
+    const char *error = NULL;
+    int type;
+
+    if (!passphrases) {
+        passphrases = newtree234(NULL);
+    }
+
+    *retstr = NULL;
+
+    type = key_type(filename);
+    if (type != SSH_KEYTYPE_SSH1 && type != SSH_KEYTYPE_SSH2) {
+        *retstr = dupprintf("Couldn't load this key (%s)",
+                            key_type_to_str(type));
+        return PAGEANT_ACTION_FAILURE;
+    }
+
+    if (add_encrypted && type == SSH_KEYTYPE_SSH1) {
+        *retstr = dupprintf("Can't add SSH-1 keys in encrypted form");
+        return PAGEANT_ACTION_FAILURE;
     }
 
     /*
-     * Set up a named-pipe listener.
+     * See if the key is already loaded (in the primary Pageant,
+     * which may or may not be us).
      */
     {
-        Plug *pl_plug;
-        wpc->plc.vt = &winpgnt_vtable;
-        wpc->plc.suppress_logging = true;
-        struct pageant_listen_state *pl =
-            pageant_listener_new(&pl_plug, &wpc->plc);
-        char *pipename = agent_named_pipe_name();
-        Socket *sock = new_named_pipe_listener(pipename, pl_plug);
-        if (sk_socket_error(sock)) {
-            char *err = dupprintf("Unable to open named pipe at %s "
-                                  "for SSH agent:\n%s", pipename,
-                                  sk_socket_error(sock));
-            MessageBox(NULL, err, "Pageant Error", MB_ICONERROR | MB_OK);
-            return 1;
+        strbuf *blob = strbuf_new();
+        KeyList *kl;
+
+        if (type == SSH_KEYTYPE_SSH1) {
+            if (!rsa1_loadpub_f(filename, BinarySink_UPCAST(blob),
+                                NULL, &error)) {
+                *retstr = dupprintf("Couldn't load private key (%s)", error);
+                strbuf_free(blob);
+                return PAGEANT_ACTION_FAILURE;
+            }
+            kl = pageant_get_keylist(1);
+        } else {
+            if (!ppk_loadpub_f(filename, NULL, BinarySink_UPCAST(blob),
+                               NULL, &error)) {
+                *retstr = dupprintf("Couldn't load private key (%s)", error);
+                strbuf_free(blob);
+                return PAGEANT_ACTION_FAILURE;
+            }
+            kl = pageant_get_keylist(2);
         }
-        pageant_listener_got_socket(pl, sock);
-        sfree(pipename);
+
+        if (kl) {
+            if (kl->broken) {
+                *retstr = dupstr("Received broken key list from agent");
+                keylist_free(kl);
+                strbuf_free(blob);
+                return PAGEANT_ACTION_FAILURE;
+            }
+
+            for (size_t i = 0; i < kl->nkeys; i++) {
+                /*
+                 * If the key already exists in the agent, we're done,
+                 * except in the following special cases:
+                 *
+                 * It's encrypted in the agent, and we're being asked
+                 * to add it unencrypted, in which case we still want
+                 * to upload the unencrypted version to cause the key
+                 * to become decrypted.
+                 * (Rationale: if you know in advance you're going to
+                 * want it, and don't want to be interrupted at an
+                 * unpredictable moment to be asked for the
+                 * passphrase.)
+                 *
+                 * The agent only has cleartext, and we're being asked
+                 * to add it encrypted, in which case we'll add the
+                 * encrypted form.
+                 * (Rationale: if you might want to re-encrypt the key
+                 * at some future point, but it happened to have been
+                 * initially added in cleartext, perhaps by something
+                 * other than Pageant.)
+                 */
+                if (ptrlen_eq_ptrlen(ptrlen_from_strbuf(blob),
+                                     kl->keys[i].blob)) {
+                    bool have_unencrypted =
+                        !(kl->keys[i].flags &
+                          LIST_EXTENDED_FLAG_HAS_NO_CLEARTEXT_KEY);
+                    bool have_encrypted =
+                        (kl->keys[i].flags &
+                         LIST_EXTENDED_FLAG_HAS_ENCRYPTED_KEY_FILE);
+                    if ((have_unencrypted && !add_encrypted)
+                        || (have_encrypted && add_encrypted)) {
+                        /* Key is already present in the desired form;
+                         * we can now leave. */
+                        keylist_free(kl);
+                        strbuf_free(blob);
+                        return PAGEANT_ACTION_OK;
+                    }
+                }
+            }
+
+            keylist_free(kl);
+        }
+
+        strbuf_free(blob);
+    }
+
+    if (add_encrypted) {
+        const char *load_error;
+        LoadedFile *lf = lf_load_keyfile(filename, &load_error);
+        if (!lf) {
+            *retstr = dupstr(load_error);
+            return PAGEANT_ACTION_FAILURE;
+        }
+
+        PageantClientOp *pco = pageant_client_op_new();
+        put_byte(pco, SSH2_AGENTC_EXTENSION);
+        put_stringpl(pco, extension_names[EXT_ADD_PPK]);
+        put_string(pco, lf->data, lf->len);
+
+        lf_free(lf);
+
+        unsigned reply = pageant_client_op_query(pco);
+        pageant_client_op_free(pco);
+
+        if (reply != SSH_AGENT_SUCCESS) {
+            if (reply == SSH_AGENT_FAILURE) {
+                /* The agent didn't understand the protocol extension
+                 * at all. */
+                *retstr = dupstr("Agent doesn't support adding "
+                                 "encrypted keys");
+            } else {
+                *retstr = dupstr("The already running agent "
+                                 "refused to add the key.");
+            }
+            return PAGEANT_ACTION_FAILURE;
+        }
+
+        return PAGEANT_ACTION_OK;
+    }
+
+    error = NULL;
+    if (type == SSH_KEYTYPE_SSH1)
+        needs_pass = rsa1_encrypted_f(filename, &comment);
+    else
+        needs_pass = ppk_encrypted_f(filename, &comment);
+    attempts = 0;
+    if (type == SSH_KEYTYPE_SSH1)
+        rkey = snew(RSAKey);
+
+    /*
+     * Loop round repeatedly trying to load the key, until we either
+     * succeed, fail for some serious reason, or run out of
+     * passphrases to try.
+     */
+    while (1) {
+        if (needs_pass) {
+
+            /*
+             * If we've been given a passphrase on input, try using
+             * it. Otherwise, try one from our tree234 of previously
+             * useful passphrases.
+             */
+            if (passphrase) {
+                this_passphrase = (attempts == 0 ? passphrase : NULL);
+            } else {
+                this_passphrase = (const char *)index234(passphrases, attempts);
+            }
+
+            if (!this_passphrase) {
+                /*
+                 * Run out of passphrases to try.
+                 */
+                *retstr = comment;
+                sfree(rkey);
+                return PAGEANT_ACTION_NEED_PP;
+            }
+        } else
+            this_passphrase = "";
+
+        if (type == SSH_KEYTYPE_SSH1)
+            ret = rsa1_load_f(filename, rkey, this_passphrase, &error);
+        else {
+            skey = ppk_load_f(filename, this_passphrase, &error);
+            if (skey == SSH2_WRONG_PASSPHRASE)
+                ret = -1;
+            else if (!skey)
+                ret = 0;
+            else
+                ret = 1;
+        }
+
+        if (ret == 0) {
+            /*
+             * Failed to load the key file, for some reason other than
+             * a bad passphrase.
+             */
+            *retstr = dupstr(error);
+            sfree(rkey);
+            if (comment)
+                sfree(comment);
+            return PAGEANT_ACTION_FAILURE;
+        } else if (ret == 1) {
+            /*
+             * Successfully loaded the key file.
+             */
+            break;
+        } else {
+            /*
+             * Passphrase wasn't right; go round again.
+             */
+            attempts++;
+        }
     }
 
     /*
-     * Set up window classes for two hidden windows: one that receives
-     * all the messages to do with our presence in the system tray,
-     * and one that receives the WM_COPYDATA message used by the
-     * old-style Pageant IPC system.
+     * If we get here, we've successfully loaded the key into
+     * rkey/skey, but not yet added it to the agent.
      */
-
-    if (!prev) {
-        WNDCLASS wndclass;
-
-        memset(&wndclass, 0, sizeof(wndclass));
-        wndclass.lpfnWndProc = TrayWndProc;
-        wndclass.hInstance = inst;
-        wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_MAINICON));
-        wndclass.lpszClassName = TRAYCLASSNAME;
-
-        RegisterClass(&wndclass);
-
-        memset(&wndclass, 0, sizeof(wndclass));
-        wndclass.lpfnWndProc = wm_copydata_WndProc;
-        wndclass.hInstance = inst;
-        wndclass.lpszClassName = IPCCLASSNAME;
-
-        RegisterClass(&wndclass);
-    }
-
-    keylist = NULL;
-
-    traywindow = CreateWindow(TRAYCLASSNAME, TRAYWINTITLE,
-                              WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-                              CW_USEDEFAULT, CW_USEDEFAULT,
-                              100, 100, NULL, NULL, inst, NULL);
-    winselgui_set_hwnd(traywindow);
-
-    /* Set up a system tray icon */
-    AddTrayIcon(traywindow);
-
-    /* Accelerators used: nsvkxa */
-    systray_menu = CreatePopupMenu();
-    if (putty_path) {
-        session_menu = CreateMenu();
-        AppendMenu(systray_menu, MF_ENABLED, IDM_PUTTY, "&New Session");
-        AppendMenu(systray_menu, MF_POPUP | MF_ENABLED,
-                   (UINT_PTR) session_menu, "&Saved Sessions");
-        AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-    }
-    AppendMenu(systray_menu, MF_ENABLED, IDM_VIEWKEYS,
-           "&View Keys");
-    AppendMenu(systray_menu, MF_ENABLED, IDM_ADDKEY, "Add &Key");
-    AppendMenu(systray_menu, MF_ENABLED, IDM_ADDKEY_ENCRYPTED,
-               "Add key (encrypted)");
-    AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-    AppendMenu(systray_menu, MF_ENABLED, IDM_REMOVE_ALL,
-               "Remove All Keys");
-    AppendMenu(systray_menu, MF_ENABLED, IDM_REENCRYPT_ALL,
-               "Re-encrypt All Keys");
-    AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-    if (has_help())
-        AppendMenu(systray_menu, MF_ENABLED, IDM_HELP, "&Help");
-    AppendMenu(systray_menu, MF_ENABLED, IDM_ABOUT, "&About");
-    AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-    AppendMenu(systray_menu, MF_ENABLED, IDM_CLOSE, "E&xit");
-    initial_menuitems_count = GetMenuItemCount(session_menu);
-
-    /* Set the default menu item. */
-    SetMenuDefaultItem(systray_menu, IDM_VIEWKEYS, false);
-
-    ShowWindow(traywindow, SW_HIDE);
-
-    wmcpc.vt = &wmcpc_vtable;
-    wmcpc.suppress_logging = true;
-    pageant_register_client(&wmcpc);
-    DWORD wm_copydata_threadid;
-    wmct.ev_msg_ready = CreateEvent(NULL, false, false, NULL);
-    wmct.ev_reply_ready = CreateEvent(NULL, false, false, NULL);
-    HANDLE hThread = CreateThread(NULL, 0, wm_copydata_threadfunc,
-                                  &inst, 0, &wm_copydata_threadid);
-    if (hThread)
-        CloseHandle(hThread);          /* we don't need the thread handle */
-    add_handle_wait(wmct.ev_msg_ready, wm_copydata_got_msg, NULL);
-
-    if (show_keylist_on_startup)
-        create_keylist_window();
 
     /*
-     * Main message loop.
+     * If the key was successfully decrypted, save the passphrase for
+     * use with other keys we try to load.
      */
-    while (true) {
-        int n;
-
-        HandleWaitList *hwl = get_handle_wait_list();
-
-        n = MsgWaitForMultipleObjects(hwl->nhandles, hwl->handles, false,
-                                      INFINITE, QS_ALLINPUT);
-
-        if ((unsigned)(n - WAIT_OBJECT_0) < (unsigned)hwl->nhandles)
-            handle_wait_activate(hwl, n - WAIT_OBJECT_0);
-        handle_wait_list_free(hwl);
-
-        while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT)
-                goto finished;         /* two-level break */
-
-            if (IsWindow(keylist) && IsDialogMessage(keylist, &msg))
-                continue;
-            if (IsWindow(aboutbox) && IsDialogMessage(aboutbox, &msg))
-                continue;
-            if (IsWindow(nonmodal_passphrase_hwnd) &&
-                IsDialogMessage(nonmodal_passphrase_hwnd, &msg))
-                continue;
-
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-
-        run_toplevel_callbacks();
-    }
-  finished:
-
-    /* Clean up the system tray icon */
     {
-        NOTIFYICONDATA tnid;
-
-        tnid.cbSize = sizeof(NOTIFYICONDATA);
-        tnid.hWnd = traywindow;
-        tnid.uID = 1;
-
-        Shell_NotifyIcon(NIM_DELETE, &tnid);
-
-        DestroyMenu(systray_menu);
+        char *pp_copy = dupstr(this_passphrase);
+        if (addpos234(passphrases, pp_copy, 0) != pp_copy) {
+            /* No need; it was already there. */
+            smemclr(pp_copy, strlen(pp_copy));
+            sfree(pp_copy);
+        }
     }
 
-    if (keypath) filereq_free(keypath);
+    if (comment)
+        sfree(comment);
 
-    cleanup_exit(msg.wParam);
-    return msg.wParam;                 /* just in case optimiser complains */
+    if (type == SSH_KEYTYPE_SSH1) {
+        PageantClientOp *pco = pageant_client_op_new();
+        put_byte(pco, SSH1_AGENTC_ADD_RSA_IDENTITY);
+        rsa_ssh1_private_blob_agent(BinarySink_UPCAST(pco), rkey);
+        put_stringz(pco, rkey->comment);
+        unsigned reply = pageant_client_op_query(pco);
+        pageant_client_op_free(pco);
+
+        freersakey(rkey);
+        sfree(rkey);
+
+        if (reply != SSH_AGENT_SUCCESS) {
+            *retstr = dupstr("The already running agent "
+                             "refused to add the key.");
+            return PAGEANT_ACTION_FAILURE;
+        }
+    } else {
+        PageantClientOp *pco = pageant_client_op_new();
+        put_byte(pco, SSH2_AGENTC_ADD_IDENTITY);
+        put_stringz(pco, ssh_key_ssh_id(skey->key));
+        ssh_key_openssh_blob(skey->key, BinarySink_UPCAST(pco));
+        put_stringz(pco, skey->comment);
+        unsigned reply = pageant_client_op_query(pco);
+        pageant_client_op_free(pco);
+
+        sfree(skey->comment);
+        ssh_key_free(skey->key);
+        sfree(skey);
+
+        if (reply != SSH_AGENT_SUCCESS) {
+            *retstr = dupstr("The already running agent "
+                             "refused to add the key.");
+            return PAGEANT_ACTION_FAILURE;
+        }
+    }
+    return PAGEANT_ACTION_OK;
+}
+
+int pageant_enum_keys(pageant_key_enum_fn_t callback, void *callback_ctx,
+                      char **retstr)
+{
+    KeyList *kl1 = NULL, *kl2 = NULL;
+    struct pageant_pubkey cbkey;
+    int toret = PAGEANT_ACTION_FAILURE;
+
+    kl1 = pageant_get_keylist(1);
+    if (kl1 && kl1->broken) {
+        *retstr = dupstr("Received broken SSH-1 key list from agent");
+        goto out;
+    }
+
+    kl2 = pageant_get_keylist(2);
+    if (kl2 && kl2->broken) {
+        *retstr = dupstr("Received broken SSH-2 key list from agent");
+        goto out;
+    }
+
+    if (kl1) {
+        for (size_t i = 0; i < kl1->nkeys; i++) {
+            cbkey.blob = strbuf_new();
+            put_datapl(cbkey.blob, kl1->keys[i].blob);
+            cbkey.comment = mkstr(kl1->keys[i].comment);
+            cbkey.ssh_version = 1;
+
+            /* Decode public blob into a key in order to fingerprint it */
+            RSAKey rkey;
+            memset(&rkey, 0, sizeof(rkey));
+            {
+                BinarySource src[1];
+                BinarySource_BARE_INIT_PL(src, kl1->keys[i].blob);
+                get_rsa_ssh1_pub(src, &rkey, RSA_SSH1_EXPONENT_FIRST);
+                if (get_err(src)) {
+                    *retstr = dupstr(
+                        "Received an invalid SSH-1 key from agent");
+                    goto out;
+                }
+            }
+            char **fingerprints = rsa_ssh1_fake_all_fingerprints(&rkey);
+            freersakey(&rkey);
+
+            callback(callback_ctx, fingerprints, cbkey.comment,
+                     kl1->keys[i].flags, &cbkey);
+
+            strbuf_free(cbkey.blob);
+            sfree(cbkey.comment);
+            ssh2_free_all_fingerprints(fingerprints);
+        }
+    }
+
+    if (kl2) {
+        for (size_t i = 0; i < kl2->nkeys; i++) {
+            cbkey.blob = strbuf_new();
+            put_datapl(cbkey.blob, kl2->keys[i].blob);
+            cbkey.comment = mkstr(kl2->keys[i].comment);
+            cbkey.ssh_version = 2;
+
+            char **fingerprints =
+                ssh2_all_fingerprints_for_blob(kl2->keys[i].blob);
+
+            callback(callback_ctx, fingerprints, cbkey.comment,
+                     kl2->keys[i].flags, &cbkey);
+
+            ssh2_free_all_fingerprints(fingerprints);
+            sfree(cbkey.comment);
+            strbuf_free(cbkey.blob);
+        }
+    }
+
+    *retstr = NULL;
+    toret = PAGEANT_ACTION_OK;
+  out:
+    if (kl1)
+        keylist_free(kl1);
+    if (kl2)
+        keylist_free(kl2);
+    return toret;
+}
+
+int pageant_delete_key(struct pageant_pubkey *key, char **retstr)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+
+    if (key->ssh_version == 1) {
+        put_byte(pco, SSH1_AGENTC_REMOVE_RSA_IDENTITY);
+        put_data(pco, key->blob->s, key->blob->len);
+    } else {
+        put_byte(pco, SSH2_AGENTC_REMOVE_IDENTITY);
+        put_string(pco, key->blob->s, key->blob->len);
+    }
+
+    unsigned reply = pageant_client_op_query(pco);
+    pageant_client_op_free(pco);
+
+    if (reply != SSH_AGENT_SUCCESS) {
+        *retstr = dupstr("Agent failed to delete key");
+        return PAGEANT_ACTION_FAILURE;
+    } else {
+        *retstr = NULL;
+        return PAGEANT_ACTION_OK;
+    }
+}
+
+int pageant_delete_all_keys(char **retstr)
+{
+    PageantClientOp *pco;
+    unsigned reply;
+
+    pco = pageant_client_op_new();
+    put_byte(pco, SSH2_AGENTC_REMOVE_ALL_IDENTITIES);
+    reply = pageant_client_op_query(pco);
+    pageant_client_op_free(pco);
+    if (reply != SSH_AGENT_SUCCESS) {
+        *retstr = dupstr("Agent failed to delete SSH-2 keys");
+        return PAGEANT_ACTION_FAILURE;
+    }
+
+    pco = pageant_client_op_new();
+    put_byte(pco, SSH1_AGENTC_REMOVE_ALL_RSA_IDENTITIES);
+    reply = pageant_client_op_query(pco);
+    pageant_client_op_free(pco);
+    if (reply != SSH_AGENT_SUCCESS) {
+        *retstr = dupstr("Agent failed to delete SSH-1 keys");
+        return PAGEANT_ACTION_FAILURE;
+    }
+
+    *retstr = NULL;
+    return PAGEANT_ACTION_OK;
+}
+
+int pageant_reencrypt_key(struct pageant_pubkey *key, char **retstr)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+
+    if (key->ssh_version == 1) {
+        *retstr = dupstr("Can't re-encrypt an SSH-1 key");
+        pageant_client_op_free(pco);
+        return PAGEANT_ACTION_FAILURE;
+    } else {
+        put_byte(pco, SSH2_AGENTC_EXTENSION);
+        put_stringpl(pco, extension_names[EXT_REENCRYPT]);
+        put_string(pco, key->blob->s, key->blob->len);
+    }
+
+    unsigned reply = pageant_client_op_query(pco);
+    pageant_client_op_free(pco);
+
+    if (reply != SSH_AGENT_SUCCESS) {
+        if (reply == SSH_AGENT_FAILURE) {
+            /* The agent didn't understand the protocol extension at all. */
+            *retstr = dupstr("Agent doesn't support encrypted keys");
+        } else {
+            *retstr = dupstr("Agent failed to re-encrypt key");
+        }
+        return PAGEANT_ACTION_FAILURE;
+    } else {
+        *retstr = NULL;
+        return PAGEANT_ACTION_OK;
+    }
+}
+
+int pageant_reencrypt_all_keys(char **retstr)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+    put_byte(pco, SSH2_AGENTC_EXTENSION);
+    put_stringpl(pco, extension_names[EXT_REENCRYPT_ALL]);
+    unsigned reply = pageant_client_op_query(pco);
+    uint32_t failures = get_uint32(pco);
+    pageant_client_op_free(pco);
+    if (reply != SSH_AGENT_SUCCESS) {
+        if (reply == SSH_AGENT_FAILURE) {
+            /* The agent didn't understand the protocol extension at all. */
+            *retstr = dupstr("Agent doesn't support encrypted keys");
+        } else {
+            *retstr = dupstr("Agent failed to re-encrypt any keys");
+        }
+        return PAGEANT_ACTION_FAILURE;
+    } else if (failures == 1) {
+        /* special case for English grammar */
+        *retstr = dupstr("1 key remains unencrypted");
+        return PAGEANT_ACTION_WARNING;
+    } else if (failures > 0) {
+        *retstr = dupprintf("%"PRIu32" keys remain unencrypted", failures);
+        return PAGEANT_ACTION_WARNING;
+    } else {
+        *retstr = NULL;
+        return PAGEANT_ACTION_OK;
+    }
+}
+
+int pageant_sign(struct pageant_pubkey *key, ptrlen message, strbuf *out,
+                 uint32_t flags, char **retstr)
+{
+    PageantClientOp *pco = pageant_client_op_new();
+    put_byte(pco, SSH2_AGENTC_SIGN_REQUEST);
+    put_string(pco, key->blob->s, key->blob->len);
+    put_stringpl(pco, message);
+    put_uint32(pco, flags);
+    unsigned reply = pageant_client_op_query(pco);
+    ptrlen signature = get_string(pco);
+
+    if (reply == SSH2_AGENT_SIGN_RESPONSE && !get_err(pco)) {
+        *retstr = NULL;
+        put_datapl(out, signature);
+        pageant_client_op_free(pco);
+        return PAGEANT_ACTION_OK;
+    } else {
+        *retstr = dupstr("Agent failed to create signature");
+        pageant_client_op_free(pco);
+        return PAGEANT_ACTION_FAILURE;
+    }
+}
+
+struct pageant_pubkey *pageant_pubkey_copy(struct pageant_pubkey *key)
+{
+    struct pageant_pubkey *ret = snew(struct pageant_pubkey);
+    ret->blob = strbuf_new();
+    put_data(ret->blob, key->blob->s, key->blob->len);
+    ret->comment = key->comment ? dupstr(key->comment) : NULL;
+    ret->ssh_version = key->ssh_version;
+    return ret;
+}
+
+void pageant_pubkey_free(struct pageant_pubkey *key)
+{
+    sfree(key->comment);
+    strbuf_free(key->blob);
+    sfree(key);
 }

@@ -118,9 +118,9 @@ commands such as \q{\c{w}}).
 \dt \cw{-ssh-connection}
 
 \dd Force use of the \q{bare \cw{ssh-connection}} protocol. This is
-only likely to be useful when connecting to a \e{psusan(1)} server,
-most likely with an absolute path to a Unix-domain socket in place
-of \e{host}.
+only likely to be useful when connecting to a \cw{psusan}(\e{1})
+server, most likely with an absolute path to a Unix-domain socket in
+place of \e{host}.
 
 \dt \cw{-ssh}
 
@@ -154,6 +154,14 @@ which of the agent's keys to use. }
 
 \dd Allow use of an authentication agent. (This option is only necessary
 to override a setting in a saved session.)
+
+\dt \cw{\-no\-trivial\-auth}
+
+\dd Disconnect from any SSH server which accepts authentication without
+ever having asked for any kind of password or signature or token. (You
+might want to enable this for a server you always expect to challenge
+you, for instance to ensure you don't accidentally type your key file's
+passphrase into a compromised server spoofing PSCP's passphrase prompt.)
 
 \dt \cw{\-hostkey} \e{key}
 

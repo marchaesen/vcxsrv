@@ -318,11 +318,11 @@ static char *gtk_seat_get_ttymode(Seat *seat, const char *mode)
     return term_get_ttymode(inst->term, mode);
 }
 
-static size_t gtk_seat_output(Seat *seat, bool is_stderr,
+static size_t gtk_seat_output(Seat *seat, SeatOutputType type,
                               const void *data, size_t len)
 {
     GtkFrontend *inst = container_of(seat, GtkFrontend, seat);
-    return term_data(inst->term, is_stderr, data, len);
+    return term_data(inst->term, data, len);
 }
 
 static bool gtk_seat_eof(Seat *seat)
@@ -331,14 +331,13 @@ static bool gtk_seat_eof(Seat *seat)
     return true;   /* do respond to incoming EOF with outgoing */
 }
 
-static int gtk_seat_get_userpass_input(Seat *seat, prompts_t *p,
-                                       bufchain *input)
+static int gtk_seat_get_userpass_input(Seat *seat, prompts_t *p)
 {
     GtkFrontend *inst = container_of(seat, GtkFrontend, seat);
     int ret;
     ret = cmdline_get_passwd_input(p);
     if (ret == -1)
-        ret = term_get_userpass_input(inst->term, p, input);
+        ret = term_get_userpass_input(inst->term, p);
     return ret;
 }
 
@@ -383,7 +382,8 @@ static const char *gtk_seat_get_x_display(Seat *seat);
 #ifndef NOT_X_WINDOWS
 static bool gtk_seat_get_windowid(Seat *seat, long *id);
 #endif
-static bool gtk_seat_set_trust_status(Seat *seat, bool trusted);
+static void gtk_seat_set_trust_status(Seat *seat, bool trusted);
+static bool gtk_seat_can_set_trust_status(Seat *seat);
 static bool gtk_seat_get_cursor_position(Seat *seat, int *x, int *y);
 
 static const SeatVtable gtk_seat_vt = {
@@ -391,6 +391,7 @@ static const SeatVtable gtk_seat_vt = {
     .eof = gtk_seat_eof,
     .sent = nullseat_sent,
     .get_userpass_input = gtk_seat_get_userpass_input,
+    .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = gtk_seat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = gtk_seat_connection_fatal,
@@ -411,6 +412,7 @@ static const SeatVtable gtk_seat_vt = {
     .get_window_pixel_size = gtk_seat_get_window_pixel_size,
     .stripctrl_new = gtk_seat_stripctrl_new,
     .set_trust_status = gtk_seat_set_trust_status,
+    .can_set_trust_status = gtk_seat_can_set_trust_status,
     .verbose = nullseat_verbose_yes,
     .interactive = nullseat_interactive_yes,
     .get_cursor_position = gtk_seat_get_cursor_position,
@@ -5415,10 +5417,14 @@ void new_session_window(Conf *conf, const char *geometry_string)
         ldisc_echoedit_update(inst->ldisc); /* cause ldisc to notice changes */
 }
 
-static bool gtk_seat_set_trust_status(Seat *seat, bool trusted)
+static void gtk_seat_set_trust_status(Seat *seat, bool trusted)
 {
     GtkFrontend *inst = container_of(seat, GtkFrontend, seat);
     term_set_trust_status(inst->term, trusted);
+}
+
+static bool gtk_seat_can_set_trust_status(Seat *seat)
+{
     return true;
 }
 
