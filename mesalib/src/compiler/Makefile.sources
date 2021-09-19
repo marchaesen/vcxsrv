@@ -373,7 +373,9 @@ NIR_FILES = \
 	nir/nir_vulkan.h \
 	nir/nir_worklist.c \
 	nir/nir_worklist.h \
-	nir/nir_xfb_info.h
+	nir/nir_xfb_info.h \
+	nir/nir_opt_phi_precision.c \
+        nir/nir_opt_fragdepth.c
 
 SPIRV_GENERATED_FILES = \
 	spirv/spirv_info.c \

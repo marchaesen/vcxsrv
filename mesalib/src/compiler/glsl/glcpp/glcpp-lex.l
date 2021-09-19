@@ -27,7 +27,7 @@
 #include <ctype.h>
 
 #include "glcpp.h"
-#include "glcpp-parse.hpp"
+#include "glcpp-parse.h"
 
 /* Flex annoyingly generates some functions without making them
  * static. Let's declare them here. */

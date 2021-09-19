@@ -42,3 +42,4 @@ util/format_srgb.c
 util/xmlpool/options.h
 util/driconf_static.h
 mesa/main/marshal_generated.h
+gallium/auxiliary/indices/u_indices_gen.c

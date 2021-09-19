@@ -35,6 +35,7 @@ endif
 
 # include only conditionally ?
 INCLUDELIBFILES = compiler\$(OBJDIR)\libcompiler.lib
+INCLUDELIBFILES += compiler\glsl\glcpp\$(OBJDIR)\libcompilerglcpp.lib
 INCLUDELIBFILES += mesa\$(OBJDIR)\libmesa.lib
 INCLUDELIBFILES += util\$(OBJDIR)\libutil.lib
 INCLUDELIBFILES += mapi\$(OBJDIR)\libmapi.lib
