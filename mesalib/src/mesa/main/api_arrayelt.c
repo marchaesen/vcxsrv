@@ -1486,7 +1486,7 @@ _ae_ArrayElement(GLint elt)
     * then we call PrimitiveRestartNV and return.
     */
    if (ctx->Array.PrimitiveRestart && (elt == ctx->Array.RestartIndex)) {
-      CALL_PrimitiveRestartNV(ctx->CurrentServerDispatch, ());
+      CALL_PrimitiveRestartNV(ctx->CurrentServerDispatch);
       return;
    }
 

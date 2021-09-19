@@ -40,7 +40,8 @@ int console_verify_ssh_host_key(
     int ret;
     HANDLE hin;
     DWORD savemode, i;
-    const char *common_fmt, *intro, *prompt;
+    char *common;
+    const char *intro, *prompt;
 
     char line[32];
 
@@ -52,20 +53,24 @@ int console_verify_ssh_host_key(
     if (ret == 0)                      /* success - key matched OK */
         return 1;
 
+    FingerprintType fptype_default =
+        ssh2_pick_default_fingerprint(fingerprints);
+
     if (ret == 2) {                    /* key was different */
-        common_fmt = hk_wrongmsg_common_fmt;
+        common = hk_wrongmsg_common(host, port, keytype,
+                                    fingerprints[fptype_default]);
         intro = hk_wrongmsg_interactive_intro;
         prompt = hk_wrongmsg_interactive_prompt;
     } else {                           /* key was absent */
-        common_fmt = hk_absentmsg_common_fmt;
+        common = hk_absentmsg_common(host, port, keytype,
+                                     fingerprints[fptype_default]);
         intro = hk_absentmsg_interactive_intro;
         prompt = hk_absentmsg_interactive_prompt;
     }
 
-    FingerprintType fptype_default =
-        ssh2_pick_default_fingerprint(fingerprints);
+    fputs(common, stderr);
+    sfree(common);
 
-    fprintf(stderr, common_fmt, keytype, fingerprints[fptype_default]);
     if (console_batch_mode) {
         fputs(console_abandoned_msg, stderr);
         return 0;
@@ -187,7 +192,16 @@ bool is_interactive(void)
 }
 
 bool console_antispoof_prompt = true;
-bool console_set_trust_status(Seat *seat, bool trusted)
+
+void console_set_trust_status(Seat *seat, bool trusted)
+{
+    /* Do nothing in response to a change of trust status, because
+     * there's nothing we can do in a console environment. However,
+     * the query function below will make a fiddly decision about
+     * whether to tell the backend to enable fallback handling. */
+}
+
+bool console_can_set_trust_status(Seat *seat)
 {
     if (console_batch_mode || !is_interactive() || !console_antispoof_prompt) {
         /*
@@ -200,8 +214,8 @@ bool console_set_trust_status(Seat *seat, bool trusted)
          * prompt, the user couldn't respond to it via the terminal
          * anyway.
          *
-         * We also vacuously return success if the user has purposely
-         * disabled the antispoof prompt.
+         * We also return true without enabling any defences if the
+         * user has purposely disabled the antispoof prompt.
          */
         return true;
     }

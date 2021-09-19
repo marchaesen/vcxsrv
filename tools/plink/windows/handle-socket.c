@@ -40,6 +40,8 @@ typedef struct HandleSocket {
 
     char *error;
 
+    SockAddr *addr;
+    int port;
     Plug *plug;
 
     Socket sock;
@@ -127,6 +129,9 @@ static void sk_handle_close(Socket *s)
     if (hs->recv_H != hs->send_H)
         CloseHandle(hs->recv_H);
     bufchain_clear(&hs->inputdata);
+
+    if (hs->addr)
+        sk_addr_free(hs->addr);
 
     delete_callbacks_for_context(hs);
 
@@ -314,14 +319,23 @@ static const SocketVtable HandleSocket_sockvt = {
     .peer_info = sk_handle_peer_info,
 };
 
+static void sk_handle_connect_success_callback(void *ctx)
+{
+    HandleSocket *hs = (HandleSocket *)ctx;
+    plug_log(hs->plug, PLUGLOG_CONNECT_SUCCESS, hs->addr, hs->port, NULL, 0);
+}
+
 Socket *make_handle_socket(HANDLE send_H, HANDLE recv_H, HANDLE stderr_H,
-                           Plug *plug, bool overlapped)
+                           SockAddr *addr, int port, Plug *plug,
+                           bool overlapped)
 {
     HandleSocket *hs;
     int flags = (overlapped ? HANDLE_FLAG_OVERLAPPED : 0);
 
     hs = snew(HandleSocket);
     hs->sock.vt = &HandleSocket_sockvt;
+    hs->addr = addr;
+    hs->port = port;
     hs->plug = plug;
     hs->error = NULL;
     hs->frozen = UNFROZEN;
@@ -338,6 +352,8 @@ Socket *make_handle_socket(HANDLE send_H, HANDLE recv_H, HANDLE stderr_H,
                                         hs, flags);
 
     hs->defer_close = hs->deferred_close = false;
+
+    queue_toplevel_callback(sk_handle_connect_success_callback, hs);
 
     return &hs->sock;
 }

@@ -61,5 +61,7 @@ CSRCS = base64_decode_atom.c \
  x11_make_greeting.c \
  x11_parse_ip.c \
  x11authfile.c \
- x11authnames.c
+ x11authnames.c \
+ antispoof.c \
+ tempseat.c
 

@@ -26,7 +26,7 @@
 #include "util/strtod.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"
-#include "glsl_parser.h"
+#include "glsl_parser.hpp"
 #include "main/mtypes.h"
 
 static int classify_identifier(struct _mesa_glsl_parse_state *, const char *,

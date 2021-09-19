@@ -31,7 +31,7 @@
 
 #include "glapitable.h"
 #include "glapi.h"
-#include "u_thread.h"
+#include "util/u_thread.h"
 #include "dispatch.h"
 
 #define glNewList(a1, a2) CALL_NewList(GET_DISPATCH(), (a1, a2))

@@ -51,8 +51,9 @@ static void plink_echoedit_update(Seat *seat, bool echo, bool edit)
 }
 
 static size_t plink_output(
-    Seat *seat, bool is_stderr, const void *data, size_t len)
+    Seat *seat, SeatOutputType type, const void *data, size_t len)
 {
+    bool is_stderr = type != SEAT_OUTPUT_STDOUT;
     BinarySink *bs = is_stderr ? stderr_bs : stdout_bs;
     put_data(bs, data, len);
 
@@ -65,7 +66,7 @@ static bool plink_eof(Seat *seat)
     return false;   /* do not respond to incoming EOF with outgoing */
 }
 
-static int plink_get_userpass_input(Seat *seat, prompts_t *p, bufchain *input)
+static int plink_get_userpass_input(Seat *seat, prompts_t *p)
 {
     int ret;
     ret = cmdline_get_passwd_input(p);
@@ -86,6 +87,7 @@ static const SeatVtable plink_seat_vt = {
     .eof = plink_eof,
     .sent = nullseat_sent,
     .get_userpass_input = plink_get_userpass_input,
+    .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = console_connection_fatal,
@@ -102,6 +104,7 @@ static const SeatVtable plink_seat_vt = {
     .get_window_pixel_size = nullseat_get_window_pixel_size,
     .stripctrl_new = console_stripctrl_new,
     .set_trust_status = console_set_trust_status,
+    .can_set_trust_status = console_can_set_trust_status,
     .verbose = cmdline_seat_verbose,
     .interactive = plink_seat_interactive,
     .get_cursor_position = nullseat_get_cursor_position,
@@ -204,7 +207,8 @@ size_t stdin_gotdata(struct handle *h, const void *data, size_t len, int err)
     noise_ultralight(NOISE_SOURCE_IOLEN, len);
     if (backend_connected(backend)) {
         if (len > 0) {
-            return backend_send(backend, data, len);
+            backend_send(backend, data, len);
+            return backend_sendbuffer(backend);
         } else {
             backend_special(backend, SS_EOF, 0);
             return 0;

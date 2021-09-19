@@ -23,6 +23,8 @@ typedef struct FdSocket {
 
     int pending_error;
 
+    SockAddr *addr;
+    int port;
     Plug *plug;
 
     Socket sock;
@@ -133,6 +135,9 @@ static void fdsocket_close(Socket *s)
 
     bufchain_clear(&fds->pending_input_data);
     bufchain_clear(&fds->pending_output_data);
+
+    if (fds->addr)
+        sk_addr_free(fds->addr);
 
     delete_callbacks_for_context(fds);
 
@@ -260,15 +265,16 @@ static void fdsocket_select_result_input(int fd, int event)
     if (retd > 0) {
         plug_receive(fds->plug, 0, buf, retd);
     } else {
+        del234(fdsocket_by_infd, fds);
+        uxsel_del(fds->infd);
+        close(fds->infd);
+        fds->infd = -1;
+
         if (retd < 0) {
             plug_closing(fds->plug, strerror(errno), errno, 0);
         } else {
             plug_closing(fds->plug, NULL, 0, 0);
         }
-        del234(fdsocket_by_infd, fds);
-        uxsel_del(fds->infd);
-        close(fds->infd);
-        fds->infd = -1;
     }
 }
 
@@ -314,12 +320,22 @@ static const SocketVtable FdSocket_sockvt = {
     .peer_info = NULL,
 };
 
-Socket *make_fd_socket(int infd, int outfd, int inerrfd, Plug *plug)
+static void fdsocket_connect_success_callback(void *ctx)
+{
+    FdSocket *fds = (FdSocket *)ctx;
+    plug_log(fds->plug, PLUGLOG_CONNECT_SUCCESS, fds->addr, fds->port,
+             NULL, 0);
+}
+
+Socket *make_fd_socket(int infd, int outfd, int inerrfd,
+                       SockAddr *addr, int port, Plug *plug)
 {
     FdSocket *fds;
 
     fds = snew(FdSocket);
     fds->sock.vt = &FdSocket_sockvt;
+    fds->addr = addr;
+    fds->port = port;
     fds->plug = plug;
     fds->outgoingeof = EOF_NO;
     fds->pending_error = 0;
@@ -352,6 +368,8 @@ Socket *make_fd_socket(int infd, int outfd, int inerrfd, Plug *plug)
         add234(fdsocket_by_inerrfd, fds);
         uxsel_set(fds->inerrfd, SELECT_R, fdsocket_select_result_input_error);
     }
+
+    queue_toplevel_callback(fdsocket_connect_success_callback, fds);
 
     return &fds->sock;
 }

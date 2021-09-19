@@ -12,7 +12,6 @@ INCLUDES += \
 	$(top_srcdir)/src/mesa/ \
 	$(top_builddir)/src/compiler/glsl\
 	$(top_srcdir)/src/compiler/glsl\
-	$(top_srcdir)/src/compiler/glsl/glcpp\
 	$(top_srcdir)/src/compiler/spirv\
 	$(top_builddir)/src/compiler/nir \
 	$(top_srcdir)/src/compiler/nir \
@@ -24,9 +23,6 @@ INCLUDES += \
 libcompiler_la_SOURCES = $(LIBCOMPILER_FILES)
 
 glsl_libglcpp_la_SOURCES =				\
-	glsl/glcpp/glcpp-lex.c				\
-	glsl/glcpp/glcpp-parse.c			\
-	glsl/glcpp/glcpp-parse.h			\
 	$(LIBGLCPP_FILES) \
   $(SPIRV_FILES) \
 	$(SPIRV_GENERATED_FILES) \
@@ -49,10 +45,10 @@ LIBRARY = libcompiler
 
 CSRCS := $(notdir $(subst /,$/,$(libcompiler_la_SOURCES)))
 CSRCS += $(notdir $(subst /,$/,$(glsl_libglsl_la_SOURCES)))
-CSRCS += $(notdir $(subst /,$/,$(glsl_libglcpp_la_SOURCES)))
 CSRCS := $(CSRCS:%.h=)
+CSRCS := $(CSRCS:%.hpp=)
 
-vpath %.c glsl:spirv:nir:glsl/glcpp
+vpath %.c glsl:spirv:nir
 vpath %.cpp glsl
 
 load_makefile IS64=0 NORELDBG=1 makefile.srcs

@@ -315,15 +315,15 @@ static StripCtrlChars *win_seat_stripctrl_new(
 }
 
 static size_t win_seat_output(
-    Seat *seat, bool is_stderr, const void *, size_t);
+    Seat *seat, SeatOutputType type, const void *, size_t);
 static bool win_seat_eof(Seat *seat);
-static int win_seat_get_userpass_input(
-    Seat *seat, prompts_t *p, bufchain *input);
+static int win_seat_get_userpass_input(Seat *seat, prompts_t *p);
 static void win_seat_notify_remote_exit(Seat *seat);
 static void win_seat_connection_fatal(Seat *seat, const char *msg);
 static void win_seat_update_specials_menu(Seat *seat);
 static void win_seat_set_busy_status(Seat *seat, BusyStatus status);
-static bool win_seat_set_trust_status(Seat *seat, bool trusted);
+static void win_seat_set_trust_status(Seat *seat, bool trusted);
+static bool win_seat_can_set_trust_status(Seat *seat);
 static bool win_seat_get_cursor_position(Seat *seat, int *x, int *y);
 static bool win_seat_get_window_pixel_size(Seat *seat, int *x, int *y);
 
@@ -332,6 +332,7 @@ static const SeatVtable win_seat_vt = {
     .eof = win_seat_eof,
     .sent = nullseat_sent,
     .get_userpass_input = win_seat_get_userpass_input,
+    .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = win_seat_notify_remote_exit,
     .notify_remote_disconnect = nullseat_notify_remote_disconnect,
     .connection_fatal = win_seat_connection_fatal,
@@ -348,6 +349,7 @@ static const SeatVtable win_seat_vt = {
     .get_window_pixel_size = win_seat_get_window_pixel_size,
     .stripctrl_new = win_seat_stripctrl_new,
     .set_trust_status = win_seat_set_trust_status,
+    .can_set_trust_status = win_seat_can_set_trust_status,
     .verbose = nullseat_verbose_yes,
     .interactive = nullseat_interactive_yes,
     .get_cursor_position = win_seat_get_cursor_position,
@@ -5732,10 +5734,10 @@ static void flip_full_screen()
     }
 }
 
-static size_t win_seat_output(Seat *seat, bool is_stderr,
+static size_t win_seat_output(Seat *seat, SeatOutputType type,
                               const void *data, size_t len)
 {
-    return term_data(term, is_stderr, data, len);
+    return term_data(term, data, len);
 }
 
 static bool win_seat_eof(Seat *seat)
@@ -5743,19 +5745,22 @@ static bool win_seat_eof(Seat *seat)
     return true;   /* do respond to incoming EOF with outgoing */
 }
 
-static int win_seat_get_userpass_input(
-    Seat *seat, prompts_t *p, bufchain *input)
+static int win_seat_get_userpass_input(Seat *seat, prompts_t *p)
 {
     int ret;
     ret = cmdline_get_passwd_input(p);
     if (ret == -1)
-        ret = term_get_userpass_input(term, p, input);
+        ret = term_get_userpass_input(term, p);
     return ret;
 }
 
-static bool win_seat_set_trust_status(Seat *seat, bool trusted)
+static void win_seat_set_trust_status(Seat *seat, bool trusted)
 {
     term_set_trust_status(term, trusted);
+}
+
+static bool win_seat_can_set_trust_status(Seat *seat)
+{
     return true;
 }
 

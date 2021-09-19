@@ -20,13 +20,14 @@
 
 /* -------------- declaration section -------------- */
 
-%require "3.0.2"
-%defines
-%define parser_class_name { mhmakeparser }
-%define parser_base_class_name { mhmakeparserbase }
-%define parser_class_constructor_init { : mhmakeparserbase(pMakefile,pLexer) }
-%define parser_class_constructor_param { mhmakefileparser *pMakefile, mhmakeFlexLexer *pLexer }
-%error-verbose
+%require "3.7"
+%language "c++"
+
+%define api.parser.class { mhmakeparser }
+%define api.parser.base.class { mhmakeparserbase }
+%define api.parser.class.constructor_init { : mhmakeparserbase(pMakefile,pLexer) }
+%define api.parser.class.constructor_param { mhmakefileparser *pMakefile, mhmakeFlexLexer *pLexer }
+%define parse.error verbose
 
 %code requires {
 #include "mhmakefileparser.h"

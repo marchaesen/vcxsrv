@@ -12,22 +12,18 @@ builddir=.
 BISON_PKGDATADIR=../../../tools/mhmake/src/bisondata
 export BISON_PKGDATADIR
 
-YACC_GEN = bison.exe -v
+YACC_GEN = bison.exe -d -v
 LEX_GEN = flex.exe --nounistd
 PYTHON_GEN = $(PYTHON3)
 
-glsl/glsl_parser.cpp: glsl/glsl_parser.yy
-	$(YACC_GEN) -o $@ -p "_mesa_glsl_" --defines=$(builddir)/glsl/glsl_parser.h $(srcdir)/glsl/glsl_parser.yy
-glsl/glsl_parser.h: glsl/glsl_parser.yy
-	$(YACC_GEN) -o $@ -p "_mesa_glsl_" --defines=$(builddir)/glsl/glsl_parser.h $(srcdir)/glsl/glsl_parser.yy
+glsl/glsl_parser.cpp glsl/glsl_parser.hpp: glsl/glsl_parser.yy
+	$(YACC_GEN) -o glsl/glsl_parser.cpp -p "_mesa_glsl_" $(srcdir)/glsl/glsl_parser.yy
 
 glsl/glsl_lexer.cpp: glsl/glsl_lexer.ll
 	$(LEX_GEN) -o $@ $(srcdir)/glsl/glsl_lexer.ll
 
-glsl/glcpp/glcpp-parse.c: glsl/glcpp/glcpp-parse.y
-	$(YACC_GEN) -o $@ -p "glcpp_parser_" --defines=$(builddir)/glsl/glcpp/glcpp-parse.h $(srcdir)/glsl/glcpp/glcpp-parse.y
-glsl/glcpp/glcpp-parse.h: glsl/glcpp/glcpp-parse.y
-	$(YACC_GEN) -o $@ -p "glcpp_parser_" --defines=$(builddir)/glsl/glcpp/glcpp-parse.h $(srcdir)/glsl/glcpp/glcpp-parse.y
+glsl/glcpp/glcpp-parse.c glsl/glcpp/glcpp-parse.hpp: glsl/glcpp/glcpp-parse.y
+	$(YACC_GEN) -o glsl/glcpp/glcpp-parse.c -p "glcpp_parser_" $(srcdir)/glsl/glcpp/glcpp-parse.y
 
 glsl/glcpp/glcpp-lex.c: glsl/glcpp/glcpp-lex.l
 	$(LEX_GEN) -o $@ $(srcdir)/glsl/glcpp/glcpp-lex.l

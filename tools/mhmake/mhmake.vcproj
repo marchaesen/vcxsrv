@@ -780,7 +780,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Release&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -790,7 +790,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Release64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -800,7 +800,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Debug&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -810,7 +810,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Debug64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -820,7 +820,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Profile&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -830,7 +830,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Profile64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -840,7 +840,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Debug64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -850,7 +850,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Debug64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -860,7 +860,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Release64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -870,7 +870,7 @@
 					<Tool
 						Name="VCCustomBuildTool"
 						CommandLine="cmd.exe /c makelex.bat Release64&#x0D;&#x0A;"
-						AdditionalDependencies=".\src\flexint.h;.\src\flex.skl;.\src\flexlexer.h;"
+						AdditionalDependencies=".\src\flex.skl;.\src\flexlexer.h;"
 						Outputs="$(OutDir)\$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -989,10 +989,6 @@
 				</File>
 				<File
 					RelativePath="$(OutDir)\mhmakeparser.cpp"
-					>
-				</File>
-				<File
-					RelativePath="$(OutDir)\mhmakeparser.h"
 					>
 				</File>
 			</Filter>

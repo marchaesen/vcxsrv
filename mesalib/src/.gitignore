@@ -3,7 +3,7 @@ compiler/glsl/glcpp/glcpp-lex.c
 compiler/glsl/glcpp/glcpp-parse.c
 compiler/glsl/glcpp/glcpp-parse.h
 compiler/glsl/glcpp/glcpp-parse.output
-compiler/glsl/glsl_parser.h
+compiler/glsl/glsl_parser.hpp
 compiler/glsl/glsl_parser.output
 compiler/glsl/ir_expression_operation.h
 compiler/glsl/ir_expression_operation_constant.h

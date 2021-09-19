@@ -42,7 +42,7 @@ class PrintFunctionTable(gl_XML.gl_print_base):
         print("""
 #include "glapitable.h"
 #include "glapi.h"
-#include "u_thread.h"
+#include "util/u_thread.h"
 #include "dispatch.h"
 """)
         return
