@@ -25,12 +25,13 @@
 
 /* common allocation inlines for vulkan drivers */
 
+#include <stdio.h>
 #include <string.h>
 #include <vulkan/vulkan.h>
 
 #include "util/u_math.h"
 #include "util/macros.h"
-
+#include "util/u_printf.h"
 
 const VkAllocationCallbacks *
 vk_default_allocator(void);
@@ -82,13 +83,39 @@ vk_strdup(const VkAllocationCallbacks *alloc, const char *s,
       return NULL;
 
    size_t size = strlen(s) + 1;
-   char *copy = vk_alloc(alloc, size, 1, scope);
+   char *copy = (char *)vk_alloc(alloc, size, 1, scope);
    if (copy == NULL)
       return NULL;
 
    memcpy(copy, s, size);
 
    return copy;
+}
+
+static inline char *
+vk_vasprintf(const VkAllocationCallbacks *alloc,
+             VkSystemAllocationScope scope,
+             const char *fmt, va_list args)
+{
+   size_t size = u_printf_length(fmt, args) + 1;
+   char *ptr = (char *)vk_alloc(alloc, size, 1, scope);
+   if (ptr != NULL)
+      vsnprintf(ptr, size, fmt, args);
+
+   return ptr;
+}
+
+PRINTFLIKE(3, 4) static inline char *
+vk_asprintf(const VkAllocationCallbacks *alloc,
+            VkSystemAllocationScope scope,
+            const char *fmt, ...)
+{
+   va_list args;
+   va_start(args, fmt);
+   char *ptr = vk_vasprintf(alloc, scope, fmt, args);
+   va_end(args);
+
+   return ptr;
 }
 
 static inline void *
@@ -203,7 +230,7 @@ vk_multialloc_alloc(struct vk_multialloc *ma,
                     const VkAllocationCallbacks *alloc,
                     VkSystemAllocationScope scope)
 {
-   char *ptr = vk_alloc(alloc, ma->size, ma->align, scope);
+   char *ptr = (char *)vk_alloc(alloc, ma->size, ma->align, scope);
    if (!ptr)
       return NULL;
 

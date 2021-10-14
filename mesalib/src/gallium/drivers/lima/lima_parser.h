@@ -118,6 +118,7 @@ static inline const char
       return "UNKNOWN";
 }
 
+void lima_parse_shader(FILE *fp, uint32_t *data, int size, bool is_frag);
 void lima_parse_vs(FILE *fp, uint32_t *data, int size, uint32_t start);
 void lima_parse_plbu(FILE *fp, uint32_t *data, int size, uint32_t start);
 void lima_parse_render_state(FILE *fp, uint32_t *data, int size, uint32_t start);

@@ -33,6 +33,9 @@
  */
 
 #include <libsync.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 
 #include "svga_cmd.h"
 #include "svga3d_caps.h"
@@ -52,13 +55,313 @@
 #include "vmw_msg.h"
 #include "vmw_shader.h"
 #include "vmw_query.h"
+#include "vmwgfx_drm.h"
 #include "svga3d_surfacedefs.h"
+#include "xf86drm.h"
 
 /**
  * Try to get a surface backing buffer from the cache
  * if it's this size or smaller.
  */
 #define VMW_TRY_CACHED_SIZE (2*1024*1024)
+
+#ifdef VMX86_STATS
+static const char* const vmw_svga_winsys_stats_count_names[] = {
+   SVGA_STATS_COUNT_NAMES
+};
+
+static const char* const vmw_svga_winsys_stats_time_names[] = {
+   SVGA_STATS_TIME_NAMES
+};
+
+/*
+ * It's imperative that the above two arrays are const, so that the next
+ * function can be optimized to a constant.
+ */
+static inline size_t
+vmw_svga_winsys_stats_names_len(void)
+{
+   size_t i, res = 0;
+   for (i = 0; i < ARRAY_SIZE(vmw_svga_winsys_stats_count_names); ++i)
+      res += strlen(vmw_svga_winsys_stats_count_names[i]) + 1;
+   for (i = 0; i < ARRAY_SIZE(vmw_svga_winsys_stats_time_names); ++i)
+      res += strlen(vmw_svga_winsys_stats_time_names[i]) + 1;
+   return res;
+}
+
+typedef struct Atomic_uint64 {
+   uint64_t value;
+} Atomic_uint64;
+
+typedef struct MKSGuestStatCounter {
+   Atomic_uint64 count;
+} MKSGuestStatCounter;
+
+typedef struct MKSGuestStatCounterTime {
+   MKSGuestStatCounter counter;
+   Atomic_uint64 selfCycles;
+   Atomic_uint64 totalCycles;
+} MKSGuestStatCounterTime;
+
+#define MKS_GUEST_STAT_FLAG_NONE    0
+#define MKS_GUEST_STAT_FLAG_TIME    (1U << 0)
+
+typedef __attribute__((aligned(32))) struct MKSGuestStatInfoEntry {
+   union {
+      const char *s;
+      uint64_t u;
+   } name;
+   union {
+      const char *s;
+      uint64_t u;
+   } description;
+   uint64_t flags;
+   union {
+      MKSGuestStatCounter *counter;
+      MKSGuestStatCounterTime *counterTime;
+      uint64_t u;
+   } stat;
+} MKSGuestStatInfoEntry;
+
+static __thread struct svga_winsys_stats_timeframe *mksstat_tls_global = NULL;
+
+#define ALIGN(x, power_of_two) (((x) + (power_of_two) - 1) & ~((power_of_two) - 1))
+
+static const size_t mksstat_area_size_info = sizeof(MKSGuestStatInfoEntry) * (SVGA_STATS_COUNT_MAX + SVGA_STATS_TIME_MAX);
+static const size_t mksstat_area_size_stat = sizeof(MKSGuestStatCounter) * SVGA_STATS_COUNT_MAX +
+                                             sizeof(MKSGuestStatCounterTime) * SVGA_STATS_TIME_MAX;
+
+size_t
+vmw_svga_winsys_stats_len(void)
+{
+   const size_t pg_size = getpagesize();
+   const size_t area_size_stat_pg = ALIGN(mksstat_area_size_stat, pg_size);
+   const size_t area_size_info_pg = ALIGN(mksstat_area_size_info, pg_size);
+   const size_t area_size_strs = vmw_svga_winsys_stats_names_len();
+   const size_t area_size = area_size_stat_pg + area_size_info_pg + area_size_strs;
+
+   return area_size;
+}
+
+/**
+ * vmw_mksstat_get_pstat: Computes the address of the MKSGuestStatCounter
+ * array from the address of the base page.
+ *
+ * @page_addr: Pointer to the base page.
+ * @page_size: Size of page.
+ * Return: Pointer to the MKSGuestStatCounter array.
+ */
+
+static inline MKSGuestStatCounter *
+vmw_mksstat_get_pstat(uint8_t *page_addr, size_t page_size)
+{
+   return (MKSGuestStatCounter *)page_addr;
+}
+
+/**
+ * vmw_mksstat_get_pstat_time: Computes the address of the MKSGuestStatCounterTime
+ * array from the address of the base page.
+ *
+ * @page_addr: Pointer to the base page.
+ * @page_size: Size of page.
+ * Return: Pointer to the MKSGuestStatCounterTime array.
+ */
+
+static inline MKSGuestStatCounterTime *
+vmw_mksstat_get_pstat_time(uint8_t *page_addr, size_t page_size)
+{
+   return (MKSGuestStatCounterTime *)(page_addr + sizeof(MKSGuestStatCounter) * SVGA_STATS_COUNT_MAX);
+}
+
+/**
+ * vmw_mksstat_get_pinfo: Computes the address of the MKSGuestStatInfoEntry
+ * array from the address of the base page.
+ *
+ * @page_addr: Pointer to the base page.
+ * @page_size: Size of page.
+ * Return: Pointer to the MKSGuestStatInfoEntry array.
+ */
+
+static inline MKSGuestStatInfoEntry *
+vmw_mksstat_get_pinfo(uint8_t *page_addr, size_t page_size)
+{
+   const size_t area_size_stat_pg = ALIGN(mksstat_area_size_stat, page_size);
+   return (MKSGuestStatInfoEntry *)(page_addr + area_size_stat_pg);
+}
+
+/**
+ * vmw_mksstat_get_pstrs: Computes the address of the mksGuestStat strings
+ * sequence from the address of the base page.
+ *
+ * @page_addr: Pointer to the base page.
+ * @page_size: Size of page.
+ * Return: Pointer to the mksGuestStat strings sequence.
+ */
+
+static inline char *
+vmw_mksstat_get_pstrs(uint8_t *page_addr, const size_t page_size)
+{
+   const size_t area_size_info_pg = ALIGN(mksstat_area_size_info, page_size);
+   const size_t area_size_stat_pg = ALIGN(mksstat_area_size_stat, page_size);
+   return (char *)(page_addr + area_size_info_pg + area_size_stat_pg);
+}
+
+/**
+ * Add all known mksGuestStats counters for tracking by the host.
+ */
+static int
+vmw_svga_winsys_add_stats(struct vmw_winsys_screen *vws, int slot)
+{
+   const size_t pg_size = getpagesize();
+   const size_t area_size = vmw_svga_winsys_stats_len();
+
+   MKSGuestStatInfoEntry *pinfo;
+   MKSGuestStatCounter *pstat;
+   MKSGuestStatCounterTime *pstatTime;
+   char *pstrs;
+   uint64_t id;
+   size_t i;
+
+   /* Allocate a contiguous area of pages for all info entries, counters and strings. */
+   void *area = mmap(NULL, area_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED | MAP_NORESERVE, -1, 0);
+
+   if (area == MAP_FAILED) {
+      fprintf(stderr, "%s could not mmap memory: %s\n", __FUNCTION__, strerror(errno));
+      return -1;
+   }
+
+   pinfo = vmw_mksstat_get_pinfo(area, pg_size);
+   pstat = vmw_mksstat_get_pstat(area, pg_size);
+   pstrs = vmw_mksstat_get_pstrs(area, pg_size);
+   pstatTime = vmw_mksstat_get_pstat_time(area, pg_size);
+
+   if (mlock(area, area_size)) {
+      fprintf(stderr, "%s could not mlock memory: %s\n", __FUNCTION__, strerror(errno));
+      goto error;
+   }
+
+   /* Suppress pages copy-on-write; for MAP_SHARED this should not really matter; it would if we go MAP_PRIVATE */
+   if (madvise(area, area_size, MADV_DONTFORK)) {
+      fprintf(stderr, "%s could not madvise memory: %s\n", __FUNCTION__, strerror(errno));
+      goto error;
+   }
+
+   /* Set up regular counters first */
+   for (i = 0; i < SVGA_STATS_COUNT_MAX; ++i) {
+      pinfo->name.s = pstrs;
+      pinfo->description.s = pstrs;
+      pinfo->flags = MKS_GUEST_STAT_FLAG_NONE;
+      pinfo->stat.counter = pstat + i;
+      pinfo++;
+
+      memcpy(pstrs, vmw_svga_winsys_stats_count_names[i], strlen(vmw_svga_winsys_stats_count_names[i]));
+      pstrs += strlen(vmw_svga_winsys_stats_count_names[i]) + 1;
+   }
+
+   /* Set up time counters second */
+   for (i = 0; i < SVGA_STATS_TIME_MAX; ++i) {
+      pinfo->name.s = pstrs;
+      pinfo->description.s = pstrs;
+      pinfo->flags = MKS_GUEST_STAT_FLAG_TIME;
+      pinfo->stat.counterTime = pstatTime + i;
+      pinfo++;
+
+      memcpy(pstrs, vmw_svga_winsys_stats_time_names[i], strlen(vmw_svga_winsys_stats_time_names[i]));
+      pstrs += strlen(vmw_svga_winsys_stats_time_names[i]) + 1;
+   }
+
+   { /* ioctl(DRM_VMW_MKSSTAT_ADD) */
+      char desc[64];
+      snprintf(desc, sizeof(desc) - 1, "vmw_winsys_screen=%p pid=%d", vws, gettid());
+
+      struct drm_vmw_mksstat_add_arg arg = {
+         .stat = (uintptr_t)pstat,
+         .info = (uintptr_t)vmw_mksstat_get_pinfo(area, pg_size),
+         .strs = (uintptr_t)vmw_mksstat_get_pstrs(area, pg_size),
+         .stat_len = mksstat_area_size_stat,
+         .info_len = mksstat_area_size_info,
+         .strs_len = vmw_svga_winsys_stats_names_len(),
+         .description = (uintptr_t)desc,
+         .id = -1U
+      };
+      if (drmCommandWriteRead(vws->ioctl.drm_fd, DRM_VMW_MKSSTAT_ADD, &arg, sizeof(arg))) {
+         fprintf(stderr, "%s could not ioctl: %s\n", __FUNCTION__, strerror(errno));
+         goto error;
+      }
+      id = arg.id;
+   }
+
+   vws->mksstat_tls[slot].stat_pages = area;
+   vws->mksstat_tls[slot].stat_id = id;
+   /* Don't update vws->mksstat_tls[].pid as it's reserved. */
+   return 0;
+
+error:
+   munmap(area, area_size);
+   return -1;
+}
+
+/**
+ * Acquire a mksstat TLS slot making it immutable by other parties.
+ */
+static inline int
+vmw_winsys_screen_mksstat_acq_slot(struct vmw_winsys_screen *vws)
+{
+   const pid_t pid = gettid();
+   const size_t base = (size_t)pid % ARRAY_SIZE(vws->mksstat_tls);
+   size_t i;
+
+   if (mksstat_tls_global && vmw_winsys_screen(mksstat_tls_global->sws) == vws) {
+      const size_t slot = mksstat_tls_global->slot;
+      uint32_t expecpid = pid;
+      if (__atomic_compare_exchange_n(&vws->mksstat_tls[slot].pid, &expecpid, -1U, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+         return (int)slot;
+   }
+
+   for (i = 0; i < ARRAY_SIZE(vws->mksstat_tls); ++i) {
+      const size_t slot = (i + base) % ARRAY_SIZE(vws->mksstat_tls);
+      uint32_t expecpid = pid;
+      uint32_t expected = 0;
+
+      /* Check if pid is already present */
+      if (__atomic_compare_exchange_n(&vws->mksstat_tls[slot].pid, &expecpid, -1U, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+         return (int)slot;
+
+      /* Try to set up a new mksstat for this pid */
+      if (__atomic_compare_exchange_n(&vws->mksstat_tls[slot].pid, &expected, -1U, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+         const int ret = vmw_svga_winsys_add_stats(vws, slot);
+
+         if (!ret)
+            return (int)slot;
+
+         __atomic_store_n(&vws->mksstat_tls[slot].pid, 0, __ATOMIC_RELEASE);
+         return ret;
+      }
+   }
+
+   return -1;
+}
+
+/**
+ * Release a mksstat TLS slot -- caller still owns the slot but now it is erasable by other parties.
+ */
+static inline void
+vmw_winsys_screen_mksstat_rel_slot(struct vmw_winsys_screen *vws, int slot)
+{
+   assert(slot < ARRAY_SIZE(vws->mksstat_tls));
+
+   __atomic_store_n(&vws->mksstat_tls[slot].pid, gettid(), __ATOMIC_RELEASE);
+}
+
+static inline uint64_t
+rdtsc(void)
+{
+   uint32_t hi, lo;
+   __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+   return (uint64_t)lo | ((uint64_t)hi << 32);
+}
+
+#endif /* VMX86_STATS */
 
 static struct svga_winsys_buffer *
 vmw_svga_winsys_buffer_create(struct svga_winsys_screen *sws,
@@ -465,20 +768,110 @@ vmw_svga_winsys_shader_destroy(struct svga_winsys_screen *sws,
    vmw_svga_winsys_shader_reference(&d_shader, NULL);
 }
 
+#ifdef VMX86_STATS
 static void
-vmw_svga_winsys_stats_inc(enum svga_stats_count index)
+vmw_svga_winsys_stats_inc(struct svga_winsys_screen *sws,
+                          enum svga_stats_count index)
 {
+   struct vmw_winsys_screen *const vws = vmw_winsys_screen(sws);
+   const int slot = vmw_winsys_screen_mksstat_acq_slot(vws);
+   assert(index < SVGA_STATS_COUNT_MAX);
+
+   if (slot >= 0) {
+      MKSGuestStatCounter *pstat;
+      assert(vws->mksstat_tls[slot].stat_pages);
+      assert(vws->mksstat_tls[slot].stat_id != -1UL);
+
+      pstat = vmw_mksstat_get_pstat(vws->mksstat_tls[slot].stat_pages, getpagesize());
+
+      __atomic_fetch_add(&pstat[index].count.value, 1, __ATOMIC_ACQ_REL);
+
+      vmw_winsys_screen_mksstat_rel_slot(vws, slot);
+   }
 }
 
 static void
-vmw_svga_winsys_stats_time_push(enum svga_stats_time index,
+vmw_svga_winsys_stats_time_push(struct svga_winsys_screen *sws,
+                                enum svga_stats_time index,
                                 struct svga_winsys_stats_timeframe *tf)
 {
+   struct vmw_winsys_screen *const vws = vmw_winsys_screen(sws);
+   const int slot = vmw_winsys_screen_mksstat_acq_slot(vws);
+
+   if (slot < 0)
+      return;
+
+   assert(vws->mksstat_tls[slot].stat_pages);
+   assert(vws->mksstat_tls[slot].stat_id != -1UL);
+
+   tf->counterTime = vmw_mksstat_get_pstat_time(vws->mksstat_tls[slot].stat_pages, getpagesize()) + index;
+
+   vmw_winsys_screen_mksstat_rel_slot(vws, slot);
+
+   tf->startTime = rdtsc();
+   tf->enclosing = mksstat_tls_global;
+   tf->sws = sws;
+   tf->slot = slot;
+
+   mksstat_tls_global = tf;
 }
 
 static void
-vmw_svga_winsys_stats_time_pop()
+vmw_svga_winsys_stats_time_pop(struct svga_winsys_screen *sws)
 {
+   struct svga_winsys_stats_timeframe *const tf = mksstat_tls_global;
+   struct vmw_winsys_screen *const vws = vmw_winsys_screen(sws);
+   const int slot = tf->slot;
+   uint32_t expected = gettid();
+
+   mksstat_tls_global = tf->enclosing;
+
+   if (slot < 0)
+      return;
+
+   if (__atomic_compare_exchange_n(&vws->mksstat_tls[slot].pid, &expected, -1U, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+      const uint64_t dt = rdtsc() - tf->startTime;
+      MKSGuestStatCounterTime *const counterTime = tf->counterTime;
+
+      assert(vws->mksstat_tls[slot].stat_pages);
+      assert(vws->mksstat_tls[slot].stat_id != -1UL);
+
+      __atomic_fetch_add(&counterTime->counter.count.value, 1, __ATOMIC_ACQ_REL);
+      __atomic_fetch_add(&counterTime->selfCycles.value, dt, __ATOMIC_ACQ_REL);
+      __atomic_fetch_add(&counterTime->totalCycles.value, dt, __ATOMIC_ACQ_REL);
+
+      if (tf->enclosing) {
+         MKSGuestStatCounterTime *const counterTime = tf->enclosing->counterTime;
+
+         assert(counterTime);
+
+         __atomic_fetch_sub(&counterTime->selfCycles.value, dt, __ATOMIC_ACQ_REL);
+      }
+
+      __atomic_store_n(&vws->mksstat_tls[slot].pid, expected, __ATOMIC_RELEASE);
+   }
+}
+
+#endif /* VMX86_STATS */
+static void
+vmw_svga_winsys_stats_inc_noop(struct svga_winsys_screen *sws,
+                               enum svga_stats_count index)
+{
+   /* noop */
+}
+
+static void
+vmw_svga_winsys_stats_time_push_noop(struct svga_winsys_screen *sws,
+                                     enum svga_stats_time index,
+                                     struct svga_winsys_stats_timeframe *tf)
+{
+   /* noop */
+}
+
+static void
+vmw_svga_winsys_stats_time_pop_noop(struct svga_winsys_screen *sws)
+{
+   /* noop */
 }
 
 boolean
@@ -511,10 +904,23 @@ vmw_winsys_screen_init_svga(struct vmw_winsys_screen *vws)
    vws->base.query_destroy = vmw_svga_winsys_query_destroy;
    vws->base.query_get_result = vmw_svga_winsys_query_get_result;
 
-   vws->base.stats_inc = vmw_svga_winsys_stats_inc;
-   vws->base.stats_time_push = vmw_svga_winsys_stats_time_push;
-   vws->base.stats_time_pop = vmw_svga_winsys_stats_time_pop;
+#ifdef VMX86_STATS
+   if (vws->ioctl.have_drm_2_19) {
+      vws->base.stats_inc = vmw_svga_winsys_stats_inc;
+      vws->base.stats_time_push = vmw_svga_winsys_stats_time_push;
+      vws->base.stats_time_pop = vmw_svga_winsys_stats_time_pop;
+   } else {
+      vws->base.stats_inc = vmw_svga_winsys_stats_inc_noop;
+      vws->base.stats_time_push = vmw_svga_winsys_stats_time_push_noop;
+      vws->base.stats_time_pop = vmw_svga_winsys_stats_time_pop_noop;
+   }
 
+#else
+   vws->base.stats_inc = vmw_svga_winsys_stats_inc_noop;
+   vws->base.stats_time_push = vmw_svga_winsys_stats_time_push_noop;
+   vws->base.stats_time_pop = vmw_svga_winsys_stats_time_pop_noop;
+
+#endif
    vws->base.host_log = vmw_svga_winsys_host_log;
 
    return TRUE;

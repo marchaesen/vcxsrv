@@ -83,3 +83,30 @@ disasm = executable(
   build_by_default : with_tools.contains('freedreno'),
   install: install_fd_decode_tools,
 )
+
+if with_tests
+  diff = find_program('diff')
+
+  disasm_fw = custom_target('afuc_test.asm',
+    output: 'afuc_test.asm',
+    command: [disasm, '-u', files('../.gitlab-ci/reference/afuc_test.fw'), '-g', '630'],
+    capture: true
+  )
+  test('afuc-disasm',
+    diff,
+    args: ['-u', files('../.gitlab-ci/reference/afuc_test.asm'), disasm_fw],
+    suite: 'freedreno',
+    workdir: meson.source_root()
+  )
+
+  asm_fw = custom_target('afuc_test.fw',
+    output: 'afuc_test.fw',
+    command: [asm, '-g', '6', files('../.gitlab-ci/traces/afuc_test.asm'), '@OUTPUT@'],
+  )
+  test('afuc-asm',
+    diff,
+    args: ['-u', files('../.gitlab-ci/reference/afuc_test.fw'), asm_fw],
+    suite: 'freedreno',
+    workdir: meson.source_root()
+  )
+endif

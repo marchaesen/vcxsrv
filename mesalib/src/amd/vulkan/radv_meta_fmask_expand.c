@@ -48,20 +48,10 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
    output_img->data.binding = 1;
    output_img->data.access = ACCESS_NON_READABLE;
 
-   nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
-   nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
-                    b.shader->info.workgroup_size[2], 0);
-
-   nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
-   nir_ssa_def *layer_id = nir_channel(&b, wg_id, 2);
-
    nir_ssa_def *input_img_deref = &nir_build_deref_var(&b, input_img)->dest.ssa;
    nir_ssa_def *output_img_deref = &nir_build_deref_var(&b, output_img)->dest.ssa;
 
-   nir_ssa_def *tex_coord =
-      nir_vec3(&b, nir_channel(&b, global_id, 0), nir_channel(&b, global_id, 1), layer_id);
+   nir_ssa_def *tex_coord = get_global_ids(&b, 3);
 
    nir_tex_instr *tex_instr[8];
    for (uint32_t i = 0; i < samples; i++) {
@@ -86,7 +76,7 @@ build_fmask_expand_compute_shader(struct radv_device *device, int samples)
 
    nir_ssa_def *img_coord =
       nir_vec4(&b, nir_channel(&b, tex_coord, 0), nir_channel(&b, tex_coord, 1),
-               nir_channel(&b, tex_coord, 2), nir_imm_int(&b, 0));
+               nir_channel(&b, tex_coord, 2), nir_ssa_undef(&b, 1, 32));
 
    for (uint32_t i = 0; i < samples; i++) {
       nir_ssa_def *outval = &tex_instr[i]->dest.ssa;
@@ -164,6 +154,8 @@ radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer, struct radv_
                                 }}});
 
    radv_unaligned_dispatch(cmd_buffer, image->info.width, image->info.height, layer_count);
+
+   radv_image_view_finish(&iview);
 
    radv_meta_restore(&saved_state, cmd_buffer);
 

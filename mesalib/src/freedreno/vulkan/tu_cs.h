@@ -36,7 +36,8 @@ tu_cs_init(struct tu_cs *cs,
            uint32_t initial_size);
 
 void
-tu_cs_init_external(struct tu_cs *cs, uint32_t *start, uint32_t *end);
+tu_cs_init_external(struct tu_cs *cs, struct tu_device *device,
+                    uint32_t *start, uint32_t *end);
 
 void
 tu_cs_finish(struct tu_cs *cs);
@@ -79,7 +80,7 @@ tu_cs_draw_state(struct tu_cs *sub_cs, struct tu_cs *cs, uint32_t size)
 
    /* TODO: clean this up */
    tu_cs_alloc(sub_cs, size, 1, &memory);
-   tu_cs_init_external(cs, memory.map, memory.map + size);
+   tu_cs_init_external(cs, sub_cs->device, memory.map, memory.map + size);
    tu_cs_begin(cs);
    tu_cs_reserve_space(cs, size);
 

@@ -542,12 +542,13 @@ static void
 fb_clears_apply_internal(struct zink_context *ctx, struct pipe_resource *pres, int i)
 {
    struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[i];
+   struct zink_resource *res = zink_resource(pres);
 
    if (!zink_fb_clear_enabled(ctx, i))
       return;
    if (ctx->batch.in_rp)
       zink_clear_framebuffer(ctx, BITFIELD_BIT(i));
-   else if (zink_resource(pres)->aspect == VK_IMAGE_ASPECT_COLOR_BIT) {
+   else if (res->aspect == VK_IMAGE_ASPECT_COLOR_BIT) {
       if (zink_fb_clear_needs_explicit(fb_clear) || !check_3d_layers(ctx->fb_state.cbufs[i]))
          /* this will automatically trigger all the clears */
          zink_batch_rp(ctx);
@@ -557,7 +558,7 @@ fb_clears_apply_internal(struct zink_context *ctx, struct pipe_resource *pres, i
          union pipe_color_union color;
          zink_fb_clear_util_unpack_clear_color(clear, psurf->format, &color);
 
-         clear_color_no_rp(ctx, zink_resource(pres), &color,
+         clear_color_no_rp(ctx, res, &color,
                                 psurf->u.tex.level, psurf->u.tex.first_layer,
                                 psurf->u.tex.last_layer - psurf->u.tex.first_layer + 1);
       }
@@ -575,7 +576,7 @@ fb_clears_apply_internal(struct zink_context *ctx, struct pipe_resource *pres, i
             aspects |= VK_IMAGE_ASPECT_DEPTH_BIT;
          if (clear->zs.bits & PIPE_CLEAR_STENCIL)
             aspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-         clear_zs_no_rp(ctx, zink_resource(pres), aspects, clear->zs.depth, clear->zs.stencil,
+         clear_zs_no_rp(ctx, res, aspects, clear->zs.depth, clear->zs.stencil,
                              psurf->u.tex.level, psurf->u.tex.first_layer,
                              psurf->u.tex.last_layer - psurf->u.tex.first_layer + 1);
       }

@@ -38,6 +38,7 @@
 
 struct radv_shader_args;
 struct radv_shader_info;
+struct radv_vs_prolog_key;
 
 namespace aco {
 
@@ -2040,7 +2041,7 @@ public:
    uint16_t num_waves = 0;
    uint16_t max_waves = 0; /* maximum number of waves, regardless of register usage */
    ac_shader_config* config;
-   struct radv_shader_info* info;
+   const struct radv_shader_info* info;
    enum chip_class chip_class;
    enum radeon_family family;
    DeviceInfo dev;
@@ -2071,6 +2072,8 @@ public:
    unsigned next_loop_depth = 0;
    unsigned next_divergent_if_logical_depth = 0;
    unsigned next_uniform_if_depth = 0;
+
+   std::vector<Definition> vs_inputs;
 
    struct {
       FILE* output = stderr;
@@ -2135,16 +2138,19 @@ struct ra_test_policy {
 
 void init();
 
-void init_program(Program* program, Stage stage, struct radv_shader_info* info,
+void init_program(Program* program, Stage stage, const struct radv_shader_info* info,
                   enum chip_class chip_class, enum radeon_family family, bool wgp_mode,
                   ac_shader_config* config);
 
 void select_program(Program* program, unsigned shader_count, struct nir_shader* const* shaders,
-                    ac_shader_config* config, struct radv_shader_args* args);
+                    ac_shader_config* config, const struct radv_shader_args* args);
 void select_gs_copy_shader(Program* program, struct nir_shader* gs_shader, ac_shader_config* config,
-                           struct radv_shader_args* args);
+                           const struct radv_shader_args* args);
 void select_trap_handler_shader(Program* program, struct nir_shader* shader,
-                                ac_shader_config* config, struct radv_shader_args* args);
+                                ac_shader_config* config, const struct radv_shader_args* args);
+void select_vs_prolog(Program* program, const struct radv_vs_prolog_key* key,
+                      ac_shader_config* config, const struct radv_shader_args* args,
+                      unsigned* num_preserved_sgprs);
 
 void lower_phis(Program* program);
 void calc_min_waves(Program* program);
@@ -2168,6 +2174,11 @@ void insert_wait_states(Program* program);
 void insert_NOPs(Program* program);
 void form_hard_clauses(Program* program);
 unsigned emit_program(Program* program, std::vector<uint32_t>& code);
+/**
+ * Returns true if print_asm can disassemble the given program for the current build/runtime
+ * configuration
+ */
+bool check_print_asm_support(Program* program);
 bool print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, FILE* output);
 bool validate_ir(Program* program);
 bool validate_ra(Program* program);

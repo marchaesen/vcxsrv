@@ -65,6 +65,7 @@ struct etna_bo_cache {
 
 struct etna_device {
 	int fd;
+	uint32_t drm_version;
 	int refcnt;
 
 	/* tables to keep track of bo's, to avoid "evil-twin" etna_bo objects:

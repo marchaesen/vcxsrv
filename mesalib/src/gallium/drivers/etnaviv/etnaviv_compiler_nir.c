@@ -944,7 +944,7 @@ emit_shader(struct etna_compile *c, unsigned *num_temps, unsigned *num_consts)
       c->const_count = indirect_max;
    }
 
-   /* add mov for any store output using sysval/const  */
+   /* add mov for any store output using sysval/const and for depth stores from intrinsics */
    nir_foreach_block(block, c->impl) {
       nir_foreach_instr_safe(instr, block) {
          if (instr->type != nir_instr_type_intrinsic)
@@ -954,8 +954,13 @@ emit_shader(struct etna_compile *c, unsigned *num_temps, unsigned *num_consts)
 
          switch (intr->intrinsic) {
          case nir_intrinsic_store_deref: {
+            nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
             nir_src *src = &intr->src[1];
-            if (nir_src_is_const(*src) || is_sysval(src->ssa->parent_instr)) {
+            if (nir_src_is_const(*src) || is_sysval(src->ssa->parent_instr) ||
+                (shader->info.stage == MESA_SHADER_FRAGMENT &&
+                 deref->var->data.location == FRAG_RESULT_DEPTH &&
+                 src->is_ssa &&
+                 src->ssa->parent_instr->type != nir_instr_type_alu)) {
                b.cursor = nir_before_instr(instr);
                nir_instr_rewrite_src(instr, src, nir_src_for_ssa(nir_mov(&b, src->ssa)));
             }

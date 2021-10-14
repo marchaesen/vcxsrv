@@ -76,12 +76,15 @@ fd6_screen_is_format_supported(struct pipe_screen *pscreen,
       return false;
 
    if ((usage & PIPE_BIND_VERTEX_BUFFER) &&
-       (fd6_pipe2vtx(format) != FMT6_NONE)) {
+       (fd6_vertex_format(format) != FMT6_NONE)) {
       retval |= PIPE_BIND_VERTEX_BUFFER;
    }
 
+   bool has_color = fd6_color_format(format, TILE6_LINEAR) != FMT6_NONE;
+   bool has_tex = fd6_texture_format(format, TILE6_LINEAR) != FMT6_NONE;
+
    if ((usage & (PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_SHADER_IMAGE)) &&
-       (fd6_pipe2tex(format) != FMT6_NONE) &&
+       has_tex &&
        (target == PIPE_BUFFER || util_format_get_blocksize(format) != 12)) {
       retval |= usage & (PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_SHADER_IMAGE);
    }
@@ -89,8 +92,7 @@ fd6_screen_is_format_supported(struct pipe_screen *pscreen,
    if ((usage &
         (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DISPLAY_TARGET |
          PIPE_BIND_SCANOUT | PIPE_BIND_SHARED | PIPE_BIND_COMPUTE_RESOURCE)) &&
-       (fd6_pipe2color(format) != FMT6_NONE) &&
-       (fd6_pipe2tex(format) != FMT6_NONE)) {
+       has_color && has_tex) {
       retval |= usage & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DISPLAY_TARGET |
                          PIPE_BIND_SCANOUT | PIPE_BIND_SHARED |
                          PIPE_BIND_COMPUTE_RESOURCE);
@@ -102,8 +104,7 @@ fd6_screen_is_format_supported(struct pipe_screen *pscreen,
    }
 
    if ((usage & PIPE_BIND_DEPTH_STENCIL) &&
-       (fd6_pipe2depth(format) != (enum a6xx_depth_format) ~0) &&
-       (fd6_pipe2tex(format) != FMT6_NONE)) {
+       (fd6_pipe2depth(format) != (enum a6xx_depth_format) ~0) && has_tex) {
       retval |= PIPE_BIND_DEPTH_STENCIL;
    }
 

@@ -224,12 +224,12 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
                 return MAX_MIP_LEVELS;
 
         case PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT:
-                /* Hardware is natively upper left */
+        case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER:
+                /* Hardware is upper left. Pixel center at (0.5, 0.5) */
                 return 0;
 
         case PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT:
         case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-        case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER:
         case PIPE_CAP_TGSI_TEXCOORD:
                 return 1;
 
@@ -279,7 +279,9 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
                 return 4;
 
         case PIPE_CAP_MAX_VARYINGS:
-                return PIPE_MAX_ATTRIBS;
+                /* Return the GLSL maximum. The internal maximum
+                 * PAN_MAX_VARYINGS accommodates internal varyings. */
+                return MAX_VARYING;
 
         /* Removed in v6 (Bifrost) */
         case PIPE_CAP_ALPHA_TEST:
@@ -821,7 +823,7 @@ panfrost_screen_get_compiler_options(struct pipe_screen *pscreen,
                                      enum pipe_shader_ir ir,
                                      enum pipe_shader_type shader)
 {
-        return pan_shader_get_compiler_options(pan_device(pscreen));
+        return pan_screen(pscreen)->vtbl.get_compiler_options();
 }
 
 struct pipe_screen *

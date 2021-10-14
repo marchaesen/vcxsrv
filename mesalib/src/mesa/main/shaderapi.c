@@ -3577,7 +3577,7 @@ _mesa_NamedStringARB(GLenum type, GLint namelen, const GLchar *name,
       return;
    }
 
-   mtx_lock(&ctx->Shared->ShaderIncludeMutex);
+   simple_mtx_lock(&ctx->Shared->ShaderIncludeMutex);
 
    struct hash_table *path_ht =
       ctx->Shared->ShaderIncludes->shader_include_tree;
@@ -3606,7 +3606,7 @@ _mesa_NamedStringARB(GLenum type, GLint namelen, const GLchar *name,
       }
    }
 
-   mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
+   simple_mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
 
    free(name_cp);
    ralloc_free(mem_ctx);
@@ -3632,12 +3632,12 @@ _mesa_DeleteNamedStringARB(GLint namelen, const GLchar *name)
       return;
    }
 
-   mtx_lock(&ctx->Shared->ShaderIncludeMutex);
+   simple_mtx_lock(&ctx->Shared->ShaderIncludeMutex);
 
    free(shader_include->shader_source);
    shader_include->shader_source = NULL;
 
-   mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
+   simple_mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
 
    free(name_cp);
 }
@@ -3657,7 +3657,7 @@ _mesa_CompileShaderIncludeARB(GLuint shader, GLsizei count,
 
    void *mem_ctx = ralloc_context(NULL);
 
-   mtx_lock(&ctx->Shared->ShaderIncludeMutex);
+   simple_mtx_lock(&ctx->Shared->ShaderIncludeMutex);
 
    ctx->Shared->ShaderIncludes->include_paths =
       ralloc_array_size(mem_ctx, sizeof(struct sh_incl_path_entry *), count);
@@ -3701,7 +3701,7 @@ exit:
    ctx->Shared->ShaderIncludes->relative_path_cursor = 0;
    ctx->Shared->ShaderIncludes->include_paths = NULL;
 
-   mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
+   simple_mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
 
    ralloc_free(mem_ctx);
 }

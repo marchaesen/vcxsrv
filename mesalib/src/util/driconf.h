@@ -359,6 +359,10 @@
    DRI_CONF_OPT_B(vs_position_always_invariant, def, \
                   "Force the vertex shader's gl_Position output to be considered 'invariant'")
 
+#define DRI_CONF_VS_POSITION_ALWAYS_PRECISE(def) \
+   DRI_CONF_OPT_B(vs_position_always_precise, def, \
+                  "Force the vertex shader's gl_Position output to be considered 'precise'")
+
 #define DRI_CONF_ALLOW_RGB10_CONFIGS(def) \
    DRI_CONF_OPT_B(allow_rgb10_configs, def, \
                   "Allow exposure of visuals and fbconfigs with rgb10a2 formats")
@@ -366,10 +370,6 @@
 #define DRI_CONF_ALLOW_RGB565_CONFIGS(def) \
    DRI_CONF_OPT_B(allow_rgb565_configs, def, \
                   "Allow exposure of visuals and fbconfigs with rgb565 formats")
-
-#define DRI_CONF_ALLOW_FP16_CONFIGS(def) \
-   DRI_CONF_OPT_B(allow_fp16_configs, def, \
-                  "Allow exposure of visuals and fbconfigs with fp16 formats")
 
 #define DRI_CONF_FORCE_INTEGER_TEX_NEAREST(def) \
    DRI_CONF_OPT_B(force_integer_tex_nearest, def, \

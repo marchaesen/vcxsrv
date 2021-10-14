@@ -86,8 +86,7 @@ trace_context_create(struct trace_screen *tr_scr,
 struct pipe_context *
 trace_context_create_threaded(struct pipe_screen *screen, struct pipe_context *pipe,
                               tc_replace_buffer_storage_func *replace_buffer,
-                              tc_create_fence_func *create_fence,
-                              tc_is_resource_busy *is_resource_busy);
+                              struct threaded_context_options *options);
 #ifdef __cplusplus
 }
 #endif

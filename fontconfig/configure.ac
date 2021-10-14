@@ -499,8 +499,11 @@ FC_DEFAULT_FONTS=""
 if test x${default_fonts+set} = xset; then
 	fc_IFS=$IFS
 	IFS=","
-	for p in "$default_fonts"; do
-		FC_DEFAULT_FONTS="$FC_DEFAULT_FONTS\t<dir>$p</dir>\n"
+	for p in $default_fonts; do
+		if test x"$FC_DEFAULT_FONTS" != x; then
+			FC_DEFAULT_FONTS="$FC_DEFAULT_FONTS "
+		fi
+		FC_DEFAULT_FONTS="$FC_DEFAULT_FONTS<dir>$p</dir>"
 	done
 	IFS=$fc_IFS
 fi

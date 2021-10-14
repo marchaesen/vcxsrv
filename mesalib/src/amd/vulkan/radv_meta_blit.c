@@ -613,6 +613,9 @@ blit_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image,
       meta_emit_blit(cmd_buffer, src_image, &src_iview, src_image_layout, src_offset_0,
                      src_offset_1, dst_image, &dst_iview, dst_image_layout, dst_offset_0,
                      dst_offset_1, dst_box, sampler);
+
+      radv_image_view_finish(&dst_iview);
+      radv_image_view_finish(&src_iview);
    }
 
    /* Restore conditional rendering. */

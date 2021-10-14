@@ -506,6 +506,12 @@ static const int extra_INTEL_conservative_rasterization[] = {
    EXTRA_END
 };
 
+static const int extra_ARB_timer_query_or_EXT_disjoint_timer_query[] = {
+   EXT(ARB_timer_query),
+   EXT(EXT_disjoint_timer_query),
+   EXTRA_END
+};
+
 EXTRA_EXT(ARB_texture_cube_map);
 EXTRA_EXT(EXT_texture_array);
 EXTRA_EXT(NV_fog_distance);
@@ -534,7 +540,6 @@ EXTRA_EXT(EXT_framebuffer_sRGB);
 EXTRA_EXT(OES_EGL_image_external);
 EXTRA_EXT(ARB_blend_func_extended);
 EXTRA_EXT(ARB_uniform_buffer_object);
-EXTRA_EXT(ARB_timer_query);
 EXTRA_EXT2(ARB_texture_cube_map_array, OES_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);

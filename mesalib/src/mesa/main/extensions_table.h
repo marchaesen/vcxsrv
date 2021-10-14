@@ -37,7 +37,7 @@ EXT(APPLE_texture_max_level                 , dummy_true                        
 
 EXT(ARB_ES2_compatibility                   , ARB_ES2_compatibility                  , GLL, GLC,  x ,  x , 2009)
 EXT(ARB_ES3_1_compatibility                 , ARB_ES3_1_compatibility                , GLL, GLC,  x ,  x , 2014)
-EXT(ARB_ES3_2_compatibility                 , ARB_ES3_2_compatibility                ,  x , GLC,  x ,  x , 2015)
+EXT(ARB_ES3_2_compatibility                 , ARB_ES3_2_compatibility                , GLL, GLC,  x ,  x , 2015)
 EXT(ARB_ES3_compatibility                   , ARB_ES3_compatibility                  , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_arrays_of_arrays                    , ARB_arrays_of_arrays                   , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_base_instance                       , ARB_base_instance                      , GLL, GLC,  x ,  x , 2011)

@@ -161,6 +161,6 @@ typedef struct __attribute__((__packed__)) {
    unsigned                branch_target       : 8;
 } gpir_codegen_instr;
 
-void gpir_disassemble_program(gpir_codegen_instr *code, unsigned num_instr);
+void gpir_disassemble_program(gpir_codegen_instr *code, unsigned num_instr, FILE *fp);
 
 #endif

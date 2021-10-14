@@ -62,7 +62,7 @@ panvk_CreateShaderModule(VkDevice _device,
                              sizeof(*module) + pCreateInfo->codeSize,
                              VK_OBJECT_TYPE_SHADER_MODULE);
    if (module == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    module->code_size = pCreateInfo->codeSize;
    memcpy(module->code, pCreateInfo->pCode, pCreateInfo->codeSize);

@@ -461,7 +461,7 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer, const VkClearAttachment *cl
       radv_CmdDraw(cmd_buffer_h, 3, clear_rect->layerCount, 0, clear_rect->baseArrayLayer);
    }
 
-   radv_cmd_buffer_set_subpass(cmd_buffer, subpass);
+   radv_cmd_buffer_restore_subpass(cmd_buffer, subpass);
 }
 
 static void
@@ -814,7 +814,7 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer, const VkClearAttachm
       radv_CmdSetStencilReference(cmd_buffer_h, VK_STENCIL_FACE_FRONT_BIT, prev_reference);
    }
 
-   radv_cmd_buffer_set_subpass(cmd_buffer, subpass);
+   radv_cmd_buffer_restore_subpass(cmd_buffer, subpass);
 }
 
 static uint32_t
@@ -826,12 +826,13 @@ clear_htile_mask(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *im
    struct radv_meta_state *state = &device->meta_state;
    uint64_t block_count = round_up_u64(size, 1024);
    struct radv_meta_saved_state saved_state;
+   struct radv_buffer dst_buffer;
 
    radv_meta_save(
       &saved_state, cmd_buffer,
       RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_CONSTANTS | RADV_META_SAVE_DESCRIPTORS);
 
-   struct radv_buffer dst_buffer = {.bo = bo, .offset = offset, .size = size};
+   radv_buffer_init(&dst_buffer, device, bo, size, offset);
 
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
                         state->clear_htile_mask_pipeline);
@@ -859,9 +860,11 @@ clear_htile_mask(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *im
 
    radv_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
 
+   radv_buffer_finish(&dst_buffer);
+
    radv_meta_restore(&saved_state, cmd_buffer);
 
-   return RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
+   return RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
           radv_src_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
 }
 
@@ -1054,13 +1057,7 @@ build_clear_htile_mask_shader()
    b.shader->info.workgroup_size[1] = 1;
    b.shader->info.workgroup_size[2] = 1;
 
-   nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
-   nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
-                    b.shader->info.workgroup_size[2], 0);
-
-   nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
+   nir_ssa_def *global_id = get_global_ids(&b, 1);
 
    nir_ssa_def *offset = nir_imul(&b, global_id, nir_imm_int(&b, 16));
    offset = nir_channel(&b, offset, 0);
@@ -1165,13 +1162,7 @@ build_clear_dcc_comp_to_single_shader(bool is_msaa)
    b.shader->info.workgroup_size[1] = 8;
    b.shader->info.workgroup_size[2] = 1;
 
-   nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
-   nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
-                    b.shader->info.workgroup_size[2], 0);
-   nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
-   nir_ssa_def *layer_id = nir_channel(&b, wg_id, 2);
+   nir_ssa_def *global_id = get_global_ids(&b, 3);
 
    /* Load the dimensions in pixels of a block that gets compressed to one DCC byte. */
    nir_ssa_def *dcc_block_size = nir_load_push_constant(&b, 2, 32, nir_imm_int(&b, 0), .range = 8);
@@ -1181,7 +1172,7 @@ build_clear_dcc_comp_to_single_shader(bool is_msaa)
    coord = nir_imul(&b, coord, dcc_block_size);
    coord = nir_vec4(&b, nir_channel(&b, coord, 0),
                         nir_channel(&b, coord, 1),
-                        layer_id,
+                        nir_channel(&b, global_id, 2),
                         nir_ssa_undef(&b, 1, 32));
 
    nir_variable *output_img = nir_variable_create(b.shader, nir_var_uniform, img_type, "out_img");
@@ -1617,6 +1608,8 @@ radv_clear_dcc_comp_to_single(struct radv_cmd_buffer *cmd_buffer,
                             VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, constants);
 
       radv_unaligned_dispatch(cmd_buffer, dcc_width, dcc_height, layer_count);
+
+      radv_image_view_finish(&iview);
    }
 
    radv_meta_restore(&saved_state, cmd_buffer);
@@ -2259,6 +2252,7 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer, struct radv_image *im
 
    emit_clear(cmd_buffer, &clear_att, &clear_rect, NULL, NULL, 0, false);
 
+   radv_image_view_finish(&iview);
    radv_cmd_buffer_end_render_pass(cmd_buffer);
    radv_DestroyRenderPass(device_h, pass, &cmd_buffer->pool->alloc);
    radv_DestroyFramebuffer(device_h, fb, &cmd_buffer->pool->alloc);
@@ -2273,6 +2267,7 @@ radv_fast_clear_range(struct radv_cmd_buffer *cmd_buffer, struct radv_image *ima
                       const VkImageSubresourceRange *range, const VkClearValue *clear_val)
 {
    struct radv_image_view iview;
+   bool fast_cleared = false;
 
    radv_image_view_init(&iview, cmd_buffer->device,
                         &(VkImageViewCreateInfo){
@@ -2316,18 +2311,19 @@ radv_fast_clear_range(struct radv_cmd_buffer *cmd_buffer, struct radv_image *ima
                                     clear_att.clearValue.color, 0)) {
          radv_fast_clear_color(cmd_buffer, &iview, &clear_att, clear_att.colorAttachment, NULL,
                                NULL);
-         return true;
+         fast_cleared = true;
       }
    } else {
       if (radv_can_fast_clear_depth(cmd_buffer, &iview, image_layout, in_render_loop,
                                     range->aspectMask, &clear_rect,
                                     clear_att.clearValue.depthStencil, 0)) {
          radv_fast_clear_depth(cmd_buffer, &iview, &clear_att, NULL, NULL);
-         return true;
+         fast_cleared = true;
       }
    }
 
-   return false;
+   radv_image_view_finish(&iview);
+   return fast_cleared;
 }
 
 static void

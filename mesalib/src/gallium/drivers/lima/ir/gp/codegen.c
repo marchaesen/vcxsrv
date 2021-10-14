@@ -608,7 +608,7 @@ bool gpir_codegen_prog(gpir_compiler *comp)
 
    if (lima_debug & LIMA_DEBUG_GP) {
       gpir_codegen_print_prog(comp);
-      gpir_disassemble_program(code, num_instr);
+      gpir_disassemble_program(code, num_instr, stdout);
    }
 
    return true;

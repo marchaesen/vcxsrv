@@ -959,7 +959,6 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
          switch (instr->opc) {
          case OPC_LDIB:
          case OPC_STIB:
-         case OPC_LDC:
          case OPC_RESINFO:
             if (n != 0)
                return false;
@@ -973,4 +972,40 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
    }
 
    return true;
+}
+
+bool
+ir3_valid_immediate(struct ir3_instruction *instr, int32_t immed)
+{
+   if (instr->opc == OPC_MOV || is_meta(instr))
+      return true;
+
+   if (is_mem(instr)) {
+      switch (instr->opc) {
+      /* Some load/store instructions have a 13-bit offset and size which must
+       * always be an immediate and the rest of the sources cannot be
+       * immediates, so the frontend is responsible for checking the size:
+       */
+      case OPC_LDL:
+      case OPC_STL:
+      case OPC_LDP:
+      case OPC_STP:
+      case OPC_LDG:
+      case OPC_STG:
+      case OPC_SPILL_MACRO:
+      case OPC_RELOAD_MACRO:
+      case OPC_LDG_A:
+      case OPC_STG_A:
+      case OPC_LDLW:
+      case OPC_STLW:
+      case OPC_LDLV:
+         return true;
+      default:
+         /* most cat6 src immediates can only encode 8 bits: */
+         return !(immed & ~0xff);
+      }
+   }
+
+   /* Other than cat1 (mov) we can only encode up to 10 bits, sign-extended: */
+   return !(immed & ~0x1ff) || !(-immed & ~0x1ff);
 }

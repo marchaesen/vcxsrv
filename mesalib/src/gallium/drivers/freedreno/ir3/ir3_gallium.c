@@ -133,7 +133,7 @@ ir3_shader_variant(struct ir3_shader *shader, struct ir3_shader_key key,
 
    if (created) {
       if (shader->initial_variants_done) {
-         pipe_debug_message(debug, SHADER_INFO,
+         perf_debug_message(debug, SHADER_INFO,
                             "%s shader: recompiling at draw time: global "
                             "0x%08x, vfsamples %x/%x, astc %x/%x\n",
                             ir3_shader_stage(v), key.global, key.vsamples,

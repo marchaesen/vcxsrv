@@ -45,6 +45,9 @@ struct radv_shader_args {
    struct ac_arg ngg_viewport_scale[2];
    struct ac_arg ngg_viewport_translate[2];
 
+   struct ac_arg prolog_inputs;
+   struct ac_arg vs_inputs[MAX_VERTEX_ATTRIBS];
+
    bool is_gs_copy_shader;
    bool is_trap_handler_shader;
 };

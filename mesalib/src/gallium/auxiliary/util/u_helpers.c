@@ -496,3 +496,25 @@ util_lower_clearsize_to_dword(const void *clearValue, int *clearValueSize, uint3
    }
    return false;
 }
+
+void
+util_init_pipe_vertex_state(struct pipe_screen *screen,
+                            struct pipe_vertex_buffer *buffer,
+                            const struct pipe_vertex_element *elements,
+                            unsigned num_elements,
+                            struct pipe_resource *indexbuf,
+                            uint32_t full_velem_mask,
+                            struct pipe_vertex_state *state)
+{
+   assert(num_elements == util_bitcount(full_velem_mask));
+
+   pipe_reference_init(&state->reference, 1);
+   state->screen = screen;
+
+   pipe_vertex_buffer_reference(&state->input.vbuffer, buffer);
+   pipe_resource_reference(&state->input.indexbuf, indexbuf);
+   state->input.num_elements = num_elements;
+   for (unsigned i = 0; i < num_elements; i++)
+      state->input.elements[i] = elements[i];
+   state->input.full_velem_mask = full_velem_mask;
+}

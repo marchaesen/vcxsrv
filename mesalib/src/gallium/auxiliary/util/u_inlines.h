@@ -231,6 +231,18 @@ pipe_so_target_reference(struct pipe_stream_output_target **dst,
 }
 
 static inline void
+pipe_vertex_state_reference(struct pipe_vertex_state **dst,
+                            struct pipe_vertex_state *src)
+{
+   struct pipe_vertex_state *old_dst = *dst;
+
+   if (pipe_reference(old_dst ? &old_dst->reference : NULL,
+                      src ? &src->reference : NULL))
+      old_dst->screen->vertex_state_destroy(old_dst->screen, old_dst);
+   *dst = src;
+}
+
+static inline void
 pipe_vertex_buffer_unreference(struct pipe_vertex_buffer *dst)
 {
    if (dst->is_user_buffer)
@@ -252,9 +264,17 @@ pipe_vertex_buffer_reference(struct pipe_vertex_buffer *dst,
    }
 
    pipe_vertex_buffer_unreference(dst);
-   if (!src->is_user_buffer)
+   /* Don't use memcpy because there is a hole between variables.
+    * dst can be used as a hash key.
+    */
+   dst->stride = src->stride;
+   dst->is_user_buffer = src->is_user_buffer;
+   dst->buffer_offset = src->buffer_offset;
+
+   if (src->is_user_buffer)
+      dst->buffer.user = src->buffer.user;
+   else
       pipe_resource_reference(&dst->buffer.resource, src->buffer.resource);
-   memcpy(dst, src, sizeof(*src));
 }
 
 static inline void

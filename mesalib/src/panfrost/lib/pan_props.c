@@ -191,29 +191,6 @@ panfrost_supports_compressed_format(struct panfrost_device *dev, unsigned fmt)
         return dev->compressed_formats & (1 << idx);
 }
 
-/* Returns the architecture version given a GPU ID, either from a table for
- * old-style Midgard versions or directly for new-style Bifrost/Valhall
- * versions */
-
-static unsigned
-panfrost_major_version(unsigned gpu_id)
-{
-        switch (gpu_id) {
-        case 0x600:
-        case 0x620:
-        case 0x720:
-                return 4;
-        case 0x750:
-        case 0x820:
-        case 0x830:
-        case 0x860:
-        case 0x880:
-                return 5;
-        default:
-                return gpu_id >> 12;
-        }
-}
-
 /* Given a GPU ID like 0x860, return a prettified model name */
 
 const char *
@@ -243,7 +220,7 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
         dev->fd = fd;
         dev->memctx = memctx;
         dev->gpu_id = panfrost_query_gpu_version(fd);
-        dev->arch = panfrost_major_version(dev->gpu_id);
+        dev->arch = pan_arch(dev->gpu_id);
         dev->core_count = panfrost_query_core_count(fd);
         dev->thread_tls_alloc = panfrost_query_thread_tls_alloc(fd, dev->arch);
         dev->kernel_version = drmGetVersion(fd);

@@ -138,7 +138,6 @@ egl_create_glx_drawable(ClientPtr client, __GLXscreen *screen,
 /*
  * TODO:
  *
- * - figure out sRGB
  * - bindToTextureTargets is suspicious
  * - better channel mask setup
  * - drawable type masks is suspicious
@@ -146,7 +145,8 @@ egl_create_glx_drawable(ClientPtr client, __GLXscreen *screen,
 static struct egl_config *
 translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
                     struct egl_config *chain, Bool direct_color,
-                    Bool double_buffer, Bool duplicate_for_composite)
+                    Bool double_buffer, Bool duplicate_for_composite,
+                    Bool srgb_only)
 {
     EGLint value;
     struct egl_config *c = calloc(1, sizeof *c);
@@ -167,7 +167,6 @@ translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
     c->base.optimalPbufferHeight = 0;
     c->base.bindToMipmapTexture = 0;
     c->base.bindToTextureTargets = GLX_DONT_CARE;
-    c->base.sRGBCapable = 0;
     c->base.swapMethod = GLX_SWAP_UNDEFINED_OML;
 
     /* this is... suspect */
@@ -242,6 +241,19 @@ translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
         /* else panic */
     }
 
+    /* derived state: sRGB. EGL doesn't put this in the fbconfig at all,
+     * it's a property of the surface specified at creation time, so we have
+     * to infer it from the GL's extensions. only makes sense at 8bpc though.
+     */
+    if (srgb_only) {
+        if (c->base.redBits == 8) {
+            c->base.sRGBCapable = GL_TRUE;
+        } else {
+            free(c);
+            return chain;
+        }
+    }
+
     /* map to the backend's config */
     c->config = hc;
 
@@ -314,6 +326,9 @@ egl_mirror_configs(ScreenPtr pScreen, struct egl_screen *screen)
     int i, j, k, nconfigs;
     struct egl_config *c = NULL;
     EGLConfig *host_configs = NULL;
+    bool can_srgb = epoxy_has_gl_extension("GL_ARB_framebuffer_sRGB") ||
+                    epoxy_has_gl_extension("GL_EXT_framebuffer_sRGB") ||
+                    epoxy_has_gl_extension("GL_EXT_sRGB_write_control");
 
     eglGetConfigs(screen->display, NULL, 0, &nconfigs);
     if (!(host_configs = calloc(nconfigs, sizeof *host_configs)))
@@ -326,11 +341,19 @@ egl_mirror_configs(ScreenPtr pScreen, struct egl_screen *screen)
      */
     for (i = nconfigs - 1; i > 0; i--)
         for (j = 0; j < 3; j++) /* direct_color */
-            for (k = 0; k < 2; k++) /* double_buffer */
+            for (k = 0; k < 2; k++) /* double_buffer */ {
                 c = translate_eglconfig(screen, host_configs[i], c,
                                         /* direct_color */ j == 1,
                                         /* double_buffer */ k > 0,
-                                        /* duplicate_for_composite */ j == 0);
+                                        /* duplicate_for_composite */ j == 0,
+                                        /* srgb_only */ false);
+                if (can_srgb)
+                    c = translate_eglconfig(screen, host_configs[i], c,
+                                            /* direct_color */ j == 1,
+                                            /* double_buffer */ k > 0,
+                                            /* duplicate_for_composite */ j == 0,
+                                            /* srgb_only */ true);
+            }
 
     screen->configs = host_configs;
     return c ? &c->base : NULL;

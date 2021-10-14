@@ -329,7 +329,7 @@ panvk_get_external_image_format_properties(const struct panvk_physical_device *p
             VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
          break;
       default:
-         return vk_errorf(physical_device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+         return vk_errorf(physical_device, VK_ERROR_FORMAT_NOT_SUPPORTED,
                           "VkExternalMemoryTypeFlagBits(0x%x) unsupported for VkImageType(%d)",
                           handleType, pImageFormatInfo->type);
       }
@@ -339,7 +339,7 @@ panvk_get_external_image_format_properties(const struct panvk_physical_device *p
       compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
       break;
    default:
-      return vk_errorf(physical_device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+      return vk_errorf(physical_device, VK_ERROR_FORMAT_NOT_SUPPORTED,
                        "VkExternalMemoryTypeFlagBits(0x%x) unsupported",
                        handleType);
    }

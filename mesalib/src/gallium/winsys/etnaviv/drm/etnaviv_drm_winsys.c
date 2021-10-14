@@ -28,7 +28,6 @@
 
 #include "util/os_file.h"
 #include "util/u_hash_table.h"
-#include "util/u_memory.h"
 #include "util/u_pointer.h"
 
 #include "etnaviv/etnaviv_screen.h"
@@ -96,14 +95,14 @@ hash_table_create_file_description_keys(void)
 }
 
 static struct pipe_screen *
-screen_create(struct renderonly *ro)
+screen_create(int gpu_fd, struct renderonly *ro)
 {
    struct etna_device *dev;
    struct etna_gpu *gpu;
    uint64_t val;
    int i;
 
-   dev = etna_device_new_dup(ro->gpu_fd);
+   dev = etna_device_new_dup(gpu_fd);
    if (!dev) {
       fprintf(stderr, "Error creating device\n");
       return NULL;
@@ -127,7 +126,7 @@ screen_create(struct renderonly *ro)
    return etna_screen_create(dev, gpu, ro);
 }
 
-static struct hash_table *etna_tab = NULL;
+static struct hash_table *fd_tab = NULL;
 
 static mtx_t etna_screen_mutex = _MTX_INITIALIZER_NP;
 
@@ -141,7 +140,12 @@ etna_drm_screen_destroy(struct pipe_screen *pscreen)
    destroy = --screen->refcnt == 0;
    if (destroy) {
       int fd = etna_device_fd(screen->dev);
-      _mesa_hash_table_remove_key(etna_tab, intptr_to_pointer(fd));
+      _mesa_hash_table_remove_key(fd_tab, intptr_to_pointer(fd));
+
+      if (!fd_tab->entries) {
+         _mesa_hash_table_destroy(fd_tab, NULL);
+         fd_tab = NULL;
+      }
    }
    mtx_unlock(&etna_screen_mutex);
 
@@ -151,32 +155,32 @@ etna_drm_screen_destroy(struct pipe_screen *pscreen)
    }
 }
 
-struct pipe_screen *
-etna_drm_screen_create_renderonly(struct renderonly *ro)
+static struct pipe_screen *
+etna_lookup_or_create_screen(int gpu_fd, struct renderonly *ro)
 {
    struct pipe_screen *pscreen = NULL;
 
    mtx_lock(&etna_screen_mutex);
-   if (!etna_tab) {
-      etna_tab = hash_table_create_file_description_keys();
-      if (!etna_tab)
+   if (!fd_tab) {
+      fd_tab = hash_table_create_file_description_keys();
+      if (!fd_tab)
          goto unlock;
    }
 
-   pscreen = util_hash_table_get(etna_tab, intptr_to_pointer(ro->gpu_fd));
+   pscreen = util_hash_table_get(fd_tab, intptr_to_pointer(gpu_fd));
    if (pscreen) {
       etna_screen(pscreen)->refcnt++;
    } else {
-      pscreen = screen_create(ro);
+      pscreen = screen_create(gpu_fd, ro);
       if (pscreen) {
          int fd = etna_device_fd(etna_screen(pscreen)->dev);
-         _mesa_hash_table_insert(etna_tab, intptr_to_pointer(fd), pscreen);
+         _mesa_hash_table_insert(fd_tab, intptr_to_pointer(fd), pscreen);
 
          /* Bit of a hack, to avoid circular linkage dependency,
          * ie. pipe driver having to call in to winsys, we
          * override the pipe drivers screen->destroy() */
          etna_screen(pscreen)->winsys_priv = pscreen->destroy;
-      pscreen->destroy = etna_drm_screen_destroy;
+         pscreen->destroy = etna_drm_screen_destroy;
       }
    }
 
@@ -185,29 +189,14 @@ unlock:
    return pscreen;
 }
 
-static void etnaviv_ro_destroy(struct renderonly *ro)
+struct pipe_screen *
+etna_drm_screen_create_renderonly(struct renderonly *ro)
 {
-   FREE(ro);
+   return etna_lookup_or_create_screen(ro->gpu_fd, ro);
 }
 
 struct pipe_screen *
 etna_drm_screen_create(int fd)
 {
-
-   struct renderonly *ro = CALLOC_STRUCT(renderonly);
-   struct pipe_screen *screen;
-
-   if (!ro)
-      return NULL;
-
-   ro->create_for_resource = renderonly_create_gpu_import_for_resource;
-   ro->destroy = etnaviv_ro_destroy;
-   ro->kms_fd = -1;
-   ro->gpu_fd = fd;
-
-   screen = etna_drm_screen_create_renderonly(ro);
-   if (!screen)
-      FREE(ro);
-
-   return screen;
+   return etna_lookup_or_create_screen(fd, NULL);
 }

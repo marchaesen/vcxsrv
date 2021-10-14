@@ -1,4 +1,3 @@
-Reading src/freedreno/.gitlab-ci/traces/glxgears-a420.rd.gz...
 gpu_id: 420
 cmd: X/23360: fence=1029603
 cmd: glxgears/23375: fence=1029604

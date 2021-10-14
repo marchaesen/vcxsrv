@@ -35,22 +35,28 @@ struct zink_rt_attrib {
   VkFormat format;
   VkSampleCountFlagBits samples;
   bool clear_color;
-  bool clear_stencil;
-  bool fbfetch;
+  union {
+     bool clear_stencil;
+     bool fbfetch;
+  };
   union {
      bool swapchain;
      bool needs_write;
   };
+  bool resolve;
 };
 
 struct zink_render_pass_state {
-   uint8_t num_cbufs : 4; /* PIPE_MAX_COLOR_BUFS = 8 */
+   uint8_t num_cbufs : 5; /* PIPE_MAX_COLOR_BUFS = 8 */
    uint8_t have_zsbuf : 1;
-   bool samples; //for fs samplemask
-   bool swapchain_init;
+   uint8_t samples:1; //for fs samplemask
+   uint8_t swapchain_init:1;
+   uint32_t num_zsresolves : 1;
+   uint32_t num_cresolves : 23; /* PIPE_MAX_COLOR_BUFS, but this is a struct hole */
    struct zink_rt_attrib rts[PIPE_MAX_COLOR_BUFS + 1];
    unsigned num_rts;
    uint32_t clears; //for extra verification and update flagging
+   uint32_t msaa_expand_mask;
 };
 
 struct zink_pipeline_rt {
@@ -59,7 +65,9 @@ struct zink_pipeline_rt {
 };
 
 struct zink_render_pass_pipeline_state {
-   uint32_t num_attachments:31;
+   uint32_t num_attachments:26;
+   uint32_t num_cresolves:4;
+   uint32_t num_zsresolves:1;
    bool samples:1; //for fs samplemask
    struct zink_pipeline_rt attachments[PIPE_MAX_COLOR_BUFS + 1];
    unsigned id;

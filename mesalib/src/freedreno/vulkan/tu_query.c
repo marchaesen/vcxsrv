@@ -265,7 +265,7 @@ tu_CreateQueryPool(VkDevice _device,
          vk_object_alloc(&device->vk, pAllocator, pool_size,
                          VK_OBJECT_TYPE_QUERY_POOL);
    if (!pool)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (pCreateInfo->queryType == VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR) {
       pool->perf_group = fd_perfcntrs(&device->physical_device->dev_id,
@@ -426,7 +426,7 @@ wait_for_available(struct tu_device *device, struct tu_query_pool *pool,
       if (query_is_available(slot))
          return VK_SUCCESS;
    }
-   return vk_error(device->instance, VK_TIMEOUT);
+   return vk_error(device, VK_TIMEOUT);
 }
 
 /* Writes a query value to a buffer from the CPU. */

@@ -24,12 +24,16 @@ if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
   opengl32_link_args += ['-Wl,--enable-stdcall-fixup']
 endif
 
-ogldef = files('opengl32.def')[0]
+if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
+  ogl_def = 'opengl32.mingw.def'
+else
+  ogl_def = 'opengl32.def'
+endif
 
 libopengl32 = shared_library(
   'opengl32',
   ['stw_wgl.c'],
-  vs_module_defs : ogldef,
+  vs_module_defs : ogl_def,
   include_directories : [
     inc_include, inc_wgl, inc_src,
   ],

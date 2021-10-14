@@ -818,6 +818,12 @@
             <description>Ugaritic instead of Arabic</description>
           </configItem>
         </variant>
+	<variant>
+          <configItem popularity="exotic">
+            <name>ergoarabic</name>
+            <description>Arabic (Ergoarabic)</description>
+          </configItem>
+	</variant>
       </variantList>
     </layout>
     <layout>

@@ -276,13 +276,18 @@ fd_set_framebuffer_state(struct pipe_context *pctx,
    cso->samples = util_framebuffer_get_num_samples(cso);
 
    if (ctx->screen->reorder) {
-      if (ctx->batch) {
-         fd_batch_finish_queries(ctx->batch);
-         fd_batch_reference(&ctx->batch, NULL);
-      }
+      struct fd_batch *old_batch = NULL;
 
+      fd_batch_reference(&old_batch, ctx->batch);
+
+      if (likely(old_batch))
+         fd_batch_finish_queries(old_batch);
+
+      fd_batch_reference(&ctx->batch, NULL);
       fd_context_all_dirty(ctx);
       ctx->update_active_queries = true;
+
+      fd_batch_reference(&old_batch, NULL);
    } else if (ctx->batch) {
       DBG("%d: cbufs[0]=%p, zsbuf=%p", ctx->batch->needs_flush,
           framebuffer->cbufs[0], framebuffer->zsbuf);

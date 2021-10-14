@@ -30,6 +30,7 @@
 #define PB_CACHE_H
 
 #include "pb_buffer.h"
+#include "util/simple_mtx.h"
 #include "util/list.h"
 #include "os/os_thread.h"
 
@@ -52,7 +53,7 @@ struct pb_cache
     */
    struct list_head *buckets;
 
-   mtx_t mutex;
+   simple_mtx_t mutex;
    void *winsys;
    uint64_t cache_size;
    uint64_t max_cache_size;

@@ -318,7 +318,7 @@ tu_bo_init_new(struct tu_device *dev, struct tu_bo *bo, uint64_t size,
    int ret = drmCommandWriteRead(dev->fd,
                                  DRM_MSM_GEM_NEW, &req, sizeof(req));
    if (ret)
-      return vk_error(dev->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+      return vk_error(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 
    return tu_bo_init(dev, bo, req.handle, size, flags & TU_BO_ALLOC_ALLOW_DUMP);
 }
@@ -333,13 +333,13 @@ tu_bo_init_dmabuf(struct tu_device *dev,
    off_t real_size = lseek(prime_fd, 0, SEEK_END);
    lseek(prime_fd, 0, SEEK_SET);
    if (real_size < 0 || (uint64_t) real_size < size)
-      return vk_error(dev->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      return vk_error(dev, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 
    uint32_t gem_handle;
    int ret = drmPrimeFDToHandle(dev->fd, prime_fd,
                                 &gem_handle);
    if (ret)
-      return vk_error(dev->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      return vk_error(dev, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 
    return tu_bo_init(dev, bo, gem_handle, size, false);
 }
@@ -362,13 +362,13 @@ tu_bo_map(struct tu_device *dev, struct tu_bo *bo)
 
    uint64_t offset = tu_gem_info(dev, bo->gem_handle, MSM_INFO_GET_OFFSET);
    if (!offset)
-      return vk_error(dev->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+      return vk_error(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 
    /* TODO: Should we use the wrapper os_mmap() like Freedreno does? */
    void *map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                     dev->fd, offset);
    if (map == MAP_FAILED)
-      return vk_error(dev->instance, VK_ERROR_MEMORY_MAP_FAILED);
+      return vk_error(dev, VK_ERROR_MEMORY_MAP_FAILED);
 
    bo->map = map;
    return VK_SUCCESS;
@@ -579,7 +579,7 @@ sync_create(VkDevice _device,
          vk_object_alloc(&device->vk, pAllocator, sizeof(*sync),
                          fence ? VK_OBJECT_TYPE_FENCE : VK_OBJECT_TYPE_SEMAPHORE);
    if (!sync)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (binary) {
       struct drm_syncobj_create create = {};
@@ -701,7 +701,7 @@ sync_export(VkDevice _device, struct tu_syncobj *sync, bool sync_fd, int *p_fd)
    };
    int ret = drmIoctl(device->fd, DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD, &handle);
    if (ret)
-      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 
    /* restore permanent payload on export */
    sync_set_temporary(device, sync, 0);
@@ -892,7 +892,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
          VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
    if (new_submit->cmd_buffers == NULL) {
-      result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+      result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail_cmd_buffers;
    }
 
@@ -903,7 +903,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
          submit_info->waitSemaphoreCount * sizeof(*new_submit->wait_semaphores),
          8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
    if (new_submit->wait_semaphores == NULL) {
-      result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+      result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail_wait_semaphores;
    }
    new_submit->wait_semaphore_count = submit_info->waitSemaphoreCount;
@@ -912,7 +912,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
          submit_info->signalSemaphoreCount *sizeof(*new_submit->signal_semaphores),
          8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
    if (new_submit->signal_semaphores == NULL) {
-      result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+      result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail_signal_semaphores;
    }
    new_submit->signal_semaphore_count = submit_info->signalSemaphoreCount;
@@ -966,7 +966,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
          VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
    if (new_submit->cmds == NULL) {
-      result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+      result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail_cmds;
    }
 
@@ -976,7 +976,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
             VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
       if (new_submit->cmd_buffer_trace_data == NULL) {
-         result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+         result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
          goto fail_cmd_trace_data;
       }
 
@@ -993,7 +993,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
             if (tu_create_copy_timestamp_cs(cmdbuf,
                   &new_submit->cmd_buffer_trace_data[i].timestamp_copy_cs,
                   &new_submit->cmd_buffer_trace_data[i].trace) != VK_SUCCESS) {
-               result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+               result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
                goto fail_copy_timestamp_cs;
             }
             assert(new_submit->cmd_buffer_trace_data[i].timestamp_copy_cs->entry_count == 1);
@@ -1009,7 +1009,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
          sizeof(*new_submit->in_syncobjs), 8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
    if (new_submit->in_syncobjs == NULL) {
-      result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+      result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail_in_syncobjs;
    }
 
@@ -1019,7 +1019,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
          VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
    if (new_submit->out_syncobjs == NULL) {
-      result = vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY)
+      result = vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail_out_syncobjs;
    }
 
@@ -1258,14 +1258,14 @@ tu_timeline_add_point_locked(struct tu_device *device,
             VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
       if (!(*point))
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
       struct drm_syncobj_create create = {};
 
       int ret = drmIoctl(device->fd, DRM_IOCTL_SYNCOBJ_CREATE, &create);
       if (ret) {
          vk_free(&device->vk.alloc, *point);
-         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+         return vk_error(device, VK_ERROR_DEVICE_LOST);
       }
 
       (*point)->syncobj = create.handle;

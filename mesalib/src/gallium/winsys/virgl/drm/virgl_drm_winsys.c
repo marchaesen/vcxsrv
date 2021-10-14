@@ -48,6 +48,9 @@
 #include "virgl_drm_winsys.h"
 #include "virgl_drm_public.h"
 
+// Delete local definitions when virglrenderer_hw.h becomes public
+#define VIRGL_DRM_CAPSET_VIRGL  1
+#define VIRGL_DRM_CAPSET_VIRGL2 2
 
 #define VIRGL_DRM_VERSION(major, minor) ((major) << 16 | (minor))
 #define VIRGL_DRM_VERSION_FENCE_FD      VIRGL_DRM_VERSION(0, 1)
@@ -1152,6 +1155,47 @@ virgl_drm_resource_cache_entry_release(struct virgl_resource_cache_entry *entry,
    virgl_hw_res_destroy(qdws, res);
 }
 
+static int virgl_init_context(int drmFD)
+{
+   int ret;
+   struct drm_virtgpu_context_init init = { 0 };
+   struct drm_virtgpu_context_set_param ctx_set_param = { 0 };
+   uint64_t supports_capset_virgl, supports_capset_virgl2;
+   supports_capset_virgl = supports_capset_virgl2 = 0;
+
+   supports_capset_virgl = ((1 << VIRGL_DRM_CAPSET_VIRGL) &
+                             params[param_supported_capset_ids].value);
+
+   supports_capset_virgl2 = ((1 << VIRGL_DRM_CAPSET_VIRGL2) &
+                              params[param_supported_capset_ids].value);
+
+   if (!supports_capset_virgl && !supports_capset_virgl2) {
+      _debug_printf("No virgl contexts available on host");
+      return -EINVAL;
+   }
+
+   ctx_set_param.param = VIRTGPU_CONTEXT_PARAM_CAPSET_ID;
+   ctx_set_param.value = (supports_capset_virgl2) ?
+                         VIRGL_DRM_CAPSET_VIRGL2 :
+                         VIRGL_DRM_CAPSET_VIRGL;
+
+   init.ctx_set_params = (unsigned long)(void *)&ctx_set_param;
+   init.num_params = 1;
+
+   ret = drmIoctl(drmFD, DRM_IOCTL_VIRTGPU_CONTEXT_INIT, &init);
+   /*
+    * EEXIST happens when a compositor does DUMB_CREATE before initializing
+    * virgl.
+    */
+   if (ret && errno != EEXIST) {
+      _debug_printf("DRM_IOCTL_VIRTGPU_CONTEXT_INIT failed with %s\n",
+                     strerror(errno));
+      return -1;
+   }
+
+   return 0;
+}
+
 static struct virgl_winsys *
 virgl_drm_winsys_create(int drmFD)
 {
@@ -1179,6 +1223,12 @@ virgl_drm_winsys_create(int drmFD)
    qdws = CALLOC_STRUCT(virgl_drm_winsys);
    if (!qdws)
       return NULL;
+
+   if (params[param_context_init].value) {
+      ret = virgl_init_context(drmFD);
+      if (ret)
+         return NULL;
+   }
 
    qdws->fd = drmFD;
    virgl_resource_cache_init(&qdws->cache, CACHE_TIMEOUT_USEC,

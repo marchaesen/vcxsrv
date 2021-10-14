@@ -53,9 +53,9 @@ pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name)
 
 void pandecode_inject_free(uint64_t gpu_va, unsigned sz);
 
-void pandecode_jc(uint64_t jc_gpu_va, bool bifrost, unsigned gpu_id);
+void pandecode_jc(uint64_t jc_gpu_va, unsigned gpu_id);
 
 void
-pandecode_abort_on_fault(uint64_t jc_gpu_va);
+pandecode_abort_on_fault(uint64_t jc_gpu_va, unsigned gpu_id);
 
 #endif /* __MMAP_TRACE_H__ */

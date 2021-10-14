@@ -340,7 +340,7 @@ fd_hw_query_prepare(struct fd_batch *batch, uint32_t num_tiles)
    uint32_t tile_stride = batch->next_sample_offset;
 
    if (tile_stride > 0)
-      fd_resource_resize(batch->ctx, batch->query_buf, tile_stride * num_tiles);
+      fd_resource_resize(batch->query_buf, tile_stride * num_tiles);
 
    batch->query_tile_stride = tile_stride;
 

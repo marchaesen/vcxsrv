@@ -839,8 +839,6 @@ void si_llvm_build_vs_prolog(struct si_shader_context *ctx, union si_shader_part
       returns[num_returns++] = ctx->ac.i32;
    }
 
-   struct ac_arg merged_wave_info = input_sgpr_param[3];
-
    /* Preloaded VGPRs (outputs must be floats) */
    for (i = 0; i < num_input_vgprs; i++) {
       ac_add_arg(&ctx->args, AC_ARG_VGPR, 1, AC_ARG_INT, &input_vgpr_param[i]);
@@ -889,109 +887,6 @@ void si_llvm_build_vs_prolog(struct si_shader_context *ctx, union si_shader_part
          input_vgprs[i] = LLVMBuildLoad(ctx->ac.builder, input_vgprs[i], "");
          if (is_tes_rel_patch_id)
             input_vgprs[i] = LLVMBuildZExt(ctx->ac.builder, input_vgprs[i], ctx->ac.i32, "");
-      }
-   }
-
-   if (key->vs_prolog.gs_fast_launch_tri_list || key->vs_prolog.gs_fast_launch_tri_strip) {
-      LLVMValueRef wave_id, thread_id_in_tg;
-
-      wave_id = si_unpack_param(ctx, input_sgpr_param[3], 24, 4);
-      thread_id_in_tg =
-         ac_build_imad(&ctx->ac, wave_id, LLVMConstInt(ctx->ac.i32, ctx->ac.wave_size, false),
-                       ac_get_thread_id(&ctx->ac));
-
-      /* The GS fast launch initializes all VGPRs to the value of
-       * the first thread, so we have to add the thread ID.
-       *
-       * Only these are initialized by the hw:
-       *   VGPR2: Base Primitive ID
-       *   VGPR5: Base Vertex ID
-       *   VGPR6: Instance ID
-       */
-
-      /* Put the vertex thread IDs into VGPRs as-is instead of packing them.
-       * The NGG cull shader will read them from there.
-       */
-      if (key->vs_prolog.gs_fast_launch_tri_list) {
-         input_vgprs[0] = ac_build_imad(&ctx->ac, thread_id_in_tg,       /* gs_vtx01_offset */
-                                        LLVMConstInt(ctx->ac.i32, 3, 0), /* Vertex 0 */
-                                        LLVMConstInt(ctx->ac.i32, 0, 0));
-         input_vgprs[1] = ac_build_imad(&ctx->ac, thread_id_in_tg,       /* gs_vtx23_offset */
-                                        LLVMConstInt(ctx->ac.i32, 3, 0), /* Vertex 1 */
-                                        LLVMConstInt(ctx->ac.i32, 1, 0));
-         input_vgprs[4] = ac_build_imad(&ctx->ac, thread_id_in_tg,       /* gs_vtx45_offset */
-                                        LLVMConstInt(ctx->ac.i32, 3, 0), /* Vertex 2 */
-                                        LLVMConstInt(ctx->ac.i32, 2, 0));
-      } else {
-         assert(key->vs_prolog.gs_fast_launch_tri_strip);
-         LLVMBuilderRef builder = ctx->ac.builder;
-         /* Triangle indices: */
-         LLVMValueRef index[3] = {
-            thread_id_in_tg,
-            LLVMBuildAdd(builder, thread_id_in_tg, LLVMConstInt(ctx->ac.i32, 1, 0), ""),
-            LLVMBuildAdd(builder, thread_id_in_tg, LLVMConstInt(ctx->ac.i32, 2, 0), ""),
-         };
-         LLVMValueRef is_odd = LLVMBuildTrunc(ctx->ac.builder, thread_id_in_tg, ctx->ac.i1, "");
-         LLVMValueRef flatshade_first = LLVMBuildICmp(
-            builder, LLVMIntEQ,
-            si_unpack_param(ctx, input_sgpr_param[8 + SI_SGPR_VS_STATE_BITS], 4, 2),
-            ctx->ac.i32_0, "");
-
-         ac_build_triangle_strip_indices_to_triangle(&ctx->ac, is_odd, flatshade_first, index);
-         input_vgprs[0] = index[0];
-         input_vgprs[1] = index[1];
-         input_vgprs[4] = index[2];
-      }
-
-      /* Triangles always have all edge flags set initially. */
-      input_vgprs[3] = LLVMConstInt(ctx->ac.i32, 0x7 << 8, 0);
-
-      input_vgprs[2] =
-         LLVMBuildAdd(ctx->ac.builder, input_vgprs[2], thread_id_in_tg, ""); /* PrimID */
-      input_vgprs[5] =
-         LLVMBuildAdd(ctx->ac.builder, input_vgprs[5], thread_id_in_tg, ""); /* VertexID */
-      input_vgprs[8] = input_vgprs[6];                                       /* InstanceID */
-
-      if (key->vs_prolog.gs_fast_launch_index_size_packed) {
-         LLVMTypeRef index_type = ctx->ac.voidt;
-
-         switch (key->vs_prolog.gs_fast_launch_index_size_packed) {
-         case 1:
-            index_type = ctx->ac.i8;
-            break;
-         case 2:
-            index_type = ctx->ac.i16;
-            break;
-         case 3:
-            index_type = ctx->ac.i32;
-            break;
-         default:
-            unreachable("invalid gs_fast_launch_index_size_packed");
-         }
-
-         LLVMValueRef sgprs[2] = {
-            ac_get_arg(&ctx->ac, input_sgpr_param[0]),
-            ac_get_arg(&ctx->ac, input_sgpr_param[1]),
-         };
-         LLVMValueRef indices = ac_build_gather_values(&ctx->ac, sgprs, 2);
-         indices = LLVMBuildBitCast(ctx->ac.builder, indices, ctx->ac.i64, "");
-         indices = LLVMBuildIntToPtr(ctx->ac.builder, indices,
-                                     LLVMPointerType(index_type, AC_ADDR_SPACE_CONST), "");
-
-         LLVMValueRef vertex_id = ac_build_alloca_init(&ctx->ac, input_vgprs[5], "");
-
-         /* if (is ES thread...) */
-         ac_build_ifcc(&ctx->ac,
-                       LLVMBuildICmp(ctx->ac.builder, LLVMIntULT, ac_get_thread_id(&ctx->ac),
-                                     si_unpack_param(ctx, merged_wave_info, 0, 8), ""), 0);
-         /* VertexID = indexBufferLoad(VertexID); */
-         LLVMValueRef index = LLVMBuildGEP(ctx->ac.builder, indices, &input_vgprs[5], 1, "");
-         index = LLVMBuildLoad(ctx->ac.builder, index, "");
-         index = LLVMBuildZExt(ctx->ac.builder, index, ctx->ac.i32, "");
-         LLVMBuildStore(ctx->ac.builder, index, vertex_id);
-         ac_build_endif(&ctx->ac, 0);
-
-         input_vgprs[5] = LLVMBuildLoad(ctx->ac.builder, vertex_id, "");
       }
    }
 

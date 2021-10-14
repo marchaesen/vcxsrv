@@ -72,24 +72,25 @@ init_velement(struct pipe_vertex_element *velements,
  */
 static void ALWAYS_INLINE
 setup_arrays(struct st_context *st,
-             const struct st_vertex_program *vp,
-             const struct st_common_variant *vp_variant,
+             const struct gl_vertex_array_object *vao,
+             const GLbitfield dual_slot_inputs,
+             const GLbitfield inputs_read,
+             const GLbitfield nonzero_divisor_attribs,
+             const GLbitfield enabled_attribs,
+             const GLbitfield enabled_user_attribs,
              struct cso_velems_state *velements,
              struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers,
              bool *has_user_vertex_buffers)
 {
    struct gl_context *ctx = st->ctx;
-   const struct gl_vertex_array_object *vao = ctx->Array._DrawVAO;
-   const GLbitfield inputs_read = vp_variant->vert_attrib_mask;
-   const GLbitfield dual_slot_inputs = vp->Base.Base.DualSlotInputs;
 
    /* Process attribute array data. */
-   GLbitfield mask = inputs_read & _mesa_draw_array_bits(ctx);
-   GLbitfield userbuf_attribs = inputs_read & _mesa_draw_user_array_bits(ctx);
+   GLbitfield mask = inputs_read & enabled_attribs;
+   GLbitfield userbuf_attribs = inputs_read & enabled_user_attribs;
 
    *has_user_vertex_buffers = userbuf_attribs != 0;
    st->draw_needs_minmax_index =
-      (userbuf_attribs & ~_mesa_draw_nonzero_divisor_bits(ctx)) != 0;
+      (userbuf_attribs & ~nonzero_divisor_attribs) != 0;
 
    if (vao->IsDynamic) {
       while (mask) {
@@ -173,8 +174,13 @@ st_setup_arrays(struct st_context *st,
                 struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers,
                 bool *has_user_vertex_buffers)
 {
-   setup_arrays(st, vp, vp_variant, velements, vbuffer, num_vbuffers,
-                has_user_vertex_buffers);
+   struct gl_context *ctx = st->ctx;
+
+   setup_arrays(st, ctx->Array._DrawVAO, vp->Base.Base.DualSlotInputs,
+                vp_variant->vert_attrib_mask,
+                _mesa_draw_nonzero_divisor_bits(ctx),
+                _mesa_draw_array_bits(ctx), _mesa_draw_user_array_bits(ctx),
+                velements, vbuffer, num_vbuffers, has_user_vertex_buffers);
 }
 
 /* ALWAYS_INLINE helps the compiler realize that most of the parameters are
@@ -278,6 +284,7 @@ st_setup_current_user(struct st_context *st,
 void
 st_update_array(struct st_context *st)
 {
+   struct gl_context *ctx = st->ctx;
    /* vertex program validation must be done before this */
    /* _NEW_PROGRAM, ST_NEW_VS_STATE */
    const struct st_vertex_program *vp = (struct st_vertex_program *)st->vp;
@@ -290,8 +297,11 @@ st_update_array(struct st_context *st)
 
    /* ST_NEW_VERTEX_ARRAYS alias ctx->DriverFlags.NewArray */
    /* Setup arrays */
-   setup_arrays(st, vp, vp_variant, &velements, vbuffer, &num_vbuffers,
-                &uses_user_vertex_buffers);
+   setup_arrays(st, ctx->Array._DrawVAO, vp->Base.Base.DualSlotInputs,
+                vp_variant->vert_attrib_mask,
+                _mesa_draw_nonzero_divisor_bits(ctx),
+                _mesa_draw_array_bits(ctx), _mesa_draw_user_array_bits(ctx),
+                &velements, vbuffer, &num_vbuffers, &uses_user_vertex_buffers);
 
    /* _NEW_CURRENT_ATTRIB */
    /* Setup zero-stride attribs. */
@@ -311,4 +321,41 @@ st_update_array(struct st_context *st)
                                        uses_user_vertex_buffers,
                                        vbuffer);
    st->last_num_vbuffers = num_vbuffers;
+}
+
+struct pipe_vertex_state *
+st_create_gallium_vertex_state(struct gl_context *ctx,
+                               const struct gl_vertex_array_object *vao,
+                               struct gl_buffer_object *indexbuf,
+                               uint32_t enabled_attribs)
+{
+   struct st_context *st = st_context(ctx);
+   const GLbitfield inputs_read = enabled_attribs;
+   const GLbitfield dual_slot_inputs = 0; /* always zero */
+   struct pipe_vertex_buffer vbuffer[PIPE_MAX_ATTRIBS];
+   unsigned num_vbuffers = 0;
+   struct cso_velems_state velements;
+   bool uses_user_vertex_buffers;
+
+   setup_arrays(st, vao, dual_slot_inputs, inputs_read, 0, inputs_read, 0,
+                &velements, vbuffer, &num_vbuffers, &uses_user_vertex_buffers);
+
+   if (num_vbuffers != 1 || uses_user_vertex_buffers) {
+      assert(!"this should never happen with display lists");
+      return NULL;
+   }
+
+   velements.count = util_bitcount(inputs_read);
+
+   struct pipe_screen *screen = st->screen;
+   struct pipe_vertex_state *state =
+      screen->create_vertex_state(screen, &vbuffer[0], velements.velems,
+                                  velements.count,
+                                  indexbuf ?
+                                    st_buffer_object(indexbuf)->buffer : NULL,
+                                  enabled_attribs);
+
+   for (unsigned i = 0; i < num_vbuffers; i++)
+      pipe_vertex_buffer_unreference(&vbuffer[i]);
+   return state;
 }

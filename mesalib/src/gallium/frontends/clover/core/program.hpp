@@ -27,7 +27,7 @@
 
 #include "core/object.hpp"
 #include "core/context.hpp"
-#include "core/module.hpp"
+#include "core/binary.hpp"
 
 namespace clover {
    typedef std::vector<std::pair<std::string, std::string>> header_map;
@@ -45,7 +45,7 @@ namespace clover {
               enum il_type il_type);
       program(clover::context &ctx,
               const ref_vector<device> &devs = {},
-              const std::vector<module> &binaries = {});
+              const std::vector<binary> &binaries = {});
 
       program(const program &prog) = delete;
       program &
@@ -62,20 +62,20 @@ namespace clover {
       device_range devices() const;
 
       struct build {
-         build(const module &m = {}, const std::string &opts = {},
-               const std::string &log = {}) : binary(m), opts(opts), log(log) {}
+         build(const binary &b = {}, const std::string &opts = {},
+               const std::string &log = {}) : bin(b), opts(opts), log(log) {}
 
          cl_build_status status() const;
          cl_program_binary_type binary_type() const;
 
-         module binary;
+         binary bin;
          std::string opts;
          std::string log;
       };
 
       const build &build(const device &dev) const;
 
-      const std::vector<module::symbol> &symbols() const;
+      const std::vector<binary::symbol> &symbols() const;
 
       unsigned kernel_ref_count() const;
 

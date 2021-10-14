@@ -1583,6 +1583,8 @@ static inline void vn_submit_vkDestroyPipeline(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkCreateGraphicsPipelines(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkGraphicsPipelineCreateInfo* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateGraphicsPipelines(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1603,6 +1605,8 @@ static inline void vn_async_vkCreateGraphicsPipelines(struct vn_instance *vn_ins
 
 static inline VkResult vn_call_vkCreateComputePipelines(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkComputePipelineCreateInfo* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateComputePipelines(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1623,6 +1627,8 @@ static inline void vn_async_vkCreateComputePipelines(struct vn_instance *vn_inst
 
 static inline void vn_call_vkDestroyPipeline(struct vn_instance *vn_instance, VkDevice device, VkPipeline pipeline, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyPipeline(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipeline, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

@@ -25,6 +25,8 @@
 #ifndef __PAN_BLITTER_H
 #define __PAN_BLITTER_H
 
+#include "genxml/gen_macros.h"
+
 #include "panfrost-job.h"
 #include "pan_cs.h"
 #include "pan_pool.h"
@@ -80,32 +82,48 @@ struct pan_blit_context {
 };
 
 void
-pan_blitter_init(struct panfrost_device *dev,
-                 struct pan_pool *bin_pool,
-                 struct pan_pool *desc_pool);
+GENX(pan_blitter_init)(struct panfrost_device *dev,
+                       struct pan_pool *bin_pool,
+                       struct pan_pool *desc_pool);
 
 void
-pan_blitter_cleanup(struct panfrost_device *dev);
+GENX(pan_blitter_cleanup)(struct panfrost_device *dev);
+
+unsigned
+GENX(pan_preload_fb)(struct pan_pool *desc_pool,
+                     struct pan_scoreboard *scoreboard,
+                     struct pan_fb_info *fb,
+                     mali_ptr tsd, mali_ptr tiler,
+                     struct panfrost_ptr *jobs);
 
 void
-pan_preload_fb(struct pan_pool *desc_pool,
-               struct pan_scoreboard *scoreboard,
-               struct pan_fb_info *fb,
-               mali_ptr tsd, mali_ptr tiler);
+GENX(pan_blit_ctx_init)(struct panfrost_device *dev,
+                        const struct pan_blit_info *info,
+                        struct pan_pool *blit_pool,
+                        struct pan_blit_context *ctx);
 
-void
-pan_blit_ctx_init(struct panfrost_device *dev,
-                  const struct pan_blit_info *info,
-                  struct pan_pool *blit_pool,
-                  struct pan_blit_context *ctx);
+static inline bool
+pan_blit_next_surface(struct pan_blit_context *ctx)
+{
+        if (ctx->dst.last_layer < ctx->dst.layer_offset) {
+                if (ctx->dst.cur_layer <= ctx->dst.last_layer)
+                        return false;
 
-bool
-pan_blit_next_surface(struct pan_blit_context *ctx);
+                ctx->dst.cur_layer--;
+        } else {
+                if (ctx->dst.cur_layer >= ctx->dst.last_layer)
+                        return false;
+
+                ctx->dst.cur_layer++;
+        }
+
+        return true;
+}
 
 struct panfrost_ptr
-pan_blit(struct pan_blit_context *ctx,
-         struct pan_pool *pool,
-         struct pan_scoreboard *scoreboard,
-         mali_ptr tsd, mali_ptr tiler);
+GENX(pan_blit)(struct pan_blit_context *ctx,
+               struct pan_pool *pool,
+               struct pan_scoreboard *scoreboard,
+               mali_ptr tsd, mali_ptr tiler);
 
 #endif

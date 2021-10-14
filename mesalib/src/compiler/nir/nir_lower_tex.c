@@ -1191,6 +1191,70 @@ nir_lower_txs_cube_array(nir_builder *b, nir_tex_instr *tex)
    nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, size, size->parent_instr);
 }
 
+static void
+nir_lower_ms_txf_to_fragment_fetch(nir_builder *b, nir_tex_instr *tex)
+{
+   lower_offset(b, tex);
+
+   b->cursor = nir_before_instr(&tex->instr);
+
+   /* Create FMASK fetch. */
+   assert(tex->texture_index == 0);
+   nir_tex_instr *fmask_fetch = nir_tex_instr_create(b->shader, tex->num_srcs - 1);
+   fmask_fetch->op = nir_texop_fragment_mask_fetch_amd;
+   fmask_fetch->coord_components = tex->coord_components;
+   fmask_fetch->sampler_dim = tex->sampler_dim;
+   fmask_fetch->is_array = tex->is_array;
+   fmask_fetch->texture_non_uniform = tex->texture_non_uniform;
+   fmask_fetch->dest_type = nir_type_uint32;
+   nir_ssa_dest_init(&fmask_fetch->instr, &fmask_fetch->dest, 1, 32, NULL);
+
+   fmask_fetch->num_srcs = 0;
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == nir_tex_src_ms_index)
+         continue;
+      nir_tex_src *src = &fmask_fetch->src[fmask_fetch->num_srcs++];
+      src->src = nir_src_for_ssa(tex->src[i].src.ssa);
+      src->src_type = tex->src[i].src_type;
+   }
+
+   nir_builder_instr_insert(b, &fmask_fetch->instr);
+
+   /* Obtain new sample index. */
+   int ms_index = nir_tex_instr_src_index(tex, nir_tex_src_ms_index);
+   assert(ms_index >= 0);
+   nir_src sample = tex->src[ms_index].src;
+   nir_ssa_def *new_sample = NULL;
+   if (nir_src_is_const(sample) && (nir_src_as_uint(sample) == 0 || nir_src_as_uint(sample) == 7)) {
+      if (nir_src_as_uint(sample) == 7)
+         new_sample = nir_ushr(b, &fmask_fetch->dest.ssa, nir_imm_int(b, 28));
+      else
+         new_sample = nir_iand_imm(b, &fmask_fetch->dest.ssa, 0xf);
+   } else {
+      new_sample = nir_ubitfield_extract(b, &fmask_fetch->dest.ssa,
+                                         nir_imul_imm(b, sample.ssa, 4), nir_imm_int(b, 4));
+   }
+
+   /* Update instruction. */
+   tex->op = nir_texop_fragment_fetch_amd;
+   nir_instr_rewrite_src_ssa(&tex->instr, &tex->src[ms_index].src, new_sample);
+}
+
+static void
+nir_lower_samples_identical_to_fragment_fetch(nir_builder *b, nir_tex_instr *tex)
+{
+   b->cursor = nir_after_instr(&tex->instr);
+
+   nir_tex_instr *fmask_fetch = nir_instr_as_tex(nir_instr_clone(b->shader, &tex->instr));
+   fmask_fetch->op = nir_texop_fragment_mask_fetch_amd;
+   fmask_fetch->dest_type = nir_type_uint32;
+   nir_ssa_dest_init(&fmask_fetch->instr, &fmask_fetch->dest, 1, 32, NULL);
+   nir_builder_instr_insert(b, &fmask_fetch->instr);
+
+   nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_ieq_imm(b, &fmask_fetch->dest.ssa, 0));
+   nir_instr_remove_v(&tex->instr);
+}
+
 static bool
 nir_lower_tex_block(nir_block *block, nir_builder *b,
                     const nir_lower_tex_options *options,
@@ -1373,13 +1437,8 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
        * derivatives.  Lower those opcodes which use implicit derivatives to
        * use an explicit LOD of 0.
        */
-      bool shader_supports_implicit_lod =
-         b->shader->info.stage == MESA_SHADER_FRAGMENT ||
-         (b->shader->info.stage == MESA_SHADER_COMPUTE &&
-          b->shader->info.cs.derivative_group != DERIVATIVE_GROUP_NONE);
-
       if (nir_tex_instr_has_implicit_derivative(tex) &&
-          !shader_supports_implicit_lod) {
+          !nir_shader_supports_implicit_lod(b->shader)) {
          lower_zero_lod(b, tex);
          progress = true;
       }
@@ -1403,6 +1462,18 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
           nir_tex_instr_has_explicit_tg4_offsets(tex) &&
           options->lower_tg4_offsets) {
          progress |= lower_tg4_offsets(b, tex);
+         continue;
+      }
+
+      if (options->lower_to_fragment_fetch_amd && tex->op == nir_texop_txf_ms) {
+         nir_lower_ms_txf_to_fragment_fetch(b, tex);
+         progress = true;
+         continue;
+      }
+
+      if (options->lower_to_fragment_fetch_amd && tex->op == nir_texop_samples_identical) {
+         nir_lower_samples_identical_to_fragment_fetch(b, tex);
+         progress = true;
          continue;
       }
    }

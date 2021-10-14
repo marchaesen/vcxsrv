@@ -143,7 +143,7 @@ v3dv_CreateRenderPass(VkDevice _device,
    pass = vk_object_zalloc(&device->vk, pAllocator, size,
                            VK_OBJECT_TYPE_RENDER_PASS);
    if (pass == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    pass->multiview_enabled = multiview_enabled;
    pass->attachment_count = pCreateInfo->attachmentCount;
@@ -168,7 +168,7 @@ v3dv_CreateRenderPass(VkDevice _device,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
          vk_object_free(&device->vk, pAllocator, pass);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
    } else {
       pass->subpass_attachments = NULL;

@@ -1284,7 +1284,7 @@ v3d_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
                 v3d_flush(pctx);
         }
 
-        if (V3D_DEBUG & V3D_DEBUG_ALWAYS_FLUSH)
+        if (unlikely(V3D_DEBUG & V3D_DEBUG_ALWAYS_FLUSH))
                 v3d_flush(pctx);
 }
 
@@ -1446,7 +1446,7 @@ v3d_launch_grid(struct pipe_context *pctx, const struct pipe_grid_info *info)
 
         v3d->last_perfmon = v3d->active_perfmon;
 
-        if (!(V3D_DEBUG & V3D_DEBUG_NORAST)) {
+        if (!(unlikely(V3D_DEBUG & V3D_DEBUG_NORAST))) {
                 int ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_SUBMIT_CSD,
                                     &submit);
                 static bool warned = false;

@@ -432,7 +432,7 @@ public:
    }
 
    Result vadd32(Definition dst, Op a, Op b, bool carry_out=false, Op carry_in=Op(Operand(s2)), bool post_ra=false) {
-      if (!b.op.isTemp() || b.op.regClass().type() != RegType::vgpr)
+      if (b.op.isConstant() || b.op.regClass().type() != RegType::vgpr)
          std::swap(a, b);
       if (!post_ra && (!b.op.hasRegClass() || b.op.regClass().type() == RegType::sgpr))
          b = copy(def(v1), b);

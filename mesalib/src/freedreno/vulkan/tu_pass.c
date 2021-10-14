@@ -642,7 +642,7 @@ tu_CreateRenderPass2(VkDevice _device,
    pass = vk_object_zalloc(&device->vk, pAllocator, size,
                            VK_OBJECT_TYPE_RENDER_PASS);
    if (pass == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    pass->attachment_count = pCreateInfo->attachmentCount;
    pass->subpass_count = pCreateInfo->subpassCount;
@@ -688,7 +688,7 @@ tu_CreateRenderPass2(VkDevice _device,
          VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
          vk_object_free(&device->vk, pAllocator, pass);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
    } else
       pass->subpass_attachments = NULL;
@@ -766,6 +766,8 @@ tu_CreateRenderPass2(VkDevice _device,
       if (a != VK_ATTACHMENT_UNUSED) {
             pass->attachments[a].gmem_offset = 0;
             update_samples(subpass, pCreateInfo->pAttachments[a].samples);
+
+            pass->attachments[a].clear_views |= subpass->multiview_mask;
       }
    }
 

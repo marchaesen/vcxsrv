@@ -139,6 +139,16 @@ blorp_alloc_dynamic_state(struct blorp_batch *blorp_batch,
                        size, alignment, offset, NULL);
 }
 
+UNUSED static void *
+blorp_alloc_general_state(struct blorp_batch *blorp_batch,
+                          uint32_t size,
+                          uint32_t alignment,
+                          uint32_t *offset)
+{
+   /* Use dynamic state range for general state on iris. */
+   return blorp_alloc_dynamic_state(blorp_batch, size, alignment, offset);
+}
+
 static void
 blorp_alloc_binding_table(struct blorp_batch *blorp_batch,
                           unsigned num_entries,

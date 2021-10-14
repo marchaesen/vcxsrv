@@ -46,9 +46,12 @@ enum zink_descriptor_type {
    ZINK_DESCRIPTOR_TYPE_SSBO,
    ZINK_DESCRIPTOR_TYPE_IMAGE,
    ZINK_DESCRIPTOR_TYPES,
+   ZINK_DESCRIPTOR_BINDLESS,
 };
 
 #define ZINK_MAX_DESCRIPTORS_PER_TYPE (32 * ZINK_SHADER_COUNT)
+
+#define ZINK_BINDLESS_IS_BUFFER(HANDLE) (HANDLE >= ZINK_MAX_BINDLESS_HANDLES)
 
 struct zink_descriptor_refs {
    struct util_dynarray refs;
@@ -109,7 +112,6 @@ struct zink_descriptor_reference {
    bool *invalid;
 };
 
-
 struct zink_descriptor_data {
    struct zink_descriptor_state gfx_descriptor_states[ZINK_SHADER_COUNT]; // keep incremental hashes here
    struct zink_descriptor_state descriptor_states[2]; // gfx, compute
@@ -129,6 +131,11 @@ struct zink_descriptor_data {
    struct zink_descriptor_layout *dummy_dsl;
    VkDescriptorSet dummy_set;
 
+   VkDescriptorSetLayout bindless_layout;
+   VkDescriptorPool bindless_pool;
+   VkDescriptorSet bindless_set;
+   bool bindless_bound;
+
    bool changed[2][ZINK_DESCRIPTOR_TYPES + 1];
    bool has_fbfetch;
    struct zink_program *pg[2]; //gfx, compute
@@ -136,6 +143,7 @@ struct zink_descriptor_data {
 
 struct zink_program_descriptor_data {
    uint8_t push_usage;
+   bool bindless;
    VkDescriptorPoolSize sizes[6]; //zink_descriptor_size_index
    struct zink_descriptor_layout_key *layout_key[ZINK_DESCRIPTOR_TYPES]; //push set doesn't need one
    uint8_t binding_usage;
@@ -211,7 +219,12 @@ void
 zink_descriptor_util_init_null_set(struct zink_context *ctx, VkDescriptorSet desc_set);
 VkImageLayout
 zink_descriptor_util_image_layout_eval(const struct zink_resource *res, bool is_compute);
-
+void
+zink_descriptors_init_bindless(struct zink_context *ctx);
+void
+zink_descriptors_deinit_bindless(struct zink_context *ctx);
+void
+zink_descriptors_update_bindless(struct zink_context *ctx);
 /* these two can't be called in lazy mode */
 void
 zink_descriptor_set_refs_clear(struct zink_descriptor_refs *refs, void *ptr);

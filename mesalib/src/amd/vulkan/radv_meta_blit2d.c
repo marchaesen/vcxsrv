@@ -395,6 +395,13 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
           */
          radv_DestroyFramebuffer(radv_device_to_handle(device), dst_temps.fb,
                                  &cmd_buffer->pool->alloc);
+
+         if (src_type == BLIT2D_SRC_TYPE_BUFFER)
+            radv_buffer_view_finish(&src_temps.bview);
+         else
+            radv_image_view_finish(&dst_temps.iview);
+
+         radv_image_view_finish(&dst_temps.iview);
       }
    }
 }
@@ -1312,6 +1319,10 @@ radv_device_init_meta_blit2d_state(struct radv_device *device, bool on_demand)
 
          /* Don't need to handle copies between buffers and multisample images. */
          if (src == BLIT2D_SRC_TYPE_BUFFER && log2_samples > 0)
+            continue;
+
+         /* There are no multisampled 3D images. */
+         if (src == BLIT2D_SRC_TYPE_IMAGE_3D && log2_samples > 0)
             continue;
 
          result = meta_blit2d_create_pipe_layout(device, src, log2_samples);

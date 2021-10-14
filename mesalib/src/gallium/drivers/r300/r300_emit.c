@@ -1353,7 +1353,7 @@ validate:
     if (r300->textures_state.dirty) {
         /* ...textures... */
         for (i = 0; i < texstate->count; i++) {
-            if (!(texstate->tx_enable & (1 << i))) {
+            if (!(texstate->tx_enable & (1U << i))) {
                 continue;
             }
 

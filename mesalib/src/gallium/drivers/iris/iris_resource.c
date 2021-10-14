@@ -99,6 +99,8 @@ modifier_is_supported(const struct intel_device_info *devinfo,
    case I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS_CC:
       if (devinfo->verx10 != 120)
          return false;
+      if (devinfo->display_ver != 12)
+         return false;
       break;
    case DRM_FORMAT_MOD_INVALID:
    default:
@@ -439,6 +441,10 @@ iris_resource_alloc_flags(const struct iris_screen *screen,
    if (templ->flags & (PIPE_RESOURCE_FLAG_MAP_COHERENT |
                        PIPE_RESOURCE_FLAG_MAP_PERSISTENT))
       flags |= BO_ALLOC_SMEM;
+
+   if ((templ->bind & PIPE_BIND_SHARED) ||
+       util_format_get_num_planes(templ->format) > 1)
+      flags |= BO_ALLOC_NO_SUBALLOC;
 
    return flags;
 }
@@ -935,11 +941,16 @@ iris_resource_finish_aux_import(struct pipe_screen *pscreen,
       import_aux_info(r[0], r[1]);
       map_aux_addresses(screen, r[0], format, 0);
 
-      /* Add on a clear color BO. */
+      /* Add on a clear color BO.
+       *
+       * Also add some padding to make sure the fast clear color state buffer
+       * starts at a 4K alignment to avoid some unknown issues.  See the
+       * matching comment in iris_resource_create_with_modifiers().
+       */
       if (iris_get_aux_clear_color_state_size(screen) > 0) {
          res->aux.clear_color_bo =
             iris_bo_alloc(screen->bufmgr, "clear color_buffer",
-                          iris_get_aux_clear_color_state_size(screen), 1,
+                          iris_get_aux_clear_color_state_size(screen), 4096,
                           IRIS_MEMZONE_OTHER, BO_ALLOC_ZEROED);
       }
       break;
@@ -1388,6 +1399,139 @@ iris_flush_resource(struct pipe_context *ctx, struct pipe_resource *resource)
    }
 }
 
+/**
+ * Reallocate a (non-external) resource into new storage, copying the data
+ * and modifying the original resource to point at the new storage.
+ *
+ * This is useful for e.g. moving a suballocated internal resource to a
+ * dedicated allocation that can be exported by itself.
+ */
+static void
+iris_reallocate_resource_inplace(struct iris_context *ice,
+                                 struct iris_resource *old_res,
+                                 unsigned new_bind_flag)
+{
+   struct pipe_screen *pscreen = ice->ctx.screen;
+
+   if (iris_bo_is_external(old_res->bo))
+      return;
+
+   assert(old_res->mod_info == NULL);
+   assert(old_res->bo == old_res->aux.bo || old_res->aux.bo == NULL);
+   assert(old_res->bo == old_res->aux.clear_color_bo ||
+          old_res->aux.clear_color_bo == NULL);
+   assert(old_res->external_format == PIPE_FORMAT_NONE);
+
+   struct pipe_resource templ = old_res->base.b;
+   templ.bind |= new_bind_flag;
+
+   struct iris_resource *new_res =
+      (void *) pscreen->resource_create(pscreen, &templ);
+
+   assert(iris_bo_is_real(new_res->bo));
+
+   struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
+
+   if (old_res->base.b.target == PIPE_BUFFER) {
+      struct pipe_box box = (struct pipe_box) {
+         .width = old_res->base.b.width0,
+         .height = 1,
+      };
+
+      iris_copy_region(&ice->blorp, batch, &new_res->base.b, 0, 0, 0, 0,
+                       &old_res->base.b, 0, &box);
+   } else {
+      for (unsigned l = 0; l <= templ.last_level; l++) {
+         struct pipe_box box = (struct pipe_box) {
+            .width = u_minify(templ.width0, l),
+            .height = u_minify(templ.height0, l),
+            .depth = util_num_layers(&templ, l),
+         };
+
+         iris_copy_region(&ice->blorp, batch, &new_res->base.b, 0, 0, 0, l,
+                          &old_res->base.b, l, &box);
+      }
+   }
+
+   iris_flush_resource(&ice->ctx, &new_res->base.b);
+
+   struct iris_bo *old_bo = old_res->bo;
+   struct iris_bo *old_aux_bo = old_res->aux.bo;
+   struct iris_bo *old_clear_color_bo = old_res->aux.clear_color_bo;
+
+   /* Replace the structure fields with the new ones */
+   old_res->base.b.bind = templ.bind;
+   old_res->bo = new_res->bo;
+   old_res->aux.surf = new_res->aux.surf;
+   old_res->aux.bo = new_res->aux.bo;
+   old_res->aux.offset = new_res->aux.offset;
+   old_res->aux.extra_aux.surf = new_res->aux.extra_aux.surf;
+   old_res->aux.extra_aux.offset = new_res->aux.extra_aux.offset;
+   old_res->aux.clear_color_bo = new_res->aux.clear_color_bo;
+   old_res->aux.clear_color_offset = new_res->aux.clear_color_offset;
+   old_res->aux.usage = new_res->aux.usage;
+   old_res->aux.possible_usages = new_res->aux.possible_usages;
+   old_res->aux.sampler_usages = new_res->aux.sampler_usages;
+
+   if (new_res->aux.state) {
+      assert(old_res->aux.state);
+      for (unsigned l = 0; l <= templ.last_level; l++) {
+         unsigned layers = util_num_layers(&templ, l);
+         for (unsigned z = 0; z < layers; z++) {
+            enum isl_aux_state aux =
+               iris_resource_get_aux_state(new_res, l, z);
+            iris_resource_set_aux_state(ice, old_res, l, z, 1, aux);
+         }
+      }
+   }
+
+   /* old_res now points at the new BOs, make new_res point at the old ones
+    * so they'll be freed when we unreference the resource below.
+    */
+   new_res->bo = old_bo;
+   new_res->aux.bo = old_aux_bo;
+   new_res->aux.clear_color_bo = old_clear_color_bo;
+
+   pipe_resource_reference((struct pipe_resource **)&new_res, NULL);
+}
+
+static void
+iris_resource_disable_suballoc_on_first_query(struct pipe_screen *pscreen,
+                                              struct pipe_context *ctx,
+                                              struct iris_resource *res)
+{
+   if (iris_bo_is_real(res->bo))
+      return;
+
+   assert(!(res->base.b.bind & PIPE_BIND_SHARED));
+
+   bool destroy_context;
+   if (ctx) {
+      ctx = threaded_context_unwrap_sync(ctx);
+      destroy_context = false;
+   } else {
+      /* We need to execute a blit on some GPU context, but the DRI layer
+       * often doesn't give us one.  So we have to invent a temporary one.
+       *
+       * We can't store a permanent context in the screen, as it would cause
+       * circular refcounting where screens reference contexts that reference
+       * resources, while resources reference screens...causing nothing to be
+       * freed.  So we just create and destroy a temporary one here.
+       */
+      ctx = iris_create_context(pscreen, NULL, 0);
+      destroy_context = true;
+   }
+
+   struct iris_context *ice = (struct iris_context *)ctx;
+
+   iris_reallocate_resource_inplace(ice, res, PIPE_BIND_SHARED);
+   assert(res->base.b.bind & PIPE_BIND_SHARED);
+
+   if (destroy_context)
+      iris_destroy_context(ctx);
+}
+
+
 static void
 iris_resource_disable_aux_on_first_query(struct pipe_resource *resource,
                                          unsigned usage)
@@ -1409,7 +1553,7 @@ iris_resource_disable_aux_on_first_query(struct pipe_resource *resource,
 
 static bool
 iris_resource_get_param(struct pipe_screen *pscreen,
-                        struct pipe_context *context,
+                        struct pipe_context *ctx,
                         struct pipe_resource *resource,
                         unsigned plane,
                         unsigned layer,
@@ -1423,11 +1567,15 @@ iris_resource_get_param(struct pipe_screen *pscreen,
    bool mod_with_aux =
       res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
    bool wants_aux = mod_with_aux && plane > 0;
-   struct iris_bo *bo = wants_aux ? res->aux.bo : res->bo;
    bool result;
    unsigned handle;
 
    iris_resource_disable_aux_on_first_query(resource, handle_usage);
+   iris_resource_disable_suballoc_on_first_query(pscreen, ctx, res);
+
+   struct iris_bo *bo = wants_aux ? res->aux.bo : res->bo;
+
+   assert(iris_bo_is_real(bo));
 
    switch (param) {
    case PIPE_RESOURCE_PARAM_NPLANES:
@@ -1490,7 +1638,7 @@ iris_resource_get_param(struct pipe_screen *pscreen,
 
 static bool
 iris_resource_get_handle(struct pipe_screen *pscreen,
-                         struct pipe_context *unused_ctx,
+                         struct pipe_context *ctx,
                          struct pipe_resource *resource,
                          struct winsys_handle *whandle,
                          unsigned usage)
@@ -1500,9 +1648,10 @@ iris_resource_get_handle(struct pipe_screen *pscreen,
    bool mod_with_aux =
       res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
 
-   /* if ctx is ever used, do ctx = threaded_context_unwrap_sync(ctx) */
-
    iris_resource_disable_aux_on_first_query(resource, usage);
+   iris_resource_disable_suballoc_on_first_query(pscreen, ctx, res);
+
+   assert(iris_bo_is_real(res->bo));
 
    struct iris_bo *bo;
    if (res->mod_info &&
@@ -1629,7 +1778,7 @@ iris_invalidate_resource(struct pipe_context *ctx,
    /* Otherwise, try and replace the backing storage with a new BO. */
 
    /* We can't reallocate memory we didn't allocate in the first place. */
-   if (res->bo->userptr)
+   if (res->bo->gem_handle && res->bo->real.userptr)
       return;
 
    struct iris_bo *old_bo = res->bo;

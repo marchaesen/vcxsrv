@@ -689,9 +689,6 @@ xwl_present_flip(WindowPtr present_window,
                       &xwl_window->frame_callback_list);
     }
 
-    /* Realign timer */
-    xwl_present_reset_timer(xwl_present_window);
-
     xwl_surface_damage(xwl_window->xwl_screen, xwl_window->surface,
                        damage_box->x1 - present_window->drawable.x,
                        damage_box->y1 - present_window->drawable.y,
@@ -784,6 +781,10 @@ xwl_present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
                 /* Put pending flip at the flip queue head */
                 xorg_list_add(&vblank->event_queue, &xwl_present_window->flip_queue);
+
+                /* Realign timer */
+                xwl_present_reset_timer(xwl_present_window);
+
                 return;
             }
 

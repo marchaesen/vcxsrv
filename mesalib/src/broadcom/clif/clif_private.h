@@ -64,6 +64,7 @@ struct clif_dump {
 enum reloc_worklist_type {
         reloc_cl,
         reloc_gl_shader_state,
+        reloc_gl_including_gs_shader_state,
         reloc_generic_tile_list,
 };
 

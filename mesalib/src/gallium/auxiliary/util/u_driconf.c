@@ -54,6 +54,7 @@ u_driconf_fill_st_options(struct st_config_options *options,
    query_bool_option(glsl_zero_init);
    query_bool_option(force_integer_tex_nearest);
    query_bool_option(vs_position_always_invariant);
+   query_bool_option(vs_position_always_precise);
    query_bool_option(force_glsl_abs_sqrt);
    query_bool_option(allow_glsl_cross_stage_interpolation_mismatch);
    query_bool_option(allow_draw_out_of_order);

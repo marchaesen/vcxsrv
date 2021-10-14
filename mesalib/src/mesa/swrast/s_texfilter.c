@@ -1150,7 +1150,7 @@ static void
 sample_2d_linear(struct gl_context *ctx,
                  const struct gl_sampler_object *samp,
                  const struct gl_texture_image *img,
-                 const GLfloat texcoord[4],
+                 const GLfloat texcoord[2],
                  GLfloat rgba[])
 {
    const struct swrast_texture_image *swImg = swrast_texture_image_const(img);

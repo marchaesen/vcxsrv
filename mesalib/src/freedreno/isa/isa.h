@@ -76,7 +76,7 @@ struct isa_decode_options {
 	/**
 	 * Callback prior to instruction decode
 	 */
-	void (*instr_cb)(void *data, unsigned n, uint64_t instr);
+	void (*instr_cb)(void *data, unsigned n, void *instr);
 };
 
 void isa_decode(void *bin, int sz, FILE *out, const struct isa_decode_options *options);

@@ -125,9 +125,10 @@ last_writer_idx(pr_opt_ctx& ctx, PhysReg physReg, RegClass rc)
    Idx instr_idx = ctx.instr_idx_by_regs[ctx.current_block->index][physReg.reg()];
    unsigned dw_size = DIV_ROUND_UP(rc.bytes(), 4u);
    unsigned r = physReg.reg();
-   bool all_same = std::all_of(ctx.instr_idx_by_regs[ctx.current_block->index].begin() + r,
-                               ctx.instr_idx_by_regs[ctx.current_block->index].begin() + r + dw_size,
-                               [instr_idx](Idx i) { return i == instr_idx; });
+   bool all_same =
+      std::all_of(ctx.instr_idx_by_regs[ctx.current_block->index].begin() + r,
+                  ctx.instr_idx_by_regs[ctx.current_block->index].begin() + r + dw_size,
+                  [instr_idx](Idx i) { return i == instr_idx; });
 
    return all_same ? instr_idx : written_by_multiple_instrs;
 }

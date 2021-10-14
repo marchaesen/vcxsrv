@@ -465,7 +465,8 @@ tess_level_components(struct state *state, uint32_t *inner, uint32_t *outer)
 }
 
 static nir_ssa_def *
-build_tessfactor_base(nir_builder *b, gl_varying_slot slot, struct state *state)
+build_tessfactor_base(nir_builder *b, gl_varying_slot slot, uint32_t comp,
+                      struct state *state)
 {
    uint32_t inner_levels, outer_levels;
    tess_level_components(state, &inner_levels, &outer_levels);
@@ -492,7 +493,7 @@ build_tessfactor_base(nir_builder *b, gl_varying_slot slot, struct state *state)
       unreachable("bad");
    }
 
-   return nir_iadd(b, patch_offset, nir_imm_int(b, offset));
+   return nir_iadd(b, patch_offset, nir_imm_int(b, offset + comp));
 }
 
 static void
@@ -559,7 +560,8 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
          if (is_tess_levels(location)) {
             assert(intr->dest.ssa.num_components == 1);
             address = nir_load_tess_factor_base_ir3(b);
-            offset = build_tessfactor_base(b, location, state);
+            offset = build_tessfactor_base(
+               b, location, nir_intrinsic_component(intr), state);
          } else {
             address = nir_load_tess_param_base_ir3(b);
             offset = build_patch_offset(b, state, location,
@@ -590,9 +592,6 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 
             assert(intr->src[0].ssa->num_components == 1);
 
-            nir_ssa_def *offset =
-               nir_iadd_imm(b, intr->src[1].ssa, nir_intrinsic_component(intr));
-
             nir_if *nif = NULL;
             if (location != VARYING_SLOT_PRIMITIVE_ID) {
                /* with tess levels are defined as float[4] and float[2],
@@ -605,13 +604,18 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
                else
                   levels = inner_levels;
 
+               nir_ssa_def *offset = nir_iadd_imm(
+                  b, intr->src[1].ssa, nir_intrinsic_component(intr));
                nif = nir_push_if(b, nir_ult(b, offset, nir_imm_int(b, levels)));
             }
 
-            replace_intrinsic(
-               b, intr, nir_intrinsic_store_global_ir3, intr->src[0].ssa,
-               nir_load_tess_factor_base_ir3(b),
-               nir_iadd(b, offset, build_tessfactor_base(b, location, state)));
+            nir_ssa_def *offset = build_tessfactor_base(
+               b, location, nir_intrinsic_component(intr), state);
+
+            replace_intrinsic(b, intr, nir_intrinsic_store_global_ir3,
+                              intr->src[0].ssa,
+                              nir_load_tess_factor_base_ir3(b),
+                              nir_iadd(b, intr->src[1].ssa, offset));
 
             if (location != VARYING_SLOT_PRIMITIVE_ID) {
                nir_pop_if(b, nif);
@@ -621,8 +625,6 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
             nir_ssa_def *offset = build_patch_offset(
                b, state, location, nir_intrinsic_component(intr),
                intr->src[1].ssa);
-
-            debug_assert(nir_intrinsic_component(intr) == 0);
 
             replace_intrinsic(b, intr, nir_intrinsic_store_global_ir3,
                               intr->src[0].ssa, address, offset);
@@ -785,16 +787,14 @@ lower_tess_eval_block(nir_block *block, nir_builder *b, struct state *state)
          if (is_tess_levels(location)) {
             assert(intr->dest.ssa.num_components == 1);
             address = nir_load_tess_factor_base_ir3(b);
-            offset = build_tessfactor_base(b, location, state);
+            offset = build_tessfactor_base(
+               b, location, nir_intrinsic_component(intr), state);
          } else {
             address = nir_load_tess_param_base_ir3(b);
             offset = build_patch_offset(b, state, location,
                                         nir_intrinsic_component(intr),
                                         intr->src[0].ssa);
          }
-
-         offset =
-            nir_iadd(b, offset, nir_imm_int(b, nir_intrinsic_component(intr)));
 
          replace_intrinsic(b, intr, nir_intrinsic_load_global_ir3, address,
                            offset, NULL);

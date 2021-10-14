@@ -35,6 +35,7 @@
 
 #include <string.h>
 
+#include "simple_mtx.h"
 #include "util/futex.h"
 #include "util/list.h"
 #include "util/macros.h"
@@ -204,7 +205,7 @@ struct util_queue_job {
 /* Put this into your context. */
 struct util_queue {
    char name[14]; /* 13 characters = the thread name without the index */
-   mtx_t finish_lock; /* for util_queue_finish and protects threads/num_threads */
+   simple_mtx_t finish_lock; /* for util_queue_finish and protects threads/num_threads */
    mtx_t lock;
    cnd_t has_queued_cond;
    cnd_t has_space_cond;

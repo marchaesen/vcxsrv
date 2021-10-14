@@ -26,7 +26,7 @@
 #define __PAN_POOL_H__
 
 #include <stddef.h>
-#include <gen_macros.h>
+#include <genxml/gen_macros.h>
 #include "pan_bo.h"
 
 #include "util/u_dynarray.h"

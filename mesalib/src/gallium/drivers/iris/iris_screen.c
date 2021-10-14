@@ -559,7 +559,7 @@ iris_get_compute_param(struct pipe_screen *pscreen,
       RET((uint64_t []) { 64 * 1024 });
 
    case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      RET((uint32_t []) { 0 });
+      RET((uint32_t []) { 1 });
 
    case PIPE_COMPUTE_CAP_SUBGROUP_SIZE:
       RET((uint32_t []) { BRW_SUBGROUP_SIZE });
@@ -736,7 +736,10 @@ iris_init_identifier_bo(struct iris_screen *screen)
    if (!bo_map)
       return false;
 
-   screen->workaround_bo->kflags |= EXEC_OBJECT_CAPTURE | EXEC_OBJECT_ASYNC;
+   assert(iris_bo_is_real(screen->workaround_bo));
+
+   screen->workaround_bo->real.kflags |=
+      EXEC_OBJECT_CAPTURE | EXEC_OBJECT_ASYNC;
    screen->workaround_address = (struct iris_address) {
       .bo = screen->workaround_bo,
       .offset = ALIGN(
@@ -802,7 +805,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
 
    screen->workaround_bo =
       iris_bo_alloc(screen->bufmgr, "workaround", 4096, 1,
-                    IRIS_MEMZONE_OTHER, 0);
+                    IRIS_MEMZONE_OTHER, BO_ALLOC_NO_SUBALLOC);
    if (!screen->workaround_bo)
       return NULL;
 

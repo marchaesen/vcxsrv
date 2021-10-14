@@ -1675,7 +1675,7 @@ registers:
 	deadbeef	0xae50: deadbeef
 	deadbeef	0xae51: deadbeef
 	deadbeef	0xae52: deadbeef
-	00000000	TPL1_UNKNOWN_B600: 0
+	00000000	TPL1_DBG_ECO_CNTL: 0
 	00000001	TPL1_ADDR_MODE_CNTL: ADDR_64B
 	00000004	TPL1_NC_MODE_CNTL: { LOWER_BIT = 2 | UPPER_BIT = 0 }
 	00000000	TPL1_UNKNOWN_B605: 0
@@ -3435,7 +3435,7 @@ shader-blocks:
       size: 2048
 	:0:0000:0000[0600e824x_a018c54ax] no match: 0600e824a018c54a
 	:7:0001:0001[edc6145bx_11fa09c3x] no match: edc6145b11fa09c3
-	:2:0002:0002[41440087x_008c504ax] ceil.f hr33.w, (neg)hc18.z	; dontcare bits in ceil.f: 40000008c0000
+	:2:0002:0002[41440087x_008c504ax] ceil.f hr33.w, (neg)hc18.z	; dontcare bits in ceil.f: 00040000008c0000
 	:0:0003:0003[14183488x_d5c04509x] no match: 14183488d5c04509
 	:5:0004:0004[a52373bdx_8ff7c071x] no match: a52373bd8ff7c071
 	:1:0005:0005[39301c43x_1d826d16x] no match: 39301c431d826d16
@@ -4114,11 +4114,11 @@ shader-blocks:
   - type: A6XX_HLSQ_INST_RAM
     - bank: 0
       size: 2048
-	:2:0000:0000[40846422x_d81251c5x] (sat)(ul)sign.f r8.z, (neg)hc113.y	; dontcare bits in sign.f: 40000d8120000
+	:2:0000:0000[40846422x_d81251c5x] (sat)(ul)sign.f r8.z, (neg)hc113.y	; dontcare bits in sign.f: 00040000d8120000
 	:4:0001:0001[938a16e2x_520c369ax] no match: 938a16e2520c369a
 	:1:0002:0002[200a00c1x_094864d2x] no match: 200a00c1094864d2
 	:2:0003:0003[44109084x_4a201507x] no match: 441090844a201507
-	:4:0004:0004[882fadabx_14a391b1x] (jp)(sat)(rpt1)(ul)rsq hr42.w, (abs)(r)hc108.y	; dontcare bits in rsq: f800014a30000
+	:4:0004:0004[882fadabx_14a391b1x] (jp)(sat)(rpt1)(ul)rsq hr42.w, (abs)(r)hc108.y	; dontcare bits in rsq: 000f800014a30000
 	:3:0005:0006[6060f068x_7106601ax] no match: 6060f0687106601a
 	-----------------------------------------------
 	8192 (0x2000) bytes
@@ -4638,12 +4638,12 @@ shader-blocks:
       size: 2048
 	:0:0000:0000[00000000x_00003002x] nop
 	:0:0001:0001[00000000x_00000000x] nop
-	:6:0002:0002[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], -34	; dontcare bits in atomic.xor: ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 0xdf vs 0x0, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0x1 vs 0x0
-	:6:0003:0003[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], -34	; dontcare bits in atomic.xor: ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 0xdf vs 0x0, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0x1 vs 0x0
-	:6:0004:0004[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], -34	; dontcare bits in atomic.xor: ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 0xdf vs 0x0, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0x1 vs 0x0
-	:6:0005:0005[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], -34	; dontcare bits in atomic.xor: ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 0xdf vs 0x0, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0x1 vs 0x0
-	:6:0006:0006[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], -34	; dontcare bits in atomic.xor: ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 0xdf vs 0x0, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0x1 vs 0x0
-	:6:0007:0007[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], -34	; dontcare bits in atomic.xor: ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 0xdf vs 0x0, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0x1 vs 0x0
+	:6:0002:0002[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
+	:6:0003:0003[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
+	:6:0004:0004[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
+	:6:0005:0005[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
+	:6:0006:0006[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
+	:6:0007:0007[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
 	-----------------------------------------------
 	8192 (0x2000) bytes
 	000000: 00003002 00000000 00000000 00000000	|.0..............|
@@ -5382,7 +5382,7 @@ clusters:
 	00000000	GRAS_CL_Z_CLAMP[0xe].MAX: 0.000000
 	00000000	GRAS_CL_Z_CLAMP[0xf].MIN: 0.000000
 	00000000	GRAS_CL_Z_CLAMP[0xf].MAX: 0.000000
-	00000010	GRAS_SU_CNTL: { LINEHALFWIDTH = 0.500000 }
+	00000010	GRAS_SU_CNTL: { LINEHALFWIDTH = 0.500000 | LINE_MODE = BRESENHAM }
 	00000000	GRAS_SU_POINT_MINMAX: { MIN = 0.000000 | MAX = 0.000000 }
 	00000000	GRAS_SU_POINT_SIZE: 0.000000
 	00000000	GRAS_SU_DEPTH_PLANE_CNTL: { Z_MODE = A6XX_EARLY_Z }
@@ -5627,7 +5627,7 @@ clusters:
 	00000000	GRAS_CL_Z_CLAMP[0xe].MAX: 0.000000
 	00000000	GRAS_CL_Z_CLAMP[0xf].MIN: 0.000000
 	00000000	GRAS_CL_Z_CLAMP[0xf].MAX: 0.000000
-	00000010	GRAS_SU_CNTL: { LINEHALFWIDTH = 0.500000 }
+	00000010	GRAS_SU_CNTL: { LINEHALFWIDTH = 0.500000 | LINE_MODE = BRESENHAM }
 	00000000	GRAS_SU_POINT_MINMAX: { MIN = 0.000000 | MAX = 0.000000 }
 	00000000	GRAS_SU_POINT_SIZE: 0.000000
 	00000000	GRAS_SU_DEPTH_PLANE_CNTL: { Z_MODE = A6XX_EARLY_Z }

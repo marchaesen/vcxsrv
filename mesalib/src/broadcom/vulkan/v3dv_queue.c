@@ -34,9 +34,9 @@ v3dv_clif_dump(struct v3dv_device *device,
                struct v3dv_job *job,
                struct drm_v3d_submit_cl *submit)
 {
-   if (!(V3D_DEBUG & (V3D_DEBUG_CL |
-                      V3D_DEBUG_CL_NO_BIN |
-                      V3D_DEBUG_CLIF)))
+   if (!(unlikely(V3D_DEBUG & (V3D_DEBUG_CL |
+                               V3D_DEBUG_CL_NO_BIN |
+                               V3D_DEBUG_CLIF))))
       return;
 
    struct clif_dump *clif = clif_dump_init(&device->devinfo,
@@ -223,7 +223,7 @@ handle_copy_query_results_cpu_job(struct v3dv_job *job)
    /* Map the entire dst buffer for the CPU copy if needed */
    assert(!bo->map || bo->map_size == bo->size);
    if (!bo->map && !v3dv_bo_map(job->device, bo, bo->size))
-      return vk_error(job->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(job->device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    /* FIXME: if flags includes VK_QUERY_RESULT_WAIT_BIT this could trigger a
     * sync wait on the CPU for the corresponding GPU jobs to finish. We might
@@ -360,7 +360,7 @@ spawn_event_wait_thread(struct v3dv_job *job, pthread_t *wait_thread)
    assert(wait_thread != NULL);
 
    if (pthread_create(wait_thread, NULL, event_wait_thread_func, job))
-      return vk_error(job->device->instance, VK_ERROR_DEVICE_LOST);
+      return vk_error(job->device, VK_ERROR_DEVICE_LOST);
 
    return VK_NOT_READY;
 }
@@ -413,13 +413,13 @@ handle_copy_buffer_to_image_cpu_job(struct v3dv_job *job)
    struct v3dv_bo *dst_bo = info->image->mem->bo;
    assert(!dst_bo->map || dst_bo->map_size == dst_bo->size);
    if (!dst_bo->map && !v3dv_bo_map(job->device, dst_bo, dst_bo->size))
-      return vk_error(job->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(job->device, VK_ERROR_OUT_OF_HOST_MEMORY);
    void *dst_ptr = dst_bo->map;
 
    struct v3dv_bo *src_bo = info->buffer->mem->bo;
    assert(!src_bo->map || src_bo->map_size == src_bo->size);
    if (!src_bo->map && !v3dv_bo_map(job->device, src_bo, src_bo->size))
-      return vk_error(job->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(job->device, VK_ERROR_OUT_OF_HOST_MEMORY);
    void *src_ptr = src_bo->map;
 
    const struct v3d_resource_slice *slice =
@@ -492,7 +492,7 @@ handle_csd_indirect_cpu_job(struct v3dv_queue *queue,
    assert(info->buffer && info->buffer->mem && info->buffer->mem->bo);
    struct v3dv_bo *bo = info->buffer->mem->bo;
    if (!bo->map && !v3dv_bo_map(job->device, bo, bo->size))
-      return vk_error(job->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(job->device, VK_ERROR_OUT_OF_HOST_MEMORY);
    assert(bo->map);
 
    const uint32_t offset = info->buffer->mem_offset + info->offset;
@@ -524,7 +524,7 @@ process_semaphores_to_signal(struct v3dv_device *device,
    drmSyncobjExportSyncFile(render_fd, device->last_job_sync, &fd);
    mtx_unlock(&device->mutex);
    if (fd == -1)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    VkResult result = VK_SUCCESS;
    for (uint32_t i = 0; i < count; i++) {
@@ -563,7 +563,7 @@ process_fence_to_signal(struct v3dv_device *device, VkFence _fence)
    drmSyncobjExportSyncFile(render_fd, device->last_job_sync, &fd);
    mtx_unlock(&device->mutex);
    if (fd == -1)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    int ret;
    if (!fence->temp_sync)
@@ -661,7 +661,7 @@ handle_cl_job(struct v3dv_queue *queue,
    free(bo_handles);
 
    if (ret)
-      return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+      return vk_error(device, VK_ERROR_DEVICE_LOST);
 
    return VK_SUCCESS;
 }
@@ -684,7 +684,7 @@ handle_tfu_job(struct v3dv_queue *queue,
 
    if (ret != 0) {
       fprintf(stderr, "Failed to submit TFU job: %d\n", ret);
-      return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+      return vk_error(device, VK_ERROR_DEVICE_LOST);
    }
 
    return VK_SUCCESS;
@@ -729,7 +729,7 @@ handle_csd_job(struct v3dv_queue *queue,
    free(bo_handles);
 
    if (ret)
-      return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+      return vk_error(device, VK_ERROR_DEVICE_LOST);
 
    return VK_SUCCESS;
 }
@@ -777,7 +777,7 @@ queue_create_noop_job(struct v3dv_queue *queue)
    queue->noop_job = vk_zalloc(&device->vk.alloc, sizeof(struct v3dv_job), 8,
                                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!queue->noop_job)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    v3dv_job_init(queue->noop_job, V3DV_JOB_TYPE_GPU_CL, device, NULL, -1);
 
    v3dv_X(device, job_emit_noop)(queue->noop_job);
@@ -999,7 +999,7 @@ spawn_master_wait_thread(struct v3dv_queue *queue,
    mtx_lock(&queue->mutex);
    if (pthread_create(&wait_info->master_wait_thread, NULL,
                       master_wait_thread_func, wait_info)) {
-      result = vk_error(queue->device->instance, VK_ERROR_DEVICE_LOST);
+      result = vk_error(queue, VK_ERROR_DEVICE_LOST);
       goto done;
    }
 
@@ -1067,12 +1067,12 @@ v3dv_CreateSemaphore(VkDevice _device,
       vk_object_zalloc(&device->vk, pAllocator, sizeof(struct v3dv_semaphore),
                        VK_OBJECT_TYPE_SEMAPHORE);
    if (sem == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    int ret = drmSyncobjCreate(device->pdevice->render_fd, 0, &sem->sync);
    if (ret) {
       vk_object_free(&device->vk, pAllocator, sem);
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
    *pSemaphore = v3dv_semaphore_to_handle(sem);
@@ -1158,23 +1158,23 @@ v3dv_ImportSemaphoreFdKHR(
        */
       unsigned flags = fd == -1 ? DRM_SYNCOBJ_CREATE_SIGNALED : 0;
       if (drmSyncobjCreate(render_fd, flags, &new_sync))
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
       if (fd != -1) {
          if (drmSyncobjImportSyncFile(render_fd, new_sync, fd)) {
             drmSyncobjDestroy(render_fd, new_sync);
-            return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+            return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
          }
       }
       break;
    }
    case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT: {
       if (drmSyncobjFDToHandle(render_fd, fd, &new_sync))
-         return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+         return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
       break;
    }
    default:
-      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
    }
 
    destroy_syncobj(render_fd, &sem->temp_sync);
@@ -1216,12 +1216,12 @@ v3dv_GetSemaphoreFdKHR(VkDevice _device,
    case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT: {
       drmSyncobjExportSyncFile(render_fd, sem->sync, pFd);
       if (*pFd == -1)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       break;
    case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT:
       drmSyncobjHandleToFD(render_fd, sem->sync, pFd);
       if (*pFd == -1)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       break;
    }
    default:
@@ -1262,7 +1262,7 @@ v3dv_CreateFence(VkDevice _device,
       vk_object_zalloc(&device->vk, pAllocator, sizeof(struct v3dv_fence),
                        VK_OBJECT_TYPE_FENCE);
    if (fence == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    unsigned flags = 0;
    if (pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT)
@@ -1270,7 +1270,7 @@ v3dv_CreateFence(VkDevice _device,
    int ret = drmSyncobjCreate(device->pdevice->render_fd, flags, &fence->sync);
    if (ret) {
       vk_object_free(&device->vk, pAllocator, fence);
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
    *pFence = v3dv_fence_to_handle(fence);
@@ -1357,23 +1357,23 @@ v3dv_ImportFenceFdKHR(VkDevice _device,
        */
       unsigned flags = fd == -1 ? DRM_SYNCOBJ_CREATE_SIGNALED : 0;
       if (drmSyncobjCreate(render_fd, flags, &new_sync))
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
       if (fd != -1) {
          if (drmSyncobjImportSyncFile(render_fd, new_sync, fd)) {
             drmSyncobjDestroy(render_fd, new_sync);
-            return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+            return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
          }
       }
       break;
    }
    case VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT: {
       if (drmSyncobjFDToHandle(render_fd, fd, &new_sync))
-         return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+         return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
       break;
    }
    default:
-      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
    }
 
    destroy_syncobj(render_fd, &fence->temp_sync);
@@ -1427,7 +1427,7 @@ v3dv_GetFenceStatus(VkDevice _device, VkFence _fence)
    if (ret == -ETIME)
       return VK_NOT_READY;
    else if (ret)
-      return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+      return vk_error(device, VK_ERROR_DEVICE_LOST);
    return VK_SUCCESS;
 }
 
@@ -1447,12 +1447,12 @@ v3dv_GetFenceFdKHR(VkDevice _device,
    case VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT: {
       drmSyncobjExportSyncFile(render_fd, fence->sync, pFd);
       if (*pFd == -1)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       break;
    case VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT:
       drmSyncobjHandleToFD(render_fd, fence->sync, pFd);
       if (*pFd == -1)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       break;
    }
    default:
@@ -1471,7 +1471,7 @@ v3dv_ResetFences(VkDevice _device, uint32_t fenceCount, const VkFence *pFences)
                                  sizeof(*syncobjs) * fenceCount, 8,
                                  VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!syncobjs)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    int render_fd = device->pdevice->render_fd;
    uint32_t reset_count = 0;
@@ -1501,7 +1501,7 @@ v3dv_ResetFences(VkDevice _device, uint32_t fenceCount, const VkFence *pFences)
    vk_free(&device->vk.alloc, syncobjs);
 
    if (ret)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    return VK_SUCCESS;
 }
 
@@ -1520,7 +1520,7 @@ v3dv_WaitForFences(VkDevice _device,
                                  sizeof(*syncobjs) * fenceCount, 8,
                                  VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!syncobjs)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    for (uint32_t i = 0; i < fenceCount; i++) {
       struct v3dv_fence *fence = v3dv_fence_from_handle(pFences[i]);
@@ -1542,7 +1542,7 @@ v3dv_WaitForFences(VkDevice _device,
    if (ret == -ETIME)
       return VK_TIMEOUT;
    else if (ret)
-      return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+      return vk_error(device, VK_ERROR_DEVICE_LOST);
    return VK_SUCCESS;
 }
 
@@ -1553,5 +1553,5 @@ v3dv_QueueBindSparse(VkQueue _queue,
                      VkFence fence)
 {
    V3DV_FROM_HANDLE(v3dv_queue, queue, _queue);
-   return vk_error(queue->device->instance, VK_ERROR_FEATURE_NOT_PRESENT);
+   return vk_error(queue, VK_ERROR_FEATURE_NOT_PRESENT);
 }

@@ -25,6 +25,7 @@
 
 #include <iterator>
 
+#include "util/compat.hpp"
 #include "util/tuple.hpp"
 #include "util/pointer.hpp"
 #include "util/functional.hpp"
@@ -43,8 +44,8 @@ namespace clover {
       class iterator_adaptor {
       public:
          typedef std::forward_iterator_tag iterator_category;
-         typedef typename std::result_of<
-               F(typename std::iterator_traits<Is>::reference...)
+         typedef typename invoke_result<
+               F, typename std::iterator_traits<Is>::reference...
             >::type reference;
          typedef typename std::remove_reference<reference>::type value_type;
          typedef pseudo_ptr<value_type> pointer;

@@ -35,6 +35,8 @@ dEQP-GLES3.functional.texture.compressed.astc.void_extent_ldr.8x5,Fail
 dEQP-GLES3.functional.texture.compressed.astc.void_extent_ldr.8x6,Fail
 dEQP-GLES3.functional.texture.compressed.astc.void_extent_ldr.8x8,Fail
 
+KHR-GL46.direct_state_access.textures_storage_1d_rg8ui,Fail
+
 KHR-GL46.get_texture_sub_image.errors_test,Fail
 KHR-GL46.get_texture_sub_image.functional_test,Fail
 
@@ -48,6 +50,8 @@ KHR-GL46.transform_feedback.draw_xfb_instanced_test,Crash
 KHR-GL46.transform_feedback.draw_xfb_stream_instanced_test,Crash
 KHR-GL46.transform_feedback.query_vertex_interleaved_test,Fail
 KHR-GL46.transform_feedback.query_vertex_separate_test,Fail
+
+KHR-GLES31.core.pixelstoragemodes.teximage2d.r8snorm.16_0,Fail
 
 # "Result is different than expected at index: 0 Expected value: 1606528 Result value: 0"
 KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions,Fail

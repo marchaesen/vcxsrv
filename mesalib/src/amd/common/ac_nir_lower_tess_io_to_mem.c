@@ -154,7 +154,8 @@ typedef struct {
 } lower_tess_io_state;
 
 static bool
-match_mask(nir_intrinsic_instr *intrin,
+match_mask(gl_shader_stage stage,
+           nir_intrinsic_instr *intrin,
            uint64_t mask,
            bool match_indirect)
 {
@@ -163,7 +164,8 @@ match_mask(nir_intrinsic_instr *intrin,
       return match_indirect;
 
    uint64_t slot = nir_intrinsic_io_semantics(intrin).location;
-   if (intrin->intrinsic != nir_intrinsic_load_per_vertex_input &&
+   if (stage == MESA_SHADER_TESS_CTRL &&
+       intrin->intrinsic != nir_intrinsic_load_per_vertex_input &&
        intrin->intrinsic != nir_intrinsic_store_per_vertex_output)
       slot -= VARYING_SLOT_PATCH0;
 
@@ -178,7 +180,7 @@ tcs_output_needs_vmem(nir_intrinsic_instr *intrin,
                    ? st->tes_inputs_read
                    : st->tes_patch_inputs_read;
 
-   return match_mask(intrin, mask, true);
+   return match_mask(MESA_SHADER_TESS_CTRL, intrin, mask, true);
 }
 
 static bool
@@ -189,7 +191,7 @@ tcs_output_needs_lds(nir_intrinsic_instr *intrin,
                    ? shader->info.outputs_read
                    : shader->info.patch_outputs_read;
 
-   return match_mask(intrin, mask, true);
+   return match_mask(MESA_SHADER_TESS_CTRL, intrin, mask, true);
 }
 
 static bool
@@ -208,7 +210,7 @@ lower_ls_output_store(nir_builder *b,
    lower_tess_io_state *st = (lower_tess_io_state *) state;
 
    /* If this is a temp-only TCS input, we don't need to use shared memory at all. */
-   if (match_mask(intrin, st->tcs_temp_only_inputs, false))
+   if (match_mask(MESA_SHADER_VERTEX, intrin, st->tcs_temp_only_inputs, false))
       return false;
 
    b->cursor = nir_before_instr(instr);

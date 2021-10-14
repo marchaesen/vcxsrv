@@ -218,7 +218,9 @@ lower_block(struct ir3 *ir, struct ir3_block **block)
          ir3_dst_create(mov, instr->dsts[0]->num, instr->dsts[0]->flags);
          struct ir3_register *new_src = ir3_src_create(mov, 0, 0);
          *new_src = *instr->srcs[src];
-         mov->cat1.dst_type = mov->cat1.src_type = TYPE_U32;
+         mov->cat1.dst_type = TYPE_U32;
+         mov->cat1.src_type =
+            (new_src->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32;
          break;
       }
 

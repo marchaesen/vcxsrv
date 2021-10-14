@@ -1,7 +1,0 @@
-# Note: skips lists for CI are just a list of lines that, when
-# non-zero-length and not starting with '#', will regex match to
-# delete lines from the test list.  Be careful.
-
-# Some compute jobs take more 0.5s, the maximum allowed by the
-# kernel driver
-dEQP-GLES31.functional.draw_indirect.compute_interop.large.*

@@ -26,7 +26,7 @@
 #include <unordered_set>
 
 #include "core/context.hpp"
-#include "core/module.hpp"
+#include "core/binary.hpp"
 #include "core/program.hpp"
 
 namespace clover {
@@ -49,14 +49,14 @@ namespace clover {
       // Converts an integer SPIR-V version into its textual representation.
       std::string version_to_string(uint32_t version);
 
-      // Creates a clover module out of the given SPIR-V binary.
-      module compile_program(const std::string &binary,
+      // Creates a clover binary out of the given SPIR-V binary.
+      binary compile_program(const std::string &binary,
                              const device &dev, std::string &r_log,
                              bool validate = true);
 
-      // Combines multiple clover modules into a single one, resolving
+      // Combines multiple clover objects into a single one, resolving
       // link dependencies between them.
-      module link_program(const std::vector<module> &modules, const device &dev,
+      binary link_program(const std::vector<binary> &objects, const device &dev,
                           const std::string &opts, std::string &r_log);
 
       // Returns a textual representation of the given binary.

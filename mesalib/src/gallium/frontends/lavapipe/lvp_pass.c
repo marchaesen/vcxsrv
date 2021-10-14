@@ -167,7 +167,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
    pass = vk_alloc2(&device->vk.alloc, pAllocator, size, 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pass == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    /* Clear the subpasses along with the parent pass. This required because
     * each array member of lvp_subpass must be a valid pointer if not NULL.
@@ -206,7 +206,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
          vk_free2(&device->vk.alloc, pAllocator, pass);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
    } else
       pass->subpass_attachments = NULL;

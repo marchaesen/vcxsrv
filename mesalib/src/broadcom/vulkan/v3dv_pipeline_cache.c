@@ -695,7 +695,7 @@ v3dv_CreatePipelineCache(VkDevice _device,
                             VK_OBJECT_TYPE_PIPELINE_CACHE);
 
    if (cache == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    v3dv_pipeline_cache_init(cache, device, pCreateInfo->flags,
                             device->instance->pipeline_cache_enabled);

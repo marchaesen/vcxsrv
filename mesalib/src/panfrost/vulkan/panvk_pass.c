@@ -52,7 +52,7 @@ panvk_CreateRenderPass2(VkDevice _device,
    pass = vk_object_zalloc(&device->vk, pAllocator, size,
                            VK_OBJECT_TYPE_RENDER_PASS);
    if (pass == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    pass->attachment_count = pCreateInfo->attachmentCount;
    pass->subpass_count = pCreateInfo->subpassCount;
@@ -79,7 +79,7 @@ panvk_CreateRenderPass2(VkDevice _device,
       att->final_layout = pCreateInfo->pAttachments[i].finalLayout;
       att->store_op = pCreateInfo->pAttachments[i].storeOp;
       att->stencil_store_op = pCreateInfo->pAttachments[i].stencilStoreOp;
-      att->clear_subpass = ~0;
+      att->first_used_in_subpass = ~0;
    }
 
    uint32_t subpass_attachment_count = 0;
@@ -101,7 +101,7 @@ panvk_CreateRenderPass2(VkDevice _device,
                    8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
          vk_object_free(&device->vk, pAllocator, pass);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       }
    }
 
@@ -144,9 +144,14 @@ panvk_CreateRenderPass2(VkDevice _device,
 
             if (idx != VK_ATTACHMENT_UNUSED) {
                pass->attachments[idx].view_mask |= subpass->view_mask;
-               if (pass->attachments[idx].clear_subpass == ~0) {
-                  pass->attachments[idx].clear_subpass = i;
-                  subpass->color_attachments[j].clear = true;
+               if (pass->attachments[idx].first_used_in_subpass == ~0) {
+                  pass->attachments[idx].first_used_in_subpass = i;
+                  if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_CLEAR)
+                     subpass->color_attachments[j].clear = true;
+                  else if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_LOAD)
+                     subpass->color_attachments[j].preload = true;
+               } else {
+                  subpass->color_attachments[j].preload = true;
                }
             }
          }
@@ -176,9 +181,15 @@ panvk_CreateRenderPass2(VkDevice _device,
       if (idx != VK_ATTACHMENT_UNUSED) {
          subpass->zs_attachment.layout = desc->pDepthStencilAttachment->layout;
          pass->attachments[idx].view_mask |= subpass->view_mask;
-         if (pass->attachments[idx].clear_subpass == ~0) {
-            pass->attachments[idx].clear_subpass = i;
-            subpass->zs_attachment.clear = true;
+
+         if (pass->attachments[idx].first_used_in_subpass == ~0) {
+            pass->attachments[idx].first_used_in_subpass = i;
+            if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_CLEAR)
+               subpass->zs_attachment.clear = true;
+            else if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_LOAD)
+               subpass->zs_attachment.preload = true;
+         } else {
+            subpass->zs_attachment.preload = true;
          }
       }
    }

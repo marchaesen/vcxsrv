@@ -32,11 +32,29 @@
 
 struct etna_device *etna_device_new(int fd)
 {
-	struct etna_device *dev = calloc(sizeof(*dev), 1);
+	struct etna_device *dev;
 	struct drm_etnaviv_param req = {
 		.param = ETNAVIV_PARAM_SOFTPIN_START_ADDR,
 	};
+	drmVersionPtr version;
 	int ret;
+
+	version = drmGetVersion(fd);
+	if (!version) {
+		ERROR_MSG("cannot get version: %s", strerror(errno));
+		return NULL;
+	}
+
+	dev = calloc(sizeof(*dev), 1);
+	if (!dev) {
+		goto out;
+	}
+
+	dev->drm_version = ETNA_DRM_VERSION(version->version_major,
+					    version->version_minor);
+
+out:
+	drmFreeVersion(version);
 
 	if (!dev)
 		return NULL;
@@ -124,4 +142,9 @@ int etna_device_fd(struct etna_device *dev)
 bool etnaviv_device_softpin_capable(struct etna_device *dev)
 {
 	return !!dev->use_softpin;
+}
+
+uint32_t etnaviv_device_version(struct etna_device *dev)
+{
+   return dev->drm_version;
 }

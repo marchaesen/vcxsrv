@@ -1081,6 +1081,9 @@ emit_copy_buffer_to_layer_per_tile_list(struct v3dv_job *job,
    uint32_t format = choose_tlb_format(framebuffer, imgrsc->aspectMask,
                                        false, false, true);
 
+   uint32_t image_layer = layer + (image->vk.image_type != VK_IMAGE_TYPE_3D ?
+      imgrsc->baseArrayLayer : region->imageOffset.z);
+
    emit_linear_load(cl, RENDER_TARGET_0, buffer->mem->bo,
                     buffer_offset, buffer_stride, format);
 
@@ -1100,13 +1103,13 @@ emit_copy_buffer_to_layer_per_tile_list(struct v3dv_job *job,
       if (imgrsc->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) {
          emit_image_load(job->device, cl, framebuffer, image,
                          VK_IMAGE_ASPECT_STENCIL_BIT,
-                         imgrsc->baseArrayLayer + layer, imgrsc->mipLevel,
+                         image_layer, imgrsc->mipLevel,
                          false, false);
       } else {
          assert(imgrsc->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT);
          emit_image_load(job->device, cl, framebuffer, image,
                          VK_IMAGE_ASPECT_DEPTH_BIT,
-                         imgrsc->baseArrayLayer + layer, imgrsc->mipLevel,
+                         image_layer, imgrsc->mipLevel,
                          false, false);
       }
    }
@@ -1117,20 +1120,20 @@ emit_copy_buffer_to_layer_per_tile_list(struct v3dv_job *job,
 
    /* Store TLB to image */
    emit_image_store(job->device, cl, framebuffer, image, imgrsc->aspectMask,
-                    imgrsc->baseArrayLayer + layer, imgrsc->mipLevel,
+                    image_layer, imgrsc->mipLevel,
                     false, true, false);
 
    if (framebuffer->vk_format == VK_FORMAT_D24_UNORM_S8_UINT) {
       if (imgrsc->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) {
          emit_image_store(job->device, cl, framebuffer, image,
                           VK_IMAGE_ASPECT_STENCIL_BIT,
-                          imgrsc->baseArrayLayer + layer, imgrsc->mipLevel,
+                          image_layer, imgrsc->mipLevel,
                           false, false, false);
       } else {
          assert(imgrsc->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT);
          emit_image_store(job->device, cl, framebuffer, image,
                           VK_IMAGE_ASPECT_DEPTH_BIT,
-                          imgrsc->baseArrayLayer + layer, imgrsc->mipLevel,
+                          image_layer, imgrsc->mipLevel,
                           false, false, false);
       }
    }

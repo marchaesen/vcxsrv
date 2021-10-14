@@ -388,8 +388,7 @@ update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
           */
          unsigned lds_bytes_per_interp = 3 * 16;
          unsigned lds_param_bytes = lds_bytes_per_interp * program->info->ps.num_interp;
-         lds_per_workgroup +=
-            align(lds_param_bytes, program->dev.lds_alloc_granule);
+         lds_per_workgroup += align(lds_param_bytes, program->dev.lds_alloc_granule);
       }
 
       if (lds_per_workgroup)

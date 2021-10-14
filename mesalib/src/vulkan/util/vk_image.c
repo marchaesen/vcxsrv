@@ -468,6 +468,7 @@ vk_image_layout_is_read_only(VkImageLayout layout,
    case VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR:
    case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
    case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+   case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR:
       return false;
 
    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
@@ -478,6 +479,7 @@ vk_image_layout_is_read_only(VkImageLayout layout,
    case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT:
    case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
    case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+   case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR:
       return true;
 
    case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
@@ -487,8 +489,6 @@ vk_image_layout_is_read_only(VkImageLayout layout,
       return aspect == VK_IMAGE_ASPECT_STENCIL_BIT;
 
    case VK_IMAGE_LAYOUT_MAX_ENUM:
-   case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR:
-   case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR:
       unreachable("Invalid image layout.");
    }
 
@@ -596,9 +596,20 @@ vk_image_layout_to_usage_flags(VkImageLayout layout,
       assert(aspect == VK_IMAGE_ASPECT_COLOR_BIT);
       return VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;
 
-   case VK_IMAGE_LAYOUT_MAX_ENUM:
    case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR:
+      if (aspect == VK_IMAGE_ASPECT_DEPTH_BIT ||
+          aspect == VK_IMAGE_ASPECT_STENCIL_BIT) {
+         return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      } else {
+         assert(aspect == VK_IMAGE_ASPECT_COLOR_BIT);
+         return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+      }
+
    case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR:
+      return VK_IMAGE_USAGE_SAMPLED_BIT |
+             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+
+   case VK_IMAGE_LAYOUT_MAX_ENUM:
       unreachable("Invalid image layout.");
    }
 

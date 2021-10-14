@@ -50,6 +50,8 @@ get_history(struct fd_autotune *at, struct fd_batch *batch)
 {
    struct fd_batch_history *history;
 
+   /* draw batches should still have their key at this point. */
+   assert(batch->key || batch->nondraw);
    if (!batch->key)
       return NULL;
 

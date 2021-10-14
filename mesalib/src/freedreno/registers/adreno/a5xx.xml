@@ -1825,14 +1825,9 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="IJ_PERSP_PIXEL" pos="0" type="boolean"/>
 		<bitfield name="IJ_PERSP_CENTROID" pos="1" type="boolean"/>
 		<bitfield name="IJ_PERSP_SAMPLE" pos="2" type="boolean"/>
-		<!--
-		bit 3 set when blob turns on WCOORD.. which also corresponds to
-		register being set in in HLSQ_CONTROL_3_REG bits 8..15 (which
-		shader does not use).. possibly providing wcoord in an alternate
-		way??
-		Also, when that happens, VARYING bits are turned on as well.
-		 -->
-		<bitfield name="SIZE" pos="3" type="boolean"/>
+		<bitfield name="IJ_LINEAR_PIXEL" pos="3" type="boolean"/>
+		<bitfield name="IJ_LINEAR_CENTROID" pos="4" type="boolean"/>
+		<bitfield name="IJ_LINEAR_SAMPLE" pos="5" type="boolean"/>
 		<bitfield name="COORD_MASK" low="6" high="9" type="hex"/>
 	</reg32>
 	<reg32 offset="0xe006" name="GRAS_CL_GUARDBAND_CLIP_ADJ">
@@ -1851,7 +1846,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="FRONT_CW" pos="2" type="boolean"/>
 		<bitfield name="LINEHALFWIDTH" low="3" high="10" radix="2" type="fixed"/>
 		<bitfield name="POLY_OFFSET" pos="11" type="boolean"/>
-		<bitfield name="MSAA_ENABLE" pos="13" type="boolean"/>
+		<bitfield name="LINE_MODE" pos="13" type="a5xx_line_mode"/>
 		<!-- probably LINEHALFWIDTH is the same as a4xx.. -->
 	</reg32>
 	<reg32 offset="0xe091" name="GRAS_SU_POINT_MINMAX">
@@ -1978,14 +1973,9 @@ bit 7 for RECTLIST (clear) when z32s8 (used for clear of depth32?  not set
 		<bitfield name="IJ_PERSP_PIXEL" pos="0" type="boolean"/>
 		<bitfield name="IJ_PERSP_CENTROID" pos="1" type="boolean"/>
 		<bitfield name="IJ_PERSP_SAMPLE" pos="2" type="boolean"/>
-		<!--
-		bit 3 set when blob turns on WCOORD.. which also corresponds to
-		register being set in in HLSQ_CONTROL_3_REG bits 8..15 (which
-		shader does not use).. possibly providing wcoord in an alternate
-		way??
-		Also, when that happens, VARYING bits are turned on as well.
-		 -->
-		<bitfield name="SIZE" pos="3" type="boolean"/>
+		<bitfield name="IJ_LINEAR_PIXEL" pos="3" type="boolean"/>
+		<bitfield name="IJ_LINEAR_CENTROID" pos="4" type="boolean"/>
+		<bitfield name="IJ_LINEAR_SAMPLE" pos="5" type="boolean"/>
 		<bitfield name="COORD_MASK" low="6" high="9" type="hex"/>
 	</reg32>
 	<reg32 offset="0xe145" name="RB_RENDER_CONTROL1">

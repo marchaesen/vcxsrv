@@ -25,7 +25,9 @@
 
 #include "vk_alloc.h"
 #include "vk_common_entrypoints.h"
+#include "vk_log.h"
 #include "vk_util.h"
+#include "vk_debug_utils.h"
 
 #include "compiler/glsl_types.h"
 
@@ -39,6 +41,38 @@ vk_instance_init(struct vk_instance *instance,
    memset(instance, 0, sizeof(*instance));
    vk_object_base_init(NULL, &instance->base, VK_OBJECT_TYPE_INSTANCE);
    instance->alloc = *alloc;
+
+   /* VK_EXT_debug_utils */
+   /* These messengers will only be used during vkCreateInstance or
+    * vkDestroyInstance calls.  We do this first so that it's safe to use
+    * vk_errorf and friends.
+    */
+   list_inithead(&instance->debug_utils.instance_callbacks);
+   vk_foreach_struct_const(ext, pCreateInfo->pNext) {
+      if (ext->sType ==
+          VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT) {
+         const VkDebugUtilsMessengerCreateInfoEXT *debugMessengerCreateInfo =
+            (const VkDebugUtilsMessengerCreateInfoEXT *)ext;
+         struct vk_debug_utils_messenger *messenger =
+            vk_alloc2(alloc, alloc, sizeof(struct vk_debug_utils_messenger), 8,
+                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+         if (!messenger)
+            return vk_error(instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+         vk_object_base_init(NULL, &messenger->base,
+                             VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT);
+
+         messenger->alloc = *alloc;
+         messenger->severity = debugMessengerCreateInfo->messageSeverity;
+         messenger->type = debugMessengerCreateInfo->messageType;
+         messenger->callback = debugMessengerCreateInfo->pfnUserCallback;
+         messenger->data = debugMessengerCreateInfo->pUserData;
+
+         list_addtail(&messenger->link,
+                      &instance->debug_utils.instance_callbacks);
+      }
+   }
 
    instance->app_info = (struct vk_app_info) { .api_version = 0 };
    if (pCreateInfo->pApplicationInfo) {
@@ -69,14 +103,20 @@ vk_instance_init(struct vk_instance *instance,
       }
 
       if (idx >= VK_INSTANCE_EXTENSION_COUNT)
-         return VK_ERROR_EXTENSION_NOT_PRESENT;
+         return vk_errorf(instance, VK_ERROR_EXTENSION_NOT_PRESENT,
+                          "%s not supported",
+                          pCreateInfo->ppEnabledExtensionNames[i]);
 
       if (!supported_extensions->extensions[idx])
-         return VK_ERROR_EXTENSION_NOT_PRESENT;
+         return vk_errorf(instance, VK_ERROR_EXTENSION_NOT_PRESENT,
+                          "%s not supported",
+                          pCreateInfo->ppEnabledExtensionNames[i]);
 
 #ifdef ANDROID
       if (!vk_android_allowed_instance_extensions.extensions[idx])
-         return VK_ERROR_EXTENSION_NOT_PRESENT;
+         return vk_errorf(instance, VK_ERROR_EXTENSION_NOT_PRESENT,
+                          "%s not supported",
+                          pCreateInfo->ppEnabledExtensionNames[i]);
 #endif
 
       instance->enabled_extensions.extensions[idx] = true;
@@ -89,9 +129,16 @@ vk_instance_init(struct vk_instance *instance,
       &instance->dispatch_table, &vk_common_instance_entrypoints, false);
 
    if (mtx_init(&instance->debug_report.callbacks_mutex, mtx_plain) != 0)
-      return VK_ERROR_INITIALIZATION_FAILED;
+      return vk_error(instance, VK_ERROR_INITIALIZATION_FAILED);
 
    list_inithead(&instance->debug_report.callbacks);
+
+   if (mtx_init(&instance->debug_utils.callbacks_mutex, mtx_plain) != 0) {
+      mtx_destroy(&instance->debug_report.callbacks_mutex);
+      return vk_error(instance, VK_ERROR_INITIALIZATION_FAILED);
+   }
+
+   list_inithead(&instance->debug_utils.callbacks);
 
    glsl_type_singleton_init_or_ref();
 
@@ -102,7 +149,25 @@ void
 vk_instance_finish(struct vk_instance *instance)
 {
    glsl_type_singleton_decref();
+   if (unlikely(!list_is_empty(&instance->debug_utils.callbacks))) {
+      list_for_each_entry_safe(struct vk_debug_utils_messenger, messenger,
+                               &instance->debug_utils.callbacks, link) {
+         list_del(&messenger->link);
+         vk_object_base_finish(&messenger->base);
+         vk_free2(&instance->alloc, &messenger->alloc, messenger);
+      }
+   }
+   if (unlikely(!list_is_empty(&instance->debug_utils.instance_callbacks))) {
+      list_for_each_entry_safe(struct vk_debug_utils_messenger, messenger,
+                               &instance->debug_utils.instance_callbacks,
+                               link) {
+         list_del(&messenger->link);
+         vk_object_base_finish(&messenger->base);
+         vk_free2(&instance->alloc, &messenger->alloc, messenger);
+      }
+   }
    mtx_destroy(&instance->debug_report.callbacks_mutex);
+   mtx_destroy(&instance->debug_utils.callbacks_mutex);
    vk_free(&instance->alloc, (char *)instance->app_info.app_name);
    vk_free(&instance->alloc, (char *)instance->app_info.engine_name);
    vk_object_base_finish(&instance->base);

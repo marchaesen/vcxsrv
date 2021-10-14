@@ -5,11 +5,11 @@ traces:
   - path: glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 0f3d505644e0adc6ac947b2e609b8ecf
+        checksum: fa54af7770699dfe78c3e33061312739
   - path: glmark2/jellyfish.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 878c45710869e0d9d585bacdc5b9b8a0
+        checksum: 0bba174c99746be068c4960cb6a9dabb
   - path: glxgears/glxgears-2.trace
     expectations:
       - device: gl-vmware-llvmpipe
@@ -17,31 +17,31 @@ traces:
   - path: 0ad/0ad.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: de926f73d0f11c7da4bfec20d332bfc4
+        checksum: b29c740db174350d9be0beaaccd40453
   - path: pathfinder/demo.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: e624d76c70cc3c532f4f54439e13659a
+        checksum: a053c56658bc830249bc94317a3b3ea8
   - path: pathfinder/canvas_moire.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: c4ee0eef519f1a32ba24b7b392b31b28
+        checksum: 2cb5be6a6f62e417f1a89c89180e5728
   - path: pathfinder/canvas_text_v2.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 7ec3d817091a273223158ab0f4f726b5
+        checksum: a1446d0c42a78771240fca6f3b1e10d8
   - path: gputest/furmark.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 8c9d1267987f838070a74a734751624a
+        checksum: e2fea90560ce0f65efba5d38610dc7ef
   - path: gputest/pixmark-piano.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: cfaf4c036d8a5626afb1392d8fccabd0
+        checksum: 4262587e893cf98c61a8467a15677181
   - path: gputest/triangle.trace
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 848436d1a2448bdc76fd6220382d8606
+        checksum: 7812de00011a3a059892e36cea19c696
   - path: humus/Portals.trace
     expectations:
       - device: gl-vmware-llvmpipe
@@ -49,129 +49,129 @@ traces:
   - path: bgfx/01-cubes.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: de0b5f10a091b976021cf1dac2ca8e5d
+        checksum: a453a832e0e07132bb2c92c3fed7df18
   - path: bgfx/02-metaballs.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 21425e0f19bd5e65ff8fd3a5f0b5c62d
+        checksum: 905b005c6dce1cb54819085bf0c8dbfd
   - path: bgfx/03-raymarch.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: ae1e1558eee7108ba0254d785ac9687b
+        checksum: 71c0a0fc8a3e2760014efda8c07c623e
   - path: bgfx/04-mesh.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 9ee7518f354ec4372fff84849416e864
+        checksum: 274682ad4bf2ca4fa9cc92b55a7fd20b
   - path: bgfx/05-instancing.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 79d48af0dee9cb41fba0ef35cd655324
+        checksum: 948ec4c353485559163c575e80a01550
   - path: bgfx/06-bump.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: ff0626714d1eccff7f3a730933794af1
+        checksum: 49b428a9c1a8e72f1ef5f3e91bc278db
   - path: bgfx/07-callback.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 488d471efb84824f2d4be1c75e455881
+        checksum: 702793a6317d16de9f8045128401b31a
   - path: bgfx/09-hdr.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 4f98347342ec1d349410774292e4f5c5
+        checksum: f0e52dff670caa2aad0080a8aa59ad06
   - path: bgfx/10-font.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 32e95e7c6fb4deaef63d2f6f9c51f864
+        checksum: 0a1673e22adc3dc126c921fe9460b2fe
   - path: bgfx/11-fontsdf.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 29a66770ae1240fa87dce21ec28323ff
+        checksum: 65d8ab58c89debcb4b7d3f39e6785d2e
   - path: bgfx/12-lod.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 5e95c12eecb4a422c8b529e2bac592fd
+        checksum: a79ccce53c09c2a43a51be2467cb15bc
   - path: bgfx/13-stencil.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 81266a254b1558ac90e89a6b02077ae1
+        checksum: 244919318cc38eed2ca68a31a067f507
   - path: bgfx/14-shadowvolumes.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 0f4d6a65e591afbe5652517d9b80430f
+        checksum: a94f05e82d4adc3e31bfcffd37f7b04b
   - path: bgfx/15-shadowmaps-simple.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: d3497adc3a91f2fa89950da384391fe7
+        checksum: 607edbe247f0977a011ea673965c376d
   - path: bgfx/16-shadowmaps.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 8418c344d4a92400f522efb7473e4afc
+        checksum: 87562fb15f341a214765e47adc910cc0
   - path: bgfx/18-ibl.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 1f4d62805d9ecc086289e0701dc5139b
+        checksum: 47490275249793f778fc5d14899bf836
   - path: bgfx/19-oit.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 8f67d3b8327c0099d75753aed9d792d0
+        checksum: 5e5751621add149c9aab1e28e70ccfc7
   - path: bgfx/20-nanosvg.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: da60dfd9dc21a3e4716f1e19e346d7a3
+        checksum: 6b32c5f18a421412c7bbae3c65b5e0f6
   - path: bgfx/23-vectordisplay.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 3fe59e4876b86f4929f19e4a2254cf7d
+        checksum: 7af42ee2a19009fd65e2a0c6aa2c2c8a
   - path: bgfx/26-occlusion.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 6a29b2cd71b3f831ae0f41d3b7714c89
+        checksum: 601965313d5db009067fce901be2be2c
   - path: bgfx/28-wireframe.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 56294c5582e142728cf36a65561697a6
+        checksum: de5452f4cbc0100d8ecb51459e47cd99
   - path: bgfx/29-debugdraw.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: c3ea41e60bb61c0dfb941f2203ce5555
+        checksum: 164e5226af26b6552506542a45bc6bf5
   - path: bgfx/31-rsm.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: c54bb845285639c212546027a462e5c9
+        checksum: ef42f05c98862167a9eac6c733021e91
   - path: bgfx/32-particles.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 2093155a8b898e1d800a877a6c2ed446
+        checksum: 018418bdd7f60a186cce532613b0c7ab
   - path: bgfx/33-pom.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: f68403ec95113c4720e1a66e4cf956c8
+        checksum: c2d54a830ada2ff97c7e532b22d858b4
   - path: bgfx/34-mvs.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: b51eae3259861e0d8d791877ccbcdc1b
+        checksum: 6ad9c7d97debb7bf495b0bfca921ba9c
   - path: bgfx/35-dynamic.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: a3feb6e8c1b7cc4de02e0a324fbdc710
+        checksum: 62b390c4a31d7aa073fa4190fcfd0618
   - path: bgfx/36-sky.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 74cbe4687e773208306636a8fb6be999
+        checksum: 06b1a3eb0e4793930502d808939b2386
   - path: bgfx/37-gpudrivenrendering.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 05ba4526c8eaf3cfb06755a5d9a5cb7c
+        checksum: c435c6eedc86530da24856ab3f704681
   - path: bgfx/38-bloom.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 123d7a210f839e463886b1325c91f6f1
+        checksum: 960ceb01ab2716de810d410c49cf71cf
   - path: bgfx/39-assao.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: 5b59de4721efe2979b4ab1d48fdee64c
+        checksum: bc6f44e63010db07e7ba588b216e38b1
   - path: bgfx/40-svt.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: a29f2ca810cba5d2e2d5f62b0385d275
+        checksum: 83bf05971404700b874c4e9d9edd1379
 

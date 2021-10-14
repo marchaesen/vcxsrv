@@ -378,6 +378,8 @@ static inline void vn_submit_vkTrimCommandPool(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkCreateCommandPool(struct vn_instance *vn_instance, VkDevice device, const VkCommandPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkCommandPool* pCommandPool)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateCommandPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pCommandPool, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -398,6 +400,8 @@ static inline void vn_async_vkCreateCommandPool(struct vn_instance *vn_instance,
 
 static inline void vn_call_vkDestroyCommandPool(struct vn_instance *vn_instance, VkDevice device, VkCommandPool commandPool, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyCommandPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, commandPool, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -415,6 +419,8 @@ static inline void vn_async_vkDestroyCommandPool(struct vn_instance *vn_instance
 
 static inline VkResult vn_call_vkResetCommandPool(struct vn_instance *vn_instance, VkDevice device, VkCommandPool commandPool, VkCommandPoolResetFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkResetCommandPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, commandPool, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -435,6 +441,8 @@ static inline void vn_async_vkResetCommandPool(struct vn_instance *vn_instance, 
 
 static inline void vn_call_vkTrimCommandPool(struct vn_instance *vn_instance, VkDevice device, VkCommandPool commandPool, VkCommandPoolTrimFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkTrimCommandPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, commandPool, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

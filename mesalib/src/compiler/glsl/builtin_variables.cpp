@@ -1630,6 +1630,9 @@ builtin_variable_generator::generate_varyings()
 
          var->data.invariant = fields[i].location == VARYING_SLOT_POS &&
                                options->PositionAlwaysInvariant;
+
+         var->data.precise = fields[i].location == VARYING_SLOT_POS &&
+                               options->PositionAlwaysPrecise;
       }
    }
 }

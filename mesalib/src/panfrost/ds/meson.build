@@ -28,4 +28,6 @@ pps_panfrost_dep = declare_dependency(
 )
 
 pps_datasources += pps_panfrost_dep
-with_datasources += 'panfrost'
+if not with_datasources.contains('panfrost')
+  with_datasources += 'panfrost'
+endif

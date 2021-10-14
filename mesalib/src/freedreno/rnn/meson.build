@@ -57,3 +57,13 @@ headergen2 = executable(
   build_by_default: with_tools.contains('freedreno'),
   install: false
 )
+
+if with_tests
+  foreach xml : ['adreno.xml', 'msm.xml']
+    test('headergen2-' + xml,
+      headergen2,
+      args: [xml],
+      suite: 'freedreno',
+    )
+  endforeach
+endif

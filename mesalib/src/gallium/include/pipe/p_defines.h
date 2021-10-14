@@ -993,6 +993,8 @@ enum pipe_cap
    PIPE_CAP_EMULATE_NONFIXED_PRIMITIVE_RESTART,
    PIPE_CAP_SUPPORTED_PRIM_MODES,
    PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART,
+   PIPE_CAP_PREFER_BACK_BUFFER_REUSE,
+   PIPE_CAP_DRAW_VERTEX_STATE,
 
    PIPE_CAP_LAST,
    /* XXX do not add caps after PIPE_CAP_LAST! */
@@ -1351,6 +1353,10 @@ enum pipe_perf_counter_data_type
 };
 
 #define PIPE_UUID_SIZE 16
+
+#ifdef PIPE_OS_UNIX
+#define PIPE_MEMORY_FD
+#endif
 
 #ifdef __cplusplus
 }

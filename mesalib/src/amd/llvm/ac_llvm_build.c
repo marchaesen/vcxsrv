@@ -3348,6 +3348,16 @@ void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask, LL
    LLVMValueRef fmask_value = ac_build_image_opcode(ac, &fmask_load);
    fmask_value = LLVMBuildExtractElement(ac->builder, fmask_value, ac->i32_0, "");
 
+   /* Don't rewrite the sample index if WORD1.DATA_FORMAT of the FMASK
+    * resource descriptor is 0 (invalid).
+    */
+   LLVMValueRef tmp;
+   tmp = LLVMBuildBitCast(ac->builder, fmask, ac->v8i32, "");
+   tmp = LLVMBuildExtractElement(ac->builder, tmp, ac->i32_1, "");
+   tmp = LLVMBuildICmp(ac->builder, LLVMIntNE, tmp, ac->i32_0, "");
+   fmask_value =
+      LLVMBuildSelect(ac->builder, tmp, fmask_value, LLVMConstInt(ac->i32, 0x76543210, false), "");
+
    /* Apply the formula. */
    unsigned sample_chan = is_array_tex ? 3 : 2;
    LLVMValueRef final_sample;
@@ -3357,20 +3367,9 @@ void ac_apply_fmask_to_sample(struct ac_llvm_context *ac, LLVMValueRef fmask, LL
                                 LLVMBuildZExt(ac->builder, final_sample, ac->i32, ""), "");
    /* Mask the sample index by 0x7, because 0x8 means an unknown value
     * with EQAA, so those will map to 0. */
-   final_sample = LLVMBuildAnd(ac->builder, final_sample, LLVMConstInt(ac->i32, 0x7, 0), "");
+   addr[sample_chan] = LLVMBuildAnd(ac->builder, final_sample, LLVMConstInt(ac->i32, 0x7, 0), "");
    if (fmask_load.a16)
-      final_sample = LLVMBuildTrunc(ac->builder, final_sample, ac->i16, "");
-
-   /* Don't rewrite the sample index if WORD1.DATA_FORMAT of the FMASK
-    * resource descriptor is 0 (invalid).
-    */
-   LLVMValueRef tmp;
-   tmp = LLVMBuildBitCast(ac->builder, fmask, ac->v8i32, "");
-   tmp = LLVMBuildExtractElement(ac->builder, tmp, ac->i32_1, "");
-   tmp = LLVMBuildICmp(ac->builder, LLVMIntNE, tmp, ac->i32_0, "");
-
-   /* Replace the MSAA sample index. */
-   addr[sample_chan] = LLVMBuildSelect(ac->builder, tmp, final_sample, addr[sample_chan], "");
+      addr[sample_chan] = LLVMBuildTrunc(ac->builder, final_sample, ac->i16, "");
 }
 
 static LLVMValueRef _ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src,

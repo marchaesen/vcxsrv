@@ -30,9 +30,6 @@ dEQP-GLES2.functional.fragment_ops.depth_stencil.random.7,Fail
 dEQP-GLES2.functional.fragment_ops.depth_stencil.random.8,Fail
 dEQP-GLES2.functional.fragment_ops.depth_stencil.random.9,Fail
 dEQP-GLES2.functional.fragment_ops.depth_stencil.write_mask.stencil,Fail
-dEQP-GLES2.functional.negative_api.shader.uniform_matrixfv_invalid_transpose,Fail
-dEQP-GLES2.functional.negative_api.texture.generatemipmap_zero_level_array_compressed,Fail
-dEQP-GLES2.functional.shaders.builtin_variable.frontfacing,Fail
 dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_dynamic_loop_read_vertex,Fail
 dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_dynamic_read_vertex,Fail
 dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_static_loop_read_vertex,Fail

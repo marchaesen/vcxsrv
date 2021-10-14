@@ -35,24 +35,3 @@ __lvp_finishme(const char *file, int line, const char *format, ...)
 
    fprintf(stderr, "%s:%d: FINISHME: %s\n", file, line, buffer);
 }
-
-VkResult
-__vk_errorf(struct lvp_instance *instance, VkResult error, const char *file, int line, const char *format, ...)
-{
-   va_list ap;
-   char buffer[256];
-
-   const char *error_str = vk_Result_to_str(error);
-
-   if (format) {
-      va_start(ap, format);
-      vsnprintf(buffer, sizeof(buffer), format, ap);
-      va_end(ap);
-
-      fprintf(stderr, "%s:%d: %s (%s)\n", file, line, buffer, error_str);
-   } else {
-      fprintf(stderr, "%s:%d: %s\n", file, line, error_str);
-   }
-
-   return error;
-}

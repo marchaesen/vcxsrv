@@ -33,6 +33,123 @@ enum radv_depth_op {
    DEPTH_RESUMMARIZE,
 };
 
+static nir_shader *
+build_expand_depth_stencil_compute_shader(struct radv_device *dev)
+{
+   const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D, false, GLSL_TYPE_FLOAT);
+
+   nir_builder b =
+      nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "expand_depth_stencil_compute");
+
+   /* We need at least 8/8/1 to cover an entire HTILE block in a single workgroup. */
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[2] = 1;
+   nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, img_type, "in_img");
+   input_img->data.descriptor_set = 0;
+   input_img->data.binding = 0;
+
+   nir_variable *output_img = nir_variable_create(b.shader, nir_var_uniform, img_type, "out_img");
+   output_img->data.descriptor_set = 0;
+   output_img->data.binding = 1;
+
+   nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
+   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
+   nir_ssa_def *block_size =
+      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
+                    b.shader->info.workgroup_size[2], 0);
+
+   nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
+
+   nir_ssa_def *data = nir_image_deref_load(
+      &b, 4, 32, &nir_build_deref_var(&b, input_img)->dest.ssa, global_id, nir_ssa_undef(&b, 1, 32),
+      nir_imm_int(&b, 0), .image_dim = GLSL_SAMPLER_DIM_2D);
+
+   /* We need a NIR_SCOPE_DEVICE memory_scope because ACO will avoid
+    * creating a vmcnt(0) because it expects the L1 cache to keep memory
+    * operations in-order for the same workgroup. The vmcnt(0) seems
+    * necessary however. */
+   nir_scoped_barrier(&b, .execution_scope = NIR_SCOPE_WORKGROUP, .memory_scope = NIR_SCOPE_DEVICE,
+                      .memory_semantics = NIR_MEMORY_ACQ_REL, .memory_modes = nir_var_mem_ssbo);
+
+   nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->dest.ssa, global_id,
+                         nir_ssa_undef(&b, 1, 32), data, nir_imm_int(&b, 0),
+                         .image_dim = GLSL_SAMPLER_DIM_2D);
+   return b.shader;
+}
+
+static VkResult
+create_expand_depth_stencil_compute(struct radv_device *device)
+{
+   VkResult result = VK_SUCCESS;
+   nir_shader *cs = build_expand_depth_stencil_compute_shader(device);
+
+   VkDescriptorSetLayoutCreateInfo ds_create_info = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
+      .bindingCount = 2,
+      .pBindings = (VkDescriptorSetLayoutBinding[]){
+         {.binding = 0,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+          .descriptorCount = 1,
+          .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+          .pImmutableSamplers = NULL},
+         {.binding = 1,
+          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+          .descriptorCount = 1,
+          .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+          .pImmutableSamplers = NULL},
+      }};
+
+   result = radv_CreateDescriptorSetLayout(
+      radv_device_to_handle(device), &ds_create_info, &device->meta_state.alloc,
+      &device->meta_state.expand_depth_stencil_compute_ds_layout);
+   if (result != VK_SUCCESS)
+      goto cleanup;
+
+   VkPipelineLayoutCreateInfo pl_create_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .setLayoutCount = 1,
+      .pSetLayouts = &device->meta_state.expand_depth_stencil_compute_ds_layout,
+      .pushConstantRangeCount = 0,
+      .pPushConstantRanges = NULL,
+   };
+
+   result = radv_CreatePipelineLayout(
+      radv_device_to_handle(device), &pl_create_info, &device->meta_state.alloc,
+      &device->meta_state.expand_depth_stencil_compute_p_layout);
+   if (result != VK_SUCCESS)
+      goto cleanup;
+
+   /* compute shader */
+
+   VkPipelineShaderStageCreateInfo pipeline_shader_stage = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = vk_shader_module_handle_from_nir(cs),
+      .pName = "main",
+      .pSpecializationInfo = NULL,
+   };
+
+   VkComputePipelineCreateInfo vk_pipeline_info = {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = pipeline_shader_stage,
+      .flags = 0,
+      .layout = device->meta_state.expand_depth_stencil_compute_p_layout,
+   };
+
+   result = radv_CreateComputePipelines(
+      radv_device_to_handle(device), radv_pipeline_cache_to_handle(&device->meta_state.cache), 1,
+      &vk_pipeline_info, NULL,
+      &device->meta_state.expand_depth_stencil_compute_pipeline);
+   if (result != VK_SUCCESS)
+      goto cleanup;
+
+cleanup:
+   ralloc_free(cs);
+   return result;
+}
+
 static VkResult
 create_pass(struct radv_device *device, uint32_t samples, VkRenderPass *pass)
 {
@@ -263,6 +380,13 @@ radv_device_finish_meta_depth_decomp_state(struct radv_device *device)
       radv_DestroyPipeline(radv_device_to_handle(device),
                            state->depth_decomp[i].resummarize_pipeline, &state->alloc);
    }
+
+   radv_DestroyPipeline(radv_device_to_handle(device),
+                        state->expand_depth_stencil_compute_pipeline, &state->alloc);
+   radv_DestroyPipelineLayout(radv_device_to_handle(device),
+                              state->expand_depth_stencil_compute_p_layout, &state->alloc);
+   radv_DestroyDescriptorSetLayout(radv_device_to_handle(device),
+                                   state->expand_depth_stencil_compute_ds_layout, &state->alloc);
 }
 
 VkResult
@@ -297,6 +421,10 @@ radv_device_init_meta_depth_decomp_state(struct radv_device *device, bool on_dem
       if (res != VK_SUCCESS)
          goto fail;
    }
+
+   res = create_expand_depth_stencil_compute(device);
+   if (res != VK_SUCCESS)
+      goto fail;
 
    return VK_SUCCESS;
 
@@ -413,6 +541,7 @@ radv_process_depth_image_layer(struct radv_cmd_buffer *cmd_buffer, struct radv_i
    radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
    radv_cmd_buffer_end_render_pass(cmd_buffer);
 
+   radv_image_view_finish(&iview);
    radv_DestroyFramebuffer(radv_device_to_handle(device), fb_h, &cmd_buffer->pool->alloc);
 }
 
@@ -481,18 +610,130 @@ radv_process_depth_stencil(struct radv_cmd_buffer *cmd_buffer, struct radv_image
    radv_meta_restore(&saved_state, cmd_buffer);
 }
 
+static void
+radv_expand_depth_stencil_compute(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
+                                  const VkImageSubresourceRange *subresourceRange)
+{
+   struct radv_meta_saved_state saved_state;
+   struct radv_image_view load_iview = {0};
+   struct radv_image_view store_iview = {0};
+   struct radv_device *device = cmd_buffer->device;
+
+   assert(radv_image_is_tc_compat_htile(image));
+
+   cmd_buffer->state.flush_bits |=
+      radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
+
+   radv_meta_save(&saved_state, cmd_buffer,
+                  RADV_META_SAVE_DESCRIPTORS | RADV_META_SAVE_COMPUTE_PIPELINE);
+
+   radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
+                        device->meta_state.expand_depth_stencil_compute_pipeline);
+
+   for (uint32_t l = 0; l < radv_get_levelCount(image, subresourceRange); l++) {
+      uint32_t width, height;
+
+      /* Do not decompress levels without HTILE. */
+      if (!radv_htile_enabled(image, subresourceRange->baseMipLevel + l))
+         continue;
+
+      width = radv_minify(image->info.width, subresourceRange->baseMipLevel + l);
+      height = radv_minify(image->info.height, subresourceRange->baseMipLevel + l);
+
+      for (uint32_t s = 0; s < radv_get_layerCount(image, subresourceRange); s++) {
+         radv_image_view_init(
+            &load_iview, cmd_buffer->device,
+            &(VkImageViewCreateInfo){
+               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+               .image = radv_image_to_handle(image),
+               .viewType = VK_IMAGE_VIEW_TYPE_2D,
+               .format = image->vk_format,
+               .subresourceRange = {.aspectMask = subresourceRange->aspectMask,
+                                    .baseMipLevel = subresourceRange->baseMipLevel + l,
+                                    .levelCount = 1,
+                                    .baseArrayLayer = subresourceRange->baseArrayLayer + s,
+                                    .layerCount = 1},
+            },
+            &(struct radv_image_view_extra_create_info){.enable_compression = true});
+         radv_image_view_init(
+            &store_iview, cmd_buffer->device,
+            &(VkImageViewCreateInfo){
+               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+               .image = radv_image_to_handle(image),
+               .viewType = VK_IMAGE_VIEW_TYPE_2D,
+               .format = image->vk_format,
+               .subresourceRange = {.aspectMask = subresourceRange->aspectMask,
+                                    .baseMipLevel = subresourceRange->baseMipLevel + l,
+                                    .levelCount = 1,
+                                    .baseArrayLayer = subresourceRange->baseArrayLayer + s,
+                                    .layerCount = 1},
+            },
+            &(struct radv_image_view_extra_create_info){.disable_compression = true});
+
+         radv_meta_push_descriptor_set(
+            cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+            device->meta_state.expand_depth_stencil_compute_p_layout, 0, /* set */
+            2, /* descriptorWriteCount */
+            (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                      .dstBinding = 0,
+                                      .dstArrayElement = 0,
+                                      .descriptorCount = 1,
+                                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                      .pImageInfo =
+                                         (VkDescriptorImageInfo[]){
+                                            {
+                                               .sampler = VK_NULL_HANDLE,
+                                               .imageView = radv_image_view_to_handle(&load_iview),
+                                               .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                            },
+                                         }},
+                                     {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                      .dstBinding = 1,
+                                      .dstArrayElement = 0,
+                                      .descriptorCount = 1,
+                                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                      .pImageInfo = (VkDescriptorImageInfo[]){
+                                         {
+                                            .sampler = VK_NULL_HANDLE,
+                                            .imageView = radv_image_view_to_handle(&store_iview),
+                                            .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                         },
+                                      }}});
+
+         radv_unaligned_dispatch(cmd_buffer, width, height, 1);
+
+         radv_image_view_finish(&load_iview);
+         radv_image_view_finish(&store_iview);
+      }
+   }
+
+   radv_meta_restore(&saved_state, cmd_buffer);
+
+   cmd_buffer->state.flush_bits |=
+      RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
+      radv_src_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
+
+   /* Initialize the HTILE metadata as "fully expanded". */
+   uint32_t htile_value = radv_get_htile_initial_value(cmd_buffer->device, image);
+
+   cmd_buffer->state.flush_bits |= radv_clear_htile(cmd_buffer, image, subresourceRange, htile_value);
+}
+
 void
-radv_decompress_depth_stencil(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
-                              const VkImageSubresourceRange *subresourceRange,
-                              struct radv_sample_locations_state *sample_locs)
+radv_expand_depth_stencil(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
+                          const VkImageSubresourceRange *subresourceRange,
+                          struct radv_sample_locations_state *sample_locs)
 {
    struct radv_barrier_data barrier = {0};
 
    barrier.layout_transitions.depth_stencil_expand = 1;
    radv_describe_layout_transition(cmd_buffer, &barrier);
 
-   assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
-   radv_process_depth_stencil(cmd_buffer, image, subresourceRange, sample_locs, DEPTH_DECOMPRESS);
+   if (cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
+      radv_process_depth_stencil(cmd_buffer, image, subresourceRange, sample_locs, DEPTH_DECOMPRESS);
+   } else {
+      radv_expand_depth_stencil_compute(cmd_buffer, image, subresourceRange);
+   }
 }
 
 void

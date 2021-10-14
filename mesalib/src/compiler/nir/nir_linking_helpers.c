@@ -58,6 +58,15 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    return ((1ull << slots) - 1) << location;
 }
 
+static bool
+is_non_generic_patch_var(nir_variable *var)
+{
+   return var->data.location == VARYING_SLOT_TESS_LEVEL_INNER ||
+          var->data.location == VARYING_SLOT_TESS_LEVEL_OUTER ||
+          var->data.location == VARYING_SLOT_BOUNDING_BOX0 ||
+          var->data.location == VARYING_SLOT_BOUNDING_BOX1;
+}
+
 static uint8_t
 get_num_components(nir_variable *var)
 {
@@ -90,6 +99,9 @@ tcs_add_output_reads(nir_shader *shader, uint64_t *read, uint64_t *patches_read)
             nir_variable *var = nir_deref_instr_get_variable(deref);
             for (unsigned i = 0; i < get_num_components(var); i++) {
                if (var->data.patch) {
+                  if (is_non_generic_patch_var(var))
+                     continue;
+
                   patches_read[var->data.location_frac + i] |=
                      get_variable_io_mask(var, shader->info.stage);
                } else {
@@ -172,6 +184,9 @@ nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer)
    nir_foreach_shader_out_variable(var, producer) {
       for (unsigned i = 0; i < get_num_components(var); i++) {
          if (var->data.patch) {
+            if (is_non_generic_patch_var(var))
+               continue;
+
             patches_written[var->data.location_frac + i] |=
                get_variable_io_mask(var, producer->info.stage);
          } else {
@@ -184,6 +199,9 @@ nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer)
    nir_foreach_shader_in_variable(var, consumer) {
       for (unsigned i = 0; i < get_num_components(var); i++) {
          if (var->data.patch) {
+            if (is_non_generic_patch_var(var))
+               continue;
+
             patches_read[var->data.location_frac + i] |=
                get_variable_io_mask(var, consumer->info.stage);
          } else {
@@ -987,7 +1005,8 @@ can_replace_varying(nir_variable *out_var)
 }
 
 static bool
-replace_constant_input(nir_shader *shader, nir_intrinsic_instr *store_intr)
+replace_varying_input_by_constant_load(nir_shader *shader,
+                                       nir_intrinsic_instr *store_intr)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 
@@ -1074,6 +1093,156 @@ replace_duplicate_input(nir_shader *shader, nir_variable *input_var,
 
          nir_ssa_def *load = nir_load_var(&b, input_var);
          nir_ssa_def_rewrite_uses(&intr->dest.ssa, load);
+
+         progress = true;
+      }
+   }
+
+   return progress;
+}
+
+static bool
+is_direct_uniform_load(nir_ssa_def *def, nir_ssa_scalar *s)
+{
+   /* def is sure to be scalar as can_replace_varying() filter out vector case. */
+   assert(def->num_components == 1);
+
+   /* Uniform load may hide behind some move instruction for converting
+    * vector to scalar:
+    *
+    *     vec1 32 ssa_1 = deref_var &color (uniform vec3)
+    *     vec3 32 ssa_2 = intrinsic load_deref (ssa_1) (0)
+    *     vec1 32 ssa_3 = mov ssa_2.x
+    *     vec1 32 ssa_4 = deref_var &color_out (shader_out float)
+    *     intrinsic store_deref (ssa_4, ssa_3) (1, 0)
+    */
+   *s = nir_ssa_scalar_resolved(def, 0);
+
+   nir_ssa_def *ssa = s->def;
+   if (ssa->parent_instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(ssa->parent_instr);
+   if (intr->intrinsic != nir_intrinsic_load_deref)
+      return false;
+
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   /* TODO: support nir_var_mem_ubo. */
+   if (!nir_deref_mode_is(deref, nir_var_uniform))
+      return false;
+
+   /* Does not support indirect uniform load. */
+   return !nir_deref_instr_has_indirect(deref);
+}
+
+static nir_variable *
+get_uniform_var_in_consumer(nir_shader *consumer,
+                            nir_variable *var_in_producer)
+{
+   /* Find if uniform already exists in consumer. */
+   nir_variable *new_var = NULL;
+   nir_foreach_uniform_variable(v, consumer) {
+      if (!strcmp(var_in_producer->name, v->name)) {
+         new_var = v;
+         break;
+      }
+   }
+
+   /* Create a variable if not exist. */
+   if (!new_var) {
+      new_var = nir_variable_clone(var_in_producer, consumer);
+      nir_shader_add_variable(consumer, new_var);
+   }
+
+   return new_var;
+}
+
+static nir_deref_instr *
+clone_deref_instr(nir_builder *b, nir_variable *var, nir_deref_instr *deref)
+{
+   if (deref->deref_type == nir_deref_type_var)
+       return nir_build_deref_var(b, var);
+
+   nir_deref_instr *parent_deref = nir_deref_instr_parent(deref);
+   nir_deref_instr *parent = clone_deref_instr(b, var, parent_deref);
+
+   /* Build array and struct deref instruction.
+    * "deref" instr is sure to be direct (see is_direct_uniform_load()).
+    */
+   switch (deref->deref_type) {
+   case nir_deref_type_array: {
+      nir_load_const_instr *index =
+         nir_instr_as_load_const(deref->arr.index.ssa->parent_instr);
+      return nir_build_deref_array_imm(b, parent, index->value->i64);
+   }
+   case nir_deref_type_ptr_as_array: {
+      nir_load_const_instr *index =
+         nir_instr_as_load_const(deref->arr.index.ssa->parent_instr);
+      nir_ssa_def *ssa = nir_imm_intN_t(b, index->value->i64,
+                                        parent->dest.ssa.bit_size);
+      return nir_build_deref_ptr_as_array(b, parent, ssa);
+   }
+   case nir_deref_type_struct:
+      return nir_build_deref_struct(b, parent, deref->strct.index);
+   default:
+      unreachable("invalid type");
+      return NULL;
+   }
+}
+
+static bool
+replace_varying_input_by_uniform_load(nir_shader *shader,
+                                      nir_intrinsic_instr *store_intr,
+                                      nir_ssa_scalar *scalar)
+{
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+
+   nir_builder b;
+   nir_builder_init(&b, impl);
+
+   nir_variable *out_var =
+      nir_deref_instr_get_variable(nir_src_as_deref(store_intr->src[0]));
+
+   nir_intrinsic_instr *load = nir_instr_as_intrinsic(scalar->def->parent_instr);
+   nir_deref_instr *deref = nir_src_as_deref(load->src[0]);
+   nir_variable *uni_var = nir_deref_instr_get_variable(deref);
+   uni_var = get_uniform_var_in_consumer(shader, uni_var);
+
+   bool progress = false;
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+
+         nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+         if (intr->intrinsic != nir_intrinsic_load_deref)
+            continue;
+
+         nir_deref_instr *in_deref = nir_src_as_deref(intr->src[0]);
+         if (!nir_deref_mode_is(in_deref, nir_var_shader_in))
+            continue;
+
+         nir_variable *in_var = nir_deref_instr_get_variable(in_deref);
+
+         if (!does_varying_match(out_var, in_var))
+            continue;
+
+         b.cursor = nir_before_instr(instr);
+
+         /* Clone instructions start from deref load to variable deref. */
+         nir_deref_instr *uni_deref = clone_deref_instr(&b, uni_var, deref);
+         nir_ssa_def *uni_def = nir_load_deref(&b, uni_deref);
+
+         /* Add a vector to scalar move if uniform is a vector. */
+         if (uni_def->num_components > 1) {
+            nir_alu_src src = {0};
+            src.src = nir_src_for_ssa(uni_def);
+            src.swizzle[0] = scalar->comp;
+            uni_def = nir_mov_alu(&b, src, 1);
+         }
+
+         /* Replace load input with load uniform. */
+         nir_ssa_def_rewrite_uses(&intr->dest.ssa, uni_def);
 
          progress = true;
       }
@@ -1183,11 +1352,16 @@ nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer)
       if (!can_replace_varying(out_var))
          continue;
 
-      if (intr->src[1].ssa->parent_instr->type == nir_instr_type_load_const) {
-         progress |= replace_constant_input(consumer, intr);
+      nir_ssa_scalar uni_scalar;
+      nir_ssa_def *ssa = intr->src[1].ssa;
+      if (ssa->parent_instr->type == nir_instr_type_load_const) {
+         progress |= replace_varying_input_by_constant_load(consumer, intr);
+      } else if (is_direct_uniform_load(ssa, &uni_scalar)) {
+         progress |= replace_varying_input_by_uniform_load(consumer, intr,
+                                                           &uni_scalar);
       } else {
          struct hash_entry *entry =
-               _mesa_hash_table_search(varying_values, intr->src[1].ssa);
+               _mesa_hash_table_search(varying_values, ssa);
          if (entry) {
             progress |= replace_duplicate_input(consumer,
                                                 (nir_variable *) entry->data,
@@ -1195,8 +1369,7 @@ nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer)
          } else {
             nir_variable *in_var = get_matching_input_var(consumer, out_var);
             if (in_var) {
-               _mesa_hash_table_insert(varying_values, intr->src[1].ssa,
-                                       in_var);
+               _mesa_hash_table_insert(varying_values, ssa, in_var);
             }
          }
       }

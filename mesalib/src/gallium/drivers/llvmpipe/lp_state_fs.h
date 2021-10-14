@@ -111,9 +111,7 @@ struct lp_fragment_shader_variant_key
    uint8_t zsbuf_nr_samples;
    uint8_t coverage_samples;
    uint8_t min_samples;
-
-   struct lp_sampler_static_state samplers[1];
-   /* followed by variable number of images */
+   /* followed by variable number of samplers + images */
 };
 
 #define LP_FS_MAX_VARIANT_KEY_SIZE                                      \
@@ -124,17 +122,30 @@ struct lp_fragment_shader_variant_key
 static inline size_t
 lp_fs_variant_key_size(unsigned nr_samplers, unsigned nr_images)
 {
-   unsigned samplers = nr_samplers > 1 ? (nr_samplers - 1) : 0;
    return (sizeof(struct lp_fragment_shader_variant_key) +
-           samplers * sizeof(struct lp_sampler_static_state) +
+           nr_samplers * sizeof(struct lp_sampler_static_state) +
            nr_images * sizeof(struct lp_image_static_state));
+}
+
+static inline struct lp_sampler_static_state *
+lp_fs_variant_key_samplers(const struct lp_fragment_shader_variant_key *key)
+{
+   return (struct lp_sampler_static_state *)&(key[1]);
+}
+
+static inline struct lp_sampler_static_state *
+lp_fs_variant_key_sampler_idx(const struct lp_fragment_shader_variant_key *key, int idx)
+{
+   if (idx >= key->nr_samplers)
+      return NULL;
+   return &lp_fs_variant_key_samplers(key)[idx];
 }
 
 static inline struct lp_image_static_state *
 lp_fs_variant_key_images(struct lp_fragment_shader_variant_key *key)
 {
    return (struct lp_image_static_state *)
-      &key->samplers[key->nr_samplers];
+      &(lp_fs_variant_key_samplers(key)[key->nr_samplers]);
 }
 
 /** doubly-linked list item */

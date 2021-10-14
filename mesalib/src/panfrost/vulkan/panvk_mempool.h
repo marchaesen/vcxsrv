@@ -57,6 +57,7 @@ struct panvk_pool {
 
    /* BOs allocated by this pool */
    struct util_dynarray bos;
+   struct util_dynarray big_bos;
 
    /* Current transient BO */
    struct panfrost_bo *transient_bo;

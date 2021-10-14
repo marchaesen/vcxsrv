@@ -155,6 +155,7 @@ fd_screen_destroy(struct pipe_screen *pscreen)
    if (screen->ro)
       screen->ro->destroy(screen->ro);
 
+   fd_bc_fini(&screen->batch_cache);
    fd_gmem_screen_fini(pscreen);
 
    slab_destroy_parent(&screen->transfer_pool);
@@ -1086,6 +1087,8 @@ fd_screen_create(struct fd_device *dev, struct renderonly *ro,
     */
    if (fd_device_version(dev) >= FD_VERSION_UNLIMITED_CMDS)
       screen->reorder = !FD_DBG(INORDER);
+
+   fd_bc_init(&screen->batch_cache);
 
    list_inithead(&screen->context_list);
 

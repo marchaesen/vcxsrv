@@ -47,7 +47,13 @@ def print_yellow(txt, end_line=True, prefix=None):
     print("\033[1;33m{}\033[0m".format(txt), end="\n" if end_line else " ")
 
 
-parser = argparse.ArgumentParser(description="radeonsi tester")
+def print_green(txt, end_line=True, prefix=None):
+    if prefix:
+        print(prefix, end="")
+    print("\033[1;32m{}\033[0m".format(txt), end="\n" if end_line else " ")
+
+
+parser = argparse.ArgumentParser(description="radeonsi tester", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
     "--jobs",
     "-j",
@@ -73,7 +79,11 @@ parser.add_argument(
     default=[],
     help="Only run the test matching this expression. This can only be a filename containing a list of failing tests to re-run.",
 )
-
+parser.add_argument(
+    "--baseline",
+    dest="baseline",
+    help="Folder containing expected results files",
+    default=os.path.dirname(__file__))
 parser.add_argument(
     "--no-piglit", dest="piglit", help="Disable piglit tests", action="store_false"
 )
@@ -115,10 +125,26 @@ parser.set_defaults(deqp_gles2=True)
 parser.set_defaults(deqp_gles3=True)
 parser.set_defaults(deqp_gles31=True)
 
-parser.add_argument("output_folder", help="Output folder (logs, etc)")
+parser.add_argument(
+    "output_folder",
+    nargs="?",
+    help="Output folder (logs, etc)",
+    default=os.path.join(tempfile.gettempdir(), datetime.now().strftime('%Y-%m-%d-%H-%M-%S')))
+
+available_gpus = []
+for f in os.listdir("/dev/dri/by-path"):
+    idx = f.find("-render")
+    if idx < 0:
+        continue
+    # gbm name is the full path, but DRI_PRIME expects a different
+    # format
+    available_gpus += [(os.path.join("/dev/dri/by-path", f),
+                        f[:idx].replace(':', '_').replace('.', '_'))]
+
+if len(available_gpus) > 1:
+    parser.add_argument('--gpu', type=int, dest="gpu", default=0, help='Select GPU (0..{})'.format(len(available_gpus) - 1))
 
 args = parser.parse_args(sys.argv[1:])
-
 piglit_path = args.piglit_path
 glcts_path = args.glcts_path
 deqp_path = args.deqp_path
@@ -135,26 +161,64 @@ else:
         parser.print_help()
         sys.exit(0)
 
-base = os.path.dirname(__file__)
-skips = os.path.join(base, "skips.csv")
+base = args.baseline
+skips = os.path.join(os.path.dirname(__file__), "skips.csv")
+
+env = os.environ.copy()
+
+if "DISPLAY" not in env:
+    print_red("DISPLAY environment variable missing.")
+    sys.exit(1)
+p = subprocess.run(
+    ["deqp-runner", "--version"],
+    capture_output="True",
+    check=True,
+    env=env
+)
+for line in p.stdout.decode().split("\n"):
+    if line.find("deqp-runner") >= 0:
+        s = line.split(" ")[1].split(".")
+        if args.verbose > 1:
+            print("Checking deqp-version ({})".format(s))
+        # We want at least 0.9.0
+        if not (int(s[0]) > 0 or int(s[1]) >= 9):
+            print("Expecting deqp-runner 0.9.0+ version (got {})".format(".".join(s)))
+            sys.exit(1)
+
+env["PIGLIT_PLATFORM"] = "gbm"
+
+if "DRI_PRIME" in env:
+    print("Don't use DRI_PRIME. Instead use --gpu N")
+    del env["DRI_PRIME"]
+if "gpu" in args:
+    env["DRI_PRIME"] = available_gpus[args.gpu][1]
+    env["WAFFLE_GBM_DEVICE"] = available_gpus[args.gpu][0]
 
 # Use piglit's glinfo to determine the GPU name
 gpu_name = "unknown"
+gpu_name_full = ""
+
 p = subprocess.run(
     ["./glinfo"],
     capture_output="True",
     cwd=os.path.join(piglit_path, "bin"),
     check=True,
+    env=env
 )
 for line in p.stdout.decode().split("\n"):
     if "GL_RENDER" in line:
+        line = line.split("=")[1]
+        gpu_name_full = '('.join(line.split("(")[:-1]).strip()
         gpu_name = line.replace("(TM)", "").split("(")[1].split(",")[0].lower()
         break
 
 output_folder = args.output_folder
+print_green("Tested GPU: '{}' ({})".format(gpu_name_full, gpu_name))
+print_green("Output folder: '{}'".format(output_folder))
+
 count = 1
 while os.path.exists(output_folder):
-    output_folder = "{}.{}".format(args.output_folder, count)
+    output_folder = "{}.{}".format(os.path.abspath(args.output_folder), count)
     count += 1
 
 os.mkdir(output_folder)
@@ -166,7 +230,7 @@ logfile = open(os.path.join(output_folder, "{}-run-tests.log".format(gpu_name)),
 spin = itertools.cycle("-\\|/")
 
 
-def run_cmd(args, verbosity, env=None):
+def run_cmd(args, verbosity):
     if verbosity > 1:
         print_yellow(
             "| Command line argument '"
@@ -258,9 +322,8 @@ if args.piglit:
 
     if os.path.exists(baseline):
         cmd += ["--baseline", baseline]
-    env = os.environ.copy()
-    env["PIGLIT_PLATFORM"] = "gbm"
-    run_cmd(cmd, args.verbose, env)
+        print_yellow("[baseline {}]".format(baseline), args.verbose > 0)
+    run_cmd(cmd, args.verbose)
     shutil.copy(os.path.join(out, "failures.csv"), new_baseline)
     verify_results(baseline, new_baseline)
 
@@ -299,26 +362,27 @@ if args.glcts:
 
     if os.path.exists(baseline):
         cmd += ["--baseline", baseline]
+        print_yellow("[baseline {}]".format(baseline), args.verbose > 0)
     cmd += deqp_args
     run_cmd(cmd, args.verbose)
     shutil.copy(os.path.join(out, "failures.csv"), new_baseline)
     verify_results(baseline, new_baseline)
 
 if args.deqp:
-    if args.include_tests:
-        print_yellow("dEQP tests cannot be run with the -t/--include-tests option yet.")
-        sys.exit(0)
-
     print_yellow("Running   dEQP tests", args.verbose > 0)
 
     # Generate a test-suite file
+    out = os.path.join(output_folder, "deqp")
     suite_filename = os.path.join(output_folder, "deqp-suite.toml")
     suite = open(suite_filename, "w")
-    os.mkdir(os.path.join(output_folder, "deqp"))
+    os.mkdir(out)
     baseline = os.path.join(base, "{}-deqp-fail.csv".format(gpu_name))
     new_baseline = os.path.join(
         new_baseline_folder, "{}-deqp-fail.csv".format(gpu_name)
     )
+
+    if os.path.exists(baseline):
+        print_yellow("[baseline {}]".format(baseline), args.verbose > 0)
 
     deqp_tests = {
         "egl": args.deqp_egl,
@@ -362,7 +426,7 @@ if args.deqp:
         os.path.join(output_folder, "deqp"),
         "--suite",
         suite_filename,
-    ]
+    ] + filters_args
     run_cmd(cmd, args.verbose)
     shutil.copy(os.path.join(out, "failures.csv"), new_baseline)
     verify_results(baseline, new_baseline)

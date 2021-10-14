@@ -256,6 +256,13 @@ fd_ringbuffer_size(struct fd_ringbuffer *ring)
    return offset_bytes(ring->cur, ring->start);
 }
 
+static inline bool
+fd_ringbuffer_empty(struct fd_ringbuffer *ring)
+{
+   return (fd_ringbuffer_cmd_count(ring) == 1) &&
+          (offset_bytes(ring->cur, ring->start) == 0);
+}
+
 #define LOG_DWORDS 0
 
 static inline void

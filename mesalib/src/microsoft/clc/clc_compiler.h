@@ -24,95 +24,11 @@
 #ifndef CLC_COMPILER_H
 #define CLC_COMPILER_H
 
+#include "clc/clc.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stddef.h>
-#include <stdint.h>
-
-struct clc_named_value {
-   const char *name;
-   const char *value;
-};
-
-struct clc_compile_args {
-   const struct clc_named_value *headers;
-   unsigned num_headers;
-   struct clc_named_value source;
-   const char * const *args;
-   unsigned num_args;
-};
-
-struct clc_linker_args {
-   const struct clc_object * const *in_objs;
-   unsigned num_in_objs;
-   unsigned create_library;
-};
-
-typedef void (*clc_msg_callback)(void *priv, const char *msg);
-
-struct clc_logger {
-   void *priv;
-   clc_msg_callback error;
-   clc_msg_callback warning;
-};
-
-struct spirv_binary {
-   uint32_t *data;
-   size_t size;
-};
-
-enum clc_kernel_arg_type_qualifier {
-   CLC_KERNEL_ARG_TYPE_CONST = 1 << 0,
-   CLC_KERNEL_ARG_TYPE_RESTRICT = 1 << 1,
-   CLC_KERNEL_ARG_TYPE_VOLATILE = 1 << 2,
-};
-
-enum clc_kernel_arg_access_qualifier {
-   CLC_KERNEL_ARG_ACCESS_READ = 1 << 0,
-   CLC_KERNEL_ARG_ACCESS_WRITE = 1 << 1,
-};
-
-enum clc_kernel_arg_address_qualifier {
-   CLC_KERNEL_ARG_ADDRESS_PRIVATE,
-   CLC_KERNEL_ARG_ADDRESS_CONSTANT,
-   CLC_KERNEL_ARG_ADDRESS_LOCAL,
-   CLC_KERNEL_ARG_ADDRESS_GLOBAL,
-};
-
-struct clc_kernel_arg {
-   const char *name;
-   const char *type_name;
-   unsigned type_qualifier;
-   unsigned access_qualifier;
-   enum clc_kernel_arg_address_qualifier address_qualifier;
-};
-
-enum clc_vec_hint_type {
-   CLC_VEC_HINT_TYPE_CHAR = 0,
-   CLC_VEC_HINT_TYPE_SHORT = 1,
-   CLC_VEC_HINT_TYPE_INT = 2,
-   CLC_VEC_HINT_TYPE_LONG = 3,
-   CLC_VEC_HINT_TYPE_HALF = 4,
-   CLC_VEC_HINT_TYPE_FLOAT = 5,
-   CLC_VEC_HINT_TYPE_DOUBLE = 6
-};
-
-struct clc_kernel_info {
-   const char *name;
-   size_t num_args;
-   const struct clc_kernel_arg *args;
-
-   unsigned vec_hint_size;
-   enum clc_vec_hint_type vec_hint_type;
-};
-
-struct clc_object {
-   struct spirv_binary spvbin;
-   const struct clc_kernel_info *kernels;
-   unsigned num_kernels;
-};
 
 #define CLC_MAX_CONSTS 32
 #define CLC_MAX_BINDINGS_PER_ARG 3
@@ -187,34 +103,6 @@ struct clc_dxil_object {
    } binary;
 };
 
-struct clc_context {
-   const void *libclc_nir;
-};
-
-struct clc_context_options {
-   unsigned optimize;
-};
-
-struct clc_context *clc_context_new(const struct clc_logger *logger, const struct clc_context_options *options);
-
-void clc_free_context(struct clc_context *ctx);
-
-void clc_context_serialize(struct clc_context *ctx, void **serialized, size_t *size);
-void clc_context_free_serialized(void *serialized);
-struct clc_context *clc_context_deserialize(void *serialized, size_t size);
-
-struct clc_object *
-clc_compile(struct clc_context *ctx,
-            const struct clc_compile_args *args,
-            const struct clc_logger *logger);
-
-struct clc_object *
-clc_link(struct clc_context *ctx,
-         const struct clc_linker_args *args,
-         const struct clc_logger *logger);
-
-void clc_free_object(struct clc_object *obj);
-
 struct clc_runtime_arg_info {
    union {
       struct {
@@ -236,12 +124,23 @@ struct clc_runtime_kernel_conf {
    unsigned support_workgroup_id_offsets;
 };
 
-struct clc_dxil_object *
-clc_to_dxil(struct clc_context *ctx,
-            const struct clc_object *obj,
-            const char *entrypoint,
-            const struct clc_runtime_kernel_conf *conf,
-            const struct clc_logger *logger);
+struct clc_libclc_dxil_options {
+   unsigned optimize;
+};
+
+struct clc_libclc *
+clc_libclc_new_dxil(const struct clc_logger *logger,
+                    const struct clc_libclc_dxil_options *dxil_options);
+
+bool
+clc_spirv_to_dxil(struct clc_libclc *lib,
+                  const struct clc_binary *linked_spirv,
+                  const struct clc_parsed_spirv *parsed_data,
+                  const char *entrypoint,
+                  const struct clc_runtime_kernel_conf *conf,
+                  const struct clc_spirv_specialization_consts *consts,
+                  const struct clc_logger *logger,
+                  struct clc_dxil_object *out_dxil);
 
 void clc_free_dxil_object(struct clc_dxil_object *dxil);
 

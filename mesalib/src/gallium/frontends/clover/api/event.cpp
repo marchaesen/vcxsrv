@@ -282,10 +282,10 @@ clGetEventProfilingInfo(cl_event d_ev, cl_profiling_info param,
 
    return CL_SUCCESS;
 
-} catch (std::bad_cast &e) {
+} catch (std::bad_cast &) {
    return CL_PROFILING_INFO_NOT_AVAILABLE;
 
-} catch (lazy<cl_ulong>::undefined_error &e) {
+} catch (lazy<cl_ulong>::undefined_error &) {
    return CL_PROFILING_INFO_NOT_AVAILABLE;
 
 } catch (error &e) {

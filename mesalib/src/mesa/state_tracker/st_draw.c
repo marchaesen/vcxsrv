@@ -87,7 +87,8 @@ translate_prim(const struct gl_context *ctx, unsigned prim)
 }
 
 static inline void
-prepare_draw(struct st_context *st, struct gl_context *ctx)
+prepare_draw(struct st_context *st, struct gl_context *ctx, uint64_t state_mask,
+             enum st_pipeline pipeline)
 {
    /* Mesa core state should have been validated already */
    assert(ctx->NewState == 0x0);
@@ -98,10 +99,9 @@ prepare_draw(struct st_context *st, struct gl_context *ctx)
    st_invalidate_readpix_cache(st);
 
    /* Validate state. */
-   if ((st->dirty | ctx->NewDriverState) & st->active_states &
-       ST_PIPELINE_RENDER_STATE_MASK ||
+   if ((st->dirty | ctx->NewDriverState) & st->active_states & state_mask ||
        st->gfx_shaders_may_be_dirty) {
-      st_validate_state(st, ST_PIPELINE_RENDER);
+      st_validate_state(st, pipeline);
    }
 
    /* Pin threads regularly to the same Zen CCX that the main thread is
@@ -179,7 +179,7 @@ st_draw_gallium(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
 
-   prepare_draw(st, ctx);
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK, ST_PIPELINE_RENDER);
 
    if (!prepare_indexed_draw(st, ctx, info, draws, num_draws))
       return;
@@ -196,7 +196,7 @@ st_draw_gallium_multimode(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
 
-   prepare_draw(st, ctx);
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK, ST_PIPELINE_RENDER);
 
    if (!prepare_indexed_draw(st, ctx, info, draws, num_draws))
       return;
@@ -238,7 +238,7 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    struct pipe_draw_start_count_bias draw = {0};
 
    assert(stride);
-   prepare_draw(st, ctx);
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK, ST_PIPELINE_RENDER);
 
    memset(&indirect, 0, sizeof(indirect));
    util_draw_init_info(&info);
@@ -293,7 +293,7 @@ st_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
    struct pipe_draw_indirect_info indirect;
    struct pipe_draw_start_count_bias draw = {0};
 
-   prepare_draw(st, ctx);
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK, ST_PIPELINE_RENDER);
 
    memset(&indirect, 0, sizeof(indirect));
    util_draw_init_info(&info);
@@ -309,14 +309,73 @@ st_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
    cso_draw_vbo(st->cso_context, &info, 0, &indirect, draw);
 }
 
+static void
+st_draw_gallium_vertex_state(struct gl_context *ctx,
+                             struct pipe_vertex_state *state,
+                             struct pipe_draw_vertex_state_info info,
+                             const struct pipe_draw_start_count_bias *draws,
+                             const uint8_t *mode,
+                             unsigned num_draws,
+                             bool per_vertex_edgeflags)
+{
+   struct st_context *st = st_context(ctx);
+   bool old_vertdata_edgeflags = st->vertdata_edgeflags;
+
+   /* We don't flag any other states to make st_validate state update edge
+    * flags, so we need to update them here.
+    */
+   st_update_edgeflags(st, per_vertex_edgeflags);
+
+   prepare_draw(st, ctx, ST_PIPELINE_RENDER_STATE_MASK_NO_VARRAYS,
+                ST_PIPELINE_RENDER_NO_VARRAYS);
+
+   struct pipe_context *pipe = st->pipe;
+   uint32_t velem_mask = ctx->VertexProgram._Current->info.inputs_read;
+
+   if (!mode) {
+      pipe->draw_vertex_state(pipe, state, velem_mask, info, draws, num_draws);
+   } else {
+      /* Find consecutive draws where mode doesn't vary. */
+      for (unsigned i = 0, first = 0; i <= num_draws; i++) {
+         if (i == num_draws || mode[i] != mode[first]) {
+            unsigned current_num_draws = i - first;
+
+            /* Increase refcount to be able to use take_vertex_state_ownership
+             * with all draws.
+             */
+            if (i != num_draws && info.take_vertex_state_ownership)
+               p_atomic_inc(&state->reference.count);
+
+            info.mode = mode[first];
+            pipe->draw_vertex_state(pipe, state, velem_mask, info, &draws[first],
+                                    current_num_draws);
+            first = i;
+         }
+      }
+   }
+
+   /* If per-vertex edge flags are different than the non-display-list state,
+    *  just flag ST_NEW_VERTEX_ARRAY, which will also completely revalidate
+    * edge flags in st_validate_state.
+    */
+   if (st->vertdata_edgeflags != old_vertdata_edgeflags)
+      st->dirty |= ST_NEW_VERTEX_ARRAYS;
+}
+
 void
-st_init_draw_functions(struct dd_function_table *functions)
+st_init_draw_functions(struct pipe_screen *screen,
+                       struct dd_function_table *functions)
 {
    functions->Draw = NULL;
    functions->DrawGallium = st_draw_gallium;
    functions->DrawGalliumMultiMode = st_draw_gallium_multimode;
    functions->DrawIndirect = st_indirect_draw_vbo;
    functions->DrawTransformFeedback = st_draw_transform_feedback;
+
+   if (screen->get_param(screen, PIPE_CAP_DRAW_VERTEX_STATE)) {
+      functions->DrawGalliumVertexState = st_draw_gallium_vertex_state;
+      functions->CreateGalliumVertexState = st_create_gallium_vertex_state;
+   }
 }
 
 

@@ -719,19 +719,29 @@ static void handle_graphics_pipeline(struct vk_cmd_queue_entry *cmd,
 
       if (!dynamic_states[conv_dynamic_state_idx(VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT)]) {
          for (i = 0; i < vi->vertexBindingDescriptionCount; i++) {
-            state->vb[i].stride = vi->pVertexBindingDescriptions[i].stride;
+            state->vb[vi->pVertexBindingDescriptions[i].binding].stride = vi->pVertexBindingDescriptions[i].stride;
          }
       }
 
       int max_location = -1;
       for (i = 0; i < vi->vertexAttributeDescriptionCount; i++) {
          unsigned location = vi->pVertexAttributeDescriptions[i].location;
+         unsigned binding = vi->pVertexAttributeDescriptions[i].binding;
+         const struct VkVertexInputBindingDescription *desc_binding = NULL;
+         for (unsigned j = 0; j < vi->vertexBindingDescriptionCount; j++) {
+            const struct VkVertexInputBindingDescription *b = &vi->pVertexBindingDescriptions[j];
+            if (b->binding == binding) {
+               desc_binding = b;
+               break;
+            }
+         }
+         assert(desc_binding);
          state->velem.velems[location].src_offset = vi->pVertexAttributeDescriptions[i].offset;
-         state->velem.velems[location].vertex_buffer_index = vi->pVertexAttributeDescriptions[i].binding;
+         state->velem.velems[location].vertex_buffer_index = binding;
          state->velem.velems[location].src_format = lvp_vk_format_to_pipe_format(vi->pVertexAttributeDescriptions[i].format);
          state->velem.velems[location].dual_slot = false;
 
-         switch (vi->pVertexBindingDescriptions[vi->pVertexAttributeDescriptions[i].binding].inputRate) {
+         switch (desc_binding->inputRate) {
          case VK_VERTEX_INPUT_RATE_VERTEX:
             state->velem.velems[location].instance_divisor = 0;
             break;
@@ -2124,10 +2134,10 @@ static void handle_copy_image_to_buffer2_khr(struct vk_cmd_queue_entry *cmd,
 
       box.x = copycmd->pRegions[i].imageOffset.x;
       box.y = copycmd->pRegions[i].imageOffset.y;
-      box.z = src_image->type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageOffset.z : copycmd->pRegions[i].imageSubresource.baseArrayLayer;
+      box.z = src_image->vk.image_type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageOffset.z : copycmd->pRegions[i].imageSubresource.baseArrayLayer;
       box.width = copycmd->pRegions[i].imageExtent.width;
       box.height = copycmd->pRegions[i].imageExtent.height;
-      box.depth = src_image->type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageExtent.depth : copycmd->pRegions[i].imageSubresource.layerCount;
+      box.depth = src_image->vk.image_type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageExtent.depth : copycmd->pRegions[i].imageSubresource.layerCount;
 
       src_data = state->pctx->texture_map(state->pctx,
                                            src_image->bo,
@@ -2219,10 +2229,10 @@ static void handle_copy_buffer_to_image(struct vk_cmd_queue_entry *cmd,
 
       box.x = copycmd->pRegions[i].imageOffset.x;
       box.y = copycmd->pRegions[i].imageOffset.y;
-      box.z = dst_image->type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageOffset.z : copycmd->pRegions[i].imageSubresource.baseArrayLayer;
+      box.z = dst_image->vk.image_type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageOffset.z : copycmd->pRegions[i].imageSubresource.baseArrayLayer;
       box.width = copycmd->pRegions[i].imageExtent.width;
       box.height = copycmd->pRegions[i].imageExtent.height;
-      box.depth = dst_image->type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageExtent.depth : copycmd->pRegions[i].imageSubresource.layerCount;
+      box.depth = dst_image->vk.image_type == VK_IMAGE_TYPE_3D ? copycmd->pRegions[i].imageExtent.depth : copycmd->pRegions[i].imageSubresource.layerCount;
 
       dst_data = state->pctx->texture_map(state->pctx,
                                            dst_image->bo,
@@ -3340,13 +3350,19 @@ static void handle_bind_transform_feedback_buffers(struct vk_cmd_queue_entry *cm
 
    for (unsigned i = 0; i < btfb->binding_count; i++) {
       int idx = i + btfb->first_binding;
+      uint32_t size;
+      if (btfb->sizes && btfb->sizes[i] != VK_WHOLE_SIZE)
+         size = btfb->sizes[i];
+      else
+         size = lvp_buffer_from_handle(btfb->buffers[i])->size - btfb->offsets[i];
+
       if (state->so_targets[idx])
          state->pctx->stream_output_target_destroy(state->pctx, state->so_targets[idx]);
 
       state->so_targets[idx] = state->pctx->create_stream_output_target(state->pctx,
                                                                         lvp_buffer_from_handle(btfb->buffers[i])->bo,
                                                                         btfb->offsets[i],
-                                                                        btfb->sizes[i]);
+                                                                        size);
    }
    state->num_so_targets = btfb->first_binding + btfb->binding_count;
 }
@@ -3441,8 +3457,17 @@ static void handle_set_vertex_input(struct vk_cmd_queue_entry *cmd,
    const struct VkVertexInputAttributeDescription2EXT *attrs = vertex_input->vertex_attribute_descriptions;
    int max_location = -1;
    for (unsigned i = 0; i < vertex_input->vertex_attribute_description_count; i++) {
-      const struct VkVertexInputBindingDescription2EXT *binding = &bindings[attrs[i].binding];
+      const struct VkVertexInputBindingDescription2EXT *binding = NULL;
       unsigned location = attrs[i].location;
+
+      for (unsigned j = 0; j < vertex_input->vertex_binding_description_count; j++) {
+         const struct VkVertexInputBindingDescription2EXT *b = &bindings[j];
+         if (b->binding == attrs[i].binding) {
+            binding = b;
+            break;
+         }
+      }
+      assert(binding);
       state->velem.velems[location].src_offset = attrs[i].offset;
       state->velem.velems[location].vertex_buffer_index = attrs[i].binding;
       state->velem.velems[location].src_format = lvp_vk_format_to_pipe_format(attrs[i].format);

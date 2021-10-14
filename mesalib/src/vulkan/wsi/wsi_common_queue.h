@@ -39,12 +39,10 @@ wsi_queue_init(struct wsi_queue *queue, int length)
 {
    int ret;
 
-   uint32_t length_pow2 = 4;
-   while (length_pow2 < length)
-      length_pow2 *= 2;
+   if (length < 4)
+      length = 4;
 
-   ret = u_vector_init(&queue->vector, sizeof(uint32_t),
-                       sizeof(uint32_t) * length_pow2);
+   ret = u_vector_init(&queue->vector, length, sizeof(uint32_t));
    if (!ret)
       return ENOMEM;
 

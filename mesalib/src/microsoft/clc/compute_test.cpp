@@ -35,6 +35,8 @@
 #include "compute_test.h"
 #include "dxcapi.h"
 
+#include <spirv-tools/libspirv.hpp>
+
 using std::runtime_error;
 using Microsoft::WRL::ComPtr;
 
@@ -48,8 +50,8 @@ enum compute_test_debug_flags {
 static const struct debug_named_value compute_debug_options[] = {
    { "experimental_shaders",  COMPUTE_DEBUG_EXPERIMENTAL_SHADERS, "Enable experimental shaders" },
    { "use_hw_d3d",            COMPUTE_DEBUG_USE_HW_D3D,           "Use a hardware D3D device"   },
-   { "optimize_libclc",       COMPUTE_DEBUG_OPTIMIZE_LIBCLC,      "Optimize the clc_context before using it" },
-   { "serialize_libclc",      COMPUTE_DEBUG_SERIALIZE_LIBCLC,     "Serialize and deserialize the clc_context" },
+   { "optimize_libclc",       COMPUTE_DEBUG_OPTIMIZE_LIBCLC,      "Optimize the clc_libclc before using it" },
+   { "serialize_libclc",      COMPUTE_DEBUG_SERIALIZE_LIBCLC,     "Serialize and deserialize the clc_libclc" },
    DEBUG_NAMED_VALUE_END
 };
 
@@ -617,31 +619,31 @@ ComputeTest::run_shader_with_raw_args(Shader shader,
 void
 ComputeTest::SetUp()
 {
-   static struct clc_context *compiler_ctx_g = nullptr;
+   static struct clc_libclc *compiler_ctx_g = nullptr;
 
    if (!compiler_ctx_g) {
-      clc_context_options options = { };
+      clc_libclc_dxil_options options = { };
       options.optimize = (debug_get_option_debug_compute() & COMPUTE_DEBUG_OPTIMIZE_LIBCLC) != 0;
 
-      compiler_ctx_g = clc_context_new(&logger, &options);
+      compiler_ctx_g = clc_libclc_new_dxil(&logger, &options);
       if (!compiler_ctx_g)
          throw runtime_error("failed to create CLC compiler context");
 
       if (debug_get_option_debug_compute() & COMPUTE_DEBUG_SERIALIZE_LIBCLC) {
          void *serialized = nullptr;
          size_t serialized_size = 0;
-         clc_context_serialize(compiler_ctx_g, &serialized, &serialized_size);
+         clc_libclc_serialize(compiler_ctx_g, &serialized, &serialized_size);
          if (!serialized)
             throw runtime_error("failed to serialize CLC compiler context");
 
-         clc_free_context(compiler_ctx_g);
+         clc_free_libclc(compiler_ctx_g);
          compiler_ctx_g = nullptr;
 
-         compiler_ctx_g = clc_context_deserialize(serialized, serialized_size);
+         compiler_ctx_g = clc_libclc_deserialize(serialized, serialized_size);
          if (!compiler_ctx_g)
             throw runtime_error("failed to deserialize CLC compiler context");
 
-         clc_context_free_serialized(serialized);
+         clc_libclc_free_serialized(serialized);
       }
    }
    compiler_ctx = compiler_ctx_g;
@@ -791,7 +793,8 @@ ComputeTest::compile(const std::vector<const char *> &sources,
                      const std::vector<const char *> &compile_args,
                      bool create_library)
 {
-   struct clc_compile_args args = { 0 };
+   struct clc_compile_args args = {
+   };
    args.args = compile_args.data();
    args.num_args = (unsigned)compile_args.size();
    ComputeTest::Shader shader;
@@ -803,12 +806,16 @@ ComputeTest::compile(const std::vector<const char *> &sources,
    for (unsigned i = 0; i < sources.size(); i++) {
       args.source.value = sources[i];
 
-      auto obj = clc_compile(compiler_ctx, &args, &logger);
-      if (!obj)
+      clc_binary spirv{};
+      if (!clc_compile_c_to_spirv(&args, &logger, &spirv))
          throw runtime_error("failed to compile object!");
 
       Shader shader;
-      shader.obj = std::shared_ptr<struct clc_object>(obj, clc_free_object);
+      shader.obj = std::shared_ptr<clc_binary>(new clc_binary(spirv), [](clc_binary *spirv)
+         {
+            clc_free_spirv(spirv);
+            delete spirv;
+         });
       shaders.push_back(shader);
    }
 
@@ -822,7 +829,7 @@ ComputeTest::Shader
 ComputeTest::link(const std::vector<Shader> &sources,
                   bool create_library)
 {
-   std::vector<const clc_object*> objs;
+   std::vector<const clc_binary*> objs;
    for (auto& source : sources)
       objs.push_back(&*source.obj);
 
@@ -830,16 +837,41 @@ ComputeTest::link(const std::vector<Shader> &sources,
    link_args.in_objs = objs.data();
    link_args.num_in_objs = (unsigned)objs.size();
    link_args.create_library = create_library;
-   struct clc_object *obj = clc_link(compiler_ctx,
-                                     &link_args,
-                                     &logger);
-   if (!obj)
+   clc_binary spirv{};
+   if (!clc_link_spirv(&link_args, &logger, &spirv))
       throw runtime_error("failed to link objects!");
 
    ComputeTest::Shader shader;
-   shader.obj = std::shared_ptr<struct clc_object>(obj, clc_free_object);
+   shader.obj = std::shared_ptr<clc_binary>(new clc_binary(spirv), [](clc_binary *spirv)
+      {
+         clc_free_spirv(spirv);
+         delete spirv;
+      });
    if (!link_args.create_library)
       configure(shader, NULL);
+
+   return shader;
+}
+
+ComputeTest::Shader
+ComputeTest::assemble(const char *source)
+{
+   spvtools::SpirvTools tools(SPV_ENV_UNIVERSAL_1_0);
+   std::vector<uint32_t> binary;
+   if (!tools.Assemble(source, strlen(source), &binary))
+      throw runtime_error("failed to assemble");
+
+   ComputeTest::Shader shader;
+   shader.obj = std::shared_ptr<clc_binary>(new clc_binary{}, [](clc_binary *spirv)
+      {
+         free(spirv->data);
+         delete spirv;
+      });
+   shader.obj->size = binary.size() * 4;
+   shader.obj->data = malloc(shader.obj->size);
+   memcpy(shader.obj->data, binary.data(), shader.obj->size);
+
+   configure(shader, NULL);
 
    return shader;
 }
@@ -848,13 +880,23 @@ void
 ComputeTest::configure(Shader &shader,
                        const struct clc_runtime_kernel_conf *conf)
 {
-   struct clc_dxil_object *dxil;
+   if (!shader.metadata) {
+      shader.metadata = std::shared_ptr<clc_parsed_spirv>(new clc_parsed_spirv{}, [](clc_parsed_spirv *metadata)
+         {
+            clc_free_parsed_spirv(metadata);
+            delete metadata;
+         });
+      if (!clc_parse_spirv(shader.obj.get(), NULL, shader.metadata.get()))
+         throw runtime_error("failed to parse spirv!");
+   }
 
-   dxil = clc_to_dxil(compiler_ctx, shader.obj.get(), "main_test", conf, &logger);
-   if (!dxil)
+   shader.dxil = std::shared_ptr<clc_dxil_object>(new clc_dxil_object{}, [](clc_dxil_object *dxil)
+      {
+         clc_free_dxil_object(dxil);
+         delete dxil;
+      });
+   if (!clc_spirv_to_dxil(compiler_ctx, shader.obj.get(), shader.metadata.get(), "main_test", conf, nullptr, &logger, shader.dxil.get()))
       throw runtime_error("failed to compile kernel!");
-
-   shader.dxil = std::shared_ptr<struct clc_dxil_object>(dxil, clc_free_dxil_object);
 }
 
 void

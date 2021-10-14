@@ -51,4 +51,7 @@ void
 panvk_per_arch(cmd_alloc_fb_desc)(struct panvk_cmd_buffer *cmdbuf);
 
 void
-panvk_per_arch(cmd_alloc_tls_desc)(struct panvk_cmd_buffer *cmdbuf);
+panvk_per_arch(cmd_alloc_tls_desc)(struct panvk_cmd_buffer *cmdbuf, bool gfx);
+
+void
+panvk_per_arch(cmd_prepare_tiler_context)(struct panvk_cmd_buffer *cmdbuf);

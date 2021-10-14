@@ -61,6 +61,7 @@ batch_ptr_add_usage(struct zink_batch *batch, struct set *s, void *ptr);
 
 struct zink_batch_state {
    struct zink_fence fence;
+   struct zink_batch_state *next;
 
    struct zink_batch_usage usage;
    struct zink_context *ctx;
@@ -82,6 +83,7 @@ struct zink_batch_state {
    struct set *bufferviews;
 
    struct util_dynarray unref_resources;
+   struct util_dynarray bindless_releases[2];
 
    struct util_dynarray persistent_resources;
    struct util_dynarray zombie_samplers;

@@ -101,7 +101,7 @@ struct state {
 #define F(s, field)                                                            \
    do {                                                                        \
       OFF(s->field);                                                           \
-      printf("%s%12s:\t%f (0x%0x)\n", tab(state->lvl), #field, d2f(s->field),  \
+      printf("%s%12s:\t%f (0x%0x)\n", tab(state->lvl), #field, uif(s->field),  \
              s->field);                                                        \
    } while (0)
 
@@ -161,7 +161,7 @@ dump_unknown(struct state *state, void *buf, unsigned start, unsigned n)
          uint8_t c = *(ascii++);
          printf("%c", (isascii(c) && !iscntrl(c)) ? c : '.');
       }
-      printf("|\t%f", d2f(d));
+      printf("|\t%f", uif(d));
 
       /* TODO maybe scan for first non-null and non-ascii char starting from
        * end of shader binary to (roughly) establish the start of the string

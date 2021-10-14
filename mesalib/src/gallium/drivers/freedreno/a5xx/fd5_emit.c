@@ -667,7 +667,8 @@ fd5_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
       OUT_PKT4(ring, REG_A5XX_GRAS_SU_CNTL, 1);
       OUT_RING(ring, rasterizer->gras_su_cntl |
-                        COND(pfb->samples > 1, A5XX_GRAS_SU_CNTL_MSAA_ENABLE));
+                        A5XX_GRAS_SU_CNTL_LINE_MODE(pfb->samples > 1 ?
+                                                    RECTANGULAR : BRESENHAM));
 
       OUT_PKT4(ring, REG_A5XX_GRAS_SU_POINT_MINMAX, 2);
       OUT_RING(ring, rasterizer->gras_su_point_minmax);

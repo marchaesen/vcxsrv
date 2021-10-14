@@ -104,7 +104,7 @@ static void si_emit_cull_state(struct si_context *sctx)
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->small_prim_cull_info_buf,
                              RADEON_USAGE_READ, RADEON_PRIO_CONST_BUFFER);
    radeon_begin(&sctx->gfx_cs);
-   radeon_set_sh_reg(&sctx->gfx_cs, R_00B220_SPI_SHADER_PGM_LO_GS,
+   radeon_set_sh_reg(R_00B220_SPI_SHADER_PGM_LO_GS,
                      sctx->small_prim_cull_info_address >> 8);
    radeon_end();
 
@@ -221,15 +221,15 @@ static void si_emit_one_scissor(struct si_context *ctx, struct radeon_cmdbuf *cs
     * SCREEN_OFFSET != 0 and any_scissor.BR_X/Y <= 0.
     */
    if (ctx->chip_class == GFX6 && (final.maxx == 0 || final.maxy == 0)) {
-      radeon_emit(cs, S_028250_TL_X(1) | S_028250_TL_Y(1) | S_028250_WINDOW_OFFSET_DISABLE(1));
-      radeon_emit(cs, S_028254_BR_X(1) | S_028254_BR_Y(1));
+      radeon_emit(S_028250_TL_X(1) | S_028250_TL_Y(1) | S_028250_WINDOW_OFFSET_DISABLE(1));
+      radeon_emit(S_028254_BR_X(1) | S_028254_BR_Y(1));
       radeon_end();
       return;
    }
 
-   radeon_emit(cs, S_028250_TL_X(final.minx) | S_028250_TL_Y(final.miny) |
-                      S_028250_WINDOW_OFFSET_DISABLE(1));
-   radeon_emit(cs, S_028254_BR_X(final.maxx) | S_028254_BR_Y(final.maxy));
+   radeon_emit(S_028250_TL_X(final.minx) | S_028250_TL_Y(final.miny) |
+                  S_028250_WINDOW_OFFSET_DISABLE(1));
+   radeon_emit(S_028254_BR_X(final.maxx) | S_028254_BR_Y(final.maxy));
    radeon_end();
 }
 
@@ -382,7 +382,7 @@ static void si_emit_scissors(struct si_context *ctx)
       struct si_signed_scissor *vp = &ctx->viewports.as_scissor[0];
 
       radeon_begin(cs);
-      radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL, 2);
+      radeon_set_context_reg_seq(R_028250_PA_SC_VPORT_SCISSOR_0_TL, 2);
       radeon_end();
 
       si_emit_one_scissor(ctx, cs, vp, scissor_enabled ? &states[0] : NULL);
@@ -393,7 +393,7 @@ static void si_emit_scissors(struct si_context *ctx)
     * This is a hardware requirement.
     */
    radeon_begin(cs);
-   radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL, SI_MAX_VIEWPORTS * 2);
+   radeon_set_context_reg_seq(R_028250_PA_SC_VPORT_SCISSOR_0_TL, SI_MAX_VIEWPORTS * 2);
    radeon_end();
 
    for (unsigned i = 0; i < SI_MAX_VIEWPORTS; i++) {
@@ -489,12 +489,12 @@ static void si_emit_one_viewport(struct si_context *ctx, struct pipe_viewport_st
    struct radeon_cmdbuf *cs = &ctx->gfx_cs;
 
    radeon_begin(cs);
-   radeon_emit(cs, fui(state->scale[0]));
-   radeon_emit(cs, fui(state->translate[0]));
-   radeon_emit(cs, fui(state->scale[1]));
-   radeon_emit(cs, fui(state->translate[1]));
-   radeon_emit(cs, fui(state->scale[2]));
-   radeon_emit(cs, fui(state->translate[2]));
+   radeon_emit(fui(state->scale[0]));
+   radeon_emit(fui(state->translate[0]));
+   radeon_emit(fui(state->scale[1]));
+   radeon_emit(fui(state->translate[1]));
+   radeon_emit(fui(state->scale[2]));
+   radeon_emit(fui(state->translate[2]));
    radeon_end();
 }
 
@@ -506,7 +506,7 @@ static void si_emit_viewports(struct si_context *ctx)
    /* The simple case: Only 1 viewport is active. */
    if (!ctx->vs_writes_viewport_index) {
       radeon_begin(cs);
-      radeon_set_context_reg_seq(cs, R_02843C_PA_CL_VPORT_XSCALE, 6);
+      radeon_set_context_reg_seq(R_02843C_PA_CL_VPORT_XSCALE, 6);
       radeon_end();
 
       si_emit_one_viewport(ctx, &states[0]);
@@ -517,7 +517,7 @@ static void si_emit_viewports(struct si_context *ctx)
     * This is a hardware requirement.
     */
    radeon_begin(cs);
-   radeon_set_context_reg_seq(cs, R_02843C_PA_CL_VPORT_XSCALE + 0, SI_MAX_VIEWPORTS * 6);
+   radeon_set_context_reg_seq(R_02843C_PA_CL_VPORT_XSCALE + 0, SI_MAX_VIEWPORTS * 6);
    radeon_end();
 
    for (unsigned i = 0; i < SI_MAX_VIEWPORTS; i++)
@@ -548,9 +548,9 @@ static void si_emit_depth_ranges(struct si_context *ctx)
       si_viewport_zmin_zmax(&states[0], clip_halfz, window_space, &zmin, &zmax);
 
       radeon_begin(cs);
-      radeon_set_context_reg_seq(cs, R_0282D0_PA_SC_VPORT_ZMIN_0, 2);
-      radeon_emit(cs, fui(zmin));
-      radeon_emit(cs, fui(zmax));
+      radeon_set_context_reg_seq(R_0282D0_PA_SC_VPORT_ZMIN_0, 2);
+      radeon_emit(fui(zmin));
+      radeon_emit(fui(zmax));
       radeon_end();
       return;
    }
@@ -559,11 +559,11 @@ static void si_emit_depth_ranges(struct si_context *ctx)
     * This is a hardware requirement.
     */
    radeon_begin(cs);
-   radeon_set_context_reg_seq(cs, R_0282D0_PA_SC_VPORT_ZMIN_0, SI_MAX_VIEWPORTS * 2);
+   radeon_set_context_reg_seq(R_0282D0_PA_SC_VPORT_ZMIN_0, SI_MAX_VIEWPORTS * 2);
    for (unsigned i = 0; i < SI_MAX_VIEWPORTS; i++) {
       si_viewport_zmin_zmax(&states[i], clip_halfz, window_space, &zmin, &zmax);
-      radeon_emit(cs, fui(zmin));
-      radeon_emit(cs, fui(zmax));
+      radeon_emit(fui(zmin));
+      radeon_emit(fui(zmax));
    }
    radeon_end();
 }
@@ -662,10 +662,10 @@ static void si_emit_window_rectangles(struct si_context *sctx)
       return;
    }
 
-   radeon_set_context_reg_seq(cs, R_028210_PA_SC_CLIPRECT_0_TL, num_rectangles * 2);
+   radeon_set_context_reg_seq(R_028210_PA_SC_CLIPRECT_0_TL, num_rectangles * 2);
    for (unsigned i = 0; i < num_rectangles; i++) {
-      radeon_emit(cs, S_028210_TL_X(rects[i].minx) | S_028210_TL_Y(rects[i].miny));
-      radeon_emit(cs, S_028214_BR_X(rects[i].maxx) | S_028214_BR_Y(rects[i].maxy));
+      radeon_emit(S_028210_TL_X(rects[i].minx) | S_028210_TL_Y(rects[i].miny));
+      radeon_emit(S_028214_BR_X(rects[i].maxx) | S_028214_BR_Y(rects[i].maxy));
    }
    radeon_end();
 }

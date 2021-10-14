@@ -48,7 +48,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    offset = ir3_get_src(ctx, &intr->src[2])[0];
 
    /* src0 is uvec2(offset*4, 0), src1 is offset.. nir already *= 4: */
-   src0 = ir3_collect(ctx, byte_offset, create_immed(b, 0));
+   src0 = ir3_collect(b, byte_offset, create_immed(b, 0));
    src1 = offset;
 
    ldgb = ir3_LDGB(b, ssbo, 0, src0, 0, src1, 0);
@@ -81,9 +81,9 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    /* src0 is value, src1 is offset, src2 is uvec2(offset*4, 0)..
     * nir already *= 4:
     */
-   src0 = ir3_create_collect(ctx, ir3_get_src(ctx, &intr->src[0]), ncomp);
+   src0 = ir3_create_collect(b, ir3_get_src(ctx, &intr->src[0]), ncomp);
    src1 = offset;
-   src2 = ir3_collect(ctx, byte_offset, create_immed(b, 0));
+   src2 = ir3_collect(b, byte_offset, create_immed(b, 0));
 
    stgb = ir3_STGB(b, ssbo, 0, src0, 0, src1, 0, src2, 0);
    stgb->cat6.iim_val = ncomp;
@@ -129,7 +129,7 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    struct ir3_instruction *data = ir3_get_src(ctx, &intr->src[2])[0];
    /* 64b byte offset */
    struct ir3_instruction *byte_offset =
-      ir3_collect(ctx, ir3_get_src(ctx, &intr->src[1])[0], create_immed(b, 0));
+      ir3_collect(b, ir3_get_src(ctx, &intr->src[1])[0], create_immed(b, 0));
    /* dword offset for everything but comp_swap */
    struct ir3_instruction *src3 = ir3_get_src(ctx, &intr->src[3])[0];
 
@@ -165,7 +165,7 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       break;
    case nir_intrinsic_ssbo_atomic_comp_swap_ir3:
       /* for cmpxchg, src0 is [ui]vec2(data, compare): */
-      data = ir3_collect(ctx, src3, data);
+      data = ir3_collect(b, src3, data);
       struct ir3_instruction *dword_offset = ir3_get_src(ctx, &intr->src[4])[0];
       atomic = ir3_ATOMIC_CMPXCHG_G(b, ssbo, 0, data, 0, dword_offset, 0,
                                     byte_offset, 0);
@@ -225,7 +225,7 @@ get_image_offset(struct ir3_context *ctx, const nir_intrinsic_instr *instr,
       offset = ir3_SHR_B(b, offset, 0, create_immed(b, 2), 0);
    }
 
-   return ir3_collect(ctx, offset, create_immed(b, 0));
+   return ir3_collect(b, offset, create_immed(b, 0));
 }
 
 /* src[] = { deref, coord, sample_index }. const_index[] = {} */
@@ -242,7 +242,7 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
       ir3_get_num_components_for_image_format(nir_intrinsic_format(intr));
 
    struct ir3_instruction *ldib = ir3_LDIB(
-      b, ibo, 0, offset, 0, ir3_create_collect(ctx, coords, ncoords), 0);
+      b, ibo, 0, offset, 0, ir3_create_collect(b, coords, ncoords), 0);
    ldib->dsts[0]->wrmask = MASK(intr->num_components);
    ldib->cat6.iim_val = ncomp;
    ldib->cat6.d = ncoords;
@@ -279,8 +279,8 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
     * one over the other in various cases.
     */
 
-   stib = ir3_STIB(b, ibo, 0, ir3_create_collect(ctx, value, ncomp), 0,
-                   ir3_create_collect(ctx, coords, ncoords), 0, offset, 0);
+   stib = ir3_STIB(b, ibo, 0, ir3_create_collect(b, value, ncomp), 0,
+                   ir3_create_collect(b, coords, ncoords), 0, offset, 0);
    stib->cat6.iim_val = ncomp;
    stib->cat6.d = ncoords;
    stib->cat6.type = ir3_get_type_for_image_intrinsic(intr);
@@ -306,7 +306,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
     * src2 is 64b byte offset
     */
    src0 = ir3_get_src(ctx, &intr->src[3])[0];
-   src1 = ir3_create_collect(ctx, coords, ncoords);
+   src1 = ir3_create_collect(b, coords, ncoords);
    src2 = get_image_offset(ctx, intr, coords, false);
 
    switch (intr->intrinsic) {
@@ -335,7 +335,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       break;
    case nir_intrinsic_image_atomic_comp_swap:
       /* for cmpxchg, src0 is [ui]vec2(data, compare): */
-      src0 = ir3_collect(ctx, ir3_get_src(ctx, &intr->src[4])[0], src0);
+      src0 = ir3_collect(b, ir3_get_src(ctx, &intr->src[4])[0], src0);
       atomic = ir3_ATOMIC_CMPXCHG_G(b, image, 0, src0, 0, src1, 0, src2, 0);
       break;
    default:

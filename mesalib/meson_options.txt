@@ -482,7 +482,7 @@ option(
   'platform-sdk-version',
   type : 'integer',
   min : 25,
-  max : 30,
+  max : 31,
   value : 25,
   description : 'Android Platform SDK version. Default: Nougat version.'
 )
@@ -523,4 +523,10 @@ option(
   type : 'string',
   value : '',
   description : 'Enable a custom shader replacement mechanism. Note that enabling this option requires adding/generating a shader_replacement.h file that can be included (see shaderapi.c).'
+)
+option(
+  'vmware-mks-stats',
+  type : 'boolean',
+  value : false,
+  description : 'Build gallium VMware/svga driver with mksGuestStats instrumentation.'
 )

@@ -676,6 +676,20 @@ optimizations.extend([
    (('imin', ('imin', ('imin', a, b), c), a), ('imin', ('imin', a, b), c)),
 ])
 
+for N in [8, 16, 32, 64]:
+    b2iN = 'b2i{0}'.format(N)
+    optimizations.extend([
+        (('ieq', (b2iN, 'a@1'), (b2iN, 'b@1')), ('ieq', a, b)),
+        (('ine', (b2iN, 'a@1'), (b2iN, 'b@1')), ('ine', a, b)),
+    ])
+
+for N in [16, 32, 64]:
+    b2fN = 'b2f{0}'.format(N)
+    optimizations.extend([
+        (('feq', (b2fN, 'a@1'), (b2fN, 'b@1')), ('ieq', a, b)),
+        (('fneu', (b2fN, 'a@1'), (b2fN, 'b@1')), ('ine', a, b)),
+    ])
+
 # Integer sizes
 for s in [8, 16, 32, 64]:
     optimizations.extend([
@@ -804,6 +818,10 @@ optimizations.extend([
    (('ior', ('ior(is_used_once)', ('flt', a, c), d), ('flt(is_used_once)', b, c)), ('ior', ('flt', ('!fmin', a, b), c), d)),
    (('ior', ('ior(is_used_once)', ('flt(is_used_once)', a, b), d), ('flt', a, c)), ('ior', ('flt', a, ('!fmax', b, c)), d)),
    (('ior', ('ior(is_used_once)', ('flt', a, b), d), ('flt(is_used_once)', a, c)), ('ior', ('flt', a, ('!fmax', b, c)), d)),
+
+   # This is how SpvOpFOrdNotEqual might be implemented.  If both values are
+   # numbers, then it can be replaced with fneu.
+   (('ior', ('flt', 'a(is_a_number)', 'b(is_a_number)'), ('flt', b, a)), ('fneu', a, b)),
 ])
 
 # Float sizes
@@ -1237,8 +1255,21 @@ optimizations.extend([
    (('ieq', ('ineg', ('b2i', 'a@1')), -1), a),
    (('ine', ('ineg', ('b2i', 'a@1')), 0), a),
    (('ine', ('ineg', ('b2i', 'a@1')), -1), ('inot', a)),
+   (('ige', ('ineg', ('b2i', 'a@1')), 0), ('inot', a)),
+   (('ilt', ('ineg', ('b2i', 'a@1')), 0), a),
+   (('ult', 0, ('ineg', ('b2i', 'a@1'))), a),
    (('iand', ('ineg', ('b2i', a)), 1.0), ('b2f', a)),
    (('iand', ('ineg', ('b2i', a)), 1),   ('b2i', a)),
+
+   # With D3D booleans, imax is AND and umax is OR
+   (('imax', ('ineg', ('b2i', 'a@1')), ('ineg', ('b2i', 'b@1'))),
+    ('ineg', ('b2i', ('iand', a, b)))),
+   (('imin', ('ineg', ('b2i', 'a@1')), ('ineg', ('b2i', 'b@1'))),
+    ('ineg', ('b2i', ('ior', a, b)))),
+   (('umax', ('ineg', ('b2i', 'a@1')), ('ineg', ('b2i', 'b@1'))),
+    ('ineg', ('b2i', ('ior', a, b)))),
+   (('umin', ('ineg', ('b2i', 'a@1')), ('ineg', ('b2i', 'b@1'))),
+    ('ineg', ('b2i', ('iand', a, b)))),
 
    # Conversions
    (('i2b16', ('b2i', 'a@16')), a),
@@ -2414,6 +2445,16 @@ late_optimizations = [
    (('feq',  ('fadd(is_used_once)', 'a(is_finite)', b), 0.0), ('feq',  a, ('fneg', b))),
    (('fneu', ('fadd(is_used_once)', 'a(is_finite)', b), 0.0), ('fneu', a, ('fneg', b))),
 
+   # This is how SpvOpFOrdNotEqual might be implemented.  Replace it with
+   # SpvOpLessOrGreater.
+   (('iand', ('fneu', a, b),   ('iand', ('feq', a, a), ('feq', b, b))), ('ior', ('!flt', a, b), ('!flt', b, a))),
+   (('iand', ('fneu', a, 0.0),          ('feq', a, a)                ), ('!flt', 0.0, ('fabs', a))),
+
+   # This is how SpvOpFUnordEqual might be implemented.  Replace it with
+   # !SpvOpLessOrGreater.
+   (('ior', ('feq', a, b),   ('ior', ('fneu', a, a), ('fneu', b, b))), ('inot', ('ior', ('!flt', a, b), ('!flt', b, a)))),
+   (('ior', ('feq', a, 0.0),         ('fneu', a, a),                ), ('inot', ('!flt', 0.0, ('fabs', a)))),
+
    # nir_lower_to_source_mods will collapse this, but its existence during the
    # optimization loop can prevent other optimizations.
    (('fneg', ('fneg', a)), a),
@@ -2677,6 +2718,7 @@ late_optimizations += [
   (('i2fmp', a), ('i2f16', a)),
   (('i2imp', a), ('u2u16', a)),
   (('u2fmp', a), ('u2f16', a)),
+  (('fisfinite', a), ('flt', ('fabs', a), float("inf"))),
 ]
 
 distribute_src_mods = [

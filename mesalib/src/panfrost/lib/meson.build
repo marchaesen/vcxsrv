@@ -19,18 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-pan_packers = custom_target(
-  'midgard_pack.h',
-  input : ['gen_pack.py', 'midgard.xml'],
-  output : 'midgard_pack.h',
-  command : [prog_python, '@INPUT@'],
-  capture : true,
-)
-
-idep_pan_packers = declare_dependency(
-  sources : [pan_packers],
-  include_directories : include_directories('.'),
-)
+subdir('genxml')
 
 pixel_format_versions = ['6', '7']
 libpanfrost_pixel_format = []
@@ -54,8 +43,13 @@ foreach ver : ['4', '5', '6', '7']
   libpanfrost_per_arch += static_library(
     'pan-arch-v' + ver,
     [
+      'pan_blend.c',
+      'pan_blitter.c',
+      'pan_cs.c',
       'pan_indirect_dispatch.c',
       'pan_indirect_draw.c',
+      'pan_shader.c',
+      'pan_texture.c',
     ],
     include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw],
     c_args : ['-DPAN_ARCH=' + ver],
@@ -71,22 +65,13 @@ libpanfrost_lib_files = files(
   'pan_attributes.c',
   'pan_bo.c',
   'pan_blend.c',
-  'pan_blitter.c',
   'pan_clear.c',
-  'pan_cs.c',
   'pan_samples.c',
   'pan_tiler.c',
   'pan_texture.c',
-  'pan_shader.c',
-  'pan_scoreboard.c',
   'pan_scratch.c',
   'pan_props.c',
   'pan_util.c',
-)
-
-libpanfrost_decode_files = files(
-  'decode_common.c',
-  'decode.c',
 )
 
 libpanfrost_lib = static_library(
@@ -98,16 +83,6 @@ libpanfrost_lib = static_library(
   dependencies: [dep_libdrm, idep_nir],
   build_by_default : false,
   link_with: [libpanfrost_pixel_format, libpanfrost_per_arch],
-)
-
-libpanfrost_decode = static_library(
-  'panfrost_decode',
-  [libpanfrost_decode_files, pan_packers],
-  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost],
-  dependencies : idep_mesautil,
-  c_args : [no_override_init_args],
-  gnu_symbol_visibility : 'hidden',
-  build_by_default : false,
 )
 
 libpanfrost_dep = declare_dependency(

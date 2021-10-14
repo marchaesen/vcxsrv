@@ -393,6 +393,9 @@ descriptor=[
 { "apis": ["GL", "GLES", "GLES3", "GL_CORE"], "params": [
 # GL_EXT_texture_lod_bias
   [ "MAX_TEXTURE_LOD_BIAS_EXT", "CONTEXT_FLOAT(Const.MaxTextureLodBias), NO_EXTRA" ],
+
+# GL_ARB_timer_query, GL_EXT_disjoint_timer_query
+  [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query_or_EXT_disjoint_timer_query" ],
 ]},
 
 
@@ -965,9 +968,6 @@ descriptor=[
 
 # GL 3.2
   [ "CONTEXT_PROFILE_MASK", "CONTEXT_INT(Const.ProfileMask), extra_version_32" ],
-
-# GL_ARB_timer_query
-  [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query" ],
 
 # GL_ARB_map_buffer_alignment
   [ "MIN_MAP_BUFFER_ALIGNMENT", "CONTEXT_INT(Const.MinMapBufferAlignment), NO_EXTRA" ],

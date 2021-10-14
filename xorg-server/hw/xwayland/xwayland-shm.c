@@ -234,6 +234,15 @@ xwl_shm_create_pixmap(ScreenPtr screen,
         (width == 0 && height == 0) || depth < 15)
         return fbCreatePixmap(screen, width, height, depth, hint);
 
+    stride = PixmapBytePad(width, depth);
+    size = stride * height;
+    /* Size in the protocol is an integer, make sure we don't exceed
+     * INT32_MAX or else the Wayland compositor will raise an error and
+     * kill the Wayland connection!
+     */
+    if (size > INT32_MAX)
+        return NULL;
+
     pixmap = fbCreatePixmap(screen, 0, 0, depth, hint);
     if (!pixmap)
         return NULL;
@@ -242,8 +251,6 @@ xwl_shm_create_pixmap(ScreenPtr screen,
     if (xwl_pixmap == NULL)
         goto err_destroy_pixmap;
 
-    stride = PixmapBytePad(width, depth);
-    size = stride * height;
     xwl_pixmap->buffer = NULL;
     xwl_pixmap->size = size;
     fd = os_create_anonymous_file(size);

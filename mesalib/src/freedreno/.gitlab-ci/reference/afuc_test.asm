@@ -1,5 +1,4 @@
 ; a6xx microcode
-; Disassembling microcode: src/freedreno/.gitlab-ci/reference/afuc_test.fw
 ; Version: 01000001
 
         [01000001]  ; nop

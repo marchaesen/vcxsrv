@@ -24,6 +24,8 @@
 #ifndef REDUMP_H_
 #define REDUMP_H_
 
+#include "util/u_math.h"
+
 enum rd_sect_type {
    RD_NONE,
    RD_TEST,           /* ascii text */
@@ -78,12 +80,6 @@ void rd_write_section(enum rd_sect_type type, const void *buf, int sz)
       if (rd_write_section)                                                    \
          rd_write_section(t, b, s);                                            \
    } while (0)
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-#endif
-#undef ALIGN
-#define ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))

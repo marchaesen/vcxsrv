@@ -420,13 +420,13 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
             if (!is_cat2_float(instr->opc) && !is_cat3_float(instr->opc))
                return false;
          } else if (src->cat1.dst_type == TYPE_U16) {
-            if (is_meta(instr))
-               return true;
             /* Since we set CONSTANT_DEMOTION_ENABLE, a float reference of
              * what was a U16 value read from the constbuf would incorrectly
              * do 32f->16f conversion, when we want to read a 16f value.
              */
             if (is_cat2_float(instr->opc) || is_cat3_float(instr->opc))
+               return false;
+            if (instr->opc == OPC_MOV && type_float(instr->cat1.src_type))
                return false;
          }
 
@@ -467,10 +467,8 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
          if (new_flags & IR3_REG_BNOT)
             iim_val = ~iim_val;
 
-         /* other than category 1 (mov) we can only encode up to 10 bits: */
          if (ir3_valid_flags(instr, n, new_flags) &&
-             ((instr->opc == OPC_MOV) || is_meta(instr) ||
-              !((iim_val & ~0x3ff) && (-iim_val & ~0x3ff)))) {
+             ir3_valid_immediate(instr, iim_val)) {
             new_flags &= ~(IR3_REG_SABS | IR3_REG_SNEG | IR3_REG_BNOT);
             src_reg = ir3_reg_clone(instr->block->shader, src_reg);
             src_reg->flags = new_flags;

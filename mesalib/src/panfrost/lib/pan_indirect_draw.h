@@ -24,7 +24,7 @@
 #ifndef __PAN_INDIRECT_DRAW_SHADERS_H__
 #define __PAN_INDIRECT_DRAW_SHADERS_H__
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 struct pan_device;
 struct pan_scoreboard;

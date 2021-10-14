@@ -246,6 +246,8 @@ static inline void vn_submit_vkDestroySamplerYcbcrConversion(struct vn_instance 
 
 static inline VkResult vn_call_vkCreateSamplerYcbcrConversion(struct vn_instance *vn_instance, VkDevice device, const VkSamplerYcbcrConversionCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSamplerYcbcrConversion* pYcbcrConversion)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateSamplerYcbcrConversion(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pYcbcrConversion, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -266,6 +268,8 @@ static inline void vn_async_vkCreateSamplerYcbcrConversion(struct vn_instance *v
 
 static inline void vn_call_vkDestroySamplerYcbcrConversion(struct vn_instance *vn_instance, VkDevice device, VkSamplerYcbcrConversion ycbcrConversion, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroySamplerYcbcrConversion(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, ycbcrConversion, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

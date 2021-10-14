@@ -445,6 +445,8 @@ static inline void vn_submit_vkResetEvent(struct vn_instance *vn_instance, VkCom
 
 static inline VkResult vn_call_vkCreateEvent(struct vn_instance *vn_instance, VkDevice device, const VkEventCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkEvent* pEvent)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pEvent, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -465,6 +467,8 @@ static inline void vn_async_vkCreateEvent(struct vn_instance *vn_instance, VkDev
 
 static inline void vn_call_vkDestroyEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -482,6 +486,8 @@ static inline void vn_async_vkDestroyEvent(struct vn_instance *vn_instance, VkDe
 
 static inline VkResult vn_call_vkGetEventStatus(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetEventStatus(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -502,6 +508,8 @@ static inline void vn_async_vkGetEventStatus(struct vn_instance *vn_instance, Vk
 
 static inline VkResult vn_call_vkSetEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkSetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -522,6 +530,8 @@ static inline void vn_async_vkSetEvent(struct vn_instance *vn_instance, VkDevice
 
 static inline VkResult vn_call_vkResetEvent(struct vn_instance *vn_instance, VkDevice device, VkEvent event)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkResetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, event, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

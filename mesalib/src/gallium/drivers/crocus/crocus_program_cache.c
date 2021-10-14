@@ -155,10 +155,11 @@ crocus_cache_new_bo(struct crocus_context *ice,
    ice->shaders.cache_bo = new_bo;
    ice->shaders.cache_bo_map = map;
 
-   if (screen->devinfo.ver == 4) {
+   if (screen->devinfo.ver <= 5) {
       /* reemit all shaders on GEN4 only. */
       ice->state.dirty |= CROCUS_DIRTY_CLIP | CROCUS_DIRTY_RASTER |
          CROCUS_DIRTY_WM;
+      ice->state.stage_dirty |= CROCUS_STAGE_DIRTY_VS;
    }
    ice->batches[CROCUS_BATCH_RENDER].state_base_address_emitted = false;
    ice->batches[CROCUS_BATCH_COMPUTE].state_base_address_emitted = false;

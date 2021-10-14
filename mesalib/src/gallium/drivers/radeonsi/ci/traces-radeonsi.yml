@@ -193,7 +193,7 @@ traces:
   - path: gputest/plot3d.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 203c0c186a8eab5fbb8753ec25848b53
+        checksum: a62be186a3e0a33ecbd520edd3873eb1
   - path: gputest/tessmark.trace
     expectations:
       - device: gl-radeonsi-stoney

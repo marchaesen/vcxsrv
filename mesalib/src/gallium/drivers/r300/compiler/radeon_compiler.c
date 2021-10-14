@@ -123,12 +123,12 @@ void rc_calculate_inputs_outputs(struct radeon_compiler * c)
 
 		for (i = 0; i < opcode->NumSrcRegs; ++i) {
 			if (inst->U.I.SrcReg[i].File == RC_FILE_INPUT)
-				c->Program.InputsRead |= 1 << inst->U.I.SrcReg[i].Index;
+				c->Program.InputsRead |= 1U << inst->U.I.SrcReg[i].Index;
 		}
 
 		if (opcode->HasDstReg) {
 			if (inst->U.I.DstReg.File == RC_FILE_OUTPUT)
-				c->Program.OutputsWritten |= 1 << inst->U.I.DstReg.Index;
+				c->Program.OutputsWritten |= 1U << inst->U.I.DstReg.Index;
 		}
 	}
 }
@@ -141,7 +141,7 @@ void rc_move_input(struct radeon_compiler * c, unsigned input, struct rc_src_reg
 {
 	struct rc_instruction * inst;
 
-	c->Program.InputsRead &= ~(1 << input);
+	c->Program.InputsRead &= ~(1U << input);
 
 	for(inst = c->Program.Instructions.Next; inst != &c->Program.Instructions; inst = inst->Next) {
 		const struct rc_opcode_info * opcode = rc_get_opcode_info(inst->U.I.Opcode);
@@ -157,7 +157,7 @@ void rc_move_input(struct radeon_compiler * c, unsigned input, struct rc_src_reg
 					inst->U.I.SrcReg[i].Abs = new_input.Abs;
 				}
 
-				c->Program.InputsRead |= 1 << new_input.Index;
+				c->Program.InputsRead |= 1U << new_input.Index;
 			}
 		}
 	}
@@ -173,7 +173,7 @@ void rc_move_output(struct radeon_compiler * c, unsigned output, unsigned new_ou
 {
 	struct rc_instruction * inst;
 
-	c->Program.OutputsWritten &= ~(1 << output);
+	c->Program.OutputsWritten &= ~(1U << output);
 
 	for(inst = c->Program.Instructions.Next; inst != &c->Program.Instructions; inst = inst->Next) {
 		const struct rc_opcode_info * opcode = rc_get_opcode_info(inst->U.I.Opcode);
@@ -183,7 +183,7 @@ void rc_move_output(struct radeon_compiler * c, unsigned output, unsigned new_ou
 				inst->U.I.DstReg.Index = new_output;
 				inst->U.I.DstReg.WriteMask &= writemask;
 
-				c->Program.OutputsWritten |= 1 << new_output;
+				c->Program.OutputsWritten |= 1U << new_output;
 			}
 		}
 	}
@@ -227,7 +227,7 @@ void rc_copy_output(struct radeon_compiler * c, unsigned output, unsigned dup_ou
 	inst->U.I.SrcReg[0].Index = tempreg;
 	inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZW;
 
-	c->Program.OutputsWritten |= 1 << dup_output;
+	c->Program.OutputsWritten |= 1U << dup_output;
 }
 
 
@@ -243,8 +243,8 @@ void rc_transform_fragment_wpos(struct radeon_compiler * c, unsigned wpos, unsig
 	struct rc_instruction * inst_mad;
 	struct rc_instruction * inst;
 
-	c->Program.InputsRead &= ~(1 << wpos);
-	c->Program.InputsRead |= 1 << new_input;
+	c->Program.InputsRead &= ~(1U << wpos);
+	c->Program.InputsRead |= 1U << new_input;
 
 	/* perspective divide */
 	inst_rcp = rc_insert_new_instruction(c, &c->Program.Instructions);

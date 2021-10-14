@@ -317,6 +317,20 @@ dri3_update_max_num_back(struct loader_dri3_drawable *draw)
 void
 loader_dri3_set_swap_interval(struct loader_dri3_drawable *draw, int interval)
 {
+   /* Wait all previous swap done before changing swap interval.
+    *
+    * This is for preventing swap out of order in the following cases:
+    *   1. Change from sync swap mode (>0) to async mode (=0), so async swap occurs
+    *      before previous pending sync swap.
+    *   2. Change from value A to B and A > B, so the target_msc for the previous
+    *      pending swap may be bigger than newer swap.
+    *
+    * PS. changing from value A to B and A < B won't cause swap out of order but
+    * may still gets wrong target_msc value at the beginning.
+    */
+   if (draw->swap_interval != interval)
+      loader_dri3_swapbuffer_barrier(draw);
+
    draw->swap_interval = interval;
 }
 
@@ -373,6 +387,7 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
                           __DRIscreen *dri_screen,
                           bool is_different_gpu,
                           bool multiplanes_available,
+                          bool prefer_back_buffer_reuse,
                           const __DRIconfig *dri_config,
                           struct loader_dri3_extensions *ext,
                           const struct loader_dri3_vtable *vtable,
@@ -392,6 +407,7 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
    draw->dri_screen = dri_screen;
    draw->is_different_gpu = is_different_gpu;
    draw->multiplanes_available = multiplanes_available;
+   draw->prefer_back_buffer_reuse = prefer_back_buffer_reuse;
 
    draw->have_back = 0;
    draw->have_fake_front = 0;
@@ -677,7 +693,7 @@ loader_dri3_wait_for_sbc(struct loader_dri3_drawable *draw,
  * wait for a present idle notify event from the X server
  */
 static int
-dri3_find_back(struct loader_dri3_drawable *draw)
+dri3_find_back(struct loader_dri3_drawable *draw, bool prefer_a_different)
 {
    int b;
    int num_to_consider;
@@ -699,12 +715,23 @@ dri3_find_back(struct loader_dri3_drawable *draw)
       max_num = draw->max_num_back;
    }
 
+   /* In a DRI_PRIME situation, if prefer_a_different is true, we first try
+    * to find an idle buffer that is not the last used one.
+    * This is useful if we receive a XCB_PRESENT_EVENT_IDLE_NOTIFY event
+    * for a pixmap but it's not actually idle (eg: the DRI_PRIME blit is
+    * still in progress).
+    * Unigine Superposition hits this and this allows to use 2 back buffers
+    * instead of reusing the same one all the time, causing the next frame
+    * to wait for the copy to finish.
+    */
+   int current_back_id = draw->cur_back;
    for (;;) {
       for (b = 0; b < num_to_consider; b++) {
          int id = LOADER_DRI3_BACK_ID((b + draw->cur_back) % draw->cur_num_back);
          struct loader_dri3_buffer *buffer = draw->buffers[id];
 
-         if (!buffer || !buffer->busy) {
+         if (!buffer || (!buffer->busy &&
+                         (!prefer_a_different || id != current_back_id))) {
             draw->cur_back = id;
             mtx_unlock(&draw->mtx);
             return id;
@@ -713,6 +740,8 @@ dri3_find_back(struct loader_dri3_drawable *draw)
 
       if (num_to_consider < max_num) {
          num_to_consider = ++draw->cur_num_back;
+      } else if (prefer_a_different) {
+         prefer_a_different = false;
       } else if (!dri3_wait_for_event_locked(draw, NULL)) {
          mtx_unlock(&draw->mtx);
          return -1;
@@ -1919,7 +1948,7 @@ dri3_get_buffer(__DRIdrawable *driDrawable,
    if (buffer_type == loader_dri3_buffer_back) {
       draw->back_format = format;
 
-      buf_id = dri3_find_back(draw);
+      buf_id = dri3_find_back(draw, !draw->prefer_back_buffer_reuse);
 
       if (buf_id < 0)
          return NULL;
@@ -2244,7 +2273,7 @@ dri3_find_back_alloc(struct loader_dri3_drawable *draw)
    struct loader_dri3_buffer *back;
    int id;
 
-   id = dri3_find_back(draw);
+   id = dri3_find_back(draw, false);
    if (id < 0)
       return NULL;
 

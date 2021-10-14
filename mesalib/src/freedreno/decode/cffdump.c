@@ -106,6 +106,7 @@ print_usage(const char *name)
            "\t                   which can be useful when looking at state that does\n"
            "\t                   not change per tile\n"
            "\t--not-once       - decode cmdstream for each IB (default)\n"
+           "\t--unit-test      - make reproducible output for unit testing\n"
            "\t-h, --help       - show this message\n"
            , name);
    /* clang-format on */
@@ -128,6 +129,7 @@ static const struct option opts[] = {
       { "query-compare",   no_argument, &options.query_compare, 1 },
       { "once",            no_argument, &options.once,          1 },
       { "not-once",        no_argument, &options.once,          0 },
+      { "unit-test",       no_argument, &options.unit_test,     1 },
 
       /* Long opts with short alias: */
       { "verbose",   no_argument,       0, 'v' },
@@ -263,7 +265,8 @@ handle_file(const char *filename, int start, int end, int draw)
 
    cffdec_init(&options);
 
-   printf("Reading %s...\n", filename);
+   if (!options.unit_test)
+      printf("Reading %s...\n", filename);
 
    script_start_cmdstream(filename);
 

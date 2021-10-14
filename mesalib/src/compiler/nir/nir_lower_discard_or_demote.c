@@ -164,7 +164,10 @@ nir_lower_discard_or_demote(nir_shader *shader,
        */
       progress = nir_shader_instructions_pass(shader,
                                               nir_lower_discard_to_demote_instr,
-                                              nir_metadata_all,
+                                              nir_metadata_block_index |
+                                              nir_metadata_dominance |
+                                              nir_metadata_live_ssa_defs |
+                                              nir_metadata_instr_index,
                                               NULL);
       shader->info.fs.uses_demote = true;
    } else if (!shader->info.fs.needs_quad_helper_invocations &&
@@ -173,7 +176,8 @@ nir_lower_discard_or_demote(nir_shader *shader,
       /* If we don't need any helper invocations, convert demote to discard. */
       progress = nir_shader_instructions_pass(shader,
                                               nir_lower_demote_to_discard_instr,
-                                              nir_metadata_all,
+                                              nir_metadata_block_index |
+                                              nir_metadata_dominance,
                                               NULL);
       shader->info.fs.uses_demote = false;
    } else if (shader->info.fs.uses_demote &&
@@ -184,7 +188,8 @@ nir_lower_discard_or_demote(nir_shader *shader,
       nir_ssa_def *is_helper = NULL;
       progress = nir_shader_instructions_pass(shader,
                                               nir_lower_load_helper_to_is_helper,
-                                              nir_metadata_all,
+                                              nir_metadata_block_index |
+                                              nir_metadata_dominance,
                                               &is_helper);
       BITSET_CLEAR(shader->info.system_values_read,
                    nir_system_value_from_intrinsic(nir_intrinsic_load_helper_invocation));

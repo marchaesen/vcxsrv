@@ -50,7 +50,6 @@ libv3dv_files = files(
   'v3dv_query.c',
   'v3dv_queue.c',
   'v3dv_uniforms.c',
-  'v3dv_util.c',
   'v3dv_wsi.c',
 )
 
@@ -86,27 +85,16 @@ v3dv_deps = [
   idep_nir,
   idep_nir_headers,
   idep_vulkan_util,
+  idep_vulkan_wsi,
 ]
 
 if with_platform_x11
   v3dv_deps += dep_xcb_dri3
-  v3dv_flags += [
-    '-DVK_USE_PLATFORM_XCB_KHR',
-    '-DVK_USE_PLATFORM_XLIB_KHR',
-  ]
-  libv3dv_files += files('v3dv_wsi_x11.c')
 endif
 
 if with_platform_wayland
   v3dv_deps += [dep_wayland_client, dep_wl_protocols]
-  v3dv_flags += '-DVK_USE_PLATFORM_WAYLAND_KHR'
-  libv3dv_files += files('v3dv_wsi_wayland.c')
   libv3dv_files += [wayland_drm_client_protocol_h, wayland_drm_protocol_c]
-endif
-
-if system_has_kms_drm and not with_platform_android
- v3dv_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
- libv3dv_files += files('v3dv_wsi_display.c')
 endif
 
 per_version_libs = []
@@ -116,7 +104,7 @@ foreach ver : v3d_versions
     [files_per_version, v3d_xml_pack, v3dv_entrypoints[0]],
     include_directories : [
       inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom,
-      inc_compiler, inc_util, inc_vulkan_wsi,
+      inc_compiler, inc_util,
     ],
     c_args : [v3dv_flags, '-DV3D_VERSION=' + ver],
     gnu_symbol_visibility : 'hidden',
@@ -128,12 +116,11 @@ libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
   [libv3dv_files, v3dv_entrypoints, sha1_h],
   include_directories : [
-    inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_compiler, inc_util, inc_vulkan_wsi,
+    inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_compiler, inc_util,
   ],
   link_with : [
     libbroadcom_cle,
     libbroadcom_v3d,
-    libvulkan_wsi,
     per_version_libs,
   ],
   dependencies : v3dv_deps,

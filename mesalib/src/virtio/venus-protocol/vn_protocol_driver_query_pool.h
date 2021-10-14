@@ -417,6 +417,8 @@ static inline void vn_submit_vkResetQueryPool(struct vn_instance *vn_instance, V
 
 static inline VkResult vn_call_vkCreateQueryPool(struct vn_instance *vn_instance, VkDevice device, const VkQueryPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkQueryPool* pQueryPool)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateQueryPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pQueryPool, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -437,6 +439,8 @@ static inline void vn_async_vkCreateQueryPool(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkDestroyQueryPool(struct vn_instance *vn_instance, VkDevice device, VkQueryPool queryPool, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyQueryPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, queryPool, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -454,6 +458,8 @@ static inline void vn_async_vkDestroyQueryPool(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkGetQueryPoolResults(struct vn_instance *vn_instance, VkDevice device, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, size_t dataSize, void* pData, VkDeviceSize stride, VkQueryResultFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetQueryPoolResults(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, queryPool, firstQuery, queryCount, dataSize, pData, stride, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -474,6 +480,8 @@ static inline void vn_async_vkGetQueryPoolResults(struct vn_instance *vn_instanc
 
 static inline void vn_call_vkResetQueryPool(struct vn_instance *vn_instance, VkDevice device, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkResetQueryPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, queryPool, firstQuery, queryCount, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

@@ -108,8 +108,7 @@ nir_instr_worklist_create() {
    if (!wl)
       return NULL;
 
-   if (!u_vector_init(&wl->instr_vec, sizeof(struct nir_instr *),
-                      sizeof(struct nir_instr *) * 8)) {
+   if (!u_vector_init_pow2(&wl->instr_vec, 8, sizeof(struct nir_instr *))) {
       free(wl);
       return NULL;
    }

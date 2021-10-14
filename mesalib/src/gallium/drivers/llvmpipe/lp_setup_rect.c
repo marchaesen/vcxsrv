@@ -173,8 +173,10 @@ lp_setup_is_blit(const struct lp_setup_context *setup,
        * texture filtering.
        */
 
-      assert(variant->key.samplers[0].sampler_state.min_img_filter == PIPE_TEX_FILTER_NEAREST);
-      assert(variant->key.samplers[0].sampler_state.mag_img_filter == PIPE_TEX_FILTER_NEAREST);
+      ASSERTED struct lp_sampler_static_state *samp0 = lp_fs_variant_key_sampler_idx(&variant->key, 0);
+      assert(samp0);
+      assert(samp0->sampler_state.min_img_filter == PIPE_TEX_FILTER_NEAREST);
+      assert(samp0->sampler_state.mag_img_filter == PIPE_TEX_FILTER_NEAREST);
 
       /*
        * Check for 1:1 match of texels to dest pixels

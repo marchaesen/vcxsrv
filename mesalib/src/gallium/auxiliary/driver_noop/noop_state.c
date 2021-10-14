@@ -38,6 +38,15 @@ static void noop_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 {
 }
 
+static void noop_draw_vertex_state(struct pipe_context *ctx,
+                                   struct pipe_vertex_state *state,
+                                   uint32_t partial_velem_mask,
+                                   struct pipe_draw_vertex_state_info info,
+                                   const struct pipe_draw_start_count_bias *draws,
+                                   unsigned num_draws)
+{
+}
+
 static void noop_launch_grid(struct pipe_context *ctx,
                              const struct pipe_grid_info *info)
 {
@@ -459,6 +468,7 @@ void noop_init_state_functions(struct pipe_context *ctx)
    ctx->sampler_view_destroy = noop_sampler_view_destroy;
    ctx->surface_destroy = noop_surface_destroy;
    ctx->draw_vbo = noop_draw_vbo;
+   ctx->draw_vertex_state = noop_draw_vertex_state;
    ctx->launch_grid = noop_launch_grid;
    ctx->create_stream_output_target = noop_create_stream_output_target;
    ctx->stream_output_target_destroy = noop_stream_output_target_destroy;

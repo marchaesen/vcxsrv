@@ -1415,30 +1415,6 @@ vir_TLB_COLOR_READ(struct v3d_compile *c)
         return vir_emit_def(c, ldtlb);
 }
 
-/*
-static inline struct qreg
-vir_LOAD_IMM(struct v3d_compile *c, uint32_t val)
-{
-        return vir_emit_def(c, vir_inst(QOP_LOAD_IMM, c->undef,
-                                        vir_reg(QFILE_LOAD_IMM, val), c->undef));
-}
-
-static inline struct qreg
-vir_LOAD_IMM_U2(struct v3d_compile *c, uint32_t val)
-{
-        return vir_emit_def(c, vir_inst(QOP_LOAD_IMM_U2, c->undef,
-                                        vir_reg(QFILE_LOAD_IMM, val),
-                                        c->undef));
-}
-static inline struct qreg
-vir_LOAD_IMM_I2(struct v3d_compile *c, uint32_t val)
-{
-        return vir_emit_def(c, vir_inst(QOP_LOAD_IMM_I2, c->undef,
-                                        vir_reg(QFILE_LOAD_IMM, val),
-                                        c->undef));
-}
-*/
-
 static inline struct qinst *
 vir_BRANCH(struct v3d_compile *c, enum v3d_qpu_branch_cond cond)
 {

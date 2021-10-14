@@ -232,7 +232,7 @@ xkb_symbols "ug" {
 partial alphanumeric_keys
 xkb_symbols "altgr-pinyin" {
    include "us(basic)"
-   name[Group1]= "Hanyu Pinyin (with AltGr dead keys)";
+   name[Group1]= "Hanyu Pinyin Letters (with AltGr dead keys)";
 
    key <TLDE> { [      grave,	asciitilde,  periodcentered,dead_abovering ]	};
    key <AE01> { [	   1,	exclam,		dead_macron,	    macron ]	};

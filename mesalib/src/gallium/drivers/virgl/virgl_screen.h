@@ -35,6 +35,8 @@ enum virgl_debug_flags {
    VIRGL_DEBUG_NO_BGRA_DEST_SWIZZLE = 1 << 3,
    VIRGL_DEBUG_SYNC                 = 1 << 4,
    VIRGL_DEBUG_XFER                 = 1 << 5,
+   VIRGL_DEBUG_NO_COHERENT          = 1 << 6,
+   VIRGL_DEBUG_NIR                  = 1 << 7,
 };
 
 extern int virgl_debug;
@@ -56,6 +58,7 @@ struct virgl_screen {
    uint32_t sub_ctx_id;
    bool tweak_gles_emulate_bgra;
    bool tweak_gles_apply_bgra_dest_swizzle;
+   bool no_coherent;
    int32_t tweak_gles_tf3_value;
 
    struct disk_cache *disk_cache;

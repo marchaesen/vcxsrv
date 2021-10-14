@@ -55,33 +55,3 @@ panvk_logi_v(const char *format, va_list va)
    vfprintf(stderr, format, va);
    fprintf(stderr, "\n");
 }
-
-VkResult
-__vk_errorf(struct panvk_instance *instance,
-            VkResult error,
-            const char *file,
-            int line,
-            const char *format,
-            ...)
-{
-   va_list ap;
-   char buffer[256];
-
-   const char *error_str = vk_Result_to_str(error);
-
-#ifndef DEBUG
-   return error;
-#endif
-
-   if (format) {
-      va_start(ap, format);
-      vsnprintf(buffer, sizeof(buffer), format, ap);
-      va_end(ap);
-
-      fprintf(stderr, "%s:%d: %s (%s)\n", file, line, buffer, error_str);
-   } else {
-      fprintf(stderr, "%s:%d: %s\n", file, line, error_str);
-   }
-
-   return error;
-}

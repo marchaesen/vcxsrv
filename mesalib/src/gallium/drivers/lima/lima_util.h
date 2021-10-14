@@ -37,6 +37,7 @@ struct lima_dump *lima_dump_create(void);
 struct lima_dump *lima_dump_next(struct lima_dump *dump);
 void lima_dump_free(struct lima_dump *dump);
 
+void lima_dump_shader(struct lima_dump *dump, void *data, int size, bool is_frag);
 void lima_dump_vs_command_stream_print(struct lima_dump *dump, void *data,
                                        int size, uint32_t start);
 void lima_dump_plbu_command_stream_print(struct lima_dump *dump, void *data,

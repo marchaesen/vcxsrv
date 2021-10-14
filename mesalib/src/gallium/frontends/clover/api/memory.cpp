@@ -551,7 +551,7 @@ clSVMAlloc(cl_context d_ctx,
    CLOVER_NOT_SUPPORTED_UNTIL("2.0");
    return nullptr;
 
-} catch (error &e) {
+} catch (error &) {
    return nullptr;
 }
 
@@ -572,5 +572,5 @@ clSVMFree(cl_context d_ctx,
 
    CLOVER_NOT_SUPPORTED_UNTIL("2.0");
 
-} catch (error &e) {
+} catch (error &) {
 }

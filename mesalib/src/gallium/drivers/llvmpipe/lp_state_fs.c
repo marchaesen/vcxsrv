@@ -452,10 +452,13 @@ static LLVMValueRef fs_interp(const struct lp_build_fs_iface *iface,
 }
 
 static void fs_fb_fetch(const struct lp_build_fs_iface *iface,
-                                struct lp_build_context *bld,
-                                unsigned cbuf,
-                                LLVMValueRef result[4])
+                        struct lp_build_context *bld,
+                        int location,
+                        LLVMValueRef result[4])
 {
+   assert(location >= FRAG_RESULT_DATA0 && location <= FRAG_RESULT_DATA7);
+   const int cbuf = location - FRAG_RESULT_DATA0;
+
    struct lp_build_fs_llvm_iface *fs_iface = (struct lp_build_fs_llvm_iface *)iface;
    struct gallivm_state *gallivm = bld->gallivm;
    LLVMBuilderRef builder = gallivm->builder;
@@ -1709,6 +1712,15 @@ scale_bits(struct gallivm_state *gallivm,
       int delta_bits = src_bits - dst_bits;
 
       if (delta_bits <= dst_bits) {
+
+         if (dst_bits == 4) {
+            struct lp_type flt_type = lp_type_float_vec(32, src_type.length * 32);
+
+            result = lp_build_unsigned_norm_to_float(gallivm, src_bits, flt_type, src);
+            result = lp_build_clamped_float_to_unsigned_norm(gallivm, flt_type, dst_bits, result);
+            return result;
+         }
+
          /*
           * Approximate the rescaling with a single shift.
           *
@@ -3158,7 +3170,7 @@ generate_fragment(struct llvmpipe_context *lp,
    }
 
    /* code generated texture sampling */
-   sampler = lp_llvm_sampler_soa_create(key->samplers, key->nr_samplers);
+   sampler = lp_llvm_sampler_soa_create(lp_fs_variant_key_samplers(key), key->nr_samplers);
    image = lp_llvm_image_soa_create(lp_fs_variant_key_images(key), key->nr_images);
 
    num_fs = 16 / fs_type.length; /* number of loops per 4x4 stamp */
@@ -3432,7 +3444,8 @@ dump_fs_variant_key(struct lp_fragment_shader_variant_key *key)
       debug_printf("blend.alpha_to_coverage is enabled\n");
    }
    for (i = 0; i < key->nr_samplers; ++i) {
-      const struct lp_static_sampler_state *sampler = &key->samplers[i].sampler_state;
+      const struct lp_sampler_static_state *samplers = lp_fs_variant_key_samplers(key);
+      const struct lp_static_sampler_state *sampler = &samplers[i].sampler_state;
       debug_printf("sampler[%u] = \n", i);
       debug_printf("  .wrap = %s %s %s\n",
                    util_str_tex_wrap(sampler->wrap_s, TRUE),
@@ -3455,7 +3468,8 @@ dump_fs_variant_key(struct lp_fragment_shader_variant_key *key)
       debug_printf("  .aniso = %u\n", sampler->aniso);
    }
    for (i = 0; i < key->nr_sampler_views; ++i) {
-      const struct lp_static_texture_state *texture = &key->samplers[i].texture_state;
+      const struct lp_sampler_static_state *samplers = lp_fs_variant_key_samplers(key);
+      const struct lp_static_texture_state *texture = &samplers[i].texture_state;
       debug_printf("texture[%u] = \n", i);
       debug_printf("  .format = %s\n",
                    util_format_name(texture->format));
@@ -3645,15 +3659,16 @@ generate_variant(struct llvmpipe_context *lp,
         shader->kind == LP_FS_KIND_BLIT_RGB1)) {
       unsigned target, min_img_filter, mag_img_filter, min_mip_filter;
       enum pipe_format texture_format;
-
-      texture_format = key->samplers[0].texture_state.format;
-      target = key->samplers[0].texture_state.target;
-      min_img_filter = key->samplers[0].sampler_state.min_img_filter;
-      mag_img_filter = key->samplers[0].sampler_state.mag_img_filter;
-      if (key->samplers[0].texture_state.level_zero_only) {
+      struct lp_sampler_static_state *samp0 = lp_fs_variant_key_sampler_idx(key, 0);
+      assert(samp0);
+      texture_format = samp0->texture_state.format;
+      target = samp0->texture_state.target;
+      min_img_filter = samp0->sampler_state.min_img_filter;
+      mag_img_filter = samp0->sampler_state.mag_img_filter;
+      if (samp0->texture_state.level_zero_only) {
          min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
       } else {
-         min_mip_filter = key->samplers[0].sampler_state.min_mip_filter;
+         min_mip_filter = samp0->sampler_state.min_mip_filter;
       }
 
       if (target == PIPE_TEXTURE_2D &&
@@ -4138,7 +4153,7 @@ make_variant_key(struct llvmpipe_context *lp,
 
    key = (struct lp_fragment_shader_variant_key *)store;
 
-   memset(key, 0, offsetof(struct lp_fragment_shader_variant_key, samplers[1]));
+   memset(key, 0, sizeof(*key));
 
    if (lp->framebuffer.zsbuf) {
       enum pipe_format zsbuf_format = lp->framebuffer.zsbuf->format;
@@ -4283,7 +4298,7 @@ make_variant_key(struct llvmpipe_context *lp,
 
    struct lp_sampler_static_state *fs_sampler;
 
-   fs_sampler = key->samplers;
+   fs_sampler = lp_fs_variant_key_samplers(key);
 
    memset(fs_sampler, 0, MAX2(key->nr_samplers, key->nr_sampler_views) * sizeof *fs_sampler);
 
@@ -4334,8 +4349,10 @@ make_variant_key(struct llvmpipe_context *lp,
    }
 
    if (shader->kind == LP_FS_KIND_AERO_MINIFICATION) {
-      key->samplers[0].sampler_state.min_img_filter = PIPE_TEX_FILTER_NEAREST;
-      key->samplers[0].sampler_state.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
+      struct lp_sampler_static_state *samp0 = lp_fs_variant_key_sampler_idx(key, 0);
+      assert(samp0);
+      samp0->sampler_state.min_img_filter = PIPE_TEX_FILTER_NEAREST;
+      samp0->sampler_state.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
    }
 
    return key;

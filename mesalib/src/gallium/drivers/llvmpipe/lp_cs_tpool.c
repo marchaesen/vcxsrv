@@ -59,8 +59,10 @@ lp_cs_tpool_worker(void *data)
       iter_per_thread = task->iter_per_thread;
 
       if (task->iter_remainder &&
-          task->iter_start + task->iter_remainder == task->iter_total)
-         iter_per_thread = task->iter_remainder;
+          task->iter_start + task->iter_remainder == task->iter_total) {
+         task->iter_remainder--;
+         iter_per_thread = 1;
+      }
 
       task->iter_start += iter_per_thread;
 

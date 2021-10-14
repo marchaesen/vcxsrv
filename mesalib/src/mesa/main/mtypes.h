@@ -3295,6 +3295,9 @@ struct gl_shader_compiler_options
    /** (driconf) Force gl_Position to be considered invariant */
    GLboolean PositionAlwaysInvariant;
 
+   /** (driconf) Force gl_Position to be considered precise */
+   GLboolean PositionAlwaysPrecise;
+
    const struct nir_shader_compiler_options *NirOptions;
 };
 
@@ -3439,7 +3442,7 @@ struct gl_shared_state
    /* glCompileShaderInclude expects ShaderIncludes not to change while it is
     * in progress.
     */
-   mtx_t ShaderIncludeMutex;
+   simple_mtx_t ShaderIncludeMutex;
 
    /**
     * Some context in this share group was affected by a GPU reset

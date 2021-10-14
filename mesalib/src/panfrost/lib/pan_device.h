@@ -41,7 +41,7 @@
 #include "pan_pool.h"
 #include "pan_util.h"
 
-#include <gen_macros.h>
+#include <genxml/gen_macros.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -93,6 +93,9 @@ enum pan_indirect_draw_flags {
         PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_1B_INDEX = PAN_INDIRECT_DRAW_LAST_FLAG << 1,
         PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_2B_INDEX,
         PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_4B_INDEX,
+        PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_1B_INDEX_PRIM_RESTART,
+        PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_2B_INDEX_PRIM_RESTART,
+        PAN_INDIRECT_DRAW_MIN_MAX_SEARCH_3B_INDEX_PRIM_RESTART,
         PAN_INDIRECT_DRAW_NUM_SHADERS,
 };
 

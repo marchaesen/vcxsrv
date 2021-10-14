@@ -42,6 +42,8 @@ vk_commands_gen_depend_files = [
   files('vk_dispatch_table_gen.py'),
   vk_dispatch_table_gen_depend_files,
 ]
+vk_physical_device_features_gen_depend_files = [
+]
 
 vk_entrypoints_gen = files('vk_entrypoints_gen.py')
 vk_extensions_gen = files('vk_extensions_gen.py')
@@ -52,8 +54,12 @@ files_vulkan_util = files(
   'vk_alloc.c',
   'vk_alloc.h',
   'vk_cmd_copy.c',
+  'vk_command_buffer.c',
+  'vk_command_buffer.h',
   'vk_debug_report.c',
   'vk_debug_report.h',
+  'vk_debug_utils.c',
+  'vk_debug_utils.h',
   'vk_deferred_operation.c',
   'vk_deferred_operation.h',
   'vk_descriptors.c',
@@ -65,13 +71,18 @@ files_vulkan_util = files(
   'vk_image.h',
   'vk_instance.c',
   'vk_instance.h',
+  'vk_log.c',
+  'vk_log.h',
   'vk_object.c',
   'vk_object.h',
   'vk_physical_device.c',
   'vk_physical_device.h',
+  'vk_queue.c',
+  'vk_queue.h',
   'vk_render_pass.c',
   'vk_shader_module.c',
   'vk_shader_module.h',
+  'vk_synchronization2.c',
   'vk_util.c',
   'vk_util.h',
 )
@@ -101,7 +112,7 @@ vk_dispatch_table = custom_target(
 vk_enum_to_str = custom_target(
   'vk_enum_to_str',
   input : ['gen_enum_to_str.py', vk_api_xml],
-  output : ['vk_enum_to_str.c', 'vk_enum_to_str.h'],
+  output : ['vk_enum_to_str.c', 'vk_enum_to_str.h', 'vk_enum_defines.h'],
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@',
     '--outdir', meson.current_build_dir()
@@ -130,10 +141,21 @@ vk_cmd_queue = custom_target(
   depend_files : vk_cmd_queue_gen_depend_files,
 )
 
+vk_physical_device_features = custom_target(
+  'vk_physical_device_features',
+  input : ['vk_physical_device_features.py', vk_api_xml],
+  output : ['vk_physical_device_features.c'],
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--out-c', '@OUTPUT0@'
+  ],
+  depend_files : vk_physical_device_features_gen_depend_files,
+)
+
 libvulkan_util = static_library(
   'vulkan_util',
   [files_vulkan_util, vk_common_entrypoints, vk_dispatch_table,
-   vk_enum_to_str, vk_extensions, vk_cmd_queue],
+   vk_enum_to_str, vk_extensions, vk_cmd_queue, vk_physical_device_features],
   include_directories : [inc_include, inc_src, inc_gallium],
   dependencies : [vulkan_wsi_deps, idep_mesautil, idep_nir_headers],
   # For glsl_type_singleton
@@ -150,7 +172,7 @@ idep_vulkan_util_headers = declare_dependency(
 
 # This is likely a bug in the Meson VS backend, as MSVC with ninja works fine.
 # See this discussion here:
-# https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/10506 
+# https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/10506
 if get_option('backend').startswith('vs')
   idep_vulkan_util = declare_dependency(
     link_with : libvulkan_util,

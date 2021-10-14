@@ -88,11 +88,11 @@ static const struct debug_named_value radeonsi_debug_options[] = {
    {"check_vm", DBG(CHECK_VM), "Check VM faults and dump debug info."},
    {"reserve_vmid", DBG(RESERVE_VMID), "Force VMID reservation per context."},
    {"shadowregs", DBG(SHADOW_REGS), "Enable CP register shadowing."},
+   {"nofastdlist", DBG(NO_FAST_DISPLAY_LIST), "Disable fast display lists"},
 
    /* 3D engine options: */
    {"nogfx", DBG(NO_GFX), "Disable graphics. Only multimedia compute paths can be used."},
    {"nongg", DBG(NO_NGG), "Disable NGG and use the legacy pipeline."},
-   {"nofastlaunch", DBG(NO_FAST_LAUNCH), "Disable NGG GS fast launch."},
    {"nggc", DBG(ALWAYS_NGG_CULLING_ALL), "Always use NGG culling even when it can hurt."},
    {"nggctess", DBG(ALWAYS_NGG_CULLING_TESS), "Always use NGG culling for tessellation."},
    {"nonggc", DBG(NO_NGG_CULLING), "Disable NGG culling."},
@@ -111,6 +111,7 @@ static const struct debug_named_value radeonsi_debug_options[] = {
    {"dccstore", DBG(DCC_STORE), "Enable DCC stores"},
    {"nodccmsaa", DBG(NO_DCC_MSAA), "Disable DCC for MSAA"},
    {"nofmask", DBG(NO_FMASK), "Disable MSAA compression"},
+   {"nodma", DBG(NO_DMA), "Disable SDMA-copy for DRI_PRIME"},
 
    {"tmz", DBG(TMZ), "Force allocation of scanout/depth/stencil buffer as encrypted"},
    {"sqtt", DBG(SQTT), "Enable SQTT"},
@@ -149,6 +150,20 @@ void si_init_compiler(struct si_screen *sscreen, struct ac_llvm_compiler *compil
 
    if (compiler->low_opt_tm)
       compiler->low_opt_passes = ac_create_llvm_passes(compiler->low_opt_tm);
+}
+
+void si_init_aux_async_compute_ctx(struct si_screen *sscreen)
+{
+   assert(!sscreen->async_compute_context);
+   sscreen->async_compute_context = si_create_context(
+      &sscreen->b,
+      SI_CONTEXT_FLAG_AUX |
+         (sscreen->options.aux_debug ? PIPE_CONTEXT_DEBUG : 0) |
+         PIPE_CONTEXT_COMPUTE_ONLY);
+
+   /* Limit the numbers of waves allocated for this context. */
+   if (sscreen->async_compute_context)
+      ((struct si_context*)sscreen->async_compute_context)->cs_max_waves_per_sh = 2;
 }
 
 static void si_destroy_compiler(struct ac_llvm_compiler *compiler)
@@ -289,6 +304,10 @@ static void si_destroy_context(struct pipe_context *context)
    sctx->ws->cs_destroy(&sctx->gfx_cs);
    if (sctx->ctx)
       sctx->ws->ctx_destroy(sctx->ctx);
+   if (sctx->sdma_cs) {
+      sctx->ws->cs_destroy(sctx->sdma_cs);
+      free(sctx->sdma_cs);
+   }
 
    if (sctx->dirty_implicit_resources)
       _mesa_hash_table_destroy(sctx->dirty_implicit_resources,
@@ -778,6 +797,13 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
          sscreen->aux_context->set_log_context(sscreen->aux_context, aux_log);
       }
       simple_mtx_unlock(&sscreen->aux_context_lock);
+
+      simple_mtx_lock(&sscreen->async_compute_context_lock);
+      if (status != PIPE_NO_RESET && sscreen->async_compute_context) {
+         sscreen->async_compute_context->destroy(sscreen->async_compute_context);
+         sscreen->async_compute_context = NULL;
+      }
+      simple_mtx_unlock(&sscreen->async_compute_context_lock);
    }
 
    sctx->initial_gfx_cs_size = sctx->gfx_cs.current.cdw;
@@ -835,9 +861,12 @@ static struct pipe_context *si_pipe_create_context(struct pipe_screen *screen, v
    struct pipe_context *tc =
       threaded_context_create(ctx, &sscreen->pool_transfers,
                               si_replace_buffer_storage,
-                              sscreen->info.is_amdgpu ? si_create_fence : NULL,
-                              si_is_resource_busy,
-                              true,
+                              &(struct threaded_context_options){
+                                 .create_fence = sscreen->info.is_amdgpu ?
+                                       si_create_fence : NULL,
+                                 .is_resource_busy = si_is_resource_busy,
+                                 .driver_calls_flush_notify = true,
+                              },
                               &((struct si_context *)ctx)->tc);
 
    if (tc && tc != ctx)
@@ -881,6 +910,11 @@ static void si_destroy_screen(struct pipe_screen *pscreen)
        sscreen->aux_context->destroy(sscreen->aux_context);
    }
 
+   simple_mtx_destroy(&sscreen->async_compute_context_lock);
+   if (sscreen->async_compute_context) {
+      sscreen->async_compute_context->destroy(sscreen->async_compute_context);
+   }
+
    util_queue_destroy(&sscreen->shader_compiler_queue);
    util_queue_destroy(&sscreen->shader_compiler_queue_low_priority);
 
@@ -916,6 +950,7 @@ static void si_destroy_screen(struct pipe_screen *pscreen)
    disk_cache_destroy(sscreen->disk_shader_cache);
    util_live_shader_cache_deinit(&sscreen->live_shader_cache);
    util_idalloc_mt_fini(&sscreen->buffer_ids);
+   util_vertex_state_cache_deinit(&sscreen->vertex_state_cache);
 
    sscreen->ws->destroy(sscreen->ws);
    FREE(sscreen);
@@ -1112,6 +1147,7 @@ static struct pipe_screen *radeonsi_screen_create_impl(struct radeon_winsys *ws,
    }
 
    (void)simple_mtx_init(&sscreen->aux_context_lock, mtx_plain);
+   (void)simple_mtx_init(&sscreen->async_compute_context_lock, mtx_plain);
    (void)simple_mtx_init(&sscreen->gpu_load_mutex, mtx_plain);
 
    si_init_gs_info(sscreen);

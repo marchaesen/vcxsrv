@@ -65,7 +65,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
    set_layout = vk_zalloc2(&device->vk.alloc, pAllocator, size, 8,
                            VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!set_layout)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &set_layout->base,
                        VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT);
@@ -86,7 +86,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
    if (result != VK_SUCCESS) {
       vk_object_base_finish(&set_layout->base);
       vk_free2(&device->vk.alloc, pAllocator, set_layout);
-      return vk_error(device->instance, result);
+      return vk_error(device, result);
    }
 
    uint32_t dynamic_offset_count = 0;
@@ -218,7 +218,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreatePipelineLayout(
    layout = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*layout), 8,
                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (layout == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &layout->base,
                        VK_OBJECT_TYPE_PIPELINE_LAYOUT);
@@ -271,7 +271,7 @@ lvp_descriptor_set_create(struct lvp_device *device,
    set = vk_alloc(&device->vk.alloc /* XXX: Use the pool */, size, 8,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!set)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    /* A descriptor set may not be 100% filled. Clear the set so we can can
     * later detect holes in it.
@@ -489,7 +489,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorPool(
    pool = vk_zalloc2(&device->vk.alloc, pAllocator, size, 8,
                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!pool)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &pool->base,
                        VK_OBJECT_TYPE_DESCRIPTOR_POOL);
@@ -559,7 +559,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorUpdateTemplate(VkDevice _devi
 
    templ = vk_alloc2(&device->vk.alloc, pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!templ)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &templ->base,
                        VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE);

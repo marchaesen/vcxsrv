@@ -39,9 +39,6 @@ spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
 spec@arb_bindless_texture@compiler@images@arith-bound-image.frag,Crash
 spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag,Crash
-spec@arb_bindless_texture@illegal,Fail
-spec@arb_bindless_texture@illegal@Call glCopyTexImage* when a texture handle is referenced,Fail
-spec@arb_bindless_texture@illegal@Call glTexImage* when a texture handle is referenced,Fail
 spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.frag,Fail
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.vert,Fail
@@ -175,7 +172,6 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
-spec@nv_compute_shader_derivatives@compiler@new_functions.comp,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail

@@ -1,0 +1,6 @@
+glx@glx_arb_sync_control@waitformsc
+glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
+glx@glx-multithread-texture
+glx@glx-multithread-shader-compile
+spec@arb_texture_gather@texturegatheroffset@vs-rgba-zero-unorm-2darray
+spec@!opengl 1.2@tex3d-maxsize

@@ -27,26 +27,11 @@
 #include "radv_meta.h"
 #include "radv_private.h"
 
-static nir_ssa_def *
-get_global_ids(nir_builder *b, unsigned num_components)
-{
-   unsigned mask = BITFIELD_MASK(num_components);
-
-   nir_ssa_def *local_ids = nir_channels(b, nir_load_local_invocation_id(b), mask);
-   nir_ssa_def *block_ids = nir_channels(b, nir_load_workgroup_id(b, 32), mask);
-   nir_ssa_def *block_size = nir_channels(
-      b,
-      nir_imm_ivec4(b, b->shader->info.workgroup_size[0], b->shader->info.workgroup_size[1],
-                    b->shader->info.workgroup_size[2], 0),
-      mask);
-
-   return nir_iadd(b, nir_imul(b, block_ids, block_size), local_ids);
-}
-
 static nir_shader *
 build_dcc_retile_compute_shader(struct radv_device *dev, struct radeon_surf *surf)
 {
-   const struct glsl_type *buf_type = glsl_image_type(GLSL_SAMPLER_DIM_BUF, false, GLSL_TYPE_UINT);
+   enum glsl_sampler_dim dim = GLSL_SAMPLER_DIM_BUF;
+   const struct glsl_type *buf_type = glsl_image_type(dim, false, GLSL_TYPE_UINT);
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "dcc_retile_compute");
 
    b.shader->info.workgroup_size[0] = 8;
@@ -85,28 +70,14 @@ build_dcc_retile_compute_shader(struct radv_device *dev, struct radeon_surf *sur
       dst_dcc_pitch, dst_dcc_height, zero, nir_channel(&b, coord, 0), nir_channel(&b, coord, 1),
       zero, zero, zero);
 
-   nir_intrinsic_instr *dcc_val =
-      nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_load);
-   dcc_val->num_components = 1;
-   dcc_val->src[0] = nir_src_for_ssa(input_dcc_ref);
-   dcc_val->src[1] = nir_src_for_ssa(nir_vec4(&b, src, src, src, src));
-   dcc_val->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
-   dcc_val->src[3] = nir_src_for_ssa(nir_imm_int(&b, 0));
-   nir_ssa_dest_init(&dcc_val->instr, &dcc_val->dest, 1, 32, "dcc_val");
-   nir_intrinsic_set_image_dim(dcc_val, GLSL_SAMPLER_DIM_BUF);
-   nir_builder_instr_insert(&b, &dcc_val->instr);
+   nir_ssa_def *dcc_val = nir_image_deref_load(&b, 1, 32, input_dcc_ref,
+                                               nir_vec4(&b, src, src, src, src),
+                                               nir_ssa_undef(&b, 1, 32), nir_imm_int(&b, 0),
+                                               .image_dim = dim);
 
-   nir_intrinsic_instr *store =
-      nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
-   store->num_components = 1;
-   store->src[0] = nir_src_for_ssa(output_dcc_ref);
-   store->src[1] = nir_src_for_ssa(nir_vec4(&b, dst, dst, dst, dst));
-   store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
-   store->src[3] = nir_src_for_ssa(&dcc_val->dest.ssa);
-   store->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
-   nir_intrinsic_set_image_dim(store, GLSL_SAMPLER_DIM_BUF);
+   nir_image_deref_store(&b, output_dcc_ref, nir_vec4(&b, dst, dst, dst, dst),
+                         nir_ssa_undef(&b, 1, 32), dcc_val, nir_imm_int(&b, 0), .image_dim = dim);
 
-   nir_builder_instr_insert(&b, &store->instr);
    return b.shader;
 }
 
@@ -214,6 +185,7 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
 {
    struct radv_meta_saved_state saved_state;
    struct radv_device *device = cmd_buffer->device;
+   struct radv_buffer buffer;
 
    assert(image->type == VK_IMAGE_TYPE_2D);
    assert(image->info.array_size == 1 && image->info.levels == 1);
@@ -242,7 +214,7 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
                         device->meta_state.dcc_retile.pipeline[swizzle_mode]);
 
-   struct radv_buffer buffer = {.size = image->size, .bo = image->bo, .offset = image->offset};
+   radv_buffer_init(&buffer, device, image->bo, image->size, image->offset);
 
    struct radv_buffer_view views[2];
    VkBufferView view_handles[2];
@@ -305,6 +277,10 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
                          constants);
 
    radv_unaligned_dispatch(cmd_buffer, dcc_width, dcc_height, 1);
+
+   radv_buffer_view_finish(views);
+   radv_buffer_view_finish(views + 1);
+   radv_buffer_finish(&buffer);
 
    radv_meta_restore(&saved_state, cmd_buffer);
 

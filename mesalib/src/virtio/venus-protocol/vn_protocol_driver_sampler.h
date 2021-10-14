@@ -360,6 +360,8 @@ static inline void vn_submit_vkDestroySampler(struct vn_instance *vn_instance, V
 
 static inline VkResult vn_call_vkCreateSampler(struct vn_instance *vn_instance, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateSampler(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSampler, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -380,6 +382,8 @@ static inline void vn_async_vkCreateSampler(struct vn_instance *vn_instance, VkD
 
 static inline void vn_call_vkDestroySampler(struct vn_instance *vn_instance, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroySampler(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, sampler, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

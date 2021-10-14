@@ -85,14 +85,6 @@ if not (dep_clang.found() and dep_clang_usable)
   endif
 endif
 
-# Be explicit about only using this lib on Windows, to avoid picking
-# up random libs with the generic name 'libversion'
-if host_machine.system() == 'windows'
-  dep_version = cpp.find_library('version')
-else
-  dep_version = null_dep
-endif
-
 ocldef = files(opencl_libname + '.def')[0]
 
 libopencl = shared_library(

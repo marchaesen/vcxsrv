@@ -1991,6 +1991,7 @@ typedef struct __DRIDriverVtableExtensionRec {
 #define   __DRI2_RENDERER_HAS_CONTEXT_PRIORITY_HIGH           (1 << 2)
 
 #define __DRI2_RENDERER_HAS_PROTECTED_CONTENT                 0x000e
+#define __DRI2_RENDERER_PREFER_BACK_BUFFER_REUSE              0x000f
 
 typedef struct __DRI2rendererQueryExtensionRec __DRI2rendererQueryExtension;
 struct __DRI2rendererQueryExtensionRec {

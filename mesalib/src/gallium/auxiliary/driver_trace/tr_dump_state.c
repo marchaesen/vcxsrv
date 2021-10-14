@@ -834,6 +834,17 @@ void trace_dump_draw_info(const struct pipe_draw_info *state)
    trace_dump_struct_end();
 }
 
+void trace_dump_draw_vertex_state_info(struct pipe_draw_vertex_state_info state)
+{
+   if (!trace_dumping_enabled_locked())
+      return;
+
+   trace_dump_struct_begin("pipe_draw_vertex_state_info");
+   trace_dump_member(uint, &state, mode);
+   trace_dump_member(uint, &state, take_vertex_state_ownership);
+   trace_dump_struct_end();
+}
+
 void trace_dump_draw_start_count(const struct pipe_draw_start_count_bias *state)
 {
    if (!trace_dumping_enabled_locked())

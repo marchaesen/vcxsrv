@@ -225,7 +225,7 @@ vtn_undef_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
    return val;
 }
 
-static struct vtn_ssa_value *
+struct vtn_ssa_value *
 vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
                     const struct glsl_type *type)
 {
@@ -1964,17 +1964,20 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                   spirv_op_to_string(opcode), elem_count, val->type->length);
 
       nir_constant **elems = ralloc_array(b, nir_constant *, elem_count);
+      val->is_undef_constant = true;
       for (unsigned i = 0; i < elem_count; i++) {
-         struct vtn_value *val = vtn_untyped_value(b, w[i + 3]);
+         struct vtn_value *elem_val = vtn_untyped_value(b, w[i + 3]);
 
-         if (val->value_type == vtn_value_type_constant) {
-            elems[i] = val->constant;
+         if (elem_val->value_type == vtn_value_type_constant) {
+            elems[i] = elem_val->constant;
+            val->is_undef_constant = val->is_undef_constant &&
+                                     elem_val->is_undef_constant;
          } else {
-            vtn_fail_if(val->value_type != vtn_value_type_undef,
+            vtn_fail_if(elem_val->value_type != vtn_value_type_undef,
                         "only constants or undefs allowed for "
                         "SpvOpConstantComposite");
             /* to make it easier, just insert a NULL constant for now */
-            elems[i] = vtn_null_constant(b, val->type);
+            elems[i] = vtn_null_constant(b, elem_val->type);
          }
       }
 
@@ -2717,11 +2720,11 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpFragmentFetchAMD:
-      texop = nir_texop_fragment_fetch;
+      texop = nir_texop_fragment_fetch_amd;
       break;
 
    case SpvOpFragmentMaskFetchAMD:
-      texop = nir_texop_fragment_mask_fetch;
+      texop = nir_texop_fragment_mask_fetch_amd;
       dest_type = nir_type_uint32;
       break;
 
@@ -2756,8 +2759,8 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case nir_texop_query_levels:
    case nir_texop_texture_samples:
    case nir_texop_samples_identical:
-   case nir_texop_fragment_fetch:
-   case nir_texop_fragment_mask_fetch:
+   case nir_texop_fragment_fetch_amd:
+   case nir_texop_fragment_mask_fetch_amd:
       /* These don't */
       break;
    case nir_texop_txf_ms_fb:
@@ -3619,13 +3622,13 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicFMinEXT:
    case SpvOpAtomicFMaxEXT:
    case SpvOpAtomicFlagTestAndSet:
-      ptr = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
+      ptr = vtn_pointer(b, w[3]);
       scope = vtn_constant_uint(b, w[4]);
       semantics = vtn_constant_uint(b, w[5]);
       break;
    case SpvOpAtomicFlagClear:
    case SpvOpAtomicStore:
-      ptr = vtn_value(b, w[1], vtn_value_type_pointer)->pointer;
+      ptr = vtn_pointer(b, w[1]);
       scope = vtn_constant_uint(b, w[2]);
       semantics = vtn_constant_uint(b, w[3]);
       break;
@@ -4532,7 +4535,19 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
 
       case SpvCapabilityGroups:
-         spv_check_supported(amd_shader_ballot, cap);
+         spv_check_supported(groups, cap);
+         break;
+
+      case SpvCapabilitySubgroupDispatch:
+         spv_check_supported(subgroup_dispatch, cap);
+         /* Missing :
+          *   - SpvOpGetKernelLocalSizeForSubgroupCount
+          *   - SpvOpGetKernelMaxNumSubgroups
+          *   - SpvExecutionModeSubgroupsPerWorkgroup
+          *   - SpvExecutionModeSubgroupsPerWorkgroupId
+          */
+         vtn_warn("Not fully supported capability: %s",
+                  spirv_capability_to_string(cap));
          break;
 
       case SpvCapabilityVariablePointersStorageBuffer:
@@ -5135,6 +5150,11 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeLocalSizeId:
    case SpvExecutionModeLocalSizeHintId:
       /* Handled later by vtn_handle_execution_mode_id(). */
+      break;
+
+   case SpvExecutionModeSubgroupSize:
+      vtn_assert(b->shader->info.stage == MESA_SHADER_KERNEL);
+      b->shader->info.cs.subgroup_size = mode->operands[0];
       break;
 
    case SpvExecutionModeSubgroupUniformControlFlowKHR:
@@ -6021,6 +6041,29 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
    b->wa_glslang_cs_barrier =
       (b->generator_id == vtn_generator_glslang_reference_front_end &&
        generator_version < 3);
+
+   /* Identifying the LLVM-SPIRV translator:
+    *
+    * The LLVM-SPIRV translator currently doesn't store any generator ID [1].
+    * Our use case involving the SPIRV-Tools linker also mean we want to check
+    * for that tool instead. Finally the SPIRV-Tools linker also stores its
+    * generator ID in the wrong location [2].
+    *
+    * [1] : https://github.com/KhronosGroup/SPIRV-LLVM-Translator/pull/1223
+    * [2] : https://github.com/KhronosGroup/SPIRV-Tools/pull/4549
+    */
+   const bool is_llvm_spirv_translator =
+      (b->generator_id == 0 &&
+       generator_version == vtn_generator_spirv_tools_linker) ||
+      b->generator_id == vtn_generator_spirv_tools_linker;
+
+   /* The LLVM-SPIRV translator generates Undef initializers for _local
+    * variables [1].
+    *
+    * [1] : https://github.com/KhronosGroup/SPIRV-LLVM-Translator/issues/1224
+    */
+   b->wa_llvm_spirv_ignore_workgroup_initializer =
+      b->options->environment == NIR_SPIRV_OPENCL && is_llvm_spirv_translator;
 
    /* words[2] == generator magic */
    unsigned value_id_bound = words[3];

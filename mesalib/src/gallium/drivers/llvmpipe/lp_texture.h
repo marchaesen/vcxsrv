@@ -99,6 +99,7 @@ struct llvmpipe_resource
    uint64_t size_required;
    uint64_t backing_offset;
    bool backable;
+   bool imported_memory;
 #ifdef DEBUG
    /** for linked list */
    struct llvmpipe_resource *prev, *next;
@@ -109,6 +110,13 @@ struct llvmpipe_resource
 struct llvmpipe_transfer
 {
    struct pipe_transfer base;
+};
+
+struct llvmpipe_memory_object
+{
+   struct pipe_memory_object b;
+   struct pipe_memory_allocation *data;
+   uint64_t size;
 };
 
 
@@ -131,6 +139,12 @@ static inline struct llvmpipe_transfer *
 llvmpipe_transfer(struct pipe_transfer *pt)
 {
    return (struct llvmpipe_transfer *) pt;
+}
+
+static inline struct llvmpipe_memory_object *
+llvmpipe_memory_object(struct pipe_memory_object *pt)
+{
+   return (struct llvmpipe_memory_object *) pt;
 }
 
 

@@ -50,6 +50,7 @@ bool dxil_nir_lower_system_values_to_zero(nir_shader *shader,
                                           gl_system_value* system_value,
                                           uint32_t count);
 bool dxil_nir_create_bare_samplers(nir_shader *shader);
+bool dxil_nir_lower_bool_input(struct nir_shader *s);
 
 nir_ssa_def *
 build_load_ubo_dxil(nir_builder *b, nir_ssa_def *buffer,

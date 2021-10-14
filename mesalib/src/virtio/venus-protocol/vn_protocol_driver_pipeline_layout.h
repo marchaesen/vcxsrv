@@ -284,6 +284,8 @@ static inline void vn_submit_vkDestroyPipelineLayout(struct vn_instance *vn_inst
 
 static inline VkResult vn_call_vkCreatePipelineLayout(struct vn_instance *vn_instance, VkDevice device, const VkPipelineLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineLayout* pPipelineLayout)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreatePipelineLayout(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pPipelineLayout, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -304,6 +306,8 @@ static inline void vn_async_vkCreatePipelineLayout(struct vn_instance *vn_instan
 
 static inline void vn_call_vkDestroyPipelineLayout(struct vn_instance *vn_instance, VkDevice device, VkPipelineLayout pipelineLayout, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyPipelineLayout(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineLayout, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

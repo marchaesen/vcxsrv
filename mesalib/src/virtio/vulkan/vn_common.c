@@ -41,6 +41,14 @@ vn_debug_init(void)
 }
 
 void
+vn_trace_init(void)
+{
+#ifdef ANDROID
+   atrace_init();
+#endif
+}
+
+void
 vn_log(struct vn_instance *instance, const char *format, ...)
 {
    va_list ap;

@@ -47,8 +47,14 @@ lima_drm_screen_destroy(struct pipe_screen *pscreen)
 
    mtx_lock(&lima_screen_mutex);
    destroy = --screen->refcnt == 0;
-   if (destroy)
+   if (destroy) {
       _mesa_hash_table_remove_key(fd_tab, intptr_to_pointer(fd));
+
+      if (!fd_tab->entries) {
+         _mesa_hash_table_destroy(fd_tab, NULL);
+         fd_tab = NULL;
+      }
+   }
    mtx_unlock(&lima_screen_mutex);
 
    if (destroy) {

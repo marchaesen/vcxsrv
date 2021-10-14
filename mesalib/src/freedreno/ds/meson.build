@@ -19,6 +19,7 @@ pps_freedreno_lib = static_library(
   dependencies: [
     dep_libdrm,
     dep_perfetto,
+    dep_valgrind,
   ],
   cpp_args: '-std=c++17'
 )

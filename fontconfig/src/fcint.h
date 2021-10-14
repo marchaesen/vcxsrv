@@ -1346,6 +1346,9 @@ FcPrivate FcChar32
 FcStrHashIgnoreBlanksAndCase (const FcChar8 *s);
 
 FcPrivate FcChar8 *
+FcStrRealPath (const FcChar8 *path);
+
+FcPrivate FcChar8 *
 FcStrCanonFilename (const FcChar8 *s);
 
 FcPrivate FcBool

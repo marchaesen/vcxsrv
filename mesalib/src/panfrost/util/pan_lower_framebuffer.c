@@ -197,6 +197,36 @@ pan_unpack_pure_16(nir_builder *b, nir_ssa_def *pack, unsigned num_components)
 }
 
 static nir_ssa_def *
+pan_pack_reorder(nir_builder *b,
+                 const struct util_format_description *desc,
+                 nir_ssa_def *v)
+{
+        unsigned swizzle[4] = { 0, 1, 2, 3 };
+
+        for (unsigned i = 0; i < v->num_components; i++) {
+                if (desc->swizzle[i] <= PIPE_SWIZZLE_W)
+                        swizzle[i] = desc->swizzle[i];
+        }
+
+        return nir_swizzle(b, v, swizzle, v->num_components);
+}
+
+static nir_ssa_def *
+pan_unpack_reorder(nir_builder *b,
+                   const struct util_format_description *desc,
+                   nir_ssa_def *v)
+{
+        unsigned swizzle[4] = { 0, 1, 2, 3 };
+
+        for (unsigned i = 0; i < v->num_components; i++) {
+                if (desc->swizzle[i] <= PIPE_SWIZZLE_W)
+                        swizzle[desc->swizzle[i]] = i;
+        }
+
+        return nir_swizzle(b, v, swizzle, v->num_components);
+}
+
+static nir_ssa_def *
 pan_replicate_4(nir_builder *b, nir_ssa_def *v)
 {
         return nir_vec4(b, v, v, v, v);
@@ -215,27 +245,53 @@ pan_unpack_pure_8(nir_builder *b, nir_ssa_def *pack, unsigned num_components)
         return nir_channels(b, unpacked, (1 << num_components) - 1);
 }
 
-/* For <= 8-bits per channel, UNORM formats are packed like UNORM 8, with
- * zeroes spacing out each component as needed */
+/* For <= 8-bits per channel, [U,S]NORM formats are packed like [U,S]NORM 8,
+ * with zeroes spacing out each component as needed */
 
 static nir_ssa_def *
-pan_pack_unorm(nir_builder *b, nir_ssa_def *v,
-               unsigned x, unsigned y, unsigned z, unsigned w)
+pan_pack_norm(nir_builder *b, nir_ssa_def *v,
+              unsigned x, unsigned y, unsigned z, unsigned w,
+              bool is_signed)
 {
-        /* If a channel has N bits, 1.0 is encoded as 2^N - 1 */
-        nir_ssa_def *scales = nir_imm_vec4_16(b,
-                        (1 << x) - 1, (1 << y) - 1, 
-                        (1 << z) - 1, (1 << w) - 1);
+        /* If a channel has N bits, 1.0 is encoded as 2^N - 1 for UNORMs and
+         * 2^(N-1) - 1 for SNORMs */
+        nir_ssa_def *scales =
+                is_signed ?
+                nir_imm_vec4_16(b,
+                                (1 << (x - 1)) - 1, (1 << (y - 1)) - 1,
+                                (1 << (z - 1)) - 1, (1 << (w - 1)) - 1) :
+                nir_imm_vec4_16(b,
+                                (1 << x) - 1, (1 << y) - 1,
+                                (1 << z) - 1, (1 << w) - 1);
 
         /* If a channel has N bits, we pad out to the byte by (8 - N) bits */
         nir_ssa_def *shifts = nir_imm_ivec4(b, 8 - x, 8 - y, 8 - z, 8 - w);
 
-        nir_ssa_def *f = nir_fmul(b, nir_fsat(b, nir_pad_vec4(b, v)), scales);
+        nir_ssa_def *clamped =
+                is_signed ?
+                nir_fsat_signed_mali(b, nir_pad_vec4(b, v)) :
+                nir_fsat(b, nir_pad_vec4(b, v));
+
+        nir_ssa_def *f = nir_fmul(b, clamped, scales);
         nir_ssa_def *u8 = nir_f2u8(b, nir_fround_even(b, f));
         nir_ssa_def *s = nir_ishl(b, u8, shifts);
         nir_ssa_def *repl = nir_pack_32_4x8(b, s);
 
         return pan_replicate_4(b, repl);
+}
+
+static nir_ssa_def *
+pan_pack_unorm(nir_builder *b, nir_ssa_def *v,
+               unsigned x, unsigned y, unsigned z, unsigned w)
+{
+        return pan_pack_norm(b, v, x, y, z, w, false);
+}
+
+static nir_ssa_def *
+pan_pack_snorm(nir_builder *b, nir_ssa_def *v,
+               unsigned x, unsigned y, unsigned z, unsigned w)
+{
+        return pan_pack_norm(b, v, x, y, z, w, true);
 }
 
 /* RGB10_A2 is packed in the tilebuffer as the bottom 3 bytes being the top
@@ -269,30 +325,43 @@ pan_pack_unorm_1010102(nir_builder *b, nir_ssa_def *v)
 /* On the other hand, the pure int RGB10_A2 is identical to the spec */
 
 static nir_ssa_def *
-pan_pack_uint_1010102(nir_builder *b, nir_ssa_def *v)
+pan_pack_int_1010102(nir_builder *b, nir_ssa_def *v, bool is_signed)
 {
-        nir_ssa_def *shift = nir_ishl(b, nir_u2u32(b, v),
-                        nir_imm_ivec4(b, 0, 10, 20, 30));
+        v = nir_u2u32(b, v);
 
-        nir_ssa_def *p = nir_ior(b,
-                        nir_ior(b, nir_channel(b, shift, 0), nir_channel(b, shift, 1)),
-                        nir_ior(b, nir_channel(b, shift, 2), nir_channel(b, shift, 3)));
+        /* Clamp the values */
+        if (is_signed) {
+                v = nir_imin(b, v, nir_imm_ivec4(b, 511, 511, 511, 1));
+                v = nir_imax(b, v, nir_imm_ivec4(b, -512, -512, -512, -2));
+        } else {
+                v = nir_umin(b, v, nir_imm_ivec4(b, 1023, 1023, 1023, 3));
+        }
 
-        return pan_replicate_4(b, p);
+        v = nir_ishl(b, v, nir_imm_ivec4(b, 0, 10, 20, 30));
+        v = nir_ior(b,
+                    nir_ior(b, nir_channel(b, v, 0), nir_channel(b, v, 1)),
+                    nir_ior(b, nir_channel(b, v, 2), nir_channel(b, v, 3)));
+
+        return pan_replicate_4(b, v);
 }
 
 static nir_ssa_def *
-pan_unpack_uint_1010102(nir_builder *b, nir_ssa_def *packed)
+pan_unpack_int_1010102(nir_builder *b, nir_ssa_def *packed, bool is_signed)
 {
-        nir_ssa_def *chan = nir_channel(b, packed, 0);
+        nir_ssa_def *v = pan_replicate_4(b, nir_channel(b, packed, 0));
 
-        nir_ssa_def *shift = nir_ushr(b, pan_replicate_4(b, chan),
-                        nir_imm_ivec4(b, 0, 10, 20, 30));
+        /* Left shift all components so the sign bit is on the MSB, and
+         * can be extended by ishr(). The ishl()+[u,i]shr() combination
+         * sets all unused bits to 0 without requiring a mask.
+         */
+        v = nir_ishl(b, v, nir_imm_ivec4(b, 22, 12, 2, 0));
 
-        nir_ssa_def *mask = nir_iand(b, shift,
-                        nir_imm_ivec4(b, 0x3ff, 0x3ff, 0x3ff, 0x3));
+        if (is_signed)
+                v = nir_ishr(b, v, nir_imm_ivec4(b, 22, 22, 22, 30));
+        else
+                v = nir_ushr(b, v, nir_imm_ivec4(b, 22, 22, 22, 30));
 
-        return nir_i2i16(b, mask);
+        return nir_i2i16(b, v);
 }
 
 /* NIR means we can *finally* catch a break */
@@ -370,7 +439,11 @@ pan_unpack(nir_builder *b,
 
         switch (desc->format) {
         case PIPE_FORMAT_R10G10B10A2_UINT:
-                return pan_unpack_uint_1010102(b, packed);
+        case PIPE_FORMAT_B10G10R10A2_UINT:
+                return pan_unpack_int_1010102(b, packed, false);
+        case PIPE_FORMAT_R10G10B10A2_SINT:
+        case PIPE_FORMAT_B10G10R10A2_SINT:
+                return pan_unpack_int_1010102(b, packed, true);
         case PIPE_FORMAT_R11G11B10_FLOAT:
                 return pan_unpack_r11g11b10(b, packed);
         default:
@@ -391,6 +464,9 @@ pan_pack(nir_builder *b,
 
         if (util_format_is_unorm8(desc))
                 return pan_pack_unorm(b, unpacked, 8, 8, 8, 8);
+
+        if (util_format_is_snorm8(desc->format))
+                return pan_pack_snorm(b, unpacked, 8, 8, 8, 8);
 
         if (desc->is_array) {
                 int c = util_format_get_first_non_void_channel(desc->format);
@@ -430,7 +506,11 @@ pan_pack(nir_builder *b,
         case PIPE_FORMAT_B10G10R10A2_UNORM:
                 return pan_pack_unorm_1010102(b, unpacked);
         case PIPE_FORMAT_R10G10B10A2_UINT:
-                return pan_pack_uint_1010102(b, unpacked);
+        case PIPE_FORMAT_B10G10R10A2_UINT:
+                return pan_pack_int_1010102(b, unpacked, false);
+        case PIPE_FORMAT_R10G10B10A2_SINT:
+        case PIPE_FORMAT_B10G10R10A2_SINT:
+                return pan_pack_int_1010102(b, unpacked, true);
         case PIPE_FORMAT_R11G11B10_FLOAT:
                 return pan_pack_r11g11b10(b, unpacked);
         default:
@@ -446,10 +526,16 @@ pan_lower_fb_store(nir_shader *shader,
                 nir_builder *b,
                 nir_intrinsic_instr *intr,
                 const struct util_format_description *desc,
+                bool reorder_comps,
                 unsigned quirks)
 {
         /* For stores, add conversion before */
         nir_ssa_def *unpacked = nir_ssa_for_src(b, intr->src[1], 4);
+
+        /* Re-order the components */
+        if (reorder_comps)
+                unpacked = pan_pack_reorder(b, desc, unpacked);
+
         nir_ssa_def *packed = pan_pack(b, desc, unpacked);
 
         nir_store_raw_output_pan(b, packed);
@@ -466,6 +552,7 @@ pan_lower_fb_load(nir_shader *shader,
                 nir_builder *b,
                 nir_intrinsic_instr *intr,
                 const struct util_format_description *desc,
+                bool reorder_comps,
                 unsigned base, int sample, unsigned quirks)
 {
         nir_ssa_def *packed =
@@ -495,12 +582,16 @@ pan_lower_fb_load(nir_shader *shader,
         unpacked = nir_convert_to_bit_size(b, unpacked, src_type, bits);
         unpacked = nir_pad_vector(b, unpacked, nir_dest_num_components(intr->dest));
 
+        /* Reorder the components */
+        if (reorder_comps)
+                unpacked = pan_unpack_reorder(b, desc, unpacked);
+
         nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, unpacked, &intr->instr);
 }
 
 bool
 pan_lower_framebuffer(nir_shader *shader, const enum pipe_format *rt_fmts,
-                      bool is_blend, unsigned quirks)
+                      uint8_t raw_fmt_mask, bool is_blend, unsigned quirks)
 {
         if (shader->info.stage != MESA_SHADER_FRAGMENT)
                return false;
@@ -550,16 +641,17 @@ pan_lower_framebuffer(nir_shader *shader, const enum pipe_format *rt_fmts,
                                  * MSAA blend shaders are not yet handled, so
                                  * for now always load sample 0. */
                                 int sample = is_blend ? 0 : -1;
+                                bool reorder_comps = raw_fmt_mask & BITFIELD_BIT(rt);
 
                                 nir_builder b;
                                 nir_builder_init(&b, func->impl);
 
                                 if (is_store) {
                                         b.cursor = nir_before_instr(instr);
-                                        pan_lower_fb_store(shader, &b, intr, desc, quirks);
+                                        pan_lower_fb_store(shader, &b, intr, desc, reorder_comps, quirks);
                                 } else {
                                         b.cursor = nir_after_instr(instr);
-                                        pan_lower_fb_load(shader, &b, intr, desc, base, sample, quirks);
+                                        pan_lower_fb_load(shader, &b, intr, desc, reorder_comps, base, sample, quirks);
                                 }
 
                                 nir_instr_remove(instr);

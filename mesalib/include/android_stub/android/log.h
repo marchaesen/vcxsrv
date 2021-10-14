@@ -217,7 +217,6 @@ typedef void (*__android_logger_function)(const struct __android_log_message* lo
  */
 typedef void (*__android_aborter_function)(const char* abort_message);
 
-#if !defined(__ANDROID__) || __ANDROID_API__ >= 30
 /**
  * Writes the log message specified by log_message.  log_message includes additional file name and
  * line number information that a logger may use.  log_message is versioned for backwards
@@ -371,7 +370,6 @@ int32_t __android_log_get_minimum_priority(void) __INTRODUCED_IN(30);
  * Available since API level 30.
  */
 void __android_log_set_default_tag(const char* tag) __INTRODUCED_IN(30);
-#endif
 
 #ifdef __cplusplus
 }

@@ -39,9 +39,13 @@
 #include "vk_device.h"
 #include "vk_instance.h"
 #include "vk_image.h"
+#include "vk_log.h"
 #include "vk_physical_device.h"
 #include "vk_shader_module.h"
 #include "vk_util.h"
+
+#include "vk_command_buffer.h"
+#include "vk_queue.h"
 
 #include <xf86drm.h>
 
@@ -216,10 +220,9 @@ struct v3dv_queue_submit_wait_info {
 };
 
 struct v3dv_queue {
-   struct vk_object_base base;
+   struct vk_queue vk;
 
    struct v3dv_device *device;
-   VkDeviceQueueCreateFlags flags;
 
    /* A list of active v3dv_queue_submit_wait_info */
    struct list_head submit_wait_list;
@@ -1277,7 +1280,7 @@ struct v3dv_cmd_buffer_private_obj {
 };
 
 struct v3dv_cmd_buffer {
-   struct vk_object_base base;
+   struct vk_command_buffer vk;
 
    struct v3dv_device *device;
 
@@ -1872,13 +1875,6 @@ const nir_shader_compiler_options *v3dv_pipeline_get_nir_options(void);
 uint32_t v3dv_physical_device_vendor_id(struct v3dv_physical_device *dev);
 uint32_t v3dv_physical_device_device_id(struct v3dv_physical_device *dev);
 
-VkResult __vk_errorf(struct v3dv_instance *instance, VkResult error,
-                     const char *file, int line,
-                     const char *format, ...);
-
-#define vk_error(instance, error) __vk_errorf(instance, error, __FILE__, __LINE__, NULL);
-#define vk_errorf(instance, error, format, ...) __vk_errorf(instance, error, __FILE__, __LINE__, format, ## __VA_ARGS__);
-
 #ifdef DEBUG
 #define v3dv_debug_ignored_stype(sType) \
    fprintf(stderr, "%s: ignored VkStructureType %u:%s\n\n", __func__, (sType), vk_StructureType_to_str(sType))
@@ -2028,63 +2024,58 @@ void v3dv_shader_module_internal_init(struct v3dv_device *device,
                                       struct vk_shader_module *module,
                                       nir_shader *nir);
 
-#define V3DV_DEFINE_HANDLE_CASTS(__v3dv_type, __VkType)   \
-                                                        \
-   static inline struct __v3dv_type *                    \
-   __v3dv_type ## _from_handle(__VkType _handle)         \
-   {                                                    \
-      return (struct __v3dv_type *) _handle;             \
-   }                                                    \
-                                                        \
-   static inline __VkType                               \
-   __v3dv_type ## _to_handle(struct __v3dv_type *_obj)    \
-   {                                                    \
-      return (__VkType) _obj;                           \
-   }
-
-#define V3DV_DEFINE_NONDISP_HANDLE_CASTS(__v3dv_type, __VkType)              \
-                                                                           \
-   static inline struct __v3dv_type *                                       \
-   __v3dv_type ## _from_handle(__VkType _handle)                            \
-   {                                                                       \
-      return (struct __v3dv_type *)(uintptr_t) _handle;                     \
-   }                                                                       \
-                                                                           \
-   static inline __VkType                                                  \
-   __v3dv_type ## _to_handle(struct __v3dv_type *_obj)                       \
-   {                                                                       \
-      return (__VkType)(uintptr_t) _obj;                                   \
-   }
-
 #define V3DV_FROM_HANDLE(__v3dv_type, __name, __handle)			\
-   struct __v3dv_type *__name = __v3dv_type ## _from_handle(__handle)
+   VK_FROM_HANDLE(__v3dv_type, __name, __handle)
 
-V3DV_DEFINE_HANDLE_CASTS(v3dv_cmd_buffer, VkCommandBuffer)
-V3DV_DEFINE_HANDLE_CASTS(v3dv_device, VkDevice)
-V3DV_DEFINE_HANDLE_CASTS(v3dv_instance, VkInstance)
-V3DV_DEFINE_HANDLE_CASTS(v3dv_physical_device, VkPhysicalDevice)
-V3DV_DEFINE_HANDLE_CASTS(v3dv_queue, VkQueue)
+VK_DEFINE_HANDLE_CASTS(v3dv_cmd_buffer, vk.base, VkCommandBuffer,
+                       VK_OBJECT_TYPE_COMMAND_BUFFER)
+VK_DEFINE_HANDLE_CASTS(v3dv_device, vk.base, VkDevice, VK_OBJECT_TYPE_DEVICE)
+VK_DEFINE_HANDLE_CASTS(v3dv_instance, vk.base, VkInstance,
+                       VK_OBJECT_TYPE_INSTANCE)
+VK_DEFINE_HANDLE_CASTS(v3dv_physical_device, vk.base, VkPhysicalDevice,
+                       VK_OBJECT_TYPE_PHYSICAL_DEVICE)
+VK_DEFINE_HANDLE_CASTS(v3dv_queue, vk.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
 
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_cmd_pool, VkCommandPool)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_buffer, VkBuffer)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_buffer_view, VkBufferView)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_device_memory, VkDeviceMemory)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_pool, VkDescriptorPool)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_set, VkDescriptorSet)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_set_layout, VkDescriptorSetLayout)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_update_template, VkDescriptorUpdateTemplate)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_event, VkEvent)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_fence, VkFence)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_framebuffer, VkFramebuffer)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_image, VkImage)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_image_view, VkImageView)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_pipeline, VkPipeline)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_pipeline_cache, VkPipelineCache)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_pipeline_layout, VkPipelineLayout)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_query_pool, VkQueryPool)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_render_pass, VkRenderPass)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_sampler, VkSampler)
-V3DV_DEFINE_NONDISP_HANDLE_CASTS(v3dv_semaphore, VkSemaphore)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_cmd_pool, base, VkCommandPool,
+                               VK_OBJECT_TYPE_COMMAND_POOL)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_buffer, base, VkBuffer,
+                               VK_OBJECT_TYPE_BUFFER)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_buffer_view, base, VkBufferView,
+                               VK_OBJECT_TYPE_BUFFER_VIEW)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_device_memory, base, VkDeviceMemory,
+                               VK_OBJECT_TYPE_DEVICE_MEMORY)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_pool, base, VkDescriptorPool,
+                               VK_OBJECT_TYPE_DESCRIPTOR_POOL)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_set, base, VkDescriptorSet,
+                               VK_OBJECT_TYPE_DESCRIPTOR_SET)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_set_layout, base,
+                               VkDescriptorSetLayout,
+                               VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_descriptor_update_template, base,
+                               VkDescriptorUpdateTemplate,
+                               VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_event, base, VkEvent, VK_OBJECT_TYPE_EVENT)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_fence, base, VkFence, VK_OBJECT_TYPE_FENCE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_framebuffer, base, VkFramebuffer,
+                               VK_OBJECT_TYPE_FRAMEBUFFER)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_image, vk.base, VkImage,
+                               VK_OBJECT_TYPE_IMAGE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_image_view, vk.base, VkImageView,
+                               VK_OBJECT_TYPE_IMAGE_VIEW)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_pipeline, base, VkPipeline,
+                               VK_OBJECT_TYPE_PIPELINE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_pipeline_cache, base, VkPipelineCache,
+                               VK_OBJECT_TYPE_PIPELINE_CACHE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_pipeline_layout, base, VkPipelineLayout,
+                               VK_OBJECT_TYPE_PIPELINE_LAYOUT)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_query_pool, base, VkQueryPool,
+                               VK_OBJECT_TYPE_QUERY_POOL)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_render_pass, base, VkRenderPass,
+                               VK_OBJECT_TYPE_RENDER_PASS)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_sampler, base, VkSampler,
+                               VK_OBJECT_TYPE_SAMPLER)
+VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_semaphore, base, VkSemaphore,
+                               VK_OBJECT_TYPE_SEMAPHORE)
 
 static inline int
 v3dv_ioctl(int fd, unsigned long request, void *arg)

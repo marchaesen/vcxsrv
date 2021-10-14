@@ -55,11 +55,15 @@ typedef uint32_t xcb_window_t;
 #include "lvp_entrypoints.h"
 #include "vk_device.h"
 #include "vk_instance.h"
+#include "vk_image.h"
+#include "vk_log.h"
 #include "vk_physical_device.h"
 #include "vk_shader_module.h"
 #include "vk_util.h"
 #include "vk_format.h"
 #include "vk_cmd_queue.h"
+#include "vk_command_buffer.h"
+#include "vk_queue.h"
 
 #include "wsi_common.h"
 
@@ -94,19 +98,7 @@ bool lvp_device_entrypoint_is_enabled(int index, uint32_t core_version,
                                        const struct vk_instance_extension_table *instance,
                                        const struct vk_device_extension_table *device);
 
-
-/* Whenever we generate an error, pass it through this function. Useful for
- * debugging, where we can break on it. Only call at error site, not when
- * propagating errors. Might be useful to plug in a stack trace here.
- */
-
-struct lvp_instance;
-VkResult __vk_errorf(struct lvp_instance *instance, VkResult error, const char *file, int line, const char *format, ...);
-
 #define LVP_DEBUG_ALL_ENTRYPOINTS (1 << 0)
-
-#define vk_error(instance, error) __vk_errorf(instance, error, __FILE__, __LINE__, NULL);
-#define vk_errorf(instance, error, format, ...) __vk_errorf(instance, error, __FILE__, __LINE__, format, ## __VA_ARGS__);
 
 void __lvp_finishme(const char *file, int line, const char *format, ...)
    lvp_printflike(3, 4);
@@ -164,8 +156,7 @@ bool lvp_physical_device_extension_supported(struct lvp_physical_device *dev,
                                               const char *name);
 
 struct lvp_queue {
-   struct vk_object_base base;
-   VkDeviceQueueCreateFlags flags;
+   struct vk_queue vk;
    struct lvp_device *                         device;
    struct pipe_context *ctx;
    struct cso_context *cso;
@@ -214,18 +205,24 @@ struct lvp_device {
 
 void lvp_device_get_cache_uuid(void *uuid);
 
+enum lvp_device_memory_type {
+   LVP_DEVICE_MEMORY_TYPE_DEFAULT,
+   LVP_DEVICE_MEMORY_TYPE_USER_PTR,
+   LVP_DEVICE_MEMORY_TYPE_OPAQUE_FD,
+};
+
 struct lvp_device_memory {
    struct vk_object_base base;
    struct pipe_memory_allocation *pmem;
    uint32_t                                     type_index;
    VkDeviceSize                                 map_size;
    void *                                       map;
-   bool is_user_ptr;
+   enum lvp_device_memory_type memory_type;
+   int                                          backed_fd;
 };
 
 struct lvp_image {
-   struct vk_object_base base;
-   VkImageType type;
+   struct vk_image vk;
    VkDeviceSize size;
    uint32_t alignment;
    struct pipe_memory_allocation *pmem;
@@ -248,18 +245,6 @@ lvp_get_levelCount(const struct lvp_image *image,
    return range->levelCount == VK_REMAINING_MIP_LEVELS ?
       (image->bo->last_level + 1) - range->baseMipLevel : range->levelCount;
 }
-
-struct lvp_image_create_info {
-   const VkImageCreateInfo *vk_info;
-   uint32_t bind_flags;
-   uint32_t stride;
-};
-
-VkResult
-lvp_image_create(VkDevice _device,
-                 const struct lvp_image_create_info *create_info,
-                 const VkAllocationCallbacks* alloc,
-                 VkImage *pImage);
 
 struct lvp_image_view {
    struct vk_object_base base;
@@ -589,7 +574,7 @@ enum lvp_cmd_buffer_status {
 };
 
 struct lvp_cmd_buffer {
-   struct vk_object_base base;
+   struct vk_command_buffer vk;
 
    struct lvp_device *                          device;
 
@@ -607,13 +592,13 @@ struct lvp_cmd_buffer {
 #define LVP_FROM_HANDLE(__lvp_type, __name, __handle) \
    struct __lvp_type *__name = __lvp_type ## _from_handle(__handle)
 
-VK_DEFINE_HANDLE_CASTS(lvp_cmd_buffer, base, VkCommandBuffer,
+VK_DEFINE_HANDLE_CASTS(lvp_cmd_buffer, vk.base, VkCommandBuffer,
                        VK_OBJECT_TYPE_COMMAND_BUFFER)
 VK_DEFINE_HANDLE_CASTS(lvp_device, vk.base, VkDevice, VK_OBJECT_TYPE_DEVICE)
 VK_DEFINE_HANDLE_CASTS(lvp_instance, vk.base, VkInstance, VK_OBJECT_TYPE_INSTANCE)
 VK_DEFINE_HANDLE_CASTS(lvp_physical_device, vk.base, VkPhysicalDevice,
                        VK_OBJECT_TYPE_PHYSICAL_DEVICE)
-VK_DEFINE_HANDLE_CASTS(lvp_queue, base, VkQueue, VK_OBJECT_TYPE_QUEUE)
+VK_DEFINE_HANDLE_CASTS(lvp_queue, vk.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
 
    VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_cmd_pool, base,VkCommandPool,
                                   VK_OBJECT_TYPE_COMMAND_POOL)
@@ -634,7 +619,7 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_device_memory, base, VkDeviceMemory,
 VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_event, base, VkEvent, VK_OBJECT_TYPE_EVENT)
 VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_framebuffer, base, VkFramebuffer,
                                VK_OBJECT_TYPE_FRAMEBUFFER)
-VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_image, base, VkImage, VK_OBJECT_TYPE_IMAGE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_image, vk.base, VkImage, VK_OBJECT_TYPE_IMAGE)
 VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_image_view, base, VkImageView,
                                VK_OBJECT_TYPE_IMAGE_VIEW);
 VK_DEFINE_NONDISP_HANDLE_CASTS(lvp_pipeline_cache, base, VkPipelineCache,
@@ -686,8 +671,6 @@ lvp_vk_format_to_pipe_format(VkFormat format)
 {
    /* Some formats cause problems with CTS right now.*/
    if (format == VK_FORMAT_R4G4B4A4_UNORM_PACK16 ||
-       format == VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT || /* VK_EXT_4444_formats */
-       format == VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT || /* VK_EXT_4444_formats */
        format == VK_FORMAT_R5G5B5A1_UNORM_PACK16 ||
        format == VK_FORMAT_R8_SRGB ||
        format == VK_FORMAT_R8G8_SRGB ||

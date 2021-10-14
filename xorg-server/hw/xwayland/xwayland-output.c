@@ -468,6 +468,85 @@ xwl_output_set_randr_emu_props(struct xwl_screen *xwl_screen, ClientPtr client)
                               xwl_output_set_randr_emu_prop_callback, &prop);
 }
 
+static inline void
+xwl_output_get_emulated_root_size(struct xwl_output *xwl_output,
+                                  ClientPtr client,
+                                  int *width,
+                                  int *height)
+{
+    struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+    struct xwl_emulated_mode *emulated_mode;
+
+    emulated_mode = xwl_output_get_emulated_mode_for_client(xwl_output, client);
+    /* If not an emulated mode, just return the actual screen size */
+    if (!emulated_mode) {
+        *width = xwl_screen->width;
+        *height = xwl_screen->height;
+        return;
+    }
+
+    if (xwl_output->rotation & (RR_Rotate_0 | RR_Rotate_180)) {
+        *width = emulated_mode->width;
+        *height = emulated_mode->height;
+    } else {
+        *width = emulated_mode->height;
+        *height = emulated_mode->width;
+    }
+}
+
+static int
+xwl_output_get_rr_event_mask(WindowPtr pWin, ClientPtr client)
+{
+    RREventPtr pRREvent, *pHead;
+
+    dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
+                            RREventType, client, DixReadAccess);
+
+    pRREvent = NULL;
+    if (pHead) {
+        for (pRREvent = *pHead; pRREvent; pRREvent = pRREvent->next)
+            if (pRREvent->client == client)
+                break;
+        }
+
+    if (pRREvent)
+        return pRREvent->mask;
+
+    return 0;
+}
+
+static void
+xwl_output_notify_emulated_root_size(struct xwl_output *xwl_output,
+                                     ClientPtr client,
+                                     int new_emulated_root_width,
+                                     int new_emulated_root_height)
+{
+    struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+    ScreenPtr pScreen = xwl_screen->screen;
+    WindowPtr pRoot = pScreen->root;
+    xEvent event = {
+             .u.configureNotify.event = pRoot->drawable.id,
+             .u.configureNotify.window = pRoot->drawable.id,
+             .u.configureNotify.aboveSibling = None,
+             .u.configureNotify.x = 0,
+             .u.configureNotify.y = 0,
+             .u.configureNotify.width = new_emulated_root_width,
+             .u.configureNotify.height = new_emulated_root_height,
+             .u.configureNotify.borderWidth = pRoot->borderWidth,
+             .u.configureNotify.override = pRoot->overrideRedirect
+         };
+     event.u.u.type = ConfigureNotify;
+
+     if (!client || client == serverClient || client->clientGone)
+         return;
+
+     if (EventMaskForClient(pRoot, client) & StructureNotifyMask)
+         WriteEventsToClient(client, 1, &event);
+
+     if (xwl_output_get_rr_event_mask(pRoot, client) & RRScreenChangeNotifyMask)
+         RRDeliverScreenEvent(client, pRoot, pScreen);
+}
+
 void
 xwl_output_set_window_randr_emu_props(struct xwl_screen *xwl_screen,
                                       WindowPtr window)
@@ -482,9 +561,15 @@ void
 xwl_output_set_emulated_mode(struct xwl_output *xwl_output, ClientPtr client,
                              RRModePtr mode, Bool from_vidmode)
 {
+    int old_emulated_width, old_emulated_height;
+    int new_emulated_width, new_emulated_height;
+
     DebugF("XWAYLAND: xwl_output_set_emulated_mode from %s: %dx%d\n",
            from_vidmode ? "vidmode" : "randr",
            mode->mode.width, mode->mode.height);
+
+    xwl_output_get_emulated_root_size(xwl_output, client,
+                                      &old_emulated_width, &old_emulated_height);
 
     /* modes[0] is the actual (not-emulated) output mode */
     if (mode == xwl_output->randr_output->modes[0])
@@ -495,6 +580,15 @@ xwl_output_set_emulated_mode(struct xwl_output *xwl_output, ClientPtr client,
     xwl_screen_check_resolution_change_emulation(xwl_output->xwl_screen);
 
     xwl_output_set_randr_emu_props(xwl_output->xwl_screen, client);
+
+    xwl_output_get_emulated_root_size(xwl_output, client,
+                                      &new_emulated_width, &new_emulated_height);
+
+    if (new_emulated_width != old_emulated_width ||
+        new_emulated_height != old_emulated_height)
+        xwl_output_notify_emulated_root_size(xwl_output, client,
+                                             new_emulated_width,
+                                             new_emulated_height);
 }
 
 static void

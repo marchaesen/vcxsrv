@@ -22,7 +22,10 @@ dEQP-GLES3.functional.rasterization.interpolation.projected.lines_wide,Fail
 
 KHR-GL46.get_texture_sub_image.errors_test,Fail
 KHR-GL46.get_texture_sub_image.functional_test,Fail
+
+# "Result is different than expected at index: 33 Expected value: 664128 Result value: 658538 "
 KHR-GL46.texture_buffer.texture_buffer_atomic_functions,Fail
+
 KHR-GL46.transform_feedback.capture_vertex_interleaved_test,Fail
 KHR-GL46.transform_feedback.capture_vertex_separate_test,Fail
 KHR-GL46.transform_feedback.discard_vertex_test,Fail

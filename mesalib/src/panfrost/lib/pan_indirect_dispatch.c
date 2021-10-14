@@ -141,14 +141,11 @@ GENX(pan_indirect_dispatch_emit)(struct pan_pool *pool,
 
         pan_section_pack(job.cpu, COMPUTE_JOB, DRAW, cfg) {
                 cfg.draw_descriptor_is_64b = true;
-                cfg.texture_descriptor_is_64b = PAN_ARCH <= 5;
                 cfg.state = get_rsd(dev);
                 cfg.thread_storage = get_tls(pool->dev);
                 cfg.uniform_buffers = get_ubos(pool, &inputs);
                 cfg.push_uniforms = get_push_uniforms(pool, &inputs);
         }
-
-        pan_section_pack(job.cpu, COMPUTE_JOB, DRAW_PADDING, cfg);
 
         return panfrost_add_job(pool, scoreboard, MALI_JOB_TYPE_COMPUTE,
                                 false, true, 0, 0, &job, false);
@@ -159,7 +156,7 @@ GENX(pan_indirect_dispatch_init)(struct panfrost_device *dev)
 {
         nir_builder b =
                 nir_builder_init_simple_shader(MESA_SHADER_COMPUTE,
-                                               pan_shader_get_compiler_options(dev),
+                                               GENX(pan_shader_get_compiler_options)(),
                                                "%s", "indirect_dispatch");
         b.shader->info.internal = true;
         nir_variable_create(b.shader, nir_var_mem_ubo,
@@ -226,7 +223,7 @@ GENX(pan_indirect_dispatch_init)(struct panfrost_device *dev)
         struct util_dynarray binary;
 
         util_dynarray_init(&binary, NULL);
-        pan_shader_compile(dev, b.shader, &inputs, &binary, &shader_info);
+        GENX(pan_shader_compile)(b.shader, &inputs, &binary, &shader_info);
 
         ralloc_free(b.shader);
 
@@ -256,7 +253,7 @@ GENX(pan_indirect_dispatch_init)(struct panfrost_device *dev)
 
         void *rsd = dev->indirect_dispatch.descs->ptr.cpu;
         pan_pack(rsd, RENDERER_STATE, cfg) {
-                pan_shader_prepare_rsd(dev, &shader_info, address, &cfg);
+                pan_shader_prepare_rsd(&shader_info, address, &cfg);
         }
 
         void *tsd = dev->indirect_dispatch.descs->ptr.cpu +

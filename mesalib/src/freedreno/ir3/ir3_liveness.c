@@ -115,9 +115,9 @@ compute_block_liveness(struct ir3_liveness *live, struct ir3_block *block,
 }
 
 struct ir3_liveness *
-ir3_calc_liveness(struct ir3_shader_variant *v)
+ir3_calc_liveness(void *mem_ctx, struct ir3 *ir)
 {
-   struct ir3_liveness *live = rzalloc(NULL, struct ir3_liveness);
+   struct ir3_liveness *live = rzalloc(mem_ctx, struct ir3_liveness);
 
    /* Reserve name 0 to mean "doesn't have a name yet" to make the debug
     * output nicer.
@@ -126,7 +126,7 @@ ir3_calc_liveness(struct ir3_shader_variant *v)
 
    /* Build definition <-> name mapping */
    unsigned block_count = 0;
-   foreach_block (block, &v->ir->block_list) {
+   foreach_block (block, &ir->block_list) {
       block->index = block_count++;
       foreach_instr (instr, &block->instr_list) {
          ra_foreach_dst (dst, instr) {
@@ -143,7 +143,7 @@ ir3_calc_liveness(struct ir3_shader_variant *v)
    live->live_in = ralloc_array(live, BITSET_WORD *, block_count);
    live->live_out = ralloc_array(live, BITSET_WORD *, block_count);
    unsigned i = 0;
-   foreach_block (block, &v->ir->block_list) {
+   foreach_block (block, &ir->block_list) {
       block->index = i++;
       live->live_in[block->index] =
          rzalloc_array(live, BITSET_WORD, bitset_words);
@@ -154,7 +154,7 @@ ir3_calc_liveness(struct ir3_shader_variant *v)
    bool progress = true;
    while (progress) {
       progress = false;
-      foreach_block_rev (block, &v->ir->block_list) {
+      foreach_block_rev (block, &ir->block_list) {
          progress |=
             compute_block_liveness(live, block, tmp_live, bitset_words);
       }

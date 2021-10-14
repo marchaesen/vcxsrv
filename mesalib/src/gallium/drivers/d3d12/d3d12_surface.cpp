@@ -320,7 +320,7 @@ d3d12_surface_update_pre_draw(struct d3d12_surface *surface,
 
    if (mode == D3D12_SURFACE_CONVERSION_BGRA_UINT) {
       if (!surface->rgba_texture) {
-         struct pipe_resource templ = {{0}};
+         struct pipe_resource templ = {};
          struct pipe_resource *src = surface->base.texture;
 
          templ.format = PIPE_FORMAT_R8G8B8A8_UNORM;

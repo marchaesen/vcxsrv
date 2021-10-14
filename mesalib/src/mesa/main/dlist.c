@@ -73,7 +73,7 @@
 #include "vbo/vbo_util.h"
 #include "vbo/vbo_save.h"
 #include "util/format_r11g11b10f.h"
-
+#include "util/u_inlines.h"
 #include "util/u_memory.h"
 
 #define USE_BITMAP_ATLAS 1
@@ -626,6 +626,9 @@ typedef enum
    OPCODE_NAMED_PROGRAM_STRING,
    OPCODE_NAMED_PROGRAM_LOCAL_PARAMETER,
 
+   /* GL_ARB_ES3_2_compatibility */
+   OPCODE_PRIMITIVE_BOUNDING_BOX,
+
    OPCODE_VERTEX_LIST,
    OPCODE_VERTEX_LIST_LOOPBACK,
    OPCODE_VERTEX_LIST_COPY_CURRENT,
@@ -794,8 +797,15 @@ void mesa_print_display_list(GLuint list);
 static void
 vbo_destroy_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node)
 {
-   for (gl_vertex_processing_mode vpm = VP_MODE_FF; vpm < VP_MODE_MAX; ++vpm)
-      _mesa_reference_vao(ctx, &node->VAO[vpm], NULL);
+   for (gl_vertex_processing_mode mode = VP_MODE_FF; mode < VP_MODE_MAX; ++mode) {
+      _mesa_reference_vao(ctx, &node->VAO[mode], NULL);
+      if (node->merged.gallium.private_refcount[mode]) {
+         assert(node->merged.gallium.private_refcount[mode] > 0);
+         p_atomic_add(&node->merged.gallium.state[mode]->reference.count,
+                      -node->merged.gallium.private_refcount[mode]);
+      }
+      pipe_vertex_state_reference(&node->merged.gallium.state[mode], NULL);
+   }
 
    if (node->merged.mode) {
       free(node->merged.mode);
@@ -11108,6 +11118,29 @@ save_NamedProgramLocalParameter4dvEXT(GLuint program, GLenum target, GLuint inde
                                         (GLfloat) params[3]);
 }
 
+static void GLAPIENTRY
+save_PrimitiveBoundingBox(float minX, float minY, float minZ, float minW,
+                          float maxX, float maxY, float maxZ, float maxW)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PRIMITIVE_BOUNDING_BOX, 8);
+   if (n) {
+      n[1].f = minX;
+      n[2].f = minY;
+      n[3].f = minZ;
+      n[4].f = minW;
+      n[5].f = maxX;
+      n[6].f = maxY;
+      n[7].f = maxZ;
+      n[8].f = maxW;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_PrimitiveBoundingBox(ctx->Exec, (minX, minY, minZ, minW,
+                                            maxX, maxY, maxZ, maxW));
+   }
+}
 
 /**
  * Save an error-generating command into display list.
@@ -13363,6 +13396,11 @@ execute_list(struct gl_context *ctx, GLuint list)
                                              n[5].f, n[6].f, n[7].f));
             break;
 
+         case OPCODE_PRIMITIVE_BOUNDING_BOX:
+            CALL_PrimitiveBoundingBox(ctx->Exec,
+                                      (n[1].f, n[2].f, n[3].f, n[4].f,
+                                       n[5].f, n[6].f, n[7].f, n[8].f));
+            break;
          case OPCODE_VERTEX_LIST:
             vbo_save_playback_vertex_list(ctx, &n[1], false);
             break;
@@ -14670,6 +14708,9 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_NamedProgramLocalParameter4dvEXT(table, save_NamedProgramLocalParameter4dvEXT);
    SET_NamedProgramLocalParameter4fEXT(table, save_NamedProgramLocalParameter4fEXT);
    SET_NamedProgramLocalParameter4fvEXT(table, save_NamedProgramLocalParameter4fvEXT);
+
+   /* GL_ARB_ES3_2_compatibility */
+   SET_PrimitiveBoundingBox(table, save_PrimitiveBoundingBox);
 }
 
 

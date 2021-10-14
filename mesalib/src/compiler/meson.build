@@ -97,4 +97,8 @@ if with_tests
   )
 endif
 
+if with_clc
+  subdir('clc')
+endif
 subdir('glsl')
+subdir('isaspec')

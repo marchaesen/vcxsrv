@@ -109,6 +109,7 @@ def has_access(format):
         'y16_u16v16_422_unorm',
         'y16_u16_v16_444_unorm',
         'r8_g8b8_420_unorm',
+        'r8_g8_b8_420_unorm',
     ]
     if format.short_name() in noaccess_formats:
         return False

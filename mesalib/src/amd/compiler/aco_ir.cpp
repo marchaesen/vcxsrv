@@ -65,7 +65,7 @@ init()
 }
 
 void
-init_program(Program* program, Stage stage, struct radv_shader_info* info,
+init_program(Program* program, Stage stage, const struct radv_shader_info* info,
              enum chip_class chip_class, enum radeon_family family, bool wgp_mode,
              ac_shader_config* config)
 {

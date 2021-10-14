@@ -86,7 +86,7 @@ fd6_vertex_state_create(struct pipe_context *pctx, unsigned num_elements,
    for (int32_t i = 0; i < num_elements; i++) {
       const struct pipe_vertex_element *elem = &elements[i];
       enum pipe_format pfmt = elem->src_format;
-      enum a6xx_format fmt = fd6_pipe2vtx(pfmt);
+      enum a6xx_format fmt = fd6_vertex_format(pfmt);
       bool isint = util_format_is_pure_integer(pfmt);
       debug_assert(fmt != FMT6_NONE);
 
@@ -95,7 +95,7 @@ fd6_vertex_state_create(struct pipe_context *pctx, unsigned num_elements,
                         A6XX_VFD_DECODE_INSTR_FORMAT(fmt) |
                         COND(elem->instance_divisor,
                              A6XX_VFD_DECODE_INSTR_INSTANCED) |
-                        A6XX_VFD_DECODE_INSTR_SWAP(fd6_pipe2swap(pfmt)) |
+                        A6XX_VFD_DECODE_INSTR_SWAP(fd6_vertex_swap(pfmt)) |
                         A6XX_VFD_DECODE_INSTR_UNK30 |
                         COND(!isint, A6XX_VFD_DECODE_INSTR_FLOAT));
       OUT_RING(ring,

@@ -27,6 +27,8 @@
 #include "vmw_screen.h"
 #include "vmw_fence.h"
 #include "vmw_context.h"
+#include "vmwgfx_drm.h"
+#include "xf86drm.h"
 
 #include "util/os_file.h"
 #include "util/u_memory.h"
@@ -41,6 +43,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 
 static struct hash_table *dev_hash = NULL;
 
@@ -55,6 +59,61 @@ static uint32_t vmw_dev_hash(const void *key)
    return (major(*(dev_t *) key) << 16) | minor(*(dev_t *) key);
 }
 
+#ifdef VMX86_STATS
+/**
+ * Initializes mksstat TLS store.
+ */
+static void
+vmw_winsys_screen_init_mksstat(struct vmw_winsys_screen *vws)
+{
+   size_t i;
+
+   for (i = 0; i < ARRAY_SIZE(vws->mksstat_tls); ++i) {
+      vws->mksstat_tls[i].stat_pages = NULL;
+      vws->mksstat_tls[i].stat_id = -1UL;
+      vws->mksstat_tls[i].pid = 0;
+   }
+}
+
+/**
+ * Deinits mksstat TLS store.
+ */
+static void
+vmw_winsys_screen_deinit_mksstat(struct vmw_winsys_screen *vws)
+{
+   size_t i;
+
+   for (i = 0; i < ARRAY_SIZE(vws->mksstat_tls); ++i) {
+      uint32_t expected = __atomic_load_n(&vws->mksstat_tls[i].pid, __ATOMIC_ACQUIRE);
+
+      if (expected == -1U) {
+         fprintf(stderr, "%s encountered locked mksstat TLS entry at index %lu.\n", __FUNCTION__, i);
+         continue;
+      }
+
+      if (expected == 0)
+         continue;
+
+      if (__atomic_compare_exchange_n(&vws->mksstat_tls[i].pid, &expected, 0, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+         struct drm_vmw_mksstat_remove_arg arg = {
+            .id = vws->mksstat_tls[i].stat_id
+         };
+
+         assert(vws->mksstat_tls[i].stat_pages);
+         assert(vws->mksstat_tls[i].stat_id != -1UL);
+
+         if (drmCommandWrite(vws->ioctl.drm_fd, DRM_VMW_MKSSTAT_REMOVE, &arg, sizeof(arg))) {
+            fprintf(stderr, "%s could not ioctl: %s\n", __FUNCTION__, strerror(errno));
+         } else if (munmap(vws->mksstat_tls[i].stat_pages, vmw_svga_winsys_stats_len())) {
+            fprintf(stderr, "%s could not munmap: %s\n", __FUNCTION__, strerror(errno));
+         }
+      } else {
+         fprintf(stderr, "%s encountered volatile mksstat TLS entry at index %lu.\n", __FUNCTION__, i);
+      }
+   }
+}
+
+#endif
 /* Called from vmw_drm_create_screen(), creates and initializes the
  * vmw_winsys_screen structure, which is the main entity in this
  * module.
@@ -112,6 +171,9 @@ vmw_winsys_create( int fd )
    if (!vmw_winsys_screen_init_svga(vws))
       goto out_no_svga;
 
+#ifdef VMX86_STATS
+   vmw_winsys_screen_init_mksstat(vws);
+#endif
    _mesa_hash_table_insert(dev_hash, &vws->device, vws);
 
    cnd_init(&vws->cs_cond);
@@ -139,6 +201,9 @@ vmw_winsys_destroy(struct vmw_winsys_screen *vws)
       vmw_pools_cleanup(vws);
       vws->fence_ops->destroy(vws->fence_ops);
       vmw_ioctl_cleanup(vws);
+#ifdef VMX86_STATS
+      vmw_winsys_screen_deinit_mksstat(vws);
+#endif
       close(vws->ioctl.drm_fd);
       mtx_destroy(&vws->cs_mutex);
       cnd_destroy(&vws->cs_cond);

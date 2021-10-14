@@ -1308,6 +1308,10 @@ for (int i = 0; i < 32; i += 8) {
 unop("fsat_signed_mali", tfloat, ("fmin(fmax(src0, -1.0), 1.0)"))
 unop("fclamp_pos_mali", tfloat, ("fmax(src0, 0.0)"))
 
+# Magnitude equal to fddx/y, sign undefined. Derivative of a constant is zero.
+unop("fddx_must_abs_mali", tfloat, "0.0")
+unop("fddy_must_abs_mali", tfloat, "0.0")
+
 # DXIL specific double [un]pack
 # DXIL doesn't support generic [un]pack instructions, so we want those
 # lowered to bit ops. HLSL doesn't support 64bit bitcasts to/from

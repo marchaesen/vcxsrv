@@ -197,8 +197,8 @@ nir_lower_input_attachments(nir_shader *shader,
             case nir_instr_type_tex: {
                nir_tex_instr *tex = nir_instr_as_tex(instr);
 
-               if (tex->op == nir_texop_fragment_mask_fetch ||
-                   tex->op == nir_texop_fragment_fetch) {
+               if (tex->op == nir_texop_fragment_mask_fetch_amd ||
+                   tex->op == nir_texop_fragment_fetch_amd) {
                   progress |= try_lower_input_texop(function->impl, tex,
                                                     options);
                }

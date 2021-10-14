@@ -23,7 +23,7 @@
  *
  */
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 #include <string.h>
 #include "pan_util.h"

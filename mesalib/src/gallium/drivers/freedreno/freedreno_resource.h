@@ -27,9 +27,7 @@
 #ifndef FREEDRENO_RESOURCE_H_
 #define FREEDRENO_RESOURCE_H_
 
-#include "util/bitset.h"
 #include "util/list.h"
-#include "util/set.h"
 #include "util/simple_mtx.h"
 #include "util/u_dump.h"
 #include "util/u_range.h"
@@ -58,6 +56,62 @@ enum fd_lrz_direction {
 };
 
 /**
+ * State related to batch/resource tracking.
+ *
+ * With threaded_context we need to support replace_buffer_storage, in
+ * which case we can end up in transfer_map with tres->latest, but other
+ * pipe_context APIs using the original prsc pointer.  This allows TC to
+ * not have to synchronize the front-end thread with the buffer storage
+ * replacement called on driver thread.  But it complicates the batch/
+ * resource tracking.
+ *
+ * To handle this, we need to split the tracking out into it's own ref-
+ * counted structure, so as needed both "versions" of the resource can
+ * point to the same tracking.
+ *
+ * We could *almost* just push this down to fd_bo, except for a3xx/a4xx
+ * hw queries, where we don't know up-front the size to allocate for
+ * per-tile query results.
+ */
+struct fd_resource_tracking {
+   struct pipe_reference reference;
+
+   /* bitmask of in-flight batches which reference this resource.  Note
+    * that the batch doesn't hold reference to resources (but instead
+    * the fd_ringbuffer holds refs to the underlying fd_bo), but in case
+    * the resource is destroyed we need to clean up the batch's weak
+    * references to us.
+    */
+   uint32_t batch_mask;
+
+   /* reference to batch that writes this resource: */
+   struct fd_batch *write_batch;
+
+   /* Set of batches whose batch-cache key references this resource.
+    * We need to track this to know which batch-cache entries to
+    * invalidate if, for example, the resource is invalidated or
+    * shadowed.
+    */
+   uint32_t bc_batch_mask;
+};
+
+void __fd_resource_tracking_destroy(struct fd_resource_tracking *track);
+
+static inline void
+fd_resource_tracking_reference(struct fd_resource_tracking **ptr,
+                               struct fd_resource_tracking *track)
+{
+   struct fd_resource_tracking *old_track = *ptr;
+
+   if (pipe_reference(&(*ptr)->reference, &track->reference)) {
+      assert(!old_track->write_batch);
+      free(old_track);
+   }
+
+   *ptr = track;
+}
+
+/**
  * A resource (any buffer/texture/image/etc)
  */
 struct fd_resource {
@@ -65,13 +119,6 @@ struct fd_resource {
    struct fd_bo *bo; /* use fd_resource_set_bo() to write */
    enum pipe_format internal_format;
    uint32_t hash; /* _mesa_hash_pointer() on this resource's address. */
-
-   /* Atomic counter of the number of batches referencing this resource in any
-    * batch cache.  Used for fd_resource_busy(), which needs to check for busy
-    * in the batch cache from the frontend thread.
-    */
-   uint32_t batch_references;
-
    struct fdl_layout layout;
 
    /* buffer range that has been initialized */
@@ -82,6 +129,8 @@ struct fd_resource {
    /* reference to the resource holding stencil data for a z32_s8 texture */
    /* TODO rename to secondary or auxiliary? */
    struct fd_resource *stencil;
+
+   struct fd_resource_tracking *track;
 
    simple_mtx_t lock;
 
@@ -95,6 +144,8 @@ struct fd_resource {
 
    /* Is this buffer a replacement created by threaded_context to avoid
     * a stall in PIPE_MAP_DISCARD_WHOLE_RESOURCE|PIPE_MAP_WRITE case?
+    * If so, it no longer "owns" it's rsc->track, and so should not
+    * invalidate when the rsc is destroyed.
     */
    bool is_replacement : 1;
 
@@ -142,39 +193,17 @@ fd_memory_object(struct pipe_memory_object *pmemobj)
 }
 
 static inline bool
-fd_batch_references(struct fd_batch *batch, struct fd_resource *rsc)
+pending(struct fd_resource *rsc, bool write)
 {
-   /* Currently each rsc has an individual BO, so we can use the bo handle as a
-    * unique index for the resource.
-    */
-   uint32_t handle = fd_bo_id(rsc->bo);
-   return handle < batch->bos_size && BITSET_TEST(batch->bos, handle);
-}
+   /* if we have a pending GPU write, we are busy in any case: */
+   if (rsc->track->write_batch)
+      return true;
 
-static inline struct fd_batch *
-fd_bc_writer(struct fd_context *ctx, struct fd_resource *rsc)
-{
-   struct hash_entry *entry =
-      _mesa_hash_table_search_pre_hashed(ctx->batch_cache.written_resources, rsc->hash, rsc);
-   if (entry)
-      return entry->data;
-   return NULL;
-}
+   /* if CPU wants to write, but we are pending a GPU read, we are busy: */
+   if (write && rsc->track->batch_mask)
+      return true;
 
-static inline bool
-pending(struct fd_context *ctx, struct fd_resource *rsc, bool write) assert_dt
-{
-   if (write) {
-      foreach_batch (batch, &ctx->batch_cache) {
-         if (fd_batch_references(batch, rsc))
-            return true;
-      }
-   } else {
-      if (fd_bc_writer(ctx, rsc))
-         return true;
-   }
-
-   if (rsc->stencil && pending(ctx, rsc->stencil, write))
+   if (rsc->stencil && pending(rsc->stencil, write))
       return true;
 
    return false;
@@ -319,7 +348,7 @@ void fd_resource_screen_init(struct pipe_screen *pscreen);
 void fd_resource_context_init(struct pipe_context *pctx);
 
 uint32_t fd_setup_slices(struct fd_resource *rsc);
-void fd_resource_resize(struct fd_context *ctx, struct pipe_resource *prsc, uint32_t sz);
+void fd_resource_resize(struct pipe_resource *prsc, uint32_t sz);
 void fd_replace_buffer_storage(struct pipe_context *ctx,
                                struct pipe_resource *dst,
                                struct pipe_resource *src,
@@ -335,6 +364,12 @@ void fd_resource_uncompress(struct fd_context *ctx,
 void fd_resource_dump(struct fd_resource *rsc, const char *name);
 
 bool fd_render_condition_check(struct pipe_context *pctx) assert_dt;
+
+static inline bool
+fd_batch_references_resource(struct fd_batch *batch, struct fd_resource *rsc)
+{
+   return rsc->track->batch_mask & (1 << batch->idx);
+}
 
 static inline void
 fd_batch_write_prep(struct fd_batch *batch, struct fd_resource *rsc) assert_dt
@@ -353,7 +388,7 @@ fd_batch_resource_read(struct fd_batch *batch,
     * writing to it (since both _write and _read flush other writers), and
     * that we've already recursed for stencil.
     */
-   if (unlikely(!fd_batch_references(batch, rsc)))
+   if (unlikely(!fd_batch_references_resource(batch, rsc)))
       fd_batch_resource_read_slowpath(batch, rsc);
 }
 

@@ -38,8 +38,6 @@ tu_spirv_to_nir(struct tu_device *dev,
 {
    /* TODO these are made-up */
    const struct spirv_to_nir_options spirv_options = {
-      .frag_coord_is_sysval = true,
-
       .ubo_addr_format = nir_address_format_vec2_index_32bit_offset,
       .ssbo_addr_format = nir_address_format_vec2_index_32bit_offset,
 
@@ -111,6 +109,11 @@ tu_spirv_to_nir(struct tu_device *dev,
 
    assert(nir->info.stage == stage);
    nir_validate_shader(nir, "after spirv_to_nir");
+
+   const struct nir_lower_sysvals_to_varyings_options sysvals_to_varyings = {
+      .point_coord = true,
+   };
+   NIR_PASS_V(nir, nir_lower_sysvals_to_varyings, &sysvals_to_varyings);
 
    if (unlikely(dev->physical_device->instance->debug_flags & TU_DEBUG_NIR)) {
       fprintf(stderr, "translated nir:\n");
@@ -342,7 +345,7 @@ build_bindless(nir_builder *b, nir_deref_instr *deref, bool is_sampler,
       const struct glsl_type *glsl_type = glsl_without_array(var->type);
       uint32_t idx = var->data.index * 2;
 
-      BITSET_SET_RANGE(b->shader->info.textures_used, idx * 2, ((idx * 2) + (bind_layout->array_size * 2)) - 1);
+      BITSET_SET_RANGE_INSIDE_WORD(b->shader->info.textures_used, idx * 2, ((idx * 2) + (bind_layout->array_size * 2)) - 1);
 
       /* D24S8 workaround: stencil of D24S8 will be sampled as uint */
       if (glsl_get_sampler_result_type(glsl_type) == GLSL_TYPE_UINT)

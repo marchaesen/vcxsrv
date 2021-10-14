@@ -35,9 +35,9 @@
 
 
 static void
-disasm_instr_cb(void *d, unsigned n, uint64_t instr)
+disasm_instr_cb(void *d, unsigned n, void *instr)
 {
-	uint32_t *dwords = (uint32_t *)&instr;
+	uint32_t *dwords = (uint32_t *)instr;
 	printf("%3d[%08x_%08x] ", n, dwords[1], dwords[0]);
 }
 

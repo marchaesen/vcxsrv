@@ -39,7 +39,7 @@ v3dv_CreateQueryPool(VkDevice _device,
       vk_object_zalloc(&device->vk, pAllocator, sizeof(*pool),
                        VK_OBJECT_TYPE_QUERY_POOL);
    if (pool == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    pool->query_type = pCreateInfo->queryType;
    pool->query_count = pCreateInfo->queryCount;
@@ -50,7 +50,7 @@ v3dv_CreateQueryPool(VkDevice _device,
    pool->queries = vk_alloc2(&device->vk.alloc, pAllocator, pool_bytes, 8,
                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pool->queries == NULL) {
-      result = vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      result = vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto fail;
    }
 
@@ -63,11 +63,11 @@ v3dv_CreateQueryPool(VkDevice _device,
       const uint32_t bo_size = query_groups * 1024;
       pool->bo = v3dv_bo_alloc(device, bo_size, "query", true);
       if (!pool->bo) {
-         result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+         result = vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
          goto fail;
       }
       if (!v3dv_bo_map(device, pool->bo, bo_size)) {
-         result = vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+         result = vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
          goto fail;
       }
    }
@@ -159,10 +159,10 @@ get_occlusion_query_result(struct v3dv_device *device,
        *     error may occur."
        */
       if (!q->maybe_available)
-         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+         return vk_error(device, VK_ERROR_DEVICE_LOST);
 
       if (!v3dv_bo_wait(device, q->bo, 0xffffffffffffffffull))
-         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+         return vk_error(device, VK_ERROR_DEVICE_LOST);
 
       *available = true;
    } else {
@@ -195,7 +195,7 @@ get_timestamp_query_result(struct v3dv_device *device,
        *     error may occur."
        */
       if (!q->maybe_available)
-         return vk_error(device->instance, VK_ERROR_DEVICE_LOST);
+         return vk_error(device, VK_ERROR_DEVICE_LOST);
 
       *available = true;
    } else {

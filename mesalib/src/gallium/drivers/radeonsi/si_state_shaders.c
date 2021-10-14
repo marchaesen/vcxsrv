@@ -70,7 +70,7 @@ void si_get_ir_cache_key(struct si_shader_selector *sel, bool ngg, bool es,
       shader_variant_flags |= 1 << 0;
    if (sel->nir)
       shader_variant_flags |= 1 << 1;
-   if (si_get_wave_size(sel->screen, sel->info.stage, ngg, es, false) == 32)
+   if (si_get_wave_size(sel->screen, sel->info.stage, ngg, es) == 32)
       shader_variant_flags |= 1 << 2;
    if (sel->info.stage == MESA_SHADER_FRAGMENT &&
        /* Derivatives imply helper invocations so check for needs_quad_helper_invocations. */
@@ -879,6 +879,9 @@ static void si_shader_gs(struct si_screen *sscreen, struct si_shader *shader)
    shader->ctx_reg.gs.vgt_gs_instance_cnt =
       S_028B90_CNT(MIN2(gs_num_invocations, 127)) | S_028B90_ENABLE(gs_num_invocations > 0);
 
+   /* Copy over fields from the GS copy shader to make them easily accessible from GS. */
+   shader->pa_cl_vs_out_cntl = sel->gs_copy_shader->pa_cl_vs_out_cntl;
+
    va = shader->bo->gpu_address;
 
    if (sscreen->info.chip_class >= GFX9) {
@@ -1022,9 +1025,6 @@ static void gfx10_emit_shader_ngg_tail(struct si_context *sctx, struct si_shader
    radeon_opt_set_context_reg(sctx, R_028838_PA_CL_NGG_CNTL, SI_TRACKED_PA_CL_NGG_CNTL,
                               shader->ctx_reg.ngg.pa_cl_ngg_cntl);
 
-   radeon_opt_set_context_reg_rmw(sctx, R_02881C_PA_CL_VS_OUT_CNTL,
-                                  SI_TRACKED_PA_CL_VS_OUT_CNTL__VS, shader->pa_cl_vs_out_cntl,
-                                  SI_TRACKED_PA_CL_VS_OUT_CNTL__VS_MASK);
    radeon_end_update_context_roll(sctx);
 
    /* These don't cause a context roll. */
@@ -1094,7 +1094,7 @@ static void gfx10_emit_shader_ngg_tess_gs(struct si_context *sctx)
    gfx10_emit_shader_ngg_tail(sctx, shader);
 }
 
-unsigned si_get_input_prim(const struct si_shader_selector *gs)
+unsigned si_get_input_prim(const struct si_shader_selector *gs, const struct si_shader_key *key)
 {
    if (gs->info.stage == MESA_SHADER_GEOMETRY)
       return gs->info.base.gs.input_primitive;
@@ -1107,22 +1107,26 @@ unsigned si_get_input_prim(const struct si_shader_selector *gs)
       return PIPE_PRIM_TRIANGLES;
    }
 
-   /* TODO: Set this correctly if the primitive type is set in the shader key. */
+   if (key->opt.ngg_culling & SI_NGG_CULL_LINES)
+      return PIPE_PRIM_LINES;
+
    return PIPE_PRIM_TRIANGLES; /* worst case for all callers */
 }
 
 static unsigned si_get_vs_out_cntl(const struct si_shader_selector *sel,
                                    const struct si_shader *shader, bool ngg)
 {
-   bool writes_psize = sel->info.writes_psize;
-
-   if (shader)
-      writes_psize &= !shader->key.opt.kill_pointsize;
-
+   /* Clip distances can be killed, but cull distances can't. */
+   unsigned clipcull_mask = (sel->clipdist_mask & ~shader->key.opt.kill_clip_distances) |
+                            sel->culldist_mask;
+   bool writes_psize = sel->info.writes_psize && !shader->key.opt.kill_pointsize;
    bool misc_vec_ena = writes_psize || (sel->info.writes_edgeflag && !ngg) ||
                        sel->screen->options.vrs2x2 ||
                        sel->info.writes_layer || sel->info.writes_viewport_index;
-   return S_02881C_USE_VTX_POINT_SIZE(writes_psize) |
+
+   return S_02881C_VS_OUT_CCDIST0_VEC_ENA((clipcull_mask & 0x0F) != 0) |
+          S_02881C_VS_OUT_CCDIST1_VEC_ENA((clipcull_mask & 0xF0) != 0) |
+          S_02881C_USE_VTX_POINT_SIZE(writes_psize) |
           S_02881C_USE_VTX_EDGE_FLAG(sel->info.writes_edgeflag && !ngg) |
           S_02881C_USE_VTX_VRS_RATE(sel->screen->options.vrs2x2) |
           S_02881C_USE_VTX_RENDER_TARGET_INDX(sel->info.writes_layer) |
@@ -1151,7 +1155,7 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
                           gs_info->base.vs.window_space_position : 0;
    bool es_enable_prim_id = shader->key.mono.u.vs_export_prim_id || es_info->uses_primid;
    unsigned gs_num_invocations = MAX2(gs_sel->info.base.gs.invocations, 1);
-   unsigned input_prim = si_get_input_prim(gs_sel);
+   unsigned input_prim = si_get_input_prim(gs_sel, &shader->key);
    bool break_wave_at_eoi = false;
    struct si_pm4_state *pm4 = si_get_shader_pm4_state(shader);
    if (!pm4)
@@ -1193,7 +1197,7 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
     * for the GL_LINE polygon mode to skip rendering lines on inner edges.
     */
    if (gs_info->uses_invocationid ||
-       (gs_stage == MESA_SHADER_VERTEX && !gfx10_is_ngg_passthrough(shader)))
+       (gfx10_edgeflags_have_effect(shader) && !gfx10_is_ngg_passthrough(shader)))
       gs_vgpr_comp_cnt = 3; /* VGPR3 contains InvocationID, edge flags. */
    else if ((gs_stage == MESA_SHADER_GEOMETRY && gs_info->uses_primid) ||
             (gs_stage == MESA_SHADER_VERTEX && shader->key.mono.u.vs_export_prim_id))
@@ -1276,61 +1280,55 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
       S_028B90_CNT(gs_num_invocations) | S_028B90_ENABLE(gs_num_invocations > 1) |
       S_028B90_EN_MAX_VERT_OUT_PER_GS_INSTANCE(shader->ngg.max_vert_out_per_gs_instance);
 
-   /* Always output hw-generated edge flags and pass them via the prim
+   /* Output hw-generated edge flags if needed and pass them via the prim
     * export to prevent drawing lines on internal edges of decomposed
-    * primitives (such as quads) with polygon mode = lines. Only VS needs
-    * this.
+    * primitives (such as quads) with polygon mode = lines.
     */
    shader->ctx_reg.ngg.pa_cl_ngg_cntl =
-      S_028838_INDEX_BUF_EDGE_FLAG_ENA(gs_stage == MESA_SHADER_VERTEX) |
+      S_028838_INDEX_BUF_EDGE_FLAG_ENA(gfx10_edgeflags_have_effect(shader)) |
       /* Reuse for NGG. */
       S_028838_VERTEX_REUSE_DEPTH(sscreen->info.chip_class >= GFX10_3 ? 30 : 0);
    shader->pa_cl_vs_out_cntl = si_get_vs_out_cntl(shader->selector, shader, true);
 
    /* Oversubscribe PC. This improves performance when there are too many varyings. */
-   float oversub_pc_factor = 0.25;
+   unsigned oversub_pc_factor = 1;
 
    if (shader->key.opt.ngg_culling) {
       /* Be more aggressive with NGG culling. */
       if (shader->info.nr_param_exports > 4)
-         oversub_pc_factor = 1;
+         oversub_pc_factor = 4;
       else if (shader->info.nr_param_exports > 2)
-         oversub_pc_factor = 0.75;
+         oversub_pc_factor = 3;
       else
-         oversub_pc_factor = 0.5;
+         oversub_pc_factor = 2;
    }
 
-   unsigned oversub_pc_lines = late_alloc_wave64 ? sscreen->info.pc_lines * oversub_pc_factor : 0;
+   unsigned oversub_pc_lines =
+      late_alloc_wave64 ? (sscreen->info.pc_lines / 4) * oversub_pc_factor : 0;
    shader->ctx_reg.ngg.ge_pc_alloc = S_030980_OVERSUB_EN(oversub_pc_lines > 0) |
                                      S_030980_NUM_PC_LINES(oversub_pc_lines - 1);
 
-   if (shader->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_TRI_LIST ||
-       shader->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_TRI_STRIP) {
-      shader->ge_cntl = S_03096C_PRIM_GRP_SIZE(shader->ngg.max_gsprims) |
-                        S_03096C_VERT_GRP_SIZE(shader->ngg.hw_max_esverts);
-   } else {
-      shader->ge_cntl = S_03096C_PRIM_GRP_SIZE(shader->ngg.max_gsprims) |
-                        S_03096C_VERT_GRP_SIZE(shader->ngg.hw_max_esverts) |
-                        S_03096C_BREAK_WAVE_AT_EOI(break_wave_at_eoi);
+   shader->ge_cntl = S_03096C_PRIM_GRP_SIZE(shader->ngg.max_gsprims) |
+                     S_03096C_VERT_GRP_SIZE(shader->ngg.hw_max_esverts) |
+                     S_03096C_BREAK_WAVE_AT_EOI(break_wave_at_eoi);
 
-      /* On gfx10, the GE only checks against the maximum number of ES verts after
-       * allocating a full GS primitive. So we need to ensure that whenever
-       * this check passes, there is enough space for a full primitive without
-       * vertex reuse. VERT_GRP_SIZE=256 doesn't need this. We should always get 256
-       * if we have enough LDS.
-       *
-       * Tessellation is unaffected because it always sets GE_CNTL.VERT_GRP_SIZE = 0.
+   /* On gfx10, the GE only checks against the maximum number of ES verts after
+    * allocating a full GS primitive. So we need to ensure that whenever
+    * this check passes, there is enough space for a full primitive without
+    * vertex reuse. VERT_GRP_SIZE=256 doesn't need this. We should always get 256
+    * if we have enough LDS.
+    *
+    * Tessellation is unaffected because it always sets GE_CNTL.VERT_GRP_SIZE = 0.
+    */
+   if ((sscreen->info.chip_class == GFX10) &&
+       (es_stage == MESA_SHADER_VERTEX || gs_stage == MESA_SHADER_VERTEX) && /* = no tess */
+       shader->ngg.hw_max_esverts != 256 &&
+       shader->ngg.hw_max_esverts > 5) {
+      /* This could be based on the input primitive type. 5 is the worst case
+       * for primitive types with adjacency.
        */
-      if ((sscreen->info.chip_class == GFX10) &&
-          (es_stage == MESA_SHADER_VERTEX || gs_stage == MESA_SHADER_VERTEX) && /* = no tess */
-          shader->ngg.hw_max_esverts != 256 &&
-          shader->ngg.hw_max_esverts > 5) {
-         /* This could be based on the input primitive type. 5 is the worst case
-          * for primitive types with adjacency.
-          */
-         shader->ge_cntl &= C_03096C_VERT_GRP_SIZE;
-         shader->ge_cntl |= S_03096C_VERT_GRP_SIZE(shader->ngg.hw_max_esverts - 5);
-      }
+      shader->ge_cntl &= C_03096C_VERT_GRP_SIZE;
+      shader->ge_cntl |= S_03096C_VERT_GRP_SIZE(shader->ngg.hw_max_esverts - 5);
    }
 
    if (window_space) {
@@ -1345,8 +1343,6 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
    shader->ctx_reg.ngg.vgt_stages.u.ngg = 1;
    shader->ctx_reg.ngg.vgt_stages.u.streamout = gs_sel->so.num_outputs;
    shader->ctx_reg.ngg.vgt_stages.u.ngg_passthrough = gfx10_is_ngg_passthrough(shader);
-   shader->ctx_reg.ngg.vgt_stages.u.ngg_gs_fast_launch =
-      !!(shader->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL);
 }
 
 static void si_emit_shader_vs(struct si_context *sctx)
@@ -1394,11 +1390,6 @@ static void si_emit_shader_vs(struct si_context *sctx)
                                  S_028A44_GS_INST_PRIMS_IN_SUBGRP(126));
    }
 
-   if (sctx->chip_class >= GFX10) {
-      radeon_opt_set_context_reg_rmw(sctx, R_02881C_PA_CL_VS_OUT_CNTL,
-                                     SI_TRACKED_PA_CL_VS_OUT_CNTL__VS, shader->pa_cl_vs_out_cntl,
-                                     SI_TRACKED_PA_CL_VS_OUT_CNTL__VS_MASK);
-   }
    radeon_end_update_context_roll(sctx);
 
    /* GE_PC_ALLOC is not a context register, so it doesn't cause a context roll. */
@@ -1813,8 +1804,15 @@ void si_vs_key_update_inputs(struct si_context *sctx)
 
    if (vs->info.base.vs.blit_sgprs_amd) {
       si_clear_vs_key_inputs(sctx, key, &key->part.vs.prolog);
+      key->opt.prefer_mono = 0;
+      sctx->uses_nontrivial_vs_prolog = false;
       return;
    }
+
+   bool uses_nontrivial_vs_prolog = false;
+
+   if (elts->instance_divisor_is_one || elts->instance_divisor_is_fetched)
+      uses_nontrivial_vs_prolog = true;
 
    key->part.vs.prolog.instance_divisor_is_one = elts->instance_divisor_is_one;
    key->part.vs.prolog.instance_divisor_is_fetched = elts->instance_divisor_is_fetched;
@@ -1843,9 +1841,29 @@ void si_vs_key_update_inputs(struct si_context *sctx)
 
    while (fix) {
       unsigned i = u_bit_scan(&fix);
-      key->mono.vs_fix_fetch[i].bits = elts->fix_fetch[i];
+      uint8_t fix_fetch = elts->fix_fetch[i];
+
+      key->mono.vs_fix_fetch[i].bits = fix_fetch;
+      if (fix_fetch)
+         uses_nontrivial_vs_prolog = true;
    }
    key->mono.vs_fetch_opencode = opencode;
+   if (opencode)
+      uses_nontrivial_vs_prolog = true;
+
+   sctx->uses_nontrivial_vs_prolog = uses_nontrivial_vs_prolog;
+
+   /* draw_vertex_state (display lists) requires a trivial VS prolog that ignores
+    * the current vertex buffers and vertex elements.
+    *
+    * We just computed the prolog key because we needed to set uses_nontrivial_vs_prolog,
+    * so that we know whether the VS prolog should be updated when we switch from
+    * draw_vertex_state to draw_vbo. Now clear the VS prolog for draw_vertex_state.
+    * This should happen rarely because the VS prolog should be trivial in most
+    * cases.
+    */
+   if (uses_nontrivial_vs_prolog && sctx->force_trivial_vs_prolog)
+      si_clear_vs_key_inputs(sctx, key, &key->part.vs.prolog);
 }
 
 void si_get_vs_key_inputs(struct si_context *sctx, struct si_shader_key *key,
@@ -1899,9 +1917,7 @@ static void si_get_vs_key_outputs(struct si_context *sctx, struct si_shader_sele
       key->mono.u.vs_export_prim_id = 0;
    }
 
-   /* We need PKT3_CONTEXT_REG_RMW, which we currently only use on GFX10+. */
-   key->opt.kill_pointsize = sctx->chip_class >= GFX10 &&
-                             vs->info.writes_psize &&
+   key->opt.kill_pointsize = vs->info.writes_psize &&
                              sctx->current_rast_prim != PIPE_PRIM_POINTS &&
                              !sctx->queued.named.rasterizer->polygon_mode_is_points;
 }
@@ -2983,20 +2999,16 @@ static void *si_create_shader_selector(struct pipe_context *ctx,
                   sscreen->info.chip_class == GFX10_3 ||
                   (sscreen->info.chip_class == GFX10 &&
                    sscreen->info.is_pro_graphics)) {
-            sel->ngg_cull_vert_threshold = sscreen->info.num_se >= 3 ? 511 : 255;
+            sel->ngg_cull_vert_threshold = 128;
          }
       } else if (sel->info.stage == MESA_SHADER_TESS_EVAL) {
-         if (sel->rast_prim == PIPE_PRIM_TRIANGLES &&
+         if (sel->rast_prim != PIPE_PRIM_POINTS &&
              (sscreen->debug_flags & DBG(ALWAYS_NGG_CULLING_ALL) ||
               sscreen->debug_flags & DBG(ALWAYS_NGG_CULLING_TESS) ||
               sscreen->info.chip_class == GFX10_3))
             sel->ngg_cull_vert_threshold = 0; /* always enabled */
       }
    }
-
-   /* PA_CL_VS_OUT_CNTL */
-   if (sctx->chip_class <= GFX9)
-      sel->pa_cl_vs_out_cntl = si_get_vs_out_cntl(sel, NULL, false);
 
    sel->clipdist_mask = sel->info.writes_clipvertex ? SIX_BITS :
                            u_bit_consecutive(0, sel->info.base.clip_distance_array_size);
@@ -3105,11 +3117,10 @@ static void si_update_clip_regs(struct si_context *sctx, struct si_shader_select
        (!old_hw_vs ||
         (old_hw_vs->info.stage == MESA_SHADER_VERTEX && old_hw_vs->info.base.vs.window_space_position) !=
         (next_hw_vs->info.stage == MESA_SHADER_VERTEX && next_hw_vs->info.base.vs.window_space_position) ||
-        old_hw_vs->pa_cl_vs_out_cntl != next_hw_vs->pa_cl_vs_out_cntl ||
         old_hw_vs->clipdist_mask != next_hw_vs->clipdist_mask ||
         old_hw_vs->culldist_mask != next_hw_vs->culldist_mask || !old_hw_vs_variant ||
         !next_hw_vs_variant ||
-        old_hw_vs_variant->key.opt.kill_clip_distances != next_hw_vs_variant->key.opt.kill_clip_distances))
+        old_hw_vs_variant->pa_cl_vs_out_cntl != next_hw_vs_variant->pa_cl_vs_out_cntl))
       si_mark_atom_dirty(sctx, &sctx->atoms.s.clip_regs);
 }
 
@@ -3152,6 +3163,9 @@ static void si_update_common_shader_state(struct si_context *sctx, struct si_sha
                                 si_shader_uses_bindless_images(sctx->shader.ps.cso) ||
                                 si_shader_uses_bindless_images(sctx->shader.tcs.cso) ||
                                 si_shader_uses_bindless_images(sctx->shader.tes.cso);
+
+   if (type == PIPE_SHADER_VERTEX || type == PIPE_SHADER_TESS_EVAL || type == PIPE_SHADER_GEOMETRY)
+      sctx->ngg_culling = 0; /* this will be enabled on the first draw if needed */
 
    si_invalidate_inlinable_uniforms(sctx, type);
    sctx->do_update_shaders = true;
@@ -3539,12 +3553,12 @@ static void si_emit_vgt_flush(struct radeon_cmdbuf *cs)
    radeon_begin(cs);
 
    /* This is required before VGT_FLUSH. */
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
 
    /* VGT_FLUSH is required even if VGT is idle. It resets VGT pointers. */
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(cs, EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
    radeon_end();
 }
 
@@ -3644,11 +3658,11 @@ bool si_update_gs_ring_buffers(struct si_context *sctx)
       /* Set the GS registers. */
       if (sctx->esgs_ring) {
          assert(sctx->chip_class <= GFX8);
-         radeon_set_uconfig_reg(cs, R_030900_VGT_ESGS_RING_SIZE,
+         radeon_set_uconfig_reg(R_030900_VGT_ESGS_RING_SIZE,
                                 sctx->esgs_ring->width0 / 256);
       }
       if (sctx->gsvs_ring) {
-         radeon_set_uconfig_reg(cs, R_030904_VGT_GSVS_RING_SIZE,
+         radeon_set_uconfig_reg(R_030904_VGT_GSVS_RING_SIZE,
                                 sctx->gsvs_ring->width0 / 256);
       }
       radeon_end();
@@ -3910,17 +3924,17 @@ void si_init_tess_factor_ring(struct si_context *sctx)
 
       /* Set tessellation registers. */
       radeon_begin(cs);
-      radeon_set_uconfig_reg(cs, R_030938_VGT_TF_RING_SIZE,
+      radeon_set_uconfig_reg(R_030938_VGT_TF_RING_SIZE,
                              S_030938_SIZE(sctx->screen->tess_factor_ring_size / 4));
-      radeon_set_uconfig_reg(cs, R_030940_VGT_TF_MEMORY_BASE, factor_va >> 8);
+      radeon_set_uconfig_reg(R_030940_VGT_TF_MEMORY_BASE, factor_va >> 8);
       if (sctx->chip_class >= GFX10) {
-         radeon_set_uconfig_reg(cs, R_030984_VGT_TF_MEMORY_BASE_HI_UMD,
+         radeon_set_uconfig_reg(R_030984_VGT_TF_MEMORY_BASE_HI_UMD,
                                 S_030984_BASE_HI(factor_va >> 40));
       } else if (sctx->chip_class == GFX9) {
-         radeon_set_uconfig_reg(cs, R_030944_VGT_TF_MEMORY_BASE_HI,
+         radeon_set_uconfig_reg(R_030944_VGT_TF_MEMORY_BASE_HI,
                                 S_030944_BASE_HI(factor_va >> 40));
       }
-      radeon_set_uconfig_reg(cs, R_03093C_VGT_HS_OFFCHIP_PARAM,
+      radeon_set_uconfig_reg(R_03093C_VGT_HS_OFFCHIP_PARAM,
                              sctx->screen->vgt_hs_offchip_param);
       radeon_end();
       return;
@@ -3993,7 +4007,7 @@ struct si_pm4_state *si_build_vgt_shader_config(struct si_screen *screen, union 
    }
 
    if (key.u.ngg) {
-      stages |= S_028B54_PRIMGEN_EN(1) | S_028B54_GS_FAST_LAUNCH(key.u.ngg_gs_fast_launch) |
+      stages |= S_028B54_PRIMGEN_EN(1) |
                 S_028B54_NGG_WAVE_ID_EN(key.u.streamout) |
                 S_028B54_PRIMGEN_PASSTHRU_EN(key.u.ngg_passthrough) |
                 S_028B54_PRIMGEN_PASSTHRU_NO_MSG(key.u.ngg_passthrough &&
@@ -4004,9 +4018,7 @@ struct si_pm4_state *si_build_vgt_shader_config(struct si_screen *screen, union 
    if (screen->info.chip_class >= GFX9)
       stages |= S_028B54_MAX_PRIMGRP_IN_WAVE(2);
 
-   if (screen->info.chip_class >= GFX10 &&
-       /* GS fast launch hangs with Wave64, so always use Wave32. */
-       (screen->ge_wave_size == 32 || (key.u.ngg && key.u.ngg_gs_fast_launch))) {
+   if (screen->info.chip_class >= GFX10 && screen->ge_wave_size == 32) {
       stages |= S_028B54_HS_W32_EN(1) |
                 S_028B54_GS_W32_EN(key.u.ngg) | /* legacy GS only supports Wave64 */
                 S_028B54_VS_W32_EN(1);
@@ -4021,7 +4033,7 @@ static void si_emit_scratch_state(struct si_context *sctx)
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
 
    radeon_begin(cs);
-   radeon_set_context_reg(cs, R_0286E8_SPI_TMPRING_SIZE, sctx->spi_tmpring_size);
+   radeon_set_context_reg(R_0286E8_SPI_TMPRING_SIZE, sctx->spi_tmpring_size);
    radeon_end();
 
    if (sctx->scratch_buffer) {

@@ -382,6 +382,24 @@ build_array_deref_of_new_var_flat(nir_shader *shader,
       build_array_index(b, leader, nir_imm_int(b, base), vs_in, per_vertex));
 }
 
+ASSERTED static bool
+nir_shader_can_read_output(const shader_info *info)
+{
+   switch (info->stage) {
+   case MESA_SHADER_TESS_CTRL:
+   case MESA_SHADER_FRAGMENT:
+      return true;
+
+   case MESA_SHADER_TASK:
+   case MESA_SHADER_MESH:
+      /* TODO(mesh): This will not be allowed on EXT. */
+      return true;
+
+   default:
+      return false;
+   }
+}
+
 static bool
 nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
 {
@@ -448,8 +466,7 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
                break;
 
             if (nir_deref_mode_is(old_deref, nir_var_shader_out))
-               assert(b.shader->info.stage == MESA_SHADER_TESS_CTRL ||
-                      b.shader->info.stage == MESA_SHADER_FRAGMENT);
+               assert(nir_shader_can_read_output(&b.shader->info));
 
             nir_variable *old_var = nir_deref_instr_get_variable(old_deref);
 

@@ -140,7 +140,7 @@ int radeonTransformTEX(
 
 	/* ARB_shadow & EXT_shadow_funcs */
 	if (inst->U.I.Opcode != RC_OPCODE_KIL &&
-		((c->Program.ShadowSamplers & (1 << inst->U.I.TexSrcUnit)) ||
+		((c->Program.ShadowSamplers & (1U << inst->U.I.TexSrcUnit)) ||
 		 (compiler->state.unit[inst->U.I.TexSrcUnit].compare_mode_enabled))) {
 		rc_compare_func comparefunc = compiler->state.unit[inst->U.I.TexSrcUnit].texture_compare_func;
 

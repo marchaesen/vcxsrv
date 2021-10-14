@@ -1,4 +1,3 @@
-Reading src/freedreno/.gitlab-ci/traces/es2gears-a320.rd.gz...
 gpu_id: 330
 cmd: es2gears/628: fence=276
 ############################################################

@@ -51,6 +51,7 @@ struct pipe_device_reset_callback;
 struct pipe_draw_info;
 struct pipe_draw_indirect_info;
 struct pipe_draw_start_count_bias;
+struct pipe_draw_vertex_state_info;
 struct pipe_grid_info;
 struct pipe_fence_handle;
 struct pipe_framebuffer_state;
@@ -71,6 +72,7 @@ struct pipe_surface;
 struct pipe_transfer;
 struct pipe_vertex_buffer;
 struct pipe_vertex_element;
+struct pipe_vertex_state;
 struct pipe_video_buffer;
 struct pipe_video_codec;
 struct pipe_viewport_state;
@@ -142,6 +144,46 @@ struct pipe_context {
                     const struct pipe_draw_indirect_info *indirect,
                     const struct pipe_draw_start_count_bias *draws,
                     unsigned num_draws);
+
+   /**
+    * Multi draw for display lists.
+    *
+    * For more information, see pipe_vertex_state and
+    * pipe_draw_vertex_state_info.
+    *
+    * Explanation of partial_vertex_mask:
+    *
+    * 1. pipe_vertex_state::input::elements have a monotonic logical index
+    *    determined by pipe_vertex_state::input::full_velem_mask, specifically,
+    *    the position of the i-th bit set is the logical index of the i-th
+    *    vertex element, up to 31.
+    *
+    * 2. pipe_vertex_state::input::partial_velem_mask is a subset of
+    *    full_velem_mask where the bits set determine which vertex elements
+    *    should be bound contiguously. The vertex elements corresponding to
+    *    the bits not set in partial_velem_mask should be ignored.
+    *
+    * Those two allow creating pipe_vertex_state that has more vertex
+    * attributes than the vertex shader has inputs. The idea is that
+    * pipe_vertex_state can be used with any vertex shader that has the same
+    * number of inputs and same logical indices or less. This may sound like
+    * an overly complicated way to bind a subset of vertex elements, but it
+    * actually simplifies everything else:
+    *
+    * - In st/mesa, full_velem_mask is exactly the mask of enabled vertex
+    *   attributes (VERT_ATTRIB_x) in the display list VAO, while
+    *   partial_velem_mask is exactly the inputs_read mask of the vertex
+    *   shader (also VERT_ATTRIB_x).
+    *
+    * - In the driver, some bit ops and popcnt is needed to assemble vertex
+    *   elements very quickly.
+    */
+   void (*draw_vertex_state)(struct pipe_context *ctx,
+                             struct pipe_vertex_state *state,
+                             uint32_t partial_velem_mask,
+                             struct pipe_draw_vertex_state_info info,
+                             const struct pipe_draw_start_count_bias *draws,
+                             unsigned num_draws);
    /*@}*/
 
    /**

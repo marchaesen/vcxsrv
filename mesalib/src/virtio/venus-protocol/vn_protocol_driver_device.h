@@ -13131,6 +13131,8 @@ static inline void vn_submit_vkGetDeviceQueue2(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkEnumeratePhysicalDevices(struct vn_instance *vn_instance, VkInstance instance, uint32_t* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumeratePhysicalDevices(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, instance, pPhysicalDeviceCount, pPhysicalDevices, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13151,6 +13153,8 @@ static inline void vn_async_vkEnumeratePhysicalDevices(struct vn_instance *vn_in
 
 static inline void vn_call_vkGetPhysicalDeviceProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13168,6 +13172,8 @@ static inline void vn_async_vkGetPhysicalDeviceProperties(struct vn_instance *vn
 
 static inline void vn_call_vkGetPhysicalDeviceQueueFamilyProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, uint32_t* pQueueFamilyPropertyCount, VkQueueFamilyProperties* pQueueFamilyProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceQueueFamilyProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pQueueFamilyPropertyCount, pQueueFamilyProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13185,6 +13191,8 @@ static inline void vn_async_vkGetPhysicalDeviceQueueFamilyProperties(struct vn_i
 
 static inline void vn_call_vkGetPhysicalDeviceMemoryProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties* pMemoryProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceMemoryProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pMemoryProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13202,6 +13210,8 @@ static inline void vn_async_vkGetPhysicalDeviceMemoryProperties(struct vn_instan
 
 static inline void vn_call_vkGetPhysicalDeviceFeatures(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures* pFeatures)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceFeatures(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pFeatures, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13219,6 +13229,8 @@ static inline void vn_async_vkGetPhysicalDeviceFeatures(struct vn_instance *vn_i
 
 static inline void vn_call_vkGetPhysicalDeviceFormatProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties* pFormatProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceFormatProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, format, pFormatProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13236,6 +13248,8 @@ static inline void vn_async_vkGetPhysicalDeviceFormatProperties(struct vn_instan
 
 static inline VkResult vn_call_vkGetPhysicalDeviceImageFormatProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags, VkImageFormatProperties* pImageFormatProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceImageFormatProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, format, type, tiling, usage, flags, pImageFormatProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13256,6 +13270,8 @@ static inline void vn_async_vkGetPhysicalDeviceImageFormatProperties(struct vn_i
 
 static inline VkResult vn_call_vkCreateDevice(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateDevice(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pCreateInfo, pAllocator, pDevice, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13276,6 +13292,8 @@ static inline void vn_async_vkCreateDevice(struct vn_instance *vn_instance, VkPh
 
 static inline void vn_call_vkDestroyDevice(struct vn_instance *vn_instance, VkDevice device, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyDevice(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13293,6 +13311,8 @@ static inline void vn_async_vkDestroyDevice(struct vn_instance *vn_instance, VkD
 
 static inline VkResult vn_call_vkEnumerateDeviceLayerProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, uint32_t* pPropertyCount, VkLayerProperties* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumerateDeviceLayerProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pPropertyCount, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13313,6 +13333,8 @@ static inline void vn_async_vkEnumerateDeviceLayerProperties(struct vn_instance 
 
 static inline VkResult vn_call_vkEnumerateDeviceExtensionProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumerateDeviceExtensionProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pLayerName, pPropertyCount, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13333,6 +13355,8 @@ static inline void vn_async_vkEnumerateDeviceExtensionProperties(struct vn_insta
 
 static inline void vn_call_vkGetDeviceQueue(struct vn_instance *vn_instance, VkDevice device, uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetDeviceQueue(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, queueFamilyIndex, queueIndex, pQueue, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13350,6 +13374,8 @@ static inline void vn_async_vkGetDeviceQueue(struct vn_instance *vn_instance, Vk
 
 static inline VkResult vn_call_vkDeviceWaitIdle(struct vn_instance *vn_instance, VkDevice device)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDeviceWaitIdle(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13370,6 +13396,8 @@ static inline void vn_async_vkDeviceWaitIdle(struct vn_instance *vn_instance, Vk
 
 static inline void vn_call_vkGetPhysicalDeviceSparseImageFormatProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type, VkSampleCountFlagBits samples, VkImageUsageFlags usage, VkImageTiling tiling, uint32_t* pPropertyCount, VkSparseImageFormatProperties* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceSparseImageFormatProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, format, type, samples, usage, tiling, pPropertyCount, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13387,6 +13415,8 @@ static inline void vn_async_vkGetPhysicalDeviceSparseImageFormatProperties(struc
 
 static inline void vn_call_vkGetPhysicalDeviceFeatures2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures2* pFeatures)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceFeatures2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pFeatures, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13404,6 +13434,8 @@ static inline void vn_async_vkGetPhysicalDeviceFeatures2(struct vn_instance *vn_
 
 static inline void vn_call_vkGetPhysicalDeviceProperties2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties2* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceProperties2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13421,6 +13453,8 @@ static inline void vn_async_vkGetPhysicalDeviceProperties2(struct vn_instance *v
 
 static inline void vn_call_vkGetPhysicalDeviceFormatProperties2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties2* pFormatProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceFormatProperties2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, format, pFormatProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13438,6 +13472,8 @@ static inline void vn_async_vkGetPhysicalDeviceFormatProperties2(struct vn_insta
 
 static inline VkResult vn_call_vkGetPhysicalDeviceImageFormatProperties2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2* pImageFormatInfo, VkImageFormatProperties2* pImageFormatProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceImageFormatProperties2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pImageFormatInfo, pImageFormatProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13458,6 +13494,8 @@ static inline void vn_async_vkGetPhysicalDeviceImageFormatProperties2(struct vn_
 
 static inline void vn_call_vkGetPhysicalDeviceQueueFamilyProperties2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, uint32_t* pQueueFamilyPropertyCount, VkQueueFamilyProperties2* pQueueFamilyProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceQueueFamilyProperties2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pQueueFamilyPropertyCount, pQueueFamilyProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13475,6 +13513,8 @@ static inline void vn_async_vkGetPhysicalDeviceQueueFamilyProperties2(struct vn_
 
 static inline void vn_call_vkGetPhysicalDeviceMemoryProperties2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties2* pMemoryProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceMemoryProperties2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pMemoryProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13492,6 +13532,8 @@ static inline void vn_async_vkGetPhysicalDeviceMemoryProperties2(struct vn_insta
 
 static inline void vn_call_vkGetPhysicalDeviceSparseImageFormatProperties2(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2* pFormatInfo, uint32_t* pPropertyCount, VkSparseImageFormatProperties2* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceSparseImageFormatProperties2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pFormatInfo, pPropertyCount, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13509,6 +13551,8 @@ static inline void vn_async_vkGetPhysicalDeviceSparseImageFormatProperties2(stru
 
 static inline void vn_call_vkGetPhysicalDeviceExternalBufferProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo* pExternalBufferInfo, VkExternalBufferProperties* pExternalBufferProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceExternalBufferProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pExternalBufferInfo, pExternalBufferProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13526,6 +13570,8 @@ static inline void vn_async_vkGetPhysicalDeviceExternalBufferProperties(struct v
 
 static inline void vn_call_vkGetPhysicalDeviceExternalSemaphoreProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalSemaphoreInfo* pExternalSemaphoreInfo, VkExternalSemaphoreProperties* pExternalSemaphoreProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceExternalSemaphoreProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pExternalSemaphoreInfo, pExternalSemaphoreProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13543,6 +13589,8 @@ static inline void vn_async_vkGetPhysicalDeviceExternalSemaphoreProperties(struc
 
 static inline void vn_call_vkGetPhysicalDeviceExternalFenceProperties(struct vn_instance *vn_instance, VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfo* pExternalFenceInfo, VkExternalFenceProperties* pExternalFenceProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetPhysicalDeviceExternalFenceProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, physicalDevice, pExternalFenceInfo, pExternalFenceProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13560,6 +13608,8 @@ static inline void vn_async_vkGetPhysicalDeviceExternalFenceProperties(struct vn
 
 static inline VkResult vn_call_vkEnumeratePhysicalDeviceGroups(struct vn_instance *vn_instance, VkInstance instance, uint32_t* pPhysicalDeviceGroupCount, VkPhysicalDeviceGroupProperties* pPhysicalDeviceGroupProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumeratePhysicalDeviceGroups(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, instance, pPhysicalDeviceGroupCount, pPhysicalDeviceGroupProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13580,6 +13630,8 @@ static inline void vn_async_vkEnumeratePhysicalDeviceGroups(struct vn_instance *
 
 static inline void vn_call_vkGetDeviceGroupPeerMemoryFeatures(struct vn_instance *vn_instance, VkDevice device, uint32_t heapIndex, uint32_t localDeviceIndex, uint32_t remoteDeviceIndex, VkPeerMemoryFeatureFlags* pPeerMemoryFeatures)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetDeviceGroupPeerMemoryFeatures(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, heapIndex, localDeviceIndex, remoteDeviceIndex, pPeerMemoryFeatures, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -13597,6 +13649,8 @@ static inline void vn_async_vkGetDeviceGroupPeerMemoryFeatures(struct vn_instanc
 
 static inline void vn_call_vkGetDeviceQueue2(struct vn_instance *vn_instance, VkDevice device, const VkDeviceQueueInfo2* pQueueInfo, VkQueue* pQueue)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetDeviceQueue2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pQueueInfo, pQueue, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

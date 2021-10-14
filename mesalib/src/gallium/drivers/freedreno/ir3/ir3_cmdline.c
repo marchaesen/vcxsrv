@@ -251,6 +251,12 @@ load_spirv(const char *filename, const char *entry, gl_shader_stage stage)
                       stage, entry, &spirv_options,
                       ir3_get_compiler_options(compiler));
 
+   const struct nir_lower_sysvals_to_varyings_options sysvals_to_varyings = {
+      .frag_coord = true,
+      .point_coord = true,
+   };
+   NIR_PASS_V(nir, nir_lower_sysvals_to_varyings, &sysvals_to_varyings);
+
    nir_print_shader(nir, stdout);
 
    return nir;

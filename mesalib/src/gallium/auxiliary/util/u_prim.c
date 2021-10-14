@@ -37,6 +37,9 @@ u_prim_name(enum pipe_prim_type prim)
    struct pipe_draw_info info;
    STATIC_ASSERT(sizeof(info.mode) == 1);
 
+   struct pipe_draw_vertex_state_info dvs_info;
+   STATIC_ASSERT(sizeof(dvs_info.mode) == 1);
+
    static const struct debug_named_value names[] = {
       DEBUG_NAMED_VALUE(PIPE_PRIM_POINTS),
       DEBUG_NAMED_VALUE(PIPE_PRIM_LINES),

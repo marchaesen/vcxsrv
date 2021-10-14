@@ -240,14 +240,14 @@ static void gfx10_emit_streamout_begin(struct si_context *sctx)
          va = t[i]->buf_filled_size->gpu_address + t[i]->buf_filled_size_offset;
       }
 
-      radeon_emit(cs, PKT3(PKT3_DMA_DATA, 5, 0));
-      radeon_emit(cs, S_411_SRC_SEL(append ? V_411_SRC_ADDR_TC_L2 : V_411_DATA) |
-                         S_411_DST_SEL(V_411_GDS) | S_411_CP_SYNC(i == last_target));
-      radeon_emit(cs, va);
-      radeon_emit(cs, va >> 32);
-      radeon_emit(cs, 4 * i); /* destination in GDS */
-      radeon_emit(cs, 0);
-      radeon_emit(cs, S_415_BYTE_COUNT_GFX9(4) | S_415_DISABLE_WR_CONFIRM_GFX9(i != last_target));
+      radeon_emit(PKT3(PKT3_DMA_DATA, 5, 0));
+      radeon_emit(S_411_SRC_SEL(append ? V_411_SRC_ADDR_TC_L2 : V_411_DATA) |
+                  S_411_DST_SEL(V_411_GDS) | S_411_CP_SYNC(i == last_target));
+      radeon_emit(va);
+      radeon_emit(va >> 32);
+      radeon_emit(4 * i); /* destination in GDS */
+      radeon_emit(0);
+      radeon_emit(S_415_BYTE_COUNT_GFX9(4) | S_415_DISABLE_WR_CONFIRM_GFX9(i != last_target));
    }
    radeon_end();
 
@@ -284,23 +284,22 @@ static void si_flush_vgt_streamout(struct si_context *sctx)
    /* The register is at different places on different ASICs. */
    if (sctx->chip_class >= GFX7) {
       reg_strmout_cntl = R_0300FC_CP_STRMOUT_CNTL;
-      radeon_set_uconfig_reg(cs, reg_strmout_cntl, 0);
+      radeon_set_uconfig_reg(reg_strmout_cntl, 0);
    } else {
       reg_strmout_cntl = R_0084FC_CP_STRMOUT_CNTL;
-      radeon_set_config_reg(cs, reg_strmout_cntl, 0);
+      radeon_set_config_reg(reg_strmout_cntl, 0);
    }
 
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(cs, EVENT_TYPE(EVENT_TYPE_SO_VGTSTREAMOUT_FLUSH) | EVENT_INDEX(0));
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(EVENT_TYPE_SO_VGTSTREAMOUT_FLUSH) | EVENT_INDEX(0));
 
-   radeon_emit(cs, PKT3(PKT3_WAIT_REG_MEM, 5, 0));
-   radeon_emit(cs,
-               WAIT_REG_MEM_EQUAL); /* wait until the register is equal to the reference value */
-   radeon_emit(cs, reg_strmout_cntl >> 2); /* register */
-   radeon_emit(cs, 0);
-   radeon_emit(cs, S_0084FC_OFFSET_UPDATE_DONE(1)); /* reference value */
-   radeon_emit(cs, S_0084FC_OFFSET_UPDATE_DONE(1)); /* mask */
-   radeon_emit(cs, 4);                              /* poll interval */
+   radeon_emit(PKT3(PKT3_WAIT_REG_MEM, 5, 0));
+   radeon_emit(WAIT_REG_MEM_EQUAL); /* wait until the register is equal to the reference value */
+   radeon_emit(reg_strmout_cntl >> 2); /* register */
+   radeon_emit(0);
+   radeon_emit(S_0084FC_OFFSET_UPDATE_DONE(1)); /* reference value */
+   radeon_emit(S_0084FC_OFFSET_UPDATE_DONE(1)); /* mask */
+   radeon_emit(4);                              /* poll interval */
    radeon_end();
 }
 
@@ -324,33 +323,33 @@ static void si_emit_streamout_begin(struct si_context *sctx)
       /* AMD GCN binds streamout buffers as shader resources.
        * VGT only counts primitives and tells the shader
        * through SGPRs what to do. */
-      radeon_set_context_reg_seq(cs, R_028AD0_VGT_STRMOUT_BUFFER_SIZE_0 + 16 * i, 2);
-      radeon_emit(cs, (t[i]->b.buffer_offset + t[i]->b.buffer_size) >> 2); /* BUFFER_SIZE (in DW) */
-      radeon_emit(cs, stride_in_dw[i]);                                    /* VTX_STRIDE (in DW) */
+      radeon_set_context_reg_seq(R_028AD0_VGT_STRMOUT_BUFFER_SIZE_0 + 16 * i, 2);
+      radeon_emit((t[i]->b.buffer_offset + t[i]->b.buffer_size) >> 2); /* BUFFER_SIZE (in DW) */
+      radeon_emit(stride_in_dw[i]);                                    /* VTX_STRIDE (in DW) */
 
       if (sctx->streamout.append_bitmask & (1 << i) && t[i]->buf_filled_size_valid) {
          uint64_t va = t[i]->buf_filled_size->gpu_address + t[i]->buf_filled_size_offset;
 
          /* Append. */
-         radeon_emit(cs, PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
-         radeon_emit(cs, STRMOUT_SELECT_BUFFER(i) |
-                            STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_MEM)); /* control */
-         radeon_emit(cs, 0);                                                 /* unused */
-         radeon_emit(cs, 0);                                                 /* unused */
-         radeon_emit(cs, va);                                                /* src address lo */
-         radeon_emit(cs, va >> 32);                                          /* src address hi */
+         radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
+         radeon_emit(STRMOUT_SELECT_BUFFER(i) |
+                     STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_MEM)); /* control */
+         radeon_emit(0);                                              /* unused */
+         radeon_emit(0);                                              /* unused */
+         radeon_emit(va);                                             /* src address lo */
+         radeon_emit(va >> 32);                                       /* src address hi */
 
          radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size, RADEON_USAGE_READ,
                                    RADEON_PRIO_SO_FILLED_SIZE);
       } else {
          /* Start from the beginning. */
-         radeon_emit(cs, PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
-         radeon_emit(cs, STRMOUT_SELECT_BUFFER(i) |
-                            STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_PACKET)); /* control */
-         radeon_emit(cs, 0);                                                    /* unused */
-         radeon_emit(cs, 0);                                                    /* unused */
-         radeon_emit(cs, t[i]->b.buffer_offset >> 2); /* buffer offset in DW */
-         radeon_emit(cs, 0);                          /* unused */
+         radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
+         radeon_emit(STRMOUT_SELECT_BUFFER(i) |
+                     STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_PACKET)); /* control */
+         radeon_emit(0);                                                 /* unused */
+         radeon_emit(0);                                                 /* unused */
+         radeon_emit(t[i]->b.buffer_offset >> 2); /* buffer offset in DW */
+         radeon_emit(0);                          /* unused */
       }
    }
    radeon_end();
@@ -379,13 +378,13 @@ void si_emit_streamout_end(struct si_context *sctx)
          continue;
 
       va = t[i]->buf_filled_size->gpu_address + t[i]->buf_filled_size_offset;
-      radeon_emit(cs, PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
-      radeon_emit(cs, STRMOUT_SELECT_BUFFER(i) | STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_NONE) |
-                         STRMOUT_STORE_BUFFER_FILLED_SIZE); /* control */
-      radeon_emit(cs, va);                                  /* dst address lo */
-      radeon_emit(cs, va >> 32);                            /* dst address hi */
-      radeon_emit(cs, 0);                                   /* unused */
-      radeon_emit(cs, 0);                                   /* unused */
+      radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
+      radeon_emit(STRMOUT_SELECT_BUFFER(i) | STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_NONE) |
+                  STRMOUT_STORE_BUFFER_FILLED_SIZE); /* control */
+      radeon_emit(va);                                  /* dst address lo */
+      radeon_emit(va >> 32);                            /* dst address hi */
+      radeon_emit(0);                                   /* unused */
+      radeon_emit(0);                                   /* unused */
 
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size, RADEON_USAGE_WRITE,
                                 RADEON_PRIO_SO_FILLED_SIZE);
@@ -394,7 +393,7 @@ void si_emit_streamout_end(struct si_context *sctx)
        * primitives emitted) may be enabled even if there is not
        * buffer bound. This ensures that the primitives-emitted query
        * won't increment. */
-      radeon_set_context_reg(cs, R_028AD0_VGT_STRMOUT_BUFFER_SIZE_0 + 16 * i, 0);
+      radeon_set_context_reg(R_028AD0_VGT_STRMOUT_BUFFER_SIZE_0 + 16 * i, 0);
 
       t[i]->buf_filled_size_valid = true;
    }
@@ -415,14 +414,13 @@ static void si_emit_streamout_enable(struct si_context *sctx)
    assert(!sctx->screen->use_ngg_streamout);
 
    radeon_begin(&sctx->gfx_cs);
-   radeon_set_context_reg_seq(&sctx->gfx_cs, R_028B94_VGT_STRMOUT_CONFIG, 2);
-   radeon_emit(&sctx->gfx_cs, S_028B94_STREAMOUT_0_EN(si_get_strmout_en(sctx)) |
-                                S_028B94_RAST_STREAM(0) |
-                                S_028B94_STREAMOUT_1_EN(si_get_strmout_en(sctx)) |
-                                S_028B94_STREAMOUT_2_EN(si_get_strmout_en(sctx)) |
-                                S_028B94_STREAMOUT_3_EN(si_get_strmout_en(sctx)));
-   radeon_emit(&sctx->gfx_cs,
-               sctx->streamout.hw_enabled_mask & sctx->streamout.enabled_stream_buffers_mask);
+   radeon_set_context_reg_seq(R_028B94_VGT_STRMOUT_CONFIG, 2);
+   radeon_emit(S_028B94_STREAMOUT_0_EN(si_get_strmout_en(sctx)) |
+               S_028B94_RAST_STREAM(0) |
+               S_028B94_STREAMOUT_1_EN(si_get_strmout_en(sctx)) |
+               S_028B94_STREAMOUT_2_EN(si_get_strmout_en(sctx)) |
+               S_028B94_STREAMOUT_3_EN(si_get_strmout_en(sctx)));
+   radeon_emit(sctx->streamout.hw_enabled_mask & sctx->streamout.enabled_stream_buffers_mask);
    radeon_end();
 }
 

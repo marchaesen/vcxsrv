@@ -36,6 +36,9 @@ algebraic_late = [
     (('fmin', ('fmax', a, -1.0), 1.0), ('fsat_signed_mali', a)),
     (('fmax', ('fmin', a, 1.0), -1.0), ('fsat_signed_mali', a)),
     (('fmax', a, 0.0), ('fclamp_pos_mali', a)),
+
+    (('fabs', ('fddx', a)), ('fabs', ('fddx_must_abs_mali', a))),
+    (('fabs', ('fddy', b)), ('fabs', ('fddy_must_abs_mali', b))),
 ]
 
 

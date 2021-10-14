@@ -83,7 +83,7 @@ fd4_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
       .debug = &ctx->debug,
       .vtx = &ctx->vtx,
       .info = info,
-		.drawid_offset = drawid_offset,
+      .drawid_offset = drawid_offset,
       .indirect = indirect,
       .draw = draw,
       .key = {

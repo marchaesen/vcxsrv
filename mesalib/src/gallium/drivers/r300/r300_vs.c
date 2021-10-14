@@ -249,7 +249,7 @@ void r300_translate_vertex_shader(struct r300_context *r300,
         compiler.Base.remove_unused_constants = TRUE;
     }
 
-    compiler.RequiredOutputs = ~(~0 << (vs->info.num_outputs + 1));
+    compiler.RequiredOutputs = ~(~0U << (vs->info.num_outputs + 1));
     compiler.SetHwInputOutput = &set_vertex_inputs_outputs;
 
     /* Insert the WPOS output. */

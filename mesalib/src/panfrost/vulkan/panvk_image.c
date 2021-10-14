@@ -84,7 +84,7 @@ panvk_image_create(VkDevice _device,
    image = vk_object_zalloc(&device->vk, alloc, sizeof(*image),
                             VK_OBJECT_TYPE_IMAGE);
    if (!image)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    image->type = pCreateInfo->imageType;
 

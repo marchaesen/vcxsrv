@@ -29,6 +29,7 @@
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "util/format/u_format.h"
+#include "util/u_helpers.h"
 #include "util/u_upload_mgr.h"
 #include "util/u_threaded_context.h"
 #include "noop_public.h"
@@ -456,9 +457,11 @@ static struct pipe_context *noop_create_context(struct pipe_screen *screen,
       threaded_context_create(ctx,
                               &((struct noop_pipe_screen*)screen)->pool_transfers,
                               noop_replace_buffer_storage,
-                              noop_create_fence,
-                              noop_is_resource_busy,
-                              false, NULL);
+                              &(struct threaded_context_options) {
+                                 .create_fence = noop_create_fence,
+                                 .is_resource_busy = noop_is_resource_busy,
+                              },
+                              NULL);
 
    if (tc && tc != ctx)
       threaded_context_init_bytes_mapped_limit((struct threaded_context *)tc, 4);
@@ -673,6 +676,32 @@ static void noop_query_dmabuf_modifiers(struct pipe_screen *screen,
                                    external_only, count);
 }
 
+static struct pipe_vertex_state *
+noop_create_vertex_state(struct pipe_screen *screen,
+                         struct pipe_vertex_buffer *buffer,
+                         const struct pipe_vertex_element *elements,
+                         unsigned num_elements,
+                         struct pipe_resource *indexbuf,
+                         uint32_t full_velem_mask)
+{
+   struct pipe_vertex_state *state = CALLOC_STRUCT(pipe_vertex_state);
+
+   if (!state)
+      return NULL;
+
+   util_init_pipe_vertex_state(screen, buffer, elements, num_elements, indexbuf,
+                               full_velem_mask, state);
+   return state;
+}
+
+static void noop_vertex_state_destroy(struct pipe_screen *screen,
+                                      struct pipe_vertex_state *state)
+{
+   pipe_vertex_buffer_unreference(&state->input.vbuffer);
+   pipe_resource_reference(&state->input.indexbuf, NULL);
+   FREE(state);
+}
+
 struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
 {
    struct noop_pipe_screen *noop_screen;
@@ -722,6 +751,8 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
    screen->get_device_uuid = noop_get_device_uuid;
    screen->query_dmabuf_modifiers = noop_query_dmabuf_modifiers;
    screen->resource_create_with_modifiers = noop_resource_create_with_modifiers;
+   screen->create_vertex_state = noop_create_vertex_state;
+   screen->vertex_state_destroy = noop_vertex_state_destroy;
 
    slab_create_parent(&noop_screen->pool_transfers,
                       sizeof(struct pipe_transfer), 64);

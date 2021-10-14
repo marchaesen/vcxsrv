@@ -689,6 +689,8 @@ static inline void vn_submit_vkUpdateDescriptorSets(struct vn_instance *vn_insta
 
 static inline VkResult vn_call_vkAllocateDescriptorSets(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetAllocateInfo* pAllocateInfo, VkDescriptorSet* pDescriptorSets)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkAllocateDescriptorSets(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pAllocateInfo, pDescriptorSets, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -709,6 +711,8 @@ static inline void vn_async_vkAllocateDescriptorSets(struct vn_instance *vn_inst
 
 static inline VkResult vn_call_vkFreeDescriptorSets(struct vn_instance *vn_instance, VkDevice device, VkDescriptorPool descriptorPool, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkFreeDescriptorSets(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorPool, descriptorSetCount, pDescriptorSets, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -729,6 +733,8 @@ static inline void vn_async_vkFreeDescriptorSets(struct vn_instance *vn_instance
 
 static inline void vn_call_vkUpdateDescriptorSets(struct vn_instance *vn_instance, VkDevice device, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites, uint32_t descriptorCopyCount, const VkCopyDescriptorSet* pDescriptorCopies)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkUpdateDescriptorSets(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorWriteCount, pDescriptorWrites, descriptorCopyCount, pDescriptorCopies, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

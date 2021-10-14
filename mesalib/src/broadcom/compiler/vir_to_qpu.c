@@ -45,12 +45,6 @@ qpu_magic(enum v3d_qpu_waddr waddr)
         return reg;
 }
 
-static inline struct qpu_reg
-qpu_acc(int acc)
-{
-        return qpu_magic(V3D_QPU_WADDR_R0 + acc);
-}
-
 struct v3d_qpu_instr
 v3d_qpu_nop(void)
 {
@@ -219,8 +213,13 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 src[i] = qpu_magic(qinst->src[i].index);
                                 break;
                         case QFILE_NULL:
+                                /* QFILE_NULL is an undef, so we can load
+                                 * anything. Using reg 0
+                                 */
+                                src[i] = qpu_reg(0);
+                                break;
                         case QFILE_LOAD_IMM:
-                                src[i] = qpu_acc(0);
+                                assert(!"not reached");
                                 break;
                         case QFILE_TEMP:
                                 src[i] = temp_registers[index];
@@ -238,7 +237,7 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 temp = new_qpu_nop_before(qinst);
                                 temp->qpu.sig.ldvpm = true;
 
-                                src[i] = qpu_acc(3);
+                                src[i] = qpu_magic(V3D_QPU_WADDR_R3);
                                 break;
                         }
                 }

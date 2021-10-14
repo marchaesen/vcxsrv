@@ -1565,18 +1565,11 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x8005" name="GRAS_CNTL">
 		<!-- see also RB_RENDER_CONTROL0 -->
 		<bitfield name="IJ_PERSP_PIXEL" pos="0" type="boolean"/>
-		<!-- b1 set for interpolateAtCentroid() -->
 		<bitfield name="IJ_PERSP_CENTROID" pos="1" type="boolean"/>
-		<!-- b2 set instead of b0 when running in per-sample mode -->
 		<bitfield name="IJ_PERSP_SAMPLE" pos="2" type="boolean"/>
-		<!--
-		b3 set for interpolateAt{Offset,Sample}() if not in per-sample
-		mode, and frag_face
-		 -->
-		<bitfield name="SIZE" pos="3" type="boolean"/>
-		<bitfield name="UNK4" pos="4" type="boolean"/>
-		<!-- b5 set ofr interpolateAt{Offset,Sample}() if in per-sample mode -->
-		<bitfield name="SIZE_PERSAMP" pos="5" type="boolean"/>
+		<bitfield name="IJ_LINEAR_PIXEL" pos="3" type="boolean"/>
+		<bitfield name="IJ_LINEAR_CENTROID" pos="4" type="boolean"/>
+		<bitfield name="IJ_LINEAR_SAMPLE" pos="5" type="boolean"/>
 		<bitfield name="COORD_MASK" low="6" high="9" type="hex"/>
 	</reg32>
 	<reg32 offset="0x8006" name="GRAS_CL_GUARDBAND_CLIP_ADJ">
@@ -1604,7 +1597,7 @@ to upconvert to 32b float internally?
 		<bitfield name="LINEHALFWIDTH" low="3" high="10" radix="2" type="fixed"/>
 		<bitfield name="POLY_OFFSET" pos="11" type="boolean"/>
 		<bitfield name="UNK12" pos="12"/>
-		<bitfield name="MSAA_ENABLE" pos="13" type="boolean"/>
+		<bitfield name="LINE_MODE" pos="13" type="a5xx_line_mode"/>
 		<bitfield name="UNK15" low="15" high="16"/>
 		<!--
 		This is set by the blob when multiview is enabled, but doesn't seem
@@ -1965,18 +1958,11 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x8809" name="RB_RENDER_CONTROL0">
 		<!-- see also GRAS_CNTL -->
 		<bitfield name="IJ_PERSP_PIXEL" pos="0" type="boolean"/>
-		<!-- b1 set for interpolateAtCentroid() -->
 		<bitfield name="IJ_PERSP_CENTROID" pos="1" type="boolean"/>
-		<!-- b2 set instead of b0 when running in per-sample mode -->
 		<bitfield name="IJ_PERSP_SAMPLE" pos="2" type="boolean"/>
-		<!--
-		b3 set for interpolateAt{Offset,Sample}() if not in per-sample
-		mode, and frag_face
-		 -->
-		<bitfield name="SIZE" pos="3" type="boolean"/>
-		<bitfield name="UNK4" pos="4" type="boolean"/>
-		<!-- b5 set ofr interpolateAt{Offset,Sample}() if in per-sample mode -->
-		<bitfield name="SIZE_PERSAMP" pos="5" type="boolean"/>
+		<bitfield name="IJ_LINEAR_PIXEL" pos="3" type="boolean"/>
+		<bitfield name="IJ_LINEAR_CENTROID" pos="4" type="boolean"/>
+		<bitfield name="IJ_LINEAR_SAMPLE" pos="5" type="boolean"/>
 		<bitfield name="COORD_MASK" low="6" high="9" type="hex"/>
 		<bitfield name="UNK10" pos="10" type="boolean"/>
 	</reg32>
@@ -3469,7 +3455,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xb4d1" name="SP_WINDOW_OFFSET" type="a6xx_reg_xy"/>
 
 	<!-- always 0x100000 or 0x1000000? -->
-	<reg32 offset="0xb600" name="TPL1_UNKNOWN_B600" low="0" high="25"/>
+	<reg32 offset="0xb600" name="TPL1_DBG_ECO_CNTL" low="0" high="25"/>
 	<reg32 offset="0xb601" name="TPL1_ADDR_MODE_CNTL" type="a5xx_address_mode"/>
 	<reg32 offset="0xb602" name="TPL1_UNKNOWN_B602" low="0" high="7" type="uint"/>
 	<reg32 offset="0xb604" name="TPL1_NC_MODE_CNTL">

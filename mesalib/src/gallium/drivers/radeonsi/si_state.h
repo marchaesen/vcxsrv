@@ -249,12 +249,6 @@ struct si_shader_data {
    uint32_t sh_base[SI_NUM_SHADERS];
 };
 
-#define SI_TRACKED_PA_CL_VS_OUT_CNTL__VS_MASK                                                      \
-   (S_02881C_USE_VTX_POINT_SIZE(1) | S_02881C_USE_VTX_EDGE_FLAG(1) |                               \
-    S_02881C_USE_VTX_RENDER_TARGET_INDX(1) | S_02881C_USE_VTX_VIEWPORT_INDX(1) |                   \
-    S_02881C_VS_OUT_MISC_VEC_ENA(1) | S_02881C_VS_OUT_MISC_SIDE_BUS_ENA(1) |                       \
-    S_02881C_USE_VTX_VRS_RATE(1))
-
 /* The list of registers whose emitted values are remembered by si_context. */
 enum si_tracked_reg
 {
@@ -280,8 +274,7 @@ enum si_tracked_reg
    SI_TRACKED_PA_SU_PRIM_FILTER_CNTL,
    SI_TRACKED_PA_SU_SMALL_PRIM_FILTER_CNTL,
 
-   SI_TRACKED_PA_CL_VS_OUT_CNTL__VS, /* set with SI_TRACKED_PA_CL_VS_OUT_CNTL__VS_MASK*/
-   SI_TRACKED_PA_CL_VS_OUT_CNTL__CL, /* set with ~SI_TRACKED_PA_CL_VS_OUT_CNTL__VS_MASK */
+   SI_TRACKED_PA_CL_VS_OUT_CNTL,
    SI_TRACKED_PA_CL_CLIP_CNTL,
 
    SI_TRACKED_PA_SC_BINNER_CNTL_0,
@@ -527,6 +520,7 @@ struct pb_slab *si_bindless_descriptor_slab_alloc(void *priv, unsigned heap, uns
 void si_bindless_descriptor_slab_free(void *priv, struct pb_slab *pslab);
 void si_rebind_buffer(struct si_context *sctx, struct pipe_resource *buf);
 /* si_state.c */
+uint32_t si_translate_colorformat(enum chip_class chip_class, enum pipe_format format);
 void si_init_state_compute_functions(struct si_context *sctx);
 void si_init_state_functions(struct si_context *sctx);
 void si_init_screen_state_functions(struct si_screen *sscreen);
@@ -587,7 +581,7 @@ void si_get_vs_key_inputs(struct si_context *sctx, struct si_shader_key *key,
 void si_update_ps_inputs_read_or_disabled(struct si_context *sctx);
 void si_update_ps_kill_enable(struct si_context *sctx);
 void si_update_vrs_flat_shading(struct si_context *sctx);
-unsigned si_get_input_prim(const struct si_shader_selector *gs);
+unsigned si_get_input_prim(const struct si_shader_selector *gs, const struct si_shader_key *key);
 bool si_update_ngg(struct si_context *sctx);
 void si_ps_key_update_framebuffer(struct si_context *sctx);
 void si_ps_key_update_framebuffer_blend(struct si_context *sctx);
@@ -600,7 +594,10 @@ void si_init_tess_factor_ring(struct si_context *sctx);
 bool si_update_gs_ring_buffers(struct si_context *sctx);
 bool si_update_spi_tmpring_size(struct si_context *sctx, unsigned bytes);
 
-/* si_state_draw.c */
+/* si_state_draw.cpp */
+void si_set_vertex_buffer_descriptor(struct si_screen *sscreen, struct si_vertex_elements *velems,
+                                     struct pipe_vertex_buffer *vb, unsigned element_index,
+                                     uint32_t *out);
 void si_init_draw_functions_GFX6(struct si_context *sctx);
 void si_init_draw_functions_GFX7(struct si_context *sctx);
 void si_init_draw_functions_GFX8(struct si_context *sctx);

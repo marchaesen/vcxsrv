@@ -343,6 +343,8 @@ static inline void vn_submit_vkResetDescriptorPool(struct vn_instance *vn_instan
 
 static inline VkResult vn_call_vkCreateDescriptorPool(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorPool* pDescriptorPool)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateDescriptorPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pDescriptorPool, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -363,6 +365,8 @@ static inline void vn_async_vkCreateDescriptorPool(struct vn_instance *vn_instan
 
 static inline void vn_call_vkDestroyDescriptorPool(struct vn_instance *vn_instance, VkDevice device, VkDescriptorPool descriptorPool, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyDescriptorPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorPool, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -380,6 +384,8 @@ static inline void vn_async_vkDestroyDescriptorPool(struct vn_instance *vn_insta
 
 static inline VkResult vn_call_vkResetDescriptorPool(struct vn_instance *vn_instance, VkDevice device, VkDescriptorPool descriptorPool, VkDescriptorPoolResetFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkResetDescriptorPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorPool, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

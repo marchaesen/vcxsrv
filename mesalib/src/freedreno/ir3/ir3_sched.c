@@ -38,15 +38,17 @@
 #define d(fmt, ...)                                                            \
    do {                                                                        \
       if (SCHED_DEBUG) {                                                       \
-         printf("SCHED: " fmt "\n", ##__VA_ARGS__);                            \
+         mesa_logi("SCHED: " fmt, ##__VA_ARGS__);                              \
       }                                                                        \
    } while (0)
 
 #define di(instr, fmt, ...)                                                    \
    do {                                                                        \
       if (SCHED_DEBUG) {                                                       \
-         printf("SCHED: " fmt ": ", ##__VA_ARGS__);                            \
-         ir3_print_instr(instr);                                               \
+         struct log_stream *stream = mesa_log_streami();                       \
+         mesa_log_stream_printf(stream, "SCHED: " fmt ": ", ##__VA_ARGS__);    \
+         ir3_print_instr_stream(stream, instr);                                \
+         mesa_log_stream_destroy(stream);                                      \
       }                                                                        \
    } while (0)
 

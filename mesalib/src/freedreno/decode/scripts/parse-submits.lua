@@ -64,10 +64,6 @@ local depthwrite
 local stenciltest
 local stencilwrite
 
-function start_cmdstream(name)
-	printf("Parsing %s\n", name)
-end
-
 function reset()
 	dbg("reset\n")
 	mrts = {}

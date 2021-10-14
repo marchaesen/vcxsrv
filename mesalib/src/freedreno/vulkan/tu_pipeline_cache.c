@@ -162,7 +162,7 @@ tu_pipeline_cache_grow(struct tu_pipeline_cache *cache)
 
    table = malloc(byte_size);
    if (table == NULL)
-      return vk_error(cache->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(cache, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    cache->hash_table = table;
    cache->table_size = table_size;
@@ -212,9 +212,9 @@ tu_pipeline_cache_load(struct tu_pipeline_cache *cache,
       return;
    if (header.header_version != VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
       return;
-   if (header.vendor_id != 0 /* TODO */)
+   if (header.vendor_id != 0x5143)
       return;
-   if (header.device_id != 0 /* TODO */)
+   if (header.device_id != device->physical_device->dev_id.chip_id)
       return;
    if (memcmp(header.uuid, device->physical_device->cache_uuid,
               VK_UUID_SIZE) != 0)
@@ -257,7 +257,7 @@ tu_CreatePipelineCache(VkDevice _device,
    cache = vk_object_alloc(&device->vk, pAllocator, sizeof(*cache),
                            VK_OBJECT_TYPE_PIPELINE_CACHE);
    if (cache == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (pAllocator)
       cache->alloc = *pAllocator;
@@ -319,8 +319,8 @@ tu_GetPipelineCacheData(VkDevice _device,
    header = p;
    header->header_size = sizeof(*header);
    header->header_version = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
-   header->vendor_id = 0 /* TODO */;
-   header->device_id = 0 /* TODO */;
+   header->vendor_id = 0x5143;
+   header->device_id = device->physical_device->dev_id.chip_id;
    memcpy(header->uuid, device->physical_device->cache_uuid, VK_UUID_SIZE);
    p += header->header_size;
 

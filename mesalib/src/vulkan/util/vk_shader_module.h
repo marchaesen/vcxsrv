@@ -46,7 +46,7 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(vk_shader_module, base, VkShaderModule,
 
 /* this should only be used for stack-allocated, temporary objects */
 #define vk_shader_module_handle_from_nir(_nir) \
-   vk_shader_module_to_handle(&(struct vk_shader_module) { \
+   ((VkShaderModule)(uintptr_t)&(struct vk_shader_module) { \
       .base.type = VK_OBJECT_TYPE_SHADER_MODULE, \
       .nir = _nir, \
    })

@@ -298,10 +298,9 @@ dest_flags(struct ir3_instruction *instr)
 }
 
 struct ir3_instruction *
-ir3_create_collect(struct ir3_context *ctx, struct ir3_instruction *const *arr,
+ir3_create_collect(struct ir3_block *block, struct ir3_instruction *const *arr,
                    unsigned arrsz)
 {
-   struct ir3_block *block = ctx->block;
    struct ir3_instruction *collect;
 
    if (arrsz == 0)
@@ -343,7 +342,7 @@ ir3_create_collect(struct ir3_context *ctx, struct ir3_instruction *const *arr,
          elem = ir3_MOV(block, elem, type);
       }
 
-      compile_assert(ctx, dest_flags(elem) == flags);
+      debug_assert(dest_flags(elem) == flags);
       __ssa_src(collect, elem, flags);
    }
 

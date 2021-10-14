@@ -232,12 +232,13 @@ the :doc:`Xlib software driver page <xlibdriver>` for details.
 :envvar:`MESA_GLX_ALPHA_BITS`
    specifies default number of bits for alpha channel.
 
-i945/i965 driver environment variables (non-Gallium)
+Intel driver environment variables
 ----------------------------------------------------
 
-:envvar:`INTEL_NO_HW`
-   if set to 1, true or yes, prevents batches from being submitted to the
-   hardware. This is useful for debugging hangs, etc.
+:envvar:`INTEL_BLACKHOLE_DEFAULT`
+   if set to 1, true or yes, then the OpenGL implementation will
+   default ``GL_BLACKHOLE_RENDER_INTEL`` to true, thus disabling any
+   rendering.
 :envvar:`INTEL_DEBUG`
    a comma-separated list of named flags, which do various things:
 
@@ -334,8 +335,65 @@ i945/i965 driver environment variables (non-Gallium)
    ``vs``
       dump shader assembly for vertex shaders
 
-:envvar:`INTEL_SCALAR_VS` (or ``TCS``, ``TES``, ``GS``)
-   force scalar/vec4 mode for a shader stage (Gen8-9 only)
+:envvar:`INTEL_MEASURE`
+   Collects GPU timestamps over common intervals, and generates a CSV report
+   to show how long rendering took.  The overhead of collection is limited to
+   the flushing that is required at the interval boundaries for accurate
+   timestamps. By default, timing data is sent to ``stderr``.  To direct output
+   to a file:
+
+   ``INTEL_MEASURE=file=/tmp/measure.csv {workload}``
+
+   To begin capturing timestamps at a particular frame:
+
+   ``INTEL_MEASURE=file=/tmp/measure.csv,start=15 {workload}``
+
+   To capture only 23 frames:
+
+   ``INTEL_MEASURE=count=23 {workload}``
+
+   To capture frames 15-37, stopping before frame 38:
+
+   ``INTEL_MEASURE=start=15,count=23 {workload}``
+
+   Designate an asynchronous control file with:
+
+   ``INTEL_MEASURE=control=path/to/control.fifo {workload}``
+
+   As the workload runs, enable capture for 5 frames with:
+
+   ``$ echo 5 > path/to/control.fifo``
+
+   Enable unbounded capture:
+
+   ``$ echo -1 > path/to/control.fifo``
+
+   and disable with:
+
+   ``$ echo 0 > path/to/control.fifo``
+
+   Select the boundaries of each snapshot with:
+
+   ``INTEL_MEASURE=draw``
+      Collects timings for every render (DEFAULT)
+
+   ``INTEL_MEASURE=rt``
+      Collects timings when the render target changes
+
+   ``INTEL_MEASURE=batch``
+      Collects timings when batches are submitted
+
+   ``INTEL_MEASURE=frame``
+      Collects timings at frame boundaries
+
+   With ``INTEL_MEASURE=interval=5``, the duration of 5 events will be
+   combined into a single record in the output.  When possible, a single
+   start and end event will be submitted to the GPU to minimize
+   stalling.  Combined events will not span batches, except in
+   the case of ``INTEL_MEASURE=frame``.
+:envvar:`INTEL_NO_HW`
+   if set to 1, true or yes, prevents batches from being submitted to the
+   hardware. This is useful for debugging hangs, etc.
 :envvar:`INTEL_PRECISE_TRIG`
    if set to 1, true or yes, then the driver prefers accuracy over
    performance in trig functions.
@@ -353,10 +411,6 @@ i945/i965 driver environment variables (non-Gallium)
    The success of assembly override would be signified by "Successfully
    overrode shader with sha1 <sha1>" in stderr replacing the original
    assembly.
-:envvar:`INTEL_BLACKHOLE_DEFAULT`
-   if set to 1, true or yes, then the OpenGL implementation will
-   default ``GL_BLACKHOLE_RENDER_INTEL`` to true, thus disabling any
-   rendering.
 
 
 Radeon driver environment variables (radeon, r200, and r300g)
@@ -564,8 +618,6 @@ RADV driver environment variables
       force all allocated buffers to be referenced in submissions
    ``checkir``
       validate the LLVM IR before LLVM compiles the shader
-   ``errors``
-      display more info about errors
    ``forcecompress``
       Enables DCC,FMASK,CMASK,HTILE in situations where the driver supports it
       but normally does not deem it beneficial.
@@ -581,6 +633,8 @@ RADV driver environment variables
       class of application bugs appearing as flickering.
    ``metashaders``
       dump internal meta shaders
+   ``noatocdithering``
+      disable dithering for alpha to coverage
    ``nobinning``
       disable primitive binning
    ``nocache``
@@ -603,6 +657,8 @@ RADV driver environment variables
       disable memory shaders cache
    ``nongg``
       disable NGG for GFX10+
+   ``nonggc``
+      disable NGG culling on GPUs where it's enabled by default (GFX10.3+ only).
    ``nooutoforder``
       disable out-of-order rasterization
    ``notccompatcmask``
@@ -614,6 +670,8 @@ RADV driver environment variables
       disable VRS for flat shading (only on GFX10.3+)
    ``preoptir``
       dump LLVM IR before any optimizations
+   ``prologs``
+      dump vertex shader prologs
    ``shaders``
       dump shaders
    ``shaderstats``
@@ -646,6 +704,9 @@ RADV driver environment variables
       enable wave32 for compute shaders (GFX10+)
    ``dccmsaa``
       enable DCC for MSAA images
+   ``force_emulate_rt``
+      forces ray-tracing to be emulated in software,
+      even if there is hardware support.
    ``gewave32``
       enable wave32 for vertex/tess/geometry shaders (GFX10+)
    ``localbos``
@@ -655,7 +716,7 @@ RADV driver environment variables
    ``pswave32``
       enable wave32 for pixel shaders (GFX10+)
    ``nggc``
-      enable NGG culling on GFX10+ GPUs.
+      enable NGG culling on GPUs where it's not enabled by default (GFX10.1 only).
    ``rt``
       enable rt extensions whose implementation is still experimental.
    ``sam``

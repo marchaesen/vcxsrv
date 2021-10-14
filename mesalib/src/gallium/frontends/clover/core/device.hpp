@@ -28,7 +28,7 @@
 
 #include "core/object.hpp"
 #include "core/format.hpp"
-#include "core/module.hpp"
+#include "core/binary.hpp"
 #include "util/lazy.hpp"
 #include "pipe-loader/pipe_loader.h"
 

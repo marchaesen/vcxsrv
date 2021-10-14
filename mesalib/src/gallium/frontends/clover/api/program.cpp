@@ -143,8 +143,8 @@ clCreateProgramWithBinary(cl_context d_ctx, cl_uint n,
       throw error(CL_INVALID_DEVICE);
 
    // Deserialize the provided binaries,
-   std::vector<std::pair<cl_int, module>> result = map(
-      [](const unsigned char *p, size_t l) -> std::pair<cl_int, module> {
+   std::vector<std::pair<cl_int, binary>> result = map(
+      [](const unsigned char *p, size_t l) -> std::pair<cl_int, binary> {
          if (!p || !l)
             return { CL_INVALID_VALUE, {} };
 
@@ -152,9 +152,9 @@ clCreateProgramWithBinary(cl_context d_ctx, cl_uint n,
             std::stringbuf bin( std::string{ (char*)p, l } );
             std::istream s(&bin);
 
-            return { CL_SUCCESS, module::deserialize(s) };
+            return { CL_SUCCESS, binary::deserialize(s) };
 
-         } catch (std::istream::failure &e) {
+         } catch (std::istream::failure &) {
             return { CL_INVALID_BINARY, {} };
          }
       },
@@ -333,10 +333,10 @@ clCompileProgram(cl_program d_prog, cl_uint num_devs,
    prog.compile(devs, opts, headers);
    return CL_SUCCESS;
 
-} catch (invalid_build_options_error &e) {
+} catch (invalid_build_options_error &) {
    return CL_INVALID_COMPILER_OPTIONS;
 
-} catch (build_error &e) {
+} catch (build_error &) {
    return CL_COMPILE_PROGRAM_FAILURE;
 
 } catch (error &e) {
@@ -446,13 +446,13 @@ clLinkProgram(cl_context d_ctx, cl_uint num_devs, const cl_device_id *d_devs,
       prog().link(devs, opts, progs);
       ret_error(r_errcode, CL_SUCCESS);
 
-   } catch (build_error &e) {
+   } catch (build_error &) {
       ret_error(r_errcode, CL_LINK_PROGRAM_FAILURE);
    }
 
    return r_prog;
 
-} catch (invalid_build_options_error &e) {
+} catch (invalid_build_options_error &) {
    ret_error(r_errcode, CL_INVALID_LINKER_OPTIONS);
    return NULL;
 
@@ -507,7 +507,7 @@ clGetProgramInfo(cl_program d_prog, cl_program_info param,
 
    case CL_PROGRAM_BINARY_SIZES:
       buf.as_vector<size_t>() = map([&](const device &dev) {
-            return prog.build(dev).binary.size();
+            return prog.build(dev).bin.size();
          },
          prog.devices());
       break;
@@ -516,7 +516,7 @@ clGetProgramInfo(cl_program d_prog, cl_program_info param,
       buf.as_matrix<unsigned char>() = map([&](const device &dev) {
             std::stringbuf bin;
             std::ostream s(&bin);
-            prog.build(dev).binary.serialize(s);
+            prog.build(dev).bin.serialize(s);
             return bin.str();
          },
          prog.devices());
@@ -527,7 +527,7 @@ clGetProgramInfo(cl_program d_prog, cl_program_info param,
       break;
 
    case CL_PROGRAM_KERNEL_NAMES:
-      buf.as_string() = fold([](const std::string &a, const module::symbol &s) {
+      buf.as_string() = fold([](const std::string &a, const binary::symbol &s) {
             return ((a.empty() ? "" : a + ";") + s.name);
          }, std::string(), prog.symbols());
       break;

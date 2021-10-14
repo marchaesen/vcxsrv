@@ -908,9 +908,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
     */
    info->has_two_planes_iterate256_bug = info->chip_class == GFX10;
 
-   /* GE has a bug when a legacy GS draw follows an NGG draw and it requires
-    * a VGT_FLUSH to fix that.
-    */
+   /* GFX10+Sienna: NGG->legacy transitions require VGT_FLUSH. */
    info->has_vgt_flush_ngg_legacy_bug = info->chip_class == GFX10 ||
                                         info->family == CHIP_SIENNA_CICHLID;
 

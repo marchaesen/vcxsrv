@@ -197,6 +197,8 @@ batch_draw_tracking(struct fd_batch *batch, const struct pipe_draw_info *info,
     * Figure out the buffers/features we need:
     */
 
+   fd_screen_lock(ctx->screen);
+
    if (ctx->dirty & FD_DIRTY_RESOURCE)
       batch_draw_tracking_for_dirty_bits(batch);
 
@@ -218,6 +220,8 @@ batch_draw_tracking(struct fd_batch *batch, const struct pipe_draw_info *info,
 
    list_for_each_entry (struct fd_acc_query, aq, &ctx->acc_active_queries, node)
       resource_written(batch, aq->prsc);
+
+   fd_screen_unlock(ctx->screen);
 }
 
 static void
@@ -289,7 +293,7 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
    if (info->index_size) {
       if (info->has_user_indices) {
          if (num_draws > 1) {
-				util_draw_multi(pctx, info, drawid_offset, indirect, draws, num_draws);
+            util_draw_multi(pctx, info, drawid_offset, indirect, draws, num_draws);
             return;
          }
          if (!util_upload_index_buffer(pctx, info, &draws[0], &indexbuf,
@@ -305,7 +309,7 @@ fd_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
    }
 
    if ((ctx->streamout.num_targets > 0) && (num_draws > 1)) {
-		util_draw_multi(pctx, info, drawid_offset, indirect, draws, num_draws);
+      util_draw_multi(pctx, info, drawid_offset, indirect, draws, num_draws);
       return;
    }
 
@@ -395,6 +399,8 @@ batch_clear_tracking(struct fd_batch *batch, unsigned buffers) assert_dt
 
    batch->resolve |= buffers;
 
+   fd_screen_lock(ctx->screen);
+
    if (buffers & PIPE_CLEAR_COLOR)
       for (unsigned i = 0; i < pfb->nr_cbufs; i++)
          if (buffers & (PIPE_CLEAR_COLOR0 << i))
@@ -409,6 +415,8 @@ batch_clear_tracking(struct fd_batch *batch, unsigned buffers) assert_dt
 
    list_for_each_entry (struct fd_acc_query, aq, &ctx->acc_active_queries, node)
       resource_written(batch, aq->prsc);
+
+   fd_screen_unlock(ctx->screen);
 }
 
 static void
@@ -511,6 +519,8 @@ fd_launch_grid(struct pipe_context *pctx,
    fd_batch_reference(&ctx->batch, batch);
    fd_context_all_dirty(ctx);
 
+   fd_screen_lock(ctx->screen);
+
    /* Mark SSBOs */
    u_foreach_bit (i, so->enabled_mask & so->writable_mask)
       resource_written(batch, so->sb[i].buffer);
@@ -542,6 +552,8 @@ fd_launch_grid(struct pipe_context *pctx,
 
    if (info->indirect)
       resource_read(batch, info->indirect);
+
+   fd_screen_unlock(ctx->screen);
 
    DBG("%p: work_dim=%u, block=%ux%ux%u, grid=%ux%ux%u",
        batch, info->work_dim,

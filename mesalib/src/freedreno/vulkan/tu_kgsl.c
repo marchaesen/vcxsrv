@@ -96,7 +96,7 @@ tu_bo_init_new(struct tu_device *dev, struct tu_bo *bo, uint64_t size,
    ret = safe_ioctl(dev->physical_device->local_fd,
                     IOCTL_KGSL_GPUMEM_ALLOC_ID, &req);
    if (ret) {
-      return vk_errorf(dev->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY,
+      return vk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
                        "GPUMEM_ALLOC_ID failed (%s)", strerror(errno));
    }
 
@@ -129,7 +129,7 @@ tu_bo_init_dmabuf(struct tu_device *dev,
    ret = safe_ioctl(dev->physical_device->local_fd,
                     IOCTL_KGSL_GPUOBJ_IMPORT, &req);
    if (ret)
-      return vk_errorf(dev->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY,
+      return vk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
                        "Failed to import dma-buf (%s)\n", strerror(errno));
 
    struct kgsl_gpuobj_info info_req = {
@@ -139,7 +139,7 @@ tu_bo_init_dmabuf(struct tu_device *dev,
    ret = safe_ioctl(dev->physical_device->local_fd,
                     IOCTL_KGSL_GPUOBJ_INFO, &info_req);
    if (ret)
-      return vk_errorf(dev->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY,
+      return vk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
                        "Failed to get dma-buf info (%s)\n", strerror(errno));
 
    *bo = (struct tu_bo) {
@@ -169,7 +169,7 @@ tu_bo_map(struct tu_device *dev, struct tu_bo *bo)
    void *map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                     dev->physical_device->local_fd, offset);
    if (map == MAP_FAILED)
-      return vk_error(dev->instance, VK_ERROR_MEMORY_MAP_FAILED);
+      return vk_error(dev, VK_ERROR_MEMORY_MAP_FAILED);
 
    bo->map = map;
 
@@ -366,7 +366,7 @@ tu_QueueSubmit(VkQueue _queue,
                sizeof(cmds[0]) * max_entry_count, 8,
                VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (cmds == NULL)
-      return vk_error(queue->device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    for (uint32_t i = 0; i < submitCount; ++i) {
       const VkSubmitInfo *submit = pSubmits + i;
@@ -482,7 +482,7 @@ sync_create(VkDevice _device,
          vk_object_alloc(&device->vk, pAllocator, sizeof(*sync),
                          fence ? VK_OBJECT_TYPE_FENCE : VK_OBJECT_TYPE_SEMAPHORE);
    if (!sync)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (signaled)
       tu_finishme("CREATE FENCE SIGNALED");
