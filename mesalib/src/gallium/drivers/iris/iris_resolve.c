@@ -913,6 +913,8 @@ iris_image_view_aux_usage(struct iris_context *ice,
    if (!info)
       return ISL_AUX_USAGE_NONE;
 
+   const struct iris_screen *screen = (void *) ice->ctx.screen;
+   const struct intel_device_info *devinfo = &screen->devinfo;
    struct iris_resource *res = (void *) pview->resource;
 
    enum isl_format view_format = iris_image_view_get_format(ice, pview);
@@ -922,7 +924,11 @@ iris_image_view_aux_usage(struct iris_context *ice,
    bool uses_atomic_load_store =
       ice->shaders.uncompiled[info->stage]->uses_atomic_load_store;
 
-   if (aux_usage == ISL_AUX_USAGE_GFX12_CCS_E && !uses_atomic_load_store)
+   /* On GFX12, compressed surfaces supports non-atomic operations. GFX12HP and
+    * further, add support for all the operations.
+    */
+   if (aux_usage == ISL_AUX_USAGE_GFX12_CCS_E &&
+       (devinfo->verx10 >= 125 || !uses_atomic_load_store))
       return ISL_AUX_USAGE_GFX12_CCS_E;
 
    return ISL_AUX_USAGE_NONE;

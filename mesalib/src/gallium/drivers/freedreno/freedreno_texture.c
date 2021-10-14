@@ -56,7 +56,7 @@ bind_sampler_states(struct fd_texture_stateobj *tex, unsigned start,
 
    for (i = 0; i < nr; i++) {
       unsigned p = i + start;
-      tex->samplers[p] = hwcso[i];
+      tex->samplers[p] = hwcso ? hwcso[i] : NULL;
       if (tex->samplers[p])
          tex->valid_samplers |= (1 << p);
       else

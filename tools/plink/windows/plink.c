@@ -138,7 +138,7 @@ static void usage(void)
     printf("  -sercfg configuration-string (e.g. 19200,8,n,1,X)\n");
     printf("            Specify the serial configuration (serial only)\n");
     printf("The following options only apply to SSH connections:\n");
-    printf("  -pw passw login with specified password\n");
+    printf("  -pwfile file   login with password read from specified file\n");
     printf("  -D [listen-IP:]listen-port\n");
     printf("            Dynamic SOCKS-based port forwarding\n");
     printf("  -L [listen-IP:]listen-port:host:port\n");
@@ -216,8 +216,14 @@ size_t stdin_gotdata(struct handle *h, const void *data, size_t len, int err)
         return 0;
 }
 
-void stdouterr_sent(struct handle *h, size_t new_backlog, int err)
+void stdouterr_sent(struct handle *h, size_t new_backlog, int err, bool close)
 {
+    if (close) {
+        CloseHandle(outhandle);
+        CloseHandle(errhandle);
+        outhandle = errhandle = INVALID_HANDLE_VALUE;
+    }
+
     if (err) {
         char buf[4096];
         FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, 0,

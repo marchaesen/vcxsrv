@@ -104,8 +104,10 @@ def get_all_exts_from_xml(xml):
         version = None
         for enum_elem in ext_elem.findall('.require/enum'):
             if enum_elem.attrib['name'].endswith('_SPEC_VERSION'):
-                assert version is None
-                version = int(enum_elem.attrib['value'])
+                # Skip alias SPEC_VERSIONs
+                if 'value' in enum_elem.attrib:
+                    assert version is None
+                    version = int(enum_elem.attrib['value'])
         ext = Extension(name, version, True)
         extensions.append(Extension(name, version, True))
 

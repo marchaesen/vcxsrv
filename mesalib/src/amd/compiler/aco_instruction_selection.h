@@ -48,7 +48,7 @@ struct shader_io_state {
 
 struct isel_context {
    const struct radv_nir_compiler_options* options;
-   struct radv_shader_args* args;
+   const struct radv_shader_args* args;
    Program* program;
    nir_shader* shader;
    uint32_t constant_data_offset;
@@ -116,7 +116,7 @@ void cleanup_context(isel_context* ctx);
 
 isel_context setup_isel_context(Program* program, unsigned shader_count,
                                 struct nir_shader* const* shaders, ac_shader_config* config,
-                                struct radv_shader_args* args, bool is_gs_copy_shader);
+                                const struct radv_shader_args* args, bool is_gs_copy_shader);
 
 } // namespace aco
 

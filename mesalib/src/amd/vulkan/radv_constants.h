@@ -90,4 +90,16 @@
 /* Number of invocations in each subgroup. */
 #define RADV_SUBGROUP_SIZE 64
 
+/* The spec requires this to be 32. */
+#define RADV_RT_HANDLE_SIZE 32
+
+#define RADV_MAX_HIT_ATTRIB_SIZE 32
+
+#define RADV_SHADER_ALLOC_ALIGNMENT      256
+#define RADV_SHADER_ALLOC_MIN_ARENA_SIZE (256 * 1024)
+#define RADV_SHADER_ALLOC_MIN_SIZE_CLASS 8
+#define RADV_SHADER_ALLOC_MAX_SIZE_CLASS 15
+#define RADV_SHADER_ALLOC_NUM_FREE_LISTS                                                           \
+   (RADV_SHADER_ALLOC_MAX_SIZE_CLASS - RADV_SHADER_ALLOC_MIN_SIZE_CLASS + 1)
+
 #endif /* RADV_CONSTANTS_H */

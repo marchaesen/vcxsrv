@@ -940,8 +940,7 @@ _crocus_batch_flush(struct crocus_batch *batch, const char *file, int line)
    finish_growing_bos(&batch->state);
    int ret = submit_batch(batch);
 
-   if (unlikely(INTEL_DEBUG &
-                (DEBUG_BATCH | DEBUG_SUBMIT | DEBUG_PIPE_CONTROL))) {
+   if (INTEL_DEBUG & (DEBUG_BATCH | DEBUG_SUBMIT | DEBUG_PIPE_CONTROL)) {
       int bytes_for_commands = crocus_batch_bytes_used(batch);
       int second_bytes = 0;
       if (batch->command.bo != batch->exec_bos[0]) {
@@ -985,7 +984,7 @@ _crocus_batch_flush(struct crocus_batch *batch, const char *file, int line)
 
    util_dynarray_clear(&batch->exec_fences);
 
-   if (unlikely(INTEL_DEBUG & DEBUG_SYNC)) {
+   if (INTEL_DEBUG & DEBUG_SYNC) {
       dbg_printf("waiting for idle\n");
       crocus_bo_wait_rendering(batch->command.bo); /* if execbuf failed; this is a nop */
    }

@@ -176,8 +176,7 @@ dri_fill_in_modes(struct dri_screen *screen)
 
    allow_rgba_ordering = dri_loader_get_cap(screen, DRI_LOADER_CAP_RGBA_ORDERING);
    allow_rgb10 = driQueryOptionb(&screen->dev->option_cache, "allow_rgb10_configs");
-   allow_fp16 = driQueryOptionb(&screen->dev->option_cache, "allow_fp16_configs");
-   allow_fp16 &= dri_loader_get_cap(screen, DRI_LOADER_CAP_FP16);
+   allow_fp16 = dri_loader_get_cap(screen, DRI_LOADER_CAP_FP16);
 
    msaa_samples_max = (screen->st_api->feature_mask & ST_API_FEATURE_MS_VISUALS_MASK)
       ? MSAA_VISUAL_MAX_SAMPLES : 1;

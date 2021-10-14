@@ -91,6 +91,8 @@ panfrost_nir_sysval_for_intrinsic(nir_intrinsic_instr *instr)
                 return panfrost_sysval_for_sampler(instr);
         case nir_intrinsic_image_size:
                 return panfrost_sysval_for_image_size(instr);
+        case nir_intrinsic_load_blend_const_color_rgba:
+                return PAN_SYSVAL_BLEND_CONSTANTS;
         default:
                 return ~0;
         }

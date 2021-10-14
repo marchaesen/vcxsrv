@@ -179,7 +179,7 @@ VA_DRIVER_INIT_FUNC(VADriverContextP ctx)
    ctx->max_attributes = 1;
    ctx->max_image_formats = VL_VA_MAX_IMAGE_FORMATS;
    ctx->max_subpic_formats = 1;
-   ctx->max_display_attributes = 1;
+   ctx->max_display_attributes = 0;
 
    snprintf(drv->vendor_string, sizeof(drv->vendor_string),
             "Mesa Gallium driver " PACKAGE_VERSION " for %s",

@@ -28,7 +28,6 @@
 #define FREEDRENO_BATCH_CACHE_H_
 
 #include "pipe/p_state.h"
-#include "util/hash_table.h"
 
 #include "freedreno_util.h"
 
@@ -40,32 +39,41 @@ struct fd_screen;
 struct hash_table;
 
 struct fd_batch_cache {
-   /* Mapping from struct key (basically framebuffer state) to a batch of
-    * rendering for rendering to that target.
-    */
    struct hash_table *ht;
    unsigned cnt;
 
-   /* Mapping from struct pipe_resource to the batch writing it.  Keeps a reference. */
-   struct hash_table *written_resources;
+   /* set of active batches.. there is an upper limit on the number of
+    * in-flight batches, for two reasons:
+    * 1) to avoid big spikes in number of batches in edge cases, such as
+    *    game startup (ie, lots of texture uploads, but no usages yet of
+    *    the textures), etc.
+    * 2) so we can use a simple bitmask in fd_resource to track which
+    *    batches have reference to the resource
+    */
+   struct fd_batch *batches[32];
+   uint32_t batch_mask;
 };
 
-#define foreach_batch(batch, cache) \
-   hash_table_foreach ((cache)->ht, _batch_entry) \
-      for (struct fd_batch *batch = _batch_entry->data; batch != NULL; batch = NULL)
+/* note: if batches get unref'd in the body of the loop, they are removed
+ * from the various masks.. but since we copy the mask at the beginning of
+ * the loop into _m, we need the &= at the end of the loop to make sure
+ * we don't have stale bits in _m
+ */
+#define foreach_batch(batch, cache, mask)                                      \
+   for (uint32_t _m = (mask);                                                  \
+        _m && ((batch) = (cache)->batches[u_bit_scan(&_m)]); _m &= (mask))
 
-void fd_bc_init(struct fd_context *ctx);
-void fd_bc_fini(struct fd_context *ctx);
+void fd_bc_init(struct fd_batch_cache *cache);
+void fd_bc_fini(struct fd_batch_cache *cache);
 
 void fd_bc_flush(struct fd_context *ctx, bool deferred) assert_dt;
 void fd_bc_flush_writer(struct fd_context *ctx, struct fd_resource *rsc) assert_dt;
 void fd_bc_flush_readers(struct fd_context *ctx, struct fd_resource *rsc) assert_dt;
-void fd_bc_flush_gmem_users(struct fd_context *ctx, struct fd_resource *rsc) assert_dt;
 void fd_bc_dump(struct fd_context *ctx, const char *fmt, ...)
    _util_printf_format(2, 3);
 
-void fd_bc_free_key(struct fd_batch *batch);
-void fd_bc_invalidate_resource(struct fd_context *ctx, struct fd_resource *rsc);
+void fd_bc_invalidate_batch(struct fd_batch *batch, bool destroy);
+void fd_bc_invalidate_resource(struct fd_resource *rsc, bool destroy);
 struct fd_batch *fd_bc_alloc_batch(struct fd_context *ctx,
                                    bool nondraw) assert_dt;
 

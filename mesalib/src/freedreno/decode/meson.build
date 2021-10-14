@@ -18,6 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+if with_tests
+  diff = find_program('diff')
+endif
+
 # Shared cmdstream decoding:
 libfreedreno_cffdec = static_library(
   'freedreno_cffdec',
@@ -93,6 +97,37 @@ if dep_lua.found() and dep_libarchive.found()
     build_by_default: with_tools.contains('freedreno'),
     install: install_fd_decode_tools,
   )
+
+  if with_tests
+    # dump only a single frame, and single tile pass, to keep the
+    # reference output size managable
+    cffdump_tests = [
+      ['fd-clouds', ['--frame', '0', '--once']],
+      ['es2gears-a320', ['--frame', '0', '--once']],
+      ['glxgears-a420', ['--frame', '1', '--once']],
+      ['dEQP-GLES2.functional.texture.specification.basic_teximage2d.rgba16f_2d', ['--once']],
+      ['dEQP-VK.draw.indirect_draw.indexed.indirect_draw_count.triangle_list', ['--frame', '0', '--once']],
+      # Test a lua script to ensure we don't break scripting API
+      ['shadow', ['--script', files(join_paths(meson.current_source_dir(), 'scripts', 'parse-submits.lua'))]],
+    ]
+    foreach cffdump_test: cffdump_tests
+      name = cffdump_test[0]
+      args = cffdump_test[1]
+
+      log = custom_target(name + '.log',
+        output: name + '.log',
+        command: [cffdump, '--unit-test', args, files('../.gitlab-ci/traces/' + name + '.rd.gz')],
+        capture: true,
+      )
+      test('cffdump-' + name,
+        diff,
+        args: ['-u', files('../.gitlab-ci/reference/' + name + '.log'), log],
+        suite: 'freedreno',
+        workdir: meson.source_root()
+      )
+
+    endforeach
+  endif
 endif
 
 crashdec = executable(
@@ -112,6 +147,20 @@ crashdec = executable(
   build_by_default: with_tools.contains('freedreno'),
   install: install_fd_decode_tools,
 )
+
+if with_tests
+  crashdec_output = custom_target('crashdec.txt',
+    output: 'crashdec.txt',
+    command: [crashdec, '-sf', files('../.gitlab-ci/traces/crash.devcore')],
+    capture: true
+  )
+  test('crashdec',
+    diff,
+    args: ['-u', files('../.gitlab-ci/reference/crash.log'), crashdec_output],
+    suite: 'freedreno',
+    workdir: meson.source_root()
+  )
+endif
 
 if dep_libarchive.found()
   pgmdump = executable(

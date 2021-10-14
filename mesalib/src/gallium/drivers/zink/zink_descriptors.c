@@ -535,6 +535,12 @@ zink_descriptor_util_init_null_set(struct zink_context *ctx, VkDescriptorSet des
 VkImageLayout
 zink_descriptor_util_image_layout_eval(const struct zink_resource *res, bool is_compute)
 {
+   if (res->bindless[0] || res->bindless[1]) {
+      /* bindless needs most permissive layout */
+      if (res->image_bind_count[0] || res->image_bind_count[1])
+         return VK_IMAGE_LAYOUT_GENERAL;
+      return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+   }
    return res->image_bind_count[is_compute] ? VK_IMAGE_LAYOUT_GENERAL :
                           res->aspect & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT) ?
                              //Vulkan-Docs#1490
@@ -1462,6 +1468,13 @@ zink_descriptors_update(struct zink_context *ctx, bool is_compute)
       }
    }
    ctx->dd->pg[is_compute] = pg;
+
+   if (pg->dd->bindless && unlikely(!ctx->dd->bindless_bound)) {
+      VKCTX(CmdBindDescriptorSets)(batch->state->cmdbuf, bp,
+                                   pg->layout, ZINK_DESCRIPTOR_BINDLESS, 1, &ctx->dd->bindless_set,
+                                   0, NULL);
+      ctx->dd->bindless_bound = true;
+   }
 }
 
 void
@@ -1751,4 +1764,111 @@ zink_descriptor_util_init_fbfetch(struct zink_context *ctx)
    ctx->dd->has_fbfetch = true;
    if (screen->descriptor_mode != ZINK_DESCRIPTOR_MODE_LAZY)
       zink_descriptor_pool_init(ctx);
+}
+
+ALWAYS_INLINE static VkDescriptorType
+type_from_bindless_index(unsigned idx)
+{
+   switch (idx) {
+   case 0: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+   case 1: return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+   case 2: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+   case 3: return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+   default:
+      unreachable("unknown index");
+   }
+}
+
+void
+zink_descriptors_init_bindless(struct zink_context *ctx)
+{
+   if (ctx->dd->bindless_set)
+      return;
+
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
+   VkDescriptorSetLayoutBinding bindings[4];
+   const unsigned num_bindings = 4;
+   VkDescriptorSetLayoutCreateInfo dcslci = {0};
+   dcslci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+   dcslci.pNext = NULL;
+   VkDescriptorSetLayoutBindingFlagsCreateInfo fci = {0};
+   VkDescriptorBindingFlags flags[4];
+   dcslci.pNext = &fci;
+   dcslci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+   fci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+   fci.bindingCount = num_bindings;
+   fci.pBindingFlags = flags;
+   for (unsigned i = 0; i < num_bindings; i++) {
+      flags[i] = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
+   }
+   for (unsigned i = 0; i < num_bindings; i++) {
+      bindings[i].binding = i;
+      bindings[i].descriptorType = type_from_bindless_index(i);
+      bindings[i].descriptorCount = ZINK_MAX_BINDLESS_HANDLES;
+      bindings[i].stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT;
+      bindings[i].pImmutableSamplers = NULL;
+   }
+   
+   dcslci.bindingCount = num_bindings;
+   dcslci.pBindings = bindings;
+   if (VKSCR(CreateDescriptorSetLayout)(screen->dev, &dcslci, 0, &ctx->dd->bindless_layout) != VK_SUCCESS) {
+      debug_printf("vkCreateDescriptorSetLayout failed\n");
+      return;
+   }
+
+   VkDescriptorPoolCreateInfo dpci = {0};
+   VkDescriptorPoolSize sizes[4];
+   for (unsigned i = 0; i < 4; i++) {
+      sizes[i].type = type_from_bindless_index(i);
+      sizes[i].descriptorCount = ZINK_MAX_BINDLESS_HANDLES;
+   }
+   dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+   dpci.pPoolSizes = sizes;
+   dpci.poolSizeCount = 4;
+   dpci.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+   dpci.maxSets = 1;
+   if (VKSCR(CreateDescriptorPool)(screen->dev, &dpci, 0, &ctx->dd->bindless_pool) != VK_SUCCESS) {
+      debug_printf("vkCreateDescriptorPool failed\n");
+      return;
+   }
+
+   zink_descriptor_util_alloc_sets(screen, ctx->dd->bindless_layout, ctx->dd->bindless_pool, &ctx->dd->bindless_set, 1);
+}
+
+void
+zink_descriptors_deinit_bindless(struct zink_context *ctx)
+{
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
+   if (ctx->dd->bindless_layout)
+      VKSCR(DestroyDescriptorSetLayout)(screen->dev, ctx->dd->bindless_layout, NULL);
+   if (ctx->dd->bindless_pool)
+      VKSCR(DestroyDescriptorPool)(screen->dev, ctx->dd->bindless_pool, NULL);
+}
+
+void
+zink_descriptors_update_bindless(struct zink_context *ctx)
+{
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
+   for (unsigned i = 0; i < 2; i++) {
+      if (!ctx->di.bindless_dirty[i])
+         continue;
+      while (util_dynarray_contains(&ctx->di.bindless[i].updates, uint32_t)) {
+         uint32_t handle = util_dynarray_pop(&ctx->di.bindless[i].updates, uint32_t);
+         bool is_buffer = ZINK_BINDLESS_IS_BUFFER(handle);
+         VkWriteDescriptorSet wd;
+         wd.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+         wd.pNext = NULL;
+         wd.dstSet = ctx->dd->bindless_set;
+         wd.dstBinding = is_buffer ? i * 2 + 1: i * 2;
+         wd.dstArrayElement = is_buffer ? handle - ZINK_MAX_BINDLESS_HANDLES : handle;
+         wd.descriptorCount = 1;
+         wd.descriptorType = type_from_bindless_index(wd.dstBinding);
+         if (is_buffer)
+            wd.pTexelBufferView = &ctx->di.bindless[i].buffer_infos[wd.dstArrayElement];
+         else
+            wd.pImageInfo = &ctx->di.bindless[i].img_infos[handle];
+         VKSCR(UpdateDescriptorSets)(screen->dev, 1, &wd, 0, NULL);
+      }
+   }
+   ctx->di.any_bindless_dirty = 0;
 }

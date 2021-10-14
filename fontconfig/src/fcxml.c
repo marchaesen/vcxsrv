@@ -1318,9 +1318,16 @@ _get_real_paths_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcC
 	}
 	else if (FcStrCmp (prefix, (const FcChar8 *) "relative") == 0)
 	{
-	    parent = FcStrDirname (parse->name);
-	    if (!parent)
+	    FcChar8 *p = FcStrRealPath (parse->name);
+
+	    if (!p)
 		return NULL;
+	    parent = FcStrDirname (p);
+	    if (!parent)
+	    {
+		free (p);
+		return NULL;
+	    }
 	}
     }
 #ifndef _WIN32

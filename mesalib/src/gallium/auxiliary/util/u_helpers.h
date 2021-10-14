@@ -121,6 +121,15 @@ void util_throttle_memory_usage(struct pipe_context *pipe,
 bool
 util_lower_clearsize_to_dword(const void *clearValue, int *clearValueSize, uint32_t *clamped);
 
+void
+util_init_pipe_vertex_state(struct pipe_screen *screen,
+                            struct pipe_vertex_buffer *buffer,
+                            const struct pipe_vertex_element *elements,
+                            unsigned num_elements,
+                            struct pipe_resource *indexbuf,
+                            uint32_t full_velem_mask,
+                            struct pipe_vertex_state *state);
+
 #ifdef __cplusplus
 }
 #endif

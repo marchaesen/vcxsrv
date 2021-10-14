@@ -94,6 +94,25 @@ v3dX(clif_dump_packet)(struct clif_dump *clif, uint32_t offset,
                 return true;
         }
 
+#if V3D_VERSION >= 41
+        case V3DX(GL_SHADER_STATE_INCLUDING_GS_opcode): {
+                struct V3DX(GL_SHADER_STATE_INCLUDING_GS) values;
+                V3DX(GL_SHADER_STATE_INCLUDING_GS_unpack)(cl, &values);
+
+                if (reloc_mode) {
+                        struct reloc_worklist_entry *reloc =
+                                clif_dump_add_address_to_worklist(clif,
+                                                                  reloc_gl_including_gs_shader_state,
+                                                                  values.address);
+                        if (reloc) {
+                                reloc->shader_state.num_attrs =
+                                        values.number_of_attribute_arrays;
+                        }
+                }
+                return true;
+        }
+#endif /* V3D_VERSION >= 41 */
+
 #if V3D_VERSION < 40
         case V3DX(STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED_opcode): {
                 struct V3DX(STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED) values;

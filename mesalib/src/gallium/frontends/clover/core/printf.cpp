@@ -40,7 +40,7 @@ namespace {
    const std::string clc_printf_whitelist = "%0123456789-+ #.AacdeEfFgGhilopsuvxX";
 
    void
-   print_formatted(const std::vector<module::printf_info> &formatters,
+   print_formatted(const std::vector<binary::printf_info> &formatters,
                    bool _strings_in_buffer,
                    const std::vector<char> &buffer) {
 
@@ -51,7 +51,7 @@ namespace {
       for (size_t buf_pos = 0; buf_pos < buffer.size(); ) {
          cl_uint fmt_idx = *(cl_uint*)&buffer[buf_pos];
          assert(fmt_idx > 0);
-         module::printf_info fmt = formatters[fmt_idx-1];
+         binary::printf_info fmt = formatters[fmt_idx-1];
 
          std::string format = (char *)fmt.strings.data();
          buf_pos += sizeof(cl_uint);
@@ -175,7 +175,7 @@ namespace {
 
 std::unique_ptr<printf_handler>
 printf_handler::create(const intrusive_ptr<command_queue> &q,
-                       const std::vector<module::printf_info> &infos,
+                       const std::vector<binary::printf_info> &infos,
                        bool strings_in_buffer,
                        cl_uint size) {
    return std::unique_ptr<printf_handler>(
@@ -183,7 +183,7 @@ printf_handler::create(const intrusive_ptr<command_queue> &q,
 }
 
 printf_handler::printf_handler(const intrusive_ptr<command_queue> &q,
-                               const std::vector<module::printf_info> &infos,
+                               const std::vector<binary::printf_info> &infos,
                                bool strings_in_buffer,
                                cl_uint size) :
    _q(q), _formatters(infos), _strings_in_buffer(strings_in_buffer), _size(size), _buffer() {

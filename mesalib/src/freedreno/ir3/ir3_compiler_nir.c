@@ -838,7 +838,7 @@ emit_intrinsic_load_ubo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
       carry->cat2.condition = IR3_COND_LT;
       base_hi = ir3_ADD_S(b, base_hi, 0, carry, 0);
 
-      addr = ir3_collect(ctx, addr, base_hi);
+      addr = ir3_collect(b, addr, base_hi);
    }
 
    for (int i = 0; i < intr->num_components; i++) {
@@ -865,6 +865,7 @@ emit_intrinsic_ssbo_size(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    /* resinfo has no writemask and always writes out 3 components */
    resinfo->dsts[0]->wrmask = MASK(3);
    ir3_handle_bindless_cat6(resinfo, intr->src[0]);
+   ir3_handle_nonuniform(resinfo, intr);
 
    if (ctx->compiler->gen >= 6) {
       ir3_split_dest(b, dst, resinfo, 0, 1);
@@ -918,7 +919,7 @@ emit_intrinsic_store_shared(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
    assert(wrmask == BITFIELD_MASK(intr->num_components));
 
-   stl = ir3_STL(b, offset, 0, ir3_create_collect(ctx, value, ncomp), 0,
+   stl = ir3_STL(b, offset, 0, ir3_create_collect(b, value, ncomp), 0,
                  create_immed(b, ncomp), 0);
    stl->cat6.dst_offset = base;
    stl->cat6.type = utype_src(intr->src[0]);
@@ -970,7 +971,7 @@ emit_intrinsic_store_shared_ir3(struct ir3_context *ctx,
    offset = ir3_get_src(ctx, &intr->src[1])[0];
 
    store = ir3_STLW(b, offset, 0,
-                    ir3_create_collect(ctx, value, intr->num_components), 0,
+                    ir3_create_collect(b, value, intr->num_components), 0,
                     create_immed(b, intr->num_components), 0);
 
    /* for a650, use STL for vertex outputs used by tess ctrl shader: */
@@ -1044,7 +1045,7 @@ emit_intrinsic_atomic_shared(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       break;
    case nir_intrinsic_shared_atomic_comp_swap:
       /* for cmpxchg, src1 is [ui]vec2(data, compare): */
-      src1 = ir3_collect(ctx, ir3_get_src(ctx, &intr->src[2])[0], src1);
+      src1 = ir3_collect(b, ir3_get_src(ctx, &intr->src[2])[0], src1);
       atomic = ir3_ATOMIC_CMPXCHG(b, src0, 0, src1, 0);
       break;
    default:
@@ -1102,7 +1103,7 @@ emit_intrinsic_store_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
    assert(wrmask == BITFIELD_MASK(intr->num_components));
 
-   stp = ir3_STP(b, offset, 0, ir3_create_collect(ctx, value, ncomp), 0,
+   stp = ir3_STP(b, offset, 0, ir3_create_collect(b, value, ncomp), 0,
                  create_immed(b, ncomp), 0);
    stp->cat6.dst_offset = 0;
    stp->cat6.type = utype_src(intr->src[0]);
@@ -1166,7 +1167,7 @@ get_image_samp_tex_src(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
          texture = ir3_get_src(ctx, &intr->src[0])[0];
          sampler = create_immed(b, 0);
-         info.samp_tex = ir3_collect(ctx, texture, sampler);
+         info.samp_tex = ir3_collect(b, texture, sampler);
       }
    } else {
       info.flags |= IR3_INSTR_S2EN;
@@ -1177,7 +1178,7 @@ get_image_samp_tex_src(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       texture = create_immed_typed(ctx->block, tex_idx, TYPE_U16);
       sampler = create_immed_typed(ctx->block, tex_idx, TYPE_U16);
 
-      info.samp_tex = ir3_collect(ctx, sampler, texture);
+      info.samp_tex = ir3_collect(b, sampler, texture);
    }
 
    return info;
@@ -1241,7 +1242,7 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
       coords[ncoords++] = create_immed(b, 0);
 
    sam = emit_sam(ctx, OPC_ISAM, info, type, 0b1111,
-                  ir3_create_collect(ctx, coords, ncoords), NULL);
+                  ir3_create_collect(b, coords, ncoords), NULL);
 
    ir3_handle_nonuniform(sam, intr);
 
@@ -1504,9 +1505,9 @@ get_barycentric(struct ir3_context *ctx, enum ir3_bary bary)
       struct ir3_instruction *ij;
 
       ij = create_sysval_input(ctx, sysval_base + bary, 0x3);
-      ir3_split_dest(ctx->block, xy, ij, 0, 2);
+      ir3_split_dest(ctx->in_block, xy, ij, 0, 2);
 
-      ctx->ij[bary] = ir3_create_collect(ctx, xy, 2);
+      ctx->ij[bary] = ir3_create_collect(ctx->in_block, xy, 2);
    }
 
    return ctx->ij[bary];
@@ -1607,7 +1608,7 @@ get_frag_coord(struct ir3_context *ctx, nir_intrinsic_instr *intr)
             ir3_MUL_F(b, xyzw[i], 0, create_immed(b, fui(1.0 / 16.0)), 0);
       }
 
-      ctx->frag_coord = ir3_create_collect(ctx, xyzw, 4);
+      ctx->frag_coord = ir3_create_collect(b, xyzw, 4);
    }
 
    ctx->so->fragcoord_compmask |= nir_ssa_def_components_read(&intr->dest.ssa);
@@ -2343,7 +2344,7 @@ get_tex_samp_tex_src(struct ir3_context *ctx, nir_tex_instr *tex)
          } else {
             sampler = create_immed(b, 0);
          }
-         info.samp_tex = ir3_collect(ctx, texture, sampler);
+         info.samp_tex = ir3_collect(b, texture, sampler);
       }
    } else {
       info.flags |= IR3_INSTR_S2EN;
@@ -2372,7 +2373,7 @@ get_tex_samp_tex_src(struct ir3_context *ctx, nir_tex_instr *tex)
          info.samp_idx = tex->texture_index;
       }
 
-      info.samp_tex = ir3_collect(ctx, sampler, texture);
+      info.samp_tex = ir3_collect(b, sampler, texture);
    }
 
    return info;
@@ -2637,7 +2638,7 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
 
       ctx->so->fb_read = true;
       info.samp_tex = ir3_collect(
-         ctx, create_immed_typed(ctx->block, ctx->so->num_samp, TYPE_U16),
+         b, create_immed_typed(ctx->block, ctx->so->num_samp, TYPE_U16),
          create_immed_typed(ctx->block, ctx->so->num_samp, TYPE_U16));
       info.flags = IR3_INSTR_S2EN;
 
@@ -2646,8 +2647,8 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
       info = get_tex_samp_tex_src(ctx, tex);
    }
 
-   struct ir3_instruction *col0 = ir3_create_collect(ctx, src0, nsrc0);
-   struct ir3_instruction *col1 = ir3_create_collect(ctx, src1, nsrc1);
+   struct ir3_instruction *col0 = ir3_create_collect(b, src0, nsrc0);
+   struct ir3_instruction *col1 = ir3_create_collect(b, src1, nsrc1);
 
    if (opc == OPC_META_TEX_PREFETCH) {
       int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
@@ -3318,7 +3319,7 @@ setup_input(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    struct ir3_instruction *coord = NULL;
 
    if (intr->intrinsic == nir_intrinsic_load_interpolated_input)
-      coord = ir3_create_collect(ctx, ir3_get_src(ctx, &intr->src[0]), 2);
+      coord = ir3_create_collect(ctx->block, ir3_get_src(ctx, &intr->src[0]), 2);
 
    compile_assert(ctx, nir_src_is_const(intr->src[coord ? 1 : 0]));
 
@@ -3992,6 +3993,13 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 
    ir = so->ir = ctx->ir;
 
+   if (so->type == MESA_SHADER_COMPUTE) {
+      so->local_size[0] = ctx->s->info.workgroup_size[0];
+      so->local_size[1] = ctx->s->info.workgroup_size[1];
+      so->local_size[2] = ctx->s->info.workgroup_size[2];
+      so->local_size_variable = ctx->s->info.workgroup_size_variable;
+   }
+
    /* Vertex shaders in a tessellation or geometry pipeline treat END as a
     * NOP and has an epilogue that writes the VS outputs to local storage, to
     * be read by the HS.  Then it resets execution mask (chmask) and chains
@@ -4012,7 +4020,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
          unsigned n = so->outputs_count++;
          so->outputs[n].slot = VARYING_SLOT_PRIMITIVE_ID;
 
-         struct ir3_instruction *out = ir3_collect(ctx, ctx->primitive_id);
+         struct ir3_instruction *out = ir3_collect(ctx->block, ctx->primitive_id);
          outputs[outputs_count] = out;
          outidxs[outputs_count] = n;
          if (so->type == MESA_SHADER_VERTEX && ctx->rel_patch_id)
@@ -4025,7 +4033,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
       if (so->type == MESA_SHADER_VERTEX && ctx->rel_patch_id) {
          unsigned n = so->outputs_count++;
          so->outputs[n].slot = VARYING_SLOT_REL_PATCH_ID_IR3;
-         struct ir3_instruction *out = ir3_collect(ctx, ctx->rel_patch_id);
+         struct ir3_instruction *out = ir3_collect(ctx->block, ctx->rel_patch_id);
          outputs[outputs_count] = out;
          outidxs[outputs_count] = n;
          regids[outputs_count] = regid(0, 1);
@@ -4035,7 +4043,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
       if (ctx->gs_header) {
          unsigned n = so->outputs_count++;
          so->outputs[n].slot = VARYING_SLOT_GS_HEADER_IR3;
-         struct ir3_instruction *out = ir3_collect(ctx, ctx->gs_header);
+         struct ir3_instruction *out = ir3_collect(ctx->block, ctx->gs_header);
          outputs[outputs_count] = out;
          outidxs[outputs_count] = n;
          regids[outputs_count] = regid(0, 0);
@@ -4045,7 +4053,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
       if (ctx->tcs_header) {
          unsigned n = so->outputs_count++;
          so->outputs[n].slot = VARYING_SLOT_TCS_HEADER_IR3;
-         struct ir3_instruction *out = ir3_collect(ctx, ctx->tcs_header);
+         struct ir3_instruction *out = ir3_collect(ctx->block, ctx->tcs_header);
          outputs[outputs_count] = out;
          outidxs[outputs_count] = n;
          regids[outputs_count] = regid(0, 0);
@@ -4074,13 +4082,13 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
       struct ir3_instruction *outputs[ctx->noutputs / 4];
       unsigned outputs_count = 0;
 
-      struct ir3_block *old_block = ctx->block;
+      struct ir3_block *b = ctx->block;
       /* Insert these collect's in the block before the end-block if
        * possible, so that any moves they generate can be shuffled around to
        * reduce nop's:
        */
       if (ctx->block->predecessors_count == 1)
-         ctx->block = ctx->block->predecessors[0];
+         b = ctx->block->predecessors[0];
 
       /* Setup IR level outputs, which are "collects" that gather
        * the scalar components of outputs.
@@ -4107,7 +4115,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
             continue;
 
          struct ir3_instruction *out =
-            ir3_create_collect(ctx, &ctx->outputs[i], ncomp);
+            ir3_create_collect(b, &ctx->outputs[i], ncomp);
 
          int outidx = i / 4;
          assert(outidx < so->outputs_count);
@@ -4142,8 +4150,6 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
                array_insert(in->block, in->block->keeps, in);
          }
       }
-
-      ctx->block = old_block;
 
       struct ir3_instruction *end =
          ir3_instr_create(ctx->block, OPC_END, 0, outputs_count);
@@ -4347,13 +4353,6 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
    if (so->type == MESA_SHADER_FRAGMENT &&
        ctx->s->info.fs.needs_quad_helper_invocations)
       so->need_pixlod = true;
-
-   if (so->type == MESA_SHADER_COMPUTE) {
-      so->local_size[0] = ctx->s->info.workgroup_size[0];
-      so->local_size[1] = ctx->s->info.workgroup_size[1];
-      so->local_size[2] = ctx->s->info.workgroup_size[2];
-      so->local_size_variable = ctx->s->info.workgroup_size_variable;
-   }
 
 out:
    if (ret) {

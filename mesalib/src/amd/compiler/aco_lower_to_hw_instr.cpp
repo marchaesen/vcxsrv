@@ -2129,7 +2129,8 @@ lower_to_hw_instr(Program* program)
                      bld.sop2(signext ? aco_opcode::s_bfe_i32 : aco_opcode::s_bfe_u32, dst,
                               bld.def(s1, scc), op, Operand::c32((bits << 16) | offset));
                   }
-               } else if (dst.regClass() == v1 || ctx.program->chip_class <= GFX7) {
+               } else if ((dst.regClass() == v1 && op.regClass() == v1) ||
+                          ctx.program->chip_class <= GFX7) {
                   assert(op.physReg().byte() == 0 && dst.physReg().byte() == 0);
                   if (offset == (32 - bits) && op.regClass() != s1) {
                      bld.vop2(signext ? aco_opcode::v_ashrrev_i32 : aco_opcode::v_lshrrev_b32, dst,
@@ -2138,9 +2139,12 @@ lower_to_hw_instr(Program* program)
                      bld.vop3(signext ? aco_opcode::v_bfe_i32 : aco_opcode::v_bfe_u32, dst, op,
                               Operand::c32(offset), Operand::c32(bits));
                   }
-               } else if (dst.regClass() == v2b) {
-                  bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, op).instr->sdwa().sel[0] =
-                     SubdwordSel(1, offset / 8, signext);
+               } else {
+                  assert(dst.regClass() == v2b || dst.regClass() == v1b || op.regClass() == v2b ||
+                         op.regClass() == v1b);
+                  SDWA_instruction& sdwa =
+                     bld.vop1_sdwa(aco_opcode::v_mov_b32, dst, op).instr->sdwa();
+                  sdwa.sel[0] = SubdwordSel(bits / 8, offset / 8, signext);
                }
                break;
             }

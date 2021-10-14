@@ -113,6 +113,16 @@ Some instructions have a `_LEGACY` variant which implements "DX9 rules", in whic
 the zero "wins" in multiplications, ie. `0.0*x` is always `0.0`. The VEGA ISA
 mentions `V_MAC_LEGACY_F32` but this instruction is not really there on VEGA.
 
+## `m0` with LDS instructions on Vega and newer
+
+The Vega ISA doc (both the old one and the "7nm" one) claims that LDS instructions
+use the `m0` register for address clamping like older GPUs, but this is not the case.
+
+In reality, only the `_addtid` variants of LDS instructions use `m0` on Vega and
+newer GPUs, so the relevant section of the RDNA ISA doc seems to apply.
+LLVM also doesn't emit any initialization of `m0` for LDS instructions, and this
+was also confirmed by AMD devs.
+
 ## RDNA L0, L1 cache and DLC, GLC bits
 
 The old L1 cache was renamed to L0, and a new L1 cache was added to RDNA. The

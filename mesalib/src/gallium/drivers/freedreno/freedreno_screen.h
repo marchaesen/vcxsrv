@@ -41,11 +41,11 @@
 #include "util/u_memory.h"
 #include "util/u_queue.h"
 
+#include "freedreno_batch_cache.h"
 #include "freedreno_gmem.h"
 #include "freedreno_util.h"
 
 struct fd_bo;
-struct fd_resource;
 
 /* Potential reasons for needing to skip bypass path and use GMEM, the
  * generation backend can override this with screen->gmem_reason_mask
@@ -135,6 +135,7 @@ struct fd_screen {
 
    int64_t cpu_gpu_time_delta;
 
+   struct fd_batch_cache batch_cache;
    struct fd_gmem_cache gmem_cache;
 
    bool reorder;

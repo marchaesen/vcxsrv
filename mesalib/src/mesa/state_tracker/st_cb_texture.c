@@ -2264,6 +2264,34 @@ st_TexImage(struct gl_context * ctx, GLuint dims,
                   format, type, pixels, unpack);
 }
 
+static bool
+st_try_pbo_compressed_texsubimage(struct gl_context *ctx,
+                                  struct pipe_resource *buf,
+                                  intptr_t buf_offset,
+                                  const struct st_pbo_addresses *addr_tmpl,
+                                  struct pipe_resource *texture,
+                                  const struct pipe_surface *surface_templ)
+{
+   struct st_context *st = st_context(ctx);
+   struct pipe_context *pipe = st->pipe;
+   struct st_pbo_addresses addr;
+   struct pipe_surface *surface = NULL;
+   bool success;
+
+   addr = *addr_tmpl;
+   if (!st_pbo_addresses_setup(st, buf, buf_offset, &addr))
+      return false;
+
+   surface = pipe->create_surface(pipe, texture, surface_templ);
+   if (!surface)
+      return false;
+
+   success = try_pbo_upload_common(ctx, surface, &addr, surface_templ->format);
+
+   pipe_surface_reference(&surface, NULL);
+
+   return success;
+}
 
 static void
 st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
@@ -2275,15 +2303,16 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
    struct st_context *st = st_context(ctx);
    struct st_texture_image *stImage = st_texture_image(texImage);
    struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct pipe_resource *buf;
    struct pipe_resource *texture = stImage->pt;
-   struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->screen;
    struct pipe_resource *dst = stImage->pt;
-   struct pipe_surface *surface = NULL;
+   struct pipe_surface templ;
    struct compressed_pixelstore store;
    struct st_pbo_addresses addr;
    enum pipe_format copy_format;
-   unsigned bw, bh;
+   unsigned bw, bh, level, max_layer;
+   int layer;
    intptr_t buf_offset;
    bool success = false;
 
@@ -2349,6 +2378,8 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
 
    buf_offset = buf_offset / addr.bytes_per_pixel;
 
+   buf = st_buffer_object(ctx->Unpack.BufferObj)->buffer;
+
    addr.xoffset = x / bw;
    addr.yoffset = y / bh;
    addr.width = store.CopyBytesPerRow / addr.bytes_per_pixel;
@@ -2357,34 +2388,39 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
    addr.pixels_per_row = store.TotalBytesPerRow / addr.bytes_per_pixel;
    addr.image_height = store.TotalRowsPerSlice;
 
-   if (!st_pbo_addresses_setup(st,
-                               st_buffer_object(ctx->Unpack.BufferObj)->buffer,
-                               buf_offset, &addr))
-      goto fallback;
-
    /* Set up the surface. */
-   {
-      unsigned level = stObj->pt != stImage->pt
-         ? 0 : texImage->TexObject->Attrib.MinLevel + texImage->Level;
-      unsigned max_layer = util_max_layer(texture, level);
+   level = stObj->pt != stImage->pt
+      ? 0 : texImage->TexObject->Attrib.MinLevel + texImage->Level;
+   max_layer = util_max_layer(texture, level);
+   layer = z + texImage->Face + texImage->TexObject->Attrib.MinLayer;
 
-      GLint layer = z + texImage->Face + texImage->TexObject->Attrib.MinLayer;
+   memset(&templ, 0, sizeof(templ));
+   templ.format = copy_format;
+   templ.u.tex.level = level;
+   templ.u.tex.first_layer = MIN2(layer, max_layer);
+   templ.u.tex.last_layer = MIN2(layer + d - 1, max_layer);
 
-      struct pipe_surface templ;
-      memset(&templ, 0, sizeof(templ));
-      templ.format = copy_format;
-      templ.u.tex.level = level;
+   if (st_try_pbo_compressed_texsubimage(ctx, buf, buf_offset, &addr,
+                                         texture, &templ))
+      return;
+
+   /* Some drivers can re-interpret surfaces but only one layer at a time.
+    * Fall back to doing a single try_pbo_upload_common per layer.
+    */
+   while (layer <= max_layer) {
       templ.u.tex.first_layer = MIN2(layer, max_layer);
-      templ.u.tex.last_layer = MIN2(layer + d - 1, max_layer);
-
-      surface = pipe->create_surface(pipe, texture, &templ);
-      if (!surface)
+      templ.u.tex.last_layer = templ.u.tex.first_layer;
+      if (!st_try_pbo_compressed_texsubimage(ctx, buf, buf_offset, &addr,
+                                             texture, &templ))
          goto fallback;
+
+      /* By incrementing layer here, we ensure the fallback only uploads
+       * layers we failed to upload.
+       */
+      buf_offset += addr.pixels_per_row * addr.image_height;
+      layer++;
+      addr.depth--;
    }
-
-   success = try_pbo_upload_common(ctx, surface, &addr, copy_format);
-
-   pipe_surface_reference(&surface, NULL);
 
    if (success)
       return;

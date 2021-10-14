@@ -755,8 +755,8 @@ static void rc_vs_add_artificial_outputs(struct radeon_compiler *c, void *user)
 	int i;
 
 	for(i = 0; i < 32; ++i) {
-		if ((compiler->RequiredOutputs & (1 << i)) &&
-		    !(compiler->Base.Program.OutputsWritten & (1 << i))) {
+		if ((compiler->RequiredOutputs & (1U << i)) &&
+		    !(compiler->Base.Program.OutputsWritten & (1U << i))) {
 			struct rc_instruction * inst = rc_insert_new_instruction(&compiler->Base, compiler->Base.Program.Instructions.Prev);
 			inst->U.I.Opcode = RC_OPCODE_MOV;
 
@@ -768,7 +768,7 @@ static void rc_vs_add_artificial_outputs(struct radeon_compiler *c, void *user)
 			inst->U.I.SrcReg[0].Index = 0;
 			inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZW;
 
-			compiler->Base.Program.OutputsWritten |= 1 << i;
+			compiler->Base.Program.OutputsWritten |= 1U << i;
 		}
 	}
 }
@@ -780,7 +780,7 @@ static void dataflow_outputs_mark_used(void * userdata, void * data,
 	int i;
 
 	for(i = 0; i < 32; ++i) {
-		if (c->RequiredOutputs & (1 << i))
+		if (c->RequiredOutputs & (1U << i))
 			callback(data, i, RC_MASK_XYZW);
 	}
 }

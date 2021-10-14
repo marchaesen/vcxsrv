@@ -151,13 +151,13 @@ static void si_emit_max_4_sample_locs(struct radeon_cmdbuf *cs, uint64_t centroi
                                       uint32_t sample_locs)
 {
    radeon_begin(cs);
-   radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-   radeon_emit(cs, centroid_priority);
-   radeon_emit(cs, centroid_priority >> 32);
-   radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, sample_locs);
-   radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, sample_locs);
-   radeon_set_context_reg(cs, R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, sample_locs);
-   radeon_set_context_reg(cs, R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, sample_locs);
+   radeon_set_context_reg_seq(R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
+   radeon_emit(centroid_priority);
+   radeon_emit(centroid_priority >> 32);
+   radeon_set_context_reg(R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, sample_locs);
+   radeon_set_context_reg(R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, sample_locs);
+   radeon_set_context_reg(R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, sample_locs);
+   radeon_set_context_reg(R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, sample_locs);
    radeon_end();
 }
 
@@ -165,15 +165,15 @@ static void si_emit_max_16_sample_locs(struct radeon_cmdbuf *cs, uint64_t centro
                                        const uint32_t *sample_locs, unsigned num_samples)
 {
    radeon_begin(cs);
-   radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-   radeon_emit(cs, centroid_priority);
-   radeon_emit(cs, centroid_priority >> 32);
-   radeon_set_context_reg_seq(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0,
+   radeon_set_context_reg_seq(R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
+   radeon_emit(centroid_priority);
+   radeon_emit(centroid_priority >> 32);
+   radeon_set_context_reg_seq(R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0,
                               num_samples == 8 ? 14 : 16);
-   radeon_emit_array(cs, sample_locs, 4);
-   radeon_emit_array(cs, sample_locs, 4);
-   radeon_emit_array(cs, sample_locs, 4);
-   radeon_emit_array(cs, sample_locs, num_samples == 8 ? 2 : 4);
+   radeon_emit_array(sample_locs, 4);
+   radeon_emit_array(sample_locs, 4);
+   radeon_emit_array(sample_locs, 4);
+   radeon_emit_array(sample_locs, num_samples == 8 ? 2 : 4);
    radeon_end();
 }
 

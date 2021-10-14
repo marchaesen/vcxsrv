@@ -99,6 +99,9 @@ struct svga_winsys_stats_timeframe {
    uint64 startTime;
    uint64 adjustedStartTime;
    struct svga_winsys_stats_timeframe *enclosing;
+
+   struct svga_winsys_screen *sws;
+   int32 slot;
 };
 
 enum svga_stats_count {
@@ -762,19 +765,19 @@ struct svga_winsys_screen
     * Increment a statistic counter
     */
    void
-   (*stats_inc)(enum svga_stats_count);
+   (*stats_inc)(struct svga_winsys_screen *, enum svga_stats_count);
 
    /**
     * Push a time frame onto the stack
     */
    void
-   (*stats_time_push)(enum svga_stats_time, struct svga_winsys_stats_timeframe *);
+   (*stats_time_push)(struct svga_winsys_screen *, enum svga_stats_time, struct svga_winsys_stats_timeframe *);
 
    /**
     * Pop a time frame.
     */
    void
-   (*stats_time_pop)();
+   (*stats_time_pop)(struct svga_winsys_screen *);
 
    /**
     * Send a host log message

@@ -131,30 +131,6 @@ FcConfigFini (void)
     free_lock ();
 }
 
-static FcChar8 *
-FcConfigRealPath(const FcChar8 *path)
-{
-    char	resolved_name[FC_PATH_MAX+1];
-    char	*resolved_ret;
-
-    if (!path)
-	return NULL;
-
-#ifndef _WIN32
-    resolved_ret = realpath((const char *) path, resolved_name);
-#else
-    if (GetFullPathNameA ((LPCSTR) path, FC_PATH_MAX, resolved_name, NULL) == 0)
-    {
-        fprintf (stderr, "Fontconfig warning: GetFullPathNameA failed.\n");
-        return NULL;
-    }
-    resolved_ret = resolved_name;
-#endif
-    if (resolved_ret)
-	path = (FcChar8 *) resolved_ret;
-    return FcStrCopyFilename(path);
-}
-
 FcConfig *
 FcConfigCreate (void)
 {
@@ -221,7 +197,7 @@ FcConfigCreate (void)
 
     config->expr_pool = NULL;
 
-    config->sysRoot = FcConfigRealPath((const FcChar8 *) getenv("FONTCONFIG_SYSROOT"));
+    config->sysRoot = FcStrRealPath ((const FcChar8 *) getenv("FONTCONFIG_SYSROOT"));
 
     config->rulesetList = FcPtrListCreate (FcDestroyAsRuleSet);
     if (!config->rulesetList)
@@ -3048,7 +3024,7 @@ retry:
 
     if (sysroot)
     {
-	s = FcConfigRealPath(sysroot);
+	s = FcStrRealPath (sysroot);
 	if (!s)
 	    return;
     }

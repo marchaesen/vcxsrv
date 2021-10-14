@@ -873,6 +873,8 @@ emit_srv(struct ntd_context *ctx, nir_variable *var, unsigned count)
 
    util_dynarray_append(&ctx->srv_metadata_nodes, const struct dxil_mdnode *, srv_meta);
    add_resource(ctx, res_type, &layout);
+   if (res_type == DXIL_RES_SRV_RAW)
+      ctx->mod.raw_and_structured_buffers = true;
 
    if (!ctx->opts->vulkan_environment) {
       for (unsigned i = 0; i < count; ++i) {
@@ -946,6 +948,8 @@ emit_uav(struct ntd_context *ctx, unsigned binding, unsigned space, unsigned cou
       ctx->mod.feats.use_64uavs = 1;
 
    add_resource(ctx, res_kind == DXIL_RESOURCE_KIND_RAW_BUFFER ? DXIL_RES_UAV_RAW : DXIL_RES_UAV_TYPED, &layout);
+   if (res_kind == DXIL_RESOURCE_KIND_RAW_BUFFER)
+      ctx->mod.raw_and_structured_buffers = true;
 
    if (!ctx->opts->vulkan_environment) {
       for (unsigned i = 0; i < count; ++i) {
@@ -4592,7 +4596,6 @@ emit_module(struct ntd_context *ctx, const struct nir_to_dxil_options *opts)
          return false;
    } else {
       /* Handle read/write SSBOs as UAVs */
-      int uav_count = 0;
       nir_foreach_variable_with_modes(var, ctx->shader, nir_var_mem_ssbo) {
          if ((var->data.access & ACCESS_NON_WRITEABLE) == 0) {
             unsigned count = 1;
@@ -4603,11 +4606,8 @@ emit_module(struct ntd_context *ctx, const struct nir_to_dxil_options *opts)
                         DXIL_RESOURCE_KIND_RAW_BUFFER, var->name))
                return false;
             
-            ++uav_count;
          }
       }
-      if (uav_count > 0)
-         ctx->mod.raw_and_structured_buffers = true;
    }
 
    nir_foreach_variable_with_modes(var, ctx->shader, nir_var_uniform) {

@@ -49,18 +49,11 @@ build_copy_vrs_htile_shader(struct radv_device *device, struct radeon_surf *surf
    b.shader->info.workgroup_size[1] = 8;
    b.shader->info.workgroup_size[2] = 1;
 
-   nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
-   nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
-                    b.shader->info.workgroup_size[2], 0);
-
    /* Get coordinates. */
-   nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
-   nir_ssa_def *coord = nir_channels(&b, global_id, 0x3);
+   nir_ssa_def *global_id = get_global_ids(&b, 2);
 
    /* Multiply the coordinates by the HTILE block size. */
-   coord = nir_imul(&b, coord, nir_imm_ivec2(&b, 8, 8));
+   nir_ssa_def *coord = nir_imul(&b, global_id, nir_imm_ivec2(&b, 8, 8));
 
    /* Load constants. */
    nir_ssa_def *constants = nir_load_push_constant(&b, 3, 32, nir_imm_int(&b, 0), .range = 12);
@@ -89,7 +82,7 @@ build_copy_vrs_htile_shader(struct radv_device *device, struct radeon_surf *surf
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->op = nir_texop_txf;
    tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src = nir_src_for_ssa(nir_channels(&b, global_id, 0x3));
+   tex->src[0].src = nir_src_for_ssa(global_id);
    tex->src[1].src_type = nir_tex_src_lod;
    tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0));
    tex->src[2].src_type = nir_tex_src_texture_deref;
@@ -302,6 +295,8 @@ radv_copy_vrs_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image *vrs_i
    uint32_t height = DIV_ROUND_UP(extent->height, 8);
 
    radv_unaligned_dispatch(cmd_buffer, width, height, 1);
+
+   radv_image_view_finish(&vrs_iview);
 
    radv_meta_restore(&saved_state, cmd_buffer);
 

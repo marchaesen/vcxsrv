@@ -47,13 +47,13 @@ void PRINTFLIKE(3, 4)
 }
 
 VkResult
-__vk_errorf(struct tu_instance *instance,
-            VkResult error,
-            bool always_print,
-            const char *file,
-            int line,
-            const char *format,
-            ...)
+__vk_startup_errorf(struct tu_instance *instance,
+                    VkResult error,
+                    bool always_print,
+                    const char *file,
+                    int line,
+                    const char *format,
+                    ...)
 {
    va_list ap;
    char buffer[256];

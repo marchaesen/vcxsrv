@@ -1112,7 +1112,7 @@ virtgpu_bo_destroy(struct vn_renderer *renderer, struct vn_renderer_bo *_bo)
    /* Check the refcount again after the import lock is grabbed.  Yes, we use
     * the double-checked locking anti-pattern.
     */
-   if (atomic_load_explicit(&bo->base.refcount, memory_order_relaxed) > 0) {
+   if (vn_refcount_is_valid(&bo->base.refcount)) {
       mtx_unlock(&gpu->dma_buf_import_mutex);
       return false;
    }
@@ -1208,11 +1208,11 @@ virtgpu_bo_create_from_dma_buf(struct vn_renderer *renderer,
       /* we can't use vn_renderer_bo_ref as the refcount may drop to 0
        * temporarily before virtgpu_bo_destroy grabs the lock
        */
-      atomic_fetch_add_explicit(&bo->base.refcount, 1, memory_order_relaxed);
+      vn_refcount_fetch_add_relaxed(&bo->base.refcount, 1);
    } else {
       *bo = (struct virtgpu_bo){
          .base = {
-            .refcount = 1,
+            .refcount = VN_REFCOUNT_INIT(1),
             .res_id = info.res_handle,
             .mmap_size = mmap_size,
          },
@@ -1255,7 +1255,7 @@ virtgpu_bo_create_from_device_memory(
    struct virtgpu_bo *bo = util_sparse_array_get(&gpu->bo_array, gem_handle);
    *bo = (struct virtgpu_bo){
       .base = {
-         .refcount = 1,
+         .refcount = VN_REFCOUNT_INIT(1),
          .res_id = res_id,
          .mmap_size = size,
       },
@@ -1301,7 +1301,7 @@ virtgpu_shmem_create(struct vn_renderer *renderer, size_t size)
       util_sparse_array_get(&gpu->shmem_array, gem_handle);
    *shmem = (struct virtgpu_shmem){
       .base = {
-         .refcount = 1,
+         .refcount = VN_REFCOUNT_INIT(1),
          .res_id = res_id,
          .mmap_size = size,
          .mmap_ptr = ptr,

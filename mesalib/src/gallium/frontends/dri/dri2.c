@@ -1536,16 +1536,24 @@ dri2_query_dma_buf_modifiers(__DRIscreen *_screen, int fourcc, int max,
 
    format = map->pipe_format;
 
+   bool native_sampling = pscreen->is_format_supported(pscreen, format, screen->target, 0, 0,
+                                                       PIPE_BIND_SAMPLER_VIEW);
    if (pscreen->is_format_supported(pscreen, format, screen->target, 0, 0,
-                                     PIPE_BIND_RENDER_TARGET) ||
-        pscreen->is_format_supported(pscreen, format, screen->target, 0, 0,
-                                     PIPE_BIND_SAMPLER_VIEW) ||
-        dri2_yuv_dma_buf_supported(screen, map)) {
-      if (pscreen->query_dmabuf_modifiers != NULL)
+                                    PIPE_BIND_RENDER_TARGET) ||
+       native_sampling ||
+       dri2_yuv_dma_buf_supported(screen, map))  {
+      if (pscreen->query_dmabuf_modifiers != NULL) {
          pscreen->query_dmabuf_modifiers(pscreen, format, max, modifiers,
                                          external_only, count);
-      else
+         if (!native_sampling && external_only) {
+            /* To support it using YUV lowering, we need it to be samplerExternalOES.
+             */
+            for (int i = 0; i < *count; i++)
+               external_only[i] = true;
+         }
+      } else {
          *count = 0;
+      }
       return true;
    }
    return false;
@@ -1696,6 +1704,7 @@ dri2_blit_image(__DRIcontext *context, __DRIimage *dst, __DRIimage *src,
    blit.src.format = src->texture->format;
    blit.mask = PIPE_MASK_RGBA;
    blit.filter = PIPE_TEX_FILTER_NEAREST;
+   blit.is_dri_blit_image = true;
 
    pipe->blit(pipe, &blit);
 

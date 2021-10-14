@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+struct wsi_device;
+
 struct vk_physical_device {
    struct vk_object_base base;
    struct vk_instance *instance;
@@ -38,6 +40,8 @@ struct vk_physical_device {
    struct vk_device_extension_table supported_extensions;
 
    struct vk_physical_device_dispatch_table dispatch_table;
+
+   struct wsi_device *wsi_device;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_physical_device, base, VkPhysicalDevice,
@@ -51,6 +55,10 @@ vk_physical_device_init(struct vk_physical_device *physical_device,
 
 void
 vk_physical_device_finish(struct vk_physical_device *physical_device);
+
+VkResult
+vk_physical_device_check_device_features(struct vk_physical_device *physical_device,
+                                         const VkDeviceCreateInfo *pCreateInfo);
 
 #ifdef __cplusplus
 }

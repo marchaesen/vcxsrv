@@ -155,14 +155,13 @@ dixMovePrivates(PrivatePtr *privates, int new_offset, unsigned bytes)
 static Bool
 fixupOneScreen(ScreenPtr pScreen, FixupFunc fixup, unsigned bytes)
 {
-    intptr_t        dist;
-    char            *old;
+    uintptr_t       old;
     char            *new;
     DevPrivateKey   *keyp, key;
     DevPrivateType  type;
     int             size;
 
-    old = (char *) pScreen->devPrivates;
+    old = (uintptr_t) pScreen->devPrivates;
     size = global_keys[PRIVATE_SCREEN].offset;
     if (!fixup (&pScreen->devPrivates, size, bytes))
         return FALSE;
@@ -182,9 +181,7 @@ fixupOneScreen(ScreenPtr pScreen, FixupFunc fixup, unsigned bytes)
     if (fixup == dixMovePrivates)
         new += bytes;
 
-    dist = new - old;
-
-    if (dist) {
+    if ((uintptr_t) new != old) {
         for (type = PRIVATE_XSELINUX; type < PRIVATE_LAST; type++)
 
             /* Walk the privates list, being careful as the
@@ -199,10 +196,11 @@ fixupOneScreen(ScreenPtr pScreen, FixupFunc fixup, unsigned bytes)
                  * is contained within the allocation. Privates
                  * stored elsewhere will be left alone
                  */
-                if (old <= (char *) key && (char *) key < old + size)
+                if (old <= (uintptr_t) key && (uintptr_t) key < old + size)
                 {
-                    /* Compute new location of key */
-                    key = (DevPrivateKey) ((char *) key + dist);
+                    /* Compute new location of key (deriving from the new
+                     * allocation to avoid UB) */
+                    key = (DevPrivateKey) (new + ((uintptr_t) key - old));
 
                     /* Patch the list */
                     *keyp = key;

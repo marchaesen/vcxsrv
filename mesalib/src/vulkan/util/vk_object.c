@@ -28,35 +28,28 @@
 #include "vk_device.h"
 #include "util/hash_table.h"
 #include "util/ralloc.h"
-
-static void
-vk_object_base_reinit(struct vk_object_base *base)
-{
-   base->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
-   util_sparse_array_init(&base->private_data, sizeof(uint64_t), 8);
-}
+#include "vk_enum_to_str.h"
 
 void
 vk_object_base_init(struct vk_device *device,
                     struct vk_object_base *base,
                     UNUSED VkObjectType obj_type)
 {
-   vk_object_base_reinit(base);
+   base->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
    base->type = obj_type;
    base->device = device;
+   base->client_visible = false;
+   base->object_name = NULL;
+   util_sparse_array_init(&base->private_data, sizeof(uint64_t), 8);
 }
 
 void
 vk_object_base_finish(struct vk_object_base *base)
 {
    util_sparse_array_finish(&base->private_data);
-}
 
-void
-vk_object_base_reset(struct vk_object_base *base)
-{
-   vk_object_base_finish(base);
-   vk_object_base_reinit(base);
+   if (base->object_name != NULL)
+      vk_free(&base->device->alloc, base->object_name);
 }
 
 void *
@@ -321,4 +314,19 @@ vk_common_GetPrivateDataEXT(VkDevice _device,
    vk_object_base_get_private_data(device,
                                    objectType, objectHandle,
                                    privateDataSlot, pData);
+}
+
+const char *
+vk_object_base_name(struct vk_object_base *obj)
+{
+   if (obj->object_name)
+      return obj->object_name;
+
+   obj->object_name = vk_asprintf(&obj->device->alloc,
+                                  VK_SYSTEM_ALLOCATION_SCOPE_DEVICE,
+                                  "%s(0x%"PRIx64")",
+                                  vk_ObjectType_to_ObjectName(obj->type),
+                                  (uint64_t)(uintptr_t)obj);
+
+   return obj->object_name;
 }

@@ -24,12 +24,16 @@ if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
   gallium_wgl_link_args += ['-Wl,--enable-stdcall-fixup']
 endif
 
-wgldef = files('gallium_wgl.def')[0]
+if cc.get_id() == 'gcc' and host_machine.cpu_family() != 'x86_64'
+  wgl_def = 'gallium_wgl.mingw.def'
+else
+  wgl_def = 'gallium_wgl.def'
+endif
 
 libgallium_wgl = shared_library(
   'gallium_wgl',
   ['wgl.c'],
-  vs_module_defs : wgldef,
+  vs_module_defs : wgl_def,
   include_directories : [
     inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_wgl, inc_gallium_winsys, inc_gallium_winsys_sw, inc_gallium_drivers,
   ],

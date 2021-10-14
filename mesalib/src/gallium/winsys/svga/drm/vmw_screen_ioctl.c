@@ -1003,6 +1003,8 @@ vmw_ioctl_init(struct vmw_winsys_screen *vws)
       (version->version_major == 2 && version->version_minor > 16);
    vws->ioctl.have_drm_2_18 = version->version_major > 2 ||
       (version->version_major == 2 && version->version_minor > 17);
+   vws->ioctl.have_drm_2_19 = version->version_major > 2 ||
+      (version->version_major == 2 && version->version_minor > 18);
 
    vws->ioctl.drm_execbuf_version = vws->ioctl.have_drm_2_9 ? 2 : 1;
 

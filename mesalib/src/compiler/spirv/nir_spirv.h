@@ -58,11 +58,6 @@ enum nir_spirv_execution_environment {
 struct spirv_to_nir_options {
    enum nir_spirv_execution_environment environment;
 
-   /* Whether to make FragCoord to a system value, the same as
-    * GLSLFragCoordIsSysVal in GLSL.
-    */
-   bool frag_coord_is_sysval;
-
    /* Whether to keep ViewIndex as an input instead of rewriting to a sysval.
     */
    bool view_index_is_input;

@@ -1091,6 +1091,30 @@ FcStrBasename (const FcChar8 *file)
     return FcStrCopy (slash + 1);
 }
 
+FcChar8 *
+FcStrRealPath (const FcChar8 *path)
+{
+    char	resolved_name[FC_PATH_MAX+1];
+    char	*resolved_ret;
+
+    if (!path)
+	return NULL;
+
+#ifndef _WIN32
+    resolved_ret = realpath((const char *) path, resolved_name);
+#else
+    if (GetFullPathNameA ((LPCSTR) path, FC_PATH_MAX, resolved_name, NULL) == 0)
+    {
+        fprintf (stderr, "Fontconfig warning: GetFullPathNameA failed.\n");
+        return NULL;
+    }
+    resolved_ret = resolved_name;
+#endif
+    if (resolved_ret)
+	path = (FcChar8 *) resolved_ret;
+    return FcStrCopyFilename(path);
+}
+
 static FcChar8 *
 FcStrCanonAbsoluteFilename (const FcChar8 *s)
 {

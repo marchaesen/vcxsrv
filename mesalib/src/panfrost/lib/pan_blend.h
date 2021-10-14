@@ -25,6 +25,8 @@
 #ifndef __PAN_BLEND_H__
 #define __PAN_BLEND_H__
 
+#include "genxml/gen_macros.h"
+
 #include "util/u_dynarray.h"
 #include "util/format/u_format.h"
 #include "compiler/shader_enums.h"
@@ -147,32 +149,37 @@ pan_blend_to_fixed_function_equation(const struct pan_blend_equation eq,
 uint32_t
 pan_pack_blend(const struct pan_blend_equation equation);
 
-nir_shader *
-pan_blend_create_shader(const struct panfrost_device *dev,
-                        const struct pan_blend_state *state,
-                        nir_alu_type src0_type,
-                        nir_alu_type src1_type,
-                        unsigned rt);
-
-uint64_t
-pan_blend_get_bifrost_desc(const struct panfrost_device *dev,
-                           enum pipe_format fmt, unsigned rt,
-                           unsigned force_size, bool dithered);
-
-/* Take blend_shaders.lock before calling this function and release it when
- * you're done with the shader variant object.
- */
-struct pan_blend_shader_variant *
-pan_blend_get_shader_locked(const struct panfrost_device *dev,
-                            const struct pan_blend_state *state,
-                            nir_alu_type src0_type,
-                            nir_alu_type src1_type,
-                            unsigned rt);
-
 void
 pan_blend_shaders_init(struct panfrost_device *dev);
 
 void
 pan_blend_shaders_cleanup(struct panfrost_device *dev);
+
+#ifdef PAN_ARCH
+
+nir_shader *
+GENX(pan_blend_create_shader)(const struct panfrost_device *dev,
+                              const struct pan_blend_state *state,
+                              nir_alu_type src0_type,
+                              nir_alu_type src1_type,
+                              unsigned rt);
+
+#if PAN_ARCH >= 6
+uint64_t
+GENX(pan_blend_get_internal_desc)(const struct panfrost_device *dev,
+                                  enum pipe_format fmt, unsigned rt,
+                                  unsigned force_size, bool dithered);
+#endif
+
+/* Take blend_shaders.lock before calling this function and release it when
+ * you're done with the shader variant object.
+ */
+struct pan_blend_shader_variant *
+GENX(pan_blend_get_shader_locked)(const struct panfrost_device *dev,
+                                  const struct pan_blend_state *state,
+                                  nir_alu_type src0_type,
+                                  nir_alu_type src1_type,
+                                  unsigned rt);
+#endif
 
 #endif

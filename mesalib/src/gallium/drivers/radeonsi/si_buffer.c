@@ -218,12 +218,12 @@ static void si_resource_destroy(struct pipe_screen *screen, struct pipe_resource
       util_range_destroy(&buffer->valid_buffer_range);
       radeon_bo_reference(((struct si_screen*)screen)->ws, &buffer->buf, NULL);
       util_idalloc_mt_free(&sscreen->buffer_ids, buffer->b.buffer_id_unique);
-      FREE(buffer);
+      FREE_CL(buffer);
    } else if (buf->flags & SI_RESOURCE_AUX_PLANE) {
       struct si_auxiliary_texture *tex = (struct si_auxiliary_texture *)buf;
 
       radeon_bo_reference(((struct si_screen*)screen)->ws, &tex->buffer, NULL);
-      FREE(tex);
+      FREE_CL(tex);
    } else {
       struct si_texture *tex = (struct si_texture *)buf;
       struct si_resource *resource = &tex->buffer;
@@ -234,7 +234,7 @@ static void si_resource_destroy(struct pipe_screen *screen, struct pipe_resource
          si_resource_reference(&tex->cmask_buffer, NULL);
       }
       radeon_bo_reference(((struct si_screen*)screen)->ws, &resource->buf, NULL);
-      FREE(tex);
+      FREE_CL(tex);
    }
 }
 
@@ -560,9 +560,7 @@ static void si_buffer_subdata(struct pipe_context *ctx, struct pipe_resource *bu
 static struct si_resource *si_alloc_buffer_struct(struct pipe_screen *screen,
                                                   const struct pipe_resource *templ)
 {
-   struct si_resource *buf;
-
-   buf = MALLOC_STRUCT(si_resource);
+   struct si_resource *buf = MALLOC_STRUCT_CL(si_resource);
 
    buf->b.b = *templ;
    buf->b.b.next = NULL;
@@ -594,7 +592,7 @@ static struct pipe_resource *si_buffer_create(struct pipe_screen *screen,
 
    if (!si_alloc_resource(sscreen, buf)) {
       threaded_resource_deinit(&buf->b.b);
-      FREE(buf);
+      FREE_CL(buf);
       return NULL;
    }
 
@@ -644,7 +642,7 @@ static struct pipe_resource *si_buffer_from_user_memory(struct pipe_screen *scre
    buf->buf = ws->buffer_from_ptr(ws, user_memory, templ->width0);
    if (!buf->buf) {
       threaded_resource_deinit(&buf->b.b);
-      FREE(buf);
+      FREE_CL(buf);
       return NULL;
    }
 

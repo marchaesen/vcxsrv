@@ -667,16 +667,20 @@ is_one_inv_src_alpha_blend(const struct lp_fragment_shader_variant *variant)
 void
 llvmpipe_fs_variant_linear_fastpath(struct lp_fragment_shader_variant *variant)
 {
-   enum pipe_format tex_format = variant->key.samplers[0].texture_state.format;
+   struct lp_sampler_static_state *samp0 = lp_fs_variant_key_sampler_idx(&variant->key, 0);
 
    if (LP_PERF & PERF_NO_SHADE) {
       variant->jit_linear                   = linear_red;
       return;
    }
 
+   if (!samp0)
+      return;
+
+   enum pipe_format tex_format = samp0->texture_state.format;
    if (variant->shader->kind == LP_FS_KIND_BLIT_RGBA &&
        tex_format == PIPE_FORMAT_B8G8R8A8_UNORM &&
-       is_nearest_clamp_sampler(&variant->key.samplers[0])) {
+       is_nearest_clamp_sampler(samp0)) {
       if (variant->opaque) {
          variant->jit_linear_blit             = blit_rgba_blit;
          variant->jit_linear                  = blit_rgba;
@@ -692,7 +696,7 @@ llvmpipe_fs_variant_linear_fastpath(struct lp_fragment_shader_variant *variant)
        variant->opaque &&
        (tex_format == PIPE_FORMAT_B8G8R8A8_UNORM ||
         tex_format == PIPE_FORMAT_B8G8R8X8_UNORM) &&
-       is_nearest_clamp_sampler(&variant->key.samplers[0])) {
+       is_nearest_clamp_sampler(samp0)) {
       variant->jit_linear_blit             = blit_rgb1_blit;
       variant->jit_linear                  = blit_rgb1;
       return;

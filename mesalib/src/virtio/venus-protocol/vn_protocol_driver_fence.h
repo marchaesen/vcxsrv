@@ -571,6 +571,8 @@ static inline void vn_submit_vkWaitForFences(struct vn_instance *vn_instance, Vk
 
 static inline VkResult vn_call_vkCreateFence(struct vn_instance *vn_instance, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateFence(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pFence, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -591,6 +593,8 @@ static inline void vn_async_vkCreateFence(struct vn_instance *vn_instance, VkDev
 
 static inline void vn_call_vkDestroyFence(struct vn_instance *vn_instance, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyFence(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -608,6 +612,8 @@ static inline void vn_async_vkDestroyFence(struct vn_instance *vn_instance, VkDe
 
 static inline VkResult vn_call_vkResetFences(struct vn_instance *vn_instance, VkDevice device, uint32_t fenceCount, const VkFence* pFences)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkResetFences(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fenceCount, pFences, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -628,6 +634,8 @@ static inline void vn_async_vkResetFences(struct vn_instance *vn_instance, VkDev
 
 static inline VkResult vn_call_vkGetFenceStatus(struct vn_instance *vn_instance, VkDevice device, VkFence fence)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetFenceStatus(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -648,6 +656,8 @@ static inline void vn_async_vkGetFenceStatus(struct vn_instance *vn_instance, Vk
 
 static inline VkResult vn_call_vkWaitForFences(struct vn_instance *vn_instance, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkWaitForFences(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fenceCount, pFences, waitAll, timeout, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

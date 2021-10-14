@@ -61,7 +61,7 @@ __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
    OUT_REG(ring,
            A6XX_GRAS_SU_CNTL(.linehalfwidth = cso->line_width / 2.0,
                              .poly_offset = cso->offset_tri,
-                             .msaa_enable = cso->multisample,
+                             .line_mode = cso->multisample ? RECTANGULAR : BRESENHAM,
                              .cull_front = cso->cull_face & PIPE_FACE_FRONT,
                              .cull_back = cso->cull_face & PIPE_FACE_BACK,
                              .front_cw = !cso->front_ccw, ));
@@ -94,14 +94,7 @@ __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
    OUT_REG(ring, A6XX_VPC_POLYGON_MODE(mode));
    OUT_REG(ring, A6XX_PC_POLYGON_MODE(mode));
 
-   /* These started showing up in a6xx gen3, but so far I haven't found
-    * any example of blob setting them to anything other than zero.
-    *
-    * Probably not related to tess_use_shared, but that is a convenient
-    * thing to key off of until we find whatever new feature gen3 added
-    * that uses these registers.
-    */
-   if (ctx->screen->info->a6xx.tess_use_shared) {
+   if (ctx->screen->info->a6xx.has_shading_rate) {
       OUT_REG(ring, A6XX_RB_UNKNOWN_8A00());
       OUT_REG(ring, A6XX_RB_UNKNOWN_8A10());
       OUT_REG(ring, A6XX_RB_UNKNOWN_8A20());

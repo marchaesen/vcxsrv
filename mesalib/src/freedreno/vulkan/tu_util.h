@@ -85,6 +85,20 @@ tu6_rop(VkLogicOp op)
    return lookup[op];
 }
 
+static inline bool
+tu6_primtype_line(enum pc_di_primtype type)
+{
+    switch(type) {
+    case DI_PT_LINELIST:
+    case DI_PT_LINESTRIP:
+    case DI_PT_LINE_ADJ:
+    case DI_PT_LINESTRIP_ADJ:
+       return true;
+    default:
+       return false;
+    }
+}
+
 static inline enum pc_di_primtype
 tu6_primtype(VkPrimitiveTopology topology)
 {

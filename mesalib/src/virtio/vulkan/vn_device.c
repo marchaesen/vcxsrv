@@ -283,6 +283,8 @@ vn_CreateDevice(VkPhysicalDevice physicalDevice,
    struct vk_device_dispatch_table dispatch_table;
    vk_device_dispatch_table_from_entrypoints(&dispatch_table,
                                              &vn_device_entrypoints, true);
+   vk_device_dispatch_table_from_entrypoints(&dispatch_table,
+                                             &wsi_device_entrypoints, false);
    result = vn_device_base_init(&dev->base, &physical_dev->base,
                                 &dispatch_table, pCreateInfo, alloc);
    if (result != VK_SUCCESS) {

@@ -139,8 +139,7 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
 
       assert(device->physical_device->rad_info.chip_class == GFX8);
 
-      tba_va = radv_buffer_get_va(device->trap_handler_shader->bo) +
-               device->trap_handler_shader->bo_offset;
+      tba_va = radv_shader_variant_get_va(device->trap_handler_shader);
       tma_va = radv_buffer_get_va(device->tma_bo);
 
       radeon_set_sh_reg_seq(cs, R_00B838_COMPUTE_TBA_LO, 4);
@@ -369,6 +368,15 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_set_context_reg(cs, R_028C50_PA_SC_NGG_MODE_CNTL, S_028C50_MAX_DEALLOCS_IN_WAVE(512));
       radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 14);
 
+      /* Vulkan doesn't support user edge flags and it also doesn't
+       * need to prevent drawing lines on internal edges of
+       * decomposed primitives (such as quads) with polygon mode = lines.
+       */
+      unsigned vertex_reuse_depth = physical_device->rad_info.chip_class >= GFX10_3 ? 30 : 0;
+      radeon_set_context_reg(cs, R_028838_PA_CL_NGG_CNTL,
+                             S_028838_INDEX_BUF_EDGE_FLAG_ENA(0) |
+                             S_028838_VERTEX_REUSE_DEPTH(vertex_reuse_depth));
+
       /* Enable CMASK/FMASK/HTILE/DCC caching in L2 for small chips. */
       unsigned meta_write_policy, meta_read_policy;
 
@@ -523,8 +531,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
 
       assert(device->physical_device->rad_info.chip_class == GFX8);
 
-      tba_va = radv_buffer_get_va(device->trap_handler_shader->bo) +
-               device->trap_handler_shader->bo_offset;
+      tba_va = radv_shader_variant_get_va(device->trap_handler_shader);
       tma_va = radv_buffer_get_va(device->tma_bo);
 
       uint32_t regs[] = {R_00B000_SPI_SHADER_TBA_LO_PS, R_00B100_SPI_SHADER_TBA_LO_VS,
@@ -539,6 +546,11 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
          radeon_emit(cs, tma_va >> 40);
       }
    }
+
+   /* The DX10 diamond test is unnecessary with Vulkan and it decreases line rasterization
+    * performance.
+    */
+   radeon_set_context_reg(cs, R_028BDC_PA_SC_LINE_CNTL, 0);
 
    si_emit_compute(device, cs);
 }
@@ -1344,6 +1356,9 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 
    if (unlikely(cmd_buffer->device->trace_bo))
       radv_cmd_buffer_trace_emit(cmd_buffer);
+
+   if (cmd_buffer->state.flush_bits & RADV_CMD_FLAG_INV_L2)
+      cmd_buffer->state.rb_noncoherent_dirty = false;
 
    /* Clear the caches that have been flushed to avoid syncing too much
     * when there is some pending active queries.

@@ -28,7 +28,7 @@
 #ifndef __PAN_FORMAT_H
 #define __PAN_FORMAT_H
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 #include "util/format/u_format.h"
 

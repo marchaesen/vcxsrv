@@ -724,7 +724,8 @@ fd_gmem_render_tiles(struct fd_batch *batch)
 
    if (batch->nondraw) {
       DBG("%p: rendering non-draw", batch);
-      render_sysmem(batch);
+      if (!fd_ringbuffer_empty(batch->draw))
+         render_sysmem(batch);
       ctx->stats.batch_nondraw++;
    } else if (sysmem) {
       trace_render_sysmem(&batch->trace, batch->gmem);

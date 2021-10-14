@@ -179,7 +179,7 @@ generate_compute(struct llvmpipe_context *lp,
    builder = gallivm->builder;
    assert(builder);
    LLVMPositionBuilderAtEnd(builder, block);
-   sampler = lp_llvm_sampler_soa_create(key->samplers, key->nr_samplers);
+   sampler = lp_llvm_sampler_soa_create(lp_cs_variant_key_samplers(key), key->nr_samplers);
    image = lp_llvm_image_soa_create(lp_cs_variant_key_images(key), key->nr_images);
 
    struct lp_build_loop_state loop_state[4];
@@ -578,7 +578,7 @@ make_variant_key(struct llvmpipe_context *lp,
    int i;
    struct lp_compute_shader_variant_key *key;
    key = (struct lp_compute_shader_variant_key *)store;
-   memset(key, 0, offsetof(struct lp_compute_shader_variant_key, samplers[1]));
+   memset(key, 0, sizeof(*key));
 
    /* This value will be the same for all the variants of a given shader:
     */
@@ -586,7 +586,9 @@ make_variant_key(struct llvmpipe_context *lp,
 
    struct lp_sampler_static_state *cs_sampler;
 
-   cs_sampler = key->samplers;
+   cs_sampler = lp_cs_variant_key_samplers(key);
+
+   memset(cs_sampler, 0, MAX2(key->nr_samplers, key->nr_sampler_views) * sizeof *cs_sampler);
    for(i = 0; i < key->nr_samplers; ++i) {
       if(shader->info.base.file_mask[TGSI_FILE_SAMPLER] & (1 << i)) {
          lp_sampler_static_sampler_state(&cs_sampler[i].sampler_state,
@@ -642,7 +644,8 @@ dump_cs_variant_key(const struct lp_compute_shader_variant_key *key)
    debug_printf("cs variant %p:\n", (void *) key);
 
    for (i = 0; i < key->nr_samplers; ++i) {
-      const struct lp_static_sampler_state *sampler = &key->samplers[i].sampler_state;
+      const struct lp_sampler_static_state *samplers = lp_cs_variant_key_samplers(key);
+      const struct lp_static_sampler_state *sampler = &samplers[i].sampler_state;
       debug_printf("sampler[%u] = \n", i);
       debug_printf("  .wrap = %s %s %s\n",
                    util_str_tex_wrap(sampler->wrap_s, TRUE),
@@ -664,7 +667,8 @@ dump_cs_variant_key(const struct lp_compute_shader_variant_key *key)
       debug_printf("  .aniso = %u\n", sampler->aniso);
    }
    for (i = 0; i < key->nr_sampler_views; ++i) {
-      const struct lp_static_texture_state *texture = &key->samplers[i].texture_state;
+      const struct lp_sampler_static_state *samplers = lp_cs_variant_key_samplers(key);
+      const struct lp_static_texture_state *texture = &samplers[i].texture_state;
       debug_printf("texture[%u] = \n", i);
       debug_printf("  .format = %s\n",
                    util_format_name(texture->format));

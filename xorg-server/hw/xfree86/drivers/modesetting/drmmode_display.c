@@ -2404,24 +2404,23 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
     xf86DrvMsgVerb(pScrn->scrnIndex, X_INFO, MS_LOGLEVEL_DEBUG,
                    "Allocated crtc nr. %d to this screen.\n", num);
 
-    drmmode_crtc->use_gamma_lut =
-        drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].prop_id &&
-        /* Only use GAMMA_LUT if the size is 1024.
-         *
-         * Currently, the modesetting driver always passes a sigRGBbits value of
-         * 10 to xf86HandleColormaps.  This causes it to create a RRCrtc gamma
-         * ramp of 1024 elements. If DRMMODE_CRTC_GAMMA_LUT_SIZE is larger than
-         * 1024 (for example on Intel GEN11, where it has a value of 262145)
-         * then xf86RandR12CrtcSetGamma will read past the end of the RRCrtc's
-         * gamma ramp when trying to copy it into the larger xf86Crtc gamma
-         * ramp.
-         *
-         * Since the larger GEN11 gamma ramp size hasn't been tested, just
-         * disable it for now. This will cause the modesetting driver to disable
-         * the CTM property and use the legacy DRM gamma ramp rather than the
-         * GAMMA_LUT property. */
-        drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].value == 1024 &&
-        xf86ReturnOptValBool(drmmode->Options, OPTION_USE_GAMMA_LUT, TRUE);
+    if (drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].prop_id &&
+        drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].value) {
+        /*
+         * GAMMA_LUT property supported, and so far tested to be safe to use by
+         * default for lut sizes up to 4096 slots. Intel Tigerlake+ has some
+         * issues, and a large GAMMA_LUT with 262145 slots, so keep GAMMA_LUT
+         * off for large lut sizes by default for now.
+         */
+        drmmode_crtc->use_gamma_lut = drmmode_crtc->props[DRMMODE_CRTC_GAMMA_LUT_SIZE].value <= 4096;
+
+        /* Allow config override. */
+        drmmode_crtc->use_gamma_lut = xf86ReturnOptValBool(drmmode->Options,
+                                                           OPTION_USE_GAMMA_LUT,
+                                                           drmmode_crtc->use_gamma_lut);
+    } else {
+        drmmode_crtc->use_gamma_lut = FALSE;
+    }
 
     if (drmmode_crtc->use_gamma_lut &&
         drmmode_crtc->props[DRMMODE_CRTC_CTM].prop_id) {
@@ -3310,7 +3309,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
         }
     }
 
-    ms->is_connector_vrr_capable =
+    ms->is_connector_vrr_capable |=
 	         drmmode_connector_check_vrr_capable(drmmode->fd,
                                                   drmmode_output->output_id);
     return 1;

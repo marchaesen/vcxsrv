@@ -105,6 +105,7 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_workgroup_size:
    case nir_intrinsic_load_subgroup_id:
    case nir_intrinsic_load_num_subgroups:
+   case nir_intrinsic_load_ray_launch_size:
    case nir_intrinsic_load_subgroup_size:
    case nir_intrinsic_load_subgroup_eq_mask:
    case nir_intrinsic_load_subgroup_ge_mask:
@@ -531,6 +532,8 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_packed_passthrough_primitive_amd:
    case nir_intrinsic_load_initial_edgeflags_amd:
    case nir_intrinsic_gds_atomic_add_amd:
+   case nir_intrinsic_load_rt_arg_scratch_offset_amd:
+   case nir_intrinsic_load_intersection_opaque_amd:
       is_divergent = true;
       break;
 

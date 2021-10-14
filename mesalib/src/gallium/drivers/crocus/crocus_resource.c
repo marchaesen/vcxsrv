@@ -162,7 +162,7 @@ pipe_bind_to_isl_usage(unsigned bindings)
    if (bindings & (PIPE_BIND_SHADER_IMAGE | PIPE_BIND_SHADER_BUFFER))
       usage |= ISL_SURF_USAGE_STORAGE_BIT;
 
-   if (bindings & PIPE_BIND_DISPLAY_TARGET)
+   if (bindings & PIPE_BIND_SCANOUT)
       usage |= ISL_SURF_USAGE_DISPLAY_BIT;
    return usage;
 }

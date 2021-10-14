@@ -20,8 +20,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+#include "radv_llvm_helper.h"
 #include "ac_llvm_util.h"
-#include "radv_shader_helper.h"
 
 #include <list>
 class radv_llvm_per_thread_info {

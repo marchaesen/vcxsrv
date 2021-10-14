@@ -121,7 +121,7 @@ radv_image_from_gralloc(VkDevice device_h, const VkImageCreateInfo *base_info,
    VkResult result;
 
    if (gralloc_info->handle->numFds != 1) {
-      return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE,
+      return vk_errorf(device, VK_ERROR_INVALID_EXTERNAL_HANDLE,
                        "VkNativeBufferANDROID::handle::numFds is %d, "
                        "expected 1",
                        gralloc_info->handle->numFds);
@@ -196,7 +196,13 @@ radv_image_from_gralloc(VkDevice device_h, const VkImageCreateInfo *base_info,
 
    radv_image_override_offset_stride(device, image, 0, gralloc_info->stride);
 
-   radv_BindImageMemory(device_h, image_h, memory_h, 0);
+   VkBindImageMemoryInfo bind_info = {
+      .sType = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO,
+      .image = image_h,
+      .memory = memory_h,
+      .memoryOffset = 0
+   };
+   radv_BindImageMemory2(device_h, 1, &bind_info);
 
    image->owned_memory = memory_h;
    /* Don't clobber the out-parameter until success is certain. */
@@ -249,7 +255,7 @@ radv_GetSwapchainGrallocUsageANDROID(VkDevice device_h, VkFormat format,
    result = radv_GetPhysicalDeviceImageFormatProperties2(phys_dev_h, &image_format_info,
                                                          &image_format_props);
    if (result != VK_SUCCESS) {
-      return vk_errorf(device->instance, result,
+      return vk_errorf(device, result,
                        "radv_GetPhysicalDeviceImageFormatProperties2 failed "
                        "inside %s",
                        __func__);
@@ -266,7 +272,7 @@ radv_GetSwapchainGrallocUsageANDROID(VkDevice device_h, VkFormat format,
     * gralloc swapchains.
     */
    if (imageUsage != 0) {
-      return vk_errorf(device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+      return vk_errorf(device, VK_ERROR_FORMAT_NOT_SUPPORTED,
                        "unsupported VkImageUsageFlags(0x%x) for gralloc "
                        "swapchain",
                        imageUsage);
@@ -307,7 +313,7 @@ radv_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h, VkFormat format,
    *grallocProducerUsage = 0;
 
    if (swapchainImageUsage & VK_SWAPCHAIN_IMAGE_USAGE_SHARED_BIT_ANDROID)
-      return vk_errorf(device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+      return vk_errorf(device, VK_ERROR_FORMAT_NOT_SUPPORTED,
                        "The Vulkan loader tried to query shared presentable image support");
 
    const VkPhysicalDeviceImageFormatInfo2 image_format_info = {
@@ -326,7 +332,7 @@ radv_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h, VkFormat format,
    result = radv_GetPhysicalDeviceImageFormatProperties2(phys_dev_h, &image_format_info,
                                                          &image_format_props);
    if (result != VK_SUCCESS) {
-      return vk_errorf(device->instance, result,
+      return vk_errorf(device, result,
                        "radv_GetPhysicalDeviceImageFormatProperties2 failed "
                        "inside %s",
                        __func__);
@@ -344,7 +350,7 @@ radv_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h, VkFormat format,
    }
 
    if (imageUsage != 0) {
-      return vk_errorf(device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
+      return vk_errorf(device, VK_ERROR_FORMAT_NOT_SUPPORTED,
                        "unsupported VkImageUsageFlags(0x%x) for gralloc "
                        "swapchain",
                        imageUsage);
@@ -400,7 +406,7 @@ radv_AcquireImageANDROID(VkDevice device_h, VkImage image_h, int nativeFenceFd, 
             VkResult err = (errno == EMFILE) ? VK_ERROR_TOO_MANY_OBJECTS :
                                                VK_ERROR_OUT_OF_HOST_MEMORY;
             close(nativeFenceFd);
-            return vk_error(device->instance, err);
+            return vk_error(device, err);
          }
       } else if (semaphore != VK_NULL_HANDLE) {
          semaphore_fd = nativeFenceFd;
@@ -501,7 +507,7 @@ radv_QueueSignalReleaseImageANDROID(VkQueue _queue, uint32_t waitSemaphoreCount,
 
 enum {
    /* Usage bit equal to GRALLOC_USAGE_HW_CAMERA_MASK */
-   AHARDWAREBUFFER_USAGE_CAMERA_MASK = 0x00060000U,
+   BUFFER_USAGE_CAMERA_MASK = 0x00060000U,
 };
 
 static inline VkFormat
@@ -522,7 +528,7 @@ vk_format_from_android(unsigned android_format, unsigned android_usage)
    case AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420:
       return VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
    case AHARDWAREBUFFER_FORMAT_IMPLEMENTATION_DEFINED:
-      if (android_usage & AHARDWAREBUFFER_USAGE_CAMERA_MASK)
+      if (android_usage & BUFFER_USAGE_CAMERA_MASK)
          return VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
       else
          return VK_FORMAT_R8G8B8_UNORM;
@@ -605,14 +611,17 @@ get_ahb_buffer_format_properties(VkDevice device_h, const struct AHardwareBuffer
    p->format = vk_format_from_android(desc.format, desc.usage);
    p->externalFormat = (uint64_t)(uintptr_t)p->format;
 
-   VkFormatProperties format_properties;
-   radv_GetPhysicalDeviceFormatProperties(radv_physical_device_to_handle(device->physical_device),
-                                          p->format, &format_properties);
+   VkFormatProperties2 format_properties = {
+      .sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2
+   };
+
+   radv_GetPhysicalDeviceFormatProperties2(radv_physical_device_to_handle(device->physical_device),
+                                               p->format, &format_properties);
 
    if (desc.usage & AHARDWAREBUFFER_USAGE_GPU_DATA_BUFFER)
-      p->formatFeatures = format_properties.linearTilingFeatures;
+      p->formatFeatures = format_properties.formatProperties.linearTilingFeatures;
    else
-      p->formatFeatures = format_properties.optimalTilingFeatures;
+      p->formatFeatures = format_properties.formatProperties.optimalTilingFeatures;
 
    /* "Images can be created with an external format even if the Android hardware
     *  buffer has a format which has an equivalent Vulkan format to enable
@@ -651,6 +660,82 @@ get_ahb_buffer_format_properties(VkDevice device_h, const struct AHardwareBuffer
    return VK_SUCCESS;
 }
 
+static VkResult
+get_ahb_buffer_format_properties2(VkDevice device_h, const struct AHardwareBuffer *buffer,
+                                  VkAndroidHardwareBufferFormatPropertiesANDROID2 *pProperties)
+{
+   RADV_FROM_HANDLE(radv_device, device, device_h);
+
+   /* Get a description of buffer contents . */
+   AHardwareBuffer_Desc desc;
+   AHardwareBuffer_describe(buffer, &desc);
+
+   /* Verify description. */
+   const uint64_t gpu_usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                              AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT |
+                              AHARDWAREBUFFER_USAGE_GPU_DATA_BUFFER;
+
+   /* "Buffer must be a valid Android hardware buffer object with at least
+    * one of the AHARDWAREBUFFER_USAGE_GPU_* usage flags."
+    */
+   if (!(desc.usage & (gpu_usage)))
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+
+   /* Fill properties fields based on description. */
+   VkAndroidHardwareBufferFormatPropertiesANDROID *p = pProperties;
+
+   p->format = vk_format_from_android(desc.format, desc.usage);
+   p->externalFormat = (uint64_t)(uintptr_t)p->format;
+
+   VkFormatProperties2 format_properties = {
+      .sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2
+   };
+
+   radv_GetPhysicalDeviceFormatProperties2(radv_physical_device_to_handle(device->physical_device),
+                                               p->format, &format_properties);
+
+   if (desc.usage & AHARDWAREBUFFER_USAGE_GPU_DATA_BUFFER)
+      p->formatFeatures = format_properties.formatProperties.linearTilingFeatures;
+   else
+      p->formatFeatures = format_properties.formatProperties.optimalTilingFeatures;
+
+   /* "Images can be created with an external format even if the Android hardware
+    *  buffer has a format which has an equivalent Vulkan format to enable
+    *  consistent handling of images from sources that might use either category
+    *  of format. However, all images created with an external format are subject
+    *  to the valid usage requirements associated with external formats, even if
+    *  the Android hardware buffer’s format has a Vulkan equivalent."
+    *
+    * "The formatFeatures member *must* include
+    *  VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT_KHR and at least one of
+    *  VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT_KHR or
+    *  VK_FORMAT_FEATURE_2_COSITED_CHROMA_SAMPLES_BIT_KHR"
+    */
+   assert(p->formatFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT_KHR);
+
+   p->formatFeatures |= VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT_KHR;
+
+   /* "Implementations may not always be able to determine the color model,
+    *  numerical range, or chroma offsets of the image contents, so the values
+    *  in VkAndroidHardwareBufferFormatPropertiesANDROID are only suggestions.
+    *  Applications should treat these values as sensible defaults to use in
+    *  the absence of more reliable information obtained through some other
+    *  means."
+    */
+   p->samplerYcbcrConversionComponents.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+   p->samplerYcbcrConversionComponents.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+   p->samplerYcbcrConversionComponents.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+   p->samplerYcbcrConversionComponents.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+   p->suggestedYcbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601;
+   p->suggestedYcbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+
+   p->suggestedXChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+   p->suggestedYChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+
+   return VK_SUCCESS;
+}
+
 VkResult
 radv_GetAndroidHardwareBufferPropertiesANDROID(VkDevice device_h,
                                                const struct AHardwareBuffer *buffer,
@@ -665,6 +750,11 @@ radv_GetAndroidHardwareBufferPropertiesANDROID(VkDevice device_h,
    /* Fill format properties of an Android hardware buffer. */
    if (format_prop)
       get_ahb_buffer_format_properties(device_h, buffer, format_prop);
+
+   VkAndroidHardwareBufferFormatProperties2ANDROID *format_prop2 =
+      vk_find_struct(pProperties->pNext, ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_2_ANDROID);
+   if (format_prop2)
+      get_ahb_buffer_format_properties2(device_h, buffer, format_prop2);
 
    /* NOTE - We support buffers with only one handle but do not error on
     * multiple handle case. Reason is that we want to support YUV formats

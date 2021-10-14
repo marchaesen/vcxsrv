@@ -239,6 +239,7 @@
       - src/gallium/winsys/panfrost/**/*
       when: on_success
     - changes: &panfrost_common_file_list
+      - src/panfrost/ci/*
       - src/panfrost/include/*
       - src/panfrost/lib/*
       - src/panfrost/shared/*
@@ -264,6 +265,12 @@
       when: on_success
     - changes:
         *panfrost_gallium_file_list
+      when: on_success
+    - changes:
+        *vulkan_file_list
+      when: on_success
+    - changes: &panfrost_vulkan_file_list
+      - src/panfrost/vulkan/*
       when: on_success
     - changes:
       - src/panfrost/bifrost/**/*

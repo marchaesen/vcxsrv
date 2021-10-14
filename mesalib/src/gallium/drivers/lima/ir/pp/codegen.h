@@ -355,6 +355,6 @@ typedef union __attribute__((__packed__)) {
    } discard;
 } ppir_codegen_field_branch;
 
-void ppir_disassemble_instr(uint32_t *instr, unsigned offset);
+void ppir_disassemble_instr(uint32_t *instr, unsigned offset, FILE *fp);
 
 #endif

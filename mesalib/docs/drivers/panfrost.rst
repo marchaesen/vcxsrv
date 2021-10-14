@@ -1,9 +1,10 @@
 Panfrost
 ========
 
-The Panfrost driver stack includes a **non-conformant** OpenGL ES
-implementation for Arm Mali GPUs based on the Midgard and Bifrost
-microarchitectures. The following GPUs are currently supported:
+The Panfrost driver stack includes an OpenGL ES implementation for Arm Mali
+GPUs based on the Midgard and Bifrost microarchitectures. It is **conformant**
+on Mali G52 but **non-conformant** on other GPUs. The following hardware is
+currently supported:
 
 =========  ============ ============ =======
 Product    Architecture OpenGL ES    OpenGL
@@ -39,12 +40,9 @@ it's easy to add support, see the commit ``cff7de4bb597e9`` as an example.
 LLVM is *not* required by Panfrost's compilers. LLVM support in Mesa can
 safely be disabled for most OpenGL ES users with Panfrost.
 
-Build with meson like ``meson . build/ -Ddri-drivers= -Dvulkan-drivers=
+Build like ``meson . build/ -Ddri-drivers= -Dvulkan-drivers=
 -Dgallium-drivers=panfrost -Dllvm=disabled`` for a build directory
 ``build``.
-
-Building for Android via the legacy ``Android.mk`` system is not officially
-supported but reportedly works. Your mileage may vary.
 
 For general information on building Mesa, read :doc:`the install documentation
 <../install>`.
@@ -52,4 +50,6 @@ For general information on building Mesa, read :doc:`the install documentation
 Chat
 ----
 
-Panfrost developers and users hang out on IRC at ``#panfrost`` on OFTC.
+Panfrost developers and users hang out on IRC at ``#panfrost`` on OFTC. Note
+that registering and authenticating with `NickServ` is required to prevent
+spam. `Join the chat. <https://webchat.oftc.net/?channels=#panfrost>`_

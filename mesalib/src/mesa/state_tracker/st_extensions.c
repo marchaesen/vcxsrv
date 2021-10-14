@@ -326,9 +326,16 @@ void st_init_limits(struct pipe_screen *screen,
       options->MaxIfDepth =
          screen->get_shader_param(screen, sh,
                                   PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
-      options->EmitNoLoops =
+
+      /* If we're using NIR, then leave GLSL loop handling to NIR.  If we set
+       * this flag, then GLSL jump lowering will turn the breaks into something
+       * that GLSL loop unrolling can't handle, and then you get linker failures
+       * about samplers with non-const indexes in loops that should be unrollable.
+       */
+      options->EmitNoLoops = !prefer_nir &&
          !screen->get_shader_param(screen, sh,
                                    PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
+
       options->EmitNoMainReturn =
          !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUBROUTINES);
 

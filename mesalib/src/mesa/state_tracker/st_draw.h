@@ -41,7 +41,8 @@ struct _mesa_prim;
 struct gl_context;
 struct st_context;
 
-void st_init_draw_functions(struct dd_function_table *functions);
+void st_init_draw_functions(struct pipe_screen *screen,
+                            struct dd_function_table *functions);
 
 void st_destroy_draw( struct st_context *st );
 

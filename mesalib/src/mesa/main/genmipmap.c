@@ -150,6 +150,20 @@ generate_texture_mipmap(struct gl_context *ctx,
                      _mesa_enum_to_string(srcImage->InternalFormat));
          return;
       }
+
+      /* The GLES 2.0 spec says:
+       *
+       *    "If the level zero array is stored in a compressed internal format,
+       *     the error INVALID_OPERATION is generated."
+       *
+       * and this text is gone from the GLES 3.0 spec.
+       */
+      if (ctx->API == API_OPENGLES2 && ctx->Version < 30 &&
+          _mesa_is_format_compressed(srcImage->TexFormat)) {
+         _mesa_unlock_texture(ctx, texObj);
+         _mesa_error(ctx, GL_INVALID_OPERATION, "generate mipmaps on compressed texture");
+         return;
+      }
    }
 
    if (srcImage->Width == 0 || srcImage->Height == 0) {

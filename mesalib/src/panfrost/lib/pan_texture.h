@@ -28,11 +28,13 @@
 #ifndef __PAN_TEXTURE_H
 #define __PAN_TEXTURE_H
 
+#include "genxml/gen_macros.h"
+
 #include <stdbool.h>
 #include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"
 #include "compiler/shader_enums.h"
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 #include "pan_bo.h"
 #include "pan_device.h"
 #include "pan_util.h"
@@ -157,15 +159,16 @@ panfrost_afbc_can_ytr(enum pipe_format format);
 unsigned
 panfrost_block_dim(uint64_t modifier, bool width, unsigned plane);
 
+#ifdef PAN_ARCH
 unsigned
-panfrost_estimate_texture_payload_size(const struct panfrost_device *dev,
-                                       const struct pan_image_view *iview);
+GENX(panfrost_estimate_texture_payload_size)(const struct pan_image_view *iview);
 
 void
-panfrost_new_texture(const struct panfrost_device *dev,
-                     const struct pan_image_view *iview,
-                     void *out,
-                     const struct panfrost_ptr *payload);
+GENX(panfrost_new_texture)(const struct panfrost_device *dev,
+                           const struct pan_image_view *iview,
+                           void *out,
+                           const struct panfrost_ptr *payload);
+#endif
 
 unsigned
 panfrost_get_layer_stride(const struct pan_image_layout *layout,

@@ -56,7 +56,7 @@ panvk_CreateDescriptorSetLayout(VkDevice _device,
                                    pCreateInfo->bindingCount,
                                    &bindings);
       if (result != VK_SUCCESS)
-         return vk_error(device->instance, result);
+         return vk_error(device, result);
 
       num_bindings = bindings[pCreateInfo->bindingCount - 1].binding + 1;
    }
@@ -161,7 +161,7 @@ panvk_CreateDescriptorSetLayout(VkDevice _device,
 
 err_free_bindings:
    free(bindings);
-   return vk_error(device->instance, result);
+   return vk_error(device, result);
 }
 
 void
@@ -198,7 +198,7 @@ panvk_GetDescriptorSetLayoutSupport(VkDevice _device,
                                 pCreateInfo->bindingCount,
                                 &bindings);
    if (result != VK_SUCCESS) {
-      vk_error(device->instance, result);
+      vk_error(device, result);
       return;
    }
 
@@ -267,7 +267,7 @@ panvk_CreatePipelineLayout(VkDevice _device,
    layout = vk_object_zalloc(&device->vk, pAllocator, sizeof(*layout),
                              VK_OBJECT_TYPE_PIPELINE_LAYOUT);
    if (layout == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    layout->num_sets = pCreateInfo->setLayoutCount;
    _mesa_sha1_init(&ctx);
@@ -345,7 +345,7 @@ panvk_CreateDescriptorPool(VkDevice _device,
                            sizeof(struct panvk_descriptor_pool),
                            VK_OBJECT_TYPE_DESCRIPTOR_POOL);
    if (!pool)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    pool->max.sets = pCreateInfo->maxSets;
 

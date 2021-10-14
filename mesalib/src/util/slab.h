@@ -42,7 +42,7 @@
 #ifndef SLAB_H
 #define SLAB_H
 
-#include "c11/threads.h"
+#include "simple_mtx.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,7 +52,7 @@ struct slab_element_header;
 struct slab_page_header;
 
 struct slab_parent_pool {
-   mtx_t mutex;
+   simple_mtx_t mutex;
    unsigned element_size;
    unsigned num_elements;
 };

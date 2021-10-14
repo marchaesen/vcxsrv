@@ -397,7 +397,7 @@ int main()
    STATIC_ASSERT(sizeof(struct test_entry) == 64);
 
    struct u_vector test_entries;
-   u_vector_init(&test_entries,  sizeof(struct test_entry), 4096);
+   u_vector_init_pow2(&test_entries, 64, sizeof(struct test_entry));
 
    for (unsigned i = 0; i < ARRAY_SIZE(testcases); ++i) {
       struct radeon_info info = get_radeon_info(&testcases[i]);

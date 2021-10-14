@@ -81,7 +81,7 @@ static void si_pc_emit_instance(struct si_context *sctx, int se, int instance)
    }
 
    radeon_begin(cs);
-   radeon_set_uconfig_reg(cs, R_030800_GRBM_GFX_INDEX, value);
+   radeon_set_uconfig_reg(R_030800_GRBM_GFX_INDEX, value);
    radeon_end();
 }
 
@@ -90,9 +90,9 @@ static void si_pc_emit_shaders(struct si_context *sctx, unsigned shaders)
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
 
    radeon_begin(cs);
-   radeon_set_uconfig_reg_seq(cs, R_036780_SQ_PERFCOUNTER_CTRL, 2, false);
-   radeon_emit(cs, shaders & 0x7f);
-   radeon_emit(cs, 0xffffffff);
+   radeon_set_uconfig_reg_seq(R_036780_SQ_PERFCOUNTER_CTRL, 2, false);
+   radeon_emit(shaders & 0x7f);
+   radeon_emit(0xffffffff);
    radeon_end();
 }
 
@@ -112,13 +112,13 @@ static void si_pc_emit_select(struct si_context *sctx, struct ac_pc_block *block
    radeon_begin(cs);
 
    for (idx = 0; idx < count; ++idx) {
-      radeon_set_uconfig_reg_seq(cs, regs->select0[idx], 1, false);
-      radeon_emit(cs, selectors[idx] | regs->select_or);
+      radeon_set_uconfig_reg_seq(regs->select0[idx], 1, false);
+      radeon_emit(selectors[idx] | regs->select_or);
    }
 
    for (idx = 0; idx < regs->num_spm_counters; idx++) {
-      radeon_set_uconfig_reg_seq(cs, regs->select1[idx], 1, false);
-      radeon_emit(cs, 0);
+      radeon_set_uconfig_reg_seq(regs->select1[idx], 1, false);
+      radeon_emit(0);
    }
 
    radeon_end();
@@ -132,11 +132,11 @@ static void si_pc_emit_start(struct si_context *sctx, struct si_resource *buffer
                    COPY_DATA_IMM, NULL, 1);
 
    radeon_begin(cs);
-   radeon_set_uconfig_reg(cs, R_036020_CP_PERFMON_CNTL,
+   radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
                           S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_DISABLE_AND_RESET));
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(cs, EVENT_TYPE(V_028A90_PERFCOUNTER_START) | EVENT_INDEX(0));
-   radeon_set_uconfig_reg(cs, R_036020_CP_PERFMON_CNTL,
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_START) | EVENT_INDEX(0));
+   radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
                           S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_START_COUNTING));
    radeon_end();
 }
@@ -152,12 +152,12 @@ static void si_pc_emit_stop(struct si_context *sctx, struct si_resource *buffer,
    si_cp_wait_mem(sctx, cs, va, 0, 0xffffffff, WAIT_REG_MEM_EQUAL);
 
    radeon_begin(cs);
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(cs, EVENT_TYPE(V_028A90_PERFCOUNTER_SAMPLE) | EVENT_INDEX(0));
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(cs, EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_SAMPLE) | EVENT_INDEX(0));
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
    radeon_set_uconfig_reg(
-      cs, R_036020_CP_PERFMON_CNTL,
+      R_036020_CP_PERFMON_CNTL,
       S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_STOP_COUNTING) | S_036020_PERFMON_SAMPLE_ENABLE(1));
    radeon_end();
 }
@@ -178,26 +178,26 @@ static void si_pc_emit_read(struct si_context *sctx, struct ac_pc_block *block, 
          if (regs->counters)
             reg = regs->counters[idx];
 
-         radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-         radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_PERF) | COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) |
+         radeon_emit(PKT3(PKT3_COPY_DATA, 4, 0));
+         radeon_emit(COPY_DATA_SRC_SEL(COPY_DATA_PERF) | COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) |
                             COPY_DATA_COUNT_SEL); /* 64 bits */
-         radeon_emit(cs, reg >> 2);
-         radeon_emit(cs, 0); /* unused */
-         radeon_emit(cs, va);
-         radeon_emit(cs, va >> 32);
+         radeon_emit(reg >> 2);
+         radeon_emit(0); /* unused */
+         radeon_emit(va);
+         radeon_emit(va >> 32);
          va += sizeof(uint64_t);
          reg += reg_delta;
       }
    } else {
       /* Fake counters. */
       for (idx = 0; idx < count; ++idx) {
-         radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-         radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_IMM) | COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) |
-                            COPY_DATA_COUNT_SEL);
-         radeon_emit(cs, 0); /* immediate */
-         radeon_emit(cs, 0);
-         radeon_emit(cs, va);
-         radeon_emit(cs, va >> 32);
+         radeon_emit(PKT3(PKT3_COPY_DATA, 4, 0));
+         radeon_emit(COPY_DATA_SRC_SEL(COPY_DATA_IMM) | COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) |
+                     COPY_DATA_COUNT_SEL);
+         radeon_emit(0); /* immediate */
+         radeon_emit(0);
+         radeon_emit(va);
+         radeon_emit(va >> 32);
          va += sizeof(uint64_t);
       }
    }
@@ -225,10 +225,10 @@ void si_inhibit_clockgating(struct si_context *sctx, struct radeon_cmdbuf *cs, b
    radeon_begin(&sctx->gfx_cs);
 
    if (sctx->chip_class >= GFX10) {
-      radeon_set_uconfig_reg(cs, R_037390_RLC_PERFMON_CLK_CNTL,
+      radeon_set_uconfig_reg(R_037390_RLC_PERFMON_CLK_CNTL,
                              S_037390_PERFMON_CLOCK_STATE(inhibit));
    } else if (sctx->chip_class >= GFX8) {
-      radeon_set_uconfig_reg(cs, R_0372FC_RLC_PERFMON_CLK_CNTL,
+      radeon_set_uconfig_reg(R_0372FC_RLC_PERFMON_CLK_CNTL,
                              S_0372FC_PERFMON_CLOCK_STATE(inhibit));
    }
    radeon_end();
@@ -643,6 +643,7 @@ void si_destroy_perfcounters(struct si_screen *screen)
       return;
 
    ac_destroy_perfcounters(&pc->base);
+   FREE(pc);
    screen->perfcounters = NULL;
 }
 

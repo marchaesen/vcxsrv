@@ -978,7 +978,7 @@ mir_schedule_condition(compiler_context *ctx,
 
         midgard_instruction *cond = mir_schedule_comparison(
                         ctx, instructions, predicate, worklist, count, last->src[condition_index],
-                        vector, last->swizzle[2], last);
+                        vector, last->swizzle[condition_index], last);
 
         /* We have exclusive reign over this (possibly move) conditional
          * instruction. We can rewrite into a pipeline conditional register */

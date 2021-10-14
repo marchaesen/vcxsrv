@@ -378,8 +378,9 @@ vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
 }
 
 static void
-handle_no_contraction(struct vtn_builder *b, struct vtn_value *val, int member,
-                      const struct vtn_decoration *dec, void *_void)
+handle_no_contraction(struct vtn_builder *b, UNUSED struct vtn_value *val,
+                      UNUSED int member, const struct vtn_decoration *dec,
+                      UNUSED void *_void)
 {
    vtn_assert(dec->scope == VTN_DEC_DECORATION);
    if (dec->decoration != SpvDecorationNoContraction)
@@ -423,7 +424,8 @@ struct conversion_opts {
 };
 
 static void
-handle_conversion_opts(struct vtn_builder *b, struct vtn_value *val, int member,
+handle_conversion_opts(struct vtn_builder *b, UNUSED struct vtn_value *val,
+                       UNUSED int member,
                        const struct vtn_decoration *dec, void *_opts)
 {
    struct conversion_opts *opts = _opts;
@@ -445,7 +447,8 @@ handle_conversion_opts(struct vtn_builder *b, struct vtn_value *val, int member,
 }
 
 static void
-handle_no_wrap(struct vtn_builder *b, struct vtn_value *val, int member,
+handle_no_wrap(UNUSED struct vtn_builder *b, UNUSED struct vtn_value *val,
+               UNUSED int member,
                const struct vtn_decoration *dec, void *_alu)
 {
    nir_alu_instr *alu = _alu;
@@ -597,8 +600,29 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       break;
    }
 
-   case SpvOpFUnordEqual:
-   case SpvOpFUnordNotEqual:
+   case SpvOpFUnordEqual: {
+      const bool save_exact = b->nb.exact;
+
+      b->nb.exact = true;
+
+      /* This could also be implemented as !(a < b || b < a).  If one or both
+       * of the source are numbers, later optimization passes can easily
+       * eliminate the isnan() checks.  This may trim the sequence down to a
+       * single (a == b) operation.  Otherwise, the optimizer can transform
+       * whatever is left to !(a < b || b < a).  Since some applications will
+       * open-code this sequence, these optimizations are needed anyway.
+       */
+      dest->def =
+         nir_ior(&b->nb,
+                 nir_feq(&b->nb, src[0], src[1]),
+                 nir_ior(&b->nb,
+                         nir_fneu(&b->nb, src[0], src[0]),
+                         nir_fneu(&b->nb, src[1], src[1])));
+
+      b->nb.exact = save_exact;
+      break;
+   }
+
    case SpvOpFUnordLessThan:
    case SpvOpFUnordGreaterThan:
    case SpvOpFUnordLessThanEqual:
@@ -621,12 +645,16 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
 
       b->nb.exact = true;
 
+      /* Use the property FUnordLessThan(a, b) ≡ !FOrdGreaterThanEqual(a, b). */
+      switch (op) {
+      case nir_op_fge: op = nir_op_flt; break;
+      case nir_op_flt: op = nir_op_fge; break;
+      default: unreachable("Impossible opcode.");
+      }
+
       dest->def =
-         nir_ior(&b->nb,
-                 nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL),
-                 nir_ior(&b->nb,
-                         nir_fneu(&b->nb, src[0], src[0]),
-                         nir_fneu(&b->nb, src[1], src[1])));
+         nir_inot(&b->nb,
+                  nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL));
 
       b->nb.exact = save_exact;
       break;
@@ -638,23 +666,20 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
        * from the ALU will probably already be false if the operands are not
        * ordered so we don’t need to handle it specially.
        */
-      bool swap;
-      bool exact;
-      unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
-      unsigned dst_bit_size = glsl_get_bit_size(dest_type);
-      nir_op op = vtn_nir_alu_op_for_spirv_opcode(b, opcode, &swap, &exact,
-                                                  src_bit_size, dst_bit_size);
-
-      assert(!swap);
-      assert(exact);
-
       const bool save_exact = b->nb.exact;
 
       b->nb.exact = true;
 
+      /* This could also be implemented as (a < b || b < a).  If one or both
+       * of the source are numbers, later optimization passes can easily
+       * eliminate the isnan() checks.  This may trim the sequence down to a
+       * single (a != b) operation.  Otherwise, the optimizer can transform
+       * whatever is left to (a < b || b < a).  Since some applications will
+       * open-code this sequence, these optimizations are needed anyway.
+       */
       dest->def =
          nir_iand(&b->nb,
-                  nir_build_alu(&b->nb, op, src[0], src[1], NULL, NULL),
+                  nir_fneu(&b->nb, src[0], src[1]),
                   nir_iand(&b->nb,
                           nir_feq(&b->nb, src[0], src[0]),
                           nir_feq(&b->nb, src[1], src[1])));

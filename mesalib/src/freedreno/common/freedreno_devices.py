@@ -126,6 +126,9 @@ class A6xxGPUInfo(GPUInfo):
         self.a6xx = Struct()
         self.a6xx.magic = Struct()
 
+        for name, val in template["magic"].items():
+            setattr(self.a6xx.magic, name, val)
+
         # Various "magic" register values:
         self.a6xx.magic.RB_UNKNOWN_8E04_blit = RB_UNKNOWN_8E04_blit
         self.a6xx.magic.PC_POWER_CNTL = PC_POWER_CNTL
@@ -136,6 +139,8 @@ class A6xxGPUInfo(GPUInfo):
         self.a6xx.has_8bpp_ubwc = True
 
         for name, val in template.items():
+            if name == "magic": # handled above
+                continue
             setattr(self.a6xx, name, val)
 
 # a2xx is really two sub-generations, a20x and a22x, but we don't currently
@@ -204,6 +209,9 @@ a6xx_gen1 = dict(
         ccu_cntl_gmem_unk2 = True,
         indirect_draw_wfm_quirk = True,
         depth_bounds_require_depth_test_quirk = True,
+        magic = dict(
+            TPL1_DBG_ECO_CNTL = 0x100000,
+        )
     )
 
 # a640, a680:
@@ -214,6 +222,9 @@ a6xx_gen2 = dict(
         has_z24uint_s8uint = True,
         indirect_draw_wfm_quirk = True,
         depth_bounds_require_depth_test_quirk = True, # TODO: check if true
+        magic = dict(
+            TPL1_DBG_ECO_CNTL = 0,
+        ),
     )
 
 # a650:
@@ -228,6 +239,10 @@ a6xx_gen3 = dict(
         has_sample_locations = True,
         has_ccu_flush_bug = True,
         has_8bpp_ubwc = False,
+        magic = dict(
+            # this seems to be a chicken bit that fixes cubic filtering:
+            TPL1_DBG_ECO_CNTL = 0x1000000,
+        ),
     )
 
 # a635, a660:
@@ -243,6 +258,10 @@ a6xx_gen4 = dict(
         has_cp_reg_write = False,
         has_8bpp_ubwc = False,
         has_lpac = True,
+        has_shading_rate = True,
+        magic = dict(
+            TPL1_DBG_ECO_CNTL = 0x5008000,
+        ),
     )
 
 add_gpus([

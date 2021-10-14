@@ -48,6 +48,7 @@ struct cso_velems_state;
  */
 enum st_pipeline {
    ST_PIPELINE_RENDER,
+   ST_PIPELINE_RENDER_NO_VARRAYS,
    ST_PIPELINE_CLEAR,
    ST_PIPELINE_META,
    ST_PIPELINE_UPDATE_FRAMEBUFFER,
@@ -57,6 +58,7 @@ enum st_pipeline {
 void st_init_atoms( struct st_context *st );
 void st_destroy_atoms( struct st_context *st );
 void st_validate_state( struct st_context *st, enum st_pipeline pipeline );
+void st_update_edgeflags(struct st_context *st, bool per_vertex_edgeflags);
 
 void
 st_setup_arrays(struct st_context *st,
@@ -72,6 +74,12 @@ st_setup_current_user(struct st_context *st,
                       const struct st_common_variant *vp_variant,
                       struct cso_velems_state *velements,
                       struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);
+
+struct pipe_vertex_state *
+st_create_gallium_vertex_state(struct gl_context *ctx,
+                               const struct gl_vertex_array_object *vao,
+                               struct gl_buffer_object *indexbuf,
+                               uint32_t enabled_attribs);
 
 /* Define ST_NEW_xxx_INDEX */
 enum {
@@ -160,12 +168,13 @@ enum {
 
 /* All state flags within each group: */
 #define ST_PIPELINE_RENDER_STATE_MASK  (ST_NEW_CS_STATE - 1)
+#define ST_PIPELINE_RENDER_STATE_MASK_NO_VARRAYS \
+   (ST_PIPELINE_RENDER_STATE_MASK & ~ST_NEW_VERTEX_ARRAYS)
 #define ST_PIPELINE_COMPUTE_STATE_MASK (0xffull << ST_NEW_CS_STATE_INDEX)
 #define ST_PIPELINE_CLEAR_STATE_MASK (ST_NEW_FB_STATE | \
                                       ST_NEW_SCISSOR | \
                                       ST_NEW_WINDOW_RECTANGLES)
-#define ST_PIPELINE_META_STATE_MASK (ST_PIPELINE_RENDER_STATE_MASK & \
-                                     ~ST_NEW_VERTEX_ARRAYS)
+#define ST_PIPELINE_META_STATE_MASK ST_PIPELINE_RENDER_STATE_MASK_NO_VARRAYS
 /* For ReadPixels, ReadBuffer, GetSamplePosition: */
 #define ST_PIPELINE_UPDATE_FB_STATE_MASK (ST_NEW_FB_STATE)
 

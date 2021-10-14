@@ -114,7 +114,7 @@ struct ureg_program
    bool supports_any_inout_decl_range;
    int next_shader_processor;
 
-   struct {
+   struct ureg_input_decl {
       enum tgsi_semantic semantic_name;
       unsigned semantic_index;
       enum tgsi_interpolate_mode interp;
@@ -1813,6 +1813,14 @@ emit_property(struct ureg_program *ureg,
 }
 
 static int
+input_sort(const void *in_a, const void *in_b)
+{
+   const struct ureg_input_decl *a = in_a, *b = in_b;
+
+   return a->first - b->first;
+}
+
+static int
 output_sort(const void *in_a, const void *in_b)
 {
    const struct ureg_output_decl *a = in_a, *b = in_b;
@@ -1827,6 +1835,11 @@ static void emit_decls( struct ureg_program *ureg )
    for (i = 0; i < ARRAY_SIZE(ureg->properties); i++)
       if (ureg->properties[i] != ~0u)
          emit_property(ureg, i, ureg->properties[i]);
+
+   /* While not required by TGSI spec, virglrenderer has a dependency on the
+    * inputs being sorted.
+    */
+   qsort(ureg->input, ureg->nr_inputs, sizeof(ureg->input[0]), input_sort);
 
    if (ureg->processor == PIPE_SHADER_VERTEX) {
       for (i = 0; i < PIPE_MAX_ATTRIBS; i++) {

@@ -1,11 +1,9 @@
 glx@glx-copy-sub-buffer,Fail
 glx@glx-copy-sub-buffer samples=2,Fail
 glx@glx-copy-sub-buffer samples=4,Fail
-glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-texture,Fail
 glx@glx-swap-copy,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-tfp,Crash
 glx@glx-visuals-depth,Crash
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil,Crash
@@ -78,7 +76,6 @@ spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
 spec@!opengl es 2.0@glsl-fs-pointcoord,Fail
 spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
 spec@arb_depth_texture@depth-tex-modes,Fail
-spec@arb_framebuffer_object@fbo-blit-scaled-linear,Fail
 spec@arb_framebuffer_object@fbo-gl_pointcoord,Fail
 spec@arb_get_program_binary@restore-sso-program,Fail
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-tf-separate,Fail
@@ -130,7 +127,6 @@ spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY16F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY32F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE16F_ARB,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_RGB16F,Fail
 spec@arb_texture_float@fbo-blending-formats@GL_RGB32F,Fail
 spec@arb_texture_rg@multisample-fast-clear gl_arb_texture_rg-int,Fail
 spec@arb_texture_view@rendering-formats,Fail
@@ -451,8 +447,6 @@ spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY8,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE12,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE16,Fail
 spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB10,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB16,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export-tex,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-intel_external_sampler_only,Fail
@@ -491,7 +485,6 @@ spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY_SNORM,Fail
 spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE16_SNORM,Fail
 spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE8_SNORM,Fail
 spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGB16_SNORM,Fail
 spec@ext_texture_swizzle@depth_texture_mode_and_swizzle,Fail
 spec@ext_transform_feedback2@counting with pause,Fail
 spec@ext_transform_feedback@generatemipmap prims_generated,Fail
@@ -547,6 +540,10 @@ spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
 spec@oes_texture_view@rendering-formats,Fail
+spec@oes_texture_view@rendering-formats@clear GL_RGB16 as GL_RGB16F,Fail
+spec@oes_texture_view@rendering-formats@clear GL_RGB16I as GL_RGB16F,Fail
+spec@oes_texture_view@rendering-formats@clear GL_RGB16UI as GL_RGB16F,Fail
+spec@oes_texture_view@rendering-formats@clear GL_RGB16_SNORM as GL_RGB16F,Fail
 spec@oes_texture_view@rendering-formats@clear GL_R16 as GL_R16F,Fail
 spec@oes_texture_view@rendering-formats@clear GL_R16 as GL_R16I,Fail
 spec@oes_texture_view@rendering-formats@clear GL_R16 as GL_R16UI,Fail

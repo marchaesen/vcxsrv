@@ -14,12 +14,12 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.khronos.org/registry/egl
 **
-** Khronos $Git commit SHA1: e8baa0bf39 $ on $Git commit date: 2021-04-26 17:56:26 -0600 $
+** Khronos $Git commit SHA1: dc0b58dca5 $ on $Git commit date: 2021-06-25 01:58:50 +0200 $
 */
 
 #include <EGL/eglplatform.h>
 
-#define EGL_EGLEXT_VERSION 20210604
+#define EGL_EGLEXT_VERSION 20210629
 
 /* Generated C header for:
  * API: egl
@@ -651,6 +651,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCompositorSwapPolicyEXT (EGLint external_win_id
 #endif
 #endif /* EGL_EXT_compositor */
 
+#ifndef EGL_EXT_config_select_group
+#define EGL_EXT_config_select_group 1
+#define EGL_CONFIG_SELECT_GROUP_EXT       0x34C0
+#endif /* EGL_EXT_config_select_group */
+
 #ifndef EGL_EXT_create_context_robustness
 #define EGL_EXT_create_context_robustness 1
 #define EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT 0x30BF
@@ -702,6 +707,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryDisplayAttribEXT (EGLDisplay dpy, EGLint a
 #define EGL_DEVICE_UUID_EXT               0x335C
 #define EGL_DRIVER_UUID_EXT               0x335D
 #define EGL_DRIVER_NAME_EXT               0x335E
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYDEVICEBINARYEXTPROC) (EGLDeviceEXT device, EGLint name, EGLint max_size, void *value, EGLint *size);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglQueryDeviceBinaryEXT (EGLDeviceEXT device, EGLint name, EGLint max_size, void *value, EGLint *size);
+#endif
 #endif /* EGL_EXT_device_persistent_id */
 
 #ifndef EGL_EXT_device_query
@@ -894,6 +903,11 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePlatformPixmapSurfaceEXT (EGLDisplay dpy,
 #define EGL_PLATFORM_XCB_EXT              0x31DC
 #define EGL_PLATFORM_XCB_SCREEN_EXT       0x31DE
 #endif /* EGL_EXT_platform_xcb */
+
+#ifndef EGL_EXT_present_opaque
+#define EGL_EXT_present_opaque 1
+#define EGL_PRESENT_OPAQUE_EXT            0x31DF
+#endif /* EGL_EXT_present_opaque */
 
 #ifndef EGL_EXT_protected_content
 #define EGL_EXT_protected_content 1

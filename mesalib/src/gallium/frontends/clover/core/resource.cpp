@@ -89,8 +89,8 @@ resource::add_map(command_queue &q, cl_map_flags flags, bool blocking,
 
 void
 resource::del_map(void *p) {
-   erase_if([&](const mapping &m) {
-         return static_cast<void *>(m) == p;
+   erase_if([&](const mapping &b) {
+         return static_cast<void *>(b) == p;
       }, maps);
 }
 

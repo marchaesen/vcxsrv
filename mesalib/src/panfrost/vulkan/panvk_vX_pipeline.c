@@ -207,7 +207,7 @@ panvk_pipeline_builder_alloc_static_state_bo(struct panvk_pipeline_builder *buil
       builder->stages[i].rsd_offset = bo_size;
       bo_size += pan_size(RENDERER_STATE);
       if (i == MESA_SHADER_FRAGMENT)
-         bo_size += pan_size(BLEND) * pipeline->blend.state.rt_count;
+         bo_size += pan_size(BLEND) * MAX2(pipeline->blend.state.rt_count, 1);
    }
 
    if (panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_VIEWPORT) &&
@@ -264,8 +264,8 @@ panvk_pipeline_builder_upload_sysval(struct panvk_pipeline_builder *builder,
                                          data);
       break;
    case PAN_SYSVAL_VIEWPORT_OFFSET:
-      panvk_sysval_upload_viewport_scale(builder->create_info->pViewportState->pViewports,
-                                         data);
+      panvk_sysval_upload_viewport_offset(builder->create_info->pViewportState->pViewports,
+                                          data);
       break;
    default:
       unreachable("Invalid static sysval");
@@ -311,7 +311,7 @@ panvk_pipeline_builder_init_shaders(struct panvk_pipeline_builder *builder,
          continue;
 
       pipeline->tls_size = MAX2(pipeline->tls_size, shader->info.tls_size);
-      pipeline->wls_size = MAX2(pipeline->tls_size, shader->info.wls_size);
+      pipeline->wls_size = MAX2(pipeline->wls_size, shader->info.wls_size);
 
       if (i == MESA_SHADER_VERTEX && shader->info.vs.writes_point_size)
          pipeline->ia.writes_point_size = true;
@@ -376,13 +376,12 @@ panvk_pipeline_builder_parse_viewport(struct panvk_pipeline_builder *builder,
                                     vpd);
       pipeline->vpd = pipeline->state_bo->ptr.gpu +
                       builder->vpd_offset;
-   } else {
-      if (builder->create_info->pViewportState->pViewports)
-         pipeline->viewport = builder->create_info->pViewportState->pViewports[0];
-
-      if (builder->create_info->pViewportState->pScissors)
-         pipeline->scissor = builder->create_info->pViewportState->pScissors[0];
    }
+   if (panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_VIEWPORT))
+      pipeline->viewport = builder->create_info->pViewportState->pViewports[0];
+
+   if (panvk_pipeline_static_state(pipeline, VK_DYNAMIC_STATE_SCISSOR))
+      pipeline->scissor = builder->create_info->pViewportState->pScissors[0];
 }
 
 static void
@@ -828,6 +827,9 @@ panvk_pipeline_builder_collect_varyings(struct panvk_pipeline_builder *builder,
    /* TODO: Xfb */
    gl_varying_slot loc;
    BITSET_FOREACH_SET(loc, pipeline->varyings.active, VARYING_SLOT_MAX) {
+      if (pipeline->varyings.varying[loc].format == PIPE_FORMAT_NONE)
+         continue;
+
       enum panvk_varying_buf_id buf_id =
          panvk_varying_buf_id(false, loc);
       unsigned buf_idx = panvk_varying_buf_index(&pipeline->varyings, buf_id);
@@ -945,7 +947,7 @@ panvk_pipeline_builder_init_graphics(struct panvk_pipeline_builder *builder,
       builder->use_depth_stencil_attachment =
          subpass->zs_attachment.idx != VK_ATTACHMENT_UNUSED;
 
-      assert(subpass->color_count == create_info->pColorBlendState->attachmentCount);
+      assert(subpass->color_count <= create_info->pColorBlendState->attachmentCount);
       builder->active_color_attachments = 0;
       for (uint32_t i = 0; i < subpass->color_count; i++) {
          uint32_t idx = subpass->color_attachments[i].idx;

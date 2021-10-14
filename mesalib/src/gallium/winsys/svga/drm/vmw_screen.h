@@ -81,6 +81,7 @@ struct vmw_winsys_screen
       boolean have_drm_2_16;
       boolean have_drm_2_17;
       boolean have_drm_2_18;
+      boolean have_drm_2_19;
    } ioctl;
 
    struct {
@@ -99,6 +100,17 @@ struct vmw_winsys_screen
 
    struct pb_fence_ops *fence_ops;
 
+#ifdef VMX86_STATS
+   /*
+    * mksGuestStats TLS array; length must be power of two
+    */
+   struct {
+      void *     stat_pages;
+      uint64_t   stat_id;
+      uint32_t   pid;
+   } mksstat_tls[64];
+
+#endif
    /*
     * Screen instances
     */
@@ -256,5 +268,8 @@ vmw_svga_winsys_shader_create(struct svga_winsys_screen *sws,
 void
 vmw_svga_winsys_shader_destroy(struct svga_winsys_screen *sws,
 			       struct svga_winsys_gb_shader *shader);
+
+size_t
+vmw_svga_winsys_stats_len(void);
 
 #endif /* VMW_SCREEN_H_ */

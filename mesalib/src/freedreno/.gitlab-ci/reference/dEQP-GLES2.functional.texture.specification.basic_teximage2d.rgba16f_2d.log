@@ -1,4 +1,3 @@
-Reading src/freedreno/.gitlab-ci/traces/dEQP-GLES2.functional.texture.specification.basic_teximage2d.rgba16f_2d.rd.gz...
 gpu_id: 201
 cmd: deqp-gles2/185: fence=1250
 ############################################################

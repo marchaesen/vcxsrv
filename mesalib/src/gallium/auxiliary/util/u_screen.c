@@ -291,6 +291,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
       return 4; /* GLES 2.0 minimum value */
 
    case PIPE_CAP_GLSL_OPTIMIZE_CONSERVATIVELY:
+   case PIPE_CAP_PREFER_BACK_BUFFER_REUSE:
       return 1;
 
    case PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS:
@@ -471,6 +472,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
       return 1;
 
    case PIPE_CAP_EMULATE_NONFIXED_PRIMITIVE_RESTART:
+   case PIPE_CAP_DRAW_VERTEX_STATE:
       return 0;
 
    default:

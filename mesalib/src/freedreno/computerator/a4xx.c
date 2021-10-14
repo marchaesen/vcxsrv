@@ -67,7 +67,7 @@ cs_program_emit(struct fd_ringbuffer *ring, struct kernel *kernel)
    struct ir3_kernel *ir3_kernel = to_ir3_kernel(kernel);
    struct ir3_shader_variant *v = ir3_kernel->v;
    const struct ir3_info *i = &v->info;
-   enum a3xx_threadmode thrsz = i->double_threadsize ? FOUR_QUADS : TWO_QUADS;
+   enum a3xx_threadsize thrsz = i->double_threadsize ? FOUR_QUADS : TWO_QUADS;
 
    OUT_PKT0(ring, REG_A4XX_UCHE_INVALIDATE0, 2);
    OUT_RING(ring, 0x00000000);

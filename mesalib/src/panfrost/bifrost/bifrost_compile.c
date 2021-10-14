@@ -925,11 +925,26 @@ bi_promote_atom_c1(enum bi_atom_opc op, bi_index arg, enum bi_atom_opc *out)
 /* Coordinates are 16-bit integers in Bifrost but 32-bit in NIR */
 
 static bi_index
-bi_emit_image_coord(bi_builder *b, bi_index coord)
+bi_emit_image_coord(bi_builder *b, bi_index coord, unsigned src_idx,
+                    unsigned coord_comps, bool is_array)
 {
-        return bi_mkvec_v2i16(b,
-                        bi_half(bi_word(coord, 0), false),
-                        bi_half(bi_word(coord, 1), false));
+        assert(coord_comps > 0 && coord_comps <= 3);
+
+        if (src_idx == 0) {
+                if (coord_comps == 1 || (coord_comps == 2 && is_array))
+                        return bi_word(coord, 0);
+                else
+                        return bi_mkvec_v2i16(b,
+                                              bi_half(bi_word(coord, 0), false),
+                                              bi_half(bi_word(coord, 1), false));
+        } else {
+                if (coord_comps == 3)
+                        return bi_word(coord, 2);
+                else if (coord_comps == 2 && is_array)
+                        return bi_word(coord, 1);
+                else
+                        return bi_zero();
+        }
 }
 
 static bi_index
@@ -955,6 +970,8 @@ static void
 bi_emit_image_load(bi_builder *b, nir_intrinsic_instr *instr)
 {
         enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
+        unsigned coord_comps = nir_image_intrinsic_coord_components(instr);
+        bool array = nir_intrinsic_image_array(instr);
         ASSERTED unsigned nr_dim = glsl_get_sampler_dim_coordinate_components(dim);
 
         bi_index coords = bi_src_index(&instr->src[1]);
@@ -962,8 +979,8 @@ bi_emit_image_load(bi_builder *b, nir_intrinsic_instr *instr)
         assert(nr_dim != GLSL_SAMPLER_DIM_MS && "MSAA'd images not supported");
 
         bi_ld_attr_tex_to(b, bi_dest_index(&instr->dest),
-                          bi_emit_image_coord(b, coords),
-                          bi_emit_image_coord(b, bi_word(coords, 2)),
+                          bi_emit_image_coord(b, coords, 0, coord_comps, array),
+                          bi_emit_image_coord(b, coords, 1, coord_comps, array),
                           bi_emit_image_index(b, instr),
                           bi_reg_fmt_for_nir(nir_intrinsic_dest_type(instr)),
                           instr->num_components - 1);
@@ -973,7 +990,9 @@ static bi_index
 bi_emit_lea_image(bi_builder *b, nir_intrinsic_instr *instr)
 {
         enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
+        bool array = nir_intrinsic_image_array(instr);
         ASSERTED unsigned nr_dim = glsl_get_sampler_dim_coordinate_components(dim);
+        unsigned coord_comps = nir_image_intrinsic_coord_components(instr);
 
         /* TODO: MSAA */
         assert(nr_dim != GLSL_SAMPLER_DIM_MS && "MSAA'd images not supported");
@@ -983,8 +1002,8 @@ bi_emit_lea_image(bi_builder *b, nir_intrinsic_instr *instr)
                 BI_REGISTER_FORMAT_AUTO;
 
         bi_index coords = bi_src_index(&instr->src[1]);
-        bi_index xy = bi_emit_image_coord(b, coords);
-        bi_index zw = bi_emit_image_coord(b, bi_word(coords, 2));
+        bi_index xy = bi_emit_image_coord(b, coords, 0, coord_comps, array);
+        bi_index zw = bi_emit_image_coord(b, coords, 1, coord_comps, array);
 
         bi_instr *I = bi_lea_attr_tex_to(b, bi_temp(b->shader), xy, zw,
                         bi_emit_image_index(b, instr), type);
@@ -1078,6 +1097,8 @@ bi_emit_ld_tile(bi_builder *b, nir_intrinsic_instr *instr)
 
         bi_index desc = b->shader->inputs->is_blend ?
                 bi_imm_u32(b->shader->inputs->blend.bifrost_blend_desc >> 32) :
+                b->shader->inputs->bifrost.static_rt_conv ?
+                bi_imm_u32(b->shader->inputs->bifrost.rt_conv[rt]) :
                 bi_load_sysval(b, PAN_SYSVAL(RT_CONVERSION, rt | (size << 4)), 1, 0);
 
         bi_ld_tile_to(b, bi_dest_index(&instr->dest), bi_pixel_indices(b, rt),
@@ -1316,6 +1337,11 @@ bi_emit_intrinsic(bi_builder *b, nir_intrinsic_instr *instr)
                                 nir_dest_num_components(instr->dest), 0);
                 break;
 
+        case nir_intrinsic_load_blend_const_color_rgba:
+                bi_load_sysval_nir(b, instr,
+                                   nir_dest_num_components(instr->dest), 0);
+                break;
+
 	case nir_intrinsic_load_sample_positions_pan:
                 bi_mov_i32_to(b, bi_word(dst, 0),
                                 bi_fau(BIR_FAU_SAMPLE_POS_ARRAY, false));
@@ -1445,8 +1471,8 @@ bi_alu_src_index(nir_alu_src src, unsigned comps)
         } else if (bitsize == 8) {
                 /* 8-bit vectors not yet supported */
                 assert(comps == 1 && "8-bit vectors not supported");
-                assert(src.swizzle[0] == 0 && "8-bit vectors not supported");
-                idx.swizzle = BI_SWIZZLE_B0000;
+                assert(src.swizzle[0] < 4 && "8-bit vectors not supported");
+                idx.swizzle = BI_SWIZZLE_B0000 + src.swizzle[0];
         }
 
         return idx;
@@ -1668,6 +1694,23 @@ bi_lower_fsincos_32(bi_builder *b, bi_index dst, bi_index s0, bool cos)
 
         /* f(x) + e f'(x) - (e^2/2) f''(x) */
         bi_fadd_f32_to(b, dst, I->dest[0], cos ? cosx : sinx, BI_ROUND_NONE);
+}
+
+/* The XOR lane op is useful for derivative calculation, but was added in v7.
+ * Add a safe helper that will do the appropriate lowering on v6 */
+
+static bi_index
+bi_clper_xor(bi_builder *b, bi_index s0, bi_index s1)
+{
+        if (b->shader->arch >= 7) {
+                return bi_clper_i32(b, s0, s1,
+                                BI_INACTIVE_RESULT_ZERO, BI_LANE_OP_XOR,
+                                BI_SUBGROUP_SUBGROUP4);
+        }
+
+        bi_index lane_id = bi_fau(BIR_FAU_LANE_ID, false);
+        bi_index lane = bi_lshift_xor_i32(b, lane_id, s1, bi_imm_u8(0));
+        return bi_clper_v6_i32(b, s0, lane);
 }
 
 static bi_instr *
@@ -1984,6 +2027,14 @@ bi_emit_alu(bi_builder *b, nir_alu_instr *instr)
                 bi_csel_to(b, nir_op_infos[instr->op].input_types[0], sz, dst,
                                 s0, s1, s0, s1, BI_CMPF_GT);
                 break;
+
+        case nir_op_fddx_must_abs_mali:
+        case nir_op_fddy_must_abs_mali: {
+                bi_index bit = bi_imm_u32(instr->op == nir_op_fddx_must_abs_mali ? 1 : 2);
+                bi_index adjacent = bi_clper_xor(b, s0, bit);
+                bi_fadd_to(b, sz, dst, adjacent, bi_neg(s0), BI_ROUND_NONE);
+                break;
+        }
 
         case nir_op_fddx:
         case nir_op_fddy: {

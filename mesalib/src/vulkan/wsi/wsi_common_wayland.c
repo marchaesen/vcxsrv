@@ -35,9 +35,11 @@
 
 #include "drm-uapi/drm_fourcc.h"
 
+#include "vk_instance.h"
+#include "vk_physical_device.h"
 #include "vk_util.h"
+#include "wsi_common_entrypoints.h"
 #include "wsi_common_private.h"
-#include "wsi_common_wayland.h"
 #include "linux-dmabuf-unstable-v1-client-protocol.h"
 
 #include <util/compiler.h>
@@ -113,7 +115,7 @@ wsi_wl_display_add_vk_format(struct wsi_wl_display *display,
       return NULL;
 
    struct u_vector modifiers;
-   if (!u_vector_init(&modifiers, sizeof(uint64_t), 32))
+   if (!u_vector_init_pow2(&modifiers, 4, sizeof(uint64_t)))
       return NULL;
 
    f = u_vector_add(formats);
@@ -455,8 +457,7 @@ wsi_wl_display_init(struct wsi_wayland *wsi_wl,
    VkResult result = VK_SUCCESS;
    memset(display, 0, sizeof(*display));
 
-   if (!u_vector_init(&display->formats, sizeof(struct wsi_wl_format),
-                      8 * sizeof(struct wsi_wl_format)))
+   if (!u_vector_init(&display->formats, 8, sizeof(struct wsi_wl_format)))
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    display->wsi_wl = wsi_wl;
@@ -574,10 +575,13 @@ wsi_wl_display_unref(struct wsi_wl_display *display)
    vk_free(wsi->alloc, display);
 }
 
-VkBool32
-wsi_wl_get_presentation_support(struct wsi_device *wsi_device,
-				struct wl_display *wl_display)
+VKAPI_ATTR VkBool32 VKAPI_CALL
+wsi_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                   uint32_t queueFamilyIndex,
+                                                   struct wl_display *wl_display)
 {
+   VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
+   struct wsi_device *wsi_device = pdevice->wsi_device;
    struct wsi_wayland *wsi =
       (struct wsi_wayland *)wsi_device->wsi[VK_ICD_WSI_PLATFORM_WAYLAND];
 
@@ -774,14 +778,19 @@ wsi_wl_surface_get_present_rectangles(VkIcdSurfaceBase *surface,
    return vk_outarray_status(&out);
 }
 
-VkResult wsi_create_wl_surface(const VkAllocationCallbacks *pAllocator,
-			       const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
-			       VkSurfaceKHR *pSurface)
+VKAPI_ATTR VkResult VKAPI_CALL
+wsi_CreateWaylandSurfaceKHR(VkInstance _instance,
+                            const VkWaylandSurfaceCreateInfoKHR *pCreateInfo,
+                            const VkAllocationCallbacks *pAllocator,
+                            VkSurfaceKHR *pSurface)
 {
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
    VkIcdSurfaceWayland *surface;
 
-   surface = vk_alloc(pAllocator, sizeof *surface, 8,
-                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR);
+
+   surface = vk_alloc2(&instance->alloc, pAllocator, sizeof *surface, 8,
+                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (surface == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 

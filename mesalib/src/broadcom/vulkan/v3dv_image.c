@@ -253,7 +253,7 @@ create_image(struct v3dv_device *device,
 
    image = vk_image_create(&device->vk, pCreateInfo, pAllocator, sizeof(*image));
    if (image == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    /* When using the simulator the WSI common code will see that our
     * driver wsi device doesn't match the display device and because of that
@@ -487,7 +487,7 @@ v3dv_CreateImageView(VkDevice _device,
    iview = vk_image_view_create(&device->vk, pCreateInfo, pAllocator,
                                 sizeof(*iview));
    if (iview == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
 
@@ -578,7 +578,7 @@ v3dv_CreateBufferView(VkDevice _device,
       vk_object_zalloc(&device->vk, pAllocator, sizeof(*view),
                        VK_OBJECT_TYPE_BUFFER_VIEW);
    if (!view)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    uint32_t range;
    if (pCreateInfo->range == VK_WHOLE_SIZE)

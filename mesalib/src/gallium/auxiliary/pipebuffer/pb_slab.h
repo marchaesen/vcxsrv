@@ -45,6 +45,7 @@
 #define PB_SLAB_H
 
 #include "pb_buffer.h"
+#include "util/simple_mtx.h"
 #include "util/list.h"
 #include "os/os_thread.h"
 
@@ -111,7 +112,7 @@ typedef bool (slab_can_reclaim_fn)(void *priv, struct pb_slab_entry *);
  */
 struct pb_slabs
 {
-   mtx_t mutex;
+   simple_mtx_t mutex;
 
    unsigned min_order;
    unsigned num_orders;

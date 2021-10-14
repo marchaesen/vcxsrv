@@ -105,9 +105,7 @@ push_block(struct block_queue *bq)
          return NULL;
    }
 
-   if (!u_vector_init(&bi->instructions,
-                      sizeof(nir_alu_instr *),
-                      8 * sizeof(nir_alu_instr *))) {
+   if (!u_vector_init_pow2(&bi->instructions, 8, sizeof(nir_alu_instr *))) {
       free(bi);
       return NULL;
    }

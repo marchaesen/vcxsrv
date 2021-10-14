@@ -727,6 +727,8 @@ static inline void vn_submit_vkSignalSemaphore(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkCreateSemaphore(struct vn_instance *vn_instance, VkDevice device, const VkSemaphoreCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSemaphore* pSemaphore)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateSemaphore(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSemaphore, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -747,6 +749,8 @@ static inline void vn_async_vkCreateSemaphore(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkDestroySemaphore(struct vn_instance *vn_instance, VkDevice device, VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroySemaphore(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, semaphore, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -764,6 +768,8 @@ static inline void vn_async_vkDestroySemaphore(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkGetSemaphoreCounterValue(struct vn_instance *vn_instance, VkDevice device, VkSemaphore semaphore, uint64_t* pValue)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetSemaphoreCounterValue(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, semaphore, pValue, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -784,6 +790,8 @@ static inline void vn_async_vkGetSemaphoreCounterValue(struct vn_instance *vn_in
 
 static inline VkResult vn_call_vkWaitSemaphores(struct vn_instance *vn_instance, VkDevice device, const VkSemaphoreWaitInfo* pWaitInfo, uint64_t timeout)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkWaitSemaphores(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pWaitInfo, timeout, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -804,6 +812,8 @@ static inline void vn_async_vkWaitSemaphores(struct vn_instance *vn_instance, Vk
 
 static inline VkResult vn_call_vkSignalSemaphore(struct vn_instance *vn_instance, VkDevice device, const VkSemaphoreSignalInfo* pSignalInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkSignalSemaphore(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pSignalInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

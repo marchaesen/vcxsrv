@@ -90,7 +90,6 @@ typedef enum VkVideoCodingControlFlagBitsKHR {
 typedef VkFlags VkVideoCodingControlFlagsKHR;
 
 typedef enum VkVideoCodingQualityPresetFlagBitsKHR {
-    VK_VIDEO_CODING_QUALITY_PRESET_DEFAULT_BIT_KHR = 0,
     VK_VIDEO_CODING_QUALITY_PRESET_NORMAL_BIT_KHR = 0x00000001,
     VK_VIDEO_CODING_QUALITY_PRESET_POWER_BIT_KHR = 0x00000002,
     VK_VIDEO_CODING_QUALITY_PRESET_QUALITY_BIT_KHR = 0x00000004,
@@ -305,7 +304,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdControlVideoCodingKHR(
 
 
 #define VK_KHR_video_decode_queue 1
-#define VK_KHR_VIDEO_DECODE_QUEUE_SPEC_VERSION 1
+#define VK_KHR_VIDEO_DECODE_QUEUE_SPEC_VERSION 2
 #define VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME "VK_KHR_video_decode_queue"
 
 typedef enum VkVideoDecodeFlagBitsKHR {
@@ -370,7 +369,7 @@ typedef struct VkPhysicalDevicePortabilitySubsetPropertiesKHR {
 
 
 #define VK_KHR_video_encode_queue 1
-#define VK_KHR_VIDEO_ENCODE_QUEUE_SPEC_VERSION 2
+#define VK_KHR_VIDEO_ENCODE_QUEUE_SPEC_VERSION 3
 #define VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME "VK_KHR_video_encode_queue"
 
 typedef enum VkVideoEncodeFlagBitsKHR {

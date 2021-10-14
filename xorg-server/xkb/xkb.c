@@ -2405,21 +2405,19 @@ _XkbSetMapCheckLength(xkbSetMapReq *req)
         keytype = (xkbKeyTypeWireDesc *)(req + 1);
         for (i = 0; i < req->nTypes; i++) {
             _add_check_len(XkbPaddedSize(sz_xkbKeyTypeWireDesc));
-            if (req->flags & XkbSetMapResizeTypes) {
-                _add_check_len(keytype->nMapEntries
-                               * sz_xkbKTSetMapEntryWireDesc);
-                preserve = keytype->preserve;
-                map_count = keytype->nMapEntries;
-                if (preserve) {
-                    _add_check_len(map_count * sz_xkbModsWireDesc);
-                }
-                keytype += 1;
-                keytype = (xkbKeyTypeWireDesc *)
-                          ((xkbKTSetMapEntryWireDesc *)keytype + map_count);
-                if (preserve)
-                    keytype = (xkbKeyTypeWireDesc *)
-                              ((xkbModsWireDesc *)keytype + map_count);
+            _add_check_len(keytype->nMapEntries
+                           * sz_xkbKTSetMapEntryWireDesc);
+            preserve = keytype->preserve;
+            map_count = keytype->nMapEntries;
+            if (preserve) {
+                _add_check_len(map_count * sz_xkbModsWireDesc);
             }
+            keytype += 1;
+            keytype = (xkbKeyTypeWireDesc *)
+                      ((xkbKTSetMapEntryWireDesc *)keytype + map_count);
+            if (preserve)
+                keytype = (xkbKeyTypeWireDesc *)
+                          ((xkbModsWireDesc *)keytype + map_count);
         }
     }
     /* syms */

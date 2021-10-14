@@ -249,7 +249,7 @@ zink_update_gfx_program(struct zink_context *ctx, struct zink_gfx_program *prog)
 }
 
 VkPipelineLayout
-zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg)
+zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg, uint32_t *compat)
 {
    VkPipelineLayoutCreateInfo plci = {0};
    plci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -281,6 +281,8 @@ zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg)
       debug_printf("vkCreatePipelineLayout failed!\n");
       return VK_NULL_HANDLE;
    }
+
+   *compat = _mesa_hash_data(pg->dsl, pg->num_dsl * sizeof(pg->dsl[0]));
 
    return layout;
 }

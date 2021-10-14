@@ -118,7 +118,7 @@ clover::GetExtensionFunctionAddressForPlatform(cl_platform_id d_platform,
    obj(d_platform);
    return GetExtensionFunctionAddress(p_name);
 
-} catch (error &e) {
+} catch (error &) {
    return NULL;
 }
 

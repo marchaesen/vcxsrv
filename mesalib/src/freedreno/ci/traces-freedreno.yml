@@ -90,16 +90,18 @@ traces:
       #   checksum: 14e78caf29b6a3341081c8f2e678355f
       - device: freedreno-a630
         checksum: c8608d54cc6298476a2b60686d152dbc
-  - path: minetest/minetest.trace
-    expectations:
-      # Started flaking and sometimes not drawing the left side of the crosshair around 2021-06-25.
-      # Note that the crosshair is drawn some time in the middle of the frame.
-      # - device: freedreno-a306
-      #   checksum: bd6e158327d68e69ecf5edfacc368a7b
-      - device: freedreno-a530
-        checksum: ccecf1479c9dd784ebfb4bbf19724640
-      - device: freedreno-a630
-        checksum: 4c1b94f65eaf1ae16b8465350f5840e0
+  # Disabled on all devices due to:
+  # https://gitlab.freedesktop.org/mesa/mesa/-/issues/4595
+  # - path: minetest/minetest.trace
+  #   expectations:
+  #     # Started flaking and sometimes not drawing the left side of the crosshair around 2021-06-25.
+  #     # Note that the crosshair is drawn some time in the middle of the frame.
+  #     # - device: freedreno-a306
+  #     #   checksum: bd6e158327d68e69ecf5edfacc368a7b
+  #     - device: freedreno-a530
+  #       checksum: 599b00e7a443a90b0edcd06fccd1a400
+  #     - device: freedreno-a630
+  #       checksum: a71da1e8c855209d79fa8a0b83a46775
   - path: neverball/neverball.trace
     expectations:
       # Skipped since it's long on a530.

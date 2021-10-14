@@ -559,7 +559,7 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
 
 #define GetResReq(name, rid, req) \
 	req = (xResourceReq *) _XGetRequest(dpy, X_##name, SIZEOF(xResourceReq)); \
-	req->id = (rid)
+	if (req) req->id = (rid)
 
 /*
  * GetEmptyReq is for those requests that have no arguments

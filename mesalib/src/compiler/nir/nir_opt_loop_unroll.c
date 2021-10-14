@@ -976,7 +976,27 @@ process_loops(nir_shader *sh, nir_cf_node *cf_node, bool *has_nested_loop_out,
          }
       }
 
-      if (has_nested_loop || !loop->info->limiting_terminator)
+      /* Intentionally don't consider exact_trip_count_known here.  When
+       * max_trip_count is non-zero, it is the upper bound on the number of
+       * times the loop will iterate, but the loop may iterate less.  For
+       * example, the following loop will iterate 0 or 1 time:
+       *
+       *    for (i = 0; i < min(x, 1); i++) { ... }
+       *
+       * Trivial single-interation loops (e.g., do { ... } while (false)) and
+       * trivial zero-iteration loops (e.g., while (false) { ... }) will have
+       * already been handled.
+       *
+       * If the loop is known to execute at most once and meets the other
+       * unrolling criteria, unroll it even if it has nested loops.
+       *
+       * It is unlikely that such loops exist in real shaders. GraphicsFuzz is
+       * known to generate spurious loops that iterate exactly once.  It is
+       * plausible that it could eventually start generating loops like the
+       * example above, so it seems logical to defend against it now.
+       */
+      if (!loop->info->limiting_terminator ||
+          (loop->info->max_trip_count != 1 && has_nested_loop))
          goto exit;
 
       if (!check_unrolling_restrictions(sh, loop))

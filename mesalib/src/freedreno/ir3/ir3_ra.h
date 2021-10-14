@@ -143,7 +143,7 @@ struct ir3_liveness {
    DECLARE_ARRAY(BITSET_WORD *, live_in);
 };
 
-struct ir3_liveness *ir3_calc_liveness(struct ir3_shader_variant *v);
+struct ir3_liveness *ir3_calc_liveness(void *mem_ctx, struct ir3 *ir);
 
 bool ir3_def_live_after(struct ir3_liveness *live, struct ir3_register *def,
                         struct ir3_instruction *instr);

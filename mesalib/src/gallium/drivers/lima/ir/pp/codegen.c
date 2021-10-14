@@ -778,7 +778,7 @@ static void ppir_codegen_print_prog(ppir_compiler *comp)
             printf("%08x ", prog[i]);
          }
          printf("\n");
-         ppir_disassemble_instr(prog, offset);
+         ppir_disassemble_instr(prog, offset, stdout);
          prog += n;
          offset += n;
       }

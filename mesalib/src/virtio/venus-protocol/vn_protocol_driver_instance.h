@@ -663,6 +663,8 @@ static inline void vn_submit_vkEnumerateInstanceExtensionProperties(struct vn_in
 
 static inline VkResult vn_call_vkCreateInstance(struct vn_instance *vn_instance, const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateInstance(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pCreateInfo, pAllocator, pInstance, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -683,6 +685,8 @@ static inline void vn_async_vkCreateInstance(struct vn_instance *vn_instance, co
 
 static inline void vn_call_vkDestroyInstance(struct vn_instance *vn_instance, VkInstance instance, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyInstance(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, instance, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -700,6 +704,8 @@ static inline void vn_async_vkDestroyInstance(struct vn_instance *vn_instance, V
 
 static inline VkResult vn_call_vkEnumerateInstanceVersion(struct vn_instance *vn_instance, uint32_t* pApiVersion)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumerateInstanceVersion(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pApiVersion, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -720,6 +726,8 @@ static inline void vn_async_vkEnumerateInstanceVersion(struct vn_instance *vn_in
 
 static inline VkResult vn_call_vkEnumerateInstanceLayerProperties(struct vn_instance *vn_instance, uint32_t* pPropertyCount, VkLayerProperties* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumerateInstanceLayerProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pPropertyCount, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -740,6 +748,8 @@ static inline void vn_async_vkEnumerateInstanceLayerProperties(struct vn_instanc
 
 static inline VkResult vn_call_vkEnumerateInstanceExtensionProperties(struct vn_instance *vn_instance, const char* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEnumerateInstanceExtensionProperties(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, pLayerName, pPropertyCount, pProperties, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

@@ -106,7 +106,7 @@ slab_create_parent(struct slab_parent_pool *parent,
                    unsigned item_size,
                    unsigned num_items)
 {
-   mtx_init(&parent->mutex, mtx_plain);
+   simple_mtx_init(&parent->mutex, mtx_plain);
    parent->element_size = ALIGN_POT(sizeof(struct slab_element_header) + item_size,
                                     sizeof(intptr_t));
    parent->num_elements = num_items;
@@ -115,7 +115,7 @@ slab_create_parent(struct slab_parent_pool *parent,
 void
 slab_destroy_parent(struct slab_parent_pool *parent)
 {
-   mtx_destroy(&parent->mutex);
+   simple_mtx_destroy(&parent->mutex);
 }
 
 /**
@@ -141,7 +141,7 @@ void slab_destroy_child(struct slab_child_pool *pool)
    if (!pool->parent)
       return; /* the slab probably wasn't even created */
 
-   mtx_lock(&pool->parent->mutex);
+   simple_mtx_lock(&pool->parent->mutex);
 
    while (pool->pages) {
       struct slab_page_header *page = pool->pages;
@@ -160,7 +160,7 @@ void slab_destroy_child(struct slab_child_pool *pool)
       slab_free_orphaned(elt);
    }
 
-   mtx_unlock(&pool->parent->mutex);
+   simple_mtx_unlock(&pool->parent->mutex);
 
    while (pool->free) {
       struct slab_element_header *elt = pool->free;
@@ -211,10 +211,10 @@ slab_alloc(struct slab_child_pool *pool)
       /* First, collect elements that belong to us but were freed from a
        * different child pool.
        */
-      mtx_lock(&pool->parent->mutex);
+      simple_mtx_lock(&pool->parent->mutex);
       pool->free = pool->migrated;
       pool->migrated = NULL;
-      mtx_unlock(&pool->parent->mutex);
+      simple_mtx_unlock(&pool->parent->mutex);
 
       /* Now allocate a new page. */
       if (!pool->free && !slab_add_new_page(pool))
@@ -258,7 +258,7 @@ void slab_free(struct slab_child_pool *pool, void *ptr)
 
    /* The slow case: migration or an orphaned page. */
    if (pool->parent)
-      mtx_lock(&pool->parent->mutex);
+      simple_mtx_lock(&pool->parent->mutex);
 
    /* Note: we _must_ re-read elt->owner here because the owning child pool
     * may have been destroyed by another thread in the meantime.
@@ -270,10 +270,10 @@ void slab_free(struct slab_child_pool *pool, void *ptr)
       elt->next = owner->migrated;
       owner->migrated = elt;
       if (pool->parent)
-         mtx_unlock(&pool->parent->mutex);
+         simple_mtx_unlock(&pool->parent->mutex);
    } else {
       if (pool->parent)
-         mtx_unlock(&pool->parent->mutex);
+         simple_mtx_unlock(&pool->parent->mutex);
 
       slab_free_orphaned(elt);
    }

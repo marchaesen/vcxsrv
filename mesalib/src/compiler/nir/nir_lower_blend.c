@@ -344,10 +344,16 @@ nir_lower_blend_instr(nir_builder *b, nir_instr *instr, void *data)
       (var->data.location == FRAG_RESULT_COLOR) ? 0 :
       (var->data.location - FRAG_RESULT_DATA0);
 
+   /* No blend lowering requested on this RT */
+   if (options->format[rt] == PIPE_FORMAT_NONE)
+      return false;
+
    b->cursor = nir_before_instr(instr);
 
    /* Grab the input color */
-   nir_ssa_def *src = nir_ssa_for_src(b, intr->src[1], 4);
+   unsigned src_num_comps = nir_src_num_components(intr->src[1]);
+   nir_ssa_def *src =
+      nir_pad_vector(b, nir_ssa_for_src(b, intr->src[1], src_num_comps), 4);
 
    /* Grab the previous fragment color */
    var->data.fb_fetch_output = true;
@@ -358,13 +364,18 @@ nir_lower_blend_instr(nir_builder *b, nir_instr *instr, void *data)
    /* Blend the two colors per the passed options */
    nir_ssa_def *blended = src;
 
-   if (options->logicop_enable)
+   if (options->logicop_enable) {
       blended = nir_blend_logicop(b, *options, rt, src, dst);
-   else if (!util_format_is_pure_integer(options->format[rt]))
+   } else if (!util_format_is_pure_integer(options->format[rt])) {
+      assert(!util_format_is_scaled(options->format[rt]));
       blended = nir_blend(b, *options, rt, src, options->src1, dst);
+   }
 
    /* Apply a colormask */
    blended = nir_color_mask(b, options->rt[rt].colormask, blended, dst);
+
+   if (src_num_comps != 4)
+      blended = nir_channels(b, blended, BITFIELD_MASK(src_num_comps));
 
    /* Write out the final color instead of the input */
    nir_instr_rewrite_src_ssa(instr, &intr->src[1], blended);

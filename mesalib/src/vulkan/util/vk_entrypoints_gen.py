@@ -123,13 +123,12 @@ TEMPLATE_C = Template(COPYRIGHT + """
     % endif
     % for p in prefixes:
 #ifdef _MSC_VER
-    ${e.return_type} (*${p}_${e.name}_Null)(${e.decl_params()}) = 0;
 #ifdef _M_IX86
       % for args_size in [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 60, 104]:
-    #pragma comment(linker, "/alternatename:_${p}_${e.name}@${args_size}=_${p}_${e.name}_Null")
+    #pragma comment(linker, "/alternatename:_${p}_${e.name}@${args_size}=_vk_entrypoint_stub")
       % endfor
 #else
-    #pragma comment(linker, "/alternatename:${p}_${e.name}=${p}_${e.name}_Null")
+    #pragma comment(linker, "/alternatename:${p}_${e.name}=vk_entrypoint_stub")
 #endif
 #else
     VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) __attribute__ ((weak));
@@ -149,6 +148,8 @@ const struct vk_${type}_entrypoint_table ${p}_${type}_entrypoints = {
     % endif
     .${e.name} = ${p}_${e.name},
     % if e.guard is not None:
+#elif defined(_MSC_VER)
+    .${e.name} = (PFN_vkVoidFunction)vk_entrypoint_stub,
 #endif // ${e.guard}
     % endif
   % endfor

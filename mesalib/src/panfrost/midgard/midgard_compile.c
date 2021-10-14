@@ -2037,6 +2037,10 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                 emit_sysval_read(ctx, &instr->instr, 3, 0);
                 break;
 
+        case nir_intrinsic_load_blend_const_color_rgba:
+                emit_sysval_read(ctx, &instr->instr, 4, 0);
+                break;
+
         case nir_intrinsic_load_workgroup_id:
         case nir_intrinsic_load_local_invocation_id:
         case nir_intrinsic_load_global_invocation_id:
@@ -3088,7 +3092,8 @@ midgard_compile_shader_nir(nir_shader *nir,
 
         unsigned pan_quirks = panfrost_get_quirks(inputs->gpu_id, 0);
         NIR_PASS_V(nir, pan_lower_framebuffer,
-                   inputs->rt_formats, inputs->is_blend, pan_quirks);
+                   inputs->rt_formats, inputs->raw_fmt_mask,
+                   inputs->is_blend, pan_quirks);
 
         NIR_PASS_V(nir, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
                         glsl_type_size, 0);

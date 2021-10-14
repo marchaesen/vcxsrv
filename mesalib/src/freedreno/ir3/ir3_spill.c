@@ -1962,7 +1962,8 @@ ir3_spill(struct ir3 *ir, struct ir3_shader_variant *v,
           struct ir3_liveness **live,
           const struct ir3_pressure *limit_pressure)
 {
-   struct ra_spill_ctx *ctx = rzalloc(NULL, struct ra_spill_ctx);
+   void *mem_ctx = ralloc_parent(*live);
+   struct ra_spill_ctx *ctx = rzalloc(mem_ctx, struct ra_spill_ctx);
    spill_ctx_init(ctx, v, *live);
 
    ctx->spilling = true;
@@ -1994,7 +1995,7 @@ ir3_spill(struct ir3 *ir, struct ir3_shader_variant *v,
     * so recalculate it. We'll need it for recalculating the merge sets.
     */
    ralloc_free(ctx->live);
-   *live = ir3_calc_liveness(v);
+   *live = ir3_calc_liveness(mem_ctx, ir);
 
    fixup_merge_sets(*live, ir);
 

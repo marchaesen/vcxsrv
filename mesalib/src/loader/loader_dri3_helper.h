@@ -134,6 +134,7 @@ struct loader_dri3_drawable {
    __DRIscreen *dri_screen;
    bool is_different_gpu;
    bool multiplanes_available;
+   bool prefer_back_buffer_reuse;
 
    /* DRI screen created for display GPU in case of prime */
    __DRIscreen *dri_screen_display_gpu;
@@ -204,6 +205,7 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
                           __DRIscreen *dri_screen,
                           bool is_different_gpu,
                           bool is_multiplanes_available,
+                          bool prefer_back_buffer_reuse,
                           const __DRIconfig *dri_config,
                           struct loader_dri3_extensions *ext,
                           const struct loader_dri3_vtable *vtable,

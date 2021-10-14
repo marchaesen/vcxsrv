@@ -25,7 +25,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 #include "panvk_private.h"
 
@@ -55,7 +55,7 @@ panvk_per_arch(descriptor_set_create)(struct panvk_device *device,
                           sizeof(struct panvk_descriptor_set),
                           VK_OBJECT_TYPE_DESCRIPTOR_SET);
    if (!set)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    set->layout = layout;
    set->descs = vk_alloc(&device->vk.alloc,
@@ -109,7 +109,7 @@ err_free_set:
    vk_free(&device->vk.alloc, set->ubos);
    vk_free(&device->vk.alloc, set->descs);
    vk_object_free(&device->vk, NULL, set);
-   return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+   return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 }
 
 VkResult
@@ -201,9 +201,9 @@ panvk_per_arch(set_texture_desc)(struct panvk_descriptor_set *set,
 {
    VK_FROM_HANDLE(panvk_image_view, view, pImageInfo->imageView);
 
-#if PAN_ARCH > 5
-   memcpy(&((struct mali_bifrost_texture_packed *)set->textures)[idx],
-          view->desc, pan_size(TEXTURE));
+#if PAN_ARCH >= 6
+   memcpy(&((struct mali_texture_packed *)set->textures)[idx],
+          view->descs.tex, pan_size(TEXTURE));
 #else
    ((mali_ptr *)set->textures)[idx] = view->bo->ptr.gpu;
 #endif
@@ -218,7 +218,7 @@ panvk_per_arch(write_descriptor_set)(struct panvk_device *dev,
    unsigned dest_offset = pDescriptorWrite->dstArrayElement;
    unsigned binding = pDescriptorWrite->dstBinding;
    struct mali_uniform_buffer_packed *ubos = set->ubos;
-   struct mali_midgard_sampler_packed *samplers = set->samplers;
+   struct mali_sampler_packed *samplers = set->samplers;
    unsigned src_offset = 0;
 
    while (src_offset < pDescriptorWrite->descriptorCount &&

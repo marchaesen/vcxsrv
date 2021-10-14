@@ -543,6 +543,7 @@ spec/arb_buffer_storage/bufferstorage-persistent_gles3 read coherent client-stor
 spec/arb_clear_texture/arb_clear_texture-multisample: skip
 spec/arb_color_buffer_float/gl_rgba8_snorm-render: fail
 spec/arb_color_buffer_float/gl_rgba8_snorm-render-fog: fail
+spec/arb_compute_shader/compute-and-render-bug-109630: skip
 spec/arb_compute_shader/execution/min-dvec4-double-large-group-size: skip
 spec/arb_compute_variable_group_size/errors: skip
 spec/arb_compute_variable_group_size/execution/basic-local-size: skip

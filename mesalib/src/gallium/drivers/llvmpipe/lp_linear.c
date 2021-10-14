@@ -175,7 +175,7 @@ lp_fs_linear_run(const struct lp_rast_state *state,
 
       if (!lp_linear_init_sampler(&samp[i],
                                   tex_info,
-                                  &variant->key.samplers[unit],
+                                  lp_fs_variant_key_sampler_idx(&variant->key, unit),
                                   &state->jit_context.textures[unit],
                                   x, y, width, height,
                                   a0, dadx, dady)) {
@@ -315,7 +315,8 @@ lp_linear_check_variant(struct lp_fragment_shader_variant *variant)
          goto fail;
       }
 
-      if (!lp_linear_check_sampler(&key->samplers[unit], tex_info)) {
+      struct lp_sampler_static_state *samp = lp_fs_variant_key_sampler_idx(key, unit);
+      if (!lp_linear_check_sampler(samp, tex_info)) {
          if (LP_DEBUG & DEBUG_LINEAR)
             debug_printf(" -- samp[%d]: check_sampler failed\n", i);
          goto fail;

@@ -277,14 +277,14 @@ done:
 
 /**
  * A helper function to create a surface view.
- * The view boolean flag specifies whether svga_texture_view_surface()
- * will be called to create a cloned surface and resource for the view.
+ * The clone_resource boolean flag specifies whether to clone the resource
+ * for the surface view.
  */
 static struct pipe_surface *
 svga_create_surface_view(struct pipe_context *pipe,
                          struct pipe_resource *pt,
                          const struct pipe_surface *surf_tmpl,
-                         boolean view)
+                         boolean clone_resource)
 {
    struct svga_context *svga = svga_context(pipe);
    struct svga_texture *tex = svga_texture(pt);
@@ -357,7 +357,7 @@ svga_create_surface_view(struct pipe_context *pipe,
 
    assert(format != SVGA3D_FORMAT_INVALID);
 
-   if (view) {
+   if (clone_resource) {
       SVGA_DBG(DEBUG_VIEWS,
                "New backed surface view: resource %p, level %u layer %u z %u, %p\n",
                pt, surf_tmpl->u.tex.level, layer, zslice, s);
@@ -462,10 +462,11 @@ svga_create_surface(struct pipe_context *pipe,
 
 
 /**
- * Clone the surface view and its associated resource.
+ * Create an alternate surface view and clone the resource if specified
  */
 static struct svga_surface *
-create_backed_surface_view(struct svga_context *svga, struct svga_surface *s)
+create_backed_surface_view(struct svga_context *svga, struct svga_surface *s,
+                           boolean clone_resource)
 {
    struct svga_texture *tex = svga_texture(s->base.texture);
 
@@ -478,7 +479,7 @@ create_backed_surface_view(struct svga_context *svga, struct svga_surface *s)
       backed_view = svga_create_surface_view(&svga->pipe,
                                              &tex->b,
                                              &s->base,
-                                             TRUE);
+                                             clone_resource);
       if (!backed_view)
          goto done;
 
@@ -486,7 +487,8 @@ create_backed_surface_view(struct svga_context *svga, struct svga_surface *s)
 
       SVGA_STATS_TIME_POP(svga_sws(svga));
    }
-   else if (s->backed->age < tex->age) {
+   else if (s->backed->handle != tex->handle &&
+            s->backed->age < tex->age) {
       /*
        * There is already an existing backing surface, but we still need to
        * sync the backing resource if the original resource has been modified
@@ -518,6 +520,8 @@ create_backed_surface_view(struct svga_context *svga, struct svga_surface *s)
 
    svga_mark_surface_dirty(&s->backed->base);
    s->backed->age = tex->age;
+
+   assert(s->backed->base.context == &svga->pipe);
 
 done:
    return s->backed;
@@ -552,7 +556,7 @@ svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s)
          SVGA_DBG(DEBUG_VIEWS,
                   "same resource used in shaderResource and renderTarget 0x%x\n",
                   s->handle);
-         s = create_backed_surface_view(svga, s);
+         s = create_backed_surface_view(svga, s, TRUE);
 
          if (s)
             svga->state.hw_draw.has_backed_views = TRUE;
@@ -567,9 +571,10 @@ svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s)
     * view was created for another context.
     */
    if (s && s->base.context != &svga->pipe) {
-      struct pipe_surface *surf;
-      surf = svga_create_surface_view(&svga->pipe, s->base.texture, &s->base, FALSE);
-      s = svga_surface(surf);
+      s = create_backed_surface_view(svga, s, FALSE);
+
+      if (s)
+         svga->state.hw_draw.has_backed_views = TRUE;
    }
 
    if (s && s->view_id == SVGA3D_INVALID_ID) {

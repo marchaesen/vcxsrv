@@ -35,51 +35,51 @@ typedef struct {
 } asm_op;
 
 static void
-print_swizzle(uint8_t swizzle)
+print_swizzle(uint8_t swizzle, FILE *fp)
 {
    if (swizzle == 0xE4)
       return;
 
-   printf(".");
+   fprintf(fp, ".");
    for (unsigned i = 0; i < 4; i++, swizzle >>= 2)
-      printf("%c", "xyzw"[swizzle & 3]);
+      fprintf(fp, "%c", "xyzw"[swizzle & 3]);
 }
 
 static void
-print_mask(uint8_t mask)
+print_mask(uint8_t mask, FILE *fp)
 {
    if (mask == 0xF)
       return;
 
-   printf(".");
-   if (mask & 1) printf("x");
-   if (mask & 2) printf("y");
-   if (mask & 4) printf("z");
-   if (mask & 8) printf("w");
+   fprintf(fp, ".");
+   if (mask & 1) fprintf(fp, "x");
+   if (mask & 2) fprintf(fp, "y");
+   if (mask & 4) fprintf(fp, "z");
+   if (mask & 8) fprintf(fp, "w");
 }
 
 static void
-print_reg(ppir_codegen_vec4_reg reg, const char *special)
+print_reg(ppir_codegen_vec4_reg reg, const char *special, FILE *fp)
 {
    if (special) {
-      printf("%s", special);
+      fprintf(fp, "%s", special);
    } else {
       switch (reg)
       {
          case ppir_codegen_vec4_reg_constant0:
-            printf("^const0");
+            fprintf(fp, "^const0");
             break;
          case ppir_codegen_vec4_reg_constant1:
-            printf("^const1");
+            fprintf(fp, "^const1");
             break;
          case ppir_codegen_vec4_reg_texture:
-            printf("^texture");
+            fprintf(fp, "^texture");
             break;
          case ppir_codegen_vec4_reg_uniform:
-            printf("^uniform");
+            fprintf(fp, "^uniform");
             break;
          default:
-            printf("$%u", reg);
+            fprintf(fp, "$%u", reg);
             break;
       }
    }
@@ -87,75 +87,75 @@ print_reg(ppir_codegen_vec4_reg reg, const char *special)
 
 static void
 print_vector_source(ppir_codegen_vec4_reg reg, const char *special,
-                    uint8_t swizzle, bool abs, bool neg)
+                    uint8_t swizzle, bool abs, bool neg, FILE *fp)
 {
    if (neg)
-      printf("-");
+      fprintf(fp, "-");
    if (abs)
-      printf("abs(");
+      fprintf(fp, "abs(");
 
-   print_reg(reg, special);
-   print_swizzle(swizzle);
+   print_reg(reg, special, fp);
+   print_swizzle(swizzle, fp);
 
    if (abs)
-      printf(")");
+      fprintf(fp, ")");
 }
 
 static void
-print_source_scalar(unsigned reg, const char *special, bool abs, bool neg)
+print_source_scalar(unsigned reg, const char *special, bool abs, bool neg, FILE *fp)
 {
    if (neg)
-      printf("-");
+      fprintf(fp, "-");
    if (abs)
-      printf("abs(");
+      fprintf(fp, "abs(");
 
-   print_reg(reg >> 2, special);
+   print_reg(reg >> 2, special, fp);
    if (!special)
-      printf(".%c", "xyzw"[reg & 3]);
+      fprintf(fp, ".%c", "xyzw"[reg & 3]);
 
    if (abs)
-      printf(")");
+      fprintf(fp, ")");
 }
 
 static void
-print_varying_source(ppir_codegen_field_varying *varying)
+print_varying_source(ppir_codegen_field_varying *varying, FILE *fp)
 {
    switch (varying->imm.alignment) {
    case 0:
-      printf("%u.%c", varying->imm.index >> 2,
+      fprintf(fp, "%u.%c", varying->imm.index >> 2,
              "xyzw"[varying->imm.index & 3]);
       break;
    case 1: {
       const char *c[2] = {"xy", "zw"};
-      printf("%u.%s", varying->imm.index >> 1, c[varying->imm.index & 1]);
+      fprintf(fp, "%u.%s", varying->imm.index >> 1, c[varying->imm.index & 1]);
       break;
    }
    default:
-      printf("%u", varying->imm.index);
+      fprintf(fp, "%u", varying->imm.index);
       break;
    }
 
    if (varying->imm.offset_vector != 15) {
       unsigned reg = (varying->imm.offset_vector << 2) +
          varying->imm.offset_scalar;
-      printf("+");
-      print_source_scalar(reg, NULL, false, false);
+      fprintf(fp, "+");
+      print_source_scalar(reg, NULL, false, false, fp);
    }
 }
 
 static void
-print_outmod(ppir_codegen_outmod modifier)
+print_outmod(ppir_codegen_outmod modifier, FILE *fp)
 {
    switch (modifier)
    {
       case ppir_codegen_outmod_clamp_fraction:
-         printf(".sat");
+         fprintf(fp, ".sat");
          break;
       case ppir_codegen_outmod_clamp_positive:
-         printf(".pos");
+         fprintf(fp, ".pos");
          break;
       case ppir_codegen_outmod_round:
-         printf(".int");
+         fprintf(fp, ".int");
          break;
       default:
          break;
@@ -163,190 +163,190 @@ print_outmod(ppir_codegen_outmod modifier)
 }
 
 static void
-print_dest_scalar(unsigned reg)
+print_dest_scalar(unsigned reg, FILE *fp)
 {
-   printf("$%u", reg >> 2);
-   printf(".%c ", "xyzw"[reg & 3]);
+   fprintf(fp, "$%u", reg >> 2);
+   fprintf(fp, ".%c ", "xyzw"[reg & 3]);
 }
 
 static void
-print_const(unsigned const_num, uint16_t *val)
+print_const(unsigned const_num, uint16_t *val, FILE *fp)
 {
-   printf("const%u", const_num);
+   fprintf(fp, "const%u", const_num);
    for (unsigned i = 0; i < 4; i++)
-      printf(" %f", _mesa_half_to_float(val[i]));
+      fprintf(fp, " %f", _mesa_half_to_float(val[i]));
 }
 
 static void
-print_const0(void *code, unsigned offset)
+print_const0(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
 
-   print_const(0, code);
+   print_const(0, code, fp);
 }
 
 static void
-print_const1(void *code, unsigned offset)
+print_const1(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
 
-   print_const(1, code);
+   print_const(1, code, fp);
 }
 
 static void
-print_varying(void *code, unsigned offset)
+print_varying(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_varying *varying = code;
 
-   printf("load");
+   fprintf(fp, "load");
 
    bool perspective = varying->imm.source_type < 2 && varying->imm.perspective;
    if (perspective)
    {
-      printf(".perspective");
+      fprintf(fp, ".perspective");
       switch (varying->imm.perspective)
       {
       case 2:
-         printf(".z");
+         fprintf(fp, ".z");
          break;
       case 3:
-         printf(".w");
+         fprintf(fp, ".w");
          break;
       default:
-         printf(".unknown");
+         fprintf(fp, ".unknown");
          break;
       }
    }
 
-   printf(".v ");
+   fprintf(fp, ".v ");
 
    switch (varying->imm.dest)
    {
    case ppir_codegen_vec4_reg_discard:
-      printf("^discard");
+      fprintf(fp, "^discard");
       break;
    default:
-      printf("$%u", varying->imm.dest);
+      fprintf(fp, "$%u", varying->imm.dest);
       break;
    }
-   print_mask(varying->imm.mask);
-   printf(" ");
+   print_mask(varying->imm.mask, fp);
+   fprintf(fp, " ");
 
    switch (varying->imm.source_type) {
    case 1:
       print_vector_source(varying->reg.source, NULL, varying->reg.swizzle,
-                          varying->reg.absolute, varying->reg.negate);
+                          varying->reg.absolute, varying->reg.negate, fp);
       break;
    case 2:
       switch (varying->imm.perspective) {
       case 0:
-         printf("cube(");
-         print_varying_source(varying);
-         printf(")");
+         fprintf(fp, "cube(");
+         print_varying_source(varying, fp);
+         fprintf(fp, ")");
          break;
       case 1:
-         printf("cube(");
+         fprintf(fp, "cube(");
          print_vector_source(varying->reg.source, NULL, varying->reg.swizzle,
-                             varying->reg.absolute, varying->reg.negate);
-         printf(")");
+                             varying->reg.absolute, varying->reg.negate, fp);
+         fprintf(fp, ")");
          break;
       case 2:
-         printf("normalize(");
+         fprintf(fp, "normalize(");
          print_vector_source(varying->reg.source, NULL, varying->reg.swizzle,
-                             varying->reg.absolute, varying->reg.negate);
-         printf(")");
+                             varying->reg.absolute, varying->reg.negate, fp);
+         fprintf(fp, ")");
          break;
       default:
-         printf("gl_FragCoord");
+         fprintf(fp, "gl_FragCoord");
          break;
       }
       break;
    case 3:
       if (varying->imm.perspective)
-         printf("gl_FrontFacing");
+         fprintf(fp, "gl_FrontFacing");
       else
-         printf("gl_PointCoord");
+         fprintf(fp, "gl_PointCoord");
       break;
    default:
-      print_varying_source(varying);
+      print_varying_source(varying, fp);
       break;
    }
 }
 
 static void
-print_sampler(void *code, unsigned offset)
+print_sampler(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_sampler *sampler = code;
 
-   printf("texld");
+   fprintf(fp, "texld");
    if (sampler->lod_bias_en)
-      printf(".b");
+      fprintf(fp, ".b");
 
    switch (sampler->type) {
    case ppir_codegen_sampler_type_2d:
-      printf(".2d");
+      fprintf(fp, ".2d");
       break;
    case ppir_codegen_sampler_type_cube:
-      printf(".cube");
+      fprintf(fp, ".cube");
       break;
    default:
-      printf("_t%u", sampler->type);
+      fprintf(fp, "_t%u", sampler->type);
       break;
    }
 
-   printf(" %u", sampler->index);
+   fprintf(fp, " %u", sampler->index);
 
    if (sampler->offset_en)
    {
-      printf("+");
-      print_source_scalar(sampler->index_offset, NULL, false, false);
+      fprintf(fp, "+");
+      print_source_scalar(sampler->index_offset, NULL, false, false, fp);
    }
 
    if (sampler->lod_bias_en)
    {
-      printf(" ");
-      print_source_scalar(sampler->lod_bias, NULL, false, false);
+      fprintf(fp, " ");
+      print_source_scalar(sampler->lod_bias, NULL, false, false, fp);
    }
 }
 
 static void
-print_uniform(void *code, unsigned offset)
+print_uniform(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_uniform *uniform = code;
 
-   printf("load.");
+   fprintf(fp, "load.");
 
    switch (uniform->source) {
    case ppir_codegen_uniform_src_uniform:
-      printf("u");
+      fprintf(fp, "u");
       break;
    case ppir_codegen_uniform_src_temporary:
-      printf("t");
+      fprintf(fp, "t");
       break;
    default:
-      printf(".u%u", uniform->source);
+      fprintf(fp, ".u%u", uniform->source);
       break;
    }
 
    int16_t index = uniform->index;
    switch (uniform->alignment) {
    case 2:
-      printf(" %d", index);
+      fprintf(fp, " %d", index);
       break;
    case 1:
-      printf(" %d.%s", index / 2, (index & 1) ? "zw" : "xy");
+      fprintf(fp, " %d.%s", index / 2, (index & 1) ? "zw" : "xy");
       break;
    default:
-      printf(" %d.%c", index / 4, "xyzw"[index & 3]);
+      fprintf(fp, " %d.%c", index / 4, "xyzw"[index & 3]);
       break;
    }
 
    if (uniform->offset_en) {
-      printf("+");
-      print_source_scalar(uniform->offset_reg, NULL, false, false);
+      fprintf(fp, "+");
+      print_source_scalar(uniform->offset_reg, NULL, false, false, fp);
    }
 }
 
@@ -377,7 +377,7 @@ static const asm_op vec4_mul_ops[] = {
 #undef CASE
 
 static void
-print_vec4_mul(void *code, unsigned offset)
+print_vec4_mul(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_vec4_mul *vec4_mul = code;
@@ -385,34 +385,34 @@ print_vec4_mul(void *code, unsigned offset)
    asm_op op = vec4_mul_ops[vec4_mul->op];
 
    if (op.name)
-      printf("%s", op.name);
+      fprintf(fp, "%s", op.name);
    else
-      printf("op%u", vec4_mul->op);
-   print_outmod(vec4_mul->dest_modifier);
-   printf(".v0 ");
+      fprintf(fp, "op%u", vec4_mul->op);
+   print_outmod(vec4_mul->dest_modifier, fp);
+   fprintf(fp, ".v0 ");
 
    if (vec4_mul->mask) {
-      printf("$%u", vec4_mul->dest);
-      print_mask(vec4_mul->mask);
-      printf(" ");
+      fprintf(fp, "$%u", vec4_mul->dest);
+      print_mask(vec4_mul->mask, fp);
+      fprintf(fp, " ");
    }
 
    print_vector_source(vec4_mul->arg0_source, NULL,
                        vec4_mul->arg0_swizzle,
                        vec4_mul->arg0_absolute,
-                       vec4_mul->arg0_negate);
+                       vec4_mul->arg0_negate, fp);
 
    if (vec4_mul->op < 8 && vec4_mul->op != 0) {
-      printf("<<%u", vec4_mul->op);
+      fprintf(fp, "<<%u", vec4_mul->op);
    }
 
-   printf(" ");
+   fprintf(fp, " ");
 
    if (op.srcs > 1) {
       print_vector_source(vec4_mul->arg1_source, NULL,
                           vec4_mul->arg1_swizzle,
                           vec4_mul->arg1_absolute,
-                          vec4_mul->arg1_negate);
+                          vec4_mul->arg1_negate, fp);
    }
 }
 
@@ -444,7 +444,7 @@ static const asm_op vec4_acc_ops[] = {
 #undef CASE
 
 static void
-print_vec4_acc(void *code, unsigned offset)
+print_vec4_acc(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_vec4_acc *vec4_acc = code;
@@ -452,29 +452,29 @@ print_vec4_acc(void *code, unsigned offset)
    asm_op op = vec4_acc_ops[vec4_acc->op];
 
    if (op.name)
-      printf("%s", op.name);
+      fprintf(fp, "%s", op.name);
    else
-      printf("op%u", vec4_acc->op);
-   print_outmod(vec4_acc->dest_modifier);
-   printf(".v1 ");
+      fprintf(fp, "op%u", vec4_acc->op);
+   print_outmod(vec4_acc->dest_modifier, fp);
+   fprintf(fp, ".v1 ");
 
    if (vec4_acc->mask) {
-      printf("$%u", vec4_acc->dest);
-      print_mask(vec4_acc->mask);
-      printf(" ");
+      fprintf(fp, "$%u", vec4_acc->dest);
+      print_mask(vec4_acc->mask, fp);
+      fprintf(fp, " ");
    }
 
    print_vector_source(vec4_acc->arg0_source, vec4_acc->mul_in ? "^v0" : NULL,
                        vec4_acc->arg0_swizzle,
                        vec4_acc->arg0_absolute,
-                       vec4_acc->arg0_negate);
+                       vec4_acc->arg0_negate, fp);
 
    if (op.srcs > 1) {
-      printf(" ");
+      fprintf(fp, " ");
       print_vector_source(vec4_acc->arg1_source, NULL,
                           vec4_acc->arg1_swizzle,
                           vec4_acc->arg1_absolute,
-                          vec4_acc->arg1_negate);
+                          vec4_acc->arg1_negate, fp);
    }
 }
 
@@ -505,7 +505,7 @@ static const asm_op float_mul_ops[] = {
 #undef CASE
 
 static void
-print_float_mul(void *code, unsigned offset)
+print_float_mul(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_float_mul *float_mul = code;
@@ -513,29 +513,29 @@ print_float_mul(void *code, unsigned offset)
    asm_op op = float_mul_ops[float_mul->op];
 
    if (op.name)
-      printf("%s", op.name);
+      fprintf(fp, "%s", op.name);
    else
-      printf("op%u", float_mul->op);
-   print_outmod(float_mul->dest_modifier);
-   printf(".s0 ");
+      fprintf(fp, "op%u", float_mul->op);
+   print_outmod(float_mul->dest_modifier, fp);
+   fprintf(fp, ".s0 ");
 
    if (float_mul->output_en)
-      print_dest_scalar(float_mul->dest);
+      print_dest_scalar(float_mul->dest, fp);
 
    print_source_scalar(float_mul->arg0_source, NULL,
                        float_mul->arg0_absolute,
-                       float_mul->arg0_negate);
+                       float_mul->arg0_negate, fp);
 
    if (float_mul->op < 8 && float_mul->op != 0) {
-      printf("<<%u", float_mul->op);
+      fprintf(fp, "<<%u", float_mul->op);
    }
 
    if (op.srcs > 1) {
-      printf(" ");
+      fprintf(fp, " ");
 
       print_source_scalar(float_mul->arg1_source, NULL,
                           float_mul->arg1_absolute,
-                          float_mul->arg1_negate);
+                          float_mul->arg1_negate, fp);
    }
 }
 
@@ -565,7 +565,7 @@ static const asm_op float_acc_ops[] = {
 #undef CASE
 
 static void
-print_float_acc(void *code, unsigned offset)
+print_float_acc(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_float_acc *float_acc = code;
@@ -573,24 +573,24 @@ print_float_acc(void *code, unsigned offset)
    asm_op op = float_acc_ops[float_acc->op];
 
    if (op.name)
-      printf("%s", op.name);
+      fprintf(fp, "%s", op.name);
    else
-      printf("op%u", float_acc->op);
-   print_outmod(float_acc->dest_modifier);
-   printf(".s1 ");
+      fprintf(fp, "op%u", float_acc->op);
+   print_outmod(float_acc->dest_modifier, fp);
+   fprintf(fp, ".s1 ");
 
    if (float_acc->output_en)
-      print_dest_scalar(float_acc->dest);
+      print_dest_scalar(float_acc->dest, fp);
 
    print_source_scalar(float_acc->arg0_source, float_acc->mul_in ? "^s0" : NULL,
                        float_acc->arg0_absolute,
-                       float_acc->arg0_negate);
+                       float_acc->arg0_negate, fp);
 
    if (op.srcs > 1) {
-      printf(" ");
+      fprintf(fp, " ");
       print_source_scalar(float_acc->arg1_source, NULL,
                           float_acc->arg1_absolute,
-                          float_acc->arg1_negate);
+                          float_acc->arg1_negate, fp);
    }
 }
 
@@ -616,7 +616,7 @@ static const asm_op combine_ops[] = {
 #undef CASE
 
 static void
-print_combine(void *code, unsigned offset)
+print_combine(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_combine *combine = code;
@@ -626,105 +626,104 @@ print_combine(void *code, unsigned offset)
       /* This particular combination can only be valid for scalar * vector
        * multiplies, and the opcode field is reused for something else.
        */
-      printf("mul");
+      fprintf(fp, "mul");
    } else {
       asm_op op = combine_ops[combine->scalar.op];
 
       if (op.name)
-         printf("%s", op.name);
+         fprintf(fp, "%s", op.name);
       else
-         printf("op%u", combine->scalar.op);
+         fprintf(fp, "op%u", combine->scalar.op);
    }
 
    if (!combine->scalar.dest_vec)
-      print_outmod(combine->scalar.dest_modifier);
-   printf(".s2 ");
+      print_outmod(combine->scalar.dest_modifier, fp);
+   fprintf(fp, ".s2 ");
 
    if (combine->scalar.dest_vec) {
-      printf("$%u", combine->vector.dest);
-      print_mask(combine->vector.mask);
+      fprintf(fp, "$%u", combine->vector.dest);
+      print_mask(combine->vector.mask, fp);
    } else {
-      print_dest_scalar(combine->scalar.dest);
+      print_dest_scalar(combine->scalar.dest, fp);
    }
-   printf(" ");
+   fprintf(fp, " ");
 
    print_source_scalar(combine->scalar.arg0_src, NULL,
                        combine->scalar.arg0_absolute,
-                       combine->scalar.arg0_negate);
-   printf(" ");
+                       combine->scalar.arg0_negate, fp);
+   fprintf(fp, " ");
 
    if (combine->scalar.arg1_en) {
       if (combine->scalar.dest_vec) {
          print_vector_source(combine->vector.arg1_source, NULL,
                              combine->vector.arg1_swizzle,
-                             false, false);
+                             false, false, fp);
       } else {
          print_source_scalar(combine->scalar.arg1_src, NULL,
                              combine->scalar.arg1_absolute,
-                             combine->scalar.arg1_negate);
+                             combine->scalar.arg1_negate, fp);
       }
    }
 }
 
 static void
-print_temp_write(void *code, unsigned offset)
+print_temp_write(void *code, unsigned offset, FILE *fp)
 {
    (void) offset;
    ppir_codegen_field_temp_write *temp_write = code;
 
    if (temp_write->fb_read.unknown_0 == 0x7) {
       if (temp_write->fb_read.source)
-         printf("fb_color");
+         fprintf(fp, "fb_color");
       else
-         printf("fb_depth");
-      printf(" $%u", temp_write->fb_read.dest);
+         fprintf(fp, "fb_depth");
+      fprintf(fp, " $%u", temp_write->fb_read.dest);
 
       return;
    }
 
-   printf("store.t");
+   fprintf(fp, "store.t");
 
    int16_t index = temp_write->temp_write.index;
    switch (temp_write->temp_write.alignment) {
    case 2:
-      printf(" %d", index);
+      fprintf(fp, " %d", index);
       break;
    case 1:
-      printf(" %d.%s", index / 2, (index & 1) ? "zw" : "xy");
+      fprintf(fp, " %d.%s", index / 2, (index & 1) ? "zw" : "xy");
       break;
    default:
-      printf(" %d.%c", index / 4, "xyzw"[index & 3]);
+      fprintf(fp, " %d.%c", index / 4, "xyzw"[index & 3]);
       break;
    }
 
    if (temp_write->temp_write.offset_en) {
-      printf("+");
+      fprintf(fp, "+");
       print_source_scalar(temp_write->temp_write.offset_reg,
-                          NULL, false, false);
+                          NULL, false, false, fp);
    }
 
-   printf(" ");
+   fprintf(fp, " ");
 
    if (temp_write->temp_write.alignment) {
-      print_reg(temp_write->temp_write.source >> 2, NULL);
+      print_reg(temp_write->temp_write.source >> 2, NULL, fp);
    } else {
-      print_source_scalar(temp_write->temp_write.source, NULL, false, false);
+      print_source_scalar(temp_write->temp_write.source, NULL, false, false, fp);
    }
 }
 
 static void
-print_branch(void *code, unsigned offset)
-{ 
+print_branch(void *code, unsigned offset, FILE *fp)
+{
    ppir_codegen_field_branch *branch = code;
 
    if (branch->discard.word0 == PPIR_CODEGEN_DISCARD_WORD0 &&
        branch->discard.word1 == PPIR_CODEGEN_DISCARD_WORD1 &&
        branch->discard.word2 == PPIR_CODEGEN_DISCARD_WORD2) {
-      printf("discard");
+      fprintf(fp, "discard");
       return;
    }
 
-   
    const char* cond[] = {
       "nv", "lt", "eq", "le",
       "gt", "ne", "ge", ""  ,
@@ -734,18 +733,18 @@ print_branch(void *code, unsigned offset)
    cond_mask |= (branch->branch.cond_lt ? 1 : 0);
    cond_mask |= (branch->branch.cond_eq ? 2 : 0);
    cond_mask |= (branch->branch.cond_gt ? 4 : 0);
-   printf("branch");
+   fprintf(fp, "branch");
    if (cond_mask != 0x7) {
-      printf(".%s ", cond[cond_mask]);
-      print_source_scalar(branch->branch.arg0_source, NULL, false, false); 
-      printf(" ");
-      print_source_scalar(branch->branch.arg1_source, NULL, false, false); 
+      fprintf(fp, ".%s ", cond[cond_mask]);
+      print_source_scalar(branch->branch.arg0_source, NULL, false, false, fp);
+      fprintf(fp, " ");
+      print_source_scalar(branch->branch.arg1_source, NULL, false, false, fp);
    }
 
-   printf(" %d", branch->branch.target + offset);
+   fprintf(fp, " %d", branch->branch.target + offset);
 }
 
-typedef void (*print_field_func)(void *, unsigned);
+typedef void (*print_field_func)(void *, unsigned, FILE *);
 
 static const print_field_func print_field[ppir_codegen_field_shift_count] = {
    [ppir_codegen_field_shift_varying] = print_varying,
@@ -781,7 +780,7 @@ bitcopy(char *src, char *dst, unsigned bits, unsigned src_offset)
 }
 
 void
-ppir_disassemble_instr(uint32_t *instr, unsigned offset)
+ppir_disassemble_instr(uint32_t *instr, unsigned offset, FILE *fp)
 {
    ppir_codegen_ctrl *ctrl = (ppir_codegen_ctrl *) instr;
 
@@ -800,18 +799,18 @@ ppir_disassemble_instr(uint32_t *instr, unsigned offset)
       if (first)
          first = false;
       else
-         printf(", ");
+         fprintf(fp, ", ");
 
-      print_field[i](code, offset);
+      print_field[i](code, offset, fp);
 
       bit_offset += bits;
    }
 
    if (ctrl->sync)
-      printf(", sync");
+      fprintf(fp, ", sync");
    if (ctrl->stop)
-      printf(", stop");
+      fprintf(fp, ", stop");
 
-   printf("\n");
+   fprintf(fp, "\n");
 }
 

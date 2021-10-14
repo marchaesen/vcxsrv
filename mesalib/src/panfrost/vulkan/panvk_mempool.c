@@ -46,7 +46,7 @@ panvk_pool_alloc_backing(struct panvk_pool *pool, size_t bo_sz)
    struct panfrost_bo *bo;
 
    /* If there's a free BO in our BO pool, let's pick it. */
-   if (pool->bo_pool &&
+   if (pool->bo_pool && bo_sz == pool->base.slab_size &&
        util_dynarray_num_elements(&pool->bo_pool->free_bos, struct panfrost_bo *)) {
       bo = util_dynarray_pop(&pool->bo_pool->free_bos, struct panfrost_bo *);
    } else {
@@ -61,7 +61,10 @@ panvk_pool_alloc_backing(struct panvk_pool *pool, size_t bo_sz)
                               pool->base.label);
    }
 
-   util_dynarray_append(&pool->bos, struct panfrost_bo *, bo);
+   if (bo->size == pool->base.slab_size)
+      util_dynarray_append(&pool->bos, struct panfrost_bo *, bo);
+   else
+      util_dynarray_append(&pool->big_bos, struct panfrost_bo *, bo);
    pool->transient_bo = bo;
    pool->transient_offset = 0;
 
@@ -107,6 +110,7 @@ panvk_pool_init(struct panvk_pool *pool,
    pool->bo_pool = bo_pool;
 
    util_dynarray_init(&pool->bos, NULL);
+   util_dynarray_init(&pool->big_bos, NULL);
 
    if (prealloc)
       panvk_pool_alloc_backing(pool, pool->base.slab_size);
@@ -126,7 +130,11 @@ panvk_pool_reset(struct panvk_pool *pool)
          panfrost_bo_unreference(*bo);
    }
 
+   util_dynarray_foreach(&pool->big_bos, struct panfrost_bo *, bo)
+      panfrost_bo_unreference(*bo);
+
    util_dynarray_clear(&pool->bos);
+   util_dynarray_clear(&pool->big_bos);
    pool->transient_bo = NULL;
 }
 
@@ -135,6 +143,7 @@ panvk_pool_cleanup(struct panvk_pool *pool)
 {
    panvk_pool_reset(pool);
    util_dynarray_fini(&pool->bos);
+   util_dynarray_fini(&pool->big_bos);
 }
 
 void

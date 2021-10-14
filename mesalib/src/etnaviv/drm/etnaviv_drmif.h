@@ -89,12 +89,15 @@ enum etna_param_id {
 /* device functions:
  */
 
+#define ETNA_DRM_VERSION(major, minor) ((major) << 16 | (minor))
+
 struct etna_device *etna_device_new(int fd);
 struct etna_device *etna_device_new_dup(int fd);
 struct etna_device *etna_device_ref(struct etna_device *dev);
 void etna_device_del(struct etna_device *dev);
 int etna_device_fd(struct etna_device *dev);
 bool etnaviv_device_softpin_capable(struct etna_device *dev);
+uint32_t etnaviv_device_version(struct etna_device *dev);
 
 /* gpu functions:
  */

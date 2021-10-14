@@ -1232,6 +1232,8 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
    if (src.is_ssa && src.ssa->num_components == num_components)
       return src.ssa;
 
+   assert((unsigned)num_components <= nir_src_num_components(src));
+
    nir_alu_src alu = { NIR_SRC_INIT };
    alu.src = src;
    for (int j = 0; j < NIR_MAX_VEC_COMPONENTS; j++)

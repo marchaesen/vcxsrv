@@ -473,6 +473,15 @@ collect_preasm_stats(Program* program)
    double usage[(int)BlockCycleEstimator::resource_count] = {0};
    std::vector<BlockCycleEstimator> blocks(program->blocks.size(), program);
 
+   if (program->stage.has(SWStage::VS) && program->info->vs.has_prolog) {
+      unsigned vs_input_latency = 320;
+      for (Definition def : program->vs_inputs) {
+         blocks[0].vm.push_back(vs_input_latency);
+         for (unsigned i = 0; i < def.size(); i++)
+            blocks[0].reg_available[def.physReg().reg() + i] = vs_input_latency;
+      }
+   }
+
    for (Block& block : program->blocks) {
       BlockCycleEstimator& block_est = blocks[block.index];
       for (unsigned pred : block.linear_preds)

@@ -137,8 +137,6 @@ dEQP-GLES2.functional.fragment_ops.random.90,Fail
 dEQP-GLES2.functional.fragment_ops.random.96,Fail
 dEQP-GLES2.functional.fragment_ops.random.97,Fail
 dEQP-GLES2.functional.fragment_ops.random.98,Fail
-dEQP-GLES2.functional.negative_api.shader.uniform_matrixfv_invalid_transpose,Fail
-dEQP-GLES2.functional.negative_api.texture.generatemipmap_zero_level_array_compressed,Fail
 dEQP-GLES2.functional.rasterization.limits.points,Fail
 dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_read_vertex,Fail

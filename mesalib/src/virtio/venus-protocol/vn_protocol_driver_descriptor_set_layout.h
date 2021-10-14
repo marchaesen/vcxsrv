@@ -750,6 +750,8 @@ static inline void vn_submit_vkGetDescriptorSetLayoutSupport(struct vn_instance 
 
 static inline VkResult vn_call_vkCreateDescriptorSetLayout(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateDescriptorSetLayout(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSetLayout, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -770,6 +772,8 @@ static inline void vn_async_vkCreateDescriptorSetLayout(struct vn_instance *vn_i
 
 static inline void vn_call_vkDestroyDescriptorSetLayout(struct vn_instance *vn_instance, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyDescriptorSetLayout(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorSetLayout, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -787,6 +791,8 @@ static inline void vn_async_vkDestroyDescriptorSetLayout(struct vn_instance *vn_
 
 static inline void vn_call_vkGetDescriptorSetLayoutSupport(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetDescriptorSetLayoutSupport(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pSupport, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

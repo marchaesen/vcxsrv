@@ -1205,9 +1205,46 @@ resolve_to_temp:
 static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
 {
    struct si_context *sctx = (struct si_context *)ctx;
+   struct si_texture *sdst = (struct si_texture *)info->dst.resource;
 
    if (do_hardware_msaa_resolve(ctx, info)) {
       return;
+   }
+
+   if (info->is_dri_blit_image && sdst->surface.is_linear &&
+       sctx->chip_class >= GFX7 && sdst->surface.flags & RADEON_SURF_IMPORTED) {
+      struct si_texture *ssrc = (struct si_texture *)info->src.resource;
+      /* Use SDMA or async compute when copying to a DRI_PRIME imported linear surface. */
+      bool async_copy = info->dst.box.x == 0 && info->dst.box.y == 0 && info->dst.box.z == 0 &&
+                        info->src.box.x == 0 && info->src.box.y == 0 && info->src.box.z == 0 &&
+                        info->dst.level == 0 && info->src.level == 0 &&
+                        info->src.box.width == info->dst.resource->width0 &&
+                        info->src.box.height == info->dst.resource->height0 &&
+                        info->src.box.depth == 1 && util_can_blit_via_copy_region(info, true);
+      /* Try SDMA first... */
+      /* TODO: figure out why SDMA copies are slow on GFX10_3 */
+      if (async_copy && sctx->chip_class < GFX10_3 && si_sdma_copy_image(sctx, sdst, ssrc))
+         return;
+
+      /* ... and use async compute as the fallback. */
+      if (async_copy) {
+         struct si_screen *sscreen = sctx->screen;
+
+         simple_mtx_lock(&sscreen->async_compute_context_lock);
+         if (!sscreen->async_compute_context)
+            si_init_aux_async_compute_ctx(sscreen);
+
+         if (sscreen->async_compute_context) {
+            si_compute_copy_image((struct si_context*)sctx->screen->async_compute_context,
+                                  info->dst.resource, 0, info->src.resource, 0, 0, 0, 0,
+                                  &info->src.box, false, 0);
+            si_flush_gfx_cs((struct si_context*)sctx->screen->async_compute_context, 0, NULL);
+            simple_mtx_unlock(&sscreen->async_compute_context_lock);
+            return;
+         }
+
+         simple_mtx_unlock(&sscreen->async_compute_context_lock);
+      }
    }
 
    if (unlikely(sctx->thread_trace_enabled))

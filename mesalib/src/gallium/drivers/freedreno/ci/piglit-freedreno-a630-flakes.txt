@@ -35,5 +35,13 @@ spec@ext_packed_depth_stencil@fbo-clear-formats stencil
 # Flaky since around 2021-05-21, the day after a piglit uprev reshuffled us.
 spec@arb_map_buffer_range@map_invalidate_buffer_bit offset=0
 
+# Flaky since around 2021-06-21.
+spec@arb_texture_gather@texturegatheroffset@vs-rgb-blue-uint-2darray
+spec@arb_texture_gather@texturegather@fs-rgba-green-uint-cubearray
+spec@arb_texture_gather@texturegather@vs-rgb-none-float-cubearray
+
+# First appeared in https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/11511
+spec@glsl-1.30@execution@tex-miplevel-selection texture\(bias\) cubearray
+
 # First appeared on 2021-05-14 on tc-merge-index-unrefs, but not obviously related.
 spec@!opengl 1.0@rasterpos@glsl_vs_tex1D

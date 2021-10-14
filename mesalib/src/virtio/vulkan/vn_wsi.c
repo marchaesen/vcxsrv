@@ -12,6 +12,8 @@
 
 #include "vk_enum_to_str.h"
 
+#include "wsi_common_entrypoints.h"
+
 #include "vn_device.h"
 #include "vn_image.h"
 #include "vn_instance.h"
@@ -87,6 +89,8 @@ vn_wsi_init(struct vn_physical_device *physical_dev)
           .EXT_image_drm_format_modifier)
       physical_dev->wsi_device.supports_modifiers = true;
 
+   physical_dev->base.base.wsi_device = &physical_dev->wsi_device;
+
    return VK_SUCCESS;
 }
 
@@ -95,6 +99,7 @@ vn_wsi_fini(struct vn_physical_device *physical_dev)
 {
    const VkAllocationCallbacks *alloc =
       &physical_dev->instance->base.base.alloc;
+   physical_dev->base.base.wsi_device = NULL;
    wsi_device_finish(&physical_dev->wsi_device, alloc);
 }
 
@@ -135,151 +140,6 @@ vn_wsi_create_image(struct vn_device *dev,
    return VK_SUCCESS;
 }
 
-/* surface commands */
-
-void
-vn_DestroySurfaceKHR(VkInstance _instance,
-                     VkSurfaceKHR surface,
-                     const VkAllocationCallbacks *pAllocator)
-{
-   struct vn_instance *instance = vn_instance_from_handle(_instance);
-   ICD_FROM_HANDLE(VkIcdSurfaceBase, surf, surface);
-   const VkAllocationCallbacks *alloc =
-      pAllocator ? pAllocator : &instance->base.base.alloc;
-
-   vk_free(alloc, surf);
-}
-
-VkResult
-vn_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice physicalDevice,
-                                      uint32_t queueFamilyIndex,
-                                      VkSurfaceKHR surface,
-                                      VkBool32 *pSupported)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result = wsi_common_get_surface_support(
-      &physical_dev->wsi_device, queueFamilyIndex, surface, pSupported);
-
-   return vn_result(physical_dev->instance, result);
-}
-
-VkResult
-vn_GetPhysicalDeviceSurfaceCapabilitiesKHR(
-   VkPhysicalDevice physicalDevice,
-   VkSurfaceKHR surface,
-   VkSurfaceCapabilitiesKHR *pSurfaceCapabilities)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result = wsi_common_get_surface_capabilities(
-      &physical_dev->wsi_device, surface, pSurfaceCapabilities);
-
-   return vn_result(physical_dev->instance, result);
-}
-
-VkResult
-vn_GetPhysicalDeviceSurfaceCapabilities2KHR(
-   VkPhysicalDevice physicalDevice,
-   const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
-   VkSurfaceCapabilities2KHR *pSurfaceCapabilities)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result = wsi_common_get_surface_capabilities2(
-      &physical_dev->wsi_device, pSurfaceInfo, pSurfaceCapabilities);
-
-   return vn_result(physical_dev->instance, result);
-}
-
-VkResult
-vn_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physicalDevice,
-                                      VkSurfaceKHR surface,
-                                      uint32_t *pSurfaceFormatCount,
-                                      VkSurfaceFormatKHR *pSurfaceFormats)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result =
-      wsi_common_get_surface_formats(&physical_dev->wsi_device, surface,
-                                     pSurfaceFormatCount, pSurfaceFormats);
-
-   return vn_result(physical_dev->instance, result);
-}
-
-VkResult
-vn_GetPhysicalDeviceSurfaceFormats2KHR(
-   VkPhysicalDevice physicalDevice,
-   const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo,
-   uint32_t *pSurfaceFormatCount,
-   VkSurfaceFormat2KHR *pSurfaceFormats)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result =
-      wsi_common_get_surface_formats2(&physical_dev->wsi_device, pSurfaceInfo,
-                                      pSurfaceFormatCount, pSurfaceFormats);
-
-   return vn_result(physical_dev->instance, result);
-}
-
-VkResult
-vn_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice,
-                                           VkSurfaceKHR surface,
-                                           uint32_t *pPresentModeCount,
-                                           VkPresentModeKHR *pPresentModes)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result = wsi_common_get_surface_present_modes(
-      &physical_dev->wsi_device, surface, pPresentModeCount, pPresentModes);
-
-   return vn_result(physical_dev->instance, result);
-}
-
-VkResult
-vn_GetDeviceGroupPresentCapabilitiesKHR(
-   VkDevice device, VkDeviceGroupPresentCapabilitiesKHR *pCapabilities)
-{
-   memset(pCapabilities->presentMask, 0, sizeof(pCapabilities->presentMask));
-   pCapabilities->presentMask[0] = 0x1;
-   pCapabilities->modes = VK_DEVICE_GROUP_PRESENT_MODE_LOCAL_BIT_KHR;
-
-   return VK_SUCCESS;
-}
-
-VkResult
-vn_GetDeviceGroupSurfacePresentModesKHR(
-   VkDevice device,
-   VkSurfaceKHR surface,
-   VkDeviceGroupPresentModeFlagsKHR *pModes)
-{
-   *pModes = VK_DEVICE_GROUP_PRESENT_MODE_LOCAL_BIT_KHR;
-
-   return VK_SUCCESS;
-}
-
-VkResult
-vn_GetPhysicalDevicePresentRectanglesKHR(VkPhysicalDevice physicalDevice,
-                                         VkSurfaceKHR surface,
-                                         uint32_t *pRectCount,
-                                         VkRect2D *pRects)
-{
-   struct vn_physical_device *physical_dev =
-      vn_physical_device_from_handle(physicalDevice);
-
-   VkResult result = wsi_common_get_present_rectangles(
-      &physical_dev->wsi_device, surface, pRectCount, pRects);
-
-   return vn_result(physical_dev->instance, result);
-}
-
 /* swapchain commands */
 
 VkResult
@@ -289,12 +149,9 @@ vn_CreateSwapchainKHR(VkDevice device,
                       VkSwapchainKHR *pSwapchain)
 {
    struct vn_device *dev = vn_device_from_handle(device);
-   const VkAllocationCallbacks *alloc =
-      pAllocator ? pAllocator : &dev->base.base.alloc;
 
-   VkResult result =
-      wsi_common_create_swapchain(&dev->physical_device->wsi_device, device,
-                                  pCreateInfo, alloc, pSwapchain);
+   VkResult result = wsi_CreateSwapchainKHR(device, pCreateInfo,
+                                            pAllocator, pSwapchain);
    if (VN_DEBUG(WSI) && result == VK_SUCCESS) {
       vn_log(dev->instance,
              "swapchain %p: created with surface %p, min count %d, size "
@@ -315,46 +172,10 @@ vn_DestroySwapchainKHR(VkDevice device,
                        const VkAllocationCallbacks *pAllocator)
 {
    struct vn_device *dev = vn_device_from_handle(device);
-   const VkAllocationCallbacks *alloc =
-      pAllocator ? pAllocator : &dev->base.base.alloc;
 
-   wsi_common_destroy_swapchain(device, swapchain, alloc);
+   wsi_DestroySwapchainKHR(device, swapchain, pAllocator);
    if (VN_DEBUG(WSI))
       vn_log(dev->instance, "swapchain %p: destroyed", VN_WSI_PTR(swapchain));
-}
-
-VkResult
-vn_GetSwapchainImagesKHR(VkDevice device,
-                         VkSwapchainKHR swapchain,
-                         uint32_t *pSwapchainImageCount,
-                         VkImage *pSwapchainImages)
-{
-   struct vn_device *dev = vn_device_from_handle(device);
-
-   VkResult result = wsi_common_get_images(swapchain, pSwapchainImageCount,
-                                           pSwapchainImages);
-
-   return vn_result(dev->instance, result);
-}
-
-VkResult
-vn_AcquireNextImageKHR(VkDevice device,
-                       VkSwapchainKHR swapchain,
-                       uint64_t timeout,
-                       VkSemaphore semaphore,
-                       VkFence fence,
-                       uint32_t *pImageIndex)
-{
-   const VkAcquireNextImageInfoKHR acquire_info = {
-      .sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
-      .swapchain = swapchain,
-      .timeout = timeout,
-      .semaphore = semaphore,
-      .fence = fence,
-      .deviceMask = 0x1,
-   };
-
-   return vn_AcquireNextImage2KHR(device, &acquire_info, pImageIndex);
 }
 
 VkResult

@@ -678,8 +678,12 @@ crocus_get_query_result(struct pipe_context *ctx,
       }
       assert(READ_ONCE(q->map->snapshots_landed));
 #else
-      if (crocus_wait_syncobj(ctx->screen, q->syncobj, wait ? INT64_MAX : 0))
+      if (crocus_wait_syncobj(ctx->screen, q->syncobj, wait ? INT64_MAX : 0)) {
+         /* if we've waited and timedout, just set the query to ready to avoid infinite loop */
+         if (wait)
+            q->ready = true;
          return false;
+      }
 #endif
       calculate_result_on_cpu(devinfo, q);
    }

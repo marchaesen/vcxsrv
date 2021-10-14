@@ -758,10 +758,10 @@ static unsigned event_type_for_stream(unsigned stream)
 static void emit_sample_streamout(struct radeon_cmdbuf *cs, uint64_t va, unsigned stream)
 {
    radeon_begin(cs);
-   radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
-   radeon_emit(cs, EVENT_TYPE(event_type_for_stream(stream)) | EVENT_INDEX(3));
-   radeon_emit(cs, va);
-   radeon_emit(cs, va >> 32);
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 2, 0));
+   radeon_emit(EVENT_TYPE(event_type_for_stream(stream)) | EVENT_INDEX(3));
+   radeon_emit(va);
+   radeon_emit(va >> 32);
    radeon_end();
 }
 
@@ -775,10 +775,10 @@ static void si_query_hw_do_emit_start(struct si_context *sctx, struct si_query_h
    case PIPE_QUERY_OCCLUSION_PREDICATE:
    case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE: {
       radeon_begin(cs);
-      radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
-      radeon_emit(cs, EVENT_TYPE(V_028A90_ZPASS_DONE) | EVENT_INDEX(1));
-      radeon_emit(cs, va);
-      radeon_emit(cs, va >> 32);
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 2, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_ZPASS_DONE) | EVENT_INDEX(1));
+      radeon_emit(va);
+      radeon_emit(va >> 32);
       radeon_end();
       break;
    }
@@ -798,10 +798,10 @@ static void si_query_hw_do_emit_start(struct si_context *sctx, struct si_query_h
       break;
    case PIPE_QUERY_PIPELINE_STATISTICS: {
       radeon_begin(cs);
-      radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
-      radeon_emit(cs, EVENT_TYPE(V_028A90_SAMPLE_PIPELINESTAT) | EVENT_INDEX(2));
-      radeon_emit(cs, va);
-      radeon_emit(cs, va >> 32);
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 2, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_SAMPLE_PIPELINESTAT) | EVENT_INDEX(2));
+      radeon_emit(va);
+      radeon_emit(va >> 32);
       radeon_end();
       break;
    }
@@ -843,10 +843,10 @@ static void si_query_hw_do_emit_stop(struct si_context *sctx, struct si_query_hw
    case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE: {
       va += 8;
       radeon_begin(cs);
-      radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
-      radeon_emit(cs, EVENT_TYPE(V_028A90_ZPASS_DONE) | EVENT_INDEX(1));
-      radeon_emit(cs, va);
-      radeon_emit(cs, va >> 32);
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 2, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_ZPASS_DONE) | EVENT_INDEX(1));
+      radeon_emit(va);
+      radeon_emit(va >> 32);
       radeon_end();
 
       fence_va = va + sctx->screen->info.max_render_backends * 16 - 8;
@@ -877,10 +877,10 @@ static void si_query_hw_do_emit_stop(struct si_context *sctx, struct si_query_hw
 
       va += sample_size;
       radeon_begin(cs);
-      radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 2, 0));
-      radeon_emit(cs, EVENT_TYPE(V_028A90_SAMPLE_PIPELINESTAT) | EVENT_INDEX(2));
-      radeon_emit(cs, va);
-      radeon_emit(cs, va >> 32);
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 2, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_SAMPLE_PIPELINESTAT) | EVENT_INDEX(2));
+      radeon_emit(va);
+      radeon_emit(va >> 32);
       radeon_end();
 
       fence_va = va + sample_size;
@@ -936,14 +936,14 @@ static void emit_set_predicate(struct si_context *ctx, struct si_resource *buf, 
    radeon_begin(cs);
 
    if (ctx->chip_class >= GFX9) {
-      radeon_emit(cs, PKT3(PKT3_SET_PREDICATION, 2, 0));
-      radeon_emit(cs, op);
-      radeon_emit(cs, va);
-      radeon_emit(cs, va >> 32);
+      radeon_emit(PKT3(PKT3_SET_PREDICATION, 2, 0));
+      radeon_emit(op);
+      radeon_emit(va);
+      radeon_emit(va >> 32);
    } else {
-      radeon_emit(cs, PKT3(PKT3_SET_PREDICATION, 1, 0));
-      radeon_emit(cs, va);
-      radeon_emit(cs, op | ((va >> 32) & 0xFF));
+      radeon_emit(PKT3(PKT3_SET_PREDICATION, 1, 0));
+      radeon_emit(va);
+      radeon_emit(op | ((va >> 32) & 0xFF));
    }
    radeon_end();
 

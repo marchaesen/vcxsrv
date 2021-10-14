@@ -72,6 +72,9 @@ static void
 validate_src(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr,
              struct ir3_register *reg)
 {
+   if (reg->flags & IR3_REG_IMMED)
+      validate_assert(ctx, ir3_valid_immediate(instr, reg->iim_val));
+
    if (!(reg->flags & IR3_REG_SSA) || !reg->def)
       return;
 
@@ -188,7 +191,7 @@ validate_instr(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr)
             else
                validate_assert(ctx, reg->flags & IR3_REG_HALF);
          }
-      } else if (opc_cat(instr->opc) == 6) {
+      } else if (opc_cat(instr->opc) == 1 || opc_cat(instr->opc) == 6) {
          /* handled below */
       } else if (opc_cat(instr->opc) == 0) {
          /* end/chmask/etc are allowed to have different size sources */

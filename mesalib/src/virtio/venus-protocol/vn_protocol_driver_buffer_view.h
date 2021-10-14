@@ -240,6 +240,8 @@ static inline void vn_submit_vkDestroyBufferView(struct vn_instance *vn_instance
 
 static inline VkResult vn_call_vkCreateBufferView(struct vn_instance *vn_instance, VkDevice device, const VkBufferViewCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBufferView* pView)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateBufferView(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pView, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -260,6 +262,8 @@ static inline void vn_async_vkCreateBufferView(struct vn_instance *vn_instance, 
 
 static inline void vn_call_vkDestroyBufferView(struct vn_instance *vn_instance, VkDevice device, VkBufferView bufferView, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyBufferView(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, bufferView, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

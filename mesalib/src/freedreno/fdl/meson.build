@@ -22,8 +22,10 @@ libfreedreno_layout = static_library(
   'freedreno_layout',
   [
     'fd5_layout.c',
+    'fd6_format_table.c',
     'fd6_layout.c',
     'freedreno_layout.c',
+    freedreno_xml_header_files,
   ],
   include_directories : [inc_freedreno, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : [no_override_init_args],

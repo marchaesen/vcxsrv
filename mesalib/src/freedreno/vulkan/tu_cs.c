@@ -45,10 +45,12 @@ tu_cs_init(struct tu_cs *cs,
  * Initialize a command stream as a wrapper to an external buffer.
  */
 void
-tu_cs_init_external(struct tu_cs *cs, uint32_t *start, uint32_t *end)
+tu_cs_init_external(struct tu_cs *cs, struct tu_device *device,
+                    uint32_t *start, uint32_t *end)
 {
    memset(cs, 0, sizeof(*cs));
 
+   cs->device = device;
    cs->mode = TU_CS_MODE_EXTERNAL;
    cs->start = cs->reserved_end = cs->cur = start;
    cs->end = end;
@@ -252,7 +254,7 @@ tu_cs_begin_sub_stream(struct tu_cs *cs, uint32_t size, struct tu_cs *sub_cs)
    if (result != VK_SUCCESS)
       return result;
 
-   tu_cs_init_external(sub_cs, cs->cur, cs->reserved_end);
+   tu_cs_init_external(sub_cs, cs->device, cs->cur, cs->reserved_end);
    tu_cs_begin(sub_cs);
    result = tu_cs_reserve_space(sub_cs, size);
    assert(result == VK_SUCCESS);

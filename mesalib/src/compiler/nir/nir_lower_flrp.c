@@ -635,7 +635,7 @@ nir_lower_flrp(nir_shader *shader,
 {
    struct u_vector dead_flrp;
 
-   if (!u_vector_init(&dead_flrp, sizeof(struct nir_alu_instr *), 64))
+   if (!u_vector_init_pow2(&dead_flrp, 8, sizeof(struct nir_alu_instr *)))
       return false;
 
    nir_foreach_function(function, shader) {

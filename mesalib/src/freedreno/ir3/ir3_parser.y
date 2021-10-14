@@ -698,14 +698,14 @@ invocationid_header: T_A_INVOCATIONID '(' T_REGISTER ')' {
 wgid_header:       T_A_WGID '(' T_REGISTER ')' {
                        assert(($3 & 0x1) == 0);  /* half-reg not allowed */
                        unsigned reg = $3 >> 1;
-                       assert(variant->shader->compiler->gen >= 500);
+                       assert(variant->shader->compiler->gen >= 5);
                        assert(reg >= regid(48, 0)); /* must be a high reg */
                        add_sysval(reg, 0x7, SYSTEM_VALUE_WORKGROUP_ID);
 }
 |                  T_A_WGID '(' T_CONSTANT ')' {
                        assert(($3 & 0x1) == 0);  /* half-reg not allowed */
                        unsigned reg = $3 >> 1;
-                       assert(variant->shader->compiler->gen < 500);
+                       assert(variant->shader->compiler->gen < 5);
                        info->wgid = reg;
 }
 
@@ -714,7 +714,7 @@ numwg_header:      T_A_NUMWG '(' T_CONSTANT ')' {
                        unsigned reg = $3 >> 1;
                        info->numwg = reg;
                        /* reserve space in immediates for the actual value to be plugged in later: */
-                       if (variant->shader->compiler->gen >= 500)
+                       if (variant->shader->compiler->gen >= 5)
                           add_const($3, 0, 0, 0, 0);
 }
 

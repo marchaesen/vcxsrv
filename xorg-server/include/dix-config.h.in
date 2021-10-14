@@ -473,6 +473,9 @@
 /* GBM has modifiers support */
 #undef GBM_BO_WITH_MODIFIERS
 
+/* GBM has gbm_bo_get_fd_for_plane function */
+#undef GBM_BO_FD_FOR_PLANE
+
 /* Glamor can use eglQueryDmaBuf* functions */
 #undef GLAMOR_HAS_EGL_QUERY_DMABUF
 

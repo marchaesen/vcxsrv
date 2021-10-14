@@ -681,6 +681,7 @@ ProcessCommandLine(int argc, char *argv[])
                     ErrorF("Failed to disable listen for %s transport",
                            defaultNoListenList[i]);
     }
+    SeatId = getenv("XDG_SEAT");
 
     for (i = 1; i < argc; i++) {
         /* call ddx first, so it can peek/override if it wants */

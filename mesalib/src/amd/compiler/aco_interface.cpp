@@ -75,7 +75,7 @@ validate(aco::Program* program)
 
 void
 aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
-                   struct radv_shader_binary** binary, struct radv_shader_args* args)
+                   struct radv_shader_binary** binary, const struct radv_shader_args* args)
 {
    aco::init();
 
@@ -107,7 +107,7 @@ aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
       validate(program.get());
 
       /* Optimization */
-      if (!args->options->disable_optimizations) {
+      if (!args->options->key.optimisations_disabled) {
          if (!(aco::debug_flags & aco::DEBUG_NO_VN))
             aco::value_numbering(program.get());
          if (!(aco::debug_flags & aco::DEBUG_NO_OPT))
@@ -147,7 +147,7 @@ aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
       aco_print_program(program.get(), stderr, live_vars, aco::print_live_vars | aco::print_kill);
 
    if (!args->is_trap_handler_shader) {
-      if (!args->options->disable_optimizations && !(aco::debug_flags & aco::DEBUG_NO_SCHED))
+      if (!args->options->key.optimisations_disabled && !(aco::debug_flags & aco::DEBUG_NO_SCHED))
          aco::schedule_program(program.get(), live_vars);
       validate(program.get());
 
@@ -164,7 +164,7 @@ aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
       validate(program.get());
 
       /* Optimization */
-      if (!args->options->disable_optimizations && !(aco::debug_flags & aco::DEBUG_NO_OPT)) {
+      if (!args->options->key.optimisations_disabled && !(aco::debug_flags & aco::DEBUG_NO_OPT)) {
          aco::optimize_postRA(program.get());
          validate(program.get());
       }
@@ -198,19 +198,27 @@ aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
 
    std::string disasm;
    if (get_disasm) {
-      char* data = NULL;
-      size_t disasm_size = 0;
-      struct u_memstream mem;
-      if (u_memstream_open(&mem, &data, &disasm_size)) {
-         FILE* const memf = u_memstream_get(&mem);
-         aco::print_asm(program.get(), code, exec_size / 4u, memf);
-         fputc(0, memf);
-         u_memstream_close(&mem);
-      }
+      if (check_print_asm_support(program.get())) {
+         char* data = NULL;
+         size_t disasm_size = 0;
+         struct u_memstream mem;
+         if (u_memstream_open(&mem, &data, &disasm_size)) {
+            FILE* const memf = u_memstream_get(&mem);
+            aco::print_asm(program.get(), code, exec_size / 4u, memf);
+            fputc(0, memf);
+            u_memstream_close(&mem);
+         }
 
-      disasm = std::string(data, data + disasm_size);
-      size += disasm_size;
-      free(data);
+         disasm = std::string(data, data + disasm_size);
+         size += disasm_size;
+         free(data);
+      } else {
+         fprintf(stderr, "Shader disassembly is not supported in the current configuration"
+#ifndef LLVM_AVAILABLE
+                         " (LLVM not available)"
+#endif
+                         ".\n");
+      }
    }
 
    size_t stats_size = 0;
@@ -239,7 +247,7 @@ aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
    legacy_binary->exec_size = exec_size;
    legacy_binary->code_size = code.size() * sizeof(uint32_t);
 
-   legacy_binary->config = config;
+   legacy_binary->base.config = config;
    legacy_binary->disasm_size = 0;
    legacy_binary->ir_size = llvm_ir.size();
 
@@ -254,4 +262,48 @@ aco_compile_shader(unsigned shader_count, struct nir_shader* const* shaders,
    }
 
    *binary = (radv_shader_binary*)legacy_binary;
+}
+
+void
+aco_compile_vs_prolog(const struct radv_vs_prolog_key* key, struct radv_prolog_binary** binary,
+                      const struct radv_shader_args* args)
+{
+   aco::init();
+
+   /* create program */
+   ac_shader_config config = {0};
+   std::unique_ptr<aco::Program> program{new aco::Program};
+   program->collect_statistics = false;
+   program->debug.func = NULL;
+   program->debug.private_data = NULL;
+
+   /* create IR */
+   unsigned num_preserved_sgprs;
+   aco::select_vs_prolog(program.get(), key, &config, args, &num_preserved_sgprs);
+   aco::insert_NOPs(program.get());
+
+   if (args->options->dump_shader)
+      aco_print_program(program.get(), stderr);
+
+   /* assembly */
+   std::vector<uint32_t> code;
+   code.reserve(align(program->blocks[0].instructions.size() * 2, 16));
+   unsigned exec_size = aco::emit_program(program.get(), code);
+
+   if (args->options->dump_shader) {
+      aco::print_asm(program.get(), code, exec_size / 4u, stderr);
+      fprintf(stderr, "\n");
+   }
+
+   /* copy into binary */
+   size_t size = code.size() * sizeof(uint32_t) + sizeof(radv_prolog_binary);
+   radv_prolog_binary* prolog_binary = (radv_prolog_binary*)calloc(size, 1);
+
+   prolog_binary->num_sgprs = config.num_sgprs;
+   prolog_binary->num_vgprs = config.num_vgprs;
+   prolog_binary->num_preserved_sgprs = num_preserved_sgprs;
+   prolog_binary->code_size = code.size() * sizeof(uint32_t);
+   memcpy(prolog_binary->data, code.data(), prolog_binary->code_size);
+
+   *binary = prolog_binary;
 }

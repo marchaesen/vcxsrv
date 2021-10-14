@@ -420,9 +420,12 @@ nir_opt_vectorize_impl(struct nir_shader *nir, nir_function_impl *impl,
    bool progress = vectorize_block(nir, nir_start_block(impl), instr_set,
                                    filter, data);
 
-   if (progress)
+   if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
+   }
 
    vec_instr_set_destroy(instr_set);
    return progress;

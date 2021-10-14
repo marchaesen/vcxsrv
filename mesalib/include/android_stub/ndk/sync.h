@@ -33,8 +33,6 @@
 
 __BEGIN_DECLS
 
-#if __ANDROID_API__ >= 26
-
 /* Fences indicate the status of an asynchronous task. They are initially
  * in unsignaled state (0), and make a one-time transition to either signaled
  * (1) or error (< 0) state. A sync file is a collection of one or more fences;
@@ -100,8 +98,6 @@ static inline struct sync_fence_info* sync_get_fence_info(const struct sync_file
  * Available since API level 26.
  */
 void sync_file_info_free(struct sync_file_info* info) __INTRODUCED_IN(26);
-
-#endif /* __ANDROID_API__ >= 26 */
 
 __END_DECLS
 

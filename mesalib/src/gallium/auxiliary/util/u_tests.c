@@ -48,7 +48,7 @@ util_create_texture2d(struct pipe_screen *screen, unsigned width,
                       unsigned height, enum pipe_format format,
                       unsigned num_samples)
 {
-   struct pipe_resource templ = {{0}};
+   struct pipe_resource templ = {0};
 
    templ.target = PIPE_TEXTURE_2D;
    templ.width0 = width;
@@ -698,7 +698,7 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
              "ADD OUT[0], TEMP[0], IMM[0]\n"
              "END\n";
    } else {
-      struct pipe_sampler_view templ = {{0}};
+      struct pipe_sampler_view templ = {0};
       templ.format = cb->format;
       templ.target = cb->target;
       templ.swizzle_r = PIPE_SWIZZLE_X;

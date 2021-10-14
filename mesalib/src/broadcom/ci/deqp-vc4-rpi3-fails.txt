@@ -1,15 +1,11 @@
-KHR-GLES2.core.internalformat.copy_tex_image.alpha8_oes,Fail
-KHR-GLES2.core.internalformat.copy_tex_image.luminance4_alpha4_oes,Fail
-KHR-GLES2.core.internalformat.copy_tex_image.luminance8_alpha8_oes,Fail
-KHR-GLES2.core.internalformat.copy_tex_image.luminance8_oes,Fail
-KHR-GLES2.core.internalformat.copy_tex_image.rgb565,Fail
-KHR-GLES2.core.internalformat.copy_tex_image.rgb5_a1,Fail
-KHR-GLES2.core.internalformat.copy_tex_image.rgba4,Fail
 KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_component16,Fail
 KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_component24,Fail
 KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_short_depth_component16,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3133
 KHR-GLES2.texture_3d.copy_sub_image.negative,Fail
 KHR-GLES2.texture_3d.copy_sub_image.rgba,Fail
+
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_clamp,Fail
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_mirror,Fail
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_repeat,Fail
@@ -334,7 +330,10 @@ KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_mirror_repeat
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_clamp,Fail
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_mirror,Fail
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_repeat,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3134
 KHR-GLES2.texture_3d.filtering.combinations.negative,Fail
+
 KHR-GLES2.texture_3d.filtering.formats.rgba8_linear,Fail
 KHR-GLES2.texture_3d.filtering.formats.rgba8_linear_mipmap_linear,Fail
 KHR-GLES2.texture_3d.filtering.formats.rgba8_linear_mipmap_nearest,Fail
@@ -403,8 +402,6 @@ dEQP-GLES2.functional.draw.draw_arrays.line_loop.multiple_attributes,Fail
 dEQP-GLES2.functional.draw.draw_arrays.line_loop.single_attribute,Fail
 dEQP-GLES2.functional.fbo.render.texsubimage.after_render_tex2d_rgba,Fail
 dEQP-GLES2.functional.fbo.render.texsubimage.between_render_tex2d_rgba,Fail
-dEQP-GLES2.functional.negative_api.shader.uniform_matrixfv_invalid_transpose,Fail
-dEQP-GLES2.functional.negative_api.texture.generatemipmap_zero_level_array_compressed,Fail
 dEQP-GLES2.functional.negative_api.vertex_array.vertex_attrib,Fail
 dEQP-GLES2.functional.negative_api.vertex_array.vertex_attribv,Fail
 dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_linear_linear_mirror_rgba8888,Fail

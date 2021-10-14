@@ -24,10 +24,12 @@
 #include <libsync.h>
 #include "pipe/p_shader_tokens.h"
 
+#include "compiler/nir/nir.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
+#include "nir/nir_to_tgsi.h"
 #include "util/u_draw.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
@@ -680,10 +682,19 @@ static void *virgl_shader_encoder(struct pipe_context *ctx,
 {
    struct virgl_context *vctx = virgl_context(ctx);
    uint32_t handle;
+   const struct tgsi_token *tokens;
+   const struct tgsi_token *ntt_tokens = NULL;
    struct tgsi_token *new_tokens;
    int ret;
 
-   new_tokens = virgl_tgsi_transform((struct virgl_screen *)vctx->base.screen, shader->tokens);
+   if (shader->type == PIPE_SHADER_IR_NIR) {
+      nir_shader *s = nir_shader_clone(NULL, shader->ir.nir);
+      ntt_tokens = tokens = nir_to_tgsi(s, vctx->base.screen); /* takes ownership */
+   } else {
+      tokens = shader->tokens;
+   }
+
+   new_tokens = virgl_tgsi_transform((struct virgl_screen *)vctx->base.screen, tokens);
    if (!new_tokens)
       return NULL;
 
@@ -693,9 +704,11 @@ static void *virgl_shader_encoder(struct pipe_context *ctx,
                                    &shader->stream_output, 0,
                                    new_tokens);
    if (ret) {
+      FREE((void *)ntt_tokens);
       return NULL;
    }
 
+   FREE((void *)ntt_tokens);
    FREE(new_tokens);
    return (void *)(unsigned long)handle;
 
@@ -936,8 +949,8 @@ static void virgl_submit_cmd(struct virgl_winsys *vws,
    }
 }
 
-static void virgl_flush_eq(struct virgl_context *ctx, void *closure,
-			   struct pipe_fence_handle **fence)
+void virgl_flush_eq(struct virgl_context *ctx, void *closure,
+		    struct pipe_fence_handle **fence)
 {
    struct virgl_screen *rs = virgl_screen(ctx->base.screen);
 
@@ -1353,18 +1366,29 @@ static void *virgl_create_compute_state(struct pipe_context *ctx,
 {
    struct virgl_context *vctx = virgl_context(ctx);
    uint32_t handle;
-   const struct tgsi_token *new_tokens = state->prog;
+   const struct tgsi_token *ntt_tokens = NULL;
+   const struct tgsi_token *tokens;
    struct pipe_stream_output_info so_info = {};
    int ret;
+
+   if (state->ir_type == PIPE_SHADER_IR_NIR) {
+      nir_shader *s = nir_shader_clone(NULL, state->prog);
+      ntt_tokens = tokens = nir_to_tgsi(s, vctx->base.screen); /* takes ownership */
+   } else {
+      tokens = state->prog;
+   }
 
    handle = virgl_object_assign_handle();
    ret = virgl_encode_shader_state(vctx, handle, PIPE_SHADER_COMPUTE,
                                    &so_info,
                                    state->req_local_mem,
-                                   new_tokens);
+                                   tokens);
    if (ret) {
+      FREE((void *)ntt_tokens);
       return NULL;
    }
+
+   FREE((void *)ntt_tokens);
 
    return (void *)(unsigned long)handle;
 }

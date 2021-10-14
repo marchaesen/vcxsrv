@@ -108,15 +108,18 @@ zink_resource_destroy(struct pipe_screen *pscreen,
    if (pres->target == PIPE_BUFFER) {
       util_range_destroy(&res->valid_buffer_range);
       util_idalloc_mt_free(&screen->buffer_ids, res->base.buffer_id_unique);
+      assert(!_mesa_hash_table_num_entries(&res->bufferview_cache));
       simple_mtx_destroy(&res->bufferview_mtx);
-   } else
+   } else {
+      assert(!_mesa_hash_table_num_entries(&res->surface_cache));
       simple_mtx_destroy(&res->surface_mtx);
+   }
    /* no need to do anything for the caches, these objects own the resource lifetimes */
 
    zink_resource_object_reference(screen, &res->obj, NULL);
    zink_resource_object_reference(screen, &res->scanout_obj, NULL);
    threaded_resource_deinit(pres);
-   FREE(res);
+   ralloc_free(res);
 }
 
 static VkImageAspectFlags
@@ -209,18 +212,22 @@ static VkImageUsageFlags
 get_image_usage_for_feats(struct zink_screen *screen, VkFormatFeatureFlags feats, const struct pipe_resource *templ, unsigned bind)
 {
    VkImageUsageFlags usage = 0;
-   /* sadly, gallium doesn't let us know if it'll ever need this, so we have to assume */
-   if (feats & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)
-      usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-   if (feats & VK_FORMAT_FEATURE_TRANSFER_DST_BIT)
-      usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-   if (feats & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT && (bind & (PIPE_BIND_LINEAR | PIPE_BIND_SHARED)) != (PIPE_BIND_LINEAR | PIPE_BIND_SHARED))
-      usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+   if (bind & ZINK_BIND_TRANSIENT)
+      usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+   else {
+      /* sadly, gallium doesn't let us know if it'll ever need this, so we have to assume */
+      if (feats & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)
+         usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+      if (feats & VK_FORMAT_FEATURE_TRANSFER_DST_BIT)
+         usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      if (feats & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT && (bind & (PIPE_BIND_LINEAR | PIPE_BIND_SHARED)) != (PIPE_BIND_LINEAR | PIPE_BIND_SHARED))
+         usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-   if ((templ->nr_samples <= 1 || screen->info.feats.features.shaderStorageImageMultisample) &&
-       (bind & PIPE_BIND_SHADER_IMAGE)) {
-      if (feats & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
-         usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      if ((templ->nr_samples <= 1 || screen->info.feats.features.shaderStorageImageMultisample) &&
+          (bind & PIPE_BIND_SHADER_IMAGE)) {
+         if (feats & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
+            usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      }
    }
 
    if (bind & PIPE_BIND_RENDER_TARGET) {
@@ -250,6 +257,7 @@ get_image_usage_for_feats(struct zink_screen *screen, VkFormatFeatureFlags feats
 
    if (bind & PIPE_BIND_STREAM_OUTPUT)
       usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+
    return usage;
 }
 
@@ -553,7 +561,8 @@ resource_object_create(struct zink_screen *screen, const struct pipe_resource *t
          .scanout = true,
       };
 
-      if ((screen->needs_mesa_wsi || screen->needs_mesa_flush_wsi) && scanout) {
+      if ((screen->needs_mesa_wsi || screen->needs_mesa_flush_wsi) && scanout &&
+          ici.tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
          image_wsi_info.pNext = ici.pNext;
          ici.pNext = &image_wsi_info;
       }
@@ -596,6 +605,9 @@ resource_object_create(struct zink_screen *screen, const struct pipe_resource *t
    else if (!(flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) &&
             templ->usage == PIPE_USAGE_STAGING)
       flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+
+   if (templ->bind & ZINK_BIND_TRANSIENT)
+      flags |= VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
 
    VkMemoryAllocateInfo mai;
    enum zink_alloc_flag aflags = templ->flags & PIPE_RESOURCE_FLAG_SPARSE ? ZINK_ALLOC_SPARSE : 0;
@@ -721,14 +733,14 @@ resource_create(struct pipe_screen *pscreen,
                 const uint64_t *modifiers, int modifiers_count)
 {
    struct zink_screen *screen = zink_screen(pscreen);
-   struct zink_resource *res = CALLOC_STRUCT(zink_resource);
+   struct zink_resource *res = rzalloc(NULL, struct zink_resource);
 
    if (modifiers_count > 0) {
       /* for rebinds */
       res->modifiers_count = modifiers_count;
       res->modifiers = mem_dup(modifiers, modifiers_count * sizeof(uint64_t));
       if (!res->modifiers) {
-         FREE(res);
+         ralloc_free(res);
          return NULL;
       }
       /* TODO: remove this when multi-plane modifiers are supported */
@@ -758,7 +770,7 @@ resource_create(struct pipe_screen *pscreen,
    res->obj = resource_object_create(screen, &templ2, whandle, &optimal_tiling, NULL, 0);
    if (!res->obj) {
       free(res->modifiers);
-      FREE(res);
+      ralloc_free(res);
       return NULL;
    }
 
@@ -802,10 +814,10 @@ resource_create(struct pipe_screen *pscreen,
    }
    if (res->obj->is_buffer) {
       res->base.buffer_id_unique = util_idalloc_mt_alloc(&screen->buffer_ids);
-      _mesa_hash_table_init(&res->bufferview_cache, screen, NULL, equals_bvci);
+      _mesa_hash_table_init(&res->bufferview_cache, res, NULL, equals_bvci);
       simple_mtx_init(&res->bufferview_mtx, mtx_plain);
    } else {
-      _mesa_hash_table_init(&res->surface_cache, screen, NULL, equals_ivci);
+      _mesa_hash_table_init(&res->surface_cache, res, NULL, equals_ivci);
       simple_mtx_init(&res->surface_mtx, mtx_plain);
    }
    return &res->base.b;

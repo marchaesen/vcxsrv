@@ -85,11 +85,6 @@ extern uint32_t V3D_DEBUG;
 #define dbg_printf(...)	fprintf(stderr, __VA_ARGS__)
 #endif /* HAVE_ANDROID_PLATFORM */
 
-#define DBG(flag, ...) do {                                     \
-        if (unlikely(V3D_DEBUG & (flag)))                       \
-                dbg_printf(__VA_ARGS__);                        \
-} while(0)
-
 extern uint32_t v3d_debug_flag_for_shader_stage(gl_shader_stage stage);
 
 extern void v3d_process_debug_variable(void);

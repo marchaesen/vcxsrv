@@ -1246,6 +1246,8 @@ static inline void vn_submit_vkGetBufferDeviceAddress(struct vn_instance *vn_ins
 
 static inline void vn_call_vkGetBufferMemoryRequirements(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetBufferMemoryRequirements(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, pMemoryRequirements, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1263,6 +1265,8 @@ static inline void vn_async_vkGetBufferMemoryRequirements(struct vn_instance *vn
 
 static inline VkResult vn_call_vkBindBufferMemory(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkBindBufferMemory(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, memory, memoryOffset, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1283,6 +1287,8 @@ static inline void vn_async_vkBindBufferMemory(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkCreateBuffer(struct vn_instance *vn_instance, VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCreateBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pBuffer, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1303,6 +1309,8 @@ static inline void vn_async_vkCreateBuffer(struct vn_instance *vn_instance, VkDe
 
 static inline void vn_call_vkDestroyBuffer(struct vn_instance *vn_instance, VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkDestroyBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, buffer, pAllocator, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1320,6 +1328,8 @@ static inline void vn_async_vkDestroyBuffer(struct vn_instance *vn_instance, VkD
 
 static inline VkResult vn_call_vkBindBufferMemory2(struct vn_instance *vn_instance, VkDevice device, uint32_t bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkBindBufferMemory2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, bindInfoCount, pBindInfos, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1340,6 +1350,8 @@ static inline void vn_async_vkBindBufferMemory2(struct vn_instance *vn_instance,
 
 static inline void vn_call_vkGetBufferMemoryRequirements2(struct vn_instance *vn_instance, VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetBufferMemoryRequirements2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, pMemoryRequirements, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1357,6 +1369,8 @@ static inline void vn_async_vkGetBufferMemoryRequirements2(struct vn_instance *v
 
 static inline uint64_t vn_call_vkGetBufferOpaqueCaptureAddress(struct vn_instance *vn_instance, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetBufferOpaqueCaptureAddress(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1377,6 +1391,8 @@ static inline void vn_async_vkGetBufferOpaqueCaptureAddress(struct vn_instance *
 
 static inline VkDeviceAddress vn_call_vkGetBufferDeviceAddress(struct vn_instance *vn_instance, VkDevice device, const VkBufferDeviceAddressInfo* pInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkGetBufferDeviceAddress(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

@@ -140,29 +140,31 @@ static void check_program_state( struct st_context *st )
    st->dirty |= dirty;
 }
 
-static void check_attrib_edgeflag(struct st_context *st)
+void st_update_edgeflags(struct st_context *st, bool per_vertex_edgeflags)
 {
-   GLboolean vertdata_edgeflags, edgeflag_culls_prims, edgeflags_enabled;
-   struct gl_program *vp = st->ctx->VertexProgram._Current;
-
-   edgeflags_enabled = st->ctx->Polygon.FrontMode != GL_FILL ||
-                       st->ctx->Polygon.BackMode != GL_FILL;
-
-   vertdata_edgeflags = edgeflags_enabled &&
-      _mesa_draw_edge_flag_array_enabled(st->ctx);
+   bool edgeflags_enabled = st->ctx->Polygon.FrontMode != GL_FILL ||
+                            st->ctx->Polygon.BackMode != GL_FILL;
+   bool vertdata_edgeflags = edgeflags_enabled && per_vertex_edgeflags;
 
    if (vertdata_edgeflags != st->vertdata_edgeflags) {
       st->vertdata_edgeflags = vertdata_edgeflags;
+
+      struct gl_program *vp = st->ctx->VertexProgram._Current;
       if (vp)
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_program(vp));
    }
 
-   edgeflag_culls_prims = edgeflags_enabled && !vertdata_edgeflags &&
-                          !st->ctx->Current.Attrib[VERT_ATTRIB_EDGEFLAG][0];
+   bool edgeflag_culls_prims = edgeflags_enabled && !vertdata_edgeflags &&
+                               !st->ctx->Current.Attrib[VERT_ATTRIB_EDGEFLAG][0];
    if (edgeflag_culls_prims != st->edgeflag_culls_prims) {
       st->edgeflag_culls_prims = edgeflag_culls_prims;
       st->dirty |= ST_NEW_RASTERIZER;
    }
+}
+
+static void check_attrib_edgeflag(struct st_context *st)
+{
+   st_update_edgeflags(st, _mesa_draw_edge_flag_array_enabled(st->ctx));
 }
 
 
@@ -186,6 +188,7 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
    /* Get pipeline state. */
    switch (pipeline) {
    case ST_PIPELINE_RENDER:
+   case ST_PIPELINE_RENDER_NO_VARRAYS:
       if (st->ctx->API == API_OPENGL_COMPAT)
          check_attrib_edgeflag(st);
 
@@ -196,7 +199,10 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
 
       st_manager_validate_framebuffers(st);
 
-      pipeline_mask = ST_PIPELINE_RENDER_STATE_MASK;
+      if (pipeline == ST_PIPELINE_RENDER)
+         pipeline_mask = ST_PIPELINE_RENDER_STATE_MASK;
+      else
+         pipeline_mask = ST_PIPELINE_RENDER_STATE_MASK_NO_VARRAYS;
       break;
 
    case ST_PIPELINE_CLEAR:

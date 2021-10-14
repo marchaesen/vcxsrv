@@ -71,6 +71,13 @@ One of \*qglamor\*q or \*qnone\*q.  Default: glamor.
 Enable DRI3 page flipping.  The default is
 .B on.
 .TP
+.BI "Option \*qVariableRefresh\*q \*q" boolean \*q
+Enables support for enabling variable refresh on the Screen's CRTCs
+when an suitable application is flipping via the Present extension.
+.br
+The default is
+.B off.
+.TP
 .BI "Option \*qAsyncFlipSecondaries\*q \*q" boolean \*q
 Use async flips for secondary video outputs on multi-display setups. If a screen
 has multiple displays attached and DRI3 page flipping is used, then only one of
@@ -99,8 +106,8 @@ will assign xrandr outputs LVDS and VGA-0 to this instance of the driver.
 .BI "Option \*qUseGammaLUT\*q \*q" boolean \*q
 Enable or disable use of the GAMMA_LUT property, when available.
 When enabled, this option allows the driver to use gamma ramps with more
-entries, if supported by the kernel.
-Default: on.
+entries, if supported by the kernel. By default, GAMMA_LUT will be used for
+kms drivers which are known to be safe for use of GAMMA_LUT.
 .TP
 .SH "SEE ALSO"
 @xservername@(@appmansuffix@), @xconfigfile@(@filemansuffix@), Xserver(@appmansuffix@),

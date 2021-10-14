@@ -2377,13 +2377,13 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
 
    switch (internalFormat) {
    case GL_COMPRESSED_ALPHA:
-      return GL_ALPHA;
+      return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
    case GL_COMPRESSED_LUMINANCE:
-      return GL_LUMINANCE;
+      return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
    case GL_COMPRESSED_LUMINANCE_ALPHA:
-      return GL_LUMINANCE_ALPHA;
+      return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
    case GL_COMPRESSED_INTENSITY:
-      return GL_INTENSITY;
+      return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
    case GL_COMPRESSED_RGB:
       return GL_RGB;
    case GL_COMPRESSED_RGBA:
@@ -2413,34 +2413,34 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
    if (_mesa_has_half_float_textures(ctx)) {
       switch (internalFormat) {
       case GL_ALPHA16F_ARB:
-         return GL_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
       case GL_RGBA16F_ARB:
          return GL_RGBA;
       case GL_RGB16F_ARB:
          return GL_RGB;
       case GL_INTENSITY16F_ARB:
-         return GL_INTENSITY;
+         return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
       case GL_LUMINANCE16F_ARB:
-         return GL_LUMINANCE;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
       case GL_LUMINANCE_ALPHA16F_ARB:
-         return GL_LUMINANCE_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
       }
    }
 
    if (_mesa_has_float_textures(ctx)) {
       switch (internalFormat) {
       case GL_ALPHA32F_ARB:
-         return GL_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
       case GL_RGBA32F_ARB:
          return GL_RGBA;
       case GL_RGB32F_ARB:
          return GL_RGB;
       case GL_INTENSITY32F_ARB:
-         return GL_INTENSITY;
+         return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
       case GL_LUMINANCE32F_ARB:
-         return GL_LUMINANCE;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
       case GL_LUMINANCE_ALPHA32F_ARB:
-         return GL_LUMINANCE_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
       }
    }
 
@@ -2465,19 +2465,19 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
       case GL_ALPHA_SNORM:
       case GL_ALPHA8_SNORM:
       case GL_ALPHA16_SNORM:
-         return GL_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
       case GL_LUMINANCE_SNORM:
       case GL_LUMINANCE8_SNORM:
       case GL_LUMINANCE16_SNORM:
-         return GL_LUMINANCE;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
       case GL_LUMINANCE_ALPHA_SNORM:
       case GL_LUMINANCE8_ALPHA8_SNORM:
       case GL_LUMINANCE16_ALPHA16_SNORM:
-         return GL_LUMINANCE_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
       case GL_INTENSITY_SNORM:
       case GL_INTENSITY8_SNORM:
       case GL_INTENSITY16_SNORM:
-         return GL_INTENSITY;
+         return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
       default:
          ; /* fallthrough */
       }
@@ -2496,11 +2496,11 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
       case GL_SLUMINANCE_ALPHA_EXT:
       case GL_SLUMINANCE8_ALPHA8_EXT:
       case GL_COMPRESSED_SLUMINANCE_ALPHA_EXT:
-         return GL_LUMINANCE_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
       case GL_SLUMINANCE_EXT:
       case GL_SLUMINANCE8_EXT:
       case GL_COMPRESSED_SLUMINANCE_EXT:
-         return GL_LUMINANCE;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
       default:
          ; /* fallthrough */
       }
@@ -2558,28 +2558,28 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
       case GL_ALPHA8I_EXT:
       case GL_ALPHA16I_EXT:
       case GL_ALPHA32I_EXT:
-         return GL_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_ALPHA : -1;
       case GL_INTENSITY8UI_EXT:
       case GL_INTENSITY16UI_EXT:
       case GL_INTENSITY32UI_EXT:
       case GL_INTENSITY8I_EXT:
       case GL_INTENSITY16I_EXT:
       case GL_INTENSITY32I_EXT:
-         return GL_INTENSITY;
+         return (ctx->API != API_OPENGL_CORE) ? GL_INTENSITY : -1;
       case GL_LUMINANCE8UI_EXT:
       case GL_LUMINANCE16UI_EXT:
       case GL_LUMINANCE32UI_EXT:
       case GL_LUMINANCE8I_EXT:
       case GL_LUMINANCE16I_EXT:
       case GL_LUMINANCE32I_EXT:
-         return GL_LUMINANCE;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE : -1;
       case GL_LUMINANCE_ALPHA8UI_EXT:
       case GL_LUMINANCE_ALPHA16UI_EXT:
       case GL_LUMINANCE_ALPHA32UI_EXT:
       case GL_LUMINANCE_ALPHA8I_EXT:
       case GL_LUMINANCE_ALPHA16I_EXT:
       case GL_LUMINANCE_ALPHA32I_EXT:
-         return GL_LUMINANCE_ALPHA;
+         return (ctx->API != API_OPENGL_CORE) ? GL_LUMINANCE_ALPHA : -1;
       default:
          ; /* fallthrough */
       }

@@ -225,17 +225,38 @@ static void transform_texture(struct rc_instruction * dst, struct tgsi_instructi
         case TGSI_TEXTURE_SHADOW1D:
             dst->U.I.TexSrcTarget = RC_TEXTURE_1D;
             dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1 << dst->U.I.TexSrcUnit;
+            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
             break;
         case TGSI_TEXTURE_SHADOW2D:
             dst->U.I.TexSrcTarget = RC_TEXTURE_2D;
             dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1 << dst->U.I.TexSrcUnit;
+            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
             break;
         case TGSI_TEXTURE_SHADOWRECT:
             dst->U.I.TexSrcTarget = RC_TEXTURE_RECT;
             dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1 << dst->U.I.TexSrcUnit;
+            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
+            break;
+        case TGSI_TEXTURE_1D_ARRAY:
+            dst->U.I.TexSrcTarget = RC_TEXTURE_1D_ARRAY;
+            break;
+        case TGSI_TEXTURE_2D_ARRAY:
+            dst->U.I.TexSrcTarget = RC_TEXTURE_2D_ARRAY;
+            break;
+        case TGSI_TEXTURE_SHADOW1D_ARRAY:
+            dst->U.I.TexSrcTarget = RC_TEXTURE_1D_ARRAY;
+            dst->U.I.TexShadow = 1;
+            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
+            break;
+        case TGSI_TEXTURE_SHADOW2D_ARRAY:
+            dst->U.I.TexSrcTarget = RC_TEXTURE_2D_ARRAY;
+            dst->U.I.TexShadow = 1;
+            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
+            break;
+        case TGSI_TEXTURE_SHADOWCUBE:
+            dst->U.I.TexSrcTarget = RC_TEXTURE_CUBE;
+            dst->U.I.TexShadow = 1;
+            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
             break;
     }
     dst->U.I.TexSwizzle = RC_SWIZZLE_XYZW;

@@ -67,6 +67,9 @@ radv_mutable_descriptor_type_size_alignment(const VkMutableDescriptorTypeListVAL
          align = 16;
          break;
       case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+         size = 32;
+         align = 32;
+         break;
       case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
          size = 64;
          align = 32;
@@ -133,7 +136,7 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
    set_layout =
       vk_zalloc2(&device->vk.alloc, pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!set_layout)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &set_layout->base, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT);
 
@@ -163,7 +166,7 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
    if (result != VK_SUCCESS) {
       vk_object_base_finish(&set_layout->base);
       vk_free2(&device->vk.alloc, pAllocator, set_layout);
-      return vk_error(device->instance, result);
+      return vk_error(device, result);
    }
 
    set_layout->binding_count = num_bindings;
@@ -219,6 +222,10 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
          alignment = 16;
          break;
       case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+         set_layout->binding[b].size = 32;
+         binding_buffer_count = 1;
+         alignment = 32;
+         break;
       case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
       case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
          /* main descriptor + fmask descriptor */
@@ -385,6 +392,9 @@ radv_GetDescriptorSetLayoutSupport(VkDevice device,
          descriptor_alignment = 16;
          break;
       case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+         descriptor_size = 32;
+         descriptor_alignment = 32;
+         break;
       case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
       case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
          descriptor_size = 64;
@@ -470,7 +480,7 @@ radv_CreatePipelineLayout(VkDevice _device, const VkPipelineLayoutCreateInfo *pC
    layout = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*layout), 8,
                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (layout == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &layout->base, VK_OBJECT_TYPE_PIPELINE_LAYOUT);
 
@@ -553,7 +563,7 @@ radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_po
 
    if (pool->host_memory_base) {
       if (pool->host_memory_end - pool->host_memory_ptr < mem_size)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_POOL_MEMORY);
+         return VK_ERROR_OUT_OF_POOL_MEMORY;
 
       set = (struct radv_descriptor_set *)pool->host_memory_ptr;
       pool->host_memory_ptr += mem_size;
@@ -562,7 +572,7 @@ radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_po
       set = vk_alloc2(&device->vk.alloc, NULL, mem_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
       if (!set)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
    memset(set, 0, mem_size);
@@ -590,7 +600,7 @@ radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_po
 
    if (!pool->host_memory_base && pool->entry_count == pool->max_entry_count) {
       vk_free2(&device->vk.alloc, NULL, set);
-      return vk_error(device->instance, VK_ERROR_OUT_OF_POOL_MEMORY);
+      return VK_ERROR_OUT_OF_POOL_MEMORY;
    }
 
    /* try to allocate linearly first, so that we don't spend
@@ -619,7 +629,7 @@ radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_po
 
       if (pool->size - offset < layout_size) {
          vk_free2(&device->vk.alloc, NULL, set);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_POOL_MEMORY);
+         return VK_ERROR_OUT_OF_POOL_MEMORY;
       }
       set->header.bo = pool->bo;
       set->header.mapped_ptr = (uint32_t *)(pool->mapped_ptr + offset);
@@ -631,7 +641,7 @@ radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_po
       pool->entries[index].set = set;
       pool->entry_count++;
    } else
-      return vk_error(device->instance, VK_ERROR_OUT_OF_POOL_MEMORY);
+      return VK_ERROR_OUT_OF_POOL_MEMORY;
 
    if (layout->has_immutable_samplers) {
       for (unsigned i = 0; i < layout->binding_count; ++i) {
@@ -739,11 +749,11 @@ radv_CreateDescriptorPool(VkDevice _device, const VkDescriptorPoolCreateInfo *pC
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
       case VK_DESCRIPTOR_TYPE_SAMPLER:
       case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
          /* 32 as we may need to align for images */
          bo_size += 32 * pCreateInfo->pPoolSizes[i].descriptorCount;
          break;
       case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-      case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
       case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
          bo_size += 64 * pCreateInfo->pPoolSizes[i].descriptorCount;
          break;
@@ -787,7 +797,7 @@ radv_CreateDescriptorPool(VkDevice _device, const VkDescriptorPoolCreateInfo *pC
 
    pool = vk_alloc2(&device->vk.alloc, pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!pool)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    memset(pool, 0, sizeof(*pool));
 
@@ -807,19 +817,19 @@ radv_CreateDescriptorPool(VkDevice _device, const VkDescriptorPoolCreateInfo *pC
             RADV_BO_PRIORITY_DESCRIPTOR, 0, &pool->bo);
          if (result != VK_SUCCESS) {
             radv_destroy_descriptor_pool(device, pAllocator, pool);
-            return vk_error(device->instance, result);
+            return vk_error(device, result);
          }
          pool->mapped_ptr = (uint8_t *)device->ws->buffer_map(pool->bo);
          if (!pool->mapped_ptr) {
             radv_destroy_descriptor_pool(device, pAllocator, pool);
-            return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+            return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
          }
       } else {
          pool->host_bo =
             vk_alloc2(&device->vk.alloc, pAllocator, bo_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
          if (!pool->host_bo) {
             radv_destroy_descriptor_pool(device, pAllocator, pool);
-            return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+            return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
          }
          pool->mapped_ptr = pool->host_bo;
       }
@@ -1081,12 +1091,11 @@ write_combined_image_sampler_descriptor(struct radv_device *device,
                                         VkDescriptorType descriptor_type,
                                         const VkDescriptorImageInfo *image_info, bool has_sampler)
 {
-   RADV_FROM_HANDLE(radv_sampler, sampler, image_info->sampler);
-
    write_image_descriptor(device, cmd_buffer, sampler_offset, dst, buffer_list, descriptor_type,
                           image_info);
    /* copy over sampler state */
    if (has_sampler) {
+      RADV_FROM_HANDLE(radv_sampler, sampler, image_info->sampler);
       memcpy(dst + sampler_offset / sizeof(*dst), sampler->state, 16);
    }
 }
@@ -1104,7 +1113,7 @@ static void
 write_accel_struct(void *ptr, VkAccelerationStructureKHR _accel_struct)
 {
    RADV_FROM_HANDLE(radv_acceleration_structure, accel_struct, _accel_struct);
-   uint64_t va = radv_accel_struct_get_va(accel_struct);
+   uint64_t va = accel_struct ? radv_accel_struct_get_va(accel_struct) : 0;
    memcpy(ptr, &va, sizeof(va));
 }
 
@@ -1170,8 +1179,11 @@ radv_update_descriptor_sets(struct radv_device *device, struct radv_cmd_buffer *
             write_texel_buffer_descriptor(device, cmd_buffer, ptr, buffer_list,
                                           writeset->pTexelBufferView[j]);
             break;
-         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            write_image_descriptor(device, cmd_buffer, 32, ptr, buffer_list,
+                                   writeset->descriptorType, writeset->pImageInfo + j);
+            break;
+         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
          case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
             write_image_descriptor(device, cmd_buffer, 64, ptr, buffer_list,
                                    writeset->descriptorType, writeset->pImageInfo + j);
@@ -1301,7 +1313,7 @@ radv_CreateDescriptorUpdateTemplate(VkDevice _device,
 
    templ = vk_alloc2(&device->vk.alloc, pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!templ)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &templ->base, VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE);
 
@@ -1437,8 +1449,12 @@ radv_update_descriptor_set_with_template(struct radv_device *device,
             write_texel_buffer_descriptor(device, cmd_buffer, pDst, buffer_list,
                                           *(VkBufferView *)pSrc);
             break;
-         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            write_image_descriptor(device, cmd_buffer, 32, pDst, buffer_list,
+                                   templ->entry[i].descriptor_type,
+                                   (struct VkDescriptorImageInfo *)pSrc);
+            break;
+         case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
          case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
             write_image_descriptor(device, cmd_buffer, 64, pDst, buffer_list,
                                    templ->entry[i].descriptor_type,
@@ -1497,7 +1513,7 @@ radv_CreateSamplerYcbcrConversion(VkDevice _device,
                            VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
    if (conversion == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &conversion->base, VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION);
 

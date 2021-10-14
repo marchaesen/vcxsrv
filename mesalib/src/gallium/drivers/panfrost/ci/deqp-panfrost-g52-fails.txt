@@ -1,6 +1,0 @@
-# The shader assisted indirect draw path is buggy. The shader assisted indirect
-# draw path is disabled outside of CI due to these conformance issues.
-KHR-GLES31.core.compute_shader.pipeline-gen-draw-commands,Crash
-KHR-GLES31.core.draw_indirect.advanced-primitiveRestart-elements,Fail
-KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-arrays,Crash
-KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-elements,Fail

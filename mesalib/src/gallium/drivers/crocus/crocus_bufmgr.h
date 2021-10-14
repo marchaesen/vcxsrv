@@ -302,7 +302,6 @@ int crocus_bo_busy(struct crocus_bo *bo);
  */
 int crocus_bo_madvise(struct crocus_bo *bo, int madv);
 
-/* drm_bacon_bufmgr_gem.c */
 struct crocus_bufmgr *
 crocus_bufmgr_get_for_fd(struct intel_device_info *devinfo, int fd,
                          bool bo_reuse);

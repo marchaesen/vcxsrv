@@ -60,12 +60,17 @@ struct gl_texture_image;
 struct gl_texture_object;
 struct gl_memory_info;
 struct gl_transform_feedback_object;
+struct gl_vertex_array_object;
 struct ati_fragment_shader;
 struct util_queue_monitoring;
 struct _mesa_prim;
 struct _mesa_index_buffer;
 struct pipe_draw_info;
 struct pipe_draw_start_count_bias;
+struct pipe_vertex_state;
+struct pipe_draw_vertex_state_info;
+struct pipe_vertex_buffer;
+struct pipe_vertex_element;
 
 /* GL_ARB_vertex_buffer_object */
 /* Modifies GL_MAP_UNSYNCHRONIZED_BIT to allow driver to fail (return
@@ -641,8 +646,21 @@ struct dd_function_table {
    void (*DrawTransformFeedback)(struct gl_context *ctx, GLenum mode,
                                  unsigned num_instances, unsigned stream,
                                  struct gl_transform_feedback_object *tfb_vertcount);
+
+   void (*DrawGalliumVertexState)(struct gl_context *ctx,
+                                  struct pipe_vertex_state *state,
+                                  struct pipe_draw_vertex_state_info info,
+                                  const struct pipe_draw_start_count_bias *draws,
+                                  const uint8_t *mode,
+                                  unsigned num_draws,
+                                  bool per_vertex_edgeflags);
    /*@}*/
 
+   struct pipe_vertex_state *
+      (*CreateGalliumVertexState)(struct gl_context *ctx,
+                                  const struct gl_vertex_array_object *vao,
+                                  struct gl_buffer_object *indexbuf,
+                                  uint32_t enabled_attribs);
 
    /**
     * \name State-changing functions.

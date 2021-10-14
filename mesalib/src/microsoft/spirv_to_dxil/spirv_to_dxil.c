@@ -290,6 +290,7 @@ spirv_to_dxil(const uint32_t *words, size_t word_count,
    NIR_PASS_V(nir, dxil_nir_split_clip_cull_distance);
    NIR_PASS_V(nir, dxil_nir_lower_loads_stores_to_dxil);
    NIR_PASS_V(nir, dxil_nir_create_bare_samplers);
+   NIR_PASS_V(nir, dxil_nir_lower_bool_input);
 
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 

@@ -46,7 +46,10 @@ glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 
-spec@!opengl 1.0@rasterpos,Fail
+# "Unsupported intrinsic: vec4 32 ssa_56 = intrinsic image_load (ssa_44, ssa_55, ssa_40, ssa_44) (5, 0, 12, 80, 160) /* image_dim=Buf */ /* image_array=false */ /* format=r32g32b32a32_float  */ /* access=80 */ /* dest_type=float32 */
+#  rasterpos: ../src/gallium/auxiliary/gallivm/lp_bld_nir.c:1930: visit_intrinsic: Assertion `0' failed."
+spec@!opengl 1.0@rasterpos,Crash
+
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
 

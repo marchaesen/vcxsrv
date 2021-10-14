@@ -1034,6 +1034,8 @@ static inline void vn_submit_vkQueueBindSparse(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkQueueSubmit(struct vn_instance *vn_instance, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkQueueSubmit(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, submitCount, pSubmits, fence, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1054,6 +1056,8 @@ static inline void vn_async_vkQueueSubmit(struct vn_instance *vn_instance, VkQue
 
 static inline VkResult vn_call_vkQueueWaitIdle(struct vn_instance *vn_instance, VkQueue queue)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkQueueWaitIdle(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -1074,6 +1078,8 @@ static inline void vn_async_vkQueueWaitIdle(struct vn_instance *vn_instance, VkQ
 
 static inline VkResult vn_call_vkQueueBindSparse(struct vn_instance *vn_instance, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkQueueBindSparse(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, bindInfoCount, pBindInfo, fence, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);

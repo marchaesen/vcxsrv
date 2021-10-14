@@ -461,6 +461,13 @@ static void ac_sqtt_fill_asic_info(struct radeon_info *rad_info,
    chunk->trace_shader_core_clock = rad_info->max_shader_clock * 1000000;
    chunk->trace_memory_clock = rad_info->max_memory_clock * 1000000;
 
+   /* RGP gets very confused if these clocks are 0. The 1 GHz clocks are not necessarily correct,
+    * but the resulting traces are at least somewhat useful. */
+   if (!chunk->trace_shader_core_clock)
+      chunk->trace_shader_core_clock = 1e9;
+   if (!chunk->trace_memory_clock)
+      chunk->trace_memory_clock = 1e9;
+
    chunk->device_id = rad_info->pci_id;
    chunk->device_revision_id = rad_info->pci_rev_id;
    chunk->vgprs_per_simd = rad_info->num_physical_wave64_vgprs_per_simd * (has_wave32 ? 2 : 1);

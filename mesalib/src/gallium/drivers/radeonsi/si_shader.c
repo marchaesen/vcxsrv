@@ -652,7 +652,7 @@ void si_init_shader_args(struct si_shader_context *ctx, bool ngg_cull_shader)
                          SI_PARAM_LINEAR_CENTER);
       si_add_arg_checked(&ctx->args, AC_ARG_VGPR, 2, AC_ARG_INT, &ctx->args.linear_centroid,
                          SI_PARAM_LINEAR_CENTROID);
-      si_add_arg_checked(&ctx->args, AC_ARG_VGPR, 3, AC_ARG_FLOAT, NULL, SI_PARAM_LINE_STIPPLE_TEX);
+      si_add_arg_checked(&ctx->args, AC_ARG_VGPR, 1, AC_ARG_FLOAT, NULL, SI_PARAM_LINE_STIPPLE_TEX);
       si_add_arg_checked(&ctx->args, AC_ARG_VGPR, 1, AC_ARG_FLOAT, &ctx->args.frag_pos[0],
                          SI_PARAM_POS_X_FLOAT);
       si_add_arg_checked(&ctx->args, AC_ARG_VGPR, 1, AC_ARG_FLOAT, &ctx->args.frag_pos[1],
@@ -1276,9 +1276,7 @@ bool si_vs_needs_prolog(const struct si_shader_selector *sel,
     * VS prolog. */
    return sel->vs_needs_prolog || prolog_key->ls_vgpr_fix ||
           /* The 2nd VS prolog loads input VGPRs from LDS */
-          (key->opt.ngg_culling && !ngg_cull_shader) ||
-          /* The 1st VS prolog generates input VGPRs for fast launch. */
-          (ngg_cull_shader && key->opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL);
+          (key->opt.ngg_culling && !ngg_cull_shader);
 }
 
 /**
@@ -1304,16 +1302,8 @@ void si_get_vs_prolog_key(const struct si_shader_info *info, unsigned num_input_
    key->vs_prolog.as_es = shader_out->key.as_es;
    key->vs_prolog.as_ngg = shader_out->key.as_ngg;
 
-   if (ngg_cull_shader) {
-      key->vs_prolog.gs_fast_launch_tri_list =
-         !!(shader_out->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_TRI_LIST);
-      key->vs_prolog.gs_fast_launch_tri_strip =
-         !!(shader_out->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_TRI_STRIP);
-      key->vs_prolog.gs_fast_launch_index_size_packed =
-         SI_GET_NGG_CULL_GS_FAST_LAUNCH_INDEX_SIZE_PACKED(shader_out->key.opt.ngg_culling);
-   } else if (shader_out->key.opt.ngg_culling) {
+   if (!ngg_cull_shader && shader_out->key.opt.ngg_culling)
       key->vs_prolog.load_vgprs_after_culling = 1;
-   }
 
    if (shader_out->selector->info.stage == MESA_SHADER_TESS_CTRL) {
       key->vs_prolog.as_ls = 1;
@@ -1576,10 +1566,6 @@ si_get_shader_part(struct si_screen *sscreen, struct si_shader_part **list,
       shader.key.as_ls = key->vs_prolog.as_ls;
       shader.key.as_es = key->vs_prolog.as_es;
       shader.key.as_ngg = key->vs_prolog.as_ngg;
-      shader.key.opt.ngg_culling =
-         (key->vs_prolog.gs_fast_launch_tri_list ? SI_NGG_CULL_GS_FAST_LAUNCH_TRI_LIST : 0) |
-         (key->vs_prolog.gs_fast_launch_tri_strip ? SI_NGG_CULL_GS_FAST_LAUNCH_TRI_STRIP : 0) |
-         SI_NGG_CULL_GS_FAST_LAUNCH_INDEX_SIZE_PACKED(key->vs_prolog.gs_fast_launch_index_size_packed);
       break;
    case MESA_SHADER_TESS_CTRL:
       assert(!prolog);
@@ -1602,8 +1588,7 @@ si_get_shader_part(struct si_screen *sscreen, struct si_shader_part **list,
    struct si_shader_context ctx;
    si_llvm_context_init(&ctx, sscreen, compiler,
                         si_get_wave_size(sscreen, stage,
-                                         shader.key.as_ngg, shader.key.as_es,
-                                         shader.key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL));
+                                         shader.key.as_ngg, shader.key.as_es));
    ctx.shader = &shader;
    ctx.stage = stage;
 
@@ -2130,9 +2115,7 @@ bool si_create_shader_variant(struct si_screen *sscreen, struct ac_llvm_compiler
         util_rast_prim_is_triangles(sel->info.base.gs.output_primitive)) ||
        (sel->info.stage == MESA_SHADER_VERTEX &&
         /* Used to export PrimitiveID from the correct vertex. */
-        (shader->key.mono.u.vs_export_prim_id ||
-         /* Used to generate triangle strip vertex IDs for all threads. */
-         shader->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_TRI_STRIP)));
+        shader->key.mono.u.vs_export_prim_id));
 
    shader->uses_vs_state_outprim = sscreen->use_ngg &&
                                    /* Only used by streamout in vertex shaders. */

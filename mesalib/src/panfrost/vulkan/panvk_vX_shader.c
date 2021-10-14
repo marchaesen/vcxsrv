@@ -24,17 +24,19 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 #include "panvk_private.h"
 
 #include "nir_builder.h"
 #include "nir_lower_blend.h"
+#include "nir_conversion_builder.h"
 #include "spirv/nir_spirv.h"
 #include "util/mesa-sha1.h"
 
 #include "panfrost-quirks.h"
 #include "pan_shader.h"
+#include "util/pan_lower_framebuffer.h"
 
 #include "vk_util.h"
 
@@ -66,6 +68,13 @@ panvk_spirv_to_nir(const void *code,
 
    assert(nir->info.stage == stage);
    nir_validate_shader(nir, "after spirv_to_nir");
+
+   const struct nir_lower_sysvals_to_varyings_options sysvals_to_varyings = {
+      .frag_coord = PAN_ARCH <= 5,
+      .point_coord = PAN_ARCH <= 5,
+      .front_face = PAN_ARCH <= 5,
+   };
+   NIR_PASS_V(nir, nir_lower_sysvals_to_varyings, &sysvals_to_varyings);
 
    return nir;
 }
@@ -216,9 +225,93 @@ panvk_lower_misc(nir_shader *nir, const struct panvk_lower_misc_ctx *ctx)
                                        (void *)ctx);
 }
 
+static bool
+panvk_inline_blend_constants(nir_builder *b, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_load_blend_const_color_rgba)
+      return false;
+
+   const nir_const_value *constants = data;
+
+   b->cursor = nir_after_instr(instr);
+   nir_ssa_def *constant = nir_build_imm(b, 4, 32, constants);
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, constant);
+   nir_instr_remove(instr);
+   return true;
+}
+
+#if PAN_ARCH <= 5
+struct panvk_lower_blend_type_conv {
+   nir_variable *var;
+   nir_alu_type newtype;
+   nir_alu_type oldtype;
+};
+
+static bool
+panvk_adjust_rt_type(nir_builder *b, nir_instr *instr, void *data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_store_deref &&
+       intr->intrinsic != nir_intrinsic_load_deref)
+      return false;
+
+   nir_variable *var = nir_intrinsic_get_var(intr, 0);
+   if (var->data.mode != nir_var_shader_out ||
+       (var->data.location != FRAG_RESULT_COLOR &&
+        var->data.location < FRAG_RESULT_DATA0))
+      return false;
+
+   /* Determine render target for per-RT blending */
+   unsigned rt =
+      (var->data.location == FRAG_RESULT_COLOR) ? 0 :
+      (var->data.location - FRAG_RESULT_DATA0);
+
+   const struct panvk_lower_blend_type_conv *typeconv = data;
+   nir_alu_type newtype = typeconv[rt].newtype;
+   nir_alu_type oldtype = typeconv[rt].oldtype;
+
+   /* No conversion */
+   if (newtype == nir_type_invalid || newtype == oldtype)
+      return false;
+
+
+   b->cursor = nir_before_instr(instr);
+
+   nir_deref_instr *deref = nir_build_deref_var(b, typeconv[rt].var);
+   nir_instr_rewrite_src(&intr->instr, &intr->src[0],
+                         nir_src_for_ssa(&deref->dest.ssa));
+
+   if (intr->intrinsic == nir_intrinsic_store_deref) {
+      nir_ssa_def *val = nir_ssa_for_src(b, intr->src[1], 4);
+      bool clamp = nir_alu_type_get_base_type(newtype) != nir_type_float;
+      val = nir_convert_with_rounding(b, val, oldtype, newtype,
+                                      nir_rounding_mode_undef, clamp);
+      nir_store_var(b, typeconv[rt].var, val, nir_intrinsic_write_mask(intr));
+   } else {
+      bool clamp = nir_alu_type_get_base_type(oldtype) != nir_type_float;
+      nir_ssa_def *val = nir_load_var(b, typeconv[rt].var);
+      val = nir_convert_with_rounding(b, val, newtype, oldtype,
+                                      nir_rounding_mode_undef, clamp);
+      nir_ssa_def_rewrite_uses(&intr->dest.ssa, val);
+   }
+
+   nir_instr_remove(instr);
+
+   return true;
+}
+#endif
+
 static void
 panvk_lower_blend(struct panfrost_device *pdev,
                   nir_shader *nir,
+                  struct panfrost_compile_inputs *inputs,
                   struct pan_blend_state *blend_state,
                   bool static_blend_constants)
 {
@@ -227,14 +320,22 @@ panvk_lower_blend(struct panfrost_device *pdev,
       .logicop_func = blend_state->logicop_func,
    };
 
+#if PAN_ARCH <= 5
+   struct panvk_lower_blend_type_conv typeconv[8] = { 0 };
+#endif
    bool lower_blend = false;
+
    for (unsigned rt = 0; rt < blend_state->rt_count; rt++) {
+      struct pan_blend_rt_state *rt_state = &blend_state->rts[rt];
+
       if (!panvk_per_arch(blend_needs_lowering)(pdev, blend_state, rt))
          continue;
 
-      const struct pan_blend_rt_state *rt_state = &blend_state->rts[rt];
+      enum pipe_format fmt = rt_state->format;
+
+      options.format[rt] = fmt;
       options.rt[rt].colormask = rt_state->equation.color_mask;
-      options.format[rt] = rt_state->format;
+
       if (!rt_state->equation.blend_enable) {
          static const nir_lower_blend_channel replace = {
             .func = BLEND_FUNC_ADD,
@@ -259,14 +360,77 @@ panvk_lower_blend(struct panfrost_device *pdev,
          options.rt[rt].alpha.invert_dst_factor = rt_state->equation.alpha_invert_dst_factor;
       }
 
+      /* Update the equation to force a color replacement */
+      rt_state->equation.color_mask = 0xf;
+      rt_state->equation.rgb_func = BLEND_FUNC_ADD;
+      rt_state->equation.rgb_src_factor = BLEND_FACTOR_ZERO;
+      rt_state->equation.rgb_invert_src_factor = true;
+      rt_state->equation.rgb_dst_factor = BLEND_FACTOR_ZERO;
+      rt_state->equation.rgb_invert_dst_factor = false;
+      rt_state->equation.alpha_func = BLEND_FUNC_ADD;
+      rt_state->equation.alpha_src_factor = BLEND_FACTOR_ZERO;
+      rt_state->equation.alpha_invert_src_factor = true;
+      rt_state->equation.alpha_dst_factor = BLEND_FACTOR_ZERO;
+      rt_state->equation.alpha_invert_dst_factor = false;
       lower_blend = true;
+
+#if PAN_ARCH >= 6
+      inputs->bifrost.static_rt_conv = true;
+      inputs->bifrost.rt_conv[rt] =
+         GENX(pan_blend_get_internal_desc)(pdev, fmt, rt, 32, false) >> 32;
+#else
+      if (!panfrost_blendable_formats_v6[fmt].internal) {
+         nir_variable *outvar =
+            nir_find_variable_with_location(nir, nir_var_shader_out, FRAG_RESULT_DATA0 + rt);
+         if (!outvar && !rt)
+            outvar = nir_find_variable_with_location(nir, nir_var_shader_out, FRAG_RESULT_COLOR);
+
+         assert(outvar);
+
+         const struct util_format_description *format_desc =
+            util_format_description(fmt);
+
+         typeconv[rt].newtype = pan_unpacked_type_for_format(format_desc);
+         typeconv[rt].oldtype = nir_get_nir_type_for_glsl_type(outvar->type);
+         typeconv[rt].var =
+            nir_variable_create(nir, nir_var_shader_out,
+                                glsl_vector_type(nir_get_glsl_base_type_for_nir_type(typeconv[rt].newtype),
+                                                 glsl_get_vector_elements(outvar->type)),
+                                outvar->name);
+         typeconv[rt].var->data.location = outvar->data.location;
+         inputs->blend.nr_samples = rt_state->nr_samples;
+         inputs->rt_formats[rt] = rt_state->format;
+      }
+#endif
    }
 
-   /* FIXME: currently untested */
-   assert(!lower_blend);
+   if (lower_blend) {
+#if PAN_ARCH <= 5
+      NIR_PASS_V(nir, nir_shader_instructions_pass,
+                 panvk_adjust_rt_type,
+                 nir_metadata_block_index |
+                 nir_metadata_dominance,
+                 &typeconv);
+      nir_remove_dead_derefs(nir);
+      nir_remove_dead_variables(nir, nir_var_shader_out, NULL);
+#endif
 
-   if (lower_blend)
       NIR_PASS_V(nir, nir_lower_blend, options);
+
+      if (static_blend_constants) {
+         const nir_const_value constants[4] = {
+            { .f32 = CLAMP(blend_state->constants[0], 0.0f, 1.0f) },
+            { .f32 = CLAMP(blend_state->constants[1], 0.0f, 1.0f) },
+            { .f32 = CLAMP(blend_state->constants[2], 0.0f, 1.0f) },
+            { .f32 = CLAMP(blend_state->constants[3], 0.0f, 1.0f) },
+         };
+         NIR_PASS_V(nir, nir_shader_instructions_pass,
+                    panvk_inline_blend_constants,
+                    nir_metadata_block_index |
+                    nir_metadata_dominance,
+                    (void *)constants);
+      }
+   }
 }
 
 struct panvk_shader *
@@ -296,14 +460,17 @@ panvk_per_arch(shader_create)(struct panvk_device *dev,
                                         module->code_size,
                                         stage, stage_info->pName,
                                         stage_info->pSpecializationInfo,
-                                        pan_shader_get_compiler_options(pdev));
+                                        GENX(pan_shader_get_compiler_options)());
    if (!nir) {
       vk_free2(&dev->vk.alloc, alloc, shader);
       return NULL;
    }
 
-   if (stage == MESA_SHADER_FRAGMENT)
-      panvk_lower_blend(pdev, nir, blend_state, static_blend_constants);
+   struct panfrost_compile_inputs inputs = {
+      .gpu_id = pdev->gpu_id,
+      .no_ubo_to_push = true,
+      .sysval_ubo = sysval_ubo,
+   };
 
    /* multi step inlining procedure */
    NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
@@ -339,6 +506,9 @@ panvk_per_arch(shader_create)(struct panvk_device *dev,
    NIR_PASS_V(nir, nir_opt_copy_prop_vars);
    NIR_PASS_V(nir, nir_opt_combine_stores, nir_var_all);
 
+   if (stage == MESA_SHADER_FRAGMENT)
+      panvk_lower_blend(pdev, nir, &inputs, blend_state, static_blend_constants);
+
    NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, true, false);
    NIR_PASS_V(nir, nir_lower_explicit_io,
               nir_var_mem_ubo | nir_var_mem_ssbo,
@@ -350,6 +520,7 @@ panvk_per_arch(shader_create)(struct panvk_device *dev,
    NIR_PASS_V(nir, nir_lower_system_values);
    NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
 
+   NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
 
    struct panvk_lower_misc_ctx ctx = {
@@ -364,13 +535,7 @@ panvk_per_arch(shader_create)(struct panvk_device *dev,
       nir_print_shader(nir, stderr);
    }
 
-   struct panfrost_compile_inputs inputs = {
-      .gpu_id = pdev->gpu_id,
-      .no_ubo_to_push = true,
-      .sysval_ubo = sysval_ubo,
-   };
-
-   pan_shader_compile(pdev, nir, &inputs, &shader->binary, &shader->info);
+   GENX(pan_shader_compile)(nir, &inputs, &shader->binary, &shader->info);
 
    /* Patch the descriptor count */
    shader->info.ubo_count =

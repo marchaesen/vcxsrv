@@ -142,8 +142,8 @@ static void si_set_context_reg_array(struct radeon_cmdbuf *cs, unsigned reg, uns
                                      const uint32_t *values)
 {
    radeon_begin(cs);
-   radeon_set_context_reg_seq(cs, reg, num);
-   radeon_emit_array(cs, values, num);
+   radeon_set_context_reg_seq(reg, num);
+   radeon_emit_array(values, num);
    radeon_end();
 }
 

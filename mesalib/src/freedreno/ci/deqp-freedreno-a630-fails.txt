@@ -62,21 +62,9 @@ dEQP-VK.api.info.image_format_properties.2d.optimal.g8_b8_r8_3plane_420_unorm,Fa
 # ERROR: VK_FORMAT_G8_B8R8_2PLANE_420_UNORM must support VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT|VK_FORMAT_FEATURE_TRANSFER_SRC_BIT|VK_FORMAT_FEATURE_TRANSFER_DST_BIT|VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT
 dEQP-VK.api.info.image_format_properties.2d.optimal.g8_b8r8_2plane_420_unorm,Fail
 
-# "Mismatch between VkPhysicalDeviceProtectedMemoryProperties at vktApiFeatureInfo.cpp:4208"
-dEQP-VK.api.info.get_physical_device_properties2.properties,Fail
-
 # Fails when TU_DEBUG=forcebin is set
-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_single_buffer_geom,Fail
 dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
 dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
-
-dEQP-VK.texture.filtering.2d.formats.d24_unorm_s8_uint_stencil.nearest,Fail
-dEQP-VK.texture.filtering.2d_array.formats.d24_unorm_s8_uint_stencil.d24_unorm_s8_uint_stencil_nearest,Fail
-dEQP-VK.texture.filtering.cube.formats.d24_unorm_s8_uint_stencil.nearest,Fail
-dEQP-VK.texture.filtering.unnormal.formats.d24_unorm_s8_uint_stencil.nearest,Fail
-
-# Broken on all drivers: https://gitlab.freedesktop.org/mesa/mesa/-/issues/4582
-dEQP-VK.wsi.display_control.register_device_event,Fail
 
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3052
 # fixed by https://gerrit.khronos.org/c/vk-gl-cts/+/7837

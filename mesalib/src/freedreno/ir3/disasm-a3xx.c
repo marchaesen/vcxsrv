@@ -472,11 +472,15 @@ disasm_handle_last(struct disasm_ctx *ctx)
 }
 
 static void
-disasm_instr_cb(void *d, unsigned n, uint64_t instr)
+disasm_instr_cb(void *d, unsigned n, void *instr)
 {
    struct disasm_ctx *ctx = d;
-   uint32_t *dwords = (uint32_t *)&instr;
-   unsigned opc_cat = instr >> 61;
+   uint32_t *dwords = (uint32_t *)instr;
+   uint64_t val = dwords[1];
+   val = val << 32;
+   val |= dwords[0];
+
+   unsigned opc_cat = val >> 61;
 
    /* There are some cases where we can get instr_cb called multiple
     * times per instruction (like when we need an extra line for branch
@@ -495,9 +499,9 @@ disasm_instr_cb(void *d, unsigned n, uint64_t instr)
        * some hand-coded parsing:
        */
       if (opc_cat == 1) {
-         unsigned opc = (instr >> 57) & 0x3;
-         unsigned src_type = (instr >> 50) & 0x7;
-         unsigned dst_type = (instr >> 46) & 0x7;
+         unsigned opc = (val >> 57) & 0x3;
+         unsigned src_type = (val >> 50) & 0x7;
+         unsigned dst_type = (val >> 46) & 0x7;
 
          if (opc == 0) {
             if (src_type == dst_type) {

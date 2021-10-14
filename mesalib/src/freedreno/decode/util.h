@@ -28,6 +28,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "util/u_math.h"
+
 /* old-style program binary XOR'd ascii w/ 0xff */
 #ifndef ASCII_XOR
 #define ASCII_XOR 0
@@ -38,19 +40,6 @@ tab(int lvl)
 {
    const char *TAB = "\t\t\t\t\t\t\t\t\0";
    return &TAB[strlen(TAB) - lvl];
-}
-
-/* convert float to dword */
-static inline float
-d2f(uint32_t d)
-{
-   union {
-      float f;
-      uint32_t d;
-   } u = {
-      .d = d,
-   };
-   return u.f;
 }
 
 static inline void
@@ -68,7 +57,7 @@ dump_hex(const void *buf, int sz)
       d |= *(ptr++) << 0;
       d |= *(ptr++) << 8;
       d |= *(ptr++) << 16;
-      d |= *(ptr++) << 24;
+      d |= (uint32_t)*(ptr++) << 24;
 
       printf("%08x", d);
 
@@ -99,9 +88,9 @@ dump_float(const void *buf, int sz)
       d |= *(ptr++) << 0;
       d |= *(ptr++) << 8;
       d |= *(ptr++) << 16;
-      d |= *(ptr++) << 24;
+      d |= (uint32_t)*(ptr++) << 24;
 
-      printf("%8f", d2f(d));
+      printf("%8f", uif(d));
 
       if ((i % 8) == 7) {
          printf("\n");
@@ -171,7 +160,7 @@ dump_hex_ascii(const void *buf, int sz, int level)
       d |= *(ptr++) << 0;
       d |= *(ptr++) << 8;
       d |= *(ptr++) << 16;
-      d |= *(ptr++) << 24;
+      d |= (uint32_t)*(ptr++) << 24;
 
       printf("%08x", d);
 

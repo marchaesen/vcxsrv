@@ -26,6 +26,7 @@
  */
 
 #include "tu_private.h"
+#include "fdl/fd6_format_table.h"
 
 #include "util/debug.h"
 #include "util/u_atomic.h"
@@ -136,11 +137,17 @@ tu6_texswiz(const VkComponentMapping *comps,
    case VK_FORMAT_D24_UNORM_S8_UINT:
       if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
          if (!has_z24uint_s8uint) {
-            /* using FMT6_8_8_8_8_UINT */
+            /* using FMT6_8_8_8_8_UINT, so need to pick out the W channel and
+             * swizzle (0,0,1) in the rest (see "Conversion to RGBA").
+             */
             swiz[0] = A6XX_TEX_W;
             swiz[1] = A6XX_TEX_ZERO;
+            swiz[2] = A6XX_TEX_ZERO;
+            swiz[3] = A6XX_TEX_ONE;
          } else {
-            /* using FMT6_Z24_UINT_S8_UINT */
+            /* using FMT6_Z24_UINT_S8_UINT, which is (d, s, 0, 1), so need to
+             * swizzle away the d.
+             */
             swiz[0] = A6XX_TEX_Y;
             swiz[1] = A6XX_TEX_ZERO;
          }
@@ -373,7 +380,7 @@ tu_image_view_init(struct tu_image_view *iview,
    /* Don't set fields that are only used for attachments/blit dest if COLOR
     * is unsupported.
     */
-   if (!(fmt.supported & FMT_COLOR))
+   if (!tu6_format_color_supported(format))
       return;
 
    struct tu_native_format cfmt = tu6_format_color(format, layout->tile_mode);
@@ -561,7 +568,7 @@ tu_CreateImage(VkDevice _device,
    image = vk_object_zalloc(&device->vk, alloc, sizeof(*image),
                             VK_OBJECT_TYPE_IMAGE);
    if (!image)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    const VkExternalMemoryImageCreateInfo *external_info =
       vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
@@ -730,7 +737,7 @@ tu_CreateImage(VkDevice _device,
 
 invalid_layout:
    vk_object_free(&device->vk, alloc, image);
-   return vk_error(device->instance, VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT);
+   return vk_error(device, VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -812,7 +819,7 @@ tu_CreateImageView(VkDevice _device,
    view = vk_object_alloc(&device->vk, pAllocator, sizeof(*view),
                           VK_OBJECT_TYPE_IMAGE_VIEW);
    if (view == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    tu_image_view_init(view, pCreateInfo, device->physical_device->info->a6xx.has_z24uint_s8uint);
 
@@ -895,7 +902,7 @@ tu_CreateBufferView(VkDevice _device,
    view = vk_object_alloc(&device->vk, pAllocator, sizeof(*view),
                           VK_OBJECT_TYPE_BUFFER_VIEW);
    if (!view)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    tu_buffer_view_init(view, device, pCreateInfo);
 

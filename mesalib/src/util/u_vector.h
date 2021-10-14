@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "util/macros.h"
+#include "util/u_math.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,9 +54,22 @@ struct u_vector {
    void *data;
 };
 
-int u_vector_init(struct u_vector *queue, uint32_t element_size, uint32_t size);
+int u_vector_init_pow2(struct u_vector *queue,
+                       uint32_t initial_element_count,
+                       uint32_t element_size);
+
 void *u_vector_add(struct u_vector *queue);
 void *u_vector_remove(struct u_vector *queue);
+
+static inline int
+u_vector_init(struct u_vector *queue,
+              uint32_t initial_element_count,
+              uint32_t element_size)
+{
+   initial_element_count = util_next_power_of_two(initial_element_count);
+   element_size = util_next_power_of_two(element_size);
+   return u_vector_init_pow2(queue, initial_element_count, element_size);
+}
 
 static inline int
 u_vector_length(struct u_vector *queue)

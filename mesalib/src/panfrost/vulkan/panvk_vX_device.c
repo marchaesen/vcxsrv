@@ -26,7 +26,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 #include "decode.h"
 
@@ -58,10 +58,10 @@ panvk_queue_submit_batch(struct panvk_queue *queue,
       }
 #else
       if (batch->fb.desc.cpu) {
-         void *tiler = pan_section_ptr(batch->fb.desc.cpu, MULTI_TARGET_FRAMEBUFFER, TILER);
+         void *tiler = pan_section_ptr(batch->fb.desc.cpu, FRAMEBUFFER, TILER);
          memcpy(tiler, batch->tiler.templ, pan_size(TILER_CONTEXT));
          /* All weights set to 0, nothing to do here */
-         pan_section_pack(batch->fb.desc.cpu, MULTI_TARGET_FRAMEBUFFER, TILER_WEIGHTS, w);
+         pan_section_pack(batch->fb.desc.cpu, FRAMEBUFFER, TILER_WEIGHTS, w);
       }
 #endif
    }
@@ -85,7 +85,7 @@ panvk_queue_submit_batch(struct panvk_queue *queue,
       }
 
       if (debug & PANVK_DEBUG_TRACE)
-         pandecode_jc(batch->scoreboard.first_job, PAN_ARCH >= 6, pdev->gpu_id);
+         GENX(pandecode_jc)(batch->scoreboard.first_job, pdev->gpu_id);
    }
 
    if (batch->fragment_job) {
@@ -113,7 +113,7 @@ panvk_queue_submit_batch(struct panvk_queue *queue,
       }
 
       if (debug & PANVK_DEBUG_TRACE)
-         pandecode_jc(batch->fragment_job, PAN_ARCH >= 6, pdev->gpu_id);
+         GENX(pandecode_jc)(batch->fragment_job, pdev->gpu_id);
    }
 
    if (debug & PANVK_DEBUG_TRACE)
@@ -262,6 +262,16 @@ panvk_per_arch(QueueSubmit)(VkQueue _queue,
             bos[bo_idx++] = pdev->sample_positions->gem_handle;
             assert(bo_idx == nr_bos);
 
+            /* Merge identical BO entries. */
+            for (unsigned x = 0; x < nr_bos; x++) {
+               for (unsigned y = x + 1; y < nr_bos; ) {
+                  if (bos[x] == bos[y])
+                     bos[y] = bos[--nr_bos];
+                  else
+                     y++;
+               }
+            }
+
             unsigned nr_in_fences = 0;
             unsigned max_wait_event_syncobjs =
                util_dynarray_num_elements(&batch->event_ops,
@@ -307,7 +317,7 @@ panvk_per_arch(CreateSampler)(VkDevice _device,
    sampler = vk_object_alloc(&device->vk, pAllocator, sizeof(*sampler),
                              VK_OBJECT_TYPE_SAMPLER);
    if (!sampler)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    STATIC_ASSERT(sizeof(sampler->desc) >= pan_size(SAMPLER));
    panvk_per_arch(emit_sampler)(pCreateInfo, &sampler->desc);

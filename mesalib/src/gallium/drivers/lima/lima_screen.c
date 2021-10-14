@@ -101,6 +101,7 @@ lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_BLEND_EQUATION_SEPARATE:
    case PIPE_CAP_ACCELERATED:
    case PIPE_CAP_UMA:
+   case PIPE_CAP_CLIP_HALFZ:
    case PIPE_CAP_NATIVE_FENCE_FD:
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
    case PIPE_CAP_TEXTURE_SWIZZLE:

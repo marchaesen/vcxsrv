@@ -138,4 +138,6 @@ void
 virgl_rebind_resource(struct virgl_context *vctx,
                       struct pipe_resource *res);
 
+void virgl_flush_eq(struct virgl_context *ctx, void *closure,
+		    struct pipe_fence_handle **fence);
 #endif

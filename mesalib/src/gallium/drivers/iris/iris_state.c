@@ -925,6 +925,8 @@ gfx12_upload_pixel_hashing_tables(struct iris_batch *batch)
 static void
 iris_alloc_push_constants(struct iris_batch *batch)
 {
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
+
    /* For now, we set a static partitioning of the push constant area,
     * assuming that all stages could be in use.
     *
@@ -934,11 +936,17 @@ iris_alloc_push_constants(struct iris_batch *batch)
     *       enabling/disabling it like i965 does.  This would be more
     *       stalls and may not actually help; we don't know yet.
     */
+
+   /* Divide as equally as possible with any remainder given to FRAGMENT. */
+   const unsigned push_constant_kb = devinfo->max_constant_urb_size_kb;
+   const unsigned stage_size = push_constant_kb / 5;
+   const unsigned frag_size = push_constant_kb - 4 * stage_size;
+
    for (int i = 0; i <= MESA_SHADER_FRAGMENT; i++) {
       iris_emit_cmd(batch, GENX(3DSTATE_PUSH_CONSTANT_ALLOC_VS), alloc) {
          alloc._3DCommandSubOpcode = 18 + i;
-         alloc.ConstantBufferOffset = 6 * i;
-         alloc.ConstantBufferSize = i == MESA_SHADER_FRAGMENT ? 8 : 6;
+         alloc.ConstantBufferOffset = stage_size * i;
+         alloc.ConstantBufferSize = i == MESA_SHADER_FRAGMENT ? frag_size : stage_size;
       }
    }
 }
@@ -2073,8 +2081,9 @@ iris_bind_sampler_states(struct pipe_context *ctx,
    bool dirty = false;
 
    for (int i = 0; i < count; i++) {
-      if (shs->samplers[start + i] != states[i]) {
-         shs->samplers[start + i] = states[i];
+      struct iris_sampler_state *state = states ? states[i] : NULL;
+      if (shs->samplers[start + i] != state) {
+         shs->samplers[start + i] = state;
          dirty = true;
       }
    }
@@ -4426,6 +4435,16 @@ iris_store_tes_state(const struct intel_device_info *devinfo,
       te.TEEnable = true;
       te.MaximumTessellationFactorOdd = 63.0;
       te.MaximumTessellationFactorNotOdd = 64.0;
+#if GFX_VERx10 >= 125
+      te.TessellationDistributionMode = TEDMODE_RR_FREE;
+      te.TessellationDistributionLevel = TEDLEVEL_PATCH;
+      /* 64_TRIANGLES */
+      te.SmallPatchThreshold = 3;
+      /* 1K_TRIANGLES */
+      te.TargetBlockSize = 8;
+      /* 1K_TRIANGLES */
+      te.LocalBOPAccumulatorThreshold = 1;
+#endif
    }
 
    iris_pack_command(GENX(3DSTATE_DS), ds_state, ds) {
@@ -6577,12 +6596,42 @@ iris_upload_dirty_render_state(struct iris_context *ice,
 
    if (dirty & IRIS_DIRTY_VF) {
       iris_emit_cmd(batch, GENX(3DSTATE_VF), vf) {
+#if GFX_VERx10 >= 125
+         vf.GeometryDistributionEnable = true;
+#endif
          if (draw->primitive_restart) {
             vf.IndexedDrawCutIndexEnable = true;
             vf.CutIndex = draw->restart_index;
          }
       }
    }
+
+#if GFX_VERx10 >= 125
+   if (dirty & IRIS_DIRTY_VFG) {
+      iris_emit_cmd(batch, GENX(3DSTATE_VFG), vfg) {
+         /* If 3DSTATE_TE: TE Enable == 1 then RR_STRICT else RR_FREE*/
+         vfg.DistributionMode =
+            ice->shaders.prog[MESA_SHADER_TESS_EVAL] != NULL ? RR_STRICT :
+                                                               RR_FREE;
+         vfg.DistributionGranularity = BatchLevelGranularity;
+         vfg.ListCutIndexEnable = draw->primitive_restart;
+         /* 192 vertices for TRILIST_ADJ */
+         vfg.ListNBatchSizeScale = 0;
+         /* Batch size of 384 vertices */
+         vfg.List3BatchSizeScale = 2;
+         /* Batch size of 128 vertices */
+         vfg.List2BatchSizeScale = 1;
+         /* Batch size of 128 vertices */
+         vfg.List1BatchSizeScale = 2;
+         /* Batch size of 256 vertices for STRIP topologies */
+         vfg.StripBatchSizeScale = 3;
+         /* 192 control points for PATCHLIST_3 */
+         vfg.PatchBatchSizeScale = 1;
+         /* 192 control points for PATCHLIST_3 */
+         vfg.PatchBatchSizeMultiplier = 31;
+      }
+   }
+#endif
 
    if (dirty & IRIS_DIRTY_VF_STATISTICS) {
       iris_emit_cmd(batch, GENX(3DSTATE_VF_STATISTICS), vf) {
@@ -6939,7 +6988,7 @@ iris_upload_compute_walker(struct iris_context *ice,
          .NumberofThreadsinGPGPUThreadGroup = dispatch.threads,
          .SharedLocalMemorySize =
             encode_slm_size(GFX_VER, prog_data->total_shared),
-         .BarrierEnable = cs_prog_data->uses_barrier,
+         .NumberOfBarriers = cs_prog_data->uses_barrier,
          .SamplerStatePointer = shs->sampler_table.offset,
          .BindingTablePointer = binder->bt_offset[MESA_SHADER_COMPUTE],
       };

@@ -696,7 +696,8 @@ r3d_common(struct tu_cmd_buffer *cmd, struct tu_cs *cs, bool blit,
       }
    }
 
-   tu6_emit_msaa(cs, samples);
+   cmd->state.line_mode = RECTANGULAR;
+   tu6_emit_msaa(cs, samples, cmd->state.line_mode);
 }
 
 static void
@@ -1754,11 +1755,12 @@ tu_copy_image_to_image(struct tu_cmd_buffer *cmd,
       tu_image_view_copy(&src, src_image, src_format, &info->srcSubresource, src_offset.z, false);
 
       struct tu_image staging_image = {
+         .base.type = VK_OBJECT_TYPE_IMAGE,
          .vk_format = src_format,
          .level_count = 1,
          .layer_count = info->srcSubresource.layerCount,
          .bo_offset = 0,
-      }; 
+      };
 
       VkImageSubresourceLayers staging_subresource = {
          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -2033,8 +2035,8 @@ static void
 resolve_sysmem(struct tu_cmd_buffer *cmd,
                struct tu_cs *cs,
                VkFormat format,
-               struct tu_image_view *src,
-               struct tu_image_view *dst,
+               const struct tu_image_view *src,
+               const struct tu_image_view *dst,
                uint32_t layer_mask,
                uint32_t layers,
                const VkRect2D *rect,
@@ -2067,8 +2069,8 @@ resolve_sysmem(struct tu_cmd_buffer *cmd,
 void
 tu_resolve_sysmem(struct tu_cmd_buffer *cmd,
                   struct tu_cs *cs,
-                  struct tu_image_view *src,
-                  struct tu_image_view *dst,
+                  const struct tu_image_view *src,
+                  const struct tu_image_view *dst,
                   uint32_t layer_mask,
                   uint32_t layers,
                   const VkRect2D *rect)
@@ -2559,7 +2561,7 @@ clear_sysmem_attachment(struct tu_cmd_buffer *cmd,
                         bool separate_stencil)
 {
    const struct tu_framebuffer *fb = cmd->state.framebuffer;
-   const struct tu_image_view *iview = fb->attachments[a].attachment;
+   const struct tu_image_view *iview = cmd->state.attachments[a];
    const uint32_t clear_views = cmd->state.pass->attachments[a].clear_views;
    const struct blit_ops *ops = &r2d_ops;
    if (cmd->state.pass->attachments[a].samples > 1)
@@ -2736,8 +2738,7 @@ tu_load_gmem_attachment(struct tu_cmd_buffer *cmd,
                         uint32_t a,
                         bool force_load)
 {
-   const struct tu_image_view *iview =
-      cmd->state.framebuffer->attachments[a].attachment;
+   const struct tu_image_view *iview = cmd->state.attachments[a];
    const struct tu_render_pass_attachment *attachment =
       &cmd->state.pass->attachments[a];
 
@@ -2755,7 +2756,7 @@ tu_load_gmem_attachment(struct tu_cmd_buffer *cmd,
 static void
 store_cp_blit(struct tu_cmd_buffer *cmd,
               struct tu_cs *cs,
-              struct tu_image_view *iview,
+              const struct tu_image_view *iview,
               uint32_t samples,
               bool separate_stencil,
               VkFormat format,
@@ -2845,7 +2846,7 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
    struct tu_physical_device *phys_dev = cmd->device->physical_device;
    const VkRect2D *render_area = &cmd->state.render_area;
    struct tu_render_pass_attachment *dst = &cmd->state.pass->attachments[a];
-   struct tu_image_view *iview = cmd->state.framebuffer->attachments[a].attachment;
+   const struct tu_image_view *iview = cmd->state.attachments[a];
    struct tu_render_pass_attachment *src = &cmd->state.pass->attachments[gmem_a];
 
    if (!dst->store && !dst->store_stencil)

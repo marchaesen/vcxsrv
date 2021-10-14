@@ -557,8 +557,13 @@ xf86platformProbeDev(DriverPtr drvp)
             }
             else {
                 /* for non-seat0 servers assume first device is the master */
-                if (ServerIsNotSeat0())
+                if (ServerIsNotSeat0()) {
                     break;
+                } else {
+                    /* Accept the device if the driver is simpledrm */
+                    if (strcmp(xf86_platform_devices[j].attribs->driver, "simpledrm") == 0)
+                        break;
+                }
 
                 if (xf86IsPrimaryPlatform(&xf86_platform_devices[j]))
                     break;

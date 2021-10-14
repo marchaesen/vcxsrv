@@ -64,6 +64,14 @@ struct vbo_save_vertex_list {
          struct pipe_draw_start_count_bias start_count;
       };
       unsigned num_draws;
+
+      struct {
+         struct gl_context *ctx;
+         struct pipe_vertex_state *state[VP_MODE_MAX];
+         int private_refcount[VP_MODE_MAX];
+         GLbitfield enabled_attribs[VP_MODE_MAX];
+         struct pipe_draw_vertex_state_info info;
+      } gallium;
    } merged;
 
    /* Cold: used during construction or to handle egde-cases */

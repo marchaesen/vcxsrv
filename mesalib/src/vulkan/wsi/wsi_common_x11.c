@@ -43,10 +43,12 @@
 #include "util/u_thread.h"
 #include "util/xmlconfig.h"
 
+#include "vk_instance.h"
+#include "vk_physical_device.h"
 #include "vk_util.h"
 #include "vk_enum_to_str.h"
+#include "wsi_common_entrypoints.h"
 #include "wsi_common_private.h"
-#include "wsi_common_x11.h"
 #include "wsi_common_queue.h"
 
 #ifdef HAVE_SYS_SHM_H
@@ -174,7 +176,7 @@ static struct wsi_x11_connection *
 wsi_x11_connection_create(struct wsi_device *wsi_dev,
                           xcb_connection_t *conn)
 {
-   xcb_query_extension_cookie_t dri3_cookie, pres_cookie, randr_cookie, amd_cookie, nv_cookie, shm_cookie;
+   xcb_query_extension_cookie_t dri3_cookie, pres_cookie, randr_cookie, amd_cookie, nv_cookie, shm_cookie, sync_cookie;
    xcb_query_extension_reply_t *dri3_reply, *pres_reply, *randr_reply, *amd_reply, *nv_reply, *shm_reply = NULL;
    bool has_dri3_v1_2 = false;
    bool has_present_v1_2 = false;
@@ -185,6 +187,7 @@ wsi_x11_connection_create(struct wsi_device *wsi_dev,
    if (!wsi_conn)
       return NULL;
 
+   sync_cookie = xcb_query_extension(conn, 4, "SYNC");
    dri3_cookie = xcb_query_extension(conn, 4, "DRI3");
    pres_cookie = xcb_query_extension(conn, 7, "Present");
    randr_cookie = xcb_query_extension(conn, 5, "RANDR");
@@ -204,6 +207,7 @@ wsi_x11_connection_create(struct wsi_device *wsi_dev,
    amd_cookie = xcb_query_extension(conn, 11, "ATIFGLRXDRI");
    nv_cookie = xcb_query_extension(conn, 10, "NV-CONTROL");
 
+   xcb_discard_reply(conn, sync_cookie.sequence);
    dri3_reply = xcb_query_extension_reply(conn, dri3_cookie, NULL);
    pres_reply = xcb_query_extension_reply(conn, pres_cookie, NULL);
    randr_reply = xcb_query_extension_reply(conn, randr_cookie, NULL);
@@ -468,12 +472,14 @@ visual_has_alpha(xcb_visualtype_t *visual, unsigned depth)
    return (all_mask & ~rgb_mask) != 0;
 }
 
-VkBool32 wsi_get_physical_device_xcb_presentation_support(
-    struct wsi_device *wsi_device,
-    uint32_t                                    queueFamilyIndex,
-    xcb_connection_t*                           connection,
-    xcb_visualid_t                              visual_id)
+VKAPI_ATTR VkBool32 VKAPI_CALL
+wsi_GetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                               uint32_t queueFamilyIndex,
+                                               xcb_connection_t *connection,
+                                               xcb_visualid_t visual_id)
 {
+   VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
+   struct wsi_device *wsi_device = pdevice->wsi_device;
    struct wsi_x11_connection *wsi_conn =
       wsi_x11_get_connection(wsi_device, connection);
 
@@ -493,6 +499,18 @@ VkBool32 wsi_get_physical_device_xcb_presentation_support(
       return false;
 
    return true;
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL
+wsi_GetPhysicalDeviceXlibPresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                uint32_t queueFamilyIndex,
+                                                Display *dpy,
+                                                VisualID visualID)
+{
+   return wsi_GetPhysicalDeviceXcbPresentationSupportKHR(physicalDevice,
+                                                         queueFamilyIndex,
+                                                         XGetXCBConnection(dpy),
+                                                         visualID);
 }
 
 static xcb_connection_t*
@@ -605,20 +623,11 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
       caps->currentExtent = extent;
       caps->minImageExtent = extent;
       caps->maxImageExtent = extent;
-   } else {
-      /* This can happen if the client didn't wait for the configure event
-       * to come back from the compositor.  In that case, we don't know the
-       * size of the window so we just return valid "I don't know" stuff.
-       */
-      caps->currentExtent = (VkExtent2D) { UINT32_MAX, UINT32_MAX };
-      caps->minImageExtent = (VkExtent2D) { 1, 1 };
-      caps->maxImageExtent = (VkExtent2D) {
-         wsi_device->maxImageDimension2D,
-         wsi_device->maxImageDimension2D,
-      };
    }
    free(err);
    free(geom);
+   if (!geom)
+       return VK_ERROR_SURFACE_LOST_KHR;
 
    if (visual_has_alpha(visual, visual_depth)) {
       caps->supportedCompositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR |
@@ -656,6 +665,9 @@ x11_surface_get_capabilities2(VkIcdSurfaceBase *icd_surface,
    VkResult result =
       x11_surface_get_capabilities(icd_surface, wsi_device,
                                    &caps->surfaceCapabilities);
+
+   if (result != VK_SUCCESS)
+      return result;
 
    vk_foreach_struct(ext, caps->pNext) {
       switch (ext->sType) {
@@ -772,30 +784,28 @@ x11_surface_get_present_rectangles(VkIcdSurfaceBase *icd_surface,
             .offset = { 0, 0 },
             .extent = { geom->width, geom->height },
          };
-      } else {
-         /* This can happen if the client didn't wait for the configure event
-          * to come back from the compositor.  In that case, we don't know the
-          * size of the window so we just return valid "I don't know" stuff.
-          */
-         *rect = (VkRect2D) {
-            .offset = { 0, 0 },
-            .extent = { UINT32_MAX, UINT32_MAX },
-         };
       }
       free(geom);
+      if (!geom)
+          return VK_ERROR_SURFACE_LOST_KHR;
    }
 
    return vk_outarray_status(&out);
 }
 
-VkResult wsi_create_xcb_surface(const VkAllocationCallbacks *pAllocator,
-				const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
-				VkSurfaceKHR *pSurface)
+VKAPI_ATTR VkResult VKAPI_CALL
+wsi_CreateXcbSurfaceKHR(VkInstance _instance,
+                        const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
+                        const VkAllocationCallbacks *pAllocator,
+                        VkSurfaceKHR *pSurface)
 {
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
    VkIcdSurfaceXcb *surface;
 
-   surface = vk_alloc(pAllocator, sizeof *surface, 8,
-                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR);
+
+   surface = vk_alloc2(&instance->alloc, pAllocator, sizeof *surface, 8,
+                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (surface == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -807,14 +817,19 @@ VkResult wsi_create_xcb_surface(const VkAllocationCallbacks *pAllocator,
    return VK_SUCCESS;
 }
 
-VkResult wsi_create_xlib_surface(const VkAllocationCallbacks *pAllocator,
-				 const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
-				 VkSurfaceKHR *pSurface)
+VKAPI_ATTR VkResult VKAPI_CALL
+wsi_CreateXlibSurfaceKHR(VkInstance _instance,
+                         const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
+                         const VkAllocationCallbacks *pAllocator,
+                         VkSurfaceKHR *pSurface)
 {
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
    VkIcdSurfaceXlib *surface;
 
-   surface = vk_alloc(pAllocator, sizeof *surface, 8,
-                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR);
+
+   surface = vk_alloc2(&instance->alloc, pAllocator, sizeof *surface, 8,
+                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (surface == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -1078,9 +1093,11 @@ x11_acquire_next_image_poll_x11(struct x11_swapchain *chain,
        * in which case we need to update the status and continue.
        */
       VkResult result = x11_handle_dri3_present_event(chain, (void *)event);
+      /* Ensure that VK_SUBOPTIMAL_KHR is reported to the application */
+      result = x11_swapchain_result(chain, result);
       free(event);
       if (result < 0)
-         return x11_swapchain_result(chain, result);
+         return result;
    }
 }
 
@@ -1147,10 +1164,11 @@ x11_present_to_x11_dri3(struct x11_swapchain *chain, uint32_t image_index,
    xcb_generic_event_t *event;
    while ((event = xcb_poll_for_special_event(chain->conn, chain->special_event))) {
       VkResult result = x11_handle_dri3_present_event(chain, (void *)event);
+      /* Ensure that VK_SUBOPTIMAL_KHR is reported to the application */
+      result = x11_swapchain_result(chain, result);
       free(event);
       if (result < 0)
-         return x11_swapchain_result(chain, result);
-      x11_swapchain_result(chain, result);
+         return result;
    }
 
    xshmfence_reset(image->shm_fence);
@@ -1345,6 +1363,8 @@ x11_manage_fifo_queues(void *state)
             }
 
             result = x11_handle_dri3_present_event(chain, (void *)event);
+            /* Ensure that VK_SUBOPTIMAL_KHR is reported to the application */
+            result = x11_swapchain_result(chain, result);
             free(event);
             if (result < 0)
                goto fail;
@@ -1520,7 +1540,7 @@ x11_image_finish(struct x11_swapchain *chain,
 {
    xcb_void_cookie_t cookie;
 
-   if (!chain->base.wsi->sw) {
+   if (!chain->base.wsi->sw || chain->has_mit_shm) {
       cookie = xcb_sync_destroy_fence(chain->conn, image->sync_fence);
       xcb_discard_reply(chain->conn, cookie.sequence);
       xshmfence_unmap_shm(image->shm_fence);
@@ -1715,7 +1735,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    free(geometry);
 
    size_t size = sizeof(*chain) + num_images * sizeof(chain->images[0]);
-   chain = vk_alloc(pAllocator, size, 8,
+   chain = vk_zalloc(pAllocator, size, 8,
                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (chain == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;

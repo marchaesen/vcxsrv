@@ -64,6 +64,11 @@ struct cffdec_options {
     */
    int once;
 
+   /* In unit_test mode, suppress pathnames in output so that we can have references
+    * independent of the build dir.
+    */
+   int unit_test;
+
    /* for crashdec, where we know CP_IBx_REM_SIZE, we can use this
     * to highlight the cmdstream not parsed yet, to make it easier
     * to see how far along the CP is.

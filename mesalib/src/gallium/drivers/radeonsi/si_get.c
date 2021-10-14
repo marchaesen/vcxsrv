@@ -164,6 +164,9 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TGSI_ATOMINC_WRAP:
       return 1;
 
+   case PIPE_CAP_DRAW_VERTEX_STATE:
+      return !(sscreen->debug_flags & DBG(NO_FAST_DISPLAY_LIST));
+
    case PIPE_CAP_GLSL_ZERO_INIT:
       return 2;
 
@@ -232,6 +235,7 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY:
+   case PIPE_CAP_PREFER_BACK_BUFFER_REUSE:
       return 0;
 
    case PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE:

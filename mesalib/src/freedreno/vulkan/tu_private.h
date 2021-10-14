@@ -60,6 +60,7 @@
 #include "vk_dispatch_table.h"
 #include "vk_extensions.h"
 #include "vk_instance.h"
+#include "vk_log.h"
 #include "vk_physical_device.h"
 #include "vk_shader_module.h"
 #include "wsi_common.h"
@@ -92,12 +93,15 @@ typedef uint32_t xcb_window_t;
 #include "tu_entrypoints.h"
 
 #include "vk_format.h"
+#include "vk_command_buffer.h"
+#include "vk_queue.h"
 
 #define MAX_VBS 32
 #define MAX_VERTEX_ATTRIBS 32
 #define MAX_RTS 8
 #define MAX_VSC_PIPES 32
 #define MAX_VIEWPORTS 16
+#define MAX_VIEWPORT_SIZE (1 << 14)
 #define MAX_SCISSORS 16
 #define MAX_DISCARD_RECTANGLES 4
 #define MAX_PUSH_CONSTANTS_SIZE 128
@@ -132,25 +136,21 @@ typedef uint32_t xcb_window_t;
 struct tu_instance;
 
 VkResult
-__vk_errorf(struct tu_instance *instance,
-            VkResult error,
-            bool force_print,
-            const char *file,
-            int line,
-            const char *format,
-            ...) PRINTFLIKE(6, 7);
-
-#define vk_error(instance, error)                                            \
-   __vk_errorf(instance, error, false, __FILE__, __LINE__, NULL);
-#define vk_errorf(instance, error, format, ...)                              \
-   __vk_errorf(instance, error, false, __FILE__, __LINE__, format, ##__VA_ARGS__);
+__vk_startup_errorf(struct tu_instance *instance,
+                    VkResult error,
+                    bool force_print,
+                    const char *file,
+                    int line,
+                    const char *format,
+                    ...) PRINTFLIKE(6, 7);
 
 /* Prints startup errors if TU_DEBUG=startup is set or on a debug driver
  * build.
  */
 #define vk_startup_errorf(instance, error, format, ...) \
-   __vk_errorf(instance, error, instance->debug_flags & TU_DEBUG_STARTUP, \
-               __FILE__, __LINE__, format, ##__VA_ARGS__)
+   __vk_startup_errorf(instance, error, \
+                       instance->debug_flags & TU_DEBUG_STARTUP, \
+                       __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 void
 __tu_finishme(const char *file, int line, const char *format, ...)
@@ -297,12 +297,9 @@ struct tu_u_trace_syncobj;
 
 struct tu_queue
 {
-   struct vk_object_base base;
+   struct vk_queue vk;
 
    struct tu_device *device;
-   uint32_t queue_family_index;
-   int queue_idx;
-   VkDeviceQueueCreateFlags flags;
 
    uint32_t msm_queue_id;
    int fence;
@@ -1018,11 +1015,14 @@ struct tu_cmd_state
    const struct tu_framebuffer *framebuffer;
    VkRect2D render_area;
 
+   const struct tu_image_view **attachments;
+
    bool xfb_used;
    bool has_tess;
    bool has_subpass_predication;
    bool predication_active;
    bool disable_gmem;
+   enum a5xx_line_mode line_mode;
 
    struct tu_lrz_state lrz;
 
@@ -1052,7 +1052,7 @@ enum tu_cmd_buffer_status
 
 struct tu_cmd_buffer
 {
-   struct vk_object_base base;
+   struct vk_command_buffer vk;
 
    struct tu_device *device;
 
@@ -1214,6 +1214,8 @@ struct tu_pipeline
 
    bool rb_depth_cntl_disable;
 
+   enum a5xx_line_mode line_mode;
+
    /* draw states for the pipeline */
    struct tu_draw_state load_state, rast_state, blend_state;
 
@@ -1283,7 +1285,8 @@ tu6_emit_depth_bias(struct tu_cs *cs,
                     float clamp,
                     float slope_factor);
 
-void tu6_emit_msaa(struct tu_cs *cs, VkSampleCountFlagBits samples);
+void tu6_emit_msaa(struct tu_cs *cs, VkSampleCountFlagBits samples,
+                   enum a5xx_line_mode line_mode);
 
 void tu6_emit_window_scissor(struct tu_cs *cs, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2);
 
@@ -1330,8 +1333,8 @@ struct tu_image_view;
 void
 tu_resolve_sysmem(struct tu_cmd_buffer *cmd,
                   struct tu_cs *cs,
-                  struct tu_image_view *src,
-                  struct tu_image_view *dst,
+                  const struct tu_image_view *src,
+                  const struct tu_image_view *dst,
                   uint32_t layer_mask,
                   uint32_t layers,
                   const VkRect2D *rect);
@@ -1365,22 +1368,18 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
                          uint32_t a,
                          uint32_t gmem_a);
 
-enum tu_supported_formats {
-   FMT_VERTEX = 1,
-   FMT_TEXTURE = 2,
-   FMT_COLOR = 4,
-};
-
 struct tu_native_format
 {
    enum a6xx_format fmt : 8;
    enum a3xx_color_swap swap : 8;
    enum a6xx_tile_mode tile_mode : 8;
-   enum tu_supported_formats supported : 8;
 };
 
+bool tu6_format_vtx_supported(VkFormat format);
 struct tu_native_format tu6_format_vtx(VkFormat format);
+bool tu6_format_color_supported(VkFormat format);
 struct tu_native_format tu6_format_color(VkFormat format, enum a6xx_tile_mode tile_mode);
+bool tu6_format_texture_supported(VkFormat format);
 struct tu_native_format tu6_format_texture(VkFormat format, enum a6xx_tile_mode tile_mode);
 
 static inline enum a6xx_format
@@ -1761,60 +1760,56 @@ struct tu_u_trace_flush_data
    struct tu_u_trace_cmd_data *cmd_trace_data;
 };
 
-#define TU_DEFINE_HANDLE_CASTS(__tu_type, __VkType)                          \
-                                                                             \
-   static inline struct __tu_type *__tu_type##_from_handle(__VkType _handle) \
-   {                                                                         \
-      return (struct __tu_type *) _handle;                                   \
-   }                                                                         \
-                                                                             \
-   static inline __VkType __tu_type##_to_handle(struct __tu_type *_obj)      \
-   {                                                                         \
-      return (__VkType) _obj;                                                \
-   }
-
-#define TU_DEFINE_NONDISP_HANDLE_CASTS(__tu_type, __VkType)                  \
-                                                                             \
-   static inline struct __tu_type *__tu_type##_from_handle(__VkType _handle) \
-   {                                                                         \
-      return (struct __tu_type *) (uintptr_t) _handle;                       \
-   }                                                                         \
-                                                                             \
-   static inline __VkType __tu_type##_to_handle(struct __tu_type *_obj)      \
-   {                                                                         \
-      return (__VkType)(uintptr_t) _obj;                                     \
-   }
-
 #define TU_FROM_HANDLE(__tu_type, __name, __handle)                          \
-   struct __tu_type *__name = __tu_type##_from_handle(__handle)
+   VK_FROM_HANDLE(__tu_type, __name, __handle)
 
-TU_DEFINE_HANDLE_CASTS(tu_cmd_buffer, VkCommandBuffer)
-TU_DEFINE_HANDLE_CASTS(tu_device, VkDevice)
-TU_DEFINE_HANDLE_CASTS(tu_instance, VkInstance)
-TU_DEFINE_HANDLE_CASTS(tu_physical_device, VkPhysicalDevice)
-TU_DEFINE_HANDLE_CASTS(tu_queue, VkQueue)
+VK_DEFINE_HANDLE_CASTS(tu_cmd_buffer, vk.base, VkCommandBuffer,
+                       VK_OBJECT_TYPE_COMMAND_BUFFER)
+VK_DEFINE_HANDLE_CASTS(tu_device, vk.base, VkDevice, VK_OBJECT_TYPE_DEVICE)
+VK_DEFINE_HANDLE_CASTS(tu_instance, vk.base, VkInstance,
+                       VK_OBJECT_TYPE_INSTANCE)
+VK_DEFINE_HANDLE_CASTS(tu_physical_device, vk.base, VkPhysicalDevice,
+                       VK_OBJECT_TYPE_PHYSICAL_DEVICE)
+VK_DEFINE_HANDLE_CASTS(tu_queue, vk.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
 
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_cmd_pool, VkCommandPool)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_buffer, VkBuffer)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_buffer_view, VkBufferView)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_pool, VkDescriptorPool)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_set, VkDescriptorSet)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_set_layout,
-                               VkDescriptorSetLayout)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_update_template,
-                               VkDescriptorUpdateTemplate)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_device_memory, VkDeviceMemory)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_event, VkEvent)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_framebuffer, VkFramebuffer)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_image, VkImage)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_image_view, VkImageView);
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_cache, VkPipelineCache)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline, VkPipeline)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_layout, VkPipelineLayout)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_query_pool, VkQueryPool)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_render_pass, VkRenderPass)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_sampler, VkSampler)
-TU_DEFINE_NONDISP_HANDLE_CASTS(tu_sampler_ycbcr_conversion, VkSamplerYcbcrConversion)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_cmd_pool, base, VkCommandPool,
+                               VK_OBJECT_TYPE_COMMAND_POOL)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_buffer, base, VkBuffer,
+                               VK_OBJECT_TYPE_BUFFER)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_buffer_view, base, VkBufferView,
+                               VK_OBJECT_TYPE_BUFFER_VIEW)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_pool, base, VkDescriptorPool,
+                               VK_OBJECT_TYPE_DESCRIPTOR_POOL)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_set, base, VkDescriptorSet,
+                               VK_OBJECT_TYPE_DESCRIPTOR_SET)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_set_layout, base,
+                               VkDescriptorSetLayout,
+                               VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_descriptor_update_template, base,
+                               VkDescriptorUpdateTemplate,
+                               VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_device_memory, base, VkDeviceMemory,
+                               VK_OBJECT_TYPE_DEVICE_MEMORY)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_event, base, VkEvent, VK_OBJECT_TYPE_EVENT)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_framebuffer, base, VkFramebuffer,
+                               VK_OBJECT_TYPE_FRAMEBUFFER)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_image, base, VkImage, VK_OBJECT_TYPE_IMAGE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_image_view, base, VkImageView,
+                               VK_OBJECT_TYPE_IMAGE_VIEW);
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_cache, base, VkPipelineCache,
+                               VK_OBJECT_TYPE_PIPELINE_CACHE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline, base, VkPipeline,
+                               VK_OBJECT_TYPE_PIPELINE)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_pipeline_layout, base, VkPipelineLayout,
+                               VK_OBJECT_TYPE_PIPELINE_LAYOUT)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_query_pool, base, VkQueryPool,
+                               VK_OBJECT_TYPE_QUERY_POOL)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_render_pass, base, VkRenderPass,
+                               VK_OBJECT_TYPE_RENDER_PASS)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_sampler, base, VkSampler,
+                               VK_OBJECT_TYPE_SAMPLER)
+VK_DEFINE_NONDISP_HANDLE_CASTS(tu_sampler_ycbcr_conversion, base, VkSamplerYcbcrConversion,
+                               VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION)
 
 /* for TU_FROM_HANDLE with both VkFence and VkSemaphore: */
 #define tu_syncobj_from_handle(x) ((struct tu_syncobj*) (uintptr_t) (x))

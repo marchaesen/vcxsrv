@@ -353,7 +353,9 @@ fd_context_destroy(struct pipe_context *pctx)
 
    util_copy_framebuffer_state(&ctx->framebuffer, NULL);
    fd_batch_reference(&ctx->batch, NULL); /* unref current batch */
-   fd_bc_fini(ctx);
+
+   /* Make sure nothing in the batch cache references our context any more. */
+   fd_bc_flush(ctx, false);
 
    fd_prog_fini(pctx);
 
@@ -428,11 +430,6 @@ fd_get_device_reset_status(struct pipe_context *pctx)
    int global_faults = fd_get_reset_count(ctx, false);
    enum pipe_reset_status status;
 
-   /* Not called in driver thread, but threaded_context syncs
-    * before calling this:
-    */
-   fd_context_access_begin(ctx);
-
    if (context_faults != ctx->context_reset_count) {
       status = PIPE_GUILTY_CONTEXT_RESET;
    } else if (global_faults != ctx->global_reset_count) {
@@ -443,8 +440,6 @@ fd_get_device_reset_status(struct pipe_context *pctx)
 
    ctx->context_reset_count = context_faults;
    ctx->global_reset_count = global_faults;
-
-   fd_context_access_end(ctx);
 
    return status;
 }
@@ -647,8 +642,6 @@ fd_context_init(struct fd_context *ctx, struct pipe_screen *pscreen,
    slab_create_child(&ctx->transfer_pool, &screen->transfer_pool);
    slab_create_child(&ctx->transfer_pool_unsync, &screen->transfer_pool);
 
-   fd_bc_init(ctx);
-
    fd_draw_init(pctx);
    fd_resource_context_init(pctx);
    fd_query_context_init(pctx);
@@ -698,9 +691,11 @@ fd_context_init_tc(struct pipe_context *pctx, unsigned flags)
    struct pipe_context *tc = threaded_context_create(
       pctx, &ctx->screen->transfer_pool,
       fd_replace_buffer_storage,
-      fd_fence_create_unflushed,
-      fd_resource_busy,
-      false,
+      &(struct threaded_context_options){
+         .create_fence = fd_fence_create_unflushed,
+         .is_resource_busy = fd_resource_busy,
+         .unsynchronized_get_device_reset_status = true,
+      },
       &ctx->tc);
 
    if (tc && tc != pctx)

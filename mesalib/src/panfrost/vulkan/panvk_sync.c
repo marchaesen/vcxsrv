@@ -144,7 +144,7 @@ sync_export(struct panvk_device *device, struct panvk_syncobj *sync,
    };
    int ret = drmIoctl(pdev->fd, DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD, &handle);
    if (ret)
-      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+      return vk_error(device, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 
    /* restore permanent payload on export */
    sync_set_temporary(device, sync, 0);
@@ -164,7 +164,7 @@ panvk_CreateSemaphore(VkDevice _device,
          vk_object_zalloc(&device->vk, pAllocator, sizeof(*sem),
                           VK_OBJECT_TYPE_SEMAPHORE);
    if (!sem)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    VkResult ret = sync_create(device, &sem->syncobj, false);
    if (ret != VK_SUCCESS) {
@@ -218,7 +218,7 @@ panvk_CreateFence(VkDevice _device,
          vk_object_zalloc(&device->vk, pAllocator, sizeof(*fence),
                           VK_OBJECT_TYPE_FENCE);
    if (!fence)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    VkResult ret = sync_create(device, &fence->syncobj,
                               info->flags & VK_FENCE_CREATE_SIGNALED_BIT);

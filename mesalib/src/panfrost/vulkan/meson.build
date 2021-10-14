@@ -50,7 +50,6 @@ libpanvk_files = files(
   'panvk_sync.c',
   'panvk_util.c',
   'panvk_wsi.c',
-  'panvk_wsi_display.c',
 )
 
 panvk_deps = []
@@ -68,6 +67,9 @@ foreach arch : ['5', '6', '7']
       'panvk_vX_device.c',
       'panvk_vX_image.c',
       'panvk_vX_meta.c',
+      'panvk_vX_meta_blit.c',
+      'panvk_vX_meta_copy.c',
+      'panvk_vX_meta_clear.c',
       'panvk_vX_pipeline.c',
       'panvk_vX_shader.c',
     ],
@@ -77,13 +79,13 @@ foreach arch : ['5', '6', '7']
       inc_compiler,
       inc_gallium, # XXX: pipe/p_format.h
       inc_gallium_aux, # XXX: renderonly
-      inc_vulkan_wsi,
       inc_panfrost,
     ],
     dependencies : [
       idep_nir_headers,
       idep_pan_packers,
       idep_vulkan_util_headers,
+      idep_vulkan_wsi_headers,
       dep_libdrm,
       dep_valgrind,
     ],
@@ -91,15 +93,8 @@ foreach arch : ['5', '6', '7']
   )
 endforeach
 
-if system_has_kms_drm
-  panvk_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
-  libpanvk_files += files('panvk_wsi_display.c')
-endif
-
 if with_platform_wayland
   panvk_deps += [dep_wayland_client, dep_wl_protocols]
-  panvk_flags += '-DVK_USE_PLATFORM_WAYLAND_KHR'
-  libpanvk_files += files('panvk_wsi_wayland.c')
   libpanvk_files += [wayland_drm_client_protocol_h, wayland_drm_protocol_c]
 endif
 
@@ -112,12 +107,10 @@ libvulkan_panfrost = shared_library(
     inc_compiler,
     inc_gallium, # XXX: pipe/p_format.h
     inc_gallium_aux, # XXX: renderonly
-    inc_vulkan_wsi,
     inc_panfrost,
   ],
   link_whole : [panvk_per_arch_libs],
   link_with : [
-    libvulkan_wsi,
     libpanfrost_shared,
     libpanfrost_midgard,
     libpanfrost_bifrost,
@@ -136,6 +129,7 @@ libvulkan_panfrost = shared_library(
     idep_pan_packers,
     panvk_deps,
     idep_vulkan_util,
+    idep_vulkan_wsi,
     idep_mesautil,
   ],
   c_args : [no_override_init_args, panvk_flags],

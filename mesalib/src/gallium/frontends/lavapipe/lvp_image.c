@@ -26,26 +26,22 @@
 #include "util/u_inlines.h"
 #include "pipe/p_state.h"
 
-VkResult
+static VkResult
 lvp_image_create(VkDevice _device,
-                 const struct lvp_image_create_info *create_info,
+                 const VkImageCreateInfo *pCreateInfo,
                  const VkAllocationCallbacks* alloc,
                  VkImage *pImage)
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
-   const VkImageCreateInfo *pCreateInfo = create_info->vk_info;
    struct lvp_image *image;
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 
-   image = vk_zalloc2(&device->vk.alloc, alloc, sizeof(*image), 8,
-                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   image = vk_image_create(&device->vk, pCreateInfo, alloc, sizeof(*image));
    if (image == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   vk_object_base_init(&device->vk, &image->base, VK_OBJECT_TYPE_IMAGE);
    image->alignment = 16;
-   image->type = pCreateInfo->imageType;
    {
       struct pipe_resource template;
 
@@ -65,19 +61,34 @@ lvp_image_create(VkDevice _device,
          break;
       }
 
-      if (pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+      template.format = lvp_vk_format_to_pipe_format(pCreateInfo->format);
+
+      bool is_ds = util_format_is_depth_or_stencil(template.format);
+
+      if (pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
          template.bind |= PIPE_BIND_RENDER_TARGET;
+         /* sampler view is needed for resolve blits */
+         if (pCreateInfo->samples > 1)
+            template.bind |= PIPE_BIND_SAMPLER_VIEW;
+      }
+
+      if (pCreateInfo->usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+         if (!is_ds)
+            template.bind |= PIPE_BIND_RENDER_TARGET;
+         else
+            template.bind |= PIPE_BIND_DEPTH_STENCIL;
+      }
 
       if (pCreateInfo->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
          template.bind |= PIPE_BIND_DEPTH_STENCIL;
 
-      if (pCreateInfo->usage & VK_IMAGE_USAGE_SAMPLED_BIT)
+      if (pCreateInfo->usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
          template.bind |= PIPE_BIND_SAMPLER_VIEW;
 
       if (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
          template.bind |= PIPE_BIND_SHADER_IMAGE;
 
-      template.format = lvp_vk_format_to_pipe_format(pCreateInfo->format);
       template.width0 = pCreateInfo->extent.width;
       template.height0 = pCreateInfo->extent.height;
       template.depth0 = pCreateInfo->extent.depth;
@@ -85,13 +96,11 @@ lvp_image_create(VkDevice _device,
       template.last_level = pCreateInfo->mipLevels - 1;
       template.nr_samples = pCreateInfo->samples;
       template.nr_storage_samples = pCreateInfo->samples;
-      if (create_info->bind_flags)
-         template.bind = create_info->bind_flags;
       image->bo = device->pscreen->resource_create_unbacked(device->pscreen,
                                                             &template,
                                                             &image->size);
       if (!image->bo)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
    *pImage = lvp_image_to_handle(image);
 
@@ -127,7 +136,7 @@ lvp_image_from_swapchain(VkDevice device,
    ASSERTED struct lvp_image *swapchain_image = lvp_swapchain_get_image(swapchain_info->swapchain, 0);
    assert(swapchain_image);
 
-   assert(swapchain_image->type == pCreateInfo->imageType);
+   assert(swapchain_image->vk.image_type == pCreateInfo->imageType);
 
    VkImageCreateInfo local_create_info;
    local_create_info = *pCreateInfo;
@@ -138,12 +147,8 @@ lvp_image_from_swapchain(VkDevice device,
    local_create_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
    assert(!(local_create_info.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
-   return lvp_image_create(device,
-      &(struct lvp_image_create_info) {
-         .vk_info = &local_create_info,
-      },
-      pAllocator,
-      pImage);
+   return lvp_image_create(device, &local_create_info, pAllocator,
+                           pImage);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -157,13 +162,8 @@ lvp_CreateImage(VkDevice device,
    if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE)
       return lvp_image_from_swapchain(device, pCreateInfo, swapchain_info,
                                       pAllocator, pImage);
-   return lvp_image_create(device,
-      &(struct lvp_image_create_info) {
-         .vk_info = pCreateInfo,
-         .bind_flags = 0,
-      },
-      pAllocator,
-      pImage);
+   return lvp_image_create(device, pCreateInfo, pAllocator,
+                           pImage);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -176,8 +176,7 @@ lvp_DestroyImage(VkDevice _device, VkImage _image,
    if (!_image)
      return;
    pipe_resource_reference(&image->bo, NULL);
-   vk_object_base_finish(&image->base);
-   vk_free2(&device->vk.alloc, pAllocator, image);
+   vk_image_destroy(&device->vk, pAllocator, &image->vk);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -193,7 +192,7 @@ lvp_CreateImageView(VkDevice _device,
    view = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*view), 8,
                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (view == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &view->base,
                        VK_OBJECT_TYPE_IMAGE_VIEW);
@@ -304,7 +303,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateBuffer(
    buffer = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*buffer), 8,
                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (buffer == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &buffer->base, VK_OBJECT_TYPE_BUFFER);
    buffer->size = pCreateInfo->size;
@@ -337,7 +336,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateBuffer(
                                                              &buffer->total_size);
       if (!buffer->bo) {
          vk_free2(&device->vk.alloc, pAllocator, buffer);
-         return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+         return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
       }
    }
    *pBuffer = lvp_buffer_to_handle(buffer);
@@ -396,7 +395,7 @@ lvp_CreateBufferView(VkDevice _device,
    view = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*view), 8,
                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!view)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vk_object_base_init(&device->vk, &view->base,
                        VK_OBJECT_TYPE_BUFFER_VIEW);

@@ -2844,10 +2844,13 @@ static void
 iris_bind_tes_state(struct pipe_context *ctx, void *state)
 {
    struct iris_context *ice = (struct iris_context *)ctx;
+   struct iris_screen *screen = (struct iris_screen *) ctx->screen;
+   const struct intel_device_info *devinfo = &screen->devinfo;
 
    /* Enabling/disabling optional stages requires a URB reconfiguration. */
    if (!!state != !!ice->shaders.uncompiled[MESA_SHADER_TESS_EVAL])
-      ice->state.dirty |= IRIS_DIRTY_URB;
+      ice->state.dirty |= IRIS_DIRTY_URB | (devinfo->verx10 >= 125 ?
+                                            IRIS_DIRTY_VFG : 0);
 
    bind_shader_state((void *) ctx, state, MESA_SHADER_TESS_EVAL);
 }

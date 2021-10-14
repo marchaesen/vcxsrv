@@ -52,6 +52,7 @@
 #include "lp_rast.h"
 
 #include "frontend/sw_winsys.h"
+#include "git_sha1.h"
 
 #ifndef _WIN32
 #include "drm-uapi/drm_fourcc.h"
@@ -334,6 +335,104 @@ llvmpipe_resource_create_unbacked(struct pipe_screen *_screen,
    return pt;
 }
 
+static struct pipe_memory_object *
+llvmpipe_memobj_create_from_handle(struct pipe_screen *pscreen,
+                                   struct winsys_handle *handle,
+                                   bool dedicated)
+{
+#ifdef PIPE_MEMORY_FD
+   struct llvmpipe_memory_object *memobj = CALLOC_STRUCT(llvmpipe_memory_object);
+
+   if (handle->type == WINSYS_HANDLE_TYPE_FD && 
+       pscreen->import_memory_fd(pscreen, handle->handle, &memobj->data, &memobj->size)) {
+      return &memobj->b;
+   }
+   free(memobj);
+#endif
+   return NULL;
+}
+
+static void
+llvmpipe_memobj_destroy(struct pipe_screen *pscreen,
+                        struct pipe_memory_object *memobj)
+{
+   if (!memobj)
+      return;
+   struct llvmpipe_memory_object *lpmo = llvmpipe_memory_object(memobj);
+#ifdef PIPE_MEMORY_FD
+   pscreen->free_memory_fd(pscreen, lpmo->data);
+#endif
+   free(lpmo);
+}
+
+static struct pipe_resource *
+llvmpipe_resource_from_memobj(struct pipe_screen *pscreen,
+                              const struct pipe_resource *templat,
+                              struct pipe_memory_object *memobj,
+                              uint64_t offset)
+{
+   if (!memobj)
+      return NULL;
+   struct llvmpipe_screen *screen = llvmpipe_screen(pscreen);
+   struct llvmpipe_memory_object *lpmo = llvmpipe_memory_object(memobj);
+   struct llvmpipe_resource *lpr = CALLOC_STRUCT(llvmpipe_resource);
+   lpr->base = *templat;
+
+   lpr->screen = screen;
+   pipe_reference_init(&lpr->base.reference, 1);
+   lpr->base.screen = &screen->base;
+
+   if (llvmpipe_resource_is_texture(&lpr->base)) {
+      /* texture map */
+      if (!llvmpipe_texture_layout(screen, lpr, false))
+         goto fail;
+      if(lpmo->size < lpr->size_required)
+         goto fail;
+      lpr->tex_data = lpmo->data;
+   }
+   else {
+      /* other data (vertex buffer, const buffer, etc) */
+      const uint bytes = templat->width0;
+      assert(util_format_get_blocksize(templat->format) == 1);
+      assert(templat->height0 == 1);
+      assert(templat->depth0 == 1);
+      assert(templat->last_level == 0);
+      /*
+       * Reserve some extra storage since if we'd render to a buffer we
+       * read/write always LP_RASTER_BLOCK_SIZE pixels, but the element
+       * offset doesn't need to be aligned to LP_RASTER_BLOCK_SIZE.
+       */
+      /*
+       * buffers don't really have stride but it's probably safer
+       * (for code doing same calculations for buffers and textures)
+       * to put something reasonable in there.
+       */
+      lpr->row_stride[0] = bytes;
+
+      lpr->size_required = bytes;
+      if (!(templat->flags & PIPE_RESOURCE_FLAG_DONT_OVER_ALLOCATE))
+         lpr->size_required += (LP_RASTER_BLOCK_SIZE - 1) * 4 * sizeof(float);
+
+      if(lpmo->size < lpr->size_required)
+         goto fail;
+      lpr->data = lpmo->data;
+   }
+   lpr->id = id_counter++;
+   lpr->imported_memory = true;
+
+#ifdef DEBUG
+   mtx_lock(&resource_list_mutex);
+   insert_at_tail(&resource_list, lpr);
+   mtx_unlock(&resource_list_mutex);
+#endif
+
+   return &lpr->base;
+
+fail:
+   free(lpr);
+   return NULL;
+}
+
 static void
 llvmpipe_resource_destroy(struct pipe_screen *pscreen,
                           struct pipe_resource *pt)
@@ -350,13 +449,16 @@ llvmpipe_resource_destroy(struct pipe_screen *pscreen,
       else if (llvmpipe_resource_is_texture(pt)) {
          /* free linear image data */
          if (lpr->tex_data) {
-            align_free(lpr->tex_data);
+            if (!lpr->imported_memory)
+               align_free(lpr->tex_data);
             lpr->tex_data = NULL;
          }
       }
       else if (!lpr->userBuffer) {
-         if (lpr->data)
-            align_free(lpr->data);
+         if (lpr->data) {
+            if (!lpr->imported_memory)
+               align_free(lpr->data);
+         }
       }
    }
 #ifdef DEBUG
@@ -850,6 +952,28 @@ static void llvmpipe_free_memory(struct pipe_screen *screen,
    os_free_aligned(pmem);
 }
 
+#ifdef PIPE_MEMORY_FD
+
+static const char *driver_id = "llvmpipe" MESA_GIT_SHA1;
+
+static struct pipe_memory_allocation *llvmpipe_allocate_memory_fd(struct pipe_screen *screen, uint64_t size, int *fd)
+{
+   return os_malloc_aligned_fd(size, 256, fd, "llvmpipe memory fd", driver_id);
+}
+
+static bool llvmpipe_import_memory_fd(struct pipe_screen *screen, int fd, struct pipe_memory_allocation **ptr, uint64_t *size)
+{
+   return os_import_memory_fd(fd, (void**)ptr, size, driver_id);
+}
+
+static void llvmpipe_free_memory_fd(struct pipe_screen *screen,
+                                    struct pipe_memory_allocation *pmem)
+{
+   os_free_fd(pmem);
+}
+
+#endif
+
 static bool llvmpipe_resource_bind_backing(struct pipe_screen *screen,
                                            struct pipe_resource *pt,
                                            struct pipe_memory_allocation *pmem,
@@ -995,16 +1119,25 @@ llvmpipe_init_screen_resource_funcs(struct pipe_screen *screen)
 /*   screen->resource_create_front = llvmpipe_resource_create_front; */
    screen->resource_destroy = llvmpipe_resource_destroy;
    screen->resource_from_handle = llvmpipe_resource_from_handle;
+   screen->resource_from_memobj = llvmpipe_resource_from_memobj;
    screen->resource_get_handle = llvmpipe_resource_get_handle;
    screen->can_create_resource = llvmpipe_can_create_resource;
 
    screen->resource_create_unbacked = llvmpipe_resource_create_unbacked;
+
+   screen->memobj_create_from_handle = llvmpipe_memobj_create_from_handle;
+   screen->memobj_destroy = llvmpipe_memobj_destroy;
 
    screen->resource_get_info = llvmpipe_get_resource_info;
    screen->resource_get_param = llvmpipe_resource_get_param;
    screen->resource_from_user_memory = llvmpipe_resource_from_user_memory;
    screen->allocate_memory = llvmpipe_allocate_memory;
    screen->free_memory = llvmpipe_free_memory;
+#ifdef PIPE_MEMORY_FD
+   screen->allocate_memory_fd = llvmpipe_allocate_memory_fd;
+   screen->import_memory_fd = llvmpipe_import_memory_fd;
+   screen->free_memory_fd = llvmpipe_free_memory_fd;
+#endif
    screen->map_memory = llvmpipe_map_memory;
    screen->unmap_memory = llvmpipe_unmap_memory;
 

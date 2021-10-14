@@ -2050,6 +2050,10 @@ if test "x$GLAMOR" = xyes; then
 		PKG_CHECK_EXISTS(gbm >= 17.1.0,
 				 [AC_DEFINE(GBM_BO_WITH_MODIFIERS, 1, [Have gbm_bo_create_with_modifiers])],
 				 [])
+		dnl 21.1.0 is required for gbm_bo_get_fd_for_plane
+		PKG_CHECK_EXISTS(gbm >= 21.1.0,
+				 [AC_DEFINE(GBM_BO_FD_FOR_PLANE, 1, [Have gbm_bo_get_fd_for_plane])],
+				 [])
 	else
 		if test "x$XORG" = xyes; then
 			AC_MSG_ERROR([Glamor for Xorg requires $LIBGBM])

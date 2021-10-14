@@ -1,0 +1,138 @@
+# This file contains the GitLab handle of the maintainers/reviewers for
+# a given file:
+# https://docs.gitlab.com/ce/user/project/code_owners.html
+#
+# Consider these as the list of people who want to be involved in MRs
+# touching these files/folders, and whom you can ask your questions and
+# tag in issues.
+#
+# As of GitLab 14.3, all features surrounding this file are premium-only,
+# which means this file is only read by humans for now.
+#
+# Paths starting with a `/` are relative to the git root, otherwise they
+# can match any substring of the file's path.
+# If multiple lines match, only the last one applies; there is no
+# accumulation.
+
+
+##################
+# INFRASTRUCTURE #
+##################
+
+# Build system - Meson
+meson.build @dbaker @eric
+/meson_options.txt @dbaker @eric
+/docs/meson.rst @dbaker @eric
+
+# Build system - Android
+/android/ @roman.stratiienko
+
+# Compatibility headers
+/include/c99* @evelikov
+/include/c11* @eric
+
+# Documentation
+/docs/ @eric @evelikov
+
+
+##########
+# COMMON #
+##########
+
+# NIR
+/src/compiler/nir/ @jekstrand
+
+# Vulkan
+/src/vulkan/ @eric @jekstrand
+/include/vulkan/ @eric @jekstrand
+
+
+#############
+# PLATFORMS #
+#############
+
+# EGL
+/src/egl/ @eric @evelikov
+/include/EGL/ @eric @evelikov
+
+# EGL - Android support
+/src/egl/drivers/dri2/platform_android.c @robh @tfiga
+
+# EGL - Device support
+/src/egl/drivers/dri2/platform_device.c @evelikov
+
+# EGL - Wayland support
+/src/egl/wayland/ @daniels @eric
+/src/egl/drivers/dri2/platform_wayland.c @daniels @eric
+
+# Gallium targets
+/src/gallium/targets/ @evelikov
+
+# GLX
+/src/glx/ @ajax
+/include/GL/glx* @ajax
+
+# GLVND
+/src/egl/main/eglglvnd.c @kbrenneman
+/src/egl/main/egldispatchstubs.* @kbrenneman
+/src/egl/generate/ @kbrenneman
+/src/glx/*glvnd* @kbrenneman
+
+# Haiku
+/include/HaikuGL/ @kallisti5
+/src/egl/drivers/haiku/ @kallisti5
+/src/gallium/frontends/hgl/ @kallisti5
+/src/gallium/targets/haiku-softpipe/ @kallisti5
+/src/gallium/winsys/sw/hgl/ @kallisti5
+/src/hgl/ @kallisti5
+
+# Loader - DRI/classic
+/src/loader/ @evelikov
+
+# Loader - Gallium
+/src/gallium/auxiliary/pipe-loader/ @evelikov
+/src/gallium/auxiliary/target-helpers/ @evelikov
+
+# Vulkan WSI - Display
+/src/vulkan/wsi/wsi_common_display.* @keithp
+/src/*/vulkan/*_wsi_display.c @keithp
+
+
+###########
+# Drivers #
+###########
+
+# Asahi
+/src/asahi/ @alyssa
+/src/gallium/drivers/asahi/ @alyssa
+
+# Freedreno
+/src/gallium/drivers/freedreno/ @robclark
+
+# Intel
+/include/drm-uapi/i915_drm.h @kwg @llandwerlin @jekstrand @idr
+/include/pci_ids/i*_pci_ids.h @kwg @llandwerlin @jekstrand @idr
+/src/intel/ @kwg @llandwerlin @jekstrand @idr
+/src/gallium/winsys/iris/ @kwg @llandwerlin @jekstrand @idr
+/src/gallium/drivers/iris/ @kwg @llandwerlin @jekstrand @idr
+/src/gallium/drivers/i915/ @anholt
+/src/mesa/drivers/dri/i965/ @kwg @llandwerlin @jekstrand @idr
+/doxygen/i965.doxy @kwg @llandwerlin @jekstrand @idr
+
+# Microsoft
+/src/microsoft/ @jenatali
+/src/gallium/drivers/d3d12/ @jenatali
+
+# Panfrost
+/src/panfrost/ @alyssa
+/src/panfrost/vulkan/ @bbrezillon
+/src/gallium/drivers/panfrost/ @alyssa
+
+# SWR
+/src/gallium/drivers/swr/ @jzielins @krzysztof.raszkowski
+/docs/gallium/drivers/openswr.rst @jzielins @krzysztof.raszkowski
+/docs/gallium/drivers/openswr/ @jzielins @krzysztof.raszkowski
+
+# VMware
+/src/gallium/drivers/svga/ @brianp @charmainel
+/src/gallium/winsys/svga/ @thomash @drawat

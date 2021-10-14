@@ -56,6 +56,17 @@ struct vk_instance {
       mtx_t callbacks_mutex;
       struct list_head callbacks;
    } debug_report;
+
+   /* VK_EXT_debug_utils */
+   struct {
+      /* These callbacks are only used while creating or destroying an
+       * instance
+       */
+      struct list_head instance_callbacks;
+      mtx_t callbacks_mutex;
+      /* Persistent callbacks */
+      struct list_head callbacks;
+   } debug_utils;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_instance, base, VkInstance,

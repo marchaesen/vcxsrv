@@ -319,6 +319,26 @@ util_bitcount(unsigned n)
 #endif
 }
 
+/**
+ * Return the number of bits set in n using the native popcnt instruction.
+ * The caller is responsible for ensuring that popcnt is supported by the CPU.
+ *
+ * gcc doesn't use it if -mpopcnt or -march= that has popcnt is missing.
+ *
+ */
+static inline unsigned
+util_popcnt_inline_asm(unsigned n)
+{
+#if defined(USE_X86_64_ASM) || defined(USE_X86_ASM)
+   uint32_t out;
+   __asm volatile("popcnt %1, %0" : "=r"(out) : "r"(n));
+   return out;
+#else
+   /* We should never get here by accident, but I'm sure it'll happen. */
+   return util_bitcount(n);
+#endif
+}
+
 static inline unsigned
 util_bitcount64(uint64_t n)
 {

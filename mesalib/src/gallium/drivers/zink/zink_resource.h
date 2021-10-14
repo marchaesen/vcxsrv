@@ -43,6 +43,7 @@ struct zink_bo;
 #include <vulkan/vulkan.h>
 
 #define ZINK_MAP_TEMPORARY (PIPE_MAP_DRV_PRV << 0)
+#define ZINK_BIND_TRANSIENT (1 << 30) //transient fb attachment
 
 struct mem_key {
    unsigned seen_count;
@@ -61,9 +62,6 @@ struct zink_resource_object {
 
    unsigned persistent_maps; //if nonzero, requires vkFlushMappedMemoryRanges during batch use
    struct zink_descriptor_refs desc_set_refs;
-
-   struct zink_batch_usage *reads;
-   struct zink_batch_usage *writes;
 
    struct util_dynarray tmp;
 
@@ -118,6 +116,7 @@ struct zink_resource {
    uint32_t sampler_binds[PIPE_SHADER_TYPES];
    uint16_t image_bind_count[2]; //gfx, compute
    uint16_t write_bind_count[2]; //gfx, compute
+   uint16_t bindless[2]; //tex, img
    union {
       uint16_t bind_count[2]; //gfx, compute
       uint32_t all_binds;

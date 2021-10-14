@@ -900,6 +900,25 @@ end:
       _mesa_reference_vao(ctx, &node->VAO[vpm], save->VAO[vpm]);
    }
 
+   /* Prepare for DrawGalliumVertexState */
+   if (node->merged.num_draws && ctx->Driver.DrawGalliumVertexState) {
+      for (unsigned i = 0; i < VP_MODE_MAX; i++) {
+         uint32_t enabled_attribs = _vbo_get_vao_filter(i) &
+                                    node->VAO[i]->_EnabledWithMapMode;
+
+         node->merged.gallium.state[i] =
+            ctx->Driver.CreateGalliumVertexState(ctx, node->VAO[i],
+                                                 node->cold->ib.obj,
+                                                 enabled_attribs);
+         node->merged.gallium.private_refcount[i] = 0;
+         node->merged.gallium.enabled_attribs[i] = enabled_attribs;
+      }
+
+      node->merged.gallium.ctx = ctx;
+      node->merged.gallium.info.mode = node->merged.info.mode;
+      node->merged.gallium.info.take_vertex_state_ownership = false;
+      assert(node->merged.info.index_size == 4);
+   }
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
     */

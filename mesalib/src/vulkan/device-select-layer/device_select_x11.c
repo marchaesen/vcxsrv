@@ -93,6 +93,7 @@ int device_select_find_xcb_pci_default(struct device_pci_info *devices, uint32_t
 
   drmDevicePtr xdev;
   int ret = drmGetDevice2(dri3_fd, 0, &xdev);
+  close(dri3_fd);
   if (ret < 0)
     goto out;
 

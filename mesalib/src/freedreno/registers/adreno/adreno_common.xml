@@ -366,5 +366,14 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="ADDR_64B" value="1"/>
 </enum>
 
+<doc>
+    Line mode for a5xx+
+	Note that Bresenham lines are only supported with MSAA disabled.
+</doc>
+<enum name="a5xx_line_mode">
+	<value value="0x0"  name="BRESENHAM"/>
+	<value value="0x1"  name="RECTANGULAR"/>
+</enum>
+
 </database>
 

@@ -81,6 +81,20 @@ enum {
     AHARDWAREBUFFER_FORMAT_YCbCr_422_I              = 0x14,
 };
 
+/**
+ * Buffer usage flags.
+ */
+enum {
+    /* for future proofing, keep these in sync with hardware/gralloc.h */
+
+    /* The buffer will be written by the HW camera pipeline. */
+    AHARDWAREBUFFER_USAGE_CAMERA_WRITE              = 2UL << 16,
+    /* The buffer will be read by the HW camera pipeline. */
+    AHARDWAREBUFFER_USAGE_CAMERA_READ               = 4UL << 16,
+    /* Mask for the camera access values. */
+    AHARDWAREBUFFER_USAGE_CAMERA_MASK               = 6UL << 16,
+};
+
 __END_DECLS
 
 #endif /* ANDROID_VNDK_NATIVEWINDOW_AHARDWAREBUFFER_H */

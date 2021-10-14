@@ -469,7 +469,7 @@ create_staging_resource(struct d3d12_context *ctx,
                         unsigned mask)
 
 {
-   struct pipe_resource templ = {{0}};
+   struct pipe_resource templ = {};
    struct pipe_resource *staging_res;
    struct pipe_box copy_src;
 

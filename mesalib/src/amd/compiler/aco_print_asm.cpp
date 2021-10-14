@@ -24,11 +24,13 @@
 
 #include "aco_ir.h"
 
+#ifdef LLVM_AVAILABLE
 #include "llvm/ac_llvm_util.h"
 
 #include "llvm-c/Disassembler.h"
 #include <llvm/ADT/StringRef.h>
 #include <llvm/MC/MCDisassembler/MCDisassembler.h>
+#endif
 
 #include <array>
 #include <iomanip>
@@ -37,20 +39,74 @@
 namespace aco {
 namespace {
 
-/* LLVM disassembler only supports GFX8+, try to disassemble with CLRXdisasm
- * for GFX6-GFX7 if found on the system, this is better than nothing.
+/**
+ * Determines the GPU type to use for CLRXdisasm
  */
+const char*
+to_clrx_device_name(chip_class cc, radeon_family family)
+{
+   switch (cc) {
+   case GFX6:
+      switch (family) {
+      case CHIP_TAHITI: return "tahiti";
+      case CHIP_PITCAIRN: return "pitcairn";
+      case CHIP_VERDE: return "capeverde";
+      case CHIP_OLAND: return "oland";
+      case CHIP_HAINAN: return "hainan";
+      default: return nullptr;
+      }
+   case GFX7:
+      switch (family) {
+      case CHIP_BONAIRE: return "bonaire";
+      case CHIP_KAVERI: return "gfx700";
+      case CHIP_HAWAII: return "hawaii";
+      default: return nullptr;
+      }
+   case GFX8:
+      switch (family) {
+      case CHIP_TONGA: return "tonga";
+      case CHIP_ICELAND: return "iceland";
+      case CHIP_CARRIZO: return "carrizo";
+      case CHIP_FIJI: return "fiji";
+      case CHIP_STONEY: return "stoney";
+      case CHIP_POLARIS10: return "polaris10";
+      case CHIP_POLARIS11: return "polaris11";
+      case CHIP_POLARIS12: return "polaris12";
+      case CHIP_VEGAM: return "polaris11";
+      default: return nullptr;
+      }
+   case GFX9:
+      switch (family) {
+      case CHIP_VEGA10: return "vega10";
+      case CHIP_VEGA12: return "vega12";
+      case CHIP_VEGA20: return "vega20";
+      case CHIP_RAVEN: return "raven";
+      default: return nullptr;
+      }
+   case GFX10:
+      switch (family) {
+      case CHIP_NAVI10: return "gfx1010";
+      case CHIP_NAVI12: return "gfx1011";
+      default: return nullptr;
+      }
+   case GFX10_3:
+      return nullptr;
+   default: unreachable("Invalid chip class!"); return nullptr;
+   }
+}
+
 bool
-print_asm_gfx6_gfx7(Program* program, std::vector<uint32_t>& binary, FILE* output)
+print_asm_clrx(Program* program, std::vector<uint32_t>& binary, FILE* output)
 {
 #ifdef _WIN32
    return true;
 #else
    char path[] = "/tmp/fileXXXXXX";
    char line[2048], command[128];
-   const char* gpu_type;
    FILE* p;
    int fd;
+
+   const char* gpu_type = to_clrx_device_name(program->chip_class, program->family);
 
    /* Dump the binary into a temporary file. */
    fd = mkstemp(path);
@@ -60,24 +116,6 @@ print_asm_gfx6_gfx7(Program* program, std::vector<uint32_t>& binary, FILE* outpu
    for (uint32_t w : binary) {
       if (write(fd, &w, sizeof(w)) == -1)
          goto fail;
-   }
-
-   /* Determine the GPU type for CLRXdisasm. Use the family for GFX6 chips
-    * because it doesn't allow to use gfx600 directly.
-    */
-   switch (program->chip_class) {
-   case GFX6:
-      switch (program->family) {
-      case CHIP_TAHITI: gpu_type = "tahiti"; break;
-      case CHIP_PITCAIRN: gpu_type = "pitcairn"; break;
-      case CHIP_VERDE: gpu_type = "capeverde"; break;
-      case CHIP_OLAND: gpu_type = "oland"; break;
-      case CHIP_HAINAN: gpu_type = "hainan"; break;
-      default: unreachable("Invalid GFX6 family!");
-      }
-      break;
-   case GFX7: gpu_type = "gfx700"; break;
-   default: unreachable("Invalid chip class!");
    }
 
    sprintf(command, "clrxdisasm --gpuType=%s -r %s", gpu_type, path);
@@ -106,6 +144,7 @@ fail:
 #endif
 }
 
+#ifdef LLVM_AVAILABLE
 std::pair<bool, size_t>
 disasm_instr(chip_class chip, LLVMDisasmContextRef disasm, uint32_t* binary, unsigned exec_size,
              size_t pos, char* outline, unsigned outline_size)
@@ -152,17 +191,10 @@ disasm_instr(chip_class chip, LLVMDisasmContextRef disasm, uint32_t* binary, uns
 
    return std::make_pair(invalid, size);
 }
-} /* end namespace */
 
 bool
-print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, FILE* output)
+print_asm_llvm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, FILE* output)
 {
-   if (program->chip_class <= GFX7) {
-      /* Do not abort if clrxdisasm isn't found. */
-      print_asm_gfx6_gfx7(program, binary, output);
-      return false;
-   }
-
    std::vector<bool> referenced_blocks(program->blocks.size());
    referenced_blocks[0] = true;
    for (Block& block : program->blocks) {
@@ -254,6 +286,41 @@ print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, F
    }
 
    return invalid;
+}
+#endif /* LLVM_AVAILABLE */
+
+} /* end namespace */
+
+bool
+check_print_asm_support(Program* program)
+{
+#ifdef LLVM_AVAILABLE
+   if (program->chip_class >= GFX8) {
+      /* LLVM disassembler only supports GFX8+ */
+      return true;
+   }
+#endif
+
+#ifndef _WIN32
+   /* Check if CLRX disassembler binary is available and can disassemble the program */
+   return to_clrx_device_name(program->chip_class, program->family) &&
+          system("clrxdisasm --version") == 0;
+#else
+   return false;
+#endif
+}
+
+/* Returns true on failure */
+bool
+print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, FILE* output)
+{
+#ifdef LLVM_AVAILABLE
+   if (program->chip_class >= GFX8) {
+      return print_asm_llvm(program, binary, exec_size, output);
+   }
+#endif
+
+   return print_asm_clrx(program, binary, output);
 }
 
 } // namespace aco

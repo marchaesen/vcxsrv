@@ -25,6 +25,7 @@
 #include "ac_exp_param.h"
 #include "ac_sqtt.h"
 #include "si_build_pm4.h"
+#include "util/u_cpu_detect.h"
 #include "util/u_index_modify.h"
 #include "util/u_prim.h"
 #include "util/u_upload_mgr.h"
@@ -83,9 +84,9 @@ static void si_emit_spi_map(struct si_context *sctx)
       if (input.semantic == VARYING_SLOT_PNTC ||
           (input.semantic >= VARYING_SLOT_TEX0 && input.semantic <= VARYING_SLOT_TEX7 &&
            rs->sprite_coord_enable & (1 << (input.semantic - VARYING_SLOT_TEX0)))) {
-         /* Overwrite the whole value for sprite coordinates. */
-         ps_input_cntl = S_028644_OFFSET(0) |
-                         S_028644_PT_SPRITE_TEX(1);
+         /* Overwrite the whole value (except OFFSET) for sprite coordinates. */
+         ps_input_cntl &= ~C_028644_OFFSET;
+         ps_input_cntl |= S_028644_PT_SPRITE_TEX(1);
          if (input.fp16_lo_hi_valid & 0x1) {
             ps_input_cntl |= S_028644_FP16_INTERP_MODE(1) |
                              S_028644_ATTR0_VALID(1);
@@ -109,7 +110,7 @@ static bool si_update_shaders(struct si_context *sctx)
 {
    struct pipe_context *ctx = (struct pipe_context *)sctx;
    struct si_shader *old_vs = si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current;
-   unsigned old_kill_clip_distances = old_vs ? old_vs->key.opt.kill_clip_distances : 0;
+   unsigned old_pa_cl_vs_out_cntl = old_vs ? old_vs->pa_cl_vs_out_cntl : 0;
    struct si_shader *old_ps = sctx->shader.ps.current;
    unsigned old_spi_shader_col_format =
       old_ps ? old_ps->key.part.ps.epilog.spi_shader_col_format : 0;
@@ -217,10 +218,12 @@ static bool si_update_shaders(struct si_context *sctx)
       }
    }
 
-   sctx->vs_uses_base_instance =
-      sctx->shader.vs.current ? sctx->shader.vs.current->uses_base_instance :
-      sctx->queued.named.hs ? sctx->queued.named.hs->uses_base_instance :
-      sctx->shader.gs.current->uses_base_instance;
+   if (GFX_VERSION >= GFX9 && HAS_TESS)
+      sctx->vs_uses_base_instance = sctx->queued.named.hs->uses_base_instance;
+   else if (GFX_VERSION >= GFX9 && HAS_GS)
+      sctx->vs_uses_base_instance = sctx->shader.gs.current->uses_base_instance;
+   else
+      sctx->vs_uses_base_instance = sctx->shader.vs.current->uses_base_instance;
 
    union si_vgt_stages_key key;
    key.index = 0;
@@ -238,7 +241,8 @@ static bool si_update_shaders(struct si_context *sctx)
       *pm4 = si_build_vgt_shader_config(sctx->screen, key);
    si_pm4_bind_state(sctx, vgt_shader_config, *pm4);
 
-   if (old_kill_clip_distances != si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->key.opt.kill_clip_distances)
+   if (old_pa_cl_vs_out_cntl !=
+          si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->pa_cl_vs_out_cntl)
       si_mark_atom_dirty(sctx, &sctx->atoms.s.clip_regs);
 
    r = si_shader_select(ctx, &sctx->shader.ps);
@@ -714,14 +718,14 @@ static void si_emit_derived_tess_state(struct si_context *sctx, unsigned *num_pa
       else
          hs_rsrc2 |= S_00B42C_LDS_SIZE_GFX9(lds_size);
 
-      radeon_set_sh_reg(cs, R_00B42C_SPI_SHADER_PGM_RSRC2_HS, hs_rsrc2);
+      radeon_set_sh_reg(R_00B42C_SPI_SHADER_PGM_RSRC2_HS, hs_rsrc2);
 
       /* Set userdata SGPRs for merged LS-HS. */
       radeon_set_sh_reg_seq(
-         cs, R_00B430_SPI_SHADER_USER_DATA_LS_0 + GFX9_SGPR_TCS_OFFCHIP_LAYOUT * 4, 3);
-      radeon_emit(cs, offchip_layout);
-      radeon_emit(cs, tcs_out_offsets);
-      radeon_emit(cs, tcs_out_layout);
+         R_00B430_SPI_SHADER_USER_DATA_LS_0 + GFX9_SGPR_TCS_OFFCHIP_LAYOUT * 4, 3);
+      radeon_emit(offchip_layout);
+      radeon_emit(tcs_out_offsets);
+      radeon_emit(tcs_out_layout);
    } else {
       unsigned ls_rsrc2 = ls_current->config.rsrc2;
 
@@ -731,24 +735,24 @@ static void si_emit_derived_tess_state(struct si_context *sctx, unsigned *num_pa
       /* Due to a hw bug, RSRC2_LS must be written twice with another
        * LS register written in between. */
       if (sctx->chip_class == GFX7 && sctx->family != CHIP_HAWAII)
-         radeon_set_sh_reg(cs, R_00B52C_SPI_SHADER_PGM_RSRC2_LS, ls_rsrc2);
-      radeon_set_sh_reg_seq(cs, R_00B528_SPI_SHADER_PGM_RSRC1_LS, 2);
-      radeon_emit(cs, ls_current->config.rsrc1);
-      radeon_emit(cs, ls_rsrc2);
+         radeon_set_sh_reg(R_00B52C_SPI_SHADER_PGM_RSRC2_LS, ls_rsrc2);
+      radeon_set_sh_reg_seq(R_00B528_SPI_SHADER_PGM_RSRC1_LS, 2);
+      radeon_emit(ls_current->config.rsrc1);
+      radeon_emit(ls_rsrc2);
 
       /* Set userdata SGPRs for TCS. */
       radeon_set_sh_reg_seq(
-         cs, R_00B430_SPI_SHADER_USER_DATA_HS_0 + GFX6_SGPR_TCS_OFFCHIP_LAYOUT * 4, 4);
-      radeon_emit(cs, offchip_layout);
-      radeon_emit(cs, tcs_out_offsets);
-      radeon_emit(cs, tcs_out_layout);
-      radeon_emit(cs, tcs_in_layout);
+         R_00B430_SPI_SHADER_USER_DATA_HS_0 + GFX6_SGPR_TCS_OFFCHIP_LAYOUT * 4, 4);
+      radeon_emit(offchip_layout);
+      radeon_emit(tcs_out_offsets);
+      radeon_emit(tcs_out_layout);
+      radeon_emit(tcs_in_layout);
    }
 
    /* Set userdata SGPRs for TES. */
-   radeon_set_sh_reg_seq(cs, tes_sh_base + SI_SGPR_TES_OFFCHIP_LAYOUT * 4, 2);
-   radeon_emit(cs, offchip_layout);
-   radeon_emit(cs, ring_va);
+   radeon_set_sh_reg_seq(tes_sh_base + SI_SGPR_TES_OFFCHIP_LAYOUT * 4, 2);
+   radeon_emit(offchip_layout);
+   radeon_emit(ring_va);
    radeon_end();
 
    unsigned ls_hs_config =
@@ -759,9 +763,9 @@ static void si_emit_derived_tess_state(struct si_context *sctx, unsigned *num_pa
    if (sctx->last_ls_hs_config != ls_hs_config) {
       radeon_begin(cs);
       if (sctx->chip_class >= GFX7) {
-         radeon_set_context_reg_idx(cs, R_028B58_VGT_LS_HS_CONFIG, 2, ls_hs_config);
+         radeon_set_context_reg_idx(R_028B58_VGT_LS_HS_CONFIG, 2, ls_hs_config);
       } else {
-         radeon_set_context_reg(cs, R_028B58_VGT_LS_HS_CONFIG, ls_hs_config);
+         radeon_set_context_reg(R_028B58_VGT_LS_HS_CONFIG, ls_hs_config);
       }
       radeon_end_update_context_roll(sctx);
       sctx->last_ls_hs_config = ls_hs_config;
@@ -942,6 +946,12 @@ static bool si_is_line_stipple_enabled(struct si_context *sctx)
           (rs->polygon_mode_is_lines || util_prim_is_lines(sctx->current_rast_prim));
 }
 
+enum si_is_draw_vertex_state {
+   DRAW_VERTEX_STATE_OFF,
+   DRAW_VERTEX_STATE_ON,
+};
+
+template <si_is_draw_vertex_state IS_DRAW_VERTEX_STATE> ALWAYS_INLINE
 static bool num_instanced_prims_less_than(const struct pipe_draw_indirect_info *indirect,
                                           enum pipe_prim_type prim,
                                           unsigned min_vertex_count,
@@ -949,6 +959,9 @@ static bool num_instanced_prims_less_than(const struct pipe_draw_indirect_info *
                                           unsigned num_prims,
                                           ubyte vertices_per_patch)
 {
+   if (IS_DRAW_VERTEX_STATE)
+      return 0;
+
    if (indirect) {
       return indirect->buffer ||
              (instance_count > 1 && indirect->count_from_stream_output);
@@ -958,7 +971,8 @@ static bool num_instanced_prims_less_than(const struct pipe_draw_indirect_info *
    }
 }
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS> ALWAYS_INLINE
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE> ALWAYS_INLINE
 static unsigned si_get_ia_multi_vgt_param(struct si_context *sctx,
                                           const struct pipe_draw_indirect_info *indirect,
                                           enum pipe_prim_type prim, unsigned num_patches,
@@ -978,12 +992,15 @@ static unsigned si_get_ia_multi_vgt_param(struct si_context *sctx,
    }
 
    key.u.prim = prim;
-   key.u.uses_instancing = (indirect && indirect->buffer) || instance_count > 1;
+   key.u.uses_instancing = !IS_DRAW_VERTEX_STATE &&
+                           ((indirect && indirect->buffer) || instance_count > 1);
    key.u.multi_instances_smaller_than_primgroup =
-      num_instanced_prims_less_than(indirect, prim, min_vertex_count, instance_count,
-                                    primgroup_size, sctx->patch_vertices);
-   key.u.primitive_restart = primitive_restart;
-   key.u.count_from_stream_output = indirect && indirect->count_from_stream_output;
+      num_instanced_prims_less_than<IS_DRAW_VERTEX_STATE>(indirect, prim, min_vertex_count,
+                                                          instance_count, primgroup_size,
+                                                          sctx->patch_vertices);
+   key.u.primitive_restart = !IS_DRAW_VERTEX_STATE && primitive_restart;
+   key.u.count_from_stream_output = !IS_DRAW_VERTEX_STATE && indirect &&
+                                    indirect->count_from_stream_output;
    key.u.line_stipple_enabled = si_is_line_stipple_enabled(sctx);
 
    ia_multi_vgt_param =
@@ -1001,8 +1018,8 @@ static unsigned si_get_ia_multi_vgt_param(struct si_context *sctx,
        */
       if (GFX_VERSION == GFX7 &&
           sctx->family == CHIP_HAWAII && G_028AA8_SWITCH_ON_EOI(ia_multi_vgt_param) &&
-          num_instanced_prims_less_than(indirect, prim, min_vertex_count, instance_count, 2,
-                                        sctx->patch_vertices))
+          num_instanced_prims_less_than<IS_DRAW_VERTEX_STATE>(indirect, prim, min_vertex_count,
+                                                              instance_count, 2, sctx->patch_vertices))
          sctx->flags |= SI_CONTEXT_VGT_FLUSH;
    }
 
@@ -1061,7 +1078,7 @@ static void si_emit_rasterizer_prim_state(struct si_context *sctx)
 
    unsigned gs_out_prim = si_conv_prim_to_gs_out(rast_prim);
    if (unlikely(gs_out_prim != sctx->last_gs_out_prim && (NGG || HAS_GS))) {
-      radeon_set_context_reg(cs, R_028A6C_VGT_GS_OUT_PRIM_TYPE, gs_out_prim);
+      radeon_set_context_reg(R_028A6C_VGT_GS_OUT_PRIM_TYPE, gs_out_prim);
       sctx->last_gs_out_prim = gs_out_prim;
    }
 
@@ -1087,11 +1104,11 @@ static void si_emit_rasterizer_prim_state(struct si_context *sctx)
    }
 }
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG>
-ALWAYS_INLINE
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE> ALWAYS_INLINE
 static void si_emit_vs_state(struct si_context *sctx, unsigned index_size)
 {
-   if (sctx->num_vs_blit_sgprs) {
+   if (!IS_DRAW_VERTEX_STATE && sctx->num_vs_blit_sgprs) {
       /* Re-emit the state after we leave u_blitter. */
       sctx->last_vs_state = ~0;
       return;
@@ -1109,7 +1126,7 @@ static void si_emit_vs_state(struct si_context *sctx, unsigned index_size)
       unsigned vs_base = si_get_user_data_base(GFX_VERSION, HAS_TESS, HAS_GS, NGG,
                                                PIPE_SHADER_VERTEX);
       radeon_begin(cs);
-      radeon_set_sh_reg(cs, vs_base + SI_SGPR_VS_STATE_BITS * 4,
+      radeon_set_sh_reg(vs_base + SI_SGPR_VS_STATE_BITS * 4,
                         sctx->current_vs_state);
 
       /* Set CLAMP_VERTEX_COLOR and OUTPRIM in the last stage
@@ -1118,13 +1135,13 @@ static void si_emit_vs_state(struct si_context *sctx, unsigned index_size)
        * For TES or the GS copy shader without NGG:
        */
       if (vs_base != R_00B130_SPI_SHADER_USER_DATA_VS_0) {
-         radeon_set_sh_reg(cs, R_00B130_SPI_SHADER_USER_DATA_VS_0 + SI_SGPR_VS_STATE_BITS * 4,
+         radeon_set_sh_reg(R_00B130_SPI_SHADER_USER_DATA_VS_0 + SI_SGPR_VS_STATE_BITS * 4,
                            sctx->current_vs_state);
       }
 
       /* For NGG: */
       if (GFX_VERSION >= GFX10 && vs_base != R_00B230_SPI_SHADER_USER_DATA_GS_0) {
-         radeon_set_sh_reg(cs, R_00B230_SPI_SHADER_USER_DATA_GS_0 + SI_SGPR_VS_STATE_BITS * 4,
+         radeon_set_sh_reg(R_00B230_SPI_SHADER_USER_DATA_GS_0 + SI_SGPR_VS_STATE_BITS * 4,
                            sctx->current_vs_state);
       }
       radeon_end();
@@ -1141,7 +1158,8 @@ static bool si_prim_restart_index_changed(struct si_context *sctx, bool primitiv
                                 sctx->last_restart_index == SI_RESTART_INDEX_UNKNOWN);
 }
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS> ALWAYS_INLINE
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE> ALWAYS_INLINE
 static void si_emit_ia_multi_vgt_param(struct si_context *sctx,
                                        const struct pipe_draw_indirect_info *indirect,
                                        enum pipe_prim_type prim, unsigned num_patches,
@@ -1152,7 +1170,7 @@ static void si_emit_ia_multi_vgt_param(struct si_context *sctx,
    unsigned ia_multi_vgt_param;
 
    ia_multi_vgt_param =
-      si_get_ia_multi_vgt_param<GFX_VERSION, HAS_TESS, HAS_GS>
+      si_get_ia_multi_vgt_param<GFX_VERSION, HAS_TESS, HAS_GS, IS_DRAW_VERTEX_STATE>
          (sctx, indirect, prim, num_patches, instance_count, primitive_restart,
           min_vertex_count);
 
@@ -1161,12 +1179,12 @@ static void si_emit_ia_multi_vgt_param(struct si_context *sctx,
       radeon_begin(cs);
 
       if (GFX_VERSION == GFX9)
-         radeon_set_uconfig_reg_idx(cs, sctx->screen, GFX_VERSION,
+         radeon_set_uconfig_reg_idx(sctx->screen, GFX_VERSION,
                                     R_030960_IA_MULTI_VGT_PARAM, 4, ia_multi_vgt_param);
       else if (GFX_VERSION >= GFX7)
-         radeon_set_context_reg_idx(cs, R_028AA8_IA_MULTI_VGT_PARAM, 1, ia_multi_vgt_param);
+         radeon_set_context_reg_idx(R_028AA8_IA_MULTI_VGT_PARAM, 1, ia_multi_vgt_param);
       else
-         radeon_set_context_reg(cs, R_028AA8_IA_MULTI_VGT_PARAM, ia_multi_vgt_param);
+         radeon_set_context_reg(R_028AA8_IA_MULTI_VGT_PARAM, ia_multi_vgt_param);
 
       radeon_end();
 
@@ -1217,13 +1235,14 @@ static void gfx10_emit_ge_cntl(struct si_context *sctx, unsigned num_patches)
       struct radeon_cmdbuf *cs = &sctx->gfx_cs;
 
       radeon_begin(cs);
-      radeon_set_uconfig_reg(cs, R_03096C_GE_CNTL, ge_cntl);
+      radeon_set_uconfig_reg(R_03096C_GE_CNTL, ge_cntl);
       radeon_end();
       sctx->last_multi_vgt_param = ge_cntl;
    }
 }
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG> ALWAYS_INLINE
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE> ALWAYS_INLINE
 static void si_emit_draw_registers(struct si_context *sctx,
                                    const struct pipe_draw_indirect_info *indirect,
                                    enum pipe_prim_type prim, unsigned num_patches,
@@ -1232,10 +1251,13 @@ static void si_emit_draw_registers(struct si_context *sctx,
 {
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
 
+   if (IS_DRAW_VERTEX_STATE)
+      primitive_restart = false;
+
    if (GFX_VERSION >= GFX10)
       gfx10_emit_ge_cntl<GFX_VERSION, HAS_TESS, HAS_GS, NGG>(sctx, num_patches);
    else
-      si_emit_ia_multi_vgt_param<GFX_VERSION, HAS_TESS, HAS_GS>
+      si_emit_ia_multi_vgt_param<GFX_VERSION, HAS_TESS, HAS_GS, IS_DRAW_VERTEX_STATE>
          (sctx, indirect, prim, num_patches, instance_count, primitive_restart,
           min_vertex_count);
 
@@ -1245,11 +1267,11 @@ static void si_emit_draw_registers(struct si_context *sctx,
       unsigned vgt_prim = si_conv_pipe_prim(prim);
 
       if (GFX_VERSION >= GFX10)
-         radeon_set_uconfig_reg(cs, R_030908_VGT_PRIMITIVE_TYPE, vgt_prim);
+         radeon_set_uconfig_reg(R_030908_VGT_PRIMITIVE_TYPE, vgt_prim);
       else if (GFX_VERSION >= GFX7)
-         radeon_set_uconfig_reg_idx(cs, sctx->screen, GFX_VERSION, R_030908_VGT_PRIMITIVE_TYPE, 1, vgt_prim);
+         radeon_set_uconfig_reg_idx(sctx->screen, GFX_VERSION, R_030908_VGT_PRIMITIVE_TYPE, 1, vgt_prim);
       else
-         radeon_set_config_reg(cs, R_008958_VGT_PRIMITIVE_TYPE, vgt_prim);
+         radeon_set_config_reg(R_008958_VGT_PRIMITIVE_TYPE, vgt_prim);
 
       sctx->last_prim = prim;
    }
@@ -1257,14 +1279,14 @@ static void si_emit_draw_registers(struct si_context *sctx,
    /* Primitive restart. */
    if (primitive_restart != sctx->last_primitive_restart_en) {
       if (GFX_VERSION >= GFX9)
-         radeon_set_uconfig_reg(cs, R_03092C_VGT_MULTI_PRIM_IB_RESET_EN, primitive_restart);
+         radeon_set_uconfig_reg(R_03092C_VGT_MULTI_PRIM_IB_RESET_EN, primitive_restart);
       else
-         radeon_set_context_reg(cs, R_028A94_VGT_MULTI_PRIM_IB_RESET_EN, primitive_restart);
+         radeon_set_context_reg(R_028A94_VGT_MULTI_PRIM_IB_RESET_EN, primitive_restart);
 
       sctx->last_primitive_restart_en = primitive_restart;
    }
    if (si_prim_restart_index_changed(sctx, primitive_restart, restart_index)) {
-      radeon_set_context_reg(cs, R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX, restart_index);
+      radeon_set_context_reg(R_02840C_VGT_MULTI_PRIM_IB_RESET_INDX, restart_index);
       sctx->last_restart_index = restart_index;
       if (GFX_VERSION == GFX9)
          sctx->context_roll = true;
@@ -1275,15 +1297,14 @@ static void si_emit_draw_registers(struct si_context *sctx,
 #define EMIT_SQTT_END_DRAW do {                                          \
       if (GFX_VERSION >= GFX9 && unlikely(sctx->thread_trace_enabled)) { \
          radeon_begin(&sctx->gfx_cs);                                    \
-         radeon_emit(&sctx->gfx_cs, PKT3(PKT3_EVENT_WRITE, 0, 0));       \
-         radeon_emit(&sctx->gfx_cs,                                      \
-                     EVENT_TYPE(V_028A90_THREAD_TRACE_MARKER) |          \
+         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));       \
+         radeon_emit(EVENT_TYPE(V_028A90_THREAD_TRACE_MARKER) |          \
                      EVENT_INDEX(0));                                    \
          radeon_end();                                      \
       }                                                                  \
    } while (0)
 
-template <chip_class GFX_VERSION, si_has_ngg NGG>
+template <chip_class GFX_VERSION, si_has_ngg NGG, si_is_draw_vertex_state IS_DRAW_VERTEX_STATE>
 ALWAYS_INLINE
 static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw_info *info,
                                  unsigned drawid_base,
@@ -1303,11 +1324,11 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
 
    uint32_t use_opaque = 0;
 
-   if (indirect && indirect->count_from_stream_output) {
+   if (!IS_DRAW_VERTEX_STATE && indirect && indirect->count_from_stream_output) {
       struct si_streamout_target *t = (struct si_streamout_target *)indirect->count_from_stream_output;
 
       radeon_begin(cs);
-      radeon_set_context_reg(cs, R_028B30_VGT_STRMOUT_DRAW_OPAQUE_VERTEX_STRIDE, t->stride_in_dw);
+      radeon_set_context_reg(R_028B30_VGT_STRMOUT_DRAW_OPAQUE_VERTEX_STRIDE, t->stride_in_dw);
       radeon_end();
 
       si_cp_copy_data(sctx, &sctx->gfx_cs, COPY_DATA_REG, NULL,
@@ -1344,11 +1365,11 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
          }
 
          if (GFX_VERSION >= GFX9) {
-            radeon_set_uconfig_reg_idx(cs, sctx->screen, GFX_VERSION,
+            radeon_set_uconfig_reg_idx(sctx->screen, GFX_VERSION,
                                        R_03090C_VGT_INDEX_TYPE, 2, index_type);
          } else {
-            radeon_emit(cs, PKT3(PKT3_INDEX_TYPE, 0, 0));
-            radeon_emit(cs, index_type);
+            radeon_emit(PKT3(PKT3_INDEX_TYPE, 0, 0));
+            radeon_emit(index_type);
          }
 
          sctx->last_index_size = index_size;
@@ -1378,7 +1399,7 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
    unsigned sh_base_reg = sctx->shader_pointers.sh_base[PIPE_SHADER_VERTEX];
    bool render_cond_bit = sctx->render_cond_enabled;
 
-   if (indirect) {
+   if (!IS_DRAW_VERTEX_STATE && indirect) {
       assert(num_draws == 1);
       uint64_t indirect_va = si_resource(indirect->buffer)->gpu_address;
 
@@ -1386,10 +1407,10 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
 
       si_invalidate_draw_constants(sctx);
 
-      radeon_emit(cs, PKT3(PKT3_SET_BASE, 2, 0));
-      radeon_emit(cs, 1);
-      radeon_emit(cs, indirect_va);
-      radeon_emit(cs, indirect_va >> 32);
+      radeon_emit(PKT3(PKT3_SET_BASE, 2, 0));
+      radeon_emit(1);
+      radeon_emit(indirect_va);
+      radeon_emit(indirect_va >> 32);
 
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(indirect->buffer),
                                 RADEON_USAGE_READ, RADEON_PRIO_DRAW_INDIRECT);
@@ -1399,21 +1420,21 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
       assert(indirect->offset % 4 == 0);
 
       if (index_size) {
-         radeon_emit(cs, PKT3(PKT3_INDEX_BASE, 1, 0));
-         radeon_emit(cs, index_va);
-         radeon_emit(cs, index_va >> 32);
+         radeon_emit(PKT3(PKT3_INDEX_BASE, 1, 0));
+         radeon_emit(index_va);
+         radeon_emit(index_va >> 32);
 
-         radeon_emit(cs, PKT3(PKT3_INDEX_BUFFER_SIZE, 0, 0));
-         radeon_emit(cs, index_max_size);
+         radeon_emit(PKT3(PKT3_INDEX_BUFFER_SIZE, 0, 0));
+         radeon_emit(index_max_size);
       }
 
       if (!sctx->screen->has_draw_indirect_multi) {
-         radeon_emit(cs, PKT3(index_size ? PKT3_DRAW_INDEX_INDIRECT : PKT3_DRAW_INDIRECT, 3,
-                              render_cond_bit));
-         radeon_emit(cs, indirect->offset);
-         radeon_emit(cs, (sh_base_reg + SI_SGPR_BASE_VERTEX * 4 - SI_SH_REG_OFFSET) >> 2);
-         radeon_emit(cs, (sh_base_reg + SI_SGPR_START_INSTANCE * 4 - SI_SH_REG_OFFSET) >> 2);
-         radeon_emit(cs, di_src_sel);
+         radeon_emit(PKT3(index_size ? PKT3_DRAW_INDEX_INDIRECT : PKT3_DRAW_INDIRECT, 3,
+                          render_cond_bit));
+         radeon_emit(indirect->offset);
+         radeon_emit((sh_base_reg + SI_SGPR_BASE_VERTEX * 4 - SI_SH_REG_OFFSET) >> 2);
+         radeon_emit((sh_base_reg + SI_SGPR_START_INSTANCE * 4 - SI_SH_REG_OFFSET) >> 2);
+         radeon_emit(di_src_sel);
       } else {
          uint64_t count_va = 0;
 
@@ -1426,44 +1447,43 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
             count_va = params_buf->gpu_address + indirect->indirect_draw_count_offset;
          }
 
-         radeon_emit(cs,
-                     PKT3(index_size ? PKT3_DRAW_INDEX_INDIRECT_MULTI : PKT3_DRAW_INDIRECT_MULTI, 8,
+         radeon_emit(PKT3(index_size ? PKT3_DRAW_INDEX_INDIRECT_MULTI : PKT3_DRAW_INDIRECT_MULTI, 8,
                           render_cond_bit));
-         radeon_emit(cs, indirect->offset);
-         radeon_emit(cs, (sh_base_reg + SI_SGPR_BASE_VERTEX * 4 - SI_SH_REG_OFFSET) >> 2);
-         radeon_emit(cs, (sh_base_reg + SI_SGPR_START_INSTANCE * 4 - SI_SH_REG_OFFSET) >> 2);
-         radeon_emit(cs, ((sh_base_reg + SI_SGPR_DRAWID * 4 - SI_SH_REG_OFFSET) >> 2) |
-                            S_2C3_DRAW_INDEX_ENABLE(sctx->shader.vs.cso->info.uses_drawid) |
-                            S_2C3_COUNT_INDIRECT_ENABLE(!!indirect->indirect_draw_count));
-         radeon_emit(cs, indirect->draw_count);
-         radeon_emit(cs, count_va);
-         radeon_emit(cs, count_va >> 32);
-         radeon_emit(cs, indirect->stride);
-         radeon_emit(cs, di_src_sel);
+         radeon_emit(indirect->offset);
+         radeon_emit((sh_base_reg + SI_SGPR_BASE_VERTEX * 4 - SI_SH_REG_OFFSET) >> 2);
+         radeon_emit((sh_base_reg + SI_SGPR_START_INSTANCE * 4 - SI_SH_REG_OFFSET) >> 2);
+         radeon_emit(((sh_base_reg + SI_SGPR_DRAWID * 4 - SI_SH_REG_OFFSET) >> 2) |
+                     S_2C3_DRAW_INDEX_ENABLE(sctx->shader.vs.cso->info.uses_drawid) |
+                     S_2C3_COUNT_INDIRECT_ENABLE(!!indirect->indirect_draw_count));
+         radeon_emit(indirect->draw_count);
+         radeon_emit(count_va);
+         radeon_emit(count_va >> 32);
+         radeon_emit(indirect->stride);
+         radeon_emit(di_src_sel);
       }
    } else {
       /* Register shadowing requires that we always emit PKT3_NUM_INSTANCES. */
       if (sctx->shadowed_regs ||
           sctx->last_instance_count == SI_INSTANCE_COUNT_UNKNOWN ||
           sctx->last_instance_count != instance_count) {
-         radeon_emit(cs, PKT3(PKT3_NUM_INSTANCES, 0, 0));
-         radeon_emit(cs, instance_count);
+         radeon_emit(PKT3(PKT3_NUM_INSTANCES, 0, 0));
+         radeon_emit(instance_count);
          sctx->last_instance_count = instance_count;
       }
 
       /* Base vertex and start instance. */
       int base_vertex = original_index_size ? draws[0].index_bias : draws[0].start;
 
-      bool set_draw_id = sctx->vs_uses_draw_id;
+      bool set_draw_id = !IS_DRAW_VERTEX_STATE && sctx->vs_uses_draw_id;
       bool set_base_instance = sctx->vs_uses_base_instance;
 
-      if (sctx->num_vs_blit_sgprs) {
+      if (!IS_DRAW_VERTEX_STATE && sctx->num_vs_blit_sgprs) {
          /* Re-emit draw constants after we leave u_blitter. */
          si_invalidate_draw_sh_constants(sctx);
 
          /* Blit VS doesn't use BASE_VERTEX, START_INSTANCE, and DRAWID. */
-         radeon_set_sh_reg_seq(cs, sh_base_reg + SI_SGPR_VS_BLIT_DATA * 4, sctx->num_vs_blit_sgprs);
-         radeon_emit_array(cs, sctx->vs_blit_sh_data, sctx->num_vs_blit_sgprs);
+         radeon_set_sh_reg_seq(sh_base_reg + SI_SGPR_VS_BLIT_DATA * 4, sctx->num_vs_blit_sgprs);
+         radeon_emit_array(sctx->vs_blit_sh_data, sctx->num_vs_blit_sgprs);
       } else if (base_vertex != sctx->last_base_vertex ||
                  sctx->last_base_vertex == SI_BASE_VERTEX_UNKNOWN ||
                  (set_base_instance &&
@@ -1474,21 +1494,21 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
                    sctx->last_drawid == SI_DRAW_ID_UNKNOWN)) ||
                  sh_base_reg != sctx->last_sh_base_reg) {
          if (set_base_instance) {
-            radeon_set_sh_reg_seq(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 3);
-            radeon_emit(cs, base_vertex);
-            radeon_emit(cs, drawid_base);
-            radeon_emit(cs, info->start_instance);
+            radeon_set_sh_reg_seq(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 3);
+            radeon_emit(base_vertex);
+            radeon_emit(drawid_base);
+            radeon_emit(info->start_instance);
 
             sctx->last_start_instance = info->start_instance;
             sctx->last_drawid = drawid_base;
          } else if (set_draw_id) {
-            radeon_set_sh_reg_seq(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 2);
-            radeon_emit(cs, base_vertex);
-            radeon_emit(cs, drawid_base);
+            radeon_set_sh_reg_seq(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 2);
+            radeon_emit(base_vertex);
+            radeon_emit(drawid_base);
 
             sctx->last_drawid = drawid_base;
          } else {
-            radeon_set_sh_reg(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, base_vertex);
+            radeon_set_sh_reg(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, base_vertex);
          }
 
          sctx->last_base_vertex = base_vertex;
@@ -1496,7 +1516,8 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
       }
 
       /* Don't update draw_id in the following code if it doesn't increment. */
-      bool increment_draw_id = num_draws > 1 && set_draw_id && info->increment_draw_id;
+      bool increment_draw_id = !IS_DRAW_VERTEX_STATE && num_draws > 1 &&
+                               set_draw_id && info->increment_draw_id;
 
       if (index_size) {
          /* NOT_EOP allows merging multiple draws into 1 wave, but only user VGPRs
@@ -1514,7 +1535,8 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
           *  else for (all draws);
           *
           */
-         bool index_bias_varies = num_draws > 1 && info->index_bias_varies;
+         bool index_bias_varies = !IS_DRAW_VERTEX_STATE && num_draws > 1 &&
+                                  info->index_bias_varies;
 
          if (increment_draw_id) {
             if (index_bias_varies) {
@@ -1522,17 +1544,17 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
                   uint64_t va = index_va + draws[i].start * index_size;
 
                   if (i > 0) {
-                     radeon_set_sh_reg_seq(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 2);
-                     radeon_emit(cs, draws[i].index_bias);
-                     radeon_emit(cs, drawid_base + i);
+                     radeon_set_sh_reg_seq(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 2);
+                     radeon_emit(draws[i].index_bias);
+                     radeon_emit(drawid_base + i);
                   }
 
-                  radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
-                  radeon_emit(cs, index_max_size);
-                  radeon_emit(cs, va);
-                  radeon_emit(cs, va >> 32);
-                  radeon_emit(cs, draws[i].count);
-                  radeon_emit(cs, V_0287F0_DI_SRC_SEL_DMA); /* NOT_EOP disabled */
+                  radeon_emit(PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
+                  radeon_emit(index_max_size);
+                  radeon_emit(va);
+                  radeon_emit(va >> 32);
+                  radeon_emit(draws[i].count);
+                  radeon_emit(V_0287F0_DI_SRC_SEL_DMA); /* NOT_EOP disabled */
                }
                if (num_draws > 1) {
                   sctx->last_base_vertex = draws[num_draws - 1].index_bias;
@@ -1544,14 +1566,14 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
                   uint64_t va = index_va + draws[i].start * index_size;
 
                   if (i > 0)
-                     radeon_set_sh_reg(cs, sh_base_reg + SI_SGPR_DRAWID * 4, drawid_base + i);
+                     radeon_set_sh_reg(sh_base_reg + SI_SGPR_DRAWID * 4, drawid_base + i);
 
-                  radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
-                  radeon_emit(cs, index_max_size);
-                  radeon_emit(cs, va);
-                  radeon_emit(cs, va >> 32);
-                  radeon_emit(cs, draws[i].count);
-                  radeon_emit(cs, V_0287F0_DI_SRC_SEL_DMA); /* NOT_EOP disabled */
+                  radeon_emit(PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
+                  radeon_emit(index_max_size);
+                  radeon_emit(va);
+                  radeon_emit(va >> 32);
+                  radeon_emit(draws[i].count);
+                  radeon_emit(V_0287F0_DI_SRC_SEL_DMA); /* NOT_EOP disabled */
                }
                if (num_draws > 1)
                   sctx->last_drawid = drawid_base + num_draws - 1;
@@ -1563,14 +1585,14 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
                   uint64_t va = index_va + draws[i].start * index_size;
 
                   if (i > 0)
-                     radeon_set_sh_reg(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, draws[i].index_bias);
+                     radeon_set_sh_reg(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, draws[i].index_bias);
 
-                  radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
-                  radeon_emit(cs, index_max_size);
-                  radeon_emit(cs, va);
-                  radeon_emit(cs, va >> 32);
-                  radeon_emit(cs, draws[i].count);
-                  radeon_emit(cs, V_0287F0_DI_SRC_SEL_DMA); /* NOT_EOP disabled */
+                  radeon_emit(PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
+                  radeon_emit(index_max_size);
+                  radeon_emit(va);
+                  radeon_emit(va >> 32);
+                  radeon_emit(draws[i].count);
+                  radeon_emit(V_0287F0_DI_SRC_SEL_DMA); /* NOT_EOP disabled */
                }
                if (num_draws > 1)
                   sctx->last_base_vertex = draws[num_draws - 1].index_bias;
@@ -1589,72 +1611,37 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
                for (unsigned i = 0; i < num_draws; i++) {
                   uint64_t va = index_va + draws[i].start * index_size;
 
-                  radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
-                  radeon_emit(cs, index_max_size);
-                  radeon_emit(cs, va);
-                  radeon_emit(cs, va >> 32);
-                  radeon_emit(cs, draws[i].count);
-                  radeon_emit(cs, V_0287F0_DI_SRC_SEL_DMA |
+                  radeon_emit(PKT3(PKT3_DRAW_INDEX_2, 4, render_cond_bit));
+                  radeon_emit(index_max_size);
+                  radeon_emit(va);
+                  radeon_emit(va >> 32);
+                  radeon_emit(draws[i].count);
+                  radeon_emit(V_0287F0_DI_SRC_SEL_DMA |
                               S_0287F0_NOT_EOP(GFX_VERSION >= GFX10 && i < num_draws - 1));
                }
             }
          }
       } else {
-         /* Set the index buffer for fast launch. The VS prolog will load the indices. */
-         if (NGG && sctx->ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_INDEX_SIZE_PACKED(~0)) {
-            index_max_size = (indexbuf->width0 - index_offset) >> util_logbase2(original_index_size);
-
-            radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(indexbuf),
-                                      RADEON_USAGE_READ, RADEON_PRIO_INDEX_BUFFER);
-            uint64_t base_index_va = si_resource(indexbuf)->gpu_address + index_offset;
-
-            for (unsigned i = 0; i < num_draws; i++) {
-               uint64_t index_va = base_index_va + draws[i].start * original_index_size;
-
-               radeon_set_sh_reg_seq(cs, R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS, 2);
-               radeon_emit(cs, index_va);
-               radeon_emit(cs, index_va >> 32);
-
-               if (i > 0) {
-                  if (increment_draw_id) {
-                     unsigned draw_id = drawid_base + i;
-
-                     radeon_set_sh_reg(cs, sh_base_reg + SI_SGPR_DRAWID * 4, draw_id);
-                     sctx->last_drawid = draw_id;
-                  }
-               }
-
-               /* TODO: Do index buffer bounds checking? We don't do it in this case. */
-               radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_AUTO, 1, render_cond_bit));
-               radeon_emit(cs, draws[i].count);
-               radeon_emit(cs, V_0287F0_DI_SRC_SEL_AUTO_INDEX);
-            }
-            radeon_end();
-
-            EMIT_SQTT_END_DRAW;
-            return;
-         }
-
          for (unsigned i = 0; i < num_draws; i++) {
             if (i > 0) {
                if (increment_draw_id) {
                   unsigned draw_id = drawid_base + i;
 
-                  radeon_set_sh_reg_seq(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 2);
-                  radeon_emit(cs, draws[i].start);
-                  radeon_emit(cs, draw_id);
+                  radeon_set_sh_reg_seq(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, 2);
+                  radeon_emit(draws[i].start);
+                  radeon_emit(draw_id);
 
                   sctx->last_drawid = draw_id;
                } else {
-                  radeon_set_sh_reg(cs, sh_base_reg + SI_SGPR_BASE_VERTEX * 4, draws[i].start);
+                  radeon_set_sh_reg(sh_base_reg + SI_SGPR_BASE_VERTEX * 4, draws[i].start);
                }
             }
 
-            radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_AUTO, 1, render_cond_bit));
-            radeon_emit(cs, draws[i].count);
-            radeon_emit(cs, V_0287F0_DI_SRC_SEL_AUTO_INDEX | use_opaque);
+            radeon_emit(PKT3(PKT3_DRAW_INDEX_AUTO, 1, render_cond_bit));
+            radeon_emit(draws[i].count);
+            radeon_emit(V_0287F0_DI_SRC_SEL_AUTO_INDEX | use_opaque);
          }
-         if (num_draws > 1 && !sctx->num_vs_blit_sgprs)
+         if (num_draws > 1 && (IS_DRAW_VERTEX_STATE || !sctx->num_vs_blit_sgprs))
             sctx->last_base_vertex = draws[num_draws - 1].start;
       }
    }
@@ -1663,20 +1650,135 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
    EMIT_SQTT_END_DRAW;
 }
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG> ALWAYS_INLINE
-static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx)
+/* Return false if not bound. */
+template<chip_class GFX_VERSION>
+static bool ALWAYS_INLINE si_set_vb_descriptor(struct si_vertex_elements *velems,
+                                               struct pipe_vertex_buffer *vb,
+                                               unsigned index, /* vertex element index */
+                                               uint32_t *desc) /* where to upload descriptors */
 {
-   unsigned count = sctx->num_vertex_elements;
+   struct si_resource *buf = si_resource(vb->buffer.resource);
+   if (!buf) {
+      memset(desc, 0, 16);
+      return false;
+   }
+
+   int64_t offset = (int64_t)((int)vb->buffer_offset) + velems->src_offset[index];
+
+   if (offset >= buf->b.b.width0) {
+      assert(offset < buf->b.b.width0);
+      memset(desc, 0, 16);
+      return false;
+   }
+
+   uint64_t va = buf->gpu_address + offset;
+
+   int64_t num_records = (int64_t)buf->b.b.width0 - offset;
+   if (GFX_VERSION != GFX8 && vb->stride) {
+      /* Round up by rounding down and adding 1 */
+      num_records = (num_records - velems->format_size[index]) / vb->stride + 1;
+   }
+   assert(num_records >= 0 && num_records <= UINT_MAX);
+
+   uint32_t rsrc_word3 = velems->rsrc_word3[index];
+
+   /* OOB_SELECT chooses the out-of-bounds check:
+    *  - 1: index >= NUM_RECORDS (Structured)
+    *  - 3: offset >= NUM_RECORDS (Raw)
+    */
+   if (GFX_VERSION >= GFX10)
+      rsrc_word3 |= S_008F0C_OOB_SELECT(vb->stride ? V_008F0C_OOB_SELECT_STRUCTURED
+                                                   : V_008F0C_OOB_SELECT_RAW);
+
+   desc[0] = va;
+   desc[1] = S_008F04_BASE_ADDRESS_HI(va >> 32) | S_008F04_STRIDE(vb->stride);
+   desc[2] = num_records;
+   desc[3] = rsrc_word3;
+   return true;
+}
+
+#if GFX_VER == 6 /* declare this function only once because it supports all chips. */
+
+void si_set_vertex_buffer_descriptor(struct si_screen *sscreen, struct si_vertex_elements *velems,
+                                     struct pipe_vertex_buffer *vb, unsigned element_index,
+                                     uint32_t *out)
+{
+   switch (sscreen->info.chip_class) {
+   case GFX6:
+      si_set_vb_descriptor<GFX6>(velems, vb, element_index, out);
+      break;
+   case GFX7:
+      si_set_vb_descriptor<GFX7>(velems, vb, element_index, out);
+      break;
+   case GFX8:
+      si_set_vb_descriptor<GFX8>(velems, vb, element_index, out);
+      break;
+   case GFX9:
+      si_set_vb_descriptor<GFX9>(velems, vb, element_index, out);
+      break;
+   case GFX10:
+      si_set_vb_descriptor<GFX10>(velems, vb, element_index, out);
+      break;
+   case GFX10_3:
+      si_set_vb_descriptor<GFX10_3>(velems, vb, element_index, out);
+      break;
+   default:
+      unreachable("unhandled chip class");
+   }
+}
+
+#endif
+
+/* util_bitcount has large measurable overhead (~2% difference in viewperf),  so we use
+ * the POPCNT x86 instruction via inline assembly if the CPU supports it.
+ */
+enum si_has_popcnt {
+   POPCNT_NO,
+   POPCNT_YES,
+};
+
+template<si_has_popcnt POPCNT>
+unsigned bitcount_asm(unsigned n)
+{
+   if (POPCNT == POPCNT_YES)
+      return util_popcnt_inline_asm(n);
+   else
+      return util_bitcount(n);
+}
+
+template<si_has_popcnt POPCNT>
+static ALWAYS_INLINE unsigned get_next_vertex_state_elem(struct pipe_vertex_state *state,
+                                                         uint32_t *partial_velem_mask)
+{
+   unsigned semantic_index = u_bit_scan(partial_velem_mask);
+   assert(state->input.full_velem_mask & BITFIELD_BIT(semantic_index));
+   /* A prefix mask of the full mask gives us the index in pipe_vertex_state. */
+   return bitcount_asm<POPCNT>(state->input.full_velem_mask & BITFIELD_MASK(semantic_index));
+}
+
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE, si_has_popcnt POPCNT> ALWAYS_INLINE
+static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
+                                                  struct pipe_vertex_state *state,
+                                                  uint32_t partial_velem_mask)
+{
+   struct si_vertex_state *vstate = (struct si_vertex_state *)state;
+   unsigned count = IS_DRAW_VERTEX_STATE ? bitcount_asm<POPCNT>(partial_velem_mask) :
+                                           sctx->num_vertex_elements;
+   unsigned sh_base = si_get_user_data_base(GFX_VERSION, HAS_TESS, HAS_GS, NGG,
+                                            PIPE_SHADER_VERTEX);
    unsigned num_vbos_in_user_sgprs = si_num_vbos_in_user_sgprs_inline(GFX_VERSION);
    bool pointer_dirty, user_sgprs_dirty;
 
    assert(count <= SI_MAX_ATTRIBS);
 
-   if (sctx->vertex_buffers_dirty) {
+   if (sctx->vertex_buffers_dirty || IS_DRAW_VERTEX_STATE) {
       assert(count);
 
       struct si_vertex_elements *velems = sctx->vertex_elements;
-      unsigned alloc_size = velems->vb_desc_list_alloc_size;
+      unsigned alloc_size = IS_DRAW_VERTEX_STATE ?
+                               vstate->velems.vb_desc_list_alloc_size :
+                               velems->vb_desc_list_alloc_size;
       uint32_t *ptr;
 
       if (alloc_size) {
@@ -1703,64 +1805,63 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx)
          si_resource_reference(&sctx->vb_descriptors_buffer, NULL);
       }
 
-      unsigned first_vb_use_mask = velems->first_vb_use_mask;
+      if (IS_DRAW_VERTEX_STATE) {
+         unsigned i = 0;
 
-      for (unsigned i = 0; i < count; i++) {
-         struct pipe_vertex_buffer *vb;
-         struct si_resource *buf;
-         unsigned vbo_index = velems->vertex_buffer_index[i];
-         uint32_t *desc = i < num_vbos_in_user_sgprs ? &sctx->vb_descriptor_user_sgprs[i * 4]
-                                                     : &ptr[(i - num_vbos_in_user_sgprs) * 4];
+         if (num_vbos_in_user_sgprs) {
+            unsigned num_vb_sgprs = MIN2(count, num_vbos_in_user_sgprs) * 4;
 
-         vb = &sctx->vertex_buffer[vbo_index];
-         buf = si_resource(vb->buffer.resource);
-         if (!buf) {
-            memset(desc, 0, 16);
-            continue;
+            radeon_begin(&sctx->gfx_cs);
+            radeon_set_sh_reg_seq(sh_base + SI_SGPR_VS_VB_DESCRIPTOR_FIRST * 4, num_vb_sgprs);
+
+            for (; partial_velem_mask && i < num_vbos_in_user_sgprs; i++) {
+               unsigned velem_index = get_next_vertex_state_elem<POPCNT>(state, &partial_velem_mask);
+
+               radeon_emit_array(&vstate->descriptors[velem_index * 4], 4);
+            }
+            radeon_end();
          }
 
-         int64_t offset = (int64_t)((int)vb->buffer_offset) + velems->src_offset[i];
+         for (; partial_velem_mask; i++) {
+            unsigned velem_index = get_next_vertex_state_elem<POPCNT>(state, &partial_velem_mask);
+            uint32_t *desc = &ptr[(i - num_vbos_in_user_sgprs) * 4];
 
-         if (offset >= buf->b.b.width0) {
-            assert(offset < buf->b.b.width0);
-            memset(desc, 0, 16);
-            continue;
+            memcpy(desc, &vstate->descriptors[velem_index * 4], 16);
          }
 
-         uint64_t va = buf->gpu_address + offset;
-
-         int64_t num_records = (int64_t)buf->b.b.width0 - offset;
-         if (GFX_VERSION != GFX8 && vb->stride) {
-            /* Round up by rounding down and adding 1 */
-            num_records = (num_records - velems->format_size[i]) / vb->stride + 1;
-         }
-         assert(num_records >= 0 && num_records <= UINT_MAX);
-
-         uint32_t rsrc_word3 = velems->rsrc_word3[i];
-
-         /* OOB_SELECT chooses the out-of-bounds check:
-          *  - 1: index >= NUM_RECORDS (Structured)
-          *  - 3: offset >= NUM_RECORDS (Raw)
-          */
-         if (GFX_VERSION >= GFX10)
-            rsrc_word3 |= S_008F0C_OOB_SELECT(vb->stride ? V_008F0C_OOB_SELECT_STRUCTURED
-                                                         : V_008F0C_OOB_SELECT_RAW);
-
-         desc[0] = va;
-         desc[1] = S_008F04_BASE_ADDRESS_HI(va >> 32) | S_008F04_STRIDE(vb->stride);
-         desc[2] = num_records;
-         desc[3] = rsrc_word3;
-
-         if (first_vb_use_mask & (1 << i)) {
-            radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(vb->buffer.resource),
+         if (vstate->b.input.vbuffer.buffer.resource != vstate->b.input.indexbuf) {
+            radeon_add_to_buffer_list(sctx, &sctx->gfx_cs,
+                                      si_resource(vstate->b.input.vbuffer.buffer.resource),
                                       RADEON_USAGE_READ, RADEON_PRIO_VERTEX_BUFFER);
          }
+
+         /* The next draw_vbo should recompute and rebind vertex buffer descriptors. */
+         sctx->vertex_buffers_dirty = sctx->num_vertex_elements > 0;
+
+         user_sgprs_dirty = false; /* We just set them above. */
+         pointer_dirty = count > num_vbos_in_user_sgprs;
+      } else {
+         unsigned first_vb_use_mask = velems->first_vb_use_mask;
+
+         for (unsigned i = 0; i < count; i++) {
+            unsigned vbo_index = velems->vertex_buffer_index[i];
+            struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbo_index];
+            uint32_t *desc = i < num_vbos_in_user_sgprs ? &sctx->vb_descriptor_user_sgprs[i * 4]
+                                                        : &ptr[(i - num_vbos_in_user_sgprs) * 4];
+
+            if (!si_set_vb_descriptor<GFX_VERSION>(velems, vb, i, desc))
+               continue;
+
+            if (first_vb_use_mask & (1 << i)) {
+               radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(vb->buffer.resource),
+                                         RADEON_USAGE_READ, RADEON_PRIO_VERTEX_BUFFER);
+            }
+         }
+
+         sctx->vertex_buffers_dirty = false;
+         user_sgprs_dirty = num_vbos_in_user_sgprs > 0;
+         pointer_dirty = alloc_size != 0;
       }
-
-      sctx->vertex_buffers_dirty = false;
-
-      pointer_dirty = alloc_size != 0;
-      user_sgprs_dirty = num_vbos_in_user_sgprs > 0;
    } else {
       pointer_dirty = sctx->vertex_buffer_pointer_dirty;
       user_sgprs_dirty = sctx->vertex_buffer_user_sgprs_dirty;
@@ -1768,8 +1869,6 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx)
 
    if (pointer_dirty || user_sgprs_dirty) {
       struct radeon_cmdbuf *cs = &sctx->gfx_cs;
-      unsigned sh_base = si_get_user_data_base(GFX_VERSION, HAS_TESS, HAS_GS, NGG,
-                                               PIPE_SHADER_VERTEX);
       assert(count);
 
       radeon_begin(cs);
@@ -1785,7 +1884,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx)
                sh_dw_offset = GFX9_VSGS_NUM_USER_SGPR;
          }
 
-         radeon_set_sh_reg(cs, sh_base + sh_dw_offset * 4,
+         radeon_set_sh_reg(sh_base + sh_dw_offset * 4,
                            sctx->vb_descriptors_buffer->gpu_address +
                            sctx->vb_descriptors_offset);
          sctx->vertex_buffer_pointer_dirty = false;
@@ -1797,8 +1896,8 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx)
 
          unsigned num_sgprs = MIN2(count, num_vbos_in_user_sgprs) * 4;
 
-         radeon_set_sh_reg_seq(cs, sh_base + SI_SGPR_VS_VB_DESCRIPTOR_FIRST * 4, num_sgprs);
-         radeon_emit_array(cs, sctx->vb_descriptor_user_sgprs, num_sgprs);
+         radeon_set_sh_reg_seq(sh_base + SI_SGPR_VS_VB_DESCRIPTOR_FIRST * 4, num_sgprs);
+         radeon_emit_array(sctx->vb_descriptor_user_sgprs, num_sgprs);
          sctx->vertex_buffer_user_sgprs_dirty = false;
       }
       radeon_end();
@@ -1879,8 +1978,8 @@ static void si_get_draw_start_count(struct si_context *sctx, const struct pipe_d
    }
 }
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG>
-ALWAYS_INLINE
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE> ALWAYS_INLINE
 static void si_emit_all_states(struct si_context *sctx, const struct pipe_draw_info *info,
                                const struct pipe_draw_indirect_info *indirect,
                                enum pipe_prim_type prim, unsigned instance_count,
@@ -1921,8 +2020,8 @@ static void si_emit_all_states(struct si_context *sctx, const struct pipe_draw_i
    }
 
    /* Emit draw states. */
-   si_emit_vs_state<GFX_VERSION, HAS_TESS, HAS_GS, NGG>(sctx, info->index_size);
-   si_emit_draw_registers<GFX_VERSION, HAS_TESS, HAS_GS, NGG>
+   si_emit_vs_state<GFX_VERSION, HAS_TESS, HAS_GS, NGG, IS_DRAW_VERTEX_STATE>(sctx, info->index_size);
+   si_emit_draw_registers<GFX_VERSION, HAS_TESS, HAS_GS, NGG, IS_DRAW_VERTEX_STATE>
          (sctx, indirect, prim, num_patches, instance_count, primitive_restart,
           info->restart_index, min_vertex_count);
 }
@@ -1932,13 +2031,16 @@ static void si_emit_all_states(struct si_context *sctx, const struct pipe_draw_i
          pipe_resource_reference(&indexbuf, NULL);        \
    } while (0)
 
-template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG>
-static void si_draw_vbo(struct pipe_context *ctx,
-                        const struct pipe_draw_info *info,
-                        unsigned drawid_offset,
-                        const struct pipe_draw_indirect_info *indirect,
-                        const struct pipe_draw_start_count_bias *draws,
-                        unsigned num_draws)
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG,
+          si_is_draw_vertex_state IS_DRAW_VERTEX_STATE, si_has_popcnt POPCNT> ALWAYS_INLINE
+static void si_draw(struct pipe_context *ctx,
+                    const struct pipe_draw_info *info,
+                    unsigned drawid_offset,
+                    const struct pipe_draw_indirect_info *indirect,
+                    const struct pipe_draw_start_count_bias *draws,
+                    unsigned num_draws,
+                    struct pipe_vertex_state *state,
+                    uint32_t partial_velem_mask)
 {
    /* Keep code that uses the least number of local variables as close to the beginning
     * of this function as possible to minimize register pressure.
@@ -2009,11 +2111,14 @@ static void si_draw_vbo(struct pipe_context *ctx,
     * 'instance_count == 0' seems to be problematic on Renoir chips (#4866),
     * so simplify the condition and drop these draws for all <= GFX9 chips.
     */
-   if (GFX_VERSION <= GFX9 && unlikely(!indirect && !instance_count))
+   if (GFX_VERSION <= GFX9 && unlikely(!IS_DRAW_VERTEX_STATE && !indirect && !instance_count))
       return;
 
    struct si_shader_selector *vs = sctx->shader.vs.cso;
-   if (unlikely(!vs || sctx->num_vertex_elements < vs->num_vs_inputs ||
+   struct si_vertex_state *vstate = (struct si_vertex_state *)state;
+   if (unlikely(!vs ||
+                (!IS_DRAW_VERTEX_STATE && sctx->num_vertex_elements < vs->num_vs_inputs) ||
+                (IS_DRAW_VERTEX_STATE && vstate->velems.count < vs->num_vs_inputs) ||
                 !sctx->shader.ps.cso || (HAS_TESS != (prim == PIPE_PRIM_PATCHES)))) {
       assert(0);
       return;
@@ -2041,7 +2146,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
    if (index_size) {
       /* Translate or upload, if needed. */
       /* 8-bit indices are supported on GFX8. */
-      if (GFX_VERSION <= GFX7 && index_size == 1) {
+      if (!IS_DRAW_VERTEX_STATE && GFX_VERSION <= GFX7 && index_size == 1) {
          unsigned start, count, start_offset, size, offset;
          void *ptr;
 
@@ -2060,7 +2165,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
          /* info->start will be added by the drawing code */
          index_offset = offset - start_offset;
          index_size = 2;
-      } else if (info->has_user_indices) {
+      } else if (!IS_DRAW_VERTEX_STATE && info->has_user_indices) {
          unsigned start_offset;
 
          assert(!indirect);
@@ -2087,7 +2192,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
    unsigned min_direct_count = 0;
    unsigned total_direct_count = 0;
 
-   if (indirect) {
+   if (!IS_DRAW_VERTEX_STATE && indirect) {
       /* Add the buffer size for memory checking in need_cs_space. */
       if (indirect->buffer)
          si_context_add_resource_size(sctx, indirect->buffer);
@@ -2149,6 +2254,32 @@ static void si_draw_vbo(struct pipe_context *ctx,
       }
    }
 
+   if (IS_DRAW_VERTEX_STATE) {
+      /* draw_vertex_state doesn't use the current vertex buffers and vertex elements,
+       * so disable any non-trivial VS prolog that is based on them, such as vertex
+       * format lowering.
+       */
+      if (!sctx->force_trivial_vs_prolog) {
+         sctx->force_trivial_vs_prolog = true;
+
+         /* Update shaders to disable the non-trivial VS prolog. */
+         if (sctx->uses_nontrivial_vs_prolog) {
+            si_vs_key_update_inputs(sctx);
+            sctx->do_update_shaders = true;
+         }
+      }
+   } else {
+      if (sctx->force_trivial_vs_prolog) {
+         sctx->force_trivial_vs_prolog = false;
+
+         /* Update shaders to enable the non-trivial VS prolog. */
+         if (sctx->uses_nontrivial_vs_prolog) {
+            si_vs_key_update_inputs(sctx);
+            sctx->do_update_shaders = true;
+         }
+      }
+   }
+
    /* Update NGG culling settings. */
    uint8_t old_ngg_culling = sctx->ngg_culling;
    if (GFX_VERSION >= GFX10) {
@@ -2156,34 +2287,22 @@ static void si_draw_vbo(struct pipe_context *ctx,
 
       if (NGG && !HAS_GS &&
           /* Tessellation sets ngg_cull_vert_threshold to UINT_MAX if the prim type
-           * is not triangles, so this check is only needed without tessellation. */
-          (HAS_TESS || sctx->current_rast_prim == PIPE_PRIM_TRIANGLES) &&
-          total_direct_count > hw_vs->ngg_cull_vert_threshold) {
+           * is not points, so this check is only needed without tessellation. */
+          (HAS_TESS || util_rast_prim_is_lines_or_triangles(sctx->current_rast_prim)) &&
+          /* Only the first draw for a shader starts with culling disabled and it's disabled
+           * until we pass the total_direct_count check and then it stays enabled until
+           * the shader is changed. This eliminates most culling on/off state changes. */
+          (old_ngg_culling || total_direct_count > hw_vs->ngg_cull_vert_threshold)) {
+         /* Check that the current shader allows culling. */
+         assert(hw_vs->ngg_cull_vert_threshold != UINT_MAX);
+
          uint8_t ngg_culling = sctx->viewport0_y_inverted ? rs->ngg_cull_flags_y_inverted :
                                                             rs->ngg_cull_flags;
+         assert(ngg_culling); /* rasterizer state should always set this to non-zero */
 
-         /* Use NGG fast launch for certain primitive types.
-          * A draw must have at least 1 full primitive.
-          * The fast launch doesn't work with tessellation.
-          *
-          * Since NGG fast launch is enabled by VGT_SHADER_STAGES_EN, which causes a context roll,
-          * which decreases performance, decrease the frequency of switching it on/off using
-          * a high vertex count threshold.
-          */
-         if (!HAS_TESS && ngg_culling && total_direct_count >= 8000 &&
-             !(sctx->screen->debug_flags & DBG(NO_FAST_LAUNCH))) {
-            if (prim == PIPE_PRIM_TRIANGLES && !index_size) {
-               ngg_culling |= SI_NGG_CULL_GS_FAST_LAUNCH_TRI_LIST;
-            } else if (prim == PIPE_PRIM_TRIANGLE_STRIP) {
-               if (!index_size) {
-                  ngg_culling |= SI_NGG_CULL_GS_FAST_LAUNCH_TRI_STRIP;
-               } else if (!primitive_restart) {
-                  ngg_culling |= SI_NGG_CULL_GS_FAST_LAUNCH_TRI_STRIP |
-                                 SI_NGG_CULL_GS_FAST_LAUNCH_INDEX_SIZE_PACKED(MIN2(index_size, 3));
-                  /* The index buffer will be emulated. */
-                  index_size = 0;
-               }
-            }
+         if (util_prim_is_lines(sctx->current_rast_prim)) {
+            /* Overwrite it to mask out face cull flags. */
+            ngg_culling = SI_NGG_CULL_ENABLED | SI_NGG_CULL_LINES;
          }
 
          if (ngg_culling != old_ngg_culling) {
@@ -2203,30 +2322,11 @@ static void si_draw_vbo(struct pipe_context *ctx,
          return;
       }
 
-      /* Insert a VGT_FLUSH when enabling fast launch changes to prevent hangs.
-       * See issues #2418, #2426, #2434
-       *
-       * This is the setting that is used by the draw.
+      /* si_update_shaders can clear the ngg_culling in the shader key if the shader compilation
+       * hasn't finished. Set it to the correct value in si_context.
        */
-      if (GFX_VERSION >= GFX10) {
-         uint8_t ngg_culling = si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->key.opt.ngg_culling;
-         if (GFX_VERSION == GFX10 &&
-             !(old_ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL) &&
-             ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL)
-            sctx->flags |= SI_CONTEXT_VGT_FLUSH;
-
-         if (old_ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_INDEX_SIZE_PACKED(~0) &&
-             !(ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_INDEX_SIZE_PACKED(~0))) {
-            /* Need to re-set these, because we have bound an index buffer there. */
-            sctx->shader_pointers_dirty |=
-               (1u << si_const_and_shader_buffer_descriptors_idx(PIPE_SHADER_GEOMETRY)) |
-               (1u << si_sampler_and_image_descriptors_idx(PIPE_SHADER_GEOMETRY));
-            si_mark_atom_dirty(sctx, &sctx->atoms.s.shader_pointers);
-         }
-
-         /* Set this to the correct value determined by si_update_shaders. */
-         sctx->ngg_culling = ngg_culling;
-      }
+      if (GFX_VERSION >= GFX10 && NGG)
+         sctx->ngg_culling = si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->key.opt.ngg_culling;
    }
 
    /* Since we've called si_context_add_resource_size for vertex buffers,
@@ -2258,7 +2358,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
       masked_atoms |= si_get_atom_bit(sctx, &sctx->atoms.s.scissors);
       gfx9_scissor_bug = true;
 
-      if ((indirect && indirect->count_from_stream_output) ||
+      if ((!IS_DRAW_VERTEX_STATE && indirect && indirect->count_from_stream_output) ||
           sctx->dirty_atoms & si_atoms_that_always_roll_context() ||
           sctx->dirty_states & si_states_that_always_roll_context())
          sctx->context_roll = true;
@@ -2267,7 +2367,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
    /* Use optimal packet order based on whether we need to sync the pipeline. */
    if (unlikely(sctx->flags & (SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_FLUSH_AND_INV_DB |
                                SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_CS_PARTIAL_FLUSH |
-                               SI_CONTEXT_VS_PARTIAL_FLUSH))) {
+                               SI_CONTEXT_VS_PARTIAL_FLUSH | SI_CONTEXT_VGT_FLUSH))) {
       /* If we have to wait for idle, set all states first, so that all
        * SET packets are processed in parallel with previous draw calls.
        * Then draw and prefetch at the end. This ensures that the time
@@ -2277,7 +2377,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
          masked_atoms |= si_get_atom_bit(sctx, &sctx->atoms.s.render_cond);
 
       /* Emit all states except possibly render condition. */
-      si_emit_all_states<GFX_VERSION, HAS_TESS, HAS_GS, NGG>
+      si_emit_all_states<GFX_VERSION, HAS_TESS, HAS_GS, NGG, IS_DRAW_VERTEX_STATE>
             (sctx, info, indirect, prim, instance_count, min_direct_count,
              primitive_restart, masked_atoms);
       sctx->emit_cache_flush(sctx, &sctx->gfx_cs);
@@ -2286,7 +2386,9 @@ static void si_draw_vbo(struct pipe_context *ctx,
       /* This uploads VBO descriptors, sets user SGPRs, and executes the L2 prefetch.
        * It should done after cache flushing.
        */
-      if (unlikely((!si_upload_and_prefetch_VB_descriptors<GFX_VERSION, HAS_TESS, HAS_GS, NGG>(sctx)))) {
+      if (unlikely((!si_upload_and_prefetch_VB_descriptors
+                        <GFX_VERSION, HAS_TESS, HAS_GS, NGG, IS_DRAW_VERTEX_STATE, POPCNT>
+                        (sctx, state, partial_velem_mask)))) {
          DRAW_CLEANUP;
          return;
       }
@@ -2303,7 +2405,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
       }
       assert(sctx->dirty_atoms == 0);
 
-      si_emit_draw_packets<GFX_VERSION, NGG>
+      si_emit_draw_packets<GFX_VERSION, NGG, IS_DRAW_VERTEX_STATE>
             (sctx, info, drawid_offset, indirect, draws, num_draws, total_direct_count, indexbuf,
              index_size, index_offset, instance_count, original_index_size);
       /* <-- CUs are busy here. */
@@ -2325,12 +2427,14 @@ static void si_draw_vbo(struct pipe_context *ctx,
       /* This uploads VBO descriptors, sets user SGPRs, and executes the L2 prefetch.
        * It should done after cache flushing and after the VS prefetch.
        */
-      if (unlikely((!si_upload_and_prefetch_VB_descriptors<GFX_VERSION, HAS_TESS, HAS_GS, NGG>(sctx)))) {
+      if (unlikely((!si_upload_and_prefetch_VB_descriptors
+                       <GFX_VERSION, HAS_TESS, HAS_GS, NGG, IS_DRAW_VERTEX_STATE, POPCNT>
+                       (sctx, state, partial_velem_mask)))) {
          DRAW_CLEANUP;
          return;
       }
 
-      si_emit_all_states<GFX_VERSION, HAS_TESS, HAS_GS, NGG>
+      si_emit_all_states<GFX_VERSION, HAS_TESS, HAS_GS, NGG, IS_DRAW_VERTEX_STATE>
             (sctx, info, indirect, prim, instance_count, min_direct_count,
              primitive_restart, masked_atoms);
 
@@ -2341,7 +2445,7 @@ static void si_draw_vbo(struct pipe_context *ctx,
       }
       assert(sctx->dirty_atoms == 0);
 
-      si_emit_draw_packets<GFX_VERSION, NGG>
+      si_emit_draw_packets<GFX_VERSION, NGG, IS_DRAW_VERTEX_STATE>
             (sctx, info, drawid_offset, indirect, draws, num_draws, total_direct_count, indexbuf,
              index_size, index_offset, instance_count, original_index_size);
 
@@ -2372,9 +2476,9 @@ static void si_draw_vbo(struct pipe_context *ctx,
    if (unlikely(sctx->decompression_enabled)) {
       sctx->num_decompress_calls++;
    } else {
-      sctx->num_draw_calls++;
+      sctx->num_draw_calls += num_draws;
       if (primitive_restart)
-         sctx->num_prim_restart_calls++;
+         sctx->num_prim_restart_calls += num_draws;
    }
 
    if (!sctx->blitter_running && sctx->framebuffer.state.zsbuf) {
@@ -2383,6 +2487,42 @@ static void si_draw_vbo(struct pipe_context *ctx,
    }
 
    DRAW_CLEANUP;
+}
+
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG>
+static void si_draw_vbo(struct pipe_context *ctx,
+                        const struct pipe_draw_info *info,
+                        unsigned drawid_offset,
+                        const struct pipe_draw_indirect_info *indirect,
+                        const struct pipe_draw_start_count_bias *draws,
+                        unsigned num_draws)
+{
+   si_draw<GFX_VERSION, HAS_TESS, HAS_GS, NGG, DRAW_VERTEX_STATE_OFF, POPCNT_NO>
+      (ctx, info, drawid_offset, indirect, draws, num_draws, NULL, 0);
+}
+
+template <chip_class GFX_VERSION, si_has_tess HAS_TESS, si_has_gs HAS_GS, si_has_ngg NGG,
+          si_has_popcnt POPCNT>
+static void si_draw_vertex_state(struct pipe_context *ctx,
+                                 struct pipe_vertex_state *vstate,
+                                 uint32_t partial_velem_mask,
+                                 struct pipe_draw_vertex_state_info info,
+                                 const struct pipe_draw_start_count_bias *draws,
+                                 unsigned num_draws)
+{
+   struct si_vertex_state *state = (struct si_vertex_state *)vstate;
+   struct pipe_draw_info dinfo = {};
+
+   dinfo.mode = info.mode;
+   dinfo.index_size = 4;
+   dinfo.instance_count = 1;
+   dinfo.index.resource = state->b.input.indexbuf;
+
+   si_draw<GFX_VERSION, HAS_TESS, HAS_GS, NGG, DRAW_VERTEX_STATE_ON, POPCNT>
+      (ctx, &dinfo, 0, NULL, draws, num_draws, vstate, partial_velem_mask);
+
+   if (info.take_vertex_state_ownership)
+      pipe_vertex_state_reference(&vstate, NULL);
 }
 
 static void si_draw_rectangle(struct blitter_context *blitter, void *vertex_elements_cso,
@@ -2436,6 +2576,14 @@ static void si_init_draw_vbo(struct si_context *sctx)
 
    sctx->draw_vbo[HAS_TESS][HAS_GS][NGG] =
       si_draw_vbo<GFX_VERSION, HAS_TESS, HAS_GS, NGG>;
+
+   if (util_get_cpu_caps()->has_popcnt) {
+      sctx->draw_vertex_state[HAS_TESS][HAS_GS][NGG] =
+         si_draw_vertex_state<GFX_VERSION, HAS_TESS, HAS_GS, NGG, POPCNT_YES>;
+   } else {
+      sctx->draw_vertex_state[HAS_TESS][HAS_GS][NGG] =
+         si_draw_vertex_state<GFX_VERSION, HAS_TESS, HAS_GS, NGG, POPCNT_NO>;
+   }
 }
 
 template <chip_class GFX_VERSION>
@@ -2461,6 +2609,16 @@ static void si_invalid_draw_vbo(struct pipe_context *pipe,
    unreachable("vertex shader not bound");
 }
 
+static void si_invalid_draw_vertex_state(struct pipe_context *ctx,
+                                         struct pipe_vertex_state *vstate,
+                                         uint32_t partial_velem_mask,
+                                         struct pipe_draw_vertex_state_info info,
+                                         const struct pipe_draw_start_count_bias *draws,
+                                         unsigned num_draws)
+{
+   unreachable("vertex shader not bound");
+}
+
 extern "C"
 void GFX(si_init_draw_functions_)(struct si_context *sctx)
 {
@@ -2472,6 +2630,7 @@ void GFX(si_init_draw_functions_)(struct si_context *sctx)
     * initialization of callbacks in upper layers (such as u_threaded_context).
     */
    sctx->b.draw_vbo = si_invalid_draw_vbo;
+   sctx->b.draw_vertex_state = si_invalid_draw_vertex_state;
    sctx->blitter->draw_rectangle = si_draw_rectangle;
 
    si_init_ia_multi_vgt_param_table(sctx);

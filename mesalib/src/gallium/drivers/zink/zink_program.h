@@ -84,8 +84,9 @@ struct zink_program {
 
    struct zink_program_descriptor_data *dd;
 
+   uint32_t compat_id;
    VkPipelineLayout layout;
-   VkDescriptorSetLayout dsl[ZINK_DESCRIPTOR_TYPES + 1]; // one for each type + push
+   VkDescriptorSetLayout dsl[ZINK_DESCRIPTOR_TYPES + 2]; // one for each type + push + bindless
    unsigned num_dsl;
 
    bool removed;
@@ -267,7 +268,7 @@ zink_compute_program_reference(struct zink_screen *screen,
 }
 
 VkPipelineLayout
-zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg);
+zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg, uint32_t *compat);
 
 void
 zink_program_update_compute_pipeline_state(struct zink_context *ctx, struct zink_compute_program *comp, const uint block[3]);

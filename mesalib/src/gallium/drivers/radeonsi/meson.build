@@ -46,6 +46,7 @@ files_libradeonsi = files(
   'si_query.c',
   'si_query.h',
   'si_nir_optim.c',
+  'si_sdma_copy_image.c',
   'si_shader.c',
   'si_shader.h',
   'si_shader_internal.h',

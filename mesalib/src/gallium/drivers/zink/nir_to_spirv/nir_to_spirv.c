@@ -800,13 +800,12 @@ get_image_format(struct ntv_context *ctx, enum pipe_format format)
    return ret;
 }
 
-static void
-emit_image(struct ntv_context *ctx, struct nir_variable *var)
+static SpvId
+get_bare_image_type(struct ntv_context *ctx, struct nir_variable *var, bool is_sampler)
 {
    const struct glsl_type *type = glsl_without_array(var->type);
 
    bool is_ms;
-   bool is_sampler = glsl_type_is_sampler(type);
 
    if (var->data.fb_fetch_output) {
       spirv_builder_emit_cap(&ctx->builder, SpvCapabilityInputAttachment);
@@ -823,12 +822,29 @@ emit_image(struct ntv_context *ctx, struct nir_variable *var)
       spirv_builder_emit_cap(&ctx->builder, SpvCapabilityImageCubeArray);
 
    SpvId result_type = get_glsl_basetype(ctx, glsl_get_sampler_result_type(type));
-   SpvId image_type = spirv_builder_type_image(&ctx->builder, result_type,
+   return spirv_builder_type_image(&ctx->builder, result_type,
                                                dimension, false,
                                                arrayed,
                                                is_ms, is_sampler ? 1 : 2,
                                                get_image_format(ctx, var->data.image.format));
+}
 
+static SpvId
+get_image_type(struct ntv_context *ctx, struct nir_variable *var, bool is_sampler)
+{
+   SpvId image_type = get_bare_image_type(ctx, var, is_sampler);
+   return is_sampler ? spirv_builder_type_sampled_image(&ctx->builder, image_type) : image_type;
+}
+
+static SpvId
+emit_image(struct ntv_context *ctx, struct nir_variable *var, bool bindless)
+{
+   if (var->data.bindless)
+      return 0;
+   const struct glsl_type *type = glsl_without_array(var->type);
+
+   bool is_sampler = glsl_type_is_sampler(type);
+   SpvId image_type = get_bare_image_type(ctx, var, is_sampler);
    SpvId var_type = is_sampler ? spirv_builder_type_sampled_image(&ctx->builder, image_type) : image_type;
 
    int index = var->data.driver_location;
@@ -836,7 +852,7 @@ emit_image(struct ntv_context *ctx, struct nir_variable *var)
    assert(!is_sampler || !ctx->sampler_types[index]);
    assert(is_sampler || !ctx->image_types[index]);
 
-   if (glsl_type_is_array(var->type)) {
+   if (!bindless && glsl_type_is_array(var->type)) {
       var_type = spirv_builder_type_array(&ctx->builder, var_type,
                                               emit_uint_const(ctx, 32, glsl_get_aoa_size(var->type)));
       spirv_builder_emit_array_stride(&ctx->builder, var_type, sizeof(void*));
@@ -855,6 +871,10 @@ emit_image(struct ntv_context *ctx, struct nir_variable *var)
    if (var->data.fb_fetch_output)
       spirv_builder_emit_input_attachment_index(&ctx->builder, var_id, var->data.index);
 
+   if (bindless)
+      return var_id;
+
+   _mesa_hash_table_insert(ctx->vars, var, (void *)(intptr_t)var_id);
    if (is_sampler) {
       ctx->sampler_types[index] = image_type;
       ctx->samplers[index] = var_id;
@@ -862,7 +882,6 @@ emit_image(struct ntv_context *ctx, struct nir_variable *var)
    } else {
       ctx->image_types[index] = image_type;
       ctx->images[index] = var_id;
-      _mesa_hash_table_insert(ctx->vars, var, (void *)(intptr_t)var_id);
       uint32_t *key = ralloc_size(ctx->mem_ctx, sizeof(uint32_t));
       *key = var_id;
       _mesa_hash_table_insert(ctx->image_vars, key, var);
@@ -875,6 +894,7 @@ emit_image(struct ntv_context *ctx, struct nir_variable *var)
 
    spirv_builder_emit_descriptor_set(&ctx->builder, var_id, var->data.descriptor_set);
    spirv_builder_emit_binding(&ctx->builder, var_id, var->data.binding);
+   return var_id;
 }
 
 static SpvId
@@ -987,7 +1007,7 @@ emit_uniform(struct ntv_context *ctx, struct nir_variable *var)
       assert(var->data.mode == nir_var_uniform);
       const struct glsl_type *type = glsl_without_array(var->type);
       if (glsl_type_is_sampler(type) || glsl_type_is_image(type))
-         emit_image(ctx, var);
+         emit_image(ctx, var, false);
    }
 }
 
@@ -2107,8 +2127,16 @@ emit_load_deref(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
    SpvId ptr = get_src(ctx, intr->src);
 
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   SpvId type;
+   if (glsl_type_is_image(deref->type)) {
+      nir_variable *var = nir_deref_instr_get_variable(deref);
+      type = get_image_type(ctx, var, glsl_type_is_sampler(glsl_without_array(var->type)));
+   } else {
+      type = get_glsl_type(ctx, deref->type);
+   }
    SpvId result = spirv_builder_emit_load(&ctx->builder,
-                                          get_glsl_type(ctx, nir_src_as_deref(intr->src[0])->type),
+                                          type,
                                           ptr);
    unsigned num_components = nir_dest_num_components(intr->dest);
    unsigned bit_size = nir_dest_bit_size(intr->dest);
@@ -2554,8 +2582,9 @@ static void
 emit_image_deref_store(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
    SpvId img_var = get_src(ctx, &intr->src[0]);
-   nir_variable *var = get_var_from_image(ctx, img_var);
-   SpvId img_type = ctx->image_types[var->data.driver_location];
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   nir_variable *var = deref->deref_type == nir_deref_type_var ? deref->var : get_var_from_image(ctx, img_var);
+   SpvId img_type = var->data.bindless ? get_bare_image_type(ctx, var, false) : ctx->image_types[var->data.driver_location];
    const struct glsl_type *type = glsl_without_array(var->type);
    SpvId base_type = get_glsl_basetype(ctx, glsl_get_sampler_result_type(type));
    SpvId img = spirv_builder_emit_load(&ctx->builder, img_type, img_var);
@@ -2574,8 +2603,9 @@ static void
 emit_image_deref_load(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
    SpvId img_var = get_src(ctx, &intr->src[0]);
-   nir_variable *var = get_var_from_image(ctx, img_var);
-   SpvId img_type = ctx->image_types[var->data.driver_location];
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   nir_variable *var = deref->deref_type == nir_deref_type_var ? deref->var : get_var_from_image(ctx, img_var);
+   SpvId img_type = var->data.bindless ? get_bare_image_type(ctx, var, false) : ctx->image_types[var->data.driver_location];
    const struct glsl_type *type = glsl_without_array(var->type);
    SpvId base_type = get_glsl_basetype(ctx, glsl_get_sampler_result_type(type));
    SpvId img = spirv_builder_emit_load(&ctx->builder, img_type, img_var);
@@ -2591,8 +2621,9 @@ static void
 emit_image_deref_size(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
    SpvId img_var = get_src(ctx, &intr->src[0]);
-   nir_variable *var = get_var_from_image(ctx, img_var);
-   SpvId img_type = ctx->image_types[var->data.driver_location];
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   nir_variable *var = deref->deref_type == nir_deref_type_var ? deref->var : get_var_from_image(ctx, img_var);
+   SpvId img_type = var->data.bindless ? get_bare_image_type(ctx, var, false) : ctx->image_types[var->data.driver_location];
    const struct glsl_type *type = glsl_without_array(var->type);
    SpvId img = spirv_builder_emit_load(&ctx->builder, img_type, img_var);
    SpvId result = spirv_builder_emit_image_query_size(&ctx->builder, get_uvec_type(ctx, 32, glsl_get_sampler_coordinate_components(type)), img, 0);
@@ -2603,8 +2634,9 @@ static void
 emit_image_deref_samples(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
    SpvId img_var = get_src(ctx, &intr->src[0]);
-   nir_variable *var = get_var_from_image(ctx, img_var);
-   SpvId img_type = ctx->image_types[var->data.driver_location];
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   nir_variable *var = deref->deref_type == nir_deref_type_var ? deref->var : get_var_from_image(ctx, img_var);
+   SpvId img_type = var->data.bindless ? get_bare_image_type(ctx, var, false) : ctx->image_types[var->data.driver_location];
    SpvId img = spirv_builder_emit_load(&ctx->builder, img_type, img_var);
    SpvId result = spirv_builder_emit_unop(&ctx->builder, SpvOpImageQuerySamples, get_dest_type(ctx, &intr->dest, nir_type_uint), img);
    store_dest(ctx, &intr->dest, result, nir_type_uint);
@@ -2613,9 +2645,10 @@ emit_image_deref_samples(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 static void
 emit_image_intrinsic(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
-   SpvId img_var = get_src(ctx, &intr->src[0]);
    SpvId param = get_src(ctx, &intr->src[3]);
-   nir_variable *var = get_var_from_image(ctx, img_var);
+   SpvId img_var = get_src(ctx, &intr->src[0]);
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   nir_variable *var = deref->deref_type == nir_deref_type_var ? deref->var : get_var_from_image(ctx, img_var);
    const struct glsl_type *type = glsl_without_array(var->type);
    bool is_ms;
    type_to_dim(glsl_get_sampler_dim(type), &is_ms);
@@ -3047,8 +3080,9 @@ emit_tex(struct ntv_context *ctx, nir_tex_instr *tex)
    assert(tex->texture_index == tex->sampler_index);
 
    SpvId coord = 0, proj = 0, bias = 0, lod = 0, dref = 0, dx = 0, dy = 0,
-         const_offset = 0, offset = 0, sample = 0, tex_offset = 0;
+         const_offset = 0, offset = 0, sample = 0, tex_offset = 0, bindless = 0;
    unsigned coord_components = 0;
+   nir_variable *bindless_var = NULL;
    for (unsigned i = 0; i < tex->num_srcs; i++) {
       nir_const_value *cv;
       switch (tex->src[i].src_type) {
@@ -3134,7 +3168,13 @@ emit_tex(struct ntv_context *ctx, nir_tex_instr *tex)
          break;
 
       case nir_tex_src_sampler_offset:
+      case nir_tex_src_sampler_handle:
          /* don't care */
+         break;
+
+      case nir_tex_src_texture_handle:
+         bindless = get_src(ctx, &tex->src[i].src);
+         bindless_var = nir_deref_instr_get_variable(nir_src_as_deref(tex->src[i].src));
          break;
 
       default:
@@ -3160,13 +3200,13 @@ emit_tex(struct ntv_context *ctx, nir_tex_instr *tex)
          }
       }
    }
-   SpvId image_type = ctx->sampler_types[texture_index];
+   SpvId image_type = bindless ? get_bare_image_type(ctx, bindless_var, true) : ctx->sampler_types[texture_index];
    assert(image_type);
    SpvId sampled_type = spirv_builder_type_sampled_image(&ctx->builder,
                                                          image_type);
    assert(sampled_type);
-   assert(ctx->samplers_used & (1u << texture_index));
-   SpvId sampler_id = ctx->samplers[texture_index];
+   assert(bindless || ctx->samplers_used & (1u << texture_index));
+   SpvId sampler_id = bindless ? bindless : ctx->samplers[texture_index];
    if (tex_offset) {
        SpvId ptr = spirv_builder_type_pointer(&ctx->builder, SpvStorageClassUniformConstant, sampled_type);
        sampler_id = spirv_builder_emit_access_chain(&ctx->builder, ptr, sampler_id, &tex_offset, 1);
@@ -3375,11 +3415,10 @@ emit_deref_array(struct ntv_context *ctx, nir_deref_instr *deref)
       break;
 
    case nir_var_uniform: {
-      assert(glsl_type_is_image(glsl_without_array(var->type)));
       struct hash_entry *he = _mesa_hash_table_search(ctx->vars, var);
       assert(he);
       base = (SpvId)(intptr_t)he->data;
-      type = ctx->image_types[var->data.driver_location];
+      type = get_image_type(ctx, var, glsl_type_is_sampler(glsl_without_array(var->type)));
       break;
    }
 

@@ -141,6 +141,39 @@ trace_context_draw_vbo(struct pipe_context *_pipe,
 }
 
 
+static void
+trace_context_draw_vertex_state(struct pipe_context *_pipe,
+                                struct pipe_vertex_state *state,
+                                uint32_t partial_velem_mask,
+                                struct pipe_draw_vertex_state_info info,
+                                const struct pipe_draw_start_count_bias *draws,
+                                unsigned num_draws)
+{
+   struct trace_context *tr_ctx = trace_context(_pipe);
+   struct pipe_context *pipe = tr_ctx->pipe;
+
+   if (!tr_ctx->seen_fb_state && trace_dump_is_triggered())
+      dump_fb_state(tr_ctx, "current_framebuffer_state", true);
+
+   trace_dump_call_begin("pipe_context", "draw_vertex_state");
+
+   trace_dump_arg(ptr, pipe);
+   trace_dump_arg(ptr, state);
+   trace_dump_arg(uint, partial_velem_mask);
+   trace_dump_arg(draw_vertex_state_info, info);
+   trace_dump_arg_begin("draws");
+   trace_dump_struct_array(draw_start_count, draws, num_draws);
+   trace_dump_arg_end();
+   trace_dump_arg(uint, num_draws);
+
+   trace_dump_trace_flush();
+
+   pipe->draw_vertex_state(pipe, state, partial_velem_mask, info, draws,
+                           num_draws);
+   trace_dump_call_end();
+}
+
+
 static struct pipe_query *
 trace_context_create_query(struct pipe_context *_pipe,
                            unsigned query_type,
@@ -2177,6 +2210,7 @@ trace_context_create(struct trace_screen *tr_scr,
    tr_ctx->base . _member = pipe -> _member ? trace_context_ ## _member : NULL
 
    TR_CTX_INIT(draw_vbo);
+   TR_CTX_INIT(draw_vertex_state);
    TR_CTX_INIT(render_condition);
    TR_CTX_INIT(create_query);
    TR_CTX_INIT(destroy_query);

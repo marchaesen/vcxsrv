@@ -37,7 +37,7 @@
 #define SMEM_MAX_MOVES      (64 - ctx.num_waves * 4)
 #define VMEM_MAX_MOVES      (256 - ctx.num_waves * 16)
 /* creating clauses decreases def-use distances, so make it less aggressive the lower num_waves is */
-#define VMEM_CLAUSE_MAX_GRAB_DIST (ctx.num_waves * 8)
+#define VMEM_CLAUSE_MAX_GRAB_DIST (ctx.num_waves * 2)
 #define POS_EXP_MAX_MOVES         512
 
 namespace aco {
@@ -788,6 +788,7 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
    int window_size = VMEM_WINDOW_SIZE;
    int max_moves = VMEM_MAX_MOVES;
    int clause_max_grab_dist = VMEM_CLAUSE_MAX_GRAB_DIST;
+   bool only_clauses = false;
    int16_t k = 0;
 
    /* first, check if we have instructions before current to move down */
@@ -822,12 +823,28 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
          /* We can't easily tell how much this will decrease the def-to-use
           * distances, so just use how far it will be moved as a heuristic. */
          part_of_clause =
-            grab_dist < clause_max_grab_dist && should_form_clause(current, candidate.get());
+            grab_dist < clause_max_grab_dist + k && should_form_clause(current, candidate.get());
       }
 
       /* if current depends on candidate, add additional dependencies and continue */
       bool can_move_down = !is_vmem || part_of_clause || candidate->definitions.empty();
-
+      if (only_clauses) {
+         /* In case of high register pressure, only try to form clauses,
+          * and only if the previous clause is not larger
+          * than the current one will be.
+          */
+         if (part_of_clause) {
+            int clause_size = cursor.insert_idx - cursor.insert_idx_clause;
+            int prev_clause_size = 1;
+            while (should_form_clause(current,
+                                      block->instructions[candidate_idx - prev_clause_size].get()))
+               prev_clause_size++;
+            if (prev_clause_size > clause_size + 1)
+               break;
+         } else {
+            can_move_down = false;
+         }
+      }
       HazardResult haz =
          perform_hazard_query(part_of_clause ? &clause_hq : &indep_hq, candidate.get(), false);
       if (haz == hazard_fail_reorder_ds || haz == hazard_fail_spill ||
@@ -838,6 +855,8 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
          break;
 
       if (!can_move_down) {
+         if (part_of_clause)
+            break;
          add_to_hazard_query(&indep_hq, candidate.get());
          add_to_hazard_query(&clause_hq, candidate.get());
          ctx.mv.downwards_skip(cursor);
@@ -847,12 +866,20 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
       Instruction* candidate_ptr = candidate.get();
       MoveResult res = ctx.mv.downwards_move(cursor, part_of_clause);
       if (res == move_fail_ssa || res == move_fail_rar) {
+         if (part_of_clause)
+            break;
          add_to_hazard_query(&indep_hq, candidate.get());
          add_to_hazard_query(&clause_hq, candidate.get());
          ctx.mv.downwards_skip(cursor);
          continue;
       } else if (res == move_fail_pressure) {
-         break;
+         only_clauses = true;
+         if (part_of_clause)
+            break;
+         add_to_hazard_query(&indep_hq, candidate.get());
+         add_to_hazard_query(&clause_hq, candidate.get());
+         ctx.mv.downwards_skip(cursor);
+         continue;
       }
       if (part_of_clause)
          add_to_hazard_query(&indep_hq, candidate_ptr);

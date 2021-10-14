@@ -260,7 +260,7 @@ emit_image_ssbo(struct fd_ringbuffer *ring, struct fd6_image *img)
    enum a6xx_tile_mode tile_mode = fd_resource_tile_mode(img->prsc, img->level);
    bool ubwc_enabled = fd_resource_ubwc_enabled(rsc, img->level);
 
-   OUT_RING(ring, A6XX_IBO_0_FMT(fd6_pipe2tex(img->pfmt)) |
+   OUT_RING(ring, A6XX_IBO_0_FMT(fd6_texture_format(img->pfmt, rsc->layout.tile_mode)) |
                      A6XX_IBO_0_TILE_MODE(tile_mode));
    OUT_RING(ring,
             A6XX_IBO_1_WIDTH(img->width) | A6XX_IBO_1_HEIGHT(img->height));

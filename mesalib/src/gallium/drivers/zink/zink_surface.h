@@ -59,6 +59,9 @@ struct zink_surface {
 struct zink_ctx_surface {
    struct pipe_surface base;
    struct zink_surface *surf;
+   struct zink_ctx_surface *transient; //zink_ctx_surface
+   /* TODO: need replicate EXT */
+   bool transient_init;
 };
 
 /* use this cast for framebuffer surfaces */
@@ -66,6 +69,13 @@ static inline struct zink_surface *
 zink_csurface(struct pipe_surface *psurface)
 {
    return psurface ? ((struct zink_ctx_surface *)psurface)->surf : NULL;
+}
+
+/* use this cast for checking transient framebuffer surfaces */
+static inline struct zink_surface *
+zink_transient_surface(struct pipe_surface *psurface)
+{
+   return psurface ? ((struct zink_ctx_surface *)psurface)->transient ? ((struct zink_ctx_surface *)psurface)->transient->surf : NULL : NULL;
 }
 
 /* use this cast for internal surfaces */

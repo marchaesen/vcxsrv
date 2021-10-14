@@ -21,7 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "gen_macros.h"
+#include "genxml/gen_macros.h"
 
 #include "util/macros.h"
 #include "compiler/shader_enums.h"
@@ -110,13 +110,28 @@ panvk_varying_hw_format(const struct panvk_device *dev,
    switch (loc) {
    case VARYING_SLOT_PNTC:
    case VARYING_SLOT_PSIZ:
+#if PAN_ARCH <= 6
       return (MALI_R16F << 12) | panfrost_get_default_swizzle(1);
+#else
+      return (MALI_R16F << 12) | MALI_RGB_COMPONENT_ORDER_R000;
+#endif
    case VARYING_SLOT_POS:
+#if PAN_ARCH <= 6
       return ((fs ? MALI_RGBA32F : MALI_SNAP_4) << 12) |
              panfrost_get_default_swizzle(4);
+#else
+      return ((fs ? MALI_RGBA32F : MALI_SNAP_4) << 12) |
+             MALI_RGB_COMPONENT_ORDER_RGBA;
+#endif
    default:
       assert(!panvk_varying_is_builtin(stage, loc));
-      return pdev->formats[varyings->varying[loc].format].hw;
+      if (varyings->varying[loc].format != PIPE_FORMAT_NONE)
+         return pdev->formats[varyings->varying[loc].format].hw;
+#if PAN_ARCH >= 7
+      return (MALI_CONSTANT << 12) | MALI_RGB_COMPONENT_ORDER_0000;
+#else
+      return (MALI_CONSTANT << 12) | PAN_V6_SWIZZLE(0, 0, 0, 0);
+#endif
    }
 }
 
@@ -382,9 +397,6 @@ panvk_per_arch(emit_vertex_job)(const struct panvk_pipeline *pipeline,
 
    pan_section_pack(job, COMPUTE_JOB, DRAW, cfg) {
       cfg.draw_descriptor_is_64b = true;
-#if PAN_ARCH == 5
-      cfg.texture_descriptor_is_64b = true;
-#endif
       cfg.state = pipeline->rsds[MESA_SHADER_VERTEX];
       cfg.attributes = draw->stages[MESA_SHADER_VERTEX].attributes;
       cfg.attribute_buffers = draw->attribute_bufs;
@@ -399,8 +411,6 @@ panvk_per_arch(emit_vertex_job)(const struct panvk_pipeline *pipeline,
       cfg.textures = draw->textures;
       cfg.samplers = draw->samplers;
    }
-
-   pan_section_pack(job, COMPUTE_JOB, DRAW_PADDING, cfg);
 }
 
 static void
@@ -444,9 +454,6 @@ panvk_emit_tiler_dcd(const struct panvk_pipeline *pipeline,
    pan_pack(dcd, DRAW, cfg) {
       cfg.four_components_per_vertex = true;
       cfg.draw_descriptor_is_64b = true;
-#if PAN_ARCH == 5
-      cfg.texture_descriptor_is_64b = true;
-#endif
       cfg.front_face_ccw = pipeline->rast.front_ccw;
       cfg.cull_front_face = pipeline->rast.cull_front_face;
       cfg.cull_back_face = pipeline->rast.cull_back_face;
@@ -513,29 +520,8 @@ panvk_per_arch(emit_tiler_job)(const struct panvk_pipeline *pipeline,
    pan_section_pack(job, TILER_JOB, TILER, cfg) {
       cfg.address = draw->tiler_ctx->bifrost;
    }
-   pan_section_pack(job, TILER_JOB, DRAW_PADDING, padding);
    pan_section_pack(job, TILER_JOB, PADDING, padding);
 #endif
-}
-
-void
-panvk_per_arch(emit_fragment_job)(const struct panvk_framebuffer *fb,
-                                  mali_ptr fbdesc,
-                                  void *job)
-{
-   pan_section_pack(job, FRAGMENT_JOB, HEADER, header) {
-      header.type = MALI_JOB_TYPE_FRAGMENT;
-      header.index = 1;
-   }
-
-   pan_section_pack(job, FRAGMENT_JOB, PAYLOAD, payload) {
-      payload.bound_min_x = 0;
-      payload.bound_min_y = 0;
-
-      payload.bound_max_x = (fb->width - 1) >> MALI_TILE_SHIFT;
-      payload.bound_max_y = (fb->height - 1) >> MALI_TILE_SHIFT;
-      payload.framebuffer = fbdesc;
-   }
 }
 
 void
@@ -576,24 +562,24 @@ panvk_per_arch(emit_viewport)(const VkViewport *viewport,
 }
 
 #if PAN_ARCH >= 6
-static enum mali_bifrost_register_file_format
+static enum mali_register_file_format
 bifrost_blend_type_from_nir(nir_alu_type nir_type)
 {
    switch(nir_type) {
    case 0: /* Render target not in use */
       return 0;
    case nir_type_float16:
-      return MALI_BIFROST_REGISTER_FILE_FORMAT_F16;
+      return MALI_REGISTER_FILE_FORMAT_F16;
    case nir_type_float32:
-      return MALI_BIFROST_REGISTER_FILE_FORMAT_F32;
+      return MALI_REGISTER_FILE_FORMAT_F32;
    case nir_type_int32:
-      return MALI_BIFROST_REGISTER_FILE_FORMAT_I32;
+      return MALI_REGISTER_FILE_FORMAT_I32;
    case nir_type_uint32:
-      return MALI_BIFROST_REGISTER_FILE_FORMAT_U32;
+      return MALI_REGISTER_FILE_FORMAT_U32;
    case nir_type_int16:
-      return MALI_BIFROST_REGISTER_FILE_FORMAT_I16;
+      return MALI_REGISTER_FILE_FORMAT_I16;
    case nir_type_uint16:
-      return MALI_BIFROST_REGISTER_FILE_FORMAT_U16;
+      return MALI_REGISTER_FILE_FORMAT_U16;
    default:
       unreachable("Unsupported blend shader type for NIR alu type");
    }
@@ -613,7 +599,7 @@ panvk_per_arch(emit_blend)(const struct panvk_device *dev,
       if (!blend->rt_count || !rts->equation.color_mask) {
          cfg.enable = false;
 #if PAN_ARCH >= 6
-         cfg.bifrost.internal.mode = MALI_BIFROST_BLEND_MODE_OFF;
+         cfg.internal.mode = MALI_BLEND_MODE_OFF;
 #endif
          continue;
       }
@@ -623,10 +609,10 @@ panvk_per_arch(emit_blend)(const struct panvk_device *dev,
       cfg.round_to_fb_precision = !dithered;
 
 #if PAN_ARCH <= 5
-      cfg.midgard.blend_shader = false;
+      cfg.blend_shader = false;
       pan_blend_to_fixed_function_equation(blend->rts[rt].equation,
-                                           &cfg.midgard.equation);
-      cfg.midgard.constant =
+                                           &cfg.equation);
+      cfg.constant =
          pan_blend_get_constant(pan_blend_constant_mask(blend->rts[rt].equation),
                                 blend->constants);
 #else
@@ -638,7 +624,7 @@ panvk_per_arch(emit_blend)(const struct panvk_device *dev,
          chan_size = MAX2(format_desc->channel[i].size, chan_size);
 
       pan_blend_to_fixed_function_equation(blend->rts[rt].equation,
-                                           &cfg.bifrost.equation);
+                                           &cfg.equation);
 
       /* Fixed point constant */
       float fconst =
@@ -646,22 +632,22 @@ panvk_per_arch(emit_blend)(const struct panvk_device *dev,
                                 blend->constants);
       u16 constant = fconst * ((1 << chan_size) - 1);
       constant <<= 16 - chan_size;
-      cfg.bifrost.constant = constant;
+      cfg.constant = constant;
 
       if (pan_blend_is_opaque(blend->rts[rt].equation))
-         cfg.bifrost.internal.mode = MALI_BIFROST_BLEND_MODE_OPAQUE;
+         cfg.internal.mode = MALI_BLEND_MODE_OPAQUE;
       else
-         cfg.bifrost.internal.mode = MALI_BIFROST_BLEND_MODE_FIXED_FUNCTION;
+         cfg.internal.mode = MALI_BLEND_MODE_FIXED_FUNCTION;
 
       /* If we want the conversion to work properly,
        * num_comps must be set to 4
        */
-      cfg.bifrost.internal.fixed_function.num_comps = 4;
-      cfg.bifrost.internal.fixed_function.conversion.memory_format =
+      cfg.internal.fixed_function.num_comps = 4;
+      cfg.internal.fixed_function.conversion.memory_format =
          panfrost_format_to_bifrost_blend(pdev, rts->format, dithered);
-      cfg.bifrost.internal.fixed_function.conversion.register_format =
+      cfg.internal.fixed_function.conversion.register_format =
          bifrost_blend_type_from_nir(pipeline->fs.info.bifrost.blend[rt].type);
-      cfg.bifrost.internal.fixed_function.rt = rt;
+      cfg.internal.fixed_function.rt = rt;
 #endif
    }
 }
@@ -677,9 +663,9 @@ panvk_per_arch(emit_blend_constant)(const struct panvk_device *dev,
    pan_pack(bd, BLEND, cfg) {
       cfg.enable = false;
 #if PAN_ARCH == 5
-      cfg.midgard.constant = constant;
+      cfg.constant = constant;
 #else
-      cfg.bifrost.constant = constant * pipeline->blend.constant[rt].bifrost_factor;
+      cfg.constant = constant * pipeline->blend.constant[rt].bifrost_factor;
 #endif
    }
 }
@@ -718,12 +704,11 @@ panvk_per_arch(emit_base_fs_rsd)(const struct panvk_device *dev,
                                  const struct panvk_pipeline *pipeline,
                                  void *rsd)
 {
-   const struct panfrost_device *pdev = &dev->physical_device->pdev;
    const struct pan_shader_info *info = &pipeline->fs.info;
 
    pan_pack(rsd, RENDERER_STATE, cfg) {
       if (pipeline->fs.required) {
-         pan_shader_prepare_rsd(pdev, info, pipeline->fs.address, &cfg);
+         pan_shader_prepare_rsd(info, pipeline->fs.address, &cfg);
 
 #if PAN_ARCH == 5
          /* If either depth or stencil is enabled, discard matters */
@@ -731,8 +716,8 @@ panvk_per_arch(emit_base_fs_rsd)(const struct panvk_device *dev,
             (pipeline->zs.z_test && pipeline->zs.z_compare_func != MALI_FUNC_ALWAYS) ||
             pipeline->zs.s_test;
 
-         cfg.properties.midgard.work_register_count = info->work_reg_count;
-         cfg.properties.midgard.force_early_z =
+         cfg.properties.work_register_count = info->work_reg_count;
+         cfg.properties.force_early_z =
             info->fs.can_early_z && !pipeline->ms.alpha_to_coverage &&
             pipeline->zs.z_compare_func == MALI_FUNC_ALWAYS;
 
@@ -741,15 +726,15 @@ panvk_per_arch(emit_base_fs_rsd)(const struct panvk_device *dev,
           * when discarding even when the depth buffer is read-only, by
           * lying to the hardware about the discard and setting the
           * reads tilebuffer? flag to compensate */
-         cfg.properties.midgard.shader_reads_tilebuffer =
+         cfg.properties.shader_reads_tilebuffer =
             info->fs.outputs_read ||
             (!zs_enabled && info->fs.can_discard);
-         cfg.properties.midgard.shader_contains_discard =
+         cfg.properties.shader_contains_discard =
             zs_enabled && info->fs.can_discard;
 #else
          uint8_t rt_written = pipeline->fs.info.outputs_written >> FRAG_RESULT_DATA0;
          uint8_t rt_mask = pipeline->fs.rt_mask;
-         cfg.properties.bifrost.allow_forward_pixel_to_kill =
+         cfg.properties.allow_forward_pixel_to_kill =
                  pipeline->fs.info.fs.can_fpk &&
                  !(rt_mask & ~rt_written) &&
                  !pipeline->ms.alpha_to_coverage &&
@@ -758,14 +743,14 @@ panvk_per_arch(emit_base_fs_rsd)(const struct panvk_device *dev,
       } else {
 #if PAN_ARCH == 5
          cfg.shader.shader = 0x1;
-         cfg.properties.midgard.work_register_count = 1;
+         cfg.properties.work_register_count = 1;
          cfg.properties.depth_source = MALI_DEPTH_SOURCE_FIXED_FUNCTION;
-         cfg.properties.midgard.force_early_z = true;
+         cfg.properties.force_early_z = true;
 #else
-         cfg.properties.bifrost.shader_modifies_coverage = true;
-         cfg.properties.bifrost.allow_forward_pixel_to_kill = true;
-         cfg.properties.bifrost.allow_forward_pixel_to_be_killed = true;
-         cfg.properties.bifrost.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+         cfg.properties.shader_modifies_coverage = true;
+         cfg.properties.allow_forward_pixel_to_kill = true;
+         cfg.properties.allow_forward_pixel_to_be_killed = true;
+         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
 #endif
       }
 
@@ -827,12 +812,10 @@ panvk_per_arch(emit_non_fs_rsd)(const struct panvk_device *dev,
                                 mali_ptr shader_ptr,
                                 void *rsd)
 {
-   const struct panfrost_device *pdev = &dev->physical_device->pdev;
-
    assert(shader_info->stage != MESA_SHADER_FRAGMENT);
 
    pan_pack(rsd, RENDERER_STATE, cfg) {
-      pan_shader_prepare_rsd(pdev, shader_info, shader_ptr, &cfg);
+      pan_shader_prepare_rsd(shader_info, shader_ptr, &cfg);
    }
 }
 
@@ -860,66 +843,4 @@ panvk_per_arch(emit_tiler_context)(const struct panvk_device *dev,
       cfg.heap = descs->gpu + pan_size(TILER_CONTEXT);
    }
 #endif
-}
-
-unsigned
-panvk_per_arch(emit_fb)(const struct panvk_device *dev,
-                        const struct panvk_batch *batch,
-                        const struct panvk_subpass *subpass,
-                        const struct panvk_framebuffer *fb,
-                        const struct panvk_clear_value *clears,
-                        const struct pan_tls_info *tlsinfo,
-                        const struct pan_tiler_context *tilerctx,
-                        void *desc)
-{
-   const struct panfrost_device *pdev = &dev->physical_device->pdev;
-   struct panvk_image_view *view;
-   bool crc_valid[8] = { false };
-   struct pan_fb_info fbinfo = {
-      .width = fb->width,
-      .height = fb->height,
-      .extent.maxx = fb->width - 1,
-      .extent.maxy = fb->height - 1,
-      .nr_samples = 1,
-   };
-
-   for (unsigned cb = 0; cb < subpass->color_count; cb++) {
-      int idx = subpass->color_attachments[cb].idx;
-      view = idx != VK_ATTACHMENT_UNUSED ?
-             fb->attachments[idx].iview : NULL;
-      if (!view)
-         continue;
-      fbinfo.rts[cb].view = &view->pview;
-      fbinfo.rts[cb].clear = subpass->color_attachments[idx].clear;
-      fbinfo.rts[cb].crc_valid = &crc_valid[cb];
-
-      memcpy(fbinfo.rts[cb].clear_value, clears[idx].color,
-             sizeof(fbinfo.rts[cb].clear_value));
-      fbinfo.nr_samples =
-         MAX2(fbinfo.nr_samples, view->pview.image->layout.nr_samples);
-   }
-
-   if (subpass->zs_attachment.idx != VK_ATTACHMENT_UNUSED) {
-      view = fb->attachments[subpass->zs_attachment.idx].iview;
-      const struct util_format_description *fdesc =
-         util_format_description(view->pview.format);
-
-      fbinfo.nr_samples =
-         MAX2(fbinfo.nr_samples, view->pview.image->layout.nr_samples);
-
-      if (util_format_has_depth(fdesc)) {
-         fbinfo.zs.clear.z = subpass->zs_attachment.clear;
-         fbinfo.zs.clear_value.depth = clears[subpass->zs_attachment.idx].depth;
-         fbinfo.zs.view.zs = &view->pview;
-      }
-
-      if (util_format_has_depth(fdesc)) {
-         fbinfo.zs.clear.s = subpass->zs_attachment.clear;
-         fbinfo.zs.clear_value.stencil = clears[subpass->zs_attachment.idx].depth;
-         if (!fbinfo.zs.view.zs)
-            fbinfo.zs.view.s = &view->pview;
-      }
-   }
-
-   return pan_emit_fbd(pdev, &fbinfo, tlsinfo, tilerctx, desc);
 }

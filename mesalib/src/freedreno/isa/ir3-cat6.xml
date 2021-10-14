@@ -718,8 +718,9 @@ SOFTWARE.
 	<pattern low="24" high="31">xxxxxxxx</pattern>    <!-- SRC2 -->
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
 	<field   low="41" high="48" name="SSBO" type="#cat6-src">   <!-- SSBO/image binding point -->
-		<param name="TRUE" as="SRC_IM"/>
+		<param name="SSBO_IM" as="SRC_IM"/>
 	</field>
+	<derived name="SSBO_IM" expr="#cat6-direct" type="bool"/>
 	<field   low="49" high="51" name="TYPE" type="#type"/>
 	<pattern low="52" high="53">1x</pattern>
 	<encode>
@@ -891,7 +892,7 @@ SOFTWARE.
 		<display>
 			{IMMED}
 		</display>
-		<field name="IMMED" low="0" high="7" type="int"/>
+		<field name="IMMED" low="0" high="7" type="uint"/>
 	</override>
 	<display>
 		r{GPR}.{SWIZ}

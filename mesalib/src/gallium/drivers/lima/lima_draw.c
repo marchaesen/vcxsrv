@@ -600,8 +600,7 @@ lima_calculate_depth_test(struct pipe_depth_stencil_alpha_state *depth,
    return (depth->depth_enabled && depth->depth_writemask) |
       ((int)func << 1) |
       (offset_scale << 16) |
-      (offset_units << 24) |
-      0x30; /* find out what is this */
+      (offset_units << 24);
 }
 
 static void
@@ -647,19 +646,15 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
    struct pipe_rasterizer_state *rst = &ctx->rasterizer->base;
    render->depth_test = lima_calculate_depth_test(&ctx->zsa->base, rst);
 
+   if (!rst->depth_clip_near || ctx->viewport.near == 0.0f)
+      render->depth_test |= 0x10; /* don't clip depth near */
+   if (!rst->depth_clip_far || ctx->viewport.far == 1.0f)
+      render->depth_test |= 0x20; /* don't clip depth far */
+
    ushort far, near;
 
    near = float_to_ushort(ctx->viewport.near);
    far = float_to_ushort(ctx->viewport.far);
-
-   /* Insert a small 'epsilon' difference between 'near' and 'far' when
-    * they are equal, to avoid application bugs. */
-   if (far == near) {
-      if (near > 0)
-         near--;
-      if (far < USHRT_MAX)
-         far++;
-   }
 
    /* overlap with plbu? any place can remove one? */
    render->depth_range = near | (far << 16);
@@ -726,7 +721,10 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
    render->textures_address = 0x00000000;
 
    render->aux0 = (ctx->vs->state.varying_stride >> 3);
-   render->aux1 = 0x00001000;
+   render->aux1 = 0x00000000;
+   if (ctx->rasterizer->base.front_ccw)
+      render->aux1 = 0x00001000;
+
    if (ctx->blend->base.dither)
       render->aux1 |= 0x00002000;
 
@@ -1182,10 +1180,12 @@ lima_draw_vbo(struct pipe_context *pctx,
    lima_dump_command_stream_print(
       job->dump, ctx->vs->bo->map, ctx->vs->state.shader_size, false,
       "add vs at va %x\n", ctx->vs->bo->va);
+   lima_dump_shader(job->dump, ctx->vs->bo->map, ctx->vs->state.shader_size, false);
 
    lima_dump_command_stream_print(
       job->dump, ctx->fs->bo->map, ctx->fs->state.shader_size, false,
       "add fs at va %x\n", ctx->fs->bo->va);
+   lima_dump_shader(job->dump, ctx->fs->bo->map, ctx->fs->state.shader_size, true);
 
    lima_job_add_bo(job, LIMA_PIPE_GP, ctx->vs->bo, LIMA_SUBMIT_BO_READ);
    lima_job_add_bo(job, LIMA_PIPE_PP, ctx->fs->bo, LIMA_SUBMIT_BO_READ);

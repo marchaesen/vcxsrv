@@ -260,7 +260,7 @@ static bool fill_drm_device_info(const struct instance_info *info,
    drm_device->cpu_device = properties.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
    drm_device->dev_info.vendor_id = properties.properties.vendorID;
    drm_device->dev_info.device_id = properties.properties.deviceID;
-   if (info->has_pci_bus) {
+   if (info->has_vulkan11 && info->has_pci_bus) {
      drm_device->has_bus_info = true;
      drm_device->bus_info.domain = ext_pci_properties.pciDomain;
      drm_device->bus_info.bus = ext_pci_properties.pciBus;

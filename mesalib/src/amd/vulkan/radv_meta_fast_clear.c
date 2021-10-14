@@ -54,16 +54,14 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
    output_img->data.descriptor_set = 0;
    output_img->data.binding = 1;
 
-   nir_ssa_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_ssa_def *wg_id = nir_load_workgroup_id(&b, 32);
-   nir_ssa_def *block_size =
-      nir_imm_ivec4(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
-                    b.shader->info.workgroup_size[2], 0);
-
-   nir_ssa_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
+   nir_ssa_def *global_id = get_global_ids(&b, 2);
+   nir_ssa_def *img_coord = nir_vec4(&b, nir_channel(&b, global_id, 0),
+                                         nir_channel(&b, global_id, 1),
+                                         nir_ssa_undef(&b, 1, 32),
+                                         nir_ssa_undef(&b, 1, 32));
 
    nir_ssa_def *data = nir_image_deref_load(
-      &b, 4, 32, &nir_build_deref_var(&b, input_img)->dest.ssa, global_id, nir_ssa_undef(&b, 1, 32),
+      &b, 4, 32, &nir_build_deref_var(&b, input_img)->dest.ssa, img_coord, nir_ssa_undef(&b, 1, 32),
       nir_imm_int(&b, 0), .image_dim = GLSL_SAMPLER_DIM_2D);
 
    /* We need a NIR_SCOPE_DEVICE memory_scope because ACO will avoid
@@ -73,7 +71,7 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
    nir_scoped_barrier(&b, .execution_scope = NIR_SCOPE_WORKGROUP, .memory_scope = NIR_SCOPE_DEVICE,
                       .memory_semantics = NIR_MEMORY_ACQ_REL, .memory_modes = nir_var_mem_ssbo);
 
-   nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->dest.ssa, global_id,
+   nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->dest.ssa, img_coord,
                          nir_ssa_undef(&b, 1, 32), data, nir_imm_int(&b, 0),
                          .image_dim = GLSL_SAMPLER_DIM_2D);
    return b.shader;
@@ -622,6 +620,7 @@ radv_process_color_image_layer(struct radv_cmd_buffer *cmd_buffer, struct radv_i
 
    radv_cmd_buffer_end_render_pass(cmd_buffer);
 
+   radv_image_view_finish(&iview);
    radv_DestroyFramebuffer(radv_device_to_handle(device), fb_h, &cmd_buffer->pool->alloc);
 }
 
@@ -895,6 +894,9 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer, struct radv_imag
                                       }}});
 
          radv_unaligned_dispatch(cmd_buffer, width, height, 1);
+
+         radv_image_view_finish(&load_iview);
+         radv_image_view_finish(&store_iview);
       }
    }
 

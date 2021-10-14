@@ -166,10 +166,11 @@ char *rnndec_decodeval(struct rnndeccontext *ctx, struct rnntypeinfo *ti, uint64
 	int bitfieldsnum;
 	char *tmp;
 	const char *ctmp;
-	uint64_t mask, value_orig;
+	uint64_t mask;
+
+	uint64_t value_orig = value;
 	if (!ti)
 		goto failhex;
-	value_orig = value;
 	value = (value & typeinfo_mask(ti)) >> ti->low;
 	value <<= ti->shr;
 
@@ -417,7 +418,7 @@ static struct rnndecaddrinfo *trymatch (struct rnndeccontext *ctx, struct rnndel
 					offset = addr - (elems[i]->offset + elems[i]->stride * idx);
 					int extraidx = (elems[i]->length != 1);
 					int nindnum = (elems[i]->name ? 0 : indicesnum + extraidx);
-					uint64_t nind[nindnum];
+					uint64_t nind[MAX2(nindnum, 1)];
 					if (!elems[i]->name) {
 						for (j = 0; j < indicesnum; j++)
 							nind[j] = indices[j];

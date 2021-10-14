@@ -31,6 +31,7 @@
 #include "util/u_idalloc.h"
 #include "util/u_suballoc.h"
 #include "util/u_threaded_context.h"
+#include "util/u_vertex_state_cache.h"
 #include "ac_sqtt.h"
 
 #ifdef __cplusplus
@@ -210,6 +211,7 @@ enum
    DBG_CHECK_VM,
    DBG_RESERVE_VMID,
    DBG_SHADOW_REGS,
+   DBG_NO_FAST_DISPLAY_LIST,
 
    /* 3D engine options: */
    DBG_NO_GFX,
@@ -217,7 +219,6 @@ enum
    DBG_ALWAYS_NGG_CULLING_ALL,
    DBG_ALWAYS_NGG_CULLING_TESS,
    DBG_NO_NGG_CULLING,
-   DBG_NO_FAST_LAUNCH,
    DBG_SWITCH_ON_EOP,
    DBG_NO_OUT_OF_ORDER,
    DBG_NO_DPBB,
@@ -233,6 +234,7 @@ enum
    DBG_DCC_STORE,
    DBG_NO_DCC_MSAA,
    DBG_NO_FMASK,
+   DBG_NO_DMA,
 
    DBG_TMZ,
    DBG_SQTT,
@@ -563,6 +565,10 @@ struct si_screen {
    struct pipe_context *aux_context;
    simple_mtx_t aux_context_lock;
 
+   /* Async compute context for DRI_PRIME copies. */
+   struct pipe_context *async_compute_context;
+   simple_mtx_t async_compute_context_lock;
+
    /* This must be in the screen, because UE4 uses one context for
     * compilation and another one for rendering.
     */
@@ -659,6 +665,7 @@ struct si_screen {
    unsigned ngg_subgroup_size;
 
    struct util_idalloc_mt buffer_ids;
+   struct util_vertex_state_cache vertex_state_cache;
 };
 
 struct si_sampler_view {
@@ -867,12 +874,24 @@ struct si_small_prim_cull_info {
    float small_prim_precision;
 };
 
+struct si_vertex_state {
+   struct pipe_vertex_state b;
+   struct si_vertex_elements velems;
+   uint32_t descriptors[4 * SI_MAX_ATTRIBS];
+};
+
 typedef void (*pipe_draw_vbo_func)(struct pipe_context *pipe,
                                    const struct pipe_draw_info *info,
                                    unsigned drawid_offset,
                                    const struct pipe_draw_indirect_info *indirect,
                                    const struct pipe_draw_start_count_bias *draws,
                                    unsigned num_draws);
+typedef void (*pipe_draw_vertex_state_func)(struct pipe_context *ctx,
+                                            struct pipe_vertex_state *vstate,
+                                            uint32_t partial_velem_mask,
+                                            struct pipe_draw_vertex_state_info info,
+                                            const struct pipe_draw_start_count_bias *draws,
+                                            unsigned num_draws);
 
 struct si_context {
    struct pipe_context b; /* base class */
@@ -883,6 +902,7 @@ struct si_context {
    struct radeon_winsys *ws;
    struct radeon_winsys_ctx *ctx;
    struct radeon_cmdbuf gfx_cs; /* compute IB if graphics is disabled */
+   struct radeon_cmdbuf *sdma_cs;
    struct pipe_fence_handle *last_gfx_fence;
    struct si_resource *eop_bug_scratch;
    struct si_resource *eop_bug_scratch_tmz;
@@ -1011,6 +1031,8 @@ struct si_context {
    struct si_vertex_elements *vertex_elements;
    unsigned num_vertex_elements;
    unsigned cs_max_waves_per_sh;
+   bool uses_nontrivial_vs_prolog;
+   bool force_trivial_vs_prolog;
    bool do_update_shaders;
    bool compute_shaderbuf_sgprs_dirty;
    bool compute_image_sgprs_dirty;
@@ -1219,8 +1241,10 @@ struct si_context {
    struct hash_table *dirty_implicit_resources;
 
    pipe_draw_vbo_func draw_vbo[2][2][2];
+   pipe_draw_vertex_state_func draw_vertex_state[2][2][2];
    /* When b.draw_vbo is a wrapper, real_draw_vbo is the real draw_vbo function */
    pipe_draw_vbo_func real_draw_vbo;
+   pipe_draw_vertex_state_func real_draw_vertex_state;
    void (*emit_spi_map[33])(struct si_context *sctx);
 
    /* SQTT */
@@ -1409,6 +1433,8 @@ struct pipe_fence_handle *si_create_fence(struct pipe_context *ctx,
 /* si_get.c */
 void si_init_screen_get_functions(struct si_screen *sscreen);
 
+bool si_sdma_copy_image(struct si_context *ctx, struct si_texture *dst, struct si_texture *src);
+
 /* si_gfx_cs.c */
 void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_handle **fence);
 void si_allocate_gds(struct si_context *ctx);
@@ -1422,7 +1448,8 @@ void si_emit_cache_flush(struct si_context *sctx, struct radeon_cmdbuf *cs);
 /* Replace the sctx->b.draw_vbo function with a wrapper. This can be use to implement
  * optimizations without affecting the normal draw_vbo functions perf.
  */
-void si_install_draw_wrapper(struct si_context *sctx, pipe_draw_vbo_func wrapper);
+void si_install_draw_wrapper(struct si_context *sctx, pipe_draw_vbo_func wrapper,
+                             pipe_draw_vertex_state_func vstate_wrapper);
 
 /* si_gpu_load.c */
 void si_gpu_load_kill_thread(struct si_screen *sscreen);
@@ -1435,6 +1462,7 @@ void si_init_compute_functions(struct si_context *sctx);
 
 /* si_pipe.c */
 void si_init_compiler(struct si_screen *sscreen, struct ac_llvm_compiler *compiler);
+void si_init_aux_async_compute_ctx(struct si_screen *sscreen);
 
 /* si_perfcounters.c */
 void si_init_perfcounters(struct si_screen *screen);
@@ -1765,7 +1793,19 @@ static inline bool si_htile_enabled(struct si_texture *tex, unsigned level, unsi
    if (zs_mask == PIPE_MASK_S && (tex->htile_stencil_disabled || !tex->surface.has_stencil))
       return false;
 
-   return tex->is_depth && tex->surface.meta_offset && level < tex->surface.num_meta_levels;
+   if (!tex->is_depth || !tex->surface.meta_offset)
+      return false;
+
+   struct si_screen *sscreen = (struct si_screen *)tex->buffer.b.b.screen;
+   if (sscreen->info.chip_class >= GFX8) {
+      return level < tex->surface.num_meta_levels;
+   } else {
+      /* GFX6-7 don't have TC-compatible HTILE, which means they have to run
+       * a decompression pass for every mipmap level before texturing, so compress
+       * only one level to reduce the number of decompression passes to a minimum.
+       */
+      return level == 0;
+   }
 }
 
 static inline bool vi_tc_compat_htile_enabled(struct si_texture *tex, unsigned level,
@@ -1807,6 +1847,12 @@ static inline unsigned si_get_total_colormask(struct si_context *sctx)
    ((1 << PIPE_PRIM_LINES) | (1 << PIPE_PRIM_LINE_LOOP) | (1 << PIPE_PRIM_LINE_STRIP) |            \
     (1 << PIPE_PRIM_LINES_ADJACENCY) | (1 << PIPE_PRIM_LINE_STRIP_ADJACENCY))
 
+#define UTIL_ALL_PRIM_TRIANGLE_MODES \
+   ((1 << PIPE_PRIM_TRIANGLES) | (1 << PIPE_PRIM_TRIANGLE_STRIP) | \
+    (1 << PIPE_PRIM_TRIANGLE_FAN) | (1 << PIPE_PRIM_QUADS) | (1 << PIPE_PRIM_QUAD_STRIP) | \
+    (1 << PIPE_PRIM_POLYGON) | (1 << PIPE_PRIM_TRIANGLES_ADJACENCY) | \
+    (1 << PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY))
+
 static inline bool util_prim_is_lines(unsigned prim)
 {
    return ((1 << prim) & UTIL_ALL_PRIM_LINE_MODES) != 0;
@@ -1819,11 +1865,12 @@ static inline bool util_prim_is_points_or_lines(unsigned prim)
 
 static inline bool util_rast_prim_is_triangles(unsigned prim)
 {
-   return ((1 << prim) &
-           ((1 << PIPE_PRIM_TRIANGLES) | (1 << PIPE_PRIM_TRIANGLE_STRIP) |
-            (1 << PIPE_PRIM_TRIANGLE_FAN) | (1 << PIPE_PRIM_QUADS) | (1 << PIPE_PRIM_QUAD_STRIP) |
-            (1 << PIPE_PRIM_POLYGON) | (1 << PIPE_PRIM_TRIANGLES_ADJACENCY) |
-            (1 << PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY)));
+   return ((1 << prim) & UTIL_ALL_PRIM_TRIANGLE_MODES) != 0;
+}
+
+static inline bool util_rast_prim_is_lines_or_triangles(unsigned prim)
+{
+   return ((1 << prim) & (UTIL_ALL_PRIM_LINE_MODES | UTIL_ALL_PRIM_TRIANGLE_MODES)) != 0;
 }
 
 /**
@@ -1905,15 +1952,12 @@ static inline void radeon_add_to_gfx_buffer_list_check_mem(struct si_context *sc
 }
 
 static inline unsigned si_get_wave_size(struct si_screen *sscreen,
-                                        gl_shader_stage stage, bool ngg, bool es,
-                                        bool gs_fast_launch)
+                                        gl_shader_stage stage, bool ngg, bool es)
 {
    if (stage == MESA_SHADER_COMPUTE)
       return sscreen->compute_wave_size;
    else if (stage == MESA_SHADER_FRAGMENT)
       return sscreen->ps_wave_size;
-   else if (gs_fast_launch)
-      return 32; /* GS fast launch hangs with Wave64, so always use Wave32. */
    else if ((stage == MESA_SHADER_VERTEX && es && !ngg) ||
             (stage == MESA_SHADER_TESS_EVAL && es && !ngg) ||
             (stage == MESA_SHADER_GEOMETRY && !ngg)) /* legacy GS only supports Wave64 */
@@ -1926,8 +1970,7 @@ static inline unsigned si_get_shader_wave_size(struct si_shader *shader)
 {
    return si_get_wave_size(shader->selector->screen, shader->selector->info.stage,
                            shader->key.as_ngg,
-                           shader->key.as_es,
-                           shader->key.opt.ngg_culling & SI_NGG_CULL_GS_FAST_LAUNCH_ALL);
+                           shader->key.as_es);
 }
 
 static inline void si_select_draw_vbo(struct si_context *sctx)
@@ -1935,11 +1978,22 @@ static inline void si_select_draw_vbo(struct si_context *sctx)
    pipe_draw_vbo_func draw_vbo = sctx->draw_vbo[!!sctx->shader.tes.cso]
                                                [!!sctx->shader.gs.cso]
                                                [sctx->ngg];
+   pipe_draw_vertex_state_func draw_vertex_state =
+      sctx->draw_vertex_state[!!sctx->shader.tes.cso]
+                             [!!sctx->shader.gs.cso]
+                             [sctx->ngg];
    assert(draw_vbo);
-   if (unlikely(sctx->real_draw_vbo))
+   assert(draw_vertex_state);
+
+   if (unlikely(sctx->real_draw_vbo)) {
+      assert(sctx->real_draw_vertex_state);
       sctx->real_draw_vbo = draw_vbo;
-   else
+      sctx->real_draw_vertex_state = draw_vertex_state;
+   } else {
+      assert(!sctx->real_draw_vertex_state);
       sctx->b.draw_vbo = draw_vbo;
+      sctx->b.draw_vertex_state = draw_vertex_state;
+   }
 }
 
 /* Return the number of samples that the rasterizer uses. */

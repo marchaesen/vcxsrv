@@ -78,7 +78,6 @@ if with_tools.contains('all')
     'asahi',
   ]
 endif
-with_clc = false
 
 with_any_vulkan_layers = get_option('vulkan-layers').length() != 0
 with_intel_tools = with_tools.contains('intel') or with_tools.contains('intel-ui')
@@ -308,19 +307,9 @@ if with_aco_tests and not with_amd_vk
   error('ACO tests require Radv')
 endif
 
-dep_clang = dependency(
-  'clang',
-  method : 'cmake',
-  static : true,
-  modules : [
-    'clangBasic', 'clangCodeGen', 'clangDriver', 'clangFrontend', 'clangFrontendTool',
-    'clangHandleCXX', 'clangHandleLLVM',
-  ],
-  required : get_option('microsoft-clc'),
-)
-with_microsoft_clc = dep_clang.found()
-with_clc = dep_clang.found()
-
+with_microsoft_clc = get_option('microsoft-clc').enabled()
+with_clc = with_microsoft_clc
+with_libclc = with_clc
 with_spirv_to_dxil = get_option('spirv-to-dxil')
 
 if host_machine.system() == 'darwin'
@@ -423,6 +412,35 @@ if _xlib_lease == 'auto'
   with_xlib_lease = with_platform_x11 and system_has_kms_drm
 else
   with_xlib_lease = _xlib_lease == 'enabled'
+endif
+
+if with_platform_wayland
+  c_args += '-DVK_USE_PLATFORM_WAYLAND_KHR'
+  #add this once aco and other places can build with it
+  #cpp_args += '-DVK_USE_PLATFORM_WAYLAND_KHR'
+endif
+if with_platform_x11
+  c_args += ['-DVK_USE_PLATFORM_XCB_KHR', '-DVK_USE_PLATFORM_XLIB_KHR']
+  #add this once aco and other places can build with it
+  #cpp_args += ['-DVK_USE_PLATFORM_XCB_KHR', '-DVK_USE_PLATFORM_XLIB_KHR']
+endif
+if with_platform_windows
+  c_args += '-DVK_USE_PLATFORM_WIN32_KHR'
+  #add this once aco and other places can build with it
+  #cpp_args += '-DVK_USE_PLATFORM_WIN32_KHR'
+endif
+if with_platform_android
+  c_args += '-DVK_USE_PLATFORM_ANDROID_KHR'
+  cpp_args += '-DVK_USE_PLATFORM_ANDROID_KHR'
+endif
+if with_xlib_lease
+  c_args += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+  #add this once aco and other places can build with it
+  #cpp_args += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+endif
+if system_has_kms_drm and not with_platform_android
+  c_args += '-DVK_USE_PLATFORM_DISPLAY_KHR'
+  cpp_args += '-DVK_USE_PLATFORM_DISPLAY_KHR'
 endif
 
 _egl = get_option('egl')
@@ -616,7 +634,7 @@ dep_dxheaders = null_dep
 if with_gallium_d3d12 or with_microsoft_clc
   dep_dxheaders = dependency('DirectX-Headers', fallback : ['DirectX-Headers', 'dep_dxheaders'],
     required : with_gallium_d3d12
-  ) 
+  )
 endif
 
 if with_vulkan_overlay_layer or with_aco_tests
@@ -819,7 +837,7 @@ if with_gallium_st_nine
     error('The nine state tracker requires gallium softpipe/llvmpipe.')
   elif not (with_gallium_radeonsi or with_gallium_nouveau or with_gallium_r600
             or with_gallium_r300 or with_gallium_svga or with_gallium_i915
-            or with_gallium_iris or with_gallium_crocus)
+            or with_gallium_iris or with_gallium_crocus or with_gallium_zink)
     error('The nine state tracker requires at least one non-swrast gallium driver.')
   endif
   if not with_dri3
@@ -867,13 +885,20 @@ if _power8 != 'disabled'
   endif
 endif
 
+if get_option('vmware-mks-stats')
+  if not with_gallium_svga
+    error('vmware-mks-stats requires gallium VMware/svga driver.')
+  endif
+  pre_args += '-DVMX86_STATS=1'
+endif
+
 _opencl = get_option('gallium-opencl')
 if _opencl != 'disabled'
   if not with_gallium
     error('OpenCL Clover implementation requires at least one gallium driver.')
   endif
 
-  with_clc = true
+  with_libclc = true
   with_gallium_opencl = true
   with_opencl_icd = _opencl == 'icd'
 else
@@ -882,7 +907,7 @@ else
 endif
 
 dep_clc = null_dep
-if with_clc
+if with_libclc
   dep_clc = dependency('libclc')
 endif
 
@@ -1600,8 +1625,8 @@ if with_gallium_opencl
   ]
   llvm_optional_modules += ['frontendopenmp']
 endif
-if with_microsoft_clc
-  llvm_modules += ['target', 'linker', 'irreader', 'option', 'libdriver']
+if with_clc
+  llvm_modules += ['coverage', 'target', 'linker', 'irreader', 'option', 'libdriver', 'lto']
 endif
 if with_tests or with_gallium_softpipe
   llvm_modules += 'native'
@@ -1609,7 +1634,7 @@ endif
 
 if with_amd_vk or with_gallium_radeonsi
   _llvm_version = '>= 11.0.0'
-elif with_microsoft_clc
+elif with_clc
   _llvm_version = '>= 10.0.0'
 elif with_gallium_opencl
   _llvm_version = '>= 8.0.0'
@@ -1662,7 +1687,7 @@ if _llvm != 'disabled'
     optional_modules : llvm_optional_modules,
     required : (
       with_amd_vk or with_gallium_radeonsi or with_gallium_swr or
-      with_gallium_opencl or with_microsoft_clc or _llvm == 'enabled'
+      with_gallium_opencl or with_clc or _llvm == 'enabled'
     ),
     static : not _shared_llvm,
     method : _llvm_method,
@@ -1715,17 +1740,19 @@ if with_llvm
       language : ['c', 'cpp'],
     )
   endif
-elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr or with_swrast_vk
-  error('The following drivers require LLVM: Radv, RadeonSI, SWR, Lavapipe. One of these is enabled, but LLVM is disabled.')
+elif with_amd_vk and with_aco_tests
+  error('ACO tests require LLVM, but LLVM is disabled.')
+elif with_gallium_radeonsi or with_gallium_swr or with_swrast_vk
+  error('The following drivers require LLVM: RadeonSI, SWR, Lavapipe. One of these is enabled, but LLVM is disabled.')
 elif with_gallium_opencl
   error('The OpenCL "Clover" state tracker requires LLVM, but LLVM is disabled.')
-elif with_microsoft_clc
-  error('The Microsoft CLC compiler requires LLVM, but LLVM is disabled.')
+elif with_clc
+  error('The CLC compiler requires LLVM, but LLVM is disabled.')
 else
   draw_with_llvm = false
 endif
 
-with_opencl_spirv = (_opencl != 'disabled' and get_option('opencl-spirv')) or with_microsoft_clc
+with_opencl_spirv = (_opencl != 'disabled' and get_option('opencl-spirv')) or with_clc
 if with_opencl_spirv
   chosen_llvm_version_array = dep_llvm.version().split('.')
   chosen_llvm_version_major = chosen_llvm_version_array[0].to_int()
@@ -1748,6 +1775,30 @@ if with_opencl_spirv
 else
   dep_spirv_tools = null_dep
   dep_llvmspirvlib = null_dep
+endif
+
+dep_clang = null_dep
+if with_clc
+  llvm_libdir = dep_llvm.get_variable(cmake : 'LLVM_LIBRARY_DIR', configtool: 'libdir')
+
+  clang_modules = [
+    'clangBasic', 'clangAST', 'clangCodeGen', 'clangLex',
+    'clangDriver', 'clangFrontend', 'clangFrontendTool',
+    'clangHandleCXX', 'clangHandleLLVM', 'clangSerialization',
+    'clangSema', 'clangParse', 'clangEdit', 'clangAnalysis'
+  ]
+
+  dep_clang = []
+  foreach m : clang_modules
+    dep_clang += cpp.find_library(m, dirs : llvm_libdir, required : true)
+  endforeach
+endif
+
+# Be explicit about only using this lib on Windows, to avoid picking
+# up random libs with the generic name 'libversion'
+dep_version = null_dep
+if with_opencl_spirv and host_machine.system() == 'windows'
+  dep_version = cpp.find_library('version')
 endif
 
 with_opencl_native = _opencl != 'disabled' and get_option('opencl-native')

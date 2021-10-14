@@ -28,7 +28,6 @@
 #define FREEDRENO_BATCH_H_
 
 #include "util/list.h"
-#include "util/set.h"
 #include "util/simple_mtx.h"
 #include "util/u_inlines.h"
 #include "util/u_queue.h"
@@ -64,6 +63,11 @@ struct fd_batch {
    struct pipe_fence_handle *fence;
 
    struct fd_context *ctx;
+
+   /* emit_lock serializes cmdstream emission and flush.  Acquire before
+    * screen->lock.
+    */
+   simple_mtx_t submit_lock;
 
    /* do we need to mem2gmem before rendering.  We don't, if for example,
     * there was a glClear() that invalidated the entire previous buffer
@@ -240,21 +244,17 @@ struct fd_batch {
    uint32_t query_tile_stride;
    /*@}*/
 
-   /* Set of references to resources used by currently-unsubmitted batch (read
-    * or write).  Note that this set may not include all BOs referenced by the
-    * batch due to fd_bc_resource_invalidate().
+   /* Set of resources used by currently-unsubmitted batch (read or
+    * write).. does not hold a reference to the resource.
     */
    struct set *resources;
-
-   BITSET_WORD *bos;
-   uint32_t bos_size;
 
    /** key in batch-cache (if not null): */
    struct fd_batch_key *key;
    uint32_t hash;
 
    /** set of dependent batches.. holds refs to dependent batches: */
-   struct set *dependents;
+   uint32_t dependents_mask;
 
    /* Buffer for tessellation engine input
     */
@@ -289,10 +289,29 @@ struct fd_batch_key *fd_batch_key_clone(void *mem_ctx,
 void __fd_batch_describe(char *buf, const struct fd_batch *batch) assert_dt;
 void __fd_batch_destroy(struct fd_batch *batch);
 
+/*
+ * NOTE the rule is, you need to hold the screen->lock when destroying
+ * a batch..  so either use fd_batch_reference() (which grabs the lock
+ * for you) if you don't hold the lock, or fd_batch_reference_locked()
+ * if you do hold the lock.
+ *
+ * WARNING the _locked() version can briefly drop the lock.  Without
+ * recursive mutexes, I'm not sure there is much else we can do (since
+ * __fd_batch_destroy() needs to unref resources)
+ *
+ * WARNING you must acquire the screen->lock and use the _locked()
+ * version in case that the batch being ref'd can disappear under
+ * you.
+ */
+
 static inline void
-fd_batch_reference(struct fd_batch **ptr, struct fd_batch *batch)
+fd_batch_reference_locked(struct fd_batch **ptr, struct fd_batch *batch)
 {
    struct fd_batch *old_batch = *ptr;
+
+   /* only need lock if a reference is dropped: */
+   if (old_batch)
+      fd_screen_assert_locked(old_batch->ctx->screen);
 
    if (pipe_reference_described(
           &(*ptr)->reference, &batch->reference,
@@ -303,8 +322,24 @@ fd_batch_reference(struct fd_batch **ptr, struct fd_batch *batch)
 }
 
 static inline void
+fd_batch_reference(struct fd_batch **ptr, struct fd_batch *batch)
+{
+   struct fd_batch *old_batch = *ptr;
+   struct fd_context *ctx = old_batch ? old_batch->ctx : NULL;
+
+   if (ctx)
+      fd_screen_lock(ctx->screen);
+
+   fd_batch_reference_locked(ptr, batch);
+
+   if (ctx)
+      fd_screen_unlock(ctx->screen);
+}
+
+static inline void
 fd_batch_unlock_submit(struct fd_batch *batch)
 {
+   simple_mtx_unlock(&batch->submit_lock);
 }
 
 /**
@@ -314,7 +349,11 @@ fd_batch_unlock_submit(struct fd_batch *batch)
 static inline bool MUST_CHECK
 fd_batch_lock_submit(struct fd_batch *batch)
 {
-   return !batch->flushed;
+   simple_mtx_lock(&batch->submit_lock);
+   bool ret = !batch->flushed;
+   if (!ret)
+      fd_batch_unlock_submit(batch);
+   return ret;
 }
 
 /**

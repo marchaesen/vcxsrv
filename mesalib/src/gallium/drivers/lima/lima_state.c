@@ -29,6 +29,7 @@
 #include "util/u_helpers.h"
 #include "util/u_debug.h"
 #include "util/u_framebuffer.h"
+#include "util/u_viewport.h"
 
 #include "pipe/p_state.h"
 
@@ -218,11 +219,11 @@ lima_set_viewport_states(struct pipe_context *pctx,
 
    /* reverse calculate the parameter of glDepthRange */
    float near, far;
-   near = viewport->translate[2] - viewport->scale[2];
-   far = viewport->translate[2] + viewport->scale[2];
+   bool halfz = ctx->rasterizer && ctx->rasterizer->base.clip_halfz;
+   util_viewport_zmin_zmax(viewport, halfz, &near, &far);
 
-   ctx->viewport.near = MIN2(near, far);
-   ctx->viewport.far = MAX2(near, far);
+   ctx->viewport.near = ctx->rasterizer && ctx->rasterizer->base.depth_clip_near ? near : 0.0f;
+   ctx->viewport.far = ctx->rasterizer && ctx->rasterizer->base.depth_clip_far ? far : 1.0f;
 
    ctx->viewport.transform = *viewport;
    ctx->dirty |= LIMA_CONTEXT_DIRTY_VIEWPORT;

@@ -26,9 +26,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "vk_instance.h"
+#include "vk_physical_device.h"
 #include "vk_util.h"
+#include "wsi_common_entrypoints.h"
 #include "wsi_common_private.h"
-#include "wsi_common_win32.h"
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"      // warning: cast to pointer from integer of different size
@@ -67,30 +69,37 @@ struct wsi_win32_swapchain {
    struct wsi_win32_image     images[0];
 };
 
-VkBool32
-wsi_win32_get_presentation_support(struct wsi_device *wsi_device)
+VKAPI_ATTR VkBool32 VKAPI_CALL
+wsi_GetPhysicalDeviceWin32PresentationSupportKHR(VkPhysicalDevice physicalDevice,
+                                                 uint32_t queueFamilyIndex)
 {
    return TRUE;
 }
 
-VkResult
-wsi_create_win32_surface(VkInstance instance,
-                           const VkAllocationCallbacks *allocator,
-                           const VkWin32SurfaceCreateInfoKHR *create_info,
-                           VkSurfaceKHR *surface_khr)
+VKAPI_ATTR VkResult VKAPI_CALL
+wsi_CreateWin32SurfaceKHR(VkInstance _instance,
+                          const VkWin32SurfaceCreateInfoKHR *pCreateInfo,
+                          const VkAllocationCallbacks *pAllocator,
+                          VkSurfaceKHR *pSurface)
 {
-   VkIcdSurfaceWin32 *surface = vk_zalloc(allocator, sizeof *surface, 8,
-                                            VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
+   VkIcdSurfaceWin32 *surface;
+
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
+
+   surface = vk_zalloc2(&instance->alloc, pAllocator, sizeof(*surface), 8,
+                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
    if (surface == NULL)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    surface->base.platform = VK_ICD_WSI_PLATFORM_WIN32;
 
-   surface->hinstance = create_info->hinstance;
-   surface->hwnd = create_info->hwnd;
+   surface->hinstance = pCreateInfo->hinstance;
+   surface->hwnd = pCreateInfo->hwnd;
 
-   *surface_khr = VkIcdSurfaceBase_to_handle(&surface->base);
+   *pSurface = VkIcdSurfaceBase_to_handle(&surface->base);
+
    return VK_SUCCESS;
 }
 

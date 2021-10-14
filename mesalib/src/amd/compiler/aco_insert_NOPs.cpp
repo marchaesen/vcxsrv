@@ -287,7 +287,7 @@ set_bitset_range(BITSET_WORD* words, unsigned start, unsigned size)
    unsigned end = start + size - 1;
    unsigned start_mod = start % BITSET_WORDBITS;
    if (start_mod + size <= BITSET_WORDBITS) {
-      BITSET_SET_RANGE(words, start, end);
+      BITSET_SET_RANGE_INSIDE_WORD(words, start, end);
    } else {
       unsigned first_size = BITSET_WORDBITS - start_mod;
       set_bitset_range(words, start, BITSET_WORDBITS - start_mod);
@@ -847,7 +847,7 @@ void
 mitigate_hazards(Program* program)
 {
    std::vector<Ctx> all_ctx(program->blocks.size());
-   std::stack<unsigned> loop_header_indices;
+   std::stack<unsigned, std::vector<unsigned>> loop_header_indices;
 
    for (unsigned i = 0; i < program->blocks.size(); i++) {
       Block& block = program->blocks[i];

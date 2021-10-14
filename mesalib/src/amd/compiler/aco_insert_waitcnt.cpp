@@ -767,8 +767,15 @@ insert_wait_states(Program* program)
    std::vector<wait_ctx> in_ctx(program->blocks.size(), wait_ctx(program));
    std::vector<wait_ctx> out_ctx(program->blocks.size(), wait_ctx(program));
 
-   std::stack<unsigned> loop_header_indices;
+   std::stack<unsigned, std::vector<unsigned>> loop_header_indices;
    unsigned loop_progress = 0;
+
+   if (program->stage.has(SWStage::VS) && program->info->vs.dynamic_inputs) {
+      for (Definition def : program->vs_inputs) {
+         update_counters(in_ctx[0], event_vmem);
+         insert_wait_entry(in_ctx[0], def, event_vmem);
+      }
+   }
 
    for (unsigned i = 0; i < program->blocks.size();) {
       Block& current = program->blocks[i++];

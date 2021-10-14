@@ -28,6 +28,8 @@
 #ifndef __PAN_CS_H
 #define __PAN_CS_H
 
+#include "genxml/gen_macros.h"
+
 #include "pan_texture.h"
 
 struct pan_compute_dim {
@@ -92,7 +94,7 @@ struct pan_tls_info {
 struct pan_fb_bifrost_info {
         struct {
                 struct panfrost_ptr dcds;
-                enum mali_pre_post_frame_shader_mode modes[3];
+                unsigned modes[3];
         } pre_post;
 };
 
@@ -117,46 +119,70 @@ struct pan_fb_info {
         };
 };
 
-unsigned
+static inline unsigned
+pan_wls_instances(const struct pan_compute_dim *dim)
+{
+        return util_next_power_of_two(dim->x) *
+               util_next_power_of_two(dim->y) *
+               util_next_power_of_two(dim->z);
+}
+
+static inline unsigned
+pan_wls_adjust_size(unsigned wls_size)
+{
+        return util_next_power_of_two(MAX2(wls_size, 128));
+}
+
+static inline unsigned
 pan_wls_mem_size(const struct panfrost_device *dev,
                  const struct pan_compute_dim *dim,
-                 unsigned wls_size);
+                 unsigned wls_size)
+{
+        unsigned instances = pan_wls_instances(dim);
 
+        return pan_wls_adjust_size(wls_size) * instances * dev->core_count;
+}
+
+#ifdef PAN_ARCH
 void
-pan_emit_tls(const struct panfrost_device *dev,
-             const struct pan_tls_info *info,
-             void *out);
-
-bool
-pan_fbd_has_zs_crc_ext(const struct panfrost_device *dev,
-                       const struct pan_fb_info *fb);
+GENX(pan_emit_tls)(const struct pan_tls_info *info,
+                   void *out);
 
 int
-pan_select_crc_rt(const struct panfrost_device *dev,
-                  const struct pan_fb_info *fb);
+GENX(pan_select_crc_rt)(const struct pan_fb_info *fb);
+
+static inline bool
+pan_fbd_has_zs_crc_ext(const struct pan_fb_info *fb)
+{
+        return PAN_ARCH >= 5 &&
+               (fb->zs.view.zs || fb->zs.view.s ||
+                GENX(pan_select_crc_rt)(fb) >= 0);
+}
 
 unsigned
-pan_emit_fbd(const struct panfrost_device *dev,
-             const struct pan_fb_info *fb,
-             const struct pan_tls_info *tls,
-             const struct pan_tiler_context *tiler_ctx,
-             void *out);
+GENX(pan_emit_fbd)(const struct panfrost_device *dev,
+                   const struct pan_fb_info *fb,
+                   const struct pan_tls_info *tls,
+                   const struct pan_tiler_context *tiler_ctx,
+                   void *out);
+
+#if PAN_ARCH >= 6
+void
+GENX(pan_emit_tiler_heap)(const struct panfrost_device *dev,
+                          void *out);
 
 void
-pan_emit_bifrost_tiler_heap(const struct panfrost_device *dev,
+GENX(pan_emit_tiler_ctx)(const struct panfrost_device *dev,
+                         unsigned fb_width, unsigned fb_height,
+                         unsigned nr_samples,
+                         mali_ptr heap,
+                         void *out);
+#endif
+
+void
+GENX(pan_emit_fragment_job)(const struct pan_fb_info *fb,
+                            mali_ptr fbd,
                             void *out);
-
-void
-pan_emit_bifrost_tiler(const struct panfrost_device *dev,
-                       unsigned fb_width, unsigned fb_height,
-                       unsigned nr_samples,
-                       mali_ptr heap,
-                       void *out);
-
-void
-pan_emit_fragment_job(const struct panfrost_device *dev,
-                      const struct pan_fb_info *fb,
-                      mali_ptr fbd,
-                      void *out);
+#endif /* ifdef PAN_ARCH */
 
 #endif

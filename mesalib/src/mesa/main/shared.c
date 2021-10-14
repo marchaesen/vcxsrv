@@ -96,7 +96,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
 
    /* ARB_shading_language_include */
    _mesa_init_shader_includes(shared);
-   mtx_init(&shared->ShaderIncludeMutex, mtx_plain);
+   simple_mtx_init(&shared->ShaderIncludeMutex, mtx_plain);
 
    /* Create default texture objects */
    for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
@@ -446,7 +446,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
 
    /* ARB_shading_language_include */
    _mesa_destroy_shader_includes(shared);
-   mtx_destroy(&shared->ShaderIncludeMutex);
+   simple_mtx_destroy(&shared->ShaderIncludeMutex);
 
    if (shared->MemoryObjects) {
       _mesa_HashDeleteAll(shared->MemoryObjects, delete_memory_object_cb, ctx);

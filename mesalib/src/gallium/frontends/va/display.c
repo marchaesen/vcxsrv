@@ -35,7 +35,7 @@ vlVaQueryDisplayAttributes(VADriverContextP ctx, VADisplayAttribute *attr_list, 
       return VA_STATUS_ERROR_INVALID_CONTEXT;
 
    if (!(attr_list && num_attributes))
-      return VA_STATUS_ERROR_UNKNOWN;
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
 
    *num_attributes = 0;
 

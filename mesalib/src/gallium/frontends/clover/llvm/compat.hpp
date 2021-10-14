@@ -56,6 +56,12 @@
 #include <llvm/Support/CodeGen.h>
 #endif
 
+#if LLVM_VERSION_MAJOR >= 14
+#include <llvm/MC/TargetRegistry.h>
+#else
+#include <llvm/Support/TargetRegistry.h>
+#endif
+
 namespace clover {
    namespace llvm {
       namespace compat {

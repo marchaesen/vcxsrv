@@ -79,7 +79,7 @@ fd5_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
       .debug = &ctx->debug,
       .vtx = &ctx->vtx,
       .info = info,
-		.drawid_offset = drawid_offset,
+      .drawid_offset = drawid_offset,
       .indirect = indirect,
       .draw = draw,
       .key = {
@@ -184,7 +184,8 @@ fd5_clear_lrz(struct fd_batch *batch, struct fd_resource *zsbuf, double depth)
    OUT_PKT4(ring, REG_A5XX_GRAS_SU_CNTL, 1);
    OUT_RING(ring,
             A5XX_GRAS_SU_CNTL_LINEHALFWIDTH(0.0) |
-               COND(zsbuf->b.b.nr_samples > 1, A5XX_GRAS_SU_CNTL_MSAA_ENABLE));
+               A5XX_GRAS_SU_CNTL_LINE_MODE(zsbuf->b.b.nr_samples  > 1 ?
+                                           RECTANGULAR : BRESENHAM));
 
    OUT_PKT4(ring, REG_A5XX_GRAS_CNTL, 1);
    OUT_RING(ring, 0x00000000);

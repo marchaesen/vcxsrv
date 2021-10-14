@@ -46,14 +46,14 @@ struct panfrost_context;
 struct panfrost_resource;
 struct panfrost_shader_state;
 struct pan_fb_info;
+struct pan_blend_state;
 
 /* Virtual table of per-generation (GenXML) functions */
 
 struct panfrost_vtable {
         /* Prepares the renderer state descriptor for a given compiled shader,
          * and if desired uploads it as well */
-        void (*prepare_rsd)(struct panfrost_device *,
-                            struct panfrost_shader_state *,
+        void (*prepare_rsd)(struct panfrost_shader_state *,
                             struct panfrost_pool *, bool);
 
         /* Emits a thread local storage descriptor */
@@ -77,8 +77,22 @@ struct panfrost_vtable {
         /* Device-dependent initialization of a panfrost_batch */
         void (*init_batch)(struct panfrost_batch *batch);
 
+        /* Get blend shader */
+        struct pan_blend_shader_variant *
+        (*get_blend_shader)(const struct panfrost_device *,
+                            const struct pan_blend_state *,
+                            nir_alu_type, nir_alu_type,
+                            unsigned rt);
+
         /* Initialize the polygon list */
         void (*init_polygon_list)(struct panfrost_batch *);
+
+        /* Shader compilation methods */
+        const nir_shader_compiler_options *(*get_compiler_options)(void);
+        void (*compile_shader)(nir_shader *s,
+                               struct panfrost_compile_inputs *inputs,
+                               struct util_dynarray *binary,
+                               struct pan_shader_info *info);
 };
 
 struct panfrost_screen {

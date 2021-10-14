@@ -77,7 +77,7 @@ panfrost_shader_compile(struct pipe_screen *pscreen,
         struct util_dynarray binary;
 
         util_dynarray_init(&binary, NULL);
-        pan_shader_compile(dev, s, &inputs, &binary, &state->info);
+        screen->vtbl.compile_shader(s, &inputs, &binary, &state->info);
 
         if (binary.size) {
                 state->bin = panfrost_pool_take_ref(shader_pool,
@@ -89,7 +89,7 @@ panfrost_shader_compile(struct pipe_screen *pscreen,
         /* Don't upload RSD for fragment shaders since they need draw-time
          * merging for e.g. depth/stencil/alpha */
         bool upload = stage != MESA_SHADER_FRAGMENT;
-        screen->vtbl.prepare_rsd(dev, state, desc_pool, upload);
+        screen->vtbl.prepare_rsd(state, desc_pool, upload);
 
         panfrost_analyze_sysvals(state);
 

@@ -74,7 +74,7 @@ st_nir_fixup_varying_slots(struct st_context *st, nir_shader *shader,
    assert(!st->allow_st_finalize_nir_twice);
 
    nir_foreach_variable_with_modes(var, shader, mode) {
-      if (var->data.location >= VARYING_SLOT_VAR0) {
+      if (var->data.location >= VARYING_SLOT_VAR0 && var->data.location < VARYING_SLOT_PATCH0) {
          var->data.location += 9;
       } else if (var->data.location == VARYING_SLOT_PNTC) {
          var->data.location = VARYING_SLOT_VAR8;
@@ -766,8 +766,9 @@ st_link_nir(struct gl_context *ctx,
          }
 
          prog->nir = glsl_to_nir(st->ctx, shader_program, shader->Stage, options);
-         st_nir_preprocess(st, prog, shader_program, shader->Stage);
       }
+
+      st_nir_preprocess(st, prog, shader_program, shader->Stage);
 
       if (options->lower_to_scalar) {
          NIR_PASS_V(shader->Program->nir, nir_lower_load_const_to_scalar);
@@ -775,28 +776,6 @@ st_link_nir(struct gl_context *ctx,
    }
 
    st_lower_patch_vertices_in(shader_program);
-
-   /* For SPIR-V, we have to perform the NIR linking before applying
-    * st_nir_preprocess.
-    */
-   if (shader_program->data->spirv) {
-      static const gl_nir_linker_options opts = {
-         true /*fill_parameters */
-      };
-      if (!gl_nir_link_spirv(ctx, shader_program, &opts))
-         return GL_FALSE;
-
-      nir_build_program_resource_list(ctx, shader_program, true);
-
-      for (unsigned i = 0; i < num_shaders; i++) {
-         struct gl_linked_shader *shader = linked_shader[i];
-         struct gl_program *prog = shader->Program;
-
-         prog->ExternalSamplersUsed = gl_external_samplers(prog);
-         _mesa_update_shader_textures_used(shader_program, prog);
-         st_nir_preprocess(st, prog, shader_program, shader->Stage);
-      }
-   }
 
    /* Linking the stages in the opposite order (from fragment to vertex)
     * ensures that inter-shader outputs written to in an earlier stage
@@ -814,18 +793,25 @@ st_link_nir(struct gl_context *ctx,
    if (num_shaders == 1)
       st_nir_opts(linked_shader[0]->Program->nir);
 
-   if (!shader_program->data->spirv) {
+   if (shader_program->data->spirv) {
+      static const gl_nir_linker_options opts = {
+         true /*fill_parameters */
+      };
+      if (!gl_nir_link_spirv(ctx, shader_program, &opts))
+         return GL_FALSE;
+   } else {
       if (!gl_nir_link_glsl(ctx, shader_program))
          return GL_FALSE;
-
-      for (unsigned i = 0; i < num_shaders; i++) {
-         struct gl_program *prog = linked_shader[i]->Program;
-         prog->ExternalSamplersUsed = gl_external_samplers(prog);
-         _mesa_update_shader_textures_used(shader_program, prog);
-      }
-
-      nir_build_program_resource_list(ctx, shader_program, false);
    }
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_program *prog = linked_shader[i]->Program;
+      prog->ExternalSamplersUsed = gl_external_samplers(prog);
+      _mesa_update_shader_textures_used(shader_program, prog);
+   }
+
+   nir_build_program_resource_list(ctx, shader_program,
+                                   shader_program->data->spirv);
 
    for (unsigned i = 0; i < num_shaders; i++) {
       struct gl_linked_shader *shader = linked_shader[i];

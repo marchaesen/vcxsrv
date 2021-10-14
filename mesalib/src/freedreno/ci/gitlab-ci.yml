@@ -24,6 +24,7 @@
   variables:
     DEQP_VER: vk
     VK_DRIVER: freedreno
+    DEQP_EXPECTED_RENDERER: "Turnip Adreno (TM) 630"
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
 
 .freedreno-test-traces:
@@ -66,6 +67,7 @@ a306-traces:
 .a530-test:
   extends:
     - .freedreno-test
+    - .test-manual-mr
   variables:
     BM_KERNEL: /baremetal-files/Image.gz
     BM_DTB: /baremetal-files/apq8096-db820c.dtb
@@ -162,8 +164,8 @@ a630_gles_asan:
 
 a630_vk:
   extends:
-    - .baremetal-deqp-test-freedreno-vk
     - .a630-test
+    - .baremetal-deqp-test-freedreno-vk
   parallel: 3
   variables:
     DEQP_VER: vk
@@ -182,8 +184,8 @@ a630_vk_full:
 # Clicking play can show you some useful areas for fixing turnip, though.
 a630_vk_asan:
   extends:
-    - .baremetal-deqp-test-freedreno-vk
     - .a630-test
+    - .baremetal-deqp-test-freedreno-vk
     - .baremetal-arm64-asan-test
     - .test-manual
   variables:

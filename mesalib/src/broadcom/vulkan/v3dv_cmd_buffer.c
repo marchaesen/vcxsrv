@@ -98,7 +98,7 @@ v3dv_CreateCommandPool(VkDevice _device,
    pool = vk_object_zalloc(&device->vk, pAllocator, sizeof(*pool),
                            VK_OBJECT_TYPE_COMMAND_POOL);
    if (pool == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    if (pAllocator)
       pool->alloc = *pAllocator;
@@ -122,7 +122,7 @@ cmd_buffer_init(struct v3dv_cmd_buffer *cmd_buffer,
     * buffer reset that would reset the loader's dispatch table for the
     * command buffer, and any other relevant info from vk_object_base
     */
-   const uint32_t base_size = sizeof(struct vk_object_base);
+   const uint32_t base_size = sizeof(struct vk_command_buffer);
    uint8_t *cmd_buffer_driver_start = ((uint8_t *) cmd_buffer) + base_size;
    memset(cmd_buffer_driver_start, 0, sizeof(*cmd_buffer) - base_size);
 
@@ -150,12 +150,20 @@ cmd_buffer_create(struct v3dv_device *device,
                   VkCommandBuffer *pCommandBuffer)
 {
    struct v3dv_cmd_buffer *cmd_buffer;
-   cmd_buffer = vk_object_zalloc(&device->vk,
-                                 &pool->alloc,
-                                 sizeof(*cmd_buffer),
-                                 VK_OBJECT_TYPE_COMMAND_BUFFER);
+   cmd_buffer = vk_zalloc2(&device->vk.alloc,
+                           &pool->alloc,
+                           sizeof(*cmd_buffer),
+                           8,
+                           VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (cmd_buffer == NULL)
-      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   VkResult result;
+   result = vk_command_buffer_init(&cmd_buffer->vk, &device->vk);
+   if (result != VK_SUCCESS) {
+      vk_free2(&device->vk.alloc, &pool->alloc, cmd_buffer);
+      return result;
+   }
 
    cmd_buffer_init(cmd_buffer, device, pool, level);
 
@@ -340,7 +348,9 @@ cmd_buffer_destroy(struct v3dv_cmd_buffer *cmd_buffer)
 {
    list_del(&cmd_buffer->pool_link);
    cmd_buffer_free_resources(cmd_buffer);
-   vk_object_free(&cmd_buffer->device->vk, &cmd_buffer->pool->alloc, cmd_buffer);
+   vk_command_buffer_finish(&cmd_buffer->vk);
+   vk_free2(&cmd_buffer->device->vk.alloc, &cmd_buffer->pool->alloc,
+            cmd_buffer);
 }
 
 static bool
@@ -787,7 +797,7 @@ v3dv_job_init(struct v3dv_job *job,
 
       v3dv_cl_init(job, &job->indirect);
 
-      if (V3D_DEBUG & V3D_DEBUG_ALWAYS_FLUSH)
+      if (unlikely(V3D_DEBUG & V3D_DEBUG_ALWAYS_FLUSH))
          job->always_flush = true;
    }
 
@@ -864,6 +874,7 @@ static VkResult
 cmd_buffer_reset(struct v3dv_cmd_buffer *cmd_buffer,
                  VkCommandBufferResetFlags flags)
 {
+   vk_command_buffer_reset(&cmd_buffer->vk);
    if (cmd_buffer->status != V3DV_CMD_BUFFER_STATUS_INITIALIZED) {
       struct v3dv_device *device = cmd_buffer->device;
       struct v3dv_cmd_pool *pool = cmd_buffer->pool;

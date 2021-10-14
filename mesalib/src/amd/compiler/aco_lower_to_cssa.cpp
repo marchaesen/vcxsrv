@@ -486,7 +486,8 @@ emit_parallelcopies(cssa_ctx& ctx)
          /* emit VGPR copies */
          auto IsLogicalEnd = [](const aco_ptr<Instruction>& inst) -> bool
          { return inst->opcode == aco_opcode::p_logical_end; };
-         auto it = std::find_if(block.instructions.rbegin(), block.instructions.rend(), IsLogicalEnd);
+         auto it =
+            std::find_if(block.instructions.rbegin(), block.instructions.rend(), IsLogicalEnd);
          bld.reset(&block.instructions, std::prev(it.base()));
          emit_copies_block(bld, ltg, RegType::vgpr);
       }

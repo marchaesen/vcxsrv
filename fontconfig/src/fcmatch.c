@@ -86,7 +86,7 @@ FcComparePostScript (const FcValue *v1, const FcValue *v2, FcValue *bestValue)
     const FcChar8 *v1_string = FcValueString (v1);
     const FcChar8 *v2_string = FcValueString (v2);
     int n;
-    size_t len;
+    size_t len1, len2, mlen;
 
     *bestValue = FcValueCanonicalize (v2);
 
@@ -95,9 +95,11 @@ FcComparePostScript (const FcValue *v1, const FcValue *v2, FcValue *bestValue)
 	return 1.0;
 
     n = FcStrMatchIgnoreCaseAndDelims (v1_string, v2_string, (const FcChar8 *)" -");
-    len = strlen ((const char *)v1_string);
+    len1 = strlen ((const char *)v1_string);
+    len2 = strlen ((const char *)v2_string);
+    mlen = FC_MAX (len1, len2);
 
-    return (double)(len - n) / (double)len;
+    return (double)(mlen - n) / (double)mlen;
 }
 
 static double

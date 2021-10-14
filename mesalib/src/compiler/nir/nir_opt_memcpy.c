@@ -152,7 +152,7 @@ try_lower_memcpy(nir_builder *b, nir_intrinsic_instr *cpy)
          nir_load_deref_with_access(b, src, nir_intrinsic_src_access(cpy));
       data = nir_bitcast_vector(b, data, glsl_get_bit_size(dst->type));
       assert(data->num_components == glsl_get_vector_elements(dst->type));
-      nir_store_deref_with_access(b, src, data, ~0 /* write mask */,
+      nir_store_deref_with_access(b, dst, data, ~0 /* write mask */,
                                   nir_intrinsic_dst_access(cpy));
       return true;
    }

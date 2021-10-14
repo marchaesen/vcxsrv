@@ -320,7 +320,8 @@ cleanup_fences(struct fd_bo *bo, bool expired)
       if (expired && fd_fence_before(f->pipe->control->fence, f->fence))
          continue;
 
-      fd_pipe_del_locked(f->pipe);
+      struct fd_pipe *pipe = f->pipe;
+
       bo->nr_fences--;
 
       if (bo->nr_fences > 0) {
@@ -328,6 +329,8 @@ cleanup_fences(struct fd_bo *bo, bool expired)
          bo->fences[i] = bo->fences[bo->nr_fences];
          i--;
       }
+
+      fd_pipe_del_locked(pipe);
    }
 }
 
@@ -405,19 +408,6 @@ fd_bo_handle(struct fd_bo *bo)
    bo->bo_reuse = NO_CACHE;
    bo->shared = true;
    bo_flush(bo);
-   return bo->handle;
-}
-
-/**
- * Returns a small integer ID for the BO valid for the lifetime of the fd_bo.
- *
- * It happens to be the GEM handle, but don't use it as one since this getter
- * doesn't do any flushing or marking the BO as uncacheable like you would need
- * for most cases of using a GEM handle.
- */
-uint32_t
-fd_bo_id(struct fd_bo *bo)
-{
    return bo->handle;
 }
 

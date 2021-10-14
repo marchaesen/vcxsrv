@@ -484,13 +484,13 @@ print_block(struct ir3_block *block, int lvl)
       case IR3_BRANCH_COND:
          break;
       case IR3_BRANCH_ANY:
-         printf("any ");
+         mesa_log_stream_printf(stream, "any ");
          break;
       case IR3_BRANCH_ALL:
-         printf("all ");
+         mesa_log_stream_printf(stream, "all ");
          break;
       case IR3_BRANCH_GETONE:
-         printf("getone ");
+         mesa_log_stream_printf(stream, "getone ");
          break;
       }
       if (block->condition)

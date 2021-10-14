@@ -761,7 +761,7 @@ vtest_bo_create_from_device_memory(
    struct vtest_bo *bo = util_sparse_array_get(&vtest->bo_array, res_id);
    *bo = (struct vtest_bo){
       .base = {
-         .refcount = 1,
+         .refcount = VN_REFCOUNT_INIT(1),
          .res_id = res_id,
          .mmap_size = size,
       },
@@ -814,7 +814,7 @@ vtest_shmem_create(struct vn_renderer *renderer, size_t size)
       util_sparse_array_get(&vtest->shmem_array, res_id);
    *shmem = (struct vtest_shmem){
       .base = {
-         .refcount = 1,
+         .refcount = VN_REFCOUNT_INIT(1),
          .res_id = res_id,
          .mmap_size = size,
          .mmap_ptr = ptr,

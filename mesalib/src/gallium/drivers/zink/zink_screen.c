@@ -346,6 +346,9 @@ zink_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TGSI_PACK_HALF_FLOAT:
       return 1;
 
+   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
+      return screen->vk_version >= VK_MAKE_VERSION(1,2,0);
+
    case PIPE_CAP_DRAW_PARAMETERS:
       return screen->info.feats11.shaderDrawParameters || screen->info.have_KHR_shader_draw_parameters;
 
@@ -509,6 +512,11 @@ zink_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
    case PIPE_CAP_PRIMITIVE_RESTART:
       return 1;
+
+   case PIPE_CAP_BINDLESS_TEXTURE:
+      return screen->info.have_EXT_descriptor_indexing &&
+             /* push, 4 types, bindless */
+             screen->info.props.limits.maxBoundDescriptorSets >= 6;
 
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
       return screen->info.props.limits.minTexelBufferOffsetAlignment;
@@ -1244,6 +1252,15 @@ emulate_x8(enum pipe_format format)
    case PIPE_FORMAT_R8G8B8X8_UNORM:
       return PIPE_FORMAT_R8G8B8A8_UNORM;
 
+   case PIPE_FORMAT_R16G16B16X16_FLOAT:
+      return PIPE_FORMAT_R16G16B16A16_FLOAT;
+   case PIPE_FORMAT_R16G16B16X16_SINT:
+      return PIPE_FORMAT_R16G16B16A16_SINT;
+   case PIPE_FORMAT_R16G16B16X16_SNORM:
+      return PIPE_FORMAT_R16G16B16A16_SNORM;
+   case PIPE_FORMAT_R16G16B16X16_UNORM:
+      return PIPE_FORMAT_R16G16B16A16_UNORM;
+
    default:
       return format;
    }
@@ -1337,6 +1354,30 @@ check_have_device_time(struct zink_screen *screen)
    return false;
 }
 
+static void
+zink_error(const char *msg)
+{
+   fprintf(stderr, "zink ERR: '%s'\n", msg);
+}
+
+static void
+zink_warn(const char *msg)
+{
+   fprintf(stderr, "zink WRN: '%s'\n", msg);
+}
+
+static void
+zink_info(const char *msg)
+{
+   fprintf(stderr, "zink NFO: '%s'\n", msg);
+}
+
+static void
+zink_msg(const char *msg)
+{
+   fprintf(stderr, "zink MSG: '%s'\n", msg);
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 zink_debug_util_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
@@ -1344,19 +1385,17 @@ zink_debug_util_callback(
     const VkDebugUtilsMessengerCallbackDataEXT      *pCallbackData,
     void                                            *pUserData)
 {
-   const char *severity = "MSG";
-
    // Pick message prefix and color to use.
    // Only MacOS and Linux have been tested for color support
    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-      severity = "ERR";
+      zink_error(pCallbackData->pMessage);
    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-      severity = "WRN";
+      zink_warn(pCallbackData->pMessage);
    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-      severity = "NFO";
-   }
+      zink_info(pCallbackData->pMessage);
+   } else
+      zink_msg(pCallbackData->pMessage);
 
-   fprintf(stderr, "zink DEBUG: %s: '%s'\n", severity, pCallbackData->pMessage);
    return VK_FALSE;
 }
 
@@ -1939,8 +1978,11 @@ zink_internal_create_screen(const struct pipe_screen_config *config)
       /* not found: use compatible heap */
       if (screen->heap_map[i] == UINT8_MAX) {
          /* only cached mem has a failure case for now */
-         assert(i == ZINK_HEAP_HOST_VISIBLE_CACHED);
-         screen->heap_map[i] = screen->heap_map[ZINK_HEAP_HOST_VISIBLE_COHERENT];
+         assert(i == ZINK_HEAP_HOST_VISIBLE_CACHED || i == ZINK_HEAP_DEVICE_LOCAL_LAZY);
+         if (i == ZINK_HEAP_HOST_VISIBLE_CACHED)
+            screen->heap_map[i] = screen->heap_map[ZINK_HEAP_HOST_VISIBLE_COHERENT];
+         else
+            screen->heap_map[i] = screen->heap_map[ZINK_HEAP_DEVICE_LOCAL];
       }
    }
    {

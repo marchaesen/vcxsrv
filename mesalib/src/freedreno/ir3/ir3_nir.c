@@ -466,7 +466,6 @@ lower_subgroup_id_filter(const nir_instr *instr, const void *unused)
 static nir_ssa_def *
 lower_subgroup_id(nir_builder *b, nir_instr *instr, void *unused)
 {
-   (void)instr;
    (void)unused;
 
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);

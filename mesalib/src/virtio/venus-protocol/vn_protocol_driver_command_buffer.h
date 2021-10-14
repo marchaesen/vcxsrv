@@ -6381,6 +6381,8 @@ static inline void vn_submit_vkCmdDrawIndirectByteCountEXT(struct vn_instance *v
 
 static inline VkResult vn_call_vkAllocateCommandBuffers(struct vn_instance *vn_instance, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkAllocateCommandBuffers(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pAllocateInfo, pCommandBuffers, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6401,6 +6403,8 @@ static inline void vn_async_vkAllocateCommandBuffers(struct vn_instance *vn_inst
 
 static inline void vn_call_vkFreeCommandBuffers(struct vn_instance *vn_instance, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkFreeCommandBuffers(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, commandPool, commandBufferCount, pCommandBuffers, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6418,6 +6422,8 @@ static inline void vn_async_vkFreeCommandBuffers(struct vn_instance *vn_instance
 
 static inline VkResult vn_call_vkBeginCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkBeginCommandBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pBeginInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6438,6 +6444,8 @@ static inline void vn_async_vkBeginCommandBuffer(struct vn_instance *vn_instance
 
 static inline VkResult vn_call_vkEndCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkEndCommandBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6458,6 +6466,8 @@ static inline void vn_async_vkEndCommandBuffer(struct vn_instance *vn_instance, 
 
 static inline VkResult vn_call_vkResetCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkResetCommandBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6478,6 +6488,8 @@ static inline void vn_async_vkResetCommandBuffer(struct vn_instance *vn_instance
 
 static inline void vn_call_vkCmdBindPipeline(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBindPipeline(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, pipeline, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6495,6 +6507,8 @@ static inline void vn_async_vkCmdBindPipeline(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdSetViewport(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetViewport(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstViewport, viewportCount, pViewports, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6512,6 +6526,8 @@ static inline void vn_async_vkCmdSetViewport(struct vn_instance *vn_instance, Vk
 
 static inline void vn_call_vkCmdSetScissor(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetScissor(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstScissor, scissorCount, pScissors, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6529,6 +6545,8 @@ static inline void vn_async_vkCmdSetScissor(struct vn_instance *vn_instance, VkC
 
 static inline void vn_call_vkCmdSetLineWidth(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float lineWidth)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetLineWidth(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineWidth, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6546,6 +6564,8 @@ static inline void vn_async_vkCmdSetLineWidth(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdSetDepthBias(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetDepthBias(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6563,6 +6583,8 @@ static inline void vn_async_vkCmdSetDepthBias(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdSetBlendConstants(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const float blendConstants[4])
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetBlendConstants(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, blendConstants, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6580,6 +6602,8 @@ static inline void vn_async_vkCmdSetBlendConstants(struct vn_instance *vn_instan
 
 static inline void vn_call_vkCmdSetDepthBounds(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetDepthBounds(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, minDepthBounds, maxDepthBounds, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6597,6 +6621,8 @@ static inline void vn_async_vkCmdSetDepthBounds(struct vn_instance *vn_instance,
 
 static inline void vn_call_vkCmdSetStencilCompareMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetStencilCompareMask(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, compareMask, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6614,6 +6640,8 @@ static inline void vn_async_vkCmdSetStencilCompareMask(struct vn_instance *vn_in
 
 static inline void vn_call_vkCmdSetStencilWriteMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetStencilWriteMask(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, writeMask, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6631,6 +6659,8 @@ static inline void vn_async_vkCmdSetStencilWriteMask(struct vn_instance *vn_inst
 
 static inline void vn_call_vkCmdSetStencilReference(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetStencilReference(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, reference, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6648,6 +6678,8 @@ static inline void vn_async_vkCmdSetStencilReference(struct vn_instance *vn_inst
 
 static inline void vn_call_vkCmdBindDescriptorSets(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBindDescriptorSets(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6665,6 +6697,8 @@ static inline void vn_async_vkCmdBindDescriptorSets(struct vn_instance *vn_insta
 
 static inline void vn_call_vkCmdBindIndexBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBindIndexBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, indexType, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6682,6 +6716,8 @@ static inline void vn_async_vkCmdBindIndexBuffer(struct vn_instance *vn_instance
 
 static inline void vn_call_vkCmdBindVertexBuffers(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBindVertexBuffers(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6699,6 +6735,8 @@ static inline void vn_async_vkCmdBindVertexBuffers(struct vn_instance *vn_instan
 
 static inline void vn_call_vkCmdDraw(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDraw(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6716,6 +6754,8 @@ static inline void vn_async_vkCmdDraw(struct vn_instance *vn_instance, VkCommand
 
 static inline void vn_call_vkCmdDrawIndexed(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDrawIndexed(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6733,6 +6773,8 @@ static inline void vn_async_vkCmdDrawIndexed(struct vn_instance *vn_instance, Vk
 
 static inline void vn_call_vkCmdDrawIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDrawIndirect(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, drawCount, stride, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6750,6 +6792,8 @@ static inline void vn_async_vkCmdDrawIndirect(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdDrawIndexedIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDrawIndexedIndirect(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, drawCount, stride, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6767,6 +6811,8 @@ static inline void vn_async_vkCmdDrawIndexedIndirect(struct vn_instance *vn_inst
 
 static inline void vn_call_vkCmdDispatch(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDispatch(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, groupCountX, groupCountY, groupCountZ, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6784,6 +6830,8 @@ static inline void vn_async_vkCmdDispatch(struct vn_instance *vn_instance, VkCom
 
 static inline void vn_call_vkCmdDispatchIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDispatchIndirect(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6801,6 +6849,8 @@ static inline void vn_async_vkCmdDispatchIndirect(struct vn_instance *vn_instanc
 
 static inline void vn_call_vkCmdCopyBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdCopyBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6818,6 +6868,8 @@ static inline void vn_async_vkCmdCopyBuffer(struct vn_instance *vn_instance, VkC
 
 static inline void vn_call_vkCmdCopyImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdCopyImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6835,6 +6887,8 @@ static inline void vn_async_vkCmdCopyImage(struct vn_instance *vn_instance, VkCo
 
 static inline void vn_call_vkCmdBlitImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBlitImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6852,6 +6906,8 @@ static inline void vn_async_vkCmdBlitImage(struct vn_instance *vn_instance, VkCo
 
 static inline void vn_call_vkCmdCopyBufferToImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdCopyBufferToImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6869,6 +6925,8 @@ static inline void vn_async_vkCmdCopyBufferToImage(struct vn_instance *vn_instan
 
 static inline void vn_call_vkCmdCopyImageToBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdCopyImageToBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6886,6 +6944,8 @@ static inline void vn_async_vkCmdCopyImageToBuffer(struct vn_instance *vn_instan
 
 static inline void vn_call_vkCmdUpdateBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdUpdateBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, dstBuffer, dstOffset, dataSize, pData, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6903,6 +6963,8 @@ static inline void vn_async_vkCmdUpdateBuffer(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdFillBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdFillBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, dstBuffer, dstOffset, size, data, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6920,6 +6982,8 @@ static inline void vn_async_vkCmdFillBuffer(struct vn_instance *vn_instance, VkC
 
 static inline void vn_call_vkCmdClearColorImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdClearColorImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6937,6 +7001,8 @@ static inline void vn_async_vkCmdClearColorImage(struct vn_instance *vn_instance
 
 static inline void vn_call_vkCmdClearDepthStencilImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdClearDepthStencilImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6954,6 +7020,8 @@ static inline void vn_async_vkCmdClearDepthStencilImage(struct vn_instance *vn_i
 
 static inline void vn_call_vkCmdClearAttachments(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdClearAttachments(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, attachmentCount, pAttachments, rectCount, pRects, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6971,6 +7039,8 @@ static inline void vn_async_vkCmdClearAttachments(struct vn_instance *vn_instanc
 
 static inline void vn_call_vkCmdResolveImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdResolveImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -6988,6 +7058,8 @@ static inline void vn_async_vkCmdResolveImage(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdSetEvent(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7005,6 +7077,8 @@ static inline void vn_async_vkCmdSetEvent(struct vn_instance *vn_instance, VkCom
 
 static inline void vn_call_vkCmdResetEvent(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdResetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7022,6 +7096,8 @@ static inline void vn_async_vkCmdResetEvent(struct vn_instance *vn_instance, VkC
 
 static inline void vn_call_vkCmdWaitEvents(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdWaitEvents(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7039,6 +7115,8 @@ static inline void vn_async_vkCmdWaitEvents(struct vn_instance *vn_instance, VkC
 
 static inline void vn_call_vkCmdPipelineBarrier(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdPipelineBarrier(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7056,6 +7134,8 @@ static inline void vn_async_vkCmdPipelineBarrier(struct vn_instance *vn_instance
 
 static inline void vn_call_vkCmdBeginQuery(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBeginQuery(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7073,6 +7153,8 @@ static inline void vn_async_vkCmdBeginQuery(struct vn_instance *vn_instance, VkC
 
 static inline void vn_call_vkCmdEndQuery(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdEndQuery(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7090,6 +7172,8 @@ static inline void vn_async_vkCmdEndQuery(struct vn_instance *vn_instance, VkCom
 
 static inline void vn_call_vkCmdResetQueryPool(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdResetQueryPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, firstQuery, queryCount, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7107,6 +7191,8 @@ static inline void vn_async_vkCmdResetQueryPool(struct vn_instance *vn_instance,
 
 static inline void vn_call_vkCmdWriteTimestamp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdWriteTimestamp(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineStage, queryPool, query, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7124,6 +7210,8 @@ static inline void vn_async_vkCmdWriteTimestamp(struct vn_instance *vn_instance,
 
 static inline void vn_call_vkCmdCopyQueryPoolResults(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdCopyQueryPoolResults(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7141,6 +7229,8 @@ static inline void vn_async_vkCmdCopyQueryPoolResults(struct vn_instance *vn_ins
 
 static inline void vn_call_vkCmdPushConstants(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdPushConstants(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, layout, stageFlags, offset, size, pValues, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7158,6 +7248,8 @@ static inline void vn_async_vkCmdPushConstants(struct vn_instance *vn_instance, 
 
 static inline void vn_call_vkCmdBeginRenderPass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBeginRenderPass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderPassBegin, contents, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7175,6 +7267,8 @@ static inline void vn_async_vkCmdBeginRenderPass(struct vn_instance *vn_instance
 
 static inline void vn_call_vkCmdNextSubpass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkSubpassContents contents)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdNextSubpass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, contents, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7192,6 +7286,8 @@ static inline void vn_async_vkCmdNextSubpass(struct vn_instance *vn_instance, Vk
 
 static inline void vn_call_vkCmdEndRenderPass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdEndRenderPass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7209,6 +7305,8 @@ static inline void vn_async_vkCmdEndRenderPass(struct vn_instance *vn_instance, 
 
 static inline void vn_call_vkCmdExecuteCommands(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdExecuteCommands(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, commandBufferCount, pCommandBuffers, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7226,6 +7324,8 @@ static inline void vn_async_vkCmdExecuteCommands(struct vn_instance *vn_instance
 
 static inline void vn_call_vkCmdSetDeviceMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t deviceMask)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdSetDeviceMask(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, deviceMask, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7243,6 +7343,8 @@ static inline void vn_async_vkCmdSetDeviceMask(struct vn_instance *vn_instance, 
 
 static inline void vn_call_vkCmdDispatchBase(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDispatchBase(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7260,6 +7362,8 @@ static inline void vn_async_vkCmdDispatchBase(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdBeginRenderPass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBeginRenderPass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderPassBegin, pSubpassBeginInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7277,6 +7381,8 @@ static inline void vn_async_vkCmdBeginRenderPass2(struct vn_instance *vn_instanc
 
 static inline void vn_call_vkCmdNextSubpass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdNextSubpass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7294,6 +7400,8 @@ static inline void vn_async_vkCmdNextSubpass2(struct vn_instance *vn_instance, V
 
 static inline void vn_call_vkCmdEndRenderPass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdEndRenderPass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pSubpassEndInfo, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7311,6 +7419,8 @@ static inline void vn_async_vkCmdEndRenderPass2(struct vn_instance *vn_instance,
 
 static inline void vn_call_vkCmdDrawIndirectCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDrawIndirectCount(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7328,6 +7438,8 @@ static inline void vn_async_vkCmdDrawIndirectCount(struct vn_instance *vn_instan
 
 static inline void vn_call_vkCmdDrawIndexedIndirectCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDrawIndexedIndirectCount(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7345,6 +7457,8 @@ static inline void vn_async_vkCmdDrawIndexedIndirectCount(struct vn_instance *vn
 
 static inline void vn_call_vkCmdBindTransformFeedbackBuffersEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBindTransformFeedbackBuffersEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7362,6 +7476,8 @@ static inline void vn_async_vkCmdBindTransformFeedbackBuffersEXT(struct vn_insta
 
 static inline void vn_call_vkCmdBeginTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBeginTransformFeedbackEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7379,6 +7495,8 @@ static inline void vn_async_vkCmdBeginTransformFeedbackEXT(struct vn_instance *v
 
 static inline void vn_call_vkCmdEndTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdEndTransformFeedbackEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7396,6 +7514,8 @@ static inline void vn_async_vkCmdEndTransformFeedbackEXT(struct vn_instance *vn_
 
 static inline void vn_call_vkCmdBeginQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdBeginQueryIndexedEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, flags, index, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7413,6 +7533,8 @@ static inline void vn_async_vkCmdBeginQueryIndexedEXT(struct vn_instance *vn_ins
 
 static inline void vn_call_vkCmdEndQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdEndQueryIndexedEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, index, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
@@ -7430,6 +7552,8 @@ static inline void vn_async_vkCmdEndQueryIndexedEXT(struct vn_instance *vn_insta
 
 static inline void vn_call_vkCmdDrawIndirectByteCountEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride)
 {
+    VN_TRACE_FUNC();
+
     struct vn_instance_submit_command submit;
     vn_submit_vkCmdDrawIndirectByteCountEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride, &submit);
     struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
