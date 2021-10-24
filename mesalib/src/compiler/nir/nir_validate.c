@@ -1725,12 +1725,18 @@ dump_errors(validate_state *state, const char *when)
    abort();
 }
 
+#ifdef _DEBUG
+#define DEF_VALIDATE true
+#else
+#define DEF_VALIDATE false
+#endif
+
 void
 nir_validate_shader(nir_shader *shader, const char *when)
 {
    static int should_validate = -1;
    if (should_validate < 0)
-      should_validate = env_var_as_boolean("NIR_VALIDATE", true);
+      should_validate = env_var_as_boolean("NIR_VALIDATE", DEF_VALIDATE);
    if (!should_validate)
       return;
 
