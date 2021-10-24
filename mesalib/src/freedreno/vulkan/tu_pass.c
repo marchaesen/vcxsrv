@@ -662,9 +662,19 @@ tu_CreateRenderPass2(VkDevice _device,
          att->cpp = vk_format_get_blocksize(att->format) * att->samples;
       att->gmem_offset = -1;
 
+      VkAttachmentLoadOp loadOp = pCreateInfo->pAttachments[i].loadOp;
+      VkAttachmentLoadOp stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp;
+
+      if (device->instance->debug_flags & TU_DEBUG_DONT_CARE_AS_LOAD) {
+         if (loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+         if (stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      }
+
       attachment_set_ops(att,
-                         pCreateInfo->pAttachments[i].loadOp,
-                         pCreateInfo->pAttachments[i].stencilLoadOp,
+                         loadOp,
+                         stencilLoadOp,
                          pCreateInfo->pAttachments[i].storeOp,
                          pCreateInfo->pAttachments[i].stencilStoreOp);
    }

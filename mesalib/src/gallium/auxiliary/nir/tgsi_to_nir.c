@@ -1280,7 +1280,7 @@ get_image_var(struct ttn_compile *c, int binding,
    if (!var) {
       const struct glsl_type *type = glsl_image_type(dim, is_array, base_type);
 
-      var = nir_variable_create(c->build.shader, nir_var_uniform, type, "image");
+      var = nir_variable_create(c->build.shader, nir_var_image, type, "image");
       var->data.binding = binding;
       var->data.explicit_binding = true;
       var->data.access = access;

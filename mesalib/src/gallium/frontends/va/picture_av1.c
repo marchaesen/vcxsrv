@@ -351,6 +351,6 @@ void vlVaHandleSliceParameterBufferAV1(vlVaContext *context, vlVaBuffer *buf, un
 {
    VASliceParameterBufferAV1 *av1 = buf->data;
 
-   context->desc.av1.slice_parameter.slice_data_size[num >> 1] = av1->slice_data_size;
-   context->desc.av1.slice_parameter.slice_data_offset[num >> 1] = av1->slice_data_offset;
+   context->desc.av1.slice_parameter.slice_data_size[num] = av1->slice_data_size;
+   context->desc.av1.slice_parameter.slice_data_offset[num] = av1->slice_data_offset;
 }

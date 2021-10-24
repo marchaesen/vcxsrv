@@ -74,7 +74,7 @@ can_fast_clear_color(struct iris_context *ice,
 {
    struct iris_resource *res = (void *) p_res;
 
-   if (INTEL_DEBUG & DEBUG_NO_FAST_CLEAR)
+   if (INTEL_DEBUG(DEBUG_NO_FAST_CLEAR))
       return false;
 
    if (!isl_aux_usage_has_fast_clears(res->aux.usage))
@@ -424,7 +424,7 @@ can_fast_clear_depth(struct iris_context *ice,
    struct iris_screen *screen = (void *) ctx->screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
 
-   if (INTEL_DEBUG & DEBUG_NO_FAST_CLEAR)
+   if (INTEL_DEBUG(DEBUG_NO_FAST_CLEAR))
       return false;
 
    /* Check for partial clears */

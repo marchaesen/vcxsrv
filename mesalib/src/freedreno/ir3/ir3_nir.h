@@ -42,6 +42,7 @@ bool ir3_nir_lower_load_barycentric_at_offset(nir_shader *shader);
 bool ir3_nir_move_varying_inputs(nir_shader *shader);
 int ir3_nir_coord_offset(nir_ssa_def *ssa);
 bool ir3_nir_lower_tex_prefetch(nir_shader *shader);
+bool ir3_nir_lower_wide_load_store(nir_shader *shader);
 
 void ir3_nir_lower_to_explicit_output(nir_shader *shader,
                                       struct ir3_shader_variant *v,
@@ -53,6 +54,13 @@ void ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
 void ir3_nir_lower_tess_eval(nir_shader *shader, struct ir3_shader_variant *v,
                              unsigned topology);
 void ir3_nir_lower_gs(nir_shader *shader);
+
+/*
+ * 64b related lowering:
+ */
+bool ir3_nir_lower_64b_intrinsics(nir_shader *shader);
+bool ir3_nir_lower_64b_undef(nir_shader *shader);
+bool ir3_nir_lower_64b_global(nir_shader *shader);
 
 const nir_shader_compiler_options *
 ir3_get_compiler_options(struct ir3_compiler *compiler);
@@ -87,6 +95,40 @@ ir3_bindless_resource(nir_src src)
       return NULL;
 
    return intrin;
+}
+
+static inline bool
+is_intrinsic_store(nir_intrinsic_op op)
+{
+   switch (op) {
+   case nir_intrinsic_store_output:
+   case nir_intrinsic_store_scratch:
+   case nir_intrinsic_store_ssbo:
+   case nir_intrinsic_store_shared:
+   case nir_intrinsic_store_global:
+   case nir_intrinsic_store_global_ir3:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static inline bool
+is_intrinsic_load(nir_intrinsic_op op)
+{
+   switch (op) {
+   case nir_intrinsic_load_input:
+   case nir_intrinsic_load_scratch:
+   case nir_intrinsic_load_uniform:
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_ubo:
+   case nir_intrinsic_load_shared:
+   case nir_intrinsic_load_global:
+   case nir_intrinsic_load_global_ir3:
+      return true;
+   default:
+      return false;
+   }
 }
 
 #endif /* IR3_NIR_H_ */

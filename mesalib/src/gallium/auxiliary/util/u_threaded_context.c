@@ -72,6 +72,12 @@ typedef uint16_t (*tc_execute)(struct pipe_context *pipe, void *call, uint64_t *
 static const tc_execute execute_func[TC_NUM_CALLS];
 
 static void
+tc_buffer_subdata(struct pipe_context *_pipe,
+                  struct pipe_resource *resource,
+                  unsigned usage, unsigned offset,
+                  unsigned size, const void *data);
+
+static void
 tc_batch_check(UNUSED struct tc_batch *batch)
 {
    tc_assert(batch->sentinel == TC_SENTINEL);
@@ -669,18 +675,32 @@ tc_is_buffer_busy(struct threaded_context *tc, struct threaded_resource *tbuf,
    return tc->options.is_resource_busy(tc->pipe->screen, tbuf->latest, map_usage);
 }
 
+/**
+ * allow_cpu_storage should be false for user memory and imported buffers.
+ */
 void
-threaded_resource_init(struct pipe_resource *res)
+threaded_resource_init(struct pipe_resource *res, bool allow_cpu_storage,
+                       unsigned map_buffer_alignment)
 {
    struct threaded_resource *tres = threaded_resource(res);
 
    tres->latest = &tres->b;
+   tres->cpu_storage = NULL;
    util_range_init(&tres->valid_buffer_range);
    tres->is_shared = false;
    tres->is_user_ptr = false;
    tres->buffer_id_unique = 0;
    tres->pending_staging_uploads = 0;
    util_range_init(&tres->pending_staging_uploads_range);
+
+   if (allow_cpu_storage &&
+       !(res->flags & (PIPE_RESOURCE_FLAG_MAP_PERSISTENT |
+                       PIPE_RESOURCE_FLAG_SPARSE |
+                       PIPE_RESOURCE_FLAG_ENCRYPTED)) &&
+       /* We need buffer invalidation and buffer busyness tracking for the CPU
+        * storage, which aren't supported with pipe_vertex_state. */
+       !(res->bind & PIPE_BIND_VERTEX_STATE))
+      tres->cpu_storage = align_malloc(res->width0, map_buffer_alignment);
 }
 
 void
@@ -692,6 +712,7 @@ threaded_resource_deinit(struct pipe_resource *res)
            pipe_resource_reference(&tres->latest, NULL);
    util_range_destroy(&tres->valid_buffer_range);
    util_range_destroy(&tres->pending_staging_uploads_range);
+   align_free(tres->cpu_storage);
 }
 
 struct pipe_context *
@@ -907,10 +928,12 @@ tc_get_query_result_resource(struct pipe_context *_pipe,
                              struct pipe_resource *resource, unsigned offset)
 {
    struct threaded_context *tc = threaded_context(_pipe);
+
+   tc_buffer_disable_cpu_storage(resource);
+
    struct tc_query_result_resource *p =
       tc_add_call(tc, TC_CALL_get_query_result_resource,
                   tc_query_result_resource);
-
    p->query = query;
    p->wait = wait;
    p->result_type = result_type;
@@ -1499,6 +1522,7 @@ tc_set_shader_images(struct pipe_context *_pipe,
             if (images[i].access & PIPE_IMAGE_ACCESS_WRITE) {
                struct threaded_resource *tres = threaded_resource(resource);
 
+               tc_buffer_disable_cpu_storage(resource);
                util_range_add(&tres->b, &tres->valid_buffer_range,
                               images[i].u.buf.offset,
                               images[i].u.buf.offset + images[i].u.buf.size);
@@ -1591,6 +1615,7 @@ tc_set_shader_buffers(struct pipe_context *_pipe,
             tc_bind_buffer(&tc->shader_buffers[shader][start + i], next, &tres->b);
 
             if (writable_bitmask & BITFIELD_BIT(i)) {
+               tc_buffer_disable_cpu_storage(src->buffer);
                util_range_add(&tres->b, &tres->valid_buffer_range,
                               src->buffer_offset,
                               src->buffer_offset + src->buffer_size);
@@ -1737,6 +1762,7 @@ tc_set_stream_output_targets(struct pipe_context *_pipe,
       p->targets[i] = NULL;
       pipe_so_target_reference(&p->targets[i], tgs[i]);
       if (tgs[i]) {
+         tc_buffer_disable_cpu_storage(tgs[i]->buffer);
          tc_bind_buffer(&tc->streamout_buffers[i], next, tgs[i]->buffer);
       } else {
          tc_unbind_buffer(&tc->streamout_buffers[i]);
@@ -1905,6 +1931,9 @@ tc_create_image_handle(struct pipe_context *_pipe,
 {
    struct threaded_context *tc = threaded_context(_pipe);
    struct pipe_context *pipe = tc->pipe;
+
+   if (image->resource->target == PIPE_BUFFER)
+      tc_buffer_disable_cpu_storage(image->resource);
 
    tc_sync(tc);
    return pipe->create_image_handle(pipe, image);
@@ -2142,7 +2171,34 @@ tc_buffer_map(struct pipe_context *_pipe,
    struct threaded_resource *tres = threaded_resource(resource);
    struct pipe_context *pipe = tc->pipe;
 
+   /* PIPE_MAP_THREAD_SAFE is for glthread, which shouldn't use the CPU storage and
+    * this shouldn't normally be necessary because glthread only uses large buffers.
+    */
+   if (usage & PIPE_MAP_THREAD_SAFE)
+      tc_buffer_disable_cpu_storage(resource);
+
    usage = tc_improve_map_buffer_flags(tc, tres, usage, box->x, box->width);
+
+   /* If the CPU storage is enabled, return it directly. */
+   if (tres->cpu_storage && !(usage & TC_TRANSFER_MAP_UPLOAD_CPU_STORAGE)) {
+      /* We can't let resource_copy_region disable the CPU storage. */
+      assert(!(tres->b.flags & PIPE_RESOURCE_FLAG_DONT_MAP_DIRECTLY));
+
+      struct threaded_transfer *ttrans = slab_alloc(&tc->pool_transfers);
+      ttrans->b.resource = resource;
+      ttrans->b.level = 0;
+      ttrans->b.usage = usage;
+      ttrans->b.box = *box;
+      ttrans->b.stride = 0;
+      ttrans->b.layer_stride = 0;
+      ttrans->b.offset = 0;
+      ttrans->staging = NULL;
+      ttrans->valid_buffer_range = &tres->valid_buffer_range;
+      ttrans->cpu_storage_mapped = true;
+      *transfer = &ttrans->b;
+
+      return (uint8_t*)tres->cpu_storage + box->x;
+   }
 
    /* Do a staging transfer within the threaded context. The driver should
     * only get resource_copy_region.
@@ -2169,6 +2225,7 @@ tc_buffer_map(struct pipe_context *_pipe,
       ttrans->b.stride = 0;
       ttrans->b.layer_stride = 0;
       ttrans->valid_buffer_range = &tres->valid_buffer_range;
+      ttrans->cpu_storage_mapped = false;
       *transfer = &ttrans->b;
 
       p_atomic_inc(&tres->pending_staging_uploads);
@@ -2203,6 +2260,7 @@ tc_buffer_map(struct pipe_context *_pipe,
    void *ret = pipe->buffer_map(pipe, tres->latest ? tres->latest : resource,
                                 level, usage, box, transfer);
    threaded_transfer(*transfer)->valid_buffer_range = &tres->valid_buffer_range;
+   threaded_transfer(*transfer)->cpu_storage_mapped = false;
 
    if (!(usage & TC_TRANSFER_MAP_THREADED_UNSYNC))
       tc_clear_driver_thread(tc);
@@ -2285,8 +2343,13 @@ tc_buffer_do_flush_region(struct threaded_context *tc,
                               ttrans->staging, 0, &src_box);
    }
 
-   util_range_add(&tres->b, ttrans->valid_buffer_range,
-                  box->x, box->x + box->width);
+   /* Don't update the valid range when we're uploading the CPU storage
+    * because it includes the uninitialized range too.
+    */
+   if (!(ttrans->b.usage & TC_TRANSFER_MAP_UPLOAD_CPU_STORAGE)) {
+      util_range_add(&tres->b, ttrans->valid_buffer_range,
+                     box->x, box->x + box->width);
+   }
 }
 
 static void
@@ -2373,11 +2436,36 @@ tc_buffer_unmap(struct pipe_context *_pipe, struct pipe_transfer *transfer)
       return;
    }
 
-   bool was_staging_transfer = false;
-
    if (transfer->usage & PIPE_MAP_WRITE &&
        !(transfer->usage & PIPE_MAP_FLUSH_EXPLICIT))
       tc_buffer_do_flush_region(tc, ttrans, &transfer->box);
+
+   if (ttrans->cpu_storage_mapped) {
+      /* GL allows simultaneous GPU stores with mapped buffers as long as GPU stores don't
+       * touch the mapped range. That's a problem because GPU stores free the CPU storage.
+       * If that happens, we just ignore the unmap call and don't upload anything to prevent
+       * a crash.
+       *
+       * Disallow the CPU storage in the driver to work around this.
+       */
+      assert(tres->cpu_storage);
+
+      if (tres->cpu_storage) {
+         tc_invalidate_buffer(tc, tres);
+         tc_buffer_subdata(&tc->base, &tres->b,
+                           PIPE_MAP_UNSYNCHRONIZED |
+                           TC_TRANSFER_MAP_UPLOAD_CPU_STORAGE,
+                           0, tres->b.width0, tres->cpu_storage);
+         /* This shouldn't have been freed by buffer_subdata. */
+         assert(tres->cpu_storage);
+      }
+
+      tc_drop_resource_reference(ttrans->staging);
+      slab_free(&tc->pool_transfers, ttrans);
+      return;
+   }
+
+   bool was_staging_transfer = false;
 
    if (ttrans->staging) {
       was_staging_transfer = true;
@@ -2483,7 +2571,8 @@ tc_buffer_subdata(struct pipe_context *_pipe,
     */
    if (usage & (PIPE_MAP_UNSYNCHRONIZED |
                 PIPE_MAP_DISCARD_WHOLE_RESOURCE) ||
-       size > TC_MAX_SUBDATA_BYTES) {
+       size > TC_MAX_SUBDATA_BYTES ||
+       tres->cpu_storage) {
       struct pipe_transfer *transfer;
       struct pipe_box box;
       uint8_t *map = NULL;
@@ -3560,6 +3649,9 @@ tc_resource_copy_region(struct pipe_context *_pipe,
       tc_add_call(tc, TC_CALL_resource_copy_region,
                   tc_resource_copy_region);
 
+   if (dst->target == PIPE_BUFFER)
+      tc_buffer_disable_cpu_storage(dst);
+
    tc_set_resource_reference(&p->dst, dst);
    p->dst_level = dst_level;
    p->dstx = dstx;
@@ -3873,6 +3965,8 @@ tc_clear_buffer(struct pipe_context *_pipe, struct pipe_resource *res,
    struct threaded_resource *tres = threaded_resource(res);
    struct tc_clear_buffer *p =
       tc_add_call(tc, TC_CALL_clear_buffer, tc_clear_buffer);
+
+   tc_buffer_disable_cpu_storage(res);
 
    tc_set_resource_reference(&p->res, res);
    tc_add_to_buffer_list(&tc->buffer_lists[tc->next_buf_list], res);

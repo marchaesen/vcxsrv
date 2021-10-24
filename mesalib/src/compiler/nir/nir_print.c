@@ -464,6 +464,8 @@ get_variable_mode_str(nir_variable_mode mode, bool want_local_global_mode)
       return "push_const";
    case nir_var_mem_constant:
       return "constant";
+   case nir_var_image:
+      return "image";
    case nir_var_shader_temp:
       return want_local_global_mode ? "shader_temp" : "";
    case nir_var_function_temp:
@@ -522,11 +524,12 @@ print_var_decl(nir_variable *var, print_state *state)
    fprintf(fp, "%s %s", glsl_get_type_name(var->type),
            get_var_name(var, state));
 
-   if (var->data.mode == nir_var_shader_in ||
-       var->data.mode == nir_var_shader_out ||
-       var->data.mode == nir_var_uniform ||
-       var->data.mode == nir_var_mem_ubo ||
-       var->data.mode == nir_var_mem_ssbo) {
+   if (var->data.mode & (nir_var_shader_in |
+                         nir_var_shader_out |
+                         nir_var_uniform |
+                         nir_var_mem_ubo |
+                         nir_var_mem_ssbo |
+                         nir_var_image)) {
       const char *loc = NULL;
       char buf[4];
 

@@ -79,22 +79,22 @@ static LLVMValueRef si_nir_emit_fbfetch(struct ac_shader_abi *abi)
 
    args.coords[chan++] = si_unpack_param(ctx, ctx->pos_fixed_pt, 0, 16);
 
-   if (!ctx->shader->key.mono.u.ps.fbfetch_is_1D)
+   if (!ctx->shader->key.ps.mono.fbfetch_is_1D)
       args.coords[chan++] = si_unpack_param(ctx, ctx->pos_fixed_pt, 16, 16);
 
    /* Get the current render target layer index. */
-   if (ctx->shader->key.mono.u.ps.fbfetch_layered)
+   if (ctx->shader->key.ps.mono.fbfetch_layered)
       args.coords[chan++] = si_unpack_param(ctx, ctx->args.ancillary, 16, 11);
 
-   if (ctx->shader->key.mono.u.ps.fbfetch_msaa)
+   if (ctx->shader->key.ps.mono.fbfetch_msaa)
       args.coords[chan++] = si_get_sample_id(ctx);
 
-   if (ctx->shader->key.mono.u.ps.fbfetch_msaa && !(ctx->screen->debug_flags & DBG(NO_FMASK))) {
+   if (ctx->shader->key.ps.mono.fbfetch_msaa && !(ctx->screen->debug_flags & DBG(NO_FMASK))) {
       fmask = ac_build_load_to_sgpr(&ctx->ac, ptr,
                                     LLVMConstInt(ctx->ac.i32, SI_PS_IMAGE_COLORBUF0_FMASK / 2, 0));
 
       ac_apply_fmask_to_sample(&ctx->ac, fmask, args.coords,
-                               ctx->shader->key.mono.u.ps.fbfetch_layered);
+                               ctx->shader->key.ps.mono.fbfetch_layered);
    }
 
    args.opcode = ac_image_load;
@@ -102,13 +102,13 @@ static LLVMValueRef si_nir_emit_fbfetch(struct ac_shader_abi *abi)
    args.dmask = 0xf;
    args.attributes = AC_FUNC_ATTR_READNONE;
 
-   if (ctx->shader->key.mono.u.ps.fbfetch_msaa)
+   if (ctx->shader->key.ps.mono.fbfetch_msaa)
       args.dim =
-         ctx->shader->key.mono.u.ps.fbfetch_layered ? ac_image_2darraymsaa : ac_image_2dmsaa;
-   else if (ctx->shader->key.mono.u.ps.fbfetch_is_1D)
-      args.dim = ctx->shader->key.mono.u.ps.fbfetch_layered ? ac_image_1darray : ac_image_1d;
+         ctx->shader->key.ps.mono.fbfetch_layered ? ac_image_2darraymsaa : ac_image_2dmsaa;
+   else if (ctx->shader->key.ps.mono.fbfetch_is_1D)
+      args.dim = ctx->shader->key.ps.mono.fbfetch_layered ? ac_image_1darray : ac_image_1d;
    else
-      args.dim = ctx->shader->key.mono.u.ps.fbfetch_layered ? ac_image_2darray : ac_image_2d;
+      args.dim = ctx->shader->key.ps.mono.fbfetch_layered ? ac_image_2darray : ac_image_2d;
 
    return ac_build_image_opcode(&ctx->ac, &args);
 }
@@ -170,7 +170,7 @@ static void interp_fs_color(struct si_shader_context *ctx, unsigned input_index,
       j = LLVMBuildExtractElement(ctx->ac.builder, interp_param, ctx->ac.i32_1, "");
    }
 
-   if (ctx->shader->key.part.ps.prolog.color_two_side) {
+   if (ctx->shader->key.ps.part.prolog.color_two_side) {
       LLVMValueRef is_face_positive;
 
       /* If BCOLOR0 is used, BCOLOR1 is at offset "num_inputs + 1",
@@ -199,13 +199,13 @@ static void interp_fs_color(struct si_shader_context *ctx, unsigned input_index,
 
 static void si_alpha_test(struct si_shader_context *ctx, LLVMValueRef alpha)
 {
-   if (ctx->shader->key.part.ps.epilog.alpha_func != PIPE_FUNC_NEVER) {
+   if (ctx->shader->key.ps.part.epilog.alpha_func != PIPE_FUNC_NEVER) {
       static LLVMRealPredicate cond_map[PIPE_FUNC_ALWAYS + 1] = {
          [PIPE_FUNC_LESS] = LLVMRealOLT,     [PIPE_FUNC_EQUAL] = LLVMRealOEQ,
          [PIPE_FUNC_LEQUAL] = LLVMRealOLE,   [PIPE_FUNC_GREATER] = LLVMRealOGT,
          [PIPE_FUNC_NOTEQUAL] = LLVMRealONE, [PIPE_FUNC_GEQUAL] = LLVMRealOGE,
       };
-      LLVMRealPredicate cond = cond_map[ctx->shader->key.part.ps.epilog.alpha_func];
+      LLVMRealPredicate cond = cond_map[ctx->shader->key.ps.part.epilog.alpha_func];
       assert(cond);
 
       LLVMValueRef alpha_ref = LLVMGetParam(ctx->main_fn, SI_PARAM_ALPHA_REF);
@@ -274,8 +274,8 @@ static void si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValue
                                         unsigned cbuf, unsigned compacted_mrt_index,
                                         unsigned color_type, struct ac_export_args *args)
 {
-   const struct si_shader_key *key = &ctx->shader->key;
-   unsigned col_formats = key->part.ps.epilog.spi_shader_col_format;
+   const union si_shader_key *key = &ctx->shader->key;
+   unsigned col_formats = key->ps.part.epilog.spi_shader_col_format;
    LLVMValueRef f32undef = LLVMGetUndef(ctx->ac.f32);
    unsigned spi_shader_col_format;
    unsigned chan;
@@ -284,8 +284,8 @@ static void si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValue
    assert(cbuf < 8);
 
    spi_shader_col_format = (col_formats >> (cbuf * 4)) & 0xf;
-   is_int8 = (key->part.ps.epilog.color_is_int8 >> cbuf) & 0x1;
-   is_int10 = (key->part.ps.epilog.color_is_int10 >> cbuf) & 0x1;
+   is_int8 = (key->ps.part.epilog.color_is_int8 >> cbuf) & 0x1;
+   is_int10 = (key->ps.part.epilog.color_is_int10 >> cbuf) & 0x1;
 
    /* Default is 0xf. Adjusted below depending on the format. */
    args->enabled_channels = 0xf; /* writemask */
@@ -411,31 +411,31 @@ static bool si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *col
    int i;
 
    /* Clamp color */
-   if (ctx->shader->key.part.ps.epilog.clamp_color)
+   if (ctx->shader->key.ps.part.epilog.clamp_color)
       for (i = 0; i < 4; i++)
          color[i] = ac_build_clamp(&ctx->ac, color[i]);
 
    /* Alpha to one */
-   if (ctx->shader->key.part.ps.epilog.alpha_to_one)
+   if (ctx->shader->key.ps.part.epilog.alpha_to_one)
       color[3] = LLVMConstReal(LLVMTypeOf(color[0]), 1);
 
    /* Alpha test */
-   if (index == 0 && ctx->shader->key.part.ps.epilog.alpha_func != PIPE_FUNC_ALWAYS)
+   if (index == 0 && ctx->shader->key.ps.part.epilog.alpha_func != PIPE_FUNC_ALWAYS)
       si_alpha_test(ctx, color[3]);
 
    /* Line & polygon smoothing */
-   if (ctx->shader->key.part.ps.epilog.poly_line_smoothing)
+   if (ctx->shader->key.ps.part.epilog.poly_line_smoothing)
       color[3] = si_scale_alpha_by_sample_mask(ctx, color[3], samplemask_param);
 
    /* If last_cbuf > 0, FS_COLOR0_WRITES_ALL_CBUFS is true. */
-   if (ctx->shader->key.part.ps.epilog.last_cbuf > 0) {
+   if (ctx->shader->key.ps.part.epilog.last_cbuf > 0) {
       struct ac_export_args args[8];
       int c, last = -1;
 
       assert(compacted_mrt_index == 0);
 
       /* Get the export arguments, also find out what the last one is. */
-      for (c = 0; c <= ctx->shader->key.part.ps.epilog.last_cbuf; c++) {
+      for (c = 0; c <= ctx->shader->key.ps.part.epilog.last_cbuf; c++) {
          si_llvm_init_ps_export_args(ctx, color, c, compacted_mrt_index,
                                      color_type, &args[c]);
          if (args[c].enabled_channels) {
@@ -447,7 +447,7 @@ static bool si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *col
          return false;
 
       /* Emit all exports. */
-      for (c = 0; c <= ctx->shader->key.part.ps.epilog.last_cbuf; c++) {
+      for (c = 0; c <= ctx->shader->key.ps.part.epilog.last_cbuf; c++) {
          if (is_last && last == c) {
             args[c].valid_mask = 1; /* whether the EXEC mask is valid */
             args[c].done = 1;       /* DONE bit */

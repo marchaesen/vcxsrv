@@ -471,14 +471,14 @@ static void
 ntt_setup_uniforms(struct ntt_compile *c)
 {
    nir_foreach_uniform_variable(var, c->s) {
-      int image_count = glsl_type_get_image_count(var->type);
-
-      if (glsl_type_is_sampler(glsl_without_array(var->type))) {
+      if (glsl_type_is_sampler(glsl_without_array(var->type)) ||
+          glsl_type_is_texture(glsl_without_array(var->type))) {
          /* Don't use this size for the check for samplers -- arrays of structs
           * containing samplers should be ignored, and just the separate lowered
           * sampler uniform decl used.
           */
-         int size = glsl_type_get_sampler_count(var->type);
+         int size = glsl_type_get_sampler_count(var->type) +
+                    glsl_type_get_texture_count(var->type);
 
          const struct glsl_type *stype = glsl_without_array(var->type);
          enum tgsi_texture_type target = tgsi_texture_type_from_sampler_dim(glsl_get_sampler_dim(stype),
@@ -490,20 +490,6 @@ ntt_setup_uniforms(struct ntt_compile *c)
                target, ret_type, ret_type, ret_type, ret_type);
             ureg_DECL_sampler(c->ureg, var->data.binding + i);
          }
-      } else if (image_count) {
-         const struct glsl_type *itype = glsl_without_array(var->type);
-         enum tgsi_texture_type tex_type =
-             tgsi_texture_type_from_sampler_dim(glsl_get_sampler_dim(itype),
-                                                glsl_sampler_type_is_array(itype), false);
-
-         for (int i = 0; i < image_count; i++) {
-            c->images[var->data.binding] = ureg_DECL_image(c->ureg,
-                                                           var->data.binding + i,
-                                                           tex_type,
-                                                           var->data.image.format,
-                                                           !(var->data.access & ACCESS_NON_WRITEABLE),
-                                                           false);
-         }
       } else if (glsl_contains_atomic(var->type)) {
          uint32_t offset = var->data.offset / 4;
          uint32_t size = glsl_atomic_size(var->type) / 4;
@@ -513,6 +499,23 @@ ntt_setup_uniforms(struct ntt_compile *c)
       /* lower_uniforms_to_ubo lowered non-sampler uniforms to UBOs, so CB0
        * size declaration happens with other UBOs below.
        */
+   }
+
+   nir_foreach_image_variable(var, c->s) {
+      int image_count = glsl_type_get_image_count(var->type);
+      const struct glsl_type *itype = glsl_without_array(var->type);
+      enum tgsi_texture_type tex_type =
+            tgsi_texture_type_from_sampler_dim(glsl_get_sampler_dim(itype),
+                                               glsl_sampler_type_is_array(itype), false);
+
+      for (int i = 0; i < image_count; i++) {
+         c->images[var->data.binding] = ureg_DECL_image(c->ureg,
+                                                        var->data.binding + i,
+                                                        tex_type,
+                                                        var->data.image.format,
+                                                        !(var->data.access & ACCESS_NON_WRITEABLE),
+                                                        false);
+      }
    }
 
    c->first_ubo = ~0;

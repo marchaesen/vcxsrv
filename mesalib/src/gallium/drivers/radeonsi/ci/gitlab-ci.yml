@@ -9,7 +9,7 @@
     KERNEL_IMAGE_TYPE: ""
     HWCI_KERNEL_MODULES: amdgpu
     DRIVER_NAME: radeonsi
-    DEQP_PARALLEL: 4
+    FDO_CI_CONCURRENT: 4
     DEQP_EXPECTED_RENDERER: STONEY
     HWCI_FREQ_MAX: "true"
   tags:
@@ -33,7 +33,7 @@ radeonsi-stoney-gles3:amd64:
   parallel: 2
   variables:
     DEQP_VER: gles3
-    DEQP_PARALLEL: 4
+    FDO_CI_CONCURRENT: 4
     DEQP_EXPECTED_RENDERER: STONEY
     DEQP_FRACTION: 2
 
@@ -45,7 +45,7 @@ radeonsi-stoney-gles31:amd64:
   parallel: 2
   variables:
     DEQP_VER: gles31
-    DEQP_PARALLEL: 4
+    FDO_CI_CONCURRENT: 4
     DEQP_EXPECTED_RENDERER: STONEY
     DEQP_FRACTION: 2
 

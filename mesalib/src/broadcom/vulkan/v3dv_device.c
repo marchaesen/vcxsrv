@@ -66,7 +66,7 @@
 #include "drm-uapi/i915_drm.h"
 #endif
 
-#define V3DV_API_VERSION VK_MAKE_VERSION(1, 0, VK_HEADER_VERSION)
+#define V3DV_API_VERSION VK_MAKE_VERSION(1, 1, VK_HEADER_VERSION)
 
 VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_EnumerateInstanceVersion(uint32_t *pApiVersion)
@@ -137,12 +137,14 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .KHR_uniform_buffer_standard_layout  = true,
 #ifdef V3DV_HAS_SURFACE
       .KHR_swapchain                       = true,
+      .KHR_swapchain_mutable_format        = true,
       .KHR_incremental_present             = true,
 #endif
       .KHR_variable_pointers               = true,
       .EXT_color_write_enable              = true,
       .EXT_custom_border_color             = true,
       .EXT_external_memory_dma_buf         = true,
+      .EXT_host_query_reset                = true,
       .EXT_index_type_uint8                = true,
       .EXT_physical_device_drm             = true,
       .EXT_pipeline_creation_cache_control = true,
@@ -1134,6 +1136,14 @@ v3dv_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
             (void *) ext;
          features->vertexAttributeInstanceRateDivisor = true;
          features->vertexAttributeInstanceRateZeroDivisor = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES: {
+         VkPhysicalDeviceHostQueryResetFeatures *features =
+            (void *) ext;
+
+         features->hostQueryReset = true;
          break;
       }
 

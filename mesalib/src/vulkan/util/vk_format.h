@@ -88,6 +88,9 @@ vk_format_stencil_only(VkFormat format)
    return VK_FORMAT_S8_UINT;
 }
 
+void vk_component_mapping_to_pipe_swizzle(VkComponentMapping mapping,
+                                          unsigned char out_swizzle[4]);
+
 #ifdef __cplusplus
 }
 #endif

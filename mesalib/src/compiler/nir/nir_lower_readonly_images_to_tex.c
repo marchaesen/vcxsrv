@@ -25,16 +25,16 @@
 #include "nir_builder.h"
 
 static const struct glsl_type *
-get_sampler_type_for_image(const struct glsl_type *type)
+get_texture_type_for_image(const struct glsl_type *type)
 {
    if (glsl_type_is_array(type)) {
       const struct glsl_type *elem_type =
-         get_sampler_type_for_image(glsl_get_array_element(type));
+         get_texture_type_for_image(glsl_get_array_element(type));
       return glsl_array_type(elem_type, glsl_get_length(type), 0 /*explicit size*/);
    }
 
    assert((glsl_type_is_image(type)));
-   return glsl_sampler_type(glsl_get_sampler_dim(type), false,
+   return glsl_texture_type(glsl_get_sampler_dim(type),
                             glsl_sampler_type_is_array(type),
                             glsl_get_sampler_result_type(type));
 }
@@ -45,14 +45,16 @@ replace_image_type_with_sampler(nir_deref_instr *deref)
    const struct glsl_type *type = deref->type;
 
    /* If we've already chased up the deref chain this far from a different intrinsic, we're done */
-   if (glsl_type_is_sampler(glsl_without_array(type)))
+   if (glsl_type_is_texture(glsl_without_array(type)))
       return;
 
-   deref->type = get_sampler_type_for_image(type);
+   deref->type = get_texture_type_for_image(type);
+   deref->modes = nir_var_uniform;
    if (deref->deref_type == nir_deref_type_var) {
       type = deref->var->type;
-      if (!glsl_type_is_sampler(glsl_without_array(type))) {
-         deref->var->type = get_sampler_type_for_image(type);
+      if (!glsl_type_is_texture(glsl_without_array(type))) {
+         deref->var->type = get_texture_type_for_image(type);
+         deref->var->data.mode = nir_var_uniform;
          memset(&deref->var->data.sampler, 0, sizeof(deref->var->data.sampler));
       }
    } else {

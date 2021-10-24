@@ -149,7 +149,7 @@ SOFTWARE.
 	<pattern low="11" high="13">100</pattern>
 	<field name="ABSNEG" low="14" high="15" type="#absneg"/>
 	<encode>
-		<map name="IMMED">src->uim_val</map>
+		<map name="IMMED">extract_reg_iim(src)</map>
 	</encode>
 </bitset>
 
@@ -175,7 +175,7 @@ SOFTWARE.
 	<pattern low="11" high="13">101</pattern>
 	<field name="ABSNEG" low="14" high="15" type="#absneg"/>
 	<encode>
-		<map name="IMMED">src->uim_val</map>
+		<map name="IMMED">extract_reg_uim(src)</map>
 	</encode>
 </bitset>
 
@@ -307,6 +307,14 @@ SOFTWARE.
 	<value val="6" display="u8"/>
 	<value val="7" display="s8"/>
 </enum>
+
+<expr name="#type-half">
+	({TYPE} == 0) /* f16 */ ||
+	({TYPE} == 2) /* u16 */ ||
+	({TYPE} == 4) /* s16 */ ||
+	({TYPE} == 6) /* u8 */  ||
+	({TYPE} == 7) /* s8 */
+</expr>
 
 <enum name="#absneg">
 	<value val="0" display=""/>

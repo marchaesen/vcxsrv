@@ -1280,7 +1280,7 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
          return;
 
       uni = shProg->UniformRemapTable[location];
-      if (!uni)
+      if (!uni || uni == INACTIVE_UNIFORM_EXPLICIT_LOCATION)
          return;
 
       /* The array index specified by the uniform location is just the
@@ -1846,6 +1846,8 @@ _mesa_uniform_handle(GLint location, GLsizei count, const GLvoid *values,
          return;
 
       uni = shProg->UniformRemapTable[location];
+      if (!uni || uni == INACTIVE_UNIFORM_EXPLICIT_LOCATION)
+         return;
 
       /* The array index specified by the uniform location is just the
        * uniform location minus the base location of of the uniform.

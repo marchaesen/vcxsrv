@@ -574,11 +574,8 @@ panfrost_walk_dmabuf_modifiers(struct pipe_screen *screen,
 {
         /* Query AFBC status */
         struct panfrost_device *dev = pan_device(screen);
-        bool afbc = panfrost_format_supports_afbc(dev, format);
+        bool afbc = dev->has_afbc && panfrost_format_supports_afbc(dev, format);
         bool ytr = panfrost_afbc_can_ytr(format);
-
-        /* Don't advertise AFBC before T760 */
-        afbc &= !(dev->quirks & MIDGARD_NO_AFBC);
 
         unsigned count = 0;
 
@@ -842,15 +839,7 @@ panfrost_create_screen(int fd, struct renderonly *ro)
         panfrost_open_device(screen, fd, dev);
 
         if (dev->debug & PAN_DBG_NO_AFBC)
-                dev->quirks |= MIDGARD_NO_AFBC;
-
-        /* XXX: AFBC is currently broken on Bifrost in a few different ways
-         *
-         *  - Preload is broken if the effective tile size is not 16x16
-         *  - Some systems lack AFBC but we need kernel changes to know that
-         */
-        if (dev->arch == 7)
-                dev->quirks |= MIDGARD_NO_AFBC;
+                dev->has_afbc = false;
 
         dev->ro = ro;
 

@@ -89,7 +89,7 @@ struct llvmpipe_resource
     */
    void *data;
 
-   boolean userBuffer;  /** Is this a user-space buffer? */
+   bool user_ptr;  /** Is this a user-space buffer? */
    unsigned timestamp;
 
    unsigned id;  /**< temporary, for debugging */

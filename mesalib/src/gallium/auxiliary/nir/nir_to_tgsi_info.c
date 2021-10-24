@@ -784,11 +784,15 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
          info->indirect_files |= 1 << TGSI_FILE_OUTPUT;
    }
 
-   uint32_t sampler_mask = 0, image_mask = 0;
+   uint32_t sampler_mask = 0;
    nir_foreach_uniform_variable(var, nir) {
-      uint32_t sampler_count = glsl_type_get_sampler_count(var->type);
-      uint32_t image_count = glsl_type_get_image_count(var->type);
+      uint32_t sampler_count = glsl_type_get_sampler_count(var->type) +
+                               glsl_type_get_texture_count(var->type);
       sampler_mask |= ((1ull << sampler_count) - 1) << var->data.binding;
+   }
+   uint32_t image_mask = 0;
+   nir_foreach_image_variable(var, nir) {
+      uint32_t image_count = glsl_type_get_image_count(var->type);
       image_mask |= ((1ull << image_count) - 1) << var->data.binding;
    }
    info->num_outputs = num_outputs;

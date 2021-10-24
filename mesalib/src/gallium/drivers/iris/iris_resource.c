@@ -110,6 +110,9 @@ modifier_is_supported(const struct intel_device_info *devinfo,
    /* Check remaining requirements. */
    switch (modifier) {
    case I915_FORMAT_MOD_Y_TILED_GEN12_MC_CCS:
+      if (INTEL_DEBUG(DEBUG_NO_RBC))
+         return false;
+
       if (pfmt != PIPE_FORMAT_BGRA8888_UNORM &&
           pfmt != PIPE_FORMAT_RGBA8888_UNORM &&
           pfmt != PIPE_FORMAT_BGRX8888_UNORM &&
@@ -126,7 +129,7 @@ modifier_is_supported(const struct intel_device_info *devinfo,
    case I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS_CC:
    case I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS:
    case I915_FORMAT_MOD_Y_TILED_CCS: {
-      if (INTEL_DEBUG & DEBUG_NO_RBC)
+      if (INTEL_DEBUG(DEBUG_NO_RBC))
          return false;
 
       enum isl_format rt_format =
@@ -479,7 +482,7 @@ iris_alloc_resource(struct pipe_screen *pscreen,
    res->base.b.screen = pscreen;
    res->orig_screen = iris_pscreen_ref(pscreen);
    pipe_reference_init(&res->base.b.reference, 1);
-   threaded_resource_init(&res->base.b);
+   threaded_resource_init(&res->base.b, false, 0);
 
    res->aux.possible_usages = 1 << ISL_AUX_USAGE_NONE;
    res->aux.sampler_usages = 1 << ISL_AUX_USAGE_NONE;
@@ -632,6 +635,9 @@ iris_resource_configure_main(const struct iris_screen *screen,
 
    isl_surf_usage_flags_t usage = 0;
 
+   if (res->mod_info && res->mod_info->aux_usage == ISL_AUX_USAGE_NONE)
+      usage |= ISL_SURF_USAGE_DISABLE_AUX_BIT;
+
    if (templ->usage == PIPE_USAGE_STAGING)
       usage |= ISL_SURF_USAGE_STAGING_BIT;
 
@@ -727,37 +733,27 @@ iris_resource_configure_aux(struct iris_screen *screen,
 {
    const struct intel_device_info *devinfo = &screen->devinfo;
 
-   /* Try to create the auxiliary surfaces allowed by the modifier or by
-    * the user if no modifier is specified.
-    */
-   assert(!res->mod_info ||
-          res->mod_info->aux_usage == ISL_AUX_USAGE_NONE ||
-          res->mod_info->aux_usage == ISL_AUX_USAGE_CCS_E ||
-          res->mod_info->aux_usage == ISL_AUX_USAGE_GFX12_CCS_E ||
-          res->mod_info->aux_usage == ISL_AUX_USAGE_MC);
-
-   const bool has_mcs = !res->mod_info &&
+   const bool has_mcs =
       isl_surf_get_mcs_surf(&screen->isl_dev, &res->surf, &res->aux.surf);
 
-   const bool has_hiz = !res->mod_info && !(INTEL_DEBUG & DEBUG_NO_HIZ) &&
+   const bool has_hiz = !INTEL_DEBUG(DEBUG_NO_HIZ) &&
       isl_surf_get_hiz_surf(&screen->isl_dev, &res->surf, &res->aux.surf);
 
-   const bool has_ccs =
-      ((!res->mod_info && !(INTEL_DEBUG & DEBUG_NO_RBC)) ||
-       (res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE)) &&
+   const bool has_ccs = !INTEL_DEBUG(DEBUG_NO_RBC) &&
       iris_get_ccs_surf(&screen->isl_dev, &res->surf, &res->aux.surf,
                         &res->aux.extra_aux.surf, 0);
 
-   /* Having both HIZ and MCS is impossible. */
-   assert(!has_mcs || !has_hiz);
-
-   if (res->mod_info && has_ccs) {
-      /* Only allow a CCS modifier if the aux was created successfully. */
-      res->aux.possible_usages |= 1 << res->mod_info->aux_usage;
-   } else if (has_mcs) {
-      res->aux.possible_usages |=
-         1 << (has_ccs ? ISL_AUX_USAGE_MCS_CCS : ISL_AUX_USAGE_MCS);
+   if (has_mcs) {
+      assert(!res->mod_info);
+      assert(!has_hiz);
+      if (has_ccs) {
+         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_MCS_CCS;
+      } else {
+         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_MCS;
+      }
    } else if (has_hiz) {
+      assert(!res->mod_info);
+      assert(!has_mcs);
       if (!has_ccs) {
          res->aux.possible_usages |= 1 << ISL_AUX_USAGE_HIZ;
       } else if (res->surf.samples == 1 &&
@@ -770,10 +766,12 @@ iris_resource_configure_aux(struct iris_screen *screen,
       } else {
          res->aux.possible_usages |= 1 << ISL_AUX_USAGE_HIZ_CCS;
       }
-   } else if (has_ccs && isl_surf_usage_is_stencil(res->surf.usage)) {
-      res->aux.possible_usages |= 1 << ISL_AUX_USAGE_STC_CCS;
    } else if (has_ccs) {
-      if (want_ccs_e_for_format(devinfo, res->surf.format)) {
+      if (res->mod_info) {
+         res->aux.possible_usages |= 1 << res->mod_info->aux_usage;
+      } else if (isl_surf_usage_is_stencil(res->surf.usage)) {
+         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_STC_CCS;
+      } else if (want_ccs_e_for_format(devinfo, res->surf.format)) {
          res->aux.possible_usages |= devinfo->ver < 12 ?
             1 << ISL_AUX_USAGE_CCS_E : 1 << ISL_AUX_USAGE_GFX12_CCS_E;
       } else if (isl_format_supports_ccs_d(devinfo, res->surf.format)) {

@@ -204,7 +204,8 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
    int shaderidx = 0;
    int imageidx = 0;
 
-   nir_foreach_uniform_variable(uniform, nir) {
+   nir_foreach_variable_with_modes(uniform, nir, nir_var_uniform |
+                                                 nir_var_image) {
       int loc;
 
       const struct glsl_type *type = glsl_without_array(uniform->type);

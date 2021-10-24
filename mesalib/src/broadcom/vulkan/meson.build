@@ -149,7 +149,7 @@ broadcom_icd = custom_target(
   output : 'broadcom_icd.@0@.json'.format(host_machine.cpu()),
   command : [
     prog_python, '@INPUT0@',
-    '--api-version', '1.0', '--xml', '@INPUT1@',
+    '--api-version', '1.1', '--xml', '@INPUT1@',
     '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
     		  	     'libvulkan_broadcom.so'),
     '--out', '@OUTPUT@',

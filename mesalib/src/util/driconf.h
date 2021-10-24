@@ -255,6 +255,10 @@
    DRI_CONF_OPT_B(ignore_map_unsynchronized, def, \
                   "Ignore GL_MAP_UNSYNCHRONIZED_BIT, workaround for games that use it incorrectly")
 
+#define DRI_CONF_VK_DONT_CARE_AS_LOAD(def) \
+   DRI_CONF_OPT_B(vk_dont_care_as_load, def, \
+                  "Treat VK_ATTACHMENT_LOAD_OP_DONT_CARE as LOAD_OP_LOAD, workaround on tiler GPUs for games that confuse these two load ops")
+
 /**
  * \brief Image quality-related options
  */

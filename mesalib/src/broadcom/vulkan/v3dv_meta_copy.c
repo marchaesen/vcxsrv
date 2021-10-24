@@ -850,10 +850,31 @@ copy_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
    const uint32_t base_dst_layer = dst->vk.image_type != VK_IMAGE_TYPE_3D ?
       region->dstSubresource.baseArrayLayer : region->dstOffset.z;
    for (uint32_t i = 0; i < layer_count; i++) {
-      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)
-         (cmd_buffer, dst, dst_mip_level, base_dst_layer + i,
-          src, src_mip_level, base_src_layer + i,
-          width, height, format);
+      const uint32_t dst_offset =
+         dst->mem->bo->offset +
+         v3dv_layer_offset(dst, dst_mip_level, base_dst_layer + i);
+      const uint32_t src_offset =
+         src->mem->bo->offset +
+         v3dv_layer_offset(src, src_mip_level, base_src_layer + i);
+
+      const struct v3d_resource_slice *dst_slice = &dst->slices[dst_mip_level];
+      const struct v3d_resource_slice *src_slice = &src->slices[src_mip_level];
+
+      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)(
+         cmd_buffer,
+         dst->mem->bo->handle,
+         dst_offset,
+         dst_slice->tiling,
+         dst_slice->tiling == V3D_TILING_RASTER ?
+                              dst_slice->stride : dst_slice->padded_height,
+         dst->cpp,
+         src->mem->bo->handle,
+         src_offset,
+         src_slice->tiling,
+         src_slice->tiling == V3D_TILING_RASTER ?
+                              src_slice->stride : src_slice->padded_height,
+         src->cpp,
+         width, height, format);
    }
 
    return true;
@@ -1338,46 +1359,28 @@ copy_buffer_to_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
       else
          layer = region->imageOffset.z + i;
 
-      struct drm_v3d_submit_tfu tfu = {
-         .ios = (height << 16) | width,
-         .bo_handles = {
-            dst_bo->handle,
-            src_bo->handle != dst_bo->handle ? src_bo->handle : 0
-         },
-      };
-
       const uint32_t buffer_offset =
          buffer->mem_offset + region->bufferOffset +
          height * buffer_stride * i;
-
       const uint32_t src_offset = src_bo->offset + buffer_offset;
-      tfu.iia |= src_offset;
-      tfu.icfg |= V3D_TFU_ICFG_FORMAT_RASTER << V3D_TFU_ICFG_FORMAT_SHIFT;
-      tfu.iis |= width;
 
       const uint32_t dst_offset =
          dst_bo->offset + v3dv_layer_offset(image, mip_level, layer);
-      tfu.ioa |= dst_offset;
 
-      tfu.ioa |= (V3D_TFU_IOA_FORMAT_LINEARTILE +
-                  (slice->tiling - V3D_TILING_LINEARTILE)) <<
-                   V3D_TFU_IOA_FORMAT_SHIFT;
-      tfu.icfg |= format->tex_type << V3D_TFU_ICFG_TTYPE_SHIFT;
-
-      /* If we're writing level 0 (!IOA_DIMTW), then we need to supply the
-       * OPAD field for the destination (how many extra UIF blocks beyond
-       * those necessary to cover the height).
-       */
-      if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
-          slice->tiling == V3D_TILING_UIF_XOR) {
-         uint32_t uif_block_h = 2 * v3d_utile_height(image->cpp);
-         uint32_t implicit_padded_height = align(height, uif_block_h);
-         uint32_t icfg =
-            (slice->padded_height - implicit_padded_height) / uif_block_h;
-         tfu.icfg |= icfg << V3D_TFU_ICFG_OPAD_SHIFT;
-      }
-
-      v3dv_cmd_buffer_add_tfu_job(cmd_buffer, &tfu);
+      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)(
+             cmd_buffer,
+             dst_bo->handle,
+             dst_offset,
+             slice->tiling,
+             slice->tiling == V3D_TILING_RASTER ?
+                              slice->stride : slice->padded_height,
+             image->cpp,
+             src_bo->handle,
+             src_offset,
+             V3D_TILING_RASTER,
+             width,
+             1,
+             width, height, format);
    }
 
    return true;
@@ -2871,10 +2874,30 @@ blit_tfu(struct v3dv_cmd_buffer *cmd_buffer,
          dst_mirror_z ? max_dst_layer - i - 1: min_dst_layer + i;
       const uint32_t src_layer =
          src_mirror_z ? max_src_layer - i - 1: min_src_layer + i;
-      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)
-         (cmd_buffer, dst, dst_mip_level, dst_layer,
-          src, src_mip_level, src_layer,
-          dst_width, dst_height, format);
+
+      const uint32_t dst_offset =
+         dst->mem->bo->offset + v3dv_layer_offset(dst, dst_mip_level, dst_layer);
+      const uint32_t src_offset =
+         src->mem->bo->offset + v3dv_layer_offset(src, src_mip_level, src_layer);
+
+      const struct v3d_resource_slice *dst_slice = &dst->slices[dst_mip_level];
+      const struct v3d_resource_slice *src_slice = &src->slices[src_mip_level];
+
+      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)(
+         cmd_buffer,
+         dst->mem->bo->handle,
+         dst_offset,
+         dst_slice->tiling,
+         dst_slice->tiling == V3D_TILING_RASTER ?
+                              dst_slice->stride : dst_slice->padded_height,
+         dst->cpp,
+         src->mem->bo->handle,
+         src_offset,
+         src_slice->tiling,
+         src_slice->tiling == V3D_TILING_RASTER ?
+                              src_slice->stride : src_slice->padded_height,
+         src->cpp,
+         dst_width, dst_height, format);
    }
 
    return true;

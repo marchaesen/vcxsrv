@@ -1677,6 +1677,13 @@ tablet_tool_proximity_in(void *data, struct zwp_tablet_tool_v2 *tool,
     xwl_tablet_tool->proximity_in_serial = serial;
     xwl_seat->tablet_focus_window = wl_surface_get_user_data(wl_surface);
 
+    /* If there is a cursor surface frame callback pending, we need to clear it
+     * so that we can continue submitting new cursor frames.
+     */
+    if (xwl_tablet_tool->cursor.frame_cb) {
+        wl_callback_destroy(xwl_tablet_tool->cursor.frame_cb);
+        xwl_tablet_tool->cursor.frame_cb = NULL;
+    }
     xwl_tablet_tool_set_cursor(xwl_tablet_tool);
 }
 

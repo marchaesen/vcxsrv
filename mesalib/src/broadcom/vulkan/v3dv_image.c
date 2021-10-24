@@ -451,29 +451,6 @@ v3dv_image_type_to_view_type(VkImageType type)
    }
 }
 
-static enum pipe_swizzle
-vk_component_mapping_to_pipe_swizzle(VkComponentSwizzle swz)
-{
-   assert(swz != VK_COMPONENT_SWIZZLE_IDENTITY);
-
-   switch (swz) {
-   case VK_COMPONENT_SWIZZLE_ZERO:
-      return PIPE_SWIZZLE_0;
-   case VK_COMPONENT_SWIZZLE_ONE:
-      return PIPE_SWIZZLE_1;
-   case VK_COMPONENT_SWIZZLE_R:
-      return PIPE_SWIZZLE_X;
-   case VK_COMPONENT_SWIZZLE_G:
-      return PIPE_SWIZZLE_Y;
-   case VK_COMPONENT_SWIZZLE_B:
-      return PIPE_SWIZZLE_Z;
-   case VK_COMPONENT_SWIZZLE_A:
-      return PIPE_SWIZZLE_W;
-   default:
-      unreachable("Unknown VkComponentSwizzle");
-   };
-}
-
 VKAPI_ATTR VkResult VKAPI_CALL
 v3dv_CreateImageView(VkDevice _device,
                      const VkImageViewCreateInfo *pCreateInfo,
@@ -515,14 +492,8 @@ v3dv_CreateImageView(VkDevice _device,
        * util_format_compose_swizzles. Would be good to check if it would be
        * better to reimplement the latter using vk component
        */
-      image_view_swizzle[0] =
-         vk_component_mapping_to_pipe_swizzle(iview->vk.swizzle.r);
-      image_view_swizzle[1] =
-         vk_component_mapping_to_pipe_swizzle(iview->vk.swizzle.g);
-      image_view_swizzle[2] =
-         vk_component_mapping_to_pipe_swizzle(iview->vk.swizzle.b);
-      image_view_swizzle[3] =
-         vk_component_mapping_to_pipe_swizzle(iview->vk.swizzle.a);
+      vk_component_mapping_to_pipe_swizzle(iview->vk.swizzle,
+                                           image_view_swizzle);
    }
 
    iview->vk.format = format;

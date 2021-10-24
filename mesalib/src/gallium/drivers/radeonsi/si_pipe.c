@@ -94,7 +94,6 @@ static const struct debug_named_value radeonsi_debug_options[] = {
    {"nogfx", DBG(NO_GFX), "Disable graphics. Only multimedia compute paths can be used."},
    {"nongg", DBG(NO_NGG), "Disable NGG and use the legacy pipeline."},
    {"nggc", DBG(ALWAYS_NGG_CULLING_ALL), "Always use NGG culling even when it can hurt."},
-   {"nggctess", DBG(ALWAYS_NGG_CULLING_TESS), "Always use NGG culling for tessellation."},
    {"nonggc", DBG(NO_NGG_CULLING), "Disable NGG culling."},
    {"switch_on_eop", DBG(SWITCH_ON_EOP), "Program WD/IA to switch on end-of-packet."},
    {"nooutoforder", DBG(NO_OUT_OF_ORDER), "Disable out-of-order rasterization"},
@@ -747,10 +746,10 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
        *    and the LS main part when !vs_needs_prolog
        *  - remove the fixup for unused input VGPRs
        */
-      sctx->shader.tcs.key.opt.prefer_mono = 1;
+      sctx->shader.tcs.key.ge.opt.prefer_mono = 1;
 
       /* This enables jumping over the VS prolog for GS-only waves. */
-      sctx->shader.gs.key.opt.prefer_mono = 1;
+      sctx->shader.gs.key.ge.opt.prefer_mono = 1;
    }
 
    si_begin_new_gfx_cs(sctx, true);
@@ -881,7 +880,7 @@ static struct pipe_context *si_pipe_create_context(struct pipe_screen *screen, v
 static void si_destroy_screen(struct pipe_screen *pscreen)
 {
    struct si_screen *sscreen = (struct si_screen *)pscreen;
-   struct si_shader_part *parts[] = {sscreen->vs_prologs, sscreen->tcs_epilogs, sscreen->gs_prologs,
+   struct si_shader_part *parts[] = {sscreen->vs_prologs, sscreen->tcs_epilogs,
                                      sscreen->ps_prologs, sscreen->ps_epilogs};
    unsigned i;
 
@@ -1074,6 +1073,8 @@ static struct pipe_screen *radeonsi_screen_create_impl(struct radeon_winsys *ws,
    {
 #define OPT_BOOL(name, dflt, description)                                                          \
    sscreen->options.name = driQueryOptionb(config->options, "radeonsi_" #name);
+#define OPT_INT(name, dflt, description)                                                           \
+   sscreen->options.name = driQueryOptioni(config->options, "radeonsi_" #name);
 #include "si_debug_options.h"
    }
 

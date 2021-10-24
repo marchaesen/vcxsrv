@@ -560,7 +560,8 @@ lvp_shader_compile_to_ir(struct lvp_pipeline *pipeline,
    NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
 
    NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
-   NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_uniform, NULL);
+   NIR_PASS_V(nir, nir_remove_dead_variables,
+              nir_var_uniform | nir_var_image, NULL);
 
    lvp_lower_pipeline_layout(pipeline->device, pipeline->layout, nir);
 
@@ -841,12 +842,12 @@ lvp_graphics_pipeline_init(struct lvp_pipeline *pipeline,
 
    bool rasterization_disabled = !dynamic_state_contains(pipeline->graphics_create_info.pDynamicState, VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT) &&
       pipeline->graphics_create_info.pRasterizationState->rasterizerDiscardEnable;
-   LVP_FROM_HANDLE(lvp_render_pass, pass, pipeline->graphics_create_info.renderPass);
    if (!dynamic_state_contains(pipeline->graphics_create_info.pDynamicState, VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT) &&
-       !rasterization_disabled && pass->has_color_attachment) {
+       !rasterization_disabled) {
       const VkPipelineColorWriteCreateInfoEXT *cw_state =
          vk_find_struct_const(pCreateInfo->pColorBlendState, PIPELINE_COLOR_WRITE_CREATE_INFO_EXT);
       if (cw_state) {
+         assert(cw_state->attachmentCount <= pipeline->graphics_create_info.pColorBlendState->attachmentCount);
          for (unsigned i = 0; i < cw_state->attachmentCount; i++)
             if (!cw_state->pColorWriteEnables[i]) {
                VkPipelineColorBlendAttachmentState *att = (void*)&pipeline->graphics_create_info.pColorBlendState->pAttachments[i];

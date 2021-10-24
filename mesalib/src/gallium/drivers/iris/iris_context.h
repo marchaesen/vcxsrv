@@ -841,7 +841,7 @@ struct iris_context {
 };
 
 #define perf_debug(dbg, ...) do {                      \
-   if (INTEL_DEBUG & DEBUG_PERF)                       \
+   if (INTEL_DEBUG(DEBUG_PERF))                        \
       dbg_printf(__VA_ARGS__);                         \
    if (unlikely(dbg))                                  \
       pipe_debug_message(dbg, PERF_INFO, __VA_ARGS__); \

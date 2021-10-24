@@ -312,7 +312,7 @@ static void config_protocols_handler(union control *ctrl, dlgparam *dlg,
             for (size_t i = n_ui_backends;
                  i < PROTOCOL_LIMIT && backends[i]; i++) {
                 dlg_listbox_addwithid(ctrl, dlg,
-                                      backends[i]->displayname,
+                                      backends[i]->displayname_tc,
                                       backends[i]->protocol);
                 if (backends[i]->protocol == curproto)
                     curentry = i - n_ui_backends;
@@ -1793,7 +1793,7 @@ void setup_config_box(struct controlbox *b, bool midsession,
         for (size_t i = 0; i < n_ui_backends; i++) {
             assert(backends[i]);
             c->radio.buttons[c->radio.nbuttons] =
-                dupstr(backends[i]->displayname);
+                dupstr(backends[i]->displayname_tc);
             c->radio.shortcuts[c->radio.nbuttons] =
                 (backends[i]->protocol == PROT_SSH ? 's' :
                  backends[i]->protocol == PROT_SERIAL ? 'r' :
@@ -2010,12 +2010,24 @@ void setup_config_box(struct controlbox *b, bool midsession,
                       conf_radiobutton_bool_handler,
                       I(CONF_rxvt_homeend),
                       "Standard", I(false), "rxvt", I(true), NULL);
-    ctrl_radiobuttons(s, "The Function keys and keypad", 'f', 3,
+    ctrl_radiobuttons(s, "The Function keys and keypad", 'f', 4,
                       HELPCTX(keyboard_funkeys),
                       conf_radiobutton_handler,
                       I(CONF_funky_type),
-                      "ESC[n~", I(0), "Linux", I(1), "Xterm R6", I(2),
-                      "VT400", I(3), "VT100+", I(4), "SCO", I(5), NULL);
+                      "ESC[n~", I(FUNKY_TILDE),
+                      "Linux", I(FUNKY_LINUX),
+                      "Xterm R6", I(FUNKY_XTERM),
+                      "VT400", I(FUNKY_VT400),
+                      "VT100+", I(FUNKY_VT100P),
+                      "SCO", I(FUNKY_SCO),
+                      "Xterm 216+", I(FUNKY_XTERM_216),
+                      NULL);
+    ctrl_radiobuttons(s, "Shift/Ctrl/Alt with the arrow keys", 'w', 2,
+                      HELPCTX(keyboard_sharrow),
+                      conf_radiobutton_handler,
+                      I(CONF_sharrow_type),
+                      "Ctrl toggles app mode", I(SHARROW_APPLICATION),
+                      "xterm-style bitmap", I(SHARROW_BITMAP), NULL);
 
     s = ctrl_getset(b, "Terminal/Keyboard", "appkeypad",
                     "Application keypad settings:");

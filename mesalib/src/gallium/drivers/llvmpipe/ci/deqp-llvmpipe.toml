@@ -8,6 +8,8 @@ deqp_args = [
     "--deqp-gl-config-name=rgba8888d24s8ms0",
     "--deqp-visibility=hidden"
 ]
+version_check = "GL ES 3.2.*git"
+renderer_check = "llvmpipe"
 
 [[deqp]]
 deqp = "/deqp/modules/gles3/deqp-gles3"

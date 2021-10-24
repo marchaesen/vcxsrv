@@ -53,15 +53,6 @@ bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.overlay,Fail
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.screen,Fail
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.softlight,Fail
 
-# optimalTilingFeatures  missing: VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT|VK_FORMAT_FEATURE_TRANSFER_SRC_BIT|VK_FORMAT_FEATURE_TRANSFER_DST_BIT|VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT
-dEQP-VK.api.info.format_properties.g8_b8_r8_3plane_420_unorm,Fail
-dEQP-VK.api.info.format_properties.g8_b8r8_2plane_420_unorm,Fail
-
-dEQP-VK.api.info.image_format_properties.2d.optimal.g8_b8_r8_3plane_420_unorm,Fail
-
-# ERROR: VK_FORMAT_G8_B8R8_2PLANE_420_UNORM must support VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT|VK_FORMAT_FEATURE_TRANSFER_SRC_BIT|VK_FORMAT_FEATURE_TRANSFER_DST_BIT|VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT
-dEQP-VK.api.info.image_format_properties.2d.optimal.g8_b8r8_2plane_420_unorm,Fail
-
 # Fails when TU_DEBUG=forcebin is set
 dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
 dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail

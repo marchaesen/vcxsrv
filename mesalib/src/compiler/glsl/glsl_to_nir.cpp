@@ -432,17 +432,6 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
    return ret;
 }
 
-static const glsl_type *
-wrap_type_in_array(const glsl_type *elem_type, const glsl_type *array_type)
-{
-   if (!array_type->is_array())
-      return elem_type;
-
-   elem_type = wrap_type_in_array(elem_type, array_type->fields.array);
-
-   return glsl_type::get_array_instance(elem_type, array_type->length);
-}
-
 static unsigned
 get_nir_how_declared(unsigned how_declared)
 {
@@ -545,6 +534,8 @@ nir_visitor::visit(ir_variable *ir)
    case ir_var_uniform:
       if (ir->get_interface_type())
          var->data.mode = nir_var_mem_ubo;
+      else if (ir->type->contains_image() && !ir->data.bindless)
+         var->data.mode = nir_var_image;
       else
          var->data.mode = nir_var_uniform;
       break;
@@ -586,7 +577,7 @@ nir_visitor::visit(ir_variable *ir)
          /* If the type contains the interface, wrap the explicit type in the
           * right number of arrays.
           */
-         var->type = wrap_type_in_array(explicit_ifc_type, ir->type);
+         var->type = glsl_type_wrap_in_arrays(explicit_ifc_type, ir->type);
       } else {
          /* Otherwise, this variable is one entry in the interface */
          UNUSED bool found = false;

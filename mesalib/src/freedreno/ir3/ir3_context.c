@@ -238,7 +238,7 @@ ir3_get_src(struct ir3_context *ctx, nir_src *src)
 void
 ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 {
-   unsigned bit_size = nir_dest_bit_size(*dst);
+   unsigned bit_size = ir3_bitsize(ctx, nir_dest_bit_size(*dst));
 
    /* add extra mov if dst value is shared reg.. in some cases not all
     * instructions can read from shared regs, in cases where they can
@@ -252,8 +252,7 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
       }
    }
 
-   /* Note: 1-bit bools are stored in 32-bit regs */
-   if (bit_size == 16) {
+   if (bit_size <= 16) {
       for (unsigned i = 0; i < ctx->last_dst_n; i++) {
          struct ir3_instruction *dst = ctx->last_dst[i];
          ir3_set_dst_type(dst, true);
@@ -513,7 +512,9 @@ ir3_get_predicate(struct ir3_context *ctx, struct ir3_instruction *src)
    struct ir3_instruction *cond;
 
    /* NOTE: only cmps.*.* can write p0.x: */
-   cond = ir3_CMPS_S(b, src, 0, create_immed(b, 0), 0);
+   struct ir3_instruction *zero =
+         create_immed_typed(b, 0, is_half(src) ? TYPE_U16 : TYPE_U32);
+   cond = ir3_CMPS_S(b, src, 0, zero, 0);
    cond->cat2.condition = IR3_COND_NE;
 
    /* condition always goes in predicate register: */
@@ -542,10 +543,7 @@ ir3_declare_array(struct ir3_context *ctx, nir_register *reg)
    arr->length = reg->num_components * MAX2(1, reg->num_array_elems);
    compile_assert(ctx, arr->length > 0);
    arr->r = reg;
-   arr->half = reg->bit_size <= 16;
-   // HACK one-bit bools still end up as 32b:
-   if (reg->bit_size == 1)
-      arr->half = false;
+   arr->half = ir3_bitsize(ctx, reg->bit_size) <= 16;
    list_addtail(&arr->node, &ctx->ir->array_list);
 }
 

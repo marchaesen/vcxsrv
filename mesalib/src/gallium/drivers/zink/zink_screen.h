@@ -143,7 +143,7 @@ struct zink_screen {
    struct vk_dispatch_table vk;
 
    bool (*descriptor_program_init)(struct zink_context *ctx, struct zink_program *pg);
-   void (*descriptor_program_deinit)(struct zink_screen *screen, struct zink_program *pg);
+   void (*descriptor_program_deinit)(struct zink_context *ctx, struct zink_program *pg);
    void (*descriptors_update)(struct zink_context *ctx, bool is_compute);
    void (*context_update_descriptor_states)(struct zink_context *ctx, bool is_compute);
    void (*context_invalidate_descriptor_state)(struct zink_context *ctx, enum pipe_shader_type shader,

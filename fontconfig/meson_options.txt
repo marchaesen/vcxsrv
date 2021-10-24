@@ -11,3 +11,5 @@ option('tests', type : 'feature', value : 'auto', yield : true,
   description: 'Enable unit tests')
 option('tools', type : 'feature', value : 'auto', yield : true,
   description: 'Build command-line tools (fc-list, fc-query, etc.)')
+option('cache-build', type : 'feature', value : 'enabled',
+  description: 'Run fc-cache on install')

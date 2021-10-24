@@ -275,4 +275,16 @@ utype_dst(nir_dest dst)
    return utype_for_size(nir_dest_bit_size(dst));
 }
 
+/**
+ * Convert nir bitsize to ir3 bitsize, handling the special case of 1b bools
+ * which can be 16b or 32b depending on gen.
+ */
+static inline unsigned
+ir3_bitsize(struct ir3_context *ctx, unsigned nir_bitsize)
+{
+   if (nir_bitsize == 1)
+      return type_size(ctx->compiler->bool_type);
+   return nir_bitsize;
+}
+
 #endif /* IR3_CONTEXT_H_ */

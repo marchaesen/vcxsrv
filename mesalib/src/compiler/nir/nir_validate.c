@@ -889,6 +889,7 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
             break;
 
          validate_assert(state, glsl_type_is_image(deref->type) ||
+                                glsl_type_is_texture(deref->type) ||
                                 glsl_type_is_sampler(deref->type));
          break;
       }
@@ -1518,6 +1519,11 @@ validate_var_decl(nir_variable *var, nir_variable_mode valid_modes,
    if (var->constant_initializer)
       validate_constant(var->constant_initializer, var->type, state);
 
+   if (var->data.mode == nir_var_image) {
+      validate_assert(state, !var->data.bindless);
+      validate_assert(state, glsl_type_is_image(glsl_without_array(var->type)));
+   }
+
    /*
     * TODO validate some things ir_validate.cpp does (requires more GLSL type
     * support)
@@ -1747,7 +1753,8 @@ nir_validate_shader(nir_shader *shader, const char *when)
       nir_var_mem_ssbo |
       nir_var_mem_shared |
       nir_var_mem_push_const |
-      nir_var_mem_constant;
+      nir_var_mem_constant |
+      nir_var_image;
 
    if (gl_shader_stage_is_callable(shader->info.stage))
       valid_modes |= nir_var_shader_call_data;

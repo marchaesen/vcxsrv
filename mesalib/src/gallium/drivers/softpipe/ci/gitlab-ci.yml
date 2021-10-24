@@ -13,7 +13,6 @@
 
 softpipe-deqp:
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: softpipe
   parallel: 2
   extends: .softpipe-deqp-test
@@ -23,7 +22,7 @@ softpipe-asan-gles31:
     GPU_VERSION: softpipe-asan
     DEQP_FRACTION: 10
     DEQP_VER: gles31
-    TEST_LD_PRELOAD: libasan.so.6
+    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.6"
   extends: .softpipe-deqp-test
   needs:
     - debian/x86_test-gl

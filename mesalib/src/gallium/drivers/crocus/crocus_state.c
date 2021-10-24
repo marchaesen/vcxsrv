@@ -426,7 +426,7 @@ flush_before_state_base_change(struct crocus_batch *batch)
     * rendering.  It's a bit of a big hammer but it appears to work.
     */
    const unsigned dc_flush =
-      batch->screen->devinfo.ver >= 7 ? PIPE_CONTROL_DATA_CACHE_FLUSH : 0;
+      GFX_VER >= 7 ? PIPE_CONTROL_DATA_CACHE_FLUSH : 0;
    crocus_emit_end_of_pipe_sync(batch,
                                 "change STATE_BASE_ADDRESS (flushes)",
                                 PIPE_CONTROL_RENDER_TARGET_FLUSH |
@@ -698,7 +698,6 @@ static bool
 crocus_calculate_urb_fence(struct crocus_batch *batch, unsigned csize,
                            unsigned vsize, unsigned sfsize)
 {
-   const struct intel_device_info *devinfo = &batch->screen->devinfo;
    struct crocus_context *ice = batch->ice;
    if (csize < limits[URB_CS].min_entry_size)
       csize = limits[URB_CS].min_entry_size;
@@ -729,7 +728,7 @@ crocus_calculate_urb_fence(struct crocus_batch *batch, unsigned csize,
 
       ice->urb.constrained = 0;
 
-      if (devinfo->ver == 5) {
+      if (GFX_VER == 5) {
          ice->urb.nr_vs_entries = 128;
          ice->urb.nr_sf_entries = 48;
          if (check_urb_layout(ice)) {
@@ -739,7 +738,7 @@ crocus_calculate_urb_fence(struct crocus_batch *batch, unsigned csize,
             ice->urb.nr_vs_entries = limits[URB_VS].preferred_nr_entries;
             ice->urb.nr_sf_entries = limits[URB_SF].preferred_nr_entries;
          }
-      } else if (devinfo->is_g4x) {
+      } else if (GFX_VERx10 == 45) {
          ice->urb.nr_vs_entries = 64;
          if (check_urb_layout(ice)) {
             goto done;
@@ -771,12 +770,12 @@ crocus_calculate_urb_fence(struct crocus_batch *batch, unsigned csize,
             exit(1);
          }
 
-         if (INTEL_DEBUG & (DEBUG_URB|DEBUG_PERF))
+         if (INTEL_DEBUG(DEBUG_URB|DEBUG_PERF))
             fprintf(stderr, "URB CONSTRAINED\n");
       }
 
 done:
-      if (INTEL_DEBUG & DEBUG_URB)
+      if (INTEL_DEBUG(DEBUG_URB))
          fprintf(stderr,
                  "URB fence: %d ..VS.. %d ..GS.. %d ..CLP.. %d ..SF.. %d ..CS.. %d\n",
                  ice->urb.vs_start,
@@ -1197,7 +1196,7 @@ emit_l3_state(struct crocus_batch *batch, bool compute)
       compute ? batch->screen->l3_config_cs : batch->screen->l3_config_3d;
 
    setup_l3_config(batch, cfg);
-   if (INTEL_DEBUG & DEBUG_L3) {
+   if (INTEL_DEBUG(DEBUG_L3)) {
       intel_dump_l3_config(cfg, stderr);
    }
 }
@@ -1246,7 +1245,7 @@ emit_pipeline_select(struct crocus_batch *batch, uint32_t pipeline)
     *     MI_PIPELINE_SELECT command to change the Pipeline Select Mode."
     */
    const unsigned dc_flush =
-      batch->screen->devinfo.ver >= 7 ? PIPE_CONTROL_DATA_CACHE_FLUSH : 0;
+      GFX_VER >= 7 ? PIPE_CONTROL_DATA_CACHE_FLUSH : 0;
    crocus_emit_pipe_control_flush(batch,
                                   "workaround: PIPELINE_SELECT flushes (1/2)",
                                   PIPE_CONTROL_RENDER_TARGET_FLUSH |
@@ -2694,7 +2693,7 @@ crocus_create_sampler_view(struct pipe_context *ctx,
       tex = util_format_has_depth(desc) ? &zres->base.b : &sres->base.b;
 
       if (tex->format == PIPE_FORMAT_S8_UINT)
-         if (devinfo->ver == 7 && sres->shadow)
+         if (GFX_VER == 7 && sres->shadow)
             tex = &sres->shadow->base.b;
    }
 
@@ -2713,7 +2712,7 @@ crocus_create_sampler_view(struct pipe_context *ctx,
    crocus_combine_swizzle(isv->swizzle, fmt.swizzles, vswz);
 
    /* hardcode stencil swizzles - hw returns 0G01, we want GGGG */
-   if (devinfo->ver < 6 &&
+   if (GFX_VER < 6 &&
        (tmpl->format == PIPE_FORMAT_X32_S8X24_UINT ||
         tmpl->format == PIPE_FORMAT_X24S8_UINT)) {
       isv->swizzle[0] = tmpl->swizzle_g;
@@ -4964,7 +4963,6 @@ emit_surface_state(struct crocus_batch *batch,
                    uint32_t *surf_state,
                    uint32_t addr_offset)
 {
-   const struct intel_device_info *devinfo = &batch->screen->devinfo;
    struct isl_device *isl_dev = &batch->screen->isl_dev;
    uint32_t reloc = RELOC_32BIT;
    uint64_t offset_B = res->offset;
@@ -4984,7 +4982,7 @@ emit_surface_state(struct crocus_batch *batch,
                                  &tile_x_sa, &tile_y_sa);
          view.base_array_layer = 0;
          view.base_level = 0;
-      } else if (res->base.b.target == PIPE_TEXTURE_CUBE && devinfo->ver == 4) {
+      } else if (res->base.b.target == PIPE_TEXTURE_CUBE && GFX_VER == 4) {
          isl_surf_get_image_surf(isl_dev, in_surf,
                                  view.base_level, view.base_array_layer,
                                  0,
@@ -5038,7 +5036,7 @@ emit_surface_state(struct crocus_batch *batch,
        *
        * FIXME: move to the point of assignment.
        */
-      if (devinfo->ver == 8) {
+      if (GFX_VER == 8) {
          uint64_t *aux_addr = (uint64_t *)(surf_state + (isl_dev->ss.aux_addr_offset / 4));
          *aux_addr = crocus_state_reloc(batch,
                                         addr_offset + isl_dev->ss.aux_addr_offset,
@@ -5062,7 +5060,6 @@ emit_surface(struct crocus_batch *batch,
              bool blend_enable,
              uint32_t write_disables)
 {
-   const struct intel_device_info *devinfo = &batch->screen->devinfo;
    struct isl_device *isl_dev = &batch->screen->isl_dev;
    struct crocus_resource *res = (struct crocus_resource *)surf->base.texture;
    struct isl_view *view = &surf->view;
@@ -5070,7 +5067,7 @@ emit_surface(struct crocus_batch *batch,
    enum pipe_texture_target target = res->base.b.target;
    bool adjust_surf = false;
 
-   if (devinfo->ver == 4 && target == PIPE_TEXTURE_CUBE)
+   if (GFX_VER == 4 && target == PIPE_TEXTURE_CUBE)
       adjust_surf = true;
 
    if (surf->align_res)
@@ -5685,9 +5682,6 @@ setup_constant_buffers(struct crocus_context *ice,
 static void
 gen7_emit_vs_workaround_flush(struct crocus_batch *batch)
 {
-   ASSERTED const struct intel_device_info *devinfo = &batch->screen->devinfo;
-
-   assert(devinfo->ver == 7);
    crocus_emit_pipe_control_write(batch,
                                   "vs workaround",
                                   PIPE_CONTROL_WRITE_IMMEDIATE
@@ -8809,7 +8803,7 @@ crocus_emit_raw_pipe_control(struct crocus_batch *batch,
 
    /* Emit --------------------------------------------------------------- */
 
-   if (INTEL_DEBUG & DEBUG_PIPE_CONTROL) {
+   if (INTEL_DEBUG(DEBUG_PIPE_CONTROL)) {
       fprintf(stderr,
               "  PC [%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%"PRIx64"]: %s\n",
               (flags & PIPE_CONTROL_FLUSH_ENABLE) ? "PipeCon " : "",
@@ -9161,6 +9155,7 @@ void
 genX(crocus_init_screen_state)(struct crocus_screen *screen)
 {
    assert(screen->devinfo.verx10 == GFX_VERx10);
+   assert(screen->devinfo.ver == GFX_VER);
    screen->vtbl.destroy_state = crocus_destroy_state;
    screen->vtbl.init_render_context = crocus_init_render_context;
    screen->vtbl.upload_render_state = crocus_upload_render_state;

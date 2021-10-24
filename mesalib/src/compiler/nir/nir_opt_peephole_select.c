@@ -104,6 +104,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
             switch (deref->modes) {
             case nir_var_shader_in:
             case nir_var_uniform:
+            case nir_var_image:
                /* Don't try to remove flow control around an indirect load
                 * because that flow control may be trying to avoid invalid
                 * loads.

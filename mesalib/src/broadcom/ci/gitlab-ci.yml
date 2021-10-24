@@ -6,7 +6,6 @@
   variables:
     BM_BOOTFS: /boot/raspberrypi_armhf
     BM_ROOTFS: /rootfs-armhf
-    DEQP_EXPECTED_RENDERER: VC4
     GPU_VERSION: vc4-rpi3
     HWCI_KERNEL_MODULES: vc4
     FLAKES_CHANNEL: "#videocore-ci"
@@ -26,7 +25,6 @@ vc4-rpi3-gles:armhf:
   variables:
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     DEQP_SUITE: vc4-rpi3-gles
-    DEQP_VER: gles2
 
 vc4-rpi3-egl:armhf:
   extends:
@@ -74,7 +72,6 @@ vc4-rpi3-piglit-quick_shader:armhf:
     BM_BOOTFS: /boot/raspberrypi_armhf
     BM_POE_TIMEOUT: 300
     BM_ROOTFS: /rootfs-armhf
-    DEQP_EXPECTED_RENDERER: V3D
     FLAKES_CHANNEL: "#videocore-ci"
     GPU_VERSION: v3d-rpi4
     HWCI_KERNEL_MODULES: v3d,vc4
@@ -92,7 +89,6 @@ v3d-rpi4-gles:armhf:
   parallel: 8
   variables:
     DEQP_SUITE: v3d-rpi4-gles
-    DEQP_VER: gles31
 
 v3d-rpi4-egl:armhf:
   extends:
@@ -123,7 +119,7 @@ v3dv-rpi4-vk:arm64:
     BM_BOOTFS: /boot/raspberrypi_arm64
     BM_POE_TIMEOUT: 300
     BM_ROOTFS: /rootfs-arm64
-    DEQP_EXPECTED_RENDERER: "V3D 4.2"
+    DEQP_EXPECTED_RENDERER: "V3D.4.2"
     DEQP_FRACTION: 5
     DEQP_VER: vk
     FLAKES_CHANNEL: "#videocore-ci"

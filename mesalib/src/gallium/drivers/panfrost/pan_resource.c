@@ -218,7 +218,10 @@ panfrost_create_surface(struct pipe_context *pipe,
                         struct pipe_resource *pt,
                         const struct pipe_surface *surf_tmpl)
 {
+        struct panfrost_context *ctx = pan_context(pipe);
         struct pipe_surface *ps = NULL;
+
+        pan_legalize_afbc_format(ctx, pan_resource(pt), surf_tmpl->format);
 
         ps = CALLOC_STRUCT(pipe_surface);
 
@@ -355,8 +358,8 @@ panfrost_should_afbc(struct panfrost_device *dev,
         if (pres->base.bind & ~valid_binding)
                 return false;
 
-        /* AFBC introduced with Mali T760 */
-        if (dev->quirks & MIDGARD_NO_AFBC)
+        /* AFBC support is optional */
+        if (!dev->has_afbc)
                 return false;
 
         /* AFBC<-->staging is expensive */
@@ -1065,6 +1068,29 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
         panfrost_resource_setup(pan_device(ctx->base.screen), rsrc, modifier,
                                 blit.dst.format);
         pipe_resource_reference(&tmp_prsrc, NULL);
+}
+
+/* Validate that an AFBC resource may be used as a particular format. If it may
+ * not, decompress it on the fly. Failure to do so can produce wrong results or
+ * invalid data faults when sampling or rendering to AFBC */
+
+void
+pan_legalize_afbc_format(struct panfrost_context *ctx,
+                         struct panfrost_resource *rsrc,
+                         enum pipe_format format)
+{
+        struct panfrost_device *dev = pan_device(ctx->base.screen);
+
+        if (!drm_is_afbc(rsrc->image.layout.modifier))
+                return;
+
+        if (panfrost_afbc_format(dev, pan_blit_format(rsrc->base.format)) ==
+            panfrost_afbc_format(dev, pan_blit_format(format)))
+                return;
+
+        pan_resource_modifier_convert(ctx, rsrc,
+                        DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED,
+                        "Reinterpreting AFBC surface as incompatible format");
 }
 
 static bool

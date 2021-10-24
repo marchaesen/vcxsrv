@@ -204,7 +204,7 @@ clCreateImageWithProperties(cl_context d_ctx,
 
    const cl_mem_flags flags = validate_flags(desc->buffer, d_flags, false);
 
-   if (!supported_formats(ctx, desc->image_type).count(*format))
+   if (!supported_formats(ctx, desc->image_type, d_flags).count(*format))
       throw error(CL_IMAGE_FORMAT_NOT_SUPPORTED);
 
    std::vector<cl_mem_properties> properties = fill_properties(d_properties);
@@ -228,6 +228,41 @@ clCreateImageWithProperties(cl_context d_ctx,
                          desc->image_width,
                          row_pitch, host_ptr);
 
+   case CL_MEM_OBJECT_IMAGE1D_BUFFER:
+      if (!desc->image_width)
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      if (all_of([=](const device &dev) {
+               const size_t max = dev.max_image_buffer_size();
+               return (desc->image_width > max);
+            }, ctx.devices()))
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      return new image1d_buffer(ctx, properties, flags, format,
+                                desc->image_width,
+                                row_pitch, host_ptr, desc->buffer);
+
+   case CL_MEM_OBJECT_IMAGE1D_ARRAY: {
+      if (!desc->image_width)
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      if (all_of([=](const device &dev) {
+               const size_t max = dev.max_image_size();
+               const size_t amax = dev.max_image_array_number();
+               return (desc->image_width > max ||
+                       desc->image_array_size > amax);
+            }, ctx.devices()))
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      const size_t slice_pitch = desc->image_slice_pitch ?
+         desc->image_slice_pitch : row_pitch;
+
+      return new image1d_array(ctx, properties, flags, format,
+                               desc->image_width,
+                               desc->image_array_size, slice_pitch,
+                               host_ptr);
+   }
+
    case CL_MEM_OBJECT_IMAGE2D:
       if (!desc->image_width || !desc->image_height)
          throw error(CL_INVALID_IMAGE_SIZE);
@@ -242,6 +277,28 @@ clCreateImageWithProperties(cl_context d_ctx,
       return new image2d(ctx, properties, flags, format,
                          desc->image_width, desc->image_height,
                          row_pitch, host_ptr);
+
+   case CL_MEM_OBJECT_IMAGE2D_ARRAY: {
+      if (!desc->image_width || !desc->image_height || !desc->image_array_size)
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      if (all_of([=](const device &dev) {
+               const size_t max = dev.max_image_size();
+               const size_t amax = dev.max_image_array_number();
+               return (desc->image_width > max ||
+                       desc->image_height > max ||
+                       desc->image_array_size > amax);
+            }, ctx.devices()))
+         throw error(CL_INVALID_IMAGE_SIZE);
+
+      const size_t slice_pitch = desc->image_slice_pitch ?
+         desc->image_slice_pitch : row_pitch * desc->image_height;
+
+      return new image2d_array(ctx, properties, flags, format,
+                               desc->image_width, desc->image_height,
+                               desc->image_array_size, row_pitch,
+                               slice_pitch, host_ptr);
+   }
 
    case CL_MEM_OBJECT_IMAGE3D: {
       if (!desc->image_width || !desc->image_height || !desc->image_depth)
@@ -263,12 +320,6 @@ clCreateImageWithProperties(cl_context d_ctx,
                          desc->image_depth, row_pitch,
                          slice_pitch, host_ptr);
    }
-
-   case CL_MEM_OBJECT_IMAGE1D_ARRAY:
-   case CL_MEM_OBJECT_IMAGE1D_BUFFER:
-   case CL_MEM_OBJECT_IMAGE2D_ARRAY:
-      // XXX - Not implemented.
-      throw error(CL_IMAGE_FORMAT_NOT_SUPPORTED);
 
    default:
       throw error(CL_INVALID_IMAGE_DESCRIPTOR);
@@ -317,7 +368,7 @@ clGetSupportedImageFormats(cl_context d_ctx, cl_mem_flags flags,
                            cl_mem_object_type type, cl_uint count,
                            cl_image_format *r_buf, cl_uint *r_count) try {
    auto &ctx = obj(d_ctx);
-   auto formats = supported_formats(ctx, type);
+   auto formats = supported_formats(ctx, type, flags);
 
    if (flags & CL_MEM_KERNEL_READ_AND_WRITE) {
       if (r_count)
@@ -388,7 +439,18 @@ clGetMemObjectInfo(cl_mem d_mem, cl_mem_info param,
 
    case CL_MEM_ASSOCIATED_MEMOBJECT: {
       sub_buffer *sub = dynamic_cast<sub_buffer *>(&mem);
-      buf.as_scalar<cl_mem>() = (sub ? desc(sub->parent()) : NULL);
+      if (sub) {
+         buf.as_scalar<cl_mem>() = desc(sub->parent());
+         break;
+      }
+
+      image *img = dynamic_cast<image *>(&mem);
+      if (img) {
+         buf.as_scalar<cl_mem>() = desc(img->buffer());
+         break;
+      }
+
+      buf.as_scalar<cl_mem>() = NULL;
       break;
    }
    case CL_MEM_OFFSET: {
@@ -447,11 +509,19 @@ clGetImageInfo(cl_mem d_mem, cl_image_info param,
       break;
 
    case CL_IMAGE_HEIGHT:
-      buf.as_scalar<size_t>() = img.height();
+      buf.as_scalar<size_t>() = img.dimensions() > 1 ? img.height() : 0;
       break;
 
    case CL_IMAGE_DEPTH:
-      buf.as_scalar<size_t>() = img.depth();
+      buf.as_scalar<size_t>() = img.dimensions() > 2 ? img.depth() : 0;
+      break;
+
+   case CL_IMAGE_ARRAY_SIZE:
+      buf.as_scalar<size_t>() = img.array_size();
+      break;
+
+   case CL_IMAGE_BUFFER:
+      buf.as_scalar<cl_mem>() = img.buffer();
       break;
 
    case CL_IMAGE_NUM_MIP_LEVELS:

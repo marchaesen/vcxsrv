@@ -1182,6 +1182,7 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_TEXTURE:
    case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_INTERFACE:
    case GLSL_TYPE_ATOMIC_UINT:
@@ -4222,6 +4223,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       case GLSL_TYPE_INT64:
          break;
       case GLSL_TYPE_SAMPLER:
+      case GLSL_TYPE_TEXTURE:
       case GLSL_TYPE_IMAGE:
          if (state->has_bindless())
             break;
@@ -5432,6 +5434,7 @@ ast_declarator_list::hir(exec_list *instructions,
                error = !state->is_version(410, 0) && !state->ARB_vertex_attrib_64bit_enable;
                break;
             case GLSL_TYPE_SAMPLER:
+            case GLSL_TYPE_TEXTURE:
             case GLSL_TYPE_IMAGE:
                error = !state->has_bindless();
                break;
@@ -7228,6 +7231,7 @@ is_valid_default_precision_type(const struct glsl_type *const type)
       /* "int" and "float" are valid, but vectors and matrices are not. */
       return type->vector_elements == 1 && type->matrix_columns == 1;
    case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_TEXTURE:
    case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_ATOMIC_UINT:
       return true;

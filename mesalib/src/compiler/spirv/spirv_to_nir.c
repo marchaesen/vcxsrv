@@ -367,8 +367,10 @@ vtn_get_image(struct vtn_builder *b, uint32_t value_id,
    vtn_assert(type->base_type == vtn_base_type_image);
    if (access)
       *access |= spirv_to_gl_access_qualifier(b, type->access_qualifier);
+   nir_variable_mode mode = glsl_type_is_image(type->glsl_image) ?
+                            nir_var_image : nir_var_uniform;
    return nir_build_deref_cast(&b->nb, vtn_get_nir_ssa(b, value_id),
-                               nir_var_uniform, type->glsl_image, 0);
+                               mode, type->glsl_image, 0);
 }
 
 static void
@@ -415,10 +417,16 @@ vtn_get_sampled_image(struct vtn_builder *b, uint32_t value_id)
    vtn_assert(type->base_type == vtn_base_type_sampled_image);
    nir_ssa_def *si_vec2 = vtn_get_nir_ssa(b, value_id);
 
+   /* Even though this is a sampled image, we can end up here with a storage
+    * image because OpenCL doesn't distinguish between the two.
+    */
+   const struct glsl_type *image_type = type->image->glsl_image;
+   nir_variable_mode image_mode = glsl_type_is_image(image_type) ?
+                                  nir_var_image : nir_var_uniform;
+
    struct vtn_sampled_image si = { NULL, };
    si.image = nir_build_deref_cast(&b->nb, nir_channel(&b->nb, si_vec2, 0),
-                                   nir_var_uniform,
-                                   type->image->glsl_image, 0);
+                                   image_mode, image_type, 0);
    si.sampler = nir_build_deref_cast(&b->nb, nir_channel(&b->nb, si_vec2, 1),
                                      nir_var_uniform,
                                      glsl_bare_sampler_type(), 0);
@@ -845,19 +853,6 @@ vtn_type_copy(struct vtn_builder *b, struct vtn_type *src)
    return dest;
 }
 
-static const struct glsl_type *
-wrap_type_in_array(const struct glsl_type *type,
-                   const struct glsl_type *array_type)
-{
-   if (!glsl_type_is_array(array_type))
-      return type;
-
-   const struct glsl_type *elem_type =
-      wrap_type_in_array(type, glsl_get_array_element(array_type));
-   return glsl_array_type(elem_type, glsl_get_length(array_type),
-                          glsl_get_explicit_stride(array_type));
-}
-
 static bool
 vtn_type_needs_explicit_layout(struct vtn_builder *b, struct vtn_type *type,
                                enum vtn_variable_mode mode)
@@ -899,7 +894,7 @@ vtn_type_get_nir_type(struct vtn_builder *b, struct vtn_type *type,
       vtn_fail_if(glsl_without_array(type->type) != glsl_uint_type(),
                   "Variables in the AtomicCounter storage class should be "
                   "(possibly arrays of arrays of) uint.");
-      return wrap_type_in_array(glsl_atomic_uint_type(), type->type);
+      return glsl_type_wrap_in_arrays(glsl_atomic_uint_type(), type->type);
    }
 
    if (mode == vtn_variable_mode_uniform) {
@@ -942,17 +937,25 @@ vtn_type_get_nir_type(struct vtn_builder *b, struct vtn_type *type,
       }
 
       case vtn_base_type_image:
+         vtn_assert(glsl_type_is_texture(type->glsl_image));
          return type->glsl_image;
 
       case vtn_base_type_sampler:
          return glsl_bare_sampler_type();
 
       case vtn_base_type_sampled_image:
-         return type->image->glsl_image;
+         return glsl_texture_type_to_sampler(type->image->glsl_image,
+                                             false /* is_shadow */);
 
       default:
          return type->type;
       }
+   }
+
+   if (mode == vtn_variable_mode_image) {
+      struct vtn_type *image_type = vtn_type_without_array(type);
+      vtn_assert(image_type->base_type == vtn_base_type_image);
+      return glsl_type_wrap_in_arrays(image_type->glsl_image, type->type);
    }
 
    /* Layout decorations are allowed but ignored in certain conditions,
@@ -1587,6 +1590,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       if (opcode == SpvOpTypePointer)
          deref_type = vtn_get_type(b, w[3]);
 
+      bool has_forward_pointer = false;
       if (val->value_type == vtn_value_type_invalid) {
          val->value_type = vtn_value_type_type;
          val->type = rzalloc(b, struct vtn_type);
@@ -1617,6 +1621,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
                      "The storage classes of an OpTypePointer and any "
                      "OpTypeForwardPointers that provide forward "
                      "declarations of it must match.");
+         has_forward_pointer = true;
       }
 
       if (opcode == SpvOpTypePointer) {
@@ -1624,6 +1629,11 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
                      "While OpTypeForwardPointer can be used to provide a "
                      "forward declaration of a pointer, OpTypePointer can "
                      "only be used once for a given id.");
+
+         vtn_fail_if(has_forward_pointer &&
+                     deref_type->base_type != vtn_base_type_struct,
+                     "An OpTypePointer instruction must declare "
+                     "Pointer Type to be a pointer to an OpTypeStruct.");
 
          val->type->deref = deref_type;
 
@@ -1722,7 +1732,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       enum glsl_base_type sampled_base_type =
          glsl_get_base_type(sampled_type->type);
       if (sampled == 1) {
-         val->type->glsl_image = glsl_sampler_type(dim, false, is_array,
+         val->type->glsl_image = glsl_texture_type(dim, is_array,
                                                    sampled_base_type);
       } else if (sampled == 2) {
          val->type->glsl_image = glsl_image_type(dim, is_array,
@@ -2390,18 +2400,15 @@ vtn_mem_semantics_to_nir_var_modes(struct vtn_builder *b,
                      SpvMemorySemanticsAtomicCounterMemoryMask);
    }
 
-   /* TODO: Consider adding nir_var_mem_image mode to NIR so it can be used
-    * for SpvMemorySemanticsImageMemoryMask.
-    */
-
    nir_variable_mode modes = 0;
-   if (semantics & (SpvMemorySemanticsUniformMemoryMask |
-                    SpvMemorySemanticsImageMemoryMask)) {
+   if (semantics & SpvMemorySemanticsUniformMemoryMask) {
       modes |= nir_var_uniform |
                nir_var_mem_ubo |
                nir_var_mem_ssbo |
                nir_var_mem_global;
    }
+   if (semantics & SpvMemorySemanticsImageMemoryMask)
+      modes |= nir_var_image;
    if (semantics & SpvMemorySemanticsWorkgroupMemoryMask)
       modes |= nir_var_mem_shared;
    if (semantics & SpvMemorySemanticsCrossWorkgroupMemoryMask)
@@ -2825,9 +2832,16 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
                      "Unless the Kernel capability is being used, the coordinate parameter "
                      "OpImageSampleExplicitLod must be floating point.");
 
-         p->src = nir_src_for_ssa(
-            nir_fadd(&b->nb, nir_i2f32(&b->nb, p->src.ssa),
-                             nir_imm_float(&b->nb, 0.5)));
+         nir_ssa_def *coords[4];
+         nir_ssa_def *f0_5 = nir_imm_float(&b->nb, 0.5);
+         for (unsigned i = 0; i < coord_components; i++) {
+            coords[i] = nir_i2f32(&b->nb, nir_channel(&b->nb, p->src.ssa, i));
+
+            if (!is_array || i != coord_components - 1)
+               coords[i] = nir_fadd(&b->nb, coords[i], f0_5);
+         }
+
+         p->src = nir_src_for_ssa(nir_vec(&b->nb, coords, coord_components));
       }
 
       p->src_type = nir_tex_src_coord;
@@ -5632,7 +5646,7 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
       if (glsl_type_is_image(image_type->glsl_image)) {
          vtn_handle_image(b, opcode, w, count);
       } else {
-         vtn_assert(glsl_type_is_sampler(image_type->glsl_image));
+         vtn_assert(glsl_type_is_texture(image_type->glsl_image));
          vtn_handle_texture(b, opcode, w, count);
       }
       break;
@@ -6114,22 +6128,25 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
 
       /* input variable */
       nir_variable *in_var = rzalloc(b->nb.shader, nir_variable);
-      in_var->data.mode = nir_var_uniform;
-      in_var->data.read_only = true;
-      in_var->data.location = i;
-      if (param_type->base_type == vtn_base_type_image) {
+
+      if (is_by_val) {
+         in_var->data.mode = nir_var_uniform;
+         in_var->type = param_type->deref->type;
+      } else if (param_type->base_type == vtn_base_type_image) {
+         in_var->data.mode = nir_var_image;
+         in_var->type = param_type->glsl_image;
          in_var->data.access =
             spirv_to_gl_access_qualifier(b, param_type->access_qualifier);
+      } else if (param_type->base_type == vtn_base_type_sampler) {
+         in_var->data.mode = nir_var_uniform;
+         in_var->type = glsl_bare_sampler_type();
+      } else {
+         in_var->data.mode = nir_var_uniform;
+         in_var->type = param_type->type;
       }
 
-      if (is_by_val)
-         in_var->type = param_type->deref->type;
-      else if (param_type->base_type == vtn_base_type_image)
-         in_var->type = param_type->glsl_image;
-      else if (param_type->base_type == vtn_base_type_sampler)
-         in_var->type = glsl_bare_sampler_type();
-      else
-         in_var->type = param_type->type;
+      in_var->data.read_only = true;
+      in_var->data.location = i;
 
       nir_shader_add_variable(b->nb.shader, in_var);
 

@@ -176,24 +176,7 @@ handle_reset_query_cpu_job(struct v3dv_job *job)
    if (info->pool->query_type == VK_QUERY_TYPE_OCCLUSION)
          v3dv_bo_wait(job->device, info->pool->bo, PIPE_TIMEOUT_INFINITE);
 
-   for (uint32_t i = info->first; i < info->first + info->count; i++) {
-      assert(i < info->pool->query_count);
-      struct v3dv_query *q = &info->pool->queries[i];
-      q->maybe_available = false;
-      switch (info->pool->query_type) {
-      case VK_QUERY_TYPE_OCCLUSION: {
-         const uint8_t *q_addr = ((uint8_t *) q->bo->map) + q->offset;
-         uint32_t *counter = (uint32_t *) q_addr;
-         *counter = 0;
-         break;
-      }
-      case VK_QUERY_TYPE_TIMESTAMP:
-         q->value = 0;
-         break;
-      default:
-         unreachable("Unsupported query type");
-      }
-   }
+   v3dv_reset_query_pools(job->device, info->pool, info->first, info->count);
 
    return VK_SUCCESS;
 }

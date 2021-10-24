@@ -3453,7 +3453,8 @@ combine_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
       }
    }
    /* v_mul_f32(v_cndmask_b32(0, 1.0, cond), a) -> v_cndmask_b32(0, a, cond) */
-   else if (instr->opcode == aco_opcode::v_mul_f32 && !instr->isVOP3()) {
+   else if (instr->opcode == aco_opcode::v_mul_f32 && !ctx.fp_mode.preserve_signed_zero_inf_nan32 &&
+            !instr->usesModifiers() && !ctx.fp_mode.must_flush_denorms32) {
       for (unsigned i = 0; i < 2; i++) {
          if (instr->operands[i].isTemp() && ctx.info[instr->operands[i].tempId()].is_b2f() &&
              ctx.uses[instr->operands[i].tempId()] == 1 && instr->operands[!i].isTemp() &&

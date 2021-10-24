@@ -9,6 +9,8 @@ deqp_args = [
     "--deqp-gl-config-name=rgba8888d24s8ms0",
 ]
 fraction = 3
+version_check = "GL ES 3.2.*git"
+renderer_check = "GLK"
 
 [[deqp]]
 deqp = "/deqp/modules/gles3/deqp-gles3"

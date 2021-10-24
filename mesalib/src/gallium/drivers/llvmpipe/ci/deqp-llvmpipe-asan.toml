@@ -8,8 +8,7 @@ deqp_args = [
     "--deqp-surface-type=pbuffer", "--deqp-gl-config-name=rgba8888d24s8ms0", "--deqp-visibility=hidden"
 ]
 fraction = 10
-# Would be nice to just set the LD_PRELOAD here instead of in the job, so deqp-runner
-# wasn't asanned, but then the renderer check in deqp-runner.sh fails to pull in asan.
-# Long term I want to just move the renderer check to deqp-runner anyway.
-#  [deqp.env]
-#  LD_PRELOAD = "libasan.so.6"
+version_check = "GL ES 3.2.*git"
+renderer_check = "llvmpipe"
+  [deqp.env]
+  LD_PRELOAD = "libasan.so.6"

@@ -1808,6 +1808,8 @@ gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 
         switch (event->keyval) {
             int fkey_number;
+            bool consumed_meta_key;
+
           case GDK_KEY_F1: fkey_number = 1; goto numbered_function_key;
           case GDK_KEY_F2: fkey_number = 2; goto numbered_function_key;
           case GDK_KEY_F3: fkey_number = 3; goto numbered_function_key;
@@ -1829,9 +1831,14 @@ gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
           case GDK_KEY_F19: fkey_number = 19; goto numbered_function_key;
           case GDK_KEY_F20: fkey_number = 20; goto numbered_function_key;
           numbered_function_key:
+            consumed_meta_key = false;
             end = 1 + format_function_key(output+1, inst->term, fkey_number,
                                           event->state & GDK_SHIFT_MASK,
-                                          event->state & GDK_CONTROL_MASK);
+                                          event->state & GDK_CONTROL_MASK,
+                                          event->state & inst->meta_mod_mask,
+                                          &consumed_meta_key);
+            if (consumed_meta_key)
+                start = 1; /* supersedes the usual prefixing of Esc */
 #ifdef KEY_EVENT_DIAGNOSTICS
             debug(" - function key F%d", fkey_number);
 #endif
@@ -1875,8 +1882,14 @@ gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
           case GDK_KEY_Begin: case GDK_KEY_KP_Begin:
             xkey = 'G'; goto arrow_key;
           arrow_key:
+            consumed_meta_key = false;
             end = 1 + format_arrow_key(output+1, inst->term, xkey,
-                                       event->state & GDK_CONTROL_MASK);
+                                       event->state & GDK_SHIFT_MASK,
+                                       event->state & GDK_CONTROL_MASK,
+                                       event->state & inst->meta_mod_mask,
+                                       &consumed_meta_key);
+            if (consumed_meta_key)
+                start = 1; /* supersedes the usual prefixing of Esc */
 #ifdef KEY_EVENT_DIAGNOSTICS
             debug(" - arrow key");
 #endif
@@ -3248,19 +3261,31 @@ static void set_window_titles(GtkFrontend *inst)
                                  inst->icontitle);
 }
 
-static void gtkwin_set_title(TermWin *tw, const char *title)
+static void gtkwin_set_title(TermWin *tw, const char *title, int codepage)
 {
     GtkFrontend *inst = container_of(tw, GtkFrontend, termwin);
     sfree(inst->wintitle);
-    inst->wintitle = dupstr(title);
+    if (codepage != CP_UTF8) {
+        wchar_t *title_w = dup_mb_to_wc(codepage, 0, title);
+        inst->wintitle = encode_wide_string_as_utf8(title_w);
+        sfree(title_w);
+    } else {
+        inst->wintitle = dupstr(title);
+    }
     set_window_titles(inst);
 }
 
-static void gtkwin_set_icon_title(TermWin *tw, const char *title)
+static void gtkwin_set_icon_title(TermWin *tw, const char *title, int codepage)
 {
     GtkFrontend *inst = container_of(tw, GtkFrontend, termwin);
     sfree(inst->icontitle);
-    inst->icontitle = dupstr(title);
+    if (codepage != CP_UTF8) {
+        wchar_t *title_w = dup_mb_to_wc(codepage, 0, title);
+        inst->icontitle = encode_wide_string_as_utf8(title_w);
+        sfree(title_w);
+    } else {
+        inst->icontitle = dupstr(title);
+    }
     set_window_titles(inst);
 }
 

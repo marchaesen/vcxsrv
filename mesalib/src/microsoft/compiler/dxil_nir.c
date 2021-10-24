@@ -1356,21 +1356,28 @@ dxil_nir_lower_system_values_to_zero(nir_shader* shader,
 }
 
 static const struct glsl_type *
-get_bare_samplers_for_type(const struct glsl_type *type)
+get_bare_samplers_for_type(const struct glsl_type *type, bool is_shadow)
 {
    if (glsl_type_is_sampler(type)) {
-      if (glsl_sampler_type_is_shadow(type))
+      if (is_shadow)
          return glsl_bare_shadow_sampler_type();
       else
          return glsl_bare_sampler_type();
    } else if (glsl_type_is_array(type)) {
       return glsl_array_type(
-         get_bare_samplers_for_type(glsl_get_array_element(type)),
+         get_bare_samplers_for_type(glsl_get_array_element(type), is_shadow),
          glsl_get_length(type),
          0 /*explicit size*/);
    }
    assert(!"Unexpected type");
    return NULL;
+}
+
+static bool
+is_bare_sampler(const struct glsl_type *type)
+{
+   return glsl_get_sampler_result_type(glsl_without_array(type)) ==
+          GLSL_TYPE_VOID;
 }
 
 static bool
@@ -1392,25 +1399,38 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
       if (hash_entry)
          return false;
 
-      nir_variable *typed_sampler = NULL;
+      nir_variable *old_sampler = NULL;
       nir_foreach_variable_with_modes(var, b->shader, nir_var_uniform) {
          if (var->data.binding <= tex->sampler_index &&
-             var->data.binding + glsl_type_get_sampler_count(var->type) > tex->sampler_index) {
-            /* Already have a bare sampler for this binding, add it to the table */
-            if (glsl_get_sampler_result_type(glsl_without_array(var->type)) == GLSL_TYPE_VOID) {
+             var->data.binding + glsl_type_get_sampler_count(var->type) >
+                tex->sampler_index) {
+
+            /* Already have a bare sampler for this binding and it is of the
+             * correct type, add it to the table */
+            if (is_bare_sampler(var->type) &&
+                glsl_sampler_type_is_shadow(glsl_without_array(var->type)) ==
+                   tex->is_shadow) {
                _mesa_hash_table_u64_insert(data, tex->sampler_index, var);
                return false;
             }
 
-            typed_sampler = var;
+            old_sampler = var;
          }
       }
 
-      /* Clone the typed sampler to a bare sampler and we're done */
-      assert(typed_sampler);
-      nir_variable *bare_sampler = nir_variable_clone(typed_sampler, b->shader);
-      bare_sampler->type = get_bare_samplers_for_type(typed_sampler->type);
-      nir_shader_add_variable(b->shader, bare_sampler);
+      assert(old_sampler);
+      nir_variable *bare_sampler = NULL;
+
+      /* If it is already bare, we just need to fix the shadow information */
+      if (is_bare_sampler(old_sampler->type))
+         bare_sampler = old_sampler;
+      else {
+         /* Otherwise, clone the typed sampler to a bare sampler */
+         bare_sampler = nir_variable_clone(old_sampler, b->shader);
+         nir_shader_add_variable(b->shader, bare_sampler);
+      }
+      bare_sampler->type =
+         get_bare_samplers_for_type(old_sampler->type, tex->is_shadow);
       _mesa_hash_table_u64_insert(data, tex->sampler_index, bare_sampler);
       return true;
    }
@@ -1423,7 +1443,9 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
    nir_deref_instr *old_tail = path.path[0];
    assert(old_tail->deref_type == nir_deref_type_var);
    nir_variable *old_var = old_tail->var;
-   if (glsl_get_sampler_result_type(glsl_without_array(old_var->type)) == GLSL_TYPE_VOID) {
+   if (is_bare_sampler(old_var->type) &&
+       glsl_sampler_type_is_shadow(glsl_without_array(old_var->type)) ==
+          tex->is_shadow) {
       nir_deref_path_finish(&path);
       return false;
    }
@@ -1433,9 +1455,14 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
    if (hash_entry) {
       new_var = hash_entry->data;
    } else {
-      new_var = nir_variable_clone(old_var, b->shader);
-      new_var->type = get_bare_samplers_for_type(old_var->type);
-      nir_shader_add_variable(b->shader, new_var);
+      if (is_bare_sampler(old_var->type))
+         new_var = old_var;
+      else {
+         new_var = nir_variable_clone(old_var, b->shader);
+         nir_shader_add_variable(b->shader, new_var);
+      }
+      new_var->type = 
+         get_bare_samplers_for_type(old_var->type, tex->is_shadow);
       _mesa_hash_table_u64_insert(data, old_var->data.binding, new_var);
    }
 
@@ -1449,7 +1476,9 @@ redirect_sampler_derefs(struct nir_builder *b, nir_instr *instr, void *data)
 
    nir_deref_path_finish(&path);
    nir_instr_rewrite_src_ssa(&tex->instr, &tex->src[sampler_idx].src, &new_tail->dest.ssa);
-
+   /* Since is_shadow changes can the type of the original var, we need to
+    * remove the old derefs */
+   nir_deref_instr_remove_if_unused(final_deref);
    return true;
 }
 

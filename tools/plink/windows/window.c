@@ -219,7 +219,7 @@ static bool pointer_indicates_raw_mouse = false;
 
 static BusyStatus busy_status = BUSY_NOT;
 
-static char *window_name, *icon_name;
+static wchar_t *window_name, *icon_name;
 
 static int compose_state = 0;
 
@@ -250,8 +250,9 @@ static void wintw_clip_write(
 static void wintw_clip_request_paste(TermWin *, int clipboard);
 static void wintw_refresh(TermWin *);
 static void wintw_request_resize(TermWin *, int w, int h);
-static void wintw_set_title(TermWin *, const char *title);
-static void wintw_set_icon_title(TermWin *, const char *icontitle);
+static void wintw_set_title(TermWin *, const char *title, int codepage);
+static void wintw_set_icon_title(TermWin *, const char *icontitle,
+                                 int codepage);
 static void wintw_set_minimised(TermWin *, bool minimised);
 static void wintw_set_maximised(TermWin *, bool maximised);
 static void wintw_move(TermWin *, int x, int y);
@@ -416,8 +417,8 @@ static void close_session(void *ignored_context)
 
     session_closed = true;
     newtitle = dupprintf("%s (inactive)", appname);
-    win_set_icon_title(wintw, newtitle);
-    win_set_title(wintw, newtitle);
+    win_set_icon_title(wintw, newtitle, DEFAULT_CODEPAGE);
+    win_set_title(wintw, newtitle, DEFAULT_CODEPAGE);
     sfree(newtitle);
 
     if (ldisc) {
@@ -2955,11 +2956,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                 term, r.right - r.left, r.bottom - r.top);
         }
         if (wParam == SIZE_MINIMIZED)
-            SetWindowText(hwnd,
-                          conf_get_bool(conf, CONF_win_name_always) ?
-                          window_name : icon_name);
+            SetWindowTextW(hwnd,
+                           conf_get_bool(conf, CONF_win_name_always) ?
+                           window_name : icon_name);
         if (wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED)
-            SetWindowText(hwnd, window_name);
+            SetWindowTextW(hwnd, window_name);
         if (wParam == SIZE_RESTORED) {
             processed_resize = false;
             clear_full_screen();
@@ -4428,6 +4429,8 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
         }
 
         switch (wParam) {
+            bool consumed_alt;
+
           case VK_NUMPAD0: keypad_key = '0'; goto numeric_keypad;
           case VK_NUMPAD1: keypad_key = '1'; goto numeric_keypad;
           case VK_NUMPAD2: keypad_key = '2'; goto numeric_keypad;
@@ -4509,8 +4512,12 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
           case VK_F19: fkey_number = 19; goto numbered_function_key;
           case VK_F20: fkey_number = 20; goto numbered_function_key;
           numbered_function_key:
+            consumed_alt = false;
             p += format_function_key((char *)p, term, fkey_number,
-                                     shift_state & 1, shift_state & 2);
+                                     shift_state & 1, shift_state & 2,
+                                     left_alt, &consumed_alt);
+            if (consumed_alt)
+                left_alt = false; /* supersedes the usual prefixing of Esc */
             return p - output;
 
             SmallKeypadKey sk_key;
@@ -4535,7 +4542,11 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
           case VK_LEFT: xkey = 'D'; goto arrow_key;
           case VK_CLEAR: xkey = 'G'; goto arrow_key; /* close enough */
           arrow_key:
-            p += format_arrow_key((char *)p, term, xkey, shift_state & 2);
+            consumed_alt = false;
+            p += format_arrow_key((char *)p, term, xkey, shift_state & 1,
+                                  shift_state & 2, left_alt, &consumed_alt);
+            if (consumed_alt)
+                left_alt = false; /* supersedes the usual prefixing of Esc */
             return p - output;
 
           case VK_RETURN:
@@ -4707,20 +4718,20 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
     return -1;
 }
 
-static void wintw_set_title(TermWin *tw, const char *title)
+static void wintw_set_title(TermWin *tw, const char *title, int codepage)
 {
     sfree(window_name);
-    window_name = dupstr(title);
+    window_name = dup_mb_to_wc(codepage, 0, title);
     if (conf_get_bool(conf, CONF_win_name_always) || !IsIconic(wgs.term_hwnd))
-        SetWindowText(wgs.term_hwnd, title);
+        SetWindowTextW(wgs.term_hwnd, window_name);
 }
 
-static void wintw_set_icon_title(TermWin *tw, const char *title)
+static void wintw_set_icon_title(TermWin *tw, const char *title, int codepage)
 {
     sfree(icon_name);
-    icon_name = dupstr(title);
+    icon_name = dup_mb_to_wc(codepage, 0, title);
     if (!conf_get_bool(conf, CONF_win_name_always) && IsIconic(wgs.term_hwnd))
-        SetWindowText(wgs.term_hwnd, title);
+        SetWindowTextW(wgs.term_hwnd, icon_name);
 }
 
 static void wintw_set_scrollbar(TermWin *tw, int total, int start, int page)

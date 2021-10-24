@@ -44,6 +44,8 @@ struct radv_shader_context {
    struct ac_llvm_context ac;
    const struct nir_shader *shader;
    struct ac_shader_abi abi;
+   const struct radv_nir_compiler_options *options;
+   struct radv_shader_info *shader_info;
    const struct radv_shader_args *args;
 
    gl_shader_stage stage;
@@ -111,8 +113,8 @@ create_llvm_function(struct ac_llvm_context *ctx, LLVMModuleRef module, LLVMBuil
 static void
 load_descriptor_sets(struct radv_shader_context *ctx)
 {
-   struct radv_userdata_locations *user_sgprs_locs = &ctx->args->shader_info->user_sgprs_locs;
-   uint32_t mask = ctx->args->shader_info->desc_set_used_mask;
+   struct radv_userdata_locations *user_sgprs_locs = &ctx->shader_info->user_sgprs_locs;
+   uint32_t mask = ctx->shader_info->desc_set_used_mask;
 
    if (user_sgprs_locs->shader_data[AC_UD_INDIRECT_DESCRIPTOR_SETS].sgpr_idx != -1) {
       LLVMValueRef desc_sets = ac_get_arg(&ctx->ac, ctx->args->descriptor_sets[0]);
@@ -168,7 +170,7 @@ static void
 create_function(struct radv_shader_context *ctx, gl_shader_stage stage, bool has_previous_stage)
 {
    if (ctx->ac.chip_class >= GFX10) {
-      if (is_pre_gs_stage(stage) && ctx->args->shader_info->is_ngg) {
+      if (is_pre_gs_stage(stage) && ctx->shader_info->is_ngg) {
          /* On GFX10, VS is merged into GS for NGG. */
          stage = MESA_SHADER_GEOMETRY;
          has_previous_stage = true;
@@ -178,7 +180,7 @@ create_function(struct radv_shader_context *ctx, gl_shader_stage stage, bool has
    ctx->main_function =
       create_llvm_function(&ctx->ac, ctx->ac.module, ctx->ac.builder, &ctx->args->ac,
                            get_llvm_calling_convention(ctx->main_function, stage),
-                           ctx->max_workgroup_size, ctx->args->options);
+                           ctx->max_workgroup_size, ctx->options);
 
    ctx->ring_offsets = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.implicit.buffer.ptr",
                                           LLVMPointerType(ctx->ac.i8, AC_ADDR_SPACE_CONST), NULL, 0,
@@ -189,7 +191,7 @@ create_function(struct radv_shader_context *ctx, gl_shader_stage stage, bool has
    load_descriptor_sets(ctx);
 
    if (stage == MESA_SHADER_TESS_CTRL ||
-       (stage == MESA_SHADER_VERTEX && ctx->args->shader_info->vs.as_ls) ||
+       (stage == MESA_SHADER_VERTEX && ctx->shader_info->vs.as_ls) ||
        /* GFX9 has the ESGS ring buffer in LDS. */
        (stage == MESA_SHADER_GEOMETRY && has_previous_stage)) {
       ac_declare_lds_as_pointer(&ctx->ac);
@@ -202,7 +204,7 @@ radv_load_resource(struct ac_shader_abi *abi, LLVMValueRef index, unsigned desc_
 {
    struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
    LLVMValueRef desc_ptr = ctx->descriptor_sets[desc_set];
-   struct radv_pipeline_layout *pipeline_layout = ctx->args->options->layout;
+   struct radv_pipeline_layout *pipeline_layout = ctx->options->layout;
    struct radv_descriptor_set_layout *layout = pipeline_layout->set[desc_set].layout;
    unsigned base_offset = layout->binding[binding].offset;
    LLVMValueRef offset, stride;
@@ -261,7 +263,7 @@ load_sample_position(struct ac_shader_abi *abi, LLVMValueRef sample_id)
 
    ptr = LLVMBuildBitCast(ctx->ac.builder, ptr, ac_array_in_const_addr_space(ctx->ac.v2f32), "");
 
-   uint32_t sample_pos_offset = radv_get_sample_pos_offset(ctx->args->options->key.ps.num_samples);
+   uint32_t sample_pos_offset = radv_get_sample_pos_offset(ctx->options->key.ps.num_samples);
 
    sample_id = LLVMBuildAdd(ctx->ac.builder, sample_id,
                             LLVMConstInt(ctx->ac.i32, sample_pos_offset, false), "");
@@ -276,10 +278,10 @@ load_sample_mask_in(struct ac_shader_abi *abi)
    struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
    uint8_t log2_ps_iter_samples;
 
-   if (ctx->args->shader_info->ps.uses_sample_shading) {
-      log2_ps_iter_samples = util_logbase2(ctx->args->options->key.ps.num_samples);
+   if (ctx->shader_info->ps.uses_sample_shading) {
+      log2_ps_iter_samples = util_logbase2(ctx->options->key.ps.num_samples);
    } else {
-      log2_ps_iter_samples = ctx->args->options->key.ps.log2_ps_iter_samples;
+      log2_ps_iter_samples = ctx->options->key.ps.log2_ps_iter_samples;
    }
 
    LLVMValueRef result, sample_id;
@@ -306,14 +308,14 @@ visit_emit_vertex_with_counter(struct ac_shader_abi *abi, unsigned stream, LLVMV
    unsigned offset = 0;
    struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
 
-   if (ctx->args->shader_info->is_ngg) {
+   if (ctx->shader_info->is_ngg) {
       gfx10_ngg_gs_emit_vertex(ctx, stream, vertexidx, addrs);
       return;
    }
 
    for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
-      unsigned output_usage_mask = ctx->args->shader_info->gs.output_usage_mask[i];
-      uint8_t output_stream = ctx->args->shader_info->gs.output_streams[i];
+      unsigned output_usage_mask = ctx->shader_info->gs.output_usage_mask[i];
+      uint8_t output_stream = ctx->shader_info->gs.output_streams[i];
       LLVMValueRef *out_ptr = &addrs[i * 4];
       int length = util_last_bit(output_usage_mask);
 
@@ -351,7 +353,7 @@ visit_end_primitive(struct ac_shader_abi *abi, unsigned stream)
 {
    struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
 
-   if (ctx->args->shader_info->is_ngg) {
+   if (ctx->shader_info->is_ngg) {
       LLVMBuildStore(ctx->ac.builder, ctx->ac.i32_0, ctx->gs_curprim_verts[stream]);
       return;
    }
@@ -406,7 +408,7 @@ get_desc_ptr(struct radv_shader_context *ctx, LLVMValueRef ptr, bool non_uniform
    if (non_uniform) {
       /* 32-bit seems to always use SMEM. addrspacecast from 32-bit -> 64-bit is broken. */
       LLVMValueRef dwords[] = {ptr,
-                               LLVMConstInt(ctx->ac.i32, ctx->args->options->address32_hi, false)};
+                               LLVMConstInt(ctx->ac.i32, ctx->options->address32_hi, false)};
       ptr = ac_build_gather_values(&ctx->ac, dwords, 2);
       ptr = LLVMBuildBitCast(ctx->ac.builder, ptr, ctx->ac.i64, "");
       addr_space = AC_ADDR_SPACE_CONST;
@@ -439,7 +441,7 @@ radv_load_ubo(struct ac_shader_abi *abi, unsigned desc_set, unsigned binding, bo
    LLVMValueRef result;
 
    if (valid_binding) {
-      struct radv_pipeline_layout *pipeline_layout = ctx->args->options->layout;
+      struct radv_pipeline_layout *pipeline_layout = ctx->options->layout;
       struct radv_descriptor_set_layout *layout = pipeline_layout->set[desc_set].layout;
 
       if (layout->binding[binding].type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT) {
@@ -461,7 +463,7 @@ radv_load_ubo(struct ac_shader_abi *abi, unsigned desc_set, unsigned binding, bo
 
          LLVMValueRef desc_components[4] = {
             LLVMBuildPtrToInt(ctx->ac.builder, buffer_ptr, ctx->ac.intptr, ""),
-            LLVMConstInt(ctx->ac.i32, S_008F04_BASE_ADDRESS_HI(ctx->args->options->address32_hi),
+            LLVMConstInt(ctx->ac.i32, S_008F04_BASE_ADDRESS_HI(ctx->options->address32_hi),
                          false),
             LLVMConstInt(ctx->ac.i32, 0xffffffff, false),
             LLVMConstInt(ctx->ac.i32, desc_type, false),
@@ -489,7 +491,7 @@ radv_get_sampler_desc(struct ac_shader_abi *abi, unsigned descriptor_set, unsign
    struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
    LLVMValueRef list = ctx->descriptor_sets[descriptor_set];
    struct radv_descriptor_set_layout *layout =
-      ctx->args->options->layout->set[descriptor_set].layout;
+      ctx->options->layout->set[descriptor_set].layout;
    struct radv_descriptor_set_binding_layout *binding = layout->binding + base_index;
    unsigned offset = binding->offset;
    unsigned stride = binding->size;
@@ -584,7 +586,7 @@ radv_get_sampler_desc(struct ac_shader_abi *abi, unsigned descriptor_set, unsign
          components[i] = ac_llvm_extract_elem(&ctx->ac, descriptor2, i);
       descriptor = ac_build_gather_values(&ctx->ac, components, 8);
    } else if (desc_type == AC_DESC_IMAGE &&
-              ctx->args->options->has_image_load_dcc_bug &&
+              ctx->options->has_image_load_dcc_bug &&
               image && !write) {
       LLVMValueRef components[8];
 
@@ -684,17 +686,17 @@ load_vs_input(struct radv_shader_context *ctx, unsigned driver_location, LLVMTyp
    LLVMValueRef input;
    LLVMValueRef buffer_index;
    unsigned attrib_index = driver_location - VERT_ATTRIB_GENERIC0;
-   unsigned attrib_format = ctx->args->options->key.vs.vertex_attribute_formats[attrib_index];
+   unsigned attrib_format = ctx->options->key.vs.vertex_attribute_formats[attrib_index];
    unsigned data_format = attrib_format & 0x0f;
    unsigned num_format = (attrib_format >> 4) & 0x07;
    bool is_float =
       num_format != V_008F0C_BUF_NUM_FORMAT_UINT && num_format != V_008F0C_BUF_NUM_FORMAT_SINT;
    uint8_t input_usage_mask =
-      ctx->args->shader_info->vs.input_usage_mask[driver_location];
+      ctx->shader_info->vs.input_usage_mask[driver_location];
    unsigned num_input_channels = util_last_bit(input_usage_mask);
 
-   if (ctx->args->options->key.vs.instance_rate_inputs & (1u << attrib_index)) {
-      uint32_t divisor = ctx->args->options->key.vs.instance_rate_divisors[attrib_index];
+   if (ctx->options->key.vs.instance_rate_inputs & (1u << attrib_index)) {
+      uint32_t divisor = ctx->options->key.vs.instance_rate_divisors[attrib_index];
 
       if (divisor) {
          buffer_index = ctx->abi.instance_id;
@@ -718,19 +720,19 @@ load_vs_input(struct radv_shader_context *ctx, unsigned driver_location, LLVMTyp
 
    /* Adjust the number of channels to load based on the vertex attribute format. */
    unsigned num_channels = MIN2(num_input_channels, vtx_info->num_channels);
-   unsigned attrib_binding = ctx->args->options->key.vs.vertex_attribute_bindings[attrib_index];
-   unsigned attrib_offset = ctx->args->options->key.vs.vertex_attribute_offsets[attrib_index];
-   unsigned attrib_stride = ctx->args->options->key.vs.vertex_attribute_strides[attrib_index];
-   unsigned alpha_adjust = ctx->args->options->key.vs.vertex_alpha_adjust[attrib_index];
+   unsigned attrib_binding = ctx->options->key.vs.vertex_attribute_bindings[attrib_index];
+   unsigned attrib_offset = ctx->options->key.vs.vertex_attribute_offsets[attrib_index];
+   unsigned attrib_stride = ctx->options->key.vs.vertex_attribute_strides[attrib_index];
+   unsigned alpha_adjust = ctx->options->key.vs.vertex_alpha_adjust[attrib_index];
 
-   if (ctx->args->options->key.vs.vertex_post_shuffle & (1 << attrib_index)) {
+   if (ctx->options->key.vs.vertex_post_shuffle & (1 << attrib_index)) {
       /* Always load, at least, 3 channels for formats that need to be shuffled because X<->Z. */
       num_channels = MAX2(num_channels, 3);
    }
 
    unsigned desc_index =
-      ctx->args->shader_info->vs.use_per_attribute_vb_descs ? attrib_index : attrib_binding;
-   desc_index = util_bitcount(ctx->args->shader_info->vs.vb_desc_usage_mask &
+      ctx->shader_info->vs.use_per_attribute_vb_descs ? attrib_index : attrib_binding;
+   desc_index = util_bitcount(ctx->shader_info->vs.vb_desc_usage_mask &
                               u_bit_consecutive(0, desc_index));
    t_offset = LLVMConstInt(ctx->ac.i32, desc_index, false);
    t_list = ac_build_load_to_sgpr(&ctx->ac, t_list_ptr, t_offset);
@@ -780,7 +782,7 @@ load_vs_input(struct radv_shader_context *ctx, unsigned driver_location, LLVMTyp
          ctx->ac.i32_0, ctx->ac.i32_0, num_channels, data_format, num_format, 0, true);
    }
 
-   if (ctx->args->options->key.vs.vertex_post_shuffle & (1 << attrib_index)) {
+   if (ctx->options->key.vs.vertex_post_shuffle & (1 << attrib_index)) {
       LLVMValueRef c[4];
       c[0] = ac_llvm_extract_elem(&ctx->ac, input, 2);
       c[1] = ac_llvm_extract_elem(&ctx->ac, input, 1);
@@ -904,9 +906,9 @@ si_llvm_init_export_args(struct radv_shader_context *ctx, LLVMValueRef *values,
    bool is_16bit = ac_get_type_size(LLVMTypeOf(values[0])) == 2;
    if (ctx->stage == MESA_SHADER_FRAGMENT) {
       unsigned index = target - V_008DFC_SQ_EXP_MRT;
-      unsigned col_format = (ctx->args->options->key.ps.col_format >> (4 * index)) & 0xf;
-      bool is_int8 = (ctx->args->options->key.ps.is_int8 >> index) & 1;
-      bool is_int10 = (ctx->args->options->key.ps.is_int10 >> index) & 1;
+      unsigned col_format = (ctx->options->key.ps.col_format >> (4 * index)) & 0xf;
+      bool is_int8 = (ctx->options->key.ps.is_int8 >> index) & 1;
+      bool is_int10 = (ctx->options->key.ps.is_int10 >> index) & 1;
 
       LLVMValueRef (*packf)(struct ac_llvm_context * ctx, LLVMValueRef args[2]) = NULL;
       LLVMValueRef (*packi)(struct ac_llvm_context * ctx, LLVMValueRef args[2], unsigned bits,
@@ -989,7 +991,7 @@ si_llvm_init_export_args(struct radv_shader_context *ctx, LLVMValueRef *values,
       /* Replace NaN by zero (only 32-bit) to fix game bugs if
        * requested.
        */
-      if (ctx->args->options->enable_mrt_output_nan_fixup && !is_16bit &&
+      if (ctx->options->enable_mrt_output_nan_fixup && !is_16bit &&
           (col_format == V_028714_SPI_SHADER_32_R || col_format == V_028714_SPI_SHADER_32_GR ||
            col_format == V_028714_SPI_SHADER_32_AR || col_format == V_028714_SPI_SHADER_32_ABGR ||
            col_format == V_028714_SPI_SHADER_FP16_ABGR)) {
@@ -1145,7 +1147,7 @@ radv_emit_streamout(struct radv_shader_context *ctx, unsigned stream)
       LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->args->streamout_buffers);
 
       for (i = 0; i < 4; i++) {
-         uint16_t stride = ctx->args->shader_info->so.strides[i];
+         uint16_t stride = ctx->shader_info->so.strides[i];
 
          if (!stride)
             continue;
@@ -1164,9 +1166,9 @@ radv_emit_streamout(struct radv_shader_context *ctx, unsigned stream)
       }
 
       /* Write streamout data. */
-      for (i = 0; i < ctx->args->shader_info->so.num_outputs; i++) {
+      for (i = 0; i < ctx->shader_info->so.num_outputs; i++) {
          struct radv_shader_output_values shader_out = {0};
-         struct radv_stream_output *output = &ctx->args->shader_info->so.outputs[i];
+         struct radv_stream_output *output = &ctx->shader_info->so.outputs[i];
 
          if (stream != output->stream)
             continue;
@@ -1260,7 +1262,7 @@ radv_llvm_export_vs(struct radv_shader_context *ctx, struct radv_shader_output_v
    }
 
    bool writes_primitive_shading_rate = outinfo->writes_primitive_shading_rate ||
-                                        ctx->args->options->force_vrs_rates;
+                                        ctx->options->force_vrs_rates;
 
    if (outinfo->writes_pointsize || outinfo->writes_layer || outinfo->writes_layer ||
        outinfo->writes_viewport_index || writes_primitive_shading_rate) {
@@ -1281,7 +1283,7 @@ radv_llvm_export_vs(struct radv_shader_context *ctx, struct radv_shader_output_v
       if (outinfo->writes_layer == true)
          pos_args[1].out[2] = layer_value;
       if (outinfo->writes_viewport_index == true) {
-         if (ctx->args->options->chip_class >= GFX9) {
+         if (ctx->options->chip_class >= GFX9) {
             /* GFX9 has the layer in out.z[10:0] and the viewport
              * index in out.z[19:16].
              */
@@ -1300,7 +1302,7 @@ radv_llvm_export_vs(struct radv_shader_context *ctx, struct radv_shader_output_v
 
       if (outinfo->writes_primitive_shading_rate) {
          pos_args[1].out[1] = primitive_shading_rate;
-      } else if (ctx->args->options->force_vrs_rates) {
+      } else if (ctx->options->force_vrs_rates) {
          /* Bits [2:3] = VRS rate X
           * Bits [4:5] = VRS rate Y
           *
@@ -1312,7 +1314,7 @@ radv_llvm_export_vs(struct radv_shader_context *ctx, struct radv_shader_output_v
           *
           * Sample shading can't go above 8 samples, so both numbers can't be -2 at the same time.
           */
-         LLVMValueRef rates = LLVMConstInt(ctx->ac.i32, ctx->args->options->force_vrs_rates, false);
+         LLVMValueRef rates = LLVMConstInt(ctx->ac.i32, ctx->options->force_vrs_rates, false);
          LLVMValueRef cond;
          LLVMValueRef v;
 
@@ -1356,7 +1358,7 @@ handle_vs_outputs_post(struct radv_shader_context *ctx, bool export_prim_id, boo
    struct radv_shader_output_values *outputs;
    unsigned noutput = 0;
 
-   if (ctx->args->options->key.has_multiview_view_index) {
+   if (ctx->options->key.has_multiview_view_index) {
       LLVMValueRef *tmp_out = &ctx->abi.outputs[ac_llvm_reg_index_soa(VARYING_SLOT_LAYER, 0)];
       if (!*tmp_out) {
          for (unsigned i = 0; i < 4; ++i)
@@ -1369,7 +1371,7 @@ handle_vs_outputs_post(struct radv_shader_context *ctx, bool export_prim_id, boo
       ctx->output_mask |= 1ull << VARYING_SLOT_LAYER;
    }
 
-   if (ctx->args->shader_info->so.num_outputs && !ctx->args->is_gs_copy_shader) {
+   if (ctx->shader_info->so.num_outputs && !ctx->args->is_gs_copy_shader) {
       /* The GS copy shader emission already emits streamout. */
       radv_emit_streamout(ctx, 0);
    }
@@ -1386,12 +1388,12 @@ handle_vs_outputs_post(struct radv_shader_context *ctx, bool export_prim_id, boo
       outputs[noutput].slot_index = i == VARYING_SLOT_CLIP_DIST1;
 
       if (ctx->stage == MESA_SHADER_VERTEX && !ctx->args->is_gs_copy_shader) {
-         outputs[noutput].usage_mask = ctx->args->shader_info->vs.output_usage_mask[i];
+         outputs[noutput].usage_mask = ctx->shader_info->vs.output_usage_mask[i];
       } else if (ctx->stage == MESA_SHADER_TESS_EVAL) {
-         outputs[noutput].usage_mask = ctx->args->shader_info->tes.output_usage_mask[i];
+         outputs[noutput].usage_mask = ctx->shader_info->tes.output_usage_mask[i];
       } else {
          assert(ctx->args->is_gs_copy_shader);
-         outputs[noutput].usage_mask = ctx->args->shader_info->gs.output_usage_mask[i];
+         outputs[noutput].usage_mask = ctx->shader_info->gs.output_usage_mask[i];
       }
 
       for (unsigned j = 0; j < 4; j++) {
@@ -1463,7 +1465,7 @@ ngg_gs_get_vertex_storage(struct radv_shader_context *ctx)
 {
    unsigned num_outputs = util_bitcount64(ctx->output_mask);
 
-   if (ctx->args->options->key.has_multiview_view_index)
+   if (ctx->options->key.has_multiview_view_index)
       num_outputs++;
 
    LLVMTypeRef elements[2] = {
@@ -1601,14 +1603,14 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
    /* Copy Primitive IDs from GS threads to the LDS address corresponding
     * to the ES thread of the provoking vertex.
     */
-   if (ctx->stage == MESA_SHADER_VERTEX && ctx->args->shader_info->vs.outinfo.export_prim_id) {
+   if (ctx->stage == MESA_SHADER_VERTEX && ctx->shader_info->vs.outinfo.export_prim_id) {
       ac_build_ifcc(&ctx->ac, is_gs_thread, 5400);
 
       LLVMValueRef provoking_vtx_in_prim = LLVMConstInt(ctx->ac.i32, 0, false);
 
       /* For provoking vertex last mode, use num_vtx_in_prim - 1. */
-      if (ctx->args->options->key.vs.provoking_vtx_last) {
-         uint8_t outprim = si_conv_prim_to_gs_out(ctx->args->options->key.vs.topology);
+      if (ctx->options->key.vs.provoking_vtx_last) {
+         uint8_t outprim = si_conv_prim_to_gs_out(ctx->options->key.vs.topology);
          provoking_vtx_in_prim = LLVMConstInt(ctx->ac.i32, outprim, false);
       }
 
@@ -1641,7 +1643,7 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
    {
       struct ac_ngg_prim prim = {0};
 
-      if (ctx->args->shader_info->is_ngg_passthrough) {
+      if (ctx->shader_info->is_ngg_passthrough) {
          prim.passthrough = ac_get_arg(&ctx->ac, ctx->args->ac.gs_vtx_offset[0]);
       } else {
          prim.num_vertices = num_vertices;
@@ -1658,8 +1660,8 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
    ac_build_ifcc(&ctx->ac, is_es_thread, 6002);
    {
       struct radv_vs_output_info *outinfo = ctx->stage == MESA_SHADER_TESS_EVAL
-                                               ? &ctx->args->shader_info->tes.outinfo
-                                               : &ctx->args->shader_info->vs.outinfo;
+                                               ? &ctx->shader_info->tes.outinfo
+                                               : &ctx->shader_info->vs.outinfo;
 
       /* Exporting the primitive ID is handled below. */
       /* TODO: use the new VS export path */
@@ -1736,7 +1738,7 @@ gfx10_ngg_gs_emit_epilogue_1(struct radv_shader_context *ctx)
    for (unsigned stream = 0; stream < 4; ++stream) {
       unsigned num_components;
 
-      num_components = ctx->args->shader_info->gs.num_stream_output_components[stream];
+      num_components = ctx->shader_info->gs.num_stream_output_components[stream];
       if (!num_components)
          continue;
 
@@ -1764,7 +1766,7 @@ gfx10_ngg_gs_emit_epilogue_1(struct radv_shader_context *ctx)
    for (unsigned stream = 0; stream < 4; ++stream) {
       unsigned num_components;
 
-      num_components = ctx->args->shader_info->gs.num_stream_output_components[stream];
+      num_components = ctx->shader_info->gs.num_stream_output_components[stream];
       if (!num_components)
          continue;
 
@@ -1922,7 +1924,7 @@ gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
          is_odd = LLVMBuildTrunc(builder, is_odd, ctx->ac.i1, "");
 
          LLVMValueRef flatshade_first =
-            LLVMConstInt(ctx->ac.i1, !ctx->args->options->key.vs.provoking_vtx_last, false);
+            LLVMConstInt(ctx->ac.i1, !ctx->options->key.vs.provoking_vtx_last, false);
 
          ac_build_triangle_strip_indices_to_triangle(&ctx->ac, is_odd, flatshade_first, prim.index);
       }
@@ -1935,8 +1937,8 @@ gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
    tmp = LLVMBuildICmp(builder, LLVMIntULT, tid, vertlive_scan.result_reduce, "");
    ac_build_ifcc(&ctx->ac, tmp, 5145);
    {
-      struct radv_vs_output_info *outinfo = &ctx->args->shader_info->vs.outinfo;
-      bool export_view_index = ctx->args->options->key.has_multiview_view_index;
+      struct radv_vs_output_info *outinfo = &ctx->shader_info->vs.outinfo;
+      bool export_view_index = ctx->options->key.has_multiview_view_index;
       struct radv_shader_output_values *outputs;
       unsigned noutput = 0;
 
@@ -1951,7 +1953,7 @@ gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 
       unsigned out_idx = 0;
       for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
-         unsigned output_usage_mask = ctx->args->shader_info->gs.output_usage_mask[i];
+         unsigned output_usage_mask = ctx->shader_info->gs.output_usage_mask[i];
          int length = util_last_bit(output_usage_mask);
 
          if (!(ctx->output_mask & (1ull << i)))
@@ -2011,8 +2013,8 @@ gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx, unsigned stream, LLVMV
    const LLVMValueRef vertexptr = ngg_gs_emit_vertex_ptr(ctx, get_thread_id_in_tg(ctx), vertexidx);
    unsigned out_idx = 0;
    for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
-      unsigned output_usage_mask = ctx->args->shader_info->gs.output_usage_mask[i];
-      uint8_t output_stream = ctx->args->shader_info->gs.output_streams[i];
+      unsigned output_usage_mask = ctx->shader_info->gs.output_usage_mask[i];
+      uint8_t output_stream = ctx->shader_info->gs.output_streams[i];
       LLVMValueRef *out_ptr = &addrs[i * 4];
       int length = util_last_bit(output_usage_mask);
 
@@ -2030,7 +2032,7 @@ gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx, unsigned stream, LLVMV
          LLVMBuildStore(builder, out_val, ngg_gs_get_emit_output_ptr(ctx, vertexptr, out_idx));
       }
    }
-   assert(out_idx * 4 <= ctx->args->shader_info->gs.gsvs_vertex_size);
+   assert(out_idx * 4 <= ctx->shader_info->gs.gsvs_vertex_size);
 
    /* Store the current number of emitted vertices to zero out remaining
     * primitive flags in case the geometry shader doesn't emit the maximum
@@ -2122,22 +2124,22 @@ handle_fs_outputs_post(struct radv_shader_context *ctx)
    }
 
    /* Process depth, stencil, samplemask. */
-   if (ctx->args->shader_info->ps.writes_z) {
+   if (ctx->shader_info->ps.writes_z) {
       depth = ac_to_float(&ctx->ac, radv_load_output(ctx, FRAG_RESULT_DEPTH, 0));
    }
-   if (ctx->args->shader_info->ps.writes_stencil) {
+   if (ctx->shader_info->ps.writes_stencil) {
       stencil = ac_to_float(&ctx->ac, radv_load_output(ctx, FRAG_RESULT_STENCIL, 0));
    }
-   if (ctx->args->shader_info->ps.writes_sample_mask) {
+   if (ctx->shader_info->ps.writes_sample_mask) {
       samplemask = ac_to_float(&ctx->ac, radv_load_output(ctx, FRAG_RESULT_SAMPLE_MASK, 0));
    }
 
    /* Set the DONE bit on last non-null color export only if Z isn't
     * exported.
     */
-   if (index > 0 && !ctx->args->shader_info->ps.writes_z &&
-       !ctx->args->shader_info->ps.writes_stencil &&
-       !ctx->args->shader_info->ps.writes_sample_mask) {
+   if (index > 0 && !ctx->shader_info->ps.writes_z &&
+       !ctx->shader_info->ps.writes_stencil &&
+       !ctx->shader_info->ps.writes_sample_mask) {
       unsigned last = index - 1;
 
       color_args[last].valid_mask = 1; /* whether the EXEC mask is valid */
@@ -2157,7 +2159,7 @@ handle_fs_outputs_post(struct radv_shader_context *ctx)
 static void
 emit_gs_epilogue(struct radv_shader_context *ctx)
 {
-   if (ctx->args->shader_info->is_ngg) {
+   if (ctx->shader_info->is_ngg) {
       gfx10_ngg_gs_emit_epilogue_1(ctx);
       return;
    }
@@ -2175,16 +2177,16 @@ handle_shader_outputs_post(struct ac_shader_abi *abi)
 
    switch (ctx->stage) {
    case MESA_SHADER_VERTEX:
-      if (ctx->args->shader_info->vs.as_ls)
+      if (ctx->shader_info->vs.as_ls)
          break; /* Lowered in NIR */
-      else if (ctx->args->shader_info->vs.as_es)
+      else if (ctx->shader_info->vs.as_es)
          break; /* Lowered in NIR */
-      else if (ctx->args->shader_info->is_ngg)
+      else if (ctx->shader_info->is_ngg)
          break;
       else
-         handle_vs_outputs_post(ctx, ctx->args->shader_info->vs.outinfo.export_prim_id,
-                                ctx->args->shader_info->vs.outinfo.export_clip_dists,
-                                &ctx->args->shader_info->vs.outinfo);
+         handle_vs_outputs_post(ctx, ctx->shader_info->vs.outinfo.export_prim_id,
+                                ctx->shader_info->vs.outinfo.export_clip_dists,
+                                &ctx->shader_info->vs.outinfo);
       break;
    case MESA_SHADER_FRAGMENT:
       handle_fs_outputs_post(ctx);
@@ -2195,14 +2197,14 @@ handle_shader_outputs_post(struct ac_shader_abi *abi)
    case MESA_SHADER_TESS_CTRL:
       break; /* Lowered in NIR */
    case MESA_SHADER_TESS_EVAL:
-      if (ctx->args->shader_info->tes.as_es)
+      if (ctx->shader_info->tes.as_es)
          break; /* Lowered in NIR */
-      else if (ctx->args->shader_info->is_ngg)
+      else if (ctx->shader_info->is_ngg)
          break;
       else
-         handle_vs_outputs_post(ctx, ctx->args->shader_info->tes.outinfo.export_prim_id,
-                                ctx->args->shader_info->tes.outinfo.export_clip_dists,
-                                &ctx->args->shader_info->tes.outinfo);
+         handle_vs_outputs_post(ctx, ctx->shader_info->tes.outinfo.export_prim_id,
+                                ctx->shader_info->tes.outinfo.export_clip_dists,
+                                &ctx->shader_info->tes.outinfo);
       break;
    default:
       break;
@@ -2210,8 +2212,7 @@ handle_shader_outputs_post(struct ac_shader_abi *abi)
 }
 
 static void
-ac_llvm_finalize_module(struct radv_shader_context *ctx, LLVMPassManagerRef passmgr,
-                        const struct radv_nir_compiler_options *options)
+ac_llvm_finalize_module(struct radv_shader_context *ctx, LLVMPassManagerRef passmgr)
 {
    LLVMRunPassManager(passmgr, ctx->ac.module);
    LLVMDisposeBuilder(ctx->ac.builder);
@@ -2231,15 +2232,15 @@ ac_nir_eliminate_const_vs_outputs(struct radv_shader_context *ctx)
    case MESA_SHADER_GEOMETRY:
       return;
    case MESA_SHADER_VERTEX:
-      if (ctx->args->shader_info->vs.as_ls ||
-          ctx->args->shader_info->vs.as_es)
+      if (ctx->shader_info->vs.as_ls ||
+          ctx->shader_info->vs.as_es)
          return;
-      outinfo = &ctx->args->shader_info->vs.outinfo;
+      outinfo = &ctx->shader_info->vs.outinfo;
       break;
    case MESA_SHADER_TESS_EVAL:
-      if (ctx->args->shader_info->tes.as_es)
+      if (ctx->shader_info->tes.as_es)
          return;
-      outinfo = &ctx->args->shader_info->tes.outinfo;
+      outinfo = &ctx->shader_info->tes.outinfo;
       break;
    default:
       unreachable("Unhandled shader type");
@@ -2252,10 +2253,10 @@ ac_nir_eliminate_const_vs_outputs(struct radv_shader_context *ctx)
 static void
 ac_setup_rings(struct radv_shader_context *ctx)
 {
-   if (ctx->args->options->chip_class <= GFX8 &&
+   if (ctx->options->chip_class <= GFX8 &&
        (ctx->stage == MESA_SHADER_GEOMETRY ||
-        (ctx->stage == MESA_SHADER_VERTEX && ctx->args->shader_info->vs.as_es) ||
-        (ctx->stage == MESA_SHADER_TESS_EVAL && ctx->args->shader_info->tes.as_es))) {
+        (ctx->stage == MESA_SHADER_VERTEX && ctx->shader_info->vs.as_es) ||
+        (ctx->stage == MESA_SHADER_TESS_EVAL && ctx->shader_info->tes.as_es))) {
       unsigned ring = ctx->stage == MESA_SHADER_GEOMETRY ? RING_ESGS_GS : RING_ESGS_VS;
       LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, ring, false);
 
@@ -2288,7 +2289,7 @@ ac_setup_rings(struct radv_shader_context *ctx)
          unsigned num_components, stride;
          LLVMValueRef ring, tmp;
 
-         num_components = ctx->args->shader_info->gs.num_stream_output_components[stream];
+         num_components = ctx->shader_info->gs.num_stream_output_components[stream];
 
          if (!num_components)
             continue;
@@ -2384,11 +2385,16 @@ declare_esgs_ring(struct radv_shader_context *ctx)
 }
 
 static LLVMModuleRef
-ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *const *shaders,
-                         int shader_count, const struct radv_shader_args *args)
+ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
+                         const struct radv_nir_compiler_options *options,
+                         struct radv_shader_info *info,
+                         struct nir_shader *const *shaders, int shader_count,
+                         const struct radv_shader_args *args)
 {
    struct radv_shader_context ctx = {0};
    ctx.args = args;
+   ctx.options = options;
+   ctx.shader_info = info;
 
    enum ac_float_mode float_mode = AC_FLOAT_MODE_DEFAULT;
 
@@ -2396,15 +2402,14 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
       float_mode = AC_FLOAT_MODE_DENORM_FLUSH_TO_ZERO;
    }
 
-   ac_llvm_context_init(&ctx.ac, ac_llvm, args->options->chip_class, args->options->family,
-                        args->options->info, float_mode, args->shader_info->wave_size,
-                        args->shader_info->ballot_bit_size);
+   ac_llvm_context_init(&ctx.ac, ac_llvm, options->chip_class, options->family,
+                        options->info, float_mode, info->wave_size, info->ballot_bit_size);
    ctx.context = ctx.ac.context;
 
-   ctx.max_workgroup_size = args->shader_info->workgroup_size;
+   ctx.max_workgroup_size = info->workgroup_size;
 
    if (ctx.ac.chip_class >= GFX10) {
-      if (is_pre_gs_stage(shaders[0]->info.stage) && args->shader_info->is_ngg) {
+      if (is_pre_gs_stage(shaders[0]->info.stage) && info->is_ngg) {
          ctx.max_workgroup_size = 128;
       }
    }
@@ -2421,10 +2426,10 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
    ctx.abi.load_ring_tess_offchip = load_ring_tess_offchip;
    ctx.abi.load_ring_esgs = load_ring_esgs;
    ctx.abi.clamp_shadow_reference = false;
-   ctx.abi.adjust_frag_coord_z = args->options->adjust_frag_coord_z;
-   ctx.abi.robust_buffer_access = args->options->robust_buffer_access;
+   ctx.abi.adjust_frag_coord_z = options->adjust_frag_coord_z;
+   ctx.abi.robust_buffer_access = options->robust_buffer_access;
 
-   bool is_ngg = is_pre_gs_stage(shaders[0]->info.stage) && args->shader_info->is_ngg;
+   bool is_ngg = is_pre_gs_stage(shaders[0]->info.stage) && info->is_ngg;
    if (shader_count >= 2 || is_ngg)
       ac_init_exec_full_mask(&ctx.ac);
 
@@ -2435,7 +2440,7 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
    if (args->ac.instance_id.used)
       ctx.abi.instance_id = ac_get_arg(&ctx.ac, args->ac.instance_id);
 
-   if (args->options->has_ls_vgpr_init_bug &&
+   if (options->has_ls_vgpr_init_bug &&
        shaders[shader_count - 1]->info.stage == MESA_SHADER_TESS_CTRL)
       ac_nir_fixup_ls_hs_input_vgprs(&ctx);
 
@@ -2447,7 +2452,7 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
        * Add an extra dword per vertex to ensure an odd stride, which
        * avoids bank conflicts for SoA accesses.
        */
-      if (!args->shader_info->is_ngg_passthrough)
+      if (!info->is_ngg_passthrough)
          declare_esgs_ring(&ctx);
 
       /* GFX10 hang workaround - there needs to be an s_barrier before gs_alloc_req always */
@@ -2464,7 +2469,7 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
          for (int i = 0; i < 4; i++) {
             ctx.gs_next_vertex[i] = ac_build_alloca(&ctx.ac, ctx.ac.i32, "");
          }
-         if (args->shader_info->is_ngg) {
+         if (info->is_ngg) {
             for (unsigned i = 0; i < 4; ++i) {
                ctx.gs_curprim_verts[i] = ac_build_alloca(&ctx.ac, ctx.ac.i32, "");
                ctx.gs_generated_prims[i] = ac_build_alloca(&ctx.ac, ctx.ac.i32, "");
@@ -2492,17 +2497,15 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
          ctx.abi.load_sample_mask_in = load_sample_mask_in;
       }
 
-      if (shaders[shader_idx]->info.stage == MESA_SHADER_VERTEX &&
-          args->shader_info->is_ngg &&
-          args->shader_info->vs.outinfo.export_prim_id) {
+      if (shaders[shader_idx]->info.stage == MESA_SHADER_VERTEX && info->is_ngg &&
+          info->vs.outinfo.export_prim_id) {
          declare_esgs_ring(&ctx);
       }
 
       bool nested_barrier = false;
 
       if (shader_idx) {
-         if (shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY &&
-             args->shader_info->is_ngg) {
+         if (shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY && info->is_ngg) {
             gfx10_ngg_gs_emit_prologue(&ctx);
             nested_barrier = false;
          } else {
@@ -2565,25 +2568,24 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, struct nir_shader *co
 
       /* This needs to be outside the if wrapping the shader body, as sometimes
        * the HW generates waves with 0 es/vs threads. */
-      if (is_pre_gs_stage(shaders[shader_idx]->info.stage) &&
-          args->shader_info->is_ngg && shader_idx == shader_count - 1) {
+      if (is_pre_gs_stage(shaders[shader_idx]->info.stage) && info->is_ngg &&
+          shader_idx == shader_count - 1) {
          handle_ngg_outputs_post_2(&ctx);
-      } else if (shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY &&
-                 args->shader_info->is_ngg) {
+      } else if (shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY && info->is_ngg) {
          gfx10_ngg_gs_emit_epilogue_2(&ctx);
       }
    }
 
    LLVMBuildRetVoid(ctx.ac.builder);
 
-   if (args->options->dump_preoptir) {
+   if (options->dump_preoptir) {
       fprintf(stderr, "%s LLVM IR:\n\n",
-              radv_get_shader_name(args->shader_info, shaders[shader_count - 1]->info.stage));
+              radv_get_shader_name(info, shaders[shader_count - 1]->info.stage));
       ac_dump_module(ctx.ac.module);
       fprintf(stderr, "\n");
    }
 
-   ac_llvm_finalize_module(&ctx, ac_llvm->passmgr, args->options);
+   ac_llvm_finalize_module(&ctx, ac_llvm->passmgr);
 
    if (shader_count == 1)
       ac_nir_eliminate_const_vs_outputs(&ctx);
@@ -2673,18 +2675,21 @@ ac_compile_llvm_module(struct ac_llvm_compiler *ac_llvm, LLVMModuleRef llvm_modu
 }
 
 static void
-radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm, struct radv_shader_binary **rbinary,
+radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm,
+                        const struct radv_nir_compiler_options *options,
+                        struct radv_shader_info *info,
+                        struct radv_shader_binary **rbinary,
                         const struct radv_shader_args *args, struct nir_shader *const *nir,
                         int nir_count)
 {
 
    LLVMModuleRef llvm_module;
 
-   llvm_module = ac_translate_nir_to_llvm(ac_llvm, nir, nir_count, args);
+   llvm_module = ac_translate_nir_to_llvm(ac_llvm, options, info, nir, nir_count, args);
 
    ac_compile_llvm_module(ac_llvm, llvm_module, rbinary, nir[nir_count - 1]->info.stage,
-                          radv_get_shader_name(args->shader_info, nir[nir_count - 1]->info.stage),
-                          args->options);
+                          radv_get_shader_name(info, nir[nir_count - 1]->info.stage),
+                          options);
 }
 
 static void
@@ -2696,7 +2701,7 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
    LLVMValueRef stream_id;
 
    /* Fetch the vertex stream ID. */
-   if (ctx->args->shader_info->so.num_outputs) {
+   if (ctx->shader_info->so.num_outputs) {
       stream_id =
          ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->ac.streamout_config), 24, 2);
    } else {
@@ -2710,14 +2715,14 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
    switch_inst = LLVMBuildSwitch(ctx->ac.builder, stream_id, end_bb, 4);
 
    for (unsigned stream = 0; stream < 4; stream++) {
-      unsigned num_components = ctx->args->shader_info->gs.num_stream_output_components[stream];
+      unsigned num_components = ctx->shader_info->gs.num_stream_output_components[stream];
       LLVMBasicBlockRef bb;
       unsigned offset;
 
       if (stream > 0 && !num_components)
          continue;
 
-      if (stream > 0 && !ctx->args->shader_info->so.num_outputs)
+      if (stream > 0 && !ctx->shader_info->so.num_outputs)
          continue;
 
       bb = LLVMInsertBasicBlockInContext(ctx->ac.context, end_bb, "out");
@@ -2726,8 +2731,8 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 
       offset = 0;
       for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
-         unsigned output_usage_mask = ctx->args->shader_info->gs.output_usage_mask[i];
-         unsigned output_stream = ctx->args->shader_info->gs.output_streams[i];
+         unsigned output_usage_mask = ctx->shader_info->gs.output_usage_mask[i];
+         unsigned output_stream = ctx->shader_info->gs.output_streams[i];
          int length = util_last_bit(output_usage_mask);
 
          if (!(ctx->output_mask & (1ull << i)) || output_stream != stream)
@@ -2758,12 +2763,12 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
          }
       }
 
-      if (ctx->args->shader_info->so.num_outputs)
+      if (ctx->shader_info->so.num_outputs)
          radv_emit_streamout(ctx, stream);
 
       if (stream == 0) {
-         handle_vs_outputs_post(ctx, false, ctx->args->shader_info->vs.outinfo.export_clip_dists,
-                                &ctx->args->shader_info->vs.outinfo);
+         handle_vs_outputs_post(ctx, false, ctx->shader_info->vs.outinfo.export_clip_dists,
+                                &ctx->shader_info->vs.outinfo);
       }
 
       LLVMBuildBr(ctx->ac.builder, end_bb);
@@ -2773,17 +2778,22 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 }
 
 static void
-radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm, struct nir_shader *geom_shader,
+radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
+                            const struct radv_nir_compiler_options *options,
+                            struct radv_shader_info *info,
+                            struct nir_shader *geom_shader,
                             struct radv_shader_binary **rbinary,
                             const struct radv_shader_args *args)
 {
    struct radv_shader_context ctx = {0};
    ctx.args = args;
+   ctx.options = options;
+   ctx.shader_info = info;
 
    assert(args->is_gs_copy_shader);
 
-   ac_llvm_context_init(&ctx.ac, ac_llvm, args->options->chip_class, args->options->family,
-                        args->options->info, AC_FLOAT_MODE_DEFAULT, 64, 64);
+   ac_llvm_context_init(&ctx.ac, ac_llvm, options->chip_class, options->family,
+                        options->info, AC_FLOAT_MODE_DEFAULT, 64, 64);
    ctx.context = ctx.ac.context;
 
    ctx.stage = MESA_SHADER_VERTEX;
@@ -2803,31 +2813,31 @@ radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm, struct nir_shader 
 
    LLVMBuildRetVoid(ctx.ac.builder);
 
-   ac_llvm_finalize_module(&ctx, ac_llvm->passmgr, args->options);
+   ac_llvm_finalize_module(&ctx, ac_llvm->passmgr);
 
    ac_compile_llvm_module(ac_llvm, ctx.ac.module, rbinary, MESA_SHADER_VERTEX, "GS Copy Shader",
-                          args->options);
+                          options);
    (*rbinary)->is_gs_copy_shader = true;
 }
 
 void
-llvm_compile_shader(struct radv_device *device, unsigned shader_count,
+llvm_compile_shader(const struct radv_nir_compiler_options *options,
+                    struct radv_shader_info *info, unsigned shader_count,
                     struct nir_shader *const *shaders, struct radv_shader_binary **binary,
-                    struct radv_shader_args *args)
+                    const struct radv_shader_args *args)
 {
    enum ac_target_machine_options tm_options = 0;
    struct ac_llvm_compiler ac_llvm;
 
    tm_options |= AC_TM_SUPPORTS_SPILL;
-   if (args->options->check_ir)
+   if (options->check_ir)
       tm_options |= AC_TM_CHECK_IR;
 
-   radv_init_llvm_compiler(&ac_llvm, args->options->family, tm_options,
-                           args->shader_info->wave_size);
+   radv_init_llvm_compiler(&ac_llvm, options->family, tm_options, info->wave_size);
 
    if (args->is_gs_copy_shader) {
-      radv_compile_gs_copy_shader(&ac_llvm, *shaders, binary, args);
+      radv_compile_gs_copy_shader(&ac_llvm, options, info, *shaders, binary, args);
    } else {
-      radv_compile_nir_shader(&ac_llvm, binary, args, shaders, shader_count);
+      radv_compile_nir_shader(&ac_llvm, options, info, binary, args, shaders, shader_count);
    }
 }

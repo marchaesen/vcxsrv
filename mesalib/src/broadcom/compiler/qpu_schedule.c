@@ -1648,6 +1648,14 @@ qpu_inst_after_thrsw_valid_in_delay_slot(struct v3d_compile *c,
         if (v3d_qpu_writes_flags(&qinst->qpu))
                 return false;
 
+        /* TSY sync ops materialize at the point of the next thread switch,
+         * therefore, if we have a TSY sync right after a thread switch, we
+         * cannot place it in its delay slots, or we would be moving the sync
+         * to the thrsw before it instead.
+         */
+        if (qinst->qpu.alu.add.op == V3D_QPU_A_BARRIERID)
+                return false;
+
         return true;
 }
 

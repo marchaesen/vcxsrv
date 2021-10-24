@@ -263,7 +263,7 @@ void r600_need_dma_space(struct r600_common_context *ctx, unsigned num_dw,
 	 * engine busy while uploads are being submitted.
 	 */
 	num_dw++; /* for emit_wait_idle below */
-	if (!ctx->ws->cs_check_space(&ctx->dma.cs, num_dw, false) ||
+	if (!ctx->ws->cs_check_space(&ctx->dma.cs, num_dw) ||
 	    ctx->dma.cs.used_vram_kb + ctx->dma.cs.used_gart_kb > 64 * 1024 ||
 	    !radeon_cs_memory_below_limit(ctx->screen, &ctx->dma.cs, vram, gtt)) {
 		ctx->dma.flush(ctx, PIPE_FLUSH_ASYNC, NULL);

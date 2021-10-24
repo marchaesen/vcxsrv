@@ -86,10 +86,10 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
       zink_batch_usage_unset(&pg->batch_uses, bs);
       if (pg->is_compute) {
          struct zink_compute_program *comp = (struct zink_compute_program*)pg;
-         zink_compute_program_reference(screen, &comp, NULL);
+         zink_compute_program_reference(ctx, &comp, NULL);
       } else {
          struct zink_gfx_program *prog = (struct zink_gfx_program*)pg;
-         zink_gfx_program_reference(screen, &prog, NULL);
+         zink_gfx_program_reference(ctx, &prog, NULL);
       }
    }
 

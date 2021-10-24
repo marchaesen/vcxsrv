@@ -156,4 +156,9 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
                               struct panfrost_resource *rsrc,
                               uint64_t modifier, const char *reason);
 
+void
+pan_legalize_afbc_format(struct panfrost_context *ctx,
+                         struct panfrost_resource *rsrc,
+                         enum pipe_format format);
+
 #endif /* PAN_RESOURCE_H */

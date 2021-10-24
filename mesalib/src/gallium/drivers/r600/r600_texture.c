@@ -1124,7 +1124,7 @@ static struct pipe_resource *r600_texture_from_handle(struct pipe_screen *screen
 		return NULL;
 
 	buf = rscreen->ws->buffer_from_handle(rscreen->ws, whandle,
-					      rscreen->info.max_alignment);
+					      rscreen->info.max_alignment, false);
 	if (!buf)
 		return NULL;
 
@@ -1844,7 +1844,7 @@ r600_memobj_from_handle(struct pipe_screen *screen,
 		return NULL;
 
 	buf = rscreen->ws->buffer_from_handle(rscreen->ws, whandle,
-					      rscreen->info.max_alignment);
+					      rscreen->info.max_alignment, false);
 	if (!buf) {
 		free(memobj);
 		return NULL;

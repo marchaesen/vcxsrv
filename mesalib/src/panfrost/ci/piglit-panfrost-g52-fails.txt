@@ -400,7 +400,6 @@ spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R16F- swizzled
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R32F- swizzled- border color only,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_RG16F- swizzled- border color only,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_RG32F- swizzled- border color only,Fail
-spec@arb_texture_view@rendering-formats,Crash
 spec@arb_texture_view@rendering-formats@render to GL_RG32F as GL_RGBA16_SNORM,Fail
 spec@arb_texture_view@rendering-formats@render to GL_RG32I as GL_RGBA16_SNORM,Fail
 spec@arb_texture_view@rendering-formats@render to GL_RG32UI as GL_RGBA16_SNORM,Fail

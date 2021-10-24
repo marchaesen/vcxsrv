@@ -8,6 +8,8 @@ deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-visibility=hidden",
 ]
+version_check = "GL ES 3.1.*git"
+renderer_check = "V3D"
 
 [[deqp]]
 deqp = "/deqp/modules/gles3/deqp-gles3"

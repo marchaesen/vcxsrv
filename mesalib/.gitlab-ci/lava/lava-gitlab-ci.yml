@@ -5,7 +5,7 @@
   interruptible: true
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
-    DEQP_PARALLEL: 6 # should be replaced by per-machine definitions
+    FDO_CI_CONCURRENT: 6 # should be replaced by per-machine definitions
     DEQP_VER: gles2
     # proxy used to cache data locally
     FDO_HTTP_CACHE_URI: "http://caching-proxy/cache/?uri="

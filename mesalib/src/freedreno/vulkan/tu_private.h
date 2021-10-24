@@ -53,6 +53,7 @@
 #include "util/macros.h"
 #include "util/u_atomic.h"
 #include "util/u_dynarray.h"
+#include "util/xmlconfig.h"
 #include "util/perf/u_trace.h"
 #include "vk_alloc.h"
 #include "vk_debug_report.h"
@@ -238,6 +239,7 @@ enum tu_debug_flags
    TU_DEBUG_PERFC = 1 << 9,
    TU_DEBUG_FLUSHALL = 1 << 10,
    TU_DEBUG_SYNCDRAW = 1 << 11,
+   TU_DEBUG_DONT_CARE_AS_LOAD = 1 << 12,
 };
 
 struct tu_instance
@@ -247,6 +249,9 @@ struct tu_instance
    uint32_t api_version;
    int physical_device_count;
    struct tu_physical_device physical_devices[TU_MAX_DRM_DEVICES];
+
+   struct driOptionCache dri_options;
+   struct driOptionCache available_dri_options;
 
    enum tu_debug_flags debug_flags;
 };
@@ -1368,6 +1373,8 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
                          uint32_t a,
                          uint32_t gmem_a);
 
+enum pipe_format tu_vk_format_to_pipe_format(VkFormat vk_format);
+
 struct tu_native_format
 {
    enum a6xx_format fmt : 8;
@@ -1375,15 +1382,16 @@ struct tu_native_format
    enum a6xx_tile_mode tile_mode : 8;
 };
 
+enum pipe_format tu_vk_format_to_pipe_format(VkFormat vk_format);
 bool tu6_format_vtx_supported(VkFormat format);
 struct tu_native_format tu6_format_vtx(VkFormat format);
-bool tu6_format_color_supported(VkFormat format);
-struct tu_native_format tu6_format_color(VkFormat format, enum a6xx_tile_mode tile_mode);
-bool tu6_format_texture_supported(VkFormat format);
-struct tu_native_format tu6_format_texture(VkFormat format, enum a6xx_tile_mode tile_mode);
+bool tu6_format_color_supported(enum pipe_format format);
+struct tu_native_format tu6_format_color(enum pipe_format format, enum a6xx_tile_mode tile_mode);
+bool tu6_format_texture_supported(enum pipe_format format);
+struct tu_native_format tu6_format_texture(enum pipe_format format, enum a6xx_tile_mode tile_mode);
 
 static inline enum a6xx_format
-tu6_base_format(VkFormat format)
+tu6_base_format(enum pipe_format format)
 {
    /* note: tu6_format_color doesn't care about tiling for .fmt field */
    return tu6_format_color(format, TILE6_LINEAR).fmt;
@@ -1437,43 +1445,20 @@ tu_get_levelCount(const struct tu_image *image,
              : range->levelCount;
 }
 
+enum pipe_format tu6_plane_format(VkFormat format, uint32_t plane);
+
+uint32_t tu6_plane_index(VkFormat format, VkImageAspectFlags aspect_mask);
+
+enum pipe_format tu_format_for_aspect(enum pipe_format format,
+                                      VkImageAspectFlags aspect_mask);
+
 struct tu_image_view
 {
    struct vk_object_base base;
 
    struct tu_image *image; /**< VkImageViewCreateInfo::image */
 
-   uint64_t base_addr;
-   uint64_t ubwc_addr;
-   uint32_t layer_size;
-   uint32_t ubwc_layer_size;
-
-   /* used to determine if fast gmem store path can be used */
-   VkExtent2D extent;
-   bool need_y2_align;
-
-   bool ubwc_enabled;
-
-   uint32_t descriptor[A6XX_TEX_CONST_DWORDS];
-
-   /* Descriptor for use as a storage image as opposed to a sampled image.
-    * This has a few differences for cube maps (e.g. type).
-    */
-   uint32_t storage_descriptor[A6XX_TEX_CONST_DWORDS];
-
-   /* pre-filled register values */
-   uint32_t PITCH;
-   uint32_t FLAG_BUFFER_PITCH;
-
-   uint32_t RB_MRT_BUF_INFO;
-   uint32_t SP_FS_MRT_REG;
-
-   uint32_t SP_PS_2D_SRC_INFO;
-   uint32_t SP_PS_2D_SRC_SIZE;
-
-   uint32_t RB_2D_DST_INFO;
-
-   uint32_t RB_BLIT_DST_INFO;
+   struct fdl6_view view;
 
    /* for d32s8 separate stencil */
    uint64_t stencil_base_addr;
@@ -1500,19 +1485,19 @@ struct tu_sampler {
 };
 
 void
-tu_cs_image_ref(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer);
+tu_cs_image_ref(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer);
 
 void
-tu_cs_image_ref_2d(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer, bool src);
+tu_cs_image_ref_2d(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer, bool src);
 
 void
-tu_cs_image_flag_ref(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer);
+tu_cs_image_flag_ref(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer);
 
 void
 tu_cs_image_stencil_ref(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer);
 
 #define tu_image_view_stencil(iview, x) \
-   ((iview->x & ~A6XX_##x##_COLOR_FORMAT__MASK) | A6XX_##x##_COLOR_FORMAT(FMT6_8_UINT))
+   ((iview->view.x & ~A6XX_##x##_COLOR_FORMAT__MASK) | A6XX_##x##_COLOR_FORMAT(FMT6_8_UINT))
 
 VkResult
 tu_gralloc_info(struct tu_device *device,
@@ -1530,6 +1515,9 @@ void
 tu_image_view_init(struct tu_image_view *iview,
                    const VkImageViewCreateInfo *pCreateInfo,
                    bool limited_z24s8);
+
+bool
+tiling_possible(VkFormat format);
 
 bool
 ubwc_possible(VkFormat format, VkImageType type, VkImageUsageFlags usage, VkImageUsageFlags stencil_usage,

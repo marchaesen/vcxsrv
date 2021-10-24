@@ -875,9 +875,9 @@ write_image_descriptor(uint32_t *dst,
    TU_FROM_HANDLE(tu_image_view, iview, image_info->imageView);
 
    if (descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
-      memcpy(dst, iview->storage_descriptor, sizeof(iview->storage_descriptor));
+      memcpy(dst, iview->view.storage_descriptor, sizeof(iview->view.storage_descriptor));
    } else {
-      memcpy(dst, iview->descriptor, sizeof(iview->descriptor));
+      memcpy(dst, iview->view.descriptor, sizeof(iview->view.descriptor));
    }
 }
 

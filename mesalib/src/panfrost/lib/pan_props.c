@@ -214,6 +214,19 @@ panfrost_model_name(unsigned gpu_id)
         }
 }
 
+/* Check for AFBC hardware support. AFBC is introduced in v5. Implementations
+ * may omit it, signaled as a nonzero value in the AFBC_FEATURES property. */
+
+static bool
+panfrost_query_afbc(int fd, unsigned arch)
+{
+        unsigned reg = panfrost_query_raw(fd,
+                                          DRM_PANFROST_PARAM_AFBC_FEATURES,
+                                          false, 0);
+
+        return (arch >= 5) && (reg == 0);
+}
+
 void
 panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
 {
@@ -228,6 +241,7 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
         dev->quirks = panfrost_get_quirks(dev->gpu_id, revision);
         dev->compressed_formats = panfrost_query_compressed_formats(fd);
         dev->tiler_features = panfrost_query_tiler_features(fd);
+        dev->has_afbc = panfrost_query_afbc(fd, dev->arch);
 
         if (dev->quirks & HAS_SWIZZLES)
                 dev->formats = panfrost_pipe_format_v6;

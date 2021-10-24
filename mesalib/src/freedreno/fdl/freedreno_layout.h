@@ -124,6 +124,7 @@ struct fdl_layout {
    uint8_t cpp_shift;
 
    uint32_t width0, height0, depth0;
+   uint32_t mip_levels;
    uint32_t nr_samples;
    enum pipe_format format;
 
@@ -252,7 +253,68 @@ fdl_set_pitchalign(struct fdl_layout *layout, unsigned pitchalign)
 
 void fdl_dump_layout(struct fdl_layout *layout);
 
-void fdl6_get_ubwc_blockwidth(struct fdl_layout *layout, uint32_t *blockwidth,
-                              uint32_t *blockheight);
+void fdl6_get_ubwc_blockwidth(const struct fdl_layout *layout,
+                              uint32_t *blockwidth, uint32_t *blockheight);
+
+enum fdl_view_type {
+   FDL_VIEW_TYPE_1D = 0,
+   FDL_VIEW_TYPE_2D = 1,
+   FDL_VIEW_TYPE_CUBE = 2,
+   FDL_VIEW_TYPE_3D = 3,
+};
+
+enum fdl_chroma_location {
+   FDL_CHROMA_LOCATION_COSITED_EVEN = 0,
+   FDL_CHROMA_LOCATION_MIDPOINT = 1,
+};
+
+struct fdl_view_args {
+   uint64_t iova;
+   uint32_t base_array_layer, base_miplevel;
+   uint32_t layer_count, level_count;
+   unsigned char swiz[4];
+   enum pipe_format format;
+   enum fdl_view_type type;
+   enum fdl_chroma_location chroma_offsets[2];
+};
+
+#define FDL6_TEX_CONST_DWORDS 16
+
+struct fdl6_view {
+   uint64_t base_addr;
+   uint64_t ubwc_addr;
+   uint32_t layer_size;
+   uint32_t ubwc_layer_size;
+
+   uint32_t width, height;
+   bool need_y2_align;
+
+   bool ubwc_enabled;
+
+   uint32_t descriptor[FDL6_TEX_CONST_DWORDS];
+
+   /* Descriptor for use as a storage image as opposed to a sampled image.
+    * This has a few differences for cube maps (e.g. type).
+    */
+   uint32_t storage_descriptor[FDL6_TEX_CONST_DWORDS];
+
+   /* pre-filled register values */
+   uint32_t PITCH;
+   uint32_t FLAG_BUFFER_PITCH;
+
+   uint32_t RB_MRT_BUF_INFO;
+   uint32_t SP_FS_MRT_REG;
+
+   uint32_t SP_PS_2D_SRC_INFO;
+   uint32_t SP_PS_2D_SRC_SIZE;
+
+   uint32_t RB_2D_DST_INFO;
+
+   uint32_t RB_BLIT_DST_INFO;
+};
+
+void
+fdl6_view_init(struct fdl6_view *view, const struct fdl_layout **layouts,
+               const struct fdl_view_args *args, bool has_z24uint_s8uint);
 
 #endif /* FREEDRENO_LAYOUT_H_ */

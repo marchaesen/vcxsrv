@@ -51,23 +51,22 @@ tu6_plane_count(VkFormat format)
    }
 }
 
-static VkFormat
+enum pipe_format
 tu6_plane_format(VkFormat format, uint32_t plane)
 {
    switch (format) {
    case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-      /* note: with UBWC, and Y plane UBWC is different from R8_UNORM */
-      return plane ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8_UNORM;
+      return plane ? PIPE_FORMAT_R8G8_UNORM : PIPE_FORMAT_Y8_UNORM;
    case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
-      return VK_FORMAT_R8_UNORM;
+      return PIPE_FORMAT_R8_UNORM;
    case VK_FORMAT_D32_SFLOAT_S8_UINT:
-      return plane ? VK_FORMAT_S8_UINT : VK_FORMAT_D32_SFLOAT;
+      return plane ? PIPE_FORMAT_S8_UINT : PIPE_FORMAT_Z32_FLOAT;
    default:
-      return format;
+      return tu_vk_format_to_pipe_format(format);
    }
 }
 
-static uint32_t
+uint32_t
 tu6_plane_index(VkFormat format, VkImageAspectFlags aspect_mask)
 {
    switch (aspect_mask) {
@@ -79,6 +78,30 @@ tu6_plane_index(VkFormat format, VkImageAspectFlags aspect_mask)
       return 2;
    case VK_IMAGE_ASPECT_STENCIL_BIT:
       return format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+   }
+}
+
+enum pipe_format
+tu_format_for_aspect(enum pipe_format format, VkImageAspectFlags aspect_mask)
+{
+   switch (format) {
+   case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+      if (aspect_mask & VK_IMAGE_ASPECT_COLOR_BIT)
+         return PIPE_FORMAT_Z24_UNORM_S8_UINT_AS_R8G8B8A8;
+      if (aspect_mask & VK_IMAGE_ASPECT_STENCIL_BIT) {
+         if (aspect_mask & VK_IMAGE_ASPECT_DEPTH_BIT)
+            return PIPE_FORMAT_Z24_UNORM_S8_UINT;
+         else
+            return PIPE_FORMAT_X24S8_UINT;
+      } else {
+         return PIPE_FORMAT_Z24X8_UNORM;
+      }
+   case PIPE_FORMAT_Z24X8_UNORM:
+      if (aspect_mask & VK_IMAGE_ASPECT_COLOR_BIT)
+         return PIPE_FORMAT_Z24_UNORM_S8_UINT_AS_R8G8B8A8;
+      return PIPE_FORMAT_Z24X8_UNORM;
+   default:
+      return format;
    }
 }
 
@@ -168,7 +191,7 @@ tu6_texswiz(const VkComponentMapping *comps,
 }
 
 void
-tu_cs_image_ref(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer)
+tu_cs_image_ref(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer)
 {
    tu_cs_emit(cs, iview->PITCH);
    tu_cs_emit(cs, iview->layer_size >> 6);
@@ -184,7 +207,7 @@ tu_cs_image_stencil_ref(struct tu_cs *cs, const struct tu_image_view *iview, uin
 }
 
 void
-tu_cs_image_ref_2d(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer, bool src)
+tu_cs_image_ref_2d(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer, bool src)
 {
    tu_cs_emit_qw(cs, iview->base_addr + iview->layer_size * layer);
    /* SP_PS_2D_SRC_PITCH has shifted pitch field */
@@ -192,7 +215,7 @@ tu_cs_image_ref_2d(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t
 }
 
 void
-tu_cs_image_flag_ref(struct tu_cs *cs, const struct tu_image_view *iview, uint32_t layer)
+tu_cs_image_flag_ref(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer)
 {
    tu_cs_emit_qw(cs, iview->ubwc_addr + iview->ubwc_layer_size * layer);
    tu_cs_emit(cs, iview->FLAG_BUFFER_PITCH);
@@ -205,7 +228,7 @@ tu_image_view_init(struct tu_image_view *iview,
 {
    TU_FROM_HANDLE(tu_image, image, pCreateInfo->image);
    const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
-   VkFormat format = pCreateInfo->format;
+   VkFormat vk_format = pCreateInfo->format;
    VkImageAspectFlagBits aspect_mask = pCreateInfo->subresourceRange.aspectMask;
 
    const struct VkSamplerYcbcrConversionInfo *ycbcr_conversion =
@@ -215,243 +238,99 @@ tu_image_view_init(struct tu_image_view *iview,
 
    iview->image = image;
 
-   memset(iview->descriptor, 0, sizeof(iview->descriptor));
+   const struct fdl_layout *layouts[3];
 
-   struct fdl_layout *layout =
-      &image->layout[tu6_plane_index(image->vk_format, aspect_mask)];
+   layouts[0] = &image->layout[tu6_plane_index(image->vk_format, aspect_mask)];
 
-   uint32_t width = u_minify(layout->width0, range->baseMipLevel);
-   uint32_t height = u_minify(layout->height0, range->baseMipLevel);
-   uint32_t storage_depth = tu_get_layerCount(image, range);
-   if (pCreateInfo->viewType == VK_IMAGE_VIEW_TYPE_3D) {
-      storage_depth = u_minify(image->layout[0].depth0, range->baseMipLevel);
-   }
-
-   uint32_t depth = storage_depth;
-   if (pCreateInfo->viewType == VK_IMAGE_VIEW_TYPE_CUBE ||
-       pCreateInfo->viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY) {
-      /* Cubes are treated as 2D arrays for storage images, so only divide the
-       * depth by 6 for the texture descriptor.
-       */
-      depth /= 6;
-   }
-
-   uint64_t base_addr = image->bo->iova + image->bo_offset +
-      fdl_surface_offset(layout, range->baseMipLevel, range->baseArrayLayer);
-   uint64_t ubwc_addr = image->bo->iova + image->bo_offset +
-      fdl_ubwc_offset(layout, range->baseMipLevel, range->baseArrayLayer);
-
-   uint32_t pitch = fdl_pitch(layout, range->baseMipLevel);
-   uint32_t ubwc_pitch = fdl_ubwc_pitch(layout, range->baseMipLevel);
-   uint32_t layer_size = fdl_layer_stride(layout, range->baseMipLevel);
-
+   enum pipe_format format;
    if (aspect_mask != VK_IMAGE_ASPECT_COLOR_BIT)
-      format = tu6_plane_format(format, tu6_plane_index(format, aspect_mask));
+      format = tu6_plane_format(vk_format, tu6_plane_index(vk_format, aspect_mask));
+   else
+      format = tu_vk_format_to_pipe_format(vk_format);
 
-   struct tu_native_format fmt = tu6_format_texture(format, layout->tile_mode);
-   /* note: freedreno layout assumes no TILE_ALL bit for non-UBWC color formats
-    * this means smaller mipmap levels have a linear tile mode.
-    * Depth/stencil formats have non-linear tile mode.
-    */
-   fmt.tile_mode = fdl_tile_mode(layout, range->baseMipLevel);
-
-   bool ubwc_enabled = fdl_ubwc_enabled(layout, range->baseMipLevel);
-
-   bool is_d24s8 = (format == VK_FORMAT_D24_UNORM_S8_UINT ||
-                    format == VK_FORMAT_X8_D24_UNORM_PACK32);
-
-   if (is_d24s8 && ubwc_enabled)
-      fmt.fmt = FMT6_Z24_UNORM_S8_UINT_AS_R8G8B8A8;
-
-   unsigned fmt_tex = fmt.fmt;
-   if (is_d24s8) {
-      if (aspect_mask & VK_IMAGE_ASPECT_DEPTH_BIT)
-         fmt_tex = FMT6_Z24_UNORM_S8_UINT;
-      if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT)
-         fmt_tex = has_z24uint_s8uint ? FMT6_Z24_UINT_S8_UINT : FMT6_8_8_8_8_UINT;
-      /* TODO: also use this format with storage descriptor ? */
-   }
-
-   iview->descriptor[0] =
-      A6XX_TEX_CONST_0_TILE_MODE(fmt.tile_mode) |
-      COND(vk_format_is_srgb(format), A6XX_TEX_CONST_0_SRGB) |
-      A6XX_TEX_CONST_0_FMT(fmt_tex) |
-      A6XX_TEX_CONST_0_SAMPLES(tu_msaa_samples(layout->nr_samples)) |
-      A6XX_TEX_CONST_0_SWAP(fmt.swap) |
-      tu6_texswiz(&pCreateInfo->components, conversion, format, aspect_mask, has_z24uint_s8uint) |
-      A6XX_TEX_CONST_0_MIPLVLS(tu_get_levelCount(image, range) - 1);
-   iview->descriptor[1] = A6XX_TEX_CONST_1_WIDTH(width) | A6XX_TEX_CONST_1_HEIGHT(height);
-   iview->descriptor[2] =
-      A6XX_TEX_CONST_2_PITCHALIGN(layout->pitchalign - 6) |
-      A6XX_TEX_CONST_2_PITCH(pitch) |
-      A6XX_TEX_CONST_2_TYPE(tu6_tex_type(pCreateInfo->viewType, false));
-   iview->descriptor[3] = A6XX_TEX_CONST_3_ARRAY_PITCH(layer_size);
-   iview->descriptor[4] = base_addr;
-   iview->descriptor[5] = (base_addr >> 32) | A6XX_TEX_CONST_5_DEPTH(depth);
-
-   if (layout->tile_all)
-      iview->descriptor[3] |= A6XX_TEX_CONST_3_TILE_ALL;
-
-   if (format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM ||
-       format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM) {
-      /* chroma offset re-uses MIPLVLS bits */
-      assert(tu_get_levelCount(image, range) == 1);
-      if (conversion) {
-         if (conversion->chroma_offsets[0] == VK_CHROMA_LOCATION_MIDPOINT)
-            iview->descriptor[0] |= A6XX_TEX_CONST_0_CHROMA_MIDPOINT_X;
-         if (conversion->chroma_offsets[1] == VK_CHROMA_LOCATION_MIDPOINT)
-            iview->descriptor[0] |= A6XX_TEX_CONST_0_CHROMA_MIDPOINT_Y;
-      }
-
-      uint64_t base_addr[3];
-
-      iview->descriptor[3] |= A6XX_TEX_CONST_3_TILE_ALL;
-      if (ubwc_enabled) {
-         iview->descriptor[3] |= A6XX_TEX_CONST_3_FLAG;
-         /* no separate ubwc base, image must have the expected layout */
-         for (uint32_t i = 0; i < 3; i++) {
-            base_addr[i] = image->bo->iova + image->bo_offset +
-               fdl_ubwc_offset(&image->layout[i], range->baseMipLevel, range->baseArrayLayer);
-         }
+   if (image->vk_format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM &&
+       aspect_mask == VK_IMAGE_ASPECT_PLANE_0_BIT) {
+      if (vk_format == VK_FORMAT_R8_UNORM) {
+         /* The 0'th plane of this format has a different UBWC compression. */
+         format = PIPE_FORMAT_Y8_UNORM;
       } else {
-         for (uint32_t i = 0; i < 3; i++) {
-            base_addr[i] = image->bo->iova + image->bo_offset +
-               fdl_surface_offset(&image->layout[i], range->baseMipLevel, range->baseArrayLayer);
-         }
+         /* If the user wants to reinterpret this plane, then they should've
+          * set MUTABLE_FORMAT_BIT which should disable UBWC and tiling.
+          */
+         assert(!layouts[0]->ubwc);
       }
-
-      iview->descriptor[4] = base_addr[0];
-      iview->descriptor[5] |= base_addr[0] >> 32;
-      iview->descriptor[6] =
-         A6XX_TEX_CONST_6_PLANE_PITCH(fdl_pitch(&image->layout[1], range->baseMipLevel));
-      iview->descriptor[7] = base_addr[1];
-      iview->descriptor[8] = base_addr[1] >> 32;
-      iview->descriptor[9] = base_addr[2];
-      iview->descriptor[10] = base_addr[2] >> 32;
-
-      assert(pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_3D);
-      return;
    }
 
-   if (ubwc_enabled) {
-      uint32_t block_width, block_height;
-      fdl6_get_ubwc_blockwidth(layout, &block_width, &block_height);
-
-      iview->descriptor[3] |= A6XX_TEX_CONST_3_FLAG;
-      iview->descriptor[7] = ubwc_addr;
-      iview->descriptor[8] = ubwc_addr >> 32;
-      iview->descriptor[9] |= A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH(layout->ubwc_layer_size >> 2);
-      iview->descriptor[10] |=
-         A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH(ubwc_pitch) |
-         A6XX_TEX_CONST_10_FLAG_BUFFER_LOGW(util_logbase2_ceil(DIV_ROUND_UP(width, block_width))) |
-         A6XX_TEX_CONST_10_FLAG_BUFFER_LOGH(util_logbase2_ceil(DIV_ROUND_UP(height, block_height)));
+   if (aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT &&
+       (vk_format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM ||
+        vk_format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM)) {
+      layouts[1] = &image->layout[1];
+      layouts[2] = &image->layout[2];
    }
 
-   if (pCreateInfo->viewType == VK_IMAGE_VIEW_TYPE_3D) {
-      iview->descriptor[3] |=
-         A6XX_TEX_CONST_3_MIN_LAYERSZ(layout->slices[image->level_count - 1].size0);
+   struct fdl_view_args args = {};
+   args.iova = image->bo->iova + image->bo_offset;
+   args.base_array_layer = range->baseArrayLayer;
+   args.base_miplevel = range->baseMipLevel;
+   args.layer_count = tu_get_layerCount(image, range);
+   args.level_count = tu_get_levelCount(image, range);
+   args.format = tu_format_for_aspect(format, aspect_mask);
+   vk_component_mapping_to_pipe_swizzle(pCreateInfo->components, args.swiz);
+   if (conversion) {
+      unsigned char conversion_swiz[4], create_swiz[4];
+      memcpy(create_swiz, args.swiz, sizeof(create_swiz));
+      vk_component_mapping_to_pipe_swizzle(conversion->components,
+                                           conversion_swiz);
+      util_format_compose_swizzles(create_swiz, conversion_swiz, args.swiz);
    }
 
-   iview->SP_PS_2D_SRC_INFO = A6XX_SP_PS_2D_SRC_INFO(
-      .color_format = fmt.fmt,
-      .tile_mode = fmt.tile_mode,
-      .color_swap = fmt.swap,
-      .flags = ubwc_enabled,
-      .srgb = vk_format_is_srgb(format),
-      .samples = tu_msaa_samples(layout->nr_samples),
-      .samples_average = layout->nr_samples > 1 &&
-                           !vk_format_is_int(format) &&
-                           !vk_format_is_depth_or_stencil(format),
-      .unk20 = 1,
-      .unk22 = 1).value;
-   iview->SP_PS_2D_SRC_SIZE =
-      A6XX_SP_PS_2D_SRC_SIZE(.width = width, .height = height).value;
-
-   /* note: these have same encoding for MRT and 2D (except 2D PITCH src) */
-   iview->PITCH = A6XX_RB_DEPTH_BUFFER_PITCH(pitch).value;
-   iview->FLAG_BUFFER_PITCH = A6XX_RB_DEPTH_FLAG_BUFFER_PITCH(
-      .pitch = ubwc_pitch, .array_pitch = layout->ubwc_layer_size >> 2).value;
-
-   iview->base_addr = base_addr;
-   iview->ubwc_addr = ubwc_addr;
-   iview->layer_size = layer_size;
-   iview->ubwc_layer_size = layout->ubwc_layer_size;
-
-   /* Don't set fields that are only used for attachments/blit dest if COLOR
-    * is unsupported.
-    */
-   if (!tu6_format_color_supported(format))
-      return;
-
-   struct tu_native_format cfmt = tu6_format_color(format, layout->tile_mode);
-   cfmt.tile_mode = fmt.tile_mode;
-
-   if (is_d24s8 && ubwc_enabled)
-      cfmt.fmt = FMT6_Z24_UNORM_S8_UINT_AS_R8G8B8A8;
-
-   memset(iview->storage_descriptor, 0, sizeof(iview->storage_descriptor));
-
-   iview->storage_descriptor[0] =
-      A6XX_IBO_0_FMT(fmt.fmt) |
-      A6XX_IBO_0_TILE_MODE(fmt.tile_mode);
-   iview->storage_descriptor[1] =
-      A6XX_IBO_1_WIDTH(width) |
-      A6XX_IBO_1_HEIGHT(height);
-   iview->storage_descriptor[2] =
-      A6XX_IBO_2_PITCH(pitch) |
-      A6XX_IBO_2_TYPE(tu6_tex_type(pCreateInfo->viewType, true));
-   iview->storage_descriptor[3] = A6XX_IBO_3_ARRAY_PITCH(layer_size);
-
-   iview->storage_descriptor[4] = base_addr;
-   iview->storage_descriptor[5] = (base_addr >> 32) | A6XX_IBO_5_DEPTH(storage_depth);
-
-   if (ubwc_enabled) {
-      iview->storage_descriptor[3] |= A6XX_IBO_3_FLAG | A6XX_IBO_3_UNK27;
-      iview->storage_descriptor[7] |= ubwc_addr;
-      iview->storage_descriptor[8] |= ubwc_addr >> 32;
-      iview->storage_descriptor[9] = A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH(layout->ubwc_layer_size >> 2);
-      iview->storage_descriptor[10] =
-         A6XX_IBO_10_FLAG_BUFFER_PITCH(ubwc_pitch);
+   switch (pCreateInfo->viewType) {
+   case VK_IMAGE_VIEW_TYPE_1D:
+   case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
+      args.type = FDL_VIEW_TYPE_1D;
+      break;
+   case VK_IMAGE_VIEW_TYPE_2D:
+   case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
+      args.type = FDL_VIEW_TYPE_2D;
+      break;
+   case VK_IMAGE_VIEW_TYPE_CUBE:
+   case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
+      args.type = FDL_VIEW_TYPE_CUBE;
+      break;
+   case VK_IMAGE_VIEW_TYPE_3D:
+      args.type = FDL_VIEW_TYPE_3D;
+      break;
+   default:
+      unreachable("unknown view type");
    }
 
-   iview->extent.width = width;
-   iview->extent.height = height;
-   iview->need_y2_align =
-      (fmt.tile_mode == TILE6_LINEAR && range->baseMipLevel != image->level_count - 1);
+   STATIC_ASSERT((unsigned)VK_CHROMA_LOCATION_COSITED_EVEN == (unsigned)FDL_CHROMA_LOCATION_COSITED_EVEN);
+   STATIC_ASSERT((unsigned)VK_CHROMA_LOCATION_MIDPOINT == (unsigned)FDL_CHROMA_LOCATION_MIDPOINT);
+   if (conversion) {
+      args.chroma_offsets[0] = (enum fdl_chroma_location) conversion->chroma_offsets[0];
+      args.chroma_offsets[1] = (enum fdl_chroma_location) conversion->chroma_offsets[1];
+   }
 
-   iview->ubwc_enabled = ubwc_enabled;
-
-   iview->RB_MRT_BUF_INFO = A6XX_RB_MRT_BUF_INFO(0,
-                              .color_tile_mode = cfmt.tile_mode,
-                              .color_format = cfmt.fmt,
-                              .color_swap = cfmt.swap).value;
-
-   iview->SP_FS_MRT_REG = A6XX_SP_FS_MRT_REG(0,
-                              .color_format = cfmt.fmt,
-                              .color_sint = vk_format_is_sint(format),
-                              .color_uint = vk_format_is_uint(format)).value;
-
-   iview->RB_2D_DST_INFO = A6XX_RB_2D_DST_INFO(
-      .color_format = cfmt.fmt,
-      .tile_mode = cfmt.tile_mode,
-      .color_swap = cfmt.swap,
-      .flags = ubwc_enabled,
-      .srgb = vk_format_is_srgb(format)).value;
-
-   iview->RB_BLIT_DST_INFO = A6XX_RB_BLIT_DST_INFO(
-      .tile_mode = cfmt.tile_mode,
-      .samples = tu_msaa_samples(layout->nr_samples),
-      .color_format = cfmt.fmt,
-      .color_swap = cfmt.swap,
-      .flags = ubwc_enabled).value;
+   fdl6_view_init(&iview->view, layouts, &args, has_z24uint_s8uint);
 
    if (image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
-      layout = &image->layout[1];
+      struct fdl_layout *layout = &image->layout[1];
       iview->stencil_base_addr = image->bo->iova + image->bo_offset +
          fdl_surface_offset(layout, range->baseMipLevel, range->baseArrayLayer);
       iview->stencil_layer_size = fdl_layer_stride(layout, range->baseMipLevel);
       iview->stencil_PITCH = A6XX_RB_STENCIL_BUFFER_PITCH(fdl_pitch(layout, range->baseMipLevel)).value;
    }
+}
+
+bool
+tiling_possible(VkFormat format)
+{
+   if (format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM ||
+       format == VK_FORMAT_G8B8G8R8_422_UNORM ||
+       format == VK_FORMAT_B8G8R8G8_422_UNORM)
+      return false;
+
+   return true;
 }
 
 bool
@@ -588,6 +467,12 @@ tu_CreateImage(VkDevice _device,
       ubwc_enabled = false;
    }
 
+   /* Force linear tiling for formats with "fake" optimalTilingFeatures */
+   if (!tiling_possible(image->vk_format)) {
+      tile_mode = TILE6_LINEAR;
+      ubwc_enabled = false;
+   }
+
    /* Mutable images can be reinterpreted as any other compatible format.
     * This is a problem with UBWC (compression for different formats is different),
     * but also tiling ("swap" affects how tiled formats are stored in memory)
@@ -608,7 +493,7 @@ tu_CreateImage(VkDevice _device,
       if (fmt_list) {
          may_be_swapped = false;
          for (uint32_t i = 0; i < fmt_list->viewFormatCount; i++) {
-            if (tu6_format_texture(fmt_list->pViewFormats[i], TILE6_LINEAR).swap) {
+            if (tu6_format_texture(tu_vk_format_to_pipe_format(fmt_list->pViewFormats[i]), TILE6_LINEAR).swap) {
                may_be_swapped = true;
                break;
             }
@@ -632,7 +517,7 @@ tu_CreateImage(VkDevice _device,
 
    for (uint32_t i = 0; i < tu6_plane_count(image->vk_format); i++) {
       struct fdl_layout *layout = &image->layout[i];
-      VkFormat format = tu6_plane_format(image->vk_format, i);
+      enum pipe_format format = tu6_plane_format(image->vk_format, i);
       uint32_t width0 = pCreateInfo->extent.width;
       uint32_t height0 = pCreateInfo->extent.height;
 
@@ -670,7 +555,7 @@ tu_CreateImage(VkDevice _device,
       layout->tile_mode = tile_mode;
       layout->ubwc = ubwc_enabled;
 
-      if (!fdl6_layout(layout, vk_format_to_pipe_format(format),
+      if (!fdl6_layout(layout, format,
                        pCreateInfo->samples,
                        width0, height0,
                        pCreateInfo->extent.depth,
@@ -852,8 +737,8 @@ tu_buffer_view_init(struct tu_buffer_view *view,
    view->buffer = buffer;
 
    enum VkFormat vfmt = pCreateInfo->format;
-   enum pipe_format pfmt = vk_format_to_pipe_format(vfmt);
-   const struct tu_native_format fmt = tu6_format_texture(vfmt, TILE6_LINEAR);
+   enum pipe_format pfmt = tu_vk_format_to_pipe_format(vfmt);
+   const struct tu_native_format fmt = tu6_format_texture(pfmt, TILE6_LINEAR);
 
    uint32_t range;
    if (pCreateInfo->range == VK_WHOLE_SIZE)

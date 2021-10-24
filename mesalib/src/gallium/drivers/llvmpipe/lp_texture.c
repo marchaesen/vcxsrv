@@ -440,7 +440,7 @@ llvmpipe_resource_destroy(struct pipe_screen *pscreen,
    struct llvmpipe_screen *screen = llvmpipe_screen(pscreen);
    struct llvmpipe_resource *lpr = llvmpipe_resource(pt);
 
-   if (!lpr->backable) {
+   if (!lpr->backable && !lpr->user_ptr) {
       if (lpr->dt) {
          /* display target */
          struct sw_winsys *winsys = screen->winsys;
@@ -454,11 +454,9 @@ llvmpipe_resource_destroy(struct pipe_screen *pscreen,
             lpr->tex_data = NULL;
          }
       }
-      else if (!lpr->userBuffer) {
-         if (lpr->data) {
+      else if (lpr->data) {
             if (!lpr->imported_memory)
                align_free(lpr->data);
-         }
       }
    }
 #ifdef DEBUG
@@ -651,9 +649,18 @@ llvmpipe_resource_from_user_memory(struct pipe_screen *_screen,
    pipe_reference_init(&lpr->base.reference, 1);
    lpr->base.screen = _screen;
 
-   lpr->data = user_memory;
-   lpr->userBuffer = TRUE;
+   if (llvmpipe_resource_is_texture(&lpr->base)) {
+      if (!llvmpipe_texture_layout(screen, lpr, false))
+         goto fail;
+
+      lpr->tex_data = user_memory;
+   } else
+      lpr->data = user_memory;
+   lpr->user_ptr = true;
    return &lpr->base;
+fail:
+   FREE(lpr);
+   return NULL;
 }
 
 void *
@@ -875,7 +882,7 @@ llvmpipe_user_buffer_create(struct pipe_screen *screen,
    buffer->base.height0 = 1;
    buffer->base.depth0 = 1;
    buffer->base.array_size = 1;
-   buffer->userBuffer = TRUE;
+   buffer->user_ptr = true;
    buffer->data = ptr;
 
    return &buffer->base;

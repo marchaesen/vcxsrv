@@ -370,55 +370,29 @@ nir_algebraic_py = files('nir_algebraic.py')
 
 if with_tests
   test(
-    'nir_builder',
+    'nir_tests',
     executable(
-      'nir_builder_test',
-      files('tests/builder_tests.cpp'),
+      'nir_tests',
+      files(
+        'tests/algebraic_tests.cpp',
+        'tests/builder_tests.cpp',
+        'tests/comparison_pre_tests.cpp',
+        'tests/control_flow_tests.cpp',
+        'tests/core_tests.cpp',
+        'tests/lower_returns_tests.cpp',
+        'tests/negative_equal_tests.cpp',
+        'tests/opt_if_tests.cpp',
+        'tests/serialize_tests.cpp',
+        'tests/ssa_def_bits_used_tests.cpp',
+        'tests/vars_tests.cpp',
+      ),
       cpp_args : [cpp_msvc_compat_args],
       gnu_symbol_visibility : 'hidden',
       include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
       dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
     ),
     suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'nir_control_flow',
-    executable(
-      'nir_control_flow_test',
-      files('tests/control_flow_tests.cpp'),
-      cpp_args : [cpp_msvc_compat_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'nir_core',
-    executable(
-      'nir_core_test',
-      files('tests/core_tests.cpp'),
-      cpp_args : [cpp_msvc_compat_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'nir_vars',
-    executable(
-      'nir_vars_test',
-      files('tests/vars_tests.cpp'),
-      cpp_args : [cpp_msvc_compat_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
+    protocol : gtest_test_protocol,
   )
 
   test(
@@ -427,32 +401,6 @@ if with_tests
     args : [
       join_paths(meson.current_source_dir(), 'tests/algebraic_parser_test.py')
     ],
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'negative_equal',
-    executable(
-      'negative_equal',
-      files('tests/negative_equal_tests.cpp'),
-      c_args : [c_msvc_compat_args, no_override_init_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'comparison_pre',
-    executable(
-      'comparison_pre',
-      files('tests/comparison_pre_tests.cpp'),
-      c_args : [c_msvc_compat_args, no_override_init_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
     suite : ['compiler', 'nir'],
   )
 
@@ -467,71 +415,8 @@ if with_tests
       dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
     ),
     suite : ['compiler', 'nir'],
+    # TODO: Use a negative filter for gtest instead of the expect failure here.
     should_fail : meson.get_cross_property('xfail', '').contains('load_store_vectorizer'),
-  )
-
-  test(
-    'nir_serialize_test',
-    executable(
-      'nir_serialize_test',
-      files('tests/serialize_tests.cpp'),
-      cpp_args : [cpp_msvc_compat_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'nir_opt_if',
-    executable(
-      'nir_opt_if_tests',
-      files('tests/opt_if_tests.cpp'),
-      cpp_args : [cpp_msvc_compat_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'nir_lower_returns',
-    executable(
-      'nir_lower_returns_tests',
-      files('tests/lower_returns_tests.cpp'),
-      cpp_args : [cpp_msvc_compat_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'ssa_def_bits_used',
-    executable(
-      'ssa_def_bits_used',
-      files('tests/ssa_def_bits_used_tests.cpp'),
-      c_args : [c_msvc_compat_args, no_override_init_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
-  )
-
-  test(
-    'algebraic',
-    executable(
-      'algebraic',
-      files('tests/algebraic_tests.cpp'),
-      c_args : [c_msvc_compat_args, no_override_init_args],
-      gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
-      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
-    ),
-    suite : ['compiler', 'nir'],
+    protocol : gtest_test_protocol,
   )
 endif

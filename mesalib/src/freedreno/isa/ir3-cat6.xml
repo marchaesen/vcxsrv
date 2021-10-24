@@ -32,6 +32,8 @@ SOFTWARE.
 	<field   pos="59"          name="JP" type="bool" display="(jp)"/>
 	<field   pos="60"          name="SY" type="bool" display="(sy)"/>
 	<pattern low="61" high="63">110</pattern>  <!-- cat6 -->
+	<!-- is load dst / store src a half-reg? -->
+	<derived name="TYPE_HALF" expr="#type-half" type="bool" display="h"/>
 	<encode>
 		<map name="TYPE">src->cat6.type</map>
 	</encode>
@@ -59,15 +61,15 @@ SOFTWARE.
 	</doc>
 
 	<display>
-		{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}{OFF}], {SIZE}
+		{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}{OFF}], {SIZE}
 	</display>
 
 	<field low="1" high="13" name="OFF" type="offset"/>
 	<pattern pos="22"          >0</pattern> <!-- Imm offset ldg form -->
 
 	<encode>
-		<map name="OFF">src->srcs[1]->iim_val</map>
-		<map name="SIZE">src->srcs[2]->uim_val</map>
+		<map name="OFF">extract_reg_iim(src->srcs[1])</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[2])</map>
 	</encode>
 </bitset>
 
@@ -79,12 +81,12 @@ SOFTWARE.
 	<gen min="600"/>
 
 	<display>
-		{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}+({SRC2}{OFF})&lt;&lt;{SRC2_BYTE_SHIFT}], {SIZE}
+		{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+({SRC2}{OFF})&lt;&lt;{SRC2_BYTE_SHIFT}], {SIZE}
 	</display>
 
 	<override>
 		<display>
-			{SY}{JP}{NAME}.{TYPE} {DST}, g[{SRC1}+{SRC2}&lt;&lt;{SRC2_BYTE_SHIFT}{OFF}&lt;&lt;2], {SIZE}
+			{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+{SRC2}&lt;&lt;{SRC2_BYTE_SHIFT}{OFF}&lt;&lt;2], {SIZE}
 		</display>
 		<expr>{SRC2_ADD_DWORD_SHIFT} > 0</expr>
 	</override>
@@ -101,9 +103,9 @@ SOFTWARE.
 
 	<encode>
 		<map name="SRC2">src->srcs[1]</map>
-		<map name="SRC2_ADD_DWORD_SHIFT">src->srcs[2]->uim_val</map>
-		<map name="OFF">src->srcs[3]->uim_val</map>
-		<map name="SIZE">src->srcs[4]->uim_val</map>
+		<map name="SRC2_ADD_DWORD_SHIFT">extract_reg_uim(src->srcs[2])</map>
+		<map name="OFF">extract_reg_uim(src->srcs[3])</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[4])</map>
 	</encode>
 </bitset>
 
@@ -129,22 +131,22 @@ SOFTWARE.
 	</doc>
 
 	<display>
-		{SY}{JP}{NAME}.{TYPE} g[{SRC1}{OFF}], {SRC3}, {SIZE}
+		{SY}{JP}{NAME}.{TYPE} g[{SRC1}{OFF}], {TYPE_HALF}{SRC3}, {SIZE}
 	</display>
 
 	<derived name="OFF" width="13" type="offset">
 		<expr>({OFF_HI} &lt;&lt; 8) | {OFF_LO}</expr>
 	</derived>
 
-	<field   low="9"  high="13" name="OFF_HI" type="uint"/>
+	<field   low="9"  high="13" name="OFF_HI" type="int"/>
 	<field   low="32" high="39" name="OFF_LO" type="uint"/>
 	<pattern pos="52" >0</pattern> <!-- Imm offset stg form -->
 
 	<encode>
-		<map name="OFF_LO">src->srcs[1]->iim_val</map>
-		<map name="OFF_HI">src->srcs[1]->iim_val >> 8</map>
+		<map name="OFF_LO">extract_reg_iim(src->srcs[1]) &amp; 0xff</map>
+		<map name="OFF_HI">extract_reg_iim(src->srcs[1]) >> 8</map>
 		<map name="SRC3">src->srcs[2]</map>
-		<map name="SIZE">src->srcs[3]->uim_val</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[3])</map>
 	</encode>
 </bitset>
 
@@ -156,12 +158,12 @@ SOFTWARE.
 	<gen min="600"/>
 
 	<display>
-		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+({SRC2}{OFF})&lt;&lt;{DST_BYTE_SHIFT}], {SRC3}, {SIZE}
+		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+({SRC2}{OFF})&lt;&lt;{DST_BYTE_SHIFT}], {TYPE_HALF}{SRC3}, {SIZE}
 	</display>
 
 	<override>
 		<display>
-			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}&lt;&lt;{DST_BYTE_SHIFT}{OFF}&lt;&lt;2], {SRC3}, {SIZE}
+			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}&lt;&lt;{DST_BYTE_SHIFT}{OFF}&lt;&lt;2], {TYPE_HALF}{SRC3}, {SIZE}
 		</display>
 		<expr>{SRC2_ADD_DWORD_SHIFT} > 0</expr>
 	</override>
@@ -178,10 +180,10 @@ SOFTWARE.
 
 	<encode>
 		<map name="SRC2">src->srcs[1]</map>
-		<map name="SRC2_ADD_DWORD_SHIFT">src->srcs[2]->uim_val</map>
-		<map name="OFF">src->srcs[3]->uim_val</map>
+		<map name="SRC2_ADD_DWORD_SHIFT">extract_reg_uim(src->srcs[2])</map>
+		<map name="OFF">extract_reg_uim(src->srcs[3])</map>
 		<map name="SRC3">src->srcs[4]</map>
-		<map name="SIZE">src->srcs[5]->uim_val</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[5])</map>
 	</encode>
 </bitset>
 
@@ -196,9 +198,9 @@ SOFTWARE.
 	<pattern low="40" high="48">xxxxxxxxx</pattern>
 	<pattern low="52" high="53">xx</pattern>
 	<encode>
-		<map name="OFF">src->srcs[1]->uim_val</map>
+		<map name="OFF">extract_reg_uim(src->srcs[1])</map>
 		<map name="SRC">src->srcs[0]</map>
-		<map name="SIZE">src->srcs[2]->uim_val</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[2])</map>
 	</encode>
 </bitset>
 
@@ -249,8 +251,8 @@ SOFTWARE.
 	<pattern low="52" high="53">xx</pattern>
 	<pattern low="54" high="58">11111</pattern>  <!-- OPC -->
 	<encode>
-		<map name="SIZE">src->srcs[1]->uim_val</map>
-		<map name="OFF">src->srcs[0]->uim_val</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[1])</map>
+		<map name="OFF">extract_reg_uim(src->srcs[0])</map>
 	</encode>
 </bitset>
 
@@ -260,7 +262,7 @@ SOFTWARE.
 	</derived>
 
 	<field   low="1"  high="8" name="SRC" type="#reg-gpr"/>
-	<field   low="9"  high="13" name="OFF_HI" type="uint"/>
+	<field   low="9"  high="13" name="OFF_HI" type="int"/>
 	<pattern low="14" high="22">xxxxxxxxx</pattern>
 	<pattern pos="23"          >1</pattern>
 	<field   low="24" high="31" name="SIZE" type="uint"/>
@@ -278,7 +280,7 @@ SOFTWARE.
 		<map name="OFF_LO">src->cat6.dst_offset &amp; 0xff</map>
 		<map name="SRC">src->srcs[1]</map>
 		<map name="DST">src->srcs[0]</map>"
-		<map name="SIZE">src->srcs[2]->uim_val</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[2])</map>
 	</encode>
 </bitset>
 
@@ -343,7 +345,7 @@ SOFTWARE.
 	<pattern low="52" high="53">xx</pattern>
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
 	<encode>
-		<map name="DST">src->srcs[0]->uim_val</map>
+		<map name="DST">extract_reg_uim(src->srcs[0])</map>
 		<map name="SRC">src->srcs[1]</map>
 	</encode>
 </bitset>
@@ -902,7 +904,7 @@ SOFTWARE.
 	<encode type="struct ir3_register *">
 		<map name="GPR">src->num >> 2</map>
 		<map name="SWIZ">src->num &amp; 0x3</map>
-		<map name="IMMED">src->iim_val</map>
+		<map name="IMMED">extract_reg_iim(src)</map>
 	</encode>
 </bitset>
 

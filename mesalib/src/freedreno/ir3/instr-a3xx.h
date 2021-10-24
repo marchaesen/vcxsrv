@@ -382,6 +382,32 @@ type_size(type_t type)
    }
 }
 
+static inline type_t
+type_uint_size(unsigned bit_size)
+{
+   switch (bit_size) {
+   case 8:  return TYPE_U8;
+   case 1:  /* 1b bools are treated as normal half-regs */
+   case 16: return TYPE_U16;
+   case 32: return TYPE_U32;
+   default:
+      ir3_assert(0); /* invalid size */
+      return 0;
+   }
+}
+
+static inline type_t
+type_float_size(unsigned bit_size)
+{
+   switch (bit_size) {
+   case 16: return TYPE_F16;
+   case 32: return TYPE_F32;
+   default:
+      ir3_assert(0); /* invalid size */
+      return 0;
+   }
+}
+
 static inline int
 type_float(type_t type)
 {

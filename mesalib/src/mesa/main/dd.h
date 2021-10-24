@@ -92,6 +92,12 @@ struct pipe_vertex_element;
 /* This buffer will only be mapped/unmapped once */
 #define MESA_MAP_ONCE            0x10000
 
+/* This BufferStorage flag indicates that the buffer will be used
+ * by pipe_vertex_state, which doesn't track buffer busyness and doesn't
+ * support invalidations.
+ */
+#define MESA_GALLIUM_VERTEX_STATE_STORAGE 0x20000
+
 
 /**
  * Device driver function table.

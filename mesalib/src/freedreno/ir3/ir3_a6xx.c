@@ -376,12 +376,23 @@ emit_intrinsic_load_global_ir3(struct ir3_context *ctx,
    addr = ir3_collect(b, ir3_get_src(ctx, &intr->src[0])[0],
                       ir3_get_src(ctx, &intr->src[0])[1]);
 
-   offset = ir3_get_src(ctx, &intr->src[1])[0];
+   struct ir3_instruction *load;
 
-   struct ir3_instruction *load =
-      ir3_LDG_A(b, addr, 0, offset, 0, create_immed(b, 0), 0,
-                create_immed(b, 0), 0, create_immed(b, dest_components), 0);
-   load->cat6.type = TYPE_U32;
+   bool const_offset_in_bounds = nir_src_is_const(intr->src[1]) &&
+                                 nir_src_as_int(intr->src[1]) < (1 << 13) &&
+                                 nir_src_as_int(intr->src[1]) > -(1 << 13);
+
+   if (const_offset_in_bounds) {
+      load = ir3_LDG(b, addr, 0, create_immed(b, nir_src_as_int(intr->src[1])),
+                     0, create_immed(b, dest_components), 0);
+   } else {
+      offset = ir3_get_src(ctx, &intr->src[1])[0];
+      load =
+         ir3_LDG_A(b, addr, 0, offset, 0, create_immed(b, 0), 0,
+                   create_immed(b, 0), 0, create_immed(b, dest_components), 0);
+   }
+
+   load->cat6.type = type_uint_size(intr->dest.ssa.bit_size);
    load->dsts[0]->wrmask = MASK(dest_components);
 
    load->barrier_class = IR3_BARRIER_BUFFER_R;
@@ -401,14 +412,27 @@ emit_intrinsic_store_global_ir3(struct ir3_context *ctx,
    addr = ir3_collect(b, ir3_get_src(ctx, &intr->src[1])[0],
                       ir3_get_src(ctx, &intr->src[1])[1]);
 
-   offset = ir3_get_src(ctx, &intr->src[2])[0];
-
    value = ir3_create_collect(b, ir3_get_src(ctx, &intr->src[0]), ncomp);
 
-   struct ir3_instruction *stg =
-      ir3_STG_A(b, addr, 0, offset, 0, create_immed(b, 0), 0,
-                create_immed(b, 0), 0, value, 0, create_immed(b, ncomp), 0);
-   stg->cat6.type = TYPE_U32;
+   struct ir3_instruction *stg;
+
+   bool const_offset_in_bounds = nir_src_is_const(intr->src[2]) &&
+                                 nir_src_as_int(intr->src[2]) < (1 << 13) &&
+                                 nir_src_as_int(intr->src[2]) > -(1 << 13);
+
+   if (const_offset_in_bounds) {
+      stg = ir3_STG(b, addr, 0,
+                    create_immed(b, nir_src_as_int(intr->src[2])), 0,
+                    value, 0,
+                    create_immed(b, ncomp), 0);
+   } else {
+      offset = ir3_get_src(ctx, &intr->src[2])[0];
+      stg =
+         ir3_STG_A(b, addr, 0, offset, 0, create_immed(b, 0), 0,
+                   create_immed(b, 0), 0, value, 0, create_immed(b, ncomp), 0);
+   }
+
+   stg->cat6.type = type_uint_size(intr->src[0].ssa->bit_size);
    stg->cat6.iim_val = 1;
 
    array_insert(b, b->keeps, stg);

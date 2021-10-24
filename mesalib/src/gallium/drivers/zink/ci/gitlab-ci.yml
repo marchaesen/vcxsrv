@@ -44,7 +44,5 @@ zink-lvp-deqp:
   variables:
     GALLIUM_DRIVER: "zink" # move here due to bad xvfb-run interactions
     VK_DRIVER: lvp # Don't move to the top level, piglit runs do funny stuff with VK_DRIVER set
-    DEQP_EXPECTED_RENDERER: "zink.*llvmpipe"
-    DEQP_VER: gles2
     DEQP_SUITE: zink-lvp
   parallel: 2

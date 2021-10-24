@@ -92,9 +92,9 @@ static LLVMValueRef ac_cull_face(struct ac_llvm_context *ctx, LLVMValueRef pos[3
    LLVMValueRef det_t1 = LLVMBuildFSub(builder, pos[1][1], pos[0][1], "");
    LLVMValueRef det_t2 = LLVMBuildFSub(builder, pos[0][0], pos[1][0], "");
    LLVMValueRef det_t3 = LLVMBuildFSub(builder, pos[0][1], pos[2][1], "");
-   LLVMValueRef det_p0 = LLVMBuildFMul(builder, det_t0, det_t1, "");
-   LLVMValueRef det_p1 = LLVMBuildFMul(builder, det_t2, det_t3, "");
-   LLVMValueRef det = LLVMBuildFSub(builder, det_p0, det_p1, "");
+   /* t0 * t1 - t2 * t3  =  t2 * -t3 + t0 * t1  =  fma(t2, -t3, t0 * t1) */
+   LLVMValueRef det = ac_build_fmad(ctx, det_t2, LLVMBuildFNeg(builder, det_t3, ""),
+                                    LLVMBuildFMul(builder, det_t0, det_t1, ""));
 
    /* Negative W negates the determinant. */
    det = LLVMBuildSelect(builder, w->w_reflection, LLVMBuildFNeg(builder, det, ""), det, "");
@@ -109,6 +109,14 @@ static LLVMValueRef ac_cull_face(struct ac_llvm_context *ctx, LLVMValueRef pos[3
    } else if (cull_zero_area) {
       accepted = LLVMBuildFCmp(builder, LLVMRealONE, det, ctx->f32_0, "");
    }
+
+   if (accepted) {
+      /* Don't reject NaN and +/-infinity, these are tricky.
+       * Just trust fixed-function HW to handle these cases correctly.
+       */
+      accepted = LLVMBuildOr(builder, accepted, ac_build_is_inf_or_nan(ctx, det), "");
+   }
+
    return accepted;
 }
 

@@ -43,12 +43,24 @@ hash_instr(const void *data)
    hash = HASH(hash, instr->opc);
    hash = HASH(hash, instr->dsts[0]->flags);
    foreach_src (src, (struct ir3_instruction *)instr) {
-      if (src->flags & IR3_REG_CONST)
-         hash = HASH(hash, src->num);
-      else if (src->flags & IR3_REG_IMMED)
+      if (src->flags & IR3_REG_CONST) {
+         if (src->flags & IR3_REG_RELATIV)
+            hash = HASH(hash, src->array.offset);
+         else
+            hash = HASH(hash, src->num);
+      } else if (src->flags & IR3_REG_IMMED) {
          hash = HASH(hash, src->uim_val);
-      else
+      } else {
+         if (src->flags & IR3_REG_ARRAY)
+            hash = HASH(hash, src->array.offset);
          hash = HASH(hash, src->def);
+      }
+   }
+
+   if (opc_cat(instr->opc) == 1) {
+      hash = HASH(hash, instr->cat1.dst_type);
+      hash = HASH(hash, instr->cat1.src_type);
+      hash = HASH(hash, instr->cat1.round);
    }
 
    return hash;
@@ -76,15 +88,31 @@ instrs_equal(const struct ir3_instruction *i1, const struct ir3_instruction *i2)
          return false;
 
       if (i1_reg->flags & IR3_REG_CONST) {
-         if (i1_reg->num != i2_reg->num)
-            return false;
+         if (i1_reg->flags & IR3_REG_RELATIV) {
+            if (i1_reg->array.offset != i2_reg->array.offset)
+               return false;
+         } else {
+            if (i1_reg->num != i2_reg->num)
+               return false;
+         }
       } else if (i1_reg->flags & IR3_REG_IMMED) {
          if (i1_reg->uim_val != i2_reg->uim_val)
             return false;
       } else {
+         if (i1_reg->flags & IR3_REG_ARRAY) {
+            if (i1_reg->array.offset != i2_reg->array.offset)
+               return false;
+         }
          if (i1_reg->def != i2_reg->def)
             return false;
       }
+   }
+
+   if (opc_cat(i1->opc) == 1) {
+      if (i1->cat1.dst_type != i2->cat1.dst_type ||
+          i1->cat1.src_type != i2->cat1.src_type ||
+          i1->cat1.round != i2->cat1.round)
+         return false;
    }
 
    return true;
@@ -93,7 +121,10 @@ instrs_equal(const struct ir3_instruction *i1, const struct ir3_instruction *i2)
 static bool
 instr_can_cse(const struct ir3_instruction *instr)
 {
-   if (instr->opc != OPC_META_COLLECT)
+   if (instr->opc != OPC_META_COLLECT && instr->opc != OPC_MOV)
+      return false;
+
+   if (!is_dest_gpr(instr->dsts[0]) || (instr->dsts[0]->flags & IR3_REG_ARRAY))
       return false;
 
    return true;

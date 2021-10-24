@@ -364,7 +364,7 @@ zink_create_gfx_program(struct zink_context *ctx,
          simple_mtx_lock(&prog->shaders[i]->lock);
          _mesa_set_add(prog->shaders[i]->programs, prog);
          simple_mtx_unlock(&prog->shaders[i]->lock);
-         zink_gfx_program_reference(screen, NULL, prog);
+         zink_gfx_program_reference(ctx, NULL, prog);
          _mesa_sha1_update(&sctx, prog->shaders[i]->base.sha1, sizeof(prog->shaders[i]->base.sha1));
       }
    }
@@ -378,7 +378,7 @@ zink_create_gfx_program(struct zink_context *ctx,
 
 fail:
    if (prog)
-      zink_destroy_gfx_program(screen, prog);
+      zink_destroy_gfx_program(ctx, prog);
    return NULL;
 }
 
@@ -452,7 +452,7 @@ zink_create_compute_program(struct zink_context *ctx, struct zink_shader *shader
 
 fail:
    if (comp)
-      zink_destroy_compute_program(screen, comp);
+      zink_destroy_compute_program(ctx, comp);
    return NULL;
 }
 
@@ -558,9 +558,10 @@ zink_program_num_bindings(const struct zink_program *pg, bool is_compute)
 }
 
 void
-zink_destroy_gfx_program(struct zink_screen *screen,
+zink_destroy_gfx_program(struct zink_context *ctx,
                          struct zink_gfx_program *prog)
 {
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
    if (prog->base.layout)
       VKSCR(DestroyPipelineLayout)(screen->dev, prog->base.layout, NULL);
 
@@ -596,15 +597,16 @@ zink_destroy_gfx_program(struct zink_screen *screen,
    }
    if (prog->base.pipeline_cache)
       VKSCR(DestroyPipelineCache)(screen->dev, prog->base.pipeline_cache, NULL);
-   screen->descriptor_program_deinit(screen, &prog->base);
+   screen->descriptor_program_deinit(ctx, &prog->base);
 
    ralloc_free(prog);
 }
 
 void
-zink_destroy_compute_program(struct zink_screen *screen,
-                         struct zink_compute_program *comp)
+zink_destroy_compute_program(struct zink_context *ctx,
+                             struct zink_compute_program *comp)
 {
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
    if (comp->base.layout)
       VKSCR(DestroyPipelineLayout)(screen->dev, comp->base.layout, NULL);
 
@@ -622,7 +624,7 @@ zink_destroy_compute_program(struct zink_screen *screen,
    free(comp->module);
    if (comp->base.pipeline_cache)
       VKSCR(DestroyPipelineCache)(screen->dev, comp->base.pipeline_cache, NULL);
-   screen->descriptor_program_deinit(screen, &comp->base);
+   screen->descriptor_program_deinit(ctx, &comp->base);
 
    ralloc_free(comp);
 }

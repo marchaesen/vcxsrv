@@ -562,6 +562,7 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
    VAStatus vaStatus = VA_STATUS_SUCCESS;
 
    unsigned i;
+   unsigned slice_param_idx = 0;
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -602,7 +603,7 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
          break;
 
       case VASliceParameterBufferType:
-         handleSliceParameterBuffer(context, buf, i);
+         handleSliceParameterBuffer(context, buf, slice_param_idx++);
          break;
 
       case VASliceDataBufferType:

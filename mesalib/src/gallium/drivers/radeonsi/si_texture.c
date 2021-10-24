@@ -733,6 +733,8 @@ static bool si_texture_get_handle(struct pipe_screen *screen, struct pipe_contex
 
       modifier = tex->surface.modifier;
    } else {
+      tc_buffer_disable_cpu_storage(&res->b.b);
+
       /* Buffer exports are for the OpenCL interop. */
       /* Move a suballocated buffer into a non-suballocated allocation. */
       if (sscreen->ws->buffer_is_suballocated(res->buf) ||
@@ -1579,7 +1581,9 @@ static struct pipe_resource *si_texture_from_handle(struct pipe_screen *screen,
        templ->last_level != 0)
       return NULL;
 
-   buf = sscreen->ws->buffer_from_handle(sscreen->ws, whandle, sscreen->info.max_alignment);
+   buf = sscreen->ws->buffer_from_handle(sscreen->ws, whandle,
+                                         sscreen->info.max_alignment,
+                                         templ->bind & PIPE_BIND_DRI_PRIME);
    if (!buf)
       return NULL;
 
@@ -2127,7 +2131,7 @@ si_memobj_from_handle(struct pipe_screen *screen, struct winsys_handle *whandle,
    if (!memobj)
       return NULL;
 
-   buf = sscreen->ws->buffer_from_handle(sscreen->ws, whandle, sscreen->info.max_alignment);
+   buf = sscreen->ws->buffer_from_handle(sscreen->ws, whandle, sscreen->info.max_alignment, false);
    if (!buf) {
       free(memobj);
       return NULL;

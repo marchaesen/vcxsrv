@@ -300,6 +300,9 @@ nir_lower_amul(nir_shader *shader,
    /* At this point, all 'amul's used in calculating an offset into
     * a large variable have been replaced with 'imul'.  So remaining
     * 'amul's can be replaced with 'imul24':
+    *
+    * Note the exception for 64b (such as load/store_global where
+    * address size is 64b) as imul24 cannot have 64b bitsize
     */
    nir_foreach_function(function, shader) {
       nir_function_impl *impl = function->impl;
@@ -316,7 +319,11 @@ nir_lower_amul(nir_shader *shader,
             if (alu->op != nir_op_amul)
                continue;
 
-            alu->op = nir_op_imul24;
+            if (nir_dest_bit_size(alu->dest.dest) <= 32)
+               alu->op = nir_op_imul24;
+            else
+               alu->op = nir_op_imul;
+
             state.progress |= true;
          }
       }

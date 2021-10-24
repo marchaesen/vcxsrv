@@ -35,8 +35,6 @@ ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
       errx(-1, "assembler failed");
    struct ir3_shader_variant *v = shader->variants;
 
-   v->mergedregs = true;
-
    kernel->v = v;
    kernel->bin = v->bin;
 

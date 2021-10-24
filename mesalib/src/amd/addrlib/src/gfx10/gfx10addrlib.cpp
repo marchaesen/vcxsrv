@@ -1,28 +1,29 @@
-/*
- * Copyright © 2007-2019 Advanced Micro Devices, Inc.
- * All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- */
+/**
+************************************************************************************************************************
+*
+* Copyright © 2007-2021 Advanced Micro Devices, Inc.
+* All Rights Reserved.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a
+* copy of this software and associated documentation files (the "Software"),
+* to deal in the Software without restriction, including without limitation
+* the rights to use, copy, modify, merge, publish, distribute, sublicense,
+* and/or sell copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
+* OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+* OTHER DEALINGS IN THE SOFTWARE
+*
+************************************************************************************************************************
+*/
 
 /**
 ************************************************************************************************************************
@@ -66,46 +67,46 @@ namespace V2
 
 const SwizzleModeFlags Gfx10Lib::SwizzleModeTable[ADDR_SW_MAX_TYPE] =
 {//Linear 256B  4KB  64KB   Var    Z    Std   Disp  Rot   XOR    T     RtOpt Reserved
-    {1,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // ADDR_SW_LINEAR
-    {0,    1,    0,    0,    0,    0,    1,    0,    0,    0,    0,    0,    0}, // ADDR_SW_256B_S
-    {0,    1,    0,    0,    0,    0,    0,    1,    0,    0,    0,    0,    0}, // ADDR_SW_256B_D
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
+    {{1,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // ADDR_SW_LINEAR
+    {{0,    1,    0,    0,    0,    0,    1,    0,    0,    0,    0,    0,    0}}, // ADDR_SW_256B_S
+    {{0,    1,    0,    0,    0,    0,    0,    1,    0,    0,    0,    0,    0}}, // ADDR_SW_256B_D
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
 
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0,    0,    0}, // ADDR_SW_4KB_S
-    {0,    0,    1,    0,    0,    0,    0,    1,    0,    0,    0,    0,    0}, // ADDR_SW_4KB_D
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0,    0,    0}}, // ADDR_SW_4KB_S
+    {{0,    0,    1,    0,    0,    0,    0,    1,    0,    0,    0,    0,    0}}, // ADDR_SW_4KB_D
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
 
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0,    0,    0}, // ADDR_SW_64KB_S
-    {0,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0,    0}, // ADDR_SW_64KB_D
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0,    0,    0}}, // ADDR_SW_64KB_S
+    {{0,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0,    0}}, // ADDR_SW_64KB_D
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
 
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
 
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    1,    0,    0}, // ADDR_SW_64KB_S_T
-    {0,    0,    0,    1,    0,    0,    0,    1,    0,    1,    1,    0,    0}, // ADDR_SW_64KB_D_T
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    1,    0,    0}}, // ADDR_SW_64KB_S_T
+    {{0,    0,    0,    1,    0,    0,    0,    1,    0,    1,    1,    0,    0}}, // ADDR_SW_64KB_D_T
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
 
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0}, // ADDR_SW_4KB_S_X
-    {0,    0,    1,    0,    0,    0,    0,    1,    0,    1,    0,    0,    0}, // ADDR_SW_4KB_D_X
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0}}, // ADDR_SW_4KB_S_X
+    {{0,    0,    1,    0,    0,    0,    0,    1,    0,    1,    0,    0,    0}}, // ADDR_SW_4KB_D_X
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
 
-    {0,    0,    0,    1,    0,    1,    0,    0,    0,    1,    0,    0,    0}, // ADDR_SW_64KB_Z_X
-    {0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0,    0,    0}, // ADDR_SW_64KB_S_X
-    {0,    0,    0,    1,    0,    0,    0,    1,    0,    1,    0,    0,    0}, // ADDR_SW_64KB_D_X
-    {0,    0,    0,    1,    0,    0,    0,    0,    0,    1,    0,    1,    0}, // ADDR_SW_64KB_R_X
+    {{0,    0,    0,    1,    0,    1,    0,    0,    0,    1,    0,    0,    0}}, // ADDR_SW_64KB_Z_X
+    {{0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0,    0,    0}}, // ADDR_SW_64KB_S_X
+    {{0,    0,    0,    1,    0,    0,    0,    1,    0,    1,    0,    0,    0}}, // ADDR_SW_64KB_D_X
+    {{0,    0,    0,    1,    0,    0,    0,    0,    0,    1,    0,    1,    0}}, // ADDR_SW_64KB_R_X
 
-    {0,    0,    0,    0,    1,    1,    0,    0,    0,    1,    0,    0,    0}, // ADDR_SW_VAR_Z_X
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // Reserved
-    {0,    0,    0,    0,    1,    0,    0,    0,    0,    1,    0,    1,    0}, // ADDR_SW_VAR_R_X
-    {1,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}, // ADDR_SW_LINEAR_GENERAL
+    {{0,    0,    0,    0,    1,    1,    0,    0,    0,    1,    0,    0,    0}}, // ADDR_SW_VAR_Z_X
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // Reserved
+    {{0,    0,    0,    0,    1,    0,    0,    0,    0,    1,    0,    1,    0}}, // ADDR_SW_VAR_R_X
+    {{1,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0}}, // ADDR_SW_LINEAR_GENERAL
 };
 
 const Dim3d Gfx10Lib::Block256_3d[] = {{8, 4, 8}, {4, 4, 8}, {4, 4, 4}, {4, 2, 4}, {2, 2, 4}};
@@ -611,7 +612,6 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeCmaskAddrFromCoord(
             (pIn->swizzleMode == ADDR_SW_VAR_Z_X) ? GFX10_CMASK_VAR_RBPLUS_PATIDX :
             (m_settings.supportRbPlus ? GFX10_CMASK_64K_RBPLUS_PATIDX : GFX10_CMASK_64K_PATIDX);
 
-
         const UINT_32  blkSizeLog2  = Log2(output.metaBlkWidth) + Log2(output.metaBlkHeight) - 7;
         const UINT_32  blkMask      = (1 << blkSizeLog2) - 1;
         const UINT_32  blkOffset    = ComputeOffsetFromSwizzlePattern(GFX10_CMASK_SW_PATTERN[patIdxTable[index]],
@@ -679,7 +679,6 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeHtileAddrFromCoord(
             const UINT_32  pipeMask      = (1 << m_pipesLog2) - 1;
             const UINT_32  index         = m_xmaskBaseIndex + numSampleLog2;
             const UINT_8*  patIdxTable   = m_settings.supportRbPlus ? GFX10_HTILE_RBPLUS_PATIDX : GFX10_HTILE_PATIDX;
-
 
             const UINT_32  blkSizeLog2   = Log2(output.metaBlkWidth) + Log2(output.metaBlkHeight) - 4;
             const UINT_32  blkMask       = (1 << blkSizeLog2) - 1;
@@ -991,7 +990,6 @@ BOOL_32 Gfx10Lib::HwlInitGlobalParams(
         // corresponding SW_64KB_* mode
         m_blockVarSizeLog2 = m_pipesLog2 + 14;
     }
-
 
     if (valid)
     {
@@ -2511,7 +2509,6 @@ BOOL_32 Gfx10Lib::ValidateNonSwModeParams(
     const BOOL_32             tex1d    = IsTex1d(rsrcType);
     const BOOL_32             stereo   = flags.qbStereo;
 
-
     // Resource type check
     if (tex1d)
     {
@@ -2640,7 +2637,6 @@ BOOL_32 Gfx10Lib::ValidateSwModeParams(
             ADDR_ASSERT_ALWAYS();
             valid = FALSE;
         }
-
     }
     else if (tex3d)
     {
@@ -2956,7 +2952,6 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlGetPreferredSurfaceSetting(
 
                 case ADDR_RSRC_TEX_2D:
                     allowedSwModeSet.value &= pIn->flags.prt ? Gfx10Rsrc2dPrtSwModeMask : Gfx10Rsrc2dSwModeMask;
-
                     break;
 
                 case ADDR_RSRC_TEX_3D:
@@ -3521,7 +3516,6 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeSurfaceInfoTiled(
 
     return ret;
 }
-
 
 /**
 ************************************************************************************************************************
@@ -4328,7 +4322,6 @@ const ADDR_SW_PATINFO* Gfx10Lib::GetSwizzlePatternInfo(
 
     return (patInfo != NULL) ? &patInfo[index] : NULL;
 }
-
 
 /**
 ************************************************************************************************************************

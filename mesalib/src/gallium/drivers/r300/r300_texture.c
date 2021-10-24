@@ -1167,7 +1167,7 @@ struct pipe_resource *r300_texture_from_handle(struct pipe_screen *screen,
         return NULL;
     }
 
-    buffer = rws->buffer_from_handle(rws, whandle, 0);
+    buffer = rws->buffer_from_handle(rws, whandle, 0, false);
     if (!buffer)
         return NULL;
 

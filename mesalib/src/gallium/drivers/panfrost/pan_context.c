@@ -688,11 +688,10 @@ panfrost_set_framebuffer_state(struct pipe_context *pctx,
         }
 
         /* We may need to generate a new variant if the fragment shader is
-         * keyed to the framebuffer format (due to EXT_framebuffer_fetch) */
+         * keyed to the framebuffer format or render target count */
         struct panfrost_shader_variants *fs = ctx->shader[PIPE_SHADER_FRAGMENT];
 
-        if (fs && fs->variant_count &&
-            fs->variants[fs->active_variant].info.fs.outputs_read)
+        if (fs && fs->variant_count)
                 ctx->base.bind_fs_state(&ctx->base, fs);
 }
 

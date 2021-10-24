@@ -67,6 +67,7 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    V__(R8_USCALED, 8_UINT,                      WZYX),
    V__(R8_SSCALED, 8_SINT,                      WZYX),
    _TC(R8_SRGB,    8_UNORM,                     WZYX),
+   _TC(Y8_UNORM,   NV12_Y,                      WZYX),
 
    FMT(A8_UNORM,   NONE, 8_UNORM, A8_UNORM,     WZYX),
    _TC(L8_UNORM,   8_UNORM,                     WZYX),
@@ -389,14 +390,19 @@ fd6_texture_format(enum pipe_format format, enum a6xx_tile_mode tile_mode)
    if (!formats[format].present)
       return FMT6_NONE;
 
-   /* Linear ARGB/ABGR1555 has a special format for sampling (tiled 1555/5551
-    * formats always have the same swizzle and layout).
-    */
    if (!tile_mode) {
       switch (format) {
+      /* Linear ARGB/ABGR1555 has a special format for sampling (tiled
+       * 1555/5551 formats always have the same swizzle and layout).
+       */
       case PIPE_FORMAT_A1R5G5B5_UNORM:
       case PIPE_FORMAT_A1B5G5R5_UNORM:
          return FMT6_1_5_5_5_UNORM;
+      /* note: this may be more about UBWC than tiling, but we don't support
+       * tiled non-UBWC NV12
+       */
+      case PIPE_FORMAT_Y8_UNORM:
+         return FMT6_8_UNORM;
       default:
          break;
       }
@@ -428,6 +434,10 @@ fd6_color_format(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 {
    if (!formats[format].present)
       return FMT6_NONE;
+
+   if (!tile_mode && format == PIPE_FORMAT_Y8_UNORM)
+      return FMT6_8_UNORM;
+
    return formats[format].rb;
 }
 

@@ -25,116 +25,6 @@
 
 #include "vk_util.h"
 
-static void
-lvp_render_pass_compile(struct lvp_render_pass *pass)
-{
-   for (uint32_t i = 0; i < pass->subpass_count; i++) {
-      struct lvp_subpass *subpass = &pass->subpasses[i];
-
-      for (uint32_t j = 0; j < subpass->attachment_count; j++) {
-         struct lvp_subpass_attachment *subpass_att =
-            &subpass->attachments[j];
-         if (subpass_att->attachment == VK_ATTACHMENT_UNUSED)
-            continue;
-
-         struct lvp_render_pass_attachment *pass_att =
-            &pass->attachments[subpass_att->attachment];
-
-         pass_att->first_subpass_idx = UINT32_MAX;
-      }
-   }
-
-   for (uint32_t i = 0; i < pass->subpass_count; i++) {
-      struct lvp_subpass *subpass = &pass->subpasses[i];
-      uint32_t color_sample_count = 1, depth_sample_count = 1;
-
-      /* We don't allow depth_stencil_attachment to be non-NULL and
-       * be VK_ATTACHMENT_UNUSED.  This way something can just check
-       * for NULL and be guaranteed that they have a valid
-       * attachment.
-       */
-      if (subpass->depth_stencil_attachment &&
-          subpass->depth_stencil_attachment->attachment == VK_ATTACHMENT_UNUSED)
-         subpass->depth_stencil_attachment = NULL;
-
-      if (subpass->ds_resolve_attachment &&
-          subpass->ds_resolve_attachment->attachment == VK_ATTACHMENT_UNUSED)
-         subpass->ds_resolve_attachment = NULL;
-
-      for (uint32_t j = 0; j < subpass->attachment_count; j++) {
-         struct lvp_subpass_attachment *subpass_att =
-            &subpass->attachments[j];
-         if (subpass_att->attachment == VK_ATTACHMENT_UNUSED)
-            continue;
-
-         struct lvp_render_pass_attachment *pass_att =
-            &pass->attachments[subpass_att->attachment];
-
-         if (i < pass_att->first_subpass_idx)
-            pass_att->first_subpass_idx = i;
-         pass_att->last_subpass_idx = i;
-      }
-
-      subpass->has_color_att = false;
-      for (uint32_t j = 0; j < subpass->color_count; j++) {
-         struct lvp_subpass_attachment *subpass_att =
-            &subpass->color_attachments[j];
-         if (subpass_att->attachment == VK_ATTACHMENT_UNUSED)
-            continue;
-
-         subpass->has_color_att = true;
-
-         struct lvp_render_pass_attachment *pass_att =
-            &pass->attachments[subpass_att->attachment];
-
-         color_sample_count = pass_att->samples;
-      }
-
-      if (subpass->depth_stencil_attachment) {
-         const uint32_t a =
-            subpass->depth_stencil_attachment->attachment;
-         struct lvp_render_pass_attachment *pass_att =
-            &pass->attachments[a];
-         depth_sample_count = pass_att->samples;
-      }
-
-      subpass->max_sample_count = MAX2(color_sample_count,
-                                       depth_sample_count);
-
-      /* We have to handle resolve attachments specially */
-      subpass->has_color_resolve = false;
-      if (subpass->resolve_attachments) {
-         for (uint32_t j = 0; j < subpass->color_count; j++) {
-            struct lvp_subpass_attachment *resolve_att =
-               &subpass->resolve_attachments[j];
-
-            if (resolve_att->attachment == VK_ATTACHMENT_UNUSED)
-               continue;
-
-            subpass->has_color_resolve = true;
-         }
-      }
-
-      for (uint32_t j = 0; j < subpass->input_count; ++j) {
-         if (subpass->input_attachments[j].attachment == VK_ATTACHMENT_UNUSED)
-            continue;
-
-         for (uint32_t k = 0; k < subpass->color_count; ++k) {
-            if (subpass->color_attachments[k].attachment == subpass->input_attachments[j].attachment) {
-               subpass->input_attachments[j].in_render_loop = true;
-               subpass->color_attachments[k].in_render_loop = true;
-            }
-         }
-
-         if (subpass->depth_stencil_attachment &&
-             subpass->depth_stencil_attachment->attachment == subpass->input_attachments[j].attachment) {
-            subpass->input_attachments[j].in_render_loop = true;
-            subpass->depth_stencil_attachment->in_render_loop = true;
-         }
-      }
-   }
-}
-
 static unsigned
 lvp_num_subpass_attachments2(const VkSubpassDescription2 *desc)
 {
@@ -159,12 +49,19 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
    size_t attachments_offset;
    size_t size;
 
+   uint32_t subpass_attachment_count = 0;
+   for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
+      subpass_attachment_count += lvp_num_subpass_attachments2(&pCreateInfo->pSubpasses[i]);
+   }
+
    size = sizeof(*pass);
    size += pCreateInfo->subpassCount * sizeof(pass->subpasses[0]);
    attachments_offset = size;
    size += pCreateInfo->attachmentCount * sizeof(pass->attachments[0]);
+   uint32_t subpass_attachment_offset = size;
+   size += subpass_attachment_count * sizeof(void*);
 
-   pass = vk_alloc2(&device->vk.alloc, pAllocator, size, 8,
+   pass = vk_zalloc2(&device->vk.alloc, pAllocator, size, 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pass == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -187,103 +84,84 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateRenderPass2(
       att->samples = pCreateInfo->pAttachments[i].samples;
       att->load_op = pCreateInfo->pAttachments[i].loadOp;
       att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
-      att->final_layout = pCreateInfo->pAttachments[i].finalLayout;
-      att->first_subpass_idx = UINT32_MAX;
+      att->attachment = i;
 
       bool is_zs = util_format_is_depth_or_stencil(lvp_vk_format_to_pipe_format(att->format));
       pass->has_zs_attachment |= is_zs;
       pass->has_color_attachment |= !is_zs;
    }
-   uint32_t subpass_attachment_count = 0;
-   for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
-      subpass_attachment_count += lvp_num_subpass_attachments2(&pCreateInfo->pSubpasses[i]);
-   }
 
-   if (subpass_attachment_count) {
-      pass->subpass_attachments =
-         vk_alloc2(&device->vk.alloc, pAllocator,
-                   subpass_attachment_count * sizeof(struct lvp_subpass_attachment), 8,
-                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-      if (pass->subpass_attachments == NULL) {
-         vk_free2(&device->vk.alloc, pAllocator, pass);
-         return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
-      }
-   } else
-      pass->subpass_attachments = NULL;
+   uint32_t subpass_attachment_idx = 0;
+#define ATTACHMENT_OFFSET (struct lvp_render_pass_attachment**)(((uint8_t*)pass) + subpass_attachment_offset + (subpass_attachment_idx * sizeof(void*)))
+#define CHECK_UNUSED_ATTACHMENT(SRC, DST, IDX) do { \
+      if (desc->SRC[IDX].attachment == VK_ATTACHMENT_UNUSED) \
+         subpass->DST[IDX] = NULL; \
+      else \
+         subpass->DST[IDX] = &pass->attachments[desc->SRC[IDX].attachment]; \
+   } while (0)
 
-   struct lvp_subpass_attachment *p = pass->subpass_attachments;
    for (uint32_t i = 0; i < pCreateInfo->subpassCount; i++) {
       const VkSubpassDescription2 *desc = &pCreateInfo->pSubpasses[i];
       struct lvp_subpass *subpass = &pass->subpasses[i];
 
       subpass->input_count = desc->inputAttachmentCount;
       subpass->color_count = desc->colorAttachmentCount;
-      subpass->attachment_count = lvp_num_subpass_attachments2(desc);
-      subpass->attachments = p;
       subpass->view_mask = desc->viewMask;
+      subpass->has_color_resolve = false;
 
       if (desc->inputAttachmentCount > 0) {
-         subpass->input_attachments = p;
-         p += desc->inputAttachmentCount;
+         subpass->input_attachments = ATTACHMENT_OFFSET;
+         subpass_attachment_idx += desc->inputAttachmentCount;
 
          for (uint32_t j = 0; j < desc->inputAttachmentCount; j++) {
-            subpass->input_attachments[j] = (struct lvp_subpass_attachment) {
-               .attachment = desc->pInputAttachments[j].attachment,
-               .layout = desc->pInputAttachments[j].layout,
-            };
+            CHECK_UNUSED_ATTACHMENT(pInputAttachments, input_attachments, j);
          }
       }
 
       if (desc->colorAttachmentCount > 0) {
-         subpass->color_attachments = p;
-         p += desc->colorAttachmentCount;
+         subpass->color_attachments = ATTACHMENT_OFFSET;
+         subpass_attachment_idx += desc->colorAttachmentCount;
 
          for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-            subpass->color_attachments[j] = (struct lvp_subpass_attachment) {
-               .attachment = desc->pColorAttachments[j].attachment,
-               .layout = desc->pColorAttachments[j].layout,
-            };
+            CHECK_UNUSED_ATTACHMENT(pColorAttachments, color_attachments, j);
          }
       }
 
       if (desc->pResolveAttachments) {
-         subpass->resolve_attachments = p;
-         p += desc->colorAttachmentCount;
+         subpass->resolve_attachments = ATTACHMENT_OFFSET;
+         subpass_attachment_idx += desc->colorAttachmentCount;
 
          for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-            subpass->resolve_attachments[j] = (struct lvp_subpass_attachment) {
-               .attachment = desc->pResolveAttachments[j].attachment,
-               .layout = desc->pResolveAttachments[j].layout,
-            };
+            CHECK_UNUSED_ATTACHMENT(pResolveAttachments, resolve_attachments, j);
+            if (subpass->resolve_attachments[j])
+               subpass->has_color_resolve = true;
          }
       }
 
       if (desc->pDepthStencilAttachment) {
-         subpass->depth_stencil_attachment = p++;
+         subpass->depth_stencil_attachment = ATTACHMENT_OFFSET;
+         subpass_attachment_idx++;
 
-         *subpass->depth_stencil_attachment = (struct lvp_subpass_attachment) {
-            .attachment = desc->pDepthStencilAttachment->attachment,
-            .layout = desc->pDepthStencilAttachment->layout,
-         };
+         CHECK_UNUSED_ATTACHMENT(pDepthStencilAttachment, depth_stencil_attachment, 0);
       }
 
       const VkSubpassDescriptionDepthStencilResolve *ds_resolve =
          vk_find_struct_const(desc->pNext, SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
 
       if (ds_resolve && ds_resolve->pDepthStencilResolveAttachment) {
-         subpass->ds_resolve_attachment = p++;
+         subpass->ds_resolve_attachment = ATTACHMENT_OFFSET;
+         subpass_attachment_idx++;
 
-         *subpass->ds_resolve_attachment = (struct lvp_subpass_attachment){
-            .attachment = ds_resolve->pDepthStencilResolveAttachment->attachment,
-            .layout = ds_resolve->pDepthStencilResolveAttachment->layout,
-         };
+         if (ds_resolve->pDepthStencilResolveAttachment->attachment == VK_ATTACHMENT_UNUSED)
+            *subpass->ds_resolve_attachment = NULL;
+         else
+            *subpass->ds_resolve_attachment = &pass->attachments[ds_resolve->pDepthStencilResolveAttachment->attachment];
 
          subpass->depth_resolve_mode = ds_resolve->depthResolveMode;
          subpass->stencil_resolve_mode = ds_resolve->stencilResolveMode;
       }
    }
-
-   lvp_render_pass_compile(pass);
+#undef ATTACHMENT_OFFSET
    *pRenderPass = lvp_render_pass_to_handle(pass);
 
    return VK_SUCCESS;

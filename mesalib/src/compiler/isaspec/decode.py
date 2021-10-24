@@ -159,8 +159,8 @@ static const struct isa_bitset bitset_${bitset.get_c_name()} = {
 %   endif
        .name     = "${name}",
        .gen      = {
-           .min  = ${bitset.gen_min},
-           .max  = ${bitset.gen_max},
+           .min  = ${bitset.get_gen_min()},
+           .max  = ${bitset.get_gen_max()},
        },
        .match.bitset    = { ${', '.join(isa.split_bits(pattern.match))} },
        .dontcare.bitset = { ${', '.join(isa.split_bits(pattern.dontcare))} },

@@ -63,7 +63,8 @@ static void handle_env_var_force_family(struct amdgpu_winsys *ws)
          if (!strcmp(family, ac_get_llvm_processor_name(i))) {
             /* Override family and chip_class. */
             ws->info.family = i;
-            ws->info.name = "GCN-NOOP";
+            ws->info.name = "NOOP";
+            strcpy(ws->info.lowercase_name , "noop");
 
             if (i >= CHIP_SIENNA_CICHLID)
                ws->info.chip_class = GFX10_3;

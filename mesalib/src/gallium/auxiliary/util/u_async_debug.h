@@ -37,6 +37,10 @@
 #include "util/u_debug.h"
 #include "util/simple_mtx.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct util_debug_message {
    unsigned *id;
    enum pipe_debug_type type;
@@ -70,5 +74,9 @@ u_async_debug_drain(struct util_async_debug_callback *adbg,
    if (adbg->count)
       _u_async_debug_drain(adbg, dst);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UTIL_ASYNC_DEBUG_H */

@@ -1016,7 +1016,7 @@ iris_setup_binding_table(const struct intel_device_info *devinfo,
    }
    bt->size_bytes = next * 4;
 
-   if (INTEL_DEBUG & DEBUG_BT) {
+   if (INTEL_DEBUG(DEBUG_BT)) {
       iris_print_binding_table(stderr, gl_shader_stage_name(info->stage), bt);
    }
 

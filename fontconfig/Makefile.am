@@ -83,7 +83,7 @@ configdir = $(CONFIGDIR)
 xmldir = $(XMLDIR)
 xml_DATA = fonts.dtd
 
-if CROSS_COMPILING
+if !ENABLE_CACHE_BUILD
   RUN_FC_CACHE_TEST=false
 else
   RUN_FC_CACHE_TEST=test -z "$(DESTDIR)"

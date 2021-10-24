@@ -198,6 +198,8 @@ struct ir3_shader_key;
 struct fd_context {
    struct pipe_context base;
 
+   unsigned flags;      /* PIPE_CONTEXT_x */
+
    struct threaded_context *tc;
 
    struct list_head node; /* node in screen->context_list */

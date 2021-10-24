@@ -275,7 +275,7 @@ iris_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info *info,
    if (ice->state.predicate == IRIS_PREDICATE_STATE_DONT_RENDER)
       return;
 
-   if (INTEL_DEBUG & DEBUG_REEMIT) {
+   if (INTEL_DEBUG(DEBUG_REEMIT)) {
       ice->state.dirty |= IRIS_ALL_DIRTY_FOR_RENDER;
       ice->state.stage_dirty |= IRIS_ALL_STAGE_DIRTY_FOR_RENDER;
    }
@@ -386,7 +386,7 @@ iris_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info *grid)
    if (ice->state.predicate == IRIS_PREDICATE_STATE_DONT_RENDER)
       return;
 
-   if (INTEL_DEBUG & DEBUG_REEMIT) {
+   if (INTEL_DEBUG(DEBUG_REEMIT)) {
       ice->state.dirty |= IRIS_ALL_DIRTY_FOR_COMPUTE;
       ice->state.stage_dirty |= IRIS_ALL_STAGE_DIRTY_FOR_COMPUTE;
    }

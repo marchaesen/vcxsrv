@@ -196,6 +196,9 @@ void si_cp_dma_clear_buffer(struct si_context *sctx, struct radeon_cmdbuf *cs,
 
    assert(size && size % 4 == 0);
 
+   if (user_flags & SI_OP_SYNC_GE_BEFORE)
+      sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;
+
    if (user_flags & SI_OP_SYNC_CS_BEFORE)
       sctx->flags |= SI_CONTEXT_CS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;
 
@@ -336,6 +339,9 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
                                RADEON_FLUSH_TOGGLE_SECURE_SUBMISSION, NULL);
       }
    }
+
+   if (user_flags & SI_OP_SYNC_GE_BEFORE)
+      sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;
 
    if (user_flags & SI_OP_SYNC_CS_BEFORE)
       sctx->flags |= SI_CONTEXT_CS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;

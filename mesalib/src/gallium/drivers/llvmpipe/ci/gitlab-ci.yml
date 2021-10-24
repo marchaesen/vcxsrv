@@ -84,7 +84,6 @@ llvmpipe-traces:
     # busy at the deqp-runner level.
     LP_NUM_THREADS: 0
     GPU_VERSION: llvmpipe
-    DEQP_EXPECTED_RENDERER: llvmpipe
   extends:
     - .test-gl
     - .deqp-test
@@ -92,18 +91,15 @@ llvmpipe-traces:
 
 llvmpipe-deqp:
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: llvmpipe
   parallel: 2
   extends: .llvmpipe-deqp-test
 
 llvmpipe-deqp-asan:
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: llvmpipe-asan
     GPU_VERSION: llvmpipe-asan
     DEQP_FRACTION: 10
-    TEST_LD_PRELOAD: libasan.so.6
   extends: .llvmpipe-deqp-test
   needs:
     - debian/x86_test-gl

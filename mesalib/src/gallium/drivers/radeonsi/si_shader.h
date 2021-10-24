@@ -544,10 +544,6 @@ struct si_tcs_epilog_bits {
    unsigned tes_reads_tess_factors : 1;
 };
 
-struct si_gs_prolog_bits {
-   unsigned tri_strip_adj_fix : 1;
-};
-
 /* Common PS bits between the shader key and the prolog key. */
 struct si_ps_prolog_bits {
    unsigned color_two_side : 1;
@@ -592,10 +588,6 @@ union si_shader_part_key {
       struct si_tcs_epilog_bits states;
    } tcs_epilog;
    struct {
-      struct si_gs_prolog_bits states;
-      unsigned as_ngg : 1;
-   } gs_prolog;
-   struct {
       struct si_ps_prolog_bits states;
       unsigned num_input_sgprs : 6;
       unsigned num_input_vgprs : 5;
@@ -618,7 +610,8 @@ union si_shader_part_key {
    } ps_epilog;
 };
 
-struct si_shader_key {
+/* The shader key for geometry stages (VS, TCS, TES, GS) */
+struct si_shader_key_ge {
    /* Prolog and epilog flags. */
    union {
       struct {
@@ -632,12 +625,7 @@ struct si_shader_key {
       struct {
          struct si_vs_prolog_bits vs_prolog; /* for merged ES-GS */
          struct si_shader_selector *es;      /* for merged ES-GS */
-         struct si_gs_prolog_bits prolog;
       } gs;
-      struct {
-         struct si_ps_prolog_bits prolog;
-         struct si_ps_epilog_bits epilog;
-      } ps;
    } part;
 
    /* These three are initially set according to the NEXT_SHADER property,
@@ -657,15 +645,10 @@ struct si_shader_key {
       union si_vs_fix_fetch vs_fix_fetch[SI_MAX_ATTRIBS];
 
       union {
-         uint64_t ff_tcs_inputs_to_copy; /* for fixed-func TCS */
+         uint64_t ff_tcs_inputs_to_copy; /* fixed-func TCS only */
          /* When PS needs PrimID and GS is disabled. */
-         unsigned vs_export_prim_id : 1;
-         struct {
-            unsigned interpolate_at_sample_force_center : 1;
-            unsigned fbfetch_msaa : 1;
-            unsigned fbfetch_is_1D : 1;
-            unsigned fbfetch_layered : 1;
-         } ps;
+         unsigned vs_export_prim_id : 1;    /* VS and TES only */
+         unsigned gs_tri_strip_adj_fix : 1; /* GS only */
       } u;
    } mono;
 
@@ -697,6 +680,44 @@ struct si_shader_key {
        */
       uint32_t inlined_uniform_values[MAX_INLINABLE_UNIFORMS];
    } opt;
+};
+
+struct si_shader_key_ps {
+   struct {
+      /* Prolog and epilog flags. */
+      struct si_ps_prolog_bits prolog;
+      struct si_ps_epilog_bits epilog;
+   } part;
+
+   /* Flags for monolithic compilation only. */
+   struct {
+      unsigned interpolate_at_sample_force_center : 1;
+      unsigned fbfetch_msaa : 1;
+      unsigned fbfetch_is_1D : 1;
+      unsigned fbfetch_layered : 1;
+   } mono;
+
+   /* Optimization flags for asynchronous compilation only. */
+   struct {
+      /* For shaders where monolithic variants have better code.
+       *
+       * This is a flag that has no effect on code generation,
+       * but forces monolithic shaders to be used as soon as
+       * possible, because it's in the "opt" group.
+       */
+      unsigned prefer_mono : 1;
+      unsigned inline_uniforms:1;
+
+      /* This must be kept last to limit the number of variants
+       * depending only on the uniform values.
+       */
+      uint32_t inlined_uniform_values[MAX_INLINABLE_UNIFORMS];
+   } opt;
+};
+
+union si_shader_key {
+   struct si_shader_key_ge ge; /* geometry engine shaders */
+   struct si_shader_key_ps ps;
 };
 
 /* Restore the pack alignment to default. */
@@ -777,7 +798,7 @@ struct si_shader {
 
    struct si_resource *bo;
    struct si_resource *scratch_bo;
-   struct si_shader_key key;
+   union si_shader_key key;
    struct util_queue_fence ready;
    bool compilation_failed;
    bool is_monolithic;
@@ -918,7 +939,7 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first);
 void si_nir_late_opts(nir_shader *nir);
 char *si_finalize_nir(struct pipe_screen *screen, void *nirptr);
 
-/* si_state_shaders.c */
+/* si_state_shaders.cpp */
 void gfx9_get_gs_info(struct si_shader_selector *es, struct si_shader_selector *gs,
                       struct gfx9_gs_info *out);
 bool gfx10_is_ngg_passthrough(struct si_shader *shader);
@@ -927,16 +948,18 @@ bool gfx10_is_ngg_passthrough(struct si_shader *shader);
 
 /* Return the pointer to the main shader part's pointer. */
 static inline struct si_shader **si_get_main_shader_part(struct si_shader_selector *sel,
-                                                         const struct si_shader_key *key)
+                                                         const union si_shader_key *key)
 {
-   if (key->as_ls)
-      return &sel->main_shader_part_ls;
-   if (key->as_es && key->as_ngg)
-      return &sel->main_shader_part_ngg_es;
-   if (key->as_es)
-      return &sel->main_shader_part_es;
-   if (key->as_ngg)
-      return &sel->main_shader_part_ngg;
+   if (sel->info.stage <= MESA_SHADER_GEOMETRY) {
+      if (key->ge.as_ls)
+         return &sel->main_shader_part_ls;
+      if (key->ge.as_es && key->ge.as_ngg)
+         return &sel->main_shader_part_ngg_es;
+      if (key->ge.as_es)
+         return &sel->main_shader_part_es;
+      if (key->ge.as_ngg)
+         return &sel->main_shader_part_ngg;
+   }
    return &sel->main_shader_part;
 }
 
@@ -954,7 +977,7 @@ static inline bool gfx10_edgeflags_have_effect(struct si_shader *shader)
 {
    if (shader->selector->info.stage == MESA_SHADER_VERTEX &&
        !shader->selector->info.base.vs.blit_sgprs_amd &&
-       !(shader->key.opt.ngg_culling & SI_NGG_CULL_LINES))
+       !(shader->key.ge.opt.ngg_culling & SI_NGG_CULL_LINES))
       return true;
 
    return false;

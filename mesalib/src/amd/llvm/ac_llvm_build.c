@@ -4776,3 +4776,13 @@ void ac_build_triangle_strip_indices_to_triangle(struct ac_llvm_context *ctx, LL
                             LLVMBuildSelect(builder, is_odd, index[1], index[2], ""), index[2], "");
    memcpy(index, out, sizeof(out));
 }
+
+LLVMValueRef ac_build_is_inf_or_nan(struct ac_llvm_context *ctx, LLVMValueRef a)
+{
+   LLVMValueRef args[2] = {
+      a,
+      LLVMConstInt(ctx->i32, S_NAN | Q_NAN | N_INFINITY | P_INFINITY, 0),
+   };
+   return ac_build_intrinsic(ctx, "llvm.amdgcn.class.f32", ctx->i1, args, 2,
+                             AC_FUNC_ATTR_READNONE);
+}

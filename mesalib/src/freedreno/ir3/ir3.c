@@ -125,6 +125,7 @@ ir3_should_double_threadsize(struct ir3_shader_variant *v, unsigned regs_count)
    }
 
    switch (v->type) {
+   case MESA_SHADER_KERNEL:
    case MESA_SHADER_COMPUTE: {
       unsigned threads_per_wg =
          v->local_size[0] * v->local_size[1] * v->local_size[2];
@@ -177,7 +178,8 @@ ir3_get_reg_independent_max_waves(struct ir3_shader_variant *v,
    unsigned max_waves = compiler->max_waves;
 
    /* If this is a compute shader, compute the limit based on shared size */
-   if (v->type == MESA_SHADER_COMPUTE) {
+   if ((v->type == MESA_SHADER_COMPUTE) ||
+       (v->type == MESA_SHADER_KERNEL)) {
       /* Shared is allocated in chunks of 1k */
       unsigned shared_per_wg = ALIGN_POT(v->shared_size, 1024);
       if (shared_per_wg > 0 && !v->local_size_variable) {
@@ -704,6 +706,9 @@ ir3_set_dst_type(struct ir3_instruction *instr, bool half)
 void
 ir3_fixup_src_type(struct ir3_instruction *instr)
 {
+   if (instr->srcs_count == 0)
+      return;
+
    switch (opc_cat(instr->opc)) {
    case 1: /* move instructions */
       if (instr->srcs[0]->flags & IR3_REG_HALF) {
@@ -951,6 +956,12 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
             return false;
 
          if (instr->opc == OPC_STG_A && (n == 4))
+            return false;
+
+         if (instr->opc == OPC_LDG && (n == 0))
+            return false;
+
+         if (instr->opc == OPC_LDG_A && (n < 2))
             return false;
 
          /* as with atomics, these cat6 instrs can only have an immediate

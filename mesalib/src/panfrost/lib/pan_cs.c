@@ -431,11 +431,7 @@ pan_prepare_rt(const struct pan_fb_info *fb, unsigned idx,
 
         pan_rt_init_format(rt, cfg);
 
-#if PAN_ARCH <= 5
         cfg->writeback_block_format = mod_to_block_fmt(rt->image->layout.modifier);
-#else
-        cfg->writeback_block_format = mod_to_block_fmt(rt->image->layout.modifier);
-#endif
 
         struct pan_surface surf;
         pan_iview_get_surface(rt, 0, 0, 0, &surf);
@@ -551,6 +547,68 @@ pan_emit_rt(const struct pan_fb_info *fb,
         }
 }
 
+#if PAN_ARCH >= 6
+/* All Bifrost and Valhall GPUs are affected by issue TSIX-2033:
+ *
+ *      Forcing clean_tile_writes breaks INTERSECT readbacks
+ *
+ * To workaround, use the frame shader mode ALWAYS instead of INTERSECT if
+ * clean tile writes is forced. Since INTERSECT is a hint that the hardware may
+ * ignore, this cannot affect correctness, only performance */
+
+static enum mali_pre_post_frame_shader_mode
+pan_fix_frame_shader_mode(enum mali_pre_post_frame_shader_mode mode, bool force_clean_tile)
+{
+        if (force_clean_tile && mode == MALI_PRE_POST_FRAME_SHADER_MODE_INTERSECT)
+                return MALI_PRE_POST_FRAME_SHADER_MODE_ALWAYS;
+        else
+                return mode;
+}
+
+/* Regardless of clean_tile_write_enable, the hardware writes clean tiles if
+ * the effective tile size differs from the superblock size of any enabled AFBC
+ * render target. Check this condition. */
+
+static bool
+pan_force_clean_write_rt(const struct pan_image_view *rt, unsigned tile_size)
+{
+        if (!drm_is_afbc(rt->image->layout.modifier))
+                return false;
+
+        unsigned superblock = panfrost_block_dim(rt->image->layout.modifier, true, 0);
+
+        assert(superblock >= 16);
+        assert(tile_size <= 16*16);
+
+        /* Tile size and superblock differ unless they are both 16x16 */
+        return !(superblock == 16 && tile_size == 16*16);
+}
+
+static bool
+pan_force_clean_write(const struct pan_fb_info *fb, unsigned tile_size)
+{
+        /* Maximum tile size */
+        assert(tile_size <= 16*16);
+
+        for (unsigned i = 0; i < fb->rt_count; ++i) {
+                if (fb->rts[i].view && !fb->rts[i].discard &&
+                    pan_force_clean_write_rt(fb->rts[i].view, tile_size))
+                        return true;
+        }
+
+        if (fb->zs.view.zs && !fb->zs.discard.z &&
+            pan_force_clean_write_rt(fb->zs.view.zs, tile_size))
+                return true;
+
+        if (fb->zs.view.s && !fb->zs.discard.s &&
+            pan_force_clean_write_rt(fb->zs.view.s, tile_size))
+                return true;
+
+        return false;
+}
+
+#endif
+
 static unsigned
 pan_emit_mfbd(const struct panfrost_device *dev,
               const struct pan_fb_info *fb,
@@ -574,11 +632,13 @@ pan_emit_mfbd(const struct panfrost_device *dev,
 
         pan_section_pack(fbd, FRAMEBUFFER, PARAMETERS, cfg) {
 #if PAN_ARCH >= 6
+                bool force_clean_write = pan_force_clean_write(fb, tile_size);
+
                 cfg.sample_locations =
                         panfrost_sample_positions(dev, pan_sample_pattern(fb->nr_samples));
-                cfg.pre_frame_0 = fb->bifrost.pre_post.modes[0];
-                cfg.pre_frame_1 = fb->bifrost.pre_post.modes[1];
-                cfg.post_frame = fb->bifrost.pre_post.modes[2];
+                cfg.pre_frame_0 = pan_fix_frame_shader_mode(fb->bifrost.pre_post.modes[0], force_clean_write);
+                cfg.pre_frame_1 = pan_fix_frame_shader_mode(fb->bifrost.pre_post.modes[1], force_clean_write);
+                cfg.post_frame  = pan_fix_frame_shader_mode(fb->bifrost.pre_post.modes[2], force_clean_write);
                 cfg.frame_shader_dcds = fb->bifrost.pre_post.dcds.gpu;
                 cfg.tiler = tiler_ctx->bifrost;
 #endif

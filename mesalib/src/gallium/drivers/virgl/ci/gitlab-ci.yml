@@ -9,13 +9,11 @@
 
 virgl-on-gl:
   variables:
-    DEQP_VER: gles2 # For renderer check
     DEQP_SUITE: virgl-gl
     GPU_VERSION: virgl-gl
     # Speed rendering a bit, as crosvm is processing requests serially
     LP_NUM_THREADS: 8
-    DEQP_PARALLEL: 3
-    DEQP_EXPECTED_RENDERER: virgl
+    FDO_CI_CONCURRENT: 3
     CROSVM_TEST_SCRIPT: "/install/deqp-runner.sh"
   parallel: 6
   tags:

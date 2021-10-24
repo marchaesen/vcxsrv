@@ -43,8 +43,6 @@
 #include "tgsi/tgsi_text.h"
 #include "indices/u_primconvert.h"
 
-#include "pipebuffer/pb_buffer.h"
-
 #include "virgl_encode.h"
 #include "virgl_context.h"
 #include "virtio-gpu/virgl_protocol.h"

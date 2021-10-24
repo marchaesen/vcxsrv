@@ -1782,27 +1782,25 @@ shader_variant_compile(struct radv_device *device, struct vk_shader_module *modu
    }
 
    struct radv_shader_args args = {0};
-   args.options = options;
-   args.shader_info = info;
    args.is_gs_copy_shader = gs_copy_shader;
    args.is_trap_handler_shader = trap_handler_shader;
 
-   radv_declare_shader_args(
-      &args, gs_copy_shader ? MESA_SHADER_VERTEX : shaders[shader_count - 1]->info.stage,
+   radv_declare_shader_args(options, info,
+      gs_copy_shader ? MESA_SHADER_VERTEX : shaders[shader_count - 1]->info.stage,
       shader_count >= 2,
-      shader_count >= 2 ? shaders[shader_count - 2]->info.stage : MESA_SHADER_VERTEX);
+      shader_count >= 2 ? shaders[shader_count - 2]->info.stage : MESA_SHADER_VERTEX, &args);
 
 #ifdef LLVM_AVAILABLE
    if (radv_use_llvm_for_stage(device, stage) || options->dump_shader || options->record_ir)
       ac_init_llvm_once();
 
    if (radv_use_llvm_for_stage(device, stage)) {
-      llvm_compile_shader(device, shader_count, shaders, &binary, &args);
+      llvm_compile_shader(options, info, shader_count, shaders, &binary, &args);
 #else
    if (false) {
 #endif
    } else {
-      aco_compile_shader(shader_count, shaders, &binary, &args);
+      aco_compile_shader(options, info, shader_count, shaders, &args, &binary);
    }
 
    binary->info = *info;
@@ -1962,10 +1960,8 @@ radv_create_vs_prolog(struct radv_device *device, const struct radv_vs_prolog_ke
    info.is_ngg = key->is_ngg;
 
    struct radv_shader_args args = {0};
-   args.options = &options;
-   args.shader_info = &info;
-   radv_declare_shader_args(&args, key->next_stage, key->next_stage != MESA_SHADER_VERTEX,
-                            MESA_SHADER_VERTEX);
+   radv_declare_shader_args(&options, &info, key->next_stage, key->next_stage != MESA_SHADER_VERTEX,
+                            MESA_SHADER_VERTEX, &args);
 
 #ifdef LLVM_AVAILABLE
    if (options.dump_shader)
@@ -1973,8 +1969,11 @@ radv_create_vs_prolog(struct radv_device *device, const struct radv_vs_prolog_ke
 #endif
 
    struct radv_prolog_binary *binary = NULL;
-   aco_compile_vs_prolog(key, &binary, &args);
+   aco_compile_vs_prolog(&options, &info, key, &args, &binary);
    struct radv_shader_prolog *prolog = upload_vs_prolog(device, binary, info.wave_size);
+   if (prolog) {
+      prolog->nontrivial_divisors = key->state->nontrivial_divisors;
+   }
    free(binary);
 
    return prolog;

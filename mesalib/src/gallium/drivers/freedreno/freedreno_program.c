@@ -204,6 +204,9 @@ fd_prog_init(struct pipe_context *pctx)
    pctx->bind_fs_state = fd_fs_state_bind;
    pctx->set_patch_vertices = fd_set_patch_vertices;
 
+   if (ctx->flags & PIPE_CONTEXT_COMPUTE_ONLY)
+      return;
+
    ctx->solid_prog.fs = assemble_tgsi(pctx, solid_fs, true);
    ctx->solid_prog.vs = assemble_tgsi(pctx, solid_vs, false);
 
@@ -237,6 +240,9 @@ fd_prog_fini(struct pipe_context *pctx)
 {
    struct fd_context *ctx = fd_context(pctx);
    int i;
+
+   if (ctx->flags & PIPE_CONTEXT_COMPUTE_ONLY)
+      return;
 
    pctx->delete_vs_state(pctx, ctx->solid_prog.vs);
    pctx->delete_fs_state(pctx, ctx->solid_prog.fs);

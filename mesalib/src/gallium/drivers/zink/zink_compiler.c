@@ -1064,7 +1064,7 @@ create_bindless_image(nir_shader *nir, enum glsl_sampler_dim dim)
    nir_variable *var;
 
    const struct glsl_type *image_type = glsl_image_type(dim, false, GLSL_TYPE_FLOAT);
-   var = nir_variable_create(nir, nir_var_uniform, glsl_array_type(image_type, ZINK_MAX_BINDLESS_HANDLES, 0), "bindless_image");
+   var = nir_variable_create(nir, nir_var_image, glsl_array_type(image_type, ZINK_MAX_BINDLESS_HANDLES, 0), "bindless_image");
    var->data.descriptor_set = ZINK_DESCRIPTOR_BINDLESS;
    var->data.driver_location = var->data.binding = binding;
    var->data.image.format = PIPE_FORMAT_R8G8B8A8_UNORM;
@@ -1364,6 +1364,7 @@ zink_shader_create(struct zink_screen *screen, struct nir_shader *nir,
 
    foreach_list_typed_reverse_safe(nir_variable, var, node, &nir->variables) {
       if (_nir_shader_variable_has_mode(var, nir_var_uniform |
+                                        nir_var_image |
                                         nir_var_mem_ubo |
                                         nir_var_mem_ssbo)) {
          enum zink_descriptor_type ztype;
@@ -1399,7 +1400,8 @@ zink_shader_create(struct zink_screen *screen, struct nir_shader *nir,
             ret->bindings[ztype][ret->num_bindings[ztype]].size = 1;
             ret->num_bindings[ztype]++;
          } else {
-            assert(var->data.mode == nir_var_uniform);
+            assert(var->data.mode == nir_var_uniform ||
+                   var->data.mode == nir_var_image);
             if (var->data.bindless) {
                ret->bindless = true;
                handle_bindless_var(nir, var, type, bindless);
@@ -1461,7 +1463,6 @@ zink_shader_finalize(struct pipe_screen *pscreen, void *nirptr)
 void
 zink_shader_free(struct zink_context *ctx, struct zink_shader *shader)
 {
-   struct zink_screen *screen = zink_screen(ctx->base.screen);
    set_foreach(shader->programs, entry) {
       if (shader->nir->info.stage == MESA_SHADER_COMPUTE) {
          struct zink_compute_program *comp = (void*)entry->key;
@@ -1470,7 +1471,7 @@ zink_shader_free(struct zink_context *ctx, struct zink_shader *shader)
             comp->base.removed = true;
          }
          comp->shader = NULL;
-         zink_compute_program_reference(screen, &comp, NULL);
+         zink_compute_program_reference(ctx, &comp, NULL);
       } else {
          struct zink_gfx_program *prog = (void*)entry->key;
          enum pipe_shader_type pstage = pipe_shader_type_from_mesa(shader->nir->info.stage);
@@ -1483,7 +1484,7 @@ zink_shader_free(struct zink_context *ctx, struct zink_shader *shader)
          if (shader->nir->info.stage == MESA_SHADER_TESS_EVAL && shader->generated)
             /* automatically destroy generated tcs shaders when tes is destroyed */
             zink_shader_free(ctx, shader->generated);
-         zink_gfx_program_reference(screen, &prog, NULL);
+         zink_gfx_program_reference(ctx, &prog, NULL);
       }
    }
    _mesa_set_destroy(shader->programs, NULL);

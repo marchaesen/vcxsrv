@@ -757,6 +757,7 @@ void
 isa_decode(void *bin, int sz, FILE *out, const struct isa_decode_options *options)
 {
 	const struct isa_decode_options default_options = {
+		.gpu_id = options ? options->gpu_id : 0,
 		.branch_labels = options ? options->branch_labels : false
 	};
 	struct decode_state *state;

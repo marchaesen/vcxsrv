@@ -207,7 +207,7 @@ SOFTWARE.
 
 	<field name="IMMED" low="0" high="31" type="uint"/>
 	<encode type="struct ir3_register *">
-		<map name="IMMED">src->uim_val</map>
+		<map name="IMMED">extract_reg_uim(src)</map>
 	</encode>
 </bitset>
 

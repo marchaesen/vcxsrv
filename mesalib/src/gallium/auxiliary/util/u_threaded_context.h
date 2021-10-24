@@ -208,6 +208,8 @@ struct tc_unflushed_batch_token;
 /* 0 = disabled, 1 = assertions, 2 = printfs, 3 = logging */
 #define TC_DEBUG 0
 
+/* This is an internal flag not sent to the driver. */
+#define TC_TRANSFER_MAP_UPLOAD_CPU_STORAGE   (1u << 28)
 /* These are map flags sent to drivers. */
 /* Never infer whether it's safe to use unsychronized mappings: */
 #define TC_TRANSFER_MAP_NO_INFER_UNSYNCHRONIZED (1u << 29)
@@ -313,6 +315,13 @@ struct threaded_resource {
     */
    struct pipe_resource *latest;
 
+   /* Optional CPU storage of the buffer. When we get partial glBufferSubData(implemented by
+    * copy_buffer) + glDrawElements, we don't want to drain the gfx pipeline before executing
+    * the copy. For ideal pipelining, we upload to this CPU storage and then reallocate
+    * the GPU storage completely and reupload everything without copy_buffer.
+    */
+   void *cpu_storage;
+
    /* The buffer range which is initialized (with a write transfer, streamout,
     * or writable shader resources). The remainder of the buffer is considered
     * invalid and can be mapped unsynchronized.
@@ -360,6 +369,8 @@ struct threaded_transfer {
     * the base instance. Initially it's set to &b.resource->valid_buffer_range.
     */
    struct util_range *valid_buffer_range;
+
+   bool cpu_storage_mapped;
 };
 
 struct threaded_query {
@@ -503,7 +514,8 @@ struct threaded_context {
    struct tc_buffer_list buffer_lists[TC_MAX_BUFFER_LISTS];
 };
 
-void threaded_resource_init(struct pipe_resource *res);
+void threaded_resource_init(struct pipe_resource *res, bool allow_cpu_storage,
+                            unsigned map_buffer_alignment);
 void threaded_resource_deinit(struct pipe_resource *res);
 struct pipe_context *threaded_context_unwrap_sync(struct pipe_context *pipe);
 void tc_driver_internal_flush_notify(struct threaded_context *tc);
@@ -577,6 +589,23 @@ tc_assert_driver_thread(struct threaded_context *tc)
 #ifndef NDEBUG
    assert(util_thread_id_equal(tc->driver_thread, util_get_thread_id()));
 #endif
+}
+
+/**
+ * This is called before GPU stores to disable the CPU storage because
+ * the CPU storage doesn't mirror the GPU storage.
+ *
+ * Drivers should also call it before exporting a DMABUF of a buffer.
+ */
+static inline void
+tc_buffer_disable_cpu_storage(struct pipe_resource *buf)
+{
+   struct threaded_resource *tres = threaded_resource(buf);
+
+   if (tres->cpu_storage) {
+      free(tres->cpu_storage);
+      tres->cpu_storage = NULL;
+   }
 }
 
 #endif

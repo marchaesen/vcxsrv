@@ -1,3 +1,4 @@
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["install/vk-panvk.txt"]
+renderer_check = "Mali-G52"

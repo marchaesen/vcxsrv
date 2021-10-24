@@ -26,8 +26,6 @@
 #include "common/v3d_device_info.h"
 #include "v3d_compiler.h"
 
-#define QPU_R(i) { .magic = false, .index = i }
-
 #define ACC_INDEX     0
 #define ACC_COUNT     6
 #define PHYS_INDEX    (ACC_INDEX + ACC_COUNT)

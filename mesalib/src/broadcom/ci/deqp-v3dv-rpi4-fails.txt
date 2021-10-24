@@ -1,5 +1,0 @@
-# This seems to fail due to the test error threshold being insufficient
-dEQP-VK.geometry.input.basic_primitive.line_strip_adjacency,Fail
-
-# CTS bug; fix submitted
-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_single_buffer_geom,Fail

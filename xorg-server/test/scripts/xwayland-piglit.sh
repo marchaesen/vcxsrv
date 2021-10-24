@@ -36,6 +36,8 @@ PIGLIT_ARGS="$PIGLIT_ARGS -x xcopyarea@1"
 
 export PIGLIT_ARGS
 
+# Do not let run-piglit.sh exit status terminate this script prematurely
+set +e
 $XSERVER_DIR/test/scripts/run-piglit.sh
 PIGLIT_STATUS=$?
 

@@ -105,9 +105,12 @@ zink_context_destroy(struct pipe_context *pctx)
    simple_mtx_destroy(&ctx->batch_mtx);
    zink_clear_batch_state(ctx, ctx->batch.state);
    zink_batch_state_destroy(screen, ctx->batch.state);
-   for (struct zink_batch_state *bs = ctx->batch_states; bs; bs = bs->next) {
+   struct zink_batch_state *bs = ctx->batch_states;
+   while (bs) {
+      struct zink_batch_state *bs_next = bs->next;
       zink_clear_batch_state(ctx, bs);
       zink_batch_state_destroy(screen, bs);
+      bs = bs_next;
    }
    util_dynarray_foreach(&ctx->free_batch_states, struct zink_batch_state*, bs) {
       zink_clear_batch_state(ctx, *bs);
@@ -623,7 +626,10 @@ static VkBufferViewCreateInfo
 create_bvci(struct zink_context *ctx, struct zink_resource *res, enum pipe_format format, uint32_t offset, uint32_t range)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   VkBufferViewCreateInfo bvci = {0};
+   VkBufferViewCreateInfo bvci;
+   // Zero whole struct (including alignment holes), so hash_bufferview
+   // does not access potentially uninitialized data.
+   memset(&bvci, 0, sizeof(bvci));
    bvci.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
    bvci.pNext = NULL;
    bvci.buffer = res->obj->buffer;
@@ -705,7 +711,7 @@ zink_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *pres,
 {
    struct zink_screen *screen = zink_screen(pctx->screen);
    struct zink_resource *res = zink_resource(pres);
-   struct zink_sampler_view *sampler_view = CALLOC_STRUCT(zink_sampler_view);
+   struct zink_sampler_view *sampler_view = CALLOC_STRUCT_CL(zink_sampler_view);
    bool err;
 
    sampler_view->base = *state;
@@ -760,7 +766,7 @@ zink_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *pres,
       err = !sampler_view->buffer_view;
    }
    if (err) {
-      FREE(sampler_view);
+      FREE_CL(sampler_view);
       return NULL;
    }
    return &sampler_view->base;
@@ -771,6 +777,11 @@ zink_destroy_buffer_view(struct zink_screen *screen, struct zink_buffer_view *bu
 {
    struct zink_resource *res = zink_resource(buffer_view->pres);
    simple_mtx_lock(&res->bufferview_mtx);
+   if (buffer_view->reference.count) {
+      /* got a cache hit during deletion */
+      simple_mtx_unlock(&res->bufferview_mtx);
+      return;
+   }
    struct hash_entry *he = _mesa_hash_table_search_pre_hashed(&res->bufferview_cache, buffer_view->hash, &buffer_view->bvci);
    assert(he);
    _mesa_hash_table_remove(&res->bufferview_cache, he);
@@ -792,7 +803,7 @@ zink_sampler_view_destroy(struct pipe_context *pctx,
       zink_surface_reference(zink_screen(pctx->screen), &view->image_view, NULL);
    }
    pipe_resource_reference(&pview->texture, NULL);
-   FREE(view);
+   FREE_CL(view);
 }
 
 static void
@@ -3967,6 +3978,7 @@ zink_context_replace_buffer_storage(struct pipe_context *pctx, struct pipe_resou
    assert(d->obj);
    assert(s->obj);
    util_idalloc_mt_free(&screen->buffer_ids, delete_buffer_id);
+   zink_descriptor_set_refs_clear(&d->obj->desc_set_refs, d->obj);
    /* add a ref just like check_resource_for_batch_ref() would've */
    if (zink_resource_has_binds(d) && zink_resource_has_usage(d))
       zink_batch_reference_resource(&ctx->batch, d);
