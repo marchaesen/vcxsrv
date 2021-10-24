@@ -3,7 +3,7 @@ $(error Please do not specify MAKESERVER=1 on the command line or as environment
 endif
 
 DEFINES += SECURITY_WIN32
-INCLUDES := windows $(INCLUDES)
+INCLUDES := windows $(INCLUDES) terminal
 
 INCLUDELIBFILES =  \
  windows\$(OBJDIR)\libwindows.lib \

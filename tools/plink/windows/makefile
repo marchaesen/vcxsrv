@@ -4,10 +4,10 @@ ifeq ($(MAKESERVER),1)
 $(error Please do not specify MAKESERVER=1 on the command line or as environment variable)
 endif
 
-vpath %.c utils 
+vpath %.c utils
 
 DEFINES += SECURITY_WIN32
-INCLUDES := .. $(INCLUDES)
+INCLUDES := .. $(INCLUDES) ../terminal
 
 UTILS_CSRCS = arm_arch_queries.c \
  cryptoapi.c \

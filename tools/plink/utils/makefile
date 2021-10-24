@@ -5,7 +5,7 @@ $(error Please do not specify MAKESERVER=1 on the command line or as environment
 endif
 
 DEFINES += SECURITY_WIN32
-INCLUDES := .. ../windows $(INCLUDES)
+INCLUDES := .. ../windows $(INCLUDES) ../terminal
 
 CSRCS = base64_decode_atom.c \
  base64_encode_atom.c \
@@ -63,5 +63,7 @@ CSRCS = base64_decode_atom.c \
  x11authfile.c \
  x11authnames.c \
  antispoof.c \
- tempseat.c
+ tempseat.c \
+ fgetline.c \
+ default_description.c
 
