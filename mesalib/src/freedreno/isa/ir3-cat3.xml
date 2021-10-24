@@ -69,7 +69,7 @@ SOFTWARE.
 	<encode>
 		<map name="CONST">src->num >> 2</map>
 		<map name="SWIZ">src->num &amp; 0x3</map>
-		<map name="IMMED">src->uim_val</map>
+		<map name="IMMED">extract_reg_uim(src)</map>
 	</encode>
 </bitset>
 

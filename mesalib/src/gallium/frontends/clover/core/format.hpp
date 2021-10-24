@@ -38,7 +38,8 @@ namespace clover {
    /// the given memory object type.
    ///
    std::set<cl_image_format> supported_formats(const context &ctx,
-                                               cl_mem_object_type type);
+                                               cl_mem_object_type type,
+                                               cl_mem_flags flags);
 }
 
 static inline bool

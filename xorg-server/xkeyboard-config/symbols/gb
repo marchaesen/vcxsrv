@@ -87,13 +87,14 @@ xkb_symbols "extd" {
     key <AD07> { [   u,                 U,          uacute,      Uacute ] };
     key <AD08> { [   i,                 I,          iacute,      Iacute ] };
     key <AD09> { [   o,                 O,          oacute,      Oacute ] };
+    key <AD12> { [ bracketright, braceright,      NoSymbol,         bar ] };
 
     key <AC01> { [   a,                 A,          aacute,      Aacute ] };
-    key <AC11> { [  apostrophe,         at,     dead_acute,    NoSymbol ] };
+    key <AC11> { [  apostrophe,         at,     dead_acute,      grave  ] };
 
     key <AB03> { [   c,                 C,        ccedilla,    Ccedilla ] };
 
-    key <BKSL>  { [ numbersign, asciitilde,     dead_tilde,    NoSymbol ] };
+    key <BKSL>  { [ numbersign, asciitilde,     dead_tilde,    backslash ] };
     key <LSGT>  { [  backslash,        bar,       NoSymbol,    NoSymbol ] };
 
     include "level3(ralt_switch)"

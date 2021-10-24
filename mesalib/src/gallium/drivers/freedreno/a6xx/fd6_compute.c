@@ -70,7 +70,7 @@ cs_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
                COND(v->mergedregs, A6XX_SP_CS_CTRL_REG0_MERGEDREGS) |
                A6XX_SP_CS_CTRL_REG0_BRANCHSTACK(ir3_shader_branchstack_hw(v)));
 
-   uint32_t shared_size = MAX2(((int)v->shared_size - 1) / 1024, 1);
+   uint32_t shared_size = MAX2(((int)v->shader->cs.req_local_mem - 1) / 1024, 1);
    OUT_PKT4(ring, REG_A6XX_SP_CS_UNKNOWN_A9B1, 1);
    OUT_RING(ring, A6XX_SP_CS_UNKNOWN_A9B1_SHARED_SIZE(shared_size) |
                      A6XX_SP_CS_UNKNOWN_A9B1_UNK6);

@@ -85,15 +85,7 @@ SOFTWARE.
 	<display>
 		{SY}{JP}{NAME}{3D}{A}{O}{P}{S} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SAMP}{TEX}
 	</display>
-	<derived name="DST_HALF" type="bool" display="h">
-		<expr>
-			({TYPE} == 0) /* f16 */ ||
-			({TYPE} == 2) /* u16 */ ||
-			({TYPE} == 4) /* s16 */ ||
-			({TYPE} == 6) /* u8 */  ||
-			({TYPE} == 7) /* s8 */
-		</expr>
-	</derived>
+	<derived name="DST_HALF" expr="#type-half" type="bool" display="h"/>
 	<field name="FULL" pos="0" type="bool"/>
 	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
 	<field name="SRC1" low="1" high="8" type="#cat5-src1">
@@ -481,12 +473,7 @@ SOFTWARE.
 	<display/>
 	<assert low="0" high="3">0000</assert>
 	<encode type="struct ir3_instruction *">
-		<!--
-			TODO properly decouple the encoding from ir3 IR in this
-			case.. the IR has no business knowing how this gets
-			encoded into "SRC3"..
-		 -->
-		<map name="TEX">src->cat5.samp >> 4</map>
+		<map name="TEX">src->cat5.tex</map>
 	</encode>
 </bitset>
 

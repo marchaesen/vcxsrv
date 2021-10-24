@@ -160,6 +160,7 @@ struct panfrost_device {
         unsigned thread_tls_alloc;
         struct panfrost_tiler_features tiler_features;
         unsigned quirks;
+        bool has_afbc;
 
         /* Table of formats, indexed by a PIPE format */
         const struct panfrost_format *formats;

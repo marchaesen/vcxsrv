@@ -603,6 +603,7 @@ fd_context_init(struct fd_context *ctx, struct pipe_screen *pscreen,
    if (FD_DBG(BSTAT) || FD_DBG(MSGS))
       ctx->stats_users++;
 
+   ctx->flags = flags;
    ctx->screen = screen;
    ctx->pipe = fd_pipe_new2(screen->dev, FD_PIPE_3D, prio);
 

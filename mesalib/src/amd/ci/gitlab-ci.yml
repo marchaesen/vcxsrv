@@ -64,7 +64,7 @@ radv_stoney_vkcts:amd64:
   variables:
     DEQP_VER: vk
     DEQP_FRACTION: 10
-    DEQP_PARALLEL: 4
+    FDO_CI_CONCURRENT: 4
     DEQP_EXPECTED_RENDERER: STONEY
     DEVICE_TYPE: hp-11A-G6-EE-grunt
     DTB: ""

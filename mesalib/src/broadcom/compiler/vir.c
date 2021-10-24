@@ -1873,7 +1873,10 @@ try_opt_ldunif(struct v3d_compile *c, uint32_t index, struct qreg *unif)
         assert(c->cur_block);
 
 #ifdef DEBUG
-        /* Check if the current instruction is part of the current block */
+        /* We can only reuse a uniform if it was emitted in the same block,
+         * so callers must make sure the current instruction is being emitted
+         * in the current block.
+         */
         bool found = false;
         vir_for_each_inst(inst, c->cur_block) {
                 if (&inst->link == c->cursor.link) {
@@ -1882,7 +1885,7 @@ try_opt_ldunif(struct v3d_compile *c, uint32_t index, struct qreg *unif)
                 }
         }
 
-        assert(found || list_is_empty(&c->cur_block->instructions));
+        assert(found || &c->cur_block->instructions == c->cursor.link);
 #endif
 
         list_for_each_entry_from_rev(struct qinst, inst, c->cursor.link->prev,

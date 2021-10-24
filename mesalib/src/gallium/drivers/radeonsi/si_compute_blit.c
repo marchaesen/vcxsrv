@@ -59,11 +59,58 @@ unsigned si_get_flush_flags(struct si_context *sctx, enum si_coherency coher,
    }
 }
 
+static bool si_is_buffer_idle(struct si_context *sctx, struct si_resource *buf,
+                              enum radeon_bo_usage usage)
+{
+   return !si_cs_is_buffer_referenced(sctx, buf->buf, usage) &&
+          sctx->ws->buffer_wait(sctx->ws, buf->buf, 0, usage);
+}
+
+static void si_improve_sync_flags(struct si_context *sctx, struct pipe_resource *dst,
+                                  struct pipe_resource *src, unsigned *flags)
+{
+   if (dst->target != PIPE_BUFFER || (src && src->target != PIPE_BUFFER))
+      return;
+
+   if (si_is_buffer_idle(sctx, si_resource(dst), RADEON_USAGE_READWRITE) &&
+       (!src || si_is_buffer_idle(sctx, si_resource(src), RADEON_USAGE_WRITE))) {
+      /* Idle buffers don't have to sync. */
+      *flags &= ~(SI_OP_SYNC_GE_BEFORE | SI_OP_SYNC_PS_BEFORE | SI_OP_SYNC_CS_BEFORE |
+                  SI_OP_SYNC_CPDMA_BEFORE);
+      return;
+   }
+
+   const unsigned cs_mask = SI_BIND_CONSTANT_BUFFER(PIPE_SHADER_COMPUTE) |
+                            SI_BIND_SHADER_BUFFER(PIPE_SHADER_COMPUTE) |
+                            SI_BIND_IMAGE_BUFFER(PIPE_SHADER_COMPUTE) |
+                            SI_BIND_SAMPLER_BUFFER(PIPE_SHADER_COMPUTE);
+
+   const unsigned ps_mask = SI_BIND_CONSTANT_BUFFER(PIPE_SHADER_FRAGMENT) |
+                            SI_BIND_SHADER_BUFFER(PIPE_SHADER_FRAGMENT) |
+                            SI_BIND_IMAGE_BUFFER(PIPE_SHADER_FRAGMENT) |
+                            SI_BIND_SAMPLER_BUFFER(PIPE_SHADER_FRAGMENT);
+
+   unsigned bind_history = si_resource(dst)->bind_history |
+                           (src ? si_resource(src)->bind_history : 0);
+
+   /* Clear SI_OP_SYNC_CS_BEFORE if the buffer has never been used with a CS. */
+   if (*flags & SI_OP_SYNC_CS_BEFORE && !(bind_history & cs_mask))
+      *flags &= ~SI_OP_SYNC_CS_BEFORE;
+
+   /* Clear SI_OP_SYNC_PS_BEFORE if the buffer has never been used with a PS. */
+   if (*flags & SI_OP_SYNC_PS_BEFORE && !(bind_history & ps_mask)) {
+      *flags &= ~SI_OP_SYNC_PS_BEFORE;
+      *flags |= SI_OP_SYNC_GE_BEFORE;
+   }
+}
+
 void si_launch_grid_internal(struct si_context *sctx, struct pipe_grid_info *info,
                              void *shader, unsigned flags)
 {
-
    /* Wait for previous shaders to finish. */
+   if (flags & SI_OP_SYNC_GE_BEFORE)
+      sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH;
+
    if (flags & SI_OP_SYNC_PS_BEFORE)
       sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH;
 
@@ -136,8 +183,9 @@ void si_launch_grid_internal_ssbos(struct si_context *sctx, struct pipe_grid_inf
    }
 
    /* Bind buffers and launch compute. */
-   sctx->b.set_shader_buffers(&sctx->b, PIPE_SHADER_COMPUTE, 0, num_buffers, buffers,
-                              writeable_bitmask);
+   si_set_shader_buffers(&sctx->b, PIPE_SHADER_COMPUTE, 0, num_buffers, buffers,
+                         writeable_bitmask,
+                         true /* don't update bind_history to prevent unnecessary syncs later */);
    si_launch_grid_internal(sctx, info, shader, flags);
 
    /* Do cache flushing at the end. */
@@ -315,6 +363,8 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
    if (!size)
       return;
 
+   si_improve_sync_flags(sctx, dst, NULL, &flags);
+
    ASSERTED unsigned clear_alignment = MIN2(clear_value_size, 4);
 
    assert(clear_value_size != 3 && clear_value_size != 6); /* 12 is allowed. */
@@ -403,6 +453,8 @@ void si_copy_buffer(struct si_context *sctx, struct pipe_resource *dst, struct p
    enum si_coherency coher = SI_COHERENCY_SHADER;
    enum si_cache_policy cache_policy = get_cache_policy(sctx, coher, size);
    uint64_t compute_min_size = 8 * 1024;
+
+   si_improve_sync_flags(sctx, dst, src, &flags);
 
    /* Only use compute for VRAM copies on dGPUs. */
    if (sctx->screen->info.has_dedicated_vram && si_resource(dst)->domains & RADEON_DOMAIN_VRAM &&

@@ -796,7 +796,6 @@ spec@!opengl 1.2@lodclamp-between-max,Fail
 spec@!opengl 1.2@mipmap-setup,Fail
 spec@!opengl 1.2@tex3d,Fail
 spec@!opengl 1.2@tex3d-maxsize,Fail
-spec@!opengl 1.2@teximage-errors,Fail
 spec@!opengl 1.2@texwrap 3d proj,Fail
 spec@!opengl 1.2@texwrap 3d proj@GL_RGBA8- NPOT- projected,Fail
 spec@!opengl 1.2@texwrap 3d proj@GL_RGBA8- projected,Fail
@@ -820,7 +819,6 @@ spec@!opengl 2.1@minmax,Fail
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
-spec@!opengl es 2.0@draw_buffers_gles2,Fail
 spec@arb_arrays_of_arrays@execution@glsl-arrays-copy-size-mismatch,Fail
 spec@arb_depth_texture@depth-level-clamp,Fail
 spec@arb_depth_texture@texwrap formats,Fail
@@ -835,7 +833,6 @@ spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT32- NPOT,Fail
 spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT32- swizzled,Fail
 spec@arb_draw_elements_base_vertex@arb_draw_elements_base_vertex-negative-index,Crash
 spec@arb_draw_elements_base_vertex@arb_draw_elements_base_vertex-negative-index-user_varrays,Crash
-spec@arb_es2_compatibility@arb_es2_compatibility-drawbuffers,Fail
 spec@arb_es2_compatibility@texwrap formats,Fail
 spec@arb_es2_compatibility@texwrap formats@GL_RGB565,Fail
 spec@arb_es2_compatibility@texwrap formats@GL_RGB565- NPOT,Fail
@@ -931,8 +928,6 @@ spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_rgba,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
-spec@ext_direct_state_access@indexed-state-queries 12,Fail
-spec@ext_direct_state_access@indexed-state-queries 12@GetIntegerIndexedvEXT,Fail
 spec@ext_direct_state_access@multi-texture,Crash
 spec@ext_direct_state_access@multi-texture@MultiTexImage3DEXT,Fail
 spec@ext_direct_state_access@multi-texture@MultiTexSubImage1DEXT,Fail
@@ -946,21 +941,9 @@ spec@ext_direct_state_access@textures@GL_PROXY_TEXTURE_1D + glTex*,Fail
 spec@ext_direct_state_access@textures@GL_PROXY_TEXTURE_3D + glTex* + display list GL_COMPILE,Fail
 spec@ext_direct_state_access@textures@GL_PROXY_TEXTURE_3D + glTex* + display list GL_COMPILE_AND_EXECUTE,Fail
 spec@ext_direct_state_access@textures@GL_PROXY_TEXTURE_3D + glTex*,Fail
-spec@ext_direct_state_access@textures@TextureImage2DEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@textures@TextureImage2DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@textures@TextureImage2DEXT,Fail
 spec@ext_direct_state_access@textures@TextureImage3DEXT + display list GL_COMPILE,Fail
 spec@ext_direct_state_access@textures@TextureImage3DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
 spec@ext_direct_state_access@textures@TextureImage3DEXT,Fail
-spec@ext_direct_state_access@textures@TextureParameterfEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@textures@TextureParameterfEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@textures@TextureParameterfEXT,Fail
-spec@ext_direct_state_access@textures@TextureParameteriEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@textures@TextureParameteriEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@textures@TextureParameteriEXT,Fail
-spec@ext_direct_state_access@textures@TextureParameterivEXT + display list GL_COMPILE,Fail
-spec@ext_direct_state_access@textures@TextureParameterivEXT + display list GL_COMPILE_AND_EXECUTE,Fail
-spec@ext_direct_state_access@textures@TextureParameterivEXT,Fail
 spec@ext_direct_state_access@textures@TextureSubImage2DEXT + display list GL_COMPILE,Fail
 spec@ext_direct_state_access@textures@TextureSubImage2DEXT + display list GL_COMPILE_AND_EXECUTE,Fail
 spec@ext_direct_state_access@textures@TextureSubImage2DEXT,Fail

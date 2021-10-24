@@ -185,6 +185,8 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->const_upload_unit = 8;
    }
 
+   compiler->bool_type = (compiler->gen >= 5) ? TYPE_U16 : TYPE_U32;
+
    ir3_disk_cache_init(compiler);
 
    return compiler;

@@ -1270,6 +1270,11 @@ VkResult v3dv_get_query_pool_results_cpu(struct v3dv_device *device,
                                          VkDeviceSize stride,
                                          VkQueryResultFlags flags);
 
+void v3dv_reset_query_pools(struct v3dv_device *device,
+                            struct v3dv_query_pool *query_pool,
+                            uint32_t first,
+                            uint32_t last);
+
 typedef void (*v3dv_cmd_buffer_private_obj_destroy_cb)(VkDevice device,
                                                        uint64_t pobj,
                                                        VkAllocationCallbacks *alloc);

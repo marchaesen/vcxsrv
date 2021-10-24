@@ -113,7 +113,7 @@ static bool si_update_shaders(struct si_context *sctx)
    unsigned old_pa_cl_vs_out_cntl = old_vs ? old_vs->pa_cl_vs_out_cntl : 0;
    struct si_shader *old_ps = sctx->shader.ps.current;
    unsigned old_spi_shader_col_format =
-      old_ps ? old_ps->key.part.ps.epilog.spi_shader_col_format : 0;
+      old_ps ? old_ps->key.ps.part.epilog.spi_shader_col_format : 0;
    int r;
 
    /* Update TCS and TES. */
@@ -136,7 +136,7 @@ static bool si_update_shaders(struct si_context *sctx)
             if (!sctx->fixed_func_tcs_shader.cso)
                return false;
 
-            sctx->fixed_func_tcs_shader.key.part.tcs.epilog.invoc0_tess_factors_are_def =
+            sctx->fixed_func_tcs_shader.key.ge.part.tcs.epilog.invoc0_tess_factors_are_def =
                sctx->fixed_func_tcs_shader.cso->info.tessfactors_are_def_in_all_invocs;
          }
 
@@ -260,12 +260,12 @@ static bool si_update_shaders(struct si_context *sctx)
    if ((GFX_VERSION >= GFX10_3 || (GFX_VERSION >= GFX9 && sctx->screen->info.rbplus_allowed)) &&
        si_pm4_state_changed(sctx, ps) &&
        (!old_ps || old_spi_shader_col_format !=
-                      sctx->shader.ps.current->key.part.ps.epilog.spi_shader_col_format))
+                      sctx->shader.ps.current->key.ps.part.epilog.spi_shader_col_format))
       si_mark_atom_dirty(sctx, &sctx->atoms.s.cb_render_state);
 
    if (sctx->smoothing_enabled !=
-       sctx->shader.ps.current->key.part.ps.epilog.poly_line_smoothing) {
-      sctx->smoothing_enabled = sctx->shader.ps.current->key.part.ps.epilog.poly_line_smoothing;
+       sctx->shader.ps.current->key.ps.part.epilog.poly_line_smoothing) {
+      sctx->smoothing_enabled = sctx->shader.ps.current->key.ps.part.epilog.poly_line_smoothing;
       si_mark_atom_dirty(sctx, &sctx->atoms.s.msaa_config);
 
       /* NGG cull state uses smoothing_enabled. */
@@ -527,7 +527,7 @@ static void si_emit_derived_tess_state(struct si_context *sctx, unsigned *num_pa
       else
          ls_current = sctx->fixed_func_tcs_shader.current;
 
-      ls = ls_current->key.part.tcs.ls;
+      ls = ls_current->key.ge.part.tcs.ls;
    } else {
       ls_current = sctx->shader.vs.current;
       ls = sctx->shader.vs.cso;
@@ -567,7 +567,7 @@ static void si_emit_derived_tess_state(struct si_context *sctx, unsigned *num_pa
    unsigned input_patch_size;
 
    /* Allocate LDS for TCS inputs only if it's used. */
-   if (!ls_current->key.opt.same_patch_vertices ||
+   if (!ls_current->key.ge.opt.same_patch_vertices ||
        tcs->info.base.inputs_read & ~tcs->tcs_vgpr_only_inputs)
       input_patch_size = num_tcs_input_cp * input_vertex_size;
    else
@@ -2078,8 +2078,8 @@ static void si_draw(struct pipe_context *ctx,
          GFX_VERSION >= GFX9 &&
          tcs && sctx->patch_vertices == tcs->info.base.tess.tcs_vertices_out;
 
-      if (sctx->shader.tcs.key.opt.same_patch_vertices != same_patch_vertices) {
-         sctx->shader.tcs.key.opt.same_patch_vertices = same_patch_vertices;
+      if (sctx->shader.tcs.key.ge.opt.same_patch_vertices != same_patch_vertices) {
+         sctx->shader.tcs.key.ge.opt.same_patch_vertices = same_patch_vertices;
          sctx->do_update_shaders = true;
       }
 
@@ -2094,9 +2094,9 @@ static void si_draw(struct pipe_context *ctx,
          bool ls_vgpr_fix =
             tcs && sctx->patch_vertices > tcs->info.base.tess.tcs_vertices_out;
 
-         if (ls_vgpr_fix != sctx->shader.tcs.key.part.tcs.ls_prolog.ls_vgpr_fix) {
-            sctx->shader.tcs.key.part.tcs.ls_prolog.ls_vgpr_fix = ls_vgpr_fix;
-            sctx->fixed_func_tcs_shader.key.part.tcs.ls_prolog.ls_vgpr_fix = ls_vgpr_fix;
+         if (ls_vgpr_fix != sctx->shader.tcs.key.ge.part.tcs.ls_prolog.ls_vgpr_fix) {
+            sctx->shader.tcs.key.ge.part.tcs.ls_prolog.ls_vgpr_fix = ls_vgpr_fix;
+            sctx->fixed_func_tcs_shader.key.ge.part.tcs.ls_prolog.ls_vgpr_fix = ls_vgpr_fix;
             sctx->do_update_shaders = true;
          }
       }
@@ -2133,8 +2133,8 @@ static void si_draw(struct pipe_context *ctx,
       bool gs_tri_strip_adj_fix =
          !HAS_TESS && prim == PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY;
 
-      if (gs_tri_strip_adj_fix != sctx->shader.gs.key.part.gs.prolog.tri_strip_adj_fix) {
-         sctx->shader.gs.key.part.gs.prolog.tri_strip_adj_fix = gs_tri_strip_adj_fix;
+      if (gs_tri_strip_adj_fix != sctx->shader.gs.key.ge.mono.u.gs_tri_strip_adj_fix) {
+         sctx->shader.gs.key.ge.mono.u.gs_tri_strip_adj_fix = gs_tri_strip_adj_fix;
          sctx->do_update_shaders = true;
       }
    }
@@ -2326,7 +2326,7 @@ static void si_draw(struct pipe_context *ctx,
        * hasn't finished. Set it to the correct value in si_context.
        */
       if (GFX_VERSION >= GFX10 && NGG)
-         sctx->ngg_culling = si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->key.opt.ngg_culling;
+         sctx->ngg_culling = si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->key.ge.opt.ngg_culling;
    }
 
    /* Since we've called si_context_add_resource_size for vertex buffers,

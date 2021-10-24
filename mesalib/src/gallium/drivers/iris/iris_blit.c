@@ -734,7 +734,7 @@ iris_resource_copy_region(struct pipe_context *ctx,
    }
 
    iris_flush_and_dirty_for_history(ice, batch, (struct iris_resource *)p_dst,
-                                    PIPE_CONTROL_RENDER_TARGET_FLUSH | PIPE_CONTROL_TILE_CACHE_FLUSH,
+                                    PIPE_CONTROL_RENDER_TARGET_FLUSH,
                                     "cache history: post copy_region");
 }
 

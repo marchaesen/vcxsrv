@@ -42,6 +42,9 @@ ir3_parse_asm(struct ir3_compiler *c, struct ir3_kernel_info *info, FILE *in)
    v->shader = shader;
    v->const_state = rzalloc_size(v, sizeof(*v->const_state));
 
+   if (c->gen >= 6)
+      v->mergedregs = true;
+
    shader->variants = v;
    shader->variant_count = 1;
 

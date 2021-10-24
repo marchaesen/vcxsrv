@@ -83,7 +83,7 @@ static LLVMValueRef ngg_get_vertices_per_prim(struct si_shader_context *ctx, uns
          /* Blits always use axis-aligned rectangles with 3 vertices. */
          *num_vertices = 3;
          return LLVMConstInt(ctx->ac.i32, 3, 0);
-      } else if (ctx->shader->key.opt.ngg_culling & SI_NGG_CULL_LINES) {
+      } else if (ctx->shader->key.ge.opt.ngg_culling & SI_NGG_CULL_LINES) {
          *num_vertices = 2;
          return LLVMConstInt(ctx->ac.i32, 2, 0);
       } else {
@@ -115,7 +115,7 @@ bool gfx10_ngg_export_prim_early(struct si_shader *shader)
 {
    struct si_shader_selector *sel = shader->selector;
 
-   assert(shader->key.as_ngg && !shader->key.as_es);
+   assert(shader->key.ge.as_ngg && !shader->key.ge.as_es);
 
    return sel->info.stage != MESA_SHADER_GEOMETRY &&
           !gfx10_ngg_writes_user_edgeflags(shader);
@@ -137,7 +137,7 @@ void gfx10_ngg_build_export_prim(struct si_shader_context *ctx, LLVMValueRef use
 {
    LLVMBuilderRef builder = ctx->ac.builder;
 
-   if (gfx10_is_ngg_passthrough(ctx->shader) || ctx->shader->key.opt.ngg_culling) {
+   if (gfx10_is_ngg_passthrough(ctx->shader) || ctx->shader->key.ge.opt.ngg_culling) {
       ac_build_ifcc(&ctx->ac, si_is_gs_thread(ctx), 6001);
       {
          struct ac_ngg_prim prim = {};
@@ -614,17 +614,17 @@ static unsigned ngg_nogs_vertex_size(struct si_shader *shader)
     * to the ES thread of the provoking vertex. All ES threads
     * load and export PrimitiveID for their thread.
     */
-   if (shader->selector->info.stage == MESA_SHADER_VERTEX && shader->key.mono.u.vs_export_prim_id)
+   if (shader->selector->info.stage == MESA_SHADER_VERTEX && shader->key.ge.mono.u.vs_export_prim_id)
       lds_vertex_size = MAX2(lds_vertex_size, 1);
 
-   if (shader->key.opt.ngg_culling) {
+   if (shader->key.ge.opt.ngg_culling) {
       if (shader->selector->info.stage == MESA_SHADER_VERTEX) {
          STATIC_ASSERT(lds_instance_id + 1 == 7);
          lds_vertex_size = MAX2(lds_vertex_size, 7);
       } else {
          assert(shader->selector->info.stage == MESA_SHADER_TESS_EVAL);
 
-         if (shader->selector->info.uses_primid || shader->key.mono.u.vs_export_prim_id) {
+         if (shader->selector->info.uses_primid || shader->key.ge.mono.u.vs_export_prim_id) {
             STATIC_ASSERT(lds_tes_patch_id + 2 == 9); /* +1 for LDS padding */
             lds_vertex_size = MAX2(lds_vertex_size, 9);
          } else {
@@ -823,10 +823,10 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
    LLVMValueRef *addrs = abi->outputs;
    unsigned max_waves = DIV_ROUND_UP(ctx->screen->ngg_subgroup_size, ctx->ac.wave_size);
 
-   assert(shader->key.opt.ngg_culling);
-   assert(shader->key.as_ngg);
+   assert(shader->key.ge.opt.ngg_culling);
+   assert(shader->key.ge.as_ngg);
    assert(sel->info.stage == MESA_SHADER_VERTEX ||
-          (sel->info.stage == MESA_SHADER_TESS_EVAL && !shader->key.as_es));
+          (sel->info.stage == MESA_SHADER_TESS_EVAL && !shader->key.ge.as_es));
 
    LLVMValueRef es_vtxptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
    unsigned pos_index = 0;
@@ -840,8 +840,8 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
           * the position. This is useful for analyzing maximum theoretical
           * performance without VS input loads.
           */
-         if (shader->key.opt.ngg_culling & SI_NGG_CULL_FRONT_FACE &&
-             shader->key.opt.ngg_culling & SI_NGG_CULL_BACK_FACE) {
+         if (shader->key.ge.opt.ngg_culling & SI_NGG_CULL_FRONT_FACE &&
+             shader->key.ge.opt.ngg_culling & SI_NGG_CULL_BACK_FACE) {
             for (unsigned j = 0; j < 4; j++)
                LLVMBuildStore(builder, LLVMGetUndef(ctx->ac.f32), addrs[4 * i + j]);
             break;
@@ -993,15 +993,15 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
       options.cull_view_xy = true;
       options.cull_w = true;
 
-      if (shader->key.opt.ngg_culling & SI_NGG_CULL_LINES) {
+      if (shader->key.ge.opt.ngg_culling & SI_NGG_CULL_LINES) {
          options.num_vertices = 2;
 
-         assert(!(shader->key.opt.ngg_culling & SI_NGG_CULL_BACK_FACE));
-         assert(!(shader->key.opt.ngg_culling & SI_NGG_CULL_FRONT_FACE));
+         assert(!(shader->key.ge.opt.ngg_culling & SI_NGG_CULL_BACK_FACE));
+         assert(!(shader->key.ge.opt.ngg_culling & SI_NGG_CULL_FRONT_FACE));
       } else {
          options.num_vertices = 3;
-         options.cull_front = shader->key.opt.ngg_culling & SI_NGG_CULL_FRONT_FACE;
-         options.cull_back = shader->key.opt.ngg_culling & SI_NGG_CULL_BACK_FACE;
+         options.cull_front = shader->key.ge.opt.ngg_culling & SI_NGG_CULL_FRONT_FACE;
+         options.cull_back = shader->key.ge.opt.ngg_culling & SI_NGG_CULL_BACK_FACE;
          options.cull_small_prims = true; /* this would only be false with conservative rasterization */
          options.cull_zero_area = options.cull_front || options.cull_back;
       }
@@ -1055,10 +1055,10 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
 
    bool uses_instance_id = ctx->stage == MESA_SHADER_VERTEX &&
                            (sel->info.uses_instanceid ||
-                            shader->key.part.vs.prolog.instance_divisor_is_one ||
-                            shader->key.part.vs.prolog.instance_divisor_is_fetched);
+                            shader->key.ge.part.vs.prolog.instance_divisor_is_one ||
+                            shader->key.ge.part.vs.prolog.instance_divisor_is_fetched);
    bool uses_tes_prim_id = ctx->stage == MESA_SHADER_TESS_EVAL &&
-                           (sel->info.uses_primid || shader->key.mono.u.vs_export_prim_id);
+                           (sel->info.uses_primid || shader->key.ge.mono.u.vs_export_prim_id);
 
    /* ES threads compute their prefix sum, which is the new ES thread ID.
     * Then they write the vertex position and input VGPRs into the LDS address
@@ -1278,7 +1278,7 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
 
    /* These two also use LDS. */
    if (gfx10_ngg_writes_user_edgeflags(shader) ||
-       (ctx->stage == MESA_SHADER_VERTEX && shader->key.mono.u.vs_export_prim_id))
+       (ctx->stage == MESA_SHADER_VERTEX && shader->key.ge.mono.u.vs_export_prim_id))
       ac_build_s_barrier(&ctx->ac);
 
    ctx->return_value = ret;
@@ -1338,7 +1338,7 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
    bool unterminated_es_if_block =
       !sel->so.num_outputs && !gfx10_ngg_writes_user_edgeflags(ctx->shader) &&
       !ctx->screen->use_ngg_streamout && /* no query buffer */
-      (ctx->stage != MESA_SHADER_VERTEX || !ctx->shader->key.mono.u.vs_export_prim_id);
+      (ctx->stage != MESA_SHADER_VERTEX || !ctx->shader->key.ge.mono.u.vs_export_prim_id);
 
    if (!unterminated_es_if_block)
       ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
@@ -1347,7 +1347,7 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
    LLVMValueRef is_es_thread = si_is_es_thread(ctx);
    LLVMValueRef vtxindex[3];
 
-   if (ctx->shader->key.opt.ngg_culling || gfx10_is_ngg_passthrough(ctx->shader)) {
+   if (ctx->shader->key.ge.opt.ngg_culling || gfx10_is_ngg_passthrough(ctx->shader)) {
       for (unsigned i = 0; i < 3; ++i)
          vtxindex[i] = si_unpack_param(ctx, ctx->args.gs_vtx_offset[0], 10 * i, 9);
    } else {
@@ -1402,7 +1402,7 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
    /* Copy Primitive IDs from GS threads to the LDS address corresponding
     * to the ES thread of the provoking vertex.
     */
-   if (ctx->stage == MESA_SHADER_VERTEX && ctx->shader->key.mono.u.vs_export_prim_id) {
+   if (ctx->stage == MESA_SHADER_VERTEX && ctx->shader->key.ge.mono.u.vs_export_prim_id) {
       assert(!unterminated_es_if_block);
 
       /* Streamout and edge flags use LDS. Make it idle, so that we can reuse it. */
@@ -1479,7 +1479,7 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
           * load it from LDS.
           */
          if (info->output_semantic[i] == VARYING_SLOT_POS &&
-             ctx->shader->key.opt.ngg_culling) {
+             ctx->shader->key.ge.opt.ngg_culling) {
             vertex_ptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
 
             for (unsigned j = 0; j < 4; j++) {
@@ -1495,7 +1495,7 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
          }
       }
 
-      if (ctx->shader->key.mono.u.vs_export_prim_id) {
+      if (ctx->shader->key.ge.mono.u.vs_export_prim_id) {
          outputs[i].semantic = VARYING_SLOT_PRIMITIVE_ID;
 
          if (ctx->stage == MESA_SHADER_VERTEX) {

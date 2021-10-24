@@ -265,7 +265,7 @@ void
 iris_disk_cache_init(struct iris_screen *screen)
 {
 #ifdef ENABLE_SHADER_CACHE
-   if (INTEL_DEBUG & DEBUG_DISK_CACHE_DISABLE_MASK)
+   if (INTEL_DEBUG(DEBUG_DISK_CACHE_DISABLE_MASK))
       return;
 
    /* array length = print length + nul char + 1 extra to verify it's unused */

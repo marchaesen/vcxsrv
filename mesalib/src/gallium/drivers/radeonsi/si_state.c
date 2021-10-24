@@ -123,7 +123,7 @@ static void si_emit_cb_render_state(struct si_context *sctx)
    /* RB+ register settings. */
    if (sctx->screen->info.rbplus_allowed) {
       unsigned spi_shader_col_format =
-         sctx->shader.ps.cso ? sctx->shader.ps.current->key.part.ps.epilog.spi_shader_col_format
+         sctx->shader.ps.cso ? sctx->shader.ps.current->key.ps.part.epilog.spi_shader_col_format
                              : 0;
       unsigned sx_ps_downconvert = 0;
       unsigned sx_blend_opt_epsilon = 0;
@@ -643,7 +643,7 @@ static bool si_check_blend_dst_sampler_noop(struct si_context *sctx)
       struct si_shader_selector *sel = sctx->shader.ps.cso;
       bool free_nir;
       if (unlikely(sel->info.writes_1_if_tex_is_1 == 0xff)) {
-         struct nir_shader *nir = si_get_nir_shader(sel, NULL, &free_nir);
+         struct nir_shader *nir = si_get_nir_shader(sel, &sctx->shader.ps.key, &free_nir);
 
          /* Determine if this fragment shader always writes vec4(1) if a specific texture
           * is all 1s.
@@ -4977,7 +4977,7 @@ static void si_set_vertex_buffers(struct pipe_context *ctx, unsigned start_slot,
 
             si_context_add_resource_size(sctx, buf);
             if (buf)
-               si_resource(buf)->bind_history |= PIPE_BIND_VERTEX_BUFFER;
+               si_resource(buf)->bind_history |= SI_BIND_VERTEX_BUFFER;
          }
          /* take_ownership allows us to copy pipe_resource pointers without refcounting. */
          memcpy(dst, buffers, count * sizeof(struct pipe_vertex_buffer));
@@ -4997,7 +4997,7 @@ static void si_set_vertex_buffers(struct pipe_context *ctx, unsigned start_slot,
 
             si_context_add_resource_size(sctx, buf);
             if (buf)
-               si_resource(buf)->bind_history |= PIPE_BIND_VERTEX_BUFFER;
+               si_resource(buf)->bind_history |= SI_BIND_VERTEX_BUFFER;
          }
       }
    } else {

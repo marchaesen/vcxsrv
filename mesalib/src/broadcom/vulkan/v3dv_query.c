@@ -351,3 +351,41 @@ v3dv_CmdEndQuery(VkCommandBuffer commandBuffer,
 
    v3dv_cmd_buffer_end_query(cmd_buffer, pool, query);
 }
+
+void
+v3dv_reset_query_pools(struct v3dv_device *device,
+                       struct v3dv_query_pool *pool,
+                       uint32_t first,
+                       uint32_t count)
+{
+   for (uint32_t i = first; i < first + count; i++) {
+      assert(i < pool->query_count);
+      struct v3dv_query *q = &pool->queries[i];
+      q->maybe_available = false;
+      switch (pool->query_type) {
+      case VK_QUERY_TYPE_OCCLUSION: {
+         const uint8_t *q_addr = ((uint8_t *) q->bo->map) + q->offset;
+         uint32_t *counter = (uint32_t *) q_addr;
+         *counter = 0;
+         break;
+      }
+      case VK_QUERY_TYPE_TIMESTAMP:
+         q->value = 0;
+         break;
+      default:
+         unreachable("Unsupported query type");
+      }
+   }
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_ResetQueryPool(VkDevice _device,
+                    VkQueryPool queryPool,
+                    uint32_t firstQuery,
+                    uint32_t queryCount)
+{
+   V3DV_FROM_HANDLE(v3dv_device, device, _device);
+   V3DV_FROM_HANDLE(v3dv_query_pool, pool, queryPool);
+
+   v3dv_reset_query_pools(device, pool, firstQuery, queryCount);
+}

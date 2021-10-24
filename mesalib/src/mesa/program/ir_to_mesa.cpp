@@ -2543,6 +2543,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
             columns = 1;
             break;
          case GLSL_TYPE_SAMPLER:
+         case GLSL_TYPE_TEXTURE:
          case GLSL_TYPE_IMAGE:
          case GLSL_TYPE_SUBROUTINE:
             format = uniform_native;

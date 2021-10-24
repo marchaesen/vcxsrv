@@ -479,6 +479,7 @@ struct radv_shader_prolog {
    union radv_shader_arena_block *alloc;
    uint32_t rsrc1;
    uint8_t num_preserved_sgprs;
+   bool nontrivial_divisors;
 };
 
 void radv_optimize_nir(const struct radv_device *device, struct nir_shader *shader,

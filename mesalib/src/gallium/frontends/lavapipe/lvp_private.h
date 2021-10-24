@@ -259,48 +259,29 @@ struct lvp_image_view {
    struct pipe_surface *surface; /* have we created a pipe surface for this? */
 };
 
-struct lvp_subpass_attachment {
-   uint32_t         attachment;
-   VkImageLayout    layout;
-   bool             in_render_loop;
+struct lvp_render_pass_attachment {
+   uint32_t                                     attachment; //index
+   VkFormat                                     format;
+   uint32_t                                     samples;
+   VkAttachmentLoadOp                           load_op;
+   VkAttachmentLoadOp                           stencil_load_op;
 };
 
 struct lvp_subpass {
-   uint32_t                                     attachment_count;
-   struct lvp_subpass_attachment *             attachments;
-
    uint32_t                                     input_count;
    uint32_t                                     color_count;
-   struct lvp_subpass_attachment *              input_attachments;
-   struct lvp_subpass_attachment *              color_attachments;
-   struct lvp_subpass_attachment *              resolve_attachments;
-   struct lvp_subpass_attachment *              depth_stencil_attachment;
-   struct lvp_subpass_attachment *              ds_resolve_attachment;
+   struct lvp_render_pass_attachment **         input_attachments;
+   struct lvp_render_pass_attachment **         color_attachments;
+   struct lvp_render_pass_attachment **         resolve_attachments;
+   struct lvp_render_pass_attachment **         depth_stencil_attachment;
+   struct lvp_render_pass_attachment **         ds_resolve_attachment;
    VkResolveModeFlagBits                        depth_resolve_mode;
    VkResolveModeFlagBits                        stencil_resolve_mode;
 
    /** Subpass has at least one color resolve attachment */
    bool                                         has_color_resolve;
 
-   /** Subpass has at least one color attachment */
-   bool                                         has_color_att;
-
-   VkSampleCountFlagBits                        max_sample_count;
-
    uint32_t                                     view_mask;
-};
-
-struct lvp_render_pass_attachment {
-   VkFormat                                     format;
-   uint32_t                                     samples;
-   VkAttachmentLoadOp                           load_op;
-   VkAttachmentLoadOp                           stencil_load_op;
-   VkImageLayout                                initial_layout;
-   VkImageLayout                                final_layout;
-
-   /* The subpass id in which the attachment will be used first/last. */
-   uint32_t                                     first_subpass_idx;
-   uint32_t                                     last_subpass_idx;
 };
 
 struct lvp_render_pass {

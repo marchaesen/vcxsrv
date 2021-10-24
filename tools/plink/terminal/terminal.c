@@ -1433,11 +1433,13 @@ void term_update(Terminal *term)
         term->win_maximise_pending = false;
     }
     if (term->win_title_pending) {
-        win_set_title(term->win, term->window_title);
+        win_set_title(term->win, term->window_title,
+                      term->wintitle_codepage);
         term->win_title_pending = false;
     }
     if (term->win_icon_title_pending) {
-        win_set_icon_title(term->win, term->icon_title);
+        win_set_icon_title(term->win, term->icon_title,
+                           term->icontitle_codepage);
         term->win_icon_title_pending = false;
     }
     if (term->win_pointer_shape_pending) {
@@ -1553,6 +1555,7 @@ void term_copy_stuff_from_conf(Terminal *term)
     term->crhaslf = conf_get_bool(term->conf, CONF_crhaslf);
     term->erase_to_scrollback = conf_get_bool(term->conf, CONF_erase_to_scrollback);
     term->funky_type = conf_get_int(term->conf, CONF_funky_type);
+    term->sharrow_type = conf_get_int(term->conf, CONF_sharrow_type);
     term->lfhascr = conf_get_bool(term->conf, CONF_lfhascr);
     term->logflush = conf_get_bool(term->conf, CONF_logflush);
     term->logtype = conf_get_int(term->conf, CONF_logtype);
@@ -1670,6 +1673,7 @@ void term_reconfig(Terminal *term, Conf *conf)
         if (strcmp(old_title, new_title)) {
             sfree(term->window_title);
             term->window_title = dupstr(new_title);
+            term->wintitle_codepage = DEFAULT_CODEPAGE;
             term->win_title_pending = true;
             term_schedule_update(term);
         }
@@ -1807,6 +1811,7 @@ void term_setup_window_titles(Terminal *term, const char *title_hostname)
             term->window_title = dupstr(appname);
         term->icon_title = dupstr(term->window_title);
     }
+    term->wintitle_codepage = term->icontitle_codepage = DEFAULT_CODEPAGE;
     term->win_title_pending = true;
     term->win_icon_title_pending = true;
 }
@@ -2032,6 +2037,7 @@ Terminal *term_init(Conf *myconf, struct unicode_data *ucsdata, TermWin *win)
 
     term->window_title = dupstr("");
     term->icon_title = dupstr("");
+    term->wintitle_codepage = term->icontitle_codepage = DEFAULT_CODEPAGE;
     term->minimised = false;
     term->winpos_x = term->winpos_y = 0;
     term->winpixsize_x = term->winpixsize_y = 0;
@@ -3117,6 +3123,7 @@ static void do_osc(Terminal *term)
             if (!term->no_remote_wintitle) {
                 sfree(term->icon_title);
                 term->icon_title = dupstr(term->osc_string);
+                term->icontitle_codepage = term->ucsdata->line_codepage;
                 term->win_icon_title_pending = true;
                 term_schedule_update(term);
             }
@@ -3128,6 +3135,7 @@ static void do_osc(Terminal *term)
             if (!term->no_remote_wintitle) {
                 sfree(term->window_title);
                 term->window_title = dupstr(term->osc_string);
+                term->wintitle_codepage = term->ucsdata->line_codepage;
                 term->win_title_pending = true;
                 term_schedule_update(term);
             }
@@ -5131,31 +5139,91 @@ static void term_out(Terminal *term)
                 break;
               case OSC_STRING:
                 /*
-                 * This OSC stuff is EVIL. It takes just one character to get into
-                 * sysline mode and it's not initially obvious how to get out.
-                 * So I've added CR and LF as string aborts.
-                 * This shouldn't effect compatibility as I believe embedded
-                 * control characters are supposed to be interpreted (maybe?)
-                 * and they don't display anything useful anyway.
+                 * OSC sequences can be terminated or aborted in
+                 * various ways.
                  *
-                 * -- RDB
+                 * The official way to terminate an OSC, per written
+                 * standards, is the String Terminator, SC. That can
+                 * appear in a 7-bit two-character form ESC \, or as
+                 * an 8-bit C1 control 0x9C.
+                 *
+                 * We only accept 0x9C in circumstances where it
+                 * doesn't interfere with our main character set
+                 * processing: so in ISO 8859-1, for example, the byte
+                 * 0x9C is interpreted as ST, but in CP437 it's
+                 * interpreted as an ordinary printing character (as
+                 * it happens, the pound sign), because you might
+                 * perfectly well want to put it in the window title
+                 * like any other printing character.
+                 *
+                 * In particular, in UTF-8 mode, 0x9C is a perfectly
+                 * valid continuation byte for an ordinary printing
+                 * character, so we don't accept the C1 control form
+                 * of ST unless it appears as a full UTF-8 character
+                 * in its own right, i.e. bytes 0xC2 0x9C.
+                 *
+                 * BEL is also treated as a clean termination of OSC,
+                 * which I believe was a behaviour introduced by
+                 * xterm.
+                 *
+                 * To prevent run-on storage of OSC data forever if
+                 * emission of a control sequence is interrupted, we
+                 * also treat various control characters as illegal,
+                 * so that they abort the OSC without processing it
+                 * and return to TOPLEVEL state. These are CR, LF, and
+                 * any ESC that is *not* followed by \.
                  */
+
                 if (c == '\012' || c == '\015') {
+                    /* CR or LF aborts */
                     term->termstate = TOPLEVEL;
-                } else if (c == 0234 || c == '\007') {
-                    /*
-                     * These characters terminate the string; ST and BEL
-                     * terminate the sequence and trigger instant
-                     * processing of it, whereas ESC goes back to SEEN_ESC
-                     * mode unless it is followed by \, in which case it is
-                     * synonymous with ST in the first place.
-                     */
+                    break;
+                }
+
+                if (c == '\033') {
+                    /* ESC goes into a state where we wait to see if
+                     * the next character is \ */
+                    term->termstate = OSC_MAYBE_ST;
+                    break;
+                }
+
+                if (c == '\007' || (c == 0x9C && !in_utf(term) &&
+                                    term->ucsdata->unitab_ctrl[c] != 0xFF)) {
+                    /* BEL, or the C1 ST appearing as a one-byte
+                     * encoding, cleanly terminates the OSC right here */
                     do_osc(term);
                     term->termstate = TOPLEVEL;
-                } else if (c == '\033')
-                    term->termstate = OSC_MAYBE_ST;
-                else if (term->osc_strlen < OSC_STR_MAX)
+                    break;
+                }
+
+                if (c == 0xC2 && in_utf(term)) {
+                    /* 0xC2 is the UTF-8 character that might
+                     * introduce the encoding of C1 ST */
+                    term->termstate = OSC_MAYBE_ST_UTF8;
+                    break;
+                }
+
+                /* Anything else gets added to the string */
+                if (term->osc_strlen < OSC_STR_MAX)
                     term->osc_string[term->osc_strlen++] = (char)c;
+                break;
+              case OSC_MAYBE_ST_UTF8:
+                /* In UTF-8 mode, we've seen C2, so are we now seeing
+                 * 9C? */
+                if (c == 0x9C) {
+                    /* Yes, so cleanly terminate the OSC */
+                    do_osc(term);
+                    term->termstate = TOPLEVEL;
+                    break;
+                }
+                /* No, so append the pending C2 byte to the OSC string
+                 * followed by the current character, and go back to
+                 * OSC string accumulation */
+                if (term->osc_strlen < OSC_STR_MAX)
+                    term->osc_string[term->osc_strlen++] = 0xC2;
+                if (term->osc_strlen < OSC_STR_MAX)
+                    term->osc_string[term->osc_strlen++] = (char)c;
+                term->termstate = OSC_STRING;
                 break;
               case SEEN_OSC_P: {
                 int max = (term->osc_strlen == 0 ? 21 : 15);
@@ -7173,7 +7241,18 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
     term_schedule_update(term);
 }
 
-int format_arrow_key(char *buf, Terminal *term, int xkey, bool ctrl)
+static int shift_bitmap(bool shift, bool ctrl, bool alt, bool *consumed_alt)
+{
+    int bitmap = (shift ? 1 : 0) + (alt ? 2 : 0) + (ctrl ? 4 : 0);
+    if (bitmap)
+        bitmap++;
+    if (alt && consumed_alt)
+        *consumed_alt = true;
+    return bitmap;
+}
+
+int format_arrow_key(char *buf, Terminal *term, int xkey,
+                     bool shift, bool ctrl, bool alt, bool *consumed_alt)
 {
     char *p = buf;
 
@@ -7196,12 +7275,24 @@ int format_arrow_key(char *buf, Terminal *term, int xkey, bool ctrl)
         if (!term->app_keypad_keys)
             app_flg = 0;
 #endif
-        /* Useful mapping of Ctrl-arrows */
-        if (ctrl)
-            app_flg = !app_flg;
+
+        int bitmap = 0;
+
+        /* Adjustment based on Shift, Ctrl and/or Alt */
+        switch (term->sharrow_type) {
+          case SHARROW_APPLICATION:
+            if (ctrl)
+                app_flg = !app_flg;
+            break;
+          case SHARROW_BITMAP:
+            bitmap = shift_bitmap(shift, ctrl, alt, consumed_alt);
+            break;
+        }
 
         if (app_flg)
             p += sprintf(p, "\x1BO%c", xkey);
+        else if (bitmap)
+            p += sprintf(p, "\x1B[1;%d%c", bitmap, xkey);
         else
             p += sprintf(p, "\x1B[%c", xkey);
     }
@@ -7210,7 +7301,7 @@ int format_arrow_key(char *buf, Terminal *term, int xkey, bool ctrl)
 }
 
 int format_function_key(char *buf, Terminal *term, int key_number,
-                        bool shift, bool ctrl)
+                        bool shift, bool ctrl, bool alt, bool *consumed_alt)
 {
     char *p = buf;
 
@@ -7223,7 +7314,14 @@ int format_function_key(char *buf, Terminal *term, int key_number,
     assert(key_number > 0);
     assert(key_number < lenof(key_number_to_tilde_code));
 
-    int index = (shift && key_number <= 10) ? key_number + 10 : key_number;
+    int index = key_number;
+    if (term->funky_type != FUNKY_XTERM_216) {
+        if (shift && index <= 10) {
+            shift = false;
+            index += 10;
+        }
+    }
+
     int code = key_number_to_tilde_code[index];
 
     if (term->funky_type == FUNKY_SCO) {
@@ -7247,13 +7345,28 @@ int format_function_key(char *buf, Terminal *term, int key_number,
             p += sprintf(p, "\x1BO%c", code + 'P' - 11 - offt);
     } else if (term->funky_type == FUNKY_LINUX && code >= 11 && code <= 15) {
         p += sprintf(p, "\x1B[[%c", code + 'A' - 11);
-    } else if (term->funky_type == FUNKY_XTERM && code >= 11 && code <= 14) {
+    } else if ((term->funky_type == FUNKY_XTERM ||
+                term->funky_type == FUNKY_XTERM_216) &&
+               code >= 11 && code <= 14) {
         if (term->vt52_mode)
             p += sprintf(p, "\x1B%c", code + 'P' - 11);
-        else
-            p += sprintf(p, "\x1BO%c", code + 'P' - 11);
+        else {
+            int bitmap = 0;
+            if (term->funky_type == FUNKY_XTERM_216)
+                bitmap = shift_bitmap(shift, ctrl, alt, consumed_alt);
+            if (bitmap)
+                p += sprintf(p, "\x1B[1;%d%c", bitmap, code + 'P' - 11);
+            else
+                p += sprintf(p, "\x1BO%c", code + 'P' - 11);
+        }
     } else {
-        p += sprintf(p, "\x1B[%d~", code);
+        int bitmap = 0;
+        if (term->funky_type == FUNKY_XTERM_216)
+            bitmap = shift_bitmap(shift, ctrl, alt, consumed_alt);
+        if (bitmap)
+            p += sprintf(p, "\x1B[%d;%d~", code, bitmap);
+        else
+            p += sprintf(p, "\x1B[%d~", code);
     }
 
     return p - buf;

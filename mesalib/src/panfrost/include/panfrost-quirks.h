@@ -62,8 +62,7 @@
 /* Has some missing formats for typed loads */
 #define MIDGARD_MISSING_LOADS (1 << 9)
 
-/* Lack support for AFBC */
-#define MIDGARD_NO_AFBC (1 << 10)
+/* bit 10 unused */
 
 /* Does this GPU support anisotropic filtering? */
 #define HAS_ANISOTROPIC (1 << 11)
@@ -86,12 +85,11 @@ panfrost_get_quirks(unsigned gpu_id, unsigned gpu_revision)
         case 0x620:
                 return MIDGARD_QUIRKS | MIDGARD_SFBD
                         | MIDGARD_NO_TYPED_BLEND_LOADS
-                        | NO_BLEND_PACKS | MIDGARD_NO_AFBC
-                        | NO_TILE_ENABLE_MAP;
+                        | NO_BLEND_PACKS | NO_TILE_ENABLE_MAP;
 
         case 0x720:
                 return MIDGARD_QUIRKS | MIDGARD_SFBD | MIDGARD_NO_HIER_TILING
-                        | MIDGARD_NO_AFBC | NO_TILE_ENABLE_MAP;
+                        | NO_TILE_ENABLE_MAP;
 
         case 0x820:
         case 0x830:

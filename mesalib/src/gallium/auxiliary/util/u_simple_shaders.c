@@ -623,7 +623,8 @@ util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
                              enum tgsi_texture_type tgsi_tex)
 {
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "FLOAT",
-                                     "POSITION", ".z", "", "");
+                                     "POSITION", ".z", "",
+                                     "MOV TEMP[0].z, TEMP[0].xxxx\n");
 }
 
 
@@ -637,7 +638,8 @@ util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
                                enum tgsi_texture_type tgsi_tex)
 {
    return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "UINT",
-                                     "STENCIL", ".y", "", "");
+                                     "STENCIL", ".y", "",
+                                     "MOV TEMP[0].y, TEMP[0].xxxx\n");
 }
 
 

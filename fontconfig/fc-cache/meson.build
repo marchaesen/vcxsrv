@@ -8,6 +8,6 @@ fccache = executable('fc-cache', ['fc-cache.c', fcstdint_h, alias_headers, ft_al
 tools_man_pages += ['fc-cache']
 
 # Do not try to execute target's fc-cache on host when cross compiling
-if not meson.is_cross_build()
+if get_option('cache-build').enabled() and not meson.is_cross_build()
   meson.add_install_script(fccache, '-s', '-f', '-v')
 endif

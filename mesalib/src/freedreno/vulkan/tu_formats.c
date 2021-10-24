@@ -60,7 +60,7 @@ tu6_format_vtx_supported(VkFormat vk_format)
  * for VK RGB formats yet, and we'd have to switch all consumers of that
  * function at once.
  */
-static enum pipe_format
+enum pipe_format
 tu_vk_format_to_pipe_format(VkFormat vk_format)
 {
    switch (vk_format) {
@@ -78,9 +78,8 @@ tu_vk_format_to_pipe_format(VkFormat vk_format)
 }
 
 static struct tu_native_format
-tu6_format_color_unchecked(VkFormat vk_format, enum a6xx_tile_mode tile_mode)
+tu6_format_color_unchecked(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 {
-   enum pipe_format format = tu_vk_format_to_pipe_format(vk_format);
    struct tu_native_format fmt = {
       .fmt = fd6_color_format(format, tile_mode),
       .swap = fd6_color_swap(format, tile_mode),
@@ -100,23 +99,22 @@ tu6_format_color_unchecked(VkFormat vk_format, enum a6xx_tile_mode tile_mode)
 }
 
 bool
-tu6_format_color_supported(VkFormat vk_format)
+tu6_format_color_supported(enum pipe_format format)
 {
-   return tu6_format_color_unchecked(vk_format, TILE6_LINEAR).fmt != FMT6_NONE;
+   return tu6_format_color_unchecked(format, TILE6_LINEAR).fmt != FMT6_NONE;
 }
 
 struct tu_native_format
-tu6_format_color(VkFormat vk_format, enum a6xx_tile_mode tile_mode)
+tu6_format_color(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 {
-   struct tu_native_format fmt = tu6_format_color_unchecked(vk_format, tile_mode);
+   struct tu_native_format fmt = tu6_format_color_unchecked(format, tile_mode);
    assert(fmt.fmt != FMT6_NONE);
    return fmt;
 }
 
 static struct tu_native_format
-tu6_format_texture_unchecked(VkFormat vk_format, enum a6xx_tile_mode tile_mode)
+tu6_format_texture_unchecked(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 {
-   enum pipe_format format = tu_vk_format_to_pipe_format(vk_format);
    struct tu_native_format fmt = {
       .fmt = fd6_texture_format(format, tile_mode),
       .swap = fd6_texture_swap(format, tile_mode),
@@ -148,17 +146,17 @@ tu6_format_texture_unchecked(VkFormat vk_format, enum a6xx_tile_mode tile_mode)
 }
 
 struct tu_native_format
-tu6_format_texture(VkFormat vk_format, enum a6xx_tile_mode tile_mode)
+tu6_format_texture(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 {
-   struct tu_native_format fmt = tu6_format_texture_unchecked(vk_format, tile_mode);
+   struct tu_native_format fmt = tu6_format_texture_unchecked(format, tile_mode);
    assert(fmt.fmt != FMT6_NONE);
    return fmt;
 }
 
 bool
-tu6_format_texture_supported(VkFormat vk_format)
+tu6_format_texture_supported(enum pipe_format format)
 {
-   return tu6_format_texture_unchecked(vk_format, TILE6_LINEAR).fmt != FMT6_NONE;
+   return tu6_format_texture_unchecked(format, TILE6_LINEAR).fmt != FMT6_NONE;
 }
 
 static void
@@ -172,8 +170,8 @@ tu_physical_device_get_format_properties(
    const struct util_format_description *desc = util_format_description(format);
 
    bool supported_vtx = tu6_format_vtx_supported(vk_format);
-   bool supported_color = tu6_format_color_supported(vk_format);
-   bool supported_tex = tu6_format_texture_supported(vk_format);
+   bool supported_color = tu6_format_color_supported(format);
+   bool supported_tex = tu6_format_texture_supported(format);
 
    if (format == PIPE_FORMAT_NONE ||
        !(supported_vtx || supported_color || supported_tex)) {
@@ -223,7 +221,7 @@ tu_physical_device_get_format_properties(
        * after we enable shaderStorageImageReadWithoutFormat and there are
        * tests for these formats.
        */
-      struct tu_native_format tex = tu6_format_texture(vk_format, TILE6_LINEAR);
+      struct tu_native_format tex = tu6_format_texture(format, TILE6_LINEAR);
       if (tex.swap == WZYX && tex.fmt != FMT6_1_5_5_5_UNORM) {
          optimal |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
          buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
@@ -254,16 +252,18 @@ tu_physical_device_get_format_properties(
    if (tu6_pipe2depth(vk_format) != (enum a6xx_depth_format)~0)
       optimal |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+   if (!tiling_possible(vk_format) &&
+       /* We don't actually support tiling for this format, but we need to
+        * fake it as it's required by VK_KHR_sampler_ycbcr_conversion.
+        */
+       vk_format != VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM) {
+      optimal = 0;
+   }
+
    if (vk_format == VK_FORMAT_G8B8G8R8_422_UNORM ||
        vk_format == VK_FORMAT_B8G8R8G8_422_UNORM ||
        vk_format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM ||
        vk_format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM) {
-      /* no tiling for special UBWC formats
-       * TODO: NV12 can be UBWC but has a special UBWC format for accessing the Y plane aspect
-       * for 3plane, tiling/UBWC might be supported, but the blob doesn't use tiling
-       */
-      optimal = 0;
-
       /* Disable buffer texturing of subsampled (422) and planar YUV textures.
        * The subsampling requirement comes from "If format is a block-compressed
        * format, then bufferFeatures must not support any features for the
@@ -312,6 +312,7 @@ tu_GetPhysicalDeviceFormatProperties2(
 
       /* note: ubwc_possible() argument values to be ignored except for format */
       if (pFormatProperties->formatProperties.optimalTilingFeatures &&
+          tiling_possible(format) &&
           ubwc_possible(format, VK_IMAGE_TYPE_2D, 0, 0, physical_device->info, VK_SAMPLE_COUNT_1_BIT)) {
          vk_outarray_append(&out, mod_props) {
             mod_props->drmFormatModifier = DRM_FORMAT_MOD_QCOM_COMPRESSED;
@@ -352,7 +353,8 @@ tu_get_image_format_properties(
          /* falling back to linear/non-UBWC isn't possible with explicit modifier */
 
          /* formats which don't support tiling */
-         if (!format_props.optimalTilingFeatures)
+         if (!format_props.optimalTilingFeatures ||
+             !tiling_possible(info->format))
             return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
          /* for mutable formats, its very unlikely to be possible to use UBWC */

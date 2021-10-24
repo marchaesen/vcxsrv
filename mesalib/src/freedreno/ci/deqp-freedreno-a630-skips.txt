@@ -5,9 +5,6 @@
 # Note normal pre-merge CI also includes -premerge-skips.txt, and that's where
 # "it's slow but would pass/fail/crash within a couple of minutes" skips should go.
 
-# Crashes likely caused by https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2701
-dEQP-VK.synchronization.cross_instance.*binary_semaphore_fence_fd
-
 # Timeouts in CI even after 5 minutes
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
@@ -29,4 +26,4 @@ KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
 # causes a hangcheck timeout on a630:
 # msm ae00000.mdss: [drm:hangcheck_handler] *ERROR* A630: hangcheck detected gpu lockup rb 0!
 dEQP-VK.graphicsfuzz.spv-stable-maze-flatten-copy-composite
-dEQP-VK.graphicsfuzz.spv-stable-pillars-volatile-nontemporal-store
+spill-dEQP-VK.graphicsfuzz.spv-stable-pillars-volatile-nontemporal-store

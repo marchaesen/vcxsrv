@@ -32,6 +32,7 @@
 #include "util/u_math.h"
 
 #include <stdio.h>
+#include <ctype.h>
 
 #ifdef _WIN32
 #define DRM_CAP_ADDFB2_MODIFIERS 0x10
@@ -632,6 +633,10 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       return false;
    }
 
+   memset(info->lowercase_name, 0, sizeof(info->lowercase_name));
+   for (unsigned i = 0; info->name[i] && i < ARRAY_SIZE(info->lowercase_name) - 1; i++)
+      info->lowercase_name[i] = tolower(info->name[i]);
+
    if (info->family >= CHIP_SIENNA_CICHLID)
       info->chip_class = GFX10_3;
    else if (info->family >= CHIP_NAVI10)
@@ -1133,6 +1138,7 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
            info->pci_dev, info->pci_func);
 
    fprintf(f, "    name = %s\n", info->name);
+   fprintf(f, "    lowercase_name = %s\n", info->lowercase_name);
    fprintf(f, "    marketing_name = %s\n", info->marketing_name);
    fprintf(f, "    is_pro_graphics = %u\n", info->is_pro_graphics);
    fprintf(f, "    pci_id = 0x%x\n", info->pci_id);

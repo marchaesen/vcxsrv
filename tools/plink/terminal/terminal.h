@@ -200,7 +200,7 @@ struct terminal_tag {
         DO_CTRLS,
 
         SEEN_OSC_P,
-        OSC_STRING, OSC_MAYBE_ST,
+        OSC_STRING, OSC_MAYBE_ST, OSC_MAYBE_ST_UTF8,
         VT52_ESC,
         VT52_Y1,
         VT52_Y2,
@@ -317,7 +317,7 @@ struct terminal_tag {
     int conf_width;
     bool crhaslf;
     bool erase_to_scrollback;
-    int funky_type;
+    int funky_type, sharrow_type;
     bool lfhascr;
     bool logflush;
     int logtype;
@@ -351,6 +351,7 @@ struct terminal_tag {
     int mouse_paste_clipboard;
 
     char *window_title, *icon_title;
+    int wintitle_codepage, icontitle_codepage;
     bool minimised;
 
     BidiContext *bidi_ctx;

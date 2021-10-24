@@ -339,3 +339,37 @@ vk_format_aspects(VkFormat format)
       return VK_IMAGE_ASPECT_COLOR_BIT;
    }
 }
+
+void
+vk_component_mapping_to_pipe_swizzle(VkComponentMapping mapping,
+                                     unsigned char out_swizzle[4])
+{
+   VkComponentSwizzle swizzle[4] = { mapping.r, mapping.g, mapping.b, mapping.a };
+   for (unsigned i = 0; i < 4; i++) {
+      switch (swizzle[i]) {
+      case VK_COMPONENT_SWIZZLE_R:
+         out_swizzle[i] = PIPE_SWIZZLE_X;
+         break;
+      case VK_COMPONENT_SWIZZLE_G:
+         out_swizzle[i] = PIPE_SWIZZLE_Y;
+         break;
+      case VK_COMPONENT_SWIZZLE_B:
+         out_swizzle[i] = PIPE_SWIZZLE_Z;
+         break;
+      case VK_COMPONENT_SWIZZLE_A:
+         out_swizzle[i] = PIPE_SWIZZLE_W;
+         break;
+      case VK_COMPONENT_SWIZZLE_IDENTITY:
+         out_swizzle[i] = PIPE_SWIZZLE_X + i;
+         break;
+      case VK_COMPONENT_SWIZZLE_ZERO:
+         out_swizzle[i] = PIPE_SWIZZLE_0;
+         break;
+      case VK_COMPONENT_SWIZZLE_ONE:
+         out_swizzle[i] = PIPE_SWIZZLE_1;
+         break;
+      default:
+         unreachable("unknown swizzle");
+      }
+   }
+}

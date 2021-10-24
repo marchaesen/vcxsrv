@@ -1337,10 +1337,11 @@ static bool
 check_have_device_time(struct zink_screen *screen)
 {
    uint32_t num_domains = 0;
+   VkTimeDomainEXT domains[8]; //current max is 4
    VKSCR(GetPhysicalDeviceCalibrateableTimeDomainsEXT)(screen->pdev, &num_domains, NULL);
    assert(num_domains > 0);
+   assert(num_domains < ARRAY_SIZE(domains));
 
-   VkTimeDomainEXT *domains = malloc(sizeof(VkTimeDomainEXT) * num_domains);
    VKSCR(GetPhysicalDeviceCalibrateableTimeDomainsEXT)(screen->pdev, &num_domains, domains);
 
    /* VK_TIME_DOMAIN_DEVICE_EXT is used for the ctx->get_timestamp hook and is the only one we really need */
@@ -1350,7 +1351,6 @@ check_have_device_time(struct zink_screen *screen)
       }
    }
 
-   free(domains);
    return false;
 }
 

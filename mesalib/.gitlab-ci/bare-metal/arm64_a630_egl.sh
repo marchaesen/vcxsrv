@@ -10,7 +10,7 @@ EXIT=0
 # Run reset tests without parallelism:
 if ! env \
   DEQP_RESULTS_DIR=results/reset \
-  DEQP_PARALLEL=1 \
+  FDO_CI_CONCURRENT=1 \
   DEQP_CASELIST_FILTER='.*reset.*' \
   /install/deqp-runner.sh; then
     EXIT=1

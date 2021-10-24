@@ -33,7 +33,7 @@ xkb_symbols "deva" {
 	// March 2004 -- David Holl <smyrph+dev_xkb@ece.wpi.edu>
 	name[Group1]="Indian";
 
-	key.type="FOUR_LEVEL";
+	key.type[group1]="FOUR_LEVEL";
 
 	key <TLDE> { [ U094a, U0912,   grave, asciitilde  ] };
 	key <AE01> { [ U0967, U090d,       1, exclam      ] };
@@ -108,7 +108,7 @@ xkb_symbols "deva" {
 partial alphanumeric_keys
 xkb_symbols "bolnagri" {
      name[Group1] = "Hindi (Bolnagri)";
-     key.type="FOUR_LEVEL";
+     key.type[group1]="FOUR_LEVEL";
 
     // Roman digits
     key <TLDE>  { [   U0902,	U0901,		grave, 	asciitilde ] }; // grave: anusvara, candrabindu
@@ -244,7 +244,7 @@ xkb_symbols "ben" {
 
 xkb_symbols "ben_probhat" {
  name[Group1]= "Bangla (India, Probhat)";
-   key.type="FOUR_LEVEL";
+   key.type[group1]="FOUR_LEVEL";
 
    key <ESC>  { [ Escape ] };
 
@@ -848,7 +848,7 @@ xkb_symbols "mal" {
 partial alphanumeric_keys
 xkb_symbols "mal_lalitha" {
      name[Group1] = "Malayalam (Lalitha)";
-     key.type="FOUR_LEVEL";
+     key.type[group1]="FOUR_LEVEL";
 
     // Roman digits
     key <TLDE>  { [   U0D4D,	U0D02,		grave, 	asciitilde ] }; // grave: virama(chandrakala),anusvara
@@ -1052,7 +1052,7 @@ xkb_symbols "ori" {
 partial alphanumeric_keys
 xkb_symbols "ori-bolnagri" {
      name[Group1] = "Oriya (Bolnagri)";
-     key.type="FOUR_LEVEL";
+     key.type[group1]="FOUR_LEVEL";
     // Roman digits
     key <TLDE>  { [   U0B02,     U0B01,       grave,    asciitilde ] }; // grave: anusvara, candrabindu
     key <AE01>  { [   U0B67,     exclam,      1         ] };
@@ -1568,7 +1568,7 @@ partial alphanumeric_keys
 xkb_symbols "tel-sarala"
 {
     name[Group1] = "Telugu (Sarala)";
-    key.type="FOUR_LEVEL";
+    key.type[group1]="FOUR_LEVEL";
     // sequence 									  base, shift, alt, alt + shift
     key <AB01> { [          U0C4A,          U0C12                                 ] }; // ొ ఒ
     key <AB02> { [          U0C42,          U0C0A                                 ] }; // ూ ఊ
@@ -1716,7 +1716,7 @@ xkb_symbols "guru" {
 partial alphanumeric_keys
 xkb_symbols "jhelum" {
       name[Group1] = "Punjabi (Gurmukhi Jhelum)";
-          key.type="FOUR_LEVEL";
+          key.type[group1]="FOUR_LEVEL";
 
      // Roman digits
      key <TLDE>  { [  grave, asciitilde, U0A02,U0A01 ] }; // grave: anusvara, candrabindu
@@ -2027,7 +2027,7 @@ xkb_symbols "mal_enhanced" {
 partial alphanumeric_keys
 xkb_symbols "hin-kagapa" {
      name[Group1] = "Hindi (KaGaPa, phonetic)";
-     key.type="FOUR_LEVEL";
+     key.type[group1]="FOUR_LEVEL";
 
     // Roman digits
     key <TLDE>  { [   grave,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
@@ -2118,7 +2118,7 @@ xkb_symbols "mar-kagapa" {
 partial alphanumeric_keys
 xkb_symbols "kan-kagapa" {
     name[Group1] = "Kannada (KaGaPa, phonetic)";
-    key.type="FOUR_LEVEL";
+    key.type[group1]="FOUR_LEVEL";
 
     // Roman digits
     key <TLDE>  { [   grave,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
@@ -2195,7 +2195,7 @@ xkb_symbols "kan-kagapa" {
 partial alphanumeric_keys
 xkb_symbols "tel-kagapa" {
     name[Group1] = "Telugu (KaGaPa, phonetic)";
-    key.type="FOUR_LEVEL";
+    key.type[group1]="FOUR_LEVEL";
 
     // Roman digits
     key <TLDE>  { [   grave,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
@@ -2449,7 +2449,7 @@ xkb_symbols "marathi" {
 partial alphanumeric_keys
 xkb_symbols "san-misc" {
      name[Group1] = "Sanskrit symbols";
-     key.type="FOUR_LEVEL";
+     key.type[group1]="FOUR_LEVEL";
 
     // Roman digits
     key <TLDE>  { [   U1CD0,  UA8FA  ] };
@@ -2518,7 +2518,7 @@ xkb_symbols "san-misc" {
 partial alphanumeric_keys
 xkb_symbols "modi-kagapa" {
      name[Group1] = "Modi (KaGaPa phonetic)";
-     key.type="FOUR_LEVEL";
+     key.type[group1]="FOUR_LEVEL";
 
  // Roman digits
     key <TLDE>  { [   grave,   asciitilde,   U201C           ] };  // U201C: left double quotation mark

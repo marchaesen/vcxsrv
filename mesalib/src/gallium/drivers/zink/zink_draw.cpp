@@ -896,6 +896,14 @@ zink_launch_grid(struct pipe_context *pctx, const struct pipe_grid_info *info)
    batch->work_count++;
    zink_batch_no_rp(ctx);
    if (info->indirect) {
+      /*
+         VK_ACCESS_INDIRECT_COMMAND_READ_BIT specifies read access to indirect command data read as
+         part of an indirect build, trace, drawing or dispatching command. Such access occurs in the
+         VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT pipeline stage.
+
+         - Chapter 7. Synchronization and Cache Control
+       */
+      check_buffer_barrier(ctx, info->indirect, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT);
       VKCTX(CmdDispatchIndirect)(batch->state->cmdbuf, zink_resource(info->indirect)->obj->buffer, info->indirect_offset);
       zink_batch_reference_resource_rw(batch, zink_resource(info->indirect), false);
    } else

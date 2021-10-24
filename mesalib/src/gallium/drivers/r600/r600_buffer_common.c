@@ -584,7 +584,7 @@ r600_alloc_buffer_struct(struct pipe_screen *screen,
 	pipe_reference_init(&rbuffer->b.b.reference, 1);
 	rbuffer->b.b.screen = screen;
 
-	threaded_resource_init(&rbuffer->b.b);
+	threaded_resource_init(&rbuffer->b.b, false, 0);
 
 	rbuffer->buf = NULL;
 	rbuffer->bind_history = 0;

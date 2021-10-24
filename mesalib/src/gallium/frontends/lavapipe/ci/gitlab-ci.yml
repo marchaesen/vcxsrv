@@ -30,7 +30,7 @@ lavapipe-vk-asan:
   variables:
     GPU_VERSION: lvp-asan
     DEQP_FRACTION: 50
-    TEST_LD_PRELOAD: libasan.so.6
+    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.6"
     # Disable the leak checks, since the library gets dlclose()d and thus get
     # totally useless leak reports.  We can still catch buffer overflows.
     ASAN_OPTIONS: "detect_leaks=0"

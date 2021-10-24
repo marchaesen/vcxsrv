@@ -927,24 +927,24 @@ si_sqtt_pipeline_is_registered(struct ac_thread_trace_data *thread_trace_data,
 
 
 static enum rgp_hardware_stages
-si_sqtt_pipe_to_rgp_shader_stage(struct si_shader_key* key, enum pipe_shader_type stage)
+si_sqtt_pipe_to_rgp_shader_stage(union si_shader_key* key, enum pipe_shader_type stage)
 {
    switch (stage) {
    case PIPE_SHADER_VERTEX:
-      if (key->as_ls)
+      if (key->ge.as_ls)
          return RGP_HW_STAGE_LS;
-      else if (key->as_es)
+      else if (key->ge.as_es)
          return RGP_HW_STAGE_ES;
-      else if (key->as_ngg)
+      else if (key->ge.as_ngg)
          return RGP_HW_STAGE_GS;
       else
          return RGP_HW_STAGE_VS;
    case PIPE_SHADER_TESS_CTRL:
       return RGP_HW_STAGE_HS;
    case PIPE_SHADER_TESS_EVAL:
-      if (key->as_es)
+      if (key->ge.as_es)
          return RGP_HW_STAGE_ES;
-      else if (key->as_ngg)
+      else if (key->ge.as_ngg)
          return RGP_HW_STAGE_GS;
       else
          return RGP_HW_STAGE_VS;

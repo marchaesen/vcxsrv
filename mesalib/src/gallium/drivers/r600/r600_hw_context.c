@@ -84,7 +84,7 @@ void r600_need_cs_space(struct r600_context *ctx, unsigned num_dw,
 	num_dw += 10;
 
 	/* Flush if there's not enough space. */
-	if (!ctx->b.ws->cs_check_space(&ctx->b.gfx.cs, num_dw, false)) {
+	if (!ctx->b.ws->cs_check_space(&ctx->b.gfx.cs, num_dw)) {
 		ctx->b.gfx.flush(ctx, PIPE_FLUSH_ASYNC, NULL);
 	}
 }

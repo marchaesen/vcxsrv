@@ -658,7 +658,16 @@ sync_import(VkDevice _device, struct tu_syncobj *sync, bool temporary, bool sync
       *dst = handle.handle;
       close(fd);
    } else {
-      assert(temporary);
+      /* Note: SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT is always temporary, but the
+       * user doesn't have to specify the temporary bit because that's only
+       * needed for choosing a permanence when there's an option.
+       *
+       * "VK_SEMAPHORE_IMPORT_TEMPORARY_BIT specifies that the semaphore payload
+       * will be imported only temporarily, as described in Importing Semaphore
+       * Payloads, regardless of the permanence of handleType"
+       *
+       * https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2701
+       */
 
       struct drm_syncobj_create create = {};
 

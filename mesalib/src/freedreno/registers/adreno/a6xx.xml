@@ -1798,7 +1798,7 @@ to upconvert to 32b float internally?
 		<bitfield name="FRAGCOORDSAMPLEMODE" low="1" high="2" type="a6xx_fragcoord_sample_mode"/>
 	</reg32>
 
-	<reg32 offset="0x8102" name="GRAS_2D_BLIT_INFO">
+	<reg32 offset="0x8102" name="GRAS_LRZ_MRT_BUF_INFO_0">
 		<bitfield name="COLOR_FORMAT" low="0" high="7" type="a6xx_format"/>
 	</reg32>
 	<reg64 offset="0x8103" name="GRAS_LRZ_BUFFER_BASE" align="256" type="waddress"/>

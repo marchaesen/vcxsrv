@@ -183,7 +183,8 @@ ir3_shader_assemble(struct ir3_shader_variant *v)
     * index.
     */
    v->pvtmem_per_wave = compiler->gen >= 6 && !info->multi_dword_ldp_stp &&
-                        v->type == MESA_SHADER_COMPUTE;
+                        ((v->type == MESA_SHADER_COMPUTE) ||
+                         (v->type == MESA_SHADER_KERNEL));
 
    fixup_regfootprint(v);
 

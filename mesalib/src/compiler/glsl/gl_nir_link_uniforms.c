@@ -394,7 +394,8 @@ add_var_use_deref(nir_deref_instr *deref, struct hash_table *live,
    if (deref->deref_type != nir_deref_type_var ||
        !nir_deref_mode_is_one_of(deref, nir_var_uniform |
                                         nir_var_mem_ubo |
-                                        nir_var_mem_ssbo)) {
+                                        nir_var_mem_ssbo |
+                                        nir_var_image)) {
       nir_deref_path_finish(&path);
       return;
    }

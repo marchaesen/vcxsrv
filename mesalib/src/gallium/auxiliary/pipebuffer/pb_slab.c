@@ -71,17 +71,27 @@ pb_slab_reclaim(struct pb_slabs *slabs, struct pb_slab_entry *entry)
    }
 }
 
+#define MAX_FAILED_RECLAIMS 2
+
 static void
 pb_slabs_reclaim_locked(struct pb_slabs *slabs)
 {
-   while (!list_is_empty(&slabs->reclaim)) {
-      struct pb_slab_entry *entry =
-         LIST_ENTRY(struct pb_slab_entry, slabs->reclaim.next, head);
-
-      if (!slabs->can_reclaim(slabs->priv, entry))
+   struct pb_slab_entry *entry, *next;
+   unsigned num_failed_reclaims = 0;
+   LIST_FOR_EACH_ENTRY_SAFE(entry, next, &slabs->reclaim, head) {
+      if (slabs->can_reclaim(slabs->priv, entry)) {
+         pb_slab_reclaim(slabs, entry);
+      /* there are typically three possible scenarios when reclaiming:
+       * - all entries reclaimed
+       * - no entries reclaimed
+       * - all but one entry reclaimed
+       * in the scenario where a slab contains many (10+) unused entries,
+       * the driver should not walk the entire list, as this is likely to
+       * result in zero reclaims if the first few entries fail to reclaim
+       */
+      } else if (++num_failed_reclaims >= MAX_FAILED_RECLAIMS) {
          break;
-
-      pb_slab_reclaim(slabs, entry);
+      }
    }
 }
 

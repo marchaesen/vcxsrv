@@ -19,6 +19,7 @@ struct Raw {
     LogContext *logctx;
     Ldisc *ldisc;
     bool sent_console_eof, sent_socket_eof, socket_connected;
+    char *description;
 
     Conf *conf;
 
@@ -69,8 +70,7 @@ static void raw_check_close(Raw *raw)
     }
 }
 
-static void raw_closing(Plug *plug, const char *error_msg, int error_code,
-                        bool calling_back)
+static void raw_closing(Plug *plug, const char *error_msg, int error_code)
 {
     Raw *raw = container_of(plug, Raw, plug);
 
@@ -116,11 +116,24 @@ static void raw_sent(Plug *plug, size_t bufsize)
     seat_sent(raw->seat, raw->bufsize);
 }
 
+static char *raw_plug_description(Plug *plug)
+{
+    Raw *raw = container_of(plug, Raw, plug);
+    return dupstr(raw->description);
+}
+
+static char *raw_backend_description(Backend *backend)
+{
+    Raw *raw = container_of(backend, Raw, backend);
+    return dupstr(raw->description);
+}
+
 static const PlugVtable Raw_plugvt = {
     .log = raw_log,
     .closing = raw_closing,
     .receive = raw_receive,
     .sent = raw_sent,
+    .description = raw_plug_description,
 };
 
 /*
@@ -152,6 +165,7 @@ static char *raw_init(const BackendVtable *vt, Seat *seat,
     raw->bufsize = 0;
     raw->socket_connected = false;
     raw->conf = conf_copy(conf);
+    raw->description = default_description(vt, host, port);
 
     raw->seat = seat;
     raw->logctx = logctx;
@@ -206,6 +220,7 @@ static void raw_free(Backend *be)
     if (raw->s)
         sk_close(raw->s);
     conf_free(raw->conf);
+    sfree(raw->description);
     sfree(raw);
 }
 
@@ -338,8 +353,10 @@ const BackendVtable raw_backend = {
     .provide_ldisc = raw_provide_ldisc,
     .unthrottle = raw_unthrottle,
     .cfg_info = raw_cfg_info,
+    .description = raw_backend_description,
     .id = "raw",
-    .displayname = "Raw",
+    .displayname_tc = "Raw",
+    .displayname_lc = "raw",
     .protocol = PROT_RAW,
     .default_port = 0,
 };

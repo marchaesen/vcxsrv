@@ -1211,7 +1211,7 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
       return;
    }
 
-   if (info->is_dri_blit_image && sdst->surface.is_linear &&
+   if ((info->dst.resource->bind & PIPE_BIND_DRI_PRIME) && sdst->surface.is_linear &&
        sctx->chip_class >= GFX7 && sdst->surface.flags & RADEON_SURF_IMPORTED) {
       struct si_texture *ssrc = (struct si_texture *)info->src.resource;
       /* Use SDMA or async compute when copying to a DRI_PRIME imported linear surface. */
@@ -1222,8 +1222,7 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
                         info->src.box.height == info->dst.resource->height0 &&
                         info->src.box.depth == 1 && util_can_blit_via_copy_region(info, true);
       /* Try SDMA first... */
-      /* TODO: figure out why SDMA copies are slow on GFX10_3 */
-      if (async_copy && sctx->chip_class < GFX10_3 && si_sdma_copy_image(sctx, sdst, ssrc))
+      if (async_copy && si_sdma_copy_image(sctx, sdst, ssrc))
          return;
 
       /* ... and use async compute as the fallback. */

@@ -124,6 +124,8 @@ struct ir3_register {
       IR3_REG_BNOT = 0x400,
       /* (ei) flag, end-input?  Set on last bary, presumably to signal
        * that the shader needs no more input:
+       *
+       * Note: Has different meaning on other instructions like add.s/u
        */
       IR3_REG_EI = 0x2000,
       /* meta-flags, for intermediate stages of IR, ie.
@@ -338,7 +340,7 @@ struct ir3_instruction {
           * handled.
           */
          int dst_offset;
-         int iim_val   : 3; /* for ldgb/stgb, # of components */
+         int iim_val;       /* for ldgb/stgb, # of components */
          unsigned d    : 3; /* for ldc, component offset */
          bool typed    : 1;
          unsigned base : 3;
@@ -1198,6 +1200,9 @@ half_type(type_t type)
    case TYPE_U16:
    case TYPE_S16:
       return type;
+   case TYPE_U8:
+   case TYPE_S8:
+      return type;
    default:
       assert(0);
       return ~0;
@@ -1210,8 +1215,10 @@ full_type(type_t type)
    switch (type) {
    case TYPE_F16:
       return TYPE_F32;
+   case TYPE_U8:
    case TYPE_U16:
       return TYPE_U32;
+   case TYPE_S8:
    case TYPE_S16:
       return TYPE_S32;
    case TYPE_F32:

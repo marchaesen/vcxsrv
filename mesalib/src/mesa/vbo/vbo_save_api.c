@@ -746,7 +746,8 @@ compile_vertex_list(struct gl_context *ctx)
                                             GL_ELEMENT_ARRAY_BUFFER_ARB,
                                             MAX2(total_bytes_needed, VBO_SAVE_BUFFER_SIZE),
                                             NULL,
-                                            GL_STATIC_DRAW_ARB, GL_MAP_WRITE_BIT,
+                                            GL_STATIC_DRAW_ARB, GL_MAP_WRITE_BIT |
+                                            MESA_GALLIUM_VERTEX_STATE_STORAGE,
                                             save->current_bo);
       if (!success) {
          _mesa_reference_buffer_object(ctx, &save->current_bo, NULL);
@@ -876,7 +877,8 @@ end:
                                             GL_ELEMENT_ARRAY_BUFFER_ARB,
                                             VBO_SAVE_BUFFER_SIZE,
                                             NULL,
-                                            GL_STATIC_DRAW_ARB, GL_MAP_WRITE_BIT,
+                                            GL_STATIC_DRAW_ARB, GL_MAP_WRITE_BIT |
+                                            MESA_GALLIUM_VERTEX_STATE_STORAGE,
                                             save->current_bo);
       if (!success)
          handle_out_of_memory(ctx);

@@ -3348,11 +3348,7 @@ static LLVMValueRef load_interpolated_input(struct ac_nir_context *ctx, LLVMValu
 
    /* Workaround for issue 2647: kill threads with infinite interpolation coeffs */
    if (ctx->verified_interp && !_mesa_hash_table_search(ctx->verified_interp, interp_param)) {
-      LLVMValueRef args[2];
-      args[0] = i;
-      args[1] = LLVMConstInt(ctx->ac.i32, S_NAN | Q_NAN | N_INFINITY | P_INFINITY, false);
-      LLVMValueRef cond = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.class.f32", ctx->ac.i1, args, 2,
-                                             AC_FUNC_ATTR_READNONE);
+      LLVMValueRef cond = ac_build_is_inf_or_nan(&ctx->ac, i);
       ac_build_kill_if_false(&ctx->ac, LLVMBuildNot(ctx->ac.builder, cond, ""));
       _mesa_hash_table_insert(ctx->verified_interp, interp_param, interp_param);
    }
@@ -3863,7 +3859,7 @@ static void visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
       nir_variable_mode modes = nir_intrinsic_memory_modes(instr);
 
       unsigned wait_flags = 0;
-      if (modes & (nir_var_mem_global | nir_var_mem_ssbo))
+      if (modes & (nir_var_mem_global | nir_var_mem_ssbo | nir_var_image))
          wait_flags |= AC_WAIT_VLOAD | AC_WAIT_VSTORE;
       if (modes & nir_var_mem_shared)
          wait_flags |= AC_WAIT_LGKM;

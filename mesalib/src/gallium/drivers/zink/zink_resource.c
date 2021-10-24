@@ -110,16 +110,18 @@ zink_resource_destroy(struct pipe_screen *pscreen,
       util_idalloc_mt_free(&screen->buffer_ids, res->base.buffer_id_unique);
       assert(!_mesa_hash_table_num_entries(&res->bufferview_cache));
       simple_mtx_destroy(&res->bufferview_mtx);
+      ralloc_free(res->bufferview_cache.table);
    } else {
       assert(!_mesa_hash_table_num_entries(&res->surface_cache));
       simple_mtx_destroy(&res->surface_mtx);
+      ralloc_free(res->surface_cache.table);
    }
    /* no need to do anything for the caches, these objects own the resource lifetimes */
 
    zink_resource_object_reference(screen, &res->obj, NULL);
    zink_resource_object_reference(screen, &res->scanout_obj, NULL);
    threaded_resource_deinit(pres);
-   ralloc_free(res);
+   FREE_CL(res);
 }
 
 static VkImageAspectFlags
@@ -733,14 +735,14 @@ resource_create(struct pipe_screen *pscreen,
                 const uint64_t *modifiers, int modifiers_count)
 {
    struct zink_screen *screen = zink_screen(pscreen);
-   struct zink_resource *res = rzalloc(NULL, struct zink_resource);
+   struct zink_resource *res = CALLOC_STRUCT_CL(zink_resource);
 
    if (modifiers_count > 0) {
       /* for rebinds */
       res->modifiers_count = modifiers_count;
       res->modifiers = mem_dup(modifiers, modifiers_count * sizeof(uint64_t));
       if (!res->modifiers) {
-         ralloc_free(res);
+         FREE_CL(res);
          return NULL;
       }
       /* TODO: remove this when multi-plane modifiers are supported */
@@ -758,7 +760,7 @@ resource_create(struct pipe_screen *pscreen,
 
    res->base.b = *templ;
 
-   threaded_resource_init(&res->base.b);
+   threaded_resource_init(&res->base.b, false, 0);
    pipe_reference_init(&res->base.b.reference, 1);
    res->base.b.screen = pscreen;
 
@@ -770,7 +772,7 @@ resource_create(struct pipe_screen *pscreen,
    res->obj = resource_object_create(screen, &templ2, whandle, &optimal_tiling, NULL, 0);
    if (!res->obj) {
       free(res->modifiers);
-      ralloc_free(res);
+      FREE_CL(res);
       return NULL;
    }
 
@@ -814,10 +816,10 @@ resource_create(struct pipe_screen *pscreen,
    }
    if (res->obj->is_buffer) {
       res->base.buffer_id_unique = util_idalloc_mt_alloc(&screen->buffer_ids);
-      _mesa_hash_table_init(&res->bufferview_cache, res, NULL, equals_bvci);
+      _mesa_hash_table_init(&res->bufferview_cache, NULL, NULL, equals_bvci);
       simple_mtx_init(&res->bufferview_mtx, mtx_plain);
    } else {
-      _mesa_hash_table_init(&res->surface_cache, res, NULL, equals_ivci);
+      _mesa_hash_table_init(&res->surface_cache, NULL, NULL, equals_ivci);
       simple_mtx_init(&res->surface_mtx, mtx_plain);
    }
    return &res->base.b;

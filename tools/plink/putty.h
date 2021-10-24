@@ -530,7 +530,14 @@ enum {
     FUNKY_XTERM,
     FUNKY_VT400,
     FUNKY_VT100P,
-    FUNKY_SCO
+    FUNKY_SCO,
+    FUNKY_XTERM_216
+};
+
+enum {
+    /* Shifted arrow key types (CONF_sharrow_type) */
+    SHARROW_APPLICATION,  /* Ctrl flips between ESC O A and ESC [ A */
+    SHARROW_BITMAP        /* ESC [ 1 ; n A, where n = 1 + bitmap of CAS */
 };
 
 enum {
@@ -673,10 +680,33 @@ struct BackendVtable {
      * connections that would be lost if this one were terminated. */
     char *(*close_warn_text)(Backend *be);
 
+    /*
+     * Returns a user-facing description of the nature of the network
+     * connection being made. Used in interactive proxy authentication
+     * to announce which connection attempt is now in control of the
+     * Seat.
+     *
+     * The idea is not just to be written in natural language, but to
+     * connect with the user's idea of _why_ they think some
+     * connection is being made. For example, instead of saying 'TCP
+     * connection to 123.45.67.89 port 22', you might say 'SSH
+     * connection to [logical host name for SSH host key purposes]'.
+     *
+     * This function pointer may be NULL, or may exist but return
+     * NULL, in which case no user-facing description is available.
+     * (Backends which are never proxied, such as pty and ConPTY, need
+     * not bother to fill this in.)
+     *
+     * If a non-NULL string is returned, it must be freed by the
+     * caller.
+     */
+    char *(*description)(Backend *be);
+
     /* 'id' is a machine-readable name for the backend, used in
-     * saved-session storage. 'displayname' is a human-readable name
-     * for error messages. */
-    const char *id, *displayname;
+     * saved-session storage. 'displayname_tc' and 'displayname_lc'
+     * are human-readable names, one in title-case for config boxes,
+     * and one in lower-case for use in mid-sentence. */
+    const char *id, *displayname_tc, *displayname_lc;
 
     int protocol;
     int default_port;
@@ -720,6 +750,11 @@ static inline void backend_unthrottle(Backend *be, size_t bufsize)
 { be->vt->unthrottle(be, bufsize); }
 static inline int backend_cfg_info(Backend *be)
 { return be->vt->cfg_info(be); }
+static inline char *backend_description(Backend *be)
+{ return be->vt->description ? be->vt->description(be) : NULL; }
+
+char *default_description(const BackendVtable *backvt,
+                          const char *host, int port);
 
 extern const struct BackendVtable *const backends[];
 /*
@@ -1414,8 +1449,9 @@ struct TermWinVtable {
 
     void (*request_resize)(TermWin *, int w, int h);
 
-    void (*set_title)(TermWin *, const char *title);
-    void (*set_icon_title)(TermWin *, const char *icontitle);
+    void (*set_title)(TermWin *, const char *title, int codepage);
+    void (*set_icon_title)(TermWin *, const char *icontitle, int codepage);
+
     /* set_minimised and set_maximised are assumed to set two
      * independent settings, rather than a single three-way
      * {min,normal,max} switch. The idea is that when you un-minimise
@@ -1480,10 +1516,11 @@ static inline void win_refresh(TermWin *win)
 { win->vt->refresh(win); }
 static inline void win_request_resize(TermWin *win, int w, int h)
 { win->vt->request_resize(win, w, h); }
-static inline void win_set_title(TermWin *win, const char *title)
-{ win->vt->set_title(win, title); }
-static inline void win_set_icon_title(TermWin *win, const char *icontitle)
-{ win->vt->set_icon_title(win, icontitle); }
+static inline void win_set_title(TermWin *win, const char *title, int codepage)
+{ win->vt->set_title(win, title, codepage); }
+static inline void win_set_icon_title(TermWin *win, const char *icontitle,
+                                      int codepage)
+{ win->vt->set_icon_title(win, icontitle, codepage); }
 static inline void win_set_minimised(TermWin *win, bool minimised)
 { win->vt->set_minimised(win, minimised); }
 static inline void win_set_maximised(TermWin *win, bool maximised)
@@ -1604,6 +1641,7 @@ NORETURN void cleanup_exit(int);
     X(BOOL, NONE, bksp_is_delete) \
     X(BOOL, NONE, rxvt_homeend) \
     X(INT, NONE, funky_type) /* FUNKY_XTERM, FUNKY_LINUX, ... */ \
+    X(INT, NONE, sharrow_type) /* SHARROW_APPLICATION, SHARROW_BITMAP, ... */ \
     X(BOOL, NONE, no_applic_c) /* totally disable app cursor keys */ \
     X(BOOL, NONE, no_applic_k) /* totally disable app keypad */ \
     X(BOOL, NONE, no_mouse_rep) /* totally disable mouse reporting */ \
@@ -1935,9 +1973,10 @@ void term_palette_override(Terminal *term, unsigned osc4_index, rgb rgb);
 typedef enum SmallKeypadKey {
     SKK_HOME, SKK_END, SKK_INSERT, SKK_DELETE, SKK_PGUP, SKK_PGDN,
 } SmallKeypadKey;
-int format_arrow_key(char *buf, Terminal *term, int xkey, bool ctrl);
+int format_arrow_key(char *buf, Terminal *term, int xkey,
+                     bool shift, bool ctrl, bool alt, bool *consumed_alt);
 int format_function_key(char *buf, Terminal *term, int key_number,
-                        bool shift, bool ctrl);
+                        bool shift, bool ctrl, bool alt, bool *consumed_alt);
 int format_small_keypad_key(char *buf, Terminal *term, SmallKeypadKey key);
 int format_numeric_keypad_key(char *buf, Terminal *term, char key,
                               bool shift, bool ctrl);

@@ -615,6 +615,7 @@ void ac_build_s_endpgm(struct ac_llvm_context *ctx);
 void ac_build_triangle_strip_indices_to_triangle(struct ac_llvm_context *ctx, LLVMValueRef is_odd,
                                                  LLVMValueRef flatshade_first,
                                                  LLVMValueRef index[3]);
+LLVMValueRef ac_build_is_inf_or_nan(struct ac_llvm_context *ctx, LLVMValueRef a);
 
 #ifdef __cplusplus
 }

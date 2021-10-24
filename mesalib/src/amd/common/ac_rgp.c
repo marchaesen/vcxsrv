@@ -61,10 +61,6 @@
 enum sqtt_version
 {
    SQTT_VERSION_NONE = 0x0,
-   SQTT_VERSION_1_0 = 0x1,
-   SQTT_VERSION_1_1 = 0x2,
-   SQTT_VERSION_2_0 = 0x3, /* GFX6 */
-   SQTT_VERSION_2_1 = 0x4, /* GFX7 */
    SQTT_VERSION_2_2 = 0x5, /* GFX8 */
    SQTT_VERSION_2_3 = 0x6, /* GFX9 */
    SQTT_VERSION_2_4 = 0x7  /* GFX10+ */
@@ -368,10 +364,6 @@ static_assert(sizeof(struct sqtt_file_chunk_asic_info) == 720,
 static enum sqtt_gfxip_level ac_chip_class_to_sqtt_gfxip_level(enum chip_class chip_class)
 {
    switch (chip_class) {
-   case GFX6:
-      return SQTT_GFXIP_LEVEL_GFXIP_6;
-   case GFX7:
-      return SQTT_GFXIP_LEVEL_GFXIP_7;
    case GFX8:
       return SQTT_GFXIP_LEVEL_GFXIP_8;
    case GFX9:
@@ -454,8 +446,8 @@ static void ac_sqtt_fill_asic_info(struct radeon_info *rad_info,
    if (rad_info->chip_class < GFX9)
       chunk->flags |= SQTT_FILE_CHUNK_ASIC_INFO_FLAG_SC_PACKER_NUMBERING;
 
-   /* Only FIJI and GFX9+ support PS1 events. */
-   if (rad_info->family == CHIP_FIJI || rad_info->chip_class >= GFX9)
+   /* Only GFX9+ support PS1 events. */
+   if (rad_info->chip_class >= GFX9)
       chunk->flags |= SQTT_FILE_CHUNK_ASIC_INFO_FLAG_PS1_EVENT_TOKENS_ENABLED;
 
    chunk->trace_shader_core_clock = rad_info->max_shader_clock * 1000000;
@@ -732,10 +724,6 @@ static_assert(sizeof(struct sqtt_file_chunk_sqtt_desc) == 32,
 static enum sqtt_version ac_chip_class_to_sqtt_version(enum chip_class chip_class)
 {
    switch (chip_class) {
-   case GFX6:
-      return SQTT_VERSION_2_0;
-   case GFX7:
-      return SQTT_VERSION_2_1;
    case GFX8:
       return SQTT_VERSION_2_2;
    case GFX9:
@@ -797,8 +785,6 @@ static void ac_sqtt_fill_sqtt_data(struct sqtt_file_chunk_sqtt_data *chunk, int3
  */
 enum elf_gfxip_level
 {
-   EF_AMDGPU_MACH_AMDGCN_GFX600 = 0x020,
-   EF_AMDGPU_MACH_AMDGCN_GFX700 = 0x022,
    EF_AMDGPU_MACH_AMDGCN_GFX801 = 0x028,
    EF_AMDGPU_MACH_AMDGCN_GFX900 = 0x02c,
    EF_AMDGPU_MACH_AMDGCN_GFX1010 = 0x033,
@@ -808,10 +794,6 @@ enum elf_gfxip_level
 static enum elf_gfxip_level ac_chip_class_to_elf_gfxip_level(enum chip_class chip_class)
 {
    switch (chip_class) {
-   case GFX6:
-      return EF_AMDGPU_MACH_AMDGCN_GFX600;
-   case GFX7:
-      return EF_AMDGPU_MACH_AMDGCN_GFX700;
    case GFX8:
       return EF_AMDGPU_MACH_AMDGCN_GFX801;
    case GFX9:

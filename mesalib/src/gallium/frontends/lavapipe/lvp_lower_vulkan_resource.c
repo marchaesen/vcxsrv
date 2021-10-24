@@ -210,7 +210,8 @@ void lvp_lower_pipeline_layout(const struct lvp_device *device,
                                nir_shader *shader)
 {
    nir_shader_lower_instructions(shader, lower_vulkan_resource_index, lower_vri_instr, layout);
-   nir_foreach_uniform_variable(var, shader) {
+   nir_foreach_variable_with_modes(var, shader, nir_var_uniform |
+                                                nir_var_image) {
       const struct glsl_type *type = var->type;
       enum glsl_base_type base_type =
          glsl_get_base_type(glsl_without_array(type));
@@ -219,7 +220,7 @@ void lvp_lower_pipeline_layout(const struct lvp_device *device,
       struct lvp_descriptor_set_binding_layout *binding = &layout->set[desc_set_idx].layout->binding[binding_idx];
       int value = 0;
       var->data.descriptor_set = 0;
-      if (base_type == GLSL_TYPE_SAMPLER) {
+      if (base_type == GLSL_TYPE_SAMPLER || base_type == GLSL_TYPE_TEXTURE) {
          if (binding->type == VK_DESCRIPTOR_TYPE_SAMPLER) {
             for (unsigned s = 0; s < desc_set_idx; s++)
                value += layout->set[s].layout->stage[shader->info.stage].sampler_count;

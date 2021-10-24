@@ -409,6 +409,18 @@ nir_schedule_intrinsic_deps(nir_deps_state *state,
       add_write_dep(state, &state->unknown_intrinsic, n);
       break;
 
+   case nir_intrinsic_scoped_barrier: {
+      const nir_variable_mode modes = nir_intrinsic_memory_modes(instr);
+
+      if (modes & nir_var_mem_shared)
+         add_write_dep(state, &state->store_shared, n);
+
+      /* Serialize against other categories. */
+      add_write_dep(state, &state->unknown_intrinsic, n);
+
+      break;
+   }
+
    default:
       /* Attempt to handle other intrinsics that we haven't individually
        * categorized by serializing them in the same order relative to each

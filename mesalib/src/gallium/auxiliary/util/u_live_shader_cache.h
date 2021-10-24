@@ -52,6 +52,10 @@
 #include "util/simple_mtx.h"
 #include "pipe/p_state.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct util_live_shader_cache {
    simple_mtx_t lock;
    struct hash_table *hashtable;
@@ -87,5 +91,9 @@ void
 util_shader_reference(struct pipe_context *ctx,
                       struct util_live_shader_cache *cache,
                       void **dst, void *src);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

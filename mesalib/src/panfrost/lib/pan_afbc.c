@@ -64,29 +64,22 @@
  * and the driver never needs to know the internal data. For edge cases where
  * the driver really does need to read/write from the AFBC resource, we
  * generate a linear staging buffer and use the GPU to blit AFBC<--->linear.
- * TODO: Implement me. */
+ */
 
 #define AFBC_TILE_WIDTH 16
 #define AFBC_TILE_HEIGHT 16
 #define AFBC_CACHE_ALIGN 64
 
-/* Is it possible to AFBC compress a particular format? Common formats (and
- * YUV) are compressible. Some obscure formats are not and fallback on linear,
- * at a performance hit. Also, if you need to disable AFBC entirely in the
- * driver for debug/profiling, just always return false here. */
+/* AFBC supports compressing a few canonical formats. Additional formats are
+ * available by using a canonical internal format. Given a PIPE format, find
+ * the canonical AFBC internal format if it exists, or NONE if the format
+ * cannot be compressed. */
 
-bool
-panfrost_format_supports_afbc(const struct panfrost_device *dev, enum pipe_format format)
+enum pipe_format
+panfrost_afbc_format(const struct panfrost_device *dev, enum pipe_format format)
 {
+        /* Don't allow swizzled formats on v7 */
         switch (format) {
-        case PIPE_FORMAT_R8G8B8A8_UNORM:
-        case PIPE_FORMAT_R8G8B8X8_UNORM:
-        case PIPE_FORMAT_R8G8B8_UNORM:
-        case PIPE_FORMAT_R5G6B5_UNORM:
-        case PIPE_FORMAT_Z24_UNORM_S8_UINT:
-        case PIPE_FORMAT_Z24X8_UNORM:
-        case PIPE_FORMAT_Z16_UNORM:
-                return true;
         case PIPE_FORMAT_B8G8R8A8_UNORM:
         case PIPE_FORMAT_B8G8R8X8_UNORM:
         case PIPE_FORMAT_A8R8G8B8_UNORM:
@@ -95,10 +88,51 @@ panfrost_format_supports_afbc(const struct panfrost_device *dev, enum pipe_forma
         case PIPE_FORMAT_A8B8G8R8_UNORM:
         case PIPE_FORMAT_B8G8R8_UNORM:
         case PIPE_FORMAT_B5G6R5_UNORM:
-                return (dev->arch < 7);
+                if (dev->arch >= 7)
+                        return PIPE_FORMAT_NONE;
+
+                break;
         default:
-                return false;
+                break;
         }
+
+        switch (format) {
+        case PIPE_FORMAT_Z16_UNORM:
+                return PIPE_FORMAT_R8G8_UNORM;
+
+        case PIPE_FORMAT_R8G8B8_UNORM:
+        case PIPE_FORMAT_B8G8R8_UNORM:
+                return PIPE_FORMAT_R8G8B8_UNORM;
+
+        case PIPE_FORMAT_R8G8B8A8_UNORM:
+        case PIPE_FORMAT_R8G8B8X8_UNORM:
+        case PIPE_FORMAT_Z24_UNORM_S8_UINT:
+        case PIPE_FORMAT_Z24X8_UNORM:
+        case PIPE_FORMAT_X24S8_UINT:
+        case PIPE_FORMAT_B8G8R8A8_UNORM:
+        case PIPE_FORMAT_B8G8R8X8_UNORM:
+        case PIPE_FORMAT_A8R8G8B8_UNORM:
+        case PIPE_FORMAT_X8R8G8B8_UNORM:
+        case PIPE_FORMAT_X8B8G8R8_UNORM:
+        case PIPE_FORMAT_A8B8G8R8_UNORM:
+                return PIPE_FORMAT_R8G8B8A8_UNORM;
+
+        case PIPE_FORMAT_R5G6B5_UNORM:
+        case PIPE_FORMAT_B5G6R5_UNORM:
+                return PIPE_FORMAT_R5G6B5_UNORM;
+
+        /* TODO: More AFBC formats */
+        default:
+                return PIPE_FORMAT_NONE;
+        }
+}
+
+/* A format may be compressed as AFBC if it has an AFBC internal format */
+
+bool
+panfrost_format_supports_afbc(const struct panfrost_device *dev, enum pipe_format format)
+{
+        return panfrost_afbc_format(dev, format) != PIPE_FORMAT_NONE;
 }
 
 unsigned

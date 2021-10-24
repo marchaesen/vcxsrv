@@ -4610,11 +4610,9 @@ emit_module(struct ntd_context *ctx, const struct nir_to_dxil_options *opts)
       }
    }
 
-   nir_foreach_variable_with_modes(var, ctx->shader, nir_var_uniform) {
-      if (var->data.mode == nir_var_uniform && glsl_type_is_image(glsl_without_array(var->type))) {
-         if (!emit_uav_var(ctx, var, glsl_type_get_image_count(var->type)))
-            return false;
-      }
+   nir_foreach_image_variable(var, ctx->shader) {
+      if (!emit_uav_var(ctx, var, glsl_type_get_image_count(var->type)))
+         return false;
    }
 
    nir_function_impl *entry = nir_shader_get_entrypoint(ctx->shader);

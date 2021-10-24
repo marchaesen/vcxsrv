@@ -30,15 +30,15 @@
 #include "freedreno_layout.h"
 
 static bool
-is_r8g8(struct fdl_layout *layout)
+is_r8g8(const struct fdl_layout *layout)
 {
    return layout->cpp == 2 &&
           util_format_get_nr_components(layout->format) == 2;
 }
 
 void
-fdl6_get_ubwc_blockwidth(struct fdl_layout *layout, uint32_t *blockwidth,
-                         uint32_t *blockheight)
+fdl6_get_ubwc_blockwidth(const struct fdl_layout *layout,
+                         uint32_t *blockwidth, uint32_t *blockheight)
 {
    static const struct {
       uint8_t width;
@@ -56,6 +56,10 @@ fdl6_get_ubwc_blockwidth(struct fdl_layout *layout, uint32_t *blockwidth,
    /* special case for r8g8: */
    if (is_r8g8(layout)) {
       *blockwidth = 16;
+      *blockheight = 8;
+      return;
+   } else if (layout->format == PIPE_FORMAT_Y8_UNORM) {
+      *blockwidth = 32;
       *blockheight = 8;
       return;
    }
@@ -107,6 +111,7 @@ fdl6_layout(struct fdl_layout *layout, enum pipe_format format,
    layout->width0 = width0;
    layout->height0 = height0;
    layout->depth0 = depth0;
+   layout->mip_levels = mip_levels;
 
    layout->cpp = util_format_get_blocksize(format);
    layout->cpp *= nr_samples;

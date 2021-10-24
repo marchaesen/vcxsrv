@@ -221,12 +221,14 @@ device::vendor_id() const {
 
 size_t
 device::max_images_read() const {
-   return PIPE_MAX_SHADER_SAMPLER_VIEWS;
+   return pipe->get_shader_param(pipe, PIPE_SHADER_COMPUTE,
+                                 PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS);
 }
 
 size_t
 device::max_images_write() const {
-   return PIPE_MAX_SHADER_IMAGES;
+   return pipe->get_shader_param(pipe, PIPE_SHADER_COMPUTE,
+                                 PIPE_SHADER_CAP_MAX_SHADER_IMAGES);
 }
 
 size_t

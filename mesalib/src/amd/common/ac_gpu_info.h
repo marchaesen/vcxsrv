@@ -48,6 +48,7 @@ struct radeon_info {
 
    /* Device info. */
    const char *name;
+   char lowercase_name[32];
    const char *marketing_name;
    bool is_pro_graphics;
    uint32_t pci_id;

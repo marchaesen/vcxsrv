@@ -17,7 +17,6 @@
   variables:
     DEVICE_TYPE: asus-C523NA-A20057-coral
     GPU_VERSION: iris-apl
-    DEQP_EXPECTED_RENDERER: APL
   tags:
     - mesa-ci-x86-64-lava-asus-C523NA-A20057-coral
 
@@ -29,7 +28,6 @@
   variables:
     DEVICE_TYPE: hp-x360-12b-ca0010nr-n4020-octopus
     GPU_VERSION: iris-glk
-    DEQP_EXPECTED_RENDERER: GLK
   tags:
     - mesa-ci-x86-64-lava-hp-x360-12b-ca0010nr-n4020-octopus
 
@@ -41,7 +39,6 @@
   variables:
     DEVICE_TYPE: asus-C433TA-AJ0005-rammus
     GPU_VERSION: iris-amly
-    DEQP_EXPECTED_RENDERER: AML
   tags:
     - mesa-ci-x86-64-lava-asus-C433TA-AJ0005-rammus
 
@@ -53,7 +50,6 @@
   variables:
     DEVICE_TYPE: hp-x360-14-G1-sona
     GPU_VERSION: iris-kbl
-    DEQP_EXPECTED_RENDERER: KBL
   tags:
     - mesa-ci-x86-64-lava-hp-x360-14-G1-sona
 
@@ -65,7 +61,6 @@
   variables:
     DEVICE_TYPE: dell-latitude-5400-4305U-sarien
     GPU_VERSION: iris-whl
-    DEQP_EXPECTED_RENDERER: WHL
   tags:
     - mesa-ci-x86-64-lava-dell-latitude-5400-4305U-sarien
 
@@ -77,7 +72,6 @@
   variables:
     DEVICE_TYPE: asus-C436FA-Flip-hatch
     GPU_VERSION: iris-cml
-    DEQP_EXPECTED_RENDERER: CML
   tags:
     - mesa-ci-x86-64-lava-asus-C436FA-flip-hatch
 
@@ -85,7 +79,6 @@ iris-apl-deqp:
   extends:
     - .iris-apl-test
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: iris-apl
   parallel: 3
 
@@ -101,7 +94,6 @@ iris-glk-deqp:
   extends:
     - .iris-glk-test
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: iris-glk
   parallel: 2
 
@@ -117,7 +109,6 @@ iris-amly-deqp:
   extends:
     - .iris-amly-test
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: iris-amly
   parallel: 3
 
@@ -125,7 +116,6 @@ iris-kbl-deqp:
   extends:
     - .iris-kbl-test
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: iris-kbl
   parallel: 3
 
@@ -133,14 +123,12 @@ iris-whl-deqp:
   extends:
     - .iris-whl-test
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: iris-whl
 
 iris-cml-deqp:
   extends:
     - .iris-cml-test
   variables:
-    DEQP_VER: gles2 # for the renderer check
     DEQP_SUITE: iris-cml
   parallel: 2
 

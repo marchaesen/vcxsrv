@@ -53,19 +53,20 @@ struct clc_image_lower_context
 static int
 lower_image_deref_impl(nir_builder *b, struct clc_image_lower_context *context,
                        const struct glsl_type *new_var_type,
+                       enum nir_variable_mode var_mode,
                        unsigned *num_bindings)
 {
    nir_variable *in_var = nir_deref_instr_get_variable(context->deref);
-   nir_variable *uniform = nir_variable_create(b->shader, nir_var_uniform, new_var_type, NULL);
-   uniform->data.access = in_var->data.access;
-   uniform->data.binding = in_var->data.binding;
+   nir_variable *image = nir_variable_create(b->shader, var_mode, new_var_type, NULL);
+   image->data.access = in_var->data.access;
+   image->data.binding = in_var->data.binding;
    if (context->num_buf_ids > 0) {
       // Need to assign a new binding
       context->metadata->args[context->metadata_index].
-         image.buf_ids[context->num_buf_ids] = uniform->data.binding = (*num_bindings)++;
+         image.buf_ids[context->num_buf_ids] = image->data.binding = (*num_bindings)++;
    }
    context->num_buf_ids++;
-   return uniform->data.binding;
+   return image->data.binding;
 }
 
 static int
@@ -80,7 +81,7 @@ lower_read_only_image_deref(nir_builder *b, struct clc_image_lower_context *cont
       glsl_sampler_type(glsl_get_sampler_dim(in_var->type),
             false, glsl_sampler_type_is_array(in_var->type),
             nir_get_glsl_base_type_for_nir_type(image_type | 32));
-   return lower_image_deref_impl(b, context, new_var_type, context->num_srvs);
+   return lower_image_deref_impl(b, context, new_var_type, nir_var_uniform, context->num_srvs);
 }
 
 static int
@@ -92,7 +93,7 @@ lower_read_write_image_deref(nir_builder *b, struct clc_image_lower_context *con
       glsl_image_type(glsl_get_sampler_dim(in_var->type),
          glsl_sampler_type_is_array(in_var->type),
          nir_get_glsl_base_type_for_nir_type(image_type | 32));
-   return lower_image_deref_impl(b, context, new_var_type, context->num_uavs);
+   return lower_image_deref_impl(b, context, new_var_type, nir_var_image, context->num_uavs);
 }
 
 static void
@@ -102,8 +103,8 @@ clc_lower_input_image_deref(nir_builder *b, struct clc_image_lower_context *cont
    // image format data.
    //
    // For every use of an image in a different way, we'll add an
-   // appropriate uniform to match it. That can result in up to
-   // 3 uniforms (float4, int4, uint4) for each image. Only one of these
+   // appropriate image to match it. That can result in up to
+   // 3 images (float4, int4, uint4) for each image. Only one of these
    // formats will actually produce correct data, but a single kernel
    // could use runtime conditionals to potentially access any of them.
    //
@@ -114,14 +115,14 @@ clc_lower_input_image_deref(nir_builder *b, struct clc_image_lower_context *cont
    //
    // After all that, we can remove the image input variable and deref.
 
-   enum image_uniform_type {
+   enum image_type {
       FLOAT4,
       INT4,
       UINT4,
-      IMAGE_UNIFORM_TYPE_COUNT
+      IMAGE_TYPE_COUNT
    };
 
-   int image_bindings[IMAGE_UNIFORM_TYPE_COUNT] = {-1, -1, -1};
+   int image_bindings[IMAGE_TYPE_COUNT] = {-1, -1, -1};
    nir_ssa_def *format_deref_dest = NULL, *order_deref_dest = NULL;
 
    nir_variable *in_var = nir_deref_instr_get_variable(context->deref);
@@ -145,7 +146,7 @@ clc_lower_input_image_deref(nir_builder *b, struct clc_image_lower_context *cont
     */
    for (int pass = 0; pass < 2; ++pass) {
       nir_foreach_use_safe(src, &context->deref->dest.ssa) {
-         enum image_uniform_type type;
+         enum image_type type;
 
          if (src->parent_instr->type == nir_instr_type_intrinsic) {
             nir_intrinsic_instr *intrinsic = nir_instr_as_intrinsic(src->parent_instr);
@@ -179,7 +180,7 @@ clc_lower_input_image_deref(nir_builder *b, struct clc_image_lower_context *cont
 
             case nir_intrinsic_image_deref_size: {
                int image_binding = -1;
-               for (unsigned i = 0; i < IMAGE_UNIFORM_TYPE_COUNT; ++i) {
+               for (unsigned i = 0; i < IMAGE_TYPE_COUNT; ++i) {
                   if (image_bindings[i] >= 0) {
                      image_binding = image_bindings[i];
                      break;
@@ -969,7 +970,7 @@ clc_spirv_to_dxil(struct clc_libclc *lib,
    NIR_PASS_V(nir, nir_opt_dce);
    NIR_PASS_V(nir, nir_opt_deref);
 
-   // For uniforms (kernel inputs), run this before adjusting variable list via image/sampler lowering
+   // For uniforms (kernel inputs, minus images), run this before adjusting variable list via image/sampler lowering
    NIR_PASS_V(nir, nir_lower_vars_to_explicit_types, nir_var_uniform, glsl_get_cl_type_size_align);
 
    // Calculate input offsets/metadata.
@@ -985,10 +986,8 @@ clc_spirv_to_dxil(struct clc_libclc *lib,
       metadata->args[i].size = size;
       metadata->kernel_inputs_buf_size = MAX2(metadata->kernel_inputs_buf_size,
          var->data.driver_location + size);
-      if ((out_dxil->kernel->args[i].address_qualifier == CLC_KERNEL_ARG_ADDRESS_GLOBAL ||
-         out_dxil->kernel->args[i].address_qualifier == CLC_KERNEL_ARG_ADDRESS_CONSTANT) &&
-         // Ignore images during this pass - global memory buffers need to have contiguous bindings
-         !glsl_type_is_image(var->type)) {
+      if (out_dxil->kernel->args[i].address_qualifier == CLC_KERNEL_ARG_ADDRESS_GLOBAL ||
+          out_dxil->kernel->args[i].address_qualifier == CLC_KERNEL_ARG_ADDRESS_CONSTANT) {
          metadata->args[i].globconstptr.buf_id = uav_id++;
       } else if (glsl_type_is_sampler(var->type)) {
          unsigned address_mode = conf ? conf->args[i].sampler.addressing_mode : 0u;
@@ -1007,22 +1006,28 @@ clc_spirv_to_dxil(struct clc_libclc *lib,
 
    // Second pass over inputs to calculate image bindings
    unsigned srv_id = 0;
-   nir_foreach_variable_with_modes(var, nir, nir_var_uniform) {
+   nir_foreach_image_variable(var, nir) {
       int i = var->data.location;
       if (i < 0)
          continue;
 
-      if (glsl_type_is_image(var->type)) {
-         if (var->data.access == ACCESS_NON_WRITEABLE) {
-            metadata->args[i].image.buf_ids[0] = srv_id++;
-         } else {
-            // Write or read-write are UAVs
-            metadata->args[i].image.buf_ids[0] = uav_id++;
-         }
+      assert(glsl_type_is_image(var->type));
 
-         metadata->args[i].image.num_buf_ids = 1;
-         var->data.binding = metadata->args[i].image.buf_ids[0];
+      if (var->data.access == ACCESS_NON_WRITEABLE) {
+         metadata->args[i].image.buf_ids[0] = srv_id++;
+      } else {
+         // Write or read-write are UAVs
+         metadata->args[i].image.buf_ids[0] = uav_id++;
       }
+
+      metadata->args[i].image.num_buf_ids = 1;
+      var->data.binding = metadata->args[i].image.buf_ids[0];
+
+      // Assign location that'll be used for uniforms for format/order
+      var->data.driver_location = metadata->kernel_inputs_buf_size;
+      metadata->args[i].offset = metadata->kernel_inputs_buf_size;
+      metadata->args[i].size = 8;
+      metadata->kernel_inputs_buf_size += metadata->args[i].size;
    }
 
    // Before removing dead uniforms, dedupe constant samplers to make more dead uniforms

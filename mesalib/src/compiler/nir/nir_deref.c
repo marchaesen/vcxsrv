@@ -1012,14 +1012,17 @@ opt_remove_sampler_cast(nir_deref_instr *cast)
       cast_type = glsl_get_array_element(cast_type);
    }
 
-   if (glsl_type_is_array(parent_type) || glsl_type_is_array(cast_type))
+   if (!glsl_type_is_sampler(parent_type))
       return false;
 
-   if (!glsl_type_is_sampler(parent_type) ||
-       cast_type != glsl_bare_sampler_type())
+   if (cast_type != glsl_bare_sampler_type() &&
+       (glsl_type_is_bare_sampler(parent_type) ||
+        cast_type != glsl_sampler_type_to_texture(parent_type)))
       return false;
 
-   /* We're a cast from a more detailed sampler type to a bare sampler */
+   /* We're a cast from a more detailed sampler type to a bare sampler or a
+    * texture type with the same dimensionality.
+    */
    nir_ssa_def_rewrite_uses(&cast->dest.ssa,
                             &parent->dest.ssa);
    nir_instr_remove(&cast->instr);

@@ -728,6 +728,7 @@ llvmpipe_is_format_supported( struct pipe_screen *_screen,
          case PIPE_FORMAT_R8G8_SNORM:
          case PIPE_FORMAT_R16_SNORM:
          case PIPE_FORMAT_R8_SNORM:
+         case PIPE_FORMAT_B8G8R8A8_UNORM:
             break;
 
          default:

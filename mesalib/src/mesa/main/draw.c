@@ -472,9 +472,6 @@ _mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count)
    if (error)
       _mesa_error(ctx, error, "glDrawArrays");
 
-   if (count == 0)
-      return false;
-
    return !error;
 }
 
@@ -1291,6 +1288,12 @@ static void
 _mesa_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
                   GLsizei count, GLuint numInstances, GLuint baseInstance)
 {
+   /* Viewperf has many draws with count=0. Discarding them is faster than
+    * processing them.
+    */
+   if (!count || !numInstances)
+      return;
+
    /* OpenGL 4.5 says that primitive restart is ignored with non-indexed
     * draws.
     */
@@ -1727,6 +1730,12 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
                                   GLint basevertex, GLuint numInstances,
                                   GLuint baseInstance)
 {
+   /* Viewperf has many draws with count=0. Discarding them is faster than
+    * processing them.
+    */
+   if (!count || !numInstances)
+      return;
+
    if (!index_bounds_valid) {
       assert(start == 0u);
       assert(end == ~0u);

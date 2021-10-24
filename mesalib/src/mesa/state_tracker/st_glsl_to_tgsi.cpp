@@ -6650,7 +6650,7 @@ st_translate_program(
    glsl_to_tgsi_visitor *program,
    const struct gl_program *proginfo,
    GLuint numInputs,
-   const ubyte inputMapping[],
+   const ubyte attrToIndex[],
    const ubyte inputSlotToAttr[],
    const ubyte inputSemanticName[],
    const ubyte inputSemanticIndex[],
@@ -6666,6 +6666,7 @@ st_translate_program(
    struct gl_program_constants *prog_const =
       &ctx->Const.Program[program->shader->Stage];
    enum pipe_error ret = PIPE_OK;
+   uint8_t inputMapping[VARYING_SLOT_TESS_MAX] = {0};
 
    assert(numInputs <= ARRAY_SIZE(t->inputs));
    assert(numOutputs <= ARRAY_SIZE(t->outputs));
@@ -6682,6 +6683,29 @@ st_translate_program(
                         (enum pipe_format) (PIPE_FORMAT_COUNT - 1));
    ASSERT_BITFIELD_SIZE(glsl_to_tgsi_instruction, op,
                         (enum tgsi_opcode) (TGSI_OPCODE_LAST - 1));
+
+   if (proginfo->DualSlotInputs != 0) {
+      /* adjust attrToIndex to include placeholder for second
+       * part of a double attribute.
+       * Following code is basically matching behavior of
+       * util_lower_uint64_vertex_elements
+       */
+      numInputs = 0;
+      for (unsigned attr = 0; attr < VERT_ATTRIB_MAX; attr++) {
+         if ((proginfo->info.inputs_read & BITFIELD64_BIT(attr)) != 0) {
+            inputMapping[attr] = numInputs++;
+
+            if ((proginfo->DualSlotInputs & BITFIELD64_BIT(attr)) != 0) {
+               /* add placeholder for second part of a double attribute */
+               numInputs++;
+            }
+         }
+      }
+      inputMapping[VERT_ATTRIB_EDGEFLAG] = numInputs;
+   }
+   else {
+      memcpy(inputMapping, attrToIndex, sizeof(inputMapping));
+   }
 
    t = CALLOC_STRUCT(st_translate);
    if (!t) {

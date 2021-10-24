@@ -1337,7 +1337,7 @@ debian-mingw32-x86_64:
 
 .baremetal-arm64-asan-test:
   variables:
-    TEST_LD_PRELOAD: libasan.so.6
+    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.6"
     MINIO_ARTIFACT_NAME: mesa-arm64-asan
   needs:
     - debian/arm_test
@@ -1347,4 +1347,4 @@ debian-mingw32-x86_64:
 .baremetal-deqp-test:
   variables:
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
-    DEQP_PARALLEL: 0 # Default to number of CPUs
+    FDO_CI_CONCURRENT: 0 # Default to number of CPUs

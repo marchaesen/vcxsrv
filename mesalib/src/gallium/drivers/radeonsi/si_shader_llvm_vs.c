@@ -131,8 +131,8 @@ static void load_input_vs(struct si_shader_context *ctx, unsigned input_index, L
     * of dword-sized data that needs fixups. We need to insert conversion
     * code anyway, and the amd/common code does it for us.
     */
-   bool opencode = ctx->shader->key.mono.vs_fetch_opencode & (1 << input_index);
-   fix_fetch.bits = ctx->shader->key.mono.vs_fix_fetch[input_index].bits;
+   bool opencode = ctx->shader->key.ge.mono.vs_fetch_opencode & (1 << input_index);
+   fix_fetch.bits = ctx->shader->key.ge.mono.vs_fix_fetch[input_index].bits;
    if (opencode || (fix_fetch.u.log_size == 3 && fix_fetch.u.format == AC_FETCH_FORMAT_FLOAT) ||
        (fix_fetch.u.log_size == 2)) {
       tmp = ac_build_opencoded_load_format(&ctx->ac, fix_fetch.u.log_size,
@@ -400,7 +400,7 @@ static void si_llvm_emit_clipvertex(struct si_shader_context *ctx, struct ac_exp
    LLVMValueRef constbuf_index = LLVMConstInt(ctx->ac.i32, SI_VS_CONST_CLIP_PLANES, 0);
    LLVMValueRef const_resource = ac_build_load_to_sgpr(&ctx->ac, ptr, constbuf_index);
    unsigned clipdist_mask = ctx->shader->selector->clipdist_mask &
-                            ~ctx->shader->key.opt.kill_clip_distances;
+                            ~ctx->shader->key.ge.opt.kill_clip_distances;
 
    for (reg_index = 0; reg_index < 2; reg_index++) {
       struct ac_export_args *args = &pos[2 + reg_index];
@@ -484,7 +484,7 @@ static void si_prepare_param_exports(struct si_shader_context *ctx,
       }
 
       if ((semantic <= VARYING_SLOT_VAR31 || semantic >= VARYING_SLOT_VAR0_16BIT) &&
-          shader->key.opt.kill_outputs &
+          shader->key.ge.opt.kill_outputs &
              (1ull << si_shader_io_get_unique_index(semantic, true)))
          continue;
 
@@ -575,7 +575,7 @@ void si_llvm_build_vs_exports(struct si_shader_context *ctx,
                 viewport_index_value = NULL;
    unsigned pos_idx, index;
    unsigned clipdist_mask = (shader->selector->clipdist_mask &
-                             ~shader->key.opt.kill_clip_distances) |
+                             ~shader->key.ge.opt.kill_clip_distances) |
                             shader->selector->culldist_mask;
    int i;
 
@@ -629,8 +629,8 @@ void si_llvm_build_vs_exports(struct si_shader_context *ctx,
       pos_args[0].out[3] = ctx->ac.f32_1; /* W */
    }
 
-   bool writes_psize = shader->selector->info.writes_psize && !shader->key.opt.kill_pointsize;
-   bool pos_writes_edgeflag = shader->selector->info.writes_edgeflag && !shader->key.as_ngg;
+   bool writes_psize = shader->selector->info.writes_psize && !shader->key.ge.opt.kill_pointsize;
+   bool pos_writes_edgeflag = shader->selector->info.writes_edgeflag && !shader->key.ge.as_ngg;
    bool writes_vrs = ctx->screen->options.vrs2x2;
 
    /* Write the misc vector (point size, edgeflag, layer, viewport). */
@@ -783,7 +783,7 @@ void si_llvm_emit_vs_epilogue(struct ac_shader_abi *abi)
       si_llvm_emit_streamout(ctx, outputs, i, 0);
 
    /* Export PrimitiveID. */
-   if (ctx->shader->key.mono.u.vs_export_prim_id) {
+   if (ctx->shader->key.ge.mono.u.vs_export_prim_id) {
       outputs[i].semantic = VARYING_SLOT_PRIMITIVE_ID;
       outputs[i].values[0] = ac_to_float(&ctx->ac, si_get_primitive_id(ctx, 0));
       for (j = 1; j < 4; j++)
@@ -990,13 +990,13 @@ void si_llvm_init_vs_callbacks(struct si_shader_context *ctx, bool ngg_cull_shad
 {
    struct si_shader *shader = ctx->shader;
 
-   if (shader->key.as_ls)
+   if (shader->key.ge.as_ls)
       ctx->abi.emit_outputs = si_llvm_emit_ls_epilogue;
-   else if (shader->key.as_es)
+   else if (shader->key.ge.as_es)
       ctx->abi.emit_outputs = si_llvm_emit_es_epilogue;
    else if (ngg_cull_shader)
       ctx->abi.emit_outputs = gfx10_emit_ngg_culling_epilogue;
-   else if (shader->key.as_ngg)
+   else if (shader->key.ge.as_ngg)
       ctx->abi.emit_outputs = gfx10_emit_ngg_epilogue;
    else
       ctx->abi.emit_outputs = si_llvm_emit_vs_epilogue;

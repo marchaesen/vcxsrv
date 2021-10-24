@@ -774,6 +774,19 @@ else
 fi
 AC_SUBST(DOCMAN3)
 
+dnl ===========================================================================
+default_cache_build="yes"
+if test $cross_compiling = "yes"; then
+	default_cache_build="no"
+fi
+AC_ARG_ENABLE(cache-build,
+	[AC_HELP_STRING([--disable-cache-build],
+			[Don't run fc-cache during the build])],
+	,
+	enable_cache_build=$default_cache_build)
+
+AM_CONDITIONAL(ENABLE_CACHE_BUILD, test "x$enable_cache_build" = xyes)
+
 
 dnl Figure out what cache format suffix to use for this architecture
 AC_C_BIGENDIAN

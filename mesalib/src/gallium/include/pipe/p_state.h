@@ -903,7 +903,6 @@ struct pipe_blit_info
    bool render_condition_enable; /**< whether the blit should honor the
                                  current render condition */
    bool alpha_blend; /* dst.rgb = src.rgb * src.a + dst.rgb * (1 - src.a) */
-   bool is_dri_blit_image;
 };
 
 /**

@@ -165,7 +165,7 @@ class BitSetDerivedField(BitSetField):
         # where sign extension is needed.  We just repurpose the 'high'
         # field for that to make '1 + high - low' work out
         if 'width' in xml.attrib:
-            self.high = xml.attrib['width'] + ' - 1'
+            self.high = int(xml.attrib['width']) - 1
         self.name = xml.attrib['name']
         self.type = xml.attrib['type']
         if 'expr' in xml.attrib:
@@ -265,13 +265,13 @@ class BitSet(object):
             self.encode = BitSetEncode(xml.find('encode'))
 
         self.gen_min = 0
-        self.gen_max = ~0
+        self.gen_max = 1 << 32 - 1
 
         for gen in xml.findall('gen'):
             if 'min' in gen.attrib:
-                self.gen_min = gen.attrib['min']
+                self.gen_min = int(gen.attrib['min'])
             if 'max' in gen.attrib:
-                self.gen_max = gen.attrib['max']
+                self.gen_max = int(gen.attrib['max'])
 
         # Collect up the match/dontcare/mask bitmasks for
         # this bitset case:
@@ -337,6 +337,24 @@ class BitSet(object):
             parent = self.isa.bitsets[self.extends]
             return parent.get_size()
         return self.size
+
+    def get_gen_min(self):
+        if self.extends is not None:
+            parent = self.isa.bitsets[self.extends]
+
+            assert (self.gen_min == 0) or (self.gen_min >= parent.get_gen_min()), "bitset {} should not have min gen lower than the parent's one".format(self.name)
+
+            return max(self.gen_min, parent.get_gen_min())
+        return self.gen_min
+
+    def get_gen_max(self):
+        if self.extends is not None:
+            parent = self.isa.bitsets[self.extends]
+
+            assert (self.gen_max == (1 << 32 - 1)) or (self.gen_max <= parent.get_gen_max()), "bitset {} should not have max gen higher than the parent's one".format(self.name)
+
+            return min(self.gen_max, parent.get_gen_max())
+        return self.gen_max
 
     def get_c_name(self):
         return get_c_name(self.name)

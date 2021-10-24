@@ -148,6 +148,9 @@ bool
 panfrost_format_supports_afbc(const struct panfrost_device *dev,
                 enum pipe_format format);
 
+enum pipe_format
+panfrost_afbc_format(const struct panfrost_device *dev, enum pipe_format format);
+
 #define AFBC_HEADER_BYTES_PER_TILE 16
 
 unsigned

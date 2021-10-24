@@ -26,97 +26,73 @@
 #include "pipe/p_context.h"
 
 namespace clover {
+   // see table 16 and 17 in the 3.0 CL spec under "5.3.1.1. Image Format Descriptor"
+   // TODO optional channel orders:
+   //  * CL_Rx
+   //  * CL_RGx
+   //  * CL_RGBx
+   //  * CL_sRGBx
+   #define _FF(c, b, g) \
+      { { CL_R, c }, PIPE_FORMAT_R##b##_##g },                      \
+      { { CL_A, c }, PIPE_FORMAT_A##b##_##g },                      \
+      { { CL_RG, c }, PIPE_FORMAT_R##b##G##b##_##g },               \
+      { { CL_RA, c }, PIPE_FORMAT_R##b##A##b##_##g },               \
+      { { CL_RGB, c }, PIPE_FORMAT_R##b##G##b##B##b##_##g },        \
+      { { CL_RGBA, c }, PIPE_FORMAT_R##b##G##b##B##b##A##b##_##g }
+      // broken but also optional
+      //{ { CL_LUMINANCE, c }, PIPE_FORMAT_L##b##_##g },
+      //{ { CL_INTENSITY, c }, PIPE_FORMAT_I##b##_##g },
+
+   #define _FI(c, b, g) \
+      _FF(c##b, b, g)
+
    static const std::map<cl_image_format, pipe_format> formats {
-      { { CL_BGRA, CL_UNORM_INT8 }, PIPE_FORMAT_B8G8R8A8_UNORM },
-      { { CL_ARGB, CL_UNORM_INT8 }, PIPE_FORMAT_A8R8G8B8_UNORM },
+      //required in CL 2.0 but broken
+      //_FI(CL_SNORM_INT, 8, SNORM),
+      //_FI(CL_SNORM_INT, 16, SNORM),
+      _FI(CL_UNORM_INT, 8, UNORM),
+      _FI(CL_UNORM_INT, 16, UNORM),
+      _FI(CL_SIGNED_INT, 8, SINT),
+      _FI(CL_SIGNED_INT, 16, SINT),
+      _FI(CL_SIGNED_INT, 32, SINT),
+      _FI(CL_UNSIGNED_INT, 8, UINT),
+      _FI(CL_UNSIGNED_INT, 16, UINT),
+      _FI(CL_UNSIGNED_INT, 32, UINT),
+      _FF(CL_HALF_FLOAT, 16, FLOAT),
+      _FF(CL_FLOAT, 32, FLOAT),
+
+      // TODO: next three can be CL_RGBx as well
       { { CL_RGB, CL_UNORM_SHORT_565 }, PIPE_FORMAT_B5G6R5_UNORM },
-      { { CL_LUMINANCE, CL_UNORM_INT8 }, PIPE_FORMAT_L8_UNORM },
-      { { CL_A, CL_UNORM_INT8 }, PIPE_FORMAT_A8_UNORM },
-      { { CL_INTENSITY, CL_UNORM_INT8 }, PIPE_FORMAT_I8_UNORM },
-      { { CL_LUMINANCE, CL_UNORM_INT16 }, PIPE_FORMAT_L16_UNORM },
-      { { CL_R, CL_FLOAT }, PIPE_FORMAT_R32_FLOAT },
-      { { CL_RG, CL_FLOAT }, PIPE_FORMAT_R32G32_FLOAT },
-      { { CL_RGB, CL_FLOAT }, PIPE_FORMAT_R32G32B32_FLOAT },
-      { { CL_RGBA, CL_FLOAT }, PIPE_FORMAT_R32G32B32A32_FLOAT },
-      { { CL_R, CL_UNORM_INT16 }, PIPE_FORMAT_R16_UNORM },
-      { { CL_RG, CL_UNORM_INT16 }, PIPE_FORMAT_R16G16_UNORM },
-      { { CL_RGB, CL_UNORM_INT16 }, PIPE_FORMAT_R16G16B16_UNORM },
-      { { CL_RGBA, CL_UNORM_INT16 }, PIPE_FORMAT_R16G16B16A16_UNORM },
-      { { CL_R, CL_SNORM_INT16 }, PIPE_FORMAT_R16_SNORM },
-      { { CL_RG, CL_SNORM_INT16 }, PIPE_FORMAT_R16G16_SNORM },
-      { { CL_RGB, CL_SNORM_INT16 }, PIPE_FORMAT_R16G16B16_SNORM },
-      { { CL_RGBA, CL_SNORM_INT16 }, PIPE_FORMAT_R16G16B16A16_SNORM },
-      { { CL_R, CL_UNORM_INT8 }, PIPE_FORMAT_R8_UNORM },
-      { { CL_RG, CL_UNORM_INT8 }, PIPE_FORMAT_R8G8_UNORM },
-      { { CL_RGB, CL_UNORM_INT8 }, PIPE_FORMAT_R8G8B8_UNORM },
-      { { CL_RGBA, CL_UNORM_INT8 }, PIPE_FORMAT_R8G8B8A8_UNORM },
-      { { CL_R, CL_SNORM_INT8 }, PIPE_FORMAT_R8_SNORM },
-      { { CL_RG, CL_SNORM_INT8 }, PIPE_FORMAT_R8G8_SNORM },
-      { { CL_RGB, CL_SNORM_INT8 }, PIPE_FORMAT_R8G8B8_SNORM },
-      { { CL_RGBA, CL_SNORM_INT8 }, PIPE_FORMAT_R8G8B8A8_SNORM },
-      { { CL_R, CL_HALF_FLOAT }, PIPE_FORMAT_R16_FLOAT },
-      { { CL_RG, CL_HALF_FLOAT }, PIPE_FORMAT_R16G16_FLOAT },
-      { { CL_RGB, CL_HALF_FLOAT }, PIPE_FORMAT_R16G16B16_FLOAT },
-      { { CL_RGBA, CL_HALF_FLOAT }, PIPE_FORMAT_R16G16B16A16_FLOAT },
-      { { CL_RGBx, CL_UNORM_SHORT_555 }, PIPE_FORMAT_B5G5R5X1_UNORM },
-      { { CL_RGBx, CL_UNORM_INT8 }, PIPE_FORMAT_R8G8B8X8_UNORM },
-      { { CL_A, CL_UNORM_INT16 }, PIPE_FORMAT_A16_UNORM },
-      { { CL_INTENSITY, CL_UNORM_INT16 }, PIPE_FORMAT_I16_UNORM },
-      { { CL_LUMINANCE, CL_SNORM_INT8 }, PIPE_FORMAT_L8_SNORM },
-      { { CL_INTENSITY, CL_SNORM_INT8 }, PIPE_FORMAT_I8_SNORM },
-      { { CL_A, CL_SNORM_INT16 }, PIPE_FORMAT_A16_SNORM },
-      { { CL_LUMINANCE, CL_SNORM_INT16 }, PIPE_FORMAT_L16_SNORM },
-      { { CL_INTENSITY, CL_SNORM_INT16 }, PIPE_FORMAT_I16_SNORM },
-      { { CL_A, CL_HALF_FLOAT }, PIPE_FORMAT_A16_FLOAT },
-      { { CL_LUMINANCE, CL_HALF_FLOAT }, PIPE_FORMAT_L16_FLOAT },
-      { { CL_INTENSITY, CL_HALF_FLOAT }, PIPE_FORMAT_I16_FLOAT },
-      { { CL_A, CL_FLOAT }, PIPE_FORMAT_A32_FLOAT },
-      { { CL_LUMINANCE, CL_FLOAT }, PIPE_FORMAT_L32_FLOAT },
-      { { CL_INTENSITY, CL_FLOAT }, PIPE_FORMAT_I32_FLOAT },
-      { { CL_RA, CL_UNORM_INT8 }, PIPE_FORMAT_R8A8_UNORM },
-      { { CL_R, CL_UNSIGNED_INT8 }, PIPE_FORMAT_R8_UINT },
-      { { CL_RG, CL_UNSIGNED_INT8 }, PIPE_FORMAT_R8G8_UINT },
-      { { CL_RGB, CL_UNSIGNED_INT8 }, PIPE_FORMAT_R8G8B8_UINT },
-      { { CL_RGBA, CL_UNSIGNED_INT8 }, PIPE_FORMAT_R8G8B8A8_UINT },
-      { { CL_R, CL_SIGNED_INT8 }, PIPE_FORMAT_R8_SINT },
-      { { CL_RG, CL_SIGNED_INT8 }, PIPE_FORMAT_R8G8_SINT },
-      { { CL_RGB, CL_SIGNED_INT8 }, PIPE_FORMAT_R8G8B8_SINT },
-      { { CL_RGBA, CL_SIGNED_INT8 }, PIPE_FORMAT_R8G8B8A8_SINT },
-      { { CL_R, CL_UNSIGNED_INT16 }, PIPE_FORMAT_R16_UINT },
-      { { CL_RG, CL_UNSIGNED_INT16 }, PIPE_FORMAT_R16G16_UINT },
-      { { CL_RGB, CL_UNSIGNED_INT16 }, PIPE_FORMAT_R16G16B16_UINT },
-      { { CL_RGBA, CL_UNSIGNED_INT16 }, PIPE_FORMAT_R16G16B16A16_UINT },
-      { { CL_R, CL_SIGNED_INT16 }, PIPE_FORMAT_R16_SINT },
-      { { CL_RG, CL_SIGNED_INT16 }, PIPE_FORMAT_R16G16_SINT },
-      { { CL_RGB, CL_SIGNED_INT16 }, PIPE_FORMAT_R16G16B16_SINT },
-      { { CL_RGBA, CL_SIGNED_INT16 }, PIPE_FORMAT_R16G16B16A16_SINT },
-      { { CL_R, CL_UNSIGNED_INT32 }, PIPE_FORMAT_R32_UINT },
-      { { CL_RG, CL_UNSIGNED_INT32 }, PIPE_FORMAT_R32G32_UINT },
-      { { CL_RGB, CL_UNSIGNED_INT32 }, PIPE_FORMAT_R32G32B32_UINT },
-      { { CL_RGBA, CL_UNSIGNED_INT32 }, PIPE_FORMAT_R32G32B32A32_UINT },
-      { { CL_R, CL_SIGNED_INT32 }, PIPE_FORMAT_R32_SINT },
-      { { CL_RG, CL_SIGNED_INT32 }, PIPE_FORMAT_R32G32_SINT },
-      { { CL_RGB, CL_SIGNED_INT32 }, PIPE_FORMAT_R32G32B32_SINT },
-      { { CL_RGBA, CL_SIGNED_INT32 }, PIPE_FORMAT_R32G32B32A32_SINT },
-      { { CL_A, CL_UNSIGNED_INT8 }, PIPE_FORMAT_A8_UINT },
-      { { CL_INTENSITY, CL_UNSIGNED_INT8 }, PIPE_FORMAT_I8_UINT },
-      { { CL_LUMINANCE, CL_UNSIGNED_INT8 }, PIPE_FORMAT_L8_UINT },
-      { { CL_A, CL_SIGNED_INT8 }, PIPE_FORMAT_A8_SINT },
-      { { CL_INTENSITY, CL_SIGNED_INT8 }, PIPE_FORMAT_I8_SINT },
-      { { CL_LUMINANCE, CL_SIGNED_INT8 }, PIPE_FORMAT_L8_SINT },
-      { { CL_A, CL_UNSIGNED_INT16 }, PIPE_FORMAT_A16_UINT },
-      { { CL_INTENSITY, CL_UNSIGNED_INT16 }, PIPE_FORMAT_I16_UINT },
-      { { CL_LUMINANCE, CL_UNSIGNED_INT16 }, PIPE_FORMAT_L16_UINT },
-      { { CL_A, CL_SIGNED_INT16 }, PIPE_FORMAT_A16_SINT },
-      { { CL_INTENSITY, CL_SIGNED_INT16 }, PIPE_FORMAT_I16_SINT },
-      { { CL_LUMINANCE, CL_SIGNED_INT16 }, PIPE_FORMAT_L16_SINT },
-      { { CL_A, CL_UNSIGNED_INT32 }, PIPE_FORMAT_A32_UINT },
-      { { CL_INTENSITY, CL_UNSIGNED_INT32 }, PIPE_FORMAT_I32_UINT },
-      { { CL_LUMINANCE, CL_UNSIGNED_INT32 }, PIPE_FORMAT_L32_UINT },
-      { { CL_A, CL_SIGNED_INT32 }, PIPE_FORMAT_A32_SINT },
-      { { CL_INTENSITY, CL_SIGNED_INT32 }, PIPE_FORMAT_I32_SINT },
-      { { CL_LUMINANCE, CL_SIGNED_INT32 }, PIPE_FORMAT_L32_SINT }
+      { { CL_RGB, CL_UNORM_SHORT_555 }, PIPE_FORMAT_B5G5R5A1_UNORM },
+      { { CL_RGB, CL_UNORM_INT_101010 }, PIPE_FORMAT_B10G10R10X2_UNORM },
+
+      { { CL_RGBA, CL_UNORM_INT_101010_2 }, PIPE_FORMAT_B10G10R10A2_UNORM },
+
+      { { CL_ARGB, CL_UNORM_INT8 }, PIPE_FORMAT_A8R8G8B8_UNORM },
+      { { CL_ARGB, CL_UNSIGNED_INT8 }, PIPE_FORMAT_A8R8G8B8_UINT },
+
+      { { CL_BGRA, CL_SNORM_INT8 }, PIPE_FORMAT_B8G8R8A8_SNORM },
+      { { CL_BGRA, CL_UNORM_INT8 }, PIPE_FORMAT_B8G8R8A8_UNORM },
+      { { CL_BGRA, CL_SIGNED_INT8 }, PIPE_FORMAT_B8G8R8A8_SINT },
+      { { CL_BGRA, CL_UNSIGNED_INT8 }, PIPE_FORMAT_B8G8R8A8_UINT },
+
+      { { CL_ABGR, CL_SNORM_INT8 }, PIPE_FORMAT_A8B8G8R8_SNORM },
+      { { CL_ABGR, CL_UNORM_INT8 }, PIPE_FORMAT_A8B8G8R8_UNORM },
+      { { CL_ABGR, CL_SIGNED_INT8 }, PIPE_FORMAT_A8B8G8R8_SINT },
+      { { CL_ABGR, CL_UNSIGNED_INT8 }, PIPE_FORMAT_A8B8G8R8_UINT },
+
+      // disable for now as it needs CL C 2.0 support
+      //{ { CL_DEPTH, CL_UNORM_INT16 }, PIPE_FORMAT_Z16_UNORM },
+      //{ { CL_DEPTH, CL_FLOAT }, PIPE_FORMAT_Z32_FLOAT },
+
+      // required in CL 2.0 but broken
+      //{ { CL_sRGBA, CL_UNORM_INT8 }, PIPE_FORMAT_R8G8B8A8_SRGB },
+      // optional but broken
+      //{ { CL_sRGB, CL_UNORM_INT8 }, PIPE_FORMAT_R8G8B8_SRGB },
+      //{ { CL_sBGRA, CL_UNORM_INT8 }, PIPE_FORMAT_B8G8R8A8_SRGB },
    };
+   #undef _FF
+   #undef _FI
 
    pipe_texture_target
    translate_target(cl_mem_object_type type) {
@@ -150,11 +126,15 @@ namespace clover {
    }
 
    std::set<cl_image_format>
-   supported_formats(const context &ctx, cl_mem_object_type type) {
+   supported_formats(const context &ctx, cl_mem_object_type type, cl_mem_flags flags) {
       std::set<cl_image_format> s;
       pipe_texture_target target = translate_target(type);
-      unsigned bindings = (PIPE_BIND_SAMPLER_VIEW |
-                           PIPE_BIND_COMPUTE_RESOURCE);
+      unsigned bindings = 0;
+
+      if (flags & (CL_MEM_READ_ONLY | CL_MEM_READ_WRITE | CL_MEM_KERNEL_READ_AND_WRITE))
+         bindings |= PIPE_BIND_SAMPLER_VIEW;
+      if (flags & (CL_MEM_WRITE_ONLY | CL_MEM_READ_WRITE | CL_MEM_KERNEL_READ_AND_WRITE))
+         bindings |= PIPE_BIND_SHADER_IMAGE;
 
       for (auto f : formats) {
          if (all_of([=](const device &dev) {

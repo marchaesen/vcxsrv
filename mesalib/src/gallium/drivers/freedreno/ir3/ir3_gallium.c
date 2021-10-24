@@ -297,6 +297,9 @@ ir3_shader_compute_state_create(struct pipe_context *pctx,
    }
 
    struct ir3_shader *shader = ir3_shader_from_nir(compiler, nir, 0, NULL);
+   shader->cs.req_input_mem = align(cso->req_input_mem, 4) / 4;     /* byte->dword */
+   shader->cs.req_local_mem = cso->req_local_mem;
+
    struct ir3_shader_state *hwcso = calloc(1, sizeof(*hwcso));
 
    util_queue_fence_init(&hwcso->ready);

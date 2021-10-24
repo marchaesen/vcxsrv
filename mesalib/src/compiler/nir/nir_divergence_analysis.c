@@ -603,6 +603,7 @@ nir_variable_mode_is_uniform(nir_variable_mode mode) {
    case nir_var_mem_ssbo:
    case nir_var_mem_shared:
    case nir_var_mem_global:
+   case nir_var_image:
       return true;
    default:
       return false;

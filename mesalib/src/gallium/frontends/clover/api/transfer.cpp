@@ -104,7 +104,9 @@ namespace {
    void
    validate_object(command_queue &q, image &img,
                    const vector_t &orig, const vector_t &region) {
-      vector_t size = { img.width(), img.height(), img.depth() };
+      size_t height = img.type() == CL_MEM_OBJECT_IMAGE1D_ARRAY ? img.array_size() : img.height();
+      size_t depth = img.type() == CL_MEM_OBJECT_IMAGE2D_ARRAY ? img.array_size() : img.depth();
+      vector_t size = { img.width(), height, depth };
       const auto &dev = q.device();
 
       if (!dev.image_support())
@@ -126,9 +128,23 @@ namespace {
             throw error(CL_INVALID_IMAGE_SIZE);
          break;
       }
+      case CL_MEM_OBJECT_IMAGE1D_ARRAY: {
+         const size_t max_size = dev.max_image_size();
+         const size_t max_array = dev.max_image_array_number();
+         if (img.width() > max_size || img.array_size() > max_array)
+            throw error(CL_INVALID_IMAGE_SIZE);
+         break;
+      }
       case CL_MEM_OBJECT_IMAGE2D: {
          const size_t max = dev.max_image_size();
          if (img.width() > max || img.height() > max)
+            throw error(CL_INVALID_IMAGE_SIZE);
+         break;
+      }
+      case CL_MEM_OBJECT_IMAGE2D_ARRAY: {
+         const size_t max_size = dev.max_image_size();
+         const size_t max_array = dev.max_image_array_number();
+         if (img.width() > max_size || img.height() > max_size || img.array_size() > max_array)
             throw error(CL_INVALID_IMAGE_SIZE);
          break;
       }
@@ -862,7 +878,7 @@ clEnqueueMapImage(cl_command_queue d_q, cl_mem d_mem, cl_bool blocking,
    if (!row_pitch)
       throw error(CL_INVALID_VALUE);
 
-   if (img.slice_pitch() && !slice_pitch)
+   if ((img.slice_pitch() || img.array_size()) && !slice_pitch)
       throw error(CL_INVALID_VALUE);
 
    auto *map = img.resource_in(q).add_map(q, flags, blocking, origin, region);

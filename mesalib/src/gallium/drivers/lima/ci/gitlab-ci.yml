@@ -7,7 +7,7 @@ lima-mali450-test:arm64:
     DTB: ${DEVICE_TYPE}
     FDO_HTTP_CACHE_URI: ''
     GPU_VERSION: lima
-    DEQP_PARALLEL: 4
+    FDO_CI_CONCURRENT: 4
     DEQP_EXPECTED_RENDERER: Mali450
     VISIBILITY_GROUP: "mesa-ci"
 

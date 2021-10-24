@@ -416,26 +416,9 @@ static void si_set_viewport_states(struct pipe_context *pctx, unsigned start_slo
 
       si_get_scissor_from_viewport(ctx, &state[i], scissor);
 
-      unsigned w = scissor->maxx - scissor->minx;
-      unsigned h = scissor->maxy - scissor->miny;
-      unsigned max_extent = MAX2(w, h);
-
       int max_corner = MAX2(
          MAX2(abs(scissor->maxx), abs(scissor->maxy)),
          MAX2(abs(scissor->minx), abs(scissor->miny)));
-
-      unsigned center_x = (scissor->maxx + scissor->minx) / 2;
-      unsigned center_y = (scissor->maxy + scissor->miny) / 2;
-      unsigned max_center = MAX2(center_x, center_y);
-
-      /* PA_SU_HARDWARE_SCREEN_OFFSET can't center viewports whose
-       * center start farther than MAX_PA_SU_HARDWARE_SCREEN_OFFSET.
-       * (for example, a 1x1 viewport in the lower right corner of
-       * 16Kx16K) Such viewports need a greater guardband, so they
-       * have to use a worse quantization mode.
-       */
-      unsigned distance_off_center = MAX2(0, (int)max_center - MAX_PA_SU_HARDWARE_SCREEN_OFFSET);
-      max_extent += distance_off_center;
 
       /* Determine the best quantization mode (subpixel precision),
        * but also leave enough space for the guardband.
@@ -445,7 +428,7 @@ static void si_set_viewport_states(struct pipe_context *pctx, unsigned start_slo
        * Always use 16_8 if primitive binning is possible to occur.
        */
       if ((ctx->family == CHIP_VEGA10 || ctx->family == CHIP_RAVEN) && ctx->screen->dpbb_allowed)
-         max_extent = 16384; /* Use QUANT_MODE == 16_8. */
+         max_corner = 16384; /* Use QUANT_MODE == 16_8. */
 
       /* Another constraint is that all coordinates in the viewport
        * are representable in fixed point with respect to the
@@ -462,9 +445,9 @@ static void si_set_viewport_states(struct pipe_context *pctx, unsigned start_slo
        * 4k x 4k of the render target.
        */
 
-      if (max_extent <= 1024 && max_corner < (1 << 12)) /* 4K scanline area for guardband */
+      if (max_corner <= 1024) /* 4K scanline area for guardband */
          scissor->quant_mode = SI_QUANT_MODE_12_12_FIXED_POINT_1_4096TH;
-      else if (max_extent <= 4096 && max_corner < (1 << 14)) /* 16K scanline area for guardband */
+      else if (max_corner <= 4096) /* 16K scanline area for guardband */
          scissor->quant_mode = SI_QUANT_MODE_14_10_FIXED_POINT_1_1024TH;
       else /* 64K scanline area for guardband */
          scissor->quant_mode = SI_QUANT_MODE_16_8_FIXED_POINT_1_256TH;

@@ -621,7 +621,8 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
       struct ir3_register *samp = samp_tex->srcs[0];
       struct ir3_register *tex = samp_tex->srcs[1];
 
-      if ((samp->flags & IR3_REG_IMMED) && (tex->flags & IR3_REG_IMMED)) {
+      if ((samp->flags & IR3_REG_IMMED) && (tex->flags & IR3_REG_IMMED) &&
+          (samp->iim_val < 16) && (tex->iim_val < 16)) {
          instr->flags &= ~IR3_INSTR_S2EN;
          instr->cat5.samp = samp->iim_val;
          instr->cat5.tex = tex->iim_val;

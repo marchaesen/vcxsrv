@@ -159,6 +159,9 @@ struct ir3_compiler {
 
    /* True if 16-bit descriptors are used for both 16-bit and 32-bit access. */
    bool storage_16bit;
+
+   /* Type to use for 1b nir bools: */
+   type_t bool_type;
 };
 
 void ir3_compiler_destroy(struct ir3_compiler *compiler);
@@ -228,6 +231,7 @@ shader_debug_enabled(gl_shader_stage type)
    case MESA_SHADER_FRAGMENT:
       return !!(ir3_shader_debug & IR3_DBG_SHADER_FS);
    case MESA_SHADER_COMPUTE:
+   case MESA_SHADER_KERNEL:
       return !!(ir3_shader_debug & IR3_DBG_SHADER_CS);
    default:
       debug_assert(0);

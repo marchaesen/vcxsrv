@@ -295,7 +295,7 @@ ProcRRCreateLease(ClientPtr client)
     if (rc != Success)
         goto bail_lease;
 
-    xorg_list_add(&scr_priv->leases, &lease->list);
+    xorg_list_add(&lease->list, &scr_priv->leases);
 
     if (!AddResource(stuff->lid, RRLeaseType, lease)) {
         close(fd);

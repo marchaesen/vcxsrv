@@ -194,7 +194,7 @@ create_cov(struct ir3_context *ctx, struct ir3_instruction *src,
    case nir_op_b2i8:
    case nir_op_b2i16:
    case nir_op_b2i32:
-      src_type = TYPE_U32;
+      src_type = ctx->compiler->bool_type;
       break;
 
    default:
@@ -293,8 +293,7 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    unsigned bs[info->num_inputs]; /* bit size */
    struct ir3_block *b = ctx->block;
    unsigned dst_sz, wrmask;
-   type_t dst_type =
-      nir_dest_bit_size(alu->dest.dest) == 16 ? TYPE_U16 : TYPE_U32;
+   type_t dst_type = type_uint_size(nir_dest_bit_size(alu->dest.dest));
 
    if (alu->dest.dest.is_ssa) {
       dst_sz = alu->dest.dest.ssa.num_components;
@@ -311,7 +310,8 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
     * order into each writemask channel.
     */
    if ((alu->op == nir_op_vec2) || (alu->op == nir_op_vec3) ||
-       (alu->op == nir_op_vec4)) {
+       (alu->op == nir_op_vec4) || (alu->op == nir_op_vec8) ||
+       (alu->op == nir_op_vec16)) {
 
       for (int i = 0; i < info->num_inputs; i++) {
          nir_alu_src *asrc = &alu->src[i];
@@ -398,7 +398,7 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    case nir_op_f2b1:
       dst[0] = ir3_CMPS_F(
          b, src[0], 0,
-         create_immed_typed(b, 0, bs[0] == 16 ? TYPE_F16 : TYPE_F32), 0);
+         create_immed_typed(b, 0, type_float_size(bs[0])), 0);
       dst[0]->cat2.condition = IR3_COND_NE;
       break;
 
@@ -408,7 +408,7 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
        */
       dst[0] = ir3_CMPS_S(
          b, src[0], 0,
-         create_immed_typed(b, 0, bs[0] == 16 ? TYPE_U16 : TYPE_U32), 0);
+         create_immed_typed(b, 0, type_uint_size(bs[0])), 0);
       dst[0]->cat2.condition = IR3_COND_NE;
       break;
 
@@ -553,6 +553,14 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    case nir_op_iadd:
       dst[0] = ir3_ADD_U(b, src[0], 0, src[1], 0);
       break;
+   case nir_op_ihadd:
+      dst[0] = ir3_ADD_S(b, src[0], 0, src[1], 0);
+      dst[0]->dsts[0]->flags |= IR3_REG_EI;
+      break;
+   case nir_op_uhadd:
+      dst[0] = ir3_ADD_U(b, src[0], 0, src[1], 0);
+      dst[0]->dsts[0]->flags |= IR3_REG_EI;
+      break;
    case nir_op_iand:
       dst[0] = ir3_AND_B(b, src[0], 0, src[1], 0);
       break;
@@ -589,7 +597,9 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       break;
    case nir_op_inot:
       if (bs[0] == 1) {
-         dst[0] = ir3_SUB_U(b, create_immed(ctx->block, 1), 0, src[0], 0);
+         struct ir3_instruction *one =
+               create_immed_typed(ctx->block, 1, ctx->compiler->bool_type);
+         dst[0] = ir3_SUB_U(b, one, 0, src[0], 0);
       } else {
          dst[0] = ir3_NOT_B(b, src[0], 0);
       }
@@ -654,24 +664,34 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       }
 
       compile_assert(ctx, bs[1] == bs[2]);
+
       /* The condition's size has to match the other two arguments' size, so
        * convert down if necessary.
+       *
+       * Single hashtable is fine, because the conversion will either be
+       * 16->32 or 32->16, but never both
        */
-      if (bs[1] == 16) {
+      if (is_half(src[1]) != is_half(cond)) {
          struct hash_entry *prev_entry =
             _mesa_hash_table_search(ctx->sel_cond_conversions, src[0]);
          if (prev_entry) {
             cond = prev_entry->data;
          } else {
-            cond = ir3_COV(b, cond, TYPE_U32, TYPE_U16);
+            if (is_half(cond)) {
+               cond = ir3_COV(b, cond, TYPE_U16, TYPE_U32);
+            } else {
+               cond = ir3_COV(b, cond, TYPE_U32, TYPE_U16);
+            }
             _mesa_hash_table_insert(ctx->sel_cond_conversions, src[0], cond);
          }
       }
 
-      if (bs[1] != 16)
-         dst[0] = ir3_SEL_B32(b, src[1], 0, cond, 0, src[2], 0);
-      else
+      if (is_half(src[1])) {
          dst[0] = ir3_SEL_B16(b, src[1], 0, cond, 0, src[2], 0);
+      } else {
+         dst[0] = ir3_SEL_B32(b, src[1], 0, cond, 0, src[2], 0);
+      }
+
       break;
    }
    case nir_op_bit_count: {
@@ -847,6 +867,41 @@ emit_intrinsic_load_ubo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
                  create_immed(b, 1), 0); /* num components */
       load->cat6.type = TYPE_U32;
       dst[i] = load;
+   }
+}
+
+/* Load a kernel param: src[] = { address }. */
+static void
+emit_intrinsic_load_kernel_input(struct ir3_context *ctx,
+                                 nir_intrinsic_instr *intr,
+                                 struct ir3_instruction **dst)
+{
+   const struct ir3_const_state *const_state = ir3_const_state(ctx->so);
+   struct ir3_block *b = ctx->block;
+   unsigned offset = nir_intrinsic_base(intr);
+   unsigned p = regid(const_state->offsets.kernel_params, 0);
+
+   struct ir3_instruction *src0 = ir3_get_src(ctx, &intr->src[0])[0];
+
+   if (is_same_type_mov(src0) && (src0->srcs[0]->flags & IR3_REG_IMMED)) {
+      offset += src0->srcs[0]->iim_val;
+
+      /* kernel param position is in bytes, but constant space is 32b registers: */
+      compile_assert(ctx, !(offset & 0x3));
+
+      dst[0] = create_uniform(b, p + (offset / 4));
+   } else {
+      /* kernel param position is in bytes, but constant space is 32b registers: */
+      compile_assert(ctx, !(offset & 0x3));
+
+      /* TODO we should probably be lowering this in nir, and also handling
+       * non-32b inputs.. Also we probably don't want to be using
+       * SP_MODE_CONTROL.CONSTANT_DEMOTION_ENABLE for KERNEL shaders..
+       */
+      src0 = ir3_SHR_B(b, src0, 0, create_immed(b, 2), 0);
+
+      dst[0] = create_uniform_indirect(b, offset / 4, TYPE_U32,
+                                       ir3_get_addr0(ctx, src0, 1));
    }
 }
 
@@ -1064,6 +1119,28 @@ emit_intrinsic_atomic_shared(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    return atomic;
 }
 
+static void
+stp_ldp_offset(struct ir3_context *ctx, nir_src *src,
+               struct ir3_instruction **offset, int32_t *base)
+{
+   struct ir3_block *b = ctx->block;
+
+   if (nir_src_is_const(*src)) {
+      unsigned src_offset = nir_src_as_uint(*src);
+      /* The base offset field is only 13 bits, and it's signed. Try to make the
+       * offset constant whenever the original offsets are similar, to avoid
+       * creating too many constants in the final shader.
+       */
+      *base = ((int32_t) src_offset << (32 - 13)) >> (32 - 13);
+      uint32_t offset_val = src_offset - *base;
+      *offset = create_immed(b, offset_val);
+   } else {
+      /* TODO: match on nir_iadd with a constant that fits */
+      *base = 0;
+      *offset = ir3_get_src(ctx, src)[0];
+   }
+}
+
 /* src[] = { offset }. */
 static void
 emit_intrinsic_load_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr,
@@ -1071,10 +1148,11 @@ emit_intrinsic_load_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 {
    struct ir3_block *b = ctx->block;
    struct ir3_instruction *ldp, *offset;
+   int32_t base;
 
-   offset = ir3_get_src(ctx, &intr->src[0])[0];
+   stp_ldp_offset(ctx, &intr->src[0], &offset, &base);
 
-   ldp = ir3_LDP(b, offset, 0, create_immed(b, 0), 0,
+   ldp = ir3_LDP(b, offset, 0, create_immed(b, base), 0,
                  create_immed(b, intr->num_components), 0);
 
    ldp->cat6.type = utype_dst(intr->dest);
@@ -1094,9 +1172,11 @@ emit_intrinsic_store_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    struct ir3_instruction *stp, *offset;
    struct ir3_instruction *const *value;
    unsigned wrmask, ncomp;
+   int32_t base;
 
    value = ir3_get_src(ctx, &intr->src[0]);
-   offset = ir3_get_src(ctx, &intr->src[1])[0];
+
+   stp_ldp_offset(ctx, &intr->src[1], &offset, &base);
 
    wrmask = nir_intrinsic_write_mask(intr);
    ncomp = ffs(~wrmask) - 1;
@@ -1105,7 +1185,7 @@ emit_intrinsic_store_scratch(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
    stp = ir3_STP(b, offset, 0, ir3_create_collect(b, value, ncomp), 0,
                  create_immed(b, ncomp), 0);
-   stp->cat6.dst_offset = 0;
+   stp->cat6.dst_offset = base;
    stp->cat6.type = utype_src(intr->src[0]);
    stp->barrier_class = IR3_BARRIER_PRIVATE_W;
    stp->barrier_conflict = IR3_BARRIER_PRIVATE_R | IR3_BARRIER_PRIVATE_W;
@@ -1117,7 +1197,7 @@ struct tex_src_info {
    /* For prefetch */
    unsigned tex_base, samp_base, tex_idx, samp_idx;
    /* For normal tex instructions */
-   unsigned base, combined_idx, a1_val, flags;
+   unsigned base, a1_val, flags;
    struct ir3_instruction *samp_tex;
 };
 
@@ -1150,11 +1230,9 @@ get_image_samp_tex_src(struct ir3_context *ctx, nir_intrinsic_instr *intr)
          if (info.tex_idx < 16) {
             /* Everything fits within the instruction */
             info.base = info.tex_base;
-            info.combined_idx = info.samp_idx | (info.tex_idx << 4);
          } else {
             info.base = info.tex_base;
             info.a1_val = info.tex_idx << 3;
-            info.combined_idx = 0;
             info.flags |= IR3_INSTR_A1EN;
          }
          info.samp_tex = NULL;
@@ -1200,7 +1278,8 @@ emit_sam(struct ir3_context *ctx, opc_t opc, struct tex_src_info info,
    }
    if (info.flags & IR3_INSTR_B) {
       sam->cat5.tex_base = info.base;
-      sam->cat5.samp = info.combined_idx;
+      sam->cat5.samp = info.samp_idx;
+      sam->cat5.tex  = info.tex_idx;
    }
    return sam;
 }
@@ -1383,8 +1462,7 @@ emit_intrinsic_barrier(struct ir3_context *ctx, nir_intrinsic_instr *intr)
                IR3_BARRIER_BUFFER_R | IR3_BARRIER_BUFFER_W;
          }
 
-         /* TODO: check for image mode when it has a separate one */
-         if (modes & nir_var_mem_ssbo) {
+         if (modes & nir_var_image) {
             barrier->barrier_class |= IR3_BARRIER_IMAGE_W;
             barrier->barrier_conflict |=
                IR3_BARRIER_IMAGE_W | IR3_BARRIER_IMAGE_R;
@@ -1777,6 +1855,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    case nir_intrinsic_load_input:
       setup_input(ctx, intr);
       break;
+   case nir_intrinsic_load_kernel_input:
+      emit_intrinsic_load_kernel_input(ctx, intr, dst);
+      break;
    /* All SSBO intrinsics should have been lowered by 'lower_io_offsets'
     * pass and replaced by an ir3-specifc version that adds the
     * dword-offset in the last source.
@@ -2012,6 +2093,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    case nir_intrinsic_load_subgroup_id_shift_ir3:
       dst[0] = create_driver_param(ctx, IR3_DP_SUBGROUP_ID_SHIFT);
       break;
+   case nir_intrinsic_load_work_dim:
+      dst[0] = create_driver_param(ctx, IR3_DP_WORK_DIM);
+      break;
    case nir_intrinsic_discard_if:
    case nir_intrinsic_discard:
    case nir_intrinsic_demote:
@@ -2028,11 +2112,13 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
          cond = src[0];
       } else {
          /* unconditional discard: */
-         cond = create_immed(b, 1);
+         cond = create_immed_typed(b, 1, ctx->compiler->bool_type);
       }
 
       /* NOTE: only cmps.*.* can write p0.x: */
-      cond = ir3_CMPS_S(b, cond, 0, create_immed(b, 0), 0);
+      struct ir3_instruction *zero =
+            create_immed_typed(b, 0, is_half(cond) ? TYPE_U16 : TYPE_U32);
+      cond = ir3_CMPS_S(b, cond, 0, zero, 0);
       cond->cat2.condition = IR3_COND_NE;
 
       /* condition always goes in predicate register: */
@@ -2065,7 +2151,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       cond = src[0];
 
       /* NOTE: only cmps.*.* can write p0.x: */
-      cond = ir3_CMPS_S(b, cond, 0, create_immed(b, 0), 0);
+      struct ir3_instruction *zero =
+            create_immed_typed(b, 0, is_half(cond) ? TYPE_U16 : TYPE_U32);
+      cond = ir3_CMPS_S(b, cond, 0, zero, 0);
       cond->cat2.condition = IR3_COND_NE;
 
       /* condition always goes in predicate register: */
@@ -2163,8 +2251,12 @@ emit_load_const(struct ir3_context *ctx, nir_load_const_instr *instr)
 {
    struct ir3_instruction **dst =
       ir3_get_dst_ssa(ctx, &instr->def, instr->def.num_components);
+   unsigned bit_size = ir3_bitsize(ctx, instr->def.bit_size);
 
-   if (instr->def.bit_size == 16) {
+   if (bit_size <= 8) {
+      for (int i = 0; i < instr->def.num_components; i++)
+         dst[i] = create_immed_typed(ctx->block, instr->value[i].u8, TYPE_U8);
+   } else if (bit_size <= 16) {
       for (int i = 0; i < instr->def.num_components; i++)
          dst[i] = create_immed_typed(ctx->block, instr->value[i].u16, TYPE_U16);
    } else {
@@ -2178,7 +2270,7 @@ emit_undef(struct ir3_context *ctx, nir_ssa_undef_instr *undef)
 {
    struct ir3_instruction **dst =
       ir3_get_dst_ssa(ctx, &undef->def, undef->def.num_components);
-   type_t type = (undef->def.bit_size == 16) ? TYPE_U16 : TYPE_U32;
+   type_t type = utype_for_size(ir3_bitsize(ctx, undef->def.bit_size));
 
    /* backend doesn't want undefined instructions, so just plug
     * in 0.0..
@@ -2306,11 +2398,9 @@ get_tex_samp_tex_src(struct ir3_context *ctx, nir_tex_instr *tex)
               info.tex_base == info.samp_base)) {
             /* Everything fits within the instruction */
             info.base = info.tex_base;
-            info.combined_idx = info.samp_idx | (info.tex_idx << 4);
          } else {
             info.base = info.tex_base;
             info.a1_val = info.tex_idx << 3 | info.samp_base;
-            info.combined_idx = info.samp_idx;
             info.flags |= IR3_INSTR_A1EN;
          }
          info.samp_tex = NULL;
@@ -3659,6 +3749,7 @@ uses_store_output(struct ir3_shader_variant *so)
       return true;
    case MESA_SHADER_TESS_CTRL:
    case MESA_SHADER_COMPUTE:
+   case MESA_SHADER_KERNEL:
       return false;
    default:
       unreachable("unknown stage");

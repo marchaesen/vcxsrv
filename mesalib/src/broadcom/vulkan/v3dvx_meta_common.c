@@ -815,62 +815,52 @@ v3dX(meta_emit_copy_image_rcl)(struct v3dv_job *job,
 
 void
 v3dX(meta_emit_tfu_job)(struct v3dv_cmd_buffer *cmd_buffer,
-                        struct v3dv_image *dst,
-                        uint32_t dst_mip_level,
-                        uint32_t dst_layer,
-                        struct v3dv_image *src,
-                        uint32_t src_mip_level,
-                        uint32_t src_layer,
+                        uint32_t dst_bo_handle,
+                        uint32_t dst_offset,
+                        enum v3d_tiling_mode dst_tiling,
+                        uint32_t dst_padded_height_or_stride,
+                        uint32_t dst_cpp,
+                        uint32_t src_bo_handle,
+                        uint32_t src_offset,
+                        enum v3d_tiling_mode src_tiling,
+                        uint32_t src_padded_height_or_stride,
+                        uint32_t src_cpp,
                         uint32_t width,
                         uint32_t height,
                         const struct v3dv_format *format)
 {
-   const struct v3d_resource_slice *src_slice = &src->slices[src_mip_level];
-   const struct v3d_resource_slice *dst_slice = &dst->slices[dst_mip_level];
-
-   assert(dst->mem && dst->mem->bo);
-   const struct v3dv_bo *dst_bo = dst->mem->bo;
-
-   assert(src->mem && src->mem->bo);
-   const struct v3dv_bo *src_bo = src->mem->bo;
-
    struct drm_v3d_submit_tfu tfu = {
       .ios = (height << 16) | width,
       .bo_handles = {
-         dst_bo->handle,
-         src_bo->handle != dst_bo->handle ? src_bo->handle : 0
+         dst_bo_handle,
+         src_bo_handle != dst_bo_handle ? src_bo_handle : 0
       },
    };
 
-   const uint32_t src_offset =
-      src_bo->offset + v3dv_layer_offset(src, src_mip_level, src_layer);
    tfu.iia |= src_offset;
 
-   uint32_t icfg;
-   if (src_slice->tiling == V3D_TILING_RASTER) {
-      icfg = V3D_TFU_ICFG_FORMAT_RASTER;
+   if (src_tiling == V3D_TILING_RASTER) {
+      tfu.icfg = V3D_TFU_ICFG_FORMAT_RASTER << V3D_TFU_ICFG_FORMAT_SHIFT;
    } else {
-      icfg = V3D_TFU_ICFG_FORMAT_LINEARTILE +
-             (src_slice->tiling - V3D_TILING_LINEARTILE);
+      tfu.icfg = (V3D_TFU_ICFG_FORMAT_LINEARTILE +
+                  (src_tiling - V3D_TILING_LINEARTILE)) <<
+                   V3D_TFU_ICFG_FORMAT_SHIFT;
    }
-   tfu.icfg |= icfg << V3D_TFU_ICFG_FORMAT_SHIFT;
-
-   const uint32_t dst_offset =
-      dst_bo->offset + v3dv_layer_offset(dst, dst_mip_level, dst_layer);
-   tfu.ioa |= dst_offset;
-
-   tfu.ioa |= (V3D_TFU_IOA_FORMAT_LINEARTILE +
-               (dst_slice->tiling - V3D_TILING_LINEARTILE)) <<
-                V3D_TFU_IOA_FORMAT_SHIFT;
    tfu.icfg |= format->tex_type << V3D_TFU_ICFG_TTYPE_SHIFT;
 
-   switch (src_slice->tiling) {
+   tfu.ioa = dst_offset;
+
+   tfu.ioa |= (V3D_TFU_IOA_FORMAT_LINEARTILE +
+               (dst_tiling - V3D_TILING_LINEARTILE)) <<
+                V3D_TFU_IOA_FORMAT_SHIFT;
+
+   switch (src_tiling) {
    case V3D_TILING_UIF_NO_XOR:
    case V3D_TILING_UIF_XOR:
-      tfu.iis |= src_slice->padded_height / (2 * v3d_utile_height(src->cpp));
+      tfu.iis |= src_padded_height_or_stride / (2 * v3d_utile_height(src_cpp));
       break;
    case V3D_TILING_RASTER:
-      tfu.iis |= src_slice->stride / src->cpp;
+      tfu.iis |= src_padded_height_or_stride / src_cpp;
       break;
    default:
       break;
@@ -880,12 +870,11 @@ v3dX(meta_emit_tfu_job)(struct v3dv_cmd_buffer *cmd_buffer,
     * OPAD field for the destination (how many extra UIF blocks beyond
     * those necessary to cover the height).
     */
-   if (dst_slice->tiling == V3D_TILING_UIF_NO_XOR ||
-       dst_slice->tiling == V3D_TILING_UIF_XOR) {
-      uint32_t uif_block_h = 2 * v3d_utile_height(dst->cpp);
+   if (dst_tiling == V3D_TILING_UIF_NO_XOR || dst_tiling == V3D_TILING_UIF_XOR) {
+      uint32_t uif_block_h = 2 * v3d_utile_height(dst_cpp);
       uint32_t implicit_padded_height = align(height, uif_block_h);
-      uint32_t icfg =
-         (dst_slice->padded_height - implicit_padded_height) / uif_block_h;
+      uint32_t icfg = (dst_padded_height_or_stride - implicit_padded_height) /
+                      uif_block_h;
       tfu.icfg |= icfg << V3D_TFU_ICFG_OPAD_SHIFT;
    }
 

@@ -28,6 +28,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** A red-black tree node
  *
  * This struct represents a node in the red-black tree.  This struct should
@@ -310,5 +314,9 @@ struct rb_node *rb_node_prev(struct rb_node *node);
  * black tree.  If anything is wrong, it will assert-fail.
  */
 void rb_tree_validate(struct rb_tree *T);
+
+#ifdef __cplusplus
+} /* extern C */
+#endif
 
 #endif /* RB_TREE_H */

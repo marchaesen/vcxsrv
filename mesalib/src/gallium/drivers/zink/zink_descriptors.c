@@ -106,6 +106,7 @@ batch_add_desc_set(struct zink_batch *batch, struct zink_descriptor_set *zds)
        !batch_ptr_add_usage(batch, batch->state->dd->desc_sets, zds))
       return false;
    pipe_reference(NULL, &zds->reference);
+   pipe_reference(NULL, &zds->pool->reference);
    zink_batch_usage_set(&zds->batch_uses, batch->state);
    return true;
 }
@@ -251,13 +252,14 @@ descriptor_set_invalidate(struct zink_descriptor_set *zds)
    }
 }
 
-#ifndef NDEBUG
 static void
 descriptor_pool_clear(struct hash_table *ht)
 {
-   _mesa_hash_table_clear(ht, NULL);
+   hash_table_foreach(ht, entry) {
+      struct zink_descriptor_set *zds = entry->data;
+      descriptor_set_invalidate(zds);
+   }
 }
-#endif
 
 static void
 descriptor_pool_free(struct zink_screen *screen, struct zink_descriptor_pool *pool)
@@ -268,12 +270,10 @@ descriptor_pool_free(struct zink_screen *screen, struct zink_descriptor_pool *po
       VKSCR(DestroyDescriptorPool)(screen->dev, pool->descpool, NULL);
 
    simple_mtx_lock(&pool->mtx);
-#ifndef NDEBUG
    if (pool->desc_sets)
       descriptor_pool_clear(pool->desc_sets);
    if (pool->free_desc_sets)
       descriptor_pool_clear(pool->free_desc_sets);
-#endif
    if (pool->desc_sets)
       _mesa_hash_table_destroy(pool->desc_sets, NULL);
    if (pool->free_desc_sets)
@@ -283,6 +283,16 @@ descriptor_pool_free(struct zink_screen *screen, struct zink_descriptor_pool *po
    util_dynarray_fini(&pool->alloc_desc_sets);
    simple_mtx_destroy(&pool->mtx);
    ralloc_free(pool);
+}
+
+static void
+descriptor_pool_delete(struct zink_context *ctx, struct zink_descriptor_pool *pool)
+{
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
+   if (!pool)
+      return;
+   _mesa_hash_table_remove_key(ctx->dd->descriptor_pools[pool->type], &pool->key);
+   descriptor_pool_free(screen, pool);
 }
 
 static struct zink_descriptor_pool *
@@ -588,8 +598,11 @@ descriptor_pool_get(struct zink_context *ctx, enum zink_descriptor_type type,
 
       hash = hash_descriptor_pool(&key);
       struct hash_entry *he = _mesa_hash_table_search_pre_hashed(ctx->dd->descriptor_pools[type], hash, &key);
-      if (he)
-         return (void*)he->data;
+      if (he) {
+         struct zink_descriptor_pool *pool = he->data;
+         pipe_reference(NULL, &pool->reference);
+         return pool;
+      }
    }
    struct zink_descriptor_pool *pool = descriptor_pool_create(zink_screen(ctx->base.screen), type, layout_key, sizes, num_type_sizes);
    if (type != ZINK_DESCRIPTOR_TYPES)
@@ -723,8 +736,10 @@ populate_zds_key(struct zink_context *ctx, enum zink_descriptor_type type, bool 
       key->exists[0] = true;
       if (type == ZINK_DESCRIPTOR_TYPES)
          key->state[0] = ctx->dd->push_state[is_compute];
-      else
+      else {
+         assert(ctx->dd->descriptor_states[is_compute].valid[type]);
          key->state[0] = ctx->dd->descriptor_states[is_compute].state[type];
+      }
    } else if (type == ZINK_DESCRIPTOR_TYPES) {
       /* gfx only */
       for (unsigned i = 0; i < ZINK_SHADER_COUNT; i++) {
@@ -973,7 +988,7 @@ zink_descriptor_set_refs_clear(struct zink_descriptor_refs *refs, void *ptr)
 }
 
 static inline void
-zink_descriptor_pool_reference(struct zink_screen *screen,
+zink_descriptor_pool_reference(struct zink_context *ctx,
                                struct zink_descriptor_pool **dst,
                                struct zink_descriptor_pool *src)
 {
@@ -981,7 +996,7 @@ zink_descriptor_pool_reference(struct zink_screen *screen,
 
    if (pipe_reference_described(old_dst ? &old_dst->reference : NULL, &src->reference,
                                 (debug_reference_descriptor)debug_describe_zink_descriptor_pool))
-      descriptor_pool_free(screen, old_dst);
+      descriptor_pool_delete(ctx, old_dst);
    if (dst) *dst = src;
 }
 
@@ -1074,7 +1089,7 @@ zink_descriptor_program_init(struct zink_context *ctx, struct zink_program *pg)
       struct zink_descriptor_pool *pool = descriptor_pool_get(ctx, i, pg->dd->layout_key[i], size, num_sizes);
       if (!pool)
          return false;
-      zink_descriptor_pool_reference(screen, &pdd_cached(pg)->pool[i], pool);
+      pdd_cached(pg)->pool[i] = pool;
 
       if (screen->info.have_KHR_descriptor_update_template &&
           screen->descriptor_mode != ZINK_DESCRIPTOR_MODE_NOTEMPLATES)
@@ -1085,25 +1100,21 @@ zink_descriptor_program_init(struct zink_context *ctx, struct zink_program *pg)
 }
 
 void
-zink_descriptor_program_deinit(struct zink_screen *screen, struct zink_program *pg)
+zink_descriptor_program_deinit(struct zink_context *ctx, struct zink_program *pg)
 {
    if (!pg->dd)
       return;
    for (unsigned i = 0; i < ZINK_DESCRIPTOR_TYPES; i++)
-      zink_descriptor_pool_reference(screen, &pdd_cached(pg)->pool[i], NULL);
+      zink_descriptor_pool_reference(ctx, &pdd_cached(pg)->pool[i], NULL);
 
-   zink_descriptor_program_deinit_lazy(screen, pg);
+   zink_descriptor_program_deinit_lazy(ctx, pg);
 }
 
 static void
 zink_descriptor_pool_deinit(struct zink_context *ctx)
 {
-   struct zink_screen *screen = zink_screen(ctx->base.screen);
    for (unsigned i = 0; i < ZINK_DESCRIPTOR_TYPES; i++) {
-      hash_table_foreach(ctx->dd->descriptor_pools[i], entry) {
-         struct zink_descriptor_pool *pool = (void*)entry->data;
-         zink_descriptor_pool_reference(screen, &pool, NULL);
-      }
+      /* do not free: programs own these pools */
       _mesa_hash_table_destroy(ctx->dd->descriptor_pools[i], NULL);
    }
 }
@@ -1460,9 +1471,11 @@ zink_descriptors_update(struct zink_context *ctx, bool is_compute)
                VKCTX(CmdBindDescriptorSets)(batch->state->cmdbuf, bp,
                                             pg->layout, h + 1, 1, &desc_set,
                                             0, NULL);
+               if (pdd_cached(pg)->cache_misses[h] == MAX_CACHE_MISSES)
+                  zink_descriptor_pool_reference(ctx, &pdd_cached(pg)->pool[h], NULL);
             }
          } else {
-            zink_descriptors_update_lazy_masked(ctx, is_compute, BITFIELD_BIT(h), false, false);
+            zink_descriptors_update_lazy_masked(ctx, is_compute, BITFIELD_BIT(h), 0);
          }
          ctx->dd->changed[is_compute][h] = false;
       }
@@ -1497,6 +1510,10 @@ zink_batch_descriptor_reset(struct zink_screen *screen, struct zink_batch_state 
        */
       pipe_reference(&zds->reference, NULL);
       zink_descriptor_set_recycle(zds);
+      if (zds->reference.count == 1) {
+         struct zink_descriptor_pool *pool = zds->pool;
+         zink_descriptor_pool_reference(bs->ctx, &pool, NULL);
+      }
       _mesa_set_remove(bs->dd->desc_sets, entry);
    }
    zink_batch_descriptor_reset_lazy(screen, bs);

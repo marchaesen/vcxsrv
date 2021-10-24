@@ -199,7 +199,7 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
          }
 
          si_set_internal_shader_buffer(sctx, SI_VS_STREAMOUT_BUF0 + i, &sbuf);
-         si_resource(targets[i]->buffer)->bind_history |= PIPE_BIND_STREAM_OUTPUT;
+         si_resource(targets[i]->buffer)->bind_history |= SI_BIND_STREAMOUT_BUFFER;
       } else {
          si_set_internal_shader_buffer(sctx, SI_VS_STREAMOUT_BUF0 + i, NULL);
       }

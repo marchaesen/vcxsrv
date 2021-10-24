@@ -9,6 +9,8 @@ deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-visibility=hidden",
 ]
+version_check = "GL ES 2.0.*git"
+renderer_check = "VC4"
 
 [[deqp]]
 deqp = "/deqp/external/openglcts/modules/glcts"

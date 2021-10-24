@@ -557,7 +557,7 @@ create_fs(struct st_context *st, bool download,
          [ST_PBO_CONVERT_SINT_TO_UINT] = GLSL_TYPE_UINT,
       };
       nir_variable *img_var =
-         nir_variable_create(b.shader, nir_var_uniform,
+         nir_variable_create(b.shader, nir_var_image,
                              glsl_image_type(GLSL_SAMPLER_DIM_BUF, false,
                                              type[conversion]), "img");
       img_var->data.access = ACCESS_NON_READABLE;

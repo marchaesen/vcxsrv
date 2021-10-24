@@ -73,7 +73,7 @@ can_fast_clear_color(struct crocus_context *ice,
 {
    struct crocus_resource *res = (void *) p_res;
 
-   if (INTEL_DEBUG & DEBUG_NO_FAST_CLEAR)
+   if (INTEL_DEBUG(DEBUG_NO_FAST_CLEAR))
       return false;
 
    if (!isl_aux_usage_has_fast_clears(res->aux.usage))
@@ -407,7 +407,7 @@ can_fast_clear_depth(struct crocus_context *ice,
    if (devinfo->ver < 6)
       return false;
 
-   if (INTEL_DEBUG & DEBUG_NO_FAST_CLEAR)
+   if (INTEL_DEBUG(DEBUG_NO_FAST_CLEAR))
       return false;
 
    /* Check for partial clears */

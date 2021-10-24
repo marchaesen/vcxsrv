@@ -216,7 +216,7 @@ static boolean r300_reserve_cs_dwords(struct r300_context *r300,
     cs_dwords += r300_get_num_cs_end_dwords(r300);
 
     /* Reserve requested CS space. */
-    if (!r300->rws->cs_check_space(&r300->cs, cs_dwords, false)) {
+    if (!r300->rws->cs_check_space(&r300->cs, cs_dwords)) {
         r300_flush(&r300->context, PIPE_FLUSH_ASYNC, NULL);
         flushed = TRUE;
     }

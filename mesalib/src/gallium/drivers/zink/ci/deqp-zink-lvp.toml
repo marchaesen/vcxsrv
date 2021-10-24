@@ -9,6 +9,8 @@ deqp_args = [
     "--deqp-visibility=hidden"
 ]
 timeout = 180.0
+version_check = "GL ES 3.2.*git"
+renderer_check = "zink.*llvmpipe"
 
 [[deqp]]
 deqp = "/deqp/modules/gles3/deqp-gles3"

@@ -64,7 +64,7 @@ files_libradeonsi = files(
   'si_state.h',
   'si_state_binning.c',
   'si_state_msaa.c',
-  'si_state_shaders.c',
+  'si_state_shaders.cpp',
   'si_state_streamout.c',
   'si_state_viewport.c',
   'si_test_blit.c',

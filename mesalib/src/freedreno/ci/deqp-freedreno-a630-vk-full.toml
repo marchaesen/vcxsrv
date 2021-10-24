@@ -3,6 +3,7 @@
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
 timeout = 300
+renderer_check = "Turnip Adreno .* 630"
 [deqp.env]
 # Force binning in the main run, which makes sure we render at
 # least 2 bins.  This is the path that impacts the most different

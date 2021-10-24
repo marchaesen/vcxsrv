@@ -30,8 +30,6 @@
 
 struct radv_shader_args {
    struct ac_shader_args ac;
-   struct radv_shader_info *shader_info;
-   const struct radv_nir_compiler_options *options;
 
    struct ac_arg descriptor_sets[MAX_SETS];
    struct ac_arg ring_offsets;
@@ -58,5 +56,10 @@ radv_shader_args_from_ac(struct ac_shader_args *args)
    return container_of(args, struct radv_shader_args, ac);
 }
 
-void radv_declare_shader_args(struct radv_shader_args *args, gl_shader_stage stage,
-                              bool has_previous_stage, gl_shader_stage previous_stage);
+struct radv_nir_compiler_options;
+struct radv_shader_info;
+
+void radv_declare_shader_args(const struct radv_nir_compiler_options *options,
+                              struct radv_shader_info *info, gl_shader_stage stage,
+                              bool has_previous_stage, gl_shader_stage previous_stage,
+                              struct radv_shader_args *args);

@@ -262,6 +262,10 @@ st_indirect_draw_vbo(struct gl_context *ctx,
    indirect.buffer = st_buffer_object(indirect_data)->buffer;
    indirect.offset = indirect_offset;
 
+   /* Viewperf2020/Maya draws with a buffer that has no storage. */
+   if (!indirect.buffer)
+      return;
+
    if (!st->has_multi_draw_indirect) {
       int i;
 

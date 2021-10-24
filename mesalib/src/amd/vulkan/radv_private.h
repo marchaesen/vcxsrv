@@ -2621,10 +2621,13 @@ struct radv_fence {
 
 /* radv_nir_to_llvm.c */
 struct radv_shader_args;
+struct radv_nir_compiler_options;
+struct radv_shader_info;
 
-void llvm_compile_shader(struct radv_device *device, unsigned shader_count,
+void llvm_compile_shader(const struct radv_nir_compiler_options *options,
+                         struct radv_shader_info *info, unsigned shader_count,
                          struct nir_shader *const *shaders, struct radv_shader_binary **binary,
-                         struct radv_shader_args *args);
+                         const struct radv_shader_args *args);
 
 /* radv_shader_info.h */
 struct radv_shader_info;
