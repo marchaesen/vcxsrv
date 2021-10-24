@@ -132,7 +132,7 @@ validate_assert_impl(validate_state *state, bool cond, const char *str,
 }
 
 #define validate_assert(state, cond) \
-   validate_assert_impl(state, (cond), #cond, __FILE__, __LINE__)
+   validate_assert_impl(state, cond ? true : false, #cond, __FILE__, __LINE__)
 
 
 static void validate_src(nir_src *src, validate_state *state,
