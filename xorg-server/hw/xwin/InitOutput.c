@@ -69,6 +69,8 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
  * References to external symbols
  */
 
+extern int xserver_resetting;
+
 /*
  * Function prototypes
  */
@@ -146,6 +148,7 @@ void XwinExtensionInit(void)
 void
 ddxBeforeReset(void)
 {
+    xserver_resetting = 1;
     winDebug("ddxBeforeReset - Hello\n");
 
     winClipboardShutdown();
@@ -942,6 +945,7 @@ void
 InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 {
     int i;
+    xserver_resetting = 0;
 
     if (serverGeneration == 1)
         XwinExtensionInit();

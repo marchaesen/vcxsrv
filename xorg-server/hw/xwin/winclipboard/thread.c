@@ -86,6 +86,8 @@ extern Window g_iClipboardWindow;
 int xfixes_event_base;
 int xfixes_error_base;
 
+int xserver_resetting = 0;
+
 /*
  * Local function prototypes
  */
@@ -335,6 +337,11 @@ winClipboardProc(char *szDisplay, xcb_auth_info_t *auth_info)
                    "Bailing.\n", iReturn);
             break;
         }
+    }
+
+    if ( xserver_resetting ) {
+        fShutdown = 1;
+        goto commonexit;
     }
 
     /* Close our X window */
