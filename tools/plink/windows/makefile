@@ -34,7 +34,6 @@ UTILS_CSRCS = arm_arch_queries.c \
  request_file.c \
  security.c \
  split_into_argv.c \
- strtoumax.c \
  version.c \
  win_strerror.c
 
