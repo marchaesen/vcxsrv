@@ -954,6 +954,10 @@ xkb_symbols "colemak_dh_iso" {
 // became available. I added them next to ae. Because I write ediaeresis more
 // often than registered, I moved registered to be next to copyright and added
 // ediaeresis and idiaeresis. - Adriaan
+//
+// Note: there is an "altgr-weur" layout (in extras) which is no longer based on
+// the Microsoft layout, supports all chars that altgr-intl offers, but is
+// optimized for 10 Western European languages. More info: https://altgr-weur.eu
 
 partial alphanumeric_keys
 xkb_symbols "altgr-intl" {
@@ -979,6 +983,77 @@ xkb_symbols "altgr-intl" {
    key <AE06> { [        6, asciicircum, dead_circumflex, onequarter    ] };
    key <AE07> { [        7, ampersand,   dead_horn,       onehalf       ] };
    key <AE08> { [        8, asterisk,    dead_ogonek,     threequarters ] };
+
+   include "level3(ralt_switch)"
+};
+
+// This (altgr-weur) layout is based on combined letter frequencies
+// for English, German, Dutch, French, Spanish, Portuguese, Italian,
+// Danish, Norwegian, Swedish and Finnish: all accented characters for
+// those languages are available through AltGr- combinations. Further
+// explanation can be found at: https://www.altgr-weur.eu/
+// - Adriaan and Enno
+
+// Version info (for altgr-weur ONLY):
+// $Id: altgr-weur,v 2.0 2021/04/12 11:27:12 adriaan Exp $
+
+partial alphanumeric_keys
+xkb_symbols "altgr-weur" {
+
+   name[Group1]= "English (Western European AltGr dead keys)";
+
+   key <TLDE> { [     grave, asciitilde,      dead_grave,        dead_tilde ] };
+   key <AE01> { [         1,     exclam,      exclamdown,     dead_abovedot ] };
+   key <AE02> { [         2,         at,     twosuperior,  dead_doubleacute ] };
+   key <AE03> { [         3, numbersign,   threesuperior,       dead_macron ] };
+   key <AE04> { [         4,     dollar,            cent,               yen ] };
+   key <AE05> { [         5,    percent,        EuroSign,          sterling ] };
+   key <AE06> { [         6,asciicircum, dead_circumflex,        dead_caron ] };
+   key <AE07> { [ 7,      ampersand, doublelowquotemark, singlelowquotemark ] };
+   key <AE08> { [ 8,           asterisk,          ssharp,        dead_greek ] };
+   key <AE09> { [ 9, parenleft,   leftdoublequotemark,  leftsinglequotemark ] };
+   key <AE10> { [ 0, parenright, rightdoublequotemark, rightsinglequotemark ] };
+   key <AE11> { [     minus, underscore,          endash,            emdash ] };
+   key <AE12> { [     equal,       plus,          degree,    dead_abovering ] };
+
+   key <AD01> { [         q,          Q,           aring,             Aring ] };
+   key <AD02> { [         w,          W,              ae,                AE ] };
+   key <AD03> { [         e,          E,      ediaeresis,        Ediaeresis ] };
+   key <AD04> { [         r,          R,          egrave,            Egrave ] };
+   key <AD05> { [         t,          T,          oslash,            Oslash ] };
+   key <AD06> { [         y,          Y,          ugrave,            Ugrave ] };
+   key <AD07> { [         u,          U,      udiaeresis,        Udiaeresis ] };
+   key <AD08> { [         i,          I,      idiaeresis,        Idiaeresis ] };
+   key <AD09> { [         o,          O,      odiaeresis,        Odiaeresis ] };
+   key <AD10> { [         p,          P,          ograve,            Ograve ] };
+              // U203[9A]: single right/left-pointing angle quotation marks
+   key <AD11> { [ bracketleft, braceleft,  guillemotleft,             U2039 ] };
+   key <AD12> { [bracketright,braceright, guillemotright,             U203A ] };
+
+   key <AC01> { [         a,          A,      adiaeresis,        Adiaeresis ] };
+   key <AC02> { [         s,          S,          agrave,            Agrave ] };
+   key <AC03> { [         d,          D,          eacute,            Eacute ] };
+   key <AC04> { [         f,          F,     ecircumflex,       Ecircumflex ] };
+   key <AC05> { [         g,          G,     icircumflex,       Icircumflex ] };
+   key <AC06> { [         h,          H,     ucircumflex,       Ucircumflex ] };
+   key <AC07> { [         j,          J,          uacute,            Uacute ] };
+   key <AC08> { [         k,          K,          iacute,            Iacute ] };
+   key <AC09> { [         l,          L,          oacute,            Oacute ] };
+   key <AC10> { [ semicolon,      colon,     ocircumflex,       Ocircumflex ] };
+   key <AC11> { [apostrophe,   quotedbl,      dead_acute,    dead_diaeresis ] };
+
+   key <AB01> { [         z,          Z,          aacute,            Aacute ] };
+   key <AB02> { [         x,          X,     acircumflex,       Acircumflex ] };
+   key <AB03> { [         c,          C,        ccedilla,          Ccedilla ] };
+   key <AB04> { [         v,          V,          atilde,            Atilde ] };
+   key <AB05> { [         b,          B,          otilde,            Otilde ] };
+   key <AB06> { [         n,          N,          ntilde,            Ntilde ] };
+   key <AB07> { [         m,          M,          igrave,            Igrave ] };
+   key <AB08> { [     comma,       less,    dead_cedilla,       dead_ogonek ] };
+   key <AB09> { [    period,    greater,              oe,                OE ] };
+   key <AB10> { [     slash,   question,    questiondown,       dead_stroke ] };
+              //                             ij ligature        IJ ligature
+   key <BKSL> { [ backslash,        bar,           U0133,             U0132 ] };
 
    include "level3(ralt_switch)"
 };

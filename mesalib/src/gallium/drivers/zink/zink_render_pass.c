@@ -168,6 +168,7 @@ create_render_pass2(struct zink_screen *screen, struct zink_render_pass_state *s
       color_refs[i].pNext = NULL;
       color_refs[i].attachment = i;
       color_refs[i].layout = layout;
+      color_refs[i].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       dep_pipeline |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
       if (rt->fbfetch)
          memcpy(&input_attachments[input_count++], &color_refs[i], sizeof(VkAttachmentReference2));

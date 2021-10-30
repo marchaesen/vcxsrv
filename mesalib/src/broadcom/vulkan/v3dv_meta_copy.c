@@ -27,7 +27,7 @@
 #include "compiler/nir/nir_builder.h"
 #include "vk_format_info.h"
 #include "util/u_pack_color.h"
-#include "vulkan/util/vk_common_entrypoints.h"
+#include "vulkan/runtime/vk_common_entrypoints.h"
 
 static uint32_t
 meta_blit_key_hash(const void *key)

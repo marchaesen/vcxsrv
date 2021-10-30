@@ -1031,12 +1031,16 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file, unsigned size,
 }
 
 static void
-update_affinity(struct ir3_register *reg, physreg_t physreg)
+update_affinity(struct ra_file *file, struct ir3_register *reg,
+                physreg_t physreg)
 {
    if (!reg->merge_set || reg->merge_set->preferred_reg != (physreg_t)~0)
       return;
 
    if (physreg < reg->merge_set_offset)
+      return;
+
+   if ((physreg - reg->merge_set_offset + reg->merge_set->size) > file->size)
       return;
 
    reg->merge_set->preferred_reg = physreg - reg->merge_set_offset;
@@ -1231,8 +1235,9 @@ static void
 allocate_dst_fixed(struct ra_ctx *ctx, struct ir3_register *dst,
                    physreg_t physreg)
 {
+   struct ra_file *file = ra_get_file(ctx, dst);
    struct ra_interval *interval = &ctx->intervals[dst->name];
-   update_affinity(dst, physreg);
+   update_affinity(file, dst, physreg);
 
    ra_interval_init(interval, dst);
    interval->physreg_start = physreg;

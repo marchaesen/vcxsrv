@@ -172,9 +172,6 @@ msm_pipe_destroy(struct fd_pipe *pipe)
 {
    struct msm_pipe *msm_pipe = to_msm_pipe(pipe);
 
-   if (msm_pipe->suballoc_bo)
-      fd_bo_del_locked(msm_pipe->suballoc_bo);
-
    close_submitqueue(pipe, msm_pipe->queue_id);
    msm_pipe_sp_ringpool_init(msm_pipe);
    free(msm_pipe);

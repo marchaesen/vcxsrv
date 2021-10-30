@@ -11196,17 +11196,6 @@ emit_streamout(isel_context* ctx, unsigned stream)
 {
    Builder bld(ctx->program, ctx->block);
 
-   Temp so_buffers[4];
-   Temp buf_ptr = convert_pointer_to_64_bit(ctx, get_arg(ctx, ctx->args->streamout_buffers));
-   for (unsigned i = 0; i < 4; i++) {
-      unsigned stride = ctx->program->info->so.strides[i];
-      if (!stride)
-         continue;
-
-      Operand off = bld.copy(bld.def(s1), Operand::c32(i * 16u));
-      so_buffers[i] = bld.smem(aco_opcode::s_load_dwordx4, bld.def(s4), buf_ptr, off);
-   }
-
    Temp so_vtx_count =
       bld.sop2(aco_opcode::s_bfe_u32, bld.def(s1), bld.def(s1, scc),
                get_arg(ctx, ctx->args->ac.streamout_config), Operand::c32(0x70010u));
@@ -11223,12 +11212,17 @@ emit_streamout(isel_context* ctx, unsigned stream)
    Temp so_write_index =
       bld.vadd32(bld.def(v1), get_arg(ctx, ctx->args->ac.streamout_write_index), tid);
 
+   Temp so_buffers[4];
    Temp so_write_offset[4];
+   Temp buf_ptr = convert_pointer_to_64_bit(ctx, get_arg(ctx, ctx->args->streamout_buffers));
 
    for (unsigned i = 0; i < 4; i++) {
       unsigned stride = ctx->program->info->so.strides[i];
       if (!stride)
          continue;
+
+      so_buffers[i] = bld.smem(aco_opcode::s_load_dwordx4, bld.def(s4), buf_ptr,
+                               bld.copy(bld.def(s1), Operand::c32(i * 16u)));
 
       if (stride == 1) {
          Temp offset = bld.sop2(aco_opcode::s_add_i32, bld.def(s1), bld.def(s1, scc),

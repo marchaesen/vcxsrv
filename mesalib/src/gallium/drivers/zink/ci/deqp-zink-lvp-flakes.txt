@@ -1,1 +1,0 @@
-dEQP-GLES2.functional.texture.filtering.cube.nearest_linear_mirror_l8_pot

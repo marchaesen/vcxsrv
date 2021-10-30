@@ -513,13 +513,13 @@ bool rvce_is_fw_version_supported(struct r600_common_screen *rscreen)
  * Add the buffer as relocation to the current command submission
  */
 void rvce_add_buffer(struct rvce_encoder *enc, struct pb_buffer *buf,
-                     enum radeon_bo_usage usage, enum radeon_bo_domain domain,
+                     unsigned usage, enum radeon_bo_domain domain,
                      signed offset)
 {
 	int reloc_idx;
 
 	reloc_idx = enc->ws->cs_add_buffer(&enc->cs, buf, usage | RADEON_USAGE_SYNCHRONIZED,
-					   domain, 0);
+					   domain);
 	if (enc->use_vm) {
 		uint64_t addr;
 		addr = enc->ws->buffer_get_virtual_address(buf);

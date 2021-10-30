@@ -234,8 +234,8 @@ static void gfx10_emit_streamout_begin(struct si_context *sctx)
       uint64_t va = 0;
 
       if (append) {
-         radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size, RADEON_USAGE_READ,
-                                   RADEON_PRIO_SO_FILLED_SIZE);
+         radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size,
+                                   RADEON_USAGE_READ | RADEON_PRIO_SO_FILLED_SIZE);
 
          va = t[i]->buf_filled_size->gpu_address + t[i]->buf_filled_size_offset;
       }
@@ -339,8 +339,8 @@ static void si_emit_streamout_begin(struct si_context *sctx)
          radeon_emit(va);                                             /* src address lo */
          radeon_emit(va >> 32);                                       /* src address hi */
 
-         radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size, RADEON_USAGE_READ,
-                                   RADEON_PRIO_SO_FILLED_SIZE);
+         radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size,
+                                   RADEON_USAGE_READ | RADEON_PRIO_SO_FILLED_SIZE);
       } else {
          /* Start from the beginning. */
          radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
@@ -386,8 +386,8 @@ void si_emit_streamout_end(struct si_context *sctx)
       radeon_emit(0);                                   /* unused */
       radeon_emit(0);                                   /* unused */
 
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size, RADEON_USAGE_WRITE,
-                                RADEON_PRIO_SO_FILLED_SIZE);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size,
+                                RADEON_USAGE_WRITE | RADEON_PRIO_SO_FILLED_SIZE);
 
       /* Zero the buffer size. The counters (primitives generated,
        * primitives emitted) may be enabled even if there is not

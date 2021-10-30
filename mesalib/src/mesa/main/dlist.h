@@ -37,6 +37,39 @@
 struct gl_context;
 
 /**
+ * Display list node.
+ *
+ * Display list instructions are stored as sequences of "nodes".  Nodes
+ * are allocated in blocks.  Each block has BLOCK_SIZE nodes.  Blocks
+ * are linked together with a pointer.
+ *
+ * Each instruction in the display list is stored as a sequence of
+ * contiguous nodes in memory.
+ * Each node is the union of a variety of data types.
+ *
+ * Note, all of these members should be 4 bytes in size or less for the
+ * sake of compact display lists.  We store 8-byte pointers in a pair of
+ * these nodes using the save/get_pointer() functions below.
+ */
+union gl_dlist_node
+{
+   struct {
+      uint16_t opcode; /* dlist.c : enum Opcode */
+      uint16_t InstSize;
+   };
+   GLboolean b;
+   GLbitfield bf;
+   GLubyte ub;
+   GLshort s;
+   GLushort us;
+   GLint i;
+   GLuint ui;
+   GLenum e;
+   GLfloat f;
+   GLsizei si;
+};
+
+/**
  * Describes the location and size of a glBitmap image in a texture atlas.
  */
 struct gl_bitmap_glyph

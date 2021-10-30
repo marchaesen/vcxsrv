@@ -40,6 +40,8 @@ struct pan_blend_info {
         bool no_colour : 1;
         bool load_dest : 1;
         bool opaque : 1;
+        bool alpha_zero_nop : 1;
+        bool alpha_one_store : 1;
 };
 
 struct panfrost_blend_state {

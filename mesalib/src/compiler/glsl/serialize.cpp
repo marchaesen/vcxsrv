@@ -55,7 +55,7 @@ write_subroutines(struct blob *metadata, struct gl_shader_program *prog)
       for (unsigned j = 0; j < glprog->sh.NumSubroutineFunctions; j++) {
          int num_types = glprog->sh.SubroutineFunctions[j].num_compat_types;
 
-         blob_write_string(metadata, glprog->sh.SubroutineFunctions[j].name);
+         blob_write_string(metadata, glprog->sh.SubroutineFunctions[j].name.string);
          blob_write_uint32(metadata, glprog->sh.SubroutineFunctions[j].index);
          blob_write_uint32(metadata, num_types);
 
@@ -88,7 +88,8 @@ read_subroutines(struct blob_reader *metadata, struct gl_shader_program *prog)
       glprog->sh.SubroutineFunctions = subs;
 
       for (unsigned j = 0; j < glprog->sh.NumSubroutineFunctions; j++) {
-         subs[j].name = ralloc_strdup(prog, blob_read_string (metadata));
+         subs[j].name.string = ralloc_strdup(prog, blob_read_string (metadata));
+         resource_name_updated(&subs[j].name);
          subs[j].index = (int) blob_read_uint32(metadata);
          subs[j].num_compat_types = (int) blob_read_uint32(metadata);
 
@@ -104,7 +105,7 @@ read_subroutines(struct blob_reader *metadata, struct gl_shader_program *prog)
 static void
 write_buffer_block(struct blob *metadata, struct gl_uniform_block *b)
 {
-   blob_write_string(metadata, b->Name);
+   blob_write_string(metadata, b->name.string);
    blob_write_uint32(metadata, b->NumUniforms);
    blob_write_uint32(metadata, b->Binding);
    blob_write_uint32(metadata, b->UniformBufferSize);
@@ -160,7 +161,8 @@ static void
 read_buffer_block(struct blob_reader *metadata, struct gl_uniform_block *b,
                   struct gl_shader_program *prog)
 {
-      b->Name = ralloc_strdup(prog->data, blob_read_string (metadata));
+      b->name.string = ralloc_strdup(prog->data, blob_read_string (metadata));
+      resource_name_updated(&b->name);
       b->NumUniforms = blob_read_uint32(metadata);
       b->Binding = blob_read_uint32(metadata);
       b->UniformBufferSize = blob_read_uint32(metadata);
@@ -340,7 +342,7 @@ write_xfb(struct blob *metadata, struct gl_shader_program *shProg)
                        ltf->NumOutputs);
 
    for (int i = 0; i < ltf->NumVarying; i++) {
-      blob_write_string(metadata, ltf->Varyings[i].Name);
+      blob_write_string(metadata, ltf->Varyings[i].name.string);
       blob_write_uint32(metadata, ltf->Varyings[i].Type);
       blob_write_uint32(metadata, ltf->Varyings[i].BufferIndex);
       blob_write_uint32(metadata, ltf->Varyings[i].Size);
@@ -402,7 +404,8 @@ read_xfb(struct blob_reader *metadata, struct gl_shader_program *shProg)
                                  ltf->NumVarying);
 
    for (int i = 0; i < ltf->NumVarying; i++) {
-      ltf->Varyings[i].Name = ralloc_strdup(prog, blob_read_string(metadata));
+      ltf->Varyings[i].name.string = ralloc_strdup(prog, blob_read_string(metadata));
+      resource_name_updated(&ltf->Varyings[i].name);
       ltf->Varyings[i].Type = blob_read_uint32(metadata);
       ltf->Varyings[i].BufferIndex = blob_read_uint32(metadata);
       ltf->Varyings[i].Size = blob_read_uint32(metadata);
@@ -435,8 +438,8 @@ write_uniforms(struct blob *metadata, struct gl_shader_program *prog)
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       encode_type_to_blob(metadata, prog->data->UniformStorage[i].type);
       blob_write_uint32(metadata, prog->data->UniformStorage[i].array_elements);
-      if (prog->data->UniformStorage[i].name) {
-         blob_write_string(metadata, prog->data->UniformStorage[i].name);
+      if (prog->data->UniformStorage[i].name.string) {
+         blob_write_string(metadata, prog->data->UniformStorage[i].name.string);
       } else {
          blob_write_string(metadata, "");
       }
@@ -514,7 +517,8 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       uniforms[i].type = decode_type_from_blob(metadata);
       uniforms[i].array_elements = blob_read_uint32(metadata);
-      uniforms[i].name = ralloc_strdup(prog, blob_read_string (metadata));
+      uniforms[i].name.string = ralloc_strdup(prog, blob_read_string (metadata));
+      resource_name_updated(&uniforms[i].name);
       uniforms[i].builtin = blob_read_uint32(metadata);
       uniforms[i].remap_location = blob_read_uint32(metadata);
       uniforms[i].block_index = blob_read_uint32(metadata);
@@ -530,7 +534,7 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
       uniforms[i].num_compatible_subroutines = blob_read_uint32(metadata);
       uniforms[i].top_level_array_size = blob_read_uint32(metadata);
       uniforms[i].top_level_array_stride = blob_read_uint32(metadata);
-      prog->UniformHash->put(i, uniforms[i].name);
+      prog->UniformHash->put(i, uniforms[i].name.string);
 
       if (has_uniform_storage(prog, i)) {
          uniforms[i].storage = data + blob_read_uint32(metadata);
@@ -767,8 +771,8 @@ write_shader_subroutine_index(struct blob *metadata,
    assert(sh);
 
    for (unsigned j = 0; j < sh->Program->sh.NumSubroutineFunctions; j++) {
-      if (strcmp(((gl_subroutine_function *)res->Data)->name,
-                 sh->Program->sh.SubroutineFunctions[j].name) == 0) {
+      if (strcmp(((gl_subroutine_function *)res->Data)->name.string,
+                 sh->Program->sh.SubroutineFunctions[j].name.string) == 0) {
          blob_write_uint32(metadata, j);
          break;
       }
@@ -809,8 +813,8 @@ write_program_resource_data(struct blob *metadata,
       encode_type_to_blob(metadata, var->interface_type);
       encode_type_to_blob(metadata, var->outermost_struct_type);
 
-      if (var->name) {
-         blob_write_string(metadata, var->name);
+      if (var->name.string) {
+         blob_write_string(metadata, var->name.string);
       } else {
          blob_write_string(metadata, "");
       }
@@ -825,8 +829,8 @@ write_program_resource_data(struct blob *metadata,
    }
    case GL_UNIFORM_BLOCK:
       for (unsigned i = 0; i < prog->data->NumUniformBlocks; i++) {
-         if (strcmp(((gl_uniform_block *)res->Data)->Name,
-                    prog->data->UniformBlocks[i].Name) == 0) {
+         if (strcmp(((gl_uniform_block *)res->Data)->name.string,
+                    prog->data->UniformBlocks[i].name.string) == 0) {
             blob_write_uint32(metadata, i);
             break;
          }
@@ -834,8 +838,8 @@ write_program_resource_data(struct blob *metadata,
       break;
    case GL_SHADER_STORAGE_BLOCK:
       for (unsigned i = 0; i < prog->data->NumShaderStorageBlocks; i++) {
-         if (strcmp(((gl_uniform_block *)res->Data)->Name,
-                    prog->data->ShaderStorageBlocks[i].Name) == 0) {
+         if (strcmp(((gl_uniform_block *)res->Data)->name.string,
+                    prog->data->ShaderStorageBlocks[i].name.string) == 0) {
             blob_write_uint32(metadata, i);
             break;
          }
@@ -853,8 +857,8 @@ write_program_resource_data(struct blob *metadata,
           res->Type != GL_UNIFORM) {
          blob_write_uint32(metadata, uniform_not_remapped);
          for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
-            if (strcmp(((gl_uniform_storage *)res->Data)->name,
-                       prog->data->UniformStorage[i].name) == 0) {
+            if (strcmp(((gl_uniform_storage *)res->Data)->name.string,
+                       prog->data->UniformStorage[i].name.string) == 0) {
                blob_write_uint32(metadata, i);
                break;
             }
@@ -884,8 +888,8 @@ write_program_resource_data(struct blob *metadata,
       break;
    case GL_TRANSFORM_FEEDBACK_VARYING:
       for (int i = 0; i < prog->last_vert_prog->sh.LinkedTransformFeedback->NumVarying; i++) {
-         if (strcmp(((gl_transform_feedback_varying_info *)res->Data)->Name,
-                    prog->last_vert_prog->sh.LinkedTransformFeedback->Varyings[i].Name) == 0) {
+         if (strcmp(((gl_transform_feedback_varying_info *)res->Data)->name.string,
+                    prog->last_vert_prog->sh.LinkedTransformFeedback->Varyings[i].name.string) == 0) {
             blob_write_uint32(metadata, i);
             break;
          }
@@ -922,7 +926,8 @@ read_program_resource_data(struct blob_reader *metadata,
       var->interface_type = decode_type_from_blob(metadata);
       var->outermost_struct_type = decode_type_from_blob(metadata);
 
-      var->name = ralloc_strdup(prog, blob_read_string(metadata));
+      var->name.string = ralloc_strdup(prog, blob_read_string(metadata));
+      resource_name_updated(&var->name);
 
       size_t s_var_size, s_var_ptrs;
       get_shader_var_and_pointer_sizes(&s_var_size, &s_var_ptrs, var);

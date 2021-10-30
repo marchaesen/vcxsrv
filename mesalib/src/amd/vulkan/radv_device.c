@@ -577,31 +577,24 @@ radv_physical_device_try_create(struct radv_instance *instance, drmDevicePtr drm
 
       fd = open(path, O_RDWR | O_CLOEXEC);
       if (fd < 0) {
-         if (instance->debug_flags & RADV_DEBUG_STARTUP)
-            radv_logi("Could not open device '%s'", path);
-
-         return vk_error(instance, VK_ERROR_INCOMPATIBLE_DRIVER);
+         return vk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+                          "Could not open device %s: %m", path);
       }
 
       version = drmGetVersion(fd);
       if (!version) {
          close(fd);
 
-         if (instance->debug_flags & RADV_DEBUG_STARTUP)
-            radv_logi("Could not get the kernel driver version for device '%s'", path);
-
-         return vk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER, "failed to get version %s: %m",
-                          path);
+         return vk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+                          "Could not get the kernel driver version for device %s: %m", path);
       }
 
       if (strcmp(version->name, "amdgpu")) {
          drmFreeVersion(version);
          close(fd);
 
-         if (instance->debug_flags & RADV_DEBUG_STARTUP)
-            radv_logi("Device '%s' is not using the amdgpu kernel driver.", path);
-
-         return VK_ERROR_INCOMPATIBLE_DRIVER;
+         return vk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+                          "Device '%s' is not using the AMDGPU kernel driver: %m", path);
       }
       drmFreeVersion(version);
 
@@ -1255,7 +1248,7 @@ radv_get_physical_device_features_1_2(struct radv_physical_device *pdevice,
    f->hostQueryReset = true;
    f->timelineSemaphore = true, f->bufferDeviceAddress = true;
    f->bufferDeviceAddressCaptureReplay = true;
-   f->bufferDeviceAddressMultiDevice = false;
+   f->bufferDeviceAddressMultiDevice = true;
    f->vulkanMemoryModel = true;
    f->vulkanMemoryModelDeviceScope = true;
    f->vulkanMemoryModelAvailabilityVisibilityChains = false;
@@ -3082,19 +3075,6 @@ radv_CreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCr
    device->tess_offchip_block_dw_size =
       device->physical_device->rad_info.family == CHIP_HAWAII ? 4096 : 8192;
 
-   if (getenv("RADV_TRACE_FILE")) {
-      fprintf(
-         stderr,
-         "***********************************************************************************\n");
-      fprintf(
-         stderr,
-         "* WARNING: RADV_TRACE_FILE=<file> is deprecated and replaced by RADV_DEBUG=hang *\n");
-      fprintf(
-         stderr,
-         "***********************************************************************************\n");
-      abort();
-   }
-
    if (device->instance->debug_flags & RADV_DEBUG_HANG) {
       /* Enable GPU hangs detection and dump logs if a GPU hang is
        * detected.
@@ -4427,7 +4407,7 @@ struct radv_deferred_queue_submission {
    uint32_t image_bind_count;
 
    bool flush_caches;
-   VkShaderStageFlags wait_dst_stage_mask;
+   VkPipelineStageFlags wait_dst_stage_mask;
    struct radv_semaphore_part **wait_semaphores;
    uint32_t wait_semaphore_count;
    struct radv_semaphore_part **signal_semaphores;

@@ -57,7 +57,9 @@ u_driconf_fill_st_options(struct st_config_options *options,
    query_bool_option(vs_position_always_precise);
    query_bool_option(force_glsl_abs_sqrt);
    query_bool_option(allow_glsl_cross_stage_interpolation_mismatch);
+   query_bool_option(do_dce_before_clip_cull_analysis);
    query_bool_option(allow_draw_out_of_order);
+   query_bool_option(glthread_nop_check_framebuffer_status);
    query_bool_option(ignore_map_unsynchronized);
    query_bool_option(force_gl_names_reuse);
    query_bool_option(transcode_etc);

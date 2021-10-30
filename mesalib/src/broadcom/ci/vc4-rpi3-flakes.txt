@@ -1,0 +1,39 @@
+dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_and_neg_x_neg_y_neg_z
+dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_and_pos_y_pos_z
+dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_neg_y_pos_z_and_neg_x_pos_y_neg_z
+dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_pos_x_and_neg_x_neg_y_pos_z_and_neg_x_pos_y_neg_z
+dEQP-GLES2.functional.draw.random.51
+dEQP-GLES2.functional.fragment_ops.blend.rgb_func_alpha_func.src.one_minus_src_alpha_constant_color
+dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_direct_write_dynamic_loop_subscript_read_vertex
+dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.basic_mediump_int_vertex
+dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.conditional_continue_vertex
+dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.function_call_inout_vertex
+dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.function_call_return_vertex
+dEQP-GLES2.functional.shaders.loops.do_while_dynamic_iterations.nested_sequence_vertex
+dEQP-GLES2.functional.shaders.loops.while_constant_iterations.select_iteration_count_vertex
+dEQP-GLES2.functional.shaders.loops.while_dynamic_iterations.function_call_return_vertex
+dEQP-GLES2.functional.shaders.loops.while_dynamic_iterations.infinite_with_conditional_break_vertex
+dEQP-GLES2.functional.shaders.loops.while_dynamic_iterations.post_increment_vertex
+dEQP-GLES2.functional.shaders.loops.while_dynamic_iterations.single_iteration_vertex
+dEQP-GLES2.functional.shaders.operator.unary_operator.pre_decrement_result.mediump_vec3_fragment
+dEQP-GLES2.functional.shaders.random.exponential.fragment.51
+dEQP-GLES2.functional.shaders.random.texture.fragment.129
+dEQP-GLES2.functional.shaders.return.output_write_in_func_never_vertex
+dEQP-GLES2.functional.texture.filtering.2d.linear_linear_clamp_rgb888_pot
+dEQP-GLES2.functional.texture.filtering.cube.linear_mipmap_linear_nearest_mirror_rgba8888
+dEQP-GLES2.functional.texture.filtering.cube.nearest_linear_mirror_rgba8888_pot
+dEQP-GLES2.functional.texture.filtering.cube.nearest_mipmap_linear_linear_clamp_rgba8888
+dEQP-GLES2.functional.texture.filtering.cube.nearest_mipmap_linear_nearest_repeat_l8
+dEQP-GLES2.functional.texture.filtering.cube.nearest_mipmap_nearest_linear_clamp_rgba8888
+dEQP-GLES2.functional.texture.filtering.cube.nearest_mipmap_nearest_linear_mirror_rgba8888
+dEQP-GLES2.functional.texture.mipmap.cube.generate.rgb565_fastest
+dEQP-GLES2.functional.texture.size.cube.256x256_rgb888
+
+glx@glx-multi-window-single-context
+shaders@glsl-vs-loop
+shaders@glsl-vs-loop-nested
+spec@arb_framebuffer_srgb@blit renderbuffer srgb single_sampled enabled clear
+spec@egl_chromium_sync_control@conformance
+spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-readpixels
+spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2
+spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4

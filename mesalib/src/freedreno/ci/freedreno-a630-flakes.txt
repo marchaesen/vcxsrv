@@ -1,0 +1,179 @@
+# Note: flakes lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# dEQP-EGL started flaking around 2021-04-19 on an innocent CI-related branch.
+dEQP-EGL.functional.color_clears.multi_context.gles2.rgb888_pbuffer
+dEQP-EGL.functional.color_clears.multi_context.gles2.rgb888_window
+dEQP-EGL.functional.color_clears.multi_context.gles2.rgba8888_pbuffer
+dEQP-EGL.functional.color_clears.multi_context.gles2.rgba8888_window
+dEQP-EGL.functional.color_clears.multi_context.gles3.rgb888_pbuffer
+dEQP-EGL.functional.color_clears.multi_context.gles3.rgb888_window
+dEQP-EGL.functional.color_clears.multi_context.gles3.rgba8888_pbuffer
+dEQP-EGL.functional.color_clears.multi_context.gles3.rgba8888_window
+dEQP-EGL.functional.color_clears.multi_thread.gles2.rgba8888_pbuffer
+dEQP-EGL.functional.color_clears.multi_thread.gles2.rgba8888_window
+dEQP-EGL.functional.color_clears.multi_thread.gles3.rgb888_pbuffer
+dEQP-EGL.functional.color_clears.multi_thread.gles3.rgb888_window
+dEQP-EGL.functional.color_clears.multi_thread.gles3.rgba8888_pbuffer
+dEQP-EGL.functional.color_clears.multi_thread.gles3.rgba8888_window
+dEQP-EGL.functional.color_clears.single_context.gles2.rgb888_pbuffer
+dEQP-EGL.functional.color_clears.single_context.gles2.rgb888_window
+dEQP-EGL.functional.color_clears.single_context.gles2.rgba8888_pbuffer
+dEQP-EGL.functional.color_clears.single_context.gles2.rgba8888_window
+dEQP-EGL.functional.color_clears.single_context.gles3.rgb888_pbuffer
+dEQP-EGL.functional.color_clears.single_context.gles3.rgb888_window
+dEQP-EGL.functional.color_clears.single_context.gles3.rgba8888_pbuffer
+dEQP-EGL.functional.color_clears.single_context.gles3.rgba8888_window
+dEQP-EGL.functional.create_context_ext.gl_31.rgba8888_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.gl_32.rgb888_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.gl_32.rgba8888_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.gles_20.rgba8888_depth_stencil
+dEQP-EGL.functional.create_context_ext.gles_30.rgba8888_depth_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_30.rgb888_depth_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_30.rgb888_no_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_31.rgb888_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_31.rgba8888_no_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_32.rgb888_no_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_32.rgba8888_no_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.robust_gl_33.rgba8888_depth_no_stencil
+dEQP-EGL.functional.create_context_ext.robust_gles_2_ext.rgb888_no_depth_no_stencil
+dEQP-EGL.functional.render.multi_context.gles2_gles3.rgb888_pbuffer
+dEQP-EGL.functional.render.multi_context.gles2_gles3.rgb888_window
+dEQP-EGL.functional.render.multi_context.gles2_gles3.rgba8888_pbuffer
+dEQP-EGL.functional.render.multi_context.gles2_gles3.rgba8888_window
+dEQP-EGL.functional.render.multi_context.gles2.rgb888_pbuffer
+dEQP-EGL.functional.render.multi_context.gles2.rgb888_window
+dEQP-EGL.functional.render.multi_context.gles2.rgba8888_pbuffer
+dEQP-EGL.functional.render.multi_context.gles2.rgba8888_window
+dEQP-EGL.functional.render.multi_context.gles3.rgb888_pbuffer
+dEQP-EGL.functional.render.multi_context.gles3.rgb888_window
+dEQP-EGL.functional.render.multi_context.gles3.rgba8888_pbuffer
+dEQP-EGL.functional.render.multi_context.gles3.rgba8888_window
+dEQP-EGL.functional.render.multi_thread.gles2_gles3.rgb888_pbuffer
+dEQP-EGL.functional.render.multi_thread.gles2_gles3.rgb888_window
+dEQP-EGL.functional.render.multi_thread.gles2_gles3.rgba8888_pbuffer
+dEQP-EGL.functional.render.multi_thread.gles2_gles3.rgba8888_window
+dEQP-EGL.functional.render.multi_thread.gles2.rgb888_pbuffer
+dEQP-EGL.functional.render.multi_thread.gles2.rgb888_window
+dEQP-EGL.functional.render.multi_thread.gles2.rgba8888_pbuffer
+dEQP-EGL.functional.render.multi_thread.gles2.rgba8888_window
+dEQP-EGL.functional.render.multi_thread.gles3.rgb888_pbuffer
+dEQP-EGL.functional.render.multi_thread.gles3.rgb888_window
+dEQP-EGL.functional.render.multi_thread.gles3.rgba8888_pbuffer
+dEQP-EGL.functional.render.multi_thread.gles3.rgba8888_window
+dEQP-EGL.functional.render.single_context.gles2.rgb888_pbuffer
+dEQP-EGL.functional.render.single_context.gles2.rgb888_window
+dEQP-EGL.functional.render.single_context.gles2.rgba8888_pbuffer
+dEQP-EGL.functional.render.single_context.gles2.rgba8888_window
+dEQP-EGL.functional.render.single_context.gles3.rgb888_pbuffer
+dEQP-EGL.functional.render.single_context.gles3.rgb888_window
+dEQP-EGL.functional.render.single_context.gles3.rgba8888_pbuffer
+dEQP-EGL.functional.render.single_context.gles3.rgba8888_window
+dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.sync_status.vertex
+dEQP-EGL.functional.sharing.gles2.buffer.render
+dEQP-EGL.functional.sharing.gles2.multithread.random_egl_server_sync.textures.copyteximage2d.13
+dEQP-EGL.functional.sharing.gles2.multithread.random_egl_sync.textures.copyteximage2d.0
+dEQP-EGL.functional.sharing.gles2.multithread.random.textures.copyteximage2d.16
+dEQP-EGL.functional.sharing.gles2.multithread.simple.buffers.bufferdata
+dEQP-EGL.functional.wide_color.pbuffer_8888_colorspace_srgb
+dEQP-EGL.functional.wide_color.pbuffer_888_colorspace_srgb
+dEQP-EGL.functional.wide_color.window_8888_colorspace_default
+dEQP-EGL.functional.wide_color.window_8888_colorspace_srgb
+
+dEQP-VK.pipeline.multisample.alpha_to_coverage_unused_attachment.samples_2.alpha_opaque
+dEQP-VK.pipeline.multisample.alpha_to_coverage_unused_attachment.samples_4.alpha_opaque
+
+# Started at least by Jan 2020, current as of May 2021
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+
+# Started appearing with the new deqp runner.  possibly different test order?
+dEQP-GLES3.functional.fbo.blit.conversion.rg8i_to_r16i
+dEQP-GLES3.functional.fbo.blit.conversion.rg8_to_r16f
+
+# Could trip hangcheck timeout
+dEQP-VK.api.command_buffers.record_many_draws_primary_2
+dEQP-VK.api.command_buffers.record_many_draws_secondary_2
+
+# "dEQP-VK.wsi.display_control.register_display_event: vkRegisterDisplayEventEXT returned invalid result (Fail)"
+dEQP-VK.wsi.display_control.register_display_event
+
+# First noticed Jun 1 2020 on an innocent branch.
+KHR-GL33.packed_depth_stencil.verify_copy_tex_image.depth32f_stencil8
+
+# Flaky with introduction of testing
+KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2
+KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support
+KHR-GLES31.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guarded_read_calls
+
+# looks like a cache flushing issue, and it does sometimes pass.
+bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.*
+
+# Testcase was mostly fixed in 23f7e06cd8d40569f8bfabde9c01d1597573abef, but has
+# flaked in CI since then:
+# " [775] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]
+#   [806] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]
+#   ..."
+KHR-GLES31.core.shader_image_load_store.basic-glsl-misc-fs
+
+# Flakes, all seen since merge of:
+# https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/12258
+# Failures seen so far in different flakes:
+#
+#  "Array 1 length is 0 should be 4"
+#  "Array 2 length is 0 should be 2"
+#  "Array 4 length is 0 should be 22"
+#  "Array 5 length is 0 should be 122"
+#
+# test does a single point draw in a FS taking the length of the first 7 SSBOs and writing them to
+# ints in SSBO 7, then glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT), then mapping it.
+KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std430-matC-pad
+KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std430-vec
+
+glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
+glx@glx_arb_sync_control@waitformsc
+glx@glx-copy-sub-buffer.*
+glx@glx-swap-copy
+glx@glx-swap-event_interval
+glx@glx-visuals-depth
+glx@glx-visuals-stencil
+
+# Occasionally flakes preceded by a GPU fault;
+#  [  375.034086] adreno 5000000.gpu: [drm:a6xx_irq] *ERROR* gpu fault ring 0 fence aefe8 status 00E51005 rb 0602/06d2 ib1 000000010023D000/0000 ib2 0000000100246170/0000
+glx@glx-tfp
+
+# async shader compiler asserts in get_image_samp_tex_src()'s nir_src_comp_as_uint().
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/4474
+spec@arb_shader_image_load_store@invalid
+
+# Flaky since around 2021-03-20.  First appeared on the autotune branch.
+spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
+
+# Flaky since around 2021-03-22.  First appeared on an innocent mingw branch.
+spec@arb_depth_texture@fbo-clear-formats
+
+# Occasionally passes instead of failing
+spec@egl_chromium_sync_control@conformance
+spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test
+
+# First appeared on 2021-07-07 in a container uprev, became frequent by
+# 2021-08-04 starting from a pretty clearly unrelated MR
+spec@ext_framebuffer_object@fbo-blending-format-quirks
+
+# Flaky since around 2021-04-21.  First appeared on
+# https://gitlab.freedesktop.org/robclark/mesa/-/jobs/9101752 (fd/go-fast)
+spec@ext_packed_depth_stencil@fbo-clear-formats stencil
+
+# Flaky since around 2021-05-21, the day after a piglit uprev reshuffled us.
+spec@arb_map_buffer_range@map_invalidate_buffer_bit offset=0
+
+# Flaky since around 2021-06-21.
+spec@arb_texture_gather@texturegatheroffset@vs-rgb-blue-uint-2darray
+spec@arb_texture_gather@texturegather@fs-rgba-green-uint-cubearray
+spec@arb_texture_gather@texturegather@vs-rgb-none-float-cubearray
+
+# First appeared in https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/11511
+spec@glsl-1.30@execution@tex-miplevel-selection texture\(bias\) cubearray
+
+# First appeared on 2021-05-14 on tc-merge-index-unrefs, but not obviously related.
+spec@!opengl 1.0@rasterpos@glsl_vs_tex1D

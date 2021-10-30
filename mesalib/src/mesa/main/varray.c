@@ -940,7 +940,7 @@ _lookup_vao_and_vbo_dsa(struct gl_context *ctx,
 
    if (buffer != 0) {
       *vbo = _mesa_lookup_bufferobj(ctx, buffer);
-      if (!_mesa_handle_bind_buffer_gen(ctx, buffer, vbo, caller))
+      if (!_mesa_handle_bind_buffer_gen(ctx, buffer, vbo, caller, false))
          return false;
 
       if (offset < 0) {
@@ -2943,7 +2943,7 @@ vertex_array_vertex_buffer(struct gl_context *ctx,
        * Otherwise, we fall back to the same compat profile behavior as other
        * object references (automatically gen it).
        */
-      if (!_mesa_handle_bind_buffer_gen(ctx, buffer, &vbo, func))
+      if (!_mesa_handle_bind_buffer_gen(ctx, buffer, &vbo, func, no_error))
          return;
    } else {
       /* The ARB_vertex_attrib_binding spec says:

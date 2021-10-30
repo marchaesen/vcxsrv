@@ -35,9 +35,9 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(HAVE_MEMFD_CREATE) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/mman.h>
-#elif defined(HAVE_MEMFD_CREATE) || defined(ANDROID)
+#elif defined(ANDROID)
 #include <sys/syscall.h>
 #include <linux/memfd.h>
 #else
@@ -115,17 +115,21 @@ int
 os_create_anonymous_file(off_t size, const char *debug_name)
 {
    int fd, ret;
-#ifdef __FreeBSD__
+#if defined(HAVE_MEMFD_CREATE)
+   if (!debug_name)
+      debug_name = "mesa-shared";
+   fd = memfd_create(debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
+#elif defined(ANDROID)
+   if (!debug_name)
+      debug_name = "mesa-shared";
+   fd = syscall(SYS_memfd_create, debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
+#elif defined(__FreeBSD__)
    fd = shm_open(SHM_ANON, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
 #elif defined(__OpenBSD__)
    char template[] = "/tmp/mesa-XXXXXXXXXX";
    fd = shm_mkstemp(template);
    if (fd != -1)
       shm_unlink(template);
-#elif defined(HAVE_MEMFD_CREATE) || defined(ANDROID)
-   if (!debug_name)
-      debug_name = "mesa-shared";
-   fd = syscall(SYS_memfd_create, debug_name, MFD_CLOEXEC);
 #else
    const char *path;
    char *name;

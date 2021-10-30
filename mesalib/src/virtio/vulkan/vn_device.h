@@ -13,6 +13,7 @@
 
 #include "vn_common.h"
 
+#include "vn_buffer.h"
 #include "vn_device_memory.h"
 
 struct vn_device {
@@ -27,8 +28,7 @@ struct vn_device {
 
    struct vn_device_memory_pool memory_pools[VK_MAX_MEMORY_TYPES];
 
-   /* cache memory type requirement for AHB backed VkBuffer */
-   uint32_t ahb_buffer_memory_type_bits;
+   struct vn_buffer_cache buffer_cache;
 };
 VK_DEFINE_HANDLE_CASTS(vn_device,
                        base.base.base,

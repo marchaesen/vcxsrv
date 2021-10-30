@@ -255,6 +255,8 @@ tu6_emit_mrt(struct tu_cmd_buffer *cmd,
 {
    const struct tu_framebuffer *fb = cmd->state.framebuffer;
 
+   enum a6xx_format mrt0_format = 0;
+
    for (uint32_t i = 0; i < subpass->color_count; ++i) {
       uint32_t a = subpass->color_attachments[i].attachment;
       if (a == VK_ATTACHMENT_UNUSED)
@@ -272,16 +274,12 @@ tu6_emit_mrt(struct tu_cmd_buffer *cmd,
 
       tu_cs_emit_pkt4(cs, REG_A6XX_RB_MRT_FLAG_BUFFER_ADDR(i), 3);
       tu_cs_image_flag_ref(cs, &iview->view, 0);
+
+      if (i == 0)
+         mrt0_format = iview->view.SP_FS_MRT_REG & 0xff;
    }
 
-   if (subpass->color_count) {
-      uint32_t a = subpass->color_attachments[0].attachment;
-      if (a != VK_ATTACHMENT_UNUSED) {
-         const struct tu_image_view *iview = cmd->state.attachments[a];
-         enum a6xx_format fmt = iview->view.RB_MRT_BUF_INFO & 0xff;
-         tu_cs_emit_regs(cs, A6XX_GRAS_LRZ_MRT_BUF_INFO_0(.color_format = fmt));
-      }
-   }
+   tu_cs_emit_regs(cs, A6XX_GRAS_LRZ_MRT_BUF_INFO_0(.color_format = mrt0_format));
 
    tu_cs_emit_regs(cs,
                    A6XX_RB_SRGB_CNTL(.dword = subpass->srgb_cntl));

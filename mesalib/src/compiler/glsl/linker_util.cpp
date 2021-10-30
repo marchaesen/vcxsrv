@@ -235,7 +235,7 @@ link_util_check_uniform_resources(struct gl_context *ctx,
       if (prog->data->UniformBlocks[i].UniformBufferSize >
           ctx->Const.MaxUniformBlockSize) {
          linker_error(prog, "Uniform block %s too big (%d/%d)\n",
-                      prog->data->UniformBlocks[i].Name,
+                      prog->data->UniformBlocks[i].name.string,
                       prog->data->UniformBlocks[i].UniformBufferSize,
                       ctx->Const.MaxUniformBlockSize);
       }
@@ -245,7 +245,7 @@ link_util_check_uniform_resources(struct gl_context *ctx,
       if (prog->data->ShaderStorageBlocks[i].UniformBufferSize >
           ctx->Const.MaxShaderStorageBlockSize) {
          linker_error(prog, "Shader storage block %s too big (%d/%d)\n",
-                      prog->data->ShaderStorageBlocks[i].Name,
+                      prog->data->ShaderStorageBlocks[i].name.string,
                       prog->data->ShaderStorageBlocks[i].UniformBufferSize,
                       ctx->Const.MaxShaderStorageBlockSize);
       }

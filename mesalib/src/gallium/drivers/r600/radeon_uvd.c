@@ -115,12 +115,12 @@ static void set_reg(struct ruvd_decoder *dec, unsigned reg, uint32_t val)
 /* send a command to the VCPU through the GPCOM registers */
 static void send_cmd(struct ruvd_decoder *dec, unsigned cmd,
 		     struct pb_buffer* buf, uint32_t off,
-		     enum radeon_bo_usage usage, enum radeon_bo_domain domain)
+		     unsigned usage, enum radeon_bo_domain domain)
 {
 	int reloc_idx;
 
 	reloc_idx = dec->ws->cs_add_buffer(&dec->cs, buf, usage | RADEON_USAGE_SYNCHRONIZED,
-					   domain, 0);
+					   domain);
 	if (!dec->use_legacy) {
 		uint64_t addr;
 		addr = dec->ws->buffer_get_virtual_address(buf);

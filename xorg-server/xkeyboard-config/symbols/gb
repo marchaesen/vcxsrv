@@ -256,6 +256,38 @@ xkb_symbols "pl" {
     include "level3(ralt_switch)"
 };
 
+default partial alphanumeric_keys
+xkb_symbols "gla" {
+
+    // Describes the differences between a very simple en_US
+    // keyboard and a Scots Gaelic keyboard based on the Irish
+	// Gaelic layout. This is essentially a UK English layout
+	// but with grave accented characters available on
+	// AltGr+accent keys.
+
+    include "latin"
+
+    name[Group1]="Scottish Gaelic";
+
+    key <AE02>	{ [         2,   quotedbl,  twosuperior,    oneeighth ]	};
+    key <AE03>	{ [         3,   sterling, threesuperior,    sterling ]	};
+    key <AE04>	{ [         4,     dollar,     EuroSign,   onequarter ]	};
+
+    key <AC11>	{ [apostrophe,         at, dead_circumflex, dead_caron]	};
+    key <TLDE>	{ [     grave,    notsign,          bar,          bar ]	};
+
+    key <BKSL>	{ [numbersign, asciitilde,   dead_grave,   dead_breve ]	};
+    key <LSGT>	{ [ backslash,        bar,          bar,    brokenbar ]	};
+
+    key <AC01> { [   a,                 A,          agrave,      Agrave ] };
+    key <AD03> { [   e,                 E,          egrave,      Egrave ] };
+    key <AD08> { [   i,                 I,          igrave,      Igrave ] };
+    key <AD07> { [   u,                 U,          ugrave,      Ugrave ] };
+    key <AD09> { [   o,                 O,          ograve,      Ograve ] };
+
+    include "level3(ralt_switch)"
+};
+
 // EXTRAS:
 
 partial alphanumeric_keys

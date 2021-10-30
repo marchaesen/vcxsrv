@@ -464,9 +464,9 @@ bool si_sdma_copy_image(struct si_context *sctx, struct si_texture *dst, struct 
          return false;
    }
 
-   radeon_add_to_buffer_list(sctx, sctx->sdma_cs, &src->buffer, RADEON_USAGE_READ,
+   radeon_add_to_buffer_list(sctx, sctx->sdma_cs, &src->buffer, RADEON_USAGE_READ |
                              RADEON_PRIO_SAMPLER_TEXTURE);
-   radeon_add_to_buffer_list(sctx, sctx->sdma_cs, &dst->buffer, RADEON_USAGE_WRITE,
+   radeon_add_to_buffer_list(sctx, sctx->sdma_cs, &dst->buffer, RADEON_USAGE_WRITE |
                              RADEON_PRIO_SAMPLER_TEXTURE);
 
    unsigned flags = RADEON_FLUSH_START_NEXT_GFX_IB_NOW;

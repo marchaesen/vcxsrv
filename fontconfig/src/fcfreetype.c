@@ -1370,7 +1370,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 
     if (os2 && os2->version >= 0x0001 && os2->version != 0xffff)
     {
-	if (os2->achVendID && os2->achVendID[0] != 0)
+	if (os2->achVendID[0] != 0)
 	{
 	    foundry_ = (FcChar8 *) malloc (sizeof (os2->achVendID) + 1);
 	    memcpy ((void *)foundry_, os2->achVendID, sizeof (os2->achVendID));

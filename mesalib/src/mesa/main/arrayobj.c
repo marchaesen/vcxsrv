@@ -1260,8 +1260,6 @@ vertex_array_element_buffer(struct gl_context *ctx, GLuint vaobj, GLuint buffer,
 
       if (!bufObj)
          return;
-
-      bufObj->UsageHistory |= USAGE_ELEMENT_ARRAY_BUFFER;
    } else {
       bufObj = NULL;
    }

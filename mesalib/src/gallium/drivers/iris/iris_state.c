@@ -707,11 +707,14 @@ init_state_base_address(struct iris_batch *batch)
       sba.InstructionBaseAddressModifyEnable    = true;
       sba.GeneralStateBufferSizeModifyEnable    = true;
       sba.DynamicStateBufferSizeModifyEnable    = true;
-#if (GFX_VER >= 9)
+#if GFX_VER >= 9
       sba.BindlessSurfaceStateBaseAddress = ro_bo(NULL, IRIS_MEMZONE_BINDLESS_START);
       sba.BindlessSurfaceStateSize = (IRIS_BINDLESS_SIZE >> 12) - 1;
       sba.BindlessSurfaceStateBaseAddressModifyEnable = true;
       sba.BindlessSurfaceStateMOCS    = mocs;
+#endif
+#if GFX_VER >= 11
+      sba.BindlessSamplerStateMOCS    = mocs;
 #endif
       sba.IndirectObjectBufferSizeModifyEnable  = true;
       sba.InstructionBuffersizeModifyEnable     = true;
@@ -3113,7 +3116,10 @@ iris_set_framebuffer_state(struct pipe_context *ctx,
       .swizzle = ISL_SWIZZLE_IDENTITY,
    };
 
-   struct isl_depth_stencil_hiz_emit_info info = { .view = &view };
+   struct isl_depth_stencil_hiz_emit_info info = {
+      .view = &view,
+      .mocs = iris_mocs(NULL, isl_dev, ISL_SURF_USAGE_DEPTH_BIT),
+   };
 
    if (cso->zsbuf) {
       iris_get_depth_stencil_resources(cso->zsbuf->texture, &zres,
@@ -3471,6 +3477,8 @@ iris_set_vertex_buffers(struct pipe_context *ctx,
 #endif
          } else {
             vb.NullVertexBuffer = true;
+            vb.MOCS = iris_mocs(NULL, &screen->isl_dev,
+                                ISL_SURF_USAGE_VERTEX_BUFFER_BIT);
          }
       }
    }
@@ -3750,6 +3758,7 @@ iris_set_stream_output_targets(struct pipe_context *ctx,
             sob._3DCommandOpcode = 0;
             sob._3DCommandSubOpcode = SO_BUFFER_INDEX_0_CMD + i;
 #endif
+            sob.MOCS = iris_mocs(NULL, &screen->isl_dev, 0);
          }
          continue;
       }
@@ -4423,6 +4432,9 @@ iris_store_tes_state(const struct intel_device_info *devinfo,
       ds.ComputeWCoordinateEnable =
          tes_prog_data->domain == BRW_TESS_DOMAIN_TRI;
 
+#if GFX_VER >= 12
+      ds.PrimitiveIDNotRequired = !tes_prog_data->include_primitive_id;
+#endif
       ds.UserClipDistanceCullTestEnableBitmask =
          vue_prog_data->cull_distance_mask;
    }
@@ -5349,6 +5361,9 @@ iris_update_surface_base_address(struct iris_batch *batch,
 #if GFX_VER >= 9
       sba.BindlessSurfaceStateMOCS    = mocs;
 #endif
+#if GFX_VER >= 11
+      sba.BindlessSamplerStateMOCS    = mocs;
+#endif
    }
 
 #if GFX_VER == 12
@@ -5497,9 +5512,11 @@ emit_push_constant_packets(struct iris_context *ice,
 
    iris_emit_cmd(batch, GENX(3DSTATE_CONSTANT_VS), pkt) {
       pkt._3DCommandSubOpcode = push_constant_opcodes[stage];
-#if GFX_VER >= 12
+
+#if GFX_VER >= 9
       pkt.MOCS = isl_mocs(isl_dev, 0, false);
 #endif
+
       if (prog_data) {
          /* The Skylake PRM contains the following restriction:
           *
@@ -5536,6 +5553,7 @@ emit_push_constant_packet_all(struct iris_context *ice,
    if (!push_bos) {
       iris_emit_cmd(batch, GENX(3DSTATE_CONSTANT_ALL), pc) {
          pc.ShaderUpdateEnable = shader_mask;
+         pc.MOCS = iris_mocs(NULL, isl_dev, 0);
       }
       return;
    }

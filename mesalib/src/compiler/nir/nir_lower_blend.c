@@ -247,6 +247,13 @@ nir_blend_logicop(
    return out;
 }
 
+static nir_ssa_def *
+nir_fsat_signed(nir_builder *b, nir_ssa_def *x)
+{
+   return nir_fclamp(b, x, nir_imm_floatN_t(b, -1.0, x->bit_size),
+                           nir_imm_floatN_t(b, +1.0, x->bit_size));
+}
+
 /* Given a blend state, the source color, and the destination color,
  * return the blended color
  */
@@ -276,8 +283,18 @@ nir_blend(
    /* Fixed-point framebuffers require their inputs clamped. */
    enum pipe_format format = options.format[rt];
 
-   if (!util_format_is_float(format))
+   /* From section 17.3.6 "Blending" of the OpenGL 4.5 spec:
+    *
+    *     If the color buffer is fixed-point, the components of the source and
+    *     destination values and blend factors are each clamped to [0, 1] or
+    *     [-1, 1] respectively for an unsigned normalized or signed normalized
+    *     color buffer prior to evaluating the blend equation. If the color
+    *     buffer is floating-point, no clamping occurs.
+    */
+   if (util_format_is_unorm(format))
       src = nir_fsat(b, src);
+   else if (util_format_is_snorm(format))
+      src = nir_fsat_signed(b, src);
 
    /* DST_ALPHA reads back 1.0 if there is no alpha channel */
    const struct util_format_description *desc =

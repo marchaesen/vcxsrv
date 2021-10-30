@@ -507,6 +507,24 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>altgr-weur</name>
+            <description>QWERTY (Western European AltGr dead keys)</description>
+            <languageList><iso639Id>dan</iso639Id>
+                          <iso639Id>nld</iso639Id>
+                          <iso639Id>eng</iso639Id>
+                          <iso639Id>fin</iso639Id>
+                          <iso639Id>fra</iso639Id>
+                          <iso639Id>deu</iso639Id>
+                          <iso639Id>ita</iso639Id>
+                          <iso639Id>nor</iso639Id>
+                          <iso639Id>por</iso639Id>
+                          <iso639Id>spa</iso639Id>
+                          <iso639Id>swe</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

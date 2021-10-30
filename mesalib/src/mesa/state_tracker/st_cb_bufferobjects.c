@@ -408,8 +408,6 @@ bufferobj_data(struct gl_context *ctx,
     */
    if (st_obj->Base.UsageHistory & USAGE_ARRAY_BUFFER)
       ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
-   /* if (st_obj->Base.UsageHistory & USAGE_ELEMENT_ARRAY_BUFFER) */
-   /*    ctx->NewDriverState |= TODO: Handle indices as gallium state; */
    if (st_obj->Base.UsageHistory & USAGE_UNIFORM_BUFFER)
       ctx->NewDriverState |= ST_NEW_UNIFORM_BUFFER;
    if (st_obj->Base.UsageHistory & USAGE_SHADER_STORAGE_BUFFER)

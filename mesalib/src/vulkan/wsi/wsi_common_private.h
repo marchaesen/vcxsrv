@@ -24,7 +24,7 @@
 #define WSI_COMMON_PRIVATE_H
 
 #include "wsi_common.h"
-#include "vulkan/util/vk_object.h"
+#include "vulkan/runtime/vk_object.h"
 
 struct wsi_image {
    VkImage image;

@@ -604,7 +604,6 @@ zink_fb_clears_apply(struct zink_context *ctx, struct pipe_resource *pres)
       for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
          if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
             fb_clears_apply_internal(ctx, pres, i);
-            return;
          }
       }
    } else {
@@ -622,7 +621,6 @@ zink_fb_clears_discard(struct zink_context *ctx, struct pipe_resource *pres)
          if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
             if (zink_fb_clear_enabled(ctx, i)) {
                zink_fb_clear_reset(ctx, i);
-               return;
             }
          }
       }
@@ -696,7 +694,6 @@ zink_fb_clears_apply_or_discard(struct zink_context *ctx, struct pipe_resource *
       for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
          if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
             fb_clears_apply_or_discard_internal(ctx, pres, region, discard_only, false, i);
-            return;
          }
       }
    }  else {
@@ -713,7 +710,6 @@ zink_fb_clears_apply_region(struct zink_context *ctx, struct pipe_resource *pres
       for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
          if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
             fb_clears_apply_or_discard_internal(ctx, pres, region, false, true, i);
-            return;
          }
       }
    }  else {

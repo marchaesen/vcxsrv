@@ -708,9 +708,11 @@ crocus_copy_region(struct blorp_context *blorp,
    if (dst->target == PIPE_BUFFER && src->target == PIPE_BUFFER) {
       struct blorp_address src_addr = {
          .buffer = crocus_resource_bo(src), .offset = src_box->x,
+         .mocs = crocus_mocs(src_res->bo, &screen->isl_dev),
       };
       struct blorp_address dst_addr = {
          .buffer = crocus_resource_bo(dst), .offset = dstx,
+         .mocs = crocus_mocs(dst_res->bo, &screen->isl_dev),
          .reloc_flags = EXEC_OBJECT_WRITE,
       };
 

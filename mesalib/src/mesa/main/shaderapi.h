@@ -36,7 +36,7 @@
 extern "C" {
 #endif
 
-
+struct hash_entry;
 struct _glapi_table;
 struct gl_context;
 struct gl_linked_shader;
@@ -281,6 +281,13 @@ _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
 extern const char*
 _mesa_program_resource_name(struct gl_program_resource *res);
 
+int
+_mesa_program_resource_name_length(struct gl_program_resource *res);
+
+bool
+_mesa_program_get_resource_name(struct gl_program_resource *res,
+                                struct gl_resource_name *out);
+
 extern unsigned
 _mesa_program_resource_array_size(struct gl_program_resource *res);
 
@@ -311,7 +318,7 @@ _mesa_get_program_resource_name(struct gl_shader_program *shProg,
                                 const char *caller);
 
 extern unsigned
-_mesa_program_resource_name_len(struct gl_program_resource *res);
+_mesa_program_resource_name_length_array(struct gl_program_resource *res);
 
 extern GLint
 _mesa_program_resource_location(struct gl_shader_program *shProg,
@@ -333,6 +340,9 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
                              GLsizei propCount, const GLenum *props,
                              GLsizei bufSize, GLsizei *length,
                              GLint *params);
+
+extern void
+_mesa_program_resource_hash_destroy(struct gl_shader_program *shProg);
 
 extern void
 _mesa_create_program_resource_hash(struct gl_shader_program *shProg);

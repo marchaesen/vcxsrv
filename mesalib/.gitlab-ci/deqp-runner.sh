@@ -3,7 +3,7 @@
 set -ex
 
 if [ -z "$GPU_VERSION" ]; then
-   echo 'GPU_VERSION must be set to something like "llvmpipe" or "freedreno-a630" (the name used in .gitlab-ci/deqp-gpu-version-*.txt)'
+   echo 'GPU_VERSION must be set to something like "llvmpipe" or "freedreno-a630" (the name used in .gitlab-ci/gpu-version-*.txt)'
    exit 1
 fi
 
@@ -85,28 +85,28 @@ if [ -z "$DEQP_SUITE" ]; then
     fi
 fi
 
-if [ -e "$INSTALL/deqp-$GPU_VERSION-fails.txt" ]; then
-    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --baseline $INSTALL/deqp-$GPU_VERSION-fails.txt"
+if [ -e "$INSTALL/$GPU_VERSION-fails.txt" ]; then
+    DEQP_RUNNER_OPTIONS="$DEQP_RUNNER_OPTIONS --baseline $INSTALL/$GPU_VERSION-fails.txt"
 fi
 
 # Default to an empty known flakes file if it doesn't exist.
-touch $INSTALL/deqp-$GPU_VERSION-flakes.txt
+touch $INSTALL/$GPU_VERSION-flakes.txt
 
 
-if [ -n "$VK_DRIVER" ] && [ -e "$INSTALL/deqp-$VK_DRIVER-skips.txt" ]; then
-    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$VK_DRIVER-skips.txt"
+if [ -n "$VK_DRIVER" ] && [ -e "$INSTALL/$VK_DRIVER-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/$VK_DRIVER-skips.txt"
 fi
 
-if [ -n "$GALLIUM_DRIVER" ] && [ -e "$INSTALL/deqp-$GALLIUM_DRIVER-skips.txt" ]; then
-    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$GALLIUM_DRIVER-skips.txt"
+if [ -n "$GALLIUM_DRIVER" ] && [ -e "$INSTALL/$GALLIUM_DRIVER-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/$GALLIUM_DRIVER-skips.txt"
 fi
 
-if [ -n "$DRIVER_NAME" ] && [ -e "$INSTALL/deqp-$DRIVER_NAME-skips.txt" ]; then
-    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$DRIVER_NAME-skips.txt"
+if [ -n "$DRIVER_NAME" ] && [ -e "$INSTALL/$DRIVER_NAME-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/$DRIVER_NAME-skips.txt"
 fi
 
-if [ -e "$INSTALL/deqp-$GPU_VERSION-skips.txt" ]; then
-    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/deqp-$GPU_VERSION-skips.txt"
+if [ -e "$INSTALL/$GPU_VERSION-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS $INSTALL/$GPU_VERSION-skips.txt"
 fi
 
 set +e
@@ -152,8 +152,8 @@ if [ -z "$DEQP_SUITE" ]; then
         --deqp $DEQP \
         --output $RESULTS \
         --caselist /tmp/case-list.txt \
-        --skips $INSTALL/deqp-all-skips.txt $DEQP_SKIPS \
-        --flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt \
+        --skips $INSTALL/all-skips.txt $DEQP_SKIPS \
+        --flakes $INSTALL/$GPU_VERSION-flakes.txt \
         --testlog-to-xml /deqp/executor/testlog-to-xml \
         --jobs ${FDO_CI_CONCURRENT:-4} \
 	$DEQP_RUNNER_OPTIONS \
@@ -164,8 +164,8 @@ else
         suite \
         --suite $INSTALL/deqp-$DEQP_SUITE.toml \
         --output $RESULTS \
-        --skips $INSTALL/deqp-all-skips.txt $DEQP_SKIPS \
-        --flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt \
+        --skips $INSTALL/all-skips.txt $DEQP_SKIPS \
+        --flakes $INSTALL/$GPU_VERSION-flakes.txt \
         --testlog-to-xml /deqp/executor/testlog-to-xml \
         --fraction-start $CI_NODE_INDEX \
         --fraction $CI_NODE_TOTAL \
@@ -202,7 +202,7 @@ if [ -n "$FLAKES_CHANNEL" ]; then
          --host irc.oftc.net \
          --port 6667 \
          --results $RESULTS/results.csv \
-         --known-flakes $INSTALL/deqp-$GPU_VERSION-flakes.txt \
+         --known-flakes $INSTALL/$GPU_VERSION-flakes.txt \
          --channel "$FLAKES_CHANNEL" \
          --runner "$CI_RUNNER_DESCRIPTION" \
          --job "$CI_JOB_ID" \

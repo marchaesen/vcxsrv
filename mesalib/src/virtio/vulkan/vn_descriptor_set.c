@@ -17,7 +17,7 @@
 
 #include "vn_device.h"
 
-void
+static void
 vn_descriptor_set_layout_destroy(struct vn_device *dev,
                                  struct vn_descriptor_set_layout *layout)
 {
@@ -31,6 +31,22 @@ vn_descriptor_set_layout_destroy(struct vn_device *dev,
 
    vn_object_base_fini(&layout->base);
    vk_free(alloc, layout);
+}
+
+static inline struct vn_descriptor_set_layout *
+vn_descriptor_set_layout_ref(struct vn_device *dev,
+                             struct vn_descriptor_set_layout *layout)
+{
+   vn_refcount_inc(&layout->refcount);
+   return layout;
+}
+
+static inline void
+vn_descriptor_set_layout_unref(struct vn_device *dev,
+                               struct vn_descriptor_set_layout *layout)
+{
+   if (vn_refcount_dec(&layout->refcount))
+      vn_descriptor_set_layout_destroy(dev, layout);
 }
 
 static void

@@ -139,7 +139,7 @@ get_array_size(struct gl_uniform_storage *uni, const glsl_struct_field *field,
     *     member is an array with no declared size, the value zero is written
     *     to <params>."
     */
-   if (is_top_level_shader_storage_block_member(uni->name,
+   if (is_top_level_shader_storage_block_member(uni->name.string,
                                                 interface_name,
                                                 var_name))
       return  1;
@@ -171,7 +171,7 @@ get_array_stride(struct gl_uniform_storage *uni, const glsl_type *iface,
       bool row_major = matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR;
       const glsl_type *array_type = field->type->fields.array;
 
-      if (is_top_level_shader_storage_block_member(uni->name,
+      if (is_top_level_shader_storage_block_member(uni->name.string,
                                                    interface_name,
                                                    var_name))
          return 0;
@@ -200,15 +200,15 @@ calculate_array_size_and_stride(struct gl_shader_program *shProg,
    int block_index = uni->block_index;
    int array_size = -1;
    int array_stride = -1;
-   char *var_name = get_top_level_name(uni->name);
+   char *var_name = get_top_level_name(uni->name.string);
    char *interface_name =
       get_top_level_name(uni->is_shader_storage ?
-                         shProg->data->ShaderStorageBlocks[block_index].Name :
-                         shProg->data->UniformBlocks[block_index].Name);
+                         shProg->data->ShaderStorageBlocks[block_index].name.string :
+                         shProg->data->UniformBlocks[block_index].name.string);
 
    if (strcmp(var_name, interface_name) == 0) {
       /* Deal with instanced array of SSBOs */
-      char *temp_name = get_var_name(uni->name);
+      char *temp_name = get_var_name(uni->name.string);
       if (!temp_name) {
          linker_error(shProg, "Out of memory during linking.\n");
          goto write_top_level_array_size_and_stride;
@@ -758,15 +758,15 @@ public:
             unsigned l = strlen(var->get_interface_type()->name);
 
             for (unsigned i = 0; i < num_blks; i++) {
-               if (strncmp(var->get_interface_type()->name, blks[i].Name, l)
-                   == 0 && blks[i].Name[l] == '[') {
+               if (strncmp(var->get_interface_type()->name, blks[i].name.string, l)
+                   == 0 && blks[i].name.string[l] == '[') {
                   buffer_block_index = i;
                   break;
                }
             }
          } else {
             for (unsigned i = 0; i < num_blks; i++) {
-               if (strcmp(var->get_interface_type()->name, blks[i].Name) == 0) {
+               if (strcmp(var->get_interface_type()->name, blks[i].name.string) == 0) {
                   buffer_block_index = i;
                   break;
                }
@@ -1114,7 +1114,8 @@ private:
          this->uniforms[id].remap_location = UNMAPPED_UNIFORM_LOC;
       }
 
-      this->uniforms[id].name = ralloc_strdup(this->uniforms, name);
+      this->uniforms[id].name.string = ralloc_strdup(this->uniforms, name);
+      resource_name_updated(&this->uniforms[id].name);
       this->uniforms[id].type = base_type;
       this->uniforms[id].num_driver_storage = 0;
       this->uniforms[id].driver_storage = NULL;
@@ -1335,7 +1336,7 @@ link_update_uniform_buffer_variables(struct gl_linked_shader *shader,
 
             const ptrdiff_t len = strlen(var->get_interface_type()->name);
             for (unsigned i = 0; i < num_blocks; i++) {
-               const char *const begin = blks[i]->Name;
+               const char *const begin = blks[i]->name.string;
                const char *const end = strchr(begin, sentinel);
 
                if (end == NULL)

@@ -251,7 +251,7 @@ SetShaderResources(enum pipe_shader_type shader_type,                  // IN
     * probably think about not updating all always... It should just work.
     */
    pipe->set_sampler_views(pipe, shader_type, 0, PIPE_MAX_SHADER_SAMPLER_VIEWS,
-                           0, sampler_views);
+                           0, false, sampler_views);
 }
 
 

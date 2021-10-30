@@ -31,7 +31,7 @@
 #include <stdio.h>
 
 bool si_cs_is_buffer_referenced(struct si_context *sctx, struct pb_buffer *buf,
-                                enum radeon_bo_usage usage)
+                                unsigned usage)
 {
    return sctx->ws->cs_is_buffer_referenced(&sctx->gfx_cs, buf, usage);
 }

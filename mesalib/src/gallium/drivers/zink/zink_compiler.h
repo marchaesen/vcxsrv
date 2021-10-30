@@ -70,6 +70,7 @@ struct zink_shader {
    struct util_live_shader base;
    uint32_t hash;
    struct nir_shader *nir;
+   enum pipe_prim_type reduced_prim; // PIPE_PRIM_MAX for vs
 
    struct zink_so_info streamout;
 

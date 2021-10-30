@@ -233,7 +233,9 @@ struct st_config_options
    bool vs_position_always_precise;
    bool force_glsl_abs_sqrt;
    bool allow_glsl_cross_stage_interpolation_mismatch;
+   bool do_dce_before_clip_cull_analysis;
    bool allow_draw_out_of_order;
+   bool glthread_nop_check_framebuffer_status;
    bool ignore_map_unsynchronized;
    bool force_integer_tex_nearest;
    bool force_gl_names_reuse;

@@ -5591,6 +5591,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>macOS</name>
+            <description>Ukrainian (macOS)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>legacy</name>
             <description>Ukrainian (legacy)</description>
           </configItem>
@@ -5682,6 +5688,21 @@
             <description>Polish (British keyboard)</description>
             <languageList>
               <iso639Id>pol</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>gla</name>
+            <shortDescription>gd</shortDescription>
+            <description>Scottish Gaelic</description>
+            <countryList>
+              <iso3166Id>GB</iso3166Id>
+              <iso3166Id>CA</iso3166Id>
+            </countryList>
+            <languageList>
+              <iso639Id>eng</iso639Id>
+              <iso639Id>gla</iso639Id>
             </languageList>
           </configItem>
         </variant>

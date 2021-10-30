@@ -26,7 +26,7 @@
 
 #include "radv_constants.h"
 
-#include "vulkan/util/vk_object.h"
+#include "vulkan/runtime/vk_object.h"
 
 #include <vulkan/vulkan.h>
 

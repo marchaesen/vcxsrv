@@ -145,8 +145,6 @@ radv_amdgpu_request_to_fence(struct radv_amdgpu_ctx *ctx, struct radv_amdgpu_fen
    fence->fence.ip_instance = req->ip_instance;
    fence->fence.ring = req->ring;
    fence->fence.fence = req->seq_no;
-   fence->user_ptr =
-      (volatile uint64_t *)(ctx->fence_map + req->ip_type * MAX_RINGS_PER_TYPE + req->ring);
 }
 
 static void
@@ -1269,19 +1267,9 @@ radv_amdgpu_ctx_create(struct radeon_winsys *_ws, enum radeon_ctx_priority prior
       goto fail_alloc;
    }
 
-   ctx->fence_map = (uint64_t *)ws->base.buffer_map(ctx->fence_bo);
-   if (!ctx->fence_map) {
-      result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-      goto fail_map;
-   }
-
-   memset(ctx->fence_map, 0, 4096);
-
    *rctx = (struct radeon_winsys_ctx *)ctx;
    return VK_SUCCESS;
 
-fail_map:
-   ws->base.buffer_destroy(&ws->base, ctx->fence_bo);
 fail_alloc:
    amdgpu_cs_ctx_free(ctx->ctx);
 fail_create:

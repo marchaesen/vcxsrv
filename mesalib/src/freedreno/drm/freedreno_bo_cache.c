@@ -81,6 +81,8 @@ fd_bo_cache_cleanup(struct fd_bo_cache *cache, time_t time)
 {
    int i;
 
+   simple_mtx_assert_locked(&table_lock);
+
    if (cache->time == time)
       return;
 
@@ -185,6 +187,8 @@ retry:
 int
 fd_bo_cache_free(struct fd_bo_cache *cache, struct fd_bo *bo)
 {
+   simple_mtx_assert_locked(&table_lock);
+
    if (bo->nosync || bo->shared)
       return -1;
 

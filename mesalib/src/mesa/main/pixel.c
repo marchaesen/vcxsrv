@@ -343,6 +343,9 @@ _mesa_GetnPixelMapfvARB( GLenum map, GLsizei bufSize, GLfloat *values )
       return;
    }
 
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
+
    values = (GLfloat *) _mesa_map_pbo_dest(ctx, &ctx->Pack, values);
    if (!values) {
       if (ctx->Pack.BufferObj) {
@@ -392,6 +395,9 @@ _mesa_GetnPixelMapuivARB( GLenum map, GLsizei bufSize, GLuint *values )
       return;
    }
 
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
+
    values = (GLuint *) _mesa_map_pbo_dest(ctx, &ctx->Pack, values);
    if (!values) {
       if (ctx->Pack.BufferObj) {
@@ -440,6 +446,9 @@ _mesa_GetnPixelMapusvARB( GLenum map, GLsizei bufSize, GLushort *values )
                             GL_UNSIGNED_SHORT, bufSize, values)) {
       return;
    }
+
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
 
    values = (GLushort *) _mesa_map_pbo_dest(ctx, &ctx->Pack, values);
    if (!values) {

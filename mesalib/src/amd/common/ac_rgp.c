@@ -453,12 +453,12 @@ static void ac_sqtt_fill_asic_info(struct radeon_info *rad_info,
    chunk->trace_shader_core_clock = rad_info->max_shader_clock * 1000000;
    chunk->trace_memory_clock = rad_info->max_memory_clock * 1000000;
 
-   /* RGP gets very confused if these clocks are 0. The 1 GHz clocks are not necessarily correct,
-    * but the resulting traces are at least somewhat useful. */
+   /* RGP gets very confused if these clocks are 0. The numbers here are for profile_peak on
+    * VGH since that is the chips where we've seen the need for this workaround. */
    if (!chunk->trace_shader_core_clock)
-      chunk->trace_shader_core_clock = 1e9;
+      chunk->trace_shader_core_clock = 1300000000;
    if (!chunk->trace_memory_clock)
-      chunk->trace_memory_clock = 1e9;
+      chunk->trace_memory_clock = 687000000;
 
    chunk->device_id = rad_info->pci_id;
    chunk->device_revision_id = rad_info->pci_rev_id;

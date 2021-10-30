@@ -3956,7 +3956,7 @@ void si_init_tess_factor_ring(struct si_context *sctx)
       assert(sctx->chip_class >= GFX7);
 
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(sctx->tess_rings),
-                                RADEON_USAGE_READWRITE, RADEON_PRIO_SHADER_RINGS);
+                                RADEON_USAGE_READWRITE | RADEON_PRIO_SHADER_RINGS);
       si_emit_vgt_flush(cs);
 
       /* Set tessellation registers. */
@@ -4074,8 +4074,8 @@ static void si_emit_scratch_state(struct si_context *sctx)
    radeon_end();
 
    if (sctx->scratch_buffer) {
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->scratch_buffer, RADEON_USAGE_READWRITE,
-                                RADEON_PRIO_SCRATCH_BUFFER);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->scratch_buffer,
+                                RADEON_USAGE_READWRITE | RADEON_PRIO_SCRATCH_BUFFER);
    }
 }
 

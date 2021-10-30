@@ -188,6 +188,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
     else if (strcmp(argv[i], "-noTouchPointerEmulation") == 0) {
         touchEmulatePointer = FALSE;
+        return 1;
     }
 
     return 0;

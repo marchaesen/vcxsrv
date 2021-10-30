@@ -92,7 +92,7 @@ void r600_gfx_write_event_eop(struct r600_common_context *ctx,
 	radeon_emit(cs, 0); /* unused */
 
 	if (buf)
-		r600_emit_reloc(ctx, &ctx->gfx, buf, RADEON_USAGE_WRITE,
+		r600_emit_reloc(ctx, &ctx->gfx, buf, RADEON_USAGE_WRITE |
 				RADEON_PRIO_QUERY);
 }
 
@@ -121,7 +121,7 @@ void r600_gfx_wait_fence(struct r600_common_context *ctx,
 	radeon_emit(cs, 4); /* poll interval */
 
 	if (buf)
-		r600_emit_reloc(ctx, &ctx->gfx, buf, RADEON_USAGE_READ,
+		r600_emit_reloc(ctx, &ctx->gfx, buf, RADEON_USAGE_READ |
 				RADEON_PRIO_QUERY);
 }
 
@@ -287,10 +287,10 @@ void r600_need_dma_space(struct r600_common_context *ctx, unsigned num_dw,
 	if (ctx->screen->info.r600_has_virtual_memory) {
 		if (dst)
 			radeon_add_to_buffer_list(ctx, &ctx->dma, dst,
-						  RADEON_USAGE_WRITE, 0);
+						  RADEON_USAGE_WRITE);
 		if (src)
 			radeon_add_to_buffer_list(ctx, &ctx->dma, src,
-						  RADEON_USAGE_READ, 0);
+						  RADEON_USAGE_READ);
 	}
 
 	/* this function is called before all DMA calls, so increment this. */

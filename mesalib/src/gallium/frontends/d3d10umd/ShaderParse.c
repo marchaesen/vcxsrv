@@ -392,7 +392,7 @@ Shader_parse_opcode(struct Shader_parser *parser,
    if (opcode_is_extended) {
       /* NOTE: DECODE_IS_D3D10_SB_OPCODE_DOUBLE_EXTENDED is broken.
        */
-      assert(!((*curr & D3D10_SB_OPCODE_DOUBLE_EXTENDED_MASK) >> D3D10_SB_OPERAND_DOUBLE_EXTENDED_SHIFT));
+      assert(!((*curr & D3D10_SB_OPERAND_DOUBLE_EXTENDED_MASK) >> D3D10_SB_OPERAND_DOUBLE_EXTENDED_SHIFT));
 
       switch (DECODE_D3D10_SB_EXTENDED_OPCODE_TYPE(*curr)) {
       case D3D10_SB_EXTENDED_OPCODE_EMPTY:

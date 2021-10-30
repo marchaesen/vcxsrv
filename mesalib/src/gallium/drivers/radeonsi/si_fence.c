@@ -97,8 +97,8 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
          radeon_emit(scratch->gpu_address);
          radeon_emit(scratch->gpu_address >> 32);
 
-         radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, scratch, RADEON_USAGE_WRITE,
-                                   RADEON_PRIO_QUERY);
+         radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, scratch,
+                                   RADEON_USAGE_WRITE | RADEON_PRIO_QUERY);
       }
 
       radeon_emit(PKT3(PKT3_RELEASE_MEM, ctx->chip_class >= GFX9 ? 6 : 5, 0));
@@ -126,8 +126,8 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
          radeon_emit(0); /* immediate data */
          radeon_emit(0); /* unused */
 
-         radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, scratch, RADEON_USAGE_WRITE,
-                                   RADEON_PRIO_QUERY);
+         radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, scratch,
+                                   RADEON_USAGE_WRITE | RADEON_PRIO_QUERY);
       }
 
       radeon_emit(PKT3(PKT3_EVENT_WRITE_EOP, 4, 0));
@@ -141,7 +141,7 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
    radeon_end();
 
    if (buf) {
-      radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, buf, RADEON_USAGE_WRITE, RADEON_PRIO_QUERY);
+      radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, buf, RADEON_USAGE_WRITE | RADEON_PRIO_QUERY);
    }
 }
 
@@ -254,7 +254,7 @@ static void si_fine_fence_set(struct si_context *ctx, struct si_fine_fence *fine
    } else if (flags & PIPE_FLUSH_BOTTOM_OF_PIPE) {
       uint64_t fence_va = fine->buf->gpu_address + fine->offset;
 
-      radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, fine->buf, RADEON_USAGE_WRITE, RADEON_PRIO_QUERY);
+      radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, fine->buf, RADEON_USAGE_WRITE | RADEON_PRIO_QUERY);
       si_cp_release_mem(ctx, &ctx->gfx_cs, V_028A90_BOTTOM_OF_PIPE_TS, 0, EOP_DST_SEL_MEM,
                         EOP_INT_SEL_NONE, EOP_DATA_SEL_VALUE_32BIT, NULL, fence_va, 0x80000000,
                         PIPE_QUERY_GPU_FINISHED);

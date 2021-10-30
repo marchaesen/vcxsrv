@@ -786,8 +786,8 @@
     <field name="Alpha-to-coverage Invert" size="1" start="18" type="bool"/>
     <field name="Alpha test compare function" size="3" start="21" type="Func"/>
     <field name="Force seamless cubemaps" size="1" start="26" type="bool"/>
-    <field name="Depth Range 1" size="1" start="28" type="bool"/>
-    <field name="Depth Range 2" size="1" start="29" type="bool"/>
+    <field name="Front-facing depth bias" size="1" start="28" type="bool"/>
+    <field name="Back-facing depth bias" size="1" start="29" type="bool"/>
     <field name="Single-sampled lines" size="1" start="30" type="bool"/>
     <field name="Point snap" size="1" start="31" type="bool"/>
   </struct>

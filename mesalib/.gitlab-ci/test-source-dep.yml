@@ -398,6 +398,25 @@
       when: on_success
     - when: never
 
+.radeonsi-vaapi-rules:
+  stage: amd
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+        *radeonsi_file_list
+      when: on_success
+    - changes: &radeon_vcn_file_list
+      - src/gallium/frontends/va/**/*
+      - src/gallium/drivers/radeon/**/*
+      when: on_success
+    - when: never
+
 .i915g-rules:
   stage: intel
   rules:

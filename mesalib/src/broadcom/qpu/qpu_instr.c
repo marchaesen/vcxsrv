@@ -778,7 +778,7 @@ v3d_qpu_writes_unifa(const struct v3d_device_info *devinfo,
         return false;
 }
 
-static bool
+bool
 v3d_qpu_waits_vpm(const struct v3d_qpu_instr *inst)
 {
         return inst->type == V3D_QPU_INSTR_TYPE_ALU &&

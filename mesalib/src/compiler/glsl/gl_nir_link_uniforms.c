@@ -677,12 +677,12 @@ add_parameter(struct gl_uniform_storage *uniform,
          if (glsl_type_is_16bit(glsl_without_array(type)))
             comps = DIV_ROUND_UP(comps, 2);
 
-         _mesa_add_parameter(params, PROGRAM_UNIFORM, uniform->name, comps,
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, uniform->name.string, comps,
                              glsl_get_gl_type(type), NULL, NULL, false);
       }
    } else {
       for (unsigned i = 0; i < num_params; i++) {
-         _mesa_add_parameter(params, PROGRAM_UNIFORM, uniform->name, 4,
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, uniform->name.string, 4,
                              glsl_get_gl_type(type), NULL, NULL, true);
       }
    }
@@ -1313,8 +1313,9 @@ nir_link_uniform(struct gl_context *ctx,
       /* Initialize its members */
       memset(uniform, 0x00, sizeof(struct gl_uniform_storage));
 
-      uniform->name =
+      uniform->name.string =
          name ? ralloc_strdup(prog->data->UniformStorage, *name) : NULL;
+      resource_name_updated(&uniform->name);
 
       const struct glsl_type *type_no_array = glsl_without_array(type);
       if (glsl_type_is_array(type)) {
@@ -1423,15 +1424,15 @@ nir_link_uniform(struct gl_context *ctx,
             if (is_interface_array) {
                unsigned l = strlen(ifc_name);
                for (unsigned i = 0; i < num_blocks; i++) {
-                  if (strncmp(ifc_name, blocks[i].Name, l) == 0 &&
-                      blocks[i].Name[l] == '[') {
+                  if (strncmp(ifc_name, blocks[i].name.string, l) == 0 &&
+                      blocks[i].name.string[l] == '[') {
                      buffer_block_index = i;
                      break;
                   }
                }
             } else {
                for (unsigned i = 0; i < num_blocks; i++) {
-                  if (strcmp(ifc_name, blocks[i].Name) == 0) {
+                  if (strcmp(ifc_name, blocks[i].name.string) == 0) {
                      buffer_block_index = i;
                      break;
                   }
@@ -1462,7 +1463,7 @@ nir_link_uniform(struct gl_context *ctx,
       }
 
       uniform->block_index = buffer_block_index;
-      uniform->builtin = is_gl_identifier(uniform->name);
+      uniform->builtin = is_gl_identifier(uniform->name.string);
       uniform->atomic_buffer_index = -1;
 
       /* The following are not for features not supported by ARB_gl_spirv */
@@ -1486,7 +1487,7 @@ nir_link_uniform(struct gl_context *ctx,
                                     (prog->data->NumUniformStorage - 1));
       }
 
-      if (!is_gl_identifier(uniform->name) && !uniform->is_shader_storage &&
+      if (!is_gl_identifier(uniform->name.string) && !uniform->is_shader_storage &&
           !state->var_is_in_block)
          state->num_values += values;
 
@@ -1683,8 +1684,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                 * marked as referenced.
                 */
                for (unsigned i = 0; i < num_blocks; i++) {
-                  if (strncmp(ifc_name, blocks[i].Name, l) == 0 &&
-                      blocks[i].Name[l] == '[') {
+                  if (strncmp(ifc_name, blocks[i].name.string, l) == 0 &&
+                      blocks[i].name.string[l] == '[') {
                      if (buffer_block_index == -1)
                         buffer_block_index = i;
 
@@ -1701,7 +1702,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
                }
             } else {
                for (unsigned i = 0; i < num_blocks; i++) {
-                  if (strcmp(ifc_name, blocks[i].Name) == 0) {
+                  if (strcmp(ifc_name, blocks[i].name.string) == 0) {
                      buffer_block_index = i;
 
                      struct hash_entry *entry =

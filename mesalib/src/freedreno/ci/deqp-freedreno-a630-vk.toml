@@ -2,7 +2,7 @@
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
-skips = ["install/deqp-freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a630-premerge-skips.txt"]
 fraction = 3
 renderer_check = "Turnip Adreno .* 630"
 [deqp.env]
@@ -15,7 +15,7 @@ TU_DEBUG = "forcebin"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
-skips = ["install/deqp-freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"
 fraction = 15
@@ -25,7 +25,7 @@ TU_DEBUG = "sysmem"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
-skips = ["install/deqp-freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.graphicsfuzz.*"]
 prefix = "spill-"
 [deqp.env]

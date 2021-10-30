@@ -584,6 +584,9 @@ kernel::constant_argument::unbind(exec_context &ctx) {
       buf->resource_in(*ctx.q).unbind_surface(*ctx.q, st);
 }
 
+kernel::image_rd_argument::image_rd_argument() : st(nullptr) {
+}
+
 void
 kernel::image_rd_argument::set(size_t size, const void *value) {
    if (!value)

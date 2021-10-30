@@ -15,40 +15,13 @@
   tags:
     - mesa-ci-x86-64-lava-hp-11A-G6-EE-grunt
 
-.radeonsi-stoney-deqp:amd64:
+radeonsi-stoney-gl:amd64:
   extends:
     - .lava-test:amd64
     - .radeonsi-stoney-test:amd64
-
-radeonsi-stoney-gles2:amd64:
-  extends:
-    - .radeonsi-stoney-deqp:amd64
+  parallel: 5
   variables:
-    DEQP_VER: gles2
-
-# Run two jobs in parallel each running 1/4th of the test suite
-radeonsi-stoney-gles3:amd64:
-  extends:
-    - .radeonsi-stoney-deqp:amd64
-  parallel: 2
-  variables:
-    DEQP_VER: gles3
-    FDO_CI_CONCURRENT: 4
-    DEQP_EXPECTED_RENDERER: STONEY
-    DEQP_FRACTION: 2
-
-
-# Run two jobs in parallel each running 1/4th of the test suite
-radeonsi-stoney-gles31:amd64:
-  extends:
-    - .radeonsi-stoney-deqp:amd64
-  parallel: 2
-  variables:
-    DEQP_VER: gles31
-    FDO_CI_CONCURRENT: 4
-    DEQP_EXPECTED_RENDERER: STONEY
-    DEQP_FRACTION: 2
-
+    DEQP_SUITE: radeonsi-stoney
 
 radeonsi-stoney-traces:amd64:
   extends:
@@ -73,3 +46,23 @@ radeonsi-stoney-piglit-gl:amd64:
     PIGLIT_PROFILES: quick_gl
     PIGLIT_JUNIT_RESULTS: 1
     HWCI_START_XORG: 1
+
+radeonsi-stoney-va:amd64:
+  extends:
+    - .lava-test:amd64
+    - .radeonsi-stoney-test:amd64
+    - .radeonsi-vaapi-rules
+  variables:
+    HWCI_TEST_SCRIPT: "/install/gtest-runner.sh"
+    # While the tests don't need Xorg, it's an easy way to keep DRM open so we don't
+    # spend all our time in drm_lastclose()'s modesetting.
+    HWCI_START_XORG: 1
+    GTEST: test_va_api
+    # The big 10-surface 10k allocations oomkill us at around 2.5G of GPU memory
+    # allocated if we run at the normal 4 threads.
+    # https://github.com/intel/libva-utils/issues/248
+    FDO_CI_CONCURRENT: 1
+    # A whole run would be about 25 minutes currently.  Fixing
+    # https://github.com/intel/libva-utils/issues/247 and
+    # https://github.com/google/googletest/issues/3614 would probably help.
+    GTEST_FRACTION: 5

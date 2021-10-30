@@ -1,0 +1,16 @@
+# Some flaky tests found:
+#   spec@arb_query_buffer_object@qbo@query-GL_ANY_SAMPLES_PASSED-SYNC-GL_INT
+#   spec@arb_query_buffer_object@qbo@query-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED-ASYNC-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_SAMPLES_PASSED-ASYNC-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_VERTEX_SHADER_INVOCATIONS-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-ASYNC_CPU_READ_BEFORE-GL_UNSIGNED_INT
+spec@arb_query_buffer_object@qbo@query-.*
+# Some flaky tests found:
+#   spec@arb_query_buffer_object@qbo@query-GL_ANY_SAMPLES_PASSED-SYNC-GL_INT
+#   spec@arb_query_buffer_object@qbo@query-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED-ASYNC-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_SAMPLES_PASSED-ASYNC-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_VERTEX_SHADER_INVOCATIONS-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB
+#   spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-ASYNC_CPU_READ_BEFORE-GL_UNSIGNED_INT
+spec@arb_query_buffer_object@qbo@query-.*

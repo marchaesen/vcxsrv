@@ -49,7 +49,7 @@ struct amdgpu_sparse_backing_chunk {
 
 static bool amdgpu_bo_wait(struct radeon_winsys *rws,
                            struct pb_buffer *_buf, uint64_t timeout,
-                           enum radeon_bo_usage usage)
+                           unsigned usage)
 {
    struct amdgpu_winsys *ws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = amdgpu_winsys_bo(_buf);

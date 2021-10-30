@@ -78,6 +78,10 @@
 
 #define USE_BITMAP_ATLAS 1
 
+static bool
+_mesa_glthread_should_execute_list(struct gl_context *ctx,
+                                   struct gl_display_list *dlist);
+
 /**
  * Flush vertices.
  *
@@ -636,49 +640,8 @@ typedef enum
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
    OPCODE_CONTINUE,
-   OPCODE_NOP,                  /* No-op (used for 8-byte alignment */
    OPCODE_END_OF_LIST
 } OpCode;
-
-
-
-/**
- * Display list node.
- *
- * Display list instructions are stored as sequences of "nodes".  Nodes
- * are allocated in blocks.  Each block has BLOCK_SIZE nodes.  Blocks
- * are linked together with a pointer.
- *
- * Each instruction in the display list is stored as a sequence of
- * contiguous nodes in memory.
- * Each node is the union of a variety of data types.
- *
- * Note, all of these members should be 4 bytes in size or less for the
- * sake of compact display lists.  We store 8-byte pointers in a pair of
- * these nodes using the save/get_pointer() functions below.
- */
-union gl_dlist_node
-{
-   struct {
-#if !DETECT_OS_WINDOWS
-      OpCode opcode:16;
-#else
-      /* sizeof(Node) is 8 with MSVC/mingw, so use an explicit 16 bits type. */
-      uint16_t opcode;
-#endif
-      uint16_t InstSize;
-   };
-   GLboolean b;
-   GLbitfield bf;
-   GLubyte ub;
-   GLshort s;
-   GLushort us;
-   GLint i;
-   GLuint ui;
-   GLenum e;
-   GLfloat f;
-   GLsizei si;
-};
 
 
 typedef union gl_dlist_node Node;
@@ -798,18 +761,18 @@ static void
 vbo_destroy_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node)
 {
    for (gl_vertex_processing_mode mode = VP_MODE_FF; mode < VP_MODE_MAX; ++mode) {
-      _mesa_reference_vao(ctx, &node->VAO[mode], NULL);
-      if (node->merged.gallium.private_refcount[mode]) {
-         assert(node->merged.gallium.private_refcount[mode] > 0);
-         p_atomic_add(&node->merged.gallium.state[mode]->reference.count,
-                      -node->merged.gallium.private_refcount[mode]);
+      _mesa_reference_vao(ctx, &node->cold->VAO[mode], NULL);
+      if (node->private_refcount[mode]) {
+         assert(node->private_refcount[mode] > 0);
+         p_atomic_add(&node->state[mode]->reference.count,
+                      -node->private_refcount[mode]);
       }
-      pipe_vertex_state_reference(&node->merged.gallium.state[mode], NULL);
+      pipe_vertex_state_reference(&node->state[mode], NULL);
    }
 
-   if (node->merged.mode) {
-      free(node->merged.mode);
-      free(node->merged.start_counts);
+   if (node->modes) {
+      free(node->modes);
+      free(node->start_counts);
    }
 
    _mesa_reference_buffer_object(ctx, &node->cold->ib.obj, NULL);
@@ -823,7 +786,7 @@ static void
 vbo_print_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *node, OpCode op, FILE *f)
 {
    GLuint i;
-   struct gl_buffer_object *buffer = node->VAO[0]->BufferBinding[0].BufferObj;
+   struct gl_buffer_object *buffer = node->cold->VAO[0]->BufferBinding[0].BufferObj;
    const GLuint vertex_size = _vbo_save_get_stride(node)/sizeof(GLfloat);
    (void) ctx;
 
@@ -1379,7 +1342,7 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_VERTEX_LIST:
          case OPCODE_VERTEX_LIST_LOOPBACK:
          case OPCODE_VERTEX_LIST_COPY_CURRENT:
-            vbo_destroy_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1]);
+            vbo_destroy_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[0]);
             break;
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
@@ -1389,8 +1352,7 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
             continue;
          case OPCODE_END_OF_LIST:
             if (dlist->small_list) {
-               unsigned start = dlist->begins_with_a_nop ? dlist->start - 1 :
-                                                           dlist->start;
+               unsigned start = dlist->start;
                for (int i = 0; i < dlist->count; i++) {
                   util_idalloc_free(&ctx->Shared->small_dlist_store.free_idx,
                                     start + i);
@@ -1449,7 +1411,7 @@ destroy_list(struct gl_context *ctx, GLuint list)
    if (list == 0)
       return;
 
-   dlist = _mesa_lookup_list(ctx, list, false);
+   dlist = _mesa_lookup_list(ctx, list, true);
    if (!dlist)
       return;
 
@@ -1463,10 +1425,8 @@ destroy_list(struct gl_context *ctx, GLuint list)
                      check_atlas_for_deleted_list, &list);
    }
 
-   _mesa_HashLockMutex(ctx->Shared->DisplayList);
    _mesa_delete_list(ctx, dlist);
    _mesa_HashRemoveLocked(ctx->Shared->DisplayList, list);
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 }
 
 
@@ -1561,28 +1521,23 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
 {
    const GLuint numNodes = 1 + (bytes + sizeof(Node) - 1) / sizeof(Node);
    const GLuint contNodes = 1 + POINTER_DWORDS;  /* size of continue info */
-   GLuint nopNode;
-   Node *n;
 
    assert(bytes <= BLOCK_SIZE * sizeof(Node));
 
-   if (sizeof(void *) > sizeof(Node) && align8
-       && ctx->ListState.CurrentPos % 2 == 0) {
-      /* The opcode would get placed at node[0] and the payload would start
-       * at node[1].  But the payload needs to be at an even offset (8-byte
-       * multiple).
-       */
-      nopNode = 1;
-   }
-   else {
-      nopNode = 0;
+   /* If this node needs to start on an 8-byte boundary, pad the last node. */
+   if (sizeof(void *) == 8 && align8 &&
+       ctx->ListState.CurrentPos % 2 == 1 &&
+       ctx->ListState.CurrentPos + 1 + numNodes + contNodes <= BLOCK_SIZE) {
+      Node *last = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos -
+                   ctx->ListState.LastInstSize;
+      last->InstSize++;
+      ctx->ListState.CurrentPos++;
    }
 
-   if (ctx->ListState.CurrentPos + nopNode + numNodes + contNodes
-       > BLOCK_SIZE) {
+   if (ctx->ListState.CurrentPos + numNodes + contNodes > BLOCK_SIZE) {
       /* This block is full.  Allocate a new block and chain to it */
       Node *newblock;
-      n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
+      Node *n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
       n[0].opcode = OPCODE_CONTINUE;
       newblock = malloc(sizeof(Node) * BLOCK_SIZE);
       if (!newblock) {
@@ -1596,31 +1551,14 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
       save_pointer(&n[1], newblock);
       ctx->ListState.CurrentBlock = newblock;
       ctx->ListState.CurrentPos = 0;
-
-      /* Display list nodes are always 4 bytes.  If we need 8-byte alignment
-       * we have to insert a NOP so that the payload of the real opcode lands
-       * on an even location:
-       *   node[0] = OPCODE_NOP
-       *   node[1] = OPCODE_x;
-       *   node[2] = start of payload
-       */
-      nopNode = sizeof(void *) > sizeof(Node) && align8;
    }
 
-   n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
-   if (nopNode) {
-      assert(ctx->ListState.CurrentPos % 2 == 0); /* even value */
-      n[0].opcode = OPCODE_NOP;
-      n[0].InstSize = 1;
-      n++;
-      /* The "real" opcode will now be at an odd location and the payload
-       * will be at an even location.
-       */
-   }
-   ctx->ListState.CurrentPos += nopNode + numNodes;
+   Node *n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
+   ctx->ListState.CurrentPos += numNodes;
 
    n[0].opcode = opcode;
    n[0].InstSize = numNodes;
+   ctx->ListState.LastInstSize = numNodes;
 
    return n;
 }
@@ -1632,12 +1570,14 @@ _mesa_dlist_alloc_vertex_list(struct gl_context *ctx, bool copy_to_current)
    Node *n =  dlist_alloc(ctx,
                           copy_to_current ? OPCODE_VERTEX_LIST_COPY_CURRENT :
                                             OPCODE_VERTEX_LIST,
-                          sizeof(struct vbo_save_vertex_list),
+                          sizeof(struct vbo_save_vertex_list) - sizeof(Node),
                           true);
-   if (n)
-      return n + 1;  /* return pointer to payload area, after opcode */
-   else
+   if (!n)
       return NULL;
+
+   /* Clear all nodes except the header */
+   memset(n + 1, 0, sizeof(struct vbo_save_vertex_list) - sizeof(Node));
+   return n;
 }
 
 
@@ -13402,23 +13342,20 @@ execute_list(struct gl_context *ctx, GLuint list)
                                        n[5].f, n[6].f, n[7].f, n[8].f));
             break;
          case OPCODE_VERTEX_LIST:
-            vbo_save_playback_vertex_list(ctx, &n[1], false);
+            vbo_save_playback_vertex_list(ctx, &n[0], false);
             break;
 
          case OPCODE_VERTEX_LIST_COPY_CURRENT:
-            vbo_save_playback_vertex_list(ctx, &n[1], true);
+            vbo_save_playback_vertex_list(ctx, &n[0], true);
             break;
 
          case OPCODE_VERTEX_LIST_LOOPBACK:
-            vbo_save_playback_vertex_list_loopback(ctx, &n[1]);
+            vbo_save_playback_vertex_list_loopback(ctx, &n[0]);
             break;
 
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             continue;
-         case OPCODE_NOP:
-            /* no-op */
-            break;
          default:
             {
                char msg[1000];
@@ -13483,9 +13420,11 @@ _mesa_DeleteLists(GLuint list, GLsizei range)
       }
    }
 
+   _mesa_HashLockMutex(ctx->Shared->DisplayList);
    for (i = list; i < list + range; i++) {
       destroy_list(ctx, i);
    }
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 }
 
 
@@ -13589,6 +13528,7 @@ _mesa_NewList(GLuint name, GLenum mode)
    ctx->ListState.CurrentList = make_list(name, BLOCK_SIZE);
    ctx->ListState.CurrentBlock = ctx->ListState.CurrentList->Head;
    ctx->ListState.CurrentPos = 0;
+   ctx->ListState.LastInstSize = 0;
    ctx->ListState.Current.UseLoopback = false;
 
    vbo_save_NewList(ctx, name, mode);
@@ -13743,6 +13683,9 @@ _mesa_EndList(void)
       replace_op_vertex_list_recursively(ctx, ctx->ListState.CurrentList);
 
    struct gl_dlist_state *list = &ctx->ListState;
+   list->CurrentList->execute_glthread =
+      _mesa_glthread_should_execute_list(ctx, list->CurrentList);
+   ctx->Shared->DisplayListsAffectGLThread |= list->CurrentList->execute_glthread;
 
    if ((list->CurrentList->Head == list->CurrentBlock) &&
        (list->CurrentPos < BLOCK_SIZE)) {
@@ -13776,22 +13719,11 @@ _mesa_EndList(void)
 
       assert (ctx->Shared->small_dlist_store.ptr[start + list->CurrentList->count - 1].opcode == OPCODE_END_OF_LIST);
 
-      /* If the first opcode is a NOP, adjust start */
-      if (ctx->Shared->small_dlist_store.ptr[start].opcode == OPCODE_NOP) {
-         list->CurrentList->start++;
-         list->CurrentList->begins_with_a_nop = true;
-      } else {
-         list->CurrentList->begins_with_a_nop = false;
-      }
-
       free(list->CurrentBlock);
    } else {
       /* Keep the mallocated storage */
       list->CurrentList->small_list = false;
-      list->CurrentList->begins_with_a_nop = false;
    }
-
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 
    /* Destroy old list, if any */
    destroy_list(ctx, ctx->ListState.CurrentList->Name);
@@ -13801,13 +13733,15 @@ _mesa_EndList(void)
                           ctx->ListState.CurrentList->Name,
                           ctx->ListState.CurrentList, true);
 
-
    if (MESA_VERBOSE & VERBOSE_DISPLAY_LIST)
       mesa_print_display_list(ctx->ListState.CurrentList->Name);
+
+   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
 
    ctx->ListState.CurrentList = NULL;
    ctx->ListState.CurrentBlock = NULL;
    ctx->ListState.CurrentPos = 0;
+   ctx->ListState.LastInstSize = 0;
    ctx->ExecuteFlag = GL_TRUE;
    ctx->CompileFlag = GL_FALSE;
 
@@ -14996,13 +14930,10 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
             fprintf(f, "DISPLAY-LIST-CONTINUE\n");
             n = (Node *) get_pointer(&n[1]);
             continue;
-         case OPCODE_NOP:
-            fprintf(f, "NOP\n");
-            break;
          case OPCODE_VERTEX_LIST:
          case OPCODE_VERTEX_LIST_LOOPBACK:
          case OPCODE_VERTEX_LIST_COPY_CURRENT:
-            vbo_print_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[1], opcode, f);
+            vbo_print_vertex_list(ctx, (struct vbo_save_vertex_list *) &n[0], opcode, f);
             break;
          default:
             if (opcode < 0 || opcode > OPCODE_END_OF_LIST) {
@@ -15036,7 +14967,8 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
    struct gl_display_list *dlist;
 
    if (list == 0 ||
-       !_mesa_get_list(ctx, list, &dlist, true))
+       !_mesa_get_list(ctx, list, &dlist, true) ||
+       !dlist->execute_glthread)
       return;
 
    Node *n = get_list_head(ctx, dlist);
@@ -15110,6 +15042,47 @@ _mesa_glthread_execute_list(struct gl_context *ctx, GLuint list)
    }
 }
 
+static bool
+_mesa_glthread_should_execute_list(struct gl_context *ctx,
+                                   struct gl_display_list *dlist)
+{
+   Node *n = get_list_head(ctx, dlist);
+
+   while (1) {
+      const OpCode opcode = n[0].opcode;
+
+      switch (opcode) {
+      case OPCODE_CALL_LIST:
+      case OPCODE_CALL_LISTS:
+      case OPCODE_DISABLE:
+      case OPCODE_ENABLE:
+      case OPCODE_LIST_BASE:
+      case OPCODE_MATRIX_MODE:
+      case OPCODE_POP_ATTRIB:
+      case OPCODE_POP_MATRIX:
+      case OPCODE_PUSH_ATTRIB:
+      case OPCODE_PUSH_MATRIX:
+      case OPCODE_ACTIVE_TEXTURE:   /* GL_ARB_multitexture */
+      case OPCODE_MATRIX_PUSH:
+      case OPCODE_MATRIX_POP:
+         return true;
+      case OPCODE_CONTINUE:
+         n = (Node *)get_pointer(&n[1]);
+         continue;
+      case OPCODE_END_OF_LIST:
+         return false;
+      default:
+         /* ignore */
+         break;
+      }
+
+      /* increment n to point to next compiled command */
+      assert(n[0].InstSize > 0);
+      n += n[0].InstSize;
+   }
+   return false;
+}
+
 
 /**
  * Clients may call this function to help debug display list problems.
@@ -15151,6 +15124,7 @@ _mesa_init_display_list(struct gl_context *ctx)
    ctx->CompileFlag = GL_FALSE;
    ctx->ListState.CurrentBlock = NULL;
    ctx->ListState.CurrentPos = 0;
+   ctx->ListState.LastInstSize = 0;
 
    /* Display List group */
    ctx->List.ListBase = 0;

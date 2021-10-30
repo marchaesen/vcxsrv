@@ -27,17 +27,7 @@ static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 lvp_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
    LVP_FROM_HANDLE(lvp_physical_device, pdevice, physicalDevice);
-   PFN_vkVoidFunction func;
-
-   func = vk_instance_dispatch_table_get(&pdevice->vk.instance->dispatch_table, pName);
-   if (func != NULL)
-      return func;
-
-   func = vk_physical_device_dispatch_table_get(&pdevice->vk.dispatch_table, pName);
-   if (func != NULL)
-      return func;
-
-   return vk_device_dispatch_table_get(&vk_device_trampolines, pName);
+   return vk_instance_get_proc_addr_unchecked(pdevice->vk.instance, pName);
 }
 
 VkResult

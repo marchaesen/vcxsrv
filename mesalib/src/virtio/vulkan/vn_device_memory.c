@@ -205,15 +205,14 @@ vn_device_memory_should_suballocate(const VkMemoryAllocateInfo *alloc_info,
 
       const struct vn_image *img = vn_image_from_handle(dedicated->image);
       if (img) {
-         for (uint32_t i = 0; i < ARRAY_SIZE(img->dedicated_requirements);
-              i++) {
-            if (img->dedicated_requirements[i].requiresDedicatedAllocation)
+         for (uint32_t i = 0; i < ARRAY_SIZE(img->requirements); i++) {
+            if (img->requirements[i].dedicated.requiresDedicatedAllocation)
                return false;
          }
       }
 
       const struct vn_buffer *buf = vn_buffer_from_handle(dedicated->buffer);
-      if (buf && buf->dedicated_requirements.requiresDedicatedAllocation)
+      if (buf && buf->requirements.dedicated.requiresDedicatedAllocation)
          return false;
    }
 
@@ -354,7 +353,7 @@ vn_AllocateMemory(VkDevice device,
    VkResult result;
    if (import_ahb_info) {
       result = vn_android_device_import_ahb(dev, mem, pAllocateInfo, alloc,
-                                            import_ahb_info->buffer);
+                                            import_ahb_info->buffer, false);
    } else if (export_ahb) {
       result = vn_android_device_allocate_ahb(dev, mem, pAllocateInfo, alloc);
    } else if (import_fd_info) {

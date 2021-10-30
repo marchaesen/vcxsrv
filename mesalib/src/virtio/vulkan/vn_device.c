@@ -261,6 +261,66 @@ vn_device_fix_create_info(const struct vn_device *dev,
    return local_info;
 }
 
+static VkResult
+vn_device_init(struct vn_device *dev,
+               struct vn_physical_device *physical_dev,
+               const VkDeviceCreateInfo *create_info,
+               const VkAllocationCallbacks *alloc)
+{
+   struct vn_instance *instance = physical_dev->instance;
+   VkPhysicalDevice physical_dev_handle =
+      vn_physical_device_to_handle(physical_dev);
+   VkDevice dev_handle = vn_device_to_handle(dev);
+   VkDeviceCreateInfo local_create_info;
+   VkResult result;
+
+   dev->instance = instance;
+   dev->physical_device = physical_dev;
+   dev->renderer = instance->renderer;
+
+   create_info =
+      vn_device_fix_create_info(dev, create_info, alloc, &local_create_info);
+   if (!create_info)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   result = vn_call_vkCreateDevice(instance, physical_dev_handle, create_info,
+                                   NULL, &dev_handle);
+
+   /* free the fixed extensions here since no longer needed below */
+   if (create_info == &local_create_info)
+      vk_free(alloc, (void *)create_info->ppEnabledExtensionNames);
+
+   if (result != VK_SUCCESS)
+      return result;
+
+   result = vn_device_init_queues(dev, create_info);
+   if (result != VK_SUCCESS)
+      goto fail;
+
+   for (uint32_t i = 0; i < ARRAY_SIZE(dev->memory_pools); i++) {
+      struct vn_device_memory_pool *pool = &dev->memory_pools[i];
+      mtx_init(&pool->mutex, mtx_plain);
+   }
+
+   result = vn_buffer_cache_init(dev);
+   if (result != VK_SUCCESS)
+      goto fail;
+
+   return VK_SUCCESS;
+
+fail:
+   if (dev->queues) {
+      for (uint32_t i = 0; i < dev->queue_count; i++)
+         vn_queue_fini(&dev->queues[i]);
+
+      vk_free(alloc, dev->queues);
+   }
+
+   vn_call_vkDestroyDevice(instance, dev_handle, NULL);
+
+   return result;
+}
+
 VkResult
 vn_CreateDevice(VkPhysicalDevice physicalDevice,
                 const VkDeviceCreateInfo *pCreateInfo,
@@ -292,57 +352,16 @@ vn_CreateDevice(VkPhysicalDevice physicalDevice,
       return vn_error(instance, result);
    }
 
-   dev->instance = instance;
-   dev->physical_device = physical_dev;
-   dev->renderer = instance->renderer;
-
-   VkDeviceCreateInfo local_create_info;
-   pCreateInfo =
-      vn_device_fix_create_info(dev, pCreateInfo, alloc, &local_create_info);
-   if (!pCreateInfo) {
-      result = VK_ERROR_OUT_OF_HOST_MEMORY;
-      goto fail;
-   }
-
-   VkDevice dev_handle = vn_device_to_handle(dev);
-   result = vn_call_vkCreateDevice(instance, physicalDevice, pCreateInfo,
-                                   NULL, &dev_handle);
-   if (result != VK_SUCCESS)
-      goto fail;
-
-   result = vn_device_init_queues(dev, pCreateInfo);
+   result = vn_device_init(dev, physical_dev, pCreateInfo, alloc);
    if (result != VK_SUCCESS) {
-      vn_call_vkDestroyDevice(instance, dev_handle, NULL);
-      goto fail;
+      vn_device_base_fini(&dev->base);
+      vk_free(alloc, dev);
+      return vn_error(instance, result);
    }
 
-   for (uint32_t i = 0; i < ARRAY_SIZE(dev->memory_pools); i++) {
-      struct vn_device_memory_pool *pool = &dev->memory_pools[i];
-      mtx_init(&pool->mutex, mtx_plain);
-   }
-
-   if (dev->base.base.enabled_extensions
-          .ANDROID_external_memory_android_hardware_buffer) {
-      result = vn_android_init_ahb_buffer_memory_type_bits(dev);
-      if (result != VK_SUCCESS) {
-         vn_call_vkDestroyDevice(instance, dev_handle, NULL);
-         goto fail;
-      }
-   }
-
-   *pDevice = dev_handle;
-
-   if (pCreateInfo == &local_create_info)
-      vk_free(alloc, (void *)pCreateInfo->ppEnabledExtensionNames);
+   *pDevice = vn_device_to_handle(dev);
 
    return VK_SUCCESS;
-
-fail:
-   if (pCreateInfo == &local_create_info)
-      vk_free(alloc, (void *)pCreateInfo->ppEnabledExtensionNames);
-   vn_device_base_fini(&dev->base);
-   vk_free(alloc, dev);
-   return vn_error(instance, result);
 }
 
 void
@@ -354,6 +373,8 @@ vn_DestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
 
    if (!dev)
       return;
+
+   vn_buffer_cache_fini(dev);
 
    for (uint32_t i = 0; i < ARRAY_SIZE(dev->memory_pools); i++)
       vn_device_memory_pool_fini(dev, i);

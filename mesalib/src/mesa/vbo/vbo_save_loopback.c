@@ -155,14 +155,14 @@ _vbo_loopback_vertex_list(struct gl_context *ctx,
    /* All Legacy, NV, ARB and Material attributes are routed through
     * the NV attributes entrypoints:
     */
-   const struct gl_vertex_array_object *vao = node->VAO[VP_MODE_FF];
+   const struct gl_vertex_array_object *vao = node->cold->VAO[VP_MODE_FF];
    GLbitfield mask = vao->Enabled & VERT_BIT_MAT_ALL;
    while (mask) {
       const int i = u_bit_scan(&mask);
       append_attr(&nr, la, i, VBO_MATERIAL_SHIFT, vao);
    }
 
-   vao = node->VAO[VP_MODE_SHADER];
+   vao = node->cold->VAO[VP_MODE_SHADER];
    mask = vao->Enabled & ~(VERT_BIT_POS | VERT_BIT_GENERIC0);
    while (mask) {
       const int i = u_bit_scan(&mask);

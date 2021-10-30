@@ -468,6 +468,7 @@ bool v3d_qpu_writes_accum(const struct v3d_device_info *devinfo,
 bool v3d_qpu_waits_on_tmu(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_uses_mux(const struct v3d_qpu_instr *inst, enum v3d_qpu_mux mux);
 bool v3d_qpu_uses_vpm(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
+bool v3d_qpu_waits_vpm(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_reads_vpm(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_writes_vpm(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_reads_or_writes_vpm(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;

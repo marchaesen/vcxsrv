@@ -204,7 +204,7 @@ static void r600_emit_streamout_begin(struct r600_common_context *rctx, struct r
 		radeon_emit(cs, va >> 8);			/* BUFFER_BASE */
 
 		r600_emit_reloc(rctx, &rctx->gfx, r600_resource(t[i]->b.buffer),
-				RADEON_USAGE_WRITE, RADEON_PRIO_SHADER_RW_BUFFER);
+				RADEON_USAGE_WRITE | RADEON_PRIO_SHADER_RW_BUFFER);
 
 		/* R7xx requires this packet after updating BUFFER_BASE.
 		 * Without this, R7xx locks up. */
@@ -214,7 +214,7 @@ static void r600_emit_streamout_begin(struct r600_common_context *rctx, struct r
 			radeon_emit(cs, va >> 8);
 
 			r600_emit_reloc(rctx, &rctx->gfx, r600_resource(t[i]->b.buffer),
-					RADEON_USAGE_WRITE, RADEON_PRIO_SHADER_RW_BUFFER);
+					RADEON_USAGE_WRITE | RADEON_PRIO_SHADER_RW_BUFFER);
 		}
 
 		if (rctx->streamout.append_bitmask & (1 << i) && t[i]->buf_filled_size_valid) {
@@ -231,7 +231,7 @@ static void r600_emit_streamout_begin(struct r600_common_context *rctx, struct r
 			radeon_emit(cs, va >> 32); /* src address hi */
 
 			r600_emit_reloc(rctx,  &rctx->gfx, t[i]->buf_filled_size,
-					RADEON_USAGE_READ, RADEON_PRIO_SO_FILLED_SIZE);
+					RADEON_USAGE_READ | RADEON_PRIO_SO_FILLED_SIZE);
 		} else {
 			/* Start from the beginning. */
 			radeon_emit(cs, PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
@@ -275,7 +275,7 @@ void r600_emit_streamout_end(struct r600_common_context *rctx)
 		radeon_emit(cs, 0); /* unused */
 
 		r600_emit_reloc(rctx,  &rctx->gfx, t[i]->buf_filled_size,
-				RADEON_USAGE_WRITE, RADEON_PRIO_SO_FILLED_SIZE);
+				RADEON_USAGE_WRITE | RADEON_PRIO_SO_FILLED_SIZE);
 
 		/* Zero the buffer size. The counters (primitives generated,
 		 * primitives emitted) may be enabled even if there is not

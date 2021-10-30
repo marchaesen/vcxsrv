@@ -1650,9 +1650,6 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
          pb_slabs_deinit(&bufmgr->bo_slabs[i]);
    }
 
-   simple_mtx_destroy(&bufmgr->lock);
-   simple_mtx_destroy(&bufmgr->bo_deps_lock);
-
    /* Free any cached buffer objects we were going to reuse */
    for (int i = 0; i < bufmgr->num_buckets; i++) {
       struct bo_cache_bucket *bucket = &bufmgr->cache_bucket[i];
@@ -1679,6 +1676,9 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
    }
 
    close(bufmgr->fd);
+
+   simple_mtx_destroy(&bufmgr->lock);
+   simple_mtx_destroy(&bufmgr->bo_deps_lock);
 
    free(bufmgr);
 }

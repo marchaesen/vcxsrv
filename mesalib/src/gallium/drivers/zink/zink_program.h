@@ -297,6 +297,9 @@ zink_get_fs_key(struct zink_context *ctx)
    return (const struct zink_fs_key *)&ctx->gfx_pipeline_state.shader_keys.key[PIPE_SHADER_FRAGMENT];
 }
 
+void
+zink_update_fs_key_samples(struct zink_context *ctx);
+
 static inline struct zink_vs_key *
 zink_set_vs_key(struct zink_context *ctx)
 {

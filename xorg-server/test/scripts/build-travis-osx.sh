@@ -45,14 +45,6 @@ fi
 popd
 
 # build
-if [[ "$1" == "autotools" ]]; then
-    autoreconf -fvi
-    ./configure --prefix=/opt/X11 --disable-dependency-tracking --with-apple-application-name=XQuartz --with-bundle-id-prefix=org.macosforge.xquartz
-    make
-    make check
-    make install DESTDIR=$(pwd)/staging
-elif [[ "$1" == "meson" ]]; then
-    meson _build/ -Dprefix=/opt/X11 -Dsecure-rpc=false
-    DESTDIR=$(pwd)/staging ninja -C _build/ install
-    ninja -C _build/ test
-fi
+meson _build/ -Dprefix=/opt/X11 -Dsecure-rpc=false
+DESTDIR=$(pwd)/staging ninja -C _build/ install
+ninja -C _build/ test

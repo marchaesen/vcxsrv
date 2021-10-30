@@ -119,7 +119,7 @@ void si_pm4_emit(struct si_context *sctx, struct si_pm4_state *state)
 
    if (state->is_shader) {
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, ((struct si_shader*)state)->bo,
-                                RADEON_USAGE_READ, RADEON_PRIO_SHADER_BINARY);
+                                RADEON_USAGE_READ | RADEON_PRIO_SHADER_BINARY);
    }
 
    radeon_begin(cs);

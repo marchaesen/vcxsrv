@@ -97,7 +97,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
 
    for (unsigned i = 0; i < num_blocks; i++) {
       if (( use_bindings && binding == blocks[i]->Binding) ||
-          (!use_bindings && strcmp(block_name, blocks[i]->Name) == 0)) {
+          (!use_bindings && strcmp(block_name, blocks[i]->name.string) == 0)) {
          deref->var->data.driver_location = i - const_array_offset;
          if (nonconst_index)
             return nir_iadd_imm(b, nonconst_index, i);
@@ -144,7 +144,7 @@ get_block_index_offset(nir_variable *var,
    for (unsigned i = 0; i < num_blocks; i++) {
       const char *block_name = glsl_get_type_name(var->interface_type);
       if (( use_bindings && blocks[i]->Binding == var->data.binding) ||
-          (!use_bindings && strcmp(block_name, blocks[i]->Name) == 0)) {
+          (!use_bindings && strcmp(block_name, blocks[i]->name.string) == 0)) {
          var->data.driver_location = i;
          *index = i;
          *offset = blocks[i]->Uniforms[var->data.location].Offset;

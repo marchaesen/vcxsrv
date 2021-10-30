@@ -60,16 +60,16 @@ vn_image_init_memory_requirements(struct vn_image *img,
          break;
       }
    }
-   assert(plane_count <= ARRAY_SIZE(img->memory_requirements));
+   assert(plane_count <= ARRAY_SIZE(img->requirements));
 
    /* TODO add a per-device cache for the requirements */
    for (uint32_t i = 0; i < plane_count; i++) {
-      img->memory_requirements[i].sType =
+      img->requirements[i].memory.sType =
          VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
-      img->memory_requirements[i].pNext = &img->dedicated_requirements[i];
-      img->dedicated_requirements[i].sType =
+      img->requirements[i].memory.pNext = &img->requirements[i].dedicated;
+      img->requirements[i].dedicated.sType =
          VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS;
-      img->dedicated_requirements[i].pNext = NULL;
+      img->requirements[i].dedicated.pNext = NULL;
    }
 
    VkDevice dev_handle = vn_device_to_handle(dev);
@@ -81,12 +81,12 @@ vn_image_init_memory_requirements(struct vn_image *img,
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,
             .image = img_handle,
          },
-         &img->memory_requirements[0]);
+         &img->requirements[0].memory);
 
       /* AHB backed image requires dedicated allocation */
       if (img->deferred_info) {
-         img->dedicated_requirements[0].prefersDedicatedAllocation = VK_TRUE;
-         img->dedicated_requirements[0].requiresDedicatedAllocation = VK_TRUE;
+         img->requirements[0].dedicated.prefersDedicatedAllocation = VK_TRUE;
+         img->requirements[0].dedicated.requiresDedicatedAllocation = VK_TRUE;
       }
    } else {
       for (uint32_t i = 0; i < plane_count; i++) {
@@ -102,7 +102,7 @@ vn_image_init_memory_requirements(struct vn_image *img,
                   },
                .image = img_handle,
             },
-            &img->memory_requirements[i]);
+            &img->requirements[i].memory);
       }
    }
 }
@@ -314,7 +314,7 @@ vn_GetImageMemoryRequirements(VkDevice device,
 {
    const struct vn_image *img = vn_image_from_handle(image);
 
-   *pMemoryRequirements = img->memory_requirements[0].memoryRequirements;
+   *pMemoryRequirements = img->requirements[0].memory.memoryRequirements;
 }
 
 void
@@ -366,13 +366,13 @@ vn_GetImageMemoryRequirements2(VkDevice device,
       switch (u.pnext->sType) {
       case VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2:
          u.two->memoryRequirements =
-            img->memory_requirements[plane].memoryRequirements;
+            img->requirements[plane].memory.memoryRequirements;
          break;
       case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS:
          u.dedicated->prefersDedicatedAllocation =
-            img->dedicated_requirements[plane].prefersDedicatedAllocation;
+            img->requirements[plane].dedicated.prefersDedicatedAllocation;
          u.dedicated->requiresDedicatedAllocation =
-            img->dedicated_requirements[plane].requiresDedicatedAllocation;
+            img->requirements[plane].dedicated.requiresDedicatedAllocation;
          break;
       default:
          break;

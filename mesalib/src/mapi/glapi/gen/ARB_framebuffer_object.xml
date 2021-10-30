@@ -220,7 +220,8 @@
 	<glx vendorpriv="1426" always_array="true"/>
     </function>
 
-    <function name="CheckFramebufferStatus" es2="2.0" no_error="true">
+    <function name="CheckFramebufferStatus" es2="2.0" no_error="true"
+              marshal_call_before="if (ctx->Const.GLThreadNopCheckFramebufferStatus) return GL_FRAMEBUFFER_COMPLETE;">
         <param name="target" type="GLenum"/>
 	<return type="GLenum"/>
 	<glx vendorpriv="1427"/>

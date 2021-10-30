@@ -79,6 +79,7 @@ emit_mrt(struct fd_ringbuffer *ring, struct pipe_framebuffer_state *pfb,
    unsigned i;
 
    unsigned max_layer_index = 0;
+   enum a6xx_format mrt0_format = 0;
 
    for (i = 0; i < pfb->nr_cbufs; i++) {
       enum a3xx_color_swap swap = WZYX;
@@ -134,7 +135,12 @@ emit_mrt(struct fd_ringbuffer *ring, struct pipe_framebuffer_state *pfb,
       OUT_PKT4(ring, REG_A6XX_RB_MRT_FLAG_BUFFER(i), 3);
       fd6_emit_flag_reference(ring, rsc, psurf->u.tex.level,
                               psurf->u.tex.first_layer);
+
+      if (i == 0)
+         mrt0_format = format;
    }
+
+   OUT_REG(ring, A6XX_GRAS_LRZ_MRT_BUF_INFO_0(.color_format = mrt0_format));
 
    OUT_REG(ring, A6XX_RB_SRGB_CNTL(.dword = srgb_cntl));
    OUT_REG(ring, A6XX_SP_SRGB_CNTL(.dword = srgb_cntl));

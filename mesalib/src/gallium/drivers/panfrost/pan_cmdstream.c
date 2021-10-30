@@ -359,6 +359,11 @@ panfrost_emit_blend(struct panfrost_batch *batch, void *rts, mali_ptr *blend_sha
                                 cfg.fixed_function.conversion.register_format =
                                         fs->info.bifrost.blend[i].format;
                                 cfg.fixed_function.rt = i;
+
+                                if (!info.opaque) {
+                                        cfg.fixed_function.alpha_zero_nop = info.alpha_zero_nop;
+                                        cfg.fixed_function.alpha_one_store = info.alpha_one_store;
+                                }
                         }
                 }
 #endif
@@ -3214,8 +3219,8 @@ panfrost_create_rasterizer_state(
         }
 
         pan_pack(&so->stencil_misc, STENCIL_MASK_MISC, cfg) {
-                cfg.depth_range_1 = cso->offset_tri;
-                cfg.depth_range_2 = cso->offset_tri;
+                cfg.front_facing_depth_bias = cso->offset_tri;
+                cfg.back_facing_depth_bias = cso->offset_tri;
                 cfg.single_sampled_lines = !cso->multisample;
         }
 
@@ -3468,7 +3473,10 @@ panfrost_create_blend_state(struct pipe_context *pipe,
                                 pan_blend_can_fixed_function(equation,
                                                              supports_2src) &&
                                 (!constant_mask ||
-                                 pan_blend_supports_constant(PAN_ARCH, c))
+                                 pan_blend_supports_constant(PAN_ARCH, c)),
+
+                        .alpha_zero_nop = pan_blend_alpha_zero_nop(equation),
+                        .alpha_one_store = pan_blend_alpha_one_store(equation),
                 };
 
                 so->pan.rts[c].equation = equation;

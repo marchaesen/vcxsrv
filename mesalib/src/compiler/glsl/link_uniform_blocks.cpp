@@ -275,7 +275,8 @@ process_block_array_leaf(const char *name,
    unsigned i = *block_index;
    const glsl_type *type =  b->type->without_array();
 
-   blocks[i].Name = ralloc_strdup(blocks, name);
+   blocks[i].name.string = ralloc_strdup(blocks, name);
+   resource_name_updated(&blocks[i].name);
    blocks[i].Uniforms = &variables[(*parcel).index];
 
    /* The ARB_shading_language_420pack spec says:
@@ -292,7 +293,7 @@ process_block_array_leaf(const char *name,
    blocks[i]._RowMajor = type->get_interface_row_major();
    blocks[i].linearized_array_index = linearized_index;
 
-   parcel->process(type, b->has_instance_name ? blocks[i].Name : "");
+   parcel->process(type, b->has_instance_name ? blocks[i].name.string : "");
 
    blocks[i].UniformBufferSize = parcel->buffer_size;
 
@@ -480,7 +481,7 @@ static bool
 link_uniform_blocks_are_compatible(const gl_uniform_block *a,
                                    const gl_uniform_block *b)
 {
-   assert(strcmp(a->Name, b->Name) == 0);
+   assert(strcmp(a->name.string, b->name.string) == 0);
 
    /* Page 35 (page 42 of the PDF) in section 4.3.7 of the GLSL 1.50 spec says:
     *
@@ -534,7 +535,7 @@ link_cross_validate_uniform_block(void *mem_ctx,
    for (unsigned int i = 0; i < *num_linked_blocks; i++) {
       struct gl_uniform_block *old_block = &(*linked_blocks)[i];
 
-      if (strcmp(old_block->Name, new_block->Name) == 0)
+      if (strcmp(old_block->name.string, new_block->name.string) == 0)
          return link_uniform_blocks_are_compatible(old_block, new_block)
             ? i : -1;
    }
@@ -554,7 +555,8 @@ link_cross_validate_uniform_block(void *mem_ctx,
           new_block->Uniforms,
           sizeof(*linked_block->Uniforms) * linked_block->NumUniforms);
 
-   linked_block->Name = ralloc_strdup(*linked_blocks, linked_block->Name);
+   linked_block->name.string = ralloc_strdup(*linked_blocks, linked_block->name.string);
+   resource_name_updated(&linked_block->name);
 
    for (unsigned int i = 0; i < linked_block->NumUniforms; i++) {
       struct gl_uniform_buffer_variable *ubo_var =

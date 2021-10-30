@@ -100,24 +100,4 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(vn_descriptor_update_template,
                                VkDescriptorUpdateTemplate,
                                VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE)
 
-void
-vn_descriptor_set_layout_destroy(struct vn_device *dev,
-                                 struct vn_descriptor_set_layout *layout);
-
-static inline struct vn_descriptor_set_layout *
-vn_descriptor_set_layout_ref(struct vn_device *dev,
-                             struct vn_descriptor_set_layout *layout)
-{
-   vn_refcount_inc(&layout->refcount);
-   return layout;
-}
-
-static inline void
-vn_descriptor_set_layout_unref(struct vn_device *dev,
-                               struct vn_descriptor_set_layout *layout)
-{
-   if (vn_refcount_dec(&layout->refcount))
-      vn_descriptor_set_layout_destroy(dev, layout);
-}
-
 #endif /* VN_DESCRIPTOR_SET_H */

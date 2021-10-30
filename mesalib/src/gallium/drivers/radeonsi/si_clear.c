@@ -741,6 +741,7 @@ static void si_fast_clear(struct si_context *sctx, unsigned *buffers,
       if ((eliminate_needed || fmask_decompress_needed) &&
           !(tex->dirty_level_mask & (1 << level))) {
          tex->dirty_level_mask |= 1 << level;
+         si_set_sampler_depth_decompress_mask(sctx, tex);
          p_atomic_inc(&sctx->screen->compressed_colortex_counter);
       }
 

@@ -271,7 +271,7 @@ validate_uniform_parameters(GLint location, GLsizei count,
       if (count > 1) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(count = %u for non-array \"%s\"@%d)",
-                     caller, count, uni->name, location);
+                     caller, count, uni->name.string, location);
          return NULL;
       }
 
@@ -741,7 +741,7 @@ log_uniform(const void *values, enum glsl_base_type basicType,
 
    printf("Mesa: set program %u %s \"%s\" (loc %d, type \"%s\", "
 	  "transpose = %s) to: ",
-	  shProg->Name, extra, uni->name, location, uni->type->name,
+	  shProg->Name, extra, uni->name.string, location, uni->type->name,
 	  transpose ? "true" : "false");
    for (unsigned i = 0; i < elems; i++) {
       if (i != 0 && ((i % rows) == 0))
@@ -981,7 +981,7 @@ validate_uniform(GLint location, GLsizei count, const GLvoid *values,
       /* Can't set matrix uniforms (like mat4) with glUniform */
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glUniform%u(uniform \"%s\"@%d is matrix)",
-                  src_components, uni->name, location);
+                  src_components, uni->name.string, location);
       return NULL;
    }
 
@@ -992,7 +992,7 @@ validate_uniform(GLint location, GLsizei count, const GLvoid *values,
       /* glUniformN() must match float/vecN type */
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glUniform%u(\"%s\"@%u has %u components, not %u)",
-                  src_components, uni->name, location,
+                  src_components, uni->name.string, location,
                   components, src_components);
       return NULL;
    }
@@ -1019,7 +1019,7 @@ validate_uniform(GLint location, GLsizei count, const GLvoid *values,
    if (!match) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glUniform%u(\"%s\"@%d is %s, not %s)",
-                  src_components, uni->name, location,
+                  src_components, uni->name.string, location,
                   glsl_type_name(uni->type->base_type),
                   glsl_type_name(basicType));
       return NULL;
@@ -1731,7 +1731,7 @@ _mesa_uniform_matrix(GLint location, GLsizei count,
          basicType == GLSL_TYPE_FLOAT)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glUniformMatrix%ux%u(\"%s\"@%d is %s, not %s)",
-                  cols, rows, uni->name, location,
+                  cols, rows, uni->name.string, location,
                   glsl_type_name(uni->type->base_type),
                   glsl_type_name(basicType));
       return;
