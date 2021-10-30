@@ -140,7 +140,7 @@ _mesa_GetProgramInterfaceiv(GLuint program, GLenum programInterface,
          if (shProg->data->ProgramResourceList[i].Type != programInterface)
             continue;
          unsigned len =
-            _mesa_program_resource_name_len(&shProg->data->ProgramResourceList[i]);
+            _mesa_program_resource_name_length_array(&shProg->data->ProgramResourceList[i]);
          *params = MAX2(*params, len + 1);
       }
       break;

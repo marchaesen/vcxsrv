@@ -91,9 +91,8 @@ struct zink_descriptor_state_key {
 };
 
 struct zink_descriptor_layout_key {
-   unsigned num_descriptors;
+   unsigned num_bindings;
    VkDescriptorSetLayoutBinding *bindings;
-   unsigned use_count;
 };
 
 struct zink_descriptor_layout {
@@ -102,9 +101,9 @@ struct zink_descriptor_layout {
 };
 
 struct zink_descriptor_pool_key {
+   unsigned use_count;
    struct zink_descriptor_layout_key *layout;
-   unsigned num_type_sizes;
-   VkDescriptorPoolSize *sizes;
+   VkDescriptorPoolSize sizes[2];
 };
 
 struct zink_descriptor_reference {
@@ -144,9 +143,8 @@ struct zink_descriptor_data {
 struct zink_program_descriptor_data {
    uint8_t push_usage;
    bool bindless;
-   VkDescriptorPoolSize sizes[6]; //zink_descriptor_size_index
-   struct zink_descriptor_layout_key *layout_key[ZINK_DESCRIPTOR_TYPES]; //push set doesn't need one
    uint8_t binding_usage;
+   struct zink_descriptor_pool_key *pool_key[ZINK_DESCRIPTOR_TYPES]; //push set doesn't need one
    struct zink_descriptor_layout *layouts[ZINK_DESCRIPTOR_TYPES + 1];
    VkDescriptorUpdateTemplateKHR push_template;
 };
@@ -193,8 +191,6 @@ zink_descriptor_type_to_size_idx(enum zink_descriptor_type type)
    }
    unreachable("unknown type");
 }
-unsigned
-zink_descriptor_program_num_sizes(struct zink_program *pg, enum zink_descriptor_type type);
 bool
 zink_descriptor_layouts_init(struct zink_context *ctx);
 
@@ -211,6 +207,10 @@ struct zink_descriptor_layout *
 zink_descriptor_util_layout_get(struct zink_context *ctx, enum zink_descriptor_type type,
                       VkDescriptorSetLayoutBinding *bindings, unsigned num_bindings,
                       struct zink_descriptor_layout_key **layout_key);
+struct zink_descriptor_pool_key *
+zink_descriptor_util_pool_key_get(struct zink_context *ctx, enum zink_descriptor_type type,
+                                  struct zink_descriptor_layout_key *layout_key,
+                                  VkDescriptorPoolSize *sizes, unsigned num_type_sizes);
 void
 zink_descriptor_util_init_fbfetch(struct zink_context *ctx);
 bool

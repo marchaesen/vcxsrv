@@ -44,8 +44,8 @@ struct zink_descriptor_pool {
    struct hash_table *desc_sets;
    struct hash_table *free_desc_sets;
    struct util_dynarray alloc_desc_sets;
+   const struct zink_descriptor_pool_key *key;
    VkDescriptorPool descpool;
-   struct zink_descriptor_pool_key key;
    unsigned num_resources;
    unsigned num_sets_allocated;
    simple_mtx_t mtx;
@@ -213,7 +213,7 @@ static void
 descriptor_set_invalidate(struct zink_descriptor_set *zds)
 {
    zds->invalid = true;
-   for (unsigned i = 0; i < zds->pool->key.layout->num_descriptors; i++) {
+   for (unsigned i = 0; i < zds->pool->key->layout->num_bindings; i++) {
       switch (zds->pool->type) {
       case ZINK_DESCRIPTOR_TYPE_UBO:
       case ZINK_DESCRIPTOR_TYPE_SSBO:
@@ -291,31 +291,23 @@ descriptor_pool_delete(struct zink_context *ctx, struct zink_descriptor_pool *po
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    if (!pool)
       return;
-   _mesa_hash_table_remove_key(ctx->dd->descriptor_pools[pool->type], &pool->key);
+   _mesa_hash_table_remove_key(ctx->dd->descriptor_pools[pool->type], pool->key);
    descriptor_pool_free(screen, pool);
 }
 
 static struct zink_descriptor_pool *
 descriptor_pool_create(struct zink_screen *screen, enum zink_descriptor_type type,
-                       struct zink_descriptor_layout_key *layout_key, VkDescriptorPoolSize *sizes, unsigned num_type_sizes)
+                       const struct zink_descriptor_pool_key *pool_key)
 {
    struct zink_descriptor_pool *pool = rzalloc(NULL, struct zink_descriptor_pool);
    if (!pool)
       return NULL;
    pipe_reference_init(&pool->reference, 1);
    pool->type = type;
-   pool->key.layout = layout_key;
-   pool->key.num_type_sizes = num_type_sizes;
-   size_t types_size = num_type_sizes * sizeof(VkDescriptorPoolSize);
-   pool->key.sizes = ralloc_size(pool, types_size);
-   if (!pool->key.sizes) {
-      ralloc_free(pool);
-      return NULL;
-   }
-   memcpy(pool->key.sizes, sizes, types_size);
+   pool->key = pool_key;
    simple_mtx_init(&pool->mtx, mtx_plain);
-   for (unsigned i = 0; i < layout_key->num_descriptors; i++) {
-       pool->num_resources += layout_key->bindings[i].descriptorCount;
+   for (unsigned i = 0; i < pool_key->layout->num_bindings; i++) {
+       pool->num_resources += pool_key->layout->bindings[i].descriptorCount;
    }
    pool->desc_sets = _mesa_hash_table_create(NULL, desc_state_hash, desc_state_equal);
    if (!pool->desc_sets)
@@ -329,8 +321,8 @@ descriptor_pool_create(struct zink_screen *screen, enum zink_descriptor_type typ
 
    VkDescriptorPoolCreateInfo dpci = {0};
    dpci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-   dpci.pPoolSizes = sizes;
-   dpci.poolSizeCount = num_type_sizes;
+   dpci.pPoolSizes = pool_key->sizes;
+   dpci.poolSizeCount = pool_key->sizes[1].descriptorCount ? 2 : 1;
    dpci.flags = 0;
    dpci.maxSets = ZINK_DEFAULT_MAX_DESCS;
    if (VKSCR(CreateDescriptorPool)(screen->dev, &dpci, 0, &pool->descpool) != VK_SUCCESS) {
@@ -387,8 +379,10 @@ hash_descriptor_layout(const void *key)
 {
    uint32_t hash = 0;
    const struct zink_descriptor_layout_key *k = key;
-   hash = XXH32(&k->num_descriptors, sizeof(unsigned), hash);
-   hash = XXH32(k->bindings, k->num_descriptors * sizeof(VkDescriptorSetLayoutBinding), hash);
+   hash = XXH32(&k->num_bindings, sizeof(unsigned), hash);
+   /* only hash first 3 members: no holes and the rest are always constant */
+   for (unsigned i = 0; i < k->num_bindings; i++)
+      hash = XXH32(&k->bindings[i], offsetof(VkDescriptorSetLayoutBinding, stageFlags), hash);
 
    return hash;
 }
@@ -398,8 +392,8 @@ equals_descriptor_layout(const void *a, const void *b)
 {
    const struct zink_descriptor_layout_key *a_k = a;
    const struct zink_descriptor_layout_key *b_k = b;
-   return a_k->num_descriptors == b_k->num_descriptors &&
-          !memcmp(a_k->bindings, b_k->bindings, a_k->num_descriptors * sizeof(VkDescriptorSetLayoutBinding));
+   return a_k->num_bindings == b_k->num_bindings &&
+          !memcmp(a_k->bindings, b_k->bindings, a_k->num_bindings * sizeof(VkDescriptorSetLayoutBinding));
 }
 
 static struct zink_descriptor_layout *
@@ -413,8 +407,7 @@ create_layout(struct zink_context *ctx, enum zink_descriptor_type type,
       return NULL;
 
    struct zink_descriptor_layout_key *k = ralloc(ctx, struct zink_descriptor_layout_key);
-   k->use_count = 0;
-   k->num_descriptors = num_bindings;
+   k->num_bindings = num_bindings;
    size_t bindings_size = MAX2(num_bindings, 1) * sizeof(VkDescriptorSetLayoutBinding);
    k->bindings = ralloc_size(k, bindings_size);
    if (!k->bindings) {
@@ -437,7 +430,7 @@ zink_descriptor_util_layout_get(struct zink_context *ctx, enum zink_descriptor_t
 {
    uint32_t hash = 0;
    struct zink_descriptor_layout_key key = {
-      .num_descriptors = num_bindings,
+      .num_bindings = num_bindings,
       .bindings = bindings,
    };
 
@@ -467,6 +460,57 @@ zink_descriptor_util_layout_get(struct zink_context *ctx, enum zink_descriptor_t
       _mesa_hash_table_insert_pre_hashed(&ctx->desc_set_layouts[type], hash, *layout_key, layout);
    }
    return layout;
+}
+
+
+static uint32_t
+hash_descriptor_pool_key(const void *key)
+{
+   uint32_t hash = 0;
+   const struct zink_descriptor_pool_key *k = key;
+   hash = XXH32(&k->layout, sizeof(void*), hash);
+   const unsigned num_type_sizes = k->sizes[1].descriptorCount ? 2 : 1;
+   for (unsigned i = 0; i < num_type_sizes; i++)
+      hash = XXH32(&k->sizes[i], sizeof(VkDescriptorPoolSize), hash);
+
+   return hash;
+}
+
+static bool
+equals_descriptor_pool_key(const void *a, const void *b)
+{
+   const struct zink_descriptor_pool_key *a_k = a;
+   const struct zink_descriptor_pool_key *b_k = b;
+   const unsigned a_num_type_sizes = a_k->sizes[1].descriptorCount ? 2 : 1;
+   const unsigned b_num_type_sizes = b_k->sizes[1].descriptorCount ? 2 : 1;
+   return a_k->layout == b_k->layout &&
+          a_num_type_sizes == b_num_type_sizes &&
+          !memcmp(a_k->sizes, b_k->sizes, b_num_type_sizes * sizeof(VkDescriptorPoolSize));
+}
+
+struct zink_descriptor_pool_key *
+zink_descriptor_util_pool_key_get(struct zink_context *ctx, enum zink_descriptor_type type,
+                                  struct zink_descriptor_layout_key *layout_key,
+                                  VkDescriptorPoolSize *sizes, unsigned num_type_sizes)
+{
+   uint32_t hash = 0;
+   struct zink_descriptor_pool_key key;
+   if (type != ZINK_DESCRIPTOR_TYPES) {
+      key.layout = layout_key;
+      key.sizes[1].descriptorCount = 0;
+      memcpy(key.sizes, sizes, num_type_sizes * sizeof(VkDescriptorPoolSize));
+      hash = hash_descriptor_pool_key(&key);
+      struct set_entry *he = _mesa_set_search_pre_hashed(&ctx->desc_pool_keys[type], hash, &key);
+      if (he)
+         return (void*)he->key;
+   }
+
+   struct zink_descriptor_pool_key *pool_key = rzalloc(ctx, struct zink_descriptor_pool_key);
+   pool_key->layout = layout_key;
+   memcpy(pool_key->sizes, sizes, num_type_sizes * sizeof(VkDescriptorPoolSize));
+   if (type != ZINK_DESCRIPTOR_TYPES)
+      _mesa_set_add_pre_hashed(&ctx->desc_pool_keys[type], hash, pool_key);
+   return pool_key;
 }
 
 static void
@@ -562,51 +606,23 @@ zink_descriptor_util_image_layout_eval(const struct zink_resource *res, bool is_
                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }
 
-static uint32_t
-hash_descriptor_pool(const void *key)
-{
-   uint32_t hash = 0;
-   const struct zink_descriptor_pool_key *k = key;
-   hash = XXH32(&k->num_type_sizes, sizeof(unsigned), hash);
-   hash = XXH32(&k->layout, sizeof(k->layout), hash);
-   hash = XXH32(k->sizes, k->num_type_sizes * sizeof(VkDescriptorPoolSize), hash);
-
-   return hash;
-}
-
-static bool
-equals_descriptor_pool(const void *a, const void *b)
-{
-   const struct zink_descriptor_pool_key *a_k = a;
-   const struct zink_descriptor_pool_key *b_k = b;
-   return a_k->num_type_sizes == b_k->num_type_sizes &&
-          a_k->layout == b_k->layout &&
-          !memcmp(a_k->sizes, b_k->sizes, a_k->num_type_sizes * sizeof(VkDescriptorPoolSize));
-}
-
 static struct zink_descriptor_pool *
 descriptor_pool_get(struct zink_context *ctx, enum zink_descriptor_type type,
-                    struct zink_descriptor_layout_key *layout_key, VkDescriptorPoolSize *sizes, unsigned num_type_sizes)
+                    const struct zink_descriptor_pool_key *pool_key)
 {
    uint32_t hash = 0;
    if (type != ZINK_DESCRIPTOR_TYPES) {
-      struct zink_descriptor_pool_key key = {
-         .layout = layout_key,
-         .num_type_sizes = num_type_sizes,
-         .sizes = sizes,
-      };
-
-      hash = hash_descriptor_pool(&key);
-      struct hash_entry *he = _mesa_hash_table_search_pre_hashed(ctx->dd->descriptor_pools[type], hash, &key);
+      hash = hash_descriptor_pool_key(pool_key);
+      struct hash_entry *he = _mesa_hash_table_search_pre_hashed(ctx->dd->descriptor_pools[type], hash, pool_key);
       if (he) {
          struct zink_descriptor_pool *pool = he->data;
          pipe_reference(NULL, &pool->reference);
          return pool;
       }
    }
-   struct zink_descriptor_pool *pool = descriptor_pool_create(zink_screen(ctx->base.screen), type, layout_key, sizes, num_type_sizes);
+   struct zink_descriptor_pool *pool = descriptor_pool_create(zink_screen(ctx->base.screen), type, pool_key);
    if (type != ZINK_DESCRIPTOR_TYPES)
-      _mesa_hash_table_insert_pre_hashed(ctx->dd->descriptor_pools[type], hash, &pool->key, pool);
+      _mesa_hash_table_insert_pre_hashed(ctx->dd->descriptor_pools[type], hash, pool_key, pool);
    return pool;
 }
 
@@ -639,25 +655,6 @@ zink_descriptor_util_alloc_sets(struct zink_screen *screen, VkDescriptorSetLayou
    return true;
 }
 
-unsigned
-zink_descriptor_program_num_sizes(struct zink_program *pg, enum zink_descriptor_type type)
-{
-   switch (type) {
-   case ZINK_DESCRIPTOR_TYPE_UBO:
-      return 1;
-   case ZINK_DESCRIPTOR_TYPE_SAMPLER_VIEW:
-      return !!pg->dd->sizes[ZDS_INDEX_COMBINED_SAMPLER].descriptorCount +
-             !!pg->dd->sizes[ZDS_INDEX_UNIFORM_TEXELS].descriptorCount;
-   case ZINK_DESCRIPTOR_TYPE_SSBO:
-      return 1;
-   case ZINK_DESCRIPTOR_TYPE_IMAGE:
-      return !!pg->dd->sizes[ZDS_INDEX_STORAGE_IMAGE].descriptorCount +
-             !!pg->dd->sizes[ZDS_INDEX_STORAGE_TEXELS].descriptorCount;
-   default: break;
-   }
-   unreachable("unknown type");
-}
-
 static struct zink_descriptor_set *
 allocate_desc_set(struct zink_context *ctx, struct zink_program *pg, enum zink_descriptor_type type, unsigned descs_used, bool is_compute)
 {
@@ -665,8 +662,8 @@ allocate_desc_set(struct zink_context *ctx, struct zink_program *pg, enum zink_d
    bool push_set = type == ZINK_DESCRIPTOR_TYPES;
    struct zink_descriptor_pool *pool = push_set ? ctx->dd->push_pool[is_compute] : pdd_cached(pg)->pool[type];
 #define DESC_BUCKET_FACTOR 10
-   unsigned bucket_size = pool->key.layout->num_descriptors ? DESC_BUCKET_FACTOR : 1;
-   if (pool->key.layout->num_descriptors) {
+   unsigned bucket_size = pool->key->layout->num_bindings ? DESC_BUCKET_FACTOR : 1;
+   if (pool->key->layout->num_bindings) {
       for (unsigned desc_factor = DESC_BUCKET_FACTOR; desc_factor < descs_used; desc_factor *= DESC_BUCKET_FACTOR)
          bucket_size = desc_factor;
    }
@@ -709,13 +706,13 @@ allocate_desc_set(struct zink_context *ctx, struct zink_program *pg, enum zink_d
 #endif
       switch (type) {
       case ZINK_DESCRIPTOR_TYPE_SAMPLER_VIEW:
-         zds->sampler_states = (struct zink_sampler_state**)&samplers[i * pool->key.layout->num_descriptors];
+         zds->sampler_states = (struct zink_sampler_state**)&samplers[i * pool->key->layout->num_bindings];
          FALLTHROUGH;
       case ZINK_DESCRIPTOR_TYPE_IMAGE:
-         zds->surfaces = &surfaces[i * pool->key.layout->num_descriptors];
+         zds->surfaces = &surfaces[i * pool->key->layout->num_bindings];
          break;
       default:
-         zds->res_objs = (struct zink_resource_object**)&res_objs[i * pool->key.layout->num_descriptors];
+         zds->res_objs = (struct zink_resource_object**)&res_objs[i * pool->key->layout->num_bindings];
          break;
       }
       zds->desc_set = desc_set[i];
@@ -783,7 +780,7 @@ zink_descriptor_set_get(struct zink_context *ctx,
    unsigned descs_used = 1;
    assert(type <= ZINK_DESCRIPTOR_TYPES);
 
-   assert(pool->key.layout->num_descriptors);
+   assert(pool->key->layout->num_bindings);
    uint32_t hash = push_set ? ctx->dd->push_state[is_compute] :
                               ctx->dd->descriptor_states[is_compute].state[type];
 
@@ -901,7 +898,7 @@ zink_descriptor_set_recycle(struct zink_descriptor_set *zds)
    if (refcount != 1)
       return;
    /* this is a null set */
-   if (!pool->key.layout->num_descriptors)
+   if (!pool->key->layout->num_bindings)
       return;
    simple_mtx_lock(&pool->mtx);
    if (zds->punted)
@@ -1077,16 +1074,11 @@ zink_descriptor_program_init(struct zink_context *ctx, struct zink_program *pg)
       return true;
 
    for (unsigned i = 0; i < ZINK_DESCRIPTOR_TYPES; i++) {
-      if (!pg->dd->layout_key[i])
+      if (!pg->dd->pool_key[i])
          continue;
 
-      unsigned idx = zink_descriptor_type_to_size_idx(i);
-      VkDescriptorPoolSize *size = &pg->dd->sizes[idx];
-      /* this is a sampler/image set with no images only texels */
-      if (!size->descriptorCount)
-         size++;
-      unsigned num_sizes = zink_descriptor_program_num_sizes(pg, i);
-      struct zink_descriptor_pool *pool = descriptor_pool_get(ctx, i, pg->dd->layout_key[i], size, num_sizes);
+      const struct zink_descriptor_pool_key *pool_key = pg->dd->pool_key[i];
+      struct zink_descriptor_pool *pool = descriptor_pool_get(ctx, i, pool_key);
       if (!pool)
          return false;
       pdd_cached(pg)->pool[i] = pool;
@@ -1123,7 +1115,7 @@ static bool
 zink_descriptor_pool_init(struct zink_context *ctx)
 {
    for (unsigned i = 0; i < ZINK_DESCRIPTOR_TYPES; i++) {
-      ctx->dd->descriptor_pools[i] = _mesa_hash_table_create(ctx, hash_descriptor_pool, equals_descriptor_pool);
+      ctx->dd->descriptor_pools[i] = _mesa_hash_table_create(ctx, hash_descriptor_pool_key, equals_descriptor_pool_key);
       if (!ctx->dd->descriptor_pools[i])
          return false;
    }
@@ -1133,9 +1125,13 @@ zink_descriptor_pool_init(struct zink_context *ctx)
    sizes[0].descriptorCount = ZINK_SHADER_COUNT * ZINK_DEFAULT_MAX_DESCS;
    sizes[1].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
    sizes[1].descriptorCount = ZINK_DEFAULT_MAX_DESCS;
-   ctx->dd->push_pool[0] = descriptor_pool_get(ctx, 0, ctx->dd->push_layout_keys[0], sizes, ctx->dd->has_fbfetch ? 2 : 1);
+   /* these are freed by ralloc */
+   struct zink_descriptor_pool_key *pool_key;
+   pool_key = zink_descriptor_util_pool_key_get(ctx, ZINK_DESCRIPTOR_TYPES, ctx->dd->push_layout_keys[0], sizes, ctx->dd->has_fbfetch ? 2 : 1);
+   ctx->dd->push_pool[0] = descriptor_pool_get(ctx, 0, pool_key);
    sizes[0].descriptorCount = ZINK_DEFAULT_MAX_DESCS;
-   ctx->dd->push_pool[1] = descriptor_pool_get(ctx, 0, ctx->dd->push_layout_keys[1], sizes, 1);
+   pool_key = zink_descriptor_util_pool_key_get(ctx, ZINK_DESCRIPTOR_TYPES, ctx->dd->push_layout_keys[1], sizes, 1);
+   ctx->dd->push_pool[1] = descriptor_pool_get(ctx, 0, pool_key);
    return ctx->dd->push_pool[0] && ctx->dd->push_pool[1];
 }
 
@@ -1744,9 +1740,12 @@ zink_descriptors_deinit(struct zink_context *ctx)
 bool
 zink_descriptor_layouts_init(struct zink_context *ctx)
 {
-   for (unsigned i = 0; i < ZINK_DESCRIPTOR_TYPES; i++)
+   for (unsigned i = 0; i < ZINK_DESCRIPTOR_TYPES; i++) {
       if (!_mesa_hash_table_init(&ctx->desc_set_layouts[i], ctx, hash_descriptor_layout, equals_descriptor_layout))
          return false;
+      if (!_mesa_set_init(&ctx->desc_pool_keys[i], ctx, hash_descriptor_pool_key, equals_descriptor_pool_key))
+         return false;
+   }
    return true;
 }
 

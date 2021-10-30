@@ -687,7 +687,7 @@ static void compute_setup_cbs(struct r600_context *rctx)
 		struct r600_surface *cb = (struct r600_surface*)rctx->framebuffer.state.cbufs[i];
 		unsigned reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 						       (struct r600_resource*)cb->base.texture,
-						       RADEON_USAGE_READWRITE,
+						       RADEON_USAGE_READWRITE |
 						       RADEON_PRIO_SHADER_RW_BUFFER);
 
 		radeon_compute_set_context_reg_seq(cs, R_028C60_CB_COLOR0_BASE + i * 0x3C, 7);
@@ -918,7 +918,7 @@ void evergreen_emit_cs_shader(struct r600_context *rctx,
 
 	radeon_emit(cs, PKT3C(PKT3_NOP, 0, 0));
 	radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
-					      code_bo, RADEON_USAGE_READ,
+					      code_bo, RADEON_USAGE_READ |
 					      RADEON_PRIO_SHADER_BINARY));
 }
 

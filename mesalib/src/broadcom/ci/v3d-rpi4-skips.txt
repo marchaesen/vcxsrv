@@ -1,0 +1,40 @@
+# Slow tests (> 1 minute to run)
+spec@!opengl 1.1@streaming-texture-leak
+spec@!opengl 1.2@tex3d-maxsize
+spec@ext_texture_env_combine@texture-env-combine
+spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion
+spec@glsl-1.10@execution@loops@glsl-vs-unroll-explosion
+spec@!opengl 1.0@gl-1.0-blend-func
+
+# Extensions not supported
+spec@arb_gpu_shader_fp64.*
+spec@arb_gpu_shader_gpu5.*
+spec@arb_gpu_shader_int64.*
+spec@arb_tessellation_shader.*
+spec@arb_texture_cube_map.*
+spec@glsl-1.30.*
+spec@glsl-1.40.*
+spec@glsl-1.50.*
+spec@glsl-3.*
+spec@glsl-4.*
+spec@glsl-es-3.20.*
+# Slow tests (> 1 minute to run)
+spec@!opengl 1.1@streaming-texture-leak
+spec@!opengl 1.2@tex3d-maxsize
+spec@ext_texture_env_combine@texture-env-combine
+spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion
+spec@glsl-1.10@execution@loops@glsl-vs-unroll-explosion
+spec@!opengl 1.0@gl-1.0-blend-func
+
+# Extensions not supported
+spec@arb_gpu_shader_fp64.*
+spec@arb_gpu_shader_gpu5.*
+spec@arb_gpu_shader_int64.*
+spec@arb_tessellation_shader.*
+spec@arb_texture_cube_map.*
+spec@glsl-1.30.*
+spec@glsl-1.40.*
+spec@glsl-1.50.*
+spec@glsl-3.*
+spec@glsl-4.*
+spec@glsl-es-3.20.*

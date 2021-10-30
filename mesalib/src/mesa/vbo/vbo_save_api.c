@@ -526,7 +526,6 @@ compile_vertex_list(struct gl_context *ctx)
    if (!node)
       return;
 
-   memset(node, 0, sizeof(struct vbo_save_vertex_list));
    node->cold = calloc(1, sizeof(*node->cold));
 
    /* Make sure the pointer is aligned to the size of a pointer */
@@ -831,38 +830,38 @@ compile_vertex_list(struct gl_context *ctx)
    }
 
    /* Prepare for DrawGallium */
-   memset(&node->merged.info, 0, sizeof(struct pipe_draw_info));
+   memset(&node->cold->info, 0, sizeof(struct pipe_draw_info));
    /* The other info fields will be updated in vbo_save_playback_vertex_list */
-   node->merged.info.index_size = 4;
-   node->merged.info.instance_count = 1;
-   node->merged.info.index.gl_bo = node->cold->ib.obj;
+   node->cold->info.index_size = 4;
+   node->cold->info.instance_count = 1;
+   node->cold->info.index.gl_bo = node->cold->ib.obj;
    if (merged_prim_count == 1) {
-      node->merged.info.mode = merged_prims[0].mode;
-      node->merged.start_count.start = merged_prims[0].start;
-      node->merged.start_count.count = merged_prims[0].count;
-      node->merged.start_count.index_bias = 0;
-      node->merged.mode = NULL;
+      node->cold->info.mode = merged_prims[0].mode;
+      node->start_count.start = merged_prims[0].start;
+      node->start_count.count = merged_prims[0].count;
+      node->start_count.index_bias = 0;
+      node->modes = NULL;
    } else {
-      node->merged.mode = malloc(merged_prim_count * sizeof(unsigned char));
-      node->merged.start_counts = malloc(merged_prim_count * sizeof(struct pipe_draw_start_count_bias));
+      node->modes = malloc(merged_prim_count * sizeof(unsigned char));
+      node->start_counts = malloc(merged_prim_count * sizeof(struct pipe_draw_start_count_bias));
       for (unsigned i = 0; i < merged_prim_count; i++) {
-         node->merged.start_counts[i].start = merged_prims[i].start;
-         node->merged.start_counts[i].count = merged_prims[i].count;
-         node->merged.start_counts[i].index_bias = 0;
-         node->merged.mode[i] = merged_prims[i].mode;
+         node->start_counts[i].start = merged_prims[i].start;
+         node->start_counts[i].count = merged_prims[i].count;
+         node->start_counts[i].index_bias = 0;
+         node->modes[i] = merged_prims[i].mode;
       }
    }
-   node->merged.num_draws = merged_prim_count;
-   if (node->merged.num_draws > 1) {
+   node->num_draws = merged_prim_count;
+   if (node->num_draws > 1) {
       bool same_mode = true;
-      for (unsigned i = 1; i < node->merged.num_draws && same_mode; i++) {
-         same_mode = node->merged.mode[i] == node->merged.mode[0];
+      for (unsigned i = 1; i < node->num_draws && same_mode; i++) {
+         same_mode = node->modes[i] == node->modes[0];
       }
       if (same_mode) {
          /* All primitives use the same mode, so we can simplify a bit */
-         node->merged.info.mode = node->merged.mode[0];
-         free(node->merged.mode);
-         node->merged.mode = NULL;
+         node->cold->info.mode = node->modes[0];
+         free(node->modes);
+         node->modes = NULL;
       }
    }
 
@@ -898,28 +897,27 @@ end:
                  save->current_bo, buffer_offset, stride,
                  save->enabled, save->attrsz, save->attrtype, offsets);
       /* Reference the vao in the dlist */
-      node->VAO[vpm] = NULL;
-      _mesa_reference_vao(ctx, &node->VAO[vpm], save->VAO[vpm]);
+      node->cold->VAO[vpm] = NULL;
+      _mesa_reference_vao(ctx, &node->cold->VAO[vpm], save->VAO[vpm]);
    }
 
    /* Prepare for DrawGalliumVertexState */
-   if (node->merged.num_draws && ctx->Driver.DrawGalliumVertexState) {
+   if (node->num_draws && ctx->Driver.DrawGalliumVertexState) {
       for (unsigned i = 0; i < VP_MODE_MAX; i++) {
          uint32_t enabled_attribs = _vbo_get_vao_filter(i) &
-                                    node->VAO[i]->_EnabledWithMapMode;
+                                    node->cold->VAO[i]->_EnabledWithMapMode;
 
-         node->merged.gallium.state[i] =
-            ctx->Driver.CreateGalliumVertexState(ctx, node->VAO[i],
+         node->state[i] =
+            ctx->Driver.CreateGalliumVertexState(ctx, node->cold->VAO[i],
                                                  node->cold->ib.obj,
                                                  enabled_attribs);
-         node->merged.gallium.private_refcount[i] = 0;
-         node->merged.gallium.enabled_attribs[i] = enabled_attribs;
+         node->private_refcount[i] = 0;
+         node->enabled_attribs[i] = enabled_attribs;
       }
 
-      node->merged.gallium.ctx = ctx;
-      node->merged.gallium.info.mode = node->merged.info.mode;
-      node->merged.gallium.info.take_vertex_state_ownership = false;
-      assert(node->merged.info.index_size == 4);
+      node->ctx = ctx;
+      node->mode = node->cold->info.mode;
+      assert(node->cold->info.index_size == 4);
    }
 
    /* Deal with GL_COMPILE_AND_EXECUTE:
@@ -936,7 +934,7 @@ end:
        * The problem is that the VAO offset is based on current_bo's layout,
        * so we have to use a temp value.
        */
-      struct gl_vertex_array_object *vao = node->VAO[VP_MODE_SHADER];
+      struct gl_vertex_array_object *vao = node->cold->VAO[VP_MODE_SHADER];
       GLintptr original = vao->BufferBinding[0].Offset;
       if (!ctx->ListState.Current.UseLoopback) {
          GLintptr new_offset = 0;

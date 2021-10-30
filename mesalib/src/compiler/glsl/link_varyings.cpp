@@ -1424,8 +1424,9 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
    }
 
  store_varying:
-   info->Varyings[info->NumVarying].Name = ralloc_strdup(prog,
-                                                         this->orig_name);
+   info->Varyings[info->NumVarying].name.string = ralloc_strdup(prog,
+                                                              this->orig_name);
+   resource_name_updated(&info->Varyings[info->NumVarying].name);
    info->Varyings[info->NumVarying].Type = this->type;
    info->Varyings[info->NumVarying].Size = size;
    info->Varyings[info->NumVarying].BufferIndex = buffer_index;

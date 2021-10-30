@@ -642,10 +642,14 @@ iris_copy_region(struct blorp_context *blorp,
    if (dst->target == PIPE_BUFFER && src->target == PIPE_BUFFER) {
       struct blorp_address src_addr = {
          .buffer = iris_resource_bo(src), .offset = src_box->x,
+         .mocs = iris_mocs(src_res->bo, &screen->isl_dev,
+                           ISL_SURF_USAGE_RENDER_TARGET_BIT),
       };
       struct blorp_address dst_addr = {
          .buffer = iris_resource_bo(dst), .offset = dstx,
          .reloc_flags = EXEC_OBJECT_WRITE,
+         .mocs = iris_mocs(dst_res->bo, &screen->isl_dev,
+                           ISL_SURF_USAGE_TEXTURE_BIT),
       };
 
       iris_emit_buffer_barrier_for(batch, iris_resource_bo(src),

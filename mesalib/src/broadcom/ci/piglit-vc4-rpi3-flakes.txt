@@ -1,8 +1,0 @@
-glx@glx-multi-window-single-context
-shaders@glsl-vs-loop
-shaders@glsl-vs-loop-nested
-spec@arb_framebuffer_srgb@blit renderbuffer srgb single_sampled enabled clear
-spec@egl_chromium_sync_control@conformance
-spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-readpixels
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4

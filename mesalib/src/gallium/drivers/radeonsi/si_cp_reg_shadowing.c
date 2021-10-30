@@ -175,7 +175,7 @@ void si_init_cp_reg_shadowing(struct si_context *sctx)
 
       /* Initialize shadowed registers as follows. */
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->shadowed_regs,
-                                RADEON_USAGE_READWRITE, RADEON_PRIO_DESCRIPTORS);
+                                RADEON_USAGE_READWRITE | RADEON_PRIO_DESCRIPTORS);
       si_pm4_emit(sctx, shadowing_preamble);
       ac_emulate_clear_state(&sctx->screen->info, &sctx->gfx_cs, si_set_context_reg_array);
       si_pm4_emit(sctx, sctx->cs_preamble_state);

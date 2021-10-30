@@ -113,24 +113,26 @@ create_shader_variable(struct gl_shader_program *shProg,
     */
    if (in->data.mode == nir_var_system_value &&
        in->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
-      out->name = ralloc_strdup(shProg, "gl_VertexID");
+      out->name.string = ralloc_strdup(shProg, "gl_VertexID");
    } else if ((in->data.mode == nir_var_shader_out &&
                in->data.location == VARYING_SLOT_TESS_LEVEL_OUTER) ||
               (in->data.mode == nir_var_system_value &&
                in->data.location == SYSTEM_VALUE_TESS_LEVEL_OUTER)) {
-      out->name = ralloc_strdup(shProg, "gl_TessLevelOuter");
+      out->name.string = ralloc_strdup(shProg, "gl_TessLevelOuter");
       type = glsl_array_type(glsl_float_type(), 4, 0);
    } else if ((in->data.mode == nir_var_shader_out &&
                in->data.location == VARYING_SLOT_TESS_LEVEL_INNER) ||
               (in->data.mode == nir_var_system_value &&
                in->data.location == SYSTEM_VALUE_TESS_LEVEL_INNER)) {
-      out->name = ralloc_strdup(shProg, "gl_TessLevelInner");
+      out->name.string = ralloc_strdup(shProg, "gl_TessLevelInner");
       type = glsl_array_type(glsl_float_type(), 2, 0);
    } else {
-      out->name = ralloc_strdup(shProg, name);
+      out->name.string = ralloc_strdup(shProg, name);
    }
 
-   if (!out->name)
+   resource_name_updated(&out->name);
+
+   if (!out->name.string)
       return NULL;
 
    /* The ARB_program_interface_query spec says:
@@ -350,7 +352,8 @@ add_vars_with_modes(const struct gl_context *ctx,
           * the linker needs to work without them. Returning them is optional.
           * For simplicity, we ignore names.
           */
-         sh_var->name = NULL;
+         sh_var->name.string = NULL;
+         resource_name_updated(&sh_var->name);
          sh_var->type = var->type;
          sh_var->location = var->data.location - loc_bias;
          sh_var->index = var->data.index;
@@ -606,7 +609,8 @@ gl_nir_link_spirv(struct gl_context *ctx, struct gl_shader_program *prog,
          const nir_remove_dead_variables_options opts = {
             .can_remove_var = can_remove_uniform,
          };
-         nir_remove_dead_variables(shader->Program->nir, nir_var_uniform,
+         nir_remove_dead_variables(shader->Program->nir,
+                                   nir_var_uniform | nir_var_image,
                                    &opts);
       }
    }
@@ -670,7 +674,8 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
          const nir_remove_dead_variables_options opts = {
             .can_remove_var = can_remove_uniform,
          };
-         nir_remove_dead_variables(shader->Program->nir, nir_var_uniform,
+         nir_remove_dead_variables(shader->Program->nir,
+                                   nir_var_uniform | nir_var_image,
                                    &opts);
       }
    }

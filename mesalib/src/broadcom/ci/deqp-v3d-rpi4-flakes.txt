@@ -1,3 +1,0 @@
-dEQP-GLES31.functional.compute.shared_var.basic_type.ivec3_highp
-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.highp_mat2
-KHR-GLES31.core.shader_image_load_store.basic-glsl-earlyFragTests

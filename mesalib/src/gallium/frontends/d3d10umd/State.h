@@ -150,6 +150,7 @@ struct Resource
    DXGI_FORMAT Format;
    UINT MipLevels;
    UINT NumSubResources;
+   bool buffer;
    struct pipe_resource *resource;
    struct pipe_transfer **transfers;
    struct pipe_stream_output_target *so_target;

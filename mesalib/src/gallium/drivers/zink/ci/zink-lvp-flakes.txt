@@ -1,0 +1,3 @@
+dEQP-GLES2.functional.texture.filtering.cube.nearest_linear_mirror_l8_pot
+spec@khr_debug@push-pop-group_gl.*
+glx@glx-multi-window-single-context

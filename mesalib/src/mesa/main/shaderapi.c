@@ -795,8 +795,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
           *
           * We are setting 0 here, as below it will add 1 for the NUL character.
           */
-         const GLint base_len =
-            strlen_or_zero(shProg->data->UniformStorage[i].name);
+         const GLint base_len = shProg->data->UniformStorage[i].name.length;
 
 	 /* Add one for the terminating NUL character for a non-array, and
 	  * 4 for the "[0]" and the NUL for an array.
@@ -847,15 +846,17 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
          shProg->TransformFeedback.NumVarying;
 
       for (i = 0; i < num_varying; i++) {
-         const char *name = in_shader_varyings ?
-            shProg->last_vert_prog->sh.LinkedTransformFeedback->Varyings[i].Name
-            : shProg->TransformFeedback.VaryingNames[i];
+         int len;
 
          /* Add one for the terminating NUL character. We have to use
           * strlen_or_zero, as for shaders constructed from SPIR-V binaries,
           * it is possible that no name reflection information is available.
           */
-         const GLint len = strlen_or_zero(name) + 1;
+         if (in_shader_varyings) {
+            len = shProg->last_vert_prog->sh.LinkedTransformFeedback->Varyings[i].name.length + 1;
+         } else {
+            len = strlen_or_zero(shProg->TransformFeedback.VaryingNames[i]) + 1;
+         }
 
          if (len > max_len)
             max_len = len;
@@ -919,8 +920,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
           *    zero is returned. If no name reflection information is
           *    available, one is returned."
 	  */
-         const GLint len =
-            strlen_or_zero(shProg->data->UniformBlocks[i].Name) + 1;
+         const GLint len = shProg->data->UniformBlocks[i].name.length + 1;
 
 	 if (len > max_len)
 	    max_len = len;
@@ -2979,7 +2979,7 @@ _mesa_GetActiveSubroutineUniformiv(GLuint program, GLenum shadertype,
    case GL_UNIFORM_NAME_LENGTH:
       res = _mesa_program_resource_find_index(shProg, resource_type, index);
       if (res) {
-         values[0] = strlen(_mesa_program_resource_name(res)) + 1
+         values[0] = _mesa_program_resource_name_length(res) + 1
             + ((_mesa_program_resource_array_size(res) != 0) ? 3 : 0);
       }
       break;
@@ -3224,7 +3224,7 @@ _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
       for (i = 0; i < p->sh.NumSubroutineFunctions; i++) {
          res = _mesa_program_resource_find_index(shProg, resource_type, i);
          if (res) {
-            const GLint len = strlen(_mesa_program_resource_name(res)) + 1;
+            const GLint len = _mesa_program_resource_name_length(res) + 1;
             if (len > max_len)
                max_len = len;
          }
@@ -3243,7 +3243,7 @@ _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
       for (i = 0; i < p->sh.NumSubroutineUniformRemapTable; i++) {
          res = _mesa_program_resource_find_index(shProg, resource_type, i);
          if (res) {
-            const GLint len = strlen(_mesa_program_resource_name(res)) + 1
+            const GLint len = _mesa_program_resource_name_length(res) + 1
                + ((_mesa_program_resource_array_size(res) != 0) ? 3 : 0);
 
             if (len > max_len)

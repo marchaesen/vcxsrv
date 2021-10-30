@@ -36,8 +36,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <sys/syscall.h>
 
+#include "anon_file.h"
 #include "mesa-sha1.h"
 #include "u_math.h"
 #include "os_memory.h"
@@ -106,10 +106,6 @@ os_malloc_aligned_fd(size_t size, size_t alignment, int *fd, char const *fd_name
    size_t alloc_size, offset;
 
    *fd = -1;
-   mem_fd = syscall(__NR_memfd_create, fd_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
-
-   if(mem_fd < 0)
-      return NULL;
 
    /*
     * Calculate
@@ -121,14 +117,18 @@ os_malloc_aligned_fd(size_t size, size_t alignment, int *fd, char const *fd_name
    const size_t header_size = sizeof(struct memory_header) + sizeof(size_t);
    if (add_overflow_size_t(size, alignment, &alloc_size) ||
        add_overflow_size_t(alloc_size, header_size, &alloc_size))
-      goto fail;
+      return NULL;
 
-   if (ftruncate(mem_fd, alloc_size) != 0)
-      goto fail;
+   mem_fd = os_create_anonymous_file(alloc_size, fd_name);
 
+   if(mem_fd < 0)
+      return NULL;
+
+#if defined(HAVE_MEMFD_CREATE) || defined(ANDROID)
    // Seal fd, so no one can grow or shrink the memory.
    if (fcntl(mem_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL) != 0)
       goto fail;
+#endif
 
    ptr = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
    if (ptr == MAP_FAILED)

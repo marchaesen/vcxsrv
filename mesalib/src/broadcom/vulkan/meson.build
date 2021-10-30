@@ -85,6 +85,7 @@ v3dv_deps = [
   idep_nir,
   idep_nir_headers,
   idep_vulkan_util,
+  idep_vulkan_runtime,
   idep_vulkan_wsi,
 ]
 

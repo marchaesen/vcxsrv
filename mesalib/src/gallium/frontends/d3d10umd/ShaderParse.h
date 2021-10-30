@@ -35,9 +35,6 @@
 
 #include "DriverIncludes.h"
 
-//#include "winddk/winddk_compat.h"
-#include "winddk/d3d10tokenizedprogramformat.hpp"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -460,8 +460,8 @@ void r600_emit_pfp_sync_me(struct r600_context *rctx)
 		}
 
 		reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, buf,
-						  RADEON_USAGE_READWRITE,
-						  RADEON_PRIO_FENCE);
+						  RADEON_USAGE_READWRITE |
+						  RADEON_PRIO_FENCE_TRACE);
 
 		va = buf->gpu_address + offset;
 		assert(va % 16 == 0);
@@ -543,9 +543,9 @@ void r600_cp_dma_copy_buffer(struct r600_context *rctx,
 
 		/* This must be done after r600_need_cs_space. */
 		src_reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, (struct r600_resource*)src,
-						  RADEON_USAGE_READ, RADEON_PRIO_CP_DMA);
+						  RADEON_USAGE_READ | RADEON_PRIO_CP_DMA);
 		dst_reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, (struct r600_resource*)dst,
-						  RADEON_USAGE_WRITE, RADEON_PRIO_CP_DMA);
+						  RADEON_USAGE_WRITE | RADEON_PRIO_CP_DMA);
 
 		radeon_emit(cs, PKT3(PKT3_CP_DMA, 4, 0));
 		radeon_emit(cs, src_offset);	/* SRC_ADDR_LO [31:0] */
@@ -602,8 +602,8 @@ void r600_dma_copy_buffer(struct r600_context *rctx,
 	for (i = 0; i < ncopy; i++) {
 		csize = size < R600_DMA_COPY_MAX_SIZE_DW ? size : R600_DMA_COPY_MAX_SIZE_DW;
 		/* emit reloc before writing cs so that cs is always in consistent state */
-		radeon_add_to_buffer_list(&rctx->b, &rctx->b.dma, rsrc, RADEON_USAGE_READ, 0);
-		radeon_add_to_buffer_list(&rctx->b, &rctx->b.dma, rdst, RADEON_USAGE_WRITE, 0);
+		radeon_add_to_buffer_list(&rctx->b, &rctx->b.dma, rsrc, RADEON_USAGE_READ);
+		radeon_add_to_buffer_list(&rctx->b, &rctx->b.dma, rdst, RADEON_USAGE_WRITE);
 		radeon_emit(cs, DMA_PACKET(DMA_PACKET_COPY, 0, 0, csize));
 		radeon_emit(cs, dst_offset & 0xfffffffc);
 		radeon_emit(cs, src_offset & 0xfffffffc);

@@ -681,7 +681,9 @@ zink_draw_vbo(struct pipe_context *pctx,
       VKCTX(CmdSetLineStippleEXT)(batch->state->cmdbuf, rast_state->base.line_stipple_factor, rast_state->base.line_stipple_pattern);
 
    if (BATCH_CHANGED || ctx->rast_state_changed || mode_changed) {
-      enum pipe_prim_type reduced_prim = u_reduced_prim(mode);
+      enum pipe_prim_type reduced_prim = ctx->last_vertex_stage->reduced_prim;
+      if (reduced_prim == PIPE_PRIM_MAX)
+         reduced_prim = u_reduced_prim(mode);
 
       bool depth_bias = false;
       switch (reduced_prim) {

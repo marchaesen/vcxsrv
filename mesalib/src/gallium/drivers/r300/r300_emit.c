@@ -1323,31 +1323,31 @@ validate:
             tex = r300_resource(fb->cbufs[i]->texture);
             assert(tex && tex->buf && "cbuf is marked, but NULL!");
             r300->rws->cs_add_buffer(&r300->cs, tex->buf,
-                                    RADEON_USAGE_READWRITE | RADEON_USAGE_SYNCHRONIZED,
-                                    r300_surface(fb->cbufs[i])->domain,
-                                    tex->b.nr_samples > 1 ?
-                                    RADEON_PRIO_COLOR_BUFFER_MSAA :
-                                    RADEON_PRIO_COLOR_BUFFER);
+                                    RADEON_USAGE_READWRITE | RADEON_USAGE_SYNCHRONIZED |
+                                    (tex->b.nr_samples > 1 ?
+                                        RADEON_PRIO_COLOR_BUFFER_MSAA :
+                                        RADEON_PRIO_COLOR_BUFFER),
+                                    r300_surface(fb->cbufs[i])->domain);
         }
         /* ...depth buffer... */
         if (fb->zsbuf) {
             tex = r300_resource(fb->zsbuf->texture);
             assert(tex && tex->buf && "zsbuf is marked, but NULL!");
             r300->rws->cs_add_buffer(&r300->cs, tex->buf,
-                                    RADEON_USAGE_READWRITE | RADEON_USAGE_SYNCHRONIZED,
-                                    r300_surface(fb->zsbuf)->domain,
-                                    tex->b.nr_samples > 1 ?
-                                    RADEON_PRIO_DEPTH_BUFFER_MSAA :
-                                    RADEON_PRIO_DEPTH_BUFFER);
+                                    RADEON_USAGE_READWRITE | RADEON_USAGE_SYNCHRONIZED |
+                                    (tex->b.nr_samples > 1 ?
+                                        RADEON_PRIO_DEPTH_BUFFER_MSAA :
+                                        RADEON_PRIO_DEPTH_BUFFER),
+                                    r300_surface(fb->zsbuf)->domain);
         }
     }
     /* The AA resolve buffer. */
     if (r300->aa_state.dirty) {
         if (aa->dest) {
             r300->rws->cs_add_buffer(&r300->cs, aa->dest->buf,
-                                    RADEON_USAGE_WRITE | RADEON_USAGE_SYNCHRONIZED,
-                                    aa->dest->domain,
-                                    RADEON_PRIO_COLOR_BUFFER);
+                                    RADEON_USAGE_WRITE | RADEON_USAGE_SYNCHRONIZED |
+                                    RADEON_PRIO_COLOR_BUFFER,
+                                    aa->dest->domain);
         }
     }
     if (r300->textures_state.dirty) {
@@ -1359,22 +1359,23 @@ validate:
 
             tex = r300_resource(texstate->sampler_views[i]->base.texture);
             r300->rws->cs_add_buffer(&r300->cs, tex->buf,
-                                     RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED,
-                                    tex->domain, RADEON_PRIO_SAMPLER_TEXTURE);
+                                     RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED |
+                                     RADEON_PRIO_SAMPLER_TEXTURE,
+                                    tex->domain);
         }
     }
     /* ...occlusion query buffer... */
     if (r300->query_current)
         r300->rws->cs_add_buffer(&r300->cs, r300->query_current->buf,
-                                 RADEON_USAGE_WRITE | RADEON_USAGE_SYNCHRONIZED,
-                                 RADEON_DOMAIN_GTT,
-                                RADEON_PRIO_QUERY);
+                                 RADEON_USAGE_WRITE | RADEON_USAGE_SYNCHRONIZED |
+                                 RADEON_PRIO_QUERY,
+                                 RADEON_DOMAIN_GTT);
     /* ...vertex buffer for SWTCL path... */
     if (r300->vbo)
         r300->rws->cs_add_buffer(&r300->cs, r300->vbo,
-                                 RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED,
-                                 RADEON_DOMAIN_GTT,
-                                RADEON_PRIO_VERTEX_BUFFER);
+                                 RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED |
+                                 RADEON_PRIO_VERTEX_BUFFER,
+                                 RADEON_DOMAIN_GTT);
     /* ...vertex buffers for HWTCL path... */
     if (do_validate_vertex_buffers && r300->vertex_arrays_dirty) {
         struct pipe_vertex_buffer *vbuf = r300->vertex_buffer;
@@ -1388,17 +1389,17 @@ validate:
                 continue;
 
             r300->rws->cs_add_buffer(&r300->cs, r300_resource(buf)->buf,
-                                    RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED,
-                                    r300_resource(buf)->domain,
-                                    RADEON_PRIO_SAMPLER_BUFFER);
+                                    RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED |
+                                    RADEON_PRIO_SAMPLER_BUFFER,
+                                    r300_resource(buf)->domain);
         }
     }
     /* ...and index buffer for HWTCL path. */
     if (index_buffer)
         r300->rws->cs_add_buffer(&r300->cs, r300_resource(index_buffer)->buf,
-                                RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED,
-                                r300_resource(index_buffer)->domain,
-                                RADEON_PRIO_INDEX_BUFFER);
+                                RADEON_USAGE_READ | RADEON_USAGE_SYNCHRONIZED |
+                                RADEON_PRIO_INDEX_BUFFER,
+                                r300_resource(index_buffer)->domain);
 
     /* Now do the validation (flush is called inside cs_validate on failure). */
     if (!r300->rws->cs_validate(&r300->cs)) {

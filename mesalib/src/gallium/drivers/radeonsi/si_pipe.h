@@ -732,6 +732,7 @@ struct si_samplers {
 
    /* The i-th bit is set if that element is enabled (non-NULL resource). */
    unsigned enabled_mask;
+   uint32_t has_depth_tex_mask;
    uint32_t needs_depth_decompress_mask;
    uint32_t needs_color_decompress_mask;
 };
@@ -1072,6 +1073,7 @@ struct si_context {
    unsigned descriptors_dirty;
    unsigned shader_pointers_dirty;
    unsigned shader_needs_decompress_mask;
+   unsigned shader_has_depth_tex;
    struct si_buffer_resources internal_bindings;
    struct si_buffer_resources const_and_shader_buffers[SI_NUM_SHADERS];
    struct si_samplers samplers[SI_NUM_SHADERS];
@@ -1315,7 +1317,7 @@ bool si_nir_is_output_const_if_tex_is_const(nir_shader *shader, float *in, float
 
 /* si_buffer.c */
 bool si_cs_is_buffer_referenced(struct si_context *sctx, struct pb_buffer *buf,
-                                enum radeon_bo_usage usage);
+                                unsigned usage);
 void *si_buffer_map(struct si_context *sctx, struct si_resource *resource,
                     unsigned usage);
 void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res, uint64_t size,
@@ -1940,12 +1942,11 @@ static inline void si_need_gfx_cs_space(struct si_context *ctx, unsigned num_dra
  * rebuilt.
  */
 static inline void radeon_add_to_buffer_list(struct si_context *sctx, struct radeon_cmdbuf *cs,
-                                             struct si_resource *bo, enum radeon_bo_usage usage,
-                                             enum radeon_bo_priority priority)
+                                             struct si_resource *bo, unsigned usage)
 {
    assert(usage);
-   sctx->ws->cs_add_buffer(cs, bo->buf, (enum radeon_bo_usage)(usage | RADEON_USAGE_SYNCHRONIZED),
-                           bo->domains, priority);
+   sctx->ws->cs_add_buffer(cs, bo->buf, usage | RADEON_USAGE_SYNCHRONIZED,
+                           bo->domains);
 }
 
 /**
@@ -1965,15 +1966,14 @@ static inline void radeon_add_to_buffer_list(struct si_context *sctx, struct rad
  */
 static inline void radeon_add_to_gfx_buffer_list_check_mem(struct si_context *sctx,
                                                            struct si_resource *bo,
-                                                           enum radeon_bo_usage usage,
-                                                           enum radeon_bo_priority priority,
+                                                           unsigned usage,
                                                            bool check_mem)
 {
    if (check_mem &&
        !radeon_cs_memory_below_limit(sctx->screen, &sctx->gfx_cs, sctx->memory_usage_kb + bo->memory_usage_kb))
       si_flush_gfx_cs(sctx, RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
 
-   radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, bo, usage, priority);
+   radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, bo, usage);
 }
 
 static inline unsigned si_get_wave_size(struct si_screen *sscreen,

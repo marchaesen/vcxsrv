@@ -1016,8 +1016,6 @@ apply_reusable_variables(nir_builder *b, lower_ngg_nogs_state *nogs_state)
 static void
 add_deferred_attribute_culling(nir_builder *b, nir_cf_list *original_extracted_cf, lower_ngg_nogs_state *nogs_state)
 {
-   assert(b->shader->info.outputs_written & (1 << VARYING_SLOT_POS));
-
    bool uses_instance_id = BITSET_TEST(b->shader->info.system_values_read, SYSTEM_VALUE_INSTANCE_ID);
    bool uses_tess_primitive_id = BITSET_TEST(b->shader->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID);
 

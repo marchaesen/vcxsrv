@@ -32,7 +32,7 @@
 
 
 #include "Draw.h"
-#include "Dxgi.h"
+#include "DxgiFns.h"
 #include "InputAssembly.h"
 #include "OutputMerger.h"
 #include "Query.h"
@@ -354,11 +354,11 @@ DestroyDevice(D3D10DDI_HDEVICE hDevice)   // IN
    static struct pipe_sampler_view * sampler_views[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    memset(sampler_views, 0, sizeof sampler_views);
    pipe->set_sampler_views(pipe, PIPE_SHADER_FRAGMENT, 0,
-                           PIPE_MAX_SHADER_SAMPLER_VIEWS, 0, sampler_views);
+                           PIPE_MAX_SHADER_SAMPLER_VIEWS, 0, false, sampler_views);
    pipe->set_sampler_views(pipe, PIPE_SHADER_VERTEX, 0,
-                           PIPE_MAX_SHADER_SAMPLER_VIEWS, 0, sampler_views);
+                           PIPE_MAX_SHADER_SAMPLER_VIEWS, 0, false, sampler_views);
    pipe->set_sampler_views(pipe, PIPE_SHADER_GEOMETRY, 0,
-                           PIPE_MAX_SHADER_SAMPLER_VIEWS, 0, sampler_views);
+                           PIPE_MAX_SHADER_SAMPLER_VIEWS, 0, false, sampler_views);
 
    pipe->destroy(pipe);
 }

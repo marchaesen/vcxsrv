@@ -1,0 +1,67 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Note normal pre-merge CI also includes -premerge-skips.txt, and that's where
+# "it's slow but would pass/fail/crash within a couple of minutes" skips should go.
+
+# Timeouts in CI even after 5 minutes
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_equal_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_equal_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing
+
+# timeout, spending all its time in nir_compare_deref_paths()
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/5152
+dEQP-VK.ubo.random.all_shared_buffer.48
+
+# Still running after 3 hours, time is spent in batch_draw_tracking().
+KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
+
+# causes a hangcheck timeout on a630:
+# msm ae00000.mdss: [drm:hangcheck_handler] *ERROR* A630: hangcheck detected gpu lockup rb 0!
+dEQP-VK.graphicsfuzz.spv-stable-maze-flatten-copy-composite
+spill-dEQP-VK.graphicsfuzz.spv-stable-pillars-volatile-nontemporal-store
+
+# These take most of a minute to run
+spec@!opengl 3.0@clearbuffer-depth-cs-probe
+spec@ext_texture_array@fbo-depth-array depth-clear
+spec@ext_texture_array@fbo-depth-array depth-draw
+spec@ext_texture_array@fbo-depth-array fs-writes-depth
+spec@ext_texture_array@fbo-depth-array fs-writes-stencil
+spec@ext_texture_array@fbo-depth-array stencil-clear
+spec@ext_texture_array@fbo-depth-array stencil-draw
+spec@ext_transform_feedback@max-varyings
+spec@!opengl 1.0@gl-1.0-blend-func
+
+# Skip over a bunch of extensions since we don't have extension fast skipping yet.
+spec@glsl-4.*
+spec@arb_gpu_shader5.*
+spec@arb_gpu_shader_fp64.*
+spec@arb_gpu_shader_int64.*
+
+# These are so flaky I don't want to spam our CI flakes channel
+.*tcs-input.*
+.*tes-input.*
+
+# TC Timeouts
+spec@arb_sync@clientwaitsync-timeout
+spec@arb_texture_buffer_object@bufferstorage
+spec@arb_uniform_buffer_object@bufferstorage
+spec@arb_buffer_storage@bufferstorage-persistent read
+spec@arb_buffer_storage@bufferstorage-persistent read client-storage
+spec@arb_buffer_storage@bufferstorage-persistent read coherent
+spec@arb_buffer_storage@bufferstorage-persistent read coherent client-storage
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read client-storage
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read coherent
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read coherent client-storage
+
+# These are redundant with arb_copy_image, so skip them to cut down
+# on CI runtime:
+spec@nv_copy_image@nv_copy_image.*

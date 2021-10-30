@@ -142,6 +142,7 @@ libvulkan_freedreno = shared_library(
     idep_nir,
     tu_deps,
     idep_vulkan_util,
+    idep_vulkan_runtime,
     idep_vulkan_wsi,
     idep_mesautil,
   ],

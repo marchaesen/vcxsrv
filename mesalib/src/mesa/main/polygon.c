@@ -294,6 +294,9 @@ _mesa_GetnPolygonStippleARB( GLsizei bufSize, GLubyte *dest )
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glGetPolygonStipple\n");
 
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
+
    dest = _mesa_map_validate_pbo_dest(ctx, 2,
                                       &ctx->Pack, 32, 32, 1,
                                       GL_COLOR_INDEX, GL_BITMAP,

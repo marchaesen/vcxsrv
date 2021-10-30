@@ -103,6 +103,8 @@ struct find_variable {
 
 /**
  * Visitor that determines whether or not a variable is ever written.
+ * Note: this is only considering if the variable is statically written
+ * (= regardless of the runtime flow of control)
  *
  * Use \ref find_assignments for convenience.
  */
@@ -622,6 +624,13 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
                         struct gl_context *ctx,
                         struct shader_info *info)
 {
+   if (ctx->Const.DoDCEBeforeClipCullAnalysis) {
+      /* Remove dead functions to avoid raising an error (eg: dead function
+       * writes to gl_ClipVertex, and main() writes to gl_ClipDistance).
+       */
+      do_dead_functions(shader->ir);
+   }
+
    info->clip_distance_array_size = 0;
    info->cull_distance_array_size = 0;
 
@@ -1278,7 +1287,7 @@ interstage_cross_validate_uniform_blocks(struct gl_shader_program *prog,
 
          if (index == -1) {
             linker_error(prog, "buffer block `%s' has mismatching "
-                         "definitions\n", sh_blks[j]->Name);
+                         "definitions\n", sh_blks[j]->name.string);
 
             for (unsigned k = 0; k <= i; k++) {
                free(ifc_blk_stage_idx[k]);
@@ -3735,24 +3744,26 @@ create_shader_variable(struct gl_shader_program *shProg,
     */
    if (in->data.mode == ir_var_system_value &&
        in->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
-      out->name = ralloc_strdup(shProg, "gl_VertexID");
+      out->name.string = ralloc_strdup(shProg, "gl_VertexID");
    } else if ((in->data.mode == ir_var_shader_out &&
                in->data.location == VARYING_SLOT_TESS_LEVEL_OUTER) ||
               (in->data.mode == ir_var_system_value &&
                in->data.location == SYSTEM_VALUE_TESS_LEVEL_OUTER)) {
-      out->name = ralloc_strdup(shProg, "gl_TessLevelOuter");
+      out->name.string = ralloc_strdup(shProg, "gl_TessLevelOuter");
       type = glsl_type::get_array_instance(glsl_type::float_type, 4);
    } else if ((in->data.mode == ir_var_shader_out &&
                in->data.location == VARYING_SLOT_TESS_LEVEL_INNER) ||
               (in->data.mode == ir_var_system_value &&
                in->data.location == SYSTEM_VALUE_TESS_LEVEL_INNER)) {
-      out->name = ralloc_strdup(shProg, "gl_TessLevelInner");
+      out->name.string = ralloc_strdup(shProg, "gl_TessLevelInner");
       type = glsl_type::get_array_instance(glsl_type::float_type, 2);
    } else {
-      out->name = ralloc_strdup(shProg, name);
+      out->name.string = ralloc_strdup(shProg, name);
    }
 
-   if (!out->name)
+   resource_name_updated(&out->name);
+
+   if (!out->name.string)
       return NULL;
 
    /* The ARB_program_interface_query spec says:
@@ -4342,7 +4353,8 @@ link_assign_subroutine_types(struct gl_shader_program *prog)
          p->sh.SubroutineFunctions = reralloc(p, p->sh.SubroutineFunctions,
                                             struct gl_subroutine_function,
                                             p->sh.NumSubroutineFunctions + 1);
-         p->sh.SubroutineFunctions[p->sh.NumSubroutineFunctions].name = ralloc_strdup(p, fn->name);
+         p->sh.SubroutineFunctions[p->sh.NumSubroutineFunctions].name.string = ralloc_strdup(p, fn->name);
+         resource_name_updated(&p->sh.SubroutineFunctions[p->sh.NumSubroutineFunctions].name);
          p->sh.SubroutineFunctions[p->sh.NumSubroutineFunctions].num_compat_types = fn->num_subroutine_types;
          p->sh.SubroutineFunctions[p->sh.NumSubroutineFunctions].types =
             ralloc_array(p, const struct glsl_type *,
@@ -4393,7 +4405,7 @@ verify_subroutine_associated_funcs(struct gl_shader_program *prog)
        */
       for (unsigned j = 0; j < p->sh.NumSubroutineFunctions; j++) {
          unsigned definitions = 0;
-         char *name = p->sh.SubroutineFunctions[j].name;
+         char *name = p->sh.SubroutineFunctions[j].name.string;
          ir_function *fn = symbols->get_function(name);
 
          /* Calculate number of function definitions with the same name */
@@ -5024,4 +5036,26 @@ done:
    }
 
    ralloc_free(mem_ctx);
+}
+
+void
+resource_name_updated(struct gl_resource_name *name)
+{
+   if (name->string) {
+      name->length = strlen(name->string);
+
+      const char *last_square_bracket = strrchr(name->string, '[');
+      if (last_square_bracket) {
+         name->last_square_bracket = last_square_bracket - name->string;
+         name->suffix_is_zero_square_bracketed =
+            strcmp(last_square_bracket, "[0]") == 0;
+      } else {
+         name->last_square_bracket = -1;
+         name->suffix_is_zero_square_bracketed = false;
+      }
+   } else {
+      name->length = 0;
+      name->last_square_bracket = -1;
+      name->suffix_is_zero_square_bracketed = false;
+   }
 }

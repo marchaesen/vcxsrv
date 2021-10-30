@@ -157,7 +157,7 @@ libvulkan_radeon = shared_library(
     dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl, dep_m,
     dep_valgrind, radv_deps, idep_aco,
     idep_mesautil, idep_nir, idep_vulkan_util, idep_vulkan_wsi,
-    idep_amdgfxregs_h, idep_xmlconfig,
+    idep_vulkan_runtime, idep_amdgfxregs_h, idep_xmlconfig,
   ],
   c_args : [no_override_init_args, radv_flags, c_msvc_compat_args],
   cpp_args : [radv_flags, cpp_msvc_compat_args],

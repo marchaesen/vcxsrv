@@ -827,8 +827,7 @@ zink_get_shader_param(struct pipe_screen *pscreen,
       return screen->info.feats11.uniformAndStorageBuffer16BitAccess ||
              (screen->info.have_KHR_16bit_storage && screen->info.storage_16bit_feats.uniformAndStorageBuffer16BitAccess);
    case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-      return screen->info.feats11.storageInputOutput16 ||
-             (screen->info.have_KHR_16bit_storage && screen->info.storage_16bit_feats.storageInputOutput16);
+      return 0; //spirv requires 32bit derivative srcs and dests
    case PIPE_SHADER_CAP_FP16:
       return screen->info.feats12.shaderFloat16 ||
              (screen->info.have_KHR_shader_float16_int8 &&

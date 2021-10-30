@@ -386,8 +386,7 @@ si_thread_trace_start(struct si_context *sctx, int family, struct radeon_cmdbuf 
    ws->cs_add_buffer(cs,
                      sctx->thread_trace->bo,
                      RADEON_USAGE_READWRITE,
-                     RADEON_DOMAIN_VRAM,
-                     0);
+                     RADEON_DOMAIN_VRAM);
 
    si_cp_dma_wait_for_idle(sctx, cs);
 
@@ -429,8 +428,7 @@ si_thread_trace_stop(struct si_context *sctx, int family, struct radeon_cmdbuf *
    ws->cs_add_buffer(cs,
                      sctx->thread_trace->bo,
                      RADEON_USAGE_READWRITE,
-                     RADEON_DOMAIN_VRAM,
-                     0);
+                     RADEON_DOMAIN_VRAM);
 
    si_cp_dma_wait_for_idle(sctx, cs);
 

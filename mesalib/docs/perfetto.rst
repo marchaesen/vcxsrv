@@ -80,6 +80,30 @@ To capture a trace with perfetto you need to take the following steps:
 8. Alternatively you can open the trace in `AGI <https://gpuinspector.dev/>`__
    (which despite the name can be used to view non-android traces).
 
+To be a bit more explicit, here is a listing of commands reproducing
+the steps above :
+
+.. code-block:: console
+
+   # Configure Mesa with perfetto
+   mesa $ meson . build -Dperfetto=true -Dvulkan-drivers=intel,broadcom -Dgallium-drivers=
+   # Build mesa
+   mesa $ ninja -C build
+
+   # Within the Mesa repo, build perfetto
+   mesa $ cd subprojects/perfetto
+   perfetto $ ./tools/install-build-deps
+   perfetto $ ./tools/gn gen --args='is_debug=false' out/linux
+   perfetto $ ./tools/ninja -C out/linux
+
+   # Start perfetto
+   perfetto $ CONFIG=../../src/tool/pps/cfg/gpu.cfg OUT=out/linux/ ./tools/tmux -n
+
+   # In parallel from the Mesa repo, start the PPS producer
+   mesa $ ./build/src/tool/pps/pps-producer
+
+   # Back in the perfetto tmux, press enter to start the capture
+
 Driver Specifics
 ~~~~~~~~~~~~~~~~
 

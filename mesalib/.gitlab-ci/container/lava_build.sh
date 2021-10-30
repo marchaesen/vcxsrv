@@ -50,6 +50,7 @@ else
     DEFCONFIG="arch/x86/configs/x86_64_defconfig"
     DEVICE_TREES=""
     KERNEL_IMAGE_NAME="bzImage"
+    ARCH_PACKAGES="libva-dev"
 fi
 
 # Determine if we're in a cross build.
@@ -71,6 +72,7 @@ fi
 
 apt-get update
 apt-get install -y --no-remove \
+                   ${ARCH_PACKAGES} \
                    automake \
                    bc \
                    cmake \
@@ -129,8 +131,7 @@ rm -rf /apitrace
 ############### Build dEQP runner
 . .gitlab-ci/container/build-deqp-runner.sh
 mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin
-mv /usr/local/bin/deqp-runner /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/.
-mv /usr/local/bin/piglit-runner /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/.
+mv /usr/local/bin/*-runner /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/.
 
 
 ############### Build dEQP
@@ -143,6 +144,11 @@ mv /deqp /lava-files/rootfs-${DEBIAN_ARCH}/.
 PIGLIT_OPTS="-DPIGLIT_BUILD_DMA_BUF_TESTS=ON" . .gitlab-ci/container/build-piglit.sh
 mv /piglit /lava-files/rootfs-${DEBIAN_ARCH}/.
 
+############### Build libva tests
+if [[ "$DEBIAN_ARCH" = "amd64" ]]; then
+    . .gitlab-ci/container/build-va-tools.sh
+    mv /va/bin/* /lava-files/rootfs-${DEBIAN_ARCH}/usr/bin/
+fi
 
 ############### Build libdrm
 EXTRA_MESON_ARGS+=" -D prefix=/libdrm"
@@ -179,6 +185,8 @@ rm /lava-files/rootfs-${DEBIAN_ARCH}/create-rootfs.sh
 # created.
 mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH
 find /libdrm/ -name lib\*\.so\* | xargs cp -t /lava-files/rootfs-${DEBIAN_ARCH}/usr/lib/$GCC_ARCH/.
+mkdir -p /lava-files/rootfs-${DEBIAN_ARCH}/libdrm/
+cp -Rp /libdrm/share /lava-files/rootfs-${DEBIAN_ARCH}/libdrm/share
 rm -rf /libdrm
 
 

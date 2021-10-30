@@ -97,6 +97,8 @@ class PrintCode(gl_XML.gl_print_base):
         out('{')
         with indent():
             out('GET_CURRENT_CONTEXT(ctx);')
+            if func.marshal_call_before:
+                out(func.marshal_call_before);
             out('_mesa_glthread_finish_before(ctx, "{0}");'.format(func.name))
             self.print_sync_call(func)
         out('}')
@@ -317,6 +319,9 @@ class PrintCode(gl_XML.gl_print_base):
         out('{')
         with indent():
             out('GET_CURRENT_CONTEXT(ctx);')
+            if func.marshal_call_before:
+                out(func.marshal_call_before);
+
             if not func.marshal_sync:
                 for p in func.variable_params:
                     out('int {0}_size = {1};'.format(p.name, p.size_string(marshal = 1)))

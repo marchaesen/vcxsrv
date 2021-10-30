@@ -56,6 +56,37 @@ xkb_symbols "unicode" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "macOS" {
+
+    include "ua(unicode)"
+    name[Group1]= "Ukrainian (macOS)";
+
+    key <TLDE> { [ apostrophe, asciitilde, bracketright, bracketleft ] }; 
+    key <AE01> { [ 1, exclam, exclam, U0174 ] };
+    key <AE02> { [ 2, quotedbl, at, quotedbl ] };
+    key <AE03> { [ 3, numerosign, numbersign, U20B4 ] };
+    key <AE04> { [ 4, percent, dollar, EuroSign ] };
+    key <AE05> { [ 5, colon, degree ] };
+    key <AE06> { [ 6, comma, less ] };
+    key <AE07> { [ 7, period, ampersand, U204B ] };
+    key <AE08> { [ 8, semicolon, asterisk, U221A ] };
+    key <AE09> { [ 9, parenleft, parenleft, apostrophe ] };
+    key <AE10> { [ 0, parenright,  parenright, grave ] };
+    key <AE11> { [ minus, underscore, endash, emdash ] };
+    key <AE12> { [ equal, plus, U00BB, U00AB ] };
+
+    key <AC02> { [ Cyrillic_i, Cyrillic_I, Cyrillic_yeru, Cyrillic_YERU ] };
+    key <AB05> { [ Ukrainian_i, Ukrainian_I, Cyrillic_i, Cyrillic_I ] };
+    
+    key <AB08> { [ Cyrillic_be, Cyrillic_BE, lessthanequal, less ] };
+    key <AB09> { [ Cyrillic_yu, Cyrillic_YU, greaterthanequal, greater ] };
+
+    key <AB10> { [ slash, question, U201C, U201E] };
+    
+    include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
 xkb_symbols "legacy" {
 
     name[Group1]= "Ukrainian (legacy)";

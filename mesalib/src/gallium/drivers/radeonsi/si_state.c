@@ -2671,6 +2671,21 @@ static void si_init_depth_surface(struct si_context *sctx, struct si_surface *su
    surf->depth_initialized = true;
 }
 
+void si_set_sampler_depth_decompress_mask(struct si_context *sctx, struct si_texture *tex)
+{
+   /* Check all sampler bindings in all shaders where depth textures are bound, and update
+    * which samplers should be decompressed.
+    */
+   u_foreach_bit(sh, sctx->shader_has_depth_tex) {
+      u_foreach_bit(i, sctx->samplers[sh].has_depth_tex_mask) {
+         if (sctx->samplers[sh].views[i]->texture == &tex->buffer.b.b) {
+            sctx->samplers[sh].needs_depth_decompress_mask |= 1 << i;
+            sctx->shader_needs_decompress_mask |= 1 << sh;
+         }
+      }
+   }
+}
+
 void si_update_fb_dirtiness_after_rendering(struct si_context *sctx)
 {
    if (sctx->decompression_enabled)
@@ -2684,6 +2699,8 @@ void si_update_fb_dirtiness_after_rendering(struct si_context *sctx)
 
       if (tex->surface.has_stencil)
          tex->stencil_dirty_level_mask |= 1 << surf->u.tex.level;
+
+      si_set_sampler_depth_decompress_mask(sctx, tex);
    }
 
    unsigned compressed_cb_mask = sctx->framebuffer.compressed_cb_mask;
@@ -3063,12 +3080,12 @@ static void si_emit_framebuffer_state(struct si_context *sctx)
 
       tex = (struct si_texture *)cb->base.texture;
       radeon_add_to_buffer_list(
-         sctx, &sctx->gfx_cs, &tex->buffer, RADEON_USAGE_READWRITE | RADEON_USAGE_NEEDS_IMPLICIT_SYNC,
-         tex->buffer.b.b.nr_samples > 1 ? RADEON_PRIO_COLOR_BUFFER_MSAA : RADEON_PRIO_COLOR_BUFFER);
+         sctx, &sctx->gfx_cs, &tex->buffer, RADEON_USAGE_READWRITE | RADEON_USAGE_NEEDS_IMPLICIT_SYNC |
+         (tex->buffer.b.b.nr_samples > 1 ? RADEON_PRIO_COLOR_BUFFER_MSAA : RADEON_PRIO_COLOR_BUFFER));
 
       if (tex->cmask_buffer && tex->cmask_buffer != &tex->buffer) {
          radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, tex->cmask_buffer,
-                                   RADEON_USAGE_READWRITE | RADEON_USAGE_NEEDS_IMPLICIT_SYNC,
+                                   RADEON_USAGE_READWRITE | RADEON_USAGE_NEEDS_IMPLICIT_SYNC |
                                    RADEON_PRIO_SEPARATE_META);
       }
 
@@ -3273,9 +3290,9 @@ static void si_emit_framebuffer_state(struct si_context *sctx)
       unsigned db_stencil_info = zb->db_stencil_info;
       unsigned db_htile_surface = zb->db_htile_surface;
 
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, &tex->buffer, RADEON_USAGE_READWRITE,
-                                zb->base.texture->nr_samples > 1 ? RADEON_PRIO_DEPTH_BUFFER_MSAA
-                                                                 : RADEON_PRIO_DEPTH_BUFFER);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, &tex->buffer, RADEON_USAGE_READWRITE |
+                                (zb->base.texture->nr_samples > 1 ? RADEON_PRIO_DEPTH_BUFFER_MSAA
+                                                                  : RADEON_PRIO_DEPTH_BUFFER));
 
       /* Set fields dependent on tc_compatile_htile. */
       if (sctx->chip_class >= GFX9 &&
@@ -4492,9 +4509,13 @@ static uint32_t si_translate_border_color(struct si_context *sctx,
 
    if (i >= SI_MAX_BORDER_COLORS) {
       /* Getting 4096 unique border colors is very unlikely. */
-      fprintf(stderr, "radeonsi: The border color table is full. "
-                      "Any new border colors will be just black. "
-                      "Please file a bug.\n");
+      static bool printed;
+      if (!printed) {
+         fprintf(stderr, "radeonsi: The border color table is full. "
+                         "Any new border colors will be just black. "
+                         "This is a hardware limitation.\n");
+         printed = true;
+      }
       return S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK);
    }
 

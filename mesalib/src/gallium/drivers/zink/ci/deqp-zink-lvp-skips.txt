@@ -1,1 +1,0 @@
-KHR-GL32.texture_size_promotion.functional

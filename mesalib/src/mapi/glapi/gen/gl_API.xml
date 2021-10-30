@@ -2881,7 +2881,8 @@
         <glx sop="139"/>
     </function>
 
-    <function name="IsEnabled" es1="1.1" es2="2.0">
+    <function name="IsEnabled" es1="1.1" es2="2.0"
+              marshal_call_before="int result = _mesa_glthread_IsEnabled(ctx, cap); if (result >= 0) return result;">
         <param name="cap" type="GLenum"/>
         <return type="GLboolean"/>
         <glx sop="140" handcode="client"/>

@@ -1201,6 +1201,8 @@ void st_init_extensions(struct pipe_screen *screen,
 
    consts->AllowGLSLCrossStageInterpolationMismatch = options->allow_glsl_cross_stage_interpolation_mismatch;
 
+   consts->DoDCEBeforeClipCullAnalysis = options->do_dce_before_clip_cull_analysis;
+
    consts->GLSLIgnoreWriteToReadonlyVar = options->glsl_ignore_write_to_readonly_var;
 
    consts->PrimitiveRestartFixedIndex =
@@ -1840,6 +1842,7 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    consts->AllowDrawOutOfOrder = options->allow_draw_out_of_order;
+   consts->GLThreadNopCheckFramebufferStatus = options->glthread_nop_check_framebuffer_status;
 
    bool prefer_nir = PIPE_SHADER_IR_NIR ==
          screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_PREFERRED_IR);

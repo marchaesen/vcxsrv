@@ -151,7 +151,8 @@ gl_nir_link_assign_xfb_resources(struct gl_context *ctx,
          linked_xfb->Varyings + i;
 
       /* ARB_gl_spirv: see above. */
-      varying->Name = NULL;
+      varying->name.string = NULL;
+      resource_name_updated(&varying->name);
       varying->Type = glsl_get_gl_type(xfb_varying->type);
       varying->BufferIndex = buffer_index;
       varying->Size = glsl_type_is_array(xfb_varying->type) ?

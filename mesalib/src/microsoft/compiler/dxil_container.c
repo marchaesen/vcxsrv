@@ -72,11 +72,12 @@ bool
 dxil_container_add_features(struct dxil_container *c,
                             const struct dxil_features *features)
 {
-   union {
-      struct dxil_features flags;
-      uint64_t bits;
-   } u = { .flags = *features };
-   return add_part(c, DXIL_SFI0, &u.bits, sizeof(u.bits));
+   /* DXIL feature info is a bitfield packed into a uint64_t. */
+   static_assert(sizeof(struct dxil_features) <= sizeof(uint64_t),
+                 "Expected dxil_features to fit into a uint64_t");
+   uint64_t bits = 0;
+   memcpy(&bits, features, sizeof(struct dxil_features));
+   return add_part(c, DXIL_SFI0, &bits, sizeof(uint64_t));
 }
 
 typedef struct {

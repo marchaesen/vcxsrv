@@ -662,7 +662,7 @@ get_ahb_buffer_format_properties(VkDevice device_h, const struct AHardwareBuffer
 
 static VkResult
 get_ahb_buffer_format_properties2(VkDevice device_h, const struct AHardwareBuffer *buffer,
-                                  VkAndroidHardwareBufferFormatPropertiesANDROID2 *pProperties)
+                                  VkAndroidHardwareBufferFormatProperties2ANDROID *pProperties)
 {
    RADV_FROM_HANDLE(radv_device, device, device_h);
 
@@ -682,7 +682,7 @@ get_ahb_buffer_format_properties2(VkDevice device_h, const struct AHardwareBuffe
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 
    /* Fill properties fields based on description. */
-   VkAndroidHardwareBufferFormatPropertiesANDROID *p = pProperties;
+   VkAndroidHardwareBufferFormatProperties2ANDROID *p = pProperties;
 
    p->format = vk_format_from_android(desc.format, desc.usage);
    p->externalFormat = (uint64_t)(uintptr_t)p->format;

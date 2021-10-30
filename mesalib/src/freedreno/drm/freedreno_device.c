@@ -86,6 +86,7 @@ out:
 
    list_inithead(&dev->deferred_submits);
    simple_mtx_init(&dev->submit_lock, mtx_plain);
+   simple_mtx_init(&dev->suballoc_lock, mtx_plain);
 
    return dev;
 }
@@ -129,6 +130,9 @@ fd_device_del_impl(struct fd_device *dev)
    simple_mtx_assert_locked(&table_lock);
 
    assert(list_is_empty(&dev->deferred_submits));
+
+   if (dev->suballoc_bo)
+      fd_bo_del_locked(dev->suballoc_bo);
 
    fd_bo_cache_cleanup(&dev->bo_cache, 0);
    fd_bo_cache_cleanup(&dev->ring_cache, 0);

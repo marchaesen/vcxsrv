@@ -1310,10 +1310,9 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
                                  unsigned drawid_base,
                                  const struct pipe_draw_indirect_info *indirect,
                                  const struct pipe_draw_start_count_bias *draws,
-                                 unsigned num_draws, unsigned total_count,
+                                 unsigned num_draws,
                                  struct pipe_resource *indexbuf, unsigned index_size,
-                                 unsigned index_offset, unsigned instance_count,
-                                 unsigned original_index_size)
+                                 unsigned index_offset, unsigned instance_count)
 {
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
 
@@ -1386,8 +1385,8 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
 
       index_va = si_resource(indexbuf)->gpu_address + index_offset;
 
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(indexbuf), RADEON_USAGE_READ,
-                                RADEON_PRIO_INDEX_BUFFER);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(indexbuf),
+                                RADEON_USAGE_READ | RADEON_PRIO_INDEX_BUFFER);
    } else {
       /* On GFX7 and later, non-indexed draws overwrite VGT_INDEX_TYPE,
        * so the state must be re-emitted before the next indexed draw.
@@ -1413,7 +1412,7 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
       radeon_emit(indirect_va >> 32);
 
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(indirect->buffer),
-                                RADEON_USAGE_READ, RADEON_PRIO_DRAW_INDIRECT);
+                                RADEON_USAGE_READ | RADEON_PRIO_DRAW_INDIRECT);
 
       unsigned di_src_sel = index_size ? V_0287F0_DI_SRC_SEL_DMA : V_0287F0_DI_SRC_SEL_AUTO_INDEX;
 
@@ -1441,8 +1440,8 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
          if (indirect->indirect_draw_count) {
             struct si_resource *params_buf = si_resource(indirect->indirect_draw_count);
 
-            radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, params_buf, RADEON_USAGE_READ,
-                                      RADEON_PRIO_DRAW_INDIRECT);
+            radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, params_buf,
+                                      RADEON_USAGE_READ | RADEON_PRIO_DRAW_INDIRECT);
 
             count_va = params_buf->gpu_address + indirect->indirect_draw_count_offset;
          }
@@ -1472,7 +1471,7 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
       }
 
       /* Base vertex and start instance. */
-      int base_vertex = original_index_size ? draws[0].index_bias : draws[0].start;
+      int base_vertex = index_size ? draws[0].index_bias : draws[0].start;
 
       bool set_draw_id = !IS_DRAW_VERTEX_STATE && sctx->vs_uses_draw_id;
       bool set_base_instance = sctx->vs_uses_base_instance;
@@ -1796,7 +1795,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
 
          sctx->vb_descriptors_gpu_list = ptr;
          radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->vb_descriptors_buffer,
-                                   RADEON_USAGE_READ, RADEON_PRIO_DESCRIPTORS);
+                                   RADEON_USAGE_READ | RADEON_PRIO_DESCRIPTORS);
          /* GFX6 doesn't support the L2 prefetch. */
          if (GFX_VERSION >= GFX7)
             si_cp_dma_prefetch(sctx, &sctx->vb_descriptors_buffer->b.b, sctx->vb_descriptors_offset,
@@ -1832,7 +1831,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
          if (vstate->b.input.vbuffer.buffer.resource != vstate->b.input.indexbuf) {
             radeon_add_to_buffer_list(sctx, &sctx->gfx_cs,
                                       si_resource(vstate->b.input.vbuffer.buffer.resource),
-                                      RADEON_USAGE_READ, RADEON_PRIO_VERTEX_BUFFER);
+                                      RADEON_USAGE_READ | RADEON_PRIO_VERTEX_BUFFER);
          }
 
          /* The next draw_vbo should recompute and rebind vertex buffer descriptors. */
@@ -1854,7 +1853,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
 
             if (first_vb_use_mask & (1 << i)) {
                radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(vb->buffer.resource),
-                                         RADEON_USAGE_READ, RADEON_PRIO_VERTEX_BUFFER);
+                                         RADEON_USAGE_READ | RADEON_PRIO_VERTEX_BUFFER);
             }
          }
 
@@ -2210,6 +2209,7 @@ static void si_draw(struct pipe_context *ctx,
             si_resource(indirect->indirect_draw_count)->TC_L2_dirty = false;
          }
       }
+      total_direct_count = INT_MAX; /* just set something other than 0 to enable shader culling */
    } else {
       total_direct_count = min_direct_count = draws[0].count;
 
@@ -2226,7 +2226,6 @@ static void si_draw(struct pipe_context *ctx,
       info->primitive_restart &&
       (!sctx->screen->options.prim_restart_tri_strips_only ||
        (prim != PIPE_PRIM_TRIANGLE_STRIP && prim != PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY));
-   unsigned original_index_size = index_size;
 
    /* Set the rasterization primitive type.
     *
@@ -2406,8 +2405,8 @@ static void si_draw(struct pipe_context *ctx,
       assert(sctx->dirty_atoms == 0);
 
       si_emit_draw_packets<GFX_VERSION, NGG, IS_DRAW_VERTEX_STATE>
-            (sctx, info, drawid_offset, indirect, draws, num_draws, total_direct_count, indexbuf,
-             index_size, index_offset, instance_count, original_index_size);
+            (sctx, info, drawid_offset, indirect, draws, num_draws, indexbuf,
+             index_size, index_offset, instance_count);
       /* <-- CUs are busy here. */
 
       /* Start prefetches after the draw has been started. Both will run
@@ -2446,8 +2445,8 @@ static void si_draw(struct pipe_context *ctx,
       assert(sctx->dirty_atoms == 0);
 
       si_emit_draw_packets<GFX_VERSION, NGG, IS_DRAW_VERTEX_STATE>
-            (sctx, info, drawid_offset, indirect, draws, num_draws, total_direct_count, indexbuf,
-             index_size, index_offset, instance_count, original_index_size);
+            (sctx, info, drawid_offset, indirect, draws, num_draws, indexbuf,
+             index_size, index_offset, instance_count);
 
       /* Prefetch the remaining shaders after the draw has been
        * started. */

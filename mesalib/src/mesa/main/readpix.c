@@ -1170,6 +1170,9 @@ read_pixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
       }
    }
 
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
+
    ctx->Driver.ReadPixels(ctx, x, y, width, height,
                           format, type, &clippedPacking, pixels);
 }

@@ -1428,6 +1428,9 @@ get_texture_image(struct gl_context *ctx,
       numFaces = 1;
    }
 
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
+
    _mesa_lock_texture(ctx, texObj);
 
    for (i = 0; i < numFaces; i++) {
@@ -1803,6 +1806,9 @@ get_compressed_texture_image(struct gl_context *ctx,
       firstFace = _mesa_tex_target_to_face(target);
       numFaces = 1;
    }
+
+   if (ctx->Pack.BufferObj)
+      ctx->Pack.BufferObj->UsageHistory |= USAGE_PIXEL_PACK_BUFFER;
 
    _mesa_lock_texture(ctx, texObj);
 

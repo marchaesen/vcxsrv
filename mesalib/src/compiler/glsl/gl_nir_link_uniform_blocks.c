@@ -134,8 +134,8 @@ link_blocks_are_compatible(const struct gl_uniform_block *a,
    /* We are explicitly ignoring the names, so it would be good to check that
     * this is happening.
     */
-   assert(a->Name == NULL);
-   assert(b->Name == NULL);
+   assert(a->name.string == NULL);
+   assert(b->name.string == NULL);
 
    if (a->NumUniforms != b->NumUniforms)
       return false;
@@ -468,7 +468,8 @@ fill_block(struct gl_uniform_block *block,
 {
    const struct glsl_type *type = glsl_without_array(var->type);
 
-   block->Name = NULL; /* ARB_gl_spirv: allowed to ignore names */
+   block->name.string = NULL; /* ARB_gl_spirv: allowed to ignore names */
+   resource_name_updated(&block->name);
    /* From ARB_gl_spirv spec:
     *    "Vulkan uses only one binding point for a resource array,
     *     while OpenGL still uses multiple binding points, so binding

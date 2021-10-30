@@ -48,6 +48,7 @@
 #include "compiler/shader_info.h"
 #include "main/formats.h"       /* MESA_FORMAT_COUNT */
 #include "compiler/glsl/list.h"
+#include "compiler/glsl/ir_uniform.h"
 #include "util/u_idalloc.h"
 #include "util/simple_mtx.h"
 #include "util/u_dynarray.h"
@@ -1354,7 +1355,6 @@ typedef enum
    USAGE_TRANSFORM_FEEDBACK_BUFFER = 0x10,
    USAGE_PIXEL_PACK_BUFFER = 0x20,
    USAGE_ARRAY_BUFFER = 0x40,
-   USAGE_ELEMENT_ARRAY_BUFFER = 0x80,
    USAGE_DISABLE_MINMAX_CACHE = 0x100,
 } gl_buffer_usage;
 
@@ -1809,7 +1809,7 @@ struct gl_evaluators
 
 struct gl_transform_feedback_varying_info
 {
-   char *Name;
+   struct gl_resource_name name;
    GLenum16 Type;
    GLint BufferIndex;
    GLint Size;
@@ -2498,7 +2498,7 @@ struct gl_ati_fragment_shader_state
  */
 struct gl_subroutine_function
 {
-   char *name;
+   struct gl_resource_name name;
    int index;
    int num_compat_types;
    const struct glsl_type **types;
@@ -2768,7 +2768,7 @@ struct gl_uniform_buffer_variable
 struct gl_uniform_block
 {
    /** Declared name of the uniform block */
-   char *Name;
+   struct gl_resource_name name;
 
    /** Array of supplemental information about UBO ir_variables. */
    struct gl_uniform_buffer_variable *Uniforms;
@@ -2859,7 +2859,7 @@ struct gl_shader_variable
    /**
     * Declared name of the variable
     */
-   char *name;
+   struct gl_resource_name name;
 
    /**
     * Storage location of the base of this variable
@@ -2954,6 +2954,12 @@ enum gl_link_status
    LINKING_SKIPPED
 };
 
+/* All GLSL program resource types are next to each other, so we can use that
+ * to make them 0-based like this:
+ */
+#define GET_PROGRAM_RESOURCE_TYPE_FROM_GLENUM(x) ((x) - GL_UNIFORM)
+#define NUM_PROGRAM_RESOURCE_TYPES (GL_TRANSFORM_FEEDBACK_VARYING - GL_UNIFORM + 1)
+
 /**
  * A data structure to be shared by gl_shader_program and gl_program.
  */
@@ -2993,7 +2999,7 @@ struct gl_shader_program_data
    union gl_constant_value *UniformDataDefaults;
 
    /** Hash for quick search by name. */
-   struct hash_table_u64 *ProgramResourceHash;
+   struct hash_table *ProgramResourceHash[NUM_PROGRAM_RESOURCE_TYPES];
 
    GLboolean Validated;
 
@@ -3370,6 +3376,8 @@ struct gl_shared_state
 {
    simple_mtx_t Mutex;		   /**< for thread safety */
    GLint RefCount;			   /**< Reference count */
+   bool DisplayListsAffectGLThread;
+
    struct _mesa_HashTable *DisplayList;	   /**< Display lists hash table */
    struct _mesa_HashTable *BitmapAtlas;    /**< For optimized glBitmap text */
    struct _mesa_HashTable *TexObjects;	   /**< Texture objects hash table */
@@ -3955,6 +3963,15 @@ struct gl_constants
    GLboolean AllowExtraPPTokens;
 
    /**
+    * The spec forbids a shader to "statically write both gl_ClipVertex
+    * and gl_ClipDistance".
+    * This option adds a tolerance for shader that statically writes to
+    * both but at least one of the write can be removed by a dead code
+    * elimination pass.
+    */
+   GLboolean DoDCEBeforeClipCullAnalysis;
+
+   /**
     * Force computing the absolute value for sqrt() and inversesqrt() to follow
     * D3D9 when apps rely on this behaviour.
     */
@@ -4306,6 +4323,13 @@ struct gl_constants
     *  produce 0 instead of leaving the texture content undefined).
     */
    bool NoClippingOnCopyTex;
+
+   /**
+    * Force glthread to always return GL_FRAMEBUFFER_COMPLETE to prevent
+    * synchronization. Used for apps that call it every frame or multiple times
+    * a frame, but always getting framebuffer completeness.
+    */
+   bool GLThreadNopCheckFramebufferStatus;
 };
 
 
@@ -4697,12 +4721,8 @@ union gl_dlist_node;
 struct gl_display_list
 {
    GLuint Name;
+   bool execute_glthread;
    bool small_list;
-   /* If small_list and begins_with_a_nop are true, this means
-    * the 'start' has been incremented to skip a NOP at the
-    * beginning.
-    */
-   bool begins_with_a_nop;
    GLchar *Label;     /**< GL_KHR_debug */
    /** The dlist commands are in a linked list of nodes */
    union {
@@ -4726,6 +4746,7 @@ struct gl_dlist_state
    union gl_dlist_node *CurrentBlock; /**< Pointer to current block of nodes */
    GLuint CurrentPos;		/**< Index into current block of nodes */
    GLuint CallDepth;		/**< Current recursion calling depth */
+   GLuint LastInstSize;         /**< Size of the last node. */
 
    GLvertexformat ListVtxfmt;
 

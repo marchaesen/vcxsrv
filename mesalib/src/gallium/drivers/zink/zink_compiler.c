@@ -637,6 +637,202 @@ decompose_attribs(nir_shader *nir, uint32_t decomposed_attrs, uint32_t decompose
    return true;
 }
 
+static bool
+rewrite_bo_access_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   struct zink_screen *screen = data;
+   const bool has_int64 = screen->info.feats.features.shaderInt64;
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   b->cursor = nir_before_instr(instr);
+   switch (intr->intrinsic) {
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_ubo: {
+      /* ubo0 can have unaligned 64bit loads, particularly for bindless texture ids */
+      bool force_2x32 = intr->intrinsic == nir_intrinsic_load_ubo &&
+                        nir_src_as_uint(intr->src[0]) == 0 &&
+                        nir_dest_bit_size(intr->dest) == 64 &&
+                        nir_intrinsic_align_offset(intr) % 8 != 0;
+      nir_instr_rewrite_src_ssa(instr, &intr->src[1], nir_udiv_imm(b, intr->src[1].ssa,
+                                (force_2x32 ? 32 : nir_dest_bit_size(intr->dest)) / 8));
+      /* if 64bit isn't supported, 64bit loads definitely aren't supported, so rewrite as 2x32 with cast and pray */
+      if (force_2x32 || (nir_dest_bit_size(intr->dest) == 64 && !has_int64)) {
+         /* this is always scalarized */
+         assert(intr->dest.ssa.num_components == 1);
+         /* rewrite as 2x32 */
+         nir_ssa_def *load;
+         if (intr->intrinsic == nir_intrinsic_load_ssbo)
+            load = nir_load_ssbo(b, 2, 32, intr->src[0].ssa, intr->src[1].ssa, .align_mul = 4, .align_offset = 0);
+         else
+            load = nir_load_ubo(b, 2, 32, intr->src[0].ssa, intr->src[1].ssa, .align_mul = 4, .align_offset = 0, .range = 4);
+         nir_intrinsic_set_access(nir_instr_as_intrinsic(load->parent_instr), nir_intrinsic_access(intr));
+         /* cast back to 64bit */
+         nir_ssa_def *casted = nir_pack_64_2x32(b, load);
+         nir_ssa_def_rewrite_uses(&intr->dest.ssa, casted);
+         nir_instr_remove(instr);
+      }
+      return true;
+   }
+   case nir_intrinsic_load_shared:
+      b->cursor = nir_before_instr(instr);
+      nir_instr_rewrite_src_ssa(instr, &intr->src[0], nir_udiv_imm(b, intr->src[0].ssa, nir_dest_bit_size(intr->dest) / 8));
+      /* if 64bit isn't supported, 64bit loads definitely aren't supported, so rewrite as 2x32 with cast and pray */
+      if (nir_dest_bit_size(intr->dest) == 64 && !has_int64) {
+         /* this is always scalarized */
+         assert(intr->dest.ssa.num_components == 1);
+         /* rewrite as 2x32 */
+         nir_ssa_def *load = nir_load_shared(b, 2, 32, intr->src[0].ssa, .align_mul = 4, .align_offset = 0);
+         /* cast back to 64bit */
+         nir_ssa_def *casted = nir_pack_64_2x32(b, load);
+         nir_ssa_def_rewrite_uses(&intr->dest.ssa, casted);
+         nir_instr_remove(instr);
+         return true;
+      }
+      break;
+   case nir_intrinsic_store_ssbo:
+      b->cursor = nir_before_instr(instr);
+      nir_instr_rewrite_src_ssa(instr, &intr->src[2], nir_udiv_imm(b, intr->src[2].ssa, nir_src_bit_size(intr->src[0]) / 8));
+      /* if 64bit isn't supported, 64bit loads definitely aren't supported, so rewrite as 2x32 with cast and pray */
+      if (nir_src_bit_size(intr->src[0]) == 64 && !has_int64) {
+         /* this is always scalarized */
+         assert(intr->src[0].ssa->num_components == 1);
+         /* cast to 32bit: nir_unpack_64_2x32 not supported by ntv */
+         nir_ssa_def *casted = nir_vec2(b, nir_u2u32(b, intr->src[0].ssa), nir_u2u32(b, nir_ushr_imm(b, intr->src[0].ssa, 32)));
+         /* rewrite as 2x32 */
+         nir_store_ssbo(b, casted, intr->src[1].ssa, intr->src[2].ssa, .align_mul = 4, .align_offset = 0);
+         nir_instr_remove(instr);
+      }
+      return true;
+   case nir_intrinsic_store_shared:
+      b->cursor = nir_before_instr(instr);
+      nir_instr_rewrite_src_ssa(instr, &intr->src[1], nir_udiv_imm(b, intr->src[1].ssa, nir_src_bit_size(intr->src[0]) / 8));
+      /* if 64bit isn't supported, 64bit loads definitely aren't supported, so rewrite as 2x32 with cast and pray */
+      if (nir_src_bit_size(intr->src[0]) == 64 && !has_int64) {
+         /* this is always scalarized */
+         assert(intr->src[0].ssa->num_components == 1);
+         /* cast to 32bit: nir_unpack_64_2x32 not supported by ntv */
+         nir_ssa_def *casted = nir_vec2(b, nir_u2u32(b, intr->src[0].ssa), nir_u2u32(b, nir_ushr_imm(b, intr->src[0].ssa, 32)));
+         /* rewrite as 2x32 */
+         nir_store_shared(b, casted, intr->src[1].ssa, .align_mul = 4, .align_offset = 0);
+         nir_instr_remove(instr);
+      }
+      return true;
+   default:
+      break;
+   }
+   return false;
+}
+
+static bool
+rewrite_bo_access(nir_shader *shader, struct zink_screen *screen)
+{
+   return nir_shader_instructions_pass(shader, rewrite_bo_access_instr, nir_metadata_dominance, screen);
+}
+
+struct bo_vars {
+   nir_variable *ubo[PIPE_MAX_CONSTANT_BUFFERS][5];
+   nir_variable *ssbo[PIPE_MAX_CONSTANT_BUFFERS][5];
+};
+
+static nir_variable *
+get_bo_var(nir_shader *shader, struct bo_vars *bo, bool ssbo, unsigned idx, unsigned bit_size)
+{
+   nir_variable *var;
+   nir_variable **arr = (nir_variable**)(ssbo ? bo->ssbo : bo->ubo);
+
+   var = arr[idx * 5 + (bit_size >> 4)];
+   if (!var) {
+      arr[idx * 5 + (bit_size >> 4)] = var = nir_variable_clone(arr[idx * 5 + (32 >> 4)], shader);
+      nir_shader_add_variable(shader, var);
+
+      struct glsl_struct_field *fields = rzalloc_array(shader, struct glsl_struct_field, 2);
+      fields[0].name = ralloc_strdup(shader, "base");
+      fields[1].name = ralloc_strdup(shader, "unsized");
+      const struct glsl_type *array_type = glsl_get_struct_field(var->type, 0);
+      const struct glsl_type *type;
+      const struct glsl_type *unsized = unsized = glsl_array_type(glsl_uintN_t_type(bit_size), 0, bit_size / 8);
+      if (bit_size > 32) {
+         assert(bit_size == 64);
+         type = glsl_array_type(glsl_uintN_t_type(bit_size), glsl_get_length(array_type) / 2, bit_size / 8);
+      } else {
+         type = glsl_array_type(glsl_uintN_t_type(bit_size), glsl_get_length(array_type) * (32 / bit_size), bit_size / 8);
+      }
+      fields[0].type = type;
+      fields[1].type = unsized;
+      var->type = glsl_struct_type(fields, glsl_get_length(var->type), "struct", false);
+   }
+   return var;
+}
+
+static bool
+remove_bo_access_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+   struct bo_vars *bo = data;
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   nir_variable *var = NULL;
+   nir_ssa_def *offset = NULL;
+   bool is_load = true;
+   b->cursor = nir_before_instr(instr);
+   switch (intr->intrinsic) {
+   case nir_intrinsic_store_ssbo:
+      var = get_bo_var(b->shader, bo, true, nir_src_as_uint(intr->src[1]), nir_src_bit_size(intr->src[0]));
+      offset = intr->src[2].ssa;
+      is_load = false;
+      break;
+   case nir_intrinsic_load_ssbo:
+      var = get_bo_var(b->shader, bo, true, nir_src_as_uint(intr->src[0]), nir_dest_bit_size(intr->dest));
+      offset = intr->src[1].ssa;
+      break;
+   case nir_intrinsic_load_ubo:
+      var = get_bo_var(b->shader, bo, false, nir_src_as_uint(intr->src[0]), nir_dest_bit_size(intr->dest));
+      offset = intr->src[1].ssa;
+      break;
+   default:
+      return false;
+   }
+   assert(var);
+   assert(offset);
+   nir_deref_instr *deref_var = nir_build_deref_struct(b, nir_build_deref_var(b, var), 0);
+   assert(intr->num_components <= 2);
+   if (is_load) {
+      nir_ssa_def *result[2];
+      for (unsigned i = 0; i < intr->num_components; i++) {
+         nir_deref_instr *deref_arr = nir_build_deref_array(b, deref_var, offset);
+         result[i] = nir_load_deref(b, deref_arr);
+         if (intr->intrinsic == nir_intrinsic_load_ssbo)
+            nir_intrinsic_set_access(nir_instr_as_intrinsic(result[i]->parent_instr), nir_intrinsic_access(intr));
+         offset = nir_iadd_imm(b, offset, 1);
+      }
+      nir_ssa_def *load = nir_vec(b, result, intr->num_components);
+      nir_ssa_def_rewrite_uses(&intr->dest.ssa, load);
+   } else {
+      nir_deref_instr *deref_arr = nir_build_deref_array(b, deref_var, offset);
+      nir_build_store_deref(b, &deref_arr->dest.ssa, intr->src[0].ssa, BITFIELD_MASK(intr->num_components), nir_intrinsic_access(intr));
+   }
+   nir_instr_remove(instr);
+   return true;
+}
+
+static bool
+remove_bo_access(nir_shader *shader)
+{
+   struct bo_vars bo;
+   memset(&bo, 0, sizeof(bo));
+   nir_foreach_variable_with_modes(var, shader, nir_var_mem_ssbo | nir_var_mem_ubo) {
+      if (var->data.mode == nir_var_mem_ssbo) {
+         assert(!bo.ssbo[var->data.driver_location][32 >> 4]);
+         bo.ssbo[var->data.driver_location][32 >> 4] = var;
+      } else {
+         assert(!bo.ubo[var->data.driver_location][32 >> 4]);
+         bo.ubo[var->data.driver_location][32 >> 4] = var;
+      }
+   }
+   return nir_shader_instructions_pass(shader, remove_bo_access_instr, nir_metadata_dominance, &bo);
+}
+
 static void
 assign_producer_var_io(gl_shader_stage stage, nir_variable *var, unsigned *reserved, unsigned char *slot_map)
 {
@@ -787,6 +983,8 @@ zink_shader_compile(struct zink_screen *screen, struct zink_shader *zs, nir_shad
    VkShaderModule mod = VK_NULL_HANDLE;
    void *streamout = NULL;
    nir_shader *nir = nir_shader_clone(NULL, base_nir);
+   bool need_optimize = false;
+   bool inlined_uniforms = false;
 
    if (key) {
       if (key->inline_uniforms) {
@@ -795,11 +993,7 @@ zink_shader_compile(struct zink_screen *screen, struct zink_shader *zs, nir_shad
                     key->base.inlined_uniform_values,
                     nir->info.inlinable_uniform_dw_offsets);
 
-         optimize_nir(nir);
-
-         /* This must be done again. */
-         NIR_PASS_V(nir, nir_io_add_const_offset_to_base, nir_var_shader_in |
-                                                          nir_var_shader_out);
+         inlined_uniforms = true;
       }
 
       /* TODO: use a separate mem ctx here for ralloc */
@@ -852,7 +1046,7 @@ zink_shader_compile(struct zink_screen *screen, struct zink_shader *zs, nir_shad
             }
             nir_fixup_deref_modes(nir);
             NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_shader_temp, NULL);
-            optimize_nir(nir);
+            need_optimize = true;
          }
          if (zink_fs_key(key)->force_dual_color_blend && nir->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_DATA1)) {
             NIR_PASS_V(nir, lower_dual_blend);
@@ -868,12 +1062,26 @@ zink_shader_compile(struct zink_screen *screen, struct zink_shader *zs, nir_shad
             fbfetch->data.mode = nir_var_shader_temp;
             nir_fixup_deref_modes(nir);
             NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_shader_temp, NULL);
-            optimize_nir(nir);
+            need_optimize = true;
          }
          break;
       default: break;
       }
    }
+   if (screen->driconf.inline_uniforms) {
+      NIR_PASS_V(nir, nir_lower_io_to_scalar, nir_var_mem_ubo | nir_var_mem_ssbo | nir_var_mem_shared);
+      NIR_PASS_V(nir, rewrite_bo_access, screen);
+      NIR_PASS_V(nir, remove_bo_access);
+   }
+   if (inlined_uniforms) {
+      optimize_nir(nir);
+
+      /* This must be done again. */
+      NIR_PASS_V(nir, nir_io_add_const_offset_to_base, nir_var_shader_in |
+                                                       nir_var_shader_out);
+   } else if (need_optimize)
+      optimize_nir(nir);
+
    NIR_PASS_V(nir, nir_convert_from_ssa, true);
 
    struct spirv_shader *spirv = nir_to_spirv(nir, streamout, screen->spirv_version);
@@ -1292,6 +1500,38 @@ handle_bindless_var(nir_shader *nir, nir_variable *var, const struct glsl_type *
    var->data.mode = nir_var_shader_temp;
 }
 
+static enum pipe_prim_type
+gl_prim_to_pipe(unsigned primitive_type)
+{
+   switch (primitive_type) {
+   case GL_POINTS:
+      return PIPE_PRIM_POINTS;
+   case GL_LINES:
+   case GL_LINE_LOOP:
+   case GL_LINE_STRIP:
+   case GL_LINES_ADJACENCY:
+   case GL_LINE_STRIP_ADJACENCY:
+   case GL_ISOLINES:
+      return PIPE_PRIM_LINES;
+   default:
+      return PIPE_PRIM_TRIANGLES;
+   }
+}
+
+static enum pipe_prim_type
+get_shader_base_prim_type(struct nir_shader *nir)
+{
+   switch (nir->info.stage) {
+   case MESA_SHADER_GEOMETRY:
+      return gl_prim_to_pipe(nir->info.gs.output_primitive);
+   case MESA_SHADER_TESS_EVAL:
+      return nir->info.tess.point_mode ? PIPE_PRIM_POINTS : gl_prim_to_pipe(nir->info.tess.primitive_mode);
+   default:
+      break;
+   }
+   return PIPE_PRIM_MAX;
+}
+
 struct zink_shader *
 zink_shader_create(struct zink_screen *screen, struct nir_shader *nir,
                    const struct pipe_stream_output_info *so_info)
@@ -1300,6 +1540,7 @@ zink_shader_create(struct zink_screen *screen, struct nir_shader *nir,
    bool have_psiz = false;
 
    ret->hash = _mesa_hash_pointer(ret);
+   ret->reduced_prim = get_shader_base_prim_type(nir);
 
    ret->programs = _mesa_pointer_set_create(NULL);
    simple_mtx_init(&ret->lock, mtx_plain);
@@ -1344,6 +1585,12 @@ zink_shader_create(struct zink_screen *screen, struct nir_shader *nir,
          nir->info.fs.color_is_dual_source ? 1 : 8);
    NIR_PASS_V(nir, lower_64bit_vertex_attribs);
    NIR_PASS_V(nir, unbreak_bos);
+   /* run in compile if there could be inlined uniforms */
+   if (!screen->driconf.inline_uniforms) {
+      NIR_PASS_V(nir, nir_lower_io_to_scalar, nir_var_mem_ubo | nir_var_mem_ssbo | nir_var_mem_shared);
+      NIR_PASS_V(nir, rewrite_bo_access, screen);
+      NIR_PASS_V(nir, remove_bo_access);
+   }
 
    if (zink_debug & ZINK_DEBUG_NIR) {
       fprintf(stderr, "NIR shader:\n---8<---\n");

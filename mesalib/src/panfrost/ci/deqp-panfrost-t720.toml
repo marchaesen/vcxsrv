@@ -7,5 +7,5 @@ deqp_args = [
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
 ]
-version_check = "GL ES .*git"
+version_check = "GL ES 2.0.*git"
 renderer_check = "Mali-T720"

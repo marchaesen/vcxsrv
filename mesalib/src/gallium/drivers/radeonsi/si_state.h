@@ -454,8 +454,8 @@ struct si_buffer_resources {
    struct pipe_resource **buffers; /* this has num_buffers elements */
    unsigned *offsets;              /* this has num_buffers elements */
 
-   enum radeon_bo_priority priority : 6;
-   enum radeon_bo_priority priority_constbuf : 6;
+   unsigned priority;
+   unsigned priority_constbuf;
 
    /* The i-th bit is set if that element is enabled (non-NULL resource). */
    uint64_t enabled_mask;
@@ -539,6 +539,7 @@ struct pipe_sampler_view *si_create_sampler_view_custom(struct pipe_context *ctx
                                                         const struct pipe_sampler_view *state,
                                                         unsigned width0, unsigned height0,
                                                         unsigned force_level);
+void si_set_sampler_depth_decompress_mask(struct si_context *sctx, struct si_texture *tex);
 void si_update_fb_dirtiness_after_rendering(struct si_context *sctx);
 void si_mark_display_dcc_dirty(struct si_context *sctx, struct si_texture *tex);
 void si_update_ps_iter_samples(struct si_context *sctx);

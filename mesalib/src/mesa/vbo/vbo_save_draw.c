@@ -106,10 +106,10 @@ playback_copy_to_current(struct gl_context *ctx,
    bool color0_changed = false;
 
    /* Copy conventional attribs and generics except pos */
-   copy_vao(ctx, node->VAO[VP_MODE_SHADER], ~VERT_BIT_POS & VERT_BIT_ALL,
+   copy_vao(ctx, node->cold->VAO[VP_MODE_SHADER], ~VERT_BIT_POS & VERT_BIT_ALL,
             _NEW_CURRENT_ATTRIB, GL_CURRENT_BIT, 0, &data, &color0_changed);
    /* Copy materials */
-   copy_vao(ctx, node->VAO[VP_MODE_FF], VERT_BIT_MAT_ALL,
+   copy_vao(ctx, node->cold->VAO[VP_MODE_FF], VERT_BIT_MAT_ALL,
             _NEW_MATERIAL, GL_LIGHTING_BIT,
             VBO_MATERIAL_SHIFT, &data, &color0_changed);
 
@@ -138,7 +138,7 @@ bind_vertex_list(struct gl_context *ctx,
                  const struct vbo_save_vertex_list *node)
 {
    const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
-   _mesa_set_draw_vao(ctx, node->VAO[mode], _vbo_get_vao_filter(mode));
+   _mesa_set_draw_vao(ctx, node->cold->VAO[mode], _vbo_get_vao_filter(mode));
 }
 
 
@@ -146,7 +146,7 @@ static void
 loopback_vertex_list(struct gl_context *ctx,
                      const struct vbo_save_vertex_list *list)
 {
-   struct gl_buffer_object *bo = list->VAO[0]->BufferBinding[0].BufferObj;
+   struct gl_buffer_object *bo = list->cold->VAO[0]->BufferBinding[0].BufferObj;
    void *buffer = ctx->Driver.MapBufferRange(ctx, 0, bo->Size, GL_MAP_READ_BIT, /* ? */
                                              bo, MAP_INTERNAL);
 
@@ -201,12 +201,18 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
    /* This sets which vertex arrays are enabled, which determines
     * which attribs have stride = 0 and whether edge flags are enabled.
     */
-   const GLbitfield enabled = node->merged.gallium.enabled_attribs[mode];
+   const GLbitfield enabled = node->enabled_attribs[mode];
    ctx->Array._DrawVAOEnabledAttribs = enabled;
    _mesa_set_varying_vp_inputs(ctx, enabled);
 
    if (ctx->NewState)
       _mesa_update_state(ctx);
+
+   /* Return precomputed GL errors such as invalid shaders. */
+   if (!ctx->ValidPrimMask) {
+      _mesa_error(ctx, ctx->DrawGLError, "glCallList");
+      return DONE;
+   }
 
    /* Use the slow path when there are vertex inputs without vertex
     * elements. This happens with zero-stride attribs and non-fixed-func
@@ -222,16 +228,13 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
    if (vp->info.inputs_read & ~enabled || vp->DualSlotInputs)
       return USE_SLOW_PATH;
 
-   struct pipe_vertex_state *state = node->merged.gallium.state[mode];
-   struct pipe_draw_vertex_state_info info = node->merged.gallium.info;
+   struct pipe_vertex_state *state = node->state[mode];
+   struct pipe_draw_vertex_state_info info;
 
-   /* Return precomputed GL errors such as invalid shaders. */
-   if (!ctx->ValidPrimMask) {
-      _mesa_error(ctx, ctx->DrawGLError, "glCallList");
-      return DONE;
-   }
+   info.mode = node->mode;
+   info.take_vertex_state_ownership = false;
 
-   if (node->merged.gallium.ctx == ctx) {
+   if (node->ctx == ctx) {
       /* This mechanism allows passing references to the driver without
        * using atomics to increase the reference count.
        *
@@ -248,7 +251,7 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
        * possibly turn a million atomic increments into 1 add and 1 subtract
        * atomic op over the whole lifetime of an app.
        */
-      int * const private_refcount = (int*)&node->merged.gallium.private_refcount[mode];
+      int16_t * const private_refcount = (int16_t*)&node->private_refcount[mode];
       assert(*private_refcount >= 0);
 
       if (unlikely(*private_refcount == 0)) {
@@ -260,7 +263,7 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
           * lists, so one display list can only increment it by
           * INT_MAX / N.
           */
-         const int add_refs = INT_MAX / 500000;
+         const int16_t add_refs = INT_MAX / 500000;
          p_atomic_add(&state->reference.count, add_refs);
          *private_refcount = add_refs;
       }
@@ -270,15 +273,15 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
    }
 
    /* Fast path using a pre-built gallium vertex buffer state. */
-   if (node->merged.mode || node->merged.num_draws > 1) {
+   if (node->modes || node->num_draws > 1) {
       ctx->Driver.DrawGalliumVertexState(ctx, state, info,
-                                         node->merged.start_counts,
-                                         node->merged.mode,
-                                         node->merged.num_draws,
+                                         node->start_counts,
+                                         node->modes,
+                                         node->num_draws,
                                          enabled & VERT_ATTRIB_EDGEFLAG);
-   } else if (node->merged.num_draws) {
+   } else if (node->num_draws) {
       ctx->Driver.DrawGalliumVertexState(ctx, state, info,
-                                         &node->merged.start_count,
+                                         &node->start_count,
                                          NULL, 1,
                                          enabled & VERT_ATTRIB_EDGEFLAG);
    }
@@ -327,18 +330,18 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data, bool copy_to_c
 
    assert(ctx->NewState == 0);
 
-   struct pipe_draw_info *info = (struct pipe_draw_info *) &node->merged.info;
+   struct pipe_draw_info *info = (struct pipe_draw_info *) &node->cold->info;
    void *gl_bo = info->index.gl_bo;
-   if (node->merged.mode) {
+   if (node->modes) {
       ctx->Driver.DrawGalliumMultiMode(ctx, info,
-                                       node->merged.start_counts,
-                                       node->merged.mode,
-                                       node->merged.num_draws);
-   } else if (node->merged.num_draws == 1) {
-      ctx->Driver.DrawGallium(ctx, info, 0, &node->merged.start_count, 1);
-   } else if (node->merged.num_draws) {
-      ctx->Driver.DrawGallium(ctx, info, 0, node->merged.start_counts,
-                              node->merged.num_draws);
+                                       node->start_counts,
+                                       node->modes,
+                                       node->num_draws);
+   } else if (node->num_draws == 1) {
+      ctx->Driver.DrawGallium(ctx, info, 0, &node->start_count, 1);
+   } else if (node->num_draws) {
+      ctx->Driver.DrawGallium(ctx, info, 0, node->start_counts,
+                              node->num_draws);
    }
    info->index.gl_bo = gl_bo;
 

@@ -306,6 +306,91 @@ pan_blend_is_opaque(const struct pan_blend_equation equation)
                 equation.alpha_func == BLEND_FUNC_SUBTRACT);
 }
 
+/* Check if (factor, invert) represents a constant value of val, assuming
+ * src_alpha is the given constant.
+ */
+
+static inline bool
+is_factor_01(unsigned factor, bool invert, unsigned val, unsigned srca)
+{
+        assert(val == 0 || val == 1);
+        assert(srca == 0 || srca == 1);
+
+        return ((invert ^ !val) && factor == BLEND_FACTOR_ZERO) ||
+               ((invert ^ srca ^ !val) && factor == BLEND_FACTOR_SRC_ALPHA);
+}
+
+/* Returns if src alpha = 0 implies the blended colour equals the destination
+ * colour. Suppose source alpha = 0 and consider cases.
+ *
+ * Additive blending: Equivalent to D = S * f_s + D * f_d for all D and all S
+ * with S_a = 0, for each component. For the alpha component (if it unmasked),
+ * we have S_a = 0 so this reduces to D = D * f_d <===> f_d = 1. For RGB
+ * components (if unmasked), we need f_s = 0 and f_d = 1.
+ *
+ * Subtractive blending: Fails in general (D = S * f_S - D * f_D). We
+ * would need f_S = 0 and f_D = -1, which is not valid in the APIs.
+ *
+ * Reverse subtractive blending (D = D * f_D - S * f_S), we need f_D = 1
+ * and f_S = 0 up to masking. This is the same as additive blending.
+ *
+ * Min/max: Fails in general on the RGB components.
+ */
+
+bool
+pan_blend_alpha_zero_nop(const struct pan_blend_equation eq)
+{
+        if (eq.rgb_func != BLEND_FUNC_ADD &&
+            eq.rgb_func != BLEND_FUNC_REVERSE_SUBTRACT)
+                return false;
+
+        if (eq.color_mask & 0x8) {
+                if (!is_factor_01(eq.alpha_dst_factor, eq.alpha_invert_dst_factor, 1, 0))
+                        return false;
+        }
+
+        if (eq.color_mask & 0x7) {
+                if (!is_factor_01(eq.rgb_dst_factor, eq.rgb_invert_dst_factor, 1, 0))
+                        return false;
+
+                if (!is_factor_01(eq.rgb_src_factor, eq.rgb_invert_src_factor, 0, 0))
+                        return false;
+        }
+
+        return true;
+}
+
+/* Returns if src alpha = 1 implies the blended colour equals the source
+ * colour. Suppose source alpha = 1 and consider cases.
+ *
+ * Additive blending: S = S * f_s + D * f_d. We need f_s = 1 and f_d = 0.
+ *
+ * Subtractive blending: S = S * f_s - D * f_d. Same as additive blending.
+ *
+ * Reverse subtractive blending: S = D * f_d - S * f_s. Fails in general since
+ * it would require f_s = -1, which is not valid in the APIs.
+ *
+ * Min/max: Fails in general on the RGB components.
+ *
+ * Note if any component is masked, we can't use a store.
+ */
+
+bool
+pan_blend_alpha_one_store(const struct pan_blend_equation eq)
+{
+        if (eq.rgb_func != BLEND_FUNC_ADD &&
+            eq.rgb_func != BLEND_FUNC_SUBTRACT)
+                return false;
+
+        if (eq.color_mask != 0xf)
+                return false;
+
+        return is_factor_01(eq.rgb_src_factor, eq.rgb_invert_src_factor, 1, 1) &&
+               is_factor_01(eq.alpha_src_factor, eq.alpha_invert_src_factor, 1, 1) &&
+               is_factor_01(eq.rgb_dst_factor, eq.rgb_invert_dst_factor, 0, 1) &&
+               is_factor_01(eq.alpha_dst_factor, eq.alpha_invert_dst_factor, 0, 1);
+}
+
 static bool
 is_dest_factor(enum blend_factor factor, bool alpha)
 {

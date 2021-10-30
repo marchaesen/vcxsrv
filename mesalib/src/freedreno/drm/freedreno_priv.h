@@ -148,6 +148,23 @@ struct fd_device {
    struct list_head deferred_submits;
    unsigned deferred_cmds;
    simple_mtx_t submit_lock;
+
+   /**
+    * BO for suballocating long-lived state objects.
+    *
+    * Note: one would be tempted to put this in fd_pipe to avoid locking.
+    * But that is a bad idea for a couple of reasons:
+    *
+    *  1) With TC, stateobj allocation can happen in either frontend thread
+    *     (ie. most CSOs), and also driver thread (a6xx cached tex state)
+    *  2) It is best for fd_pipe to not hold a reference to a BO that can
+    *     be free'd to bo cache, as that can cause unexpected re-entrancy
+    *     (fd_bo_cache_alloc() -> find_in_bucket() -> fd_bo_state() ->
+    *     cleanup_fences() -> drop pipe ref which free's bo's).
+    */
+   struct fd_bo *suballoc_bo;
+   uint32_t suballoc_offset;
+   simple_mtx_t suballoc_lock;
 };
 
 #define foreach_submit(name, list) \

@@ -26,7 +26,7 @@ variables:
 
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2021-05-20.0'
+  FDO_DISTRIBUTION_TAG: '2021-10-26.1'
 
 
 stages:
@@ -46,7 +46,7 @@ container-prep:
     # minimal set of packages required to build xkeyboard-config.
     BASE_PACKAGES: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq libxkbcommon'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 
@@ -208,6 +208,26 @@ xmllint:
   stage: test
   script:
     - xmllint --dtdvalid "$INSTDIR/share/X11/xkb/rules/xkb.dtd" $INSTDIR/share/X11/xkb/rules/*.xml > /dev/null
+
+
+# libxkbcommon's xkbcli list prints out YAML-like format, if yq cannot parse it, our
+# evdev.xml file is off
+xkbcli list check:
+  extends:
+    - .default_setup
+  dependencies: ['make_install']
+  needs: ['make_install']
+  stage: test
+  script:
+    - xkbcli list --skip-default-paths --load-exotic "$INSTDIR/share/X11/xkb" > rmlvo.yaml
+    - head -n20 rmlvo.yaml
+    - yq . rmlvo.yaml > /dev/null
+  artifacts:
+    when: on_failure
+    name: xbkcli list output
+    expire_in: 2 weeks
+    paths:
+      - rmlvo.yaml
 
 # download libxkbcommon and run its layout test program. This will
 # run a basic keymap compile test against every combination of

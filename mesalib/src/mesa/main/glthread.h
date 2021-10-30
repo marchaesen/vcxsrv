@@ -227,6 +227,9 @@ struct glthread_state
    struct glthread_attrib_node AttribStack[MAX_ATTRIB_STACK_DEPTH];
    int AttribStackDepth;
    int MatrixStackDepth[M_NUM_MATRIX_STACKS];
+
+   /** Enable states. */
+   bool CullFace;
 };
 
 void _mesa_glthread_init(struct gl_context *ctx);

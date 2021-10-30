@@ -1,2 +1,0 @@
-spec@khr_debug@push-pop-group_gl.*
-glx@glx-multi-window-single-context

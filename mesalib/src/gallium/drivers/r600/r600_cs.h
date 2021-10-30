@@ -69,14 +69,13 @@ radeon_cs_memory_below_limit(struct r600_common_screen *screen,
 static inline unsigned radeon_add_to_buffer_list(struct r600_common_context *rctx,
 						 struct r600_ring *ring,
 						 struct r600_resource *rbo,
-						 enum radeon_bo_usage usage,
-						 enum radeon_bo_priority priority)
+						 unsigned usage)
 {
 	assert(usage);
 	return rctx->ws->cs_add_buffer(
 		&ring->cs, rbo->buf,
-		(enum radeon_bo_usage)(usage | RADEON_USAGE_SYNCHRONIZED),
-		rbo->domains, priority) * 4;
+		usage | RADEON_USAGE_SYNCHRONIZED,
+		rbo->domains) * 4;
 }
 
 /**
@@ -100,8 +99,7 @@ static inline unsigned
 radeon_add_to_buffer_list_check_mem(struct r600_common_context *rctx,
 				    struct r600_ring *ring,
 				    struct r600_resource *rbo,
-				    enum radeon_bo_usage usage,
-				    enum radeon_bo_priority priority,
+				    unsigned usage,
 				    bool check_mem)
 {
 	if (check_mem &&
@@ -110,17 +108,16 @@ radeon_add_to_buffer_list_check_mem(struct r600_common_context *rctx,
 					  rctx->gtt + rbo->gart_usage))
 		ring->flush(rctx, PIPE_FLUSH_ASYNC, NULL);
 
-	return radeon_add_to_buffer_list(rctx, ring, rbo, usage, priority);
+	return radeon_add_to_buffer_list(rctx, ring, rbo, usage);
 }
 
 static inline void r600_emit_reloc(struct r600_common_context *rctx,
 				   struct r600_ring *ring, struct r600_resource *rbo,
-				   enum radeon_bo_usage usage,
-				   enum radeon_bo_priority priority)
+				   unsigned usage)
 {
 	struct radeon_cmdbuf *cs = &ring->cs;
 	bool has_vm = ((struct r600_common_screen*)rctx->b.screen)->info.r600_has_virtual_memory;
-	unsigned reloc = radeon_add_to_buffer_list(rctx, ring, rbo, usage, priority);
+	unsigned reloc = radeon_add_to_buffer_list(rctx, ring, rbo, usage);
 
 	if (!has_vm) {
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));

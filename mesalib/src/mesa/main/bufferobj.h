@@ -71,7 +71,7 @@ extern bool
 _mesa_handle_bind_buffer_gen(struct gl_context *ctx,
                              GLuint buffer,
                              struct gl_buffer_object **buf_handle,
-                             const char *caller);
+                             const char *caller, bool no_error);
 
 extern void
 _mesa_update_default_objects_buffer_objects(struct gl_context *ctx);

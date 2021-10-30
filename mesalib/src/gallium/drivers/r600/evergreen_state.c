@@ -1736,13 +1736,13 @@ static void evergreen_emit_image_state(struct r600_context *rctx, struct r600_at
 		reloc = radeon_add_to_buffer_list(&rctx->b,
 						  &rctx->b.gfx,
 						  resource,
-						  RADEON_USAGE_READWRITE,
+						  RADEON_USAGE_READWRITE |
 						  RADEON_PRIO_SHADER_RW_BUFFER);
 
 		immed_reloc = radeon_add_to_buffer_list(&rctx->b,
 							&rctx->b.gfx,
 							resource->immed_buffer,
-							RADEON_USAGE_READWRITE,
+							RADEON_USAGE_READWRITE |
 							RADEON_PRIO_SHADER_RW_BUFFER);
 
 		if (pkt_flags)
@@ -1866,15 +1866,14 @@ static void evergreen_emit_framebuffer_state(struct r600_context *rctx, struct r
 		reloc = radeon_add_to_buffer_list(&rctx->b,
 					      &rctx->b.gfx,
 					      (struct r600_resource*)cb->base.texture,
-					      RADEON_USAGE_READWRITE,
-					      tex->resource.b.b.nr_samples > 1 ?
+					      RADEON_USAGE_READWRITE |
+					      (tex->resource.b.b.nr_samples > 1 ?
 						      RADEON_PRIO_COLOR_BUFFER_MSAA :
-						      RADEON_PRIO_COLOR_BUFFER);
+						      RADEON_PRIO_COLOR_BUFFER));
 
 		if (tex->cmask_buffer && tex->cmask_buffer != &tex->resource) {
 			cmask_reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
-				tex->cmask_buffer, RADEON_USAGE_READWRITE,
-				RADEON_PRIO_SEPARATE_META);
+				tex->cmask_buffer, RADEON_USAGE_READWRITE | RADEON_PRIO_SEPARATE_META);
 		} else {
 			cmask_reloc = reloc;
 		}
@@ -1925,10 +1924,10 @@ static void evergreen_emit_framebuffer_state(struct r600_context *rctx, struct r
 		unsigned reloc = radeon_add_to_buffer_list(&rctx->b,
 						       &rctx->b.gfx,
 						       (struct r600_resource*)state->zsbuf->texture,
-						       RADEON_USAGE_READWRITE,
-						       zb->base.texture->nr_samples > 1 ?
+						       RADEON_USAGE_READWRITE |
+						       (zb->base.texture->nr_samples > 1 ?
 							       RADEON_PRIO_DEPTH_BUFFER_MSAA :
-							       RADEON_PRIO_DEPTH_BUFFER);
+							       RADEON_PRIO_DEPTH_BUFFER));
 
 		radeon_set_context_reg(cs, R_028008_DB_DEPTH_VIEW, zb->db_depth_view);
 
@@ -2063,7 +2062,7 @@ static void evergreen_emit_db_state(struct r600_context *rctx, struct r600_atom 
 		radeon_set_context_reg(cs, R_028AC8_DB_PRELOAD_CONTROL, a->rsurf->db_preload_control);
 		radeon_set_context_reg(cs, R_028014_DB_HTILE_DATA_BASE, a->rsurf->db_htile_data_base);
 		reloc_idx = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, &rtex->resource,
-						  RADEON_USAGE_READWRITE, RADEON_PRIO_SEPARATE_META);
+						  RADEON_USAGE_READWRITE | RADEON_PRIO_SEPARATE_META);
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 		radeon_emit(cs, reloc_idx);
 	} else {
@@ -2165,7 +2164,7 @@ static void evergreen_emit_vertex_buffers(struct r600_context *rctx,
 
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0) | pkt_flags);
 		radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
-						      RADEON_USAGE_READ, RADEON_PRIO_VERTEX_BUFFER));
+						      RADEON_USAGE_READ | RADEON_PRIO_VERTEX_BUFFER));
 	}
 	state->dirty_mask = 0;
 }
@@ -2211,7 +2210,7 @@ static void evergreen_emit_constant_buffers(struct r600_context *rctx,
 						    pkt_flags);
 			radeon_emit(cs, PKT3(PKT3_NOP, 0, 0) | pkt_flags);
 			radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
-								  RADEON_USAGE_READ, RADEON_PRIO_CONST_BUFFER));
+								  RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER));
 		}
 
 		radeon_emit(cs, PKT3(PKT3_SET_RESOURCE, 8, 0) | pkt_flags);
@@ -2237,7 +2236,7 @@ static void evergreen_emit_constant_buffers(struct r600_context *rctx,
 
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0) | pkt_flags);
 		radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
-						      RADEON_USAGE_READ, RADEON_PRIO_CONST_BUFFER));
+						      RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER));
 
 		dirty_mask &= ~(1 << buffer_index);
 	}
@@ -2356,7 +2355,7 @@ static void evergreen_emit_sampler_views(struct r600_context *rctx,
 		radeon_emit_array(cs, rview->tex_resource_words, 8);
 
 		reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rview->tex_resource,
-					      RADEON_USAGE_READ,
+					      RADEON_USAGE_READ |
 					      r600_get_sampler_view_priority(rview->tex_resource));
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0) | pkt_flags);
 		radeon_emit(cs, reloc);
@@ -2561,7 +2560,7 @@ static void evergreen_emit_vertex_fetch_shader(struct r600_context *rctx, struct
 			       (shader->buffer->gpu_address + shader->offset) >> 8);
 	radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 	radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, shader->buffer,
-                                                  RADEON_USAGE_READ,
+                                                  RADEON_USAGE_READ |
                                                   RADEON_PRIO_SHADER_BINARY));
 }
 
@@ -2685,7 +2684,7 @@ static void evergreen_emit_gs_rings(struct r600_context *rctx, struct r600_atom 
 				rbuffer->gpu_address >> 8);
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 		radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
-						      RADEON_USAGE_READWRITE,
+						      RADEON_USAGE_READWRITE |
 						      RADEON_PRIO_SHADER_RINGS));
 		radeon_set_config_reg(cs, R_008C44_SQ_ESGS_RING_SIZE,
 				state->esgs_ring.buffer_size >> 8);
@@ -2695,7 +2694,7 @@ static void evergreen_emit_gs_rings(struct r600_context *rctx, struct r600_atom 
 				rbuffer->gpu_address >> 8);
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 		radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
-						      RADEON_USAGE_READWRITE,
+						      RADEON_USAGE_READWRITE |
 						      RADEON_PRIO_SHADER_RINGS));
 		radeon_set_config_reg(cs, R_008C4C_SQ_GSVS_RING_SIZE,
 				state->gsvs_ring.buffer_size >> 8);
@@ -3867,9 +3866,9 @@ static void evergreen_dma_copy_tile(struct r600_context *rctx,
 		size = (cheight * pitch) / 4;
 		/* emit reloc before writing cs so that cs is always in consistent state */
 		radeon_add_to_buffer_list(&rctx->b, &rctx->b.dma, &rsrc->resource,
-				      RADEON_USAGE_READ, 0);
+				      RADEON_USAGE_READ);
 		radeon_add_to_buffer_list(&rctx->b, &rctx->b.dma, &rdst->resource,
-				      RADEON_USAGE_WRITE, 0);
+				      RADEON_USAGE_WRITE);
 		radeon_emit(cs, DMA_PACKET(DMA_PACKET_COPY, sub_cmd, size));
 		radeon_emit(cs, base >> 8);
 		radeon_emit(cs, (detile << 31) | (array_mode << 27) |
@@ -4784,12 +4783,12 @@ void eg_trace_emit(struct r600_context *rctx)
 
 	/* This must be done after r600_need_cs_space. */
 	reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
-					  (struct r600_resource*)rctx->trace_buf, RADEON_USAGE_WRITE,
+					  (struct r600_resource*)rctx->trace_buf, RADEON_USAGE_WRITE |
 					  RADEON_PRIO_CP_DMA);
 
 	rctx->trace_id++;
 	radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rctx->trace_buf,
-			      RADEON_USAGE_READWRITE, RADEON_PRIO_TRACE);
+			      RADEON_USAGE_READWRITE | RADEON_PRIO_FENCE_TRACE);
 	radeon_emit(cs, PKT3(PKT3_MEM_WRITE, 3, 0));
 	radeon_emit(cs, rctx->trace_buf->gpu_address);
 	radeon_emit(cs, rctx->trace_buf->gpu_address >> 32 | MEM_WRITE_32_BITS | MEM_WRITE_CONFIRM);
@@ -4809,7 +4808,7 @@ static void evergreen_emit_set_append_cnt(struct r600_context *rctx,
 	struct radeon_cmdbuf *cs = &rctx->b.gfx.cs;
 	unsigned reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 						   resource,
-						   RADEON_USAGE_READ,
+						   RADEON_USAGE_READ |
 						   RADEON_PRIO_SHADER_RW_BUFFER);
 	uint64_t dst_offset = resource->gpu_address + (atomic->start * 4);
 	uint32_t base_reg_0 = R_02872C_GDS_APPEND_COUNT_0;
@@ -4834,7 +4833,7 @@ static void evergreen_emit_event_write_eos(struct r600_context *rctx,
 	uint32_t base_reg_0 = R_02872C_GDS_APPEND_COUNT_0;
 	uint32_t reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 						   resource,
-						   RADEON_USAGE_WRITE,
+						   RADEON_USAGE_WRITE |
 						   RADEON_PRIO_SHADER_RW_BUFFER);
 	uint64_t dst_offset = resource->gpu_address + (atomic->start * 4);
 	uint32_t reg_val = (base_reg_0 + atomic->hw_idx * 4) >> 2;
@@ -4860,7 +4859,7 @@ static void cayman_emit_event_write_eos(struct r600_context *rctx,
 	uint32_t event = EVENT_TYPE_PS_DONE;
 	uint32_t reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 						   resource,
-						   RADEON_USAGE_WRITE,
+						   RADEON_USAGE_WRITE |
 						   RADEON_PRIO_SHADER_RW_BUFFER);
 	uint64_t dst_offset = resource->gpu_address + (atomic->start * 4);
 
@@ -4885,7 +4884,7 @@ static void cayman_write_count_to_gds(struct r600_context *rctx,
 	struct radeon_cmdbuf *cs = &rctx->b.gfx.cs;
 	unsigned reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 						   resource,
-						   RADEON_USAGE_READ,
+						   RADEON_USAGE_READ |
 						   RADEON_PRIO_SHADER_RW_BUFFER);
 	uint64_t dst_offset = resource->gpu_address + (atomic->start * 4);
 
@@ -5010,7 +5009,7 @@ void evergreen_emit_atomic_buffer_save(struct r600_context *rctx,
 	++rctx->append_fence_id;
 	reloc = radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 					  r600_resource(rctx->append_fence),
-					  RADEON_USAGE_READWRITE,
+					  RADEON_USAGE_READWRITE |
 					  RADEON_PRIO_SHADER_RW_BUFFER);
 	dst_offset = r600_resource(rctx->append_fence)->gpu_address;
 	radeon_emit(cs, PKT3(PKT3_EVENT_WRITE_EOS, 3, 0) | pkt_flags);

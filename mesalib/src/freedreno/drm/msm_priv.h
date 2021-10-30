@@ -58,10 +58,6 @@ struct msm_pipe {
    uint32_t queue_id;
    struct slab_parent_pool ring_pool;
 
-   /* BO for suballocating long-lived objects on the pipe. */
-   struct fd_bo *suballoc_bo;
-   uint32_t suballoc_offset;
-
    /**
     * The last fence seqno that was flushed to kernel (doesn't mean that it
     * is complete, just that the kernel knows about it)

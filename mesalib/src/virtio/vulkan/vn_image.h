@@ -18,6 +18,11 @@
  */
 #define VN_PRESENT_SRC_INTERNAL_LAYOUT VK_IMAGE_LAYOUT_GENERAL
 
+struct vn_image_memory_requirements {
+   VkMemoryRequirements2 memory;
+   VkMemoryDedicatedRequirements dedicated;
+};
+
 struct vn_image_create_deferred_info {
    VkImageCreateInfo create;
    VkImageFormatListCreateInfo list;
@@ -29,8 +34,7 @@ struct vn_image {
 
    VkSharingMode sharing_mode;
 
-   VkMemoryRequirements2 memory_requirements[4];
-   VkMemoryDedicatedRequirements dedicated_requirements[4];
+   struct vn_image_memory_requirements requirements[4];
 
    bool is_wsi;
    bool is_prime_blit_src;

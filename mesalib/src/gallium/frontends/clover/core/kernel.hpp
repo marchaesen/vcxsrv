@@ -218,6 +218,8 @@ namespace clover {
 
       class image_rd_argument : public image_argument {
       public:
+         image_rd_argument();
+
          virtual void set(size_t size, const void *value);
          virtual void bind(exec_context &ctx,
                            const binary::argument &barg);

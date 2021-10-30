@@ -303,7 +303,7 @@ lower_ubo_reference_visitor::setup_for_load_or_store(void *mem_ctx,
    }
    this->uniform_block = NULL;
    for (unsigned i = 0; i < num_blocks; i++) {
-      if (strcmp(field_name, blocks[i]->Name) == 0) {
+      if (strcmp(field_name, blocks[i]->name.string) == 0) {
 
          ir_constant *index = new(mem_ctx) ir_constant(i);
 

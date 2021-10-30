@@ -273,8 +273,14 @@ compute_version(const struct gl_extensions *extensions,
    const bool ver_2_1 = (ver_2_0 &&
                          extensions->EXT_pixel_buffer_object &&
                          extensions->EXT_texture_sRGB);
+   /* We lie about the minimum number of color attachments. Strictly, OpenGL
+    * 3.0 requires 8, whereas OpenGL ES requires 4. OpenGL ES 3.0 class
+    * hardware may only support 4 render targets. Advertise non-conformant
+    * OpenGL 3.0 anyway. Affects freedreno on a3xx
+    */
    const bool ver_3_0 = (ver_2_1 &&
                          consts->GLSLVersion >= 130 &&
+                         consts->MaxColorAttachments >= 4 &&
                          (consts->MaxSamples >= 4 || consts->FakeSWMSAA) &&
                          (api == API_OPENGL_CORE ||
                           extensions->ARB_color_buffer_float) &&
@@ -539,7 +545,8 @@ compute_version_es2(const struct gl_extensions *extensions,
                          (extensions->NV_primitive_restart ||
                           consts->PrimitiveRestartFixedIndex) &&
                          extensions->OES_depth_texture_cube_map &&
-                         extensions->EXT_texture_type_2_10_10_10_REV);
+                         extensions->EXT_texture_type_2_10_10_10_REV &&
+                         consts->MaxColorAttachments >= 4);
    const bool es31_compute_shader =
       consts->MaxComputeWorkGroupInvocations >= 128 &&
       consts->Program[MESA_SHADER_COMPUTE].MaxShaderStorageBlocks &&

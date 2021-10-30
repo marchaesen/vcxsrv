@@ -1,7 +1,0 @@
-glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
-glx@glx_arb_sync_control@waitformsc
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=4
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-32f_24_8_rev samples=2
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4
-spec@arb_occlusion_query@occlusion_query_order
-spec@egl_chromium_sync_control@conformance

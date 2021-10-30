@@ -44,6 +44,11 @@
 #include <mach-o/dyld.h>
 #endif
 
+#if DETECT_OS_FREEBSD
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #if defined(__linux__) && defined(HAVE_PROGRAM_INVOCATION_NAME)
 
 static char *path = NULL;
@@ -94,22 +99,13 @@ __getProgramName()
 #    define GET_PROGRAM_NAME() __getProgramName()
 #elif defined(HAVE_PROGRAM_INVOCATION_NAME)
 #    define GET_PROGRAM_NAME() program_invocation_short_name
-#elif defined(__FreeBSD__) && (__FreeBSD__ >= 2)
-#    include <osreldate.h>
-#    if (__FreeBSD_version >= 440000)
-#        define GET_PROGRAM_NAME() getprogname()
-#    endif
+#elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__APPLE__) || defined(ANDROID)
+#    define GET_PROGRAM_NAME() getprogname()
 #elif defined(__NetBSD__)
 #    include <sys/param.h>
 #    if defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 106000100)
 #        define GET_PROGRAM_NAME() getprogname()
 #    endif
-#elif defined(__DragonFly__)
-#    define GET_PROGRAM_NAME() getprogname()
-#elif defined(__APPLE__)
-#    define GET_PROGRAM_NAME() getprogname()
-#elif defined(ANDROID)
-#    define GET_PROGRAM_NAME() getprogname()
 #elif defined(__sun)
 /* Solaris has getexecname() which returns the full path - return just
    the basename to match BSD getprogname() */
@@ -211,6 +207,13 @@ util_get_process_exec_path(char* process_path, size_t len)
    int result = _NSGetExecutablePath(process_path, &bufSize);
 
    return (result == 0) ? strlen(process_path) : 0;
+#elif DETECT_OS_FREEBSD
+   int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+
+   (void) sysctl(mib, 4, process_path, &len, NULL, 0);
+   process_path[len - 1] = '\0';
+
+   return len;
 #elif DETECT_OS_UNIX
    ssize_t r;
 

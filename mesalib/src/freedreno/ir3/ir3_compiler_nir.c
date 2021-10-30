@@ -1412,6 +1412,12 @@ emit_intrinsic_barrier(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    case nir_intrinsic_scoped_barrier: {
       nir_scope exec_scope = nir_intrinsic_execution_scope(intr);
       nir_variable_mode modes = nir_intrinsic_memory_modes(intr);
+      /* loads/stores are always cache-coherent so we can filter out
+       * available/visible.
+       */
+      nir_memory_semantics semantics =
+         nir_intrinsic_memory_semantics(intr) & (NIR_MEMORY_ACQUIRE |
+                                                 NIR_MEMORY_RELEASE);
 
       if (ctx->so->type == MESA_SHADER_TESS_CTRL) {
          /* Remove mode corresponding to nir_intrinsic_memory_barrier_tcs_patch,
@@ -1428,21 +1434,22 @@ emit_intrinsic_barrier(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       assert(!(modes & nir_var_shader_out));
 
       if ((modes &
-           (nir_var_mem_shared | nir_var_mem_ssbo | nir_var_mem_global))) {
+           (nir_var_mem_shared | nir_var_mem_ssbo | nir_var_mem_global |
+            nir_var_image)) && semantics) {
          barrier = ir3_FENCE(b);
          barrier->cat7.r = true;
          barrier->cat7.w = true;
 
-         if (modes & (nir_var_mem_ssbo | nir_var_mem_global)) {
+         if (modes & (nir_var_mem_ssbo | nir_var_image | nir_var_mem_global)) {
             barrier->cat7.g = true;
          }
 
          if (ctx->compiler->gen >= 6) {
-            if (modes & nir_var_mem_ssbo) {
+            if (modes & (nir_var_mem_ssbo | nir_var_image)) {
                barrier->cat7.l = true;
             }
          } else {
-            if (modes & (nir_var_mem_shared | nir_var_mem_ssbo)) {
+            if (modes & (nir_var_mem_shared | nir_var_mem_ssbo | nir_var_image)) {
                barrier->cat7.l = true;
             }
          }

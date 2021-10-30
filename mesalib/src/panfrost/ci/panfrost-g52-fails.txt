@@ -1,0 +1,1301 @@
+glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
+glx@glx_arb_create_context_no_error@no error,Fail
+glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
+glx@glx-copy-sub-buffer samples=2,Fail
+glx@glx_ext_import_context@free context,Fail
+glx@glx_ext_import_context@get context id,Fail
+glx@glx_ext_import_context@get current display,Fail
+glx@glx_ext_import_context@import context- multi process,Fail
+glx@glx_ext_import_context@import context- single process,Fail
+glx@glx_ext_import_context@imported context has same context id,Fail
+glx@glx_ext_import_context@make current- multi process,Fail
+glx@glx_ext_import_context@make current- single process,Fail
+glx@glx_ext_import_context@query context info,Fail
+glx@glx-make-current,Crash
+glx@glx-multithread-clearbuffer,Crash
+glx@glx-multi-window-single-context,Fail
+glx@glx-query-drawable-glx_fbconfig_id-window,Fail
+glx@glx-swap-pixmap-bad,Fail
+glx@glx-visuals-depth -pixmap,Crash
+glx@glx-visuals-stencil -pixmap,Crash
+shaders@glsl-bug-110796,Fail
+shaders@glsl-fs-pointcoord,Fail
+shaders@glsl-uniform-interstage-limits@subdivide 5,Crash
+shaders@glsl-uniform-interstage-limits@subdivide 5- statechanges,Crash
+shaders@glsl-vs-if-bool,Fail
+shaders@point-vertex-id divisor,Fail
+shaders@point-vertex-id gl_instanceid divisor,Fail
+shaders@point-vertex-id gl_instanceid,Fail
+shaders@point-vertex-id gl_vertexid divisor,Fail
+shaders@point-vertex-id gl_vertexid,Fail
+shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Fail
+shaders@point-vertex-id gl_vertexid gl_instanceid,Fail
+spec@arb_base_instance@arb_base_instance-drawarrays,Fail
+spec@arb_blend_func_extended@arb_blend_func_extended-dual-src-blending-issue-1917_gles3,Crash
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-explicit,Fail
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-explicit_gles3,Fail
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend,Fail
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend_gles3,Fail
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern,Fail
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern_gles2,Crash
+spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern_gles3,Fail
+spec@arb_color_buffer_float@gl_rgba16f-render,Fail
+spec@arb_color_buffer_float@gl_rgba16f-render-fog,Fail
+spec@arb_color_buffer_float@gl_rgba16f-render-sanity,Fail
+spec@arb_color_buffer_float@gl_rgba32f-render,Fail
+spec@arb_color_buffer_float@gl_rgba32f-render-fog,Fail
+spec@arb_color_buffer_float@gl_rgba32f-render-sanity,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 d=s=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 ds=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 s=d=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 146 d=s=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 146 ds=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 146 s=d=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 273 d=s=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 273 ds=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 273 s=d=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 292 d=s=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 292 ds=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 292 s=d=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 585 d=s=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 585 ds=z32f_s8,Fail
+spec@arb_depth_buffer_float@depthstencil-render-miplevels 585 s=d=z32f_s8,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-blit,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-copypixels,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-24_8,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-32f_24_8_rev,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-float-and-ushort,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-readpixels-24_8,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-readpixels-32f_24_8_rev,Fail
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-readpixels-float-and-ushort,Fail
+spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-blit,Fail
+spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-copypixels,Fail
+spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-drawpixels,Fail
+spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-readpixels,Fail
+spec@arb_depth_buffer_float@texwrap formats bordercolor,Fail
+spec@arb_depth_buffer_float@texwrap formats bordercolor@GL_DEPTH32F_STENCIL8- border color only,Fail
+spec@arb_depth_buffer_float@texwrap formats bordercolor@GL_DEPTH_COMPONENT32F- border color only,Fail
+spec@arb_depth_buffer_float@texwrap formats bordercolor-swizzled,Fail
+spec@arb_depth_buffer_float@texwrap formats bordercolor-swizzled@GL_DEPTH32F_STENCIL8- swizzled- border color only,Fail
+spec@arb_depth_buffer_float@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32F- swizzled- border color only,Fail
+spec@arb_depth_clamp@depth-clamp-range,Fail
+spec@arb_depth_texture@texwrap formats bordercolor,Fail
+spec@arb_depth_texture@texwrap formats bordercolor@GL_DEPTH_COMPONENT16- border color only,Fail
+spec@arb_depth_texture@texwrap formats bordercolor@GL_DEPTH_COMPONENT24- border color only,Fail
+spec@arb_depth_texture@texwrap formats bordercolor@GL_DEPTH_COMPONENT32- border color only,Fail
+spec@arb_depth_texture@texwrap formats bordercolor-swizzled,Fail
+spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT16- swizzled- border color only,Fail
+spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT24- swizzled- border color only,Fail
+spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32- swizzled- border color only,Fail
+spec@arb_direct_state_access@gettextureimage-formats,Crash
+spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
+spec@arb_direct_state_access@texture-buffer,Fail
+spec@arb_draw_buffers@fbo-mrt-new-bind,Crash
+spec@arb_es2_compatibility@fbo-blending-formats,Fail
+spec@arb_es2_compatibility@fbo-blending-formats@GL_RGB565,Fail
+spec@arb_es2_compatibility@texwrap formats bordercolor,Fail
+spec@arb_es2_compatibility@texwrap formats bordercolor@GL_RGB565- border color only,Fail
+spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled,Fail
+spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled@GL_RGB565- swizzled- border color only,Fail
+spec@arb_fragment_program@fp-fragment-position,Crash
+spec@arb_fragment_program@sparse-samplers,Crash
+spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth gl_depth32f_stencil8,Fail
+spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth32f_stencil8,Fail
+spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_depth32f_stencil8,Fail
+spec@arb_framebuffer_object@fbo-gl_pointcoord,Fail
+spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
+spec@arb_framebuffer_srgb@fbo-fast-clear,Fail
+spec@arb_get_program_binary@restore-sso-program,Fail
+spec@arb_get_texture_sub_image@arb_get_texture_sub_image-getcompressed,Fail
+spec@arb_get_texture_sub_image@arb_get_texture_sub_image-get,Fail
+spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
+spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_DEPTH_STENCIL,Fail
+spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_STENCIL_INDEX,Fail
+spec@arb_pixel_buffer_object@texsubimage array pbo,Fail
+spec@arb_pixel_buffer_object@texsubimage cube_map_array pbo,Fail
+spec@arb_pixel_buffer_object@texsubimage pbo,Fail
+spec@arb_point_sprite@arb_point_sprite-checkerboard,Fail
+spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
+spec@arb_provoking_vertex@arb-provoking-vertex-render,Fail
+spec@arb_sample_shading@builtin-gl-sample-id 0,Fail
+spec@arb_sample_shading@builtin-gl-sample-id 2,Fail
+spec@arb_sample_shading@builtin-gl-sample-id 4,Fail
+spec@arb_sample_shading@builtin-gl-sample-mask 0,Fail
+spec@arb_sample_shading@builtin-gl-sample-mask 2,Fail
+spec@arb_sample_shading@builtin-gl-sample-mask 4,Fail
+spec@arb_sample_shading@samplemask 2@0.250000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2@0.500000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2@1.000000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2 all@0.250000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2 all@0.500000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2 all@1.000000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2 all,Fail
+spec@arb_sample_shading@samplemask 2 all@noms mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2 all@sample mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2,Fail
+spec@arb_sample_shading@samplemask 2@noms mask_in_one,Fail
+spec@arb_sample_shading@samplemask 2@sample mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4@0.250000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4@0.500000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4@1.000000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4 all@0.250000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4 all@0.500000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4 all@1.000000 mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4 all,Fail
+spec@arb_sample_shading@samplemask 4 all@noms mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4 all@sample mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4,Fail
+spec@arb_sample_shading@samplemask 4@noms mask_in_one,Fail
+spec@arb_sample_shading@samplemask 4@sample mask_in_one,Fail
+spec@arb_shader_atomic_counters@respecify-buffer,Fail
+spec@arb_shader_draw_parameters@drawid-indirect-baseinstance,Fail
+spec@arb_shader_draw_parameters@drawid-indirect-basevertex,Fail
+spec@arb_shader_draw_parameters@drawid-indirect,Fail
+spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
+spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgrad,Fail
+spec@arb_shader_texture_lod@execution@tex-miplevel-selection *gradarb 2drect,Crash
+spec@arb_shader_texture_lod@execution@tex-miplevel-selection *gradarb 2drectshadow,Crash
+spec@arb_shader_texture_lod@execution@tex-miplevel-selection *projgradarb 2drect,Crash
+spec@arb_shader_texture_lod@execution@tex-miplevel-selection *projgradarb 2drect_projvec4,Crash
+spec@arb_shader_texture_lod@execution@tex-miplevel-selection *projgradarb 2drectshadow,Crash
+spec@arb_shading_language_420pack@active sampler conflict,Crash
+spec@arb_texture_buffer_object@data-sync,Fail
+spec@arb_texture_buffer_object@formats (fs- arb),Crash
+spec@arb_texture_buffer_object@formats (vs- arb),Crash
+spec@arb_texture_buffer_object@render-no-bo,Crash
+spec@arb_texture_buffer_object@subdata-sync,Fail
+spec@arb_texture_compression@texwrap formats bordercolor,Fail
+spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_ALPHA- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_LUMINANCE_ALPHA- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_RGBA- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor@GL_COMPRESSED_RGB- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor-swizzled,Fail
+spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_ALPHA- swizzled- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_LUMINANCE_ALPHA- swizzled- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA- swizzled- border color only,Fail
+spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB- swizzled- border color only,Fail
+spec@arb_texture_cube_map_array@arb_texture_cube_map_array-cubemap,Fail
+spec@arb_texture_cube_map_array@arb_texture_cube_map_array-cubemap-lod,Fail
+spec@arb_texture_cube_map_array@arb_texture_cube_map_array-fbo-cubemap-array,Fail
+spec@arb_texture_cube_map_array@texsubimage cube_map_array,Fail
+spec@arb_texture_cube_map_array@texturesize@fs-texturesize-isamplercubearray,Fail
+spec@arb_texture_cube_map_array@texturesize@fs-texturesize-samplercubearray,Fail
+spec@arb_texture_cube_map_array@texturesize@fs-texturesize-samplercubearrayshadow,Fail
+spec@arb_texture_cube_map_array@texturesize@fs-texturesize-usamplercubearray,Fail
+spec@arb_texture_cube_map_array@texturesize@vs-texturesize-isamplercubearray,Fail
+spec@arb_texture_cube_map_array@texturesize@vs-texturesize-samplercubearray,Fail
+spec@arb_texture_cube_map_array@texturesize@vs-texturesize-samplercubearrayshadow,Fail
+spec@arb_texture_cube_map_array@texturesize@vs-texturesize-usamplercubearray,Fail
+spec@arb_texture_float@arb_texture_float-texture-float-formats,Fail
+spec@arb_texture_float@fbo-alphatest-formats,Crash
+spec@arb_texture_float@fbo-blending-formats,Crash
+spec@arb_texture_float@fbo-clear-formats,Fail
+spec@arb_texture_float@fbo-clear-formats@GL_INTENSITY16F_ARB,Fail
+spec@arb_texture_float@fbo-generatemipmap-formats,Fail
+spec@arb_texture_float@fbo-generatemipmap-formats@GL_INTENSITY16F_ARB,Fail
+spec@arb_texture_float@fbo-generatemipmap-formats@GL_INTENSITY16F_ARB NPOT,Fail
+spec@arb_texture_float@multisample-formats 2 gl_arb_texture_float,Crash
+spec@arb_texture_float@multisample-formats 4 gl_arb_texture_float,Crash
+spec@arb_texture_float@texwrap formats bordercolor,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_ALPHA16F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_ALPHA32F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_INTENSITY16F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_INTENSITY32F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_LUMINANCE16F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_LUMINANCE32F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_LUMINANCE_ALPHA16F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_LUMINANCE_ALPHA32F_ARB- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_RGB16F- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_RGB32F- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_RGBA16F- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor@GL_RGBA32F- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_ALPHA16F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_ALPHA32F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_INTENSITY16F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_INTENSITY32F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_LUMINANCE16F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_LUMINANCE32F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_LUMINANCE_ALPHA16F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_LUMINANCE_ALPHA32F_ARB- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGB16F- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGB32F- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGBA16F- swizzled- border color only,Fail
+spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGBA32F- swizzled- border color only,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-alpha-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-alpha-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-alpha-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-alpha-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-blue-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-blue-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-blue-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-blue-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-green-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-green-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-green-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-green-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgba-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-blue-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-blue-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-blue-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-blue-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-green-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-green-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-green-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-green-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rgb-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-green-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-green-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-green-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-green-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-rg-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@fs-r-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-alpha-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-alpha-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-alpha-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-alpha-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-blue-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-blue-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-blue-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-blue-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-green-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-green-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-green-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-green-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgba-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-blue-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-blue-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-blue-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-blue-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-green-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-green-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-green-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-green-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rgb-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-green-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-green-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-green-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-green-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-rg-red-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-none-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-none-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-none-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-none-unorm-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-red-float-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-red-int-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-red-uint-cubearray,Fail
+spec@arb_texture_gather@texturegather@vs-r-red-unorm-cubearray,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R16I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R16_SNORM,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R32I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R8I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R8_SNORM,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG16F,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG16I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG16_SNORM,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG32F,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG32I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG8I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG8_SNORM,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB10_A2,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB10_A2UI,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB10,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB16I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB16_SNORM,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB32I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB4,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB8,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB8I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB9_E5,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA16,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA16F,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA16I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA32F,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA32I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA4,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA8,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA8I,Fail
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_SRGB8_ALPHA8,Fail
+spec@arb_texture_rectangle@1-1-linear-texture,Fail
+spec@arb_texture_rectangle@tex-miplevel-selection gl2:texture() 2drect,Crash
+spec@arb_texture_rectangle@tex-miplevel-selection gl2:texture() 2drectshadow,Crash
+spec@arb_texture_rectangle@tex-miplevel-selection gl2:textureproj 2drect,Crash
+spec@arb_texture_rectangle@tex-miplevel-selection gl2:textureproj 2drect_projvec4,Crash
+spec@arb_texture_rectangle@tex-miplevel-selection gl2:textureproj 2drectshadow,Crash
+spec@arb_texture_rectangle@texwrap rect bordercolor,Fail
+spec@arb_texture_rectangle@texwrap rect bordercolor@GL_RGBA8- border color only,Fail
+spec@arb_texture_rectangle@texwrap rect proj bordercolor,Fail
+spec@arb_texture_rectangle@texwrap rect proj bordercolor@GL_RGBA8- projected- border color only,Fail
+spec@arb_texture_rg@fbo-blending-formats,Fail
+spec@arb_texture_rg@fbo-blending-formats@GL_R8,Fail
+spec@arb_texture_rg@fbo-blending-formats@GL_RG8,Fail
+spec@arb_texture_rg@fbo-blending-formats@GL_RG,Fail
+spec@arb_texture_rg@texwrap formats bordercolor,Fail
+spec@arb_texture_rg@texwrap formats bordercolor@GL_R16- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor@GL_R8- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor@GL_RG16- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor@GL_RG8- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor-swizzled,Fail
+spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_R16- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_R8- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_RG16- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_RG8- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor@GL_R16F- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor@GL_R32F- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor@GL_RG16F- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor@GL_RG32F- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R16F- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R32F- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_RG16F- swizzled- border color only,Fail
+spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_RG32F- swizzled- border color only,Fail
+spec@arb_texture_view@sampling-2d-array-as-cubemap-array,Crash
+spec@arb_texture_view@sampling-2d-array-as-cubemap,Crash
+spec@arb_transform_feedback_instanced@draw-auto instanced,Fail
+spec@arb_uniform_buffer_object@rendering-dsa,Fail
+spec@arb_uniform_buffer_object@rendering-dsa-offset,Fail
+spec@arb_uniform_buffer_object@rendering,Fail
+spec@arb_uniform_buffer_object@rendering-offset,Fail
+spec@arb_vertex_program@clip-plane-transformation arb,Fail
+spec@egl 1.4@egl-copy-buffers,Crash
+spec@egl 1.4@egl-ext_egl_image_storage,Crash
+spec@egl 1.4@eglterminate then unbind context,Fail
+spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
+spec@egl_chromium_sync_control@conformance,Fail
+spec@egl_ext_protected_content@conformance,Fail
+spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
+spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_rgba,Fail
+spec@egl_khr_surfaceless_context@viewport,Fail
+spec@egl_mesa_configless_context@basic,Fail
+spec@ext_base_instance@arb_base_instance-drawarrays_gles3,Fail
+spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
+spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 2,Fail
+spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 4,Fail
+spec@ext_framebuffer_multisample@alpha-to-one-dual-src-blend 2,Fail
+spec@ext_framebuffer_multisample@alpha-to-one-dual-src-blend 4,Fail
+spec@ext_framebuffer_multisample@draw-buffers-alpha-to-one 2,Fail
+spec@ext_framebuffer_multisample@draw-buffers-alpha-to-one 4,Fail
+spec@ext_framebuffer_multisample@fast-clear,Fail
+spec@ext_framebuffer_multisample@formats 2,Fail
+spec@ext_framebuffer_multisample@formats 4,Fail
+spec@ext_framebuffer_multisample@formats all_samples,Fail
+spec@ext_framebuffer_multisample@interpolation 2 centroid-disabled,Fail
+spec@ext_framebuffer_multisample@interpolation 2 centroid-edges,Fail
+spec@ext_framebuffer_multisample@interpolation 4 centroid-disabled,Fail
+spec@ext_framebuffer_multisample@interpolation 4 centroid-edges,Fail
+spec@ext_framebuffer_multisample@sample-alpha-to-coverage 2 depth,Fail
+spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
+spec@ext_framebuffer_multisample@sample-alpha-to-one 2,Fail
+spec@ext_framebuffer_multisample@sample-alpha-to-one 4,Fail
+spec@ext_framebuffer_multisample@unaligned-blit 2 color upsample,Fail
+spec@ext_framebuffer_multisample@unaligned-blit 4 color upsample,Fail
+spec@ext_framebuffer_object@fbo-alphatest-formats,Fail
+spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY4,Fail
+spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY8,Fail
+spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY,Fail
+spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@3,Fail
+spec@ext_framebuffer_object@fbo-blending-formats,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA4,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA8,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY4,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY8,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE4_ALPHA4,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE4,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE8_ALPHA8,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE8,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE_ALPHA,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_R3_G3_B2,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB10,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB8,Fail
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB,Fail
+spec@ext_framebuffer_object@fbo-clear-formats,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_INTENSITY4,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_INTENSITY8,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_INTENSITY,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_LUMINANCE4_ALPHA4,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_LUMINANCE4,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_LUMINANCE8_ALPHA8,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_LUMINANCE8,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_LUMINANCE_ALPHA,Fail
+spec@ext_framebuffer_object@fbo-clear-formats@GL_LUMINANCE,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_INTENSITY4,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_INTENSITY8,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_INTENSITY,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE4_ALPHA4,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE4,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE8_ALPHA8,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE8,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE_ALPHA,Fail
+spec@ext_framebuffer_object@fbo-colormask-formats@GL_LUMINANCE,Fail
+spec@ext_framebuffer_object@fbo-fast-clear,Fail
+spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
+spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
+spec@ext_gpu_shader4@execution@texelfetch@fs-texelfetch-isampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetch@fs-texelfetch-sampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetch@fs-texelfetch-usampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetchoffset@fs-texelfetch-isampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetchoffset@fs-texelfetch-sampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetchoffset@fs-texelfetch-usampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetchoffset@vs-texelfetch-isampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetchoffset@vs-texelfetch-sampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetchoffset@vs-texelfetch-usampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetch@vs-texelfetch-isampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetch@vs-texelfetch-sampler1darray,Fail
+spec@ext_gpu_shader4@execution@texelfetch@vs-texelfetch-usampler1darray,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_attributes,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_hints,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-missing_attributes,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-ownership_transfer,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_argb8888,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv12,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xrgb8888,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y410,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y412,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Crash
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-unsupported_format,Crash
+spec@ext_packed_depth_stencil@texwrap formats bordercolor,Fail
+spec@ext_packed_depth_stencil@texwrap formats bordercolor@GL_DEPTH24_STENCIL8- border color only,Fail
+spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled,Fail
+spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled@GL_DEPTH24_STENCIL8- swizzled- border color only,Fail
+spec@ext_packed_float@texwrap formats bordercolor,Fail
+spec@ext_packed_float@texwrap formats bordercolor@GL_R11F_G11F_B10F- border color only,Fail
+spec@ext_packed_float@texwrap formats bordercolor-swizzled,Fail
+spec@ext_packed_float@texwrap formats bordercolor-swizzled@GL_R11F_G11F_B10F- swizzled- border color only,Fail
+spec@ext_texture_array@array-texture,Fail
+spec@ext_texture_array@compressed texsubimage,Fail
+spec@ext_texture_array@compressed texsubimage pbo,Fail
+spec@ext_texture_array@copyteximage 1d_array,Fail
+spec@ext_texture_array@copyteximage 1d_array samples=2,Fail
+spec@ext_texture_array@copyteximage 1d_array samples=4,Fail
+spec@ext_texture_array@fbo-generatemipmap-array,Fail
+spec@ext_texture_array@fbo-generatemipmap-array rgb9_e5,Fail
+spec@ext_texture_array@texsubimage array,Fail
+spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_red_green_rgtc2_ext,Crash
+spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_red_rgtc1_ext,Crash
+spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_signed_red_green_rgtc2_ext,Crash
+spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_signed_red_rgtc1_ext,Crash
+spec@ext_texture_compression_rgtc@fbo-generatemipmap-formats,Crash
+spec@ext_texture_compression_rgtc@fbo-generatemipmap-formats-signed,Crash
+spec@ext_texture_compression_rgtc@rgtc-teximage-01,Fail
+spec@ext_texture_compression_rgtc@rgtc-teximage-02,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor@GL_COMPRESSED_RED_RGTC1- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor@GL_COMPRESSED_RG_RGTC2- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor@GL_COMPRESSED_SIGNED_RED_RGTC1- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor@GL_COMPRESSED_SIGNED_RG_RGTC2- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RED_RGTC1- swizzled- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RG_RGTC2- swizzled- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SIGNED_RED_RGTC1- swizzled- border color only,Fail
+spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SIGNED_RG_RGTC2- swizzled- border color only,Fail
+spec@ext_texture_compression_s3tc@s3tc-errors,Fail
+spec@ext_texture_compression_s3tc@s3tc-errors_gles2,Fail
+spec@ext_texture_compression_s3tc@s3tc-texsubimage,Fail
+spec@ext_texture_compression_s3tc@s3tc-texsubimage_gles2,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_S3TC_DXT1_EXT- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_S3TC_DXT5_EXT- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor@GL_COMPRESSED_RGB_S3TC_DXT1_EXT- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT1_EXT- swizzled- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- swizzled- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT5_EXT- swizzled- border color only,Fail
+spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
+spec@ext_texture_integer@fbo-integer,Fail
+spec@ext_texture_shared_exponent@texwrap formats bordercolor,Fail
+spec@ext_texture_shared_exponent@texwrap formats bordercolor@GL_RGB9_E5- border color only,Fail
+spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled@GL_RGB9_E5- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_ALPHA16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_ALPHA8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_INTENSITY16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_INTENSITY8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_LUMINANCE16_ALPHA16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_LUMINANCE16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_LUMINANCE8_ALPHA8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_LUMINANCE8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_R16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_R8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_RG16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_RG8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_RGB16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_RGB8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_RGBA16_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor@GL_RGBA8_SNORM- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_ALPHA16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_ALPHA8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_INTENSITY16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_INTENSITY8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_LUMINANCE16_ALPHA16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_LUMINANCE16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_LUMINANCE8_ALPHA8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_LUMINANCE8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_R16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_R8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RG16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RG8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGB16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGB8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGBA16_SNORM- swizzled- border color only,Fail
+spec@ext_texture_snorm@texwrap formats bordercolor-swizzled@GL_RGBA8_SNORM- swizzled- border color only,Fail
+spec@ext_texture_srgb@fbo-fast-clear,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor@GL_SLUMINANCE8_ALPHA8- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor@GL_SLUMINANCE8- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor@GL_SRGB8_ALPHA8- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor@GL_SRGB8- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor-swizzled,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor-swizzled@GL_SLUMINANCE8_ALPHA8- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor-swizzled@GL_SLUMINANCE8- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor-swizzled@GL_SRGB8_ALPHA8- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats bordercolor-swizzled@GL_SRGB8- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SLUMINANCE_ALPHA- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SLUMINANCE- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SRGB_ALPHA- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SRGB- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor@GL_COMPRESSED_SRGB_S3TC_DXT1_EXT- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SLUMINANCE_ALPHA- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SLUMINANCE- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_ALPHA- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
+spec@ext_texture_srgb@texwrap formats-s3tc bordercolor-swizzled@GL_COMPRESSED_SRGB- swizzled- border color only,Fail
+spec@ext_transform_feedback2@draw-auto,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance[1]-no-subscript,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance[2]-no-subscript,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance[3]-no-subscript,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance[5]-no-subscript,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance[6]-no-subscript,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance[7]-no-subscript,Fail
+spec@ext_transform_feedback@builtin-varyings gl_clipdistance,Crash
+spec@ext_transform_feedback@change-size base-shrink,Fail
+spec@ext_transform_feedback@change-size offset-shrink,Fail
+spec@ext_transform_feedback@change-size range-grow,Fail
+spec@ext_transform_feedback@change-size range-shrink,Fail
+spec@ext_transform_feedback@immediate-reuse-index-buffer,Crash
+spec@ext_transform_feedback@immediate-reuse-uniform-buffer,Crash
+spec@ext_transform_feedback@interleaved-attribs,Fail
+spec@ext_transform_feedback@intervening-read output,Fail
+spec@ext_transform_feedback@intervening-read prims_written,Fail
+spec@ext_transform_feedback@max-varyings,Fail
+spec@ext_transform_feedback@order elements lines,Fail
+spec@ext_transform_feedback@order elements points,Fail
+spec@ext_transform_feedback@order elements triangles,Fail
+spec@ext_transform_feedback@overflow-edge-cases,Fail
+spec@ext_transform_feedback@position-readback-bufferbase-discard,Fail
+spec@ext_transform_feedback@position-readback-bufferbase,Fail
+spec@ext_transform_feedback@position-readback-bufferoffset-discard,Fail
+spec@ext_transform_feedback@position-readback-bufferoffset,Fail
+spec@ext_transform_feedback@position-readback-bufferrange-discard,Fail
+spec@ext_transform_feedback@position-readback-bufferrange,Fail
+spec@ext_transform_feedback@position-render-bufferbase-discard,Fail
+spec@ext_transform_feedback@position-render-bufferbase,Fail
+spec@ext_transform_feedback@position-render-bufferoffset-discard,Fail
+spec@ext_transform_feedback@position-render-bufferoffset,Fail
+spec@ext_transform_feedback@position-render-bufferrange-discard,Fail
+spec@ext_transform_feedback@position-render-bufferrange,Fail
+spec@ext_transform_feedback@query-primitives_written-bufferrange-discard,Fail
+spec@ext_transform_feedback@query-primitives_written-bufferrange,Fail
+spec@ext_transform_feedback@separate-attribs,Fail
+spec@ext_transform_feedback@tessellation line_loop flat_first,Fail
+spec@ext_transform_feedback@tessellation line_loop flat_last,Fail
+spec@ext_transform_feedback@tessellation line_loop monochrome,Fail
+spec@ext_transform_feedback@tessellation line_loop smooth,Fail
+spec@ext_transform_feedback@tessellation line_strip flat_first,Fail
+spec@ext_transform_feedback@tessellation line_strip flat_last,Fail
+spec@ext_transform_feedback@tessellation line_strip monochrome,Fail
+spec@ext_transform_feedback@tessellation line_strip smooth,Fail
+spec@ext_transform_feedback@tessellation polygon flat_first,Fail
+spec@ext_transform_feedback@tessellation polygon flat_last,Fail
+spec@ext_transform_feedback@tessellation polygon monochrome,Fail
+spec@ext_transform_feedback@tessellation polygon smooth,Fail
+spec@ext_transform_feedback@tessellation polygon wireframe,Fail
+spec@ext_transform_feedback@tessellation quads flat_first,Fail
+spec@ext_transform_feedback@tessellation quads flat_last,Fail
+spec@ext_transform_feedback@tessellation quads monochrome,Fail
+spec@ext_transform_feedback@tessellation quads smooth,Fail
+spec@ext_transform_feedback@tessellation quad_strip flat_first,Fail
+spec@ext_transform_feedback@tessellation quad_strip flat_last,Fail
+spec@ext_transform_feedback@tessellation quad_strip monochrome,Fail
+spec@ext_transform_feedback@tessellation quad_strip smooth,Fail
+spec@ext_transform_feedback@tessellation quad_strip wireframe,Fail
+spec@ext_transform_feedback@tessellation quads wireframe,Fail
+spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
+spec@ext_transform_feedback@tessellation triangle_fan flat_last,Fail
+spec@ext_transform_feedback@tessellation triangle_fan monochrome,Fail
+spec@ext_transform_feedback@tessellation triangle_fan smooth,Fail
+spec@ext_transform_feedback@tessellation triangle_fan wireframe,Fail
+spec@ext_transform_feedback@tessellation triangle_strip flat_first,Fail
+spec@ext_transform_feedback@tessellation triangle_strip flat_last,Fail
+spec@ext_transform_feedback@tessellation triangle_strip monochrome,Fail
+spec@ext_transform_feedback@tessellation triangle_strip smooth,Fail
+spec@ext_transform_feedback@tessellation triangle_strip wireframe,Fail
+spec@glsl-1.10@execution@clipping@clip-plane-transformation clipvert_pos,Fail
+spec@glsl-1.10@execution@clipping@clip-plane-transformation fixed,Fail
+spec@glsl-1.10@execution@clipping@clip-plane-transformation pos_clipvert,Fail
+spec@glsl-1.10@execution@varying-packing@simple float array,Fail
+spec@glsl-1.10@execution@varying-packing@simple float arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple int array,Fail
+spec@glsl-1.10@execution@varying-packing@simple int arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec4 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple ivec4 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2x3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2x3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2x3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2x4 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2x4 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat2x4 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3x2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3x2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3x2 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3x4 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3x4 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat3x4 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4x2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4x2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4x2 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4x3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4x3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple mat4x3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple uint array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uint arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec4 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple uvec4 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec2 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec2 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec3 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec3 arrays_of_arrays,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec3 separate,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec4 array,Fail
+spec@glsl-1.10@execution@varying-packing@simple vec4 arrays_of_arrays,Fail
+spec@glsl-1.30@execution@clipping@clip-plane-transformation pos,Fail
+spec@glsl-1.30@execution@texelfetch@fs-texelfetch-isampler1darray,Fail
+spec@glsl-1.30@execution@texelfetch@fs-texelfetch-sampler1darray,Fail
+spec@glsl-1.30@execution@texelfetch@fs-texelfetch-usampler1darray,Fail
+spec@glsl-1.30@execution@texelfetchoffset@fs-texelfetch-isampler1darray,Fail
+spec@glsl-1.30@execution@texelfetchoffset@fs-texelfetch-sampler1darray,Fail
+spec@glsl-1.30@execution@texelfetchoffset@fs-texelfetch-usampler1darray,Fail
+spec@glsl-1.30@execution@texelfetchoffset@vs-texelfetch-isampler1darray,Fail
+spec@glsl-1.30@execution@texelfetchoffset@vs-texelfetch-sampler1darray,Fail
+spec@glsl-1.30@execution@texelfetchoffset@vs-texelfetch-usampler1darray,Fail
+spec@glsl-1.30@execution@texelfetch@vs-texelfetch-isampler1darray,Fail
+spec@glsl-1.30@execution@texelfetch@vs-texelfetch-sampler1darray,Fail
+spec@glsl-1.30@execution@texelfetch@vs-texelfetch-usampler1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture() 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture() 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture() 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection texture() 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection texture(bias) 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture(bias) 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture(bias) cubearray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture() cubearray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texture() cubearrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturegrad 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturegrad 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturegrad 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection texturegrad 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection texturegrad cubearray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturegradoffset 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturegradoffset 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturegradoffset 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection texturegradoffset 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection texturelod 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturelod 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturelod cubearray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturelodoffset 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection texturelodoffset 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection textureoffset 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection textureoffset 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection textureoffset 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureoffset 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureoffset(bias) 1darray,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection textureoffset(bias) 1darrayshadow,Fail
+spec@glsl-1.30@execution@tex-miplevel-selection textureproj 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureproj 2drect_projvec4,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureproj 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojgrad 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojgrad 2drect_projvec4,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojgrad 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojgradoffset 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojgradoffset 2drect_projvec4,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojgradoffset 2drectshadow,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojoffset 2drect,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojoffset 2drect_projvec4,Crash
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojoffset 2drectshadow,Crash
+spec@glsl-es-3.00@execution@varying-struct-centroid_gles3,Fail
+spec@intel_performance_query@intel_performance_query-issue_2235,Fail
+spec@khr_texture_compression_astc@miptree-gles hdr,Fail
+spec@khr_texture_compression_astc@miptree-gles hdr@HDR Profile,Fail
+spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
+spec@khr_texture_compression_astc@miptree-gles srgb-fp@sRGB decode full precision,Fail
+spec@khr_texture_compression_astc@miptree-gl hdr,Fail
+spec@khr_texture_compression_astc@miptree-gl hdr@HDR Profile,Fail
+spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
+spec@khr_texture_compression_astc@miptree-gl srgb-fp@sRGB decode full precision,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles hdr,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles hdr@HDR Profile,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
+spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x223344ff,Crash
+spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x76356278,Crash
+spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Crash
+spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x76356278,Crash
+spec@nv_copy_depth_to_color@nv_copy_depth_to_color,Crash
+spec@nv_copy_image@nv_copy_image-formats,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA/Destination: GL_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_INTENSITY8/Destination: GL_INTENSITY8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_INTENSITY/Destination: GL_INTENSITY,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE8_ALPHA8/Destination: GL_LUMINANCE8_ALPHA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE8/Destination: GL_LUMINANCE8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE_ALPHA/Destination: GL_LUMINANCE_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_LUMINANCE/Destination: GL_LUMINANCE,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R16I/Destination: GL_R16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R16UI/Destination: GL_R16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R32F/Destination: GL_R32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8/Destination: GL_R8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8I/Destination: GL_R8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_R8UI/Destination: GL_R8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RED/Destination: GL_RED,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG16I/Destination: GL_RG16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG16UI/Destination: GL_RG16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG32F/Destination: GL_RG32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG32I/Destination: GL_RG32I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG32UI/Destination: GL_RG32UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8/Destination: GL_RG8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8I/Destination: GL_RG8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG8UI/Destination: GL_RG8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB16/Destination: GL_RGB16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB16I/Destination: GL_RGB16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB16UI/Destination: GL_RGB16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB32F/Destination: GL_RGB32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB32I/Destination: GL_RGB32I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB32UI/Destination: GL_RGB32UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB8/Destination: GL_RGB8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB8I/Destination: GL_RGB8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB8UI/Destination: GL_RGB8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA16I/Destination: GL_RGBA16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA16UI/Destination: GL_RGBA16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA32F/Destination: GL_RGBA32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA32I/Destination: GL_RGBA32I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA32UI/Destination: GL_RGBA32UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8/Destination: GL_RGBA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8I/Destination: GL_RGBA8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA8UI/Destination: GL_RGBA8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGBA/Destination: GL_RGBA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RGB/Destination: GL_RGB,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_RG/Destination: GL_RG,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_ALPHA/Destination: GL_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_INTENSITY8/Destination: GL_INTENSITY8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_INTENSITY/Destination: GL_INTENSITY,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE8_ALPHA8/Destination: GL_LUMINANCE8_ALPHA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE8/Destination: GL_LUMINANCE8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE_ALPHA/Destination: GL_LUMINANCE_ALPHA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_LUMINANCE/Destination: GL_LUMINANCE,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R16I/Destination: GL_R16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R16UI/Destination: GL_R16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R32F/Destination: GL_R32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8/Destination: GL_R8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8I/Destination: GL_R8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_R8UI/Destination: GL_R8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RED/Destination: GL_RED,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG16I/Destination: GL_RG16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG16UI/Destination: GL_RG16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG32F/Destination: GL_RG32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG32I/Destination: GL_RG32I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG32UI/Destination: GL_RG32UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8/Destination: GL_RG8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8I/Destination: GL_RG8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG8UI/Destination: GL_RG8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB16/Destination: GL_RGB16,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB16I/Destination: GL_RGB16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB16UI/Destination: GL_RGB16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB32F/Destination: GL_RGB32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB32I/Destination: GL_RGB32I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB32UI/Destination: GL_RGB32UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB8/Destination: GL_RGB8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB8I/Destination: GL_RGB8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB8UI/Destination: GL_RGB8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA16I/Destination: GL_RGBA16I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA16UI/Destination: GL_RGBA16UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA32F/Destination: GL_RGBA32F,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA32I/Destination: GL_RGBA32I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA32UI/Destination: GL_RGBA32UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8/Destination: GL_RGBA8,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8I/Destination: GL_RGBA8I,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA8UI/Destination: GL_RGBA8UI,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA/Destination: GL_RGBA,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB/Destination: GL_RGB,Fail
+spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG/Destination: GL_RG,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RED_RGTC1/Destination: GL_COMPRESSED_RED_RGTC1,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RG_RGTC2/Destination: GL_COMPRESSED_RG_RGTC2,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RED_RGTC1/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RG_RGTC2/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
+spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
+spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
+spec@oes_texture_view@sampling-2d-array-as-cubemap,Crash
+spec@!opengl 1.0@gl-1.0-edgeflag-const,Fail
+spec@!opengl 1.0@gl-1.0-edgeflag,Fail
+spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
+spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
+spec@!opengl 1.0@gl-1.0-spot-light,Fail
+spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
+spec@!opengl 1.0@rasterpos,Crash
+spec@!opengl 1.1@clipflat,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glBegin/End(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawArrays(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUADS)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CCW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_FILL)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: center top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: left top PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
+spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@getteximage-formats,Crash
+spec@!opengl 1.1@linestipple@Factor 2x,Fail
+spec@!opengl 1.1@linestipple@Factor 3x,Fail
+spec@!opengl 1.1@linestipple,Fail
+spec@!opengl 1.1@linestipple@Line loop,Fail
+spec@!opengl 1.1@linestipple@Line strip,Fail
+spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
+spec@!opengl 1.1@point-line-no-cull,Fail
+spec@!opengl 1.1@polygon-mode-facing,Fail
+spec@!opengl 1.1@polygon-mode,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on bottom edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on left edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 1: Expected blue pixel in center,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 1: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 1: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 2: Expected blue pixel in center,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 2: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 2: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 3: Expected white pixel on bottom edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 3: Expected white pixel on left edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 3: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 3: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on bottom edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on left edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 5: Expected blue pixel in center,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 5: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 5: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on right edge,Fail
+spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,Fail
+spec@!opengl 1.1@polygon-mode-offset,Fail
+spec@!opengl 1.1@streaming-texture-leak,Crash
+spec@!opengl 1.1@texsubimage,Fail
+spec@!opengl 1.1@texwrap 1d bordercolor,Fail
+spec@!opengl 1.1@texwrap 1d bordercolor@GL_RGBA8- border color only,Fail
+spec@!opengl 1.1@texwrap 1d proj bordercolor,Fail
+spec@!opengl 1.1@texwrap 1d proj bordercolor@GL_RGBA8- projected- border color only,Fail
+spec@!opengl 1.1@texwrap 2d bordercolor,Fail
+spec@!opengl 1.1@texwrap 2d bordercolor@GL_RGBA8- border color only,Fail
+spec@!opengl 1.1@texwrap 2d proj bordercolor,Fail
+spec@!opengl 1.1@texwrap 2d proj bordercolor@GL_RGBA8- projected- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_ALPHA12- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_ALPHA16- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_ALPHA4- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_ALPHA8- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_INTENSITY12- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_INTENSITY16- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_INTENSITY8- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE12_ALPHA12- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE12_ALPHA4- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE12- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE16_ALPHA16- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE16- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE4_ALPHA4- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE6_ALPHA2- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE8_ALPHA8- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_LUMINANCE8- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_R3_G3_B2- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB10_A2- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB10- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB12- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB16- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB4- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB5_A1- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB5- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGB8- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGBA12- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGBA16- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGBA4- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor@GL_RGBA8- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_ALPHA12- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_ALPHA16- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_ALPHA4- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_ALPHA8- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_INTENSITY12- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_INTENSITY16- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_INTENSITY8- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE12_ALPHA12- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE12_ALPHA4- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE12- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE16_ALPHA16- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE16- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE4_ALPHA4- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE6_ALPHA2- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE8_ALPHA8- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_LUMINANCE8- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_R3_G3_B2- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB10_A2- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB10- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB12- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB16- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB4- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB5_A1- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB5- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB8- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA12- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA16- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA4- swizzled- border color only,Fail
+spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA8- swizzled- border color only,Fail
+spec@!opengl 1.1@user-clip,Fail
+spec@!opengl 1.1@windowoverlap,Fail
+spec@!opengl 1.2@texwrap 3d bordercolor,Fail
+spec@!opengl 1.2@texwrap 3d bordercolor@GL_RGBA8- border color only,Fail
+spec@!opengl 1.2@texwrap 3d proj bordercolor,Fail
+spec@!opengl 1.2@texwrap 3d proj bordercolor@GL_RGBA8- projected- border color only,Fail
+spec@!opengl 2.0@gl-2.0-edgeflag,Fail
+spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
+spec@!opengl 2.0@max-samplers border,Fail
+spec@!opengl 2.0@max-samplers,Fail
+spec@!opengl 2.1@pbo,Fail
+spec@!opengl 2.1@pbo@test_polygon_stip,Fail
+spec@!opengl 2.1@polygon-stipple-fs,Fail
+spec@!opengl 3.0@gl-3.0-vertexattribipointer,Fail
+spec@!opengl 3.0@required-texture-attachment-formats,Fail
+spec@!opengl 3.1@primitive-restart-xfb flush,Fail
+spec@!opengl 3.1@primitive-restart-xfb generated,Fail
+spec@!opengl 3.1@primitive-restart-xfb written,Fail
+spec@!opengl 3.1@required-texture-attachment-formats,Fail
+spec@!opengl 3.2@coord-replace-doesnt-eliminate-frag-tex-coords,Fail
+spec@!opengl es 2.0@glsl-fs-pointcoord,Fail
+spec@!opengl es 3.0@ext_texture_array-compressed_gles3 texsubimage,Fail
+spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail

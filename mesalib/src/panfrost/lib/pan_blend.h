@@ -108,6 +108,12 @@ pan_blend_can_fixed_function(const struct pan_blend_equation equation,
 bool
 pan_blend_is_opaque(const struct pan_blend_equation eq);
 
+bool
+pan_blend_alpha_zero_nop(const struct pan_blend_equation eq);
+
+bool
+pan_blend_alpha_one_store(const struct pan_blend_equation eq);
+
 unsigned
 pan_blend_constant_mask(const struct pan_blend_equation eq);
 

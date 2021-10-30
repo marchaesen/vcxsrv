@@ -270,6 +270,7 @@ CreateResource(D3D10DDI_HDEVICE hDevice,                                // IN
 
    templat.target     = translate_texture_target( pCreateResource->ResourceDimension,
                                                   pCreateResource->ArraySize );
+   pResource->buffer = templat.target == PIPE_BUFFER;
 
    if (pCreateResource->Format == DXGI_FORMAT_UNKNOWN) {
       assert(pCreateResource->ResourceDimension == D3D10DDIRESOURCE_BUFFER);
@@ -315,37 +316,62 @@ CreateResource(D3D10DDI_HDEVICE hDevice,                                // IN
                                                           sizeof *pResource->transfers);
 
    if (pCreateResource->pInitialDataUP) {
-      for (UINT SubResource = 0; SubResource < pResource->NumSubResources; ++SubResource) {
+      if (pResource->buffer) {
+         assert(pResource->NumSubResources == 1);
          const D3D10_DDIARG_SUBRESOURCE_UP* pInitialDataUP =
-               &pCreateResource->pInitialDataUP[SubResource];
+               &pCreateResource->pInitialDataUP[0];
 
          unsigned level;
          struct pipe_box box;
-         subResourceBox(pResource->resource, SubResource, &level, &box);
+         subResourceBox(pResource->resource, 0, &level, &box);
 
          struct pipe_transfer *transfer;
          void *map;
-         map = pipe->transfer_map(pipe,
-                                  pResource->resource,
-                                  level,
-                                  PIPE_MAP_WRITE |
-                                  PIPE_MAP_UNSYNCHRONIZED,
-                                  &box,
-                                  &transfer);
+         map = pipe->buffer_map(pipe,
+                                pResource->resource,
+                                level,
+                                PIPE_MAP_WRITE |
+                                PIPE_MAP_UNSYNCHRONIZED,
+                                &box,
+                                &transfer);
          assert(map);
          if (map) {
-            for (int z = 0; z < box.depth; ++z) {
-               ubyte *dst = (ubyte*)map + z*transfer->layer_stride;
-               const ubyte *src = (const ubyte*)pInitialDataUP->pSysMem + z*pInitialDataUP->SysMemSlicePitch;
-               util_copy_rect(dst,
-                              templat.format,
-                              transfer->stride,
-                              0, 0, box.width, box.height,
-                              src,
-                              pInitialDataUP->SysMemPitch,
-                              0, 0);
+            memcpy(map, pInitialDataUP->pSysMem, box.width);
+            pipe_buffer_unmap(pipe, transfer);
+         }
+      } else {
+         for (UINT SubResource = 0; SubResource < pResource->NumSubResources; ++SubResource) {
+            const D3D10_DDIARG_SUBRESOURCE_UP* pInitialDataUP =
+                  &pCreateResource->pInitialDataUP[SubResource];
+
+            unsigned level;
+            struct pipe_box box;
+            subResourceBox(pResource->resource, SubResource, &level, &box);
+
+            struct pipe_transfer *transfer;
+            void *map;
+            map = pipe->texture_map(pipe,
+                                    pResource->resource,
+                                    level,
+                                    PIPE_MAP_WRITE |
+                                    PIPE_MAP_UNSYNCHRONIZED,
+                                    &box,
+                                    &transfer);
+            assert(map);
+            if (map) {
+               for (int z = 0; z < box.depth; ++z) {
+                  ubyte *dst = (ubyte*)map + z*transfer->layer_stride;
+                  const ubyte *src = (const ubyte*)pInitialDataUP->pSysMem + z*pInitialDataUP->SysMemSlicePitch;
+                  util_copy_rect(dst,
+                                 templat.format,
+                                 transfer->stride,
+                                 0, 0, box.width, box.height,
+                                 src,
+                                 pInitialDataUP->SysMemPitch,
+                                 0, 0);
+               }
+               pipe_texture_unmap(pipe, transfer);
             }
-            pipe_transfer_unmap(pipe, transfer);
          }
       }
    }
@@ -423,7 +449,11 @@ DestroyResource(D3D10DDI_HDEVICE hDevice,       // IN
 
    for (UINT SubResource = 0; SubResource < pResource->NumSubResources; ++SubResource) {
       if (pResource->transfers[SubResource]) {
-         pipe_transfer_unmap(pipe, pResource->transfers[SubResource]);
+         if (pResource->buffer) {
+            pipe_buffer_unmap(pipe, pResource->transfers[SubResource]);
+         } else {
+            pipe_texture_unmap(pipe, pResource->transfers[SubResource]);
+         }
          pResource->transfers[SubResource] = NULL;
       }
    }
@@ -493,12 +523,21 @@ ResourceMap(D3D10DDI_HDEVICE hDevice,                                // IN
    assert(!pResource->transfers[SubResource]);
 
    void *map;
-   map = pipe->transfer_map(pipe,
-                            resource,
-                            level,
-                            usage,
-                            &box,
-                            &pResource->transfers[SubResource]);
+   if (pResource->buffer) {
+      map = pipe->buffer_map(pipe,
+                             resource,
+                             level,
+                             usage,
+                             &box,
+                             &pResource->transfers[SubResource]);
+   } else {
+      map = pipe->texture_map(pipe,
+                              resource,
+                              level,
+                              usage,
+                              &box,
+                              &pResource->transfers[SubResource]);
+   }
    if (!map) {
       DebugPrintf("%s: failed to map resource\n", __FUNCTION__);
       SetError(hDevice, E_FAIL);
@@ -534,7 +573,11 @@ ResourceUnmap(D3D10DDI_HDEVICE hDevice,      // IN
    assert(SubResource < pResource->NumSubResources);
 
    if (pResource->transfers[SubResource]) {
-      pipe_transfer_unmap(pipe, pResource->transfers[SubResource]);
+      if (pResource->buffer) {
+         pipe_buffer_unmap(pipe, pResource->transfers[SubResource]);
+      } else {
+         pipe_texture_unmap(pipe, pResource->transfers[SubResource]);
+      }
       pResource->transfers[SubResource] = NULL;
    }
 }
@@ -834,7 +877,8 @@ ResourceUpdateSubResourceUP(D3D10DDI_HDEVICE hDevice,                // IN
    }
 
    struct pipe_context *pipe = pDevice->pipe;
-   struct pipe_resource *dst_resource = CastPipeResource(hDstResource);
+   Resource *pDstResource = CastResource(hDstResource);
+   struct pipe_resource *dst_resource = pDstResource->resource;
 
    unsigned level;
    struct pipe_box box;
@@ -855,12 +899,21 @@ ResourceUpdateSubResourceUP(D3D10DDI_HDEVICE hDevice,                // IN
 
    struct pipe_transfer *transfer;
    void *map;
-   map = pipe->transfer_map(pipe,
-                            dst_resource,
-                            level,
-                            PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE,
-                            &box,
-                            &transfer);
+   if (pDstResource->buffer) {
+      map = pipe->buffer_map(pipe,
+                              dst_resource,
+                              level,
+                              PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE,
+                              &box,
+                              &transfer);
+   } else {
+      map = pipe->texture_map(pipe,
+                              dst_resource,
+                              level,
+                              PIPE_MAP_WRITE | PIPE_MAP_DISCARD_RANGE,
+                              &box,
+                              &transfer);
+   }
    assert(map);
    if (map) {
       for (int z = 0; z < box.depth; ++z) {
@@ -874,7 +927,11 @@ ResourceUpdateSubResourceUP(D3D10DDI_HDEVICE hDevice,                // IN
                         RowPitch,
                         0, 0);
       }
-      pipe_transfer_unmap(pipe, transfer);
+      if (pDstResource->buffer) {
+         pipe_buffer_unmap(pipe, transfer);
+      } else {
+         pipe_texture_unmap(pipe, transfer);
+      }
    }
 }
 

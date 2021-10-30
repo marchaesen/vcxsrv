@@ -1736,7 +1736,7 @@ void r600_setup_scratch_area_for_shader(struct r600_context *rctx,
 			radeon_set_config_reg(cs, ring_base_reg, (rbuffer->gpu_address + size_per_se * se) >> 8);
 			radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 			radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
-				RADEON_USAGE_READWRITE,
+				RADEON_USAGE_READWRITE |
 				RADEON_PRIO_SCRATCH_BUFFER));
 			radeon_set_context_reg(cs, item_size_reg, itemsize);
 			radeon_set_config_reg(cs, ring_size_reg, size_per_se >> 8);
@@ -2360,7 +2360,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 		radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 		radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 							  (struct r600_resource*)indirect->buffer,
-							  RADEON_USAGE_READ,
+							  RADEON_USAGE_READ |
                                                           RADEON_PRIO_DRAW_INDIRECT));
 	}
 
@@ -2389,7 +2389,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 				radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 				radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 									  (struct r600_resource*)indexbuf,
-									  RADEON_USAGE_READ,
+									  RADEON_USAGE_READ |
                                                                           RADEON_PRIO_INDEX_BUFFER));
 			}
 			else {
@@ -2402,7 +2402,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 				radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 				radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
 									  (struct r600_resource*)indexbuf,
-									  RADEON_USAGE_READ,
+									  RADEON_USAGE_READ |
                                                                           RADEON_PRIO_INDEX_BUFFER));
 
 				radeon_emit(cs, PKT3(EG_PKT3_INDEX_BUFFER_SIZE, 0, 0));
@@ -2429,7 +2429,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 
 			radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 			radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx,
-								  t->buf_filled_size, RADEON_USAGE_READ,
+								  t->buf_filled_size, RADEON_USAGE_READ |
 								  RADEON_PRIO_SO_FILLED_SIZE));
 		}
 
@@ -2637,7 +2637,7 @@ void r600_emit_shader(struct r600_context *rctx, struct r600_atom *a)
 	r600_emit_command_buffer(cs, &shader->command_buffer);
 	radeon_emit(cs, PKT3(PKT3_NOP, 0, 0));
 	radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, shader->bo,
-					      RADEON_USAGE_READ, RADEON_PRIO_SHADER_BINARY));
+					      RADEON_USAGE_READ | RADEON_PRIO_SHADER_BINARY));
 }
 
 unsigned r600_get_swizzle_combined(const unsigned char *swizzle_format,

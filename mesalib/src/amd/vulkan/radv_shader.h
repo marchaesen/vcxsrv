@@ -35,8 +35,8 @@
 #include "radv_constants.h"
 
 #include "nir/nir.h"
-#include "vulkan/util/vk_object.h"
-#include "vulkan/util/vk_shader_module.h"
+#include "vulkan/runtime/vk_object.h"
+#include "vulkan/runtime/vk_shader_module.h"
 #include "vulkan/vulkan.h"
 
 #define RADV_VERT_ATTRIB_MAX MAX2(VERT_ATTRIB_MAX, VERT_ATTRIB_GENERIC0 + MAX_VERTEX_ATTRIBS)

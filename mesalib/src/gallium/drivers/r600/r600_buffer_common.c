@@ -33,7 +33,7 @@
 
 bool r600_rings_is_buffer_referenced(struct r600_common_context *ctx,
 				     struct pb_buffer *buf,
-				     enum radeon_bo_usage usage)
+				     unsigned usage)
 {
 	if (ctx->ws->cs_is_buffer_referenced(&ctx->gfx.cs, buf, usage)) {
 		return true;
@@ -49,7 +49,7 @@ void *r600_buffer_map_sync_with_rings(struct r600_common_context *ctx,
                                       struct r600_resource *resource,
                                       unsigned usage)
 {
-	enum radeon_bo_usage rusage = RADEON_USAGE_READWRITE;
+	unsigned rusage = RADEON_USAGE_READWRITE;
 	bool busy = false;
 
 	assert(!(resource->flags & RADEON_FLAG_SPARSE));

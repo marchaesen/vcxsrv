@@ -523,8 +523,8 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
                   sctx->scratch_waves, config->scratch_bytes_per_wave,
                   config->scratch_bytes_per_wave * sctx->scratch_waves);
 
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->scratch_bo, RADEON_USAGE_READWRITE,
-                                RADEON_PRIO_SCRATCH_BUFFER);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->scratch_bo,
+                                RADEON_USAGE_READWRITE | RADEON_PRIO_SCRATCH_BUFFER);
    }
 
    shader_va = shader->bo->gpu_address + offset;
@@ -534,8 +534,8 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
       shader_va += sizeof(amd_kernel_code_t);
    }
 
-   radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->bo, RADEON_USAGE_READ,
-                             RADEON_PRIO_SHADER_BINARY);
+   radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->bo,
+                             RADEON_USAGE_READ | RADEON_PRIO_SHADER_BINARY);
 
    radeon_begin(cs);
    radeon_set_sh_reg(R_00B830_COMPUTE_PGM_LO, shader_va >> 8);
@@ -654,8 +654,8 @@ static void si_setup_user_sgprs_co_v2(struct si_context *sctx, const amd_kernel_
          fprintf(stderr, "Error: Failed to allocate dispatch "
                          "packet.");
       }
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, dispatch_buf, RADEON_USAGE_READ,
-                                RADEON_PRIO_CONST_BUFFER);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, dispatch_buf,
+                                RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER);
 
       dispatch_va = dispatch_buf->gpu_address + dispatch_offset;
 
@@ -711,8 +711,8 @@ static bool si_upload_compute_input(struct si_context *sctx, const amd_kernel_co
       COMPUTE_DBG(sctx->screen, "input %u : %u\n", i, kernel_args[i]);
    }
 
-   radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, input_buffer, RADEON_USAGE_READ,
-                             RADEON_PRIO_CONST_BUFFER);
+   radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, input_buffer,
+                             RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER);
 
    si_setup_user_sgprs_co_v2(sctx, code_object, info, kernel_args_va);
    si_resource_reference(&input_buffer, NULL);
@@ -823,8 +823,8 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
    if (info->indirect) {
       uint64_t base_va = si_resource(info->indirect)->gpu_address;
 
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(info->indirect), RADEON_USAGE_READ,
-                                RADEON_PRIO_DRAW_INDIRECT);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(info->indirect),
+                                RADEON_USAGE_READ | RADEON_PRIO_DRAW_INDIRECT);
 
       radeon_emit(PKT3(PKT3_SET_BASE, 2, 0) | PKT3_SHADER_TYPE_S(1));
       radeon_emit(1);
@@ -976,8 +976,8 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
       if (!buffer) {
          continue;
       }
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, buffer, RADEON_USAGE_READWRITE,
-                                RADEON_PRIO_COMPUTE_GLOBAL);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, buffer,
+                                RADEON_USAGE_READWRITE | RADEON_PRIO_SHADER_RW_BUFFER);
    }
 
    /* Registers that are not read from memory should be set before this: */

@@ -14,7 +14,7 @@ libd3d10umd = static_library(
     'Debug.cpp',
     'Device.cpp',
     'Draw.cpp',
-    'Dxgi.cpp',
+    'DxgiFns.cpp',
     'Format.cpp',
     'InputAssembly.cpp',
     'OutputMerger.cpp',

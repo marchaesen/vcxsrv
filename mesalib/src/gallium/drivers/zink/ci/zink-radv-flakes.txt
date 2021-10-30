@@ -1,0 +1,6 @@
+dEQP-GLES31.functional.shaders.builtin_constants.core.max_vertex_image_uniforms
+
+glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
+glx@glx_arb_sync_control@waitformsc
+spec@arb_timer_query@timestamp-get
+spec@arb_shader_image_load_store@shader-mem-barrier*

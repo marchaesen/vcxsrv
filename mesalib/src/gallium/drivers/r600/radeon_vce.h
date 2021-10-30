@@ -431,7 +431,7 @@ struct pipe_video_codec *rvce_create_encoder(struct pipe_context *context,
 bool rvce_is_fw_version_supported(struct r600_common_screen *rscreen);
 
 void rvce_add_buffer(struct rvce_encoder *enc, struct pb_buffer *buf,
-		     enum radeon_bo_usage usage, enum radeon_bo_domain domain,
+		     unsigned usage, enum radeon_bo_domain domain,
 		     signed offset);
 
 /* init vce fw 40.2.2 specific callbacks */

@@ -157,11 +157,11 @@ static void si_cp_dma_prepare(struct si_context *sctx, struct pipe_resource *dst
 
    /* This must be done after need_cs_space. */
    if (dst)
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(dst), RADEON_USAGE_WRITE,
-                                RADEON_PRIO_CP_DMA);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(dst),
+                                RADEON_USAGE_WRITE | RADEON_PRIO_CP_DMA);
    if (src)
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(src), RADEON_USAGE_READ,
-                                RADEON_PRIO_CP_DMA);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(src),
+                                RADEON_USAGE_READ | RADEON_PRIO_CP_DMA);
 
    /* Flush the caches for the first copy only.
     * Also wait for the previous CP DMA operations.
@@ -493,7 +493,7 @@ void si_cp_write_data(struct si_context *sctx, struct si_resource *buf, unsigned
    if (sctx->chip_class == GFX6 && dst_sel == V_370_MEM)
       dst_sel = V_370_MEM_GRBM;
 
-   radeon_add_to_buffer_list(sctx, cs, buf, RADEON_USAGE_WRITE, RADEON_PRIO_CP_DMA);
+   radeon_add_to_buffer_list(sctx, cs, buf, RADEON_USAGE_WRITE | RADEON_PRIO_CP_DMA);
    uint64_t va = buf->gpu_address + offset;
 
    radeon_begin(cs);
@@ -511,10 +511,10 @@ void si_cp_copy_data(struct si_context *sctx, struct radeon_cmdbuf *cs, unsigned
 {
    /* cs can point to the compute IB, which has the buffer list in gfx_cs. */
    if (dst) {
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, dst, RADEON_USAGE_WRITE, RADEON_PRIO_CP_DMA);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, dst, RADEON_USAGE_WRITE | RADEON_PRIO_CP_DMA);
    }
    if (src) {
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, src, RADEON_USAGE_READ, RADEON_PRIO_CP_DMA);
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, src, RADEON_USAGE_READ | RADEON_PRIO_CP_DMA);
    }
 
    uint64_t dst_va = (dst ? dst->gpu_address : 0ull) + dst_offset;

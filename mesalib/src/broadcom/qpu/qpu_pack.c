@@ -425,8 +425,13 @@ v3d_qpu_flags_pack(const struct v3d_device_info *devinfo,
                 if (flags_present & MUF)
                         *packed_cond |= cond->muf - V3D_QPU_UF_ANDZ + 4;
 
-                if (flags_present & AC)
-                        *packed_cond |= (cond->ac - V3D_QPU_COND_IFA) << 2;
+                if (flags_present & AC) {
+                        if (*packed_cond & (1 << 6))
+                                *packed_cond |= cond->ac - V3D_QPU_COND_IFA;
+                        else
+                                *packed_cond |= (cond->ac -
+                                                 V3D_QPU_COND_IFA) << 2;
+                }
 
                 if (flags_present & MC) {
                         if (*packed_cond & (1 << 6))

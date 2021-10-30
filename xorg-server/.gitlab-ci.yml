@@ -59,17 +59,6 @@ debian-buster:
     after_script:
         - ccache --show-stats
 
-autotools:
-    extends: .common-build-and-test
-    script:
-        - mkdir build/
-        - cd build/
-        - ../autogen.sh --prefix=/usr CFLAGS="-fno-common"
-        - make -j${FDO_CI_CONCURRENT:-4} distcheck
-        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j${FDO_CI_CONCURRENT:-4} check
-        - cd ..
-        - .gitlab-ci/manpages-check
-
 meson:
     extends: .common-build-and-test
     script:

@@ -854,6 +854,23 @@ zink_bind_vs_state(struct pipe_context *pctx,
 
 }
 
+/* if gl_SampleMask[] is written to, we have to ensure that we get a shader with the same sample count:
+ * in GL, samples==1 means ignore gl_SampleMask[]
+ * in VK, gl_SampleMask[] is never ignored
+ */
+void
+zink_update_fs_key_samples(struct zink_context *ctx)
+{
+   if (!ctx->gfx_stages[PIPE_SHADER_FRAGMENT])
+      return;
+   nir_shader *nir = ctx->gfx_stages[PIPE_SHADER_FRAGMENT]->nir;
+   if (nir->info.outputs_written & (1 << FRAG_RESULT_SAMPLE_MASK)) {
+      bool samples = zink_get_fs_key(ctx)->samples;
+      if (samples != (ctx->fb_state.samples > 1))
+         zink_set_fs_key(ctx)->samples = ctx->fb_state.samples > 1;
+   }
+}
+
 static void
 zink_bind_fs_state(struct pipe_context *pctx,
                    void *cso)
@@ -871,6 +888,7 @@ zink_bind_fs_state(struct pipe_context *pctx,
                ctx->fbfetch_outputs |= BITFIELD_BIT(var->data.location - FRAG_RESULT_DATA0);
          }
       }
+      zink_update_fs_key_samples(ctx);
    }
    zink_update_fbfetch(ctx);
 }
