@@ -1194,7 +1194,7 @@ EnqueueEvent(InternalEvent *ev, DeviceIntPtr device)
         }
     }
 
-    eventlen = event->length;
+    eventlen = sizeof(InternalEvent);
 
     qe = malloc(sizeof(QdEventRec) + eventlen);
     if (!qe)
@@ -1322,7 +1322,7 @@ ComputeFreezes(void)
 
         syncEvents.replayDev = (DeviceIntPtr) NULL;
 
-        if (!CheckDeviceGrabs(replayDev, &event->device_event,
+        if (!CheckDeviceGrabs(replayDev, event,
                               syncEvents.replayWin)) {
             if (IsTouchEvent(event)) {
                 TouchPointInfoPtr ti =
@@ -3030,7 +3030,7 @@ BOOL
 ActivateFocusInGrab(DeviceIntPtr dev, WindowPtr old, WindowPtr win)
 {
     BOOL rc = FALSE;
-    DeviceEvent event;
+    InternalEvent event;
 
     if (dev->deviceGrab.grab) {
         if (!dev->deviceGrab.fromPassiveGrab ||
@@ -3045,15 +3045,16 @@ ActivateFocusInGrab(DeviceIntPtr dev, WindowPtr old, WindowPtr win)
     if (win == NoneWin || win == PointerRootWin)
         return FALSE;
 
-    memset(&event, 0, sizeof(DeviceEvent));
-    event.header = ET_Internal;
-    event.type = ET_FocusIn;
-    event.length = sizeof(DeviceEvent);
-    event.time = GetTimeInMillis();
-    event.deviceid = dev->id;
-    event.sourceid = dev->id;
-    event.detail.button = 0;
-    rc = (CheckPassiveGrabsOnWindow(win, dev, (InternalEvent *) &event, FALSE,
+    event = (InternalEvent) {
+        .device_event.header = ET_Internal,
+        .device_event.type = ET_FocusIn,
+        .device_event.length = sizeof(DeviceEvent),
+        .device_event.time = GetTimeInMillis(),
+        .device_event.deviceid = dev->id,
+        .device_event.sourceid = dev->id,
+        .device_event.detail.button = 0
+    };
+    rc = (CheckPassiveGrabsOnWindow(win, dev, &event, FALSE,
                                     TRUE) != NULL);
     if (rc)
         DoEnterLeaveEvents(dev, dev->id, old, win, XINotifyPassiveGrab);
@@ -3070,7 +3071,7 @@ static BOOL
 ActivateEnterGrab(DeviceIntPtr dev, WindowPtr old, WindowPtr win)
 {
     BOOL rc = FALSE;
-    DeviceEvent event;
+    InternalEvent event;
 
     if (dev->deviceGrab.grab) {
         if (!dev->deviceGrab.fromPassiveGrab ||
@@ -3082,15 +3083,16 @@ ActivateEnterGrab(DeviceIntPtr dev, WindowPtr old, WindowPtr win)
         (*dev->deviceGrab.DeactivateGrab) (dev);
     }
 
-    memset(&event, 0, sizeof(DeviceEvent));
-    event.header = ET_Internal;
-    event.type = ET_Enter;
-    event.length = sizeof(DeviceEvent);
-    event.time = GetTimeInMillis();
-    event.deviceid = dev->id;
-    event.sourceid = dev->id;
-    event.detail.button = 0;
-    rc = (CheckPassiveGrabsOnWindow(win, dev, (InternalEvent *) &event, FALSE,
+    event = (InternalEvent) {
+        .device_event.header = ET_Internal,
+        .device_event.type = ET_Enter,
+        .device_event.length = sizeof(DeviceEvent),
+        .device_event.time = GetTimeInMillis(),
+        .device_event.deviceid = dev->id,
+        .device_event.sourceid = dev->id,
+        .device_event.detail.button = 0
+    };
+    rc = (CheckPassiveGrabsOnWindow(win, dev, &event, FALSE,
                                     TRUE) != NULL);
     if (rc)
         DoEnterLeaveEvents(dev, dev->id, old, win, XINotifyPassiveGrab);
@@ -4145,14 +4147,15 @@ CheckPassiveGrabsOnWindow(WindowPtr pWin,
 */
 
 Bool
-CheckDeviceGrabs(DeviceIntPtr device, DeviceEvent *event, WindowPtr ancestor)
+CheckDeviceGrabs(DeviceIntPtr device, InternalEvent *ievent, WindowPtr ancestor)
 {
     int i;
     WindowPtr pWin = NULL;
     FocusClassPtr focus =
-        IsPointerEvent((InternalEvent *) event) ? NULL : device->focus;
+        IsPointerEvent(ievent) ? NULL : device->focus;
     BOOL sendCore = (IsMaster(device) && device->coreEvents);
     Bool ret = FALSE;
+    DeviceEvent *event = &ievent->device_event;
 
     if (event->type != ET_ButtonPress && event->type != ET_KeyPress)
         return FALSE;
@@ -4175,7 +4178,7 @@ CheckDeviceGrabs(DeviceIntPtr device, DeviceEvent *event, WindowPtr ancestor)
     if (focus) {
         for (; i < focus->traceGood; i++) {
             pWin = focus->trace[i];
-            if (CheckPassiveGrabsOnWindow(pWin, device, (InternalEvent *) event,
+            if (CheckPassiveGrabsOnWindow(pWin, device, ievent,
                                           sendCore, TRUE)) {
                 ret = TRUE;
                 goto out;
@@ -4190,7 +4193,7 @@ CheckDeviceGrabs(DeviceIntPtr device, DeviceEvent *event, WindowPtr ancestor)
 
     for (; i < device->spriteInfo->sprite->spriteTraceGood; i++) {
         pWin = device->spriteInfo->sprite->spriteTrace[i];
-        if (CheckPassiveGrabsOnWindow(pWin, device, (InternalEvent *) event,
+        if (CheckPassiveGrabsOnWindow(pWin, device, ievent,
                                       sendCore, TRUE)) {
             ret = TRUE;
             goto out;

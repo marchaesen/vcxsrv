@@ -155,6 +155,9 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_cull_small_primitives_enabled_amd:
    case nir_intrinsic_load_cull_any_enabled_amd:
    case nir_intrinsic_load_cull_small_prim_precision_amd:
+   case nir_intrinsic_load_user_data_amd:
+   case nir_intrinsic_load_tess_level_inner_default:
+   case nir_intrinsic_load_tess_level_outer_default:
       is_divergent = false;
       break;
 
@@ -387,6 +390,7 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_line_coord:
    case nir_intrinsic_load_frag_coord:
    case nir_intrinsic_load_sample_pos:
+   case nir_intrinsic_load_sample_pos_or_center:
    case nir_intrinsic_load_vertex_id_zero_base:
    case nir_intrinsic_load_vertex_id:
    case nir_intrinsic_load_instance_id:
@@ -441,6 +445,8 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_image_deref_atomic_fadd:
    case nir_intrinsic_image_deref_atomic_fmin:
    case nir_intrinsic_image_deref_atomic_fmax:
+   case nir_intrinsic_image_deref_atomic_inc_wrap:
+   case nir_intrinsic_image_deref_atomic_dec_wrap:
    case nir_intrinsic_image_atomic_add:
    case nir_intrinsic_image_atomic_imin:
    case nir_intrinsic_image_atomic_umin:
@@ -1017,3 +1023,19 @@ bool nir_update_instr_divergence(nir_shader *shader, nir_instr *instr)
    return true;
 }
 
+
+bool
+nir_has_divergent_loop(nir_shader *shader)
+{
+   bool divergent_loop = false;
+   nir_function_impl *func = nir_shader_get_entrypoint(shader);
+
+   foreach_list_typed(nir_cf_node, node, node, &func->body) {
+      if (node->type == nir_cf_node_loop && nir_cf_node_as_loop(node)->divergent) {
+         divergent_loop = true;
+         break;
+      }
+   }
+
+   return divergent_loop;
+}

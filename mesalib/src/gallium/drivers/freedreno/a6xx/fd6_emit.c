@@ -111,7 +111,6 @@ setup_border_colors(struct fd_texture_stateobj *tex,
       enum pipe_format format = view->format;
       const struct util_format_description *desc =
          util_format_description(format);
-      const struct fd_resource *rsc = fd_resource(view->texture);
 
       e->rgb565 = 0;
       e->rgb5a1 = 0;
@@ -121,7 +120,7 @@ setup_border_colors(struct fd_texture_stateobj *tex,
 
       unsigned char swiz[4];
 
-      fd6_tex_swiz(format, rsc->layout.tile_mode, swiz, view->swizzle_r, view->swizzle_g,
+      fd6_tex_swiz(format, swiz, view->swizzle_r, view->swizzle_g,
                    view->swizzle_b, view->swizzle_a);
 
       for (j = 0; j < 4; j++) {
@@ -197,7 +196,7 @@ setup_border_colors(struct fd_texture_stateobj *tex,
             else if (c < 3)
                e->rgb565 |= (int)(f_u * 0x1f) << (c ? 11 : 0);
             if (c == 3)
-               e->rgb5a1 |= (f_u > 0.5) ? 0x8000 : 0;
+               e->rgb5a1 |= (f_u > 0.5f) ? 0x8000 : 0;
             else
                e->rgb5a1 |= (int)(f_u * 0x1f) << (c * 5);
             if (c == 3)
@@ -393,35 +392,35 @@ fd6_emit_textures(struct fd_context *ctx, struct fd_ringbuffer *ring,
             view = &dummy_view;
          }
 
-         OUT_RING(state, view->texconst0);
-         OUT_RING(state, view->texconst1);
-         OUT_RING(state, view->texconst2);
-         OUT_RING(state, view->texconst3);
+         OUT_RING(state, view->descriptor[0]);
+         OUT_RING(state, view->descriptor[1]);
+         OUT_RING(state, view->descriptor[2]);
+         OUT_RING(state, view->descriptor[3]);
 
          if (view->ptr1) {
-            OUT_RELOC(state, view->ptr1->bo, view->offset1,
-                      (uint64_t)view->texconst5 << 32, 0);
+            OUT_RELOC(state, view->ptr1->bo, view->descriptor[4],
+                      (uint64_t)view->descriptor[5] << 32, 0);
          } else {
-            OUT_RING(state, 0x00000000);
-            OUT_RING(state, view->texconst5);
+            OUT_RING(state, view->descriptor[4]);
+            OUT_RING(state, view->descriptor[5]);
          }
 
-         OUT_RING(state, view->texconst6);
+         OUT_RING(state, view->descriptor[6]);
 
          if (view->ptr2) {
-            OUT_RELOC(state, view->ptr2->bo, view->offset2, 0, 0);
+            OUT_RELOC(state, view->ptr2->bo, view->descriptor[7], 0, 0);
          } else {
-            OUT_RING(state, 0);
-            OUT_RING(state, 0);
+            OUT_RING(state, view->descriptor[7]);
+            OUT_RING(state, view->descriptor[8]);
          }
 
-         OUT_RING(state, view->texconst9);
-         OUT_RING(state, view->texconst10);
-         OUT_RING(state, view->texconst11);
-         OUT_RING(state, 0);
-         OUT_RING(state, 0);
-         OUT_RING(state, 0);
-         OUT_RING(state, 0);
+         OUT_RING(state, view->descriptor[9]);
+         OUT_RING(state, view->descriptor[10]);
+         OUT_RING(state, view->descriptor[11]);
+         OUT_RING(state, view->descriptor[12]);
+         OUT_RING(state, view->descriptor[13]);
+         OUT_RING(state, view->descriptor[14]);
+         OUT_RING(state, view->descriptor[15]);
       }
 
       if (v) {
@@ -432,9 +431,9 @@ fd6_emit_textures(struct fd_context *ctx, struct fd_ringbuffer *ring,
          for (unsigned i = 0; i < mapping->num_tex; i++) {
             unsigned idx = mapping->tex_to_image[i];
             if (idx & IBO_SSBO) {
-               fd6_emit_ssbo_tex(state, &buf->sb[idx & ~IBO_SSBO]);
+               fd6_emit_ssbo_tex(ctx, state, &buf->sb[idx & ~IBO_SSBO]);
             } else {
-               fd6_emit_image_tex(state, &img->si[idx]);
+               fd6_emit_image_tex(ctx, state, &img->si[idx]);
             }
          }
 
@@ -1339,6 +1338,15 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
 
    OUT_PKT4(ring, REG_A6XX_RB_LRZ_CNTL, 1);
    OUT_RING(ring, 0x00000000);
+
+   /* This happens after all drawing has been emitted to the draw CS, so we know
+    * whether we need the tess BO pointers.
+    */
+   if (batch->tessellation) {
+      assert(screen->tess_bo);
+      OUT_PKT4(ring, REG_A6XX_PC_TESSFACTOR_ADDR, 2);
+      OUT_RELOC(ring, screen->tess_bo, 0, 0, 0);
+   }
 
    if (!batch->nondraw) {
       trace_end_state_restore(&batch->trace, ring);

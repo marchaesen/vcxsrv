@@ -26,6 +26,7 @@
 #include "util/bitscan.h"
 #include "util/macros.h"
 #include "compiler/shader_enums.h"
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef __cplusplus
@@ -281,7 +282,7 @@ vk_spec_info_to_nir_spirv(const VkSpecializationInfo *spec_info,
 #define STACK_ARRAY_SIZE 8
 
 #define STACK_ARRAY(type, name, size) \
-   type _stack_##name[STACK_ARRAY_SIZE], *const name = \
+   type _stack_##name[STACK_ARRAY_SIZE] = {0}, *const name = \
       (size) <= STACK_ARRAY_SIZE ? _stack_##name : malloc((size) * sizeof(type))
 
 #define STACK_ARRAY_FINISH(name) \

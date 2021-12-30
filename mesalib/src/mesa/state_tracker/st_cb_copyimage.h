@@ -25,9 +25,14 @@
 #ifndef ST_CB_COPY_IMAGE_H
 #define ST_CB_COPY_IMAGE_H
 
-struct dd_function_table;
-
-extern void
-st_init_copy_image_functions(struct dd_function_table *functions);
+void
+st_CopyImageSubData(struct gl_context *ctx,
+                    struct gl_texture_image *src_image,
+                    struct gl_renderbuffer *src_renderbuffer,
+                    int src_x, int src_y, int src_z,
+                    struct gl_texture_image *dst_image,
+                    struct gl_renderbuffer *dst_renderbuffer,
+                    int dst_x, int dst_y, int dst_z,
+                    int src_width, int src_height);
 
 #endif /* ST_CB_COPY_IMAGE_H */

@@ -849,7 +849,7 @@ radv_import_ahb_memory(struct radv_device *device, struct radv_device_memory *me
       struct radv_image_create_info create_info = {.no_metadata_planes = true,
                                                    .bo_metadata = &metadata};
 
-      VkResult result = radv_image_create_layout(device, create_info, NULL, mem->image);
+      result = radv_image_create_layout(device, create_info, NULL, mem->image);
       if (result != VK_SUCCESS) {
          device->ws->buffer_destroy(device->ws, mem->bo);
          mem->bo = NULL;

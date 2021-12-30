@@ -43,13 +43,14 @@ struct match_state {
    /* Used for running the automaton on newly-constructed instructions. */
    struct util_dynarray *states;
    const struct per_op_table *pass_op_table;
+   const nir_algebraic_table *table;
 
    nir_alu_src variables[NIR_SEARCH_MAX_VARIABLES];
    struct hash_table *range_ht;
 };
 
 static bool
-match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
+match_expression(const nir_algebraic_table *table, const nir_search_expression *expr, nir_alu_instr *instr,
                  unsigned num_components, const uint8_t *swizzle,
                  struct match_state *state);
 static bool
@@ -252,7 +253,8 @@ nir_op_for_search_op(uint16_t sop, unsigned bit_size)
 }
 
 static bool
-match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
+match_value(const nir_algebraic_table *table,
+            const nir_search_value *value, nir_alu_instr *instr, unsigned src,
             unsigned num_components, const uint8_t *swizzle,
             struct match_state *state)
 {
@@ -288,7 +290,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
       if (instr->src[src].src.ssa->parent_instr->type != nir_instr_type_alu)
          return false;
 
-      return match_expression(nir_search_value_as_expression(value),
+      return match_expression(table, nir_search_value_as_expression(value),
                               nir_instr_as_alu(instr->src[src].src.ssa->parent_instr),
                               num_components, new_swizzle, state);
 
@@ -313,8 +315,8 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
              instr->src[src].src.ssa->parent_instr->type != nir_instr_type_load_const)
             return false;
 
-         if (var->cond && !var->cond(state->range_ht, instr,
-                                     src, num_components, new_swizzle))
+         if (var->cond_index != -1 && !table->variable_cond[var->cond_index](state->range_ht, instr,
+                                                                             src, num_components, new_swizzle))
             return false;
 
          if (var->type != nir_type_invalid &&
@@ -389,11 +391,11 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
 }
 
 static bool
-match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
+match_expression(const nir_algebraic_table *table, const nir_search_expression *expr, nir_alu_instr *instr,
                  unsigned num_components, const uint8_t *swizzle,
                  struct match_state *state)
 {
-   if (expr->cond && !expr->cond(instr))
+   if (expr->cond_index != -1 && !table->expression_cond[expr->cond_index](instr))
       return false;
 
    if (!nir_op_matches_search_op(instr->op, expr->opcode))
@@ -440,7 +442,7 @@ match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
       /* 2src_commutative instructions that have 3 sources are only commutative
        * in the first two sources.  Source 2 is always source 2.
        */
-      if (!match_value(expr->srcs[i], instr,
+      if (!match_value(table, &state->table->values[expr->srcs[i]].value, instr,
                        i < 2 ? i ^ comm_op_flip : i,
                        num_components, swizzle, state)) {
          matched = false;
@@ -498,7 +500,7 @@ construct_value(nir_builder *build,
          if (nir_op_infos[alu->op].input_sizes[i] != 0)
             num_components = nir_op_infos[alu->op].input_sizes[i];
 
-         alu->src[i] = construct_value(build, expr->srcs[i],
+         alu->src[i] = construct_value(build, &state->table->values[expr->srcs[i]].value,
                                        num_components, search_bitsize,
                                        state, instr);
       }
@@ -576,7 +578,7 @@ construct_value(nir_builder *build,
    }
 }
 
-UNUSED static void dump_value(const nir_search_value *val)
+UNUSED static void dump_value(const nir_algebraic_table *table, const nir_search_value *val)
 {
    switch (val->type) {
    case nir_search_value_constant: {
@@ -634,7 +636,7 @@ UNUSED static void dump_value(const nir_search_value *val)
 
       for (unsigned i = 0; i < num_srcs; i++) {
          fprintf(stderr, " ");
-         dump_value(expr->srcs[i]);
+         dump_value(table, &table->values[expr->srcs[i]].value);
       }
 
       fprintf(stderr, ")");
@@ -687,7 +689,7 @@ nir_ssa_def *
 nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
                   struct hash_table *range_ht,
                   struct util_dynarray *states,
-                  const struct per_op_table *pass_op_table,
+                  const nir_algebraic_table *table,
                   const nir_search_expression *search,
                   const nir_search_value *replace,
                   nir_instr_worklist *algebraic_worklist)
@@ -703,7 +705,8 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    state.inexact_match = false;
    state.has_exact_alu = false;
    state.range_ht = range_ht;
-   state.pass_op_table = pass_op_table;
+   state.pass_op_table = table->pass_op_table;
+   state.table = table;
 
    STATIC_ASSERT(sizeof(state.comm_op_direction) * 8 >= NIR_SEARCH_MAX_COMM_OPS);
 
@@ -718,7 +721,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
       state.comm_op_direction = comb;
       state.variables_seen = 0;
 
-      if (match_expression(search, instr,
+      if (match_expression(table, search, instr,
                            instr->dest.dest.ssa.num_components,
                            swizzle, &state)) {
          found = true;
@@ -786,7 +789,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
       nir_mov_alu(build, val, instr->dest.dest.ssa.num_components);
    if (ssa_val->index == util_dynarray_num_elements(states, uint16_t)) {
       util_dynarray_append(states, uint16_t, 0);
-      nir_algebraic_automaton(ssa_val->parent_instr, states, pass_op_table);
+      nir_algebraic_automaton(ssa_val->parent_instr, states, table->pass_op_table);
    }
 
    /* Rewrite the uses of the old SSA value to the new one, and recurse
@@ -794,7 +797,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
     */
    nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, ssa_val);
    nir_algebraic_update_automaton(ssa_val->parent_instr, algebraic_worklist,
-                                  states, pass_op_table);
+                                  states, table->pass_op_table);
 
    /* Nothing uses the instr any more, so drop it out of the program.  Note
     * that the instr may be in the worklist still, so we can't free it
@@ -826,8 +829,9 @@ nir_algebraic_automaton(nir_instr *instr, struct util_dynarray *states,
       unsigned index = 0;
       for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
          index *= tbl->num_filtered_states;
-         index += tbl->filter[*util_dynarray_element(states, uint16_t,
-                                                     alu->src[i].src.ssa->index)];
+         if (tbl->filter)
+            index += tbl->filter[*util_dynarray_element(states, uint16_t,
+                                                        alu->src[i].src.ssa->index)];
       }
 
       uint16_t *state = util_dynarray_element(states, uint16_t,
@@ -859,10 +863,8 @@ static bool
 nir_algebraic_instr(nir_builder *build, nir_instr *instr,
                     struct hash_table *range_ht,
                     const bool *condition_flags,
-                    const struct transform **transforms,
-                    const uint16_t *transform_counts,
+                    const nir_algebraic_table *table,
                     struct util_dynarray *states,
-                    const struct per_op_table *pass_op_table,
                     nir_instr_worklist *worklist)
 {
 
@@ -882,12 +884,14 @@ nir_algebraic_instr(nir_builder *build, nir_instr *instr,
 
    int xform_idx = *util_dynarray_element(states, uint16_t,
                                           alu->dest.dest.ssa.index);
-   for (uint16_t i = 0; i < transform_counts[xform_idx]; i++) {
-      const struct transform *xform = &transforms[xform_idx][i];
+   for (const struct transform *xform = &table->transforms[table->transform_offsets[xform_idx]];
+        xform->condition_offset != ~0;
+        xform++) {
       if (condition_flags[xform->condition_offset] &&
-          !(xform->search->inexact && ignore_inexact) &&
-          nir_replace_instr(build, alu, range_ht, states, pass_op_table,
-                            xform->search, xform->replace, worklist)) {
+          !(table->values[xform->search].expression.inexact && ignore_inexact) &&
+          nir_replace_instr(build, alu, range_ht, states, table,
+                            &table->values[xform->search].expression,
+                            &table->values[xform->replace].value, worklist)) {
          _mesa_hash_table_clear(range_ht, NULL);
          return true;
       }
@@ -899,9 +903,7 @@ nir_algebraic_instr(nir_builder *build, nir_instr *instr,
 bool
 nir_algebraic_impl(nir_function_impl *impl,
                    const bool *condition_flags,
-                   const struct transform **transforms,
-                   const uint16_t *transform_counts,
-                   const struct per_op_table *pass_op_table)
+                   const nir_algebraic_table *table)
 {
    bool progress = false;
 
@@ -926,7 +928,7 @@ nir_algebraic_impl(nir_function_impl *impl,
    /* Walk top-to-bottom setting up the automaton state. */
    nir_foreach_block(block, impl) {
       nir_foreach_instr(instr, block) {
-         nir_algebraic_automaton(instr, &states, pass_op_table);
+         nir_algebraic_automaton(instr, &states, table->pass_op_table);
       }
    }
 
@@ -952,8 +954,7 @@ nir_algebraic_impl(nir_function_impl *impl,
 
       progress |= nir_algebraic_instr(&build, instr,
                                       range_ht, condition_flags,
-                                      transforms, transform_counts, &states,
-                                      pass_op_table, worklist);
+                                      table, &states, worklist);
    }
 
    nir_instr_worklist_destroy(worklist);

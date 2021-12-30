@@ -1,9 +1,9 @@
 @echo off
 setlocal
 
-flex --nounistd -Ssrc/flex.skl -o%1/mhmakelexer.cpp src/mhmakelexer.l
+flex.exe --nounistd -Ssrc/flex.skl -o%1/mhmakelexer.cpp src/mhmakelexer.l
 
-python addstdafxh.py %1\mhmakelexer.cpp
+c:\Python39\python.exe addstdafxh.py %1\mhmakelexer.cpp
 
 endlocal
 

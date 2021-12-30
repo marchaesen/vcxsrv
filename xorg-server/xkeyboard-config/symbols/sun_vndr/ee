@@ -76,7 +76,7 @@ xkb_symbols "sun_type6" {
 
    key <BKSL> { [     apostrophe,      asterisk,	onehalf,    dead_breve ] };
    key <AB01> { [              z,             Z,	zcaron,        Zcaron ] };
-   key <AB02> { [              x,             X,	guillemotright,       U203A ] };
+   key <AB02> { [              x,             X,	guillemotright,       greater ] };
    key <AB03> { [              c,             C,	cent,     copyright ] };
    key <AB04> { [              v,             V,	leftdoublequotemark, leftsinglequotemark ] };
    key <AB05> { [              b,             B,	rightdoublequotemark, rightsinglequotemark ] };

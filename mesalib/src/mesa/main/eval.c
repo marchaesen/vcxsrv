@@ -43,6 +43,7 @@
 #include "macros.h"
 #include "mtypes.h"
 #include "main/dispatch.h"
+#include "api_exec_decl.h"
 
 
 /*
@@ -820,19 +821,6 @@ _mesa_MapGrid2d( GLint un, GLdouble u1, GLdouble u2,
 {
    _mesa_MapGrid2f( un, (GLfloat) u1, (GLfloat) u2,
 		    vn, (GLfloat) v1, (GLfloat) v2 );
-}
-
-
-void
-_mesa_install_eval_vtxfmt(struct _glapi_table *disp,
-                          const GLvertexformat *vfmt)
-{
-   SET_EvalCoord1f(disp, vfmt->EvalCoord1f);
-   SET_EvalCoord1fv(disp, vfmt->EvalCoord1fv);
-   SET_EvalCoord2f(disp, vfmt->EvalCoord2f);
-   SET_EvalCoord2fv(disp, vfmt->EvalCoord2fv);
-   SET_EvalPoint1(disp, vfmt->EvalPoint1);
-   SET_EvalPoint2(disp, vfmt->EvalPoint2);
 }
 
 

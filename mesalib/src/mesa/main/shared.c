@@ -45,6 +45,11 @@
 #include "util/set.h"
 #include "util/u_memory.h"
 
+#include "state_tracker/st_cb_memoryobjects.h"
+#include "state_tracker/st_cb_semaphoreobjects.h"
+#include "state_tracker/st_cb_texture.h"
+#include "state_tracker/st_cb_program.h"
+
 static void
 free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared);
 
@@ -116,7 +121,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
          GL_TEXTURE_1D
       };
       STATIC_ASSERT(ARRAY_SIZE(targets) == NUM_TEXTURE_TARGETS);
-      shared->DefaultTex[i] = ctx->Driver.NewTextureObject(ctx, 0, targets[i]);
+      shared->DefaultTex[i] = st_NewTextureObject(ctx, 0, targets[i]);
       /* Need to explicitly set/overwrite the TargetIndex field here since
        * the call to _mesa_tex_target_to_index() in NewTextureObject() may
        * fail if the texture target is not supported.
@@ -128,7 +133,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    assert(shared->DefaultTex[TEXTURE_1D_INDEX]->RefCount == 1);
 
    /* Mutex and timestamp for texobj state validation */
-   mtx_init(&shared->TexMutex, mtx_recursive);
+   simple_mtx_init(&shared->TexMutex, mtx_plain);
    shared->TextureStateStamp = 0;
 
    shared->FrameBuffers = _mesa_NewHashTable();
@@ -176,7 +181,7 @@ delete_texture_cb(void *data, void *userData)
 {
    struct gl_texture_object *texObj = (struct gl_texture_object *) data;
    struct gl_context *ctx = (struct gl_context *) userData;
-   ctx->Driver.DeleteTexture(ctx, texObj);
+   st_DeleteTextureObject(ctx, texObj);
 }
 
 
@@ -191,7 +196,7 @@ delete_program_cb(void *data, void *userData)
    if(prog != &_mesa_DummyProgram) {
       assert(prog->RefCount == 1); /* should only be referenced by hash table */
       prog->RefCount = 0;  /* now going away */
-      ctx->Driver.DeleteProgram(ctx, prog);
+      st_delete_program(ctx, prog);
    }
 }
 
@@ -313,7 +318,7 @@ delete_memory_object_cb(void *data, void *userData)
 {
    struct gl_memory_object *memObj = (struct gl_memory_object *) data;
    struct gl_context *ctx = (struct gl_context *) userData;
-   ctx->Driver.DeleteMemoryObject(ctx, memObj);
+   st_memoryobj_free(ctx, memObj);
 }
 
 /**
@@ -324,7 +329,7 @@ delete_semaphore_object_cb(void *data, void *userData)
 {
    struct gl_semaphore_object *semObj = (struct gl_semaphore_object *) data;
    struct gl_context *ctx = (struct gl_context *) userData;
-   ctx->Driver.DeleteSemaphoreObject(ctx, semObj);
+   st_semaphoreobj_free(ctx, semObj);
 }
 
 /**
@@ -347,7 +352,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
    /* Free the dummy/fallback texture objects */
    for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
       if (shared->FallbackTex[i])
-         ctx->Driver.DeleteTexture(ctx, shared->FallbackTex[i]);
+         st_DeleteTextureObject(ctx, shared->FallbackTex[i]);
    }
 
    /*
@@ -429,11 +434,10 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
     * Free texture objects (after FBOs since some textures might have
     * been bound to FBOs).
     */
-   assert(ctx->Driver.DeleteTexture);
    /* the default textures */
    for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
       if (shared->DefaultTex[i])
-         ctx->Driver.DeleteTexture(ctx, shared->DefaultTex[i]);
+         st_DeleteTextureObject(ctx, shared->DefaultTex[i]);
    }
 
    /* all other textures */
@@ -459,7 +463,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
    }
 
    simple_mtx_destroy(&shared->Mutex);
-   mtx_destroy(&shared->TexMutex);
+   simple_mtx_destroy(&shared->TexMutex);
 
    free(shared);
 }

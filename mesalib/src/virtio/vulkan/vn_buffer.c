@@ -136,16 +136,16 @@ vn_buffer_get_max_buffer_size(struct vn_device *dev,
    uint8_t begin = 0;
    uint8_t end = 64;
 
-   while (begin <= end) {
+   while (begin < end) {
       uint8_t mid = (begin + end) >> 1;
-      create_info.size = 1 << mid;
+      create_info.size = 1ull << mid;
       if (vn_CreateBuffer(dev_handle, &create_info, alloc, &buf_handle) ==
           VK_SUCCESS) {
          vn_DestroyBuffer(dev_handle, buf_handle, alloc);
          max_buffer_size = create_info.size;
          begin = mid + 1;
       } else {
-         end = mid - 1;
+         end = mid;
       }
    }
 

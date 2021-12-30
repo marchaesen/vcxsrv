@@ -67,10 +67,8 @@ chmod +x /usr/local/bin/x86_64-w64-mingw32-pkg-config
 
 # dependencies where we want a specific version
 export              XORG_RELEASES=https://xorg.freedesktop.org/releases/individual
-export           WAYLAND_RELEASES=https://wayland.freedesktop.org/releases
 
 export         XORGMACROS_VERSION=util-macros-1.19.0
-export         LIBWAYLAND_VERSION=wayland-1.18.0
 
 wget $XORG_RELEASES/util/$XORGMACROS_VERSION.tar.bz2
 tar -xvf $XORGMACROS_VERSION.tar.bz2 && rm $XORGMACROS_VERSION.tar.bz2
@@ -79,11 +77,7 @@ rm -rf $XORGMACROS_VERSION
 
 . .gitlab-ci/container/build-libdrm.sh
 
-wget $WAYLAND_RELEASES/$LIBWAYLAND_VERSION.tar.xz
-tar -xvf $LIBWAYLAND_VERSION.tar.xz && rm $LIBWAYLAND_VERSION.tar.xz
-cd $LIBWAYLAND_VERSION; ./configure --enable-libraries --without-host-scanner --disable-documentation --disable-dtd-validation; make install; cd ..
-rm -rf $LIBWAYLAND_VERSION
-
+. .gitlab-ci/container/build-wayland.sh
 
 pushd /usr/local
 git clone https://gitlab.freedesktop.org/mesa/shader-db.git --depth 1

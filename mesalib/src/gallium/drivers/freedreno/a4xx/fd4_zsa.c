@@ -87,7 +87,7 @@ fd4_zsa_state_create(struct pipe_context *pctx,
    }
 
    if (cso->alpha_enabled) {
-      uint32_t ref = cso->alpha_ref_value * 255.0;
+      uint32_t ref = cso->alpha_ref_value * 255.0f;
       so->gras_alpha_control = A4XX_GRAS_ALPHA_CONTROL_ALPHA_TEST_ENABLE;
       so->rb_alpha_control =
          A4XX_RB_ALPHA_CONTROL_ALPHA_TEST |

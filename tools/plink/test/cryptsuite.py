@@ -2106,6 +2106,20 @@ culpa qui officia deserunt mollit anim id est laborum.
                 "aeae2a21201eef5e347de22c922192e8f46274b0c9d33e965155a91e7686"
                 "9d530e"))
 
+    def testOpenSSHBcrypt(self):
+        # Test case created by making an OpenSSH private key file
+        # using their own ssh-keygen, then decrypting it successfully
+        # using PuTTYgen and printing the inputs and outputs to
+        # openssh_bcrypt in the process. So this output key is known
+        # to agree with OpenSSH's own answer.
+
+        self.assertEqualBin(
+            openssh_bcrypt('test passphrase',
+                           unhex('d0c3b40ace4afeaf8c0f81202ae36718'),
+                           16, 48),
+            unhex('d78ba86e7273de0e007ab0ba256646823d5c902bc44293ae'
+                  '78547e9a7f629be928cc78ff78a75a4feb7aa6f125079c7d'))
+
     def testRSAVerify(self):
         def blobs(n, e, d, p, q, iqmp):
             pubblob = ssh_string(b"ssh-rsa") + ssh2_mpint(e) + ssh2_mpint(n)
@@ -2753,30 +2767,30 @@ class standard_test_vectors(MyTestBase):
 
             # Test cases from RFC 6234 section 8.5, omitting the ones
             # whose input is not a multiple of 8 bits
-            self.assertEqualBin(hash_str('sha384', "abc"), unhex(
+            self.assertEqualBin(hash_str(hashname, "abc"), unhex(
                 'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded163'
                 '1a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7'))
-            self.assertEqualBin(hash_str('sha384',
+            self.assertEqualBin(hash_str(hashname,
                 "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
                 "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"),
                 unhex('09330c33f71147e83d192fc782cd1b4753111b173b3b05d2'
                       '2fa08086e3b0f712fcc7c71a557e2db966c3e9fa91746039'))
-            self.assertEqualBin(hash_str_iter('sha384',
+            self.assertEqualBin(hash_str_iter(hashname,
                 ("a" * 1000 for _ in range(1000))), unhex(
                 '9d0e1809716474cb086e834e310a4a1ced149e9c00f24852'
                 '7972cec5704c2a5b07b8b3dc38ecc4ebae97ddd87f3d8985'))
-            self.assertEqualBin(hash_str('sha384',
+            self.assertEqualBin(hash_str(hashname,
                 "01234567012345670123456701234567" * 20), unhex(
                 '2fc64a4f500ddb6828f6a3430b8dd72a368eb7f3a8322a70'
                 'bc84275b9c0b3ab00d27a5cc3c2d224aa6b61a0d79fb4596'))
-            self.assertEqualBin(hash_str('sha384', b"\xB9"), unhex(
+            self.assertEqualBin(hash_str(hashname, b"\xB9"), unhex(
                 'bc8089a19007c0b14195f4ecc74094fec64f01f90929282c'
                 '2fb392881578208ad466828b1c6c283d2722cf0ad1ab6938'))
-            self.assertEqualBin(hash_str('sha384',
+            self.assertEqualBin(hash_str(hashname,
                 unhex("a41c497779c0375ff10a7f4e08591739")), unhex(
                 'c9a68443a005812256b8ec76b00516f0dbb74fab26d66591'
                 '3f194b6ffb0e91ea9967566b58109cbc675cc208e4c823f7'))
-            self.assertEqualBin(hash_str('sha384', unhex(
+            self.assertEqualBin(hash_str(hashname, unhex(
                 "399669e28f6b9c6dbcbb6912ec10ffcf74790349b7dc8fbe4a8e7b3b5621"
                 "db0f3e7dc87f823264bbe40d1811c9ea2061e1c84ad10a23fac1727e7202"
                 "fc3f5042e6bf58cba8a2746e1f64f9b9ea352c711507053cf4e5339d5286"
@@ -2795,36 +2809,36 @@ class standard_test_vectors(MyTestBase):
 
             # Test cases from RFC 6234 section 8.5, omitting the ones
             # whose input is not a multiple of 8 bits
-            self.assertEqualBin(hash_str('sha512', "abc"), unhex(
+            self.assertEqualBin(hash_str(hashname, "abc"), unhex(
                 'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55'
                 'd39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94f'
                 'a54ca49f'))
-            self.assertEqualBin(hash_str('sha512',
+            self.assertEqualBin(hash_str(hashname,
                 "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
                 "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"),
                 unhex('8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299'
                 'aeadb6889018501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26'
                 '545e96e55b874be909'))
-            self.assertEqualBin(hash_str_iter('sha512',
+            self.assertEqualBin(hash_str_iter(hashname,
                 ("a" * 1000 for _ in range(1000))), unhex(
                 'e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa9'
                 '73ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217'
                 'ad8cc09b'))
-            self.assertEqualBin(hash_str('sha512',
+            self.assertEqualBin(hash_str(hashname,
                 "01234567012345670123456701234567" * 20), unhex(
                 '89d05ba632c699c31231ded4ffc127d5a894dad412c0e024db872d1abd2b'
                 'a8141a0f85072a9be1e2aa04cf33c765cb510813a39cd5a84c4acaa64d3f'
                 '3fb7bae9'))
-            self.assertEqualBin(hash_str('sha512', b"\xD0"), unhex(
+            self.assertEqualBin(hash_str(hashname, b"\xD0"), unhex(
                 '9992202938e882e73e20f6b69e68a0a7149090423d93c81bab3f21678d4a'
                 'ceeee50e4e8cafada4c85a54ea8306826c4ad6e74cece9631bfa8a549b4a'
                 'b3fbba15'))
-            self.assertEqualBin(hash_str('sha512',
+            self.assertEqualBin(hash_str(hashname,
                 unhex("8d4e3c0e3889191491816e9d98bff0a0")), unhex(
                 'cb0b67a4b8712cd73c9aabc0b199e9269b20844afb75acbdd1c153c98289'
                 '24c3ddedaafe669c5fdd0bc66f630f6773988213eb1b16f517ad0de4b2f0'
                 'c95c90f8'))
-            self.assertEqualBin(hash_str('sha512', unhex(
+            self.assertEqualBin(hash_str(hashname, unhex(
                 "a55f20c411aad132807a502d65824e31a2305432aa3d06d3e282a8d84e0d"
                 "e1de6974bf495469fc7f338f8054d58c26c49360c3e87af56523acf6d89d"
                 "03e56ff2f868002bc3e431edc44df2f0223d4bb3b243586e1a7d92493669"
@@ -3170,6 +3184,77 @@ class standard_test_vectors(MyTestBase):
             expected = struct.unpack("<L", vec[-4:])[0]
             self.assertEqual(crc32_rfc1662(vec[:-4]), expected)
             self.assertEqual(crc32_rfc1662(vec), 0x2144DF1C)
+
+    def testHttpDigest(self):
+        # RFC 7616 section 3.9.1
+        params = ["Mufasa", "Circle of Life", "http-auth@example.org",
+                  "GET", "/dir/index.html", "auth",
+                  "7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v",
+                  "FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS", 1,
+                  "MD5", False]
+        cnonce = base64.decodebytes(
+            b'f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ')
+        with queued_specific_random_data(cnonce):
+            self.assertEqual(http_digest_response(*params),
+                             b'username="Mufasa", '
+                             b'realm="http-auth@example.org", '
+                             b'uri="/dir/index.html", '
+                             b'algorithm=MD5, '
+                             b'nonce="7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v", '
+                             b'nc=00000001, '
+                             b'cnonce="f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ", '
+                             b'qop=auth, '
+                             b'response="8ca523f5e9506fed4657c9700eebdbec", '
+                             b'opaque="FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS"')
+
+        # And again with all the same details except the hash
+        params[9] = "SHA-256"
+        with queued_specific_random_data(cnonce):
+            self.assertEqual(http_digest_response(*params),
+                             b'username="Mufasa", '
+                             b'realm="http-auth@example.org", '
+                             b'uri="/dir/index.html", '
+                             b'algorithm=SHA-256, '
+                             b'nonce="7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v", '
+                             b'nc=00000001, '
+                             b'cnonce="f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ", '
+                             b'qop=auth, '
+                             b'response="753927fa0e85d155564e2e272a28d1802ca10daf4496794697cf8db5856cb6c1", '
+                             b'opaque="FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS"')
+
+        # RFC 7616 section 3.9.2, using SHA-512-256 (demonstrating
+        # that they think it's just a 256-bit truncation of SHA-512,
+        # and not the version defined in FIPS 180-4 which also uses
+        # a different initial hash state), and username hashing.
+        #
+        # We don't actually support SHA-512-256 in the top-level proxy
+        # client code (see the comment in proxy/cproxy.h). However,
+        # this internal http_digest_response function still provides
+        # it, simply so that we can run this test case from the RFC,
+        # because it's the only provided test case for username
+        # hashing, and this confirms that we've got the preimage right
+        # for the username hash.
+        params = ["J\u00E4s\u00F8n Doe".encode("UTF-8"),
+                  "Secret, or not?", "api@example.org",
+                  "GET", "/doe.json", "auth",
+                  "5TsQWLVdgBdmrQ0XsxbDODV+57QdFR34I9HAbC/RVvkK",
+                  "HRPCssKJSGjCrkzDg8OhwpzCiGPChXYjwrI2QmXDnsOS", 1,
+                  "SHA-512-256", True]
+        cnonce = base64.decodebytes(
+            b'NTg6RKcb9boFIAS3KrFK9BGeh+iDa/sm6jUMp2wds69v')
+        with queued_specific_random_data(cnonce):
+            self.assertEqual(http_digest_response(*params),
+                             b'username="488869477bf257147b804c45308cd62ac4e25eb717b12b298c79e62dcea254ec", '
+                             b'realm="api@example.org", '
+                             b'uri="/doe.json", '
+                             b'algorithm=SHA-512-256, '
+                             b'nonce="5TsQWLVdgBdmrQ0XsxbDODV+57QdFR34I9HAbC/RVvkK", '
+                             b'nc=00000001, '
+                             b'cnonce="NTg6RKcb9boFIAS3KrFK9BGeh+iDa/sm6jUMp2wds69v", '
+                             b'qop=auth, '
+                             b'response="ae66e67d6b427bd3f120414a82e4acff38e8ecd9101d6c861229025f607a79dd", '
+                             b'opaque="HRPCssKJSGjCrkzDg8OhwpzCiGPChXYjwrI2QmXDnsOS", '
+                             b'userhash=true')
 
 if __name__ == "__main__":
     # Run the tests, suppressing automatic sys.exit and collecting the

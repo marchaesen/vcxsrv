@@ -90,6 +90,11 @@ fd5_screen_is_format_supported(struct pipe_screen *pscreen,
                          PIPE_BIND_COMPUTE_RESOURCE);
    }
 
+   if (usage & PIPE_BIND_SHADER_IMAGE) {
+      if (sample_count > 1)
+         return false;
+   }
+
    /* For ARB_framebuffer_no_attachments: */
    if ((usage & PIPE_BIND_RENDER_TARGET) && (format == PIPE_FORMAT_NONE)) {
       retval |= usage & PIPE_BIND_RENDER_TARGET;

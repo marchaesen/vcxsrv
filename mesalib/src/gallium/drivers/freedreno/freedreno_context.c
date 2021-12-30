@@ -446,7 +446,7 @@ fd_get_device_reset_status(struct pipe_context *pctx)
 
 static void
 fd_trace_record_ts(struct u_trace *ut, void *cs, void *timestamps,
-                   unsigned idx)
+                   unsigned idx, bool end_of_pipe)
 {
    struct fd_batch *batch = container_of(ut, struct fd_batch, trace);
    struct fd_ringbuffer *ring = cs;
@@ -508,7 +508,7 @@ static struct pipe_resource *
 create_solid_vertexbuf(struct pipe_context *pctx)
 {
    static const float init_shader_const[] = {
-      -1.000000, +1.000000, +1.000000, +1.000000, -1.000000, +1.000000,
+      -1.000000f, +1.000000f, +1.000000f, +1.000000f, -1.000000f, +1.000000f,
    };
    struct pipe_resource *prsc =
       pipe_buffer_create(pctx->screen, PIPE_BIND_CUSTOM, PIPE_USAGE_IMMUTABLE,

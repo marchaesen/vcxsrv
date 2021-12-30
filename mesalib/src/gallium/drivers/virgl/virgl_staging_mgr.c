@@ -47,6 +47,7 @@ virgl_staging_alloc_buffer(struct virgl_staging_mgr *staging, unsigned min_size)
 
    staging->hw_res = vws->resource_create(vws,
                                           PIPE_BUFFER,
+                                          NULL,
                                           PIPE_FORMAT_R8_UNORM,
                                           VIRGL_BIND_STAGING,
                                           size,  /* width */

@@ -26,7 +26,6 @@
 #include "broadcom/common/v3d_macros.h"
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/compiler/v3d_compiler.h"
-#include "vk_format_info.h"
 #include "util/u_pack_color.h"
 #include "util/half_float.h"
 

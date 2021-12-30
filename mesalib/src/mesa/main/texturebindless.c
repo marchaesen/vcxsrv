@@ -34,6 +34,9 @@
 
 #include "util/hash_table.h"
 #include "util/u_memory.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_texture.h"
 
 /**
  * Return the gl_texture_handle_object for a given 64-bit handle.
@@ -77,7 +80,7 @@ delete_texture_handle(struct gl_context *ctx, GLuint64 id)
    _mesa_hash_table_u64_remove(ctx->Shared->TextureHandles, id);
    mtx_unlock(&ctx->Shared->HandlesMutex);
 
-   ctx->Driver.DeleteTextureHandle(ctx, id);
+   st_DeleteTextureHandle(ctx, id);
 }
 
 /**
@@ -90,7 +93,7 @@ delete_image_handle(struct gl_context *ctx, GLuint64 id)
    _mesa_hash_table_u64_remove(ctx->Shared->ImageHandles, id);
    mtx_unlock(&ctx->Shared->HandlesMutex);
 
-   ctx->Driver.DeleteImageHandle(ctx, id);
+   st_DeleteImageHandle(ctx, id);
 }
 
 /**
@@ -131,7 +134,7 @@ make_texture_handle_resident(struct gl_context *ctx,
       _mesa_hash_table_u64_insert(ctx->ResidentTextureHandles, handle,
                                   texHandleObj);
 
-      ctx->Driver.MakeTextureHandleResident(ctx, handle, GL_TRUE);
+      st_MakeTextureHandleResident(ctx, handle, GL_TRUE);
 
       /* Reference the texture object (and the separate sampler if needed) to
        * be sure it won't be deleted until it is not bound anywhere and there
@@ -145,7 +148,7 @@ make_texture_handle_resident(struct gl_context *ctx,
 
       _mesa_hash_table_u64_remove(ctx->ResidentTextureHandles, handle);
 
-      ctx->Driver.MakeTextureHandleResident(ctx, handle, GL_FALSE);
+      st_MakeTextureHandleResident(ctx, handle, GL_FALSE);
 
       /* Unreference the texture object but keep the pointer intact, if
        * refcount hits zero, the texture and all handles will be deleted.
@@ -180,7 +183,7 @@ make_image_handle_resident(struct gl_context *ctx,
       _mesa_hash_table_u64_insert(ctx->ResidentImageHandles, handle,
                                   imgHandleObj);
 
-      ctx->Driver.MakeImageHandleResident(ctx, handle, access, GL_TRUE);
+      st_MakeImageHandleResident(ctx, handle, access, GL_TRUE);
 
       /* Reference the texture object to be sure it won't be deleted until it
        * is not bound anywhere and there are no handles using the object that
@@ -192,7 +195,7 @@ make_image_handle_resident(struct gl_context *ctx,
 
       _mesa_hash_table_u64_remove(ctx->ResidentImageHandles, handle);
 
-      ctx->Driver.MakeImageHandleResident(ctx, handle, access, GL_FALSE);
+      st_MakeImageHandleResident(ctx, handle, access, GL_FALSE);
 
       /* Unreference the texture object but keep the pointer intact, if
        * refcount hits zero, the texture and all handles will be deleted.
@@ -237,7 +240,7 @@ get_texture_handle(struct gl_context *ctx, struct gl_texture_object *texObj,
    }
 
    /* Request a new texture handle from the driver. */
-   handle = ctx->Driver.NewTextureHandle(ctx, texObj, sampObj);
+   handle = st_NewTextureHandle(ctx, texObj, sampObj);
    if (!handle) {
       mtx_unlock(&ctx->Shared->HandlesMutex);
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetTexture*HandleARB()");
@@ -332,7 +335,7 @@ get_image_handle(struct gl_context *ctx, struct gl_texture_object *texObj,
    }
 
    /* Request a new image handle from the driver. */
-   handle = ctx->Driver.NewImageHandle(ctx, &imgObj);
+   handle = st_NewImageHandle(ctx, &imgObj);
    if (!handle) {
       mtx_unlock(&ctx->Shared->HandlesMutex);
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetImageHandleARB()");

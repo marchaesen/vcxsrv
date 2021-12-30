@@ -423,6 +423,7 @@ void ssh_proto_error(Ssh *ssh, const char *fmt, ...) PRINTF_LIKE(2, 3);
 void ssh_sw_abort(Ssh *ssh, const char *fmt, ...) PRINTF_LIKE(2, 3);
 void ssh_sw_abort_deferred(Ssh *ssh, const char *fmt, ...) PRINTF_LIKE(2, 3);
 void ssh_user_close(Ssh *ssh, const char *fmt, ...) PRINTF_LIKE(2, 3);
+void ssh_spr_close(Ssh *ssh, SeatPromptResult spr, const char *context);
 
 /* Bit positions in the SSH-1 cipher protocol word */
 #define SSH1_CIPHER_IDEA        1
@@ -1023,6 +1024,9 @@ extern const ssh_hashalg ssh_blake2b;
 extern const ssh_kexes ssh_diffiehellman_group1;
 extern const ssh_kexes ssh_diffiehellman_group14;
 extern const ssh_kexes ssh_diffiehellman_gex;
+extern const ssh_kex ssh_diffiehellman_group1_sha1;
+extern const ssh_kex ssh_diffiehellman_group14_sha256;
+extern const ssh_kex ssh_diffiehellman_group14_sha1;
 extern const ssh_kexes ssh_gssk5_sha1_kex;
 extern const ssh_kexes ssh_rsa_kex;
 extern const ssh_kex ssh_ec_kex_curve25519;
@@ -1220,7 +1224,7 @@ dh_ctx *dh_setup_group(const ssh_kex *kex);
 dh_ctx *dh_setup_gex(mp_int *pval, mp_int *gval);
 int dh_modulus_bit_size(const dh_ctx *ctx);
 void dh_cleanup(dh_ctx *);
-mp_int *dh_create_e(dh_ctx *, int nbits);
+mp_int *dh_create_e(dh_ctx *);
 const char *dh_validate_f(dh_ctx *, mp_int *f);
 mp_int *dh_find_K(dh_ctx *, mp_int *f);
 
@@ -1410,8 +1414,7 @@ void aes256_decrypt_pubkey(const void *key, const void *iv,
 void des_encrypt_xdmauth(const void *key, void *blk, int len);
 void des_decrypt_xdmauth(const void *key, void *blk, int len);
 
-void openssh_bcrypt(const char *passphrase,
-                    const unsigned char *salt, int saltbytes,
+void openssh_bcrypt(ptrlen passphrase, ptrlen salt,
                     int rounds, unsigned char *out, int outbytes);
 
 /*
@@ -1707,10 +1710,11 @@ unsigned alloc_channel_id_general(tree234 *channels, size_t localid_offset);
 void add_to_commasep(strbuf *buf, const char *data);
 bool get_commasep_word(ptrlen *list, ptrlen *word);
 
-int verify_ssh_host_key(
-    Seat *seat, Conf *conf, const char *host, int port, ssh_key *key,
-    const char *keytype, char *keystr, const char *keydisp,
-    char **fingerprints, void (*callback)(void *ctx, int result), void *ctx);
+SeatPromptResult verify_ssh_host_key(
+    InteractionReadySeat iseat, Conf *conf, const char *host, int port,
+    ssh_key *key, const char *keytype, char *keystr, const char *keydisp,
+    char **fingerprints, void (*callback)(void *ctx, SeatPromptResult result),
+    void *ctx);
 
 typedef struct ssh_transient_hostkey_cache ssh_transient_hostkey_cache;
 ssh_transient_hostkey_cache *ssh_transient_hostkey_cache_new(void);

@@ -318,7 +318,7 @@ build_ballot_imm_ishl(nir_builder *b, int64_t val, nir_ssa_def *shift,
                       const nir_lower_subgroups_options *options)
 {
    /* This only works if all the high bits are the same as bit 1. */
-   assert(((val << 62) >> 62) == val);
+   assert((val >> 2) == (val & 0x2 ? -1 : 0));
 
    /* First compute the result assuming one ballot component. */
    nir_ssa_def *result =

@@ -29,7 +29,7 @@
 #include "vk_util.h"
 #include "wsi_common.h"
 
-static PFN_vkVoidFunction
+static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 radv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
    RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
@@ -60,6 +60,8 @@ radv_init_wsi(struct radv_physical_device *physical_device)
    physical_device->wsi_device.supports_modifiers = physical_device->rad_info.chip_class >= GFX9;
    physical_device->wsi_device.set_memory_ownership = radv_wsi_set_memory_ownership;
 
+   wsi_device_setup_syncobj_fd(&physical_device->wsi_device, physical_device->local_fd);
+
    physical_device->vk.wsi_device = &physical_device->wsi_device;
 
    return VK_SUCCESS;
@@ -72,7 +74,7 @@ radv_finish_wsi(struct radv_physical_device *physical_device)
    wsi_device_finish(&physical_device->wsi_device, &physical_device->instance->vk.alloc);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 radv_AcquireNextImage2KHR(VkDevice _device, const VkAcquireNextImageInfoKHR *pAcquireInfo,
                           uint32_t *pImageIndex)
 {
@@ -112,7 +114,7 @@ radv_AcquireNextImage2KHR(VkDevice _device, const VkAcquireNextImageInfoKHR *pAc
    return result;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 radv_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
 {
    RADV_FROM_HANDLE(radv_queue, queue, _queue);

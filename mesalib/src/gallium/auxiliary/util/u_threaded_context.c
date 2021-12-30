@@ -161,14 +161,6 @@ tc_drop_surface_reference(struct pipe_surface *dst)
 
 /* Unreference dst but don't touch the dst pointer. */
 static inline void
-tc_drop_sampler_view_reference(struct pipe_sampler_view *dst)
-{
-   if (pipe_reference(&dst->reference, NULL)) /* only decrement refcount */
-      dst->context->sampler_view_destroy(dst->context, dst);
-}
-
-/* Unreference dst but don't touch the dst pointer. */
-static inline void
 tc_drop_so_target_reference(struct pipe_stream_output_target *dst)
 {
    if (pipe_reference(&dst->reference, NULL)) /* only decrement refcount */

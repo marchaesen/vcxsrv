@@ -11,9 +11,6 @@ spec@arb_timer_query.*
 spec@arb_sample_shading@builtin-gl-sample-mask
 spec@glsl-1.30@execution@tex-miplevel-selection.*
 
-# only supported if Piglit is using GLUT
-spec@!opengl 1.1@windowoverlap
-
 # This test doesn't even seem to exist, but piglit adds it to a group...?
 spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match
 
@@ -31,3 +28,8 @@ spec@arb_compute_shader@local-id-explosion
 # I can't reproduce these crashes locally
 # even after running them in loops for 4+ hours, so disable for now
 .*tex-miplevel-selection.*
+
+# these are insanely long
+KHR-GL46.copy_image.functional
+KHR-GL46.texture_swizzle.smoke
+KHR-GL46.texture_swizzle.functional

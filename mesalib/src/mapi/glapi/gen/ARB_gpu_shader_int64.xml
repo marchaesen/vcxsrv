@@ -5,25 +5,25 @@
 
 <category name="GL_ARB_gpu_shader_int64" number="178">
 
-    <function name="Uniform1i64ARB">
+    <function name="Uniform1i64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
     </function>
 
-    <function name="Uniform2i64ARB">
+    <function name="Uniform2i64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
         <param name="y" type="GLint64"/>
     </function>
 
-    <function name="Uniform3i64ARB">
+    <function name="Uniform3i64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
         <param name="y" type="GLint64"/>
         <param name="z" type="GLint64"/>
     </function>
 
-    <function name="Uniform4i64ARB">
+    <function name="Uniform4i64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
         <param name="y" type="GLint64"/>
@@ -31,49 +31,49 @@
         <param name="w" type="GLint64"/>
     </function>
 
-    <function name="Uniform1i64vARB">
+    <function name="Uniform1i64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count"/>
     </function>
 
-    <function name="Uniform2i64vARB">
+    <function name="Uniform2i64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count" count_scale="2"/>
     </function>
 
-    <function name="Uniform3i64vARB">
+    <function name="Uniform3i64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count" count_scale="3"/>
     </function>
 
-    <function name="Uniform4i64vARB">
+    <function name="Uniform4i64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count" count_scale="4"/>
     </function>
 
-    <function name="Uniform1ui64ARB">
+    <function name="Uniform1ui64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
     </function>
 
-    <function name="Uniform2ui64ARB">
+    <function name="Uniform2ui64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
         <param name="y" type="GLuint64"/>
     </function>
 
-    <function name="Uniform3ui64ARB">
+    <function name="Uniform3ui64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
         <param name="y" type="GLuint64"/>
         <param name="z" type="GLuint64"/>
     </function>
 
-    <function name="Uniform4ui64ARB">
+    <function name="Uniform4ui64ARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
         <param name="y" type="GLuint64"/>
@@ -81,25 +81,25 @@
         <param name="w" type="GLuint64"/>
     </function>
 
-    <function name="Uniform1ui64vARB">
+    <function name="Uniform1ui64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *"  count="count"/>
     </function>
 
-    <function name="Uniform2ui64vARB">
+    <function name="Uniform2ui64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *" count="count" count_scale="2"/>
     </function>
 
-    <function name="Uniform3ui64vARB">
+    <function name="Uniform3ui64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *" count="count" count_scale="3"/>
     </function>
 
-    <function name="Uniform4ui64vARB">
+    <function name="Uniform4ui64vARB" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *" count="count" count_scale="4"/>
@@ -131,20 +131,20 @@
         <param name="params" type="GLuint64 *"/>
     </function>
 
-    <function name="ProgramUniform1i64ARB">
+    <function name="ProgramUniform1i64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
     </function>
 
-    <function name="ProgramUniform2i64ARB">
+    <function name="ProgramUniform2i64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
         <param name="y" type="GLint64"/>
     </function>
 
-    <function name="ProgramUniform3i64ARB">
+    <function name="ProgramUniform3i64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
@@ -152,7 +152,7 @@
         <param name="z" type="GLint64"/>
     </function>
 
-    <function name="ProgramUniform4i64ARB">
+    <function name="ProgramUniform4i64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLint64"/>
@@ -161,48 +161,48 @@
         <param name="w" type="GLint64"/>
     </function>
 
-    <function name="ProgramUniform1i64vARB">
+    <function name="ProgramUniform1i64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count"/>
     </function>
 
-    <function name="ProgramUniform2i64vARB">
+    <function name="ProgramUniform2i64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count" count_scale="2"/>
     </function>
 
-    <function name="ProgramUniform3i64vARB">
+    <function name="ProgramUniform3i64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count" count_scale="3"/>
     </function>
 
-    <function name="ProgramUniform4i64vARB">
+    <function name="ProgramUniform4i64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLint64 *" count="count" count_scale="4"/>
     </function>
 
-    <function name="ProgramUniform1ui64ARB">
+    <function name="ProgramUniform1ui64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
     </function>
 
-    <function name="ProgramUniform2ui64ARB">
+    <function name="ProgramUniform2ui64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
         <param name="y" type="GLuint64"/>
     </function>
 
-    <function name="ProgramUniform3ui64ARB">
+    <function name="ProgramUniform3ui64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
@@ -210,7 +210,7 @@
         <param name="z" type="GLuint64"/>
     </function>
 
-    <function name="ProgramUniform4ui64ARB">
+    <function name="ProgramUniform4ui64ARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="x" type="GLuint64"/>
@@ -219,28 +219,28 @@
         <param name="w" type="GLuint64"/>
     </function>
 
-    <function name="ProgramUniform1ui64vARB">
+    <function name="ProgramUniform1ui64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
 	<param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *" count="count"/>
     </function>
 
-    <function name="ProgramUniform2ui64vARB">
+    <function name="ProgramUniform2ui64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *" count="count" count_scale="2"/>
     </function>
 
-    <function name="ProgramUniform3ui64vARB">
+    <function name="ProgramUniform3ui64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLuint64 *" count="count" count_scale="3"/>
     </function>
 
-    <function name="ProgramUniform4ui64vARB">
+    <function name="ProgramUniform4ui64vARB" exec="dlist">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>

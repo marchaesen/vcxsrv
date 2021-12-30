@@ -45,8 +45,7 @@
  */
 
 static void
-update_fragcoord(nir_builder *b, nir_intrinsic_instr *intr,
-                 const bool for_sample_shading)
+update_fragcoord(nir_builder *b, nir_intrinsic_instr *intr)
 {
    nir_ssa_def *wpos = &intr->dest.ssa;
 
@@ -54,26 +53,21 @@ update_fragcoord(nir_builder *b, nir_intrinsic_instr *intr,
 
    b->cursor = nir_after_instr(&intr->instr);
 
-   if (!for_sample_shading) {
-      wpos = nir_fadd(b, wpos, nir_imm_vec4(b, 0.5f, 0.5f, 0.0f, 0.0f));
-   } else {
-      nir_ssa_def *spos = nir_load_sample_pos(b);
+   nir_ssa_def *spos = nir_load_sample_pos_or_center(b);
 
-      wpos = nir_fadd(b, wpos,
-                      nir_vec4(b,
-                               nir_channel(b, spos, 0),
-                               nir_channel(b, spos, 1),
-                               nir_imm_float(b, 0.0f),
-                               nir_imm_float(b, 0.0f)));
-   }
+   wpos = nir_fadd(b, wpos,
+                   nir_vec4(b,
+                            nir_channel(b, spos, 0),
+                            nir_channel(b, spos, 1),
+                            nir_imm_float(b, 0.0f),
+                            nir_imm_float(b, 0.0f)));
 
    nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, wpos,
                                   wpos->parent_instr);
 }
 
 static bool
-lower_wpos_center_block(nir_builder *b, nir_block *block,
-                        const bool for_sample_shading)
+lower_wpos_center_block(nir_builder *b, nir_block *block)
 {
    bool progress = false;
 
@@ -81,7 +75,7 @@ lower_wpos_center_block(nir_builder *b, nir_block *block,
       if (instr->type == nir_instr_type_intrinsic) {
          nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
          if (intr->intrinsic == nir_intrinsic_load_frag_coord) {
-            update_fragcoord(b, intr, for_sample_shading);
+            update_fragcoord(b, intr);
             progress = true;
          }
       }
@@ -91,7 +85,7 @@ lower_wpos_center_block(nir_builder *b, nir_block *block,
 }
 
 bool
-nir_lower_wpos_center(nir_shader *shader, const bool for_sample_shading)
+nir_lower_wpos_center(nir_shader *shader)
 {
    bool progress = false;
    nir_builder b;
@@ -103,7 +97,7 @@ nir_lower_wpos_center(nir_shader *shader, const bool for_sample_shading)
          nir_builder_init(&b, function->impl);
 
          nir_foreach_block(block, function->impl) {
-            progress = lower_wpos_center_block(&b, block, for_sample_shading) ||
+            progress = lower_wpos_center_block(&b, block) ||
                        progress;
          }
          nir_metadata_preserve(function->impl, nir_metadata_block_index |

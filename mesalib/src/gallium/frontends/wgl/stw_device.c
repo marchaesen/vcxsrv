@@ -231,6 +231,7 @@ stw_cleanup(void)
 
    free(stw_dev->st_options.force_gl_vendor);
    free(stw_dev->st_options.force_gl_renderer);
+   free(stw_dev->st_options.mesa_extension_override);
    driDestroyOptionCache(&stw_dev->option_cache);
    driDestroyOptionInfo(&stw_dev->option_info);
 

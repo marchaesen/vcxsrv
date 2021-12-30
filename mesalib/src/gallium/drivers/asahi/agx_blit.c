@@ -97,7 +97,7 @@ agx_blitter_save(struct agx_context *ctx, struct blitter_context *blitter,
    util_blitter_save_depth_stencil_alpha(blitter, &ctx->zs);
    util_blitter_save_stencil_ref(blitter, &ctx->stencil_ref);
    util_blitter_save_so_targets(blitter, 0, NULL);
-   util_blitter_save_sample_mask(blitter, ctx->sample_mask);
+   util_blitter_save_sample_mask(blitter, ctx->sample_mask, 0);
 
    util_blitter_save_framebuffer(blitter, &ctx->framebuffer);
    util_blitter_save_fragment_sampler_states(blitter,

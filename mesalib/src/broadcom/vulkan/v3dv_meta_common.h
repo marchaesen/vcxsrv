@@ -23,30 +23,6 @@
 #ifndef V3DV_META_COMMON_H
 #define V3DV_META_COMMON_H
 
-/* Disable level 0 write, just write following mipmaps */
-#define V3D_TFU_IOA_DIMTW (1 << 0)
-#define V3D_TFU_IOA_FORMAT_SHIFT 3
-#define V3D_TFU_IOA_FORMAT_LINEARTILE 3
-#define V3D_TFU_IOA_FORMAT_UBLINEAR_1_COLUMN 4
-#define V3D_TFU_IOA_FORMAT_UBLINEAR_2_COLUMN 5
-#define V3D_TFU_IOA_FORMAT_UIF_NO_XOR 6
-#define V3D_TFU_IOA_FORMAT_UIF_XOR 7
-
-#define V3D_TFU_ICFG_NUMMM_SHIFT 5
-#define V3D_TFU_ICFG_TTYPE_SHIFT 9
-
-#define V3D_TFU_ICFG_OPAD_SHIFT 22
-
-#define V3D_TFU_ICFG_FORMAT_SHIFT 18
-#define V3D_TFU_ICFG_FORMAT_RASTER 0
-#define V3D_TFU_ICFG_FORMAT_SAND_128 1
-#define V3D_TFU_ICFG_FORMAT_SAND_256 2
-#define V3D_TFU_ICFG_FORMAT_LINEARTILE 11
-#define V3D_TFU_ICFG_FORMAT_UBLINEAR_1_COLUMN 12
-#define V3D_TFU_ICFG_FORMAT_UBLINEAR_2_COLUMN 13
-#define V3D_TFU_ICFG_FORMAT_UIF_NO_XOR 14
-#define V3D_TFU_ICFG_FORMAT_UIF_XOR 15
-
 /**
  * Copy/Clear operations implemented in v3dv_meta_*.c that use the TLB hardware
  * need to figure out TLB programming from the target image data instead of an

@@ -34,86 +34,10 @@
 
 #include <vulkan/vulkan.h>
 
-static inline const struct util_format_description *
-vk_format_description(VkFormat format)
-{
-   return util_format_description(vk_format_to_pipe_format(format));
-}
-
-/**
- * Return bytes per block (not pixel) for the given format.
- */
-static inline unsigned
-vk_format_get_blocksize(VkFormat format)
-{
-   return util_format_get_blocksize(vk_format_to_pipe_format(format));
-}
-
-static inline unsigned
-vk_format_get_blockwidth(VkFormat format)
-{
-   return util_format_get_blockwidth(vk_format_to_pipe_format(format));
-}
-
-static inline unsigned
-vk_format_get_blockheight(VkFormat format)
-{
-   return util_format_get_blockheight(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_compressed(VkFormat format)
-{
-   /* this includes 4:2:2 formats, which are compressed formats for vulkan */
-   return vk_format_get_blockwidth(format) > 1;
-}
-
 static inline bool
 vk_format_has_alpha(VkFormat format)
 {
    return util_format_has_alpha(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_int(VkFormat format)
-{
-   return util_format_is_pure_integer(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_uint(VkFormat format)
-{
-   return util_format_is_pure_uint(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_sint(VkFormat format)
-{
-   return util_format_is_pure_sint(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_srgb(VkFormat format)
-{
-   return util_format_is_srgb(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_unorm(VkFormat format)
-{
-   return util_format_is_unorm(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_snorm(VkFormat format)
-{
-   return util_format_is_snorm(vk_format_to_pipe_format(format));
-}
-
-static inline bool
-vk_format_is_float(VkFormat format)
-{
-   return util_format_is_float(vk_format_to_pipe_format(format));
 }
 
 static inline unsigned
@@ -134,12 +58,6 @@ vk_format_get_component_bits(VkFormat format,
 
    return util_format_get_component_bits(vk_format_to_pipe_format(format),
                                          colorspace, component);
-}
-
-static inline unsigned
-vk_format_get_nr_components(VkFormat format)
-{
-   return util_format_get_nr_components(vk_format_to_pipe_format(format));
 }
 
 #endif /* VK_FORMAT_H */

@@ -45,11 +45,11 @@ create_ivci(struct zink_screen *screen,
 
    switch (target) {
    case PIPE_TEXTURE_1D:
-      ivci.viewType = VK_IMAGE_VIEW_TYPE_1D;
+      ivci.viewType = res->need_2D_zs ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_1D;
       break;
 
    case PIPE_TEXTURE_1D_ARRAY:
-      ivci.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+      ivci.viewType = res->need_2D_zs ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_1D_ARRAY;
       break;
 
    case PIPE_TEXTURE_2D:

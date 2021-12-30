@@ -44,6 +44,9 @@
 #include "performance_monitor.h"
 #include "util/bitset.h"
 #include "util/ralloc.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_perfmon.h"
 
 void
 _mesa_init_performance_monitors(struct gl_context *ctx)
@@ -57,14 +60,14 @@ static inline void
 init_groups(struct gl_context *ctx)
 {
    if (unlikely(!ctx->PerfMonitor.Groups))
-      ctx->Driver.InitPerfMonitorGroups(ctx);
+      st_InitPerfMonitorGroups(ctx);
 }
 
 static struct gl_perf_monitor_object *
 new_performance_monitor(struct gl_context *ctx, GLuint index)
 {
    unsigned i;
-   struct gl_perf_monitor_object *m = ctx->Driver.NewPerfMonitor(ctx);
+   struct gl_perf_monitor_object *m = st_NewPerfMonitor(ctx);
 
    if (m == NULL)
       return NULL;
@@ -96,7 +99,7 @@ new_performance_monitor(struct gl_context *ctx, GLuint index)
 fail:
    ralloc_free(m->ActiveGroups);
    ralloc_free(m->ActiveCounters);
-   ctx->Driver.DeletePerfMonitor(ctx, m);
+   st_DeletePerfMonitor(ctx, m);
    return NULL;
 }
 
@@ -108,7 +111,7 @@ free_performance_monitor(void *data, void *user)
 
    ralloc_free(m->ActiveGroups);
    ralloc_free(m->ActiveCounters);
-   ctx->Driver.DeletePerfMonitor(ctx, m);
+   st_DeletePerfMonitor(ctx, m);
 }
 
 void
@@ -393,14 +396,14 @@ _mesa_DeletePerfMonitorsAMD(GLsizei n, GLuint *monitors)
       if (m) {
          /* Give the driver a chance to stop the monitor if it's active. */
          if (m->Active) {
-            ctx->Driver.ResetPerfMonitor(ctx, m);
+            st_ResetPerfMonitor(ctx, m);
             m->Ended = false;
          }
 
          _mesa_HashRemove(ctx->PerfMonitor.Monitors, monitors[i]);
          ralloc_free(m->ActiveGroups);
          ralloc_free(m->ActiveCounters);
-         ctx->Driver.DeletePerfMonitor(ctx, m);
+         st_DeletePerfMonitor(ctx, m);
       } else {
          /* "INVALID_VALUE error will be generated if any of the monitor IDs
           *  in the <monitors> parameter to DeletePerfMonitorsAMD do not
@@ -460,7 +463,7 @@ _mesa_SelectPerfMonitorCountersAMD(GLuint monitor, GLboolean enable,
     *  results for that monitor become invalidated and the result queries
     *  PERFMON_RESULT_SIZE_AMD and PERFMON_RESULT_AVAILABLE_AMD are reset to 0."
     */
-   ctx->Driver.ResetPerfMonitor(ctx, m);
+   st_ResetPerfMonitor(ctx, m);
 
    /* Sanity check the counter ID list. */
    for (i = 0; i < numCounters; i++) {
@@ -515,7 +518,7 @@ _mesa_BeginPerfMonitorAMD(GLuint monitor)
    /* The driver is free to return false if it can't begin monitoring for
     * any reason.  This translates into an INVALID_OPERATION error.
     */
-   if (ctx->Driver.BeginPerfMonitor(ctx, m)) {
+   if (st_BeginPerfMonitor(ctx, m)) {
       m->Active = true;
       m->Ended = false;
    } else {
@@ -544,7 +547,7 @@ _mesa_EndPerfMonitorAMD(GLuint monitor)
       return;
    }
 
-   ctx->Driver.EndPerfMonitor(ctx, m);
+   st_EndPerfMonitor(ctx, m);
 
    m->Active = false;
    m->Ended = true;
@@ -606,7 +609,7 @@ _mesa_GetPerfMonitorCounterDataAMD(GLuint monitor, GLenum pname,
 
    /* If the monitor has never ended, there is no result. */
    result_available = m->Ended &&
-      ctx->Driver.IsPerfMonitorResultAvailable(ctx, m);
+      st_IsPerfMonitorResultAvailable(ctx, m);
 
    /* AMD appears to return 0 for all queries unless a result is available. */
    if (!result_available) {
@@ -628,7 +631,7 @@ _mesa_GetPerfMonitorCounterDataAMD(GLuint monitor, GLenum pname,
          *bytesWritten = sizeof(GLuint);
       break;
    case GL_PERFMON_RESULT_AMD:
-      ctx->Driver.GetPerfMonitorResult(ctx, m, dataSize, data, bytesWritten);
+      st_GetPerfMonitorResult(ctx, m, dataSize, data, bytesWritten);
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,

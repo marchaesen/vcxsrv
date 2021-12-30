@@ -21,4 +21,8 @@ if (!$buildstatus) {
 }
 
 Copy-Item ".\.gitlab-ci\windows\piglit_run.ps1" -Destination $installdir
-Copy-Item ".\.gitlab-ci\windows\quick_gl.txt" -Destination $installdir
+
+Copy-Item ".\.gitlab-ci\windows\spirv2dxil_check.ps1" -Destination $installdir
+Copy-Item ".\.gitlab-ci\windows\spirv2dxil_run.ps1" -Destination $installdir
+
+Get-ChildItem -Recurse -Filter "ci" | Get-ChildItem -Filter "*.txt" | Copy-Item -Destination $installdir

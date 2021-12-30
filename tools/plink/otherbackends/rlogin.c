@@ -32,9 +32,10 @@ struct Rlogin {
 
     Plug plug;
     Backend backend;
+    Interactor interactor;
 };
 
-static void rlogin_startup(Rlogin *rlogin, int prompt_result,
+static void rlogin_startup(Rlogin *rlogin, SeatPromptResult spr,
                            const char *ruser);
 static void rlogin_try_username_prompt(void *ctx);
 
@@ -53,12 +54,6 @@ static void rlogin_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
                        rlogin->conf, rlogin->socket_connected);
     if (type == PLUGLOG_CONNECT_SUCCESS) {
         rlogin->socket_connected = true;
-        if (is_tempseat(rlogin->seat)) {
-            Seat *ts = rlogin->seat;
-            tempseat_flush(ts);
-            rlogin->seat = tempseat_get_real(ts);
-            tempseat_free(ts);
-        }
 
         char *ruser = get_remote_username(rlogin->conf);
         if (ruser) {
@@ -70,7 +65,7 @@ static void rlogin_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
              */
             /* Next terminal output will come from server */
             seat_set_trust_status(rlogin->seat, false);
-            rlogin_startup(rlogin, 1, ruser);
+            rlogin_startup(rlogin, SPR_OK, ruser);
             sfree(ruser);
         } else {
             /*
@@ -90,7 +85,8 @@ static void rlogin_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
     }
 }
 
-static void rlogin_closing(Plug *plug, const char *error_msg, int error_code)
+static void rlogin_closing(Plug *plug, PlugCloseType type,
+                           const char *error_msg)
 {
     Rlogin *rlogin = container_of(plug, Rlogin, plug);
 
@@ -108,11 +104,13 @@ static void rlogin_closing(Plug *plug, const char *error_msg, int error_code)
         seat_notify_remote_exit(rlogin->seat);
         seat_notify_remote_disconnect(rlogin->seat);
     }
-    if (error_msg) {
+    if (type != PLUGCLOSE_NORMAL) {
         /* A socket error has occurred. */
         logevent(rlogin->logctx, error_msg);
-        seat_connection_fatal(rlogin->seat, "%s", error_msg);
-    }                                  /* Otherwise, the remote side closed the connection normally. */
+        if (type != PLUGCLOSE_USER_ABORT)
+            seat_connection_fatal(rlogin->seat, "%s", error_msg);
+    }
+    /* Otherwise, the remote side closed the connection normally. */
 }
 
 static void rlogin_receive(
@@ -162,17 +160,25 @@ static void rlogin_sent(Plug *plug, size_t bufsize)
     seat_sent(rlogin->seat, rlogin->bufsize);
 }
 
-static void rlogin_startup(Rlogin *rlogin, int prompt_result,
+static void rlogin_startup(Rlogin *rlogin, SeatPromptResult spr,
                            const char *ruser)
 {
     char z = 0;
     char *p;
 
-    if (prompt_result == 0) {
+    if (spr.kind == SPRK_USER_ABORT) {
         /* User aborted at the username prompt. */
         sk_close(rlogin->s);
         rlogin->s = NULL;
         seat_notify_remote_exit(rlogin->seat);
+    } else if (spr.kind == SPRK_SW_ABORT) {
+        /* Something else went wrong at the username prompt, so we
+         * have to show some kind of error. */
+        sk_close(rlogin->s);
+        rlogin->s = NULL;
+        char *err = spr_get_error_message(spr);
+        seat_connection_fatal(rlogin->seat, "%s", err);
+        sfree(err);
     } else {
         sk_write(rlogin->s, &z, 1);
         p = conf_get_str(rlogin->conf, CONF_localusername);
@@ -193,24 +199,42 @@ static void rlogin_startup(Rlogin *rlogin, int prompt_result,
         ldisc_check_sendok(rlogin->ldisc);
 }
 
-static char *rlogin_plug_description(Plug *plug)
-{
-    Rlogin *rlogin = container_of(plug, Rlogin, plug);
-    return dupstr(rlogin->description);
-}
-
-static char *rlogin_backend_description(Backend *backend)
-{
-    Rlogin *rlogin = container_of(backend, Rlogin, backend);
-    return dupstr(rlogin->description);
-}
-
 static const PlugVtable Rlogin_plugvt = {
     .log = rlogin_log,
     .closing = rlogin_closing,
     .receive = rlogin_receive,
     .sent = rlogin_sent,
-    .description = rlogin_plug_description,
+};
+
+static char *rlogin_description(Interactor *itr)
+{
+    Rlogin *rlogin = container_of(itr, Rlogin, interactor);
+    return dupstr(rlogin->description);
+}
+
+static LogPolicy *rlogin_logpolicy(Interactor *itr)
+{
+    Rlogin *rlogin = container_of(itr, Rlogin, interactor);
+    return log_get_policy(rlogin->logctx);
+}
+
+static Seat *rlogin_get_seat(Interactor *itr)
+{
+    Rlogin *rlogin = container_of(itr, Rlogin, interactor);
+    return rlogin->seat;
+}
+
+static void rlogin_set_seat(Interactor *itr, Seat *seat)
+{
+    Rlogin *rlogin = container_of(itr, Rlogin, interactor);
+    rlogin->seat = seat;
+}
+
+static const InteractorVtable Rlogin_interactorvt = {
+    .description = rlogin_description,
+    .logpolicy = rlogin_logpolicy,
+    .get_seat = rlogin_get_seat,
+    .set_seat = rlogin_set_seat,
 };
 
 /*
@@ -233,8 +257,11 @@ static char *rlogin_init(const BackendVtable *vt, Seat *seat,
     char *loghost;
 
     rlogin = snew(Rlogin);
+    memset(rlogin, 0, sizeof(Rlogin));
     rlogin->plug.vt = &Rlogin_plugvt;
     rlogin->backend.vt = vt;
+    rlogin->interactor.vt = &Rlogin_interactorvt;
+    rlogin->backend.interactor = &rlogin->interactor;
     rlogin->s = NULL;
     rlogin->closed_on_socket_error = false;
     rlogin->seat = seat;
@@ -268,7 +295,7 @@ static char *rlogin_init(const BackendVtable *vt, Seat *seat,
      */
     rlogin->s = new_connection(addr, *realhost, port, true, false,
                                nodelay, keepalive, &rlogin->plug, conf,
-                               log_get_policy(logctx), &rlogin->seat);
+                               &rlogin->interactor);
     if ((err = sk_socket_error(rlogin->s)) != NULL)
         return dupstr(err);
 
@@ -313,8 +340,9 @@ static void rlogin_try_username_prompt(void *ctx)
 {
     Rlogin *rlogin = (Rlogin *)ctx;
 
-    int ret = seat_get_userpass_input(rlogin->seat, rlogin->prompt);
-    if (ret < 0)
+    SeatPromptResult spr = seat_get_userpass_input(
+        interactor_announce(&rlogin->interactor), rlogin->prompt);
+    if (spr.kind == SPRK_INCOMPLETE)
         return;
 
     /* Next terminal output will come from server */
@@ -325,7 +353,7 @@ static void rlogin_try_username_prompt(void *ctx)
      * rlogin_startup will signal to rlogin_sendok by nulling out
      * rlogin->prompt. */
     rlogin_startup(
-        rlogin, ret, prompt_get_result_ref(rlogin->prompt->prompts[0]));
+        rlogin, spr, prompt_get_result_ref(rlogin->prompt->prompts[0]));
 }
 
 /*
@@ -460,7 +488,6 @@ const BackendVtable rlogin_backend = {
     .provide_ldisc = rlogin_provide_ldisc,
     .unthrottle = rlogin_unthrottle,
     .cfg_info = rlogin_cfg_info,
-    .description = rlogin_backend_description,
     .id = "rlogin",
     .displayname_tc = "Rlogin",
     .displayname_lc = "Rlogin", /* proper name, so capitalise it anyway */

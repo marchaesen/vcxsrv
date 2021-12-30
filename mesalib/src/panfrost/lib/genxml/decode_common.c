@@ -225,6 +225,7 @@ void pandecode_abort_on_fault_v4(mali_ptr jc_gpu_va);
 void pandecode_abort_on_fault_v5(mali_ptr jc_gpu_va);
 void pandecode_abort_on_fault_v6(mali_ptr jc_gpu_va);
 void pandecode_abort_on_fault_v7(mali_ptr jc_gpu_va);
+void pandecode_abort_on_fault_v9(mali_ptr jc_gpu_va);
 
 void
 pandecode_abort_on_fault(mali_ptr jc_gpu_va, unsigned gpu_id)
@@ -234,6 +235,7 @@ pandecode_abort_on_fault(mali_ptr jc_gpu_va, unsigned gpu_id)
         case 5: pandecode_abort_on_fault_v5(jc_gpu_va); return;
         case 6: pandecode_abort_on_fault_v6(jc_gpu_va); return;
         case 7: pandecode_abort_on_fault_v7(jc_gpu_va); return;
+        case 9: pandecode_abort_on_fault_v9(jc_gpu_va); return;
         default: unreachable("Unsupported architecture");
         }
 }
@@ -242,6 +244,7 @@ void pandecode_jc_v4(mali_ptr jc_gpu_va, unsigned gpu_id);
 void pandecode_jc_v5(mali_ptr jc_gpu_va, unsigned gpu_id);
 void pandecode_jc_v6(mali_ptr jc_gpu_va, unsigned gpu_id);
 void pandecode_jc_v7(mali_ptr jc_gpu_va, unsigned gpu_id);
+void pandecode_jc_v9(mali_ptr jc_gpu_va, unsigned gpu_id);
 
 void
 pandecode_jc(mali_ptr jc_gpu_va, unsigned gpu_id)
@@ -251,6 +254,7 @@ pandecode_jc(mali_ptr jc_gpu_va, unsigned gpu_id)
         case 5: pandecode_jc_v5(jc_gpu_va, gpu_id); return;
         case 6: pandecode_jc_v6(jc_gpu_va, gpu_id); return;
         case 7: pandecode_jc_v7(jc_gpu_va, gpu_id); return;
+        case 9: pandecode_jc_v9(jc_gpu_va, gpu_id); return;
         default: unreachable("Unsupported architecture");
         }
 }

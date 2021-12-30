@@ -123,8 +123,6 @@ do_optimization(struct exec_list *ir, const char *optimization,
    } else if (sscanf(optimization, "lower_quadop_vector ( %d ) ",
                      &int_0) == 1) {
       return lower_quadop_vector(ir, int_0 != 0);
-   } else if (strcmp(optimization, "optimize_redundant_jumps") == 0) {
-      return optimize_redundant_jumps(ir);
    } else {
       printf("Unrecognized optimization %s\n", optimization);
       exit(EXIT_FAILURE);

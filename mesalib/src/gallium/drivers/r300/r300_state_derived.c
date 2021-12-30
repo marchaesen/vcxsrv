@@ -1034,10 +1034,14 @@ static void r300_validate_fragment_shader(struct r300_context *r300)
     struct pipe_framebuffer_state *fb = r300->fb_state.state;
 
     if (r300->fs.state && r300->fs_status != FRAGMENT_SHADER_VALID) {
+        struct r300_fragment_program_external_state state;
+        memset(&state, 0, sizeof(state));
+        r300_fragment_program_get_external_state(r300, &state);
+
         /* Pick the fragment shader based on external states.
          * Then mark the state dirty if the fragment shader is either dirty
          * or the function r300_pick_fragment_shader changed the shader. */
-        if (r300_pick_fragment_shader(r300) ||
+        if (r300_pick_fragment_shader(r300, r300_fs(r300), &state) ||
             r300->fs_status == FRAGMENT_SHADER_DIRTY) {
             /* Mark the state atom as dirty. */
             r300_mark_fs_code_dirty(r300);

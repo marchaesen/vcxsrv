@@ -51,11 +51,11 @@ fd6_sampler_stateobj(struct pipe_sampler_state *samp)
 
 struct fd6_pipe_sampler_view {
    struct pipe_sampler_view base;
-   uint32_t texconst0, texconst1, texconst2, texconst3, texconst5;
-   uint32_t texconst6, texconst7, texconst8, texconst9, texconst10, texconst11;
-   uint32_t offset1, offset2;
    struct fd_resource *ptr1, *ptr2;
    uint16_t seqno;
+
+   /* TEX_CONST descriptor, with just offsets from the BOs in the iova dwords. */
+   uint32_t descriptor[FDL6_TEX_CONST_DWORDS];
 
    /* For detecting when a resource has transitioned from UBWC compressed
     * to uncompressed, which means the sampler state needs to be updated
@@ -76,28 +76,6 @@ void fd6_sampler_view_update(struct fd_context *ctx,
 
 void fd6_texture_init(struct pipe_context *pctx);
 void fd6_texture_fini(struct pipe_context *pctx);
-
-static inline enum a6xx_tex_type
-fd6_tex_type(unsigned target)
-{
-   switch (target) {
-   default:
-      assert(0);
-   case PIPE_BUFFER:
-   case PIPE_TEXTURE_1D:
-   case PIPE_TEXTURE_1D_ARRAY:
-      return A6XX_TEX_1D;
-   case PIPE_TEXTURE_RECT:
-   case PIPE_TEXTURE_2D:
-   case PIPE_TEXTURE_2D_ARRAY:
-      return A6XX_TEX_2D;
-   case PIPE_TEXTURE_3D:
-      return A6XX_TEX_3D;
-   case PIPE_TEXTURE_CUBE:
-   case PIPE_TEXTURE_CUBE_ARRAY:
-      return A6XX_TEX_CUBE;
-   }
-}
 
 static inline unsigned
 fd6_border_color_offset(struct fd_context *ctx, enum pipe_shader_type type,

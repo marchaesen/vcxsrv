@@ -1118,20 +1118,24 @@ cso_restore_vertex_elements(struct cso_context *ctx)
 
 void cso_set_vertex_buffers(struct cso_context *ctx,
                             unsigned start_slot, unsigned count,
+                            unsigned unbind_trailing_count,
+                            bool take_ownership,
                             const struct pipe_vertex_buffer *buffers)
 {
    struct u_vbuf *vbuf = ctx->vbuf_current;
 
-   if (!count)
+   if (!count && !unbind_trailing_count)
       return;
 
    if (vbuf) {
-      u_vbuf_set_vertex_buffers(vbuf, start_slot, count, 0, false, buffers);
+      u_vbuf_set_vertex_buffers(vbuf, start_slot, count, unbind_trailing_count,
+                                take_ownership, buffers);
       return;
    }
 
    struct pipe_context *pipe = ctx->pipe;
-   pipe->set_vertex_buffers(pipe, start_slot, count, 0, false, buffers);
+   pipe->set_vertex_buffers(pipe, start_slot, count, unbind_trailing_count,
+                            take_ownership, buffers);
 }
 
 /**

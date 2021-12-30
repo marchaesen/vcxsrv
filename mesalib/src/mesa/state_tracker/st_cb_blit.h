@@ -28,12 +28,12 @@
 #ifndef ST_CB_BLIT_H
 #define ST_CB_BLIT_H
 
-
-struct dd_function_table;
-struct st_context;
-
-extern void
-st_init_blit_functions(struct dd_function_table *functions);
-
+void
+st_BlitFramebuffer(struct gl_context *ctx,
+                   struct gl_framebuffer *readFB,
+                   struct gl_framebuffer *drawFB,
+                   GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                   GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                   GLbitfield mask, GLenum filter);
 
 #endif /* ST_CB_BLIT_H */

@@ -35,6 +35,10 @@
 #include "mtypes.h"
 #include "performance_query.h"
 #include "util/ralloc.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_perfquery.h"
+#include "state_tracker/st_cb_flush.h"
 
 void
 _mesa_init_performance_queries(struct gl_context *ctx)
@@ -54,7 +58,7 @@ free_performance_query(void *data, void *user)
     */
    m->Active = false;
    m->Used = false;
-   ctx->Driver.DeletePerfQuery(ctx, m);
+   st_DeletePerfQuery(ctx, m);
 }
 
 void
@@ -74,10 +78,7 @@ lookup_object(struct gl_context *ctx, GLuint id)
 static GLuint
 init_performance_query_info(struct gl_context *ctx)
 {
-   if (ctx->Driver.InitPerfQueryInfo)
-      return ctx->Driver.InitPerfQueryInfo(ctx);
-   else
-      return 0;
+   return st_InitPerfQueryInfo(ctx);
 }
 
 /* For INTEL_performance_query, query id 0 is reserved to be invalid. */
@@ -238,7 +239,7 @@ _mesa_GetPerfQueryIdByNameINTEL(char *queryName, GLuint *queryId)
       const GLchar *name;
       GLuint ignore;
 
-      ctx->Driver.GetPerfQueryInfo(ctx, i, &name, &ignore, &ignore, &ignore);
+      st_GetPerfQueryInfo(ctx, i, &name, &ignore, &ignore, &ignore);
 
       if (strcmp(name, queryName) == 0) {
          *queryId = index_to_queryid(i);
@@ -278,11 +279,11 @@ _mesa_GetPerfQueryInfoINTEL(GLuint queryId,
       return;
    }
 
-   ctx->Driver.GetPerfQueryInfo(ctx, queryIndex,
-                                &queryName,
-                                &queryDataSize,
-                                &queryNumCounters,
-                                &queryNumActive);
+   st_GetPerfQueryInfo(ctx, queryIndex,
+                       &queryName,
+                       &queryDataSize,
+                       &queryNumCounters,
+                       &queryNumActive);
 
    output_clipped_string(name, nameLength, queryName);
 
@@ -347,11 +348,11 @@ _mesa_GetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
       return;
    }
 
-   ctx->Driver.GetPerfQueryInfo(ctx, queryIndex,
-                                &queryName,
-                                &queryDataSize,
-                                &queryNumCounters,
-                                &queryNumActive);
+   st_GetPerfQueryInfo(ctx, queryIndex,
+                       &queryName,
+                       &queryDataSize,
+                       &queryNumCounters,
+                       &queryNumActive);
 
    counterIndex = counterid_to_index(counterId);
 
@@ -361,14 +362,14 @@ _mesa_GetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
       return;
    }
 
-   ctx->Driver.GetPerfCounterInfo(ctx, queryIndex, counterIndex,
-                                  &counterName,
-                                  &counterDesc,
-                                  &counterOffset,
-                                  &counterDataSize,
-                                  &counterTypeEnum,
-                                  &counterDataTypeEnum,
-                                  &counterRawMax);
+   st_GetPerfCounterInfo(ctx, queryIndex, counterIndex,
+                         &counterName,
+                         &counterDesc,
+                         &counterOffset,
+                         &counterDataSize,
+                         &counterTypeEnum,
+                         &counterDataTypeEnum,
+                         &counterRawMax);
 
    output_clipped_string(name, nameLength, counterName);
    output_clipped_string(desc, descLength, counterDesc);
@@ -452,7 +453,7 @@ _mesa_CreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
       return;
    }
 
-   obj = ctx->Driver.NewPerfQueryObject(ctx, queryid_to_index(queryId));
+   obj = st_NewPerfQueryObject(ctx, queryid_to_index(queryId));
    if (obj == NULL) {
       _mesa_error_no_memory(__func__);
       return;
@@ -493,12 +494,12 @@ _mesa_DeletePerfQueryINTEL(GLuint queryHandle)
       _mesa_EndPerfQueryINTEL(queryHandle);
 
    if (obj->Used && !obj->Ready) {
-      ctx->Driver.WaitPerfQuery(ctx, obj);
+      st_WaitPerfQuery(ctx, obj);
       obj->Ready = true;
    }
 
    _mesa_HashRemove(ctx->PerfQuery.Objects, queryHandle);
-   ctx->Driver.DeletePerfQuery(ctx, obj);
+   st_DeletePerfQuery(ctx, obj);
 }
 
 extern void GLAPIENTRY
@@ -540,11 +541,11 @@ _mesa_BeginPerfQueryINTEL(GLuint queryHandle)
     * waiting for data on that object.
     */
    if (obj->Used && !obj->Ready) {
-      ctx->Driver.WaitPerfQuery(ctx, obj);
+      st_WaitPerfQuery(ctx, obj);
       obj->Ready = true;
    }
 
-   if (ctx->Driver.BeginPerfQuery(ctx, obj)) {
+   if (st_BeginPerfQuery(ctx, obj)) {
       obj->Used = true;
       obj->Active = true;
       obj->Ready = false;
@@ -580,7 +581,7 @@ _mesa_EndPerfQueryINTEL(GLuint queryHandle)
       return;
    }
 
-   ctx->Driver.EndPerfQuery(ctx, obj);
+   st_EndPerfQuery(ctx, obj);
 
    obj->Active = false;
    obj->Ready = false;
@@ -637,19 +638,19 @@ _mesa_GetPerfQueryDataINTEL(GLuint queryHandle, GLuint flags,
       return;
    }
 
-   obj->Ready = ctx->Driver.IsPerfQueryReady(ctx, obj);
+   obj->Ready = st_IsPerfQueryReady(ctx, obj);
 
    if (!obj->Ready) {
       if (flags == GL_PERFQUERY_FLUSH_INTEL) {
-         ctx->Driver.Flush(ctx, 0);
+         st_glFlush(ctx, 0);
       } else if (flags == GL_PERFQUERY_WAIT_INTEL) {
-         ctx->Driver.WaitPerfQuery(ctx, obj);
+         st_WaitPerfQuery(ctx, obj);
          obj->Ready = true;
       }
    }
 
    if (obj->Ready) {
-      if (!ctx->Driver.GetPerfQueryData(ctx, obj, dataSize, data, bytesWritten)) {
+      if (!st_GetPerfQueryData(ctx, obj, dataSize, data, bytesWritten)) {
          memset(data, 0, dataSize);
          *bytesWritten = 0;
 

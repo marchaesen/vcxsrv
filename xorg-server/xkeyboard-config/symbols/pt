@@ -207,8 +207,8 @@ xkb_symbols "colemak" {
     key <AC09>  { [         i,          I,   rightarrow,     idotless ] };
     key <AC10>  { [         o,          O,       oslash,     Ooblique ] };
 
-    key <AB01>  { [         z,          Z, guillemotleft,       U2039 ] };
-    key <AB02>  { [         x,          X, guillemotright,      U203A ] };
+    key <AB01>  { [         z,          Z, guillemotleft,        less ] };
+    key <AB02>  { [         x,          X, guillemotright,    greater ] };
     key <AB03>  { [         c,          C,         cent,    copyright ] };
     key <AB08>  { [         k,          K,          kra,    ampersand ] };
     key <AB07>  { [         m,          M,           mu,    masculine ] };

@@ -1,0 +1,32 @@
+# Basic test set
+[[deqp]]
+deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp/mustpass/vk-master.txt"]
+skips = ["install/freedreno-a618-premerge-skips.txt"]
+renderer_check = "Turnip Adreno .* 618"
+fraction = 2
+[deqp.env]
+# Force binning in the main run, which makes sure we render at
+# least 2 bins.  This is the path that impacts the most different
+# features.
+TU_DEBUG = "forcebin"
+
+# force-bypass testing
+[[deqp]]
+deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp/mustpass/vk-master.txt"]
+skips = ["install/freedreno-a618-premerge-skips.txt"]
+include = ["dEQP-VK.renderpass.*"]
+prefix = "bypass-"
+fraction = 15
+[deqp.env]
+TU_DEBUG = "sysmem"
+
+[[deqp]]
+deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp/mustpass/vk-master.txt"]
+skips = ["install/freedreno-a618-premerge-skips.txt"]
+include = ["dEQP-VK.graphicsfuzz.*"]
+prefix = "spill-"
+[deqp.env]
+IR3_SHADER_DEBUG = "spillall"

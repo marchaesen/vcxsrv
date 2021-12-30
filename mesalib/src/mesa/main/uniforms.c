@@ -46,6 +46,9 @@
 #include "compiler/glsl_types.h"
 #include "program/program.h"
 #include "util/bitscan.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_context.h"
 
 /**
  * Update the vertex/fragment program's TexturesUsed array.
@@ -1108,7 +1111,7 @@ uniform_block_binding(struct gl_context *ctx, struct gl_shader_program *shProg,
        uniformBlockBinding) {
 
       FLUSH_VERTICES(ctx, 0, 0);
-      ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
+      ctx->NewDriverState |= ST_NEW_UNIFORM_BUFFER;
 
       shProg->data->UniformBlocks[uniformBlockIndex].Binding =
          uniformBlockBinding;
@@ -1170,7 +1173,7 @@ shader_storage_block_binding(struct gl_context *ctx,
        shaderStorageBlockBinding) {
 
       FLUSH_VERTICES(ctx, 0, 0);
-      ctx->NewDriverState |= ctx->DriverFlags.NewShaderStorageBuffer;
+      ctx->NewDriverState |= ST_NEW_STORAGE_BUFFER;
 
       shProg->data->ShaderStorageBlocks[shaderStorageBlockIndex].Binding =
          shaderStorageBlockBinding;

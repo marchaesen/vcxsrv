@@ -30,7 +30,7 @@
 #include "util/u_debug.h"
 #include "util/u_video.h"
 
-#include "vl/vl_vlc.h"
+#include "util/vl_vlc.h"
 
 #include "vdpau_private.h"
 

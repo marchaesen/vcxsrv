@@ -997,11 +997,7 @@ _mesa_write_shader_to_file(const struct gl_shader *shader)
       return;
    }
 
-#ifdef DEBUG
-   fprintf(f, "/* Shader %u source, checksum %u */\n", shader->Name, shader->SourceChecksum);
-#else
    fprintf(f, "/* Shader %u source */\n", shader->Name);
-#endif
    fputs(shader->Source, f);
    fprintf(f, "\n");
 

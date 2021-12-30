@@ -64,33 +64,11 @@ extern "C" {
 struct _glapi_table;
 
 
-/** \name Visual-related functions */
-/*@{*/
-
-extern void
-_mesa_initialize_visual( struct gl_config *v,
-                         GLboolean dbFlag,
-                         GLboolean stereoFlag,
-                         GLint redBits,
-                         GLint greenBits,
-                         GLint blueBits,
-                         GLint alphaBits,
-                         GLint depthBits,
-                         GLint stencilBits,
-                         GLint accumRedBits,
-                         GLint accumGreenBits,
-                         GLint accumBlueBits,
-                         GLint accumAlphaBits,
-                         GLuint numSamples );
-
-/*@}*/
-
-
 /** \name Context-related functions */
 /*@{*/
 
 extern void
-_mesa_initialize(void);
+_mesa_initialize(const char *extensions_override);
 
 extern GLboolean
 _mesa_initialize_context( struct gl_context *ctx,
@@ -98,6 +76,18 @@ _mesa_initialize_context( struct gl_context *ctx,
                           const struct gl_config *visual,
                           struct gl_context *share_list,
                           const struct dd_function_table *driverFunctions);
+
+extern struct _glapi_table *
+_mesa_alloc_dispatch_table(bool glthread);
+
+extern void
+_mesa_initialize_exec_table(struct gl_context *ctx);
+
+extern void
+_mesa_initialize_dispatch_tables(struct gl_context *ctx);
+
+extern struct _glapi_table *
+_mesa_new_nop_table(unsigned numEntries, bool glthread);
 
 extern void
 _mesa_free_context_data(struct gl_context *ctx, bool destroy_debug_output);
@@ -133,12 +123,6 @@ _mesa_set_context_lost_dispatch(struct gl_context *ctx);
 
 extern void
 _mesa_flush(struct gl_context *ctx);
-
-extern void GLAPIENTRY
-_mesa_Finish( void );
-
-extern void GLAPIENTRY
-_mesa_Flush( void );
 
 /*@}*/
 

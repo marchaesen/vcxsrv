@@ -22,11 +22,12 @@
  */
 
 #include "main/errors.h"
-#include "main/drawtex.h"
 #include "main/state.h"
 
 #include "main/mtypes.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_drawtex.h"
 
 static void
 draw_texture(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
@@ -47,8 +48,7 @@ draw_texture(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   assert(ctx->Driver.DrawTex);
-   ctx->Driver.DrawTex(ctx, x, y, z, width, height);
+   st_DrawTex(ctx, x, y, z, width, height);
 
    _mesa_set_vp_override(ctx, GL_FALSE);
 }
@@ -103,30 +103,4 @@ _mesa_DrawTexsvOES(const GLshort *coords)
    GET_CURRENT_CONTEXT(ctx);
    draw_texture(ctx, (GLfloat) coords[0], (GLfloat) coords[1],
                 (GLfloat) coords[2], (GLfloat) coords[3], (GLfloat) coords[4]);
-}
-
-
-void GLAPIENTRY
-_mesa_DrawTexx(GLfixed x, GLfixed y, GLfixed z, GLfixed width, GLfixed height)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   draw_texture(ctx,
-                (GLfloat) x / 65536.0f,
-                (GLfloat) y / 65536.0f,
-                (GLfloat) z / 65536.0f,
-                (GLfloat) width / 65536.0f,
-                (GLfloat) height / 65536.0f);
-}
-
-
-void GLAPIENTRY
-_mesa_DrawTexxv(const GLfixed *coords)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   draw_texture(ctx,
-                (GLfloat) coords[0] / 65536.0f,
-                (GLfloat) coords[1] / 65536.0f,
-                (GLfloat) coords[2] / 65536.0f,
-                (GLfloat) coords[3] / 65536.0f,
-                (GLfloat) coords[4] / 65536.0f);
 }

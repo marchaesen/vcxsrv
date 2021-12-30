@@ -291,10 +291,10 @@ fd2_emit_state(struct fd_context *ctx, const enum fd_dirty_3d_state dirty)
       OUT_PKT3(ring, CP_SET_CONSTANT, 6);
       OUT_RING(ring, CP_REG(REG_A2XX_PA_SU_VTX_CNTL));
       OUT_RING(ring, rasterizer->pa_su_vtx_cntl);
-      OUT_RING(ring, fui(1.0)); /* PA_CL_GB_VERT_CLIP_ADJ */
-      OUT_RING(ring, fui(1.0)); /* PA_CL_GB_VERT_DISC_ADJ */
-      OUT_RING(ring, fui(1.0)); /* PA_CL_GB_HORZ_CLIP_ADJ */
-      OUT_RING(ring, fui(1.0)); /* PA_CL_GB_HORZ_DISC_ADJ */
+      OUT_RING(ring, fui(1.0f)); /* PA_CL_GB_VERT_CLIP_ADJ */
+      OUT_RING(ring, fui(1.0f)); /* PA_CL_GB_VERT_DISC_ADJ */
+      OUT_RING(ring, fui(1.0f)); /* PA_CL_GB_HORZ_CLIP_ADJ */
+      OUT_RING(ring, fui(1.0f)); /* PA_CL_GB_HORZ_DISC_ADJ */
 
       if (rasterizer->base.offset_tri) {
          /* TODO: why multiply scale by 2 ? without it deqp test fails

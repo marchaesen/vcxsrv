@@ -442,6 +442,7 @@ write_register(write_ctx *ctx, const nir_register *reg)
    blob_write_uint32(ctx->blob, reg->bit_size);
    blob_write_uint32(ctx->blob, reg->num_array_elems);
    blob_write_uint32(ctx->blob, reg->index);
+   blob_write_uint8(ctx->blob, reg->divergent);
 }
 
 static nir_register *
@@ -453,6 +454,7 @@ read_register(read_ctx *ctx)
    reg->bit_size = blob_read_uint32(ctx->blob);
    reg->num_array_elems = blob_read_uint32(ctx->blob);
    reg->index = blob_read_uint32(ctx->blob);
+   reg->divergent = blob_read_uint8(ctx->blob);
 
    list_inithead(&reg->uses);
    list_inithead(&reg->defs);
@@ -565,7 +567,7 @@ union packed_dest {
       uint8_t is_ssa:1;
       uint8_t num_components:3;
       uint8_t bit_size:3;
-      uint8_t _pad:1;
+      uint8_t divergent:1;
    } ssa;
    struct {
       uint8_t is_ssa:1;
@@ -690,6 +692,7 @@ write_dest(write_ctx *ctx, const nir_dest *dst, union packed_instr header,
       dest.ssa.num_components =
          encode_num_components_in_3bits(dst->ssa.num_components);
       dest.ssa.bit_size = encode_bit_size_3bits(dst->ssa.bit_size);
+      dest.ssa.divergent = dst->ssa.divergent;
    } else {
       dest.reg.is_indirect = !!(dst->reg.indirect);
    }
@@ -763,6 +766,7 @@ read_dest(read_ctx *ctx, nir_dest *dst, nir_instr *instr,
       else
          num_components = decode_num_components_in_3bits(dest.ssa.num_components);
       nir_ssa_dest_init(instr, dst, num_components, bit_size, NULL);
+      dst->ssa.divergent = dest.ssa.divergent;
       read_add_object(ctx, &dst->ssa);
    } else {
       dst->reg.reg = read_object(ctx);
@@ -1872,6 +1876,7 @@ static void
 write_loop(write_ctx *ctx, nir_loop *loop)
 {
    blob_write_uint8(ctx->blob, loop->control);
+   blob_write_uint8(ctx->blob, loop->divergent);
    write_cf_list(ctx, &loop->body);
 }
 
@@ -1883,6 +1888,7 @@ read_loop(read_ctx *ctx, struct exec_list *cf_list)
    nir_cf_node_insert_end(cf_list, &loop->cf_node);
 
    loop->control = blob_read_uint8(ctx->blob);
+   loop->divergent = blob_read_uint8(ctx->blob);
    read_cf_list(ctx, &loop->body);
 }
 

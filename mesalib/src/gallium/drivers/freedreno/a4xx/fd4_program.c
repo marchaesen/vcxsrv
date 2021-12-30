@@ -156,7 +156,8 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
 {
    struct stage s[MAX_STAGES];
    uint32_t pos_regid, posz_regid, psize_regid, color_regid[8];
-   uint32_t face_regid, coord_regid, zwcoord_regid, ij_regid[IJ_COUNT];
+   uint32_t face_regid, coord_regid, zwcoord_regid, samp_id_regid,
+      samp_mask_regid, ij_regid[IJ_COUNT];
    enum a3xx_threadsize fssz;
    int constmode;
    int i, j;
@@ -198,6 +199,9 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
       color_regid[7] = ir3_find_output_regid(s[FS].v, FRAG_RESULT_DATA7);
    }
 
+   samp_id_regid = ir3_find_sysval_regid(s[FS].v, SYSTEM_VALUE_SAMPLE_ID);
+   samp_mask_regid =
+      ir3_find_sysval_regid(s[FS].v, SYSTEM_VALUE_SAMPLE_MASK_IN);
    face_regid = ir3_find_sysval_regid(s[FS].v, SYSTEM_VALUE_FRONT_FACE);
    coord_regid = ir3_find_sysval_regid(s[FS].v, SYSTEM_VALUE_FRAG_COORD);
    zwcoord_regid =
@@ -228,7 +232,8 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
                      A4XX_HLSQ_CONTROL_1_REG_COORDREGID(coord_regid) |
                      A4XX_HLSQ_CONTROL_1_REG_ZWCOORDREGID(zwcoord_regid));
    OUT_RING(ring, A4XX_HLSQ_CONTROL_2_REG_PRIMALLOCTHRESHOLD(63) |
-                     0x3f3f000 | /* XXX */
+                     A4XX_HLSQ_CONTROL_2_REG_SAMPLEID_REGID(samp_id_regid) |
+                     A4XX_HLSQ_CONTROL_2_REG_SAMPLEMASK_REGID(samp_mask_regid) |
                      A4XX_HLSQ_CONTROL_2_REG_FACEREGID(face_regid));
    /* XXX left out centroid/sample for now */
    OUT_RING(
@@ -417,7 +422,9 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
          CONDREG(ij_regid[IJ_PERSP_CENTROID],
                  A4XX_RB_RENDER_CONTROL2_IJ_PERSP_CENTROID) |
          CONDREG(ij_regid[IJ_LINEAR_PIXEL], A4XX_RB_RENDER_CONTROL2_SIZE) |
+         CONDREG(samp_id_regid, A4XX_RB_RENDER_CONTROL2_SAMPLEID) |
          COND(s[FS].v->frag_face, A4XX_RB_RENDER_CONTROL2_FACENESS) |
+         CONDREG(samp_mask_regid, A4XX_RB_RENDER_CONTROL2_SAMPLEMASK) |
          COND(s[FS].v->fragcoord_compmask != 0,
               A4XX_RB_RENDER_CONTROL2_COORD_MASK(s[FS].v->fragcoord_compmask)));
 
@@ -436,14 +443,22 @@ fd4_program_emit(struct fd_ringbuffer *ring, struct fd4_emit *emit, int nr,
    for (i = 0; i < 8; i++) {
       enum a4xx_color_fmt format = 0;
       bool srgb = false;
+      bool uint = false;
+      bool sint = false;
       if (i < nr) {
          format = fd4_emit_format(bufs[i]);
-         if (bufs[i] && !emit->no_decode_srgb)
-            srgb = util_format_is_srgb(bufs[i]->format);
+         if (bufs[i]) {
+            if (!emit->no_decode_srgb)
+               srgb = util_format_is_srgb(bufs[i]->format);
+            uint = util_format_is_pure_uint(bufs[i]->format);
+            sint = util_format_is_pure_sint(bufs[i]->format);
+         }
       }
       OUT_RING(ring, A4XX_SP_FS_MRT_REG_REGID(color_regid[i]) |
                         A4XX_SP_FS_MRT_REG_MRTFORMAT(format) |
                         COND(srgb, A4XX_SP_FS_MRT_REG_COLOR_SRGB) |
+                        COND(uint, A4XX_SP_FS_MRT_REG_COLOR_UINT) |
+                        COND(sint, A4XX_SP_FS_MRT_REG_COLOR_SINT) |
                         COND(color_regid[i] & HALF_REG_ID,
                              A4XX_SP_FS_MRT_REG_HALF_PRECISION));
    }

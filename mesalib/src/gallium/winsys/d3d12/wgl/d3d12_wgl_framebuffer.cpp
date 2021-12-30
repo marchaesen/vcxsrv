@@ -188,6 +188,7 @@ d3d12_wgl_framebuffer_get_resource(struct stw_winsys_framebuffer *pframebuffer,
    struct winsys_handle handle;
    memset(&handle, 0, sizeof(handle));
    handle.type = WINSYS_HANDLE_TYPE_D3D12_RES;
+   handle.format = framebuffer->pformat;
    handle.com_obj = res;
 
    D3D12_RESOURCE_DESC res_desc = res->GetDesc();

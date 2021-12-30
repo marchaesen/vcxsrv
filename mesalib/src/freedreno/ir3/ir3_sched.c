@@ -106,6 +106,8 @@ struct ir3_sched_ctx {
 
    bool error;
 
+   unsigned ip;
+
    int sfu_delay;
    int tex_delay;
 
@@ -127,6 +129,11 @@ struct ir3_sched_node {
 
    unsigned tex_index;
    unsigned sfu_index;
+
+   /* For ready instructions, the earliest possible ip that it could be
+    * scheduled.
+    */
+   unsigned earliest_ip;
 
    /* For instructions that are a meta:collect src, once we schedule
     * the first src of the collect, the entire vecN is live (at least
@@ -302,6 +309,23 @@ schedule(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
       }
    }
 
+   bool counts_for_delay = is_alu(instr) || is_flow(instr);
+
+   /* TODO: switch to "cycles". For now try to match ir3_delay. */
+   unsigned delay_cycles = counts_for_delay ? 1 + instr->repeat : 0;
+
+   /* We insert any nop's needed to get to earliest_ip, then advance
+    * delay_cycles by scheduling the instruction.
+    */
+   ctx->ip = MAX2(ctx->ip, n->earliest_ip) + delay_cycles;
+
+   util_dynarray_foreach (&n->dag.edges, struct dag_edge, edge) {
+      unsigned delay = (unsigned)(uintptr_t)edge->data;
+      struct ir3_sched_node *child =
+         container_of(edge->child, struct ir3_sched_node, dag);
+      child->earliest_ip = MAX2(child->earliest_ip, ctx->ip + delay);
+   }
+
    dag_prune_head(ctx->dag, &n->dag);
 
    unsigned cycles = cycle_count(instr);
@@ -335,6 +359,7 @@ schedule(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
    } else if (ctx->tex_delay > 0) {
       ctx->tex_delay -= MIN2(cycles, ctx->tex_delay);
    }
+
 }
 
 struct ir3_sched_notes {
@@ -619,6 +644,12 @@ dec_rank_name(enum choose_instr_dec_rank rank)
    }
 }
 
+static unsigned
+node_delay(struct ir3_sched_ctx *ctx, struct ir3_sched_node *n)
+{
+   return MAX2(n->earliest_ip, ctx->ip) - ctx->ip;
+}
+
 /**
  * Chooses an instruction to schedule using the Goodman/Hsu (1988) CSR (Code
  * Scheduling for Register pressure) heuristic.
@@ -638,8 +669,7 @@ choose_instr_dec(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
       if (defer && should_defer(ctx, n->instr))
          continue;
 
-      /* Note: mergedregs is only used post-RA, just set it to false */
-      unsigned d = ir3_delay_calc_prera(ctx->block, n->instr);
+      unsigned d = node_delay(ctx, n);
 
       int live = live_effect(n->instr);
       if (live > 0)
@@ -737,7 +767,7 @@ choose_instr_inc(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
       if (!check_instr(ctx, notes, n->instr))
          continue;
 
-      unsigned d = ir3_delay_calc_prera(ctx->block, n->instr);
+      unsigned d = node_delay(ctx, n);
 
       enum choose_instr_inc_rank rank;
       if (d == 0)
@@ -804,7 +834,7 @@ dump_state(struct ir3_sched_ctx *ctx)
 
    foreach_sched_node (n, &ctx->dag->heads) {
       di(n->instr, "maxdel=%3d le=%d del=%u ", n->max_delay,
-         live_effect(n->instr), ir3_delay_calc_prera(ctx->block, n->instr));
+         live_effect(n->instr), node_delay(ctx, n));
 
       util_dynarray_foreach (&n->dag.edges, struct dag_edge, edge) {
          struct ir3_sched_node *child = (struct ir3_sched_node *)edge->child;
@@ -994,11 +1024,17 @@ sched_node_add_dep(struct ir3_instruction *instr, struct ir3_instruction *src,
    if (instr->opc == OPC_META_COLLECT)
       sn->collect = instr;
 
-   dag_add_edge(&sn->dag, &n->dag, NULL);
+   unsigned d_soft = ir3_delayslots(src, instr, i, true);
+   unsigned d = ir3_delayslots(src, instr, i, false);
 
-   unsigned d = ir3_delayslots(src, instr, i, true);
+   /* delays from (ss) and (sy) are considered separately and more accurately in
+    * the scheduling heuristic, so ignore it when calculating the ip of
+    * instructions, but do consider it when prioritizing which instructions to
+    * schedule.
+    */
+   dag_add_edge_max_data(&sn->dag, &n->dag, (uintptr_t)d);
 
-   n->delay = MAX2(n->delay, d);
+   n->delay = MAX2(n->delay, d_soft);
 }
 
 static void
@@ -1172,17 +1208,10 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 
       instr = choose_instr(ctx, &notes);
       if (instr) {
-         unsigned delay = ir3_delay_calc_prera(ctx->block, instr);
+         unsigned delay = node_delay(ctx, instr->data);
          d("delay=%u", delay);
 
-         /* and if we run out of instructions that can be scheduled,
-          * then it is time for nop's:
-          */
          debug_assert(delay <= 6);
-         while (delay > 0) {
-            ir3_NOP(block);
-            delay--;
-         }
 
          schedule(ctx, instr);
 

@@ -18,6 +18,13 @@ CSRCS = settings.c \
  cmdline.c \
  timing.c \
  proxy.c \
+ interactor.c \
+ socks4.c \
+ socks5.c \
+ http.c \
+ telnet.c \
+ local.c \
+ be_list.c \
  sshproxy.c \
  sshpubk.c \
  cproxy.c \
@@ -26,13 +33,13 @@ CSRCS = settings.c \
  callback.c \
  errsock.c \
  noterm.c \
- be_all.c \
- be_misc.c \
  nullplug.c \
  clicons.c \
  console.c \
  x11disp.c \
  version.c
+
+vpath %.c proxy stubs
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)

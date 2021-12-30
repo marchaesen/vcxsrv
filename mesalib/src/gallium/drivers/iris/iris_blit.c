@@ -234,7 +234,7 @@ iris_blorp_surf_for_resource(struct isl_device *isl_dev,
                              struct pipe_resource *p_res,
                              enum isl_aux_usage aux_usage,
                              unsigned level,
-                             bool is_render_target)
+                             bool is_dest)
 {
    struct iris_resource *res = (void *) p_res;
 
@@ -243,10 +243,10 @@ iris_blorp_surf_for_resource(struct isl_device *isl_dev,
       .addr = (struct blorp_address) {
          .buffer = res->bo,
          .offset = res->offset,
-         .reloc_flags = is_render_target ? EXEC_OBJECT_WRITE : 0,
+         .reloc_flags = is_dest ? EXEC_OBJECT_WRITE : 0,
          .mocs = iris_mocs(res->bo, isl_dev,
-                           is_render_target ? ISL_SURF_USAGE_RENDER_TARGET_BIT
-                                            : ISL_SURF_USAGE_TEXTURE_BIT),
+                           is_dest ? ISL_SURF_USAGE_RENDER_TARGET_BIT
+                                   : ISL_SURF_USAGE_TEXTURE_BIT),
       },
       .aux_usage = aux_usage,
    };
@@ -256,7 +256,7 @@ iris_blorp_surf_for_resource(struct isl_device *isl_dev,
       surf->aux_addr = (struct blorp_address) {
          .buffer = res->aux.bo,
          .offset = res->aux.offset,
-         .reloc_flags = is_render_target ? EXEC_OBJECT_WRITE : 0,
+         .reloc_flags = is_dest ? EXEC_OBJECT_WRITE : 0,
          .mocs = iris_mocs(res->bo, isl_dev, 0),
       };
       surf->clear_color = res->aux.clear_color;
@@ -541,7 +541,7 @@ get_copy_region_aux_settings(struct iris_context *ice,
                              unsigned level,
                              enum isl_aux_usage *out_aux_usage,
                              bool *out_clear_supported,
-                             bool is_render_target)
+                             bool is_dest)
 {
    struct iris_screen *screen = (void *) ice->ctx.screen;
    struct intel_device_info *devinfo = &screen->devinfo;
@@ -551,7 +551,7 @@ get_copy_region_aux_settings(struct iris_context *ice,
    case ISL_AUX_USAGE_HIZ_CCS:
    case ISL_AUX_USAGE_HIZ_CCS_WT:
    case ISL_AUX_USAGE_STC_CCS:
-      if (is_render_target) {
+      if (is_dest) {
          *out_aux_usage = iris_resource_render_aux_usage(ice, res, level,
                                                          res->surf.format,
                                                          false);
@@ -563,8 +563,7 @@ get_copy_region_aux_settings(struct iris_context *ice,
       break;
    case ISL_AUX_USAGE_MCS:
    case ISL_AUX_USAGE_MCS_CCS:
-      if (!is_render_target &&
-          !iris_can_sample_mcs_with_clear(devinfo, res)) {
+      if (!is_dest && !iris_can_sample_mcs_with_clear(devinfo, res)) {
          *out_aux_usage = res->aux.usage;
          *out_clear_supported = false;
          break;
@@ -589,7 +588,7 @@ get_copy_region_aux_settings(struct iris_context *ice,
        *   blorp_copy isn't guaranteed to access the same components as the
        *   original format (e.g. A8_UNORM/R8_UINT).
        */
-      *out_clear_supported = (devinfo->ver >= 11 && !is_render_target) ||
+      *out_clear_supported = (devinfo->ver >= 11 && !is_dest) ||
                              (res->aux.clear_color.u32[0] == 0 &&
                               res->aux.clear_color.u32[1] == 0 &&
                               res->aux.clear_color.u32[2] == 0 &&

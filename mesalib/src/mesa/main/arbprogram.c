@@ -36,12 +36,14 @@
 
 #include "main/macros.h"
 #include "main/mtypes.h"
-#include "main/arbprogram.h"
 #include "main/shaderapi.h"
 #include "main/state.h"
 #include "program/arbprogparse.h"
 #include "program/program.h"
 #include "program/prog_print.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_program.h"
 
 static void
 flush_vertices_for_program_constants(struct gl_context *ctx, GLenum target)
@@ -379,12 +381,15 @@ set_program_string(struct gl_program *prog, GLenum target, GLenum format, GLsize
 
    gl_shader_stage stage = _mesa_program_enum_to_shader_stage(target);
 
+   uint8_t sha1[SHA1_DIGEST_LENGTH];
+   _mesa_sha1_compute(string, strlen(string), sha1);
+
    /* Dump original shader source to MESA_SHADER_DUMP_PATH and replace
     * if corresponding entry found from MESA_SHADER_READ_PATH.
     */
-   _mesa_dump_shader_source(stage, string);
+   _mesa_dump_shader_source(stage, string, sha1);
 
-   replacement = _mesa_read_shader_source(stage, string);
+   replacement = _mesa_read_shader_source(stage, string, sha1);
    if (replacement)
       string = replacement;
 #endif /* ENABLE_SHADER_CACHE */
@@ -405,7 +410,7 @@ set_program_string(struct gl_program *prog, GLenum target, GLenum format, GLsize
 
    if (!failed) {
       /* finally, give the program to the driver for translation/checking */
-      if (!ctx->Driver.ProgramStringNotify(ctx, target, prog)) {
+      if (!st_program_string_notify(ctx, target, prog)) {
          failed = true;
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glProgramStringARB(rejected by driver");
@@ -960,10 +965,6 @@ get_program_iv(struct gl_program *prog, GLenum target, GLenum pname,
          if (prog->Id == 0) {
             /* default/null program */
             *params = GL_FALSE;
-         }
-	 else if (ctx->Driver.IsProgramNative) {
-            /* ask the driver */
-	    *params = ctx->Driver.IsProgramNative( ctx, target, prog );
          }
 	 else {
             /* probably running in software */

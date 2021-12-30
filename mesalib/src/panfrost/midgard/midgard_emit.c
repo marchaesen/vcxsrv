@@ -53,17 +53,6 @@ midgard_pack_ubo_index_imm(midgard_load_store_word *word, unsigned index)
         word->index_format = (index >> 6) & 0x3;
 }
 
-unsigned
-midgard_unpack_ubo_index_imm(midgard_load_store_word word)
-{
-        unsigned ubo = word.arg_comp |
-                       (word.arg_reg << 2)  |
-                       (word.bitsize_toggle << 5) |
-                       (word.index_format << 6);
-
-        return ubo;
-}
-
 void midgard_pack_varying_params(midgard_load_store_word *word, midgard_varying_params p)
 {
         /* Currently these parameters are not supported. */

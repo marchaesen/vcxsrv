@@ -443,6 +443,7 @@ enum virgl_formats {
 #define VIRGL_CAP_V2_MEMINFO              (1 << 3)
 #define VIRGL_CAP_V2_STRING_MARKER        (1 << 4)
 #define VIRGL_CAP_V2_IMPLICIT_MSAA        (1 << 6)
+#define VIRGL_CAP_V2_COPY_TRANSFER_BOTH_DIRECTIONS (1 << 7)
 
 /* virgl bind flags - these are compatible with mesa 10.5 gallium.
  * but are fixed, no other should be passed to virgl either.
@@ -598,6 +599,7 @@ struct virgl_caps_v2 {
         uint32_t max_video_memory;
         char renderer[64];
         float max_anisotropy;
+        uint32_t max_shader_sampler_views;
 };
 
 union virgl_caps {

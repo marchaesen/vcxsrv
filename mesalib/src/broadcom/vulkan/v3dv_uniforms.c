@@ -26,7 +26,6 @@
  */
 
 #include "v3dv_private.h"
-#include "vk_format_info.h"
 
 /* The only version specific structure that we need is
  * TMU_CONFIG_PARAMETER_1. This didn't seem to change significantly from

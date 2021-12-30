@@ -745,13 +745,20 @@ update_uniforms_shader_info(struct gl_shader_program *prog,
 
    if (glsl_type_is_sampler(type_no_array)) {
       bool init_idx;
-      unsigned *next_index = state->current_var->data.bindless ?
+      /* ARB_bindless_texture spec says:
+       *
+       *    "When used as shader inputs, outputs, uniform block members,
+       *     or temporaries, the value of the sampler is a 64-bit unsigned
+       *     integer handle and never refers to a texture image unit."
+       */
+      bool is_bindless = state->current_var->data.bindless || state->var_is_in_block;
+      unsigned *next_index = is_bindless ?
          &state->next_bindless_sampler_index :
          &state->next_sampler_index;
       int sampler_index = get_next_index(state, uniform, next_index, &init_idx);
       struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
 
-      if (state->current_var->data.bindless) {
+      if (is_bindless) {
          if (init_idx) {
             sh->Program->sh.BindlessSamplers =
                rerzalloc(sh->Program, sh->Program->sh.BindlessSamplers,

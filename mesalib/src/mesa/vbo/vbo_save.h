@@ -64,6 +64,7 @@ struct vbo_save_vertex_list {
       struct pipe_draw_start_count_bias start_count;
    };
    uint8_t mode;
+   bool draw_begins;
 
    int16_t private_refcount[VP_MODE_MAX];
    struct gl_context *ctx;

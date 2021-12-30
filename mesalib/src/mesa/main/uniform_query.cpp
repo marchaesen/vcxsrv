@@ -39,6 +39,7 @@
 #include "compiler/glsl/program.h"
 #include "util/bitscan.h"
 
+#include "state_tracker/st_context.h"
 
 /* This is one of the few glGet that can be called from the app thread safely.
  * Only these conditions must be met:
@@ -922,6 +923,177 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 }
 
 
+static void
+associate_uniform_storage(struct gl_context *ctx,
+                          struct gl_shader_program *shader_program,
+                          struct gl_program *prog)
+{
+   struct gl_program_parameter_list *params = prog->Parameters;
+   gl_shader_stage shader_type = prog->info.stage;
+
+   _mesa_disallow_parameter_storage_realloc(params);
+
+   /* After adding each uniform to the parameter list, connect the storage for
+    * the parameter with the tracking structure used by the API for the
+    * uniform.
+    */
+   unsigned last_location = unsigned(~0);
+   for (unsigned i = 0; i < params->NumParameters; i++) {
+      if (params->Parameters[i].Type != PROGRAM_UNIFORM)
+         continue;
+
+      unsigned location = params->Parameters[i].UniformStorageIndex;
+
+      struct gl_uniform_storage *storage =
+         &shader_program->data->UniformStorage[location];
+
+      /* Do not associate any uniform storage to built-in uniforms */
+      if (storage->builtin)
+         continue;
+
+      if (location != last_location) {
+         enum gl_uniform_driver_format format = uniform_native;
+         unsigned columns = 0;
+
+         int dmul;
+         if (ctx->Const.PackedDriverUniformStorage && !prog->info.is_arb_asm) {
+            dmul = storage->type->vector_elements * sizeof(float);
+         } else {
+            dmul = 4 * sizeof(float);
+         }
+
+         switch (storage->type->base_type) {
+         case GLSL_TYPE_UINT64:
+            if (storage->type->vector_elements > 2)
+               dmul *= 2;
+            FALLTHROUGH;
+         case GLSL_TYPE_UINT:
+         case GLSL_TYPE_UINT16:
+         case GLSL_TYPE_UINT8:
+            assert(ctx->Const.NativeIntegers);
+            format = uniform_native;
+            columns = 1;
+            break;
+         case GLSL_TYPE_INT64:
+            if (storage->type->vector_elements > 2)
+               dmul *= 2;
+            FALLTHROUGH;
+         case GLSL_TYPE_INT:
+         case GLSL_TYPE_INT16:
+         case GLSL_TYPE_INT8:
+            format =
+               (ctx->Const.NativeIntegers) ? uniform_native : uniform_int_float;
+            columns = 1;
+            break;
+         case GLSL_TYPE_DOUBLE:
+            if (storage->type->vector_elements > 2)
+               dmul *= 2;
+            FALLTHROUGH;
+         case GLSL_TYPE_FLOAT:
+         case GLSL_TYPE_FLOAT16:
+            format = uniform_native;
+            columns = storage->type->matrix_columns;
+            break;
+         case GLSL_TYPE_BOOL:
+            format = uniform_native;
+            columns = 1;
+            break;
+         case GLSL_TYPE_SAMPLER:
+         case GLSL_TYPE_TEXTURE:
+         case GLSL_TYPE_IMAGE:
+         case GLSL_TYPE_SUBROUTINE:
+            format = uniform_native;
+            columns = 1;
+            break;
+         case GLSL_TYPE_ATOMIC_UINT:
+         case GLSL_TYPE_ARRAY:
+         case GLSL_TYPE_VOID:
+         case GLSL_TYPE_STRUCT:
+         case GLSL_TYPE_ERROR:
+         case GLSL_TYPE_INTERFACE:
+         case GLSL_TYPE_FUNCTION:
+            assert(!"Should not get here.");
+            break;
+         }
+
+         unsigned pvo = params->Parameters[i].ValueOffset;
+         _mesa_uniform_attach_driver_storage(storage, dmul * columns, dmul,
+                                             format,
+                                             &params->ParameterValues[pvo]);
+
+         /* When a bindless sampler/image is bound to a texture/image unit, we
+          * have to overwrite the constant value by the resident handle
+          * directly in the constant buffer before the next draw. One solution
+          * is to keep track a pointer to the base of the data.
+          */
+         if (storage->is_bindless && (prog->sh.NumBindlessSamplers ||
+                                      prog->sh.NumBindlessImages)) {
+            unsigned array_elements = MAX2(1, storage->array_elements);
+
+            for (unsigned j = 0; j < array_elements; ++j) {
+               unsigned unit = storage->opaque[shader_type].index + j;
+
+               if (storage->type->without_array()->is_sampler()) {
+                  assert(unit >= 0 && unit < prog->sh.NumBindlessSamplers);
+                  prog->sh.BindlessSamplers[unit].data =
+                     &params->ParameterValues[pvo] + 4 * j;
+               } else if (storage->type->without_array()->is_image()) {
+                  assert(unit >= 0 && unit < prog->sh.NumBindlessImages);
+                  prog->sh.BindlessImages[unit].data =
+                     &params->ParameterValues[pvo] + 4 * j;
+               }
+            }
+         }
+
+         /* After attaching the driver's storage to the uniform, propagate any
+          * data from the linker's backing store.  This will cause values from
+          * initializers in the source code to be copied over.
+          */
+         unsigned array_elements = MAX2(1, storage->array_elements);
+         if (ctx->Const.PackedDriverUniformStorage && !prog->info.is_arb_asm &&
+             (storage->is_bindless || !storage->type->contains_opaque())) {
+            const int dmul = storage->type->is_64bit() ? 2 : 1;
+            const unsigned components =
+               storage->type->vector_elements *
+               storage->type->matrix_columns;
+
+            for (unsigned s = 0; s < storage->num_driver_storage; s++) {
+               gl_constant_value *uni_storage = (gl_constant_value *)
+                  storage->driver_storage[s].data;
+               memcpy(uni_storage, storage->storage,
+                      sizeof(storage->storage[0]) * components *
+                      array_elements * dmul);
+            }
+         } else {
+            _mesa_propagate_uniforms_to_driver_storage(storage, 0,
+                                                       array_elements);
+         }
+
+	      last_location = location;
+      }
+   }
+}
+
+
+void
+_mesa_ensure_and_associate_uniform_storage(struct gl_context *ctx,
+                              struct gl_shader_program *shader_program,
+                              struct gl_program *prog, unsigned required_space)
+{
+   /* Avoid reallocation of the program parameter list, because the uniform
+    * storage is only associated with the original parameter list.
+    */
+   _mesa_reserve_parameter_storage(prog->Parameters, required_space,
+                                   required_space);
+
+   /* This has to be done last.  Any operation the can cause
+    * prog->ParameterValues to get reallocated (e.g., anything that adds a
+    * program constant) has to happen before creating this linkage.
+    */
+   associate_uniform_storage(ctx, shader_program, prog);
+}
+
+
 /**
  * Return printable string for a given GLSL_TYPE_x
  */
@@ -1355,6 +1527,7 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
        */
       bool flushed = false;
       bool any_changed = false;
+      bool samplers_validated = shProg->SamplersValidated;
 
       shProg->SamplersValidated = GL_TRUE;
 
@@ -1401,14 +1574,14 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
          if (changed) {
             struct gl_program *const prog = sh->Program;
             _mesa_update_shader_textures_used(shProg, prog);
-            if (ctx->Driver.SamplerUniformChange)
-               ctx->Driver.SamplerUniformChange(ctx, prog->Target, prog);
             any_changed = true;
          }
       }
 
       if (any_changed)
          _mesa_update_valid_to_render_state(ctx);
+      else
+         shProg->SamplersValidated = samplers_validated;
    }
 
    /* If the uniform is an image, update the mapping from image
@@ -1441,7 +1614,7 @@ _mesa_uniform(GLint location, GLsizei count, const GLvoid *values,
          }
       }
 
-      ctx->NewDriverState |= ctx->DriverFlags.NewImageUnits;
+      ctx->NewDriverState |= ST_NEW_IMAGE_UNITS;
    }
 }
 

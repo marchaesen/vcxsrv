@@ -7689,13 +7689,14 @@
     </mod>
   </ins>
 
-  <ins name="+TEXC" staging="rw=sr_count" mask="0xffc00" exact="0xd7000" message="tex">
+  <ins name="+TEXC" staging="rw=sr_count" mask="0xffc00" exact="0xd7000" message="tex" dests="2">
     <src start="0"/>
     <src start="3"/>
     <src start="6" mask="0xf7"/>
     <mod name="skip" start="9" size="1" opt="skip"/>
     <!-- not actually encoded, but used for IR -->
     <immediate name="sr_count" size="4" pseudo="true"/>
+    <immediate name="sr_count_2" size="4" pseudo="true"/>
     <mod name="lod_mode" start="13" size="1" default="zero_lod" pseudo="true">
       <opt>computed_lod</opt>
       <opt>zero_lod</opt>

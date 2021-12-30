@@ -90,20 +90,6 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
                    gl_shader_stage stage,
                    const nir_shader_compiler_options *options);
 
-/**
- * \name API functions
- */
-/*@{*/
-
-void GLAPIENTRY
-_mesa_SpecializeShaderARB(GLuint shader,
-                          const GLchar *pEntryPoint,
-                          GLuint numSpecializationConstants,
-                          const GLuint *pConstantIndex,
-                          const GLuint *pConstantValue);
-
-/*@}*/
-
 #ifdef __cplusplus
 }
 #endif

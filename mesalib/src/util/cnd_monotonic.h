@@ -119,11 +119,11 @@ u_cnd_monotonic_timedwait(struct u_cnd_monotonic *cond, mtx_t *mtx, const struct
    const DWORD timeout = (future > now) ? (DWORD)(future - now) : 0;
    if (SleepConditionVariableCS(&cond->condvar, mtx, timeout))
       return thrd_success;
-   return (GetLastError() == ERROR_TIMEOUT) ? thrd_busy : thrd_error;
+   return (GetLastError() == ERROR_TIMEOUT) ? thrd_timedout : thrd_error;
 #else
    int rt = pthread_cond_timedwait(&cond->cond, mtx, abs_time);
    if (rt == ETIMEDOUT)
-      return thrd_busy;
+      return thrd_timedout;
    return (rt == 0) ? thrd_success : thrd_error;
 #endif
 }

@@ -171,7 +171,7 @@ void si_init_shader_args(struct si_shader_context *ctx, bool ngg_cull_shader);
 unsigned si_get_max_workgroup_size(const struct si_shader *shader);
 bool si_vs_needs_prolog(const struct si_shader_selector *sel,
                         const struct si_vs_prolog_bits *prolog_key,
-                        const union si_shader_key *key, bool ngg_cull_shader);
+                        const union si_shader_key *key, bool ngg_cull_shader, bool is_gs);
 void si_get_vs_prolog_key(const struct si_shader_info *info, unsigned num_input_sgprs,
                           bool ngg_cull_shader, const struct si_vs_prolog_bits *prolog_key,
                           struct si_shader *shader_out, union si_shader_part_key *key);
@@ -259,6 +259,8 @@ void si_llvm_init_ps_callbacks(struct si_shader_context *ctx);
 void si_llvm_init_resource_callbacks(struct si_shader_context *ctx);
 
 /* si_shader_llvm_vs.c */
+void si_llvm_clipvertex_to_clipdist(struct si_shader_context *ctx,
+                                    struct ac_export_args clipdist[2], LLVMValueRef clipvertex[4]);
 void si_llvm_streamout_store_output(struct si_shader_context *ctx, LLVMValueRef const *so_buffers,
                                     LLVMValueRef const *so_write_offsets,
                                     struct pipe_stream_output *stream_out,

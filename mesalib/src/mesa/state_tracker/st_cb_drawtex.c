@@ -158,7 +158,7 @@ lookup_shader(struct st_context *st,
 }
 
 
-static void
+void
 st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
            GLfloat width, GLfloat height)
 {
@@ -349,16 +349,9 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
 
    /* restore state */
    cso_restore_state(cso, 0);
+   ctx->Array.NewVertexElements = true;
    st->dirty |= ST_NEW_VERTEX_ARRAYS;
 }
-
-
-void
-st_init_drawtex_functions(struct dd_function_table *functions)
-{
-   functions->DrawTex = st_DrawTex;
-}
-
 
 /**
  * Free any cached shaders

@@ -23,10 +23,16 @@
 
 from asm import parse_asm, ParseError
 import sys
+import struct
 
 def parse_hex_8(s):
     b = [int(x, base=16) for x in s.split(' ')]
     return sum([x << (8 * i) for i, x in enumerate(b)])
+
+def hex_8(u64):
+    as_bytes = struct.pack('<Q', u64)
+    as_strings = [('0' + hex(byte)[2:])[-2:] for byte in as_bytes]
+    return ' '.join(as_strings)
 
 # These should not throw exceptions
 def positive_test(machine, assembly):
@@ -34,7 +40,7 @@ def positive_test(machine, assembly):
         expected = parse_hex_8(machine)
         val = parse_asm(assembly)
         if val != expected:
-            return f"Expected {hex(expected)} but got {hex(val)}"
+            return f"{hex_8(val)}    Incorrect assembly"
     except ParseError as exc:
         return f"Unexpected exception: {exc}"
 

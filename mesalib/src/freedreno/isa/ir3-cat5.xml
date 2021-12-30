@@ -52,6 +52,80 @@ SOFTWARE.
 </bitset>
 
 <bitset name="#instruction-cat5" extends="#instruction">
+	<doc>
+		The "normal" case, ie. not s2en (indirect) and/or bindless
+	</doc>
+	<display>
+		{SY}{JP}{NAME}{3D}{A}{O}{P}{S} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SAMP}{TEX}
+	</display>
+	<derived name="DST_HALF" expr="#type-half" type="bool" display="h"/>
+	<field name="FULL" pos="0" type="bool"/>
+	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
+	<field name="SRC1" low="1" high="8" type="#cat5-src1">
+		<param name="NUM_SRC"/>
+		<param name="HALF"/>
+	</field>
+	<field name="SRC2" low="9" high="16" type="#cat5-src2">
+		<param name="NUM_SRC"/>
+		<param name="HALF"/>
+		<param name="O"/>
+	</field>
+	<!--
+		TODO remainder of first 32b differ depending on s2en/bindless..
+		possibly use overrides?  Need to sort-out how to display..
+
+		Note b17 seems to show up in some blob traces (samgpN), need
+		to figure out what this bit does
+	 -->
+	<pattern low="17" high="18">0x</pattern>
+
+	<field name="SAMP" low="21" high="24" type="#cat5-samp">
+		<param name="HAS_SAMP"/>
+	</field>
+	<field name="TEX" low="25" high="31" type="#cat5-tex">
+		<param name="HAS_TEX"/>
+	</field>
+
+	<field name="DST" low="32" high="39" type="#reg-gpr"/>
+	<field name="WRMASK" low="40" high="43" type="#wrmask"/>
+	<field name="TYPE" low="44" high="46" type="#cat5-type">
+		<param name="HAS_TYPE"/>
+	</field>
+	<assert pos="47">0</assert>    <!-- BASE_LO -->
+	<field name="3D" pos="48" type="bool" display=".3d"/>
+	<field name="A" pos="49" type="bool" display=".a"/>
+	<field name="S" pos="50" type="bool" display=".s"/>
+	<field name="S2EN_BINDLESS" pos="51" type="bool"/>
+	<field name="O" pos="52" type="bool" display=".o"/>
+	<!-- OPC -->
+	<field name="JP" pos="59" type="bool" display="(jp)"/>
+	<field name="SY" pos="60" type="bool" display="(sy)"/>
+	<pattern low="61" high="63">101</pattern>  <!-- cat5 -->
+	<encode>
+		<map name="FULL">extract_cat5_FULL(src)</map>
+		<map name="TEX">src</map>
+		<map name="SAMP">src</map>
+		<map name="WRMASK">src->dsts[0]->wrmask</map>
+		<map name="BASE">src</map>
+		<map name="TYPE">src</map>
+		<map name="BASE_HI">src->cat5.tex_base >> 1</map>
+		<map name="3D">!!(src->flags &amp; IR3_INSTR_3D)</map>
+		<map name="A">!!(src->flags &amp; IR3_INSTR_A)</map>
+		<map name="S">!!(src->flags &amp; IR3_INSTR_S)</map>
+		<map name="S2EN_BINDLESS">!!(src->flags &amp; (IR3_INSTR_S2EN | IR3_INSTR_B))</map>
+		<map name="O">!!(src->flags &amp; IR3_INSTR_O)</map>
+		<map name="DESC_MODE">extract_cat5_DESC_MODE(src)</map>
+		<!--
+			TODO the src order is currently a bit messy due to ir3 using srcs[0]
+			for s2en src in the s2en case
+		 -->
+		<map name="SRC1">extract_cat5_SRC(src, 0)</map>
+		<map name="SRC2">extract_cat5_SRC(src, 1)</map>
+		<map name="SRC3">(src->srcs_count > 0) ? src->srcs[0] : NULL</map>
+	</encode>
+</bitset>
+
+<bitset name="#instruction-cat5-tex" extends="#instruction-cat5">
 	<override>
 		<expr>{S2EN_BINDLESS}</expr>
 		<doc>
@@ -79,82 +153,15 @@ SOFTWARE.
 		<derived name="A1" expr="#cat5-s2enb-uses_a1" type="bool" display=", a1.x"/>
 	</override>
 
-	<doc>
-		The "normal" case, ie. not s2en (indirect) and/or bindless
-	</doc>
-	<display>
-		{SY}{JP}{NAME}{3D}{A}{O}{P}{S} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SAMP}{TEX}
-	</display>
-	<derived name="DST_HALF" expr="#type-half" type="bool" display="h"/>
-	<field name="FULL" pos="0" type="bool"/>
-	<derived name="HALF" expr="#multisrc-half" type="bool" display="h"/>
-	<field name="SRC1" low="1" high="8" type="#cat5-src1">
-		<param name="NUM_SRC"/>
-		<param name="HALF"/>
-	</field>
-	<field name="SRC2" low="9" high="16" type="#cat5-src2">
-		<param name="NUM_SRC"/>
-		<param name="HALF"/>
-		<param name="O"/>
-	</field>
-	<!--
-		TODO remainder of first 32b differ depending on s2en/bindless..
-		possibly use overrides?  Need to sort-out how to display..
-
-		Note b17 seems to show up in some blob traces (samgpN), need
-		to figure out what this bit does
-	 -->
-	<pattern low="17" high="18">0x</pattern>
 	<assert low="19" high="20">00</assert>   <!-- BASE_HI -->
-	<field name="SAMP" low="21" high="24" type="#cat5-samp">
-		<param name="HAS_SAMP"/>
-	</field>
-	<field name="TEX" low="25" high="31" type="#cat5-tex">
-		<param name="HAS_TEX"/>
-	</field>
-
-	<field name="DST" low="32" high="39" type="#reg-gpr"/>
-	<field name="WRMASK" low="40" high="43" type="#wrmask"/>
-	<field name="TYPE" low="44" high="46" type="#cat5-type">
-		<param name="HAS_TYPE"/>
-	</field>
-	<assert pos="47">0</assert>    <!-- BASE_LO -->
-	<field name="3D" pos="48" type="bool" display=".3d"/>
-	<field name="A" pos="49" type="bool" display=".a"/>
-	<field name="S" pos="50" type="bool" display=".s"/>
-	<field name="S2EN_BINDLESS" pos="51" type="bool"/>
-	<field name="O" pos="52" type="bool" display=".o"/>
 	<field name="P" pos="53" type="bool" display=".p"/>
-	<!-- OPC -->
-	<field name="JP" pos="59" type="bool" display="(jp)"/>
-	<field name="SY" pos="60" type="bool" display="(sy)"/>
-	<pattern low="61" high="63">101</pattern>  <!-- cat5 -->
+
 	<encode>
-		<map name="FULL">extract_cat5_FULL(src)</map>
-		<map name="TEX">src</map>
-		<map name="SAMP">src</map>
-		<map name="WRMASK">src->dsts[0]->wrmask</map>
-		<map name="BASE">src</map>
-		<map name="TYPE">src</map>
-		<map name="BASE_HI">src->cat5.tex_base >> 1</map>
-		<map name="3D">!!(src->flags &amp; IR3_INSTR_3D)</map>
-		<map name="A">!!(src->flags &amp; IR3_INSTR_A)</map>
-		<map name="S">!!(src->flags &amp; IR3_INSTR_S)</map>
-		<map name="S2EN_BINDLESS">!!(src->flags &amp; (IR3_INSTR_S2EN | IR3_INSTR_B))</map>
-		<map name="O">!!(src->flags &amp; IR3_INSTR_O)</map>
 		<map name="P">!!(src->flags &amp; IR3_INSTR_P)</map>
-		<map name="DESC_MODE">extract_cat5_DESC_MODE(src)</map>
-		<!--
-			TODO the src order is currently a bit messy due to ir3 using srcs[0]
-			for s2en src in the s2en case
-		 -->
-		<map name="SRC1">extract_cat5_SRC(src, 0)</map>
-		<map name="SRC2">extract_cat5_SRC(src, 1)</map>
-		<map name="SRC3">(src->srcs_count > 0) ? src->srcs[0] : NULL</map>
 	</encode>
 </bitset>
 
-<bitset name="isam" extends="#instruction-cat5">
+<bitset name="isam" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00000</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -162,7 +169,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="isaml" extends="#instruction-cat5">
+<bitset name="isaml" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00001</pattern>
 	<derived name="NUM_SRC" expr="#two" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -170,7 +177,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="isamm" extends="#instruction-cat5">
+<bitset name="isamm" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00010</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -178,7 +185,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="sam" extends="#instruction-cat5">
+<bitset name="sam" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00011</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -186,7 +193,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="samb" extends="#instruction-cat5">
+<bitset name="samb" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00100</pattern>
 	<derived name="NUM_SRC" expr="#two" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -194,7 +201,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="saml" extends="#instruction-cat5">
+<bitset name="saml" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00101</pattern>
 	<derived name="NUM_SRC" expr="#two" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -202,7 +209,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="samgq" extends="#instruction-cat5">
+<bitset name="samgq" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00110</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -210,7 +217,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="getlod" extends="#instruction-cat5">
+<bitset name="getlod" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">00111</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -218,7 +225,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="conv" extends="#instruction-cat5">
+<bitset name="conv" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01000</pattern>
 	<derived name="NUM_SRC" expr="#two" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -226,7 +233,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="convm" extends="#instruction-cat5">
+<bitset name="convm" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01001</pattern>
 	<derived name="NUM_SRC" expr="#two" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -234,7 +241,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="getsize" extends="#instruction-cat5">
+<bitset name="getsize" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01010</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -242,7 +249,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="getbuf" extends="#instruction-cat5">
+<bitset name="getbuf" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01011</pattern>
 	<derived name="NUM_SRC" expr="#zero" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -250,7 +257,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="getpos" extends="#instruction-cat5">
+<bitset name="getpos" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01100</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -258,7 +265,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="getinfo" extends="#instruction-cat5">
+<bitset name="getinfo" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01101</pattern>
 	<derived name="NUM_SRC" expr="#zero" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -266,7 +273,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="dsx" extends="#instruction-cat5">
+<bitset name="dsx" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01110</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -274,7 +281,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="dsy" extends="#instruction-cat5">
+<bitset name="dsy" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">01111</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -282,7 +289,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="gather4r" extends="#instruction-cat5">
+<bitset name="gather4r" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10000</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -290,7 +297,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="gather4g" extends="#instruction-cat5">
+<bitset name="gather4g" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10001</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -298,7 +305,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="gather4b" extends="#instruction-cat5">
+<bitset name="gather4b" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10010</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -306,7 +313,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="gather4a" extends="#instruction-cat5">
+<bitset name="gather4a" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10011</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -314,7 +321,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="samgp0" extends="#instruction-cat5">
+<bitset name="samgp0" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10100</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -322,7 +329,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="samgp1" extends="#instruction-cat5">
+<bitset name="samgp1" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10101</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -330,7 +337,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="samgp2" extends="#instruction-cat5">
+<bitset name="samgp2" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10110</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -338,7 +345,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="samgp3" extends="#instruction-cat5">
+<bitset name="samgp3" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">10111</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
@@ -346,7 +353,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="dsxpp.1" extends="#instruction-cat5">
+<bitset name="dsxpp.1" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">11000</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -354,7 +361,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#false" type="bool"/>
 </bitset>
 
-<bitset name="dsypp.1" extends="#instruction-cat5">
+<bitset name="dsypp.1" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">11001</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -362,7 +369,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#false" type="bool"/>
 </bitset>
 
-<bitset name="rgetpos" extends="#instruction-cat5">
+<bitset name="rgetpos" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">11010</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -370,7 +377,7 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
-<bitset name="rgetinfo" extends="#instruction-cat5">
+<bitset name="rgetinfo" extends="#instruction-cat5-tex">
 	<pattern low="54" high="58">11011</pattern>
 	<derived name="NUM_SRC" expr="#zero" type="uint"/>
 	<derived name="HAS_SAMP" expr="#false" type="bool"/>
@@ -378,6 +385,105 @@ SOFTWARE.
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
 </bitset>
 
+<bitset name="brcst.active" extends="#instruction-cat5">
+	<doc>
+		The subgroup is divided into (subgroup_size / CLUSTER_SIZE)
+		clusters. For each cluster brcst.active.w does:
+
+		Given a cluster of fibers f_0, f_1, ..., f_{CLUSTER_SIZE-1} brcst
+		broadcasts the SRC value from the fiber f_{CLUSTER_SIZE/2-1}
+		to fibers f_{CLUSTER_SIZE/2}, ..., f_{CLUSTER_SIZE-1}. The DST reg
+		in other fibers is unaffected. If fiber f_{CLUSTER_SIZE/2-1} is
+		inactive the value to broadcast is taken from lower fibers
+		f_{CLUSTER_SIZE/2-2}, f_{CLUSTER_SIZE/2-3}, ...
+		If all fibers f_0, f_1, ..., f_{CLUSTER_SIZE/2-1} are inactive
+		the DST reg remains unchanged for all fibers.
+
+		It is necessary in order to implement arithmetic subgroup
+		operations with prefix sum (https://en.wikipedia.org/wiki/Prefix_sum).
+
+		For brcst.active.w8 without inactive fibers:
+			Fiber      | 0  1  2  3  4  5  6  7  | 8  9  10  11  12  13  14  15
+			SRC        | s0 s1 s2 s3 ...      s7 | s8  ...   s11 ...         s15
+			DST_before | d0 d1       ...      d7 | d8  ...                   d15
+			DST_after  | d0 d1 d2 d3 s3 s3 s3 s3 | d8  ...   d11 s11 s11 s11 s11
+
+		If fibers 2 and 3 are inactive:
+			Fiber      | 0  1  X  X  4  5  6  7  | ...
+			SRC        | s0 s1 X  X  ...      s7 | ...
+			DST_before | d0 d1       ...      d7 | ...
+			DST_after  | d0 d1 X  X  s1 s1 s1 s1 | ...
+	</doc>
+
+	<gen min="600"/>
+
+	<display>
+		{SY}{JP}{NAME}.w{CLUSTER_SIZE} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}
+	</display>
+
+	<field name="W" low="19" high="20" type="uint"/>
+	<pattern low="53" high="58">111110</pattern> <!-- OPC -->
+
+	<derived name="CLUSTER_SIZE" type="uint">
+		<expr>
+			2 &lt;&lt; {W}
+		</expr>
+	</derived>
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+
+	<encode>
+		<map name="W">util_logbase2(src->cat5.cluster_size) - 1</map>
+	</encode>
+</bitset>
+
+<bitset name="#instruction-cat5-quad-shuffle" extends="#instruction-cat5">
+	<gen min="600"/>
+
+	<display>
+		{SY}{JP}{NAME} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}
+	</display>
+
+	<pattern low="53" high="58">111111</pattern> <!-- OPC -->
+
+	<derived name="HAS_SAMP" expr="#false" type="bool"/>
+	<derived name="HAS_TEX" expr="#false" type="bool"/>
+	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+</bitset>
+
+<bitset name="quad_shuffle.brcst" extends="#instruction-cat5-quad-shuffle">
+	<doc>subgroupQuadBroadcast</doc>
+
+	<pattern low="19" high="20">00</pattern>   <!-- Quad-shuffle variant -->
+
+	<derived name="NUM_SRC" expr="#two" type="uint"/>
+</bitset>
+
+<bitset name="quad_shuffle.horiz" extends="#instruction-cat5-quad-shuffle">
+	<doc>subgroupQuadSwapHorizontal</doc>
+
+	<pattern low="19" high="20">01</pattern>   <!-- Quad-shuffle variant -->
+
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+</bitset>
+
+<bitset name="quad_shuffle.vert" extends="#instruction-cat5-quad-shuffle">
+	<doc>subgroupQuadSwapVertical</doc>
+
+	<pattern low="19" high="20">10</pattern>   <!-- Quad-shuffle variant -->
+
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+</bitset>
+
+<bitset name="quad_shuffle.diag" extends="#instruction-cat5-quad-shuffle">
+	<doc>subgroupQuadSwapDiagonal</doc>
+
+	<pattern low="19" high="20">11</pattern>   <!-- Quad-shuffle variant -->
+
+	<derived name="NUM_SRC" expr="#one" type="uint"/>
+</bitset>
 
 <!--
 	All the magic for conditionally displaying various srcs, etc
@@ -509,12 +615,11 @@ SOFTWARE.
 		display strings, but which have 'C' names that can be used
 		to generate header that the compiler can use
 	</doc>
-	<value val="0" display="CAT5_NONUNIFORM">
+	<value val="0" display="CAT5_UNIFORM">
 		<doc>
 			Use traditional GL binding model, get texture and sampler index
-			from src3 which is not presumed to be uniform. This is
-			backwards-compatible with earlier generations, where this field was
-			always 0 and nonuniform-indexed sampling always worked.
+			from src3 which is presumed to be uniform on a4xx+ (a3xx doesn't
+			have the other modes, but does handle non-uniform indexing).
 		</doc>
 	</value>
 	<value val="1" display="CAT5_BINDLESS_A1_UNIFORM">
@@ -536,10 +641,10 @@ SOFTWARE.
 			uniform.
 		</doc>
 	</value>
-	<value val="4" display="CAT5_UNIFORM">
+	<value val="4" display="CAT5_NONUNIFORM">
 		<doc>
 			Use traditional GL binding model, get texture and sampler index
-			from src3 which is presumed to be uniform.
+			from src3 which is *not* presumed to be uniform.
 		</doc>
 	</value>
 	<value val="5" display="CAT5_BINDLESS_UNIFORM">
@@ -587,17 +692,16 @@ SOFTWARE.
 
 <!-- Helper to map s2en/bindless DESC_MODE to whether it is uniform (flow control) mode -->
 <expr name="#cat5-s2enb-is-uniform">
+	({DESC_MODE} == 0) /* CAT5_UNIFORM */ ||
 	({DESC_MODE} == 1) /* CAT5_BINDLESS_A1_UNIFORM */ ||
-	({DESC_MODE} == 4) /* CAT5_UNIFORM */ ||
 	({DESC_MODE} == 5) /* CAT5_BINDLESS_UNIFORM */
 </expr>
 
-<!-- Helper to map s2en/bindless DESC_MODE to whether it is non-uniform mode
-	 Note that it returns only for bindless for now, since we need to figure out bindful
-	 uniform/nonuniform mode correctly. See TODO in extract_cat5_DESC_MODE in encode.c -->
+<!-- Helper to map s2en/bindless DESC_MODE to whether it is non-uniform mode. -->
 <expr name="#cat5-s2enb-is-nonuniform">
 	({DESC_MODE} == 2) /* CAT5_BINDLESS_NONUNIFORM */ ||
-	({DESC_MODE} == 3) /* CAT5_BINDLESS_A1_NONUNIFORM */
+	({DESC_MODE} == 3) /* CAT5_BINDLESS_A1_NONUNIFORM */ ||
+	({DESC_MODE} == 4) /* CAT5_NONUNIFORM */
 </expr>
 
 <bitset name="#cat5-src3" size="8">

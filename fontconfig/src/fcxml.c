@@ -22,8 +22,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <string.h>
 #include "fcint.h"
+#include <string.h>
 #include <fcntl.h>
 #include <stdarg.h>
 

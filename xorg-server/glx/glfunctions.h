@@ -1690,5 +1690,7 @@
 #define glVertexAttribs2hvNV(a1, a2, a3) CALL_VertexAttribs2hvNV(GET_DISPATCH(), (a1, a2, a3))
 #define glVertexAttribs3hvNV(a1, a2, a3) CALL_VertexAttribs3hvNV(GET_DISPATCH(), (a1, a2, a3))
 #define glVertexAttribs4hvNV(a1, a2, a3) CALL_VertexAttribs4hvNV(GET_DISPATCH(), (a1, a2, a3))
+#define glTexPageCommitmentARB(a1, a2, a3, a4, a5, a6, a7, a8, a9) CALL_TexPageCommitmentARB(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9))
+#define glTexturePageCommitmentEXT(a1, a2, a3, a4, a5, a6, a7, a8, a9) CALL_TexturePageCommitmentEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

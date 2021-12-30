@@ -34,6 +34,7 @@
 #include "util/u_string.h"
 
 #include "nir/tgsi_to_nir.h"
+#include "nir_serialize.h"
 
 #include "freedreno_context.h"
 #include "freedreno_util.h"
@@ -288,6 +289,16 @@ ir3_shader_compute_state_create(struct pipe_context *pctx,
    if (cso->ir_type == PIPE_SHADER_IR_NIR) {
       /* we take ownership of the reference: */
       nir = (nir_shader *)cso->prog;
+   } else if (cso->ir_type == PIPE_SHADER_IR_NIR_SERIALIZED) {
+      const nir_shader_compiler_options *options =
+            ir3_get_compiler_options(compiler);
+      const struct pipe_binary_program_header *hdr = cso->prog;
+      struct blob_reader reader;
+
+      blob_reader_init(&reader, hdr->blob, hdr->num_bytes);
+      nir = nir_deserialize(NULL, options, &reader);
+
+      ir3_finalize_nir(compiler, nir);
    } else {
       debug_assert(cso->ir_type == PIPE_SHADER_IR_TGSI);
       if (ir3_shader_debug & IR3_DBG_DISASM) {
@@ -562,9 +573,9 @@ ir3_update_max_tf_vtx(struct fd_context *ctx,
    uint32_t maxvtxcnt = 0x7fffffff;
 
    if (v->shader->stream_output.num_outputs == 0)
-      ctx->streamout.max_tf_vtx = 0;
+      maxvtxcnt = 0;
    if (so->num_targets == 0)
-      ctx->streamout.max_tf_vtx = 0;
+      maxvtxcnt = 0;
 
    /* offset to write to is:
     *

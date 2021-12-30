@@ -32,6 +32,9 @@
 
 #include "compiler/glsl_types.h"
 
+#define VERSION_IS_1_0(version) \
+   (VK_API_VERSION_MAJOR(version) == 1 && VK_API_VERSION_MINOR(version) == 0)
+
 VkResult
 vk_instance_init(struct vk_instance *instance,
                  const struct vk_instance_extension_table *supported_extensions,
@@ -75,6 +78,10 @@ vk_instance_init(struct vk_instance *instance,
       }
    }
 
+   uint32_t instance_version = VK_API_VERSION_1_0;
+   if (dispatch_table->EnumerateInstanceVersion)
+      dispatch_table->EnumerateInstanceVersion(&instance_version);
+
    instance->app_info = (struct vk_app_info) { .api_version = 0 };
    if (pCreateInfo->pApplicationInfo) {
       const VkApplicationInfo *app = pCreateInfo->pApplicationInfo;
@@ -92,8 +99,36 @@ vk_instance_init(struct vk_instance *instance,
       instance->app_info.api_version = app->apiVersion;
    }
 
+   /* From the Vulkan 1.2.199 spec:
+    *
+    *    "Note:
+    *
+    *    Providing a NULL VkInstanceCreateInfo::pApplicationInfo or providing
+    *    an apiVersion of 0 is equivalent to providing an apiVersion of
+    *    VK_MAKE_API_VERSION(0,1,0,0)."
+    */
    if (instance->app_info.api_version == 0)
       instance->app_info.api_version = VK_API_VERSION_1_0;
+
+   /* From the Vulkan 1.2.199 spec:
+    *
+    *    VUID-VkApplicationInfo-apiVersion-04010
+    *
+    *    "If apiVersion is not 0, then it must be greater than or equal to
+    *    VK_API_VERSION_1_0"
+    */
+   assert(instance->app_info.api_version >= VK_API_VERSION_1_0);
+
+   /* From the Vulkan 1.2.199 spec:
+    *
+    *    "Vulkan 1.0 implementations were required to return
+    *    VK_ERROR_INCOMPATIBLE_DRIVER if apiVersion was larger than 1.0.
+    *    Implementations that support Vulkan 1.1 or later must not return
+    *    VK_ERROR_INCOMPATIBLE_DRIVER for any value of apiVersion."
+    */
+   if (VERSION_IS_1_0(instance_version) &&
+       !VERSION_IS_1_0(instance->app_info.api_version))
+      return VK_ERROR_INCOMPATIBLE_DRIVER;
 
    for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
       int idx;

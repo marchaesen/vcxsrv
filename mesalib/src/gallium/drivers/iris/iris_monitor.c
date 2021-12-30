@@ -157,7 +157,7 @@ iris_init_monitor_ctx(struct iris_context *ice)
                          ice,
                          screen->bufmgr,
                          &screen->devinfo,
-                         ice->batches[IRIS_BATCH_RENDER].hw_ctx_id,
+                         ice->batches[IRIS_BATCH_RENDER].ctx_id,
                          screen->fd);
 }
 

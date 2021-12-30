@@ -36,9 +36,9 @@
 #include "bufferobj.h"
 #include "fbobject.h"
 #include "mtypes.h"
-#include "objectpurge.h"
 #include "texobj.h"
 #include "teximage.h"
+#include "api_exec_decl.h"
 
 
 static GLenum
@@ -63,8 +63,6 @@ buffer_object_purgeable(struct gl_context *ctx, GLuint name, GLenum option)
    bufObj->Purgeable = GL_TRUE;
 
    retval = GL_VOLATILE_APPLE;
-   if (ctx->Driver.BufferObjectPurgeable)
-      retval = ctx->Driver.BufferObjectPurgeable(ctx, bufObj, option);
 
    return retval;
 }
@@ -92,8 +90,6 @@ renderbuffer_purgeable(struct gl_context *ctx, GLuint name, GLenum option)
    bufObj->Purgeable = GL_TRUE;
 
    retval = GL_VOLATILE_APPLE;
-   if (ctx->Driver.RenderObjectPurgeable)
-      retval = ctx->Driver.RenderObjectPurgeable(ctx, bufObj, option);
 
    return retval;
 }
@@ -121,8 +117,6 @@ texture_object_purgeable(struct gl_context *ctx, GLuint name, GLenum option)
    bufObj->Purgeable = GL_TRUE;
 
    retval = GL_VOLATILE_APPLE;
-   if (ctx->Driver.TextureObjectPurgeable)
-      retval = ctx->Driver.TextureObjectPurgeable(ctx, bufObj, option);
 
    return retval;
 }
@@ -203,8 +197,6 @@ buffer_object_unpurgeable(struct gl_context *ctx, GLuint name, GLenum option)
    bufObj->Purgeable = GL_FALSE;
 
    retval = option;
-   if (ctx->Driver.BufferObjectUnpurgeable)
-      retval = ctx->Driver.BufferObjectUnpurgeable(ctx, bufObj, option);
 
    return retval;
 }
@@ -233,8 +225,6 @@ renderbuffer_unpurgeable(struct gl_context *ctx, GLuint name, GLenum option)
    bufObj->Purgeable = GL_FALSE;
 
    retval = option;
-   if (ctx->Driver.RenderObjectUnpurgeable)
-      retval = ctx->Driver.RenderObjectUnpurgeable(ctx, bufObj, option);
 
    return retval;
 }
@@ -263,8 +253,6 @@ texture_object_unpurgeable(struct gl_context *ctx, GLuint name, GLenum option)
    bufObj->Purgeable = GL_FALSE;
 
    retval = option;
-   if (ctx->Driver.TextureObjectUnpurgeable)
-      retval = ctx->Driver.TextureObjectUnpurgeable(ctx, bufObj, option);
 
    return retval;
 }

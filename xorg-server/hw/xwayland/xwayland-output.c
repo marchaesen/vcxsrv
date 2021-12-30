@@ -35,13 +35,6 @@
 
 #include "xdg-output-unstable-v1-client-protocol.h"
 
-#define ALL_ROTATIONS (RR_Rotate_0   | \
-                       RR_Rotate_90  | \
-                       RR_Rotate_180 | \
-                       RR_Rotate_270 | \
-                       RR_Reflect_X  | \
-                       RR_Reflect_Y)
-
 static void xwl_output_get_xdg_output(struct xwl_output *xwl_output);
 
 static Rotation
@@ -731,7 +724,6 @@ struct xwl_output *
 xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
 {
     struct xwl_output *xwl_output;
-    static int serial;
     char name[256];
 
     xwl_output = calloc(1, sizeof *xwl_output);
@@ -750,7 +742,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
     xwl_output->server_output_id = id;
     wl_output_add_listener(xwl_output->output, &output_listener, xwl_output);
 
-    snprintf(name, sizeof name, "XWAYLAND%d", serial++);
+    snprintf(name, sizeof name, "XWAYLAND%d", xwl_get_next_output_serial());
 
     xwl_output->xwl_screen = xwl_screen;
     xwl_output->randr_crtc = RRCrtcCreate(xwl_screen->screen, xwl_output);
@@ -795,9 +787,12 @@ err:
 void
 xwl_output_destroy(struct xwl_output *xwl_output)
 {
+    if (xwl_output->lease_connector)
+        wp_drm_lease_connector_v1_destroy(xwl_output->lease_connector);
     if (xwl_output->xdg_output)
         zxdg_output_v1_destroy(xwl_output->xdg_output);
-    wl_output_destroy(xwl_output->output);
+    if (xwl_output->output)
+        wl_output_destroy(xwl_output->output);
     free(xwl_output);
 }
 
@@ -946,6 +941,10 @@ xwl_screen_init_output(struct xwl_screen *xwl_screen)
     rp->rrModeDestroy = xwl_randr_mode_destroy;
 #endif
 
+    rp->rrRequestLease = xwl_randr_request_lease;
+    rp->rrGetLease = xwl_randr_get_lease;
+    rp->rrTerminateLease = xwl_randr_terminate_lease;
+
     return TRUE;
 }
 
@@ -953,6 +952,12 @@ static void
 xwl_output_get_xdg_output(struct xwl_output *xwl_output)
 {
     struct xwl_screen *xwl_screen = xwl_output->xwl_screen;
+
+    if (!xwl_output->output) {
+        /* This can happen when an output is created from a leasable DRM
+         * connector */
+        return;
+    }
 
     xwl_output->xdg_output =
         zxdg_output_manager_v1_get_xdg_output (xwl_screen->xdg_output_manager,
@@ -972,4 +977,11 @@ xwl_screen_init_xdg_output(struct xwl_screen *xwl_screen)
 
     xorg_list_for_each_entry(it, &xwl_screen->output_list, link)
         xwl_output_get_xdg_output(it);
+}
+
+int
+xwl_get_next_output_serial(void)
+{
+    static int output_name_serial = 0;
+    return output_name_serial++;
 }

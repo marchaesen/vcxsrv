@@ -28,7 +28,6 @@
 #include "util/u_inlines.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
-#include "util/u_pstipple.h"
 #include "pipe/p_shader_tokens.h"
 #include "draw/draw_context.h"
 #include "draw/draw_vertex.h"
@@ -338,9 +337,6 @@ update_fragment_shader(struct softpipe_context *softpipe, unsigned prim)
 
    memset(&key, 0, sizeof(key));
 
-   if (prim == PIPE_PRIM_TRIANGLES)
-      key.polygon_stipple = softpipe->rasterizer->poly_stipple_enable;
-
    if (softpipe->fs) {
       softpipe->fs_variant = softpipe_find_fs_variant(softpipe,
                                                       softpipe->fs, &key);
@@ -377,56 +373,6 @@ update_fragment_shader(struct softpipe_context *softpipe, unsigned prim)
 }
 
 
-/**
- * This should be called when the polygon stipple pattern changes.
- * We create a new texture from the stipple pattern and create a new
- * sampler view.
- */
-static void
-update_polygon_stipple_pattern(struct softpipe_context *softpipe)
-{
-   struct pipe_resource *tex;
-   struct pipe_sampler_view *view;
-
-   tex = util_pstipple_create_stipple_texture(&softpipe->pipe,
-                                              softpipe->poly_stipple.stipple);
-   pipe_resource_reference(&softpipe->pstipple.texture, tex);
-   pipe_resource_reference(&tex, NULL);
-
-   view = util_pstipple_create_sampler_view(&softpipe->pipe,
-                                            softpipe->pstipple.texture);
-   pipe_sampler_view_reference(&softpipe->pstipple.sampler_view, view);
-   pipe_sampler_view_reference(&view, NULL);
-}
-
-
-/**
- * Should be called when polygon stipple is enabled/disabled or when
- * the fragment shader changes.
- * We add/update the fragment sampler and sampler views to sample from
- * the polygon stipple texture.  The texture unit that we use depends on
- * the fragment shader (we need to use a unit not otherwise used by the
- * shader).
- */
-static void
-update_polygon_stipple_enable(struct softpipe_context *softpipe, unsigned prim)
-{
-   if (prim == PIPE_PRIM_TRIANGLES &&
-       softpipe->fs_variant->key.polygon_stipple) {
-      const unsigned unit = softpipe->fs_variant->stipple_sampler_unit;
-
-      /* sampler state */
-      softpipe->samplers[PIPE_SHADER_FRAGMENT][unit] = softpipe->pstipple.sampler;
-
-      /* sampler view state */
-      softpipe_set_sampler_views(&softpipe->pipe, PIPE_SHADER_FRAGMENT,
-                                 unit, 1, 0, false, &softpipe->pstipple.sampler_view);
-
-      softpipe->dirty |= SP_NEW_SAMPLER;
-   }
-}
-
-
 /* Hopefully this will remain quite simple, otherwise need to pull in
  * something like the gallium frontend mechanism.
  */
@@ -442,22 +388,9 @@ softpipe_update_derived(struct softpipe_context *softpipe, unsigned prim)
       softpipe->dirty |= SP_NEW_TEXTURE;
    }
 
-#if DO_PSTIPPLE_IN_HELPER_MODULE
-   if (softpipe->dirty & SP_NEW_STIPPLE)
-      /* before updating samplers! */
-      update_polygon_stipple_pattern(softpipe);
-#endif
-
    if (softpipe->dirty & (SP_NEW_RASTERIZER |
                           SP_NEW_FS))
       update_fragment_shader(softpipe, prim);
-
-#if DO_PSTIPPLE_IN_HELPER_MODULE
-   if (softpipe->dirty & (SP_NEW_RASTERIZER |
-                          SP_NEW_STIPPLE |
-                          SP_NEW_FS))
-      update_polygon_stipple_enable(softpipe, prim);
-#endif
 
    /* TODO: this looks suboptimal */
    if (softpipe->dirty & (SP_NEW_SAMPLER |
@@ -479,7 +412,6 @@ softpipe_update_derived(struct softpipe_context *softpipe, unsigned prim)
    if (softpipe->dirty & (SP_NEW_BLEND |
                           SP_NEW_DEPTH_STENCIL_ALPHA |
                           SP_NEW_FRAMEBUFFER |
-                          SP_NEW_STIPPLE |
                           SP_NEW_FS))
       sp_build_quad_pipeline(softpipe);
 

@@ -121,7 +121,7 @@ ppir_liveness_instr_srcs(ppir_compiler *comp, ppir_instr *instr)
 /* Update the liveness information of the instruction by removing its
  * dests from the live_in set. */
 static void
-ppir_liveness_instr_dest(ppir_compiler *comp, ppir_instr *instr)
+ppir_liveness_instr_dest(ppir_compiler *comp, ppir_instr *instr, ppir_instr *last)
 {
    for (int i = PPIR_INSTR_SLOT_NUM-1; i >= 0; i--) {
       ppir_node *node = instr->slots[i];
@@ -146,9 +146,18 @@ ppir_liveness_instr_dest(ppir_compiler *comp, ppir_instr *instr)
       unsigned int index = reg->regalloc_index;
       bool live = BITSET_TEST(instr->live_set, index);
 
+      /* If it's an out reg, it's alive till the end of the block, so add it
+       * to live_set of the last instruction */
+      if (!live && reg->out_reg && (instr != last)) {
+         BITSET_SET(last->live_set, index);
+         BITSET_CLEAR(instr->live_set, index);
+         continue;
+      }
+
       /* If a register is written but wasn't read in a later instruction, it is
-       * either dead code or a bug. For now, assign an interference to it to
-       * ensure it doesn't get assigned a live register and overwrites it. */
+       * either an output register in last instruction, dead code or a bug.
+       * For now, assign an interference to it to ensure it doesn't get assigned
+       * a live register and overwrites it. */
       if (!live) {
          BITSET_SET(instr->live_internal, index);
          continue;
@@ -230,7 +239,7 @@ ppir_liveness_compute_live_sets(ppir_compiler *comp)
                                     instr->live_mask, next_instr->live_mask);
          }
 
-         ppir_liveness_instr_dest(comp, instr);
+         ppir_liveness_instr_dest(comp, instr, last);
          ppir_liveness_instr_srcs(comp, instr);
 
          cont |= !ppir_liveness_set_equal(comp,

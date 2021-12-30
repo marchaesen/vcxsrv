@@ -41,14 +41,9 @@ ir3_ibo_mapping_init(struct ir3_ibo_mapping *mapping, unsigned num_textures)
 struct ir3_instruction *
 ir3_ssbo_to_ibo(struct ir3_context *ctx, nir_src src)
 {
-   if (ir3_bindless_resource(src)) {
+   if (ir3_bindless_resource(src))
       ctx->so->bindless_ibo = true;
-      return ir3_get_src(ctx, &src)[0];
-   } else {
-      /* can this be non-const buffer_index?  how do we handle that? */
-      int ssbo_idx = nir_src_as_uint(src);
-      return create_immed(ctx->block, ssbo_idx);
-   }
+   return ir3_get_src(ctx, &src)[0];
 }
 
 unsigned
@@ -68,10 +63,20 @@ ir3_image_to_ibo(struct ir3_context *ctx, nir_src src)
    if (ir3_bindless_resource(src)) {
       ctx->so->bindless_ibo = true;
       return ir3_get_src(ctx, &src)[0];
-   } else {
-      /* can this be non-const buffer_index?  how do we handle that? */
+   }
+
+   if (nir_src_is_const(src)) {
       int image_idx = nir_src_as_uint(src);
       return create_immed(ctx->block, ctx->s->info.num_ssbos + image_idx);
+   } else {
+      struct ir3_instruction *image_idx = ir3_get_src(ctx, &src)[0];
+      if (ctx->s->info.num_ssbos) {
+         return ir3_ADD_U(ctx->block,
+            image_idx, 0,
+            create_immed(ctx->block, ctx->s->info.num_ssbos), 0);
+      } else {
+         return image_idx;
+      }
    }
 }
 
@@ -92,14 +97,14 @@ ir3_image_to_tex(struct ir3_ibo_mapping *mapping, unsigned image)
 unsigned
 ir3_get_image_coords(const nir_intrinsic_instr *instr, unsigned *flagsp)
 {
+   enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
    unsigned coords = nir_image_intrinsic_coord_components(instr);
    unsigned flags = 0;
 
-   if (coords == 3)
-      flags |= IR3_INSTR_3D;
-
-   if (nir_intrinsic_image_array(instr))
+   if (dim == GLSL_SAMPLER_DIM_CUBE || nir_intrinsic_image_array(instr))
       flags |= IR3_INSTR_A;
+   else if (dim == GLSL_SAMPLER_DIM_3D)
+      flags |= IR3_INSTR_3D;
 
    if (flagsp)
       *flagsp = flags;

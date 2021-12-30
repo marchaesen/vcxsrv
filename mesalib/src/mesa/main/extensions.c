@@ -113,82 +113,6 @@ _mesa_override_extensions(struct gl_context *ctx)
    }
 }
 
-
-/**
- * Enable all extensions suitable for a software-only renderer.
- * This is a convenience function used by the mesa/swrast drivers.
- */
-void
-_mesa_enable_sw_extensions(struct gl_context *ctx)
-{
-   ctx->Extensions.ARB_depth_clamp = GL_TRUE;
-   ctx->Extensions.ARB_depth_texture = GL_TRUE;
-   ctx->Extensions.ARB_draw_elements_base_vertex = GL_TRUE;
-   ctx->Extensions.ARB_draw_instanced = GL_TRUE;
-   ctx->Extensions.ARB_explicit_attrib_location = GL_TRUE;
-   ctx->Extensions.ARB_fragment_coord_conventions = GL_TRUE;
-   ctx->Extensions.ARB_fragment_program = GL_TRUE;
-   ctx->Extensions.ARB_fragment_program_shadow = GL_TRUE;
-   ctx->Extensions.ARB_fragment_shader = GL_TRUE;
-   ctx->Extensions.ARB_framebuffer_object = GL_TRUE;
-   ctx->Extensions.ARB_half_float_vertex = GL_TRUE;
-   ctx->Extensions.ARB_map_buffer_range = GL_TRUE;
-   ctx->Extensions.ARB_occlusion_query = GL_TRUE;
-   ctx->Extensions.ARB_occlusion_query2 = GL_TRUE;
-   ctx->Extensions.ARB_point_sprite = GL_TRUE;
-   ctx->Extensions.ARB_shadow = GL_TRUE;
-   ctx->Extensions.ARB_texture_border_clamp = GL_TRUE;
-   ctx->Extensions.ARB_texture_compression_bptc = GL_TRUE;
-   ctx->Extensions.ARB_texture_cube_map = GL_TRUE;
-   ctx->Extensions.ARB_texture_env_combine = GL_TRUE;
-   ctx->Extensions.ARB_texture_env_crossbar = GL_TRUE;
-   ctx->Extensions.ARB_texture_env_dot3 = GL_TRUE;
-   ctx->Extensions.ARB_texture_filter_anisotropic = GL_TRUE;
-   ctx->Extensions.ARB_texture_float = GL_TRUE;
-   ctx->Extensions.ARB_texture_mirror_clamp_to_edge = GL_TRUE;
-   ctx->Extensions.ARB_texture_non_power_of_two = GL_TRUE;
-   ctx->Extensions.ARB_texture_rg = GL_TRUE;
-   ctx->Extensions.ARB_texture_compression_rgtc = GL_TRUE;
-   ctx->Extensions.ARB_vertex_program = GL_TRUE;
-   ctx->Extensions.ARB_vertex_shader = GL_TRUE;
-   ctx->Extensions.ARB_sync = GL_TRUE;
-   ctx->Extensions.APPLE_object_purgeable = GL_TRUE;
-   ctx->Extensions.ATI_fragment_shader = GL_TRUE;
-   ctx->Extensions.ATI_texture_compression_3dc = GL_TRUE;
-   ctx->Extensions.ATI_texture_env_combine3 = GL_TRUE;
-   ctx->Extensions.ATI_texture_mirror_once = GL_TRUE;
-   ctx->Extensions.EXT_blend_color = GL_TRUE;
-   ctx->Extensions.EXT_blend_equation_separate = GL_TRUE;
-   ctx->Extensions.EXT_blend_func_separate = GL_TRUE;
-   ctx->Extensions.EXT_blend_minmax = GL_TRUE;
-   ctx->Extensions.EXT_depth_bounds_test = GL_TRUE;
-   ctx->Extensions.EXT_draw_buffers2 = GL_TRUE;
-   ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
-   ctx->Extensions.EXT_point_parameters = GL_TRUE;
-   ctx->Extensions.EXT_provoking_vertex = GL_TRUE;
-   ctx->Extensions.EXT_stencil_two_side = GL_TRUE;
-   ctx->Extensions.EXT_texture_array = GL_TRUE;
-   ctx->Extensions.EXT_texture_compression_latc = GL_TRUE;
-   ctx->Extensions.EXT_texture_env_dot3 = GL_TRUE;
-   ctx->Extensions.EXT_texture_filter_anisotropic = GL_TRUE;
-   ctx->Extensions.EXT_texture_mirror_clamp = GL_TRUE;
-   ctx->Extensions.EXT_texture_shared_exponent = GL_TRUE;
-   ctx->Extensions.EXT_texture_sRGB = GL_TRUE;
-   ctx->Extensions.EXT_texture_sRGB_decode = GL_TRUE;
-   ctx->Extensions.EXT_texture_swizzle = GL_TRUE;
-   /*ctx->Extensions.EXT_transform_feedback = GL_TRUE;*/
-   ctx->Extensions.EXT_vertex_array_bgra = GL_TRUE;
-   ctx->Extensions.MESA_ycbcr_texture = GL_TRUE;
-   ctx->Extensions.NV_conditional_render = GL_TRUE;
-   ctx->Extensions.NV_texture_env_combine4 = GL_TRUE;
-   ctx->Extensions.NV_texture_rectangle = GL_TRUE;
-   ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
-   ctx->Extensions.OES_standard_derivatives = GL_TRUE;
-   ctx->Extensions.TDFX_texture_compression_FXT1 = GL_TRUE;
-   ctx->Extensions.ANGLE_texture_compression_dxt = GL_TRUE;
-   ctx->Extensions.EXT_texture_compression_s3tc = GL_TRUE;
-}
-
 /**
  * Either enable or disable the named extension.
  * \return offset of extensions withint `ext' or 0 if extension is not known
@@ -223,11 +147,11 @@ free_unknown_extensions_strings(void)
 
 
 /**
- * \brief Initialize extension override tables based on \c MESA_EXTENSION_OVERRIDE
+ * \brief Initialize extension override tables based on \c override
  *
  * This should be called one time early during first context initialization.
 
- * \c MESA_EXTENSION_OVERRIDE is a space-separated list of extensions to
+ * \c override is a space-separated list of extensions to
  * enable or disable. The list is processed thus:
  *    - Enable recognized extension names that are prefixed with '+'.
  *    - Disable recognized extension names that are prefixed with '-'.
@@ -235,9 +159,8 @@ free_unknown_extensions_strings(void)
  *    - Collect unrecognized extension names in a new string.
  */
 void
-_mesa_one_time_init_extension_overrides(void)
+_mesa_one_time_init_extension_overrides(const char *override)
 {
-   const char *env_const = os_get_option("MESA_EXTENSION_OVERRIDE");
    char *env;
    char *ext;
    size_t offset;
@@ -246,12 +169,12 @@ _mesa_one_time_init_extension_overrides(void)
    memset(&_mesa_extension_override_enables, 0, sizeof(struct gl_extensions));
    memset(&_mesa_extension_override_disables, 0, sizeof(struct gl_extensions));
 
-   if (env_const == NULL) {
+   if (override == NULL || override[0] == '\0') {
       return;
    }
 
-   /* Copy env_const because strtok() is destructive. */
-   env = strdup(env_const);
+   /* Copy 'override' because strtok() is destructive. */
+   env = strdup(override);
 
    if (env == NULL)
       return;
@@ -281,6 +204,11 @@ _mesa_one_time_init_extension_overrides(void)
          recognized = true;
       else
          recognized = false;
+
+      if (!enable && recognized && offset <= 1) {
+         printf("Warning: extension '%s' cannot be disabled\n", ext);
+         offset = set_extension(&_mesa_extension_override_disables, i, 0);
+      }
 
       if (!recognized && enable) {
          if (unknown_ext >= MAX_UNRECOGNIZED_EXTENSIONS) {
@@ -328,6 +256,56 @@ _mesa_init_extensions(struct gl_extensions *extensions)
 
    /* Then, selectively turn default extensions on. */
    extensions->dummy_true = GL_TRUE;
+
+   /* Always enable these extensions for all drivers.
+    * We can't use dummy_true in extensions_table.h for these
+    * because this would make them non-disablable using
+    * _mesa_override_extensions.
+    */
+   extensions->MESA_pack_invert = GL_TRUE;
+   extensions->MESA_window_pos = GL_TRUE;
+
+   extensions->ARB_ES2_compatibility = GL_TRUE;
+   extensions->ARB_depth_texture = GL_TRUE;
+   extensions->ARB_draw_elements_base_vertex = GL_TRUE;
+   extensions->ARB_explicit_attrib_location = GL_TRUE;
+   extensions->ARB_explicit_uniform_location = GL_TRUE;
+   extensions->ARB_fragment_coord_conventions = GL_TRUE;
+   extensions->ARB_fragment_program = GL_TRUE;
+   extensions->ARB_fragment_shader = GL_TRUE;
+   extensions->ARB_half_float_vertex = GL_TRUE;
+   extensions->ARB_internalformat_query = GL_TRUE;
+   extensions->ARB_internalformat_query2 = GL_TRUE;
+   extensions->ARB_map_buffer_range = GL_TRUE;
+   extensions->ARB_sync = GL_TRUE;
+   extensions->ARB_texture_env_crossbar = GL_TRUE;
+   extensions->ARB_vertex_program = GL_TRUE;
+   extensions->ARB_vertex_shader = GL_TRUE;
+
+   extensions->EXT_blend_color = GL_TRUE;
+   extensions->EXT_blend_func_separate = GL_TRUE;
+   extensions->EXT_blend_minmax = GL_TRUE;
+   extensions->EXT_EGL_image_storage = GL_TRUE;
+   extensions->EXT_gpu_program_parameters = GL_TRUE;
+   extensions->EXT_pixel_buffer_object = GL_TRUE;
+   extensions->EXT_point_parameters = GL_TRUE;
+   extensions->EXT_provoking_vertex = GL_TRUE;
+   extensions->EXT_stencil_two_side = GL_TRUE;
+   extensions->EXT_texture_env_dot3 = GL_TRUE;
+
+   extensions->ATI_fragment_shader = GL_TRUE;
+   extensions->ATI_texture_env_combine3 = GL_TRUE;
+
+   extensions->MESA_framebuffer_flip_y = GL_TRUE;
+
+   extensions->NV_copy_image = GL_TRUE;
+   extensions->NV_fog_distance = GL_TRUE;
+   extensions->NV_texture_env_combine4 = GL_TRUE;
+   extensions->NV_texture_rectangle = GL_TRUE;
+
+   extensions->OES_EGL_image = GL_TRUE;
+   extensions->OES_EGL_image_external = GL_TRUE;
+   extensions->OES_draw_texture = GL_TRUE;
 }
 
 

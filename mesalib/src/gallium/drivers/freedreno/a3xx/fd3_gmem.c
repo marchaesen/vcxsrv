@@ -251,7 +251,7 @@ emit_binning_workaround(struct fd_batch *batch) assert_dt
                      A3XX_RB_STENCIL_CONTROL_ZFAIL_BF(STENCIL_KEEP));
 
    OUT_PKT0(ring, REG_A3XX_GRAS_SU_MODE_CONTROL, 1);
-   OUT_RING(ring, A3XX_GRAS_SU_MODE_CONTROL_LINEHALFWIDTH(0.0));
+   OUT_RING(ring, A3XX_GRAS_SU_MODE_CONTROL_LINEHALFWIDTH(0.0f));
 
    OUT_PKT0(ring, REG_A3XX_VFD_INDEX_MIN, 4);
    OUT_RING(ring, 0); /* VFD_INDEX_MIN */
@@ -280,12 +280,12 @@ emit_binning_workaround(struct fd_batch *batch) assert_dt
 
    fd_wfi(batch, ring);
    OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET(0.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE(1.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET(0.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(1.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET(0.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE(1.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET(0.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(1.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0f));
 
    OUT_PKT0(ring, REG_A3XX_GRAS_CL_CLIP_CNTL, 1);
    OUT_RING(ring, A3XX_GRAS_CL_CLIP_CNTL_CLIP_DISABLE |
@@ -420,12 +420,12 @@ fd3_emit_tile_gmem2mem(struct fd_batch *batch,
 
    fd_wfi(batch, ring);
    OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)pfb->width / 2.0 - 0.5));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)pfb->width / 2.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)pfb->height / 2.0 - 0.5));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)pfb->height / 2.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)pfb->width / 2.0f - 0.5f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)pfb->width / 2.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)pfb->height / 2.0f - 0.5f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)pfb->height / 2.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0f));
 
    OUT_PKT0(ring, REG_A3XX_RB_MODE_CONTROL, 1);
    OUT_RING(ring, A3XX_RB_MODE_CONTROL_RENDER_MODE(RB_RESOLVE_PASS) |
@@ -627,12 +627,12 @@ fd3_emit_tile_mem2gmem(struct fd_batch *batch,
 
    fd_wfi(batch, ring);
    OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)bin_w / 2.0 - 0.5));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)bin_w / 2.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)bin_h / 2.0 - 0.5));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)bin_h / 2.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0));
-   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XOFFSET((float)bin_w / 2.0f - 0.5f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE((float)bin_w / 2.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YOFFSET((float)bin_h / 2.0f - 0.5f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(-(float)bin_h / 2.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(0.0f));
+   OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(1.0f));
 
    OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
    OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(0) |

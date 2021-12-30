@@ -28,6 +28,7 @@
 #include "util/list.h"
 #include "util/macros.h"
 #include "util/os_time.h"
+#include "util/simple_mtx.h"
 #include "util/u_math.h"
 #include "util/xmlconfig.h"
 #include "vk_alloc.h"

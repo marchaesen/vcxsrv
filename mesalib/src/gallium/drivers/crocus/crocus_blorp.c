@@ -406,7 +406,7 @@ genX(crocus_init_blorp)(struct crocus_context *ice)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
 
-   blorp_init(&ice->blorp, ice, &screen->isl_dev);
+   blorp_init(&ice->blorp, ice, &screen->isl_dev, NULL);
    ice->blorp.compiler = screen->compiler;
    ice->blorp.lookup_shader = crocus_blorp_lookup_shader;
    ice->blorp.upload_shader = crocus_blorp_upload_shader;

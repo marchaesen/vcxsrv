@@ -57,7 +57,7 @@ typedef void (*ac_cull_accept_func)(struct ac_llvm_context *ctx, LLVMValueRef ac
 void ac_cull_primitive(struct ac_llvm_context *ctx, LLVMValueRef pos[3][4],
                        LLVMValueRef initially_accepted, LLVMValueRef vp_scale[2],
                        LLVMValueRef vp_translate[2], LLVMValueRef small_prim_precision,
-                       struct ac_cull_options *options, ac_cull_accept_func accept_func,
-                       void *userdata);
+                       LLVMValueRef clip_half_line_width[2], struct ac_cull_options *options,
+                       ac_cull_accept_func accept_func, void *userdata);
 
 #endif

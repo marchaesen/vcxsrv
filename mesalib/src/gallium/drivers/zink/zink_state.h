@@ -27,9 +27,11 @@
 #include <vulkan/vulkan.h>
 
 #include "pipe/p_state.h"
+#include "util/set.h"
 
 struct zink_vertex_elements_hw_state {
    uint32_t hash;
+   uint32_t num_bindings, num_attribs;
    union {
       VkVertexInputAttributeDescription attribs[PIPE_MAX_ATTRIBS];
       VkVertexInputAttributeDescription2EXT dynattribs[PIPE_MAX_ATTRIBS];
@@ -42,7 +44,6 @@ struct zink_vertex_elements_hw_state {
       } b;
       VkVertexInputBindingDescription2EXT dynbindings[PIPE_MAX_ATTRIBS];
    };
-   uint32_t num_bindings, num_attribs;
 };
 
 struct zink_vertex_elements_state {
@@ -57,6 +58,12 @@ struct zink_vertex_elements_state {
    uint32_t decomposed_attrs_without_w;
    unsigned decomposed_attrs_without_w_size;
    struct zink_vertex_elements_hw_state hw_state;
+};
+
+struct zink_vertex_state {
+   struct pipe_vertex_state b;
+   struct zink_vertex_elements_state velems;
+   struct set masks;
 };
 
 struct zink_rasterizer_hw_state {
@@ -115,7 +122,38 @@ struct zink_depth_stencil_alpha_state {
    struct zink_depth_stencil_alpha_hw_state hw_state;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
 zink_context_state_init(struct pipe_context *pctx);
+
+
+struct pipe_vertex_state *
+zink_create_vertex_state(struct pipe_screen *pscreen,
+                          struct pipe_vertex_buffer *buffer,
+                          const struct pipe_vertex_element *elements,
+                          unsigned num_elements,
+                          struct pipe_resource *indexbuf,
+                          uint32_t full_velem_mask);
+void
+zink_vertex_state_destroy(struct pipe_screen *pscreen, struct pipe_vertex_state *vstate);
+struct pipe_vertex_state *
+zink_cache_create_vertex_state(struct pipe_screen *pscreen,
+                               struct pipe_vertex_buffer *buffer,
+                               const struct pipe_vertex_element *elements,
+                               unsigned num_elements,
+                               struct pipe_resource *indexbuf,
+                               uint32_t full_velem_mask);
+void
+zink_cache_vertex_state_destroy(struct pipe_screen *pscreen, struct pipe_vertex_state *vstate);
+
+const struct zink_vertex_elements_hw_state *
+zink_vertex_state_mask(struct pipe_vertex_state *vstate, uint32_t partial_velem_mask, bool have_EXT_vertex_input_dynamic_state);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

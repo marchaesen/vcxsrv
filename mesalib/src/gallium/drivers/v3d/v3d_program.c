@@ -457,10 +457,16 @@ v3d_setup_shared_key(struct v3d_context *v3d, struct v3d_key *key,
                 if (!sampler)
                         continue;
 
+                assert(sampler->target == PIPE_BUFFER || sampler_state);
+
+                unsigned compare_mode = sampler_state ?
+                        sampler_state->compare_mode :
+                        PIPE_TEX_COMPARE_NONE;
+
                 key->sampler[i].return_size =
                         v3d_get_tex_return_size(devinfo,
                                                 sampler->format,
-                                                sampler_state->compare_mode);
+                                                compare_mode);
 
                 /* For 16-bit, we set up the sampler to always return 2
                  * channels (meaning no recompiles for most statechanges),
@@ -576,9 +582,10 @@ v3d_update_compiled_fs(struct v3d_context *v3d, uint8_t prim_mode)
                  */
                 if (key->logicop_func != PIPE_LOGICOP_COPY) {
                         key->color_fmt[i].format = cbuf->format;
-                        key->color_fmt[i].swizzle =
-                                v3d_get_format_swizzle(&v3d->screen->devinfo,
-                                                       cbuf->format);
+                        memcpy(key->color_fmt[i].swizzle,
+                               v3d_get_format_swizzle(&v3d->screen->devinfo,
+                                                       cbuf->format),
+                               sizeof(key->color_fmt[i].swizzle));
                 }
 
                 const struct util_format_description *desc =

@@ -88,8 +88,7 @@ Ongoing: Mesa is the OpenGL implementation for devices designed by
 Intel, AMD, NVIDIA, Qualcomm, Broadcom, Vivante, plus the VMware and
 VirGL virtual GPUs. There's also several software-based renderers:
 swrast (the legacy Mesa rasterizer), softpipe (a Gallium reference
-driver), llvmpipe (LLVM/JIT-based high-speed rasterizer) and swr
-(another LLVM-based driver).
+driver) and llvmpipe (LLVM/JIT-based high-speed rasterizer).
 
 Work continues on the drivers and core Mesa to implement newer versions
 of the OpenGL, OpenGL ES and Vulkan specifications.

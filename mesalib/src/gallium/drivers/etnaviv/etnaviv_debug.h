@@ -25,7 +25,7 @@
 #ifndef H_ETNA_DEBUG
 #define H_ETNA_DEBUG
 
-#include "util/u_debug.h"
+#include "util/log.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -38,6 +38,7 @@
 #define ETNA_DBG_COMPILER_MSGS   0x8
 #define ETNA_DBG_LINKER_MSGS     0x10
 #define ETNA_DBG_DUMP_SHADERS    0x20
+#define ETNA_DRM_MSGS            0x40 /* Debug messages from DRM */
 
 /* Bypasses */
 #define ETNA_DBG_NO_TS           0x1000   /* Disable TS */
@@ -53,7 +54,7 @@
 #define ETNA_DBG_DRAW_STALL      0x400000 /* Stall FE/PE after every draw op */
 #define ETNA_DBG_SHADERDB        0x800000 /* dump program compile information */
 #define ETNA_DBG_NO_SINGLEBUF    0x1000000 /* disable single buffer feature */
-#define ETNA_DBG_NIR             0x2000000 /* use new NIR compiler */
+#define ETNA_DBG_TGSI            0x2000000 /* use old TGSI compiler */
 #define ETNA_DBG_DEQP            0x4000000 /* Hacks to run dEQP GLES3 tests */
 #define ETNA_DBG_NOCACHE         0x8000000 /* Disable shader cache */
 
@@ -61,24 +62,24 @@ extern int etna_mesa_debug; /* set in etnaviv_screen.c from ETNA_MESA_DEBUG */
 
 #define DBG_ENABLED(flag) unlikely(etna_mesa_debug & (flag))
 
-#define DBG_F(flag, fmt, ...)                                     \
-   do {                                                           \
-      if (etna_mesa_debug & (flag))                               \
-         debug_printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, \
-                      ##__VA_ARGS__);                             \
+#define DBG_F(flag, fmt, ...)                             \
+   do {                                                   \
+      if (etna_mesa_debug & (flag))                       \
+         mesa_logd("%s:%d: " fmt, __FUNCTION__, __LINE__, \
+                   ##__VA_ARGS__);                        \
    } while (0)
 
-#define DBG(fmt, ...)                                             \
-   do {                                                           \
-      if (etna_mesa_debug & ETNA_DBG_MSGS)                        \
-         debug_printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, \
-                      ##__VA_ARGS__);                             \
+#define DBG(fmt, ...)                                     \
+   do {                                                   \
+      if (etna_mesa_debug & ETNA_DBG_MSGS)                \
+         mesa_logd("%s:%d: " fmt, __FUNCTION__, __LINE__, \
+                   ##__VA_ARGS__);                        \
    } while (0)
 
 /* A serious bug, show this even in non-debug mode */
-#define BUG(fmt, ...)                                                    \
-   do {                                                                  \
-      printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+#define BUG(fmt, ...)                                                  \
+   do {                                                                \
+      mesa_loge("%s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
    } while (0)
 
 #endif

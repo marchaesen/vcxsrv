@@ -1,49 +1,46 @@
 #!/bin/sh
 
-set -x
+set -ex
 
-ln -sf $CI_PROJECT_DIR/install /install
+# This script can be called concurrently, pass arguments and env in a per-instance tmp dir
+export DEQP_TEMP_DIR=`mktemp -d /tmp.XXXXXXXXXX`
 
-export LD_LIBRARY_PATH=$CI_PROJECT_DIR/install/lib/
-export EGL_PLATFORM=surfaceless
+# The dEQP binary needs to run from the directory it's in
+if [ -z "${1##*"deqp"*}" ]; then
+  PWD=`dirname $1`
+fi
 
-export -p > /crosvm-env.sh
-export GALLIUM_DRIVER="$CROSVM_GALLIUM_DRIVER"
-export GALLIVM_PERF="nopt"
-export LIBGL_ALWAYS_SOFTWARE="true"
+export -p > $DEQP_TEMP_DIR/crosvm-env.sh
 
-CROSVM_KERNEL_ARGS="root=my_root rw rootfstype=virtiofs loglevel=3 init=$CI_PROJECT_DIR/install/crosvm-init.sh ip=192.168.30.2::192.168.30.1:255.255.255.0:crosvm:eth0"
+CROSVM_KERNEL_ARGS="console=null root=my_root rw rootfstype=virtiofs init=$CI_PROJECT_DIR/install/crosvm-init.sh ip=192.168.30.2::192.168.30.1:255.255.255.0:crosvm:eth0 -- $DEQP_TEMP_DIR"
 
-# Temporary results dir because from the guest we cannot write to /
-mkdir -p /results
-mount -t tmpfs tmpfs /results
-
-mkdir -p /piglit/.gitlab-ci/piglit
-mount -t tmpfs tmpfs /piglit/.gitlab-ci/piglit
+echo $@ > $DEQP_TEMP_DIR/crosvm-script.sh
 
 unset DISPLAY
 unset XDG_RUNTIME_DIR
 
-/usr/sbin/iptables-legacy  -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+/usr/sbin/iptables-legacy -w -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 echo 1 > /proc/sys/net/ipv4/ip_forward
 
-# Crosvm wants this
-syslogd > /dev/null
+# Send output from guest to host
+touch $DEQP_TEMP_DIR/stderr $DEQP_TEMP_DIR/stdout
+tail -f $DEQP_TEMP_DIR/stderr > /dev/stderr &
+ERR_TAIL_PID=$!
+tail -f $DEQP_TEMP_DIR/stdout > /dev/stdout &
+OUT_TAIL_PID=$!
+
+trap "exit \$exit_code" INT TERM
+trap "exit_code=\$?; kill $ERR_TAIL_PID $OUT_TAIL_PID" EXIT
 
 # We aren't testing LLVMPipe here, so we don't need to validate NIR on the host
-export NIR_VALIDATE=0
-
-crosvm run \
+NIR_DEBUG="novalidate" LIBGL_ALWAYS_SOFTWARE="true" GALLIUM_DRIVER="$CROSVM_GALLIUM_DRIVER" stdbuf -oL crosvm run \
   --gpu "$CROSVM_GPU_ARGS" \
   -m 4096 \
-  -c $((FDO_CI_CONCURRENT > 1 ? FDO_CI_CONCURRENT - 1 : 1)) \
+  -c 2 \
   --disable-sandbox \
   --shared-dir /:my_root:type=fs:writeback=true:timeout=60:cache=always \
   --host_ip=192.168.30.1 --netmask=255.255.255.0 --mac "AA:BB:CC:00:00:12" \
   -p "$CROSVM_KERNEL_ARGS" \
-  /lava-files/bzImage
+  /lava-files/bzImage >> $DEQP_TEMP_DIR/stderr > /dev/null
 
-mkdir -p $CI_PROJECT_DIR/results
-mv /results/* $CI_PROJECT_DIR/results/.
-
-test -f $CI_PROJECT_DIR/results/success
+exit `cat $DEQP_TEMP_DIR/exit_code`

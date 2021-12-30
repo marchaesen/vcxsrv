@@ -202,6 +202,10 @@
 #include "util/u_thread.h"
 #include "util/slab.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct threaded_context;
 struct tc_unflushed_batch_token;
 
@@ -607,5 +611,9 @@ tc_buffer_disable_cpu_storage(struct pipe_resource *buf)
       tres->cpu_storage = NULL;
    }
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -39,7 +39,9 @@
 #include "mtypes.h"
 #include "util/bitscan.h"
 #include "util/u_math.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_fbo.h"
 
 #define BAD_MASK ~0u
 
@@ -315,10 +317,7 @@ draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 
    /* Call device driver function only if fb is the bound draw buffer */
    if (fb == ctx->DrawBuffer) {
-      if (ctx->Driver.DrawBuffer)
-         ctx->Driver.DrawBuffer(ctx);
-      if (ctx->Driver.DrawBufferAllocate)
-         ctx->Driver.DrawBufferAllocate(ctx);
+      st_DrawBufferAllocate(ctx);
    }
 }
 
@@ -624,10 +623,7 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
     * may not be valid.
     */
    if (fb == ctx->DrawBuffer) {
-      if (ctx->Driver.DrawBuffer)
-         ctx->Driver.DrawBuffer(ctx);
-      if (ctx->Driver.DrawBufferAllocate)
-         ctx->Driver.DrawBufferAllocate(ctx);
+      st_DrawBufferAllocate(ctx);
    }
 }
 
@@ -936,8 +932,7 @@ read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 
    /* Call the device driver function only if fb is the bound read buffer */
    if (fb == ctx->ReadBuffer) {
-      if (ctx->Driver.ReadBuffer)
-         ctx->Driver.ReadBuffer(ctx, buffer);
+      st_ReadBuffer(ctx, buffer);
    }
 }
 

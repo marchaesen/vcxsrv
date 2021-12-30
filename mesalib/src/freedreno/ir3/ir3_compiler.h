@@ -160,6 +160,12 @@ struct ir3_compiler {
    /* True if 16-bit descriptors are used for both 16-bit and 32-bit access. */
    bool storage_16bit;
 
+   /* True if getfiberid, getlast.w8, brcst.active, and quad_shuffle
+    * instructions are supported which are necessary to support
+    * subgroup quad and arithmetic operations.
+    */
+   bool has_getfiberid;
+
    /* Type to use for 1b nir bools: */
    type_t bool_type;
 };

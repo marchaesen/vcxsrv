@@ -10,7 +10,7 @@ MAIN_FILES = \
 	main/accum.h \
 	main/api_arrayelt.c \
 	main/api_arrayelt.h \
-	main/api_exec.c \
+	main/api_exec_init.c \
 	main/api_exec.h \
 	main/arbprogram.c \
 	main/arbprogram.h \
@@ -37,8 +37,6 @@ MAIN_FILES = \
 	main/clip.c \
 	main/clip.h \
 	main/colormac.h \
-	main/colortab.c \
-	main/colortab.h \
 	main/compute.c \
 	main/compute.h \
 	main/condrender.c \
@@ -48,8 +46,6 @@ MAIN_FILES = \
 	main/conservativeraster.h \
 	main/context.c \
 	main/context.h \
-	main/convolve.c \
-	main/convolve.h \
 	main/copyimage.c \
 	main/copyimage.h \
 	main/cpuinfo.c \
@@ -79,8 +75,6 @@ MAIN_FILES = \
 	main/errors.h \
 	main/eval.c \
 	main/eval.h \
-	main/execmem.c \
-	main/execmem.h \
 	main/extensions.c \
 	main/extensions.h \
 	main/extensions_table.c \
@@ -139,8 +133,6 @@ MAIN_FILES = \
 	main/hash.h \
 	main/hint.c \
 	main/hint.h \
-	main/histogram.c \
-	main/histogram.h \
 	main/image.c \
 	main/image.h \
 	main/mesa_private.h \
@@ -241,8 +233,6 @@ MAIN_FILES = \
 	main/texenv.c \
 	main/texenv.h \
 	main/texenvprogram.h \
-	main/texformat.c \
-	main/texformat.h \
 	main/texgen.c \
 	main/texgen.h \
 	main/texgetimage.c \
@@ -276,8 +266,6 @@ MAIN_FILES = \
 	main/version.h \
 	main/viewport.c \
 	main/viewport.h \
-	main/vtxfmt.c \
-	main/vtxfmt.h \
 	main/glthread_list.c \
 	$(MAIN_ES_FILES)
 
@@ -298,111 +286,7 @@ MATH_XFORM_FILES = \
 	math/m_clip_tmp.h \
 	math/m_copy_tmp.h \
 	math/m_dotprod_tmp.h \
-	math/m_norm_tmp.h \
-	math/m_xform.c \
-	math/m_xform.h \
-	math/m_xform_tmp.h
-
-SWRAST_FILES = \
-	swrast/s_aaline.c \
-	swrast/s_aaline.h \
-	swrast/s_aalinetemp.h \
-	swrast/s_aatriangle.c \
-	swrast/s_aatriangle.h \
-	swrast/s_aatritemp.h \
-	swrast/s_alpha.c \
-	swrast/s_alpha.h \
-	swrast/s_atifragshader.c \
-	swrast/s_atifragshader.h \
-	swrast/s_bitmap.c \
-	swrast/s_blend.c \
-	swrast/s_blend.h \
-	swrast/s_blit.c \
-	swrast/s_chan.h \
-	swrast/s_clear.c \
-	swrast/s_context.c \
-	swrast/s_context.h \
-	swrast/s_copypix.c \
-	swrast/s_depth.c \
-	swrast/s_depth.h \
-	swrast/s_drawpix.c \
-	swrast_setup/ss_tritmp.h \
-	swrast_setup/ss_vb.h \
-	swrast_setup/swrast_setup.h \
-	swrast/s_feedback.c \
-	swrast/s_feedback.h \
-	swrast/s_fog.c \
-	swrast/s_fog.h \
-	swrast/s_fragprog.c \
-	swrast/s_fragprog.h \
-	swrast/s_lines.c \
-	swrast/s_lines.h \
-	swrast/s_linetemp.h \
-	swrast/s_logic.c \
-	swrast/s_logic.h \
-	swrast/s_masking.c \
-	swrast/s_masking.h \
-	swrast/s_points.c \
-	swrast/s_points.h \
-	swrast/s_renderbuffer.c \
-	swrast/s_renderbuffer.h \
-	swrast/s_span.c \
-	swrast/s_span.h \
-	swrast/s_stencil.c \
-	swrast/s_stencil.h \
-	swrast/s_texcombine.c \
-	swrast/s_texcombine.h \
-	swrast/s_texfetch.c \
-	swrast/s_texfetch.h \
-	swrast/s_texfetch_tmp.h \
-	swrast/s_texfilter.c \
-	swrast/s_texfilter.h \
-	swrast/s_texrender.c \
-	swrast/s_texture.c \
-	swrast/s_triangle.c \
-	swrast/s_triangle.h \
-	swrast/s_tritemp.h \
-	swrast/swrast.h \
-	swrast/s_zoom.c \
-	swrast/s_zoom.h
-
-SWRAST_SETUP_FILES = \
-	swrast_setup/ss_context.c \
-	swrast_setup/ss_context.h \
-	swrast_setup/ss_triangle.c \
-	swrast_setup/ss_triangle.h
-
-TNL_FILES = \
-	tnl/t_context.c \
-	tnl/t_context.h \
-	tnl/t_draw.c \
-	tnl/tnl.h \
-	tnl/t_pipeline.c \
-	tnl/t_pipeline.h \
-	tnl/t_rebase.c \
-	tnl/t_rebase.h \
-	tnl/t_split.c \
-	tnl/t_split_copy.c \
-	tnl/t_split.h \
-	tnl/t_split_inplace.c \
-	tnl/t_vb_cliptmp.h \
-	tnl/t_vb_fog.c \
-	tnl/t_vb_light.c \
-	tnl/t_vb_lighttmp.h \
-	tnl/t_vb_normals.c \
-	tnl/t_vb_points.c \
-	tnl/t_vb_program.c \
-	tnl/t_vb_render.c \
-	tnl/t_vb_rendertmp.h \
-	tnl/t_vb_texgen.c \
-	tnl/t_vb_texmat.c \
-	tnl/t_vb_vertex.c \
-	tnl/t_vertex.c \
-	tnl/t_vertex_generic.c \
-	tnl/t_vertex.h \
-	tnl/t_vertex_sse.c \
-	tnl/t_vp_build.c \
-	tnl/t_vp_build.h
+	math/m_norm_tmp.h
 
 VBO_FILES = \
 	vbo/vbo_attrib.h \
@@ -457,12 +341,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_bitmap_shader.c \
 	state_tracker/st_cb_blit.c \
 	state_tracker/st_cb_blit.h \
-	state_tracker/st_cb_bufferobjects.c \
-	state_tracker/st_cb_bufferobjects.h \
 	state_tracker/st_cb_clear.c \
 	state_tracker/st_cb_clear.h \
-	state_tracker/st_cb_compute.c \
-	state_tracker/st_cb_compute.h \
 	state_tracker/st_cb_condrender.c \
 	state_tracker/st_cb_condrender.h \
 	state_tracker/st_cb_copyimage.c \
@@ -482,8 +362,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_flush.h \
 	state_tracker/st_cb_memoryobjects.c \
 	state_tracker/st_cb_memoryobjects.h \
-	state_tracker/st_cb_msaa.c \
-	state_tracker/st_cb_msaa.h \
 	state_tracker/st_cb_perfmon.c \
 	state_tracker/st_cb_perfmon.h \
 	state_tracker/st_cb_perfquery.c \
@@ -498,12 +376,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_cb_readpixels.h \
 	state_tracker/st_cb_semaphoreobjects.c \
 	state_tracker/st_cb_semaphoreobjects.h \
-	state_tracker/st_cb_strings.c \
-	state_tracker/st_cb_strings.h \
 	state_tracker/st_cb_syncobj.c \
 	state_tracker/st_cb_syncobj.h \
-	state_tracker/st_cb_texturebarrier.c \
-	state_tracker/st_cb_texturebarrier.h \
 	state_tracker/st_cb_texture.c \
 	state_tracker/st_cb_texture.h \
 	state_tracker/st_cb_viewport.c \
@@ -555,28 +429,21 @@ STATETRACKER_FILES = \
 	state_tracker/st_shader_cache.h \
 	state_tracker/st_texture.c \
 	state_tracker/st_texture.h \
-	state_tracker/st_tgsi_lower_depth_clamp.c \
-	state_tracker/st_tgsi_lower_depth_clamp.h \
 	state_tracker/st_tgsi_lower_yuv.c \
 	state_tracker/st_tgsi_lower_yuv.h \
 	state_tracker/st_util.h \
 	state_tracker/st_vdpau.c \
-	state_tracker/st_vdpau.h
+	state_tracker/st_vdpau.h \
+	state_tracker/st_pbo_compute.c
 
 PROGRAM_FILES = \
 	program/arbprogparse.c \
 	program/arbprogparse.h \
-	program/ir_to_mesa.cpp \
-	program/ir_to_mesa.h \
 	program/lex.yy.c \
 	program/prog_cache.c \
 	program/prog_cache.h \
-	program/prog_execute.c \
-	program/prog_execute.h \
 	program/prog_instruction.c \
 	program/prog_instruction.h \
-	program/prog_noise.c \
-	program/prog_noise.h \
 	program/prog_opt_constant_fold.c \
 	program/prog_optimize.c \
 	program/prog_optimize.h \
@@ -597,7 +464,8 @@ PROGRAM_FILES = \
 	program/prog_statevars.c \
 	program/prog_statevars.h \
 	program/symbol_table.c \
-	program/symbol_table.h
+	program/symbol_table.h \
+	program/link_program.cpp
 
 PROGRAM_NIR_FILES_REMOVED = \
 	program/prog_to_nir.c \
@@ -659,25 +527,12 @@ SPARC_FILES =			\
 	sparc/norm.S		\
 	sparc/xform.S
 
-COMMON_DRIVER_FILES =			\
-	drivers/common/driverfuncs.c	\
-	drivers/common/driverfuncs.h	\
-	drivers/common/meta_blit.c	\
-	drivers/common/meta_generate_mipmap.c	\
-	drivers/common/meta.c \
-	drivers/common/meta.h
-
-
 # Sources for building non-Gallium drivers
 MESA_FILES = \
 	$(MAIN_FILES)		\
 	$(MATH_FILES)		\
 	$(MATH_XFORM_FILES)	\
 	$(VBO_FILES)		\
-	$(TNL_FILES)		\
-	$(SWRAST_FILES)	\
-	$(SWRAST_SETUP_FILES)	\
-	$(COMMON_DRIVER_FILES)\
 	$(ASM_C_FILES)
 
 # Sources for building Gallium drivers

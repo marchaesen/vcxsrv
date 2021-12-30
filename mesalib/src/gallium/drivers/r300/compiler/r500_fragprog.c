@@ -44,15 +44,14 @@ int r500_transform_IF(
 	struct rc_instruction * inst_if,
 	void *data)
 {
+	if (inst_if->U.I.Opcode != RC_OPCODE_IF)
+		return 0;
+
 	struct rc_variable * writer;
 	struct rc_list * writer_list, * list_ptr;
 	struct rc_list * var_list = rc_get_variables(c);
 	unsigned int generic_if = 0;
 	unsigned int alu_chan;
-
-	if (inst_if->U.I.Opcode != RC_OPCODE_IF) {
-		return 0;
-	}
 
 	writer_list = rc_variable_list_get_writers(
 			var_list, inst_if->Type, &inst_if->U.I.SrcReg[0]);
@@ -220,8 +219,6 @@ static int r500_swizzle_is_native(rc_opcode opcode, struct rc_src_register reg)
 			return 1;
 
 		return 0;
-	} else if (reg.File == RC_FILE_INLINE) {
-		return 1;
 	} else {
 		/* ALU instructions support almost everything */
 		relevant = 0;

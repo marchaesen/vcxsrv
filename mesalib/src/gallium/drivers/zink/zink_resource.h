@@ -76,12 +76,13 @@ struct zink_resource_object {
    bool storage_init; //layout was set for image
    bool transfer_dst;
    bool is_buffer;
-   VkImageAspectFlags modifier_aspect;
 
    struct zink_bo *bo;
    VkDeviceSize offset, size, alignment;
    VkImageCreateFlags vkflags;
    VkImageUsageFlags vkusage;
+   uint64_t modifier;
+   VkImageAspectFlags modifier_aspect;
 
    bool host_visible;
    bool coherent;
@@ -110,6 +111,7 @@ struct zink_resource {
          VkImageLayout layout;
          VkImageAspectFlags aspect;
          bool optimal_tiling;
+         bool need_2D_zs;
          uint8_t fb_binds; //not counted in all_binds
       };
    };

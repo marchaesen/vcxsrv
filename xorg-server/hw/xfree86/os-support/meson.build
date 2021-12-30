@@ -19,7 +19,7 @@ if get_option('pciaccess')
     if host_machine.system() != 'linux'
         srcs_xorg_os_support += 'bus/bsd_pci.c'
     endif
-    if host_machine.cpu() == 'sparc'
+    if host_machine.cpu() == 'sparc' or host_machine.cpu() == 'sparc64'
         srcs_xorg_os_support += 'bus/Sbus.c'
         install_data('bus/xf86Sbus.h', install_dir: xorgsdkdir)
     endif

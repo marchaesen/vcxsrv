@@ -5,25 +5,25 @@
 
 <category name="GL_ARB_vertex_attrib_64bit" number="99">
 
-    <function name="VertexAttribL1d" exec="dynamic">
+    <function name="VertexAttribL1d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL2d" exec="dynamic">
+    <function name="VertexAttribL2d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL3d" exec="dynamic">
+    <function name="VertexAttribL3d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL4d" exec="dynamic">
+    <function name="VertexAttribL4d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
@@ -31,22 +31,22 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL1dv" exec="dynamic">
+    <function name="VertexAttribL1dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="1"/>
     </function>
 
-    <function name="VertexAttribL2dv" exec="dynamic">
+    <function name="VertexAttribL2dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="2"/>
     </function>
 
-    <function name="VertexAttribL3dv" exec="dynamic">
+    <function name="VertexAttribL3dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="3"/>
     </function>
 
-    <function name="VertexAttribL4dv" exec="dynamic">
+    <function name="VertexAttribL4dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="4"/>
     </function>

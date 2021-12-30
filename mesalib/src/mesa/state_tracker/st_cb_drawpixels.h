@@ -34,8 +34,9 @@
 
 struct dd_function_table;
 struct st_context;
+struct gl_context;
+struct gl_pixelstore_attrib;
 
-extern void st_init_drawpixels_functions(struct dd_function_table *functions);
 
 extern void
 st_destroy_drawpix(struct st_context *st);
@@ -49,5 +50,13 @@ st_get_drawpix_shader(const struct tgsi_token *tokens, bool use_texcoord,
 
 extern void
 st_make_passthrough_vertex_shader(struct st_context *st);
+
+void st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
+                   GLsizei width, GLsizei height,
+                   GLenum format, GLenum type,
+                   const struct gl_pixelstore_attrib *unpack, const void *pixels);
+void st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
+                   GLsizei width, GLsizei height,
+                   GLint dstx, GLint dsty, GLenum type);
 
 #endif /* ST_CB_DRAWPIXELS_H */

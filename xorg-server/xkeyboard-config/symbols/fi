@@ -216,12 +216,13 @@ xkb_symbols "mac" {
 
 partial alphanumeric_keys
 xkb_symbols "sun_type6" {
+    // #HW-SPECIFIC
 
     // Sun Type 6/7 keyboard for Finland
 
     include "sun_vndr/fi(sun_type6)"
 
-    name[Group1]="Finnish (Sun Type 6/7)";
+    name[Group1]="Finnish";
 };
 
 partial

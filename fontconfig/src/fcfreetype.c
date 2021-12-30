@@ -1232,6 +1232,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     int		    st;
 
     FcBool	    symbol = FcFalse;
+    FT_Error	    ftresult;
 
     FcInitDebug (); /* We might be called with no initizalization whatsoever. */
 
@@ -1257,16 +1258,17 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    goto bail1;
     }
 
+    ftresult = FT_Get_MM_Var (face, &master);
+
     if (id >> 16)
     {
-      if (FT_Get_MM_Var (face, &master))
-	  goto bail1;
+	if (ftresult)
+	    goto bail1;
 
       if (id >> 16 == 0x8000)
       {
 	  /* Query variable font itself. */
 	  unsigned int i;
-
 	  for (i = 0; i < master->num_axis; i++)
 	  {
 	      double min_value = master->axis[i].minimum / (double) (1U << 16);
@@ -1351,6 +1353,28 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	}
         else
 	    goto bail1;
+    }
+    else
+    {
+	if (!ftresult)
+	{
+	    unsigned int i;
+	    for (i = 0; i < master->num_axis; i++)
+	    {
+		switch (master->axis[i].tag)
+		{
+		case FT_MAKE_TAG ('o','p','s','z'):
+		    if (!FcPatternObjectAddDouble (pat, FC_SIZE_OBJECT, master->axis[i].def / (double) (1U << 16)))
+			goto bail1;
+		    variable_size = FcTrue;
+		    break;
+		}
+	    }
+	}
+	else
+	{
+	    /* ignore an error of FT_Get_MM_Var() */
+	}
     }
     if (!FcPatternObjectAddBool (pat, FC_VARIABLE_OBJECT, variable))
 	goto bail1;
@@ -1658,7 +1682,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     /* Add the fullname into the cache */
     if (!variable && !nfullname)
     {
-	FcChar8 *family, *style, *lang;
+	FcChar8 *family, *style, *lang = NULL;
 	int n = 0;
 	size_t len, i;
 	FcStrBuf sbuf;
@@ -1677,10 +1701,11 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	len = strlen ((const char *) family);
 	for (i = len; i > 0; i--)
 	{
-	    if (!isspace (family[i]))
+	    if (!isspace (family[i-1]))
 		break;
 	}
 	family[i] = 0;
+	n = 0;
 	while (FcPatternObjectGetString (pat, FC_STYLELANG_OBJECT, n, &lang) == FcResultMatch)
 	{
 	    if (FcStrCmp (lang, (const FcChar8 *) "en") == 0)
@@ -1693,8 +1718,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	if (FcPatternObjectGetString (pat, FC_STYLE_OBJECT, n, &style) != FcResultMatch)
 	    goto bail1;
 	len = strlen ((const char *) style);
-	for (i = 0; style[i] != 0 && isspace (style[i]); i++)
-	    break;
+	for (i = 0; style[i] != 0 && isspace (style[i]); i++);
 	memcpy (style, &style[i], len - i);
 	FcStrBufInit (&sbuf, NULL, 0);
 	FcStrBufString (&sbuf, family);

@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <err.h>
 
-#include "main/mtypes.h"
 #include "compiler/glsl/glsl_to_nir.h"
 #include "compiler/nir_types.h"
 #include "compiler/nir/nir_builder.h"
@@ -40,7 +39,6 @@
 #include "util/u_debug.h"
 #include "util/u_dynarray.h"
 #include "util/list.h"
-#include "main/mtypes.h"
 
 #include "midgard.h"
 #include "midgard_nir.h"

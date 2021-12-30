@@ -129,6 +129,9 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
       compiler->storage_16bit =
             fd_dev_info(compiler->dev_id)->a6xx.storage_16bit;
+
+      compiler->has_getfiberid =
+            fd_dev_info(compiler->dev_id)->a6xx.has_getfiberid;
    } else {
       compiler->max_const_pipeline = 512;
       compiler->max_const_geom = 512;

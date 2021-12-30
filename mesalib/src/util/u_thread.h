@@ -75,19 +75,15 @@
  * still want to use normal TLS (which involves a function call, but not the
  * expensive pthread_getspecific() or its equivalent).
  */
+#ifdef USE_ELF_TLS
 #ifdef _MSC_VER
 #define __THREAD_INITIAL_EXEC __declspec(thread)
-#elif defined(ANDROID)
-/* Android 29 gained ELF TLS support, but it doesn't support initial-exec and
- * it will throw:
- *
- *     dlopen failed: TLS symbol "(null)" in dlopened
- *     "/vendor/lib64/egl/libEGL_mesa.so" referenced from
- *     "/vendor/lib64/egl/libEGL_mesa.so" using IE access model.
- */
-#define __THREAD_INITIAL_EXEC __thread
-#else
+#elif defined(__GLIBC__)
 #define __THREAD_INITIAL_EXEC __thread __attribute__((tls_model("initial-exec")))
+#define REALLY_INITIAL_EXEC
+#else
+#define __THREAD_INITIAL_EXEC __thread
+#endif
 #endif
 
 static inline int
@@ -296,9 +292,9 @@ static inline void util_barrier_destroy(util_barrier *barrier)
    pthread_barrier_destroy(barrier);
 }
 
-static inline void util_barrier_wait(util_barrier *barrier)
+static inline bool util_barrier_wait(util_barrier *barrier)
 {
-   pthread_barrier_wait(barrier);
+   return pthread_barrier_wait(barrier) == PTHREAD_BARRIER_SERIAL_THREAD;
 }
 
 
@@ -328,7 +324,7 @@ static inline void util_barrier_destroy(util_barrier *barrier)
    cnd_destroy(&barrier->condvar);
 }
 
-static inline void util_barrier_wait(util_barrier *barrier)
+static inline bool util_barrier_wait(util_barrier *barrier)
 {
    mtx_lock(&barrier->mutex);
 
@@ -348,6 +344,8 @@ static inline void util_barrier_wait(util_barrier *barrier)
    }
 
    mtx_unlock(&barrier->mutex);
+
+   return true;
 }
 
 #endif

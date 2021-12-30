@@ -98,6 +98,12 @@ if with_platform_wayland
   libv3dv_files += [wayland_drm_client_protocol_h, wayland_drm_protocol_c]
 endif
 
+if with_platform_android
+  v3dv_deps += dep_android
+  v3dv_flags += '-DVK_USE_PLATFORM_ANDROID_KHR'
+  libv3dv_files += files('v3dv_android.c')
+endif
+
 per_version_libs = []
 foreach ver : v3d_versions
   per_version_libs += static_library(

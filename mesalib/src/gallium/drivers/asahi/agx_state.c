@@ -1432,9 +1432,13 @@ agx_push_record(uint8_t **out, unsigned size_words, uint64_t ptr)
    assert(ptr < (1ull << 40));
    assert(size_words < (1ull << 24));
 
-   uint64_t value = (size_words | (ptr << 24));
-   memcpy(*out, &value, sizeof(value));
-   *out += sizeof(value);
+   agx_pack(*out, RECORD, cfg) {
+      cfg.pointer_hi = (ptr >> 32);
+      cfg.pointer_lo = (uint32_t) ptr;
+      cfg.size_words = size_words;
+   };
+
+   *out += AGX_RECORD_LENGTH;
 }
 
 static uint8_t *
@@ -1451,17 +1455,11 @@ agx_encode_state(struct agx_context *ctx, uint8_t *out,
       cfg.texture_count = ctx->stage[PIPE_SHADER_VERTEX].texture_count;
    }
 
-   /* yes, it's really 17 bytes */
    out += AGX_BIND_PIPELINE_LENGTH;
-   *(out++) = 0x0;
 
    struct agx_pool *pool = &ctx->batch->pool;
-   struct agx_ptr zero = agx_pool_alloc_aligned(pool, 16, 256);
-   memset(zero.cpu, 0, 16);
-
    bool reads_tib = ctx->fs->info.reads_tib;
 
-   agx_push_record(&out, 0, zero.gpu);
    agx_push_record(&out, 5, demo_interpolation(ctx->fs, pool));
    agx_push_record(&out, 5, demo_launch_fragment(ctx, pool, pipeline_fragment, varyings, ctx->fs->info.varyings.nr_descs));
    agx_push_record(&out, 4, demo_linkage(ctx->vs, pool));
@@ -1480,7 +1478,7 @@ agx_encode_state(struct agx_context *ctx, uint8_t *out,
    agx_push_record(&out, 3, demo_unk12(pool));
    agx_push_record(&out, 2, agx_pool_upload(pool, ctx->rast->cull, sizeof(ctx->rast->cull)));
 
-   return (out - 1); // XXX: alignment fixup, or something
+   return out;
 }
 
 static enum agx_primitive

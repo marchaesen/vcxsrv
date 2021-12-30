@@ -56,9 +56,9 @@ descriptor=[
 # extensions below should mark the dependency.
 
 # GL_ARB_texture_cube_map
-  [ "TEXTURE_BINDING_CUBE_MAP_ARB", "LOC_CUSTOM, TYPE_INT, TEXTURE_CUBE_INDEX, extra_ARB_texture_cube_map" ],
+  [ "TEXTURE_BINDING_CUBE_MAP_ARB", "LOC_CUSTOM, TYPE_INT, TEXTURE_CUBE_INDEX, NO_EXTRA" ],
 # XXX: OES_texture_cube_map
-  [ "MAX_CUBE_MAP_TEXTURE_SIZE_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_context, Const.MaxCubeTextureLevels), extra_ARB_texture_cube_map" ],
+  [ "MAX_CUBE_MAP_TEXTURE_SIZE_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_context, Const.MaxCubeTextureLevels), NO_EXTRA" ],
 
 # XXX: OES_blend_subtract
   [ "BLEND_SRC_RGB", "CONTEXT_ENUM16(Color.Blend[0].SrcRGB), NO_EXTRA" ],
@@ -387,6 +387,13 @@ descriptor=[
 
 # GL_NV_alpha_to_coverage_dither_control
   [ "ALPHA_TO_COVERAGE_DITHER_MODE_NV", "CONTEXT_ENUM(Multisample.SampleAlphaToCoverageDitherControl ), NO_EXTRA" ],
+
+# GL_EXT_pixel_buffer_object
+  [ "PIXEL_PACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
+  [ "PIXEL_UNPACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
+
+# GL_ARB_framebuffer_object or GL_EXT_framebuffer_multisample or GL_EXT_multisampled_render_to_texture
+  [ "MAX_SAMPLES", "CONTEXT_INT(Const.MaxSamples), extra_ARB_framebuffer_object_or_EXT_framebuffer_multisample_or_EXT_multisampled_render_to_texture" ],
 ]},
 
 # GLES3 is not a typo.
@@ -416,9 +423,6 @@ descriptor=[
 
 # GL_ARB_fragment_shader
   [ "MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_FRAGMENT].MaxUniformComponents), extra_ARB_fragment_shader" ],
-
-# GL_ARB_framebuffer_object
-  [ "MAX_SAMPLES", "CONTEXT_INT(Const.MaxSamples), extra_ARB_framebuffer_object_EXT_framebuffer_multisample" ],
 
 # GL_ARB_sampler_objects / GL 3.3 / GLES 3.0
   [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
@@ -456,10 +460,6 @@ descriptor=[
 # GL_EXT_gpu_shader4 / GLSL 1.30
   [ "MIN_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MinProgramTexelOffset), extra_GLSL_130_es3_gpushader4" ],
   [ "MAX_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MaxProgramTexelOffset), extra_GLSL_130_es3_gpushader4" ],
-
-# GL_EXT_pixel_buffer_object
-  [ "PIXEL_PACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
-  [ "PIXEL_UNPACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
 
   # GL_EXT_texture_array
   [ "TEXTURE_BINDING_2D_ARRAY", "LOC_CUSTOM, TYPE_INT, TEXTURE_2D_ARRAY_INDEX, extra_EXT_texture_array_es3" ],
@@ -956,6 +956,12 @@ descriptor=[
 
 # GL_ARB_color_buffer_float
   [ "RGBA_FLOAT_MODE_ARB", "BUFFER_FIELD(Visual.floatMode, TYPE_BOOLEAN), extra_core_ARB_color_buffer_float_and_new_buffers" ],
+
+# GL_ARB_sparse_texture
+  [ "MAX_SPARSE_TEXTURE_SIZE_ARB", "CONTEXT_INT(Const.MaxSparseTextureSize), extra_ARB_sparse_texture" ],
+  [ "MAX_SPARSE_3D_TEXTURE_SIZE_ARB", "CONTEXT_INT(Const.MaxSparse3DTextureSize), extra_ARB_sparse_texture" ],
+  [ "MAX_SPARSE_ARRAY_TEXTURE_LAYERS_ARB", "CONTEXT_INT(Const.MaxSparseArrayTextureLayers), extra_ARB_sparse_texture" ],
+  [ "SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS_ARB", "CONTEXT_BOOL(Const.SparseTextureFullArrayCubeMipmaps), extra_ARB_sparse_texture" ],
 
 # GL3.0 / GL_EXT_framebuffer_sRGB
   [ "FRAMEBUFFER_SRGB_CAPABLE_EXT", "BUFFER_INT(Visual.sRGBCapable), extra_EXT_framebuffer_sRGB_and_new_buffers" ],

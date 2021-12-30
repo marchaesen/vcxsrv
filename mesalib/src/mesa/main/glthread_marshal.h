@@ -132,8 +132,8 @@ _mesa_glthread_has_non_vbo_vertices_or_indices_or_indirect(const struct gl_conte
 }
 
 
-struct _glapi_table *
-_mesa_create_marshal_table(const struct gl_context *ctx);
+bool
+_mesa_create_marshal_tables(struct gl_context *ctx);
 
 static inline unsigned
 _mesa_buffer_enum_to_count(GLenum buffer)
@@ -448,7 +448,7 @@ _mesa_glthread_Enable(struct gl_context *ctx, GLenum cap)
       _mesa_glthread_set_prim_restart(ctx, cap, true);
       break;
    case GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB:
-      _mesa_glthread_disable(ctx, "Enable(DEBUG_OUTPUT_SYNCHRONOUS)");
+      _mesa_glthread_destroy(ctx, "Enable(DEBUG_OUTPUT_SYNCHRONOUS)");
       break;
    case GL_CULL_FACE:
       ctx->GLThread.CullFace = true;

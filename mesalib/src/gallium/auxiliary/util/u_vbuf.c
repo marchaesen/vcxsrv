@@ -112,6 +112,7 @@ struct u_vbuf_elements {
     * its vertex data must be translated to native_format[i]. */
    enum pipe_format native_format[PIPE_MAX_ATTRIBS];
    unsigned native_format_size[PIPE_MAX_ATTRIBS];
+   unsigned component_size[PIPE_MAX_ATTRIBS];
 
    /* Which buffers are used by the vertex element state. */
    uint32_t used_vb_mask;
@@ -127,6 +128,7 @@ struct u_vbuf_elements {
    /* Which buffer has at least one vertex element referencing it
     * compatible. */
    uint32_t compatible_vb_mask_any;
+   uint32_t vb_align_mask[2]; //which buffers require 2/4 byte alignments
    /* Which buffer has all vertex elements referencing it compatible. */
    uint32_t compatible_vb_mask_all;
 
@@ -162,6 +164,8 @@ struct u_vbuf {
     * May contain user buffers. */
    struct pipe_vertex_buffer vertex_buffer[PIPE_MAX_ATTRIBS];
    uint32_t enabled_vb_mask;
+
+   uint32_t unaligned_vb_mask[2]; //16/32bit
 
    /* Vertex buffers for the driver.
     * There are usually no user buffers. */
@@ -303,6 +307,11 @@ void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
    caps->velem_src_offset_unaligned =
       !screen->get_param(screen,
                          PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY);
+   caps->attrib_component_unaligned =
+      !screen->get_param(screen,
+                         PIPE_CAP_VERTEX_ATTRIB_ELEMENT_ALIGNED_ONLY);
+   assert(caps->attrib_component_unaligned ||
+          (caps->velem_src_offset_unaligned && caps->buffer_stride_unaligned && caps->buffer_offset_unaligned));
    caps->user_vertex_buffers =
       screen->get_param(screen, PIPE_CAP_USER_VERTEX_BUFFERS);
    caps->max_vertex_buffers =
@@ -330,6 +339,7 @@ void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
 
    if (!caps->buffer_offset_unaligned ||
        !caps->buffer_stride_unaligned ||
+       !caps->attrib_component_unaligned ||
        !caps->velem_src_offset_unaligned)
       caps->fallback_always = true;
 
@@ -668,13 +678,14 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
                        const struct pipe_draw_info *info,
                        const struct pipe_draw_start_count_bias *draw,
                        int start_vertex, unsigned num_vertices,
-                       int min_index, boolean unroll_indices)
+                       int min_index, boolean unroll_indices,
+                       uint32_t misaligned)
 {
    unsigned mask[VB_NUM] = {0};
    struct translate_key key[VB_NUM];
    unsigned elem_index[VB_NUM][PIPE_MAX_ATTRIBS]; /* ... into key.elements */
    unsigned i, type;
-   const unsigned incompatible_vb_mask = mgr->incompatible_vb_mask &
+   const unsigned incompatible_vb_mask = (misaligned | mgr->incompatible_vb_mask) &
                                          mgr->ve->used_vb_mask;
 
    const int start[VB_NUM] = {
@@ -726,6 +737,7 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
       return FALSE;
    }
 
+   unsigned min_alignment[VB_NUM] = {0};
    /* Initialize the translate keys. */
    for (i = 0; i < mgr->ve->count; i++) {
       struct translate_key *k;
@@ -764,15 +776,25 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
       te->input_offset = mgr->ve->ve[i].src_offset;
       te->output_format = output_format;
       te->output_offset = k->output_stride;
+      unsigned adjustment = 0;
+      if (!mgr->caps.attrib_component_unaligned &&
+          te->output_offset % mgr->ve->component_size[i] != 0) {
+         unsigned aligned = align(te->output_offset, mgr->ve->component_size[i]);
+         adjustment = aligned - te->output_offset;
+         te->output_offset = aligned;
+      }
 
-      k->output_stride += mgr->ve->native_format_size[i];
+      k->output_stride += mgr->ve->native_format_size[i] + adjustment;
       k->nr_elements++;
+      min_alignment[type] = MAX2(min_alignment[type], mgr->ve->component_size[i]);
    }
 
    /* Translate buffers. */
    for (type = 0; type < VB_NUM; type++) {
       if (key[type].nr_elements) {
          enum pipe_error err;
+         if (!mgr->caps.attrib_component_unaligned)
+            key[type].output_stride = align(key[type].output_stride, min_alignment[type]);
          err = u_vbuf_translate_buffers(mgr, &key[type], info, draw,
                                         mask[type], mgr->fallback_vbs[type],
                                         start[type], num[type], min_index,
@@ -880,13 +902,27 @@ u_vbuf_create_vertex_elements(struct u_vbuf *mgr, unsigned count,
       ve->native_format_size[i] =
             util_format_get_blocksize(ve->native_format[i]);
 
+      const struct util_format_description *desc = util_format_description(format);
+      bool is_packed = false;
+      for (unsigned c = 0; c < desc->nr_channels; c++)
+         is_packed |= desc->channel[c].size != desc->channel[0].size || desc->channel[c].size % 8 != 0;
+      unsigned component_size = is_packed ?
+                                ve->native_format_size[i] : (ve->native_format_size[i] / desc->nr_channels);
+      ve->component_size[i] = component_size;
+
       if (ve->ve[i].src_format != format ||
           (!mgr->caps.velem_src_offset_unaligned &&
-           ve->ve[i].src_offset % 4 != 0)) {
+           ve->ve[i].src_offset % 4 != 0) ||
+          (!mgr->caps.attrib_component_unaligned &&
+           ve->ve[i].src_offset % component_size != 0)) {
          ve->incompatible_elem_mask |= 1 << i;
          ve->incompatible_vb_mask_any |= vb_index_bit;
       } else {
          ve->compatible_vb_mask_any |= vb_index_bit;
+         if (component_size == 2)
+            ve->vb_align_mask[0] |= vb_index_bit;
+         else if (component_size == 4)
+            ve->vb_align_mask[1] |= vb_index_bit;
       }
    }
 
@@ -958,6 +994,8 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
    mgr->incompatible_vb_mask &= mask;
    mgr->nonzero_stride_vb_mask &= mask;
    mgr->enabled_vb_mask &= mask;
+   mgr->unaligned_vb_mask[0] &= mask;
+   mgr->unaligned_vb_mask[1] &= mask;
 
    if (!bufs) {
       struct pipe_context *pipe = mgr->pipe;
@@ -1009,6 +1047,13 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
          pipe_vertex_buffer_unreference(real_vb);
          real_vb->is_user_buffer = false;
          continue;
+      }
+
+      if (!mgr->caps.attrib_component_unaligned) {
+         if (vb->buffer_offset % 2 != 0 || vb->stride % 2 != 0)
+            mgr->unaligned_vb_mask[0] |= BITFIELD_BIT(dst_index);
+         if (vb->buffer_offset % 4 != 0 || vb->stride % 4 != 0)
+            mgr->unaligned_vb_mask[1] |= BITFIELD_BIT(dst_index);
       }
 
       if (!mgr->caps.user_vertex_buffers && vb->is_user_buffer) {
@@ -1183,7 +1228,7 @@ u_vbuf_upload_buffers(struct u_vbuf *mgr,
    return PIPE_OK;
 }
 
-static boolean u_vbuf_need_minmax_index(const struct u_vbuf *mgr)
+static boolean u_vbuf_need_minmax_index(const struct u_vbuf *mgr, uint32_t misaligned)
 {
    /* See if there are any per-vertex attribs which will be uploaded or
     * translated. Use bitmasks to get the info instead of looping over vertex
@@ -1191,12 +1236,13 @@ static boolean u_vbuf_need_minmax_index(const struct u_vbuf *mgr)
    return (mgr->ve->used_vb_mask &
            ((mgr->user_vb_mask |
              mgr->incompatible_vb_mask |
+             misaligned |
              mgr->ve->incompatible_vb_mask_any) &
             mgr->ve->noninstance_vb_mask_any &
             mgr->nonzero_stride_vb_mask)) != 0;
 }
 
-static boolean u_vbuf_mapping_vertex_buffer_blocks(const struct u_vbuf *mgr)
+static boolean u_vbuf_mapping_vertex_buffer_blocks(const struct u_vbuf *mgr, uint32_t misaligned)
 {
    /* Return true if there are hw buffers which don't need to be translated.
     *
@@ -1205,6 +1251,7 @@ static boolean u_vbuf_mapping_vertex_buffer_blocks(const struct u_vbuf *mgr)
    return (mgr->ve->used_vb_mask &
            (~mgr->user_vb_mask &
             ~mgr->incompatible_vb_mask &
+            ~misaligned &
             mgr->ve->compatible_vb_mask_all &
             mgr->ve->noninstance_vb_mask_any &
             mgr->nonzero_stride_vb_mask)) != 0;
@@ -1390,11 +1437,18 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
    boolean unroll_indices = FALSE;
    const uint32_t used_vb_mask = mgr->ve->used_vb_mask;
    uint32_t user_vb_mask = mgr->user_vb_mask & used_vb_mask;
-   const uint32_t incompatible_vb_mask =
-      mgr->incompatible_vb_mask & used_vb_mask;
    struct pipe_draw_info new_info;
    struct pipe_draw_start_count_bias new_draw;
    unsigned fixed_restart_index = info->index_size ? util_prim_restart_index_from_size(info->index_size) : 0;
+
+   uint32_t misaligned = 0;
+   if (!mgr->caps.attrib_component_unaligned) {
+      for (unsigned i = 0; i < ARRAY_SIZE(mgr->unaligned_vb_mask); i++) {
+         misaligned |= mgr->ve->vb_align_mask[i] & mgr->unaligned_vb_mask[i];
+      }
+   }
+   const uint32_t incompatible_vb_mask =
+      (mgr->incompatible_vb_mask | misaligned) & used_vb_mask;
 
    /* Normal draw. No fallback and no user buffers. */
    if (!incompatible_vb_mask &&
@@ -1583,7 +1637,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
 
    if (new_info.index_size) {
       /* See if anything needs to be done for per-vertex attribs. */
-      if (u_vbuf_need_minmax_index(mgr)) {
+      if (u_vbuf_need_minmax_index(mgr, misaligned)) {
          unsigned max_index;
 
          if (new_info.index_bounds_valid) {
@@ -1606,7 +1660,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
          if (!indirect &&
              !new_info.primitive_restart &&
              util_is_vbo_upload_ratio_too_large(new_draw.count, num_vertices) &&
-             !u_vbuf_mapping_vertex_buffer_blocks(mgr)) {
+             !u_vbuf_mapping_vertex_buffer_blocks(mgr, misaligned)) {
             unroll_indices = TRUE;
             user_vb_mask &= ~(mgr->nonzero_stride_vb_mask &
                               mgr->ve->noninstance_vb_mask_any);
@@ -1629,7 +1683,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info,
        mgr->ve->incompatible_elem_mask) {
       if (!u_vbuf_translate_begin(mgr, &new_info, &new_draw,
                                   start_vertex, num_vertices,
-                                  min_index, unroll_indices)) {
+                                  min_index, unroll_indices, misaligned)) {
          debug_warn_once("u_vbuf_translate_begin() failed");
          goto cleanup;
       }

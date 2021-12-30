@@ -86,9 +86,13 @@ create_frag_input(struct ir3_context *ctx, struct ir3_instruction *coord,
    if (coord) {
       instr = ir3_BARY_F(block, inloc, 0, coord, 0);
    } else if (ctx->compiler->flat_bypass) {
-      instr = ir3_LDLV(block, inloc, 0, create_immed(block, 1), 0);
-      instr->cat6.type = TYPE_U32;
-      instr->cat6.iim_val = 1;
+      if (ctx->compiler->gen >= 6) {
+         instr = ir3_FLAT_B(block, inloc, 0, inloc, 0);
+      } else {
+         instr = ir3_LDLV(block, inloc, 0, create_immed(block, 1), 0);
+         instr->cat6.type = TYPE_U32;
+         instr->cat6.iim_val = 1;
+      }
    } else {
       instr = ir3_BARY_F(block, inloc, 0, ctx->ij[IJ_PERSP_PIXEL], 0);
       instr->srcs[1]->wrmask = 0x3;
@@ -1289,10 +1293,20 @@ static void
 emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
                           struct ir3_instruction **dst)
 {
-   /* Coherent accesses have to go directly to memory, rather than through
-    * ISAM's texture cache (which isn't coherent with image stores).
+   /* If the image can be written, must use LDIB to retrieve data, rather than
+    * through ISAM (which uses the texture cache and won't get previous writes).
     */
-   if (nir_intrinsic_access(intr) & ACCESS_COHERENT && ctx->compiler->gen >= 5) {
+   if (!(nir_intrinsic_access(intr) & ACCESS_NON_WRITEABLE) && ctx->compiler->gen >= 5) {
+      ctx->funcs->emit_intrinsic_load_image(ctx, intr, dst);
+      return;
+   }
+
+   /* The sparse set of texture descriptors for non-coherent load_images means we can't do indirection, so
+    * fall back to coherent load.
+    */
+   if (ctx->compiler->gen >= 5 &&
+       !ir3_bindless_resource(intr->src[0]) &&
+       !nir_src_is_const(intr->src[0])) {
       ctx->funcs->emit_intrinsic_load_image(ctx, intr, dst);
       return;
    }
@@ -1305,13 +1319,6 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    unsigned flags, ncoords = ir3_get_image_coords(intr, &flags);
    type_t type = ir3_get_type_for_image_intrinsic(intr);
 
-   /* hmm, this seems a bit odd, but it is what blob does and (at least
-    * a5xx) just faults on bogus addresses otherwise:
-    */
-   if (flags & IR3_INSTR_3D) {
-      flags &= ~IR3_INSTR_3D;
-      flags |= IR3_INSTR_A;
-   }
    info.flags |= flags;
 
    for (unsigned i = 0; i < ncoords; i++)
@@ -2103,6 +2110,12 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    case nir_intrinsic_load_work_dim:
       dst[0] = create_driver_param(ctx, IR3_DP_WORK_DIM);
       break;
+   case nir_intrinsic_load_subgroup_invocation:
+      assert(ctx->compiler->has_getfiberid);
+      dst[0] = ir3_GETFIBERID(b);
+      dst[0]->cat6.type = TYPE_U32;
+      __ssa_dst(dst[0]);
+      break;
    case nir_intrinsic_discard_if:
    case nir_intrinsic_discard:
    case nir_intrinsic_demote:
@@ -2234,6 +2247,41 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       break;
    }
 
+   case nir_intrinsic_quad_broadcast: {
+      struct ir3_instruction *src = ir3_get_src(ctx, &intr->src[0])[0];
+      struct ir3_instruction *idx = ir3_get_src(ctx, &intr->src[1])[0];
+
+      type_t dst_type = type_uint_size(nir_dest_bit_size(intr->dest));
+
+      if (dst_type != TYPE_U32)
+         idx = ir3_COV(ctx->block, idx, TYPE_U32, dst_type);
+
+      dst[0] = ir3_QUAD_SHUFFLE_BRCST(ctx->block, src, 0, idx, 0);
+      dst[0]->cat5.type = dst_type;
+      break;
+   }
+
+   case nir_intrinsic_quad_swap_horizontal: {
+      struct ir3_instruction *src = ir3_get_src(ctx, &intr->src[0])[0];
+      dst[0] = ir3_QUAD_SHUFFLE_HORIZ(ctx->block, src, 0);
+      dst[0]->cat5.type = type_uint_size(nir_dest_bit_size(intr->dest));
+      break;
+   }
+
+   case nir_intrinsic_quad_swap_vertical: {
+      struct ir3_instruction *src = ir3_get_src(ctx, &intr->src[0])[0];
+      dst[0] = ir3_QUAD_SHUFFLE_VERT(ctx->block, src, 0);
+      dst[0]->cat5.type = type_uint_size(nir_dest_bit_size(intr->dest));
+      break;
+   }
+
+   case nir_intrinsic_quad_swap_diagonal: {
+      struct ir3_instruction *src = ir3_get_src(ctx, &intr->src[0])[0];
+      dst[0] = ir3_QUAD_SHUFFLE_DIAG(ctx->block, src, 0);
+      dst[0]->cat5.type = type_uint_size(nir_dest_bit_size(intr->dest));
+      break;
+   }
+
    case nir_intrinsic_load_shared_ir3:
       emit_intrinsic_load_shared_ir3(ctx, intr, dst);
       break;
@@ -2243,6 +2291,20 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    case nir_intrinsic_bindless_resource_ir3:
       dst[0] = ir3_get_src(ctx, &intr->src[0])[0];
       break;
+   case nir_intrinsic_global_atomic_add_ir3:
+   case nir_intrinsic_global_atomic_imin_ir3:
+   case nir_intrinsic_global_atomic_umin_ir3:
+   case nir_intrinsic_global_atomic_imax_ir3:
+   case nir_intrinsic_global_atomic_umax_ir3:
+   case nir_intrinsic_global_atomic_and_ir3:
+   case nir_intrinsic_global_atomic_or_ir3:
+   case nir_intrinsic_global_atomic_xor_ir3:
+   case nir_intrinsic_global_atomic_exchange_ir3:
+   case nir_intrinsic_global_atomic_comp_swap_ir3: {
+      dst[0] = ctx->funcs->emit_intrinsic_atomic_global(ctx, intr);
+      break;
+   }
+
    default:
       ir3_context_error(ctx, "Unhandled intrinsic type: %s\n",
                         nir_intrinsic_infos[intr->intrinsic].name);
@@ -3544,7 +3606,6 @@ pack_inlocs(struct ir3_context *ctx)
     * Second Step: reassign varying inloc/slots:
     */
 
-   unsigned actual_in = 0;
    unsigned inloc = 0;
 
    /* for clip+cull distances, unused components can't be eliminated because
@@ -3553,10 +3614,7 @@ pack_inlocs(struct ir3_context *ctx)
     * use the NIR clip/cull distances to avoid reading ucp_enables in the
     * shader key.
     */
-   unsigned clip_cull_size =
-      ctx->so->shader->nir->info.clip_distance_array_size +
-      ctx->so->shader->nir->info.cull_distance_array_size;
-   unsigned clip_cull_mask = MASK(clip_cull_size);
+   unsigned clip_cull_mask = so->clip_mask | so->cull_mask;
 
    for (unsigned i = 0; i < so->inputs_count; i++) {
       unsigned compmask = 0, maxcomp = 0;
@@ -3578,7 +3636,6 @@ pack_inlocs(struct ir3_context *ctx)
             continue;
 
          compmask |= (1 << j);
-         actual_in++;
          maxcomp = j + 1;
 
          /* at this point, since used_components[i] mask is only
@@ -3703,7 +3760,7 @@ setup_output(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    }
 
    so->outputs_count = MAX2(so->outputs_count, n + 1);
-   compile_assert(ctx, so->outputs_count < ARRAY_SIZE(so->outputs));
+   compile_assert(ctx, so->outputs_count <= ARRAY_SIZE(so->outputs));
 
    so->outputs[n].slot = slot;
    if (io.per_view)
@@ -4049,7 +4106,7 @@ collect_tex_prefetches(struct ir3_context *ctx, struct ir3 *ir)
              */
             assert(fetch->dst <= 0x3f);
             assert(fetch->tex_id <= 0x1f);
-            assert(fetch->samp_id < 0xf);
+            assert(fetch->samp_id <= 0xf);
 
             ctx->so->total_in =
                MAX2(ctx->so->total_in, instr->prefetch.input_offset + 2);
@@ -4441,7 +4498,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 
    so->branchstack = ctx->max_stack;
 
-   /* Note that actual_in counts inputs that are not bary.f'd for FS: */
+   /* Note that max_bary counts inputs that are not bary.f'd for FS: */
    if (so->type == MESA_SHADER_FRAGMENT)
       so->total_in = max_bary + 1;
 

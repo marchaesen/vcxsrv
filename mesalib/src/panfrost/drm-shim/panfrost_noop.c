@@ -48,21 +48,18 @@ pan_ioctl_get_param(int fd, unsigned long request, void *arg)
       /* Other GPUs can be set using PAN_GPU_ID */
       gp->value = 0x860;
       return 0;
-   case DRM_PANFROST_PARAM_GPU_REVISION:
-      gp->value = 0;
-      return 0;
    case DRM_PANFROST_PARAM_SHADER_PRESENT:
       /* Assume an MP4 GPU */
       gp->value = 0xF;
       return 0;
-   case DRM_PANFROST_PARAM_TEXTURE_FEATURES0:
-      gp->value = 0;
-      return 0;
-   case DRM_PANFROST_PARAM_THREAD_TLS_ALLOC:
-      gp->value = 0;
-      return 0;
    case DRM_PANFROST_PARAM_TILER_FEATURES:
       gp->value = 0x809;
+      return 0;
+   case DRM_PANFROST_PARAM_GPU_REVISION:
+   case DRM_PANFROST_PARAM_TEXTURE_FEATURES0:
+   case DRM_PANFROST_PARAM_THREAD_TLS_ALLOC:
+   case DRM_PANFROST_PARAM_AFBC_FEATURES:
+      gp->value = 0;
       return 0;
    default:
       fprintf(stderr, "Unknown DRM_IOCTL_PANFROST_GET_PARAM %d\n", gp->param);

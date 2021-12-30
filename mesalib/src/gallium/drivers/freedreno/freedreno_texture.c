@@ -168,12 +168,30 @@ fd_setup_border_colors(struct fd_texture_stateobj *tex, void *ptr,
 
             const struct util_format_channel_description *chan =
                &desc->channel[desc->swizzle[j]];
+            uint8_t native = desc->swizzle[j];
+            /* Special cases:
+             *  - X24S8 is implemented with 8_8_8_8_UINT, so the 'native'
+             *    location is actually 0 rather than 1
+             *  - X32_S8X24_UINT has stencil with a secretly-S8_UINT resource
+             *    so again we want 0 rather than 1
+             *
+             * In both cases, there is only one non-void format, so we don't
+             * have to be too careful.
+             *
+             * Note that this only affects a4xx -- a3xx did not support
+             * stencil texturing, and a5xx+ don't use this helper.
+             */
+            if (tex->textures[i]->format == PIPE_FORMAT_X24S8_UINT ||
+                tex->textures[i]->format == PIPE_FORMAT_X32_S8X24_UINT) {
+               native = 0;
+            }
+
             if (chan->pure_integer) {
-               bcolor32[desc->swizzle[j] + 4] = sampler->border_color.i[j];
-               bcolor[desc->swizzle[j] + 8] = sampler->border_color.i[j];
+               bcolor32[native + 4] = sampler->border_color.i[j];
+               bcolor[native + 8] = sampler->border_color.i[j];
             } else {
-               bcolor32[desc->swizzle[j]] = fui(sampler->border_color.f[j]);
-               bcolor[desc->swizzle[j]] =
+               bcolor32[native] = fui(sampler->border_color.f[j]);
+               bcolor[native] =
                   _mesa_float_to_half(sampler->border_color.f[j]);
             }
          }

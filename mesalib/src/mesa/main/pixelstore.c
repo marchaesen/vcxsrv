@@ -34,6 +34,7 @@
 #include "pixelstore.h"
 #include "mtypes.h"
 #include "util/rounding.h"
+#include "api_exec_decl.h"
 
 
 static ALWAYS_INLINE void

@@ -4638,12 +4638,12 @@ shader-blocks:
       size: 2048
 	:0:0000:0000[00000000x_00003002x] nop
 	:0:0001:0001[00000000x_00000000x] nop
-	:6:0002:0002[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
-	:6:0003:0003[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
-	:6:0004:0004[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
-	:6:0005:0005[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
-	:6:0006:0006[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
-	:6:0007:0007[deadbeefx_deadbeefx] (sy)(jp)atomic.xor.typed.4d.u8.4.l r59.w, l[r45.z], 222	; dontcare bits in atomic.xor: 00000000000000ee, WARNING: unexpected bits[41:48] in #instruction-cat6-a3xx-atomic: 00000000000000df vs 0000000000000000, WARNING: unexpected bits[53:53] in #instruction-cat6-a3xx-atomic: 0000000000000001 vs 0000000000000000
+	:6:0002:0002[deadbeefx_deadbeefx] no match: deadbeefdeadbeef
+	:6:0003:0003[deadbeefx_deadbeefx] no match: deadbeefdeadbeef
+	:6:0004:0004[deadbeefx_deadbeefx] no match: deadbeefdeadbeef
+	:6:0005:0005[deadbeefx_deadbeefx] no match: deadbeefdeadbeef
+	:6:0006:0006[deadbeefx_deadbeefx] no match: deadbeefdeadbeef
+	:6:0007:0007[deadbeefx_deadbeefx] no match: deadbeefdeadbeef
 	-----------------------------------------------
 	8192 (0x2000) bytes
 	000000: 00003002 00000000 00000000 00000000	|.0..............|

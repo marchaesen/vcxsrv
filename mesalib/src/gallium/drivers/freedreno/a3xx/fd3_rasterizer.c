@@ -73,7 +73,7 @@ fd3_rasterizer_state_create(struct pipe_context *pctx,
       A3XX_GRAS_SU_POLY_OFFSET_OFFSET(cso->offset_units * 2.0f);
 
    so->gras_su_mode_control =
-      A3XX_GRAS_SU_MODE_CONTROL_LINEHALFWIDTH(cso->line_width / 2.0);
+      A3XX_GRAS_SU_MODE_CONTROL_LINEHALFWIDTH(cso->line_width / 2.0f);
 
    so->pc_prim_vtx_cntl = A3XX_PC_PRIM_VTX_CNTL_POLYMODE_FRONT_PTYPE(
                              fd_polygon_mode(cso->fill_front)) |

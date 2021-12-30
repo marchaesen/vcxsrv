@@ -166,18 +166,21 @@ dce_cf_list(struct exec_list *cf_list, BITSET_WORD *defs_live,
       case nir_cf_node_loop: {
          nir_loop *loop = nir_cf_node_as_loop(cf_node);
 
+         struct loop_state inner_state;
+         inner_state.preheader = nir_cf_node_as_block(nir_cf_node_prev(cf_node));
+         inner_state.header_phis_changed = false;
+
          /* Fast path if the loop has no continues: we can remove instructions
           * as we mark the others live.
           */
-         if (nir_loop_first_block(loop)->predecessors->entries == 1) {
+         struct set *predecessors = nir_loop_first_block(loop)->predecessors;
+         if (predecessors->entries == 1 &&
+             _mesa_set_next_entry(predecessors, NULL)->key == inner_state.preheader) {
             progress |= dce_cf_list(&loop->body, defs_live, parent_loop);
             break;
          }
 
          /* Mark instructions as live until there is no more progress. */
-         struct loop_state inner_state;
-         inner_state.preheader = nir_cf_node_as_block(nir_cf_node_prev(cf_node));
-         inner_state.header_phis_changed = false;
          do {
             /* dce_cf_list() resets inner_state.header_phis_changed itself, so
              * it doesn't have to be done here.

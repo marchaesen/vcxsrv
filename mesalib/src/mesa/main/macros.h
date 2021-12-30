@@ -689,13 +689,6 @@ INTERP_4F(GLfloat t, GLfloat dst[4], const GLfloat out[4], const GLfloat in[4])
 
 
 
-static inline unsigned
-minify(unsigned value, unsigned levels)
-{
-    return MAX2(1, value >> levels);
-}
-
-
 /** Cross product of two 3-element vectors */
 static inline void
 CROSS3(GLfloat n[3], const GLfloat u[3], const GLfloat v[3])

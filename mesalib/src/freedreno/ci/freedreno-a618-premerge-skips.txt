@@ -1,0 +1,9 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Timeouts, passes otherwise
+KHR-GL33.texture_swizzle.smoke
+
+# Crashes in RA, but slow enough to get there that CI times out sometimes
+dEQP-VK.spirv_assembly.instruction.*.spirv_ids_abuse.lots_ids.*

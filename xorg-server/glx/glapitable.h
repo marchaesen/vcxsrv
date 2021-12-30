@@ -1704,6 +1704,8 @@ struct _glapi_table
    void (GLAPIENTRYP VertexAttribs2hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1653 */
    void (GLAPIENTRYP VertexAttribs3hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1654 */
    void (GLAPIENTRYP VertexAttribs4hvNV)(GLuint index, GLsizei n, const GLhalfNV * v); /* 1655 */
+   void (GLAPIENTRYP TexPageCommitmentARB)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLboolean commit); /* 1656 */
+   void (GLAPIENTRYP TexturePageCommitmentEXT)(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLboolean commit); /* 1657 */
 };
 
 #ifdef __cplusplus

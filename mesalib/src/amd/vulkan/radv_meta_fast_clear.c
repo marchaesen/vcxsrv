@@ -39,13 +39,11 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
 {
    const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D, false, GLSL_TYPE_FLOAT);
 
-   nir_builder b =
-      nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "dcc_decompress_compute");
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_COMPUTE, "dcc_decompress_compute");
 
    /* We need at least 16/16/1 to cover an entire DCC block in a single workgroup. */
    b.shader->info.workgroup_size[0] = 16;
    b.shader->info.workgroup_size[1] = 16;
-   b.shader->info.workgroup_size[2] = 1;
    nir_variable *input_img = nir_variable_create(b.shader, nir_var_image, img_type, "in_img");
    input_img->data.descriptor_set = 0;
    input_img->data.binding = 0;
@@ -159,7 +157,7 @@ create_pass(struct radv_device *device)
 
    attachment.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
    attachment.pNext = NULL;
-   attachment.format = VK_FORMAT_UNDEFINED;
+   attachment.format = VK_FORMAT_R8_UNORM;
    attachment.samples = 1;
    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -610,13 +608,13 @@ radv_process_color_image_layer(struct radv_cmd_buffer *cmd_buffer, struct radv_i
 
    if (flush_cb)
       cmd_buffer->state.flush_bits |=
-         radv_dst_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, image);
+         radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, image);
 
    radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 
    if (flush_cb)
       cmd_buffer->state.flush_bits |=
-         radv_src_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, image);
+         radv_src_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, image);
 
    radv_cmd_buffer_end_render_pass(cmd_buffer);
 
@@ -807,7 +805,7 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer, struct radv_imag
    struct radv_device *device = cmd_buffer->device;
 
    cmd_buffer->state.flush_bits |=
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
+      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT_KHR, image);
 
    if (!cmd_buffer->device->meta_state.fast_clear_flush.cmask_eliminate_pipeline) {
       VkResult ret = radv_device_init_meta_fast_clear_flush_state_internal(cmd_buffer->device);
@@ -907,7 +905,7 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer, struct radv_imag
 
    cmd_buffer->state.flush_bits |=
       RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_SHADER_WRITE_BIT, image);
+      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT_KHR, image);
 
    /* Initialize the DCC metadata as "fully expanded". */
    cmd_buffer->state.flush_bits |= radv_init_dcc(cmd_buffer, image, subresourceRange, 0xffffffff);

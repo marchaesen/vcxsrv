@@ -39,6 +39,7 @@
 #include "main/samplerobj.h"
 #include "main/texturebindless.h"
 #include "util/u_memory.h"
+#include "api_exec_decl.h"
 
 /* Take advantage of how the enums are defined. */
 const enum pipe_tex_wrap wrap_to_gallium_table[32] = {
@@ -156,10 +157,7 @@ _mesa_init_sampler_object(struct gl_sampler_object *sampObj, GLuint name)
    _mesa_init_sampler_handles(sampObj);
 }
 
-/**
- * Fallback for ctx->Driver.NewSamplerObject();
- */
-struct gl_sampler_object *
+static struct gl_sampler_object *
 _mesa_new_sampler_object(struct gl_context *ctx, GLuint name)
 {
    struct gl_sampler_object *sampObj = CALLOC_STRUCT(gl_sampler_object);
@@ -186,7 +184,7 @@ create_samplers(struct gl_context *ctx, GLsizei count, GLuint *samplers,
    for (i = 0; i < count; i++) {
       struct gl_sampler_object *sampObj;
 
-      sampObj = ctx->Driver.NewSamplerObject(ctx, samplers[i]);
+      sampObj = _mesa_new_sampler_object(ctx, samplers[i]);
       if (!sampObj) {
          _mesa_HashUnlockMutex(ctx->Shared->SamplerObjects);
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
@@ -507,9 +505,8 @@ validate_texture_wrap_mode(struct gl_context *ctx, GLenum wrap)
    case GL_CLAMP_TO_EDGE:
    case GL_REPEAT:
    case GL_MIRRORED_REPEAT:
-      return GL_TRUE;
    case GL_CLAMP_TO_BORDER:
-      return e->ARB_texture_border_clamp;
+      return GL_TRUE;
    case GL_MIRROR_CLAMP_EXT:
       return e->ATI_texture_mirror_once || e->EXT_texture_mirror_clamp;
    case GL_MIRROR_CLAMP_TO_EDGE_EXT:
@@ -1551,8 +1548,6 @@ _mesa_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
       *params = lroundf(sampObj->Attrib.MaxAnisotropy);
       break;
    case GL_TEXTURE_BORDER_COLOR:
-      if (!ctx->Extensions.ARB_texture_border_clamp)
-         goto invalid_pname;
       params[0] = FLOAT_TO_INT(sampObj->Attrib.state.border_color.f[0]);
       params[1] = FLOAT_TO_INT(sampObj->Attrib.state.border_color.f[1]);
       params[2] = FLOAT_TO_INT(sampObj->Attrib.state.border_color.f[2]);
@@ -1816,11 +1811,4 @@ _mesa_GetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params)
 invalid_pname:
    _mesa_error(ctx, GL_INVALID_ENUM, "glGetSamplerParameterIuiv(pname=%s)",
                _mesa_enum_to_string(pname));
-}
-
-
-void
-_mesa_init_sampler_object_functions(struct dd_function_table *driver)
-{
-   driver->NewSamplerObject = _mesa_new_sampler_object;
 }

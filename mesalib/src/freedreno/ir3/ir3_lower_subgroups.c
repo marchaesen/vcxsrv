@@ -125,125 +125,141 @@ split_block(struct ir3 *ir, struct ir3_block *before_block,
 }
 
 static bool
+lower_instr(struct ir3 *ir, struct ir3_block **block, struct ir3_instruction *instr)
+{
+   switch (instr->opc) {
+   case OPC_BALLOT_MACRO:
+   case OPC_ANY_MACRO:
+   case OPC_ALL_MACRO:
+   case OPC_ELECT_MACRO:
+   case OPC_READ_COND_MACRO:
+   case OPC_READ_FIRST_MACRO:
+   case OPC_SWZ_SHARED_MACRO:
+      break;
+   default:
+      return false;
+   }
+
+   struct ir3_block *before_block = *block;
+   struct ir3_block *then_block;
+   struct ir3_block *after_block =
+      split_block(ir, before_block, instr, &then_block);
+
+   /* For ballot, the destination must be initialized to 0 before we do
+    * the movmsk because the condition may be 0 and then the movmsk will
+    * be skipped. Because it's a shared register we have to wrap the
+    * initialization in a getone block.
+    */
+   if (instr->opc == OPC_BALLOT_MACRO) {
+      before_block->brtype = IR3_BRANCH_GETONE;
+      before_block->condition = NULL;
+      mov_immed(instr->dsts[0], then_block, 0);
+      before_block = after_block;
+      after_block = split_block(ir, before_block, instr, &then_block);
+   }
+
+   switch (instr->opc) {
+   case OPC_BALLOT_MACRO:
+   case OPC_READ_COND_MACRO:
+   case OPC_ANY_MACRO:
+   case OPC_ALL_MACRO:
+      before_block->condition = instr->srcs[0]->def->instr;
+      break;
+   default:
+      before_block->condition = NULL;
+      break;
+   }
+
+   switch (instr->opc) {
+   case OPC_BALLOT_MACRO:
+   case OPC_READ_COND_MACRO:
+      before_block->brtype = IR3_BRANCH_COND;
+      break;
+   case OPC_ANY_MACRO:
+      before_block->brtype = IR3_BRANCH_ANY;
+      break;
+   case OPC_ALL_MACRO:
+      before_block->brtype = IR3_BRANCH_ALL;
+      break;
+   case OPC_ELECT_MACRO:
+   case OPC_READ_FIRST_MACRO:
+   case OPC_SWZ_SHARED_MACRO:
+      before_block->brtype = IR3_BRANCH_GETONE;
+      break;
+   default:
+      unreachable("bad opcode");
+   }
+
+   switch (instr->opc) {
+   case OPC_ALL_MACRO:
+   case OPC_ANY_MACRO:
+   case OPC_ELECT_MACRO:
+      mov_immed(instr->dsts[0], then_block, 1);
+      mov_immed(instr->dsts[0], before_block, 0);
+      break;
+
+   case OPC_BALLOT_MACRO: {
+      unsigned comp_count = util_last_bit(instr->dsts[0]->wrmask);
+      struct ir3_instruction *movmsk =
+         ir3_instr_create(then_block, OPC_MOVMSK, 1, 0);
+      ir3_dst_create(movmsk, instr->dsts[0]->num, instr->dsts[0]->flags);
+      movmsk->repeat = comp_count - 1;
+      break;
+   }
+
+   case OPC_READ_COND_MACRO:
+   case OPC_READ_FIRST_MACRO: {
+      struct ir3_instruction *mov =
+         ir3_instr_create(then_block, OPC_MOV, 1, 1);
+      unsigned src = instr->opc == OPC_READ_COND_MACRO ? 1 : 0;
+      ir3_dst_create(mov, instr->dsts[0]->num, instr->dsts[0]->flags);
+      struct ir3_register *new_src = ir3_src_create(mov, 0, 0);
+      *new_src = *instr->srcs[src];
+      mov->cat1.dst_type = TYPE_U32;
+      mov->cat1.src_type =
+         (new_src->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32;
+      break;
+   }
+
+   case OPC_SWZ_SHARED_MACRO: {
+      struct ir3_instruction *swz =
+         ir3_instr_create(then_block, OPC_SWZ, 2, 2);
+      ir3_dst_create(swz, instr->dsts[0]->num, instr->dsts[0]->flags);
+      ir3_dst_create(swz, instr->dsts[1]->num, instr->dsts[1]->flags);
+      ir3_src_create(swz, instr->srcs[0]->num, instr->srcs[0]->flags);
+      ir3_src_create(swz, instr->srcs[1]->num, instr->srcs[1]->flags);
+      swz->cat1.dst_type = swz->cat1.src_type = TYPE_U32;
+      swz->repeat = 1;
+      break;
+   }
+
+   default:
+      unreachable("bad opcode");
+   }
+
+   *block = after_block;
+   list_delinit(&instr->node);
+   return true;
+}
+
+static bool
 lower_block(struct ir3 *ir, struct ir3_block **block)
 {
-   bool progress = false;
+   bool progress = true;
 
-   foreach_instr_safe (instr, &(*block)->instr_list) {
-      switch (instr->opc) {
-      case OPC_BALLOT_MACRO:
-      case OPC_ANY_MACRO:
-      case OPC_ALL_MACRO:
-      case OPC_ELECT_MACRO:
-      case OPC_READ_COND_MACRO:
-      case OPC_READ_FIRST_MACRO:
-      case OPC_SWZ_SHARED_MACRO:
-         break;
-      default:
-         continue;
+   bool inner_progress;
+   do {
+      inner_progress = false;
+      foreach_instr (instr, &(*block)->instr_list) {
+         if (lower_instr(ir, block, instr)) {
+            /* restart the loop with the new block we created because the
+             * iterator has been invalidated.
+             */
+            progress = inner_progress = true;
+            break;
+         }
       }
-
-      struct ir3_block *before_block = *block;
-      struct ir3_block *then_block;
-      struct ir3_block *after_block =
-         split_block(ir, before_block, instr, &then_block);
-
-      /* For ballot, the destination must be initialized to 0 before we do
-       * the movmsk because the condition may be 0 and then the movmsk will
-       * be skipped. Because it's a shared register we have to wrap the
-       * initialization in a getone block.
-       */
-      if (instr->opc == OPC_BALLOT_MACRO) {
-         before_block->brtype = IR3_BRANCH_GETONE;
-         before_block->condition = NULL;
-         mov_immed(instr->dsts[0], then_block, 0);
-         before_block = after_block;
-         after_block = split_block(ir, before_block, instr, &then_block);
-      }
-
-      switch (instr->opc) {
-      case OPC_BALLOT_MACRO:
-      case OPC_READ_COND_MACRO:
-      case OPC_ANY_MACRO:
-      case OPC_ALL_MACRO:
-         before_block->condition = instr->srcs[0]->def->instr;
-         break;
-      default:
-         before_block->condition = NULL;
-         break;
-      }
-
-      switch (instr->opc) {
-      case OPC_BALLOT_MACRO:
-      case OPC_READ_COND_MACRO:
-         before_block->brtype = IR3_BRANCH_COND;
-         break;
-      case OPC_ANY_MACRO:
-         before_block->brtype = IR3_BRANCH_ANY;
-         break;
-      case OPC_ALL_MACRO:
-         before_block->brtype = IR3_BRANCH_ALL;
-         break;
-      case OPC_ELECT_MACRO:
-      case OPC_READ_FIRST_MACRO:
-      case OPC_SWZ_SHARED_MACRO:
-         before_block->brtype = IR3_BRANCH_GETONE;
-         break;
-      default:
-         unreachable("bad opcode");
-      }
-
-      switch (instr->opc) {
-      case OPC_ALL_MACRO:
-      case OPC_ANY_MACRO:
-      case OPC_ELECT_MACRO:
-         mov_immed(instr->dsts[0], then_block, 1);
-         mov_immed(instr->dsts[0], before_block, 0);
-         break;
-
-      case OPC_BALLOT_MACRO: {
-         unsigned comp_count = util_last_bit(instr->dsts[0]->wrmask);
-         struct ir3_instruction *movmsk =
-            ir3_instr_create(then_block, OPC_MOVMSK, 1, 0);
-         ir3_dst_create(movmsk, instr->dsts[0]->num, instr->dsts[0]->flags);
-         movmsk->repeat = comp_count - 1;
-         break;
-      }
-
-      case OPC_READ_COND_MACRO:
-      case OPC_READ_FIRST_MACRO: {
-         struct ir3_instruction *mov =
-            ir3_instr_create(then_block, OPC_MOV, 1, 1);
-         unsigned src = instr->opc == OPC_READ_COND_MACRO ? 1 : 0;
-         ir3_dst_create(mov, instr->dsts[0]->num, instr->dsts[0]->flags);
-         struct ir3_register *new_src = ir3_src_create(mov, 0, 0);
-         *new_src = *instr->srcs[src];
-         mov->cat1.dst_type = TYPE_U32;
-         mov->cat1.src_type =
-            (new_src->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32;
-         break;
-      }
-
-      case OPC_SWZ_SHARED_MACRO: {
-         struct ir3_instruction *swz =
-            ir3_instr_create(then_block, OPC_SWZ, 2, 2);
-         ir3_dst_create(swz, instr->dsts[0]->num, instr->dsts[0]->flags);
-         ir3_dst_create(swz, instr->dsts[1]->num, instr->dsts[1]->flags);
-         ir3_src_create(swz, instr->srcs[0]->num, instr->srcs[0]->flags);
-         ir3_src_create(swz, instr->srcs[1]->num, instr->srcs[1]->flags);
-         swz->cat1.dst_type = swz->cat1.src_type = TYPE_U32;
-         swz->repeat = 1;
-         break;
-      }
-
-      default:
-         unreachable("bad opcode");
-      }
-
-      *block = after_block;
-      list_delinit(&instr->node);
-      progress = true;
-   }
+   } while (inner_progress);
 
    return progress;
 }

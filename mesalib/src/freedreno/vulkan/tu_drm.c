@@ -950,7 +950,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
       }
    }
 
-   bool u_trace_enabled = u_trace_context_tracing(&queue->device->trace_context);
+   bool u_trace_enabled = u_trace_context_actively_tracing(&queue->device->trace_context);
    bool has_trace_points = false;
 
    uint32_t entry_count = 0;

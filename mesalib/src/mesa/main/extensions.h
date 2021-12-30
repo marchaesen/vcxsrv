@@ -45,9 +45,7 @@ extern "C" {
 struct gl_context;
 struct gl_extensions;
 
-extern void _mesa_enable_sw_extensions(struct gl_context *ctx);
-
-extern void _mesa_one_time_init_extension_overrides(void);
+extern void _mesa_one_time_init_extension_overrides(const char *override);
 
 extern void _mesa_init_extensions(struct gl_extensions *extentions);
 

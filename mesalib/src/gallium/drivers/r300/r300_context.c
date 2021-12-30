@@ -368,6 +368,18 @@ static void r300_init_states(struct pipe_context *pipe)
     }
 }
 
+static void
+r300_set_debug_callback(struct pipe_context *context,
+                        const struct pipe_debug_callback *cb)
+{
+    struct r300_context *r300 = r300_context(context);
+
+    if (cb)
+        r300->debug = *cb;
+    else
+        memset(&r300->debug, 0, sizeof(r300->debug));
+}
+
 struct pipe_context* r300_create_context(struct pipe_screen* screen,
                                          void *priv, unsigned flags)
 {
@@ -383,6 +395,7 @@ struct pipe_context* r300_create_context(struct pipe_screen* screen,
 
     r300->context.screen = screen;
     r300->context.priv = priv;
+    r300->context.set_debug_callback = r300_set_debug_callback;
 
     r300->context.destroy = r300_destroy_context;
 

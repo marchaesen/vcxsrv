@@ -2,6 +2,9 @@
 
 set -ex
 
+# Needed so configuration files can contain paths to files in /install
+ln -sf $CI_PROJECT_DIR/install /install
+
 if [ -z "$GPU_VERSION" ]; then
    echo 'GPU_VERSION must be set to something like "llvmpipe" or "freedreno-a630" (the name used in .gitlab-ci/gpu-version-*.txt)'
    exit 1
@@ -133,7 +136,6 @@ if [ "$GALLIUM_DRIVER" = "virpipe" ]; then
     fi
 
     GALLIUM_DRIVER=llvmpipe \
-    GALLIVM_PERF="nopt" \
     virgl_test_server $VTEST_ARGS >$RESULTS/vtest-log.txt 2>&1 &
 
     sleep 1

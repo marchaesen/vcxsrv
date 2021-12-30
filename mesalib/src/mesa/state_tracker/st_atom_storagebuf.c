@@ -35,7 +35,6 @@
 #include "util/u_surface.h"
 
 #include "st_debug.h"
-#include "st_cb_bufferobjects.h"
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_program.h"
@@ -51,12 +50,12 @@ st_bind_ssbos(struct st_context *st, struct gl_program *prog,
 
    for (i = 0; i < prog->info.num_ssbos; i++) {
       struct gl_buffer_binding *binding;
-      struct st_buffer_object *st_obj;
+      struct gl_buffer_object *st_obj;
       struct pipe_shader_buffer *sb = &buffers[i];
 
       binding = &st->ctx->ShaderStorageBufferBindings[
             prog->sh.ShaderStorageBlocks[i]->Binding];
-      st_obj = st_buffer_object(binding->BufferObject);
+      st_obj = binding->BufferObject;
 
       sb->buffer = st_obj ? st_obj->buffer : NULL;
 

@@ -36,13 +36,8 @@
 
 enum a6xx_tex_swiz fd6_pipe2swiz(unsigned swiz);
 
-void fd6_tex_swiz(enum pipe_format format, enum a6xx_tile_mode tile_mode, unsigned char *swiz,
+void fd6_tex_swiz(enum pipe_format format, unsigned char *swiz,
                   unsigned swizzle_r, unsigned swizzle_g, unsigned swizzle_b,
                   unsigned swizzle_a);
-
-uint32_t fd6_tex_const_0(struct pipe_resource *prsc, unsigned level,
-                         enum pipe_format format, unsigned swizzle_r,
-                         unsigned swizzle_g, unsigned swizzle_b,
-                         unsigned swizzle_a);
 
 #endif /* FD6_UTIL_H_ */

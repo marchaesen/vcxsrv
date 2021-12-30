@@ -176,7 +176,10 @@ blit_native(struct zink_context *ctx, const struct pipe_blit_info *info)
    region.srcOffsets[1].x = info->src.box.x + info->src.box.width;
    region.srcOffsets[1].y = info->src.box.y + info->src.box.height;
 
-   switch (src->base.b.target) {
+   enum pipe_texture_target src_target = src->base.b.target;
+   if (src->need_2D_zs)
+      src_target = src_target == PIPE_TEXTURE_1D ? PIPE_TEXTURE_2D : PIPE_TEXTURE_2D_ARRAY;
+   switch (src_target) {
    case PIPE_TEXTURE_CUBE:
    case PIPE_TEXTURE_CUBE_ARRAY:
    case PIPE_TEXTURE_2D_ARRAY:
@@ -211,7 +214,10 @@ blit_native(struct zink_context *ctx, const struct pipe_blit_info *info)
    assert(region.dstOffsets[0].x != region.dstOffsets[1].x);
    assert(region.dstOffsets[0].y != region.dstOffsets[1].y);
 
-   switch (dst->base.b.target) {
+   enum pipe_texture_target dst_target = dst->base.b.target;
+   if (dst->need_2D_zs)
+      dst_target = dst_target == PIPE_TEXTURE_1D ? PIPE_TEXTURE_2D : PIPE_TEXTURE_2D_ARRAY;
+   switch (dst_target) {
    case PIPE_TEXTURE_CUBE:
    case PIPE_TEXTURE_CUBE_ARRAY:
    case PIPE_TEXTURE_2D_ARRAY:
@@ -285,7 +291,7 @@ zink_blit(struct pipe_context *pctx,
           !ctx->render_condition_active)
          new_info.render_condition_enable = false;
 
-      if (util_try_blit_via_copy_region(pctx, &new_info))
+      if (util_try_blit_via_copy_region(pctx, &new_info, ctx->render_condition_active))
          return;
    }
 
@@ -329,7 +335,7 @@ zink_blit_begin(struct zink_context *ctx, enum zink_blit_flags flags)
       util_blitter_save_blend(ctx->blitter, ctx->gfx_pipeline_state.blend_state);
       util_blitter_save_depth_stencil_alpha(ctx->blitter, ctx->dsa_state);
       util_blitter_save_stencil_ref(ctx->blitter, &ctx->stencil_ref);
-      util_blitter_save_sample_mask(ctx->blitter, ctx->gfx_pipeline_state.sample_mask);
+      util_blitter_save_sample_mask(ctx->blitter, ctx->gfx_pipeline_state.sample_mask, 0);
       util_blitter_save_scissor(ctx->blitter, ctx->vp_state.scissor_states);
       /* also util_blitter_save_window_rectangles when we have that? */
 

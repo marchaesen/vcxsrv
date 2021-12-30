@@ -2515,8 +2515,8 @@ SwapCreateRegister(ClientPtr client, xRecordRegisterClientsReq * stuff)
         swapl(pClientID);
     }
     if (stuff->nRanges >
-        client->req_len - bytes_to_int32(sz_xRecordRegisterClientsReq)
-        - stuff->nClients)
+        (client->req_len - bytes_to_int32(sz_xRecordRegisterClientsReq)
+        - stuff->nClients) / bytes_to_int32(sz_xRecordRange))
         return BadLength;
     RecordSwapRanges((xRecordRange *) pClientID, stuff->nRanges);
     return Success;

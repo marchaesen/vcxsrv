@@ -26,7 +26,7 @@ gcc-core,\
 meson,\
 ninja,\
 pkg-config,\
-python3,\
+python38,\
 windowsdriproto,\
 xorgproto,\
 libepoxy-devel,\
@@ -58,10 +58,11 @@ libxcb-render-util-devel,\
 libxcb-shape-devel,\
 libxcb-util-devel,\
 libxcb-xkb-devel,\
+libxcvt-devel,\
 libxkbfile-devel,\
 font-util,\
 khronos-opengl-registry,\
-python3-lxml,\
+python38-lxml,\
 xkbcomp-devel,\
 xkeyboard-config,\
 xtrans"
@@ -72,7 +73,7 @@ cache:
 - '%CYGWIN_ROOT%\home\%USERNAME%\.ccache'
 build_script:
 - SET PATH=%CYGWIN_ROOT%/bin
-- '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; meson setup --prefix=/usr -Dxv=false -Dxf86bigfont=true -Dxephyr=true -Dxnest=true -Dxvfb=true -Dxwin=true -Dxorg=true -Dhal=false -Dudev=false -Dpciaccess=false -Dint10=false build"'
+- '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; meson setup --prefix=/usr -Dxv=false -Dxf86bigfont=true -Dxephyr=true -Dxnest=true -Dxvfb=true -Dxwin=true -Dxorg=true -Dpciaccess=false -Dint10=false -Dglamor=false build"'
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; meson configure build"'
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; ninja -C build"'
 - '%CYGWIN_ROOT%/bin/bash -lc "cd $APPVEYOR_BUILD_FOLDER; ccache -s"'

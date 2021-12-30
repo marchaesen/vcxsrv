@@ -135,6 +135,9 @@ struct pb_slabs
 };
 
 struct pb_slab_entry *
+pb_slab_alloc_reclaimed(struct pb_slabs *slabs, unsigned size, unsigned heap, bool reclaim_all);
+
+struct pb_slab_entry *
 pb_slab_alloc(struct pb_slabs *slabs, unsigned size, unsigned heap);
 
 void

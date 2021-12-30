@@ -28,7 +28,7 @@
 
 #define SI_MAX_SCISSOR 16384
 
-void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small_prim_cull_info *out)
+static void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small_prim_cull_info *out)
 {
    /* This is needed by the small primitive culling, because it's done
     * in screen space.
@@ -45,6 +45,15 @@ void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small_prim_c
    /* The viewport shouldn't flip the X axis for the small prim culling to work. */
    assert(-info.scale[0] + info.translate[0] <= info.scale[0] + info.translate[0]);
 
+   /* Compute the line width used by the rasterizer. */
+   float line_width = sctx->queued.named.rasterizer->line_width;
+   if (num_samples == 1)
+      line_width = roundf(line_width);
+   line_width = MAX2(line_width, 1);
+
+   info.clip_half_line_width[0] = line_width * 0.5 / fabs(info.scale[0]);
+   info.clip_half_line_width[1] = line_width * 0.5 / fabs(info.scale[1]);
+
    /* If the Y axis is inverted (OpenGL default framebuffer), reverse it.
     * This is because the viewport transformation inverts the clip space
     * bounding box, so min becomes max, which breaks small primitive
@@ -54,6 +63,15 @@ void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small_prim_c
       info.scale[1] = -info.scale[1];
       info.translate[1] = -info.translate[1];
    }
+
+   /* This is what the hardware does. */
+   if (!sctx->queued.named.rasterizer->half_pixel_center) {
+      info.translate[0] += 0.5;
+      info.translate[1] += 0.5;
+   }
+
+   memcpy(info.scale_no_aa, info.scale, sizeof(info.scale));
+   memcpy(info.translate_no_aa, info.translate, sizeof(info.translate));
 
    /* Scale the framebuffer up, so that samples become pixels and small
     * primitive culling is the same for all sample counts.
@@ -72,11 +90,13 @@ void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small_prim_c
    unsigned quant_mode = sctx->viewports.as_scissor[0].quant_mode;
 
    if (quant_mode == SI_QUANT_MODE_12_12_FIXED_POINT_1_4096TH)
-      info.small_prim_precision = num_samples / 4096.0;
+      info.small_prim_precision_no_aa = 1.0 / 4096.0;
    else if (quant_mode == SI_QUANT_MODE_14_10_FIXED_POINT_1_1024TH)
-      info.small_prim_precision = num_samples / 1024.0;
+      info.small_prim_precision_no_aa = 1.0 / 1024.0;
    else
-      info.small_prim_precision = num_samples / 256.0;
+      info.small_prim_precision_no_aa = 1.0 / 256.0;
+
+   info.small_prim_precision = num_samples * info.small_prim_precision_no_aa;
 
    *out = info;
 }
@@ -85,6 +105,7 @@ static void si_emit_cull_state(struct si_context *sctx)
 {
    assert(sctx->screen->use_ngg_culling);
 
+   const unsigned upload_size = offsetof(struct si_small_prim_cull_info, small_prim_precision);
    struct si_small_prim_cull_info info;
    si_get_small_prim_cull_info(sctx, &info);
 
@@ -92,8 +113,8 @@ static void si_emit_cull_state(struct si_context *sctx)
        memcmp(&info, &sctx->last_small_prim_cull_info, sizeof(info))) {
       unsigned offset = 0;
 
-      /* Align to 256, because the address is shifted by 8 bits. */
-      u_upload_data(sctx->b.const_uploader, 0, sizeof(info), 256, &info, &offset,
+      u_upload_data(sctx->b.const_uploader, 0, upload_size,
+                    si_optimal_tcc_alignment(sctx, upload_size), &info, &offset,
                     (struct pipe_resource **)&sctx->small_prim_cull_info_buf);
 
       sctx->small_prim_cull_info_address = sctx->small_prim_cull_info_buf->gpu_address + offset;
@@ -104,8 +125,8 @@ static void si_emit_cull_state(struct si_context *sctx)
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->small_prim_cull_info_buf,
                              RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER);
    radeon_begin(&sctx->gfx_cs);
-   radeon_set_sh_reg(R_00B220_SPI_SHADER_PGM_LO_GS,
-                     sctx->small_prim_cull_info_address >> 8);
+   radeon_set_sh_reg(R_00B230_SPI_SHADER_USER_DATA_GS_0 + GFX9_SGPR_SMALL_PRIM_CULL_INFO * 4,
+                     sctx->small_prim_cull_info_address);
    radeon_end();
 
    /* Set VS_STATE.SMALL_PRIM_PRECISION for NGG culling.

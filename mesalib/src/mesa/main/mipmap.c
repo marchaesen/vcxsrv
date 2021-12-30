@@ -42,6 +42,7 @@
 #include "util/format_rgb9e5.h"
 #include "util/format_r11g11b10f.h"
 
+#include "state_tracker/st_cb_texture.h"
 
 /**
  * Compute the expected number of mipmap levels in the texture given
@@ -1720,7 +1721,7 @@ make_3d_mipmap(GLenum datatype, GLuint comps, GLint border,
  * \param srcRowStride  stride between source rows, in bytes
  * \param dstRowStride  stride between destination rows, in bytes
  */
-void
+static void
 _mesa_generate_mipmap_level(GLenum target,
                             GLenum datatype, GLuint comps,
                             GLint border,
@@ -1880,13 +1881,13 @@ prepare_mipmap_level(struct gl_context *ctx,
           dstImage->InternalFormat != intFormat ||
           dstImage->TexFormat != format) {
          /* need to (re)allocate image */
-         ctx->Driver.FreeTextureImageBuffer(ctx, dstImage);
+         st_FreeTextureImageBuffer(ctx, dstImage);
 
          _mesa_init_teximage_fields(ctx, dstImage,
                                     width, height, depth,
                                     border, intFormat, format);
 
-         ctx->Driver.AllocTextureImageBuffer(ctx, dstImage);
+         st_AllocTextureImageBuffer(ctx, dstImage);
 
          /* in case the mipmap level is part of an FBO: */
          _mesa_update_fbo_texture(ctx, texObj, face, level);
@@ -1998,10 +1999,10 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
       srcMaps = calloc(srcDepth, sizeof(GLubyte *));
       if (srcMaps) {
          for (slice = 0; slice < srcDepth; slice++) {
-            ctx->Driver.MapTextureImage(ctx, srcImage, slice,
-                                        0, 0, srcWidth, srcHeight,
-                                        GL_MAP_READ_BIT,
-                                        &srcMaps[slice], &srcRowStride);
+            st_MapTextureImage(ctx, srcImage, slice,
+                               0, 0, srcWidth, srcHeight,
+                               GL_MAP_READ_BIT,
+                               &srcMaps[slice], &srcRowStride);
             if (!srcMaps[slice]) {
                success = GL_FALSE;
                break;
@@ -2016,10 +2017,10 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
       dstMaps = calloc(dstDepth, sizeof(GLubyte *));
       if (dstMaps) {
          for (slice = 0; slice < dstDepth; slice++) {
-            ctx->Driver.MapTextureImage(ctx, dstImage, slice,
-                                        0, 0, dstWidth, dstHeight,
-                                        GL_MAP_WRITE_BIT,
-                                        &dstMaps[slice], &dstRowStride);
+            st_MapTextureImage(ctx, dstImage, slice,
+                               0, 0, dstWidth, dstHeight,
+                               GL_MAP_WRITE_BIT,
+                               &dstMaps[slice], &dstRowStride);
             if (!dstMaps[slice]) {
                success = GL_FALSE;
                break;
@@ -2043,7 +2044,7 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
       if (srcMaps) {
          for (slice = 0; slice < srcDepth; slice++) {
             if (srcMaps[slice]) {
-               ctx->Driver.UnmapTextureImage(ctx, srcImage, slice);
+               st_UnmapTextureImage(ctx, srcImage, slice);
             }
          }
          free(srcMaps);
@@ -2053,7 +2054,7 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
       if (dstMaps) {
          for (slice = 0; slice < dstDepth; slice++) {
             if (dstMaps[slice]) {
-               ctx->Driver.UnmapTextureImage(ctx, dstImage, slice);
+               st_UnmapTextureImage(ctx, dstImage, slice);
             }
          }
          free(dstMaps);
@@ -2136,12 +2137,12 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
 
       /* Get the uncompressed image */
       assert(srcImage->Level == texObj->Attrib.BaseLevel);
-      ctx->Driver.GetTexSubImage(ctx,
-                                 0, 0, 0,
-                                 srcImage->Width, srcImage->Height,
-                                 srcImage->Depth,
-                                 temp_base_format, temp_datatype,
-                                 temp_src, srcImage);
+      st_GetTexSubImage(ctx,
+                        0, 0, 0,
+                        srcImage->Width, srcImage->Height,
+                        srcImage->Depth,
+                        temp_base_format, temp_datatype,
+                        temp_src, srcImage);
       /* restore packing mode */
       ctx->Pack = save;
    }
@@ -2204,10 +2205,10 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
                                   temp_dst_slices, temp_dst_row_stride);
 
       /* The image space was allocated above so use glTexSubImage now */
-      ctx->Driver.TexSubImage(ctx, 2, dstImage,
-                              0, 0, 0, dstWidth, dstHeight, dstDepth,
-                              temp_base_format, temp_datatype,
-                              temp_dst, &ctx->DefaultPacking);
+      st_TexSubImage(ctx, 2, dstImage,
+                     0, 0, 0, dstWidth, dstHeight, dstDepth,
+                     temp_base_format, temp_datatype,
+                     temp_dst, &ctx->DefaultPacking);
 
       /* swap src and dest pointers */
       {
@@ -2228,7 +2229,7 @@ end:
 
 /**
  * Automatic mipmap generation.
- * This is the fallback/default function for ctx->Driver.GenerateMipmap().
+ * This is the fallback/default function for mipmap generation.
  * Generate a complete set of mipmaps from texObj's BaseLevel image.
  * Stop at texObj's MaxLevel or when we get to the 1x1 texture.
  * For cube maps, target will be one of

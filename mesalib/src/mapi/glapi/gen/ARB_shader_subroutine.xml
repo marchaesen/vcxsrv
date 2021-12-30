@@ -47,7 +47,7 @@
         <param name="name" type="GLchar *" output="true"/>
     </function>
 
-    <function name="UniformSubroutinesuiv">
+    <function name="UniformSubroutinesuiv" exec="dlist">
         <param name="shadertype" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="indices" type="const GLuint *" count="count"/>

@@ -5,8 +5,7 @@
     - .use-debian/arm_test
   variables:
     BM_BOOTFS: /boot/raspberrypi_armhf
-    BM_ROOTFS: /rootfs-armhf
-    GPU_VERSION: vc4-rpi3
+    GPU_VERSION: broadcom-rpi3
     HWCI_KERNEL_MODULES: vc4
     FLAKES_CHANNEL: "#videocore-ci"
   script:
@@ -24,7 +23,7 @@ vc4-rpi3-gles:armhf:
   parallel: 2
   variables:
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
-    DEQP_SUITE: vc4-rpi3-gles
+    DEQP_SUITE: broadcom-rpi3
 
 vc4-rpi3-egl:armhf:
   extends:
@@ -71,9 +70,8 @@ vc4-rpi3-piglit-quick_shader:armhf:
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     BM_BOOTFS: /boot/raspberrypi_armhf
     BM_POE_TIMEOUT: 300
-    BM_ROOTFS: /rootfs-armhf
     FLAKES_CHANNEL: "#videocore-ci"
-    GPU_VERSION: v3d-rpi4
+    GPU_VERSION: broadcom-rpi4
     HWCI_KERNEL_MODULES: v3d,vc4
   script:
     - ./install/bare-metal/poe-powered.sh
@@ -88,7 +86,7 @@ v3d-rpi4-gles:armhf:
     - .v3d-rpi4-test:armhf
   parallel: 8
   variables:
-    DEQP_SUITE: v3d-rpi4-gles
+    DEQP_SUITE: broadcom-rpi4
 
 v3d-rpi4-egl:armhf:
   extends:
@@ -110,7 +108,7 @@ v3d-rpi4-piglit:armhf:
 
 v3dv-rpi4-vk:arm64:
   extends:
-    - .baremetal-test
+    - .baremetal-test-arm64
     - .use-debian/arm_test
     - .v3dv-rules
   parallel: 8
@@ -118,14 +116,12 @@ v3dv-rpi4-vk:arm64:
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     BM_BOOTFS: /boot/raspberrypi_arm64
     BM_POE_TIMEOUT: 300
-    BM_ROOTFS: /rootfs-arm64
     DEQP_EXPECTED_RENDERER: "V3D.4.2"
     DEQP_FRACTION: 5
     DEQP_VER: vk
     FLAKES_CHANNEL: "#videocore-ci"
-    GPU_VERSION: v3dv-rpi4
+    GPU_VERSION: broadcom-rpi4
     HWCI_KERNEL_MODULES: v3d,vc4
-    MINIO_ARTIFACT_NAME: mesa-arm64
     VK_DRIVER: broadcom
   script:
     - ./install/bare-metal/poe-powered.sh

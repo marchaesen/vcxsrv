@@ -465,6 +465,14 @@ ${s.expr_name(leaf.get_root(), expr)}(struct encode_state *s, struct bitset_para
 ## the context in which they are used to know the correct src type
 
 %for root in s.encode_roots():
+%   for leaf in s.encode_leafs(root):
+%      for expr in s.bitset_used_exprs(leaf):
+static inline int64_t ${s.expr_name(leaf.get_root(), expr)}(struct encode_state *s, struct bitset_params *p, ${leaf.get_root().encode.type} src);
+%      endfor
+%   endfor
+%endfor
+
+%for root in s.encode_roots():
 <%
     rendered_exprs = []
 %>

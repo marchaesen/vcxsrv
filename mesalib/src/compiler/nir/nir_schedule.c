@@ -212,9 +212,9 @@ add_dep(nir_deps_state *state,
    assert(before != after);
 
    if (state->dir == F)
-      dag_add_edge(&before->dag, &after->dag, NULL);
+      dag_add_edge(&before->dag, &after->dag, 0);
    else
-      dag_add_edge(&after->dag, &before->dag, NULL);
+      dag_add_edge(&after->dag, &before->dag, 0);
 }
 
 

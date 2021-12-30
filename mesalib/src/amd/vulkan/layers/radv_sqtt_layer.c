@@ -363,7 +363,12 @@ radv_handle_thread_trace(VkQueue _queue)
       radv_QueueWaitIdle(_queue);
 
       if (radv_get_thread_trace(queue, &thread_trace)) {
-         ac_dump_rgp_capture(&queue->device->physical_device->rad_info, &thread_trace);
+         struct ac_spm_trace_data *spm_trace = NULL;
+
+         if (queue->device->spm_trace.bo)
+            spm_trace = &queue->device->spm_trace;
+
+         ac_dump_rgp_capture(&queue->device->physical_device->rad_info, &thread_trace, spm_trace);
       } else {
          /* Trigger a new capture if the driver failed to get
           * the trace because the buffer was too small.
@@ -389,12 +394,11 @@ radv_handle_thread_trace(VkQueue _queue)
 #endif
 
       if (frame_trigger || file_trigger || resize_trigger) {
-         /* FIXME: SQTT on compute hangs. */
-         if (queue->vk.queue_family_index == RADV_QUEUE_COMPUTE) {
-            fprintf(stderr, "RADV: Capturing a SQTT trace on the compute "
-                            "queue is currently broken and might hang! "
-                            "Please, disable presenting on compute if "
-                            "you can.\n");
+         if (ac_check_profile_state(&queue->device->physical_device->rad_info)) {
+            fprintf(stderr, "radv: Canceling RGP trace request as a hang condition has been "
+                            "detected. Force the GPU into a profiling mode with e.g. "
+                            "\"echo profile_peak  > "
+                            "/sys/class/drm/card0/device/power_dpm_force_performance_level\"\n");
             return;
          }
 
@@ -406,7 +410,7 @@ radv_handle_thread_trace(VkQueue _queue)
    num_frames++;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 sqtt_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
 {
    VkResult result;
@@ -430,14 +434,14 @@ sqtt_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
 
 #define EVENT_MARKER(cmd_name, ...) EVENT_MARKER_ALIAS(cmd_name, cmd_name, __VA_ARGS__);
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDraw(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount,
              uint32_t firstVertex, uint32_t firstInstance)
 {
    EVENT_MARKER(Draw, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDrawIndexed(VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount,
                     uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
@@ -445,21 +449,21 @@ sqtt_CmdDrawIndexed(VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t
                 firstInstance);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDrawIndirect(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                      uint32_t drawCount, uint32_t stride)
 {
    EVENT_MARKER(DrawIndirect, commandBuffer, buffer, offset, drawCount, stride);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDrawIndexedIndirect(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                             uint32_t drawCount, uint32_t stride)
 {
    EVENT_MARKER(DrawIndexedIndirect, commandBuffer, buffer, offset, drawCount, stride);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDrawIndirectCount(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                           VkBuffer countBuffer, VkDeviceSize countBufferOffset,
                           uint32_t maxDrawCount, uint32_t stride)
@@ -468,7 +472,7 @@ sqtt_CmdDrawIndirectCount(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDevi
                 maxDrawCount, stride);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDrawIndexedIndirectCount(VkCommandBuffer commandBuffer, VkBuffer buffer,
                                  VkDeviceSize offset, VkBuffer countBuffer,
                                  VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
@@ -478,45 +482,45 @@ sqtt_CmdDrawIndexedIndirectCount(VkCommandBuffer commandBuffer, VkBuffer buffer,
                 countBufferOffset, maxDrawCount, stride);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDispatch(VkCommandBuffer commandBuffer, uint32_t x, uint32_t y, uint32_t z)
 {
    EVENT_MARKER(Dispatch, commandBuffer, x, y, z);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDispatchIndirect(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
 {
    EVENT_MARKER(DispatchIndirect, commandBuffer, buffer, offset);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdCopyBuffer2KHR(VkCommandBuffer commandBuffer, const VkCopyBufferInfo2KHR *pCopyBufferInfo)
 {
    EVENT_MARKER_ALIAS(CopyBuffer2KHR, CopyBuffer, commandBuffer, pCopyBufferInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
                    VkDeviceSize fillSize, uint32_t data)
 {
    EVENT_MARKER(FillBuffer, commandBuffer, dstBuffer, dstOffset, fillSize, data);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset,
                      VkDeviceSize dataSize, const void *pData)
 {
    EVENT_MARKER(UpdateBuffer, commandBuffer, dstBuffer, dstOffset, dataSize, pData);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdCopyImage2KHR(VkCommandBuffer commandBuffer, const VkCopyImageInfo2KHR *pCopyImageInfo)
 {
    EVENT_MARKER_ALIAS(CopyImage2KHR, CopyImage, commandBuffer, pCopyImageInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
                               const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo)
 {
@@ -524,7 +528,7 @@ sqtt_CmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
                       pCopyBufferToImageInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
                               const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo)
 {
@@ -532,13 +536,13 @@ sqtt_CmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
                       pCopyImageToBufferInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBlitImage2KHR(VkCommandBuffer commandBuffer, const VkBlitImageInfo2KHR *pBlitImageInfo)
 {
    EVENT_MARKER_ALIAS(BlitImage2KHR, BlitImage, commandBuffer, pBlitImageInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdClearColorImage(VkCommandBuffer commandBuffer, VkImage image_h, VkImageLayout imageLayout,
                         const VkClearColorValue *pColor, uint32_t rangeCount,
                         const VkImageSubresourceRange *pRanges)
@@ -546,7 +550,7 @@ sqtt_CmdClearColorImage(VkCommandBuffer commandBuffer, VkImage image_h, VkImageL
    EVENT_MARKER(ClearColorImage, commandBuffer, image_h, imageLayout, pColor, rangeCount, pRanges);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdClearDepthStencilImage(VkCommandBuffer commandBuffer, VkImage image_h,
                                VkImageLayout imageLayout,
                                const VkClearDepthStencilValue *pDepthStencil, uint32_t rangeCount,
@@ -556,7 +560,7 @@ sqtt_CmdClearDepthStencilImage(VkCommandBuffer commandBuffer, VkImage image_h,
                 rangeCount, pRanges);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdClearAttachments(VkCommandBuffer commandBuffer, uint32_t attachmentCount,
                          const VkClearAttachment *pAttachments, uint32_t rectCount,
                          const VkClearRect *pRects)
@@ -564,49 +568,36 @@ sqtt_CmdClearAttachments(VkCommandBuffer commandBuffer, uint32_t attachmentCount
    EVENT_MARKER(ClearAttachments, commandBuffer, attachmentCount, pAttachments, rectCount, pRects);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdResolveImage2KHR(VkCommandBuffer commandBuffer,
                          const VkResolveImageInfo2KHR *pResolveImageInfo)
 {
    EVENT_MARKER_ALIAS(ResolveImage2KHR, ResolveImage, commandBuffer, pResolveImageInfo);
 }
 
-void
-sqtt_CmdWaitEvents(VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent *pEvents,
-                   VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
-                   uint32_t memoryBarrierCount, const VkMemoryBarrier *pMemoryBarriers,
-                   uint32_t bufferMemoryBarrierCount,
-                   const VkBufferMemoryBarrier *pBufferMemoryBarriers,
-                   uint32_t imageMemoryBarrierCount,
-                   const VkImageMemoryBarrier *pImageMemoryBarriers)
+VKAPI_ATTR void VKAPI_CALL
+sqtt_CmdWaitEvents2KHR(VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents,
+                       const VkDependencyInfoKHR* pDependencyInfos)
 {
-   EVENT_MARKER(WaitEvents, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask,
-                memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount,
-                pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
+   EVENT_MARKER_ALIAS(WaitEvents2KHR, WaitEvents, commandBuffer, eventCount, pEvents,
+                      pDependencyInfos);
 }
 
-void
-sqtt_CmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask,
-                        VkPipelineStageFlags destStageMask, VkBool32 byRegion,
-                        uint32_t memoryBarrierCount, const VkMemoryBarrier *pMemoryBarriers,
-                        uint32_t bufferMemoryBarrierCount,
-                        const VkBufferMemoryBarrier *pBufferMemoryBarriers,
-                        uint32_t imageMemoryBarrierCount,
-                        const VkImageMemoryBarrier *pImageMemoryBarriers)
+VKAPI_ATTR void VKAPI_CALL
+sqtt_CmdPipelineBarrier2KHR(VkCommandBuffer commandBuffer,
+                            const VkDependencyInfoKHR* pDependencyInfo)
 {
-   EVENT_MARKER(PipelineBarrier, commandBuffer, srcStageMask, destStageMask, byRegion,
-                memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount,
-                pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
+   EVENT_MARKER_ALIAS(PipelineBarrier2KHR, PipelineBarrier, commandBuffer, pDependencyInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdResetQueryPool(VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery,
                        uint32_t queryCount)
 {
    EVENT_MARKER(ResetQueryPool, commandBuffer, queryPool, firstQuery, queryCount);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQueryPool queryPool,
                              uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer,
                              VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags)
@@ -624,7 +615,7 @@ sqtt_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQueryPool queryPoo
 
 #define API_MARKER(cmd_name, ...) API_MARKER_ALIAS(cmd_name, cmd_name, __VA_ARGS__);
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
                      VkPipeline _pipeline)
 {
@@ -632,11 +623,10 @@ sqtt_CmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipeline
 
    API_MARKER(BindPipeline, commandBuffer, pipelineBindPoint, _pipeline);
 
-   if (radv_is_instruction_timing_enabled())
-      radv_describe_pipeline_bind(cmd_buffer, pipelineBindPoint, pipeline);
+   radv_describe_pipeline_bind(cmd_buffer, pipelineBindPoint, pipeline);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
                            VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount,
                            const VkDescriptorSet *pDescriptorSets, uint32_t dynamicOffsetCount,
@@ -646,14 +636,14 @@ sqtt_CmdBindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint pi
               descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBindIndexBuffer(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                         VkIndexType indexType)
 {
    API_MARKER(BindIndexBuffer, commandBuffer, buffer, offset, indexType);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32_t firstBinding,
                           uint32_t bindingCount, const VkBuffer *pBuffers,
                           const VkDeviceSize *pOffsets)
@@ -661,27 +651,27 @@ sqtt_CmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32_t firstBinding,
    API_MARKER(BindVertexBuffers, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBeginQuery(VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query,
                    VkQueryControlFlags flags)
 {
    API_MARKER(BeginQuery, commandBuffer, queryPool, query, flags);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdEndQuery(VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
 {
    API_MARKER(EndQuery, commandBuffer, queryPool, query);
 }
 
-void
-sqtt_CmdWriteTimestamp(VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage,
-                       VkQueryPool queryPool, uint32_t flags)
+VKAPI_ATTR void VKAPI_CALL
+sqtt_CmdWriteTimestamp2KHR(VkCommandBuffer commandBuffer, VkPipelineStageFlags2KHR stage,
+                           VkQueryPool queryPool, uint32_t query)
 {
-   API_MARKER(WriteTimestamp, commandBuffer, pipelineStage, queryPool, flags);
+   API_MARKER_ALIAS(WriteTimestamp2KHR, WriteTimestamp, commandBuffer, stage, queryPool, query);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdPushConstants(VkCommandBuffer commandBuffer, VkPipelineLayout layout,
                       VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size,
                       const void *pValues)
@@ -689,7 +679,7 @@ sqtt_CmdPushConstants(VkCommandBuffer commandBuffer, VkPipelineLayout layout,
    API_MARKER(PushConstants, commandBuffer, layout, stageFlags, offset, size, pValues);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdBeginRenderPass2(VkCommandBuffer commandBuffer,
                          const VkRenderPassBeginInfo *pRenderPassBeginInfo,
                          const VkSubpassBeginInfo *pSubpassBeginInfo)
@@ -698,47 +688,47 @@ sqtt_CmdBeginRenderPass2(VkCommandBuffer commandBuffer,
                     pSubpassBeginInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdNextSubpass2(VkCommandBuffer commandBuffer, const VkSubpassBeginInfo *pSubpassBeginInfo,
                      const VkSubpassEndInfo *pSubpassEndInfo)
 {
    API_MARKER_ALIAS(NextSubpass2, NextSubpass, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdEndRenderPass2(VkCommandBuffer commandBuffer, const VkSubpassEndInfo *pSubpassEndInfo)
 {
    API_MARKER_ALIAS(EndRenderPass2, EndRenderPass, commandBuffer, pSubpassEndInfo);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t commandBufferCount,
                         const VkCommandBuffer *pCmdBuffers)
 {
    API_MARKER(ExecuteCommands, commandBuffer, commandBufferCount, pCmdBuffers);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetViewport(VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount,
                     const VkViewport *pViewports)
 {
    API_MARKER(SetViewport, commandBuffer, firstViewport, viewportCount, pViewports);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetScissor(VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount,
                    const VkRect2D *pScissors)
 {
    API_MARKER(SetScissor, commandBuffer, firstScissor, scissorCount, pScissors);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetLineWidth(VkCommandBuffer commandBuffer, float lineWidth)
 {
    API_MARKER(SetLineWidth, commandBuffer, lineWidth);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetDepthBias(VkCommandBuffer commandBuffer, float depthBiasConstantFactor,
                      float depthBiasClamp, float depthBiasSlopeFactor)
 {
@@ -746,33 +736,33 @@ sqtt_CmdSetDepthBias(VkCommandBuffer commandBuffer, float depthBiasConstantFacto
               depthBiasSlopeFactor);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetBlendConstants(VkCommandBuffer commandBuffer, const float blendConstants[4])
 {
    API_MARKER(SetBlendConstants, commandBuffer, blendConstants);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetDepthBounds(VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
 {
    API_MARKER(SetDepthBounds, commandBuffer, minDepthBounds, maxDepthBounds);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetStencilCompareMask(VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask,
                               uint32_t compareMask)
 {
    API_MARKER(SetStencilCompareMask, commandBuffer, faceMask, compareMask);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetStencilWriteMask(VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask,
                             uint32_t writeMask)
 {
    API_MARKER(SetStencilWriteMask, commandBuffer, faceMask, writeMask);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdSetStencilReference(VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask,
                             uint32_t reference)
 {
@@ -780,7 +770,7 @@ sqtt_CmdSetStencilReference(VkCommandBuffer commandBuffer, VkStencilFaceFlags fa
 }
 
 /* VK_EXT_debug_marker */
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDebugMarkerBeginEXT(VkCommandBuffer commandBuffer,
                             const VkDebugMarkerMarkerInfoEXT *pMarkerInfo)
 {
@@ -788,14 +778,14 @@ sqtt_CmdDebugMarkerBeginEXT(VkCommandBuffer commandBuffer,
    radv_write_user_event_marker(cmd_buffer, UserEventPush, pMarkerInfo->pMarkerName);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDebugMarkerEndEXT(VkCommandBuffer commandBuffer)
 {
    RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
    radv_write_user_event_marker(cmd_buffer, UserEventPop, NULL);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_CmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
                              const VkDebugMarkerMarkerInfoEXT *pMarkerInfo)
 {
@@ -803,14 +793,14 @@ sqtt_CmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
    radv_write_user_event_marker(cmd_buffer, UserEventTrigger, pMarkerInfo->pMarkerName);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 sqtt_DebugMarkerSetObjectNameEXT(VkDevice device, const VkDebugMarkerObjectNameInfoEXT *pNameInfo)
 {
    /* no-op */
    return VK_SUCCESS;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 sqtt_DebugMarkerSetObjectTagEXT(VkDevice device, const VkDebugMarkerObjectTagInfoEXT *pTagInfo)
 {
    /* no-op */
@@ -821,7 +811,7 @@ sqtt_DebugMarkerSetObjectTagEXT(VkDevice device, const VkDebugMarkerObjectTagInf
 static enum rgp_hardware_stages
 radv_mesa_to_rgp_shader_stage(struct radv_pipeline *pipeline, gl_shader_stage stage)
 {
-   struct radv_shader_variant *shader = pipeline->shaders[stage];
+   struct radv_shader *shader = pipeline->shaders[stage];
 
    switch (stage) {
    case MESA_SHADER_VERTEX:
@@ -869,8 +859,8 @@ radv_add_code_object(struct radv_device *device, struct radv_pipeline *pipeline)
    record->pipeline_hash[0] = pipeline->pipeline_hash;
    record->pipeline_hash[1] = pipeline->pipeline_hash;
 
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      struct radv_shader_variant *shader = pipeline->shaders[i];
+   for (unsigned i = 0; i < MESA_VULKAN_SHADER_STAGES; i++) {
+      struct radv_shader *shader = pipeline->shaders[i];
       uint8_t *code;
       uint64_t va;
 
@@ -884,7 +874,7 @@ radv_add_code_object(struct radv_device *device, struct radv_pipeline *pipeline)
       }
       memcpy(code, shader->code_ptr, shader->code_size);
 
-      va = radv_shader_variant_get_va(shader);
+      va = radv_shader_get_va(shader);
 
       record->shader_data[i].hash[0] = (uint64_t)(uintptr_t)shader;
       record->shader_data[i].hash[1] = (uint64_t)(uintptr_t)shader >> 32;
@@ -922,14 +912,14 @@ radv_register_pipeline(struct radv_device *device, struct radv_pipeline *pipelin
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    /* Find the lowest shader BO VA. */
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      struct radv_shader_variant *shader = pipeline->shaders[i];
+   for (unsigned i = 0; i < MESA_VULKAN_SHADER_STAGES; i++) {
+      struct radv_shader *shader = pipeline->shaders[i];
       uint64_t va;
 
       if (!shader)
          continue;
 
-      va = radv_shader_variant_get_va(shader);
+      va = radv_shader_get_va(shader);
       base_va = MIN2(base_va, va);
    }
 
@@ -1003,7 +993,7 @@ radv_unregister_pipeline(struct radv_device *device, struct radv_pipeline *pipel
    simple_mtx_unlock(&code_object->lock);
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 sqtt_CreateGraphicsPipelines(VkDevice _device, VkPipelineCache pipelineCache, uint32_t count,
                              const VkGraphicsPipelineCreateInfo *pCreateInfos,
                              const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines)
@@ -1016,17 +1006,15 @@ sqtt_CreateGraphicsPipelines(VkDevice _device, VkPipelineCache pipelineCache, ui
    if (result != VK_SUCCESS)
       return result;
 
-   if (radv_is_instruction_timing_enabled()) {
-      for (unsigned i = 0; i < count; i++) {
-         RADV_FROM_HANDLE(radv_pipeline, pipeline, pPipelines[i]);
+   for (unsigned i = 0; i < count; i++) {
+      RADV_FROM_HANDLE(radv_pipeline, pipeline, pPipelines[i]);
 
-         if (!pipeline)
-            continue;
+      if (!pipeline)
+         continue;
 
-         result = radv_register_pipeline(device, pipeline);
-         if (result != VK_SUCCESS)
-            goto fail;
-      }
+      result = radv_register_pipeline(device, pipeline);
+      if (result != VK_SUCCESS)
+         goto fail;
    }
 
    return VK_SUCCESS;
@@ -1039,7 +1027,7 @@ fail:
    return result;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 sqtt_CreateComputePipelines(VkDevice _device, VkPipelineCache pipelineCache, uint32_t count,
                             const VkComputePipelineCreateInfo *pCreateInfos,
                             const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines)
@@ -1052,17 +1040,15 @@ sqtt_CreateComputePipelines(VkDevice _device, VkPipelineCache pipelineCache, uin
    if (result != VK_SUCCESS)
       return result;
 
-   if (radv_is_instruction_timing_enabled()) {
-      for (unsigned i = 0; i < count; i++) {
-         RADV_FROM_HANDLE(radv_pipeline, pipeline, pPipelines[i]);
+   for (unsigned i = 0; i < count; i++) {
+      RADV_FROM_HANDLE(radv_pipeline, pipeline, pPipelines[i]);
 
-         if (!pipeline)
-            continue;
+      if (!pipeline)
+         continue;
 
-         result = radv_register_pipeline(device, pipeline);
-         if (result != VK_SUCCESS)
-            goto fail;
-      }
+      result = radv_register_pipeline(device, pipeline);
+      if (result != VK_SUCCESS)
+         goto fail;
    }
 
    return VK_SUCCESS;
@@ -1075,7 +1061,7 @@ fail:
    return result;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 sqtt_DestroyPipeline(VkDevice _device, VkPipeline _pipeline,
                      const VkAllocationCallbacks *pAllocator)
 {
@@ -1085,8 +1071,7 @@ sqtt_DestroyPipeline(VkDevice _device, VkPipeline _pipeline,
    if (!_pipeline)
       return;
 
-   if (radv_is_instruction_timing_enabled())
-      radv_unregister_pipeline(device, pipeline);
+   radv_unregister_pipeline(device, pipeline);
 
    radv_DestroyPipeline(_device, _pipeline, pAllocator);
 }

@@ -139,7 +139,7 @@ si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
 
       assert(device->physical_device->rad_info.chip_class == GFX8);
 
-      tba_va = radv_shader_variant_get_va(device->trap_handler_shader);
+      tba_va = radv_shader_get_va(device->trap_handler_shader);
       tma_va = radv_buffer_get_va(device->tma_bo);
 
       radeon_set_sh_reg_seq(cs, R_00B838_COMPUTE_TBA_LO, 4);
@@ -234,11 +234,13 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
                              S_028204_WINDOW_OFFSET_DISABLE(1));
       radeon_set_context_reg(cs, R_028240_PA_SC_GENERIC_SCISSOR_TL,
                              S_028240_WINDOW_OFFSET_DISABLE(1));
-      radeon_set_context_reg(cs, R_028244_PA_SC_GENERIC_SCISSOR_BR,
-                             S_028244_BR_X(16384) | S_028244_BR_Y(16384));
+      radeon_set_context_reg(
+         cs, R_028244_PA_SC_GENERIC_SCISSOR_BR,
+         S_028244_BR_X(MAX_FRAMEBUFFER_WIDTH) | S_028244_BR_Y(MAX_FRAMEBUFFER_HEIGHT));
       radeon_set_context_reg(cs, R_028030_PA_SC_SCREEN_SCISSOR_TL, 0);
-      radeon_set_context_reg(cs, R_028034_PA_SC_SCREEN_SCISSOR_BR,
-                             S_028034_BR_X(16384) | S_028034_BR_Y(16384));
+      radeon_set_context_reg(
+         cs, R_028034_PA_SC_SCREEN_SCISSOR_BR,
+         S_028034_BR_X(MAX_FRAMEBUFFER_WIDTH) | S_028034_BR_Y(MAX_FRAMEBUFFER_HEIGHT));
    }
 
    if (!has_clear_state) {
@@ -309,6 +311,9 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_set_sh_reg(cs, R_00B324_SPI_SHADER_PGM_HI_ES,
                         S_00B324_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
    }
+
+   radeon_set_sh_reg(cs, R_00B124_SPI_SHADER_PGM_HI_VS,
+                     S_00B124_MEM_BASE(device->physical_device->rad_info.address32_hi >> 8));
 
    unsigned cu_mask_ps = 0xffffffff;
 
@@ -531,7 +536,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
 
       assert(device->physical_device->rad_info.chip_class == GFX8);
 
-      tba_va = radv_shader_variant_get_va(device->trap_handler_shader);
+      tba_va = radv_shader_get_va(device->trap_handler_shader);
       tma_va = radv_buffer_get_va(device->tma_bo);
 
       uint32_t regs[] = {R_00B000_SPI_SHADER_TBA_LO_PS, R_00B100_SPI_SHADER_TBA_LO_VS,

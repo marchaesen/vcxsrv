@@ -349,8 +349,49 @@ util_bitcount64(uint64_t n)
 #endif
 }
 
+/**
+ * Widens the given bit mask by a multiplier, meaning that it will
+ * replicate each bit by that amount.
+ *
+ * For example:
+ * 0b101 widened by 2 will become: 0b110011
+ *
+ * This is typically used in shader I/O to transform a 64-bit
+ * writemask to a 32-bit writemask.
+ */
+static inline uint32_t
+util_widen_mask(uint32_t mask, unsigned multiplier)
+{
+   uint32_t new_mask = 0;
+   u_foreach_bit(i, mask)
+      new_mask |= ((1u << multiplier) - 1u) << (i * multiplier);
+   return new_mask;
+}
+
 #ifdef __cplusplus
 }
-#endif
+
+/* util_bitcount has large measurable overhead (~2%), so it's recommended to
+ * use the POPCNT instruction via inline assembly if the CPU supports it.
+ */
+enum util_popcnt {
+   POPCNT_NO,
+   POPCNT_YES,
+};
+
+/* Convenient function to select popcnt through a C++ template argument.
+ * This should be used as part of larger functions that are optimized
+ * as a whole.
+ */
+template<util_popcnt POPCNT> inline unsigned
+util_bitcount_fast(unsigned n)
+{
+   if (POPCNT == POPCNT_YES)
+      return util_popcnt_inline_asm(n);
+   else
+      return util_bitcount(n);
+}
+
+#endif /* __cplusplus */
 
 #endif /* BITSCAN_H */

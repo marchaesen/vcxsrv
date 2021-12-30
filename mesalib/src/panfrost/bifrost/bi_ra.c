@@ -364,6 +364,25 @@ bi_reg_from_index(bi_context *ctx, struct lcra_state *l, bi_index index)
         return new_index;
 }
 
+/* Dual texture instructions write to two sets of staging registers, modeled as
+ * two destinations in the IR. The first set is communicated with the usual
+ * staging register mechanism. The second set is encoded in the texture
+ * operation descriptor. This is quite unusual, and requires the following late
+ * fixup.
+ */
+static void
+bi_fixup_dual_tex_register(bi_instr *I)
+{
+        assert(I->dest[1].type == BI_INDEX_REGISTER);
+        assert(I->src[3].type == BI_INDEX_CONSTANT);
+
+        struct bifrost_dual_texture_operation desc = {
+                .secondary_register = I->dest[1].value
+        };
+
+        I->src[3].value |= bi_dual_tex_as_u32(desc);
+}
+
 static void
 bi_install_registers(bi_context *ctx, struct lcra_state *l)
 {
@@ -373,6 +392,9 @@ bi_install_registers(bi_context *ctx, struct lcra_state *l)
 
                 bi_foreach_src(ins, s)
                         ins->src[s] = bi_reg_from_index(ctx, l, ins->src[s]);
+
+                if (ins->op == BI_OPCODE_TEXC && !bi_is_null(ins->dest[1]))
+                        bi_fixup_dual_tex_register(ins);
         }
 }
 
@@ -498,7 +520,7 @@ bi_register_allocate(bi_context *ctx)
         unsigned iter_count = 1000; /* max iterations */
 
         /* Number of bytes of memory we've spilled into */
-        unsigned spill_count = ctx->info->tls_size;
+        unsigned spill_count = ctx->info.tls_size;
 
         /* Try with reduced register pressure to improve thread count on v7 */
         if (ctx->arch == 7) {
@@ -506,7 +528,7 @@ bi_register_allocate(bi_context *ctx)
                 l = bi_allocate_registers(ctx, &success, false);
 
                 if (success) {
-                        ctx->info->work_reg_count = 32;
+                        ctx->info.work_reg_count = 32;
                 } else {
                         lcra_free(l);
                         l = NULL;
@@ -519,7 +541,7 @@ bi_register_allocate(bi_context *ctx)
                 l = bi_allocate_registers(ctx, &success, true);
 
                 if (success) {
-                        ctx->info->work_reg_count = 64;
+                        ctx->info.work_reg_count = 64;
                 } else {
                         signed spill_node = bi_choose_spill_node(ctx, l);
                         lcra_free(l);
@@ -537,7 +559,7 @@ bi_register_allocate(bi_context *ctx)
         assert(success);
         assert(l != NULL);
 
-        ctx->info->tls_size = spill_count;
+        ctx->info.tls_size = spill_count;
         bi_install_registers(ctx, l);
 
         lcra_free(l);

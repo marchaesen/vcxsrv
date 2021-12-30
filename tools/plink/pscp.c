@@ -49,8 +49,6 @@ static void source(const char *src);
 static void rsource(const char *src);
 static void sink(const char *targ, const char *src);
 
-const char *const appname = "PSCP";
-
 /*
  * The maximum amount of queued data we accept before we stop and
  * wait for the server to process some.
@@ -67,6 +65,7 @@ static const SeatVtable pscp_seat_vt = {
     .output = pscp_output,
     .eof = pscp_eof,
     .sent = nullseat_sent,
+    .banner = nullseat_banner_to_stderr,
     .get_userpass_input = filexfer_get_userpass_input,
     .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
@@ -86,6 +85,7 @@ static const SeatVtable pscp_seat_vt = {
     .stripctrl_new = console_stripctrl_new,
     .set_trust_status = nullseat_set_trust_status,
     .can_set_trust_status = nullseat_can_set_trust_status_yes,
+    .has_mixed_input_stream = nullseat_has_mixed_input_stream_no,
     .verbose = cmdline_seat_verbose,
     .interactive = nullseat_interactive_no,
     .get_cursor_position = nullseat_get_cursor_position,
@@ -1813,7 +1813,7 @@ static void sink(const char *targ, const char *src)
             striptarget = stripslashes(act.name, true);
             if (striptarget != act.name) {
                 with_stripctrl(sanname, act.name) {
-                    with_stripctrl(santarg, act.name) {
+                    with_stripctrl(santarg, striptarget) {
                         tell_user(stderr, "warning: remote host sent a"
                                   " compound pathname '%s'", sanname);
                         tell_user(stderr, "         renaming local"

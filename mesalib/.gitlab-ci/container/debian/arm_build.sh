@@ -57,7 +57,7 @@ apt-get -y install \
 apt-get install -y --no-remove -t buster \
         android-sdk-ext4-utils
 
-pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@6f5af7e5574509726c79109e3c147cee95e81366
+pip3 install git+http://gitlab.freedesktop.org/freedesktop/ci-templates@34f4ade99434043f88e164933f570301fd18b125
 
 arch=armhf
 . .gitlab-ci/container/cross_build.sh

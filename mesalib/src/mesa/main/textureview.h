@@ -42,18 +42,6 @@ GLenum
 _mesa_texture_view_lookup_view_class(const struct gl_context *ctx,
                                      GLenum internalformat);
 
-void GLAPIENTRY
-_mesa_TextureView_no_error(GLuint texture, GLenum target, GLuint origtexture,
-                           GLenum internalformat,
-                           GLuint minlevel, GLuint numlevels,
-                           GLuint minlayer, GLuint numlayers);
-
-extern void GLAPIENTRY
-_mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
-                  GLenum internalformat,
-                  GLuint minlevel, GLuint numlevels,
-                  GLuint minlayer, GLuint numlayers);
-
 extern void
 _mesa_set_texture_view_state(struct gl_context *ctx,
                              struct gl_texture_object *texObj,

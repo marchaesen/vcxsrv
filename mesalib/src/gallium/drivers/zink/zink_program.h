@@ -116,7 +116,12 @@ struct zink_gfx_program {
 struct zink_compute_program {
    struct zink_program base;
 
-   struct zink_shader_module *module;
+   struct zink_shader_module *curr;
+
+   struct zink_shader_module *module; //base
+   struct list_head shader_cache; //inline uniforms
+   unsigned inlined_variant_count;
+
    struct zink_shader *shader;
    struct hash_table *pipelines;
 };
@@ -272,7 +277,8 @@ zink_pipeline_layout_create(struct zink_screen *screen, struct zink_program *pg,
 
 void
 zink_program_update_compute_pipeline_state(struct zink_context *ctx, struct zink_compute_program *comp, const uint block[3]);
-
+void
+zink_update_compute_program(struct zink_context *ctx);
 VkPipeline
 zink_get_compute_pipeline(struct zink_screen *screen,
                       struct zink_compute_program *comp,

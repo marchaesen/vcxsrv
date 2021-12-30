@@ -524,12 +524,17 @@ bi_can_add(bi_instr *ins)
  * pseudoinstructions writing multiple destinations (expanding to multiple
  * paired instructions) can run afoul of the "no two writes on the last clause"
  * constraint, so we check for that here.
+ *
+ * Exception to the exception: TEXC, which writes to multiple sets of staging
+ * registers. Staging registers bypass the usual register write mechanism so
+ * this restriction does not apply.
  */
 
 static bool
 bi_must_not_last(bi_instr *ins)
 {
-        return !bi_is_null(ins->dest[0]) && !bi_is_null(ins->dest[1]);
+        return !bi_is_null(ins->dest[0]) && !bi_is_null(ins->dest[1]) &&
+               (ins->op != BI_OPCODE_TEXC);
 }
 
 /* Check for a message-passing instruction. +DISCARD.f32 is special-cased; we

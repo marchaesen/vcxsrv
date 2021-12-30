@@ -77,6 +77,7 @@
 #include "util/format_rgb9e5.h"
 #include "util/format_r11g11b10f.h"
 
+#include "state_tracker/st_cb_texture.h"
 
 enum {
    ZERO = 4,
@@ -1066,10 +1067,10 @@ store_texsubimage(struct gl_context *ctx,
       GLubyte *dstMap;
       GLint dstRowStride;
 
-      ctx->Driver.MapTextureImage(ctx, texImage,
-                                  slice + sliceOffset,
-                                  xoffset, yoffset, width, height,
-                                  mapMode, &dstMap, &dstRowStride);
+      st_MapTextureImage(ctx, texImage,
+                         slice + sliceOffset,
+                         xoffset, yoffset, width, height,
+                         mapMode, &dstMap, &dstRowStride);
       if (dstMap) {
          /* Note: we're only storing a 2D (or 1D) slice at a time but we need
           * to pass the right 'dims' value so that GL_UNPACK_SKIP_IMAGES is
@@ -1082,7 +1083,7 @@ store_texsubimage(struct gl_context *ctx,
                                   width, height, 1,  /* w, h, d */
                                   format, type, src, packing);
 
-         ctx->Driver.UnmapTextureImage(ctx, texImage, slice + sliceOffset);
+         st_UnmapTextureImage(ctx, texImage, slice + sliceOffset);
       }
 
       src += srcImageStride;
@@ -1100,7 +1101,7 @@ store_texsubimage(struct gl_context *ctx,
 
 
 /**
- * Fallback code for ctx->Driver.TexImage().
+ * Fallback code for TexImage().
  * Basically, allocate storage for the texture image, then copy the
  * user's image into it.
  */
@@ -1117,7 +1118,7 @@ _mesa_store_teximage(struct gl_context *ctx,
       return;
 
    /* allocate storage for texture data */
-   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage)) {
+   if (!st_AllocTextureImageBuffer(ctx, texImage)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage%uD", dims);
       return;
    }
@@ -1192,11 +1193,11 @@ _mesa_store_cleartexsubimage(struct gl_context *ctx,
    clearValueSize = _mesa_get_format_bytes(texImage->TexFormat);
 
    for (z = 0; z < depth; z++) {
-      ctx->Driver.MapTextureImage(ctx, texImage,
-                                  z + zoffset, xoffset, yoffset,
-                                  width, height,
-                                  GL_MAP_WRITE_BIT,
-                                  &dstMap, &dstRowStride);
+      st_MapTextureImage(ctx, texImage,
+                         z + zoffset, xoffset, yoffset,
+                         width, height,
+                         GL_MAP_WRITE_BIT,
+                         &dstMap, &dstRowStride);
       if (dstMap == NULL) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glClearTex*Image");
          return;
@@ -1213,7 +1214,7 @@ _mesa_store_cleartexsubimage(struct gl_context *ctx,
                              clearValueSize);
       }
 
-      ctx->Driver.UnmapTextureImage(ctx, texImage, z + zoffset);
+      st_UnmapTextureImage(ctx, texImage, z + zoffset);
    }
 }
 
@@ -1241,16 +1242,16 @@ _mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
    assert(texImage->Depth > 0);
 
    /* allocate storage for texture data */
-   if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage)) {
+   if (!st_AllocTextureImageBuffer(ctx, texImage)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCompressedTexImage%uD", dims);
       return;
    }
 
-   ctx->Driver.CompressedTexSubImage(ctx, dims, texImage,
-                                     0, 0, 0,
-                                     texImage->Width, texImage->Height, texImage->Depth,
-                                     texImage->TexFormat,
-                                     imageSize, data);
+   st_CompressedTexSubImage(ctx, dims, texImage,
+                            0, 0, 0,
+                            texImage->Width, texImage->Height, texImage->Depth,
+                            texImage->TexFormat,
+                            imageSize, data);
 }
 
 
@@ -1356,10 +1357,10 @@ _mesa_store_compressed_texsubimage(struct gl_context *ctx, GLuint dims,
 
    for (slice = 0; slice < store.CopySlices; slice++) {
       /* Map dest texture buffer */
-      ctx->Driver.MapTextureImage(ctx, texImage, slice + zoffset,
-                                  xoffset, yoffset, width, height,
-                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT,
-                                  &dstMap, &dstRowStride);
+      st_MapTextureImage(ctx, texImage, slice + zoffset,
+                         xoffset, yoffset, width, height,
+                         GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT,
+                         &dstMap, &dstRowStride);
 
       if (dstMap) {
 
@@ -1377,7 +1378,7 @@ _mesa_store_compressed_texsubimage(struct gl_context *ctx, GLuint dims,
             }
          }
 
-         ctx->Driver.UnmapTextureImage(ctx, texImage, slice + zoffset);
+         st_UnmapTextureImage(ctx, texImage, slice + zoffset);
 
          /* advance to next slice */
          src += store.TotalBytesPerRow * (store.TotalRowsPerSlice

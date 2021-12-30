@@ -34,6 +34,10 @@
 #include "macros.h"
 #include "mtypes.h"
 #include "viewport.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_viewport.h"
+#include "state_tracker/st_context.h"
 
 static void
 clamp_viewport(struct gl_context *ctx, GLfloat *x, GLfloat *y,
@@ -71,9 +75,8 @@ set_viewport_no_notify(struct gl_context *ctx, unsigned idx,
        ctx->ViewportArray[idx].Height == height)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewViewport ? 0 : _NEW_VIEWPORT,
-                  GL_VIEWPORT_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewViewport;
+   FLUSH_VERTICES(ctx, 0, GL_VIEWPORT_BIT);
+   ctx->NewDriverState |= ST_NEW_VIEWPORT;
 
    ctx->ViewportArray[idx].X = x;
    ctx->ViewportArray[idx].Width = width;
@@ -113,8 +116,7 @@ viewport(struct gl_context *ctx, GLint x, GLint y, GLsizei width,
    for (unsigned i = 0; i < ctx->Const.MaxViewports; i++)
       set_viewport_no_notify(ctx, i, input.X, input.Y, input.Width, input.Height);
 
-   if (ctx->Driver.Viewport)
-      ctx->Driver.Viewport(ctx);
+   st_viewport(ctx);
 }
 
 /**
@@ -166,8 +168,7 @@ _mesa_set_viewport(struct gl_context *ctx, unsigned idx, GLfloat x, GLfloat y,
    clamp_viewport(ctx, &x, &y, &width, &height);
    set_viewport_no_notify(ctx, idx, x, y, width, height);
 
-   if (ctx->Driver.Viewport)
-      ctx->Driver.Viewport(ctx);
+   st_viewport(ctx);
 }
 
 static void
@@ -182,8 +183,7 @@ viewport_array(struct gl_context *ctx, GLuint first, GLsizei count,
                              inputs[i].Width, inputs[i].Height);
    }
 
-   if (ctx->Driver.Viewport)
-      ctx->Driver.Viewport(ctx);
+   st_viewport(ctx);
 }
 
 void GLAPIENTRY
@@ -294,7 +294,7 @@ set_depth_range_no_notify(struct gl_context *ctx, unsigned idx,
 
    /* The depth range is needed by program state constants. */
    FLUSH_VERTICES(ctx, _NEW_VIEWPORT, GL_VIEWPORT_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewViewport;
+   ctx->NewDriverState |= ST_NEW_VIEWPORT;
 
    ctx->ViewportArray[idx].Near = SATURATE(nearval);
    ctx->ViewportArray[idx].Far = SATURATE(farval);
@@ -305,9 +305,6 @@ _mesa_set_depth_range(struct gl_context *ctx, unsigned idx,
                       GLclampd nearval, GLclampd farval)
 {
    set_depth_range_no_notify(ctx, idx, nearval, farval);
-
-   if (ctx->Driver.DepthRange)
-      ctx->Driver.DepthRange(ctx);
 }
 
 /**
@@ -340,10 +337,6 @@ _mesa_DepthRange(GLclampd nearval, GLclampd farval)
     */
    for (i = 0; i < ctx->Const.MaxViewports; i++)
       set_depth_range_no_notify(ctx, i, nearval, farval);
-
-   if (ctx->Driver.DepthRange) {
-      ctx->Driver.DepthRange(ctx);
-   }
 }
 
 void GLAPIENTRY
@@ -366,9 +359,6 @@ depth_range_arrayv(struct gl_context *ctx, GLuint first, GLsizei count,
 {
    for (GLsizei i = 0; i < count; i++)
       set_depth_range_no_notify(ctx, i + first, inputs[i].Near, inputs[i].Far);
-
-   if (ctx->Driver.DepthRange)
-      ctx->Driver.DepthRange(ctx);
 }
 
 void GLAPIENTRY
@@ -419,9 +409,6 @@ _mesa_DepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat *v)
 
    for (i = 0; i < count; i++)
       set_depth_range_no_notify(ctx, i + first, v[i * 2], v[i * 2 + 1]);
-
-   if (ctx->Driver.DepthRange)
-      ctx->Driver.DepthRange(ctx);
 }
 
 /**
@@ -520,28 +507,18 @@ clip_control(struct gl_context *ctx, GLenum origin, GLenum depth, bool no_error)
    }
 
    /* Affects transform state and the viewport transform */
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewClipControl ? 0 :
-                  _NEW_TRANSFORM | _NEW_VIEWPORT, GL_TRANSFORM_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewClipControl;
+   FLUSH_VERTICES(ctx, 0, GL_TRANSFORM_BIT);
+   ctx->NewDriverState |= ST_NEW_VIEWPORT | ST_NEW_RASTERIZER;
 
    if (ctx->Transform.ClipOrigin != origin) {
       ctx->Transform.ClipOrigin = origin;
 
       /* Affects the winding order of the front face. */
-      if (ctx->DriverFlags.NewPolygonState)
-         ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
-      else
-         ctx->NewState |= _NEW_POLYGON;
-
-      if (ctx->Driver.FrontFace)
-         ctx->Driver.FrontFace(ctx, ctx->Polygon.FrontFace);
+      ctx->NewDriverState |= ST_NEW_RASTERIZER;
    }
 
    if (ctx->Transform.ClipDepthMode != depth) {
       ctx->Transform.ClipDepthMode = depth;
-
-      if (ctx->Driver.DepthRange)
-         ctx->Driver.DepthRange(ctx);
    }
 }
 
@@ -620,8 +597,7 @@ subpixel_precision_bias(struct gl_context *ctx, GLuint xbits, GLuint ybits)
    ctx->SubpixelPrecisionBias[0] = xbits;
    ctx->SubpixelPrecisionBias[1] = ybits;
 
-   ctx->NewDriverState |=
-      ctx->DriverFlags.NewNvConservativeRasterizationParams;
+   ctx->NewDriverState |= ST_NEW_RASTERIZER;
 }
 
 void GLAPIENTRY
@@ -677,7 +653,7 @@ set_viewport_swizzle(struct gl_context *ctx, GLuint index,
       return;
 
    FLUSH_VERTICES(ctx, _NEW_VIEWPORT, GL_VIEWPORT_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewViewport;
+   ctx->NewDriverState |= ST_NEW_VIEWPORT;
 
    viewport->SwizzleX = swizzlex;
    viewport->SwizzleY = swizzley;

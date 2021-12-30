@@ -38,94 +38,10 @@
 #include "formats.h"
 #include "extensions.h"
 
+#include "state_tracker/st_context.h"
+
 struct gl_context;
 struct gl_framebuffer;
-
-
-extern void GLAPIENTRY
-_mesa_BlendFunc( GLenum sfactor, GLenum dfactor );
-
-extern void GLAPIENTRY
-_mesa_BlendFunc_no_error(GLenum sfactor, GLenum dfactor);
-
-extern void GLAPIENTRY
-_mesa_BlendFuncSeparate( GLenum sfactorRGB, GLenum dfactorRGB,
-                            GLenum sfactorA, GLenum dfactorA );
-
-extern void GLAPIENTRY
-_mesa_BlendFuncSeparate_no_error(GLenum sfactorRGB, GLenum dfactorRGB,
-                                 GLenum sfactorA, GLenum dfactorA);
-
-extern void GLAPIENTRY
-_mesa_BlendFunciARB_no_error(GLuint buf, GLenum sfactor, GLenum dfactor);
-extern void GLAPIENTRY
-_mesa_BlendFunciARB(GLuint buf, GLenum sfactor, GLenum dfactor);
-
-
-extern void GLAPIENTRY
-_mesa_BlendFuncSeparateiARB_no_error(GLuint buf, GLenum sfactorRGB,
-                                     GLenum dfactorRGB, GLenum sfactorA,
-                                     GLenum dfactorA);
-extern void GLAPIENTRY
-_mesa_BlendFuncSeparateiARB(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
-                         GLenum sfactorA, GLenum dfactorA);
-
-
-extern void GLAPIENTRY
-_mesa_BlendEquation( GLenum mode );
-
-
-void GLAPIENTRY
-_mesa_BlendEquationiARB_no_error(GLuint buf, GLenum mode);
-
-extern void GLAPIENTRY
-_mesa_BlendEquationiARB(GLuint buf, GLenum mode);
-
-
-void GLAPIENTRY
-_mesa_BlendEquationSeparate_no_error(GLenum modeRGB, GLenum modeA);
-
-extern void GLAPIENTRY
-_mesa_BlendEquationSeparate( GLenum modeRGB, GLenum modeA );
-
-
-extern void GLAPIENTRY
-_mesa_BlendEquationSeparateiARB_no_error(GLuint buf, GLenum modeRGB,
-                                         GLenum modeA);
-extern void GLAPIENTRY
-_mesa_BlendEquationSeparateiARB(GLuint buf, GLenum modeRGB, GLenum modeA);
-
-
-extern void GLAPIENTRY
-_mesa_BlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-
-
-extern void GLAPIENTRY
-_mesa_AlphaFunc( GLenum func, GLclampf ref );
-
-
-extern void GLAPIENTRY
-_mesa_LogicOp( GLenum opcode );
-
-
-extern void GLAPIENTRY
-_mesa_LogicOp_no_error(GLenum opcode);
-
-
-extern void GLAPIENTRY
-_mesa_IndexMask( GLuint mask );
-
-extern void GLAPIENTRY
-_mesa_ColorMask( GLboolean red, GLboolean green,
-                 GLboolean blue, GLboolean alpha );
-
-extern void GLAPIENTRY
-_mesa_ColorMaski( GLuint buf, GLboolean red, GLboolean green,
-                        GLboolean blue, GLboolean alpha );
-
-
-extern void GLAPIENTRY
-_mesa_ClampColor(GLenum target, GLenum clamp);
 
 extern GLboolean
 _mesa_get_clamp_fragment_color(const struct gl_context *ctx,
@@ -146,9 +62,6 @@ _mesa_update_clamp_fragment_color(struct gl_context *ctx,
 extern void
 _mesa_update_clamp_vertex_color(struct gl_context *ctx,
                                 const struct gl_framebuffer *drawFb);
-
-extern mesa_format
-_mesa_get_render_format(const struct gl_context *ctx, mesa_format format);
 
 extern void  
 _mesa_init_color( struct gl_context * ctx );
@@ -174,12 +87,8 @@ _mesa_advanded_blend_sh_constant_changed(struct gl_context *ctx,
 static inline void
 _mesa_flush_vertices_for_blend_state(struct gl_context *ctx)
 {
-   if (!ctx->DriverFlags.NewBlend) {
-      FLUSH_VERTICES(ctx, _NEW_COLOR, GL_COLOR_BUFFER_BIT);
-   } else {
-      FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
-      ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
-   }
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
 }
 
 static inline void
@@ -192,7 +101,7 @@ _mesa_flush_vertices_for_blend_adv(struct gl_context *ctx,
        _mesa_advanded_blend_sh_constant_changed(ctx, new_blend_enabled,
                                                 new_mode)) {
       FLUSH_VERTICES(ctx, _NEW_COLOR, GL_COLOR_BUFFER_BIT);
-      ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
+      ctx->NewDriverState |= ST_NEW_BLEND;
       return;
    }
    _mesa_flush_vertices_for_blend_state(ctx);

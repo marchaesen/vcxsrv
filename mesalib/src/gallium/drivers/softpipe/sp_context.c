@@ -35,7 +35,6 @@
 #include "pipe/p_defines.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
-#include "util/u_pstipple.h"
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
 #include "tgsi/tgsi_exec.h"
@@ -60,14 +59,6 @@ softpipe_destroy( struct pipe_context *pipe )
    struct softpipe_context *softpipe = softpipe_context( pipe );
    uint i, sh;
 
-#if DO_PSTIPPLE_IN_HELPER_MODULE
-   if (softpipe->pstipple.sampler)
-      pipe->delete_sampler_state(pipe, softpipe->pstipple.sampler);
-
-   pipe_resource_reference(&softpipe->pstipple.texture, NULL);
-   pipe_sampler_view_reference(&softpipe->pstipple.sampler_view, NULL);
-#endif
-
    if (softpipe->blitter) {
       util_blitter_destroy(softpipe->blitter);
    }
@@ -83,9 +74,6 @@ softpipe_destroy( struct pipe_context *pipe )
 
    if (softpipe->quad.blend)
       softpipe->quad.blend->destroy( softpipe->quad.blend );
-
-   if (softpipe->quad.pstipple)
-      softpipe->quad.pstipple->destroy( softpipe->quad.pstipple );
 
    if (softpipe->pipe.stream_uploader)
       u_upload_destroy(softpipe->pipe.stream_uploader);
@@ -278,7 +266,6 @@ softpipe_create_context(struct pipe_screen *screen,
    softpipe->quad.shade = sp_quad_shade_stage(softpipe);
    softpipe->quad.depth_test = sp_quad_depth_test_stage(softpipe);
    softpipe->quad.blend = sp_quad_blend_stage(softpipe);
-   softpipe->quad.pstipple = sp_quad_polygon_stipple_stage(softpipe);
 
    softpipe->pipe.stream_uploader = u_upload_create_default(&softpipe->pipe);
    if (!softpipe->pipe.stream_uploader)
@@ -348,19 +335,12 @@ softpipe_create_context(struct pipe_screen *screen,
    draw_install_aaline_stage(softpipe->draw, &softpipe->pipe);
    draw_install_aapoint_stage(softpipe->draw, &softpipe->pipe);
 
-   /* Do polygon stipple w/ texture map + frag prog? */
-#if DO_PSTIPPLE_IN_DRAW_MODULE
+   /* Do polygon stipple w/ texture map + frag prog. */
    draw_install_pstipple_stage(softpipe->draw, &softpipe->pipe);
-#endif
 
    draw_wide_point_sprites(softpipe->draw, TRUE);
 
    sp_init_surface_functions(softpipe);
-
-#if DO_PSTIPPLE_IN_HELPER_MODULE
-   /* create the polygon stipple sampler */
-   softpipe->pstipple.sampler = util_pstipple_create_sampler(&softpipe->pipe);
-#endif
 
    return &softpipe->pipe;
 

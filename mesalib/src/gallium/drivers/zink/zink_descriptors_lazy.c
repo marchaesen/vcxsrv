@@ -166,6 +166,7 @@ zink_descriptor_program_init_lazy(struct zink_context *ctx, struct zink_program 
       if (stages[PIPE_SHADER_FRAGMENT]->nir->info.fs.uses_fbfetch_output) {
          zink_descriptor_util_init_fbfetch(ctx);
          push_count = 1;
+         pg->dd->fbfetch = true;
       }
    }
 
@@ -414,6 +415,7 @@ check_push_pool_alloc(struct zink_context *ctx, struct zink_descriptor_pool *poo
          /* overflowed pool: queue for deletion on next reset */
          util_dynarray_append(&bdd->overflowed_pools, struct zink_descriptor_pool*, pool);
          bdd->push_pool[is_compute] = create_push_pool(screen, bdd, is_compute, ctx->dd->has_fbfetch);
+         bdd->has_fbfetch = ctx->dd->has_fbfetch;
          return check_push_pool_alloc(ctx, bdd->push_pool[is_compute], bdd, is_compute);
       }
       if (!zink_descriptor_util_alloc_sets(screen, ctx->dd->push_dsl[is_compute]->layout,
@@ -521,6 +523,25 @@ zink_descriptors_update_lazy_masked(struct zink_context *ctx, bool is_compute, u
                               pg->layout, type + 1, 1, &bdd->sets[is_compute][type + 1],
                               0, NULL);
    }
+}
+
+/* only called by cached manager for fbfetch handling */
+VkDescriptorSet
+zink_descriptors_alloc_lazy_push(struct zink_context *ctx)
+{
+   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_descriptor_data_lazy *bdd = bdd_lazy(bs);
+   struct zink_screen *screen = zink_screen(ctx->base.screen);
+   VkDescriptorSet push_set = VK_NULL_HANDLE;
+   if (!bdd->push_pool[0]) {
+      bdd->push_pool[0] = create_push_pool(screen, bdd, false, true);
+      bdd->has_fbfetch = true;
+   }
+   struct zink_descriptor_pool *pool = check_push_pool_alloc(ctx, bdd->push_pool[0], bdd, false);
+   push_set = get_descriptor_set_lazy(pool);
+   if (!push_set)
+      mesa_loge("ZINK: failed to get push descriptor set!");
+   return push_set;
 }
 
 void

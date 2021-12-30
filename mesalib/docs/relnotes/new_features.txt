@@ -1,0 +1,5 @@
+lavapipe,radv KHR_dynamic_rendering
+radv EXT_image_view_min_lod
+VK_KHR_synchronization2 on RADV.
+OpenSWR has been moved to the Amber branch
+radeonsi ARB_sparse_texture

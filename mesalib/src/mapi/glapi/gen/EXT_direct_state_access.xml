@@ -18,64 +18,64 @@
 
    <!-- GL1.0 extras -->
 
-   <function name="MatrixLoadfEXT" offset="assign">
+   <function name="MatrixLoadfEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLfloat *" count="16"/>
    </function>
-   <function name="MatrixLoaddEXT" offset="assign">
+   <function name="MatrixLoaddEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLdouble *" count="16"/>
    </function>
-   <function name="MatrixMultfEXT" offset="assign">
+   <function name="MatrixMultfEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLfloat *" count="16"/>
    </function>
-   <function name="MatrixMultdEXT" offset="assign">
+   <function name="MatrixMultdEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLdouble *" count="16"/>
    </function>
-   <function name="MatrixLoadIdentityEXT" offset="assign">
+   <function name="MatrixLoadIdentityEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
    </function>
-   <function name="MatrixRotatefEXT" offset="assign">
+   <function name="MatrixRotatefEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="angle" type="GLfloat" />
       <param name="x" type="GLfloat" />
       <param name="y" type="GLfloat" />
       <param name="z" type="GLfloat" />
    </function>
-   <function name="MatrixRotatedEXT" offset="assign">
+   <function name="MatrixRotatedEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="angle" type="GLdouble" />
       <param name="x" type="GLdouble" />
       <param name="y" type="GLdouble" />
       <param name="z" type="GLdouble" />
    </function>
-   <function name="MatrixScalefEXT" offset="assign">
+   <function name="MatrixScalefEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="x" type="GLfloat" />
       <param name="y" type="GLfloat" />
       <param name="z" type="GLfloat" />
    </function>
-   <function name="MatrixScaledEXT" offset="assign">
+   <function name="MatrixScaledEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="x" type="GLdouble" />
       <param name="y" type="GLdouble" />
       <param name="z" type="GLdouble" />
    </function>
-   <function name="MatrixTranslatefEXT" offset="assign">
+   <function name="MatrixTranslatefEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="x" type="GLfloat" />
       <param name="y" type="GLfloat" />
       <param name="z" type="GLfloat" />
    </function>
-   <function name="MatrixTranslatedEXT" offset="assign">
+   <function name="MatrixTranslatedEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="x" type="GLdouble" />
       <param name="y" type="GLdouble" />
       <param name="z" type="GLdouble" />
    </function>
-   <function name="MatrixOrthoEXT" offset="assign">
+   <function name="MatrixOrthoEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="l" type="GLdouble" />
       <param name="r" type="GLdouble" />
@@ -84,7 +84,7 @@
       <param name="n" type="GLdouble" />
       <param name="f" type="GLdouble" />
    </function>
-   <function name="MatrixFrustumEXT" offset="assign">
+   <function name="MatrixFrustumEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="l" type="GLdouble" />
       <param name="r" type="GLdouble" />
@@ -93,11 +93,11 @@
       <param name="n" type="GLdouble" />
       <param name="f" type="GLdouble" />
    </function>
-   <function name="MatrixPushEXT" offset="assign"
+   <function name="MatrixPushEXT" offset="assign" exec="dlist"
              marshal_call_after="_mesa_glthread_MatrixPushEXT(ctx, matrixMode);">
       <param name="matrixMode" type="GLenum" />
    </function>
-   <function name="MatrixPopEXT" offset="assign"
+   <function name="MatrixPopEXT" offset="assign" exec="dlist"
              marshal_call_after="_mesa_glthread_MatrixPopEXT(ctx, matrixMode);">
       <param name="matrixMode" type="GLenum" />
    </function>
@@ -144,35 +144,35 @@
        <param name="params" type="float *" />
     </function>
 
-    <function name="TextureParameteriEXT">
+    <function name="TextureParameteriEXT" exec="dlist">
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
        <param name="pname" type="GLenum" />
        <param name="param" type="int" />
     </function>
 
-    <function name="TextureParameterivEXT">
+    <function name="TextureParameterivEXT" exec="dlist">
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
        <param name="pname" type="GLenum" />
        <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
-    <function name="TextureParameterfEXT">
+    <function name="TextureParameterfEXT" exec="dlist">
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
        <param name="pname" type="GLenum" />
        <param name="param" type="float" />
     </function>
 
-    <function name="TextureParameterfvEXT">
+    <function name="TextureParameterfvEXT" exec="dlist">
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
        <param name="pname" type="GLenum" />
        <param name="params" type="const float *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
-   <function name="TextureImage1DEXT"
+   <function name="TextureImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -185,7 +185,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureImage2DEXT"
+   <function name="TextureImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -199,7 +199,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureImage3DEXT"
+   <function name="TextureImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -214,7 +214,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage1DEXT"
+   <function name="TextureSubImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -226,7 +226,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage2DEXT"
+   <function name="TextureSubImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -240,7 +240,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="TextureSubImage3DEXT"
+   <function name="TextureSubImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -256,7 +256,7 @@
       <param name="pixels" type="const GLvoid *" />
    </function>
 
-   <function name="CopyTextureImage1DEXT">
+   <function name="CopyTextureImage1DEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -267,7 +267,7 @@
       <param name="border" type="int" />
    </function>
 
-   <function name="CopyTextureImage2DEXT">
+   <function name="CopyTextureImage2DEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -279,7 +279,7 @@
       <param name="border" type="int" />
    </function>
 
-   <function name="CopyTextureSubImage1DEXT">
+   <function name="CopyTextureSubImage1DEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -289,7 +289,7 @@
       <param name="width" type="GLsizei" />
    </function>
 
-   <function name="CopyTextureSubImage2DEXT">
+   <function name="CopyTextureSubImage2DEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -301,7 +301,7 @@
       <param name="height" type="GLsizei" />
    </function>
 
-   <function name="CopyTextureSubImage3DEXT">
+   <function name="CopyTextureSubImage3DEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -326,7 +326,7 @@
 
    <!-- OpenGL 1.2.1 -->
 
-  <function name="BindMultiTextureEXT">
+  <function name="BindMultiTextureEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="texture" type="GLuint" />
@@ -360,28 +360,28 @@
       <param name="params" type="GLvoid**" />
    </function>
 
-   <function name="MultiTexEnviEXT">
+   <function name="MultiTexEnviEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="param" type="GLint" />
    </function>
 
-   <function name="MultiTexEnvivEXT">
+   <function name="MultiTexEnvivEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="param" type="const GLint *" count="_mesa_texenv_enum_to_count(pname)"/>
    </function>
 
-   <function name="MultiTexEnvfEXT">
+   <function name="MultiTexEnvfEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="param" type="GLfloat" />
    </function>
 
-   <function name="MultiTexEnvfvEXT">
+   <function name="MultiTexEnvfvEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
@@ -402,28 +402,28 @@
       <param name="param" type="GLfloat *" />
    </function>
 
-   <function name="MultiTexParameteriEXT">
+   <function name="MultiTexParameteriEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="param" type="GLint" />
    </function>
 
-   <function name="MultiTexParameterivEXT">
+   <function name="MultiTexParameterivEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="param" type="const GLint*" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
-   <function name="MultiTexParameterfEXT">
+   <function name="MultiTexParameterfEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="param" type="GLfloat" />
    </function>
 
-   <function name="MultiTexParameterfvEXT">
+   <function name="MultiTexParameterfvEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
@@ -470,7 +470,7 @@
       <param name="params" type="GLfloat*" />
    </function>
 
-   <function name="MultiTexImage1DEXT"
+   <function name="MultiTexImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -483,7 +483,7 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexImage2DEXT"
+   <function name="MultiTexImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -497,7 +497,7 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexImage3DEXT"
+   <function name="MultiTexImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -512,7 +512,7 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexSubImage1DEXT"
+   <function name="MultiTexSubImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -524,7 +524,7 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexSubImage2DEXT"
+   <function name="MultiTexSubImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -538,7 +538,7 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="MultiTexSubImage3DEXT"
+   <function name="MultiTexSubImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -554,7 +554,7 @@
       <param name="pixels" type="const GLvoid*" />
    </function>
 
-   <function name="CopyMultiTexImage1DEXT">
+   <function name="CopyMultiTexImage1DEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -565,7 +565,7 @@
       <param name="border" type="GLint" />
    </function>
 
-   <function name="CopyMultiTexImage2DEXT">
+   <function name="CopyMultiTexImage2DEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -577,7 +577,7 @@
       <param name="border" type="GLint" />
    </function>
 
-   <function name="CopyMultiTexSubImage1DEXT">
+   <function name="CopyMultiTexSubImage1DEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -587,7 +587,7 @@
       <param name="width" type="GLsizei" />
    </function>
 
-   <function name="CopyMultiTexSubImage2DEXT">
+   <function name="CopyMultiTexSubImage2DEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -599,7 +599,7 @@
       <param name="height" type="GLsizei" />
    </function>
 
-   <function name="CopyMultiTexSubImage3DEXT">
+   <function name="CopyMultiTexSubImage3DEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -686,27 +686,27 @@
 
    <!-- OpenGL 1.3 -->
 
-   <function name="MatrixLoadTransposefEXT" offset="assign">
+   <function name="MatrixLoadTransposefEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLfloat *" count="16"/>
    </function>
 
-   <function name="MatrixLoadTransposedEXT" offset="assign">
+   <function name="MatrixLoadTransposedEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLdouble *" count="16"/>
    </function>
 
-   <function name="MatrixMultTransposefEXT" offset="assign">
+   <function name="MatrixMultTransposefEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLfloat *" count="16"/>
    </function>
 
-   <function name="MatrixMultTransposedEXT" offset="assign">
+   <function name="MatrixMultTransposedEXT" offset="assign" exec="dlist">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLdouble *" count="16"/>
     </function>
 
-   <function name="CompressedTextureImage1DEXT"
+   <function name="CompressedTextureImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -718,7 +718,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureImage2DEXT"
+   <function name="CompressedTextureImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -731,7 +731,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureImage3DEXT"
+   <function name="CompressedTextureImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -745,7 +745,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage1DEXT"
+   <function name="CompressedTextureSubImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -757,7 +757,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage2DEXT"
+   <function name="CompressedTextureSubImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -771,7 +771,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedTextureSubImage3DEXT"
+   <function name="CompressedTextureSubImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -795,7 +795,7 @@
       <param name="img" type="GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexImage1DEXT"
+   <function name="CompressedMultiTexImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -807,7 +807,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexImage2DEXT"
+   <function name="CompressedMultiTexImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -820,7 +820,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexImage3DEXT"
+   <function name="CompressedMultiTexImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -834,7 +834,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexSubImage1DEXT"
+   <function name="CompressedMultiTexSubImage1DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -846,7 +846,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexSubImage2DEXT"
+   <function name="CompressedMultiTexSubImage2DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -860,7 +860,7 @@
       <param name="data" type="const GLvoid *" />
    </function>
 
-   <function name="CompressedMultiTexSubImage3DEXT"
+   <function name="CompressedMultiTexSubImage3DEXT" exec="dlist"
              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
@@ -1247,7 +1247,7 @@
    </function>
 
    <!-- ARB_vertex_program -->
-   <function name="NamedProgramStringEXT">
+   <function name="NamedProgramStringEXT" exec="dlist">
       <param name="program" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="format" type="GLenum" />
@@ -1262,7 +1262,7 @@
       <param name="string" type="GLvoid*" />
     </function>
 
-   <function name="NamedProgramLocalParameter4fEXT">
+   <function name="NamedProgramLocalParameter4fEXT" exec="dlist">
       <param name="program" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="index" type="GLuint" />
@@ -1272,7 +1272,7 @@
       <param name="w" type="GLfloat" />
     </function>
 
-   <function name="NamedProgramLocalParameter4fvEXT">
+   <function name="NamedProgramLocalParameter4fvEXT" exec="dlist">
       <param name="program" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="index" type="GLuint" />
@@ -1286,7 +1286,7 @@
       <param name="params" type="GLfloat*" />
     </function>
 
-   <function name="NamedProgramLocalParameter4dEXT">
+   <function name="NamedProgramLocalParameter4dEXT" exec="dlist">
       <param name="program" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="index" type="GLuint" />
@@ -1296,7 +1296,7 @@
       <param name="w" type="GLdouble" />
     </function>
 
-   <function name="NamedProgramLocalParameter4dvEXT">
+   <function name="NamedProgramLocalParameter4dvEXT" exec="dlist">
       <param name="program" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="index" type="GLuint" />
@@ -1333,14 +1333,14 @@
    </function>
 
    <!-- EXT_texture_integer -->
-   <function name="TextureParameterIivEXT">
+   <function name="TextureParameterIivEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="params" type="const GLint*" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
-   <function name="TextureParameterIuivEXT">
+   <function name="TextureParameterIuivEXT" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
@@ -1361,14 +1361,14 @@
       <param name="params" type="GLuint*" />
    </function>
 
-   <function name="MultiTexParameterIivEXT">
+   <function name="MultiTexParameterIivEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
       <param name="params" type="const GLint*" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
-   <function name="MultiTexParameterIuivEXT">
+   <function name="MultiTexParameterIuivEXT" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />

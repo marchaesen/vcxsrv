@@ -26,6 +26,7 @@
  *
  **************************************************************************/
 
+#include "main/macros.h"
 #include "st_cb_bitmap.h"
 #include "tgsi/tgsi_transform.h"
 #include "tgsi/tgsi_scan.h"

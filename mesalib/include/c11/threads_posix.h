@@ -142,7 +142,7 @@ cnd_timedwait(cnd_t *cond, mtx_t *mtx, const struct timespec *abs_time)
 
     rt = pthread_cond_timedwait(cond, mtx, abs_time);
     if (rt == ETIMEDOUT)
-        return thrd_busy;
+        return thrd_timedout;
     return (rt == 0) ? thrd_success : thrd_error;
 }
 
@@ -242,14 +242,14 @@ mtx_timedlock(mtx_t *mtx, const struct timespec *ts)
     rt = pthread_mutex_timedlock(mtx, ts);
     if (rt == 0)
         return thrd_success;
-    return (rt == ETIMEDOUT) ? thrd_busy : thrd_error;
+    return (rt == ETIMEDOUT) ? thrd_timedout : thrd_error;
 #else
     time_t expire = time(NULL);
     expire += ts->tv_sec;
     while (mtx_trylock(mtx) != thrd_success) {
         time_t now = time(NULL);
         if (expire < now)
-            return thrd_busy;
+            return thrd_timedout;
         // busy loop!
         thrd_yield();
     }

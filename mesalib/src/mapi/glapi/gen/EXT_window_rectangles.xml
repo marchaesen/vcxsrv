@@ -19,7 +19,7 @@
         <size name="Get" mode="get"/>
     </enum>
 
-    <function name="WindowRectanglesEXT" es2="3.0">
+    <function name="WindowRectanglesEXT" es2="3.0" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="box" type="const GLint *" count="(4 * count)"/>

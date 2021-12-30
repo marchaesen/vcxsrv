@@ -102,9 +102,9 @@ percent.  Defaults to 2%.
 .B \-l
 Write
 .B fonts.dir
-files suitable for implementations that cannot reencode legacy fonts
+files suitable for implementations that cannot re-encode legacy fonts
 (BDF and PCF).  By default, it is assumed that the implementation can
-reencode Unicode-encoded legacy fonts.
+re-encode Unicode-encoded legacy fonts.
 .TP
 .B -e
 specifies a directory with encoding files.  Every such

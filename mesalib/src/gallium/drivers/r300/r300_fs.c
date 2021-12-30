@@ -142,7 +142,7 @@ static void allocate_hardware_inputs(
     }
 }
 
-static void get_external_state(
+void r300_fragment_program_get_external_state(
     struct r300_context* r300,
     struct r300_fragment_program_external_state* state)
 {
@@ -168,8 +168,6 @@ static void get_external_state(
             /* Fortunately, no need to translate this. */
             state->unit[i].texture_compare_func = s->state.compare_func;
         }
-
-        state->unit[i].non_normalized_coords = !s->state.normalized_coords;
 
         /* Pass texture swizzling to the compiler, some lowering passes need it. */
         if (state->unit[i].compare_mode_enabled) {
@@ -431,10 +429,11 @@ static void r300_translate_fragment_shader(
     memset(&compiler, 0, sizeof(compiler));
     rc_init(&compiler.Base, &r300->fs_regalloc_state);
     DBG_ON(r300, DBG_FP) ? compiler.Base.Debug |= RC_DBG_LOG : 0;
-    DBG_ON(r300, DBG_P_STAT) ? compiler.Base.Debug |= RC_DBG_STATS : 0;
 
     compiler.code = &shader->code;
     compiler.state = shader->compare_state;
+    if (!shader->dummy)
+        compiler.Base.debug = &r300->debug;
     compiler.Base.is_r500 = r300->screen->caps.is_r500;
     compiler.Base.is_r400 = r300->screen->caps.is_r400;
     compiler.Base.disable_optimizations = DBG_ON(r300, DBG_NO_OPT);
@@ -561,32 +560,28 @@ static void r300_translate_fragment_shader(
     r300_emit_fs_code_to_buffer(r300, shader);
 }
 
-boolean r300_pick_fragment_shader(struct r300_context* r300)
+boolean r300_pick_fragment_shader(struct r300_context *r300,
+                                  struct r300_fragment_shader* fs,
+                                  struct r300_fragment_program_external_state *state)
 {
-    struct r300_fragment_shader* fs = r300_fs(r300);
-    struct r300_fragment_program_external_state state;
     struct r300_fragment_shader_code* ptr;
-
-    memset(&state, 0, sizeof(state));
-    get_external_state(r300, &state);
 
     if (!fs->first) {
         /* Build the fragment shader for the first time. */
         fs->first = fs->shader = CALLOC_STRUCT(r300_fragment_shader_code);
 
-        memcpy(&fs->shader->compare_state, &state,
-            sizeof(struct r300_fragment_program_external_state));
+        memcpy(&fs->shader->compare_state, state, sizeof(*state));
         r300_translate_fragment_shader(r300, fs->shader, fs->state.tokens);
         return TRUE;
 
     } else {
         /* Check if the currently-bound shader has been compiled
          * with the texture-compare state we need. */
-        if (memcmp(&fs->shader->compare_state, &state, sizeof(state)) != 0) {
+        if (memcmp(&fs->shader->compare_state, state, sizeof(*state)) != 0) {
             /* Search for the right shader. */
             ptr = fs->first;
             while (ptr) {
-                if (memcmp(&ptr->compare_state, &state, sizeof(state)) == 0) {
+                if (memcmp(&ptr->compare_state, state, sizeof(*state)) == 0) {
                     if (fs->shader != ptr) {
                         fs->shader = ptr;
                         return TRUE;
@@ -602,7 +597,7 @@ boolean r300_pick_fragment_shader(struct r300_context* r300)
             ptr->next = fs->first;
             fs->first = fs->shader = ptr;
 
-            ptr->compare_state = state;
+            memcpy(&ptr->compare_state, state, sizeof(*state));
             r300_translate_fragment_shader(r300, ptr, fs->state.tokens);
             return TRUE;
         }

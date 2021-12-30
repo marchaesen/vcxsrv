@@ -232,8 +232,11 @@ public:
 
       for (auto &kernel : kernels) {
 	 for (auto &arg : kernel.args) {
-            if (arg.typeId == typeId)
+            if (arg.typeId == typeId) {
                arg.addrQualifier = addrQualifier;
+               if (addrQualifier == CLC_KERNEL_ARG_ADDRESS_CONSTANT)
+                  arg.typeQualifier |= CLC_KERNEL_ARG_TYPE_CONST;
+            }
          }
       }
    }
@@ -249,10 +252,21 @@ public:
       assert(op->type == SPV_OPERAND_TYPE_LITERAL_STRING);
       str = reinterpret_cast<const char *>(ins->words + op->offset);
 
-      if (str.find("kernel_arg_type.") != 0)
-         return;
+      size_t start = 0;
+      enum class string_type {
+         arg_type,
+         arg_type_qual,
+      } str_type;
 
-      size_t start = sizeof("kernel_arg_type.") - 1;
+      if (str.find("kernel_arg_type.") == 0) {
+         start = sizeof("kernel_arg_type.") - 1;
+         str_type = string_type::arg_type;
+      } else if (str.find("kernel_arg_type_qual.") == 0) {
+         start = sizeof("kernel_arg_type_qual.") - 1;
+         str_type = string_type::arg_type_qual;
+      } else {
+         return;
+      }
 
       for (auto &kernel : kernels) {
          size_t pos;
@@ -270,12 +284,19 @@ public:
             if (arg.name.empty())
                break;
 
-            size_t typeEnd = str.find(',', pos);
-	    if (typeEnd == std::string::npos)
+            size_t entryEnd = str.find(',', pos);
+	    if (entryEnd == std::string::npos)
                break;
 
-            arg.typeName = str.substr(pos, typeEnd - pos);
-            pos = typeEnd + 1;
+            std::string entryVal = str.substr(pos, entryEnd - pos);
+            pos = entryEnd + 1;
+
+            if (str_type == string_type::arg_type) {
+               arg.typeName = std::move(entryVal);
+            } else if (str_type == string_type::arg_type_qual) {
+               if (entryVal.find("const") != std::string::npos)
+                  arg.typeQualifier |= CLC_KERNEL_ARG_TYPE_CONST;
+            }
          }
       }
    }

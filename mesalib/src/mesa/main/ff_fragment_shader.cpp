@@ -42,7 +42,7 @@
 #include "compiler/glsl/glsl_parser_extras.h"
 #include "compiler/glsl/glsl_symbol_table.h"
 #include "compiler/glsl_types.h"
-#include "program/ir_to_mesa.h"
+#include "program/link_program.h"
 #include "program/program.h"
 #include "program/programopt.h"
 #include "program/prog_cache.h"
@@ -1037,9 +1037,6 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    p.mem_ctx = ralloc_context(NULL);
    p.shader = _mesa_new_shader(0, MESA_SHADER_FRAGMENT);
-#ifdef DEBUG
-   p.shader->SourceChecksum = 0xf18ed; /* fixed */
-#endif
    p.shader->ir = new(p.shader) exec_list;
    state = new(p.shader) _mesa_glsl_parse_state(ctx, MESA_SHADER_FRAGMENT,
 						p.shader);

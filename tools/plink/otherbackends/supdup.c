@@ -107,6 +107,7 @@ struct supdup_tag
 
     Plug plug;
     Backend backend;
+    Interactor interactor;
 };
 
 #define SUPDUP_MAX_BACKLOG 4096
@@ -288,7 +289,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
         */
 
         // We only care about the new position.
-        strbuf_catf(outbuf, "\033[%d;%dH", supdup->td_args[2]+1, supdup->td_args[3]+1);
+        put_fmt(outbuf, "\033[%d;%dH", supdup->td_args[2]+1, supdup->td_args[3]+1);
         break;
 
     case TDMV0:
@@ -297,7 +298,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           General cursor position code.  Followed by two bytes;
           the new vertical and horizontal positions.
         */
-        strbuf_catf(outbuf, "\033[%d;%dH", supdup->td_args[0]+1, supdup->td_args[1]+1);
+        put_fmt(outbuf, "\033[%d;%dH", supdup->td_args[0]+1, supdup->td_args[1]+1);
         break;
 
     case TDEOF:
@@ -311,7 +312,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           lines lower on the screen than the cursor.  The cursor
           does not move.
         */
-        strbuf_catf(outbuf, "\033[J");
+        put_fmt(outbuf, "\033[J");
         break;
 
     case TDEOL:
@@ -320,7 +321,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           position the cursor is at and all positions to the right
           on the same line.  The cursor does not move.
         */
-        strbuf_catf(outbuf, "\033[K");
+        put_fmt(outbuf, "\033[K");
         break;
 
     case TDDLF:
@@ -328,7 +329,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           Clear the character position the cursor is on.  The
           cursor does not move.
         */
-        strbuf_catf(outbuf, "\033[X");
+        put_fmt(outbuf, "\033[X");
         break;
 
     case TDCRL:
@@ -338,7 +339,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           that line.  If the cursor is at the bottom line, scroll
           up.
         */
-        strbuf_catf(outbuf, "\015\012");
+        put_fmt(outbuf, "\015\012");
         break;
 
     case TDNOP:
@@ -382,7 +383,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           line.
         */
 
-        strbuf_catf(outbuf, "\033[C");
+        put_fmt(outbuf, "\033[C");
         break;
 
     case TDCLR:
@@ -390,7 +391,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           Erase the screen.  Home the cursor to the top left hand
           corner of the screen.
         */
-        strbuf_catf(outbuf, "\033[2J\033[H");
+        put_fmt(outbuf, "\033[2J\033[H");
         break;
 
     case TDBEL:
@@ -398,7 +399,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           Generate an audio tone, bell, whatever.
         */
 
-        strbuf_catf(outbuf, "\007");
+        put_fmt(outbuf, "\007");
         break;
 
     case TDILP:
@@ -409,7 +410,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           on and all lines below it move down; lines moved off the
           bottom of the screen are lost.
         */
-        strbuf_catf(outbuf, "\033[%dL", supdup->td_args[0]);
+        put_fmt(outbuf, "\033[%dL", supdup->td_args[0]);
         break;
 
     case TDDLP:
@@ -420,7 +421,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           Newly- created lines at the bottom of the screen are
           blank.
         */
-        strbuf_catf(outbuf, "\033[%dM", supdup->td_args[0]);
+        put_fmt(outbuf, "\033[%dM", supdup->td_args[0]);
         break;
 
     case TDICP:
@@ -431,7 +432,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           current line move to the right; characters moved off the
           end of the line are lost.
         */
-        strbuf_catf(outbuf, "\033[%d@", supdup->td_args[0]);
+        put_fmt(outbuf, "\033[%d@", supdup->td_args[0]);
         break;
 
     case TDDCP:
@@ -441,7 +442,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           the one the cursor is on.  Newly-created characters at
           the end of the line are blank.
         */
-        strbuf_catf(outbuf, "\033[%dP", supdup->td_args[0]);
+        put_fmt(outbuf, "\033[%dP", supdup->td_args[0]);
         break;
 
     case TDBOW:
@@ -569,16 +570,11 @@ static void supdup_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
         supdup->socket_connected = true;
         if (supdup->ldisc)
             ldisc_check_sendok(supdup->ldisc);
-        if (is_tempseat(supdup->seat)) {
-            Seat *ts = supdup->seat;
-            tempseat_flush(ts);
-            supdup->seat = tempseat_get_real(ts);
-            tempseat_free(ts);
-        }
     }
 }
 
-static void supdup_closing(Plug *plug, const char *error_msg, int error_code)
+static void supdup_closing(Plug *plug, PlugCloseType type,
+                           const char *error_msg)
 {
     Supdup *supdup = container_of(plug, Supdup, plug);
 
@@ -596,9 +592,10 @@ static void supdup_closing(Plug *plug, const char *error_msg, int error_code)
         seat_notify_remote_exit(supdup->seat);
         seat_notify_remote_disconnect(supdup->seat);
     }
-    if (error_msg) {
+    if (type != PLUGCLOSE_NORMAL) {
         logevent(supdup->logctx, error_msg);
-        seat_connection_fatal(supdup->seat, "%s", error_msg);
+        if (type != PLUGCLOSE_USER_ABORT)
+            seat_connection_fatal(supdup->seat, "%s", error_msg);
     }
     /* Otherwise, the remote side closed the connection normally. */
 }
@@ -642,17 +639,36 @@ static void supdup_send_config(Supdup *supdup)
     supdup_send_36bits(supdup, TTYROL);         // scroll amount
 }
 
-static char *supdup_plug_description(Plug *plug)
+static char *supdup_description(Interactor *itr)
 {
-    Supdup *supdup = container_of(plug, Supdup, plug);
+    Supdup *supdup = container_of(itr, Supdup, interactor);
     return dupstr(supdup->description);
 }
 
-static char *supdup_backend_description(Backend *backend)
+static LogPolicy *supdup_logpolicy(Interactor *itr)
 {
-    Supdup *supdup = container_of(backend, Supdup, backend);
-    return dupstr(supdup->description);
+    Supdup *supdup = container_of(itr, Supdup, interactor);
+    return log_get_policy(supdup->logctx);
 }
+
+static Seat *supdup_get_seat(Interactor *itr)
+{
+    Supdup *supdup = container_of(itr, Supdup, interactor);
+    return supdup->seat;
+}
+
+static void supdup_set_seat(Interactor *itr, Seat *seat)
+{
+    Supdup *supdup = container_of(itr, Supdup, interactor);
+    supdup->seat = seat;
+}
+
+static const InteractorVtable Supdup_interactorvt = {
+    .description = supdup_description,
+    .logpolicy = supdup_logpolicy,
+    .get_seat = supdup_get_seat,
+    .set_seat = supdup_set_seat,
+};
 
 /*
 * Called to set up the Supdup connection.
@@ -673,7 +689,6 @@ static char *supdup_init(const BackendVtable *x, Seat *seat,
         .closing = supdup_closing,
         .receive = supdup_receive,
         .sent = supdup_sent,
-        .description = supdup_plug_description,
     };
     SockAddr *addr;
     const char *err;
@@ -683,8 +698,11 @@ static char *supdup_init(const BackendVtable *x, Seat *seat,
     const char *utf8 = "\033%G";
 
     supdup = snew(struct supdup_tag);
+    memset(supdup, 0, sizeof(Supdup));
     supdup->plug.vt = &fn_table;
     supdup->backend.vt = &supdup_backend;
+    supdup->interactor.vt = &Supdup_interactorvt;
+    supdup->backend.interactor = &supdup->interactor;
     supdup->logctx = logctx;
     supdup->conf = conf_copy(conf);
     supdup->s = NULL;
@@ -737,7 +755,7 @@ static char *supdup_init(const BackendVtable *x, Seat *seat,
      */
     supdup->s = new_connection(addr, *realhost, port, false, true,
                                nodelay, keepalive, &supdup->plug, supdup->conf,
-                               log_get_policy(logctx), &supdup->seat);
+                               &supdup->interactor);
     if ((err = sk_socket_error(supdup->s)) != NULL)
         return dupstr(err);
 
@@ -951,7 +969,6 @@ const BackendVtable supdup_backend = {
     .provide_ldisc = supdup_provide_ldisc,
     .unthrottle = supdup_unthrottle,
     .cfg_info = supdup_cfg_info,
-    .description = supdup_backend_description,
     .id = "supdup",
     .displayname_tc = "SUPDUP",
     .displayname_lc = "SUPDUP", /* proper name, so capitalise it anyway */

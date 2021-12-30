@@ -40,6 +40,9 @@ extern void
 st_init_flush_functions(struct pipe_screen *screen,
                         struct dd_function_table *functions);
 
+void st_glFlush(struct gl_context *ctx, unsigned gallium_flush_flags);
+void st_glFinish(struct gl_context *ctx);
+
 extern void
 st_flush(struct st_context *st,
          struct pipe_fence_handle **fence,

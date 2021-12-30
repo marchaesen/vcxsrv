@@ -1,8 +1,9 @@
-# New in VK-GL-CTS 1.2.7.0
+# Test bug, using GLSL 4.20 on a 3.3 context.
+# Broken in VK-GL-CTS e5c45899ed7e90fb616ccd1d3c66e6eded120684
 KHR-GL33.cull_distance.coverage,Fail
 
-KHR-GL33.packed_depth_stencil.verify_get_tex_image.depth24_stencil8,Fail
-KHR-GL33.packed_depth_stencil.verify_read_pixels.depth24_stencil8,Fail
+# Framework bug, missing getProcAddress method.
+# https://gerrit.khronos.org/c/vk-gl-cts/+/8405
 KHR-GL33.transform_feedback.capture_vertex_interleaved_test,Fail
 KHR-GL33.transform_feedback.capture_vertex_separate_test,Fail
 KHR-GL33.transform_feedback.discard_vertex_test,Fail
@@ -11,29 +12,16 @@ KHR-GL33.transform_feedback.draw_xfb_stream_instanced_test,Crash
 KHR-GL33.transform_feedback.query_vertex_interleaved_test,Fail
 KHR-GL33.transform_feedback.query_vertex_separate_test,Fail
 
-# "*** Color comparison failed"
-KHR-GLES3.packed_depth_stencil.verify_read_pixels.depth24_stencil8,Fail
-
-# "The values of resultStd[i] & 0xFFFFFFFE and resultFma[i] & 0xFFFFFFFE and resultCPU[i] & 0xFFFFFFFE are not bitwise equal for i = 0..99 "
-KHR-GLES31.core.gpu_shader5.fma_precision_float,Fail
-KHR-GLES31.core.gpu_shader5.fma_precision_vec2,Fail
-KHR-GLES31.core.gpu_shader5.fma_precision_vec3,Fail
-KHR-GLES31.core.gpu_shader5.fma_precision_vec4,Fail
-
 # Lots of errors like "[279] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]"
 KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support,Fail
 
 KHR-GLES31.core.geometry_shader.layered_framebuffer.stencil_support,Fail
 
-# " Pixel data comparison failed; expected: (0.1, 0.2, 0.3, 0.4) rendered: (0, 0, 0, 0) epsilon: 0.00392157
-#   Pixel data comparison failed at esextcTessellationShaderPoints.cpp:597"
-KHR-GLES31.core.tessellation_shader.tessellation_shader_point_mode.point_rendering,Fail
-
 # "Invalid value returned: expected:[1, 1, 1, 1] retrieved: [0, 0, 0, 0
 #  Invalid rendering result at esextcTessellationShaderBarrier.cpp:504"
 KHR-GLES31.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guarded_read_calls,Fail
 
-# no debug info in the qpa
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/5582
 KHR-GLES31.core.texture_cube_map_array.color_depth_attachments,Fail
 
 # rendering errors in ~4x4 blocks around the bottom side of the diagonal for the quad
@@ -57,10 +45,6 @@ bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.softlight,Fail
 dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
 dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
 
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3052
-# fixed by https://gerrit.khronos.org/c/vk-gl-cts/+/7837
-bypass-dEQP-VK.renderpass.suballocation.subpass_dependencies.separate_channels.r8g8b8a8_unorm,Fail
-
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
@@ -75,7 +59,6 @@ glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 glx@glx-make-current,Crash
 glx@glx-multi-window-single-context,Fail
-glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
@@ -91,14 +74,6 @@ shaders@point-vertex-id gl_vertexid,Crash
 shaders@point-vertex-id gl_vertexid divisor,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Crash
-
-# "nir_src_comp_as_uint: Assertion `nir_src_is_const(src)' failed." looking up image
-spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-mixed-const-non-const-uniform-index2,Crash
-spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-mixed-const-non-const-uniform-index,Crash
-spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-non-const-uniform-index,Crash
-
-# "shader_runner: ../src/freedreno/ir3/ir3_compiler_nir.c:3928: collect_tex_prefetches: Assertion `fetch->samp_id < 0xf' failed."
-spec@arb_arrays_of_arrays@execution@sampler@fs-struct-const-index-sampler-const-index,Crash
 
 spec@arb_compute_shader@execution@border-color,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil,Fail
@@ -124,10 +99,14 @@ spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32
 # "arb_direct_state_access-gettextureimage-formats: ../src/mesa/main/texstore.c:413: _mesa_texstore_s8_z24: Assertion `srcFormat == GL_DEPTH_STENCIL_EXT || srcFormat == GL_DEPTH_COMPONENT || srcFormat == GL_STENCIL_INDEX' failed."
 spec@arb_direct_state_access@gettextureimage-formats,Crash
 
+# "0 primitives generated:
+#  Incorrect number of prims generated.
+#  Found 0, expected 4"
 spec@arb_direct_state_access@transformfeedback-bufferbase,Fail
 spec@arb_direct_state_access@transformfeedback-bufferbase@general test,Fail
 spec@arb_direct_state_access@transformfeedback-bufferrange,Fail
 spec@arb_direct_state_access@transformfeedback-bufferrange@general test,Fail
+
 spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled,Fail
 spec@arb_es2_compatibility@texwrap formats bordercolor-swizzled@GL_RGB565- swizzled- border color only,Fail
 spec@arb_occlusion_query@occlusion_query_order,Fail
@@ -163,59 +142,58 @@ spec@arb_sample_shading@samplemask 4,Fail
 spec@arb_sample_shading@samplemask 4@noms mask_in_one,Fail
 spec@arb_sample_shading@samplemask 4@sample mask_in_one,Fail
 
-# "nir_src_comp_as_uint: Assertion `nir_src_is_const(src)' failed." looking up image
-spec@arb_shader_image_load_store@indexing,Crash
+# These 3 fails started to happen after piglit uprev with commit
+# 0ef03f824d1833a853d1a20b4be121089bb9246c
+spec@arb_shader_image_load_store@qualifiers,Fail
+spec@arb_shader_image_load_store@qualifiers@r8/permissive layout qualifiers/permissive access qualifiers/permissive binding test,Fail
+spec@arb_shader_image_load_store@qualifiers@r8/strict layout qualifiers/permissive access qualifiers/permissive binding test,Fail
 
 spec@arb_shader_storage_buffer_object@array-ssbo-auto-binding,Fail
 spec@arb_shader_storage_buffer_object@linker@instance-matching-shader-storage-blocks-member-array-size-mismatch,Fail
 spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
+
+# Test bug: https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/601#note_1154259
+# "Failed to link:
+#  error: Too many tessellation control shader atomic counters"
 spec@arb_tessellation_shader@execution@invocation-counting-even,Fail
 spec@arb_tessellation_shader@execution@invocation-counting-odd,Fail
+
+# "ir3_nir_lower_tess.c:585: lower_tess_ctrl_block: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed."
 spec@arb_tessellation_shader@execution@patch-partial-write,Crash
+
+# Test bug: https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/601#note_1154259
+# "Failed to link:
+#  error: Too many tessellation control shader atomic counters"
 spec@arb_tessellation_shader@execution@tcs-output-unmatched,Fail
 spec@arb_tessellation_shader@execution@tcs-primitiveid,Fail
+
 spec@arb_tessellation_shader@execution@tes-no-tcs-primitiveid-instanced,Fail
+
+# Test bug: https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/601#note_1154259
+# "Failed to link:
+#  error: Too many tessellation control shader atomic counters"
 spec@arb_tessellation_shader@execution@tes-primitiveid,Fail
+
 spec@arb_tessellation_shader@execution@tes-read-texture,Fail
 spec@arb_tessellation_shader@execution@tess_with_geometry,Fail
 spec@arb_tessellation_shader@execution@trivial-tess-gs,Fail
 spec@arb_tessellation_shader@execution@trivial-tess-gs_no-gs-inputs,Fail
 spec@arb_tessellation_shader@execution@trivial-tess-gs_no-tes-inputs,Fail
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-input-array-vec4-index-rd,Crash
+
+# ir3_nir_lower_tess.c:251: lower_block_to_explicit_output: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed.
+spec@arb_tessellation_shader@execution@tcs-input-read-mat,Crash
+
+# "ir3_nir_lower_tess.c:585: lower_tess_ctrl_block: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed."
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-index-wr,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-swiz-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-input-array-vec4-index-rd,Crash
 spec@arb_tessellation_shader@execution@vertex-partial-write,Crash
+
+
 spec@arb_tessellation_shader@execution@vs-tes-max-in-out-components,Fail
 spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-quads,Fail
 spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-tris,Fail
 spec@arb_tessellation_shader@execution@vs-tes-vertex,Fail
-spec@arb_texture_buffer_object@formats (fs- arb),Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE8_ALPHA8,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb),Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE8_ALPHA8,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE_ALPHA32F_ARB,Fail
+
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_BPTC_UNORM- swizzled- border color only,Fail
 spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT- swizzled- border color only,Fail
@@ -224,11 +202,6 @@ spec@arb_texture_compression_bptc@texwrap formats bordercolor-swizzled@GL_COMPRE
 spec@arb_texture_compression@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA- swizzled- border color only,Fail
 spec@arb_texture_compression@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB- swizzled- border color only,Fail
-spec@arb_texture_float@fbo-blending-formats,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGB16F- swizzled- border color only,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_RGB32F- swizzled- border color only,Fail
@@ -261,14 +234,14 @@ spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG32UI- swizzled
 spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG8I- swizzled- border color only,Fail
 spec@arb_texture_rg@texwrap formats-int bordercolor-swizzled@GL_RG8UI- swizzled- border color only,Fail
 
-# segfault on fd6_emit_image_tex() of null image resource
-spec@arb_texture_view@bug-layers-image,Crash
-
-spec@arb_texture_view@mipgen,Fail
 spec@arb_texture_view@rendering-layers-image,Fail
 spec@arb_texture_view@rendering-layers-image@layers rendering of image1DArray,Fail
 spec@arb_timer_query@timestamp-get,Fail
+
+# "Expected 1 primitives written, got 0"
+# Note: no FS, rasterizer discard enabled.
 spec@arb_transform_feedback3@arb_transform_feedback3-ext_interleaved_two_bufs_vs,Fail
+
 spec@arb_transform_feedback3@gl_skipcomponents1-1,Fail
 spec@arb_transform_feedback3@gl_skipcomponents1234,Fail
 spec@arb_transform_feedback3@gl_skipcomponents1-2,Fail
@@ -279,9 +252,6 @@ spec@arb_transform_feedback3@gl_skipcomponents3,Fail
 spec@arb_transform_feedback3@gl_skipcomponents4,Fail
 spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
 
-# crash in dri3_fence_reset with a NULL buffer arg
-spec@egl 1.4@egl-copy-buffers,Crash
-
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
 spec@egl_chromium_sync_control@conformance,Fail
@@ -289,18 +259,7 @@ spec@egl_ext_protected_content@conformance,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-spec@ext_framebuffer_multisample@accuracy 2 depth_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 2 depth_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 2 stencil_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 2 stencil_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 depth_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 depth_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 stencil_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy 4 stencil_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve small depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples stencil_resolve depthstencil,Fail
-spec@ext_framebuffer_multisample@accuracy all_samples stencil_resolve small depthstencil,Fail
+
 spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 4,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 2,Fail
@@ -331,10 +290,6 @@ spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_packed_float@texwrap formats bordercolor-swizzled,Fail
 spec@ext_packed_float@texwrap formats bordercolor-swizzled@GL_R11F_G11F_B10F- swizzled- border color only,Fail
 
-# "../src/gallium/drivers/freedreno/a6xx/fd6_gmem.c:976:emit_blit: Assertion `psurf->u.tex.first_layer == psurf->u.tex.last_layer' failed."
-spec@ext_texture_array@fbo-depth-array depth-layered-clear,Crash
-spec@ext_texture_array@fbo-depth-array stencil-layered-clear,Crash
-
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled,Fail
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RED_RGTC1- swizzled- border color only,Fail
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RG_RGTC2- swizzled- border color only,Fail
@@ -361,20 +316,23 @@ spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA8I- swizzle
 spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGBA8UI- swizzled- border color only,Fail
 spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled,Fail
 spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled@GL_RGB9_E5- swizzled- border color only,Fail
-spec@ext_texture_snorm@fbo-blending-formats,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE_SNORM,Fail
+
+# These failures go away with FD_MESA_DEBUG=noblit, but don't seem to be related
+# to the actual mipmap generation blits (which we do fall back on)
 spec@ext_texture_snorm@fbo-generatemipmap-formats,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_ALPHA16_SNORM,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_ALPHA16_SNORM NPOT,Fail
+spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_INTENSITY_SNORM,Fail
+spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_INTENSITY_SNORM NPOT,Fail
+spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_INTENSITY8_SNORM,Fail
+spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_INTENSITY8_SNORM NPOT,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_INTENSITY16_SNORM,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_INTENSITY16_SNORM NPOT,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_LUMINANCE16_ALPHA16_SNORM,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_LUMINANCE16_ALPHA16_SNORM NPOT,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_LUMINANCE16_SNORM,Fail
 spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_LUMINANCE16_SNORM NPOT,Fail
+
 spec@ext_texture_snorm@multisample-formats 2 gl_ext_texture_snorm,Fail
 spec@ext_texture_snorm@multisample-formats 4 gl_ext_texture_snorm,Fail
 spec@ext_texture_snorm@texwrap formats bordercolor-swizzled,Fail
@@ -406,7 +364,6 @@ spec@ext_transform_feedback@structs struct-array-elem run interface,Fail
 spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
 spec@ext_transform_feedback@tessellation triangle_strip flat_first,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9,Fail
-spec@glsl-1.30@execution@texelfetch fs sampler3d 98x129x1-98x129x9,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9,Fail
 spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-const-accept,Fail
 spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-different-from-position,Fail
@@ -416,6 +373,11 @@ spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-homogeneity,Fail
 spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-primitives-lines,Fail
 spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-primitives-points,Fail
 spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-primitives-triangle-strip,Fail
+
+# The precompile without UCP lowering triggers an assertion failure:
+# "shader_io_get_unique_index: Assertion `!"illegal slot in get unique index\n"'
+# failed." We shouldn't crash if clipvertex is written without actually doing
+# clipping, we should just drop the output on the floor.
 spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-const-accept,Crash
 spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-const-reject,Crash
 spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-different-from-position,Crash
@@ -423,13 +385,21 @@ spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-enables,Crash
 spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-equal-to-position,Crash
 spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-homogeneity,Crash
 spec@glsl-1.50@execution@compatibility@clipping@vs-gs-clip-vertex-primitives-triangle-strip,Crash
+
+# "src/freedreno/ir3/ir3_shader.h:864:ir3_find_output: Assertion `0' failed."
+# Reading undefined vertex outputs should be undefined, not crash.
 spec@glsl-1.50@execution@compatibility@gs-clamp-vertex-color,Crash
 spec@glsl-1.50@execution@compatibility@gs-ff-frag,Crash
+
 spec@glsl-1.50@execution@compatibility@gs-texcoord-array-2,Fail
 spec@glsl-1.50@execution@compatibility@gs-texcoord-array,Fail
+
+# "ir3_nir_lower_tess.c:111: shader_io_get_unique_index: Assertion `!"illegal slot in get unique index\n"' failed."
+# I think on VARYING_SLOT_COL0 from the VS.
 spec@glsl-1.50@execution@compatibility@vs-gs-ff-frag,Crash
 spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array-2,Crash
 spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array,Crash
+
 spec@glsl-1.50@execution@geometry@end-primitive 0,Fail
 spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_loop ffs,Fail
 spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_loop other,Fail
@@ -470,7 +440,10 @@ spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triang
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip other,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
+
+# "ir3_shader.h:923:ir3_link_add: Assertion `i < ARRAY_SIZE(l->var)' failed"
 spec@glsl-1.50@execution@variable-indexing@gs-output-array-vec4-index-wr,Crash
+
 spec@glsl-1.50@gs-max-output-components,Fail
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 spec@khr_texture_compression_astc@array-gl@12x12 Block Dim,Fail
@@ -516,15 +489,9 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb@sRGB decode,Fail
 
-# "MESA: error: Unhandled ALU op: f2f64"
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x223344ff,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x76356278,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x76356278,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color,Crash
-
-# segfault on fd6_emit_image_tex() of null image resource
-spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
+spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
+spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
+spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 
 # "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
 #  gl-2.0-edgeflag: ../src/freedreno/ir3/ir3_context.c:411: ir3_context_error: Assertion `!""' failed."
@@ -576,7 +543,6 @@ spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA16- swizzled- borde
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA2- swizzled- border color only,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA4- swizzled- border color only,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA8- swizzled- border color only,Fail
-spec@!opengl 1.1@windowoverlap,Fail
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 
 # "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
@@ -620,9 +586,4 @@ spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Timeout
-spec@!opengl 3.0@clearbuffer-depth,Fail
-spec@!opengl 3.0@clearbuffer-stencil,Fail
 spec@!opengl 3.1@primitive-restart-xfb generated,Fail
-
-# "../src/gallium/drivers/freedreno/a6xx/fd6_gmem.c:976:emit_blit: Assertion `psurf->u.tex.first_layer == psurf->u.tex.last_layer' failed."
-spec@!opengl 3.2@layered-rendering@clear-depth,Crash

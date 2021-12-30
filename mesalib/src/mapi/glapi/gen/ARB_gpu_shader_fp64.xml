@@ -5,25 +5,25 @@
 
 <category name="GL_ARB_gpu_shader_fp64" number="89">
 
-    <function name="Uniform1d">
+    <function name="Uniform1d" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
     </function>
 
-    <function name="Uniform2d">
+    <function name="Uniform2d" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="Uniform3d">
+    <function name="Uniform3d" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="Uniform4d">
+    <function name="Uniform4d" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
@@ -31,87 +31,87 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="Uniform1dv">
+    <function name="Uniform1dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *" count="count"/>
     </function>
 
-    <function name="Uniform2dv">
+    <function name="Uniform2dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="2"/>
     </function>
 
-    <function name="Uniform3dv">
+    <function name="Uniform3dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="3"/>
     </function>
 
-    <function name="Uniform4dv">
+    <function name="Uniform4dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="4"/>
     </function>
 
-    <function name="UniformMatrix2dv">
+    <function name="UniformMatrix2dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="4"/>
     </function>
 
-    <function name="UniformMatrix3dv">
+    <function name="UniformMatrix3dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="9"/>
     </function>
 
-    <function name="UniformMatrix4dv">
+    <function name="UniformMatrix4dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="16"/>
     </function>
 
-    <function name="UniformMatrix2x3dv">
+    <function name="UniformMatrix2x3dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="6"/>
     </function>
 
-    <function name="UniformMatrix2x4dv">
+    <function name="UniformMatrix2x4dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="8"/>
     </function>
 
-    <function name="UniformMatrix3x2dv">
+    <function name="UniformMatrix3x2dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="6"/>
     </function>
 
-    <function name="UniformMatrix3x4dv">
+    <function name="UniformMatrix3x4dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="12"/>
     </function>
 
-    <function name="UniformMatrix4x2dv">
+    <function name="UniformMatrix4x2dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *" count="count" count_scale="8"/>
     </function>
 
-    <function name="UniformMatrix4x3dv">
+    <function name="UniformMatrix4x3dv" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>

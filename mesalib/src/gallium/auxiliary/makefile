@@ -66,13 +66,6 @@ LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, $(GENERATED_SOURCES))
 
-u_indices_gen_deps := \
-	$(MESA_TOP)/src/gallium/auxiliary/indices/u_indices_gen.py
-
-$(intermediates)/indices/u_indices_gen.c: $(u_indices_gen_deps)
-	@mkdir -p $(dir $@)
-	$(hide) $(MESA_PYTHON3) $< > $@
-
 u_unfilled_gen_deps := \
 	$(MESA_TOP)/src/gallium/auxiliary/indices/u_unfilled_gen.py
 

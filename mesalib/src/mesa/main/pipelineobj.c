@@ -50,6 +50,7 @@
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
 #include "util/bitscan.h"
+#include "api_exec_decl.h"
 
 /**
  * Delete a pipeline object.

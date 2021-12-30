@@ -191,6 +191,20 @@ rbug_screen_get_dmabuf_modifier_planes(struct pipe_screen *_screen,
    return screen->get_dmabuf_modifier_planes(screen, modifier, format);
 }
 
+static int
+rbug_screen_get_sparse_texture_virtual_page_size(struct pipe_screen *_screen,
+                                                 enum pipe_texture_target target,
+                                                 enum pipe_format format,
+                                                 unsigned offset, unsigned size,
+                                                 int *x, int *y, int *z)
+{
+   struct rbug_screen *rb_screen = rbug_screen(_screen);
+   struct pipe_screen *screen = rb_screen->screen;
+
+   return screen->get_sparse_texture_virtual_page_size(screen, target, format, offset,
+                                                       size, x, y, z);
+}
+
 static struct pipe_context *
 rbug_screen_context_create(struct pipe_screen *_screen,
                            void *priv, unsigned flags)
@@ -474,6 +488,7 @@ rbug_screen_create(struct pipe_screen *screen)
    rb_screen->base.fence_finish = rbug_screen_fence_finish;
    rb_screen->base.fence_get_fd = rbug_screen_fence_get_fd;
    SCR_INIT(finalize_nir);
+   SCR_INIT(get_sparse_texture_virtual_page_size);
 
    rb_screen->screen = screen;
 

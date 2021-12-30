@@ -37,6 +37,7 @@
 #include "macros.h"
 #include "mtypes.h"
 #include "state.h"
+#include "api_exec_decl.h"
 
 
 
@@ -239,9 +240,8 @@ blend_func_separate(struct gl_context *ctx,
                     GLenum sfactorRGB, GLenum dfactorRGB,
                     GLenum sfactorA, GLenum dfactorA)
 {
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlend ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
 
    const unsigned numBuffers = num_buffers(ctx);
    for (unsigned buf = 0; buf < numBuffers; buf++) {
@@ -263,11 +263,6 @@ blend_func_separate(struct gl_context *ctx,
       _mesa_update_valid_to_render_state(ctx);
 
    ctx->Color._BlendFuncPerBuffer = GL_FALSE;
-
-   if (ctx->Driver.BlendFuncSeparate) {
-      ctx->Driver.BlendFuncSeparate(ctx, sfactorRGB, dfactorRGB,
-                                    sfactorA, dfactorA);
-   }
 }
 
 
@@ -406,9 +401,8 @@ blend_func_separatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
       return;
    }
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlend ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewBlend;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
 
    ctx->Color.Blend[buf].SrcRGB = sfactorRGB;
    ctx->Color.Blend[buf].DstRGB = dfactorRGB;
@@ -574,9 +568,6 @@ _mesa_BlendEquation( GLenum mode )
    }
    ctx->Color._BlendEquationPerBuffer = GL_FALSE;
    set_advanced_blend_mode(ctx, advanced_mode);
-
-   if (ctx->Driver.BlendEquationSeparate)
-      ctx->Driver.BlendEquationSeparate(ctx, mode, mode);
 }
 
 
@@ -698,9 +689,6 @@ blend_equation_separate(struct gl_context *ctx, GLenum modeRGB, GLenum modeA,
    }
    ctx->Color._BlendEquationPerBuffer = GL_FALSE;
    set_advanced_blend_mode(ctx, BLEND_NONE);
-
-   if (ctx->Driver.BlendEquationSeparate)
-      ctx->Driver.BlendEquationSeparate(ctx, modeRGB, modeA);
 }
 
 
@@ -820,18 +808,14 @@ _mesa_BlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
    if (TEST_EQ_4V(tmp, ctx->Color.BlendColorUnclamped))
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlendColor ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewBlendColor;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND_COLOR;
    COPY_4FV( ctx->Color.BlendColorUnclamped, tmp );
 
    ctx->Color.BlendColor[0] = CLAMP(tmp[0], 0.0F, 1.0F);
    ctx->Color.BlendColor[1] = CLAMP(tmp[1], 0.0F, 1.0F);
    ctx->Color.BlendColor[2] = CLAMP(tmp[2], 0.0F, 1.0F);
    ctx->Color.BlendColor[3] = CLAMP(tmp[3], 0.0F, 1.0F);
-
-   if (ctx->Driver.BlendColor)
-      ctx->Driver.BlendColor(ctx, ctx->Color.BlendColor);
 }
 
 
@@ -866,15 +850,11 @@ _mesa_AlphaFunc( GLenum func, GLclampf ref )
    case GL_NOTEQUAL:
    case GL_GEQUAL:
    case GL_ALWAYS:
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewAlphaTest ? 0 : _NEW_COLOR,
-                     GL_COLOR_BUFFER_BIT);
+      FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
       ctx->NewDriverState |= ctx->DriverFlags.NewAlphaTest;
       ctx->Color.AlphaFunc = func;
       ctx->Color.AlphaRefUnclamped = ref;
       ctx->Color.AlphaRef = CLAMP(ref, 0.0F, 1.0F);
-
-      if (ctx->Driver.AlphaFunc)
-         ctx->Driver.AlphaFunc(ctx, func, ctx->Color.AlphaRef);
       return;
 
    default:
@@ -933,15 +913,11 @@ logic_op(struct gl_context *ctx, GLenum opcode, bool no_error)
       }
    }
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLogicOp ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewLogicOp;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
    ctx->Color.LogicOp = opcode;
    ctx->Color._LogicOp = color_logicop_mapping[opcode & 0x0f];
    _mesa_update_allow_draw_out_of_order(ctx);
-
-   if (ctx->Driver.LogicOpcode)
-      ctx->Driver.LogicOpcode(ctx, ctx->Color._LogicOp);
 }
 
 
@@ -983,9 +959,8 @@ _mesa_IndexMask( GLuint mask )
    if (ctx->Color.IndexMask == mask)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
    ctx->Color.IndexMask = mask;
 }
 
@@ -1023,14 +998,10 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
    if (ctx->Color.ColorMask == mask)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
    ctx->Color.ColorMask = mask;
    _mesa_update_allow_draw_out_of_order(ctx);
-
-   if (ctx->Driver.ColorMask)
-      ctx->Driver.ColorMask( ctx, red, green, blue, alpha );
 }
 
 
@@ -1060,9 +1031,8 @@ _mesa_ColorMaski(GLuint buf, GLboolean red, GLboolean green,
    if (GET_COLORMASK(ctx->Color.ColorMask, buf) == mask)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR,
-                  GL_COLOR_BUFFER_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
+   FLUSH_VERTICES(ctx, 0, GL_COLOR_BUFFER_BIT);
+   ctx->NewDriverState |= ST_NEW_BLEND;
    ctx->Color.ColorMask &= ~(0xf << (4 * buf));
    ctx->Color.ColorMask |= mask << (4 * buf);
    _mesa_update_allow_draw_out_of_order(ctx);
@@ -1189,24 +1159,6 @@ _mesa_update_clamp_vertex_color(struct gl_context *ctx,
 {
    ctx->Light._ClampVertexColor =
          _mesa_get_clamp_vertex_color(ctx, drawFb);
-}
-
-/**
- * Returns an appropriate mesa_format for color rendering based on the
- * GL_FRAMEBUFFER_SRGB state.
- *
- * Some drivers implement GL_FRAMEBUFFER_SRGB using a flag on the blend state
- * (which GL_FRAMEBUFFER_SRGB maps to reasonably), but some have to do so by
- * overriding the format of the surface.  This is a helper for doing the
- * surface format override variant.
- */
-mesa_format
-_mesa_get_render_format(const struct gl_context *ctx, mesa_format format)
-{
-   if (ctx->Color.sRGBEnabled)
-      return format;
-   else
-      return _mesa_get_srgb_format_linear(format);
 }
 
 /**********************************************************************/

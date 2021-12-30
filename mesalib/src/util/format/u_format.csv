@@ -400,7 +400,8 @@ PIPE_FORMAT_NV21                  , planar2, 1, 1, 1,     ,     ,     ,     , xy
 # RGB version of NV12 and YV12 for hardware that supports sampling from
 # multiplane textures but needs color-space conversion in the shader.
 PIPE_FORMAT_R8_G8B8_420_UNORM     , planar2, 1, 1, 1,  un8,     ,     ,     , xyzw, rgb
-PIPE_FORMAT_R8_G8_B8_420_UNORM    , planar3, 1, 1, 1,  un8,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_G8_B8R8_420_UNORM     , planar2, 1, 1, 1,  un8,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_G8_B8_R8_420_UNORM    , planar3, 1, 1, 1,  un8,     ,     ,     , xyzw, rgb
 
 # While most of Mesa uses R8 for Y, U, and V planes, freedreno requires distinguishing
 # between tiled Y8 data and tiled R8 data.

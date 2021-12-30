@@ -324,6 +324,22 @@ struct pipe_context {
    /*@}*/
 
    /**
+    * \name GLSL shader/program functions.
+    */
+   /*@{*/
+   /**
+    * Called when a shader program is linked.
+    * \param handles  Array of shader handles attached to this program.
+    *                 The size of the array is \c PIPE_SHADER_TYPES, and each
+    *                 position contains the corresponding \c pipe_shader_state*
+    *                 or \c pipe_compute_state*, or \c NULL.
+    *                 E.g. You can retrieve the fragment shader handle with
+    *                      \c handles[PIPE_SHADER_FRAGMENT]
+    */
+   void (*link_shader)(struct pipe_context *, void** handles);
+   /*@}*/
+
+   /**
     * State functions (create/bind/destroy state objects)
     */
    /*@{*/

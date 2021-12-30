@@ -256,7 +256,7 @@ xkb_symbols "pl" {
     include "level3(ralt_switch)"
 };
 
-default partial alphanumeric_keys
+partial alphanumeric_keys
 xkb_symbols "gla" {
 
     // Describes the differences between a very simple en_US

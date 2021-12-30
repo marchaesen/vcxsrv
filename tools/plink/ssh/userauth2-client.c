@@ -45,7 +45,7 @@ struct ssh2_userauth_state {
         AUTH_TYPE_KEYBOARD_INTERACTIVE_QUIET
     } type;
     bool need_pw, can_pubkey, can_passwd, can_keyb_inter;
-    int userpass_ret;
+    SeatPromptResult spr;
     bool tried_pubkey_config, done_agent;
     struct ssh_connection_shared_gss_state *shgss;
 #ifndef NO_GSSAPI
@@ -442,21 +442,21 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
             s->cur_prompt->from_server = false;
             s->cur_prompt->name = dupstr("SSH login name");
             add_prompt(s->cur_prompt, dupstr("login as: "), true);
-            s->userpass_ret = seat_get_userpass_input(
-                s->ppl.seat, s->cur_prompt);
-            while (s->userpass_ret < 0) {
+            s->spr = seat_get_userpass_input(
+                ppl_get_iseat(&s->ppl), s->cur_prompt);
+            while (s->spr.kind == SPRK_INCOMPLETE) {
                 crReturnV;
-                s->userpass_ret = seat_get_userpass_input(
-                    s->ppl.seat, s->cur_prompt);
+                s->spr = seat_get_userpass_input(
+                    ppl_get_iseat(&s->ppl), s->cur_prompt);
             }
-            if (!s->userpass_ret) {
+            if (spr_is_abort(s->spr)) {
                 /*
                  * seat_get_userpass_input() failed to get a username.
                  * Terminate.
                  */
                 free_prompts(s->cur_prompt);
                 s->cur_prompt = NULL;
-                ssh_user_close(s->ppl.ssh, "No username provided");
+                ssh_spr_close(s->ppl.ssh, s->spr, "username prompt");
                 return;
             }
             sfree(s->locally_allocated_username); /* for change_username */
@@ -521,7 +521,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 (seat_verbose(s->ppl.seat) || seat_interactive(s->ppl.seat))) {
                 if (s->banner_scc) {
                     seat_antispoof_msg(
-                        s->ppl.seat,
+                        ppl_get_iseat(&s->ppl),
                         "Pre-authentication banner message from server:");
                     seat_set_trust_status(s->ppl.seat, false);
                 }
@@ -529,7 +529,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 bool mid_line = false;
                 while (bufchain_size(&s->banner) > 0) {
                     ptrlen data = bufchain_prefix(&s->banner);
-                    seat_banner_pl(s->ppl.seat, data);
+                    seat_banner_pl(ppl_get_iseat(&s->ppl), data);
                     mid_line =
                         (((const char *)data.ptr)[data.len-1] != '\n');
                     bufchain_consume(&s->banner, data.len);
@@ -537,11 +537,12 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 bufchain_clear(&s->banner);
 
                 if (mid_line)
-                    seat_banner_pl(s->ppl.seat, PTRLEN_LITERAL("\r\n"));
+                    seat_banner_pl(ppl_get_iseat(&s->ppl),
+                                   PTRLEN_LITERAL("\r\n"));
 
                 if (s->banner_scc) {
                     seat_set_trust_status(s->ppl.seat, true);
-                    seat_antispoof_msg(s->ppl.seat,
+                    seat_antispoof_msg(ppl_get_iseat(&s->ppl),
                                        "End of banner message from server");
                 }
             }
@@ -911,22 +912,22 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                                    dupprintf("Passphrase for key \"%s\": ",
                                              s->publickey_comment),
                                    false);
-                        s->userpass_ret = seat_get_userpass_input(
-                            s->ppl.seat, s->cur_prompt);
-                        while (s->userpass_ret < 0) {
+                        s->spr = seat_get_userpass_input(
+                            ppl_get_iseat(&s->ppl), s->cur_prompt);
+                        while (s->spr.kind == SPRK_INCOMPLETE) {
                             crReturnV;
-                            s->userpass_ret = seat_get_userpass_input(
-                                s->ppl.seat, s->cur_prompt);
+                            s->spr = seat_get_userpass_input(
+                                ppl_get_iseat(&s->ppl), s->cur_prompt);
                         }
-                        if (!s->userpass_ret) {
+                        if (spr_is_abort(s->spr)) {
                             /* Failed to get a passphrase. Terminate. */
                             free_prompts(s->cur_prompt);
                             s->cur_prompt = NULL;
                             ssh_bpp_queue_disconnect(
                                 s->ppl.bpp, "Unable to authenticate",
                                 SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER);
-                            ssh_user_close(s->ppl.ssh, "User aborted at "
-                                           "passphrase prompt");
+                            ssh_spr_close(s->ppl.ssh, s->spr,
+                                          "passphrase prompt");
                             return;
                         }
                         passphrase =
@@ -1343,8 +1344,8 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                     if (!s->ki_printed_header && s->ki_scc &&
                         (s->num_prompts || name.len || inst.len)) {
                         seat_antispoof_msg(
-                            s->ppl.seat, "Keyboard-interactive authentication "
-                            "prompts from server:");
+                            ppl_get_iseat(&s->ppl), "Keyboard-interactive "
+                            "authentication prompts from server:");
                         s->ki_printed_header = true;
                         seat_set_trust_status(s->ppl.seat, false);
                     }
@@ -1390,14 +1391,14 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                      * Our prompts_t is fully constructed now. Get the
                      * user's response(s).
                      */
-                    s->userpass_ret = seat_get_userpass_input(
-                        s->ppl.seat, s->cur_prompt);
-                    while (s->userpass_ret < 0) {
+                    s->spr = seat_get_userpass_input(
+                        ppl_get_iseat(&s->ppl), s->cur_prompt);
+                    while (s->spr.kind == SPRK_INCOMPLETE) {
                         crReturnV;
-                        s->userpass_ret = seat_get_userpass_input(
-                            s->ppl.seat, s->cur_prompt);
+                        s->spr = seat_get_userpass_input(
+                            ppl_get_iseat(&s->ppl), s->cur_prompt);
                     }
-                    if (!s->userpass_ret) {
+                    if (spr_is_abort(s->spr)) {
                         /*
                          * Failed to get responses. Terminate.
                          */
@@ -1406,8 +1407,8 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                         ssh_bpp_queue_disconnect(
                             s->ppl.bpp, "Unable to authenticate",
                             SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER);
-                        ssh_user_close(s->ppl.ssh, "User aborted during "
-                                       "keyboard-interactive authentication");
+                        ssh_spr_close(s->ppl.ssh, s->spr, "keyboard-"
+                                      "interactive authentication prompt");
                         return;
                     }
 
@@ -1446,7 +1447,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 if (s->ki_printed_header) {
                     seat_set_trust_status(s->ppl.seat, true);
                     seat_antispoof_msg(
-                        s->ppl.seat,
+                        ppl_get_iseat(&s->ppl),
                         "End of keyboard-interactive prompts from server");
                 }
 
@@ -1472,14 +1473,14 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                                                     s->username, s->hostname),
                            false);
 
-                s->userpass_ret = seat_get_userpass_input(
-                    s->ppl.seat, s->cur_prompt);
-                while (s->userpass_ret < 0) {
+                s->spr = seat_get_userpass_input(
+                    ppl_get_iseat(&s->ppl), s->cur_prompt);
+                while (s->spr.kind == SPRK_INCOMPLETE) {
                     crReturnV;
-                    s->userpass_ret = seat_get_userpass_input(
-                        s->ppl.seat, s->cur_prompt);
+                    s->spr = seat_get_userpass_input(
+                        ppl_get_iseat(&s->ppl), s->cur_prompt);
                 }
-                if (!s->userpass_ret) {
+                if (spr_is_abort(s->spr)) {
                     /*
                      * Failed to get responses. Terminate.
                      */
@@ -1488,8 +1489,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                     ssh_bpp_queue_disconnect(
                         s->ppl.bpp, "Unable to authenticate",
                         SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER);
-                    ssh_user_close(s->ppl.ssh, "User aborted during password "
-                                   "authentication");
+                    ssh_spr_close(s->ppl.ssh, s->spr, "password prompt");
                     return;
                 }
                 /*
@@ -1584,14 +1584,14 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                      * password twice.
                      */
                     while (!got_new) {
-                        s->userpass_ret = seat_get_userpass_input(
-                            s->ppl.seat, s->cur_prompt);
-                        while (s->userpass_ret < 0) {
+                        s->spr = seat_get_userpass_input(
+                            ppl_get_iseat(&s->ppl), s->cur_prompt);
+                        while (s->spr.kind == SPRK_INCOMPLETE) {
                             crReturnV;
-                            s->userpass_ret = seat_get_userpass_input(
-                                s->ppl.seat, s->cur_prompt);
+                            s->spr = seat_get_userpass_input(
+                                ppl_get_iseat(&s->ppl), s->cur_prompt);
                         }
-                        if (!s->userpass_ret) {
+                        if (spr_is_abort(s->spr)) {
                             /*
                              * Failed to get responses. Terminate.
                              */
@@ -1603,8 +1603,8 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                             ssh_bpp_queue_disconnect(
                                 s->ppl.bpp, "Unable to authenticate",
                                 SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER);
-                            ssh_user_close(s->ppl.ssh, "User aborted during "
-                                           "password changing");
+                            ssh_spr_close(s->ppl.ssh, s->spr,
+                                          "password-change prompt");
                             return;
                         }
 

@@ -170,8 +170,7 @@ vlVaGetConfigAttributes(VADriverContextP ctx, VAProfile profile, VAEntrypoint en
             break;
          case VAConfigAttribEncPackedHeaders:
             value = VA_ENC_PACKED_HEADER_NONE;
-            if (u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_MPEG4_AVC ||
-                u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_HEVC)
+            if (u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_HEVC)
                value |= VA_ENC_PACKED_HEADER_SEQUENCE;
             break;
          case VAConfigAttribEncMaxRefFrames:
@@ -331,8 +330,11 @@ vlVaCreateConfig(VADriverContextP ctx, VAProfile profile, VAEntrypoint entrypoin
          }
       }
       if (attrib_list[i].type == VAConfigAttribEncPackedHeaders) {
-         if (attrib_list[i].value > 1 ||
-             config->entrypoint != PIPE_VIDEO_ENTRYPOINT_ENCODE) {
+         if ((attrib_list[i].value > 1) ||
+             (attrib_list[i].value &&
+               u_reduce_video_profile(ProfileToPipe(profile)) !=
+                  PIPE_VIDEO_FORMAT_HEVC) ||
+             (config->entrypoint != PIPE_VIDEO_ENTRYPOINT_ENCODE)) {
             FREE(config);
             return VA_STATUS_ERROR_INVALID_VALUE;
          }

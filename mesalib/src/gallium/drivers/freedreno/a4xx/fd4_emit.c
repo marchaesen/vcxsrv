@@ -148,14 +148,21 @@ emit_textures(struct fd_context *ctx, struct fd_ringbuffer *ring,
    bool needs_border = false;
    unsigned i;
 
-   if (tex->num_samplers > 0) {
-      int num_samplers;
+   if (tex->num_samplers > 0 || tex->num_textures > 0) {
+      int num_samplers = tex->num_samplers;
+
+      /* We want to always make sure that there's at least one sampler if
+       * there are going to be texture accesses. Gallium might not upload a
+       * sampler for e.g. buffer textures.
+       */
+      if (num_samplers == 0)
+         num_samplers++;
 
       /* not sure if this is an a420.0 workaround, but we seem
        * to need to emit these in pairs.. emit a final dummy
        * entry if odd # of samplers:
        */
-      num_samplers = align(tex->num_samplers, 2);
+      num_samplers = align(num_samplers, 2);
 
       /* output sampler state: */
       OUT_PKT3(ring, CP_LOAD_STATE4, 2 + (2 * num_samplers));
@@ -747,20 +754,20 @@ fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
       OUT_PKT0(ring, REG_A4XX_RB_BLEND_RED, 8);
       OUT_RING(ring, A4XX_RB_BLEND_RED_FLOAT(bcolor->color[0]) |
-                        A4XX_RB_BLEND_RED_UINT(bcolor->color[0] * 0xff) |
-                        A4XX_RB_BLEND_RED_SINT(bcolor->color[0] * 0x7f));
+                        A4XX_RB_BLEND_RED_UINT(CLAMP(bcolor->color[0], 0.f, 1.f) * 0xff) |
+                        A4XX_RB_BLEND_RED_SINT(CLAMP(bcolor->color[0], -1.f, 1.f) * 0x7f));
       OUT_RING(ring, A4XX_RB_BLEND_RED_F32(bcolor->color[0]));
       OUT_RING(ring, A4XX_RB_BLEND_GREEN_FLOAT(bcolor->color[1]) |
-                        A4XX_RB_BLEND_GREEN_UINT(bcolor->color[1] * 0xff) |
-                        A4XX_RB_BLEND_GREEN_SINT(bcolor->color[1] * 0x7f));
+                        A4XX_RB_BLEND_GREEN_UINT(CLAMP(bcolor->color[1], 0.f, 1.f) * 0xff) |
+                        A4XX_RB_BLEND_GREEN_SINT(CLAMP(bcolor->color[1], -1.f, 1.f) * 0x7f));
       OUT_RING(ring, A4XX_RB_BLEND_RED_F32(bcolor->color[1]));
       OUT_RING(ring, A4XX_RB_BLEND_BLUE_FLOAT(bcolor->color[2]) |
-                        A4XX_RB_BLEND_BLUE_UINT(bcolor->color[2] * 0xff) |
-                        A4XX_RB_BLEND_BLUE_SINT(bcolor->color[2] * 0x7f));
+                        A4XX_RB_BLEND_BLUE_UINT(CLAMP(bcolor->color[2], 0.f, 1.f) * 0xff) |
+                        A4XX_RB_BLEND_BLUE_SINT(CLAMP(bcolor->color[2], -1.f, 1.f) * 0x7f));
       OUT_RING(ring, A4XX_RB_BLEND_BLUE_F32(bcolor->color[2]));
       OUT_RING(ring, A4XX_RB_BLEND_ALPHA_FLOAT(bcolor->color[3]) |
-                        A4XX_RB_BLEND_ALPHA_UINT(bcolor->color[3] * 0xff) |
-                        A4XX_RB_BLEND_ALPHA_SINT(bcolor->color[3] * 0x7f));
+                        A4XX_RB_BLEND_ALPHA_UINT(CLAMP(bcolor->color[3], 0.f, 1.f) * 0xff) |
+                        A4XX_RB_BLEND_ALPHA_SINT(CLAMP(bcolor->color[3], -1.f, 1.f) * 0x7f));
       OUT_RING(ring, A4XX_RB_BLEND_ALPHA_F32(bcolor->color[3]));
    }
 
@@ -830,11 +837,11 @@ fd4_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    OUT_RING(ring, 0x00000000);
 
    OUT_PKT0(ring, REG_A4XX_RB_BLEND_RED, 4);
-   OUT_RING(ring, A4XX_RB_BLEND_RED_UINT(0) | A4XX_RB_BLEND_RED_FLOAT(0.0));
-   OUT_RING(ring, A4XX_RB_BLEND_GREEN_UINT(0) | A4XX_RB_BLEND_GREEN_FLOAT(0.0));
-   OUT_RING(ring, A4XX_RB_BLEND_BLUE_UINT(0) | A4XX_RB_BLEND_BLUE_FLOAT(0.0));
+   OUT_RING(ring, A4XX_RB_BLEND_RED_UINT(0) | A4XX_RB_BLEND_RED_FLOAT(0.0f));
+   OUT_RING(ring, A4XX_RB_BLEND_GREEN_UINT(0) | A4XX_RB_BLEND_GREEN_FLOAT(0.0f));
+   OUT_RING(ring, A4XX_RB_BLEND_BLUE_UINT(0) | A4XX_RB_BLEND_BLUE_FLOAT(0.0f));
    OUT_RING(ring,
-            A4XX_RB_BLEND_ALPHA_UINT(0x7fff) | A4XX_RB_BLEND_ALPHA_FLOAT(1.0));
+            A4XX_RB_BLEND_ALPHA_UINT(0x7fff) | A4XX_RB_BLEND_ALPHA_FLOAT(1.0f));
 
    OUT_PKT0(ring, REG_A4XX_UNKNOWN_2152, 1);
    OUT_RING(ring, 0x00000000);

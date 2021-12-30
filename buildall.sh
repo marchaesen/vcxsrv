@@ -33,8 +33,8 @@ if [[ "$4" == "N" ]] ; then
 BUILDDEPS=0
 fi
 function check-error {
-    if [ $? -ne 0 ]; then
-        echo $1
+    if [[ $? != 0 ]]; then
+        echo $?: $1
         exit
     fi
 }

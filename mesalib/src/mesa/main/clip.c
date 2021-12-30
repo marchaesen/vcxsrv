@@ -30,7 +30,9 @@
 #include "mtypes.h"
 
 #include "math/m_matrix.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_context.h"
 
 /**
  * Update derived clip plane state.
@@ -86,15 +88,12 @@ _mesa_ClipPlane( GLenum plane, const GLdouble *eq )
 
    /* EyeUserPlane is used by program state constants. */
    FLUSH_VERTICES(ctx, _NEW_TRANSFORM, GL_TRANSFORM_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewClipPlane;
+   ctx->NewDriverState |= ST_NEW_CLIP_STATE;
    COPY_4FV(ctx->Transform.EyeUserPlane[p], equation);
 
    if (ctx->Transform.ClipPlanesEnabled & (1 << p)) {
       _mesa_update_clip_plane(ctx, p);
    }
-
-   if (ctx->Driver.ClipPlane)
-      ctx->Driver.ClipPlane( ctx, plane, equation );
 }
 
 

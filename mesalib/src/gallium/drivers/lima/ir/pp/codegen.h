@@ -104,8 +104,8 @@ typedef union __attribute__((__packed__)) {
 } ppir_codegen_field_varying;
 
 typedef enum {
-   ppir_codegen_sampler_type_2d   = 0x00,
-   ppir_codegen_sampler_type_cube = 0x1F,
+   ppir_codegen_sampler_type_generic = 0x00,
+   ppir_codegen_sampler_type_cube    = 0x1F,
 } ppir_codegen_sampler_type;
 
 typedef struct __attribute__((__packed__)) {

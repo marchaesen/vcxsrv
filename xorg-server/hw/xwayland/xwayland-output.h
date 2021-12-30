@@ -34,19 +34,34 @@
 #include <randrstr.h>
 
 #include "xwayland-types.h"
+#include "xwayland-drm-lease.h"
+
+#define ALL_ROTATIONS (RR_Rotate_0   | \
+                       RR_Rotate_90  | \
+                       RR_Rotate_180 | \
+                       RR_Rotate_270 | \
+                       RR_Reflect_X  | \
+                       RR_Reflect_Y)
 
 struct xwl_output {
     struct xorg_list link;
-    struct wl_output *output;
-    struct zxdg_output_v1 *xdg_output;
-    uint32_t server_output_id;
     struct xwl_screen *xwl_screen;
     RROutputPtr randr_output;
     RRCrtcPtr randr_crtc;
+
+    /* only for regular outputs */
+    struct wl_output *output;
+    struct zxdg_output_v1 *xdg_output;
+    uint32_t server_output_id;
     int32_t x, y, width, height, refresh;
     Rotation rotation;
     Bool wl_output_done;
     Bool xdg_output_done;
+
+    /* only for lease-able DRM connectors */
+    struct wp_drm_lease_connector_v1 *lease_connector;
+    struct xwl_drm_lease *lease;
+    struct xwl_drm_lease_device *lease_device;
 };
 
 /* Per client per output emulated randr/vidmode resolution info. */
@@ -78,5 +93,7 @@ void xwl_output_set_window_randr_emu_props(struct xwl_screen *xwl_screen,
                                            WindowPtr window);
 
 void xwl_screen_init_xdg_output(struct xwl_screen *xwl_screen);
+
+int xwl_get_next_output_serial(void);
 
 #endif /* XWAYLAND_OUTPUT_H */

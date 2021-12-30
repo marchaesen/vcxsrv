@@ -71,7 +71,7 @@ fi
 MINIO=$(cat /proc/cmdline | tr ' ' '\n' | grep minio_results | cut -d '=' -f 2 || true)
 if [ -n "$MINIO" ]; then
   tar -czf results.tar.gz results/;
-  ci-fairy minio login "$CI_JOB_JWT";
+  ci-fairy minio login --token-file "${CI_JOB_JWT_FILE}";
   ci-fairy minio cp results.tar.gz minio://"$MINIO"/results.tar.gz;
 fi
 

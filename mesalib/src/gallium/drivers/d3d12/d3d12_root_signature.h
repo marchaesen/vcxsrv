@@ -33,6 +33,7 @@ struct d3d12_root_signature_key {
       unsigned end_srv_binding;
       unsigned begin_srv_binding;
       unsigned state_vars_size;
+      unsigned num_uavs;
       bool has_default_ubo0;
    } stages[D3D12_GFX_SHADER_STAGES];
 };

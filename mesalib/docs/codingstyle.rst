@@ -128,5 +128,5 @@ Basic formatting guidelines
    prefer the use of ``bool``, ``true``, and ``false`` over
    ``GLboolean``, ``GL_TRUE``, and ``GL_FALSE``. In C code, this may
    mean that ``#include <stdbool.h>`` needs to be added. The
-   ``try_emit_*`` methods in ``src/mesa/program/ir_to_mesa.cpp`` and
-   ``src/mesa/state_tracker/st_glsl_to_tgsi.cpp`` can serve as examples.
+   ``try_emit_*`` method ``src/mesa/state_tracker/st_glsl_to_tgsi.cpp``
+   can serve as an example.

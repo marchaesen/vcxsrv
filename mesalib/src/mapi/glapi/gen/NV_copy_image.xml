@@ -4,7 +4,7 @@
 <OpenGLAPI>
 
 <category name="GL_NV_copy_image" number="376" no_error="true">
-    <function name="CopyImageSubDataNV">
+    <function name="CopyImageSubDataNV" no_error="true">
         <param name="srcName" type="GLuint"/>
         <param name="srcTarget" type="GLenum"/>
         <param name="srcLevel" type="GLint"/>

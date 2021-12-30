@@ -117,22 +117,26 @@ extern void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
                              enum tgsi_texture_type tgsi_tex,
                              enum tgsi_return_type stype,
-                             enum tgsi_return_type dtype);
+                             enum tgsi_return_type dtype,
+                             bool sample_shading);
 
 
 extern void *
 util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
-                             enum tgsi_texture_type tgsi_tex);
+                             enum tgsi_texture_type tgsi_tex,
+                             bool sample_shading);
 
 
 extern void *
 util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
-                                    enum tgsi_texture_type tgsi_tex);
+                                    enum tgsi_texture_type tgsi_tex,
+                                    bool sample_shading);
 
 
 void *
 util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
-                               enum tgsi_texture_type tgsi_tex);
+                               enum tgsi_texture_type tgsi_tex,
+                               bool sample_shading);
 
 
 void *

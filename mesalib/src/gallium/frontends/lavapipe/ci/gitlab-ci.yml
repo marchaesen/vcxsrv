@@ -21,8 +21,7 @@ lavapipe-nir-stress:
     - .lavapipe-test
   variables:
     DEQP_FRACTION: 100
-    NIR_TEST_CLONE: "true"
-    NIR_TEST_SERIALIZE: "true"
+    NIR_DEBUG: "clone,serialize"
 
 lavapipe-vk-asan:
   extends:

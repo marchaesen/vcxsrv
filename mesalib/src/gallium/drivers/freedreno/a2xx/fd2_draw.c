@@ -484,10 +484,10 @@ fd2_clear_fast(struct fd_context *ctx, unsigned buffers,
    /* make sure we fill all "pixels" (in SCREEN_SCISSOR) */
    OUT_PKT3(ring, CP_SET_CONSTANT, 5);
    OUT_RING(ring, CP_REG(REG_A2XX_PA_CL_VPORT_XSCALE));
-   OUT_RING(ring, fui(4096.0));
-   OUT_RING(ring, fui(4096.0));
-   OUT_RING(ring, fui(4096.0));
-   OUT_RING(ring, fui(4096.0));
+   OUT_RING(ring, fui(4096.0f));
+   OUT_RING(ring, fui(4096.0f));
+   OUT_RING(ring, fui(4096.0f));
+   OUT_RING(ring, fui(4096.0f));
 
    clear_state(batch, ring, ~0u, true);
 
@@ -612,10 +612,10 @@ fd2_clear(struct fd_context *ctx, unsigned buffers,
    /* viewport state */
    OUT_PKT3(ring, CP_SET_CONSTANT, 5);
    OUT_RING(ring, CP_REG(REG_A2XX_PA_CL_VPORT_XSCALE));
-   OUT_RING(ring, fui((float)fb->width / 2.0));
-   OUT_RING(ring, fui((float)fb->width / 2.0));
-   OUT_RING(ring, fui((float)fb->height / 2.0));
-   OUT_RING(ring, fui((float)fb->height / 2.0));
+   OUT_RING(ring, fui((float)fb->width / 2.0f));
+   OUT_RING(ring, fui((float)fb->width / 2.0f));
+   OUT_RING(ring, fui((float)fb->height / 2.0f));
+   OUT_RING(ring, fui((float)fb->height / 2.0f));
 
    /* common state */
    clear_state(ctx->batch, ring, buffers, false);

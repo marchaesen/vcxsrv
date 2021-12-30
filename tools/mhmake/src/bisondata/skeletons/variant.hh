@@ -94,28 +94,28 @@ m4_define([b4_variant_includes],
 
 # b4_value_type_declare
 # ---------------------
-# Define semantic_type.
+# Define value_type.
 m4_define([b4_value_type_declare],
 [[  /// A buffer to store and retrieve objects.
   ///
   /// Sort of a variant, but does not keep track of the nature
   /// of the stored data, since that knowledge is available
   /// via the current parser state.
-  class semantic_type
+  class value_type
   {
   public:
     /// Type of *this.
-    typedef semantic_type self_type;
+    typedef value_type self_type;
 
     /// Empty construction.
-    semantic_type () YY_NOEXCEPT
-      : yybuffer_ ()]b4_parse_assert_if([
+    value_type () YY_NOEXCEPT
+      : yyraw_ ()]b4_parse_assert_if([
       , yytypeid_ (YY_NULLPTR)])[
     {}
 
     /// Construct and fill.
     template <typename T>
-    semantic_type (YY_RVREF (T) t)]b4_parse_assert_if([
+    value_type (YY_RVREF (T) t)]b4_parse_assert_if([
       : yytypeid_ (&typeid (T))])[
     {]b4_parse_assert_if([[
       ]b4_assert[ (sizeof (T) <= size);]])[
@@ -124,13 +124,13 @@ m4_define([b4_value_type_declare],
 
 #if 201103L <= YY_CPLUSPLUS
     /// Non copyable.
-    semantic_type (const self_type&) = delete;
+    value_type (const self_type&) = delete;
     /// Non copyable.
     self_type& operator= (const self_type&) = delete;
 #endif
 
     /// Destruction, allowed only if empty.
-    ~semantic_type () YY_NOEXCEPT
+    ~value_type () YY_NOEXCEPT
     {]b4_parse_assert_if([
       ]b4_assert[ (!yytypeid_);
     ])[}
@@ -274,7 +274,7 @@ m4_define([b4_value_type_declare],
   private:
 #if YY_CPLUSPLUS < 201103L
     /// Non copyable.
-    semantic_type (const self_type&);
+    value_type (const self_type&);
     /// Non copyable.
     self_type& operator= (const self_type&);
 #endif
@@ -284,7 +284,7 @@ m4_define([b4_value_type_declare],
     T*
     yyas_ () YY_NOEXCEPT
     {
-      void *yyp = yybuffer_.yyraw;
+      void *yyp = yyraw_;
       return static_cast<T*> (yyp);
      }
 
@@ -293,7 +293,7 @@ m4_define([b4_value_type_declare],
     const T*
     yyas_ () const YY_NOEXCEPT
     {
-      const void *yyp = yybuffer_.yyraw;
+      const void *yyp = yyraw_;
       return static_cast<const T*> (yyp);
      }
 
@@ -308,10 +308,10 @@ m4_define([b4_value_type_declare],
     union
     {
       /// Strongest alignment constraints.
-      long double yyalign_me;
+      long double yyalign_me_;
       /// A buffer large enough to store any of the semantic values.
-      char yyraw[size];
-    } yybuffer_;]b4_parse_assert_if([
+      char yyraw_[size];
+    };]b4_parse_assert_if([
 
     /// Whether the content is built: if defined, the name of the stored type.
     const std::type_info *yytypeid_;])[
@@ -458,11 +458,11 @@ m4_define([b4_tok_in],
 
 
 
-# _b4_token_constructor_define(SYMBOL-NUM...)
-# -------------------------------------------
-# Define a unique make_symbol for all the SYMBOL-NUM (they
+# _b4_symbol_constructor_define(SYMBOL-NUM...)
+# --------------------------------------------
+# Define a symbol_type constructor common to all the SYMBOL-NUM (they
 # have the same type).  Use at class-level.
-m4_define([_b4_token_constructor_define],
+m4_define([_b4_symbol_constructor_define],
 [m4_ifval(_b4_includes_tokens($@),
 [[#if 201103L <= YY_CPLUSPLUS
       symbol_type (]b4_join(
@@ -470,21 +470,23 @@ m4_define([_b4_token_constructor_define],
           b4_symbol_if([$1], [has_type],
                        [b4_symbol([$1], [type]) v]),
           b4_locations_if([location_type l]))[)
-        : super_type(]b4_join([token_type (tok)],
-                              b4_symbol_if([$1], [has_type], [std::move (v)]),
-                              b4_locations_if([std::move (l)]))[)
+        : super_type (]b4_join([token_kind_type (tok)],
+                               b4_symbol_if([$1], [has_type], [std::move (v)]),
+                               b4_locations_if([std::move (l)]))[)
 #else
       symbol_type (]b4_join(
           [int tok],
           b4_symbol_if([$1], [has_type],
                        [const b4_symbol([$1], [type])& v]),
           b4_locations_if([const location_type& l]))[)
-        : super_type(]b4_join([token_type (tok)],
-                              b4_symbol_if([$1], [has_type], [v]),
-                              b4_locations_if([l]))[)
+        : super_type (]b4_join([token_kind_type (tok)],
+                               b4_symbol_if([$1], [has_type], [v]),
+                               b4_locations_if([l]))[)
 #endif
       {]b4_parse_assert_if([[
+#if !defined _MSC_VER || defined __clang__
         ]b4_assert[ (]b4_tok_in($@)[);
+#endif
       ]])[}
 ]])])
 
@@ -517,7 +519,7 @@ m4_define([b4_basic_symbol_constructor_define],
 
 # b4_token_constructor_define
 # ---------------------------
-# Define the overloaded versions of make_symbol for all the value types.
+# Define the overloaded versions of make_FOO for all the token kinds.
 m4_define([b4_token_constructor_define],
-[    // Implementation of make_symbol for each symbol type.
+[    // Implementation of make_symbol for each token kind.
 b4_symbol_foreach([_b4_token_maker_define])])

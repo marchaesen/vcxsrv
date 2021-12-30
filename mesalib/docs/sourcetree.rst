@@ -56,42 +56,11 @@ each directory.
    -  **mesa** - Main Mesa sources
 
       -  **main** - The core Mesa code (mainly state management)
-      -  **drivers** - Mesa drivers (not used with Gallium)
-
-         -  **common** - code which may be shared by all drivers
-         -  **dri** - Direct Rendering Infrastructure drivers
-
-            -  **common** - code shared by all DRI drivers
-            -  **i915** - driver for Intel i915/i945
-            -  **i965** - driver for Intel i965
-            -  **nouveau** - driver for nVidia nv04/nv10/nv20
-            -  **radeon** - driver for ATI R100
-            -  **r200** - driver for ATI R200
-            -  **swrast** - software rasterizer driver that uses the
-               swrast module
-
-         -  **x11** - Xlib-based software driver
-         -  **osmesa** - off-screen software driver
-
       -  **math** - vertex array translation and transformation code
          (not used with Gallium)
       -  **program** - Vertex/fragment shader and GLSL compiler code
-      -  **sparc** - Assembly code/optimizations for SPARC systems (not
-         used with Gallium)
       -  **state_tracker** - Translator from Mesa to Gallium. This is
-         basically a Mesa device driver that speaks to Gallium. This
-         directory may be moved to src/mesa/drivers/gallium at some
-         point.
-      -  **swrast** - Software rasterization module. For drawing points,
-         lines, triangles, bitmaps, images, etc. in software. (not used
-         with Gallium)
-      -  **swrast_setup** - Software primitive setup. Does things like
-         polygon culling, glPolygonMode, polygon offset, etc. (not used
-         with Gallium)
-      -  **tnl** - Software vertex Transformation 'n Lighting. (not used
-         with Gallium)
-      -  **tnl_dd** - TNL code for device drivers. (not used with
-         Gallium)
+         basically a Mesa device driver that speaks to Gallium.
       -  **vbo** - Vertex Buffer Object code. All drawing with
          glBegin/glEnd, glDrawArrays, display lists, etc. goes through
          this module. The results is a well-defined set of vertex arrays
@@ -125,7 +94,6 @@ each directory.
          -  **radeonsi** - Driver for AMD Southern Island and newer (GCN, RDNA).
          -  **softpipe** - Software reference driver.
          -  **svga** - Driver for VMware's SVGA virtual GPU.
-         -  **swr** - Software driver with massively parellel vertex processing.
          -  **tegra** - Driver for NVIDIA Tegra GPUs.
          -  **v3d** - Driver for Broadcom VideoCore 5 and newer.
          -  **vc4** - Driver for Broadcom VideoCore 4.

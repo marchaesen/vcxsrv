@@ -205,6 +205,8 @@ struct ureg_program
    struct ureg_tokens domain[2];
 
    bool use_memory[TGSI_MEMORY_TYPE_COUNT];
+
+   bool precise;
 };
 
 static union tgsi_any_token error_tokens[32];
@@ -1267,7 +1269,7 @@ ureg_emit_insn(struct ureg_program *ureg,
    out[0].insn = tgsi_default_instruction();
    out[0].insn.Opcode = opcode;
    out[0].insn.Saturate = saturate;
-   out[0].insn.Precise = precise;
+   out[0].insn.Precise = precise || ureg->precise;
    out[0].insn.NumDstRegs = num_dst;
    out[0].insn.NumSrcRegs = num_src;
 
@@ -2436,4 +2438,9 @@ void ureg_destroy( struct ureg_program *ureg )
    util_bitmask_destroy(ureg->decl_temps);
 
    FREE(ureg);
+}
+
+void ureg_set_precise( struct ureg_program *ureg, bool precise )
+{
+   ureg->precise = precise;
 }

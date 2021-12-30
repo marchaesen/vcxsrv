@@ -56,6 +56,7 @@ nir_can_move_instr(nir_instr *instr, nir_move_options options)
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
       switch (intrin->intrinsic) {
       case nir_intrinsic_load_ubo:
+      case nir_intrinsic_load_ubo_vec4:
          return options & nir_move_load_ubo;
       case nir_intrinsic_load_ssbo:
          return (options & nir_move_load_ssbo) && nir_intrinsic_can_reorder(intrin);

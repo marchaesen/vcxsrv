@@ -221,7 +221,7 @@ process_variable(struct access_state *state, nir_variable *var)
 }
 
 static bool
-update_access(struct access_state *state, nir_intrinsic_instr *instr, bool is_image, bool is_buffer)
+update_access(struct access_state *state, nir_intrinsic_instr *instr, bool is_buffer, bool is_global)
 {
    enum gl_access_qualifier access = nir_intrinsic_access(instr);
 
@@ -230,15 +230,21 @@ update_access(struct access_state *state, nir_intrinsic_instr *instr, bool is_im
 
    if (instr->intrinsic != nir_intrinsic_bindless_image_load &&
        instr->intrinsic != nir_intrinsic_bindless_image_store &&
-       instr->intrinsic != nir_intrinsic_bindless_image_sparse_load) {
+       instr->intrinsic != nir_intrinsic_bindless_image_sparse_load &&
+       !is_global) {
       const nir_variable *var = nir_get_binding_variable(
          state->shader, nir_chase_binding(instr->src[0]));
       is_memory_readonly |= var && (var->data.access & ACCESS_NON_WRITEABLE);
       is_memory_writeonly |= var && (var->data.access & ACCESS_NON_READABLE);
    }
 
-   is_memory_readonly |= is_buffer ? !state->buffers_written : !state->images_written;
-   is_memory_writeonly |= is_buffer ? !state->buffers_read : !state->images_read;
+   if (is_global) {
+      is_memory_readonly |= !state->buffers_written && !state->images_written;
+      is_memory_writeonly |= !state->buffers_read && !state->images_read;
+   } else {
+      is_memory_readonly |= is_buffer ? !state->buffers_written : !state->images_written;
+      is_memory_writeonly |= is_buffer ? !state->buffers_read : !state->images_read;
+   }
 
    if (is_memory_readonly)
       access |= ACCESS_NON_WRITEABLE;
@@ -259,15 +265,17 @@ process_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    case nir_intrinsic_bindless_image_load:
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_bindless_image_sparse_load:
-      return update_access(state, instr, true,
-                           nir_intrinsic_image_dim(instr) == GLSL_SAMPLER_DIM_BUF);
+      return update_access(state, instr, nir_intrinsic_image_dim(instr) == GLSL_SAMPLER_DIM_BUF,
+                           false);
 
    case nir_intrinsic_load_deref:
    case nir_intrinsic_store_deref: {
-      if (!nir_deref_mode_is(nir_src_as_deref(instr->src[0]), nir_var_mem_ssbo))
+      if (nir_deref_mode_is(nir_src_as_deref(instr->src[0]), nir_var_mem_global))
+         return update_access(state, instr, false, true);
+      else if (nir_deref_mode_is(nir_src_as_deref(instr->src[0]), nir_var_mem_ssbo))
+         return update_access(state, instr, true, false);
+      else
          return false;
-
-      return update_access(state, instr, false, true);
    }
 
    case nir_intrinsic_image_deref_load:
@@ -278,7 +286,7 @@ process_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
       bool is_buffer =
          glsl_get_sampler_dim(glsl_without_array(var->type)) == GLSL_SAMPLER_DIM_BUF;
 
-      return update_access(state, instr, true, is_buffer);
+      return update_access(state, instr, is_buffer, false);
    }
 
    default:

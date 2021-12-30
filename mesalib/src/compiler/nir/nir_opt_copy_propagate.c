@@ -162,7 +162,7 @@ copy_prop_instr(nir_function_impl *impl, nir_instr *instr)
    return progress;
 }
 
-static bool
+bool
 nir_copy_prop_impl(nir_function_impl *impl)
 {
    bool progress = false;

@@ -109,6 +109,7 @@ void r3xx_compile_fragment_program(struct r300_fragment_program_compiler* c)
 
 	struct radeon_program_transformation native_rewrite_r300[] = {
 		{ &radeonTransformALU, 0 },
+		{ &radeonStubDeriv, 0 },
 		{ &r300_transform_trig_simple, 0 },
 		{ 0, 0 }
 	};
@@ -120,7 +121,6 @@ void r3xx_compile_fragment_program(struct r300_fragment_program_compiler* c)
 		/* This transformation needs to be done before any of the IF
 		 * instructions are modified. */
 		{"transform KILP",		1, 1,		rc_transform_KILL,		NULL},
-		{"unroll loops",		1, is_r500,	rc_unroll_loops,		NULL},
 		{"transform loops",		1, !is_r500,	rc_transform_loops,		NULL},
 		{"emulate branches",		1, !is_r500,	rc_emulate_branches,		NULL},
 		{"force alpha to one",		1, alpha2one,	rc_local_transform,		force_alpha_to_one},

@@ -3,6 +3,7 @@ import os
 import numbers
 import subprocess
 import re
+import string
 import struct
 from binascii import hexlify
 
@@ -102,6 +103,8 @@ method_prefixes = {
 }
 method_lists = {t: [] for t in method_prefixes}
 
+checked_enum_values = {}
+
 class Value(object):
     def __init__(self, typename, ident):
         self._typename = typename
@@ -148,7 +151,7 @@ def marshal_string(val):
         else "%{:02x}".format(b)
         for b in val)
 
-def make_argword(arg, argtype, fnname, argindex, to_preserve):
+def make_argword(arg, argtype, fnname, argindex, argname, to_preserve):
     typename, consumed = argtype
     if typename.startswith("opt_"):
         if arg is None:
@@ -165,8 +168,8 @@ def make_argword(arg, argtype, fnname, argindex, to_preserve):
     if isinstance(arg, Value):
         if arg._typename != typename:
             raise TypeError(
-                "{}() argument {:d} should be {} ({} given)".format(
-                fnname, argindex, typename, arg._typename))
+                "{}() argument #{:d} ({}) should be {} ({} given)".format(
+                fnname, argindex, argname, typename, arg._typename))
         ident = arg._ident
         if consumed:
             arg._consumed()
@@ -178,20 +181,26 @@ def make_argword(arg, argtype, fnname, argindex, to_preserve):
     if typename in {
             "hashalg", "macalg", "keyalg", "cipheralg",
             "dh_group", "ecdh_alg", "rsaorder", "primegenpolicy",
-            "argon2flavour", "fptype"}:
+            "argon2flavour", "fptype", "httpdigesthash"}:
         arg = coerce_to_bytes(arg)
         if isinstance(arg, bytes) and b" " not in arg:
-            return arg
+            dictkey = (typename, arg)
+            if dictkey not in checked_enum_values:
+                retwords = childprocess.funcall("checkenum", [typename, arg])
+                assert len(retwords) == 1
+                checked_enum_values[dictkey] = (retwords[0] == b"ok")
+            if checked_enum_values[dictkey]:
+                return arg
     if typename == "mpint_list":
         sublist = [make_argword(len(arg), ("uint", False),
-                                fnname, argindex, to_preserve)]
+                                fnname, argindex, argname, to_preserve)]
         for val in arg:
             sublist.append(make_argword(val, ("val_mpint", False),
-                                        fnname, argindex, to_preserve))
+                                        fnname, argindex, argname, to_preserve))
         return b" ".join(coerce_to_bytes(sub) for sub in sublist)
     raise TypeError(
-        "Can't convert {}() argument {:d} to {} (value was {!r})".format(
-            fnname, argindex, typename, arg))
+        "Can't convert {}() argument #{:d} ({}) to {} (value was {!r})".format(
+            fnname, argindex, argname, typename, arg))
 
 def unpack_string(identifier):
     retwords = childprocess.funcall("getstring", [identifier])
@@ -246,12 +255,20 @@ def make_retvals(rettypes, retwords, unpack_strings=True):
             for rettype, word in zip(rettypes, retwords)]
 
 class Function(object):
-    def __init__(self, fnname, rettypes, argtypes):
+    def __init__(self, fnname, rettypes, retnames, argtypes, argnames):
         self.fnname = fnname
         self.rettypes = rettypes
+        self.retnames = retnames
         self.argtypes = argtypes
+        self.argnames = argnames
     def __repr__(self):
-        return "<Function {}>".format(self.fnname)
+        return "<Function {}({}) -> ({})>".format(
+            self.fnname,
+            ", ".join(("consumed " if c else "")+t+" "+n
+                       for (t,c),n in zip(self.argtypes, self.argnames)),
+            ", ".join((t+" "+n if n is not None else t)
+                      for t,n in zip(self.rettypes, self.retnames)),
+    )
     def __call__(self, *args):
         if len(args) != len(self.argtypes):
             raise TypeError(
@@ -260,7 +277,8 @@ class Function(object):
         to_preserve = []
         retwords = childprocess.funcall(
             self.fnname, [make_argword(args[i], self.argtypes[i],
-                                       self.fnname, i, to_preserve)
+                                       self.fnname, i, self.argnames[i],
+                                       to_preserve)
                           for i in range(len(args))])
         retvals = make_retvals(self.rettypes, retwords)
         if len(retvals) == 0:
@@ -269,10 +287,94 @@ class Function(object):
             return retvals[0]
         return tuple(retvals)
 
-def _setup(scope):
-    header_file = os.path.join(putty_srcdir, "testcrypt.h")
+def _lex_testcrypt_header(header):
+    pat = re.compile(
+        # Skip any combination of whitespace and comments
+        '(?:{})*'.format('|'.join((
+            '[ \t\n]',             # whitespace
+            '/\\*(?:.|\n)*?\\*/',  # C90-style /* ... */ comment, ended eagerly
+            '//[^\n]*\n',          # C99-style comment to end-of-line
+        ))) +
+        # And then match a token
+        '({})'.format('|'.join((
+            # Punctuation
+            '\(',
+            '\)',
+            ',',
+            # Identifier
+            '[A-Za-z_][A-Za-z0-9_]*',
+            # End of string
+            '$',
+        )))
+    )
 
-    linere = re.compile(r'^FUNC\d+\((.*)\)$')
+    pos = 0
+    end = len(header)
+    while pos < end:
+        m = pat.match(header, pos)
+        assert m is not None, (
+            "Failed to lex testcrypt-func.h at byte position {:d}".format(pos))
+
+        pos = m.end()
+        tok = m.group(1)
+        if len(tok) == 0:
+            assert pos == end, (
+                "Empty token should only be returned at end of string")
+        yield tok, m.start(1)
+
+def _parse_testcrypt_header(tokens):
+    def is_id(tok):
+        return tok[0] in string.ascii_letters+"_"
+    def expect(what, why, eof_ok=False):
+        tok, pos = next(tokens)
+        if tok == '' and eof_ok:
+            return None
+        if hasattr(what, '__call__'):
+            description = lambda: ""
+            ok = what(tok)
+        elif isinstance(what, set):
+            description = lambda: " or ".join("'"+x+"' " for x in sorted(what))
+            ok = tok in what
+        else:
+            description = lambda: "'"+what+"' "
+            ok = tok == what
+        if not ok:
+            sys.exit("testcrypt-func.h:{:d}: expected {}{}".format(
+                pos, description(), why))
+        return tok
+
+    while True:
+        tok = expect({"FUNC", "FUNC_WRAPPED"},
+                     "at start of function specification", eof_ok=True)
+        if tok is None:
+            break
+
+        expect("(", "after FUNC")
+        rettype = expect(is_id, "return type")
+        expect(",", "after return type")
+        funcname = expect(is_id, "function name")
+        expect(",", "after function name")
+        args = []
+        firstargkind = expect({"ARG", "VOID"}, "at start of argument list")
+        if firstargkind == "VOID":
+            expect(")", "after VOID")
+        else:
+            while True:
+                # Every time we come back to the top of this loop, we've
+                # just seen 'ARG'
+                expect("(", "after ARG")
+                argtype = expect(is_id, "argument type")
+                expect(",", "after argument type")
+                argname = expect(is_id, "argument name")
+                args.append((argtype, argname))
+                expect(")", "at end of ARG")
+                punct = expect({",", ")"}, "after argument")
+                if punct == ")":
+                    break
+                expect("ARG", "to begin next argument")
+        yield funcname, rettype, args
+
+def _setup(scope):
     valprefix = "val_"
     outprefix = "out_"
     optprefix = "opt_"
@@ -288,36 +390,40 @@ def _setup(scope):
             arg = arg[:arg.index("_", len(valprefix))]
         return arg
 
-    with open(header_file) as f:
-        for line in iter(f.readline, ""):
-            line = line.rstrip("\r\n").replace(" ", "")
-            m = linere.match(line)
-            if m is not None:
-                words = m.group(1).split(",")
-                function = words[1]
-                rettypes = []
-                argtypes = []
-                argsconsumed = []
-                if words[0] != "void":
-                    rettypes.append(trim_argtype(words[0]))
-                for arg in words[2:]:
-                    if arg.startswith(outprefix):
-                        rettypes.append(trim_argtype(arg[len(outprefix):]))
-                    else:
-                        consumed = False
-                        if arg.startswith(consprefix):
-                            arg = arg[len(consprefix):]
-                            consumed = True
-                        arg = trim_argtype(arg)
-                        argtypes.append((arg, consumed))
-                func = Function(function, rettypes, argtypes)
-                scope[function] = func
-                if len(argtypes) > 0:
-                    t = argtypes[0][0]
-                    if (t in method_prefixes and
-                        function.startswith(method_prefixes[t])):
-                        methodname = function[len(method_prefixes[t]):]
-                        method_lists[t].append((methodname, func))
+    with open(os.path.join(putty_srcdir, "test", "testcrypt-func.h")) as f:
+        header = f.read()
+    tokens = _lex_testcrypt_header(header)
+    for function, rettype, arglist in _parse_testcrypt_header(tokens):
+        rettypes = []
+        retnames = []
+        if rettype != "void":
+            rettypes.append(trim_argtype(rettype))
+            retnames.append(None)
+
+        argtypes = []
+        argnames = []
+        argsconsumed = []
+        for arg, argname in arglist:
+            if arg.startswith(outprefix):
+                rettypes.append(trim_argtype(arg[len(outprefix):]))
+                retnames.append(argname)
+            else:
+                consumed = False
+                if arg.startswith(consprefix):
+                    arg = arg[len(consprefix):]
+                    consumed = True
+                arg = trim_argtype(arg)
+                argtypes.append((arg, consumed))
+                argnames.append(argname)
+        func = Function(function, rettypes, retnames,
+                        argtypes, argnames)
+        scope[function] = func
+        if len(argtypes) > 0:
+            t = argtypes[0][0]
+            if (t in method_prefixes and
+                function.startswith(method_prefixes[t])):
+                methodname = function[len(method_prefixes[t]):]
+                method_lists[t].append((methodname, func))
 
 _setup(globals())
 del _setup

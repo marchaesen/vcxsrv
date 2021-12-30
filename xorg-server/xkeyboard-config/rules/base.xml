@@ -216,12 +216,14 @@
       <configItem>
         <name>btc9116u</name>
         <description>BTC 9116U Mini Wireless Internet and Gaming</description>
+        <vendor>BTC</vendor>
       </configItem>
     </model>
     <model>
       <configItem>
         <name>cherryblue</name>
         <description>Cherry Blue Line CyBo@rd</description>
+        <vendor>Cherry</vendor>
       </configItem>
     </model>
     <model>
@@ -403,6 +405,7 @@
       <configItem>
         <name>dtk2000</name>
         <description>DTK2000</description>
+        <vendor>DTK</vendor>
       </configItem>
     </model>
     <model>
@@ -1524,9 +1527,9 @@
     <layout>
       <configItem>
         <name>af</name>
-        <!-- Keyboard indicator for Afghani layouts -->
+        <!-- Keyboard indicator for Persian layouts -->
         <shortDescription>fa</shortDescription>
-        <description>Afghani</description>
+        <description>Dari</description>
       </configItem>
       <variantList>
         <variant>
@@ -1553,7 +1556,7 @@
         </variant>
         <variant>
           <configItem>
-            <name>olpc-ps</name>
+            <name>ps-olpc</name>
             <!-- Keyboard indicator for Pashto layouts -->
             <shortDescription>ps</shortDescription>
             <description>Pashto (Afghanistan, OLPC)</description>
@@ -1567,7 +1570,7 @@
             <name>fa-olpc</name>
             <!-- Keyboard indicator for Persian layouts -->
             <shortDescription>fa</shortDescription>
-            <description>Persian (Afghanistan, Dari OLPC)</description>
+            <description>Dari (Afghanistan, OLPC)</description>
           </configItem>
         </variant>
         <variant>
@@ -2588,6 +2591,17 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>rif</name>
+            <!-- Keyboard indicator for Tarifit layouts -->
+            <shortDescription>rif</shortDescription>
+            <description>Tarifit</description>
+            <languageList>
+              <iso639Id>rif</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -2714,6 +2728,55 @@
             <name>zawgyi</name>
             <shortDescription>zg</shortDescription>
             <description>Burmese Zawgyi</description>
+            <languageList>
+              <iso639Id>mya</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <!-- Keyboard Layout for Shan -->
+        <variant>
+          <configItem>
+            <name>shn</name>
+            <shortDescription>shn</shortDescription>
+            <description>Shan</description>
+            <languageList>
+              <iso639Id>shn</iso639Id>
+              <iso639Id>eng</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>zgt</name>
+            <shortDescription>zgt</shortDescription>
+            <description>Shan (Zawgyi Tai)</description>
+            <languageList>
+              <iso639Id>shn</iso639Id>
+              <iso639Id>eng</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <!-- Keyboard Layout for Mon -->
+        <variant>
+          <configItem>
+            <name>mnw</name>
+            <shortDescription>mon</shortDescription>
+            <description>Mon</description>
+            <languageList>
+              <iso639Id>mnw</iso639Id>
+              <iso639Id>eng</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>mnw-a1</name>
+            <shortDescription>mon-a1</shortDescription>
+            <description>Mon (A1)</description>
+            <languageList>
+              <iso639Id>mnw</iso639Id>
+              <iso639Id>eng</iso639Id>
+            </languageList>
           </configItem>
         </variant>
       </variantList>
@@ -5455,41 +5518,8 @@
         </variant>
         <variant>
           <configItem>
-            <name>crh</name>
-            <!-- Keyboard indicator for Crimean Tatar layouts -->
-            <shortDescription>crh</shortDescription>
-            <description>Crimean Tatar (Turkish Q)</description>
-            <languageList>
-              <iso639Id>crh</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>crh_f</name>
-            <!-- Keyboard indicator for Crimean Tatar layouts -->
-            <shortDescription>crh</shortDescription>
-            <description>Crimean Tatar (Turkish F)</description>
-            <languageList>
-              <iso639Id>crh</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
-            <name>crh_alt</name>
-            <!-- Keyboard indicator for Crimean Tatar layouts -->
-            <shortDescription>crh</shortDescription>
-            <description>Crimean Tatar (Turkish Alt-Q)</description>
-            <languageList>
-              <iso639Id>crh</iso639Id>
-            </languageList>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>ot</name>
-            <description>Ottoman</description>
+            <description>Ottoman (Q)</description>
           </configItem>
         </variant>
         <variant>
@@ -5617,6 +5647,39 @@
           <configItem>
             <name>homophonic</name>
             <description>Ukrainian (homophonic)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>crh</name>
+            <!-- Keyboard indicator for Crimean Tatar layouts -->
+            <shortDescription>crh</shortDescription>
+            <description>Crimean Tatar (Turkish Q)</description>
+            <languageList>
+              <iso639Id>crh</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>crh_f</name>
+            <!-- Keyboard indicator for Crimean Tatar layouts -->
+            <shortDescription>crh</shortDescription>
+            <description>Crimean Tatar (Turkish F)</description>
+            <languageList>
+              <iso639Id>crh</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>crh_alt</name>
+            <!-- Keyboard indicator for Crimean Tatar layouts -->
+            <shortDescription>crh</shortDescription>
+            <description>Crimean Tatar (Turkish Alt-Q)</description>
+            <languageList>
+              <iso639Id>crh</iso639Id>
+            </languageList>
           </configItem>
         </variant>
       </variantList>
@@ -5770,20 +5833,6 @@
           </configItem>
         </variant>
       </variantList>
-    </layout>
-    <layout>
-      <configItem>
-        <name>nec_vndr/jp</name>
-        <!-- Keyboard indicator for Japaneses -->
-        <shortDescription>ja</shortDescription>
-        <description>Japanese (PC-98)</description>
-        <countryList>
-          <iso3166Id>JP</iso3166Id>
-        </countryList>
-        <languageList>
-          <iso639Id>jpn</iso639Id>
-        </languageList>
-      </configItem>
     </layout>
     <layout>
       <configItem>
@@ -6349,6 +6398,12 @@
         </languageList>
       </configItem>
       <variantList>
+       <variant>
+         <configItem>
+          <name>phonetic</name>
+            <description>Indonesian (Arab Pegon, phonetic)</description>
+         </configItem>
+       </variant>
        <variant>
          <configItem>
           <name>phoneticx</name>

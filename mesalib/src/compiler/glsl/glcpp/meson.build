@@ -112,18 +112,4 @@ if with_any_opengl and with_tests and meson.has_exe_wrapper() and \
       timeout: 60,
     )
   endforeach
-
-  if dep_valgrind.found()
-    test(
-      'glcpp test (valgrind)',
-      prog_python,
-      args : [
-        join_paths(meson.current_source_dir(), 'tests/glcpp_test.py'),
-        glcpp, join_paths(meson.current_source_dir(), 'tests'),
-        '--valgrind',
-      ],
-      suite : ['compiler', 'glcpp'],
-      timeout: 240,
-    )
-  endif
 endif

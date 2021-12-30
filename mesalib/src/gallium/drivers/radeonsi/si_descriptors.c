@@ -371,6 +371,10 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
                       */
                      S_00A018_WRITE_COMPRESS_ENABLE(ac_surface_supports_dcc_image_stores(sscreen->info.chip_class, &tex->surface) &&
                                                     (access & SI_IMAGE_ACCESS_ALLOW_DCC_STORE));
+
+         /* TC-compatible MSAA HTILE requires ITERATE_256. */
+         if (tex->is_depth && tex->buffer.b.b.nr_samples >= 2)
+            state[6] |= S_00A018_ITERATE_256(1);
       }
 
       state[7] = meta_va >> 16;
@@ -931,8 +935,11 @@ void si_update_ps_colorbuf0_slot(struct si_context *sctx)
    struct pipe_surface *surf = NULL;
 
    /* si_texture_disable_dcc can get us here again. */
-   if (sctx->blitter_running)
+   if (sctx->in_update_ps_colorbuf0_slot) {
+      assert(!sctx->ps_uses_fbfetch || sctx->framebuffer.state.cbufs[0]);
       return;
+   }
+   sctx->in_update_ps_colorbuf0_slot = true;
 
    /* See whether FBFETCH is used and color buffer 0 is set. */
    if (sctx->shader.ps.cso && sctx->shader.ps.cso->info.base.fs.uses_fbfetch_output &&
@@ -940,8 +947,11 @@ void si_update_ps_colorbuf0_slot(struct si_context *sctx)
       surf = sctx->framebuffer.state.cbufs[0];
 
    /* Return if FBFETCH transitions from disabled to disabled. */
-   if (!buffers->buffers[slot] && !surf)
+   if (!buffers->buffers[slot] && !surf) {
+      assert(!sctx->ps_uses_fbfetch);
+      sctx->in_update_ps_colorbuf0_slot = false;
       return;
+   }
 
    sctx->ps_uses_fbfetch = surf != NULL;
    si_update_ps_iter_samples(sctx);
@@ -989,6 +999,7 @@ void si_update_ps_colorbuf0_slot(struct si_context *sctx)
    }
 
    sctx->descriptors_dirty |= 1u << SI_DESCS_INTERNAL;
+   sctx->in_update_ps_colorbuf0_slot = false;
 }
 
 /* SAMPLER STATES */

@@ -291,8 +291,11 @@ void virgl_texture_transfer_unmap(struct pipe_context *ctx,
    }
 
    if (queue_unmap) {
-      if (trans->copy_src_hw_res) {
+      if (trans->copy_src_hw_res && trans->direction == VIRGL_TRANSFER_TO_HOST) {
          virgl_encode_copy_transfer(vctx, trans);
+         virgl_resource_destroy_transfer(vctx, trans);
+      } else if (trans->copy_src_hw_res && trans->direction == VIRGL_TRANSFER_FROM_HOST) {
+         // if it is readback, then we have already encoded transfer
          virgl_resource_destroy_transfer(vctx, trans);
       } else {
          virgl_transfer_queue_unmap(&vctx->queue, trans);

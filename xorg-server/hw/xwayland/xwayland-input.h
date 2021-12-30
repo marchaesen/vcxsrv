@@ -56,6 +56,7 @@ struct xwl_cursor {
 struct xwl_seat {
     DeviceIntPtr pointer;
     DeviceIntPtr relative_pointer;
+    DeviceIntPtr pointer_gestures;
     DeviceIntPtr keyboard;
     DeviceIntPtr touch;
     DeviceIntPtr stylus;
@@ -65,6 +66,8 @@ struct xwl_seat {
     struct wl_seat *seat;
     struct wl_pointer *wl_pointer;
     struct zwp_relative_pointer_v1 *wp_relative_pointer;
+    struct zwp_pointer_gesture_swipe_v1 *wp_pointer_gesture_swipe;
+    struct zwp_pointer_gesture_pinch_v1 *wp_pointer_gesture_pinch;
     struct wl_keyboard *wl_keyboard;
     struct wl_touch *wl_touch;
     struct zwp_tablet_seat_v2 *tablet_seat;
@@ -79,6 +82,10 @@ struct xwl_seat {
     CursorPtr pending_x_cursor;
     struct xwl_cursor cursor;
     WindowPtr last_xwindow;
+
+    uint32_t pointer_gesture_swipe_fingers;
+    uint32_t pointer_gesture_pinch_fingers;
+    double pointer_gesture_pinch_last_scale;
 
     struct xorg_list touches;
 

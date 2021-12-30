@@ -2311,3 +2311,30 @@ TEST_F(ComputeTest, spec_constant)
    for (int i = 0; i < inout.size(); ++i)
       EXPECT_EQ(inout[i], expected[i]);
 }
+
+TEST_F(ComputeTest, arg_metadata)
+{
+   const char *kernel_source = R"(
+   __kernel void main_test(
+      __global int *undec_ptr,
+      __global volatile int *vol_ptr,
+      __global const int *const_ptr,
+      __global int *restrict restr_ptr,
+      __global const int *restrict const_restr_ptr,
+      __constant int *const_ptr2)
+   {
+   })";
+   Shader shader = compile({ kernel_source });
+   EXPECT_EQ(shader.metadata->kernels[0].args[0].address_qualifier, CLC_KERNEL_ARG_ADDRESS_GLOBAL);
+   EXPECT_EQ(shader.metadata->kernels[0].args[0].type_qualifier, 0);
+   EXPECT_EQ(shader.metadata->kernels[0].args[1].address_qualifier, CLC_KERNEL_ARG_ADDRESS_GLOBAL);
+   EXPECT_EQ(shader.metadata->kernels[0].args[1].type_qualifier, CLC_KERNEL_ARG_TYPE_VOLATILE);
+   EXPECT_EQ(shader.metadata->kernels[0].args[2].address_qualifier, CLC_KERNEL_ARG_ADDRESS_GLOBAL);
+   EXPECT_EQ(shader.metadata->kernels[0].args[2].type_qualifier, CLC_KERNEL_ARG_TYPE_CONST);
+   EXPECT_EQ(shader.metadata->kernels[0].args[3].address_qualifier, CLC_KERNEL_ARG_ADDRESS_GLOBAL);
+   EXPECT_EQ(shader.metadata->kernels[0].args[3].type_qualifier, CLC_KERNEL_ARG_TYPE_RESTRICT);
+   EXPECT_EQ(shader.metadata->kernels[0].args[4].address_qualifier, CLC_KERNEL_ARG_ADDRESS_GLOBAL);
+   EXPECT_EQ(shader.metadata->kernels[0].args[4].type_qualifier, CLC_KERNEL_ARG_TYPE_RESTRICT | CLC_KERNEL_ARG_TYPE_CONST);
+   EXPECT_EQ(shader.metadata->kernels[0].args[5].address_qualifier, CLC_KERNEL_ARG_ADDRESS_CONSTANT);
+   EXPECT_EQ(shader.metadata->kernels[0].args[5].type_qualifier, CLC_KERNEL_ARG_TYPE_CONST);
+}

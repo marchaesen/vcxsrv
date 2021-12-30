@@ -157,4 +157,14 @@ void PanfrostDriver::disable_perfcnt()
    enabled_counters.clear();
 }
 
+uint32_t PanfrostDriver::gpu_clock_id() const
+{
+   return perfetto::protos::pbzero::BUILTIN_CLOCK_BOOTTIME;
+}
+
+uint64_t PanfrostDriver::gpu_timestamp() const
+{
+   return perfetto::base::GetBootTimeNs().count();
+}
+
 } // namespace pps

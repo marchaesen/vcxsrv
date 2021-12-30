@@ -215,11 +215,12 @@ vk_free_queue(struct vk_cmd_queue *queue)
 #ifdef ${c.guard}
 % endif
       case ${to_enum_name(c.name)}:
+         vk_free(queue->alloc, cmd->driver_data);
 % for p in c.params[1:]:
 % if p.len:
-   vk_free(queue->alloc, (${remove_suffix(p.decl.replace("const", ""), p.name)})cmd->u.${to_struct_field_name(c.name)}.${to_field_name(p.name)});
+         vk_free(queue->alloc, (${remove_suffix(p.decl.replace("const", ""), p.name)})cmd->u.${to_struct_field_name(c.name)}.${to_field_name(p.name)});
 % elif '*' in p.decl:
-   ${get_struct_free(c, p, types)}
+         ${get_struct_free(c, p, types)}
 % endif
 % endfor
          break;
@@ -333,7 +334,6 @@ def get_struct_copy(dst, src_name, src_type, size, types, level=0):
 def get_struct_free(command, param, types):
     field_name = "cmd->u.%s.%s" % (to_struct_field_name(command.name), to_field_name(param.name))
     const_cast = remove_suffix(param.decl.replace("const", ""), param.name)
-    driver_data_free = "vk_free(queue->alloc, cmd->driver_data);\n"
     struct_free = "vk_free(queue->alloc, (%s)%s);" % (const_cast, field_name)
     member_frees = ""
     if (param.type in types):
@@ -342,7 +342,7 @@ def get_struct_free(command, param, types):
                 member_name = "cmd->u.%s.%s->%s" % (to_struct_field_name(command.name), to_field_name(param.name), member.name)
                 const_cast = remove_suffix(member.decl.replace("const", ""), member.name)
                 member_frees += "vk_free(queue->alloc, (%s)%s);\n" % (const_cast, member_name)
-    return "%s      %s      %s\n" % (member_frees, driver_data_free, struct_free)
+    return "%s      %s\n" % (member_frees, struct_free)
 
 EntrypointType = namedtuple('EntrypointType', 'name enum members extended_by')
 

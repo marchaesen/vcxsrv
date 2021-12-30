@@ -67,17 +67,21 @@ try_extract_const_addition(nir_builder *b, nir_instr *instr, opt_offsets_state *
    for (unsigned i = 0; i < 2; ++i) {
       if (nir_src_is_const(alu->src[i].src)) {
          *out_const += nir_src_as_uint(alu->src[i].src);
-         return alu->src[1 - i].src.ssa;
-      }
-
-      nir_ssa_def *replace_src = try_extract_const_addition(b, alu->src[0].src.ssa->parent_instr, state, out_const);
-      if (replace_src) {
-         b->cursor = nir_before_instr(&alu->instr);
-         return nir_iadd(b, replace_src, alu->src[1 - i].src.ssa);
+         nir_ssa_def *replace_src =
+            try_extract_const_addition(b, alu->src[1 - i].src.ssa->parent_instr, state, out_const);
+         return replace_src ? replace_src : alu->src[1 - i].src.ssa;
       }
    }
 
-   return NULL;
+   nir_ssa_def *replace_src0 = try_extract_const_addition(b, alu->src[0].src.ssa->parent_instr, state, out_const);
+   nir_ssa_def *replace_src1 = try_extract_const_addition(b, alu->src[1].src.ssa->parent_instr, state, out_const);
+   if (!replace_src0 && !replace_src1)
+      return NULL;
+
+   b->cursor = nir_before_instr(&alu->instr);
+   replace_src0 = replace_src0 ? replace_src0 : nir_ssa_for_alu_src(b, alu, 0);
+   replace_src1 = replace_src1 ? replace_src1 : nir_ssa_for_alu_src(b, alu, 1);
+   return nir_iadd(b, replace_src0, replace_src1);
 }
 
 static bool
@@ -99,9 +103,7 @@ try_fold_load_store(nir_builder *b,
       return false;
 
    if (!nir_src_is_const(*off_src)) {
-      nir_ssa_def *r = off_src->ssa;
-      while ((r = try_extract_const_addition(b, r->parent_instr, state, &off_const)))
-         replace_src = r;
+      replace_src = try_extract_const_addition(b, off_src->ssa->parent_instr, state, &off_const);
    } else if (nir_src_as_uint(*off_src)) {
       off_const += nir_src_as_uint(*off_src);
       b->cursor = nir_before_instr(&intrin->instr);

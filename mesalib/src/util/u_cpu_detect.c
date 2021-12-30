@@ -813,6 +813,10 @@ util_cpu_detect_once(void)
    check_os_mips64_support();
 #endif /* PIPE_ARCH_MIPS64 */
 
+#if defined(PIPE_ARCH_S390)
+   util_cpu_caps.family = CPU_S390X;
+#endif
+
    get_cpu_topology();
 
    if (debug_get_option_dump_cpu()) {

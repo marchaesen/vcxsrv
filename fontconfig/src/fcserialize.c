@@ -47,50 +47,187 @@ FcSerializeCreate (void)
     serialize->size = 0;
     serialize->linear = NULL;
     serialize->cs_freezer = NULL;
-    memset (serialize->buckets, '\0', sizeof (serialize->buckets));
+    serialize->buckets = NULL;
+    serialize->buckets_count = 0;
+    serialize->buckets_used = 0;
+    serialize->buckets_used_max = 0;
     return serialize;
 }
 
 void
 FcSerializeDestroy (FcSerialize *serialize)
 {
-    uintptr_t	bucket;
-
-    for (bucket = 0; bucket < FC_SERIALIZE_HASH_SIZE; bucket++)
-    {
-	FcSerializeBucket   *buck, *next;
-
-	for (buck = serialize->buckets[bucket]; buck; buck = next) {
-	    next = buck->next;
-	    free (buck);
-	}
-    }
+    free (serialize->buckets);
     if (serialize->cs_freezer)
 	FcCharSetFreezerDestroy (serialize->cs_freezer);
     free (serialize);
+}
+
+static size_t
+FcSerializeNextBucketIndex (const FcSerialize *serialize, size_t index)
+{
+    if (index == 0)
+	index = serialize->buckets_count;
+    --index;
+    return index;
+}
+
+#if ((SIZEOF_VOID_P) * (CHAR_BIT)) == 32
+
+/*
+ * Based on triple32
+ * https://github.com/skeeto/hash-prospector
+ */
+static uintptr_t
+FcSerializeHashPtr (const void *object)
+{
+    uintptr_t x = (uintptr_t)object;
+    x ^= x >> 17;
+    x *= 0xed5ad4bbU;
+    x ^= x >> 11;
+    x *= 0xac4c1b51U;
+    x ^= x >> 15;
+    x *= 0x31848babU;
+    x ^= x >> 14;
+    return x ? x : 1; /* 0 reserved to mark empty, x starts out 0 */
+}
+
+
+#elif ((SIZEOF_VOID_P) * (CHAR_BIT)) == 64
+
+/*
+ * Based on splittable64/splitmix64 from Mix13
+ * https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+ * https://prng.di.unimi.it/splitmix64.c
+ */
+static uintptr_t
+FcSerializeHashPtr (const void *object)
+{
+    uintptr_t x = (uintptr_t)object;
+    x ^= x >> 30;
+    x *= 0xbf58476d1ce4e5b9U;
+    x ^= x >> 27;
+    x *= 0x94d049bb133111ebU;
+    x ^= x >> 31;
+    return x ? x : 1; /* 0 reserved to mark empty, x starts out 0 */
+}
+
+#endif
+
+static FcSerializeBucket*
+FcSerializeFind (const FcSerialize *serialize, const void *object)
+{
+    uintptr_t hash = FcSerializeHashPtr (object);
+    size_t buckets_count = serialize->buckets_count;
+    size_t index = hash & (buckets_count-1);
+    for (size_t n = 0; n < buckets_count; ++n) {
+	FcSerializeBucket* bucket = &serialize->buckets[index];
+	if (bucket->hash == 0) {
+	    return NULL;
+	}
+	if (object == bucket->object) {
+	    return bucket;
+	}
+	index = FcSerializeNextBucketIndex (serialize, index);
+    }
+    return NULL;
+}
+
+static FcSerializeBucket*
+FcSerializeUncheckedSet (FcSerialize *serialize, FcSerializeBucket* insert) {
+    const void *object = insert->object;
+    size_t buckets_count = serialize->buckets_count;
+    size_t index = insert->hash & (buckets_count-1);
+    for (size_t n = 0; n < buckets_count; ++n) {
+	FcSerializeBucket* bucket = &serialize->buckets[index];
+	if (bucket->hash == 0) {
+	    *bucket = *insert;
+	    ++serialize->buckets_used;
+	    return bucket;
+	}
+	if (object == bucket->object) {
+	    /* FcSerializeAlloc should not allow this to happen. */
+	    assert (0);
+	    *bucket = *insert;
+	    return bucket;
+	}
+	index = FcSerializeNextBucketIndex (serialize, index);
+    }
+    assert (0);
+    return NULL;
+}
+
+static FcBool
+FcSerializeResize (FcSerialize *serialize, size_t new_count)
+{
+    size_t old_used = serialize->buckets_used;
+    size_t old_count = serialize->buckets_count;
+    FcSerializeBucket *old_buckets = serialize->buckets;
+    FcSerializeBucket *old_buckets_end = old_buckets + old_count;
+
+    FcSerializeBucket *new_buckets = malloc (new_count * sizeof (*old_buckets));
+    if (!new_buckets)
+	return FcFalse;
+    FcSerializeBucket *new_buckets_end = new_buckets + new_count;
+    for (FcSerializeBucket *b = new_buckets; b < new_buckets_end; ++b)
+	b->hash = 0;
+
+    serialize->buckets = new_buckets;
+    serialize->buckets_count = new_count;
+    serialize->buckets_used = 0;
+    for (FcSerializeBucket *b = old_buckets; b < old_buckets_end; ++b)
+	if (b->hash != 0 && !FcSerializeUncheckedSet (serialize, b))
+	{
+	    serialize->buckets = old_buckets;
+	    serialize->buckets_count = old_count;
+	    serialize->buckets_used = old_used;
+	    free (new_buckets);
+	    return FcFalse;
+	}
+    free (old_buckets);
+    return FcTrue;
+}
+
+static FcSerializeBucket*
+FcSerializeSet (FcSerialize *serialize, const void *object, intptr_t offset)
+{
+    if (serialize->buckets_used >= serialize->buckets_used_max)
+    {
+	size_t capacity = serialize->buckets_count;
+	if (capacity == 0)
+	    capacity = 4;
+	else if (capacity > SIZE_MAX / 2u)
+	    return NULL;
+	else
+	    capacity *= 2;
+
+	if (!FcSerializeResize (serialize, capacity))
+	    return NULL;
+
+	serialize->buckets_used_max = capacity / 4u * 3u;
+    }
+
+    FcSerializeBucket bucket;
+    bucket.object = object;
+    bucket.offset = offset;
+    bucket.hash = FcSerializeHashPtr (object);
+    return FcSerializeUncheckedSet (serialize, &bucket);
 }
 
 /*
  * Allocate space for an object in the serialized array. Keep track
  * of where the object is placed and only allocate one copy of each object
  */
-
 FcBool
 FcSerializeAlloc (FcSerialize *serialize, const void *object, int size)
 {
-    uintptr_t	bucket = ((uintptr_t) object) % FC_SERIALIZE_HASH_SIZE;
-    FcSerializeBucket  *buck;
+    FcSerializeBucket *bucket = FcSerializeFind (serialize, object);
+    if (bucket)
+	return FcTrue;
 
-    for (buck = serialize->buckets[bucket]; buck; buck = buck->next)
-	if (buck->object == object)
-	    return FcTrue;
-    buck = malloc (sizeof (FcSerializeBucket));
-    if (!buck)
+    if (!FcSerializeSet (serialize, object, serialize->size))
 	return FcFalse;
-    buck->object = object;
-    buck->offset = serialize->size;
-    buck->next = serialize->buckets[bucket];
-    serialize->buckets[bucket] = buck;
+
     serialize->size += FcAlignSize (size);
     return FcTrue;
 }
@@ -113,13 +250,8 @@ FcSerializeReserve (FcSerialize *serialize, int size)
 intptr_t
 FcSerializeOffset (FcSerialize *serialize, const void *object)
 {
-    uintptr_t	bucket = ((uintptr_t) object) % FC_SERIALIZE_HASH_SIZE;
-    FcSerializeBucket  *buck;
-
-    for (buck = serialize->buckets[bucket]; buck; buck = buck->next)
-	if (buck->object == object)
-	    return buck->offset;
-    return 0;
+    FcSerializeBucket *bucket = FcSerializeFind (serialize, object);
+    return bucket ? bucket->offset : 0;
 }
 
 /*

@@ -363,14 +363,16 @@ init_shader_builder(struct indirect_draw_shader_builder *builder,
                 builder->b =
                         nir_builder_init_simple_shader(MESA_SHADER_COMPUTE,
                                                        GENX(pan_shader_get_compiler_options)(),
-                                                       "indirect_draw(index_size=%d%s%s%s)",
+                                                       "indirect_draw(index_size=%d%s%s%s%s)",
                                                        builder->index_size,
                                                        flags & PAN_INDIRECT_DRAW_HAS_PSIZ ?
                                                        ",psiz" : "",
                                                        flags & PAN_INDIRECT_DRAW_PRIMITIVE_RESTART ?
                                                        ",primitive_restart" : "",
                                                        flags & PAN_INDIRECT_DRAW_UPDATE_PRIM_SIZE ?
-                                                       ",update_primitive_size" : "");
+                                                       ",update_primitive_size" : "",
+                                                       flags & PAN_INDIRECT_DRAW_IDVS ?
+                                                       ",idvs" : "");
         }
 
         nir_builder *b = &builder->b;
@@ -380,6 +382,29 @@ init_shader_builder(struct indirect_draw_shader_builder *builder,
         b->shader->info.num_ubos++;
 
         extract_inputs(builder);
+}
+
+static void
+update_dcd(struct indirect_draw_shader_builder *builder,
+           nir_ssa_def *job_ptr,
+           unsigned draw_offset)
+{
+        nir_builder *b = &builder->b;
+        nir_ssa_def *draw_w01 =
+                load_global(b, get_address_imm(b, job_ptr, draw_offset + WORD(0)), 2, 32);
+        nir_ssa_def *draw_w0 = nir_channel(b, draw_w01, 0);
+
+        /* Update DRAW.{instance_size,offset_start} */
+        nir_ssa_def *instance_size =
+                nir_bcsel(b,
+                          nir_ult(b, builder->draw.instance_count, nir_imm_int(b, 2)),
+                          nir_imm_int(b, 0), builder->instance_size.packed);
+        draw_w01 = nir_vec2(b,
+                            nir_ior(b, nir_iand_imm(b, draw_w0, 0xffff),
+                                    nir_ishl(b, instance_size, nir_imm_int(b, 16))),
+                            builder->jobs.offset_start);
+        store_global(b, get_address_imm(b, job_ptr, draw_offset + WORD(0)),
+                     draw_w01, 2);
 }
 
 static void
@@ -435,21 +460,14 @@ update_job(struct indirect_draw_shader_builder *builder, enum mali_job_type type
                              builder->varyings.pos_ptr, 2);
         }
 
-        nir_ssa_def *draw_w01 =
-                load_global(b, get_address_imm(b, job_ptr, draw_offset + WORD(0)), 2, 32);
-        nir_ssa_def *draw_w0 = nir_channel(b, draw_w01, 0);
+        update_dcd(builder, job_ptr, draw_offset);
 
-        /* Update DRAW.{instance_size,offset_start} */
-        nir_ssa_def *instance_size =
-                nir_bcsel(b,
-                          nir_ult(b, builder->draw.instance_count, nir_imm_int(b, 2)),
-                          nir_imm_int(b, 0), builder->instance_size.packed);
-        draw_w01 = nir_vec2(b,
-                            nir_ior(b, nir_iand_imm(b, draw_w0, 0xffff),
-                                    nir_ishl(b, instance_size, nir_imm_int(b, 16))),
-                            builder->jobs.offset_start);
-        store_global(b, get_address_imm(b, job_ptr, draw_offset + WORD(0)),
-                     draw_w01, 2);
+        if (builder->flags & PAN_INDIRECT_DRAW_IDVS) {
+                assert(type == MALI_JOB_TYPE_TILER);
+
+                update_dcd(builder, job_ptr,
+                           pan_section_offset(INDEXED_VERTEX_JOB, VERTEX_DRAW));
+        }
 }
 
 static void
@@ -763,6 +781,14 @@ get_invocation(struct indirect_draw_shader_builder *builder)
                                  nir_imm_int(b, 2 << 28)));
 }
 
+static nir_ssa_def *
+nir_align_pot(nir_builder *b, nir_ssa_def *val, unsigned pot)
+{
+        assert(pot != 0 && util_is_power_of_two_or_zero(pot));
+
+        return nir_iand_imm(b, nir_iadd_imm(b, val, pot - 1), ~(pot - 1));
+}
+
 /* Based on panfrost_padded_vertex_count() */
 
 static nir_ssa_def *
@@ -797,7 +823,10 @@ static void
 update_jobs(struct indirect_draw_shader_builder *builder)
 {
         get_invocation(builder);
-        update_job(builder, MALI_JOB_TYPE_VERTEX);
+
+        if (!(builder->flags & PAN_INDIRECT_DRAW_IDVS))
+                update_job(builder, MALI_JOB_TYPE_VERTEX);
+
         update_job(builder, MALI_JOB_TYPE_TILER);
 }
 
@@ -950,13 +979,21 @@ patch(struct indirect_draw_shader_builder *builder)
                 /* If there's nothing to draw, turn the vertex/tiler jobs into
                  * null jobs.
                  */
-                set_null_job(builder, builder->jobs.vertex_job);
+                if (!(builder->flags & PAN_INDIRECT_DRAW_IDVS))
+                        set_null_job(builder, builder->jobs.vertex_job);
+
                 set_null_job(builder, builder->jobs.tiler_job);
         } ELSE {
                 get_instance_size(builder);
 
+                nir_ssa_def *count = builder->instance_size.raw;
+
+                /* IDVS requires padding to a multiple of 4 */
+                if (builder->flags & PAN_INDIRECT_DRAW_IDVS)
+                        count = nir_align_pot(b, count, 4);
+
                 builder->instance_size.padded =
-                        get_padded_count(b, builder->instance_size.raw,
+                        get_padded_count(b, count,
                                          &builder->instance_size.packed);
 
                 update_varyings(builder);
@@ -1131,7 +1168,6 @@ create_indirect_draw_shader(struct panfrost_device *dev,
                 pan_pack(state, RENDERER_STATE, cfg) {
                         pan_shader_prepare_rsd(&shader_info, address, &cfg);
                 }
-                pthread_mutex_unlock(&dev->indirect_draw_shaders.lock);
 
                 draw_shader->push = shader_info.push;
                 draw_shader->rsd = dev->indirect_draw_shaders.states->ptr.gpu +
@@ -1171,15 +1207,15 @@ get_ubos(struct pan_pool *pool,
          const struct indirect_draw_inputs *inputs)
 {
         struct panfrost_ptr inputs_buf =
-                pan_pool_alloc_aligned(pool, sizeof(inputs), 16);
+                pan_pool_alloc_aligned(pool, sizeof(*inputs), 16);
 
-        memcpy(inputs_buf.cpu, &inputs, sizeof(inputs));
+        memcpy(inputs_buf.cpu, inputs, sizeof(*inputs));
 
         struct panfrost_ptr ubos_buf =
                 pan_pool_alloc_desc(pool, UNIFORM_BUFFER);
 
         pan_pack(ubos_buf.cpu, UNIFORM_BUFFER, cfg) {
-                cfg.entries = DIV_ROUND_UP(sizeof(inputs), 16);
+                cfg.entries = DIV_ROUND_UP(sizeof(*inputs), 16);
                 cfg.pointer = inputs_buf.gpu;
         }
 

@@ -8,28 +8,6 @@
 #extension GL_ARB_gpu_shader_int64: require
 #extension GL_ARB_shading_language_420pack: require
 
-uvec2
-umul64(uvec2 a, uvec2 b)
-{
-   uvec2 result;
-
-   umulExtended(a.x, b.x, result.y, result.x);
-   result.y += a.x * b.y + a.y * b.x;
-
-   return result;
-}
-
-ivec2
-sign64(ivec2 a)
-{
-   ivec2 result;
-
-   result.y = a.y >> 31;
-   result.x = result.y | int((a.x | a.y) != 0);
-
-   return result;
-}
-
 uvec4
 udivmod64(uvec2 n, uvec2 d)
 {

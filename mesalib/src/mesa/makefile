@@ -25,7 +25,7 @@ CSRCS := $(CSRCS:%.h=)
 
 INCLUDE_DIRS:=$(INCLUDE_DIRS:-I%=%)
 
-INCLUDES=$(MHMAKECONF)/include $(INCLUDE_DIRS) ../mapi/glapi ../$(OBJDIR)
+INCLUDES=$(MHMAKECONF)/include $(INCLUDE_DIRS) ../mapi/glapi ../util ../$(OBJDIR)
 
 vpath %.c main:math:vbo:tnl:swrast:swrast_setup:drivers/common:program:state_tracker
 

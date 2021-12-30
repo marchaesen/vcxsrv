@@ -64,7 +64,7 @@ fd5_rasterizer_state_create(struct pipe_context *pctx,
    so->gras_su_poly_offset_clamp =
       A5XX_GRAS_SU_POLY_OFFSET_OFFSET_CLAMP(cso->offset_clamp);
 
-   so->gras_su_cntl = A5XX_GRAS_SU_CNTL_LINEHALFWIDTH(cso->line_width / 2.0);
+   so->gras_su_cntl = A5XX_GRAS_SU_CNTL_LINEHALFWIDTH(cso->line_width / 2.0f);
    so->pc_raster_cntl =
       A5XX_PC_RASTER_CNTL_POLYMODE_FRONT_PTYPE(
          fd_polygon_mode(cso->fill_front)) |

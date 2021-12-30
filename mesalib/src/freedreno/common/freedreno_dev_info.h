@@ -60,6 +60,12 @@ struct fd_dev_info {
 
          uint32_t reg_size_vec4;
 
+         /* The size (in instrlen units (128 bytes)) of instruction cache where
+          * we preload a shader. Loading more than this could trigger a hang
+          * on gen3 and later.
+          */
+         uint32_t instr_cache_size;
+
          /* Whether the PC_MULTIVIEW_MASK register exists. */
          bool supports_multiview_mask;
 
@@ -121,6 +127,8 @@ struct fd_dev_info {
          bool has_ccu_flush_bug;
 
          bool has_lpac;
+
+         bool has_getfiberid;
 
          struct {
             uint32_t RB_UNKNOWN_8E04_blit;

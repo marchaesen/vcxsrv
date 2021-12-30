@@ -51,7 +51,7 @@ libgallium_nine = shared_library(
   files('description.c', 'getproc.c', 'drm.c'),
   include_directories : [
     inc_include, inc_src, inc_loader, inc_mapi, inc_mesa, inc_util,
-    inc_dri_common, inc_gallium, inc_gallium_aux, inc_gallium_winsys,
+    inc_gallium, inc_gallium_aux, inc_gallium_winsys,
     inc_gallium_drivers, inc_d3d9,
     include_directories('../../frontends/nine'),
   ],

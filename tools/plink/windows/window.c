@@ -259,6 +259,7 @@ static void wintw_move(TermWin *, int x, int y);
 static void wintw_set_zorder(TermWin *, bool top);
 static void wintw_palette_set(TermWin *, unsigned, unsigned, const rgb *);
 static void wintw_palette_get_overrides(TermWin *, Terminal *);
+static void wintw_unthrottle(TermWin *win, size_t bufsize);
 
 static const TermWinVtable windows_termwin_vt = {
     .setup_draw_ctx = wintw_setup_draw_ctx,
@@ -284,6 +285,7 @@ static const TermWinVtable windows_termwin_vt = {
     .set_zorder = wintw_set_zorder,
     .palette_set = wintw_palette_set,
     .palette_get_overrides = wintw_palette_get_overrides,
+    .unthrottle = wintw_unthrottle,
 };
 
 static TermWin wintw[1];
@@ -318,7 +320,7 @@ static StripCtrlChars *win_seat_stripctrl_new(
 static size_t win_seat_output(
     Seat *seat, SeatOutputType type, const void *, size_t);
 static bool win_seat_eof(Seat *seat);
-static int win_seat_get_userpass_input(Seat *seat, prompts_t *p);
+static SeatPromptResult win_seat_get_userpass_input(Seat *seat, prompts_t *p);
 static void win_seat_notify_remote_exit(Seat *seat);
 static void win_seat_connection_fatal(Seat *seat, const char *msg);
 static void win_seat_update_specials_menu(Seat *seat);
@@ -332,6 +334,7 @@ static const SeatVtable win_seat_vt = {
     .output = win_seat_output,
     .eof = win_seat_eof,
     .sent = nullseat_sent,
+    .banner = nullseat_banner_to_stderr,
     .get_userpass_input = win_seat_get_userpass_input,
     .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = win_seat_notify_remote_exit,
@@ -351,6 +354,7 @@ static const SeatVtable win_seat_vt = {
     .stripctrl_new = win_seat_stripctrl_new,
     .set_trust_status = win_seat_set_trust_status,
     .can_set_trust_status = win_seat_can_set_trust_status,
+    .has_mixed_input_stream = nullseat_has_mixed_input_stream_yes,
     .verbose = nullseat_verbose_yes,
     .interactive = nullseat_interactive_yes,
     .get_cursor_position = win_seat_get_cursor_position,
@@ -1588,6 +1592,8 @@ static void deinit_fonts(void)
     trust_icon = INVALID_HANDLE_VALUE;
 }
 
+static bool sent_term_size; /* only live during wintw_request_resize() */
+
 static void wintw_request_resize(TermWin *tw, int w, int h)
 {
     const struct BackendVtable *vt;
@@ -1633,7 +1639,18 @@ static void wintw_request_resize(TermWin *tw, int w, int h)
         }
     }
 
-    term_size(term, h, w, conf_get_int(conf, CONF_savelines));
+    /*
+     * We want to send exactly one term_size() to the terminal,
+     * telling it what size it ended up after this operation.
+     *
+     * If we don't get the size we asked for in SetWindowPos, then
+     * we'll be sent a WM_SIZE message, whose handler will make that
+     * call, all before SetWindowPos even returns to here.
+     *
+     * But if that _didn't_ happen, we'll need to call term_size
+     * ourselves afterwards.
+     */
+    sent_term_size = false;
 
     if (conf_get_int(conf, CONF_resize_action) != RESIZE_FONT &&
         !IsZoomed(wgs.term_hwnd)) {
@@ -1645,6 +1662,9 @@ static void wintw_request_resize(TermWin *tw, int w, int h)
             SWP_NOMOVE | SWP_NOZORDER);
     } else
         reset_window(0);
+
+    if (!sent_term_size)
+        term_size(term, h, w, conf_get_int(conf, CONF_savelines));
 
     InvalidateRect(wgs.term_hwnd, NULL, true);
 }
@@ -2086,6 +2106,11 @@ static void wm_size_resize_term(LPARAM lParam, bool border)
     } else {
         term_size(term, h, w,
                   conf_get_int(conf, CONF_savelines));
+        /* If this is happening re-entrantly during the call to
+         * SetWindowPos in wintw_request_resize, let it know that
+         * we've already done a term_size() so that it doesn't have
+         * to. */
+        sent_term_size = true;
     }
 }
 
@@ -4944,7 +4969,7 @@ static void wintw_clip_write(
 
         get_unitab(CP_ACP, unitab, 0);
 
-        strbuf_catf(
+        put_fmt(
             rtf, "{\\rtf1\\ansi\\deff0{\\fonttbl\\f0\\fmodern %s;}\\f0\\fs%d",
             font->name, font->height*2);
 
@@ -5032,16 +5057,16 @@ static void wintw_clip_write(
             for (i = 0; i < OSC4_NCOLOURS; i++) {
                 if (palette[i] != 0) {
                     const PALETTEENTRY *pe = &logpal->palPalEntry[i];
-                    strbuf_catf(rtf, "\\red%d\\green%d\\blue%d;",
-                                pe->peRed, pe->peGreen, pe->peBlue);
+                    put_fmt(rtf, "\\red%d\\green%d\\blue%d;",
+                            pe->peRed, pe->peGreen, pe->peBlue);
                 }
             }
             if (rgbtree) {
                 rgbindex *rgbp;
                 for (i = 0; (rgbp = index234(rgbtree, i)) != NULL; i++)
-                    strbuf_catf(rtf, "\\red%d\\green%d\\blue%d;",
-                                GetRValue(rgbp->ref), GetGValue(rgbp->ref),
-                                GetBValue(rgbp->ref));
+                    put_fmt(rtf, "\\red%d\\green%d\\blue%d;",
+                            GetRValue(rgbp->ref), GetGValue(rgbp->ref),
+                            GetBValue(rgbp->ref));
             }
             put_datapl(rtf, PTRLEN_LITERAL("}"));
         }
@@ -5160,13 +5185,13 @@ static void wintw_clip_write(
                     lastfgcolour  = fgcolour;
                     lastfg        = fg;
                     if (fg == -1) {
-                        strbuf_catf(rtf, "\\cf%d ",
-                                    (fgcolour >= 0) ? palette[fgcolour] : 0);
+                        put_fmt(rtf, "\\cf%d ",
+                                (fgcolour >= 0) ? palette[fgcolour] : 0);
                     } else {
                         rgbindex rgb, *rgbp;
                         rgb.ref = fg;
                         if ((rgbp = find234(rgbtree, &rgb, NULL)) != NULL)
-                            strbuf_catf(rtf, "\\cf%d ", rgbp->index);
+                            put_fmt(rtf, "\\cf%d ", rgbp->index);
                     }
                 }
 
@@ -5174,13 +5199,13 @@ static void wintw_clip_write(
                     lastbgcolour  = bgcolour;
                     lastbg        = bg;
                     if (bg == -1)
-                        strbuf_catf(rtf, "\\highlight%d ",
-                                    (bgcolour >= 0) ? palette[bgcolour] : 0);
+                        put_fmt(rtf, "\\highlight%d ",
+                                (bgcolour >= 0) ? palette[bgcolour] : 0);
                     else {
                         rgbindex rgb, *rgbp;
                         rgb.ref = bg;
                         if ((rgbp = find234(rgbtree, &rgb, NULL)) != NULL)
-                            strbuf_catf(rtf, "\\highlight%d ", rgbp->index);
+                            put_fmt(rtf, "\\highlight%d ", rgbp->index);
                     }
                 }
 
@@ -5241,7 +5266,7 @@ static void wintw_clip_write(
                 } else if (tdata[tindex+i] == 0x0D || tdata[tindex+i] == 0x0A) {
                     put_datapl(rtf, PTRLEN_LITERAL("\\par\r\n"));
                 } else if (tdata[tindex+i] > 0x7E || tdata[tindex+i] < 0x20) {
-                    strbuf_catf(rtf, "\\'%02x", tdata[tindex+i]);
+                    put_fmt(rtf, "\\'%02x", tdata[tindex+i]);
                 } else {
                     put_byte(rtf, tdata[tindex+i]);
                 }
@@ -5751,18 +5776,24 @@ static size_t win_seat_output(Seat *seat, SeatOutputType type,
     return term_data(term, data, len);
 }
 
+static void wintw_unthrottle(TermWin *win, size_t bufsize)
+{
+    if (backend)
+        backend_unthrottle(backend, bufsize);
+}
+
 static bool win_seat_eof(Seat *seat)
 {
     return true;   /* do respond to incoming EOF with outgoing */
 }
 
-static int win_seat_get_userpass_input(Seat *seat, prompts_t *p)
+static SeatPromptResult win_seat_get_userpass_input(Seat *seat, prompts_t *p)
 {
-    int ret;
-    ret = cmdline_get_passwd_input(p);
-    if (ret == -1)
-        ret = term_get_userpass_input(term, p);
-    return ret;
+    SeatPromptResult spr;
+    spr = cmdline_get_passwd_input(p);
+    if (spr.kind == SPRK_INCOMPLETE)
+        spr = term_get_userpass_input(term, p);
+    return spr;
 }
 
 static void win_seat_set_trust_status(Seat *seat, bool trusted)

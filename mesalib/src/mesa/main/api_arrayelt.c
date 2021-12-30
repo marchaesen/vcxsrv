@@ -44,6 +44,7 @@
 #include "mtypes.h"
 #include "main/dispatch.h"
 #include "varray.h"
+#include "api_exec_decl.h"
 
 typedef void (GLAPIENTRY *attrib_func)( GLuint indx, const void *data );
 
@@ -1477,7 +1478,7 @@ _mesa_array_element(struct gl_context *ctx, GLint elt)
  * Note: this may be called during display list construction.
  */
 void GLAPIENTRY
-_ae_ArrayElement(GLint elt)
+_mesa_ArrayElement(GLint elt)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_vertex_array_object *vao;
@@ -1496,12 +1497,4 @@ _ae_ArrayElement(GLint elt)
    _mesa_array_element(ctx, elt);
 
    _mesa_vao_unmap_arrays(ctx, vao);
-}
-
-
-void
-_mesa_install_arrayelt_vtxfmt(struct _glapi_table *disp,
-                              const GLvertexformat *vfmt)
-{
-   SET_ArrayElement(disp, vfmt->ArrayElement);
 }

@@ -1,5 +1,6 @@
 add_sources_from_current_dir(utils
   antispoof.c
+  backend_socket_log.c
   base64_decode_atom.c
   base64_encode_atom.c
   bufchain.c
@@ -15,6 +16,7 @@ add_sources_from_current_dir(utils
   dupcat.c
   dupprintf.c
   dupstr.c
+  dup_mb_to_wc.c
   encode_utf8.c
   encode_wide_string_as_utf8.c
   fgetline.c
@@ -23,10 +25,11 @@ add_sources_from_current_dir(utils
   host_strcspn.c
   host_strduptrim.c
   host_strrchr.c
+  log_proxy_stderr.c
+  make_spr_sw_abort_static.c
   marshal.c
   memory.c
   memxor.c
-  miscucs.c
   null_lp.c
   nullseat.c
   nullstrcmp.c
@@ -40,6 +43,7 @@ add_sources_from_current_dir(utils
   sk_free_peer_info.c
   smemclr.c
   smemeq.c
+  spr_get_error_message.c
   ssh2_pick_fingerprint.c
   sshutils.c
   strbuf.c

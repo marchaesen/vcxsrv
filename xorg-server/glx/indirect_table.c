@@ -1246,12 +1246,12 @@ const struct __glXDispatchInfo Render_dispatch_info = {
 
 /*****************************************************************/
 /* tree depth = 12 */
-static const int_fast16_t VendorPriv_dispatch_tree[152] = {
+static const int_fast16_t VendorPriv_dispatch_tree[138] = {
     /* [0] -> opcode range [0, 131072], node depth 1 */
     2,
     5,
     EMPTY_LEAF,
-    119,
+    105,
     EMPTY_LEAF,
 
     /* [5] -> opcode range [0, 32768], node depth 2 */
@@ -1268,14 +1268,14 @@ static const int_fast16_t VendorPriv_dispatch_tree[152] = {
     2,
     16,
     EMPTY_LEAF,
-    78,
+    81,
     EMPTY_LEAF,
 
     /* [16] -> opcode range [0, 2048], node depth 5 */
     2,
     21,
     EMPTY_LEAF,
-    36,
+    39,
     EMPTY_LEAF,
 
     /* [21] -> opcode range [0, 512], node depth 6 */
@@ -1300,304 +1300,266 @@ static const int_fast16_t VendorPriv_dispatch_tree[152] = {
 
     /* [33] -> opcode range [0, 32], node depth 10 */
     1,
-    LEAF(0),
+    36,
     EMPTY_LEAF,
 
-    /* [36] -> opcode range [1024, 1536], node depth 6 */
-    2,
-    41,
-    EMPTY_LEAF,
-    53,
-    67,
-
-    /* [41] -> opcode range [1024, 1152], node depth 7 */
+    /* [36] -> opcode range [0, 16], node depth 11 */
     1,
+    EMPTY_LEAF,
+    LEAF(0),
+
+    /* [39] -> opcode range [1024, 1536], node depth 6 */
+    2,
     44,
     EMPTY_LEAF,
+    56,
+    70,
 
-    /* [44] -> opcode range [1024, 1088], node depth 8 */
+    /* [44] -> opcode range [1024, 1152], node depth 7 */
     1,
     47,
     EMPTY_LEAF,
 
-    /* [47] -> opcode range [1024, 1056], node depth 9 */
+    /* [47] -> opcode range [1024, 1088], node depth 8 */
     1,
     50,
     EMPTY_LEAF,
 
-    /* [50] -> opcode range [1024, 1040], node depth 10 */
+    /* [50] -> opcode range [1024, 1056], node depth 9 */
     1,
+    53,
+    EMPTY_LEAF,
+
+    /* [53] -> opcode range [1024, 1040], node depth 10 */
+    1,
+    LEAF(8),
+    EMPTY_LEAF,
+
+    /* [56] -> opcode range [1280, 1408], node depth 7 */
+    1,
+    59,
+    EMPTY_LEAF,
+
+    /* [59] -> opcode range [1280, 1344], node depth 8 */
+    2,
+    64,
     LEAF(16),
     EMPTY_LEAF,
+    67,
 
-    /* [53] -> opcode range [1280, 1408], node depth 7 */
-    1,
-    56,
-    EMPTY_LEAF,
-
-    /* [56] -> opcode range [1280, 1344], node depth 8 */
-    2,
-    61,
-    LEAF(24),
-    EMPTY_LEAF,
-    64,
-
-    /* [61] -> opcode range [1280, 1296], node depth 9 */
+    /* [64] -> opcode range [1280, 1296], node depth 9 */
     1,
     EMPTY_LEAF,
+    LEAF(32),
+
+    /* [67] -> opcode range [1328, 1344], node depth 9 */
+    1,
     LEAF(40),
-
-    /* [64] -> opcode range [1328, 1344], node depth 9 */
-    1,
-    LEAF(48),
     EMPTY_LEAF,
 
-    /* [67] -> opcode range [1408, 1536], node depth 7 */
-    1,
-    70,
-    EMPTY_LEAF,
-
-    /* [70] -> opcode range [1408, 1472], node depth 8 */
+    /* [70] -> opcode range [1408, 1536], node depth 7 */
     1,
     73,
     EMPTY_LEAF,
 
-    /* [73] -> opcode range [1408, 1440], node depth 9 */
+    /* [73] -> opcode range [1408, 1472], node depth 8 */
+    1,
+    76,
+    EMPTY_LEAF,
+
+    /* [76] -> opcode range [1408, 1440], node depth 9 */
     2,
     EMPTY_LEAF,
+    LEAF(48),
     LEAF(56),
+    EMPTY_LEAF,
+
+    /* [81] -> opcode range [4096, 6144], node depth 5 */
+    1,
+    EMPTY_LEAF,
+    84,
+
+    /* [84] -> opcode range [5120, 6144], node depth 6 */
+    1,
+    87,
+    EMPTY_LEAF,
+
+    /* [87] -> opcode range [5120, 5632], node depth 7 */
+    1,
+    90,
+    EMPTY_LEAF,
+
+    /* [90] -> opcode range [5120, 5376], node depth 8 */
+    1,
+    93,
+    EMPTY_LEAF,
+
+    /* [93] -> opcode range [5120, 5248], node depth 9 */
+    1,
+    96,
+    EMPTY_LEAF,
+
+    /* [96] -> opcode range [5120, 5184], node depth 10 */
+    1,
+    EMPTY_LEAF,
+    99,
+
+    /* [99] -> opcode range [5152, 5184], node depth 11 */
+    1,
+    102,
+    EMPTY_LEAF,
+
+    /* [102] -> opcode range [5152, 5168], node depth 12 */
+    1,
     LEAF(64),
     EMPTY_LEAF,
 
-    /* [78] -> opcode range [4096, 6144], node depth 5 */
-    2,
-    83,
-    EMPTY_LEAF,
-    101,
-    EMPTY_LEAF,
-
-    /* [83] -> opcode range [4096, 4608], node depth 6 */
+    /* [105] -> opcode range [65536, 98304], node depth 2 */
     1,
-    86,
+    108,
     EMPTY_LEAF,
 
-    /* [86] -> opcode range [4096, 4352], node depth 7 */
+    /* [108] -> opcode range [65536, 81920], node depth 3 */
     1,
-    89,
+    111,
     EMPTY_LEAF,
 
-    /* [89] -> opcode range [4096, 4224], node depth 8 */
+    /* [111] -> opcode range [65536, 73728], node depth 4 */
     1,
-    92,
+    114,
     EMPTY_LEAF,
 
-    /* [92] -> opcode range [4096, 4160], node depth 9 */
+    /* [114] -> opcode range [65536, 69632], node depth 5 */
     1,
-    95,
+    117,
     EMPTY_LEAF,
 
-    /* [95] -> opcode range [4096, 4128], node depth 10 */
+    /* [117] -> opcode range [65536, 67584], node depth 6 */
     1,
-    98,
+    120,
     EMPTY_LEAF,
 
-    /* [98] -> opcode range [4096, 4112], node depth 11 */
+    /* [120] -> opcode range [65536, 66560], node depth 7 */
+    1,
+    123,
+    EMPTY_LEAF,
+
+    /* [123] -> opcode range [65536, 66048], node depth 8 */
+    1,
+    126,
+    EMPTY_LEAF,
+
+    /* [126] -> opcode range [65536, 65792], node depth 9 */
+    1,
+    129,
+    EMPTY_LEAF,
+
+    /* [129] -> opcode range [65536, 65664], node depth 10 */
+    1,
+    132,
+    EMPTY_LEAF,
+
+    /* [132] -> opcode range [65536, 65600], node depth 11 */
+    1,
+    135,
+    EMPTY_LEAF,
+
+    /* [135] -> opcode range [65536, 65568], node depth 12 */
     1,
     LEAF(72),
     EMPTY_LEAF,
 
-    /* [101] -> opcode range [5120, 5632], node depth 6 */
-    1,
-    104,
-    EMPTY_LEAF,
-
-    /* [104] -> opcode range [5120, 5376], node depth 7 */
-    1,
-    107,
-    EMPTY_LEAF,
-
-    /* [107] -> opcode range [5120, 5248], node depth 8 */
-    1,
-    110,
-    EMPTY_LEAF,
-
-    /* [110] -> opcode range [5120, 5184], node depth 9 */
-    1,
-    EMPTY_LEAF,
-    113,
-
-    /* [113] -> opcode range [5152, 5184], node depth 10 */
-    1,
-    116,
-    EMPTY_LEAF,
-
-    /* [116] -> opcode range [5152, 5168], node depth 11 */
-    1,
-    LEAF(80),
-    EMPTY_LEAF,
-
-    /* [119] -> opcode range [65536, 98304], node depth 2 */
-    1,
-    122,
-    EMPTY_LEAF,
-
-    /* [122] -> opcode range [65536, 81920], node depth 3 */
-    1,
-    125,
-    EMPTY_LEAF,
-
-    /* [125] -> opcode range [65536, 73728], node depth 4 */
-    1,
-    128,
-    EMPTY_LEAF,
-
-    /* [128] -> opcode range [65536, 69632], node depth 5 */
-    1,
-    131,
-    EMPTY_LEAF,
-
-    /* [131] -> opcode range [65536, 67584], node depth 6 */
-    1,
-    134,
-    EMPTY_LEAF,
-
-    /* [134] -> opcode range [65536, 66560], node depth 7 */
-    1,
-    137,
-    EMPTY_LEAF,
-
-    /* [137] -> opcode range [65536, 66048], node depth 8 */
-    1,
-    140,
-    EMPTY_LEAF,
-
-    /* [140] -> opcode range [65536, 65792], node depth 9 */
-    1,
-    143,
-    EMPTY_LEAF,
-
-    /* [143] -> opcode range [65536, 65664], node depth 10 */
-    1,
-    146,
-    EMPTY_LEAF,
-
-    /* [146] -> opcode range [65536, 65600], node depth 11 */
-    1,
-    149,
-    EMPTY_LEAF,
-
-    /* [149] -> opcode range [65536, 65568], node depth 12 */
-    1,
-    LEAF(88),
-    EMPTY_LEAF,
-
 };
 
-static const void *VendorPriv_function_table[104][2] = {
-    /* [  0] =     0 */ {NULL, NULL},
-    /* [  1] =     1 */ {__glXDisp_GetConvolutionFilterEXT, __glXDispSwap_GetConvolutionFilterEXT},
-    /* [  2] =     2 */ {__glXDisp_GetConvolutionParameterfvEXT, __glXDispSwap_GetConvolutionParameterfvEXT},
-    /* [  3] =     3 */ {__glXDisp_GetConvolutionParameterivEXT, __glXDispSwap_GetConvolutionParameterivEXT},
-    /* [  4] =     4 */ {__glXDisp_GetSeparableFilterEXT, __glXDispSwap_GetSeparableFilterEXT},
-    /* [  5] =     5 */ {__glXDisp_GetHistogramEXT, __glXDispSwap_GetHistogramEXT},
-    /* [  6] =     6 */ {__glXDisp_GetHistogramParameterfvEXT, __glXDispSwap_GetHistogramParameterfvEXT},
-    /* [  7] =     7 */ {__glXDisp_GetHistogramParameterivEXT, __glXDispSwap_GetHistogramParameterivEXT},
-    /* [  8] =     8 */ {__glXDisp_GetMinmaxEXT, __glXDispSwap_GetMinmaxEXT},
-    /* [  9] =     9 */ {__glXDisp_GetMinmaxParameterfvEXT, __glXDispSwap_GetMinmaxParameterfvEXT},
-    /* [ 10] =    10 */ {__glXDisp_GetMinmaxParameterivEXT, __glXDispSwap_GetMinmaxParameterivEXT},
-    /* [ 11] =    11 */ {__glXDisp_AreTexturesResidentEXT, __glXDispSwap_AreTexturesResidentEXT},
-    /* [ 12] =    12 */ {__glXDisp_DeleteTexturesEXT, __glXDispSwap_DeleteTexturesEXT},
-    /* [ 13] =    13 */ {__glXDisp_GenTexturesEXT, __glXDispSwap_GenTexturesEXT},
-    /* [ 14] =    14 */ {__glXDisp_IsTextureEXT, __glXDispSwap_IsTextureEXT},
-    /* [ 15] =    15 */ {NULL, NULL},
-    /* [ 16] =  1024 */ {__glXDisp_QueryContextInfoEXT, __glXDispSwap_QueryContextInfoEXT},
-    /* [ 17] =  1025 */ {NULL, NULL},
-    /* [ 18] =  1026 */ {NULL, NULL},
-    /* [ 19] =  1027 */ {NULL, NULL},
-    /* [ 20] =  1028 */ {NULL, NULL},
-    /* [ 21] =  1029 */ {NULL, NULL},
-    /* [ 22] =  1030 */ {NULL, NULL},
-    /* [ 23] =  1031 */ {NULL, NULL},
-    /* [ 24] =  1296 */ {__glXDisp_GetProgramParameterfvNV, __glXDispSwap_GetProgramParameterfvNV},
-    /* [ 25] =  1297 */ {__glXDisp_GetProgramParameterdvNV, __glXDispSwap_GetProgramParameterdvNV},
-    /* [ 26] =  1298 */ {__glXDisp_GetProgramivNV, __glXDispSwap_GetProgramivNV},
-    /* [ 27] =  1299 */ {__glXDisp_GetProgramStringNV, __glXDispSwap_GetProgramStringNV},
-    /* [ 28] =  1300 */ {__glXDisp_GetTrackMatrixivNV, __glXDispSwap_GetTrackMatrixivNV},
-    /* [ 29] =  1301 */ {__glXDisp_GetVertexAttribdvNV, __glXDispSwap_GetVertexAttribdvNV},
-    /* [ 30] =  1302 */ {__glXDisp_GetVertexAttribfvNV, __glXDispSwap_GetVertexAttribfvNV},
-    /* [ 31] =  1303 */ {__glXDisp_GetVertexAttribivNV, __glXDispSwap_GetVertexAttribivNV},
-    /* [ 32] =  1304 */ {__glXDisp_IsProgramARB, __glXDispSwap_IsProgramARB},
-    /* [ 33] =  1305 */ {__glXDisp_GetProgramLocalParameterfvARB, __glXDispSwap_GetProgramLocalParameterfvARB},
-    /* [ 34] =  1306 */ {__glXDisp_GetProgramLocalParameterdvARB, __glXDispSwap_GetProgramLocalParameterdvARB},
-    /* [ 35] =  1307 */ {__glXDisp_GetProgramivARB, __glXDispSwap_GetProgramivARB},
-    /* [ 36] =  1308 */ {__glXDisp_GetProgramStringARB, __glXDispSwap_GetProgramStringARB},
-    /* [ 37] =  1309 */ {NULL, NULL},
-    /* [ 38] =  1310 */ {__glXDisp_GetProgramNamedParameterfvNV, __glXDispSwap_GetProgramNamedParameterfvNV},
-    /* [ 39] =  1311 */ {__glXDisp_GetProgramNamedParameterdvNV, __glXDispSwap_GetProgramNamedParameterdvNV},
-    /* [ 40] =  1288 */ {NULL, NULL},
-    /* [ 41] =  1289 */ {NULL, NULL},
-    /* [ 42] =  1290 */ {NULL, NULL},
-    /* [ 43] =  1291 */ {NULL, NULL},
-    /* [ 44] =  1292 */ {NULL, NULL},
-    /* [ 45] =  1293 */ {__glXDisp_AreProgramsResidentNV, __glXDispSwap_AreProgramsResidentNV},
-    /* [ 46] =  1294 */ {__glXDisp_DeleteProgramsARB, __glXDispSwap_DeleteProgramsARB},
-    /* [ 47] =  1295 */ {__glXDisp_GenProgramsARB, __glXDispSwap_GenProgramsARB},
-    /* [ 48] =  1328 */ {NULL, NULL},
-    /* [ 49] =  1329 */ {NULL, NULL},
-    /* [ 50] =  1330 */ {__glXDisp_BindTexImageEXT, __glXDispSwap_BindTexImageEXT},
-    /* [ 51] =  1331 */ {__glXDisp_ReleaseTexImageEXT, __glXDispSwap_ReleaseTexImageEXT},
-    /* [ 52] =  1332 */ {NULL, NULL},
-    /* [ 53] =  1333 */ {NULL, NULL},
-    /* [ 54] =  1334 */ {NULL, NULL},
-    /* [ 55] =  1335 */ {NULL, NULL},
-    /* [ 56] =  1416 */ {NULL, NULL},
-    /* [ 57] =  1417 */ {NULL, NULL},
-    /* [ 58] =  1418 */ {NULL, NULL},
-    /* [ 59] =  1419 */ {NULL, NULL},
-    /* [ 60] =  1420 */ {NULL, NULL},
-    /* [ 61] =  1421 */ {NULL, NULL},
-    /* [ 62] =  1422 */ {__glXDisp_IsRenderbuffer, __glXDispSwap_IsRenderbuffer},
-    /* [ 63] =  1423 */ {__glXDisp_GenRenderbuffers, __glXDispSwap_GenRenderbuffers},
-    /* [ 64] =  1424 */ {__glXDisp_GetRenderbufferParameteriv, __glXDispSwap_GetRenderbufferParameteriv},
-    /* [ 65] =  1425 */ {__glXDisp_IsFramebuffer, __glXDispSwap_IsFramebuffer},
-    /* [ 66] =  1426 */ {__glXDisp_GenFramebuffers, __glXDispSwap_GenFramebuffers},
-    /* [ 67] =  1427 */ {__glXDisp_CheckFramebufferStatus, __glXDispSwap_CheckFramebufferStatus},
-    /* [ 68] =  1428 */ {__glXDisp_GetFramebufferAttachmentParameteriv, __glXDispSwap_GetFramebufferAttachmentParameteriv},
-    /* [ 69] =  1429 */ {NULL, NULL},
-    /* [ 70] =  1430 */ {NULL, NULL},
-    /* [ 71] =  1431 */ {NULL, NULL},
-    /* [ 72] =  4096 */ {NULL, NULL},
-    /* [ 73] =  4097 */ {NULL, NULL},
-    /* [ 74] =  4098 */ {__glXDisp_GetColorTableSGI, __glXDispSwap_GetColorTableSGI},
-    /* [ 75] =  4099 */ {__glXDisp_GetColorTableParameterfvSGI, __glXDispSwap_GetColorTableParameterfvSGI},
-    /* [ 76] =  4100 */ {__glXDisp_GetColorTableParameterivSGI, __glXDispSwap_GetColorTableParameterivSGI},
-    /* [ 77] =  4101 */ {NULL, NULL},
-    /* [ 78] =  4102 */ {NULL, NULL},
-    /* [ 79] =  4103 */ {NULL, NULL},
-    /* [ 80] =  5152 */ {NULL, NULL},
-    /* [ 81] =  5153 */ {NULL, NULL},
-    /* [ 82] =  5154 */ {__glXDisp_CopySubBufferMESA, __glXDispSwap_CopySubBufferMESA},
-    /* [ 83] =  5155 */ {NULL, NULL},
-    /* [ 84] =  5156 */ {NULL, NULL},
-    /* [ 85] =  5157 */ {NULL, NULL},
-    /* [ 86] =  5158 */ {NULL, NULL},
-    /* [ 87] =  5159 */ {NULL, NULL},
-    /* [ 88] = 65536 */ {__glXDisp_SwapIntervalSGI, __glXDispSwap_SwapIntervalSGI},
-    /* [ 89] = 65537 */ {__glXDisp_MakeCurrentReadSGI, __glXDispSwap_MakeCurrentReadSGI},
-    /* [ 90] = 65538 */ {NULL, NULL},
-    /* [ 91] = 65539 */ {NULL, NULL},
-    /* [ 92] = 65540 */ {__glXDisp_GetFBConfigsSGIX, __glXDispSwap_GetFBConfigsSGIX},
-    /* [ 93] = 65541 */ {__glXDisp_CreateContextWithConfigSGIX, __glXDispSwap_CreateContextWithConfigSGIX},
-    /* [ 94] = 65542 */ {__glXDisp_CreateGLXPixmapWithConfigSGIX, __glXDispSwap_CreateGLXPixmapWithConfigSGIX},
-    /* [ 95] = 65543 */ {__glXDisp_CreateGLXPbufferSGIX, __glXDispSwap_CreateGLXPbufferSGIX},
-    /* [ 96] = 65544 */ {__glXDisp_DestroyGLXPbufferSGIX, __glXDispSwap_DestroyGLXPbufferSGIX},
-    /* [ 97] = 65545 */ {__glXDisp_ChangeDrawableAttributesSGIX, __glXDispSwap_ChangeDrawableAttributesSGIX},
-    /* [ 98] = 65546 */ {__glXDisp_GetDrawableAttributesSGIX, __glXDispSwap_GetDrawableAttributesSGIX},
-    /* [ 99] = 65547 */ {NULL, NULL},
-    /* [ 100] = 65548 */ {NULL, NULL},
-    /* [ 101] = 65549 */ {NULL, NULL},
-    /* [ 102] = 65550 */ {NULL, NULL},
-    /* [ 103] = 65551 */ {NULL, NULL},
+static const void *VendorPriv_function_table[88][2] = {
+    /* [  0] =     8 */ {NULL, NULL},
+    /* [  1] =     9 */ {NULL, NULL},
+    /* [  2] =    10 */ {NULL, NULL},
+    /* [  3] =    11 */ {__glXDisp_AreTexturesResidentEXT, __glXDispSwap_AreTexturesResidentEXT},
+    /* [  4] =    12 */ {__glXDisp_DeleteTexturesEXT, __glXDispSwap_DeleteTexturesEXT},
+    /* [  5] =    13 */ {__glXDisp_GenTexturesEXT, __glXDispSwap_GenTexturesEXT},
+    /* [  6] =    14 */ {__glXDisp_IsTextureEXT, __glXDispSwap_IsTextureEXT},
+    /* [  7] =    15 */ {NULL, NULL},
+    /* [  8] =  1024 */ {__glXDisp_QueryContextInfoEXT, __glXDispSwap_QueryContextInfoEXT},
+    /* [  9] =  1025 */ {NULL, NULL},
+    /* [ 10] =  1026 */ {NULL, NULL},
+    /* [ 11] =  1027 */ {NULL, NULL},
+    /* [ 12] =  1028 */ {NULL, NULL},
+    /* [ 13] =  1029 */ {NULL, NULL},
+    /* [ 14] =  1030 */ {NULL, NULL},
+    /* [ 15] =  1031 */ {NULL, NULL},
+    /* [ 16] =  1296 */ {__glXDisp_GetProgramParameterfvNV, __glXDispSwap_GetProgramParameterfvNV},
+    /* [ 17] =  1297 */ {__glXDisp_GetProgramParameterdvNV, __glXDispSwap_GetProgramParameterdvNV},
+    /* [ 18] =  1298 */ {__glXDisp_GetProgramivNV, __glXDispSwap_GetProgramivNV},
+    /* [ 19] =  1299 */ {__glXDisp_GetProgramStringNV, __glXDispSwap_GetProgramStringNV},
+    /* [ 20] =  1300 */ {__glXDisp_GetTrackMatrixivNV, __glXDispSwap_GetTrackMatrixivNV},
+    /* [ 21] =  1301 */ {__glXDisp_GetVertexAttribdvNV, __glXDispSwap_GetVertexAttribdvNV},
+    /* [ 22] =  1302 */ {__glXDisp_GetVertexAttribfvNV, __glXDispSwap_GetVertexAttribfvNV},
+    /* [ 23] =  1303 */ {__glXDisp_GetVertexAttribivNV, __glXDispSwap_GetVertexAttribivNV},
+    /* [ 24] =  1304 */ {__glXDisp_IsProgramARB, __glXDispSwap_IsProgramARB},
+    /* [ 25] =  1305 */ {__glXDisp_GetProgramLocalParameterfvARB, __glXDispSwap_GetProgramLocalParameterfvARB},
+    /* [ 26] =  1306 */ {__glXDisp_GetProgramLocalParameterdvARB, __glXDispSwap_GetProgramLocalParameterdvARB},
+    /* [ 27] =  1307 */ {__glXDisp_GetProgramivARB, __glXDispSwap_GetProgramivARB},
+    /* [ 28] =  1308 */ {__glXDisp_GetProgramStringARB, __glXDispSwap_GetProgramStringARB},
+    /* [ 29] =  1309 */ {NULL, NULL},
+    /* [ 30] =  1310 */ {__glXDisp_GetProgramNamedParameterfvNV, __glXDispSwap_GetProgramNamedParameterfvNV},
+    /* [ 31] =  1311 */ {__glXDisp_GetProgramNamedParameterdvNV, __glXDispSwap_GetProgramNamedParameterdvNV},
+    /* [ 32] =  1288 */ {NULL, NULL},
+    /* [ 33] =  1289 */ {NULL, NULL},
+    /* [ 34] =  1290 */ {NULL, NULL},
+    /* [ 35] =  1291 */ {NULL, NULL},
+    /* [ 36] =  1292 */ {NULL, NULL},
+    /* [ 37] =  1293 */ {__glXDisp_AreProgramsResidentNV, __glXDispSwap_AreProgramsResidentNV},
+    /* [ 38] =  1294 */ {__glXDisp_DeleteProgramsARB, __glXDispSwap_DeleteProgramsARB},
+    /* [ 39] =  1295 */ {__glXDisp_GenProgramsARB, __glXDispSwap_GenProgramsARB},
+    /* [ 40] =  1328 */ {NULL, NULL},
+    /* [ 41] =  1329 */ {NULL, NULL},
+    /* [ 42] =  1330 */ {__glXDisp_BindTexImageEXT, __glXDispSwap_BindTexImageEXT},
+    /* [ 43] =  1331 */ {__glXDisp_ReleaseTexImageEXT, __glXDispSwap_ReleaseTexImageEXT},
+    /* [ 44] =  1332 */ {NULL, NULL},
+    /* [ 45] =  1333 */ {NULL, NULL},
+    /* [ 46] =  1334 */ {NULL, NULL},
+    /* [ 47] =  1335 */ {NULL, NULL},
+    /* [ 48] =  1416 */ {NULL, NULL},
+    /* [ 49] =  1417 */ {NULL, NULL},
+    /* [ 50] =  1418 */ {NULL, NULL},
+    /* [ 51] =  1419 */ {NULL, NULL},
+    /* [ 52] =  1420 */ {NULL, NULL},
+    /* [ 53] =  1421 */ {NULL, NULL},
+    /* [ 54] =  1422 */ {__glXDisp_IsRenderbuffer, __glXDispSwap_IsRenderbuffer},
+    /* [ 55] =  1423 */ {__glXDisp_GenRenderbuffers, __glXDispSwap_GenRenderbuffers},
+    /* [ 56] =  1424 */ {__glXDisp_GetRenderbufferParameteriv, __glXDispSwap_GetRenderbufferParameteriv},
+    /* [ 57] =  1425 */ {__glXDisp_IsFramebuffer, __glXDispSwap_IsFramebuffer},
+    /* [ 58] =  1426 */ {__glXDisp_GenFramebuffers, __glXDispSwap_GenFramebuffers},
+    /* [ 59] =  1427 */ {__glXDisp_CheckFramebufferStatus, __glXDispSwap_CheckFramebufferStatus},
+    /* [ 60] =  1428 */ {__glXDisp_GetFramebufferAttachmentParameteriv, __glXDispSwap_GetFramebufferAttachmentParameteriv},
+    /* [ 61] =  1429 */ {NULL, NULL},
+    /* [ 62] =  1430 */ {NULL, NULL},
+    /* [ 63] =  1431 */ {NULL, NULL},
+    /* [ 64] =  5152 */ {NULL, NULL},
+    /* [ 65] =  5153 */ {NULL, NULL},
+    /* [ 66] =  5154 */ {__glXDisp_CopySubBufferMESA, __glXDispSwap_CopySubBufferMESA},
+    /* [ 67] =  5155 */ {NULL, NULL},
+    /* [ 68] =  5156 */ {NULL, NULL},
+    /* [ 69] =  5157 */ {NULL, NULL},
+    /* [ 70] =  5158 */ {NULL, NULL},
+    /* [ 71] =  5159 */ {NULL, NULL},
+    /* [ 72] = 65536 */ {__glXDisp_SwapIntervalSGI, __glXDispSwap_SwapIntervalSGI},
+    /* [ 73] = 65537 */ {__glXDisp_MakeCurrentReadSGI, __glXDispSwap_MakeCurrentReadSGI},
+    /* [ 74] = 65538 */ {NULL, NULL},
+    /* [ 75] = 65539 */ {NULL, NULL},
+    /* [ 76] = 65540 */ {__glXDisp_GetFBConfigsSGIX, __glXDispSwap_GetFBConfigsSGIX},
+    /* [ 77] = 65541 */ {__glXDisp_CreateContextWithConfigSGIX, __glXDispSwap_CreateContextWithConfigSGIX},
+    /* [ 78] = 65542 */ {__glXDisp_CreateGLXPixmapWithConfigSGIX, __glXDispSwap_CreateGLXPixmapWithConfigSGIX},
+    /* [ 79] = 65543 */ {__glXDisp_CreateGLXPbufferSGIX, __glXDispSwap_CreateGLXPbufferSGIX},
+    /* [ 80] = 65544 */ {__glXDisp_DestroyGLXPbufferSGIX, __glXDispSwap_DestroyGLXPbufferSGIX},
+    /* [ 81] = 65545 */ {__glXDisp_ChangeDrawableAttributesSGIX, __glXDispSwap_ChangeDrawableAttributesSGIX},
+    /* [ 82] = 65546 */ {__glXDisp_GetDrawableAttributesSGIX, __glXDispSwap_GetDrawableAttributesSGIX},
+    /* [ 83] = 65547 */ {NULL, NULL},
+    /* [ 84] = 65548 */ {NULL, NULL},
+    /* [ 85] = 65549 */ {NULL, NULL},
+    /* [ 86] = 65550 */ {NULL, NULL},
+    /* [ 87] = 65551 */ {NULL, NULL},
 };
 
 const struct __glXDispatchInfo VendorPriv_dispatch_info = {

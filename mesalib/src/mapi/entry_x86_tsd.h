@@ -69,7 +69,7 @@ __asm__(".balign 32\n"
    "popl %ecx\n\t"                  \
    "addl $_GLOBAL_OFFSET_TABLE_+[.-1b], %ecx\n\t" \
    LOC_END_SET_ECX                                \
-   "movl " ENTRY_CURRENT_TABLE "@GOT(%ecx), %eax\n\t" \
+   "movl _glapi_Dispatch@GOT(%ecx), %eax\n\t" \
    "mov (%eax), %eax\n\t"           \
    "testl %eax, %eax\n\t"           \
    "jne 1f\n\t"                     \

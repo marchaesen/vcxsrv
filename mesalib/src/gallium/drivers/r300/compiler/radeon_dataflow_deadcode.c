@@ -253,8 +253,13 @@ void rc_dataflow_deadcode(struct radeon_compiler * c, void *user)
 				if(opcode->HasDstReg){
 					int src = 0;
 					unsigned int srcmasks[3];
-					rc_compute_sources_for_writemask(ptr,
-						ptr->U.I.DstReg.WriteMask, srcmasks);
+					unsigned int writemask = ptr->U.I.DstReg.WriteMask;
+					if (ptr->U.I.WriteALUResult == RC_ALURESULT_X)
+						writemask |= RC_MASK_X;
+					else if (ptr->U.I.WriteALUResult == RC_ALURESULT_W)
+						writemask |= RC_MASK_W;
+
+					rc_compute_sources_for_writemask(ptr, writemask, srcmasks);
 					for(src=0; src < opcode->NumSrcRegs; src++){
 						mark_used(&s,
 							ptr->U.I.SrcReg[src].File,

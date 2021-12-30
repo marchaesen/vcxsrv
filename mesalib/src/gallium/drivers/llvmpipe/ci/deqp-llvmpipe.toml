@@ -35,8 +35,7 @@ deqp_args = [
   [deqp.env]
   # Stress test NIR clone/serialization for GLES3.1 (which should cover most of the featureset).
   # Costs about 30% extra runtime.
-  NIR_TEST_CLONE = "true"
-  NIR_TEST_SERIALIZE = "true"
+  NIR_DEBUG="clone,serialize"
 
 # Note that KHR-GL3* test sets include all tests from the previous
 # version, so we only need to run one test list (unlike dEQP-GLES,

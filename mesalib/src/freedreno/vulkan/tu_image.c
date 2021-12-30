@@ -105,91 +105,6 @@ tu_format_for_aspect(enum pipe_format format, VkImageAspectFlags aspect_mask)
    }
 }
 
-static void
-compose_swizzle(unsigned char *swiz, const VkComponentMapping *mapping)
-{
-   unsigned char src_swiz[4] = { swiz[0], swiz[1], swiz[2], swiz[3] };
-   VkComponentSwizzle vk_swiz[4] = {
-      mapping->r, mapping->g, mapping->b, mapping->a
-   };
-   for (int i = 0; i < 4; i++) {
-      switch (vk_swiz[i]) {
-      case VK_COMPONENT_SWIZZLE_IDENTITY:
-         swiz[i] = src_swiz[i];
-         break;
-      case VK_COMPONENT_SWIZZLE_R...VK_COMPONENT_SWIZZLE_A:
-         swiz[i] = src_swiz[vk_swiz[i] - VK_COMPONENT_SWIZZLE_R];
-         break;
-      case VK_COMPONENT_SWIZZLE_ZERO:
-         swiz[i] = A6XX_TEX_ZERO;
-         break;
-      case VK_COMPONENT_SWIZZLE_ONE:
-         swiz[i] = A6XX_TEX_ONE;
-         break;
-      default:
-         unreachable("unexpected swizzle");
-      }
-   }
-}
-
-static uint32_t
-tu6_texswiz(const VkComponentMapping *comps,
-            const struct tu_sampler_ycbcr_conversion *conversion,
-            VkFormat format,
-            VkImageAspectFlagBits aspect_mask,
-            bool has_z24uint_s8uint)
-{
-   unsigned char swiz[4] = {
-      A6XX_TEX_X, A6XX_TEX_Y, A6XX_TEX_Z, A6XX_TEX_W,
-   };
-
-   switch (format) {
-   case VK_FORMAT_G8B8G8R8_422_UNORM:
-   case VK_FORMAT_B8G8R8G8_422_UNORM:
-   case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-   case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
-      swiz[0] = A6XX_TEX_Z;
-      swiz[1] = A6XX_TEX_X;
-      swiz[2] = A6XX_TEX_Y;
-      break;
-   case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
-   case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
-      /* same hardware format is used for BC1_RGB / BC1_RGBA */
-      swiz[3] = A6XX_TEX_ONE;
-      break;
-   case VK_FORMAT_D24_UNORM_S8_UINT:
-      if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
-         if (!has_z24uint_s8uint) {
-            /* using FMT6_8_8_8_8_UINT, so need to pick out the W channel and
-             * swizzle (0,0,1) in the rest (see "Conversion to RGBA").
-             */
-            swiz[0] = A6XX_TEX_W;
-            swiz[1] = A6XX_TEX_ZERO;
-            swiz[2] = A6XX_TEX_ZERO;
-            swiz[3] = A6XX_TEX_ONE;
-         } else {
-            /* using FMT6_Z24_UINT_S8_UINT, which is (d, s, 0, 1), so need to
-             * swizzle away the d.
-             */
-            swiz[0] = A6XX_TEX_Y;
-            swiz[1] = A6XX_TEX_ZERO;
-         }
-      }
-      break;
-   default:
-      break;
-   }
-
-   compose_swizzle(swiz, comps);
-   if (conversion)
-      compose_swizzle(swiz, &conversion->components);
-
-   return A6XX_TEX_CONST_0_SWIZ_X(swiz[0]) |
-          A6XX_TEX_CONST_0_SWIZ_Y(swiz[1]) |
-          A6XX_TEX_CONST_0_SWIZ_Z(swiz[2]) |
-          A6XX_TEX_CONST_0_SWIZ_W(swiz[3]);
-}
-
 void
 tu_cs_image_ref(struct tu_cs *cs, const struct fdl6_view *iview, uint32_t layer)
 {
@@ -736,43 +651,18 @@ tu_buffer_view_init(struct tu_buffer_view *view,
 
    view->buffer = buffer;
 
-   enum VkFormat vfmt = pCreateInfo->format;
-   enum pipe_format pfmt = tu_vk_format_to_pipe_format(vfmt);
-   const struct tu_native_format fmt = tu6_format_texture(pfmt, TILE6_LINEAR);
-
    uint32_t range;
    if (pCreateInfo->range == VK_WHOLE_SIZE)
       range = buffer->size - pCreateInfo->offset;
    else
       range = pCreateInfo->range;
-   uint32_t elements = range / util_format_get_blocksize(pfmt);
 
-   static const VkComponentMapping components = {
-      .r = VK_COMPONENT_SWIZZLE_R,
-      .g = VK_COMPONENT_SWIZZLE_G,
-      .b = VK_COMPONENT_SWIZZLE_B,
-      .a = VK_COMPONENT_SWIZZLE_A,
-   };
+   uint8_t swiz[4] = { PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y, PIPE_SWIZZLE_Z,
+                       PIPE_SWIZZLE_W };
 
-   uint64_t iova = tu_buffer_iova(buffer) + pCreateInfo->offset;
-
-   memset(&view->descriptor, 0, sizeof(view->descriptor));
-
-   view->descriptor[0] =
-      A6XX_TEX_CONST_0_TILE_MODE(TILE6_LINEAR) |
-      A6XX_TEX_CONST_0_SWAP(fmt.swap) |
-      A6XX_TEX_CONST_0_FMT(fmt.fmt) |
-      A6XX_TEX_CONST_0_MIPLVLS(0) |
-      tu6_texswiz(&components, NULL, vfmt, VK_IMAGE_ASPECT_COLOR_BIT, false);
-      COND(vk_format_is_srgb(vfmt), A6XX_TEX_CONST_0_SRGB);
-   view->descriptor[1] =
-      A6XX_TEX_CONST_1_WIDTH(elements & MASK(15)) |
-      A6XX_TEX_CONST_1_HEIGHT(elements >> 15);
-   view->descriptor[2] =
-      A6XX_TEX_CONST_2_UNK4 |
-      A6XX_TEX_CONST_2_UNK31;
-   view->descriptor[4] = iova;
-   view->descriptor[5] = iova >> 32;
+   fdl6_buffer_view_init(
+      view->descriptor, tu_vk_format_to_pipe_format(pCreateInfo->format),
+      swiz, tu_buffer_iova(buffer) + pCreateInfo->offset, range);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

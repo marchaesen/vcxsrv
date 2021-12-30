@@ -38,7 +38,9 @@
 #include "pbo.h"
 #include "polygon.h"
 #include "mtypes.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_context.h"
 
 /**
  * Specify whether to cull front- or back-facing facets.
@@ -63,13 +65,10 @@ cull_face(struct gl_context *ctx, GLenum mode, bool no_error)
       return;
    }
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON,
+   FLUSH_VERTICES(ctx, 0,
                   GL_POLYGON_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
+   ctx->NewDriverState |= ST_NEW_RASTERIZER;
    ctx->Polygon.CullFaceMode = mode;
-
-   if (ctx->Driver.CullFace)
-      ctx->Driver.CullFace(ctx, mode);
 }
 
 
@@ -115,13 +114,10 @@ front_face(struct gl_context *ctx, GLenum mode, bool no_error)
       return;
    }
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON,
+   FLUSH_VERTICES(ctx, 0,
                   GL_POLYGON_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
+   ctx->NewDriverState |= ST_NEW_RASTERIZER;
    ctx->Polygon.FrontFace = mode;
-
-   if (ctx->Driver.FrontFace)
-      ctx->Driver.FrontFace(ctx, mode);
 }
 
 
@@ -193,17 +189,17 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
       }
       if (ctx->Polygon.FrontMode == mode)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON,
+      FLUSH_VERTICES(ctx, 0,
                      GL_POLYGON_BIT);
-      ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
+      ctx->NewDriverState |= ST_NEW_RASTERIZER;
       ctx->Polygon.FrontMode = mode;
       break;
    case GL_FRONT_AND_BACK:
       if (ctx->Polygon.FrontMode == mode && ctx->Polygon.BackMode == mode)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON,
+      FLUSH_VERTICES(ctx, 0,
                      GL_POLYGON_BIT);
-      ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
+      ctx->NewDriverState |= ST_NEW_RASTERIZER;
       ctx->Polygon.FrontMode = mode;
       ctx->Polygon.BackMode = mode;
       break;
@@ -214,9 +210,9 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
       }
       if (ctx->Polygon.BackMode == mode)
          return;
-      FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON,
+      FLUSH_VERTICES(ctx, 0,
                      GL_POLYGON_BIT);
-      ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
+      ctx->NewDriverState |= ST_NEW_RASTERIZER;
       ctx->Polygon.BackMode = mode;
       break;
    default:
@@ -224,9 +220,6 @@ polygon_mode(struct gl_context *ctx, GLenum face, GLenum mode, bool no_error)
          _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(face)" );
       return;
    }
-
-   if (ctx->Driver.PolygonMode)
-      ctx->Driver.PolygonMode(ctx, face, mode);
 
    if (ctx->Extensions.INTEL_conservative_rasterization ||
        (mode == GL_FILL_RECTANGLE_NV || old_mode_has_fill_rectangle))
@@ -261,10 +254,8 @@ _mesa_PolygonStipple(const GLubyte *pattern)
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glPolygonStipple\n");
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonStipple ? 0 :
-                                                      _NEW_POLYGONSTIPPLE,
-                  GL_POLYGON_STIPPLE_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewPolygonStipple;
+   FLUSH_VERTICES(ctx, 0, GL_POLYGON_STIPPLE_BIT);
+   ctx->NewDriverState |= ST_NEW_POLY_STIPPLE;
 
    pattern = _mesa_map_validate_pbo_source(ctx, 2,
                                            &ctx->Unpack, 32, 32, 1,
@@ -277,9 +268,6 @@ _mesa_PolygonStipple(const GLubyte *pattern)
    _mesa_unpack_polygon_stipple(pattern, ctx->PolygonStipple, &ctx->Unpack);
 
    _mesa_unmap_pbo_source(ctx, &ctx->Unpack);
-
-   if (ctx->Driver.PolygonStipple)
-      ctx->Driver.PolygonStipple(ctx, pattern);
 }
 
 
@@ -325,15 +313,12 @@ _mesa_polygon_offset_clamp(struct gl_context *ctx,
        ctx->Polygon.OffsetClamp == clamp)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewPolygonState ? 0 : _NEW_POLYGON,
+   FLUSH_VERTICES(ctx, 0,
                   GL_POLYGON_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewPolygonState;
+   ctx->NewDriverState |= ST_NEW_RASTERIZER;
    ctx->Polygon.OffsetFactor = factor;
    ctx->Polygon.OffsetUnits = units;
    ctx->Polygon.OffsetClamp = clamp;
-
-   if (ctx->Driver.PolygonOffset)
-      ctx->Driver.PolygonOffset( ctx, factor, units, clamp );
 }
 
 void GLAPIENTRY

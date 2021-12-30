@@ -345,6 +345,19 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
        * back to inserting a mov at the end.
        * If the source node will only be able to output to pipeline
        * registers, fall back to the mov as well. */
+      assert(nir_src_is_const(instr->src[1]) &&
+             "lima doesn't support indirect outputs");
+
+      nir_io_semantics io = nir_intrinsic_io_semantics(instr);
+      unsigned offset = nir_src_as_uint(instr->src[1]);
+      unsigned slot = io.location + offset;
+      ppir_output_type out_type = ppir_nir_output_to_ppir(slot,
+         block->comp->dual_source_blend ? io.dual_source_blend_index : 0);
+      if (out_type == ppir_output_invalid) {
+         ppir_debug("Unsupported output type: %d\n", slot);
+         return false;
+      }
+
       if (!block->comp->uses_discard && instr->src->is_ssa) {
          node = block->comp->var_nodes[instr->src->ssa->index];
          switch (node->op) {
@@ -352,9 +365,12 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
          case ppir_op_load_texture:
          case ppir_op_const:
             break;
-         default:
-            node->is_end = 1;
+         default: {
+            ppir_dest *dest = ppir_node_get_dest(node);
+            dest->ssa.out_type = out_type;
+            node->is_out = 1;
             return true;
+            }
          }
       }
 
@@ -367,6 +383,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
       dest->ssa.num_components = instr->num_components;
       dest->ssa.index = 0;
       dest->write_mask = u_bit_consecutive(0, instr->num_components);
+      dest->ssa.out_type = out_type;
 
       alu_node->num_src = 1;
 
@@ -376,7 +393,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
       ppir_node_add_src(block->comp, &alu_node->node, alu_node->src, instr->src,
                         u_bit_consecutive(0, instr->num_components));
 
-      alu_node->node.is_end = 1;
+      alu_node->node.is_out = 1;
 
       list_addtail(&alu_node->node.list, &block->node_list);
       return true;
@@ -447,7 +464,9 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
    }
 
    switch (instr->sampler_dim) {
+   case GLSL_SAMPLER_DIM_1D:
    case GLSL_SAMPLER_DIM_2D:
+   case GLSL_SAMPLER_DIM_3D:
    case GLSL_SAMPLER_DIM_CUBE:
    case GLSL_SAMPLER_DIM_RECT:
    case GLSL_SAMPLER_DIM_EXTERNAL:
@@ -473,8 +492,13 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
    for (int i = 0; i < instr->coord_components; i++)
          node->src[0].swizzle[i] = i;
 
+   bool perspective = false;
+
    for (int i = 0; i < instr->num_srcs; i++) {
       switch (instr->src[i].src_type) {
+      case nir_tex_src_backend1:
+         perspective = true;
+         FALLTHROUGH;
       case nir_tex_src_coord: {
          nir_src *ns = &instr->src[i].src;
          if (ns->is_ssa) {
@@ -482,7 +506,8 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
             if (child->op == ppir_op_load_varying) {
                /* If the successor is load_texture, promote it to load_coords */
                nir_tex_src *nts = (nir_tex_src *)ns;
-               if (nts->src_type == nir_tex_src_coord)
+               if (nts->src_type == nir_tex_src_coord ||
+                   nts->src_type == nir_tex_src_backend1)
                   child->op = ppir_op_load_coords;
             }
          }
@@ -526,10 +551,7 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
 
       load->src = node->src[0];
       load->num_src = 1;
-      if (node->sampler_dim == GLSL_SAMPLER_DIM_CUBE)
-         load->num_components = 3;
-      else
-         load->num_components = 2;
+      load->num_components = instr->coord_components;
 
       ppir_debug("%s create load_coords node %d for %d\n",
                  __FUNCTION__, load->index, node->node.index);
@@ -543,6 +565,15 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
    }
 
    assert(load);
+
+   if (perspective) {
+      if (instr->coord_components == 3)
+         load->perspective = ppir_perspective_z;
+      else
+         load->perspective = ppir_perspective_w;
+   }
+
+   load->sampler_dim = instr->sampler_dim;
    node->src[0].type = load->dest.type = ppir_target_pipeline;
    node->src[0].pipeline = load->dest.pipeline = ppir_pipeline_reg_discard;
 
@@ -784,6 +815,7 @@ static ppir_compiler *ppir_compiler_create(void *prog, unsigned num_reg, unsigne
    comp->var_nodes = (ppir_node **)(comp + 1);
    comp->reg_base = num_ssa;
    comp->prog = prog;
+
    return comp;
 }
 
@@ -819,7 +851,7 @@ static void ppir_add_ordering_deps(ppir_compiler *comp)
          if (prev_node && ppir_node_is_root(node) && node->op != ppir_op_const) {
             ppir_node_add_dep(prev_node, node, ppir_dep_sequence);
          }
-         if (node->is_end ||
+         if (node->is_out ||
              node->op == ppir_op_discard ||
              node->op == ppir_op_store_temp ||
              node->op == ppir_op_branch) {
@@ -885,6 +917,7 @@ bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *n
 
    comp->ra = ra;
    comp->uses_discard = nir->info.fs.uses_discard;
+   comp->dual_source_blend = nir->info.fs.color_is_dual_source;
 
    /* 1st pass: create ppir blocks */
    nir_foreach_function(function, nir) {
@@ -916,18 +949,11 @@ bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *n
       }
    }
 
-   /* Validate outputs, we support only gl_FragColor */
-   nir_foreach_shader_out_variable(var, nir) {
-      switch (var->data.location) {
-      case FRAG_RESULT_COLOR:
-      case FRAG_RESULT_DATA0:
-         break;
-      default:
-         ppir_error("unsupported output type\n");
-         goto err_out0;
-         break;
-      }
-   }
+   comp->out_type_to_reg = rzalloc_size(comp, sizeof(int) * ppir_output_num);
+
+   /* -1 means reg is not written by the shader */
+   for (int i = 0; i < ppir_output_num; i++)
+      comp->out_type_to_reg[i] = -1;
 
    foreach_list_typed(nir_register, reg, node, &func->registers) {
       ppir_reg *r = rzalloc(comp, ppir_reg);

@@ -32,6 +32,9 @@
 #include "program/program.h"
 #include "program/prog_instruction.h"
 #include "util/u_memory.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_program.h"
 
 #define MESA_DEBUG_ATI_FS 0
 
@@ -412,17 +415,15 @@ _mesa_EndFragmentShaderATI(void)
    }
 #endif
 
-   if (ctx->Driver.NewATIfs) {
-      struct gl_program *prog = ctx->Driver.NewATIfs(ctx,
-                                                     ctx->ATIFragmentShader.Current);
-      _mesa_reference_program(ctx, &ctx->ATIFragmentShader.Current->Program,
-                                   NULL);
-      /* Don't use _mesa_reference_program(), just take ownership */
-      ctx->ATIFragmentShader.Current->Program = prog;
-   }
+   struct gl_program *prog = st_new_ati_fs(ctx,
+                                           ctx->ATIFragmentShader.Current);
+   _mesa_reference_program(ctx, &ctx->ATIFragmentShader.Current->Program,
+                           NULL);
+   /* Don't use _mesa_reference_program(), just take ownership */
+   ctx->ATIFragmentShader.Current->Program = prog;
 
-   if (!ctx->Driver.ProgramStringNotify(ctx, GL_FRAGMENT_SHADER_ATI,
-                                        curProg->Program)) {
+   if (!st_program_string_notify(ctx, GL_FRAGMENT_SHADER_ATI,
+                                 curProg->Program)) {
       ctx->ATIFragmentShader.Current->isValid = GL_FALSE;
       /* XXX is this the right error? */
       _mesa_error(ctx, GL_INVALID_OPERATION,

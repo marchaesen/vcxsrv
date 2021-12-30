@@ -55,6 +55,7 @@
 #include "viewport.h"
 #include "blend.h"
 
+#include "state_tracker/st_context.h"
 
 void
 _mesa_update_allow_draw_out_of_order(struct gl_context *ctx)
@@ -220,7 +221,7 @@ update_program(struct gl_context *ctx)
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
                               NULL);
    }
-   else if (ctx->FragmentProgram._MaintainTexEnvProgram) {
+   else {
       /* Use fragment program generated from fixed-function state */
       struct gl_shader_program *f = _mesa_get_fixed_func_fragment_program(ctx);
 
@@ -228,12 +229,6 @@ update_program(struct gl_context *ctx)
 			      f->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
       _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
 			      f->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program);
-   }
-   else {
-      /* No fragment program */
-      _mesa_reference_program(ctx, &ctx->FragmentProgram._Current, NULL);
-      _mesa_reference_program(ctx, &ctx->FragmentProgram._TexEnvProgram,
-			      NULL);
    }
 
    if (gsProg) {
@@ -277,18 +272,13 @@ update_program(struct gl_context *ctx)
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current,
                               ctx->VertexProgram.Current);
    }
-   else if (ctx->VertexProgram._MaintainTnlProgram) {
+   else {
       /* Use vertex program generated from fixed-function state */
       assert(VP_MODE_FF == ctx->VertexProgram._VPMode);
       _mesa_reference_program(ctx, &ctx->VertexProgram._Current,
                               _mesa_get_fixed_func_vertex_program(ctx));
       _mesa_reference_program(ctx, &ctx->VertexProgram._TnlProgram,
                               ctx->VertexProgram._Current);
-   }
-   else {
-      /* no vertex program */
-      assert(VP_MODE_FF == ctx->VertexProgram._VPMode);
-      _mesa_reference_program(ctx, &ctx->VertexProgram._Current, NULL);
    }
 
    if (csProg) {
@@ -367,14 +357,12 @@ static void
 update_fixed_func_program_usage(struct gl_context *ctx)
 {
    ctx->FragmentProgram._UsesTexEnvProgram =
-      ctx->FragmentProgram._MaintainTexEnvProgram &&
       !ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT] && /* GLSL*/
       !_mesa_arb_fragment_program_enabled(ctx) &&
       !(_mesa_ati_fragment_shader_enabled(ctx) &&
         ctx->ATIFragmentShader.Current->Program);
 
    ctx->VertexProgram._UsesTnlProgram =
-      ctx->VertexProgram._MaintainTnlProgram &&
       !ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX] && /* GLSL */
       !_mesa_arb_vertex_program_enabled(ctx);
 }
@@ -487,7 +475,7 @@ _mesa_update_state_locked( struct gl_context *ctx )
     * Also, this is where the driver can invalidate the state of any
     * active modules (such as swrast_setup, swrast, tnl, etc).
     */
-   ctx->Driver.UpdateState(ctx);
+   st_invalidate_state(ctx);
    ctx->NewState = 0;
 }
 
@@ -530,7 +518,8 @@ set_vertex_processing_mode(struct gl_context *ctx, gl_vertex_processing_mode m)
       return;
 
    /* On change we may get new maps into the current values */
-   ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+   ctx->Array.NewVertexElements = true;
 
    /* Finally memorize the value */
    ctx->VertexProgram._VPMode = m;
@@ -539,9 +528,7 @@ set_vertex_processing_mode(struct gl_context *ctx, gl_vertex_processing_mode m)
     * VP_MODE_FF mode and the fixed-func pipeline is emulated by shaders.
     */
    ctx->VertexProgram._VPModeOptimizesConstantAttribs =
-      m == VP_MODE_FF &&
-      ctx->VertexProgram._MaintainTnlProgram &&
-      ctx->FragmentProgram._MaintainTexEnvProgram;
+      m == VP_MODE_FF;
 
    /* Set a filter mask for the net enabled vao arrays.
     * This is to mask out arrays that would otherwise supersede required current

@@ -218,6 +218,7 @@ struct st_config_options
    bool disable_blend_func_extended;
    bool disable_glsl_line_continuations;
    bool disable_arb_gpu_shader5;
+   bool force_compat_shaders;
    bool force_glsl_extensions_warn;
    unsigned force_glsl_version;
    bool allow_extra_pp_tokens;
@@ -227,6 +228,7 @@ struct st_config_options
    bool allow_glsl_relaxed_es;
    bool allow_glsl_builtin_variable_redeclaration;
    bool allow_higher_compat_version;
+   bool allow_glsl_compat_shaders;
    bool glsl_ignore_write_to_readonly_var;
    bool glsl_zero_init;
    bool vs_position_always_invariant;
@@ -243,6 +245,7 @@ struct st_config_options
    bool transcode_astc;
    char *force_gl_vendor;
    char *force_gl_renderer;
+   char *mesa_extension_override;
    unsigned char config_options_sha1[20];
 };
 

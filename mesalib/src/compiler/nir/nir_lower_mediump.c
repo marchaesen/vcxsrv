@@ -437,6 +437,10 @@ nir_fold_16bit_sampler_conversions(nir_shader *nir,
          nir_instr *src;
          nir_alu_instr *src_alu;
 
+         /* Skip sparse residency */
+         if (tex->is_sparse)
+            continue;
+
          /* Skip because AMD doesn't support 16-bit types with these. */
          if ((tex->op == nir_texop_txs ||
               tex->op == nir_texop_query_levels) ||

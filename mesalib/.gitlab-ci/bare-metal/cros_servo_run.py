@@ -50,12 +50,18 @@ class CrosServoRun:
             target=self.iter_feed_queue, daemon=True, args=(self.cpu_ser.lines(),))
         self.iter_feed_cpu.start()
 
+    def close(self):
+        self.ec_ser.close()
+        self.cpu_ser.close()
+        self.iter_feed_ec.join()
+        self.iter_feed_cpu.join()
+
     # Feed lines from our serial queues into the merged queue, marking when our
     # input is done.
     def iter_feed_queue(self, it):
         for i in it:
             self.serial_queue.put(i)
-        self.serial_queue.put(sentinel)
+        self.serial_queue.put(self.sentinel)
 
     # Return the next line from the queue, counting how many threads have
     # terminated and joining when done
@@ -178,6 +184,8 @@ def main():
 
     # power down the CPU on the device
     servo.ec_write("power off\n")
+
+    servo.close()
 
     sys.exit(retval)
 

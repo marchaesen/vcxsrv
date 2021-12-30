@@ -264,6 +264,8 @@ int virgl_encoder_set_sub_ctx(struct virgl_context *ctx, uint32_t sub_ctx_id);
 int virgl_encoder_create_sub_ctx(struct virgl_context *ctx, uint32_t sub_ctx_id);
 int virgl_encoder_destroy_sub_ctx(struct virgl_context *ctx, uint32_t sub_ctx_id);
 
+int virgl_encode_link_shader(struct virgl_context *ctx, uint32_t *handles);
+
 int virgl_encode_bind_shader(struct virgl_context *ctx,
                              uint32_t handle, uint32_t type);
 

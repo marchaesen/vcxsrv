@@ -86,3 +86,35 @@ v3d_csd_choose_workgroups_per_supergroup(struct v3d_device_info *devinfo,
 
    return best_wgs_per_sg;
 }
+
+void
+v3d_choose_tile_size(uint32_t color_attachment_count,
+                     uint32_t max_color_bpp, bool msaa,
+                     uint32_t *width, uint32_t *height)
+{
+   static const uint8_t tile_sizes[] = {
+      64, 64,
+      64, 32,
+      32, 32,
+      32, 16,
+      16, 16,
+      16,  8,
+       8,  8
+   };
+
+   uint32_t idx = 0;
+   if (color_attachment_count > 2)
+      idx += 2;
+   else if (color_attachment_count > 1)
+      idx += 1;
+
+   if (msaa)
+      idx += 2;
+
+   idx += max_color_bpp;
+
+   assert(idx < ARRAY_SIZE(tile_sizes) / 2);
+
+   *width = tile_sizes[idx * 2];
+   *height = tile_sizes[idx * 2 + 1];
+}

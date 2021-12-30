@@ -79,7 +79,9 @@ struct iris_batch {
    /** Last Surface State Base Address set in this hardware context. */
    uint64_t last_surface_base_address;
 
-   uint32_t hw_ctx_id;
+   uint32_t ctx_id;
+   uint32_t exec_flags;
+   bool has_engines_context;
 
    /** A list of all BOs referenced by this batch */
    struct iris_bo **exec_bos;
@@ -176,11 +178,9 @@ struct iris_batch {
    struct iris_measure_batch *measure;
 };
 
-void iris_init_batch(struct iris_context *ice,
-                     enum iris_batch_name name,
-                     int priority);
+void iris_init_batches(struct iris_context *ice, int priority);
 void iris_chain_to_new_batch(struct iris_batch *batch);
-void iris_batch_free(struct iris_batch *batch);
+void iris_destroy_batches(struct iris_context *ice);
 void iris_batch_maybe_flush(struct iris_batch *batch, unsigned estimate);
 
 void _iris_batch_flush(struct iris_batch *batch, const char *file, int line);

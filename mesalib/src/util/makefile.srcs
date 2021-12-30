@@ -7,6 +7,9 @@ endif
 
 srcdir=.
 
+u_indices_gen.c: indices/u_indices_gen.py
+	$(PYTHON3) $< > $@
+
 format_srgb.c: format_srgb.py
 	$(PYTHON3) $(srcdir)/format_srgb.py > $@
 

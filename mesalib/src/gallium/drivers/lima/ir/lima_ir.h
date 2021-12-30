@@ -73,4 +73,6 @@ void lima_nir_duplicate_load_consts(nir_shader *shader);
 void lima_nir_duplicate_load_inputs(nir_shader *shader);
 void lima_nir_duplicate_load_uniforms(nir_shader *shader);
 
+bool lima_nir_lower_txp(nir_shader *shader);
+
 #endif

@@ -337,6 +337,7 @@ vn_QueueSubmit(VkQueue _queue,
                const VkSubmitInfo *pSubmits,
                VkFence fence)
 {
+   VN_TRACE_FUNC();
    struct vn_queue *queue = vn_queue_from_handle(_queue);
    struct vn_device *dev = queue->device;
 
@@ -396,6 +397,7 @@ vn_QueueBindSparse(VkQueue _queue,
                    const VkBindSparseInfo *pBindInfo,
                    VkFence fence)
 {
+   VN_TRACE_FUNC();
    struct vn_queue *queue = vn_queue_from_handle(_queue);
    struct vn_device *dev = queue->device;
 
@@ -421,6 +423,7 @@ vn_QueueBindSparse(VkQueue _queue,
 VkResult
 vn_QueueWaitIdle(VkQueue _queue)
 {
+   VN_TRACE_FUNC();
    struct vn_queue *queue = vn_queue_from_handle(_queue);
    VkDevice device = vn_device_to_handle(queue->device);
 
@@ -632,6 +635,7 @@ vn_WaitForFences(VkDevice device,
                  VkBool32 waitAll,
                  uint64_t timeout)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
 
@@ -923,6 +927,7 @@ vn_WaitSemaphores(VkDevice device,
                   const VkSemaphoreWaitInfo *pWaitInfo,
                   uint64_t timeout)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
 

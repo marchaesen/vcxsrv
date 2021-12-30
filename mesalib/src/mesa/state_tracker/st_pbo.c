@@ -31,8 +31,8 @@
 #include "state_tracker/st_context.h"
 #include "state_tracker/st_nir.h"
 #include "state_tracker/st_pbo.h"
-#include "state_tracker/st_cb_bufferobjects.h"
 
+#include "main/context.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
@@ -43,17 +43,6 @@
 #include "util/u_upload_mgr.h"
 
 #include "compiler/nir/nir_builder.h"
-
-/* Conversion to apply in the fragment shader. */
-enum st_pbo_conversion {
-   ST_PBO_CONVERT_FLOAT = 0,
-   ST_PBO_CONVERT_UINT,
-   ST_PBO_CONVERT_SINT,
-   ST_PBO_CONVERT_UINT_TO_SINT,
-   ST_PBO_CONVERT_SINT_TO_UINT,
-
-   ST_NUM_PBO_CONVERSIONS
-};
 
 /* Final setup of buffer addressing information.
  *
@@ -117,7 +106,7 @@ st_pbo_addresses_pixelstore(struct st_context *st,
                             const void *pixels,
                             struct st_pbo_addresses *addr)
 {
-   struct pipe_resource *buf = st_buffer_object(store->BufferObj)->buffer;
+   struct pipe_resource *buf = store->BufferObj->buffer;
    intptr_t buf_offset = (intptr_t) pixels;
 
    if (buf_offset % addr->bytes_per_pixel)
@@ -258,7 +247,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
 
       cso_set_vertex_elements(cso, &velem);
 
-      cso_set_vertex_buffers(cso, 0, 1, &vbo);
+      cso_set_vertex_buffers(cso, 0, 1, 0, false, &vbo);
       st->last_num_vbuffers = MAX2(st->last_num_vbuffers, 1);
 
       pipe_resource_reference(&vbo.buffer.resource, NULL);
@@ -385,8 +374,8 @@ st_pbo_create_gs(struct st_context *st)
    return ureg_create_shader_and_destroy(ureg, st->pipe);
 }
 
-static const struct glsl_type *
-sampler_type_for_target(enum pipe_texture_target target,
+const struct glsl_type *
+st_pbo_sampler_type_for_target(enum pipe_texture_target target,
                         enum st_pbo_conversion conv)
 {
    bool is_array = target >= PIPE_TEXTURE_1D_ARRAY;
@@ -418,6 +407,7 @@ static void *
 create_fs(struct st_context *st, bool download,
           enum pipe_texture_target target,
           enum st_pbo_conversion conversion,
+          enum pipe_format format,
           bool need_layer)
 {
    struct pipe_screen *screen = st->screen;
@@ -446,13 +436,19 @@ create_fs(struct st_context *st, bool download,
                                             : VARYING_SLOT_POS;
    nir_ssa_def *coord = nir_load_var(&b, fragcoord);
 
+   /* When st->pbo.layers == false, it is guaranteed we only have a single
+    * layer. But we still need the "layer" variable to add the "array"
+    * coordinate to the texture. Hence we set layer to zero when array texture
+    * is used in case only a single layer is required.
+    */
    nir_ssa_def *layer = NULL;
-   if (st->pbo.layers && (!download || target == PIPE_TEXTURE_1D_ARRAY ||
-                                       target == PIPE_TEXTURE_2D_ARRAY ||
-                                       target == PIPE_TEXTURE_3D ||
-                                       target == PIPE_TEXTURE_CUBE ||
-                                       target == PIPE_TEXTURE_CUBE_ARRAY)) {
+   if (!download || target == PIPE_TEXTURE_1D_ARRAY ||
+                    target == PIPE_TEXTURE_2D_ARRAY ||
+                    target == PIPE_TEXTURE_3D ||
+                    target == PIPE_TEXTURE_CUBE ||
+                    target == PIPE_TEXTURE_CUBE_ARRAY) {
       if (need_layer) {
+         assert(st->pbo.layers);
          nir_variable *var = nir_variable_create(b.shader, nir_var_shader_in,
                                                 glsl_int_type(), "gl_Layer");
          var->data.location = VARYING_SLOT_LAYER;
@@ -474,7 +470,7 @@ create_fs(struct st_context *st, bool download,
       nir_iadd(&b, nir_channel(&b, offset_pos, 0),
                nir_imul(&b, nir_channel(&b, offset_pos, 1),
                         nir_channel(&b, param, 2)));
-   if (layer) {
+   if (layer && layer != zero) {
       /* pbo_addr += image_height * layer */
       pbo_addr = nir_iadd(&b, pbo_addr,
                           nir_imul(&b, layer, nir_channel(&b, param, 3)));
@@ -518,7 +514,7 @@ create_fs(struct st_context *st, bool download,
 
    nir_variable *tex_var =
       nir_variable_create(b.shader, nir_var_uniform,
-                          sampler_type_for_target(target, conversion),
+                          st_pbo_sampler_type_for_target(target, conversion),
                           "tex");
    tex_var->data.explicit_binding = true;
    tex_var->data.binding = 0;
@@ -563,6 +559,7 @@ create_fs(struct st_context *st, bool download,
       img_var->data.access = ACCESS_NON_READABLE;
       img_var->data.explicit_binding = true;
       img_var->data.binding = 0;
+      img_var->data.image.format = format;
       nir_deref_instr *img_deref = nir_build_deref_var(&b, img_var);
 
       nir_image_deref_store(&b, &img_deref->dest.ssa,
@@ -612,7 +609,7 @@ st_pbo_get_upload_fs(struct st_context *st,
    enum st_pbo_conversion conversion = get_pbo_conversion(src_format, dst_format);
 
    if (!st->pbo.upload_fs[conversion][need_layer])
-      st->pbo.upload_fs[conversion][need_layer] = create_fs(st, false, 0, conversion, need_layer);
+      st->pbo.upload_fs[conversion][need_layer] = create_fs(st, false, 0, conversion, PIPE_FORMAT_NONE, need_layer);
 
    return st->pbo.upload_fs[conversion][need_layer];
 }
@@ -626,12 +623,26 @@ st_pbo_get_download_fs(struct st_context *st, enum pipe_texture_target target,
    STATIC_ASSERT(ARRAY_SIZE(st->pbo.download_fs) == ST_NUM_PBO_CONVERSIONS);
    assert(target < PIPE_MAX_TEXTURE_TYPES);
 
+   struct pipe_screen *screen = st->screen;
    enum st_pbo_conversion conversion = get_pbo_conversion(src_format, dst_format);
+   bool formatless_store = screen->get_param(screen, PIPE_CAP_IMAGE_STORE_FORMATTED);
 
-   if (!st->pbo.download_fs[conversion][target][need_layer])
-      st->pbo.download_fs[conversion][target][need_layer] = create_fs(st, true, target, conversion, need_layer);
+   /* For drivers not supporting formatless storing, download FS is stored in an
+    * indirect dynamically allocated array of storing formats.
+    */
+   if (!formatless_store && !st->pbo.download_fs[conversion][target][need_layer])
+      st->pbo.download_fs[conversion][target][need_layer] = calloc(sizeof(void *), PIPE_FORMAT_COUNT);
 
-   return st->pbo.download_fs[conversion][target][need_layer];
+   if (formatless_store) {
+      if (!st->pbo.download_fs[conversion][target][need_layer])
+         st->pbo.download_fs[conversion][target][need_layer] = create_fs(st, true, target, conversion, PIPE_FORMAT_NONE, need_layer);
+      return st->pbo.download_fs[conversion][target][need_layer];
+   } else {
+      void **fs_array = (void **)st->pbo.download_fs[conversion][target][need_layer];
+      if (!fs_array[dst_format])
+         fs_array[dst_format] = create_fs(st, true, target, conversion, dst_format, need_layer);
+      return fs_array[dst_format];
+   }
 }
 
 void
@@ -659,7 +670,13 @@ st_init_pbo_helpers(struct st_context *st)
    if (screen->get_param(screen, PIPE_CAP_TGSI_INSTANCEID)) {
       if (screen->get_param(screen, PIPE_CAP_TGSI_VS_LAYER_VIEWPORT)) {
          st->pbo.layers = true;
-      } else if (screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES) >= 3) {
+      } else if (screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES) >= 3 &&
+                 screen->get_shader_param(screen, PIPE_SHADER_GEOMETRY,
+                                          PIPE_SHADER_CAP_PREFERRED_IR) != PIPE_SHADER_IR_NIR) {
+         /* As the download GS is created in TGSI, and TGSI to NIR translation
+          * is not implemented for GS, avoid using GS for drivers preferring
+          * NIR shaders.
+          */
          st->pbo.layers = true;
          st->pbo.use_gs = true;
       }
@@ -672,11 +689,16 @@ st_init_pbo_helpers(struct st_context *st)
    /* Rasterizer state */
    memset(&st->pbo.raster, 0, sizeof(struct pipe_rasterizer_state));
    st->pbo.raster.half_pixel_center = 1;
+
+   if (st->allow_compute_based_texture_transfer)
+      st->pbo.shaders = _mesa_hash_table_create_u32_keys(NULL);
 }
 
 void
 st_destroy_pbo_helpers(struct st_context *st)
 {
+   struct pipe_screen *screen = st->screen;
+   bool formatless_store = screen->get_param(screen, PIPE_CAP_IMAGE_STORE_FORMATTED);
    unsigned i;
 
    for (i = 0; i < ARRAY_SIZE(st->pbo.upload_fs); ++i) {
@@ -692,7 +714,15 @@ st_destroy_pbo_helpers(struct st_context *st)
       for (unsigned j = 0; j < ARRAY_SIZE(st->pbo.download_fs[0]); ++j) {
          for (unsigned k = 0; k < ARRAY_SIZE(st->pbo.download_fs[0][0]); k++) {
             if (st->pbo.download_fs[i][j][k]) {
-               st->pipe->delete_fs_state(st->pipe, st->pbo.download_fs[i][j][k]);
+               if (formatless_store) {
+                  st->pipe->delete_fs_state(st->pipe, st->pbo.download_fs[i][j][k]);
+               } else {
+                  void **fs_array = (void **)st->pbo.download_fs[i][j][k];
+                  for (unsigned l = 0; l < PIPE_FORMAT_COUNT; l++)
+                     if (fs_array[l])
+                        st->pipe->delete_fs_state(st->pipe, fs_array[l]);
+                  free(st->pbo.download_fs[i][j][k]);
+               }
                st->pbo.download_fs[i][j][k] = NULL;
             }
          }
@@ -707,5 +737,11 @@ st_destroy_pbo_helpers(struct st_context *st)
    if (st->pbo.vs) {
       st->pipe->delete_vs_state(st->pipe, st->pbo.vs);
       st->pbo.vs = NULL;
+   }
+
+   if (st->pbo.shaders) {
+      hash_table_foreach(st->pbo.shaders, entry)
+         st->pipe->delete_compute_state(st->pipe, entry->data);
+      _mesa_hash_table_destroy(st->pbo.shaders, NULL);
    }
 }

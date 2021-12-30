@@ -949,21 +949,30 @@ static void *si_create_rs_state(struct pipe_context *ctx, const struct pipe_rast
                                ? S_028A0C_LINE_PATTERN(state->line_stipple_pattern) |
                                     S_028A0C_REPEAT_COUNT(state->line_stipple_factor)
                                : 0;
+   /* TODO: implement line stippling with perpendicular end caps. */
+   /* Line width > 2 is an internal recommendation. */
+   rs->perpendicular_end_caps = state->multisample &&
+                                state->line_width > 2 && !state->line_stipple_enable;
+
    rs->pa_cl_clip_cntl = S_028810_DX_CLIP_SPACE_DEF(state->clip_halfz) |
                          S_028810_ZCLIP_NEAR_DISABLE(!state->depth_clip_near) |
                          S_028810_ZCLIP_FAR_DISABLE(!state->depth_clip_far) |
                          S_028810_DX_RASTERIZATION_KILL(state->rasterizer_discard) |
                          S_028810_DX_LINEAR_ATTR_CLIP_ENA(1);
 
-   if (rs->rasterizer_discard) {
-      rs->ngg_cull_flags = SI_NGG_CULL_ENABLED |
-                           SI_NGG_CULL_FRONT_FACE |
-                           SI_NGG_CULL_BACK_FACE;
-      rs->ngg_cull_flags_y_inverted = rs->ngg_cull_flags;
-   } else {
-      rs->ngg_cull_flags = SI_NGG_CULL_ENABLED;
-      rs->ngg_cull_flags_y_inverted = rs->ngg_cull_flags;
+   rs->ngg_cull_flags_tris = SI_NGG_CULL_TRIANGLES |
+                             SI_NGG_CULL_CLIP_PLANE_ENABLE(state->clip_plane_enable);
+   rs->ngg_cull_flags_tris_y_inverted = rs->ngg_cull_flags_tris;
 
+   rs->ngg_cull_flags_lines = SI_NGG_CULL_LINES |
+                              (!rs->perpendicular_end_caps ? SI_NGG_CULL_SMALL_LINES_DIAMOND_EXIT : 0) |
+                              SI_NGG_CULL_CLIP_PLANE_ENABLE(state->clip_plane_enable);
+
+   if (rs->rasterizer_discard) {
+      rs->ngg_cull_flags_tris |= SI_NGG_CULL_FRONT_FACE |
+                                 SI_NGG_CULL_BACK_FACE;
+      rs->ngg_cull_flags_tris_y_inverted = rs->ngg_cull_flags_tris;
+   } else {
       bool cull_front, cull_back;
 
       if (!state->front_ccw) {
@@ -975,13 +984,13 @@ static void *si_create_rs_state(struct pipe_context *ctx, const struct pipe_rast
       }
 
       if (cull_front) {
-         rs->ngg_cull_flags |= SI_NGG_CULL_FRONT_FACE;
-         rs->ngg_cull_flags_y_inverted |= SI_NGG_CULL_BACK_FACE;
+         rs->ngg_cull_flags_tris |= SI_NGG_CULL_FRONT_FACE;
+         rs->ngg_cull_flags_tris_y_inverted |= SI_NGG_CULL_BACK_FACE;
       }
 
       if (cull_back) {
-         rs->ngg_cull_flags |= SI_NGG_CULL_BACK_FACE;
-         rs->ngg_cull_flags_y_inverted |= SI_NGG_CULL_FRONT_FACE;
+         rs->ngg_cull_flags_tris |= SI_NGG_CULL_BACK_FACE;
+         rs->ngg_cull_flags_tris_y_inverted |= SI_NGG_CULL_FRONT_FACE;
       }
    }
 
@@ -1038,7 +1047,9 @@ static void *si_create_rs_state(struct pipe_context *ctx, const struct pipe_rast
                      S_028814_POLYMODE_FRONT_PTYPE(si_translate_fill(state->fill_front)) |
                      S_028814_POLYMODE_BACK_PTYPE(si_translate_fill(state->fill_back)) |
                      /* this must be set if POLY_MODE or PERPENDICULAR_ENDCAP_ENA is set */
-                     S_028814_KEEP_TOGETHER_ENABLE(sscreen->info.chip_class >= GFX10 ? polygon_mode_enabled : 0));
+                     S_028814_KEEP_TOGETHER_ENABLE(sscreen->info.chip_class >= GFX10 ?
+                                                      polygon_mode_enabled ||
+                                                      rs->perpendicular_end_caps : 0));
 
    if (!rs->uses_poly_offset)
       return rs;
@@ -1096,7 +1107,6 @@ static void si_bind_rs_state(struct pipe_context *ctx, void *state)
 
    if (old_rs->multisample_enable != rs->multisample_enable) {
       si_mark_atom_dirty(sctx, &sctx->atoms.s.db_render_state);
-
       si_mark_atom_dirty(sctx, &sctx->atoms.s.msaa_config);
 
       /* Update the small primitive filter workaround if necessary. */
@@ -1107,6 +1117,14 @@ static void si_bind_rs_state(struct pipe_context *ctx, void *state)
       if (sctx->screen->use_ngg_culling)
          si_mark_atom_dirty(sctx, &sctx->atoms.s.ngg_cull_state);
    }
+
+   if (old_rs->perpendicular_end_caps != rs->perpendicular_end_caps)
+      si_mark_atom_dirty(sctx, &sctx->atoms.s.msaa_config);
+
+   if (sctx->screen->use_ngg_culling &&
+       (old_rs->half_pixel_center != rs->half_pixel_center ||
+        old_rs->line_width != rs->line_width))
+      si_mark_atom_dirty(sctx, &sctx->atoms.s.ngg_cull_state);
 
    sctx->current_vs_state &= C_VS_STATE_CLAMP_VERTEX_COLOR;
    sctx->current_vs_state |= S_VS_STATE_CLAMP_VERTEX_COLOR(rs->clamp_vertex_color);
@@ -3293,24 +3311,33 @@ static void si_emit_framebuffer_state(struct si_context *sctx)
       radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, &tex->buffer, RADEON_USAGE_READWRITE |
                                 (zb->base.texture->nr_samples > 1 ? RADEON_PRIO_DEPTH_BUFFER_MSAA
                                                                   : RADEON_PRIO_DEPTH_BUFFER));
+      bool tc_compat_htile = vi_tc_compat_htile_enabled(tex, zb->base.u.tex.level, PIPE_MASK_ZS);
 
       /* Set fields dependent on tc_compatile_htile. */
-      if (sctx->chip_class >= GFX9 &&
-          vi_tc_compat_htile_enabled(tex, zb->base.u.tex.level, PIPE_MASK_ZS)) {
+      if (sctx->chip_class >= GFX9 && tc_compat_htile) {
          unsigned max_zplanes = 4;
 
          if (tex->db_render_format == PIPE_FORMAT_Z16_UNORM && tex->buffer.b.b.nr_samples > 1)
             max_zplanes = 2;
 
-         db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes + 1);
-
          if (sctx->chip_class >= GFX10) {
-            db_z_info |= S_028040_ITERATE_FLUSH(1);
-            db_stencil_info |= S_028044_ITERATE_FLUSH(!tex->htile_stencil_disabled);
+            bool iterate256 = tex->buffer.b.b.nr_samples >= 2;
+            db_z_info |= S_028040_ITERATE_FLUSH(1) |
+                         S_028040_ITERATE_256(iterate256);
+            db_stencil_info |= S_028044_ITERATE_FLUSH(!tex->htile_stencil_disabled) |
+                               S_028044_ITERATE_256(iterate256);
+
+            /* Workaround for a DB hang when ITERATE_256 is set to 1. Only affects 4X MSAA D/S images. */
+            if (sctx->screen->info.has_two_planes_iterate256_bug && iterate256 &&
+                !tex->htile_stencil_disabled && tex->buffer.b.b.nr_samples == 4) {
+               max_zplanes = 1;
+            }
          } else {
             db_z_info |= S_028038_ITERATE_FLUSH(1);
             db_stencil_info |= S_02803C_ITERATE_FLUSH(1);
          }
+
+         db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes + 1);
       }
 
       unsigned level = zb->base.u.tex.level;
@@ -3619,13 +3646,8 @@ static void si_emit_msaa_config(struct si_context *sctx)
       }
    }
 
-   /* The DX10 diamond test is optional in GL and decreases line rasterization
+   /* The DX10 diamond test is not required by GL and decreases line rasterization
     * performance, so don't use it.
-    *
-    * TODO: We should also enable perpendicular endcaps for AA lines,
-    *       but that requires implementing line stippling in the pixel
-    *       shader. SC can only do line stippling with axis-aligned
-    *       endcaps.
     */
    unsigned sc_line_cntl = 0;
    unsigned sc_aa_config = 0;
@@ -3644,7 +3666,11 @@ static void si_emit_msaa_config(struct si_context *sctx)
       unsigned ps_iter_samples = si_get_ps_iter_samples(sctx);
       unsigned log_ps_iter_samples = util_logbase2(ps_iter_samples);
 
-      sc_line_cntl |= S_028BDC_EXPAND_LINE_WIDTH(1);
+      sc_line_cntl |= S_028BDC_EXPAND_LINE_WIDTH(1) |
+                      S_028BDC_PERPENDICULAR_ENDCAP_ENA(rs->perpendicular_end_caps) |
+                      S_028BDC_EXTRA_DX_DY_PRECISION(rs->perpendicular_end_caps &&
+                                                     (sctx->family == CHIP_VEGA20 ||
+                                                      sctx->chip_class >= GFX10));
       sc_aa_config = S_028BE0_MSAA_NUM_SAMPLES(log_samples) |
                      S_028BE0_MAX_SAMPLE_DIST(max_dist[log_samples]) |
                      S_028BE0_MSAA_EXPOSED_SAMPLES(log_samples) |

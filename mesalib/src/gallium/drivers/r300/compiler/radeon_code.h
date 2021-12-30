@@ -156,13 +156,6 @@ struct r300_fragment_program_external_state {
 		unsigned compare_mode_enabled : 1;
 
 		/**
-		 * If the sampler will receive non-normalized coords,
-		 * this field is set. The scaling factor is given by
-		 * RC_STATE_R300_TEXRECT_FACTOR.
-		 */
-		unsigned non_normalized_coords : 1;
-
-		/**
 		 * This field specifies wrapping modes for the sampler.
 		 *
 		 * If this field is \ref RC_WRAP_NONE (aka 0), no wrapping maths

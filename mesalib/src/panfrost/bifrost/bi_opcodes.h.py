@@ -95,7 +95,7 @@ struct bi_op_props {
         bool not_result : 1;
         unsigned abs : 3;
         unsigned neg : 3;
-        bool not : 1;
+        bool not_mod : 1;
 };
 
 /* Generated in bi_opcodes.c.py */

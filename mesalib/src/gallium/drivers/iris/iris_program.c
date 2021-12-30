@@ -90,7 +90,6 @@ iris_finalize_program(struct iris_compiled_shader *shader,
    ralloc_steal(shader, shader->prog_data);
    ralloc_steal(shader->prog_data, (void *)prog_data->relocs);
    ralloc_steal(shader->prog_data, prog_data->param);
-   ralloc_steal(shader->prog_data, prog_data->pull_param);
    ralloc_steal(shader, shader->streamout);
    ralloc_steal(shader, shader->system_values);
 }
@@ -1486,7 +1485,7 @@ iris_compile_tcs(struct iris_screen *screen,
 {
    const struct brw_compiler *compiler = screen->compiler;
    const struct nir_shader_compiler_options *options =
-      compiler->glsl_compiler_options[MESA_SHADER_TESS_CTRL].NirOptions;
+      compiler->nir_options[MESA_SHADER_TESS_CTRL];
    void *mem_ctx = ralloc_context(NULL);
    struct brw_tcs_prog_data *tcs_prog_data =
       rzalloc(mem_ctx, struct brw_tcs_prog_data);
@@ -1550,12 +1549,16 @@ iris_compile_tcs(struct iris_screen *screen,
       prog_data->ubo_ranges[0].length = 1;
    }
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_tcs(compiler, dbg, mem_ctx, &brw_key, tcs_prog_data,
-                      nir, -1, NULL, &error_str);
+   struct brw_compile_tcs_params params = {
+      .nir = nir,
+      .key = &brw_key,
+      .prog_data = tcs_prog_data,
+      .log_data = dbg,
+   };
+
+   const unsigned *program = brw_compile_tcs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile control shader: %s\n", error_str);
+      dbg_printf("Failed to compile control shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
 
       shader->compilation_failed = true;
@@ -1708,12 +1711,17 @@ iris_compile_tes(struct iris_screen *screen,
 
    struct brw_tes_prog_key brw_key = iris_to_brw_tes_key(devinfo, key);
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_tes(compiler, dbg, mem_ctx, &brw_key, &input_vue_map,
-                      tes_prog_data, nir, -1, NULL, &error_str);
+   struct brw_compile_tes_params params = {
+      .nir = nir,
+      .key = &brw_key,
+      .prog_data = tes_prog_data,
+      .input_vue_map = &input_vue_map,
+      .log_data = dbg,
+   };
+
+   const unsigned *program = brw_compile_tes(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile evaluation shader: %s\n", error_str);
+      dbg_printf("Failed to compile evaluation shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
 
       shader->compilation_failed = true;
@@ -1842,12 +1850,16 @@ iris_compile_gs(struct iris_screen *screen,
 
    struct brw_gs_prog_key brw_key = iris_to_brw_gs_key(devinfo, key);
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_gs(compiler, dbg, mem_ctx, &brw_key, gs_prog_data,
-                     nir, -1, NULL, &error_str);
+   struct brw_compile_gs_params params = {
+      .nir = nir,
+      .key = &brw_key,
+      .prog_data = gs_prog_data,
+      .log_data = dbg,
+   };
+
+   const unsigned *program = brw_compile_gs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile geometry shader: %s\n", error_str);
+      dbg_printf("Failed to compile geometry shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
 
       shader->compilation_failed = true;
@@ -2471,7 +2483,7 @@ iris_create_compute_state(struct pipe_context *ctx,
    struct iris_screen *screen = (void *) ctx->screen;
    struct u_upload_mgr *uploader = ice->shaders.uploader_unsync;
    const nir_shader_compiler_options *options =
-      screen->compiler->glsl_compiler_options[MESA_SHADER_COMPUTE].NirOptions;
+      screen->compiler->nir_options[MESA_SHADER_COMPUTE];
 
    nir_shader *nir;
    switch (state->ir_type) {

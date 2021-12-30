@@ -26,6 +26,14 @@ SOFTWARE.
 
 <!--
 	Cat6 Instructions:  load/store/atomic instructions
+
+	There are instructions with suffixes like:
+	"stg.a", "ldib.b", "atomic.g.add", "atomic.s.add"
+	They have the following meaning:
+	 '.a' - "addrcalc" stg/ldg with complex address computations
+	 '.b' - "bindless" instructions
+	 '.g' - "global" atomics that operate on raw iova addresses
+	 '.s' - "ssbo" pre-a6xx image/ssbo atomics
  -->
 
 <bitset name="#instruction-cat6" extends="#instruction">
@@ -482,16 +490,6 @@ SOFTWARE.
 		to still have an extra src.  For now, match that.
 	</doc>
 
-	<override expr="#cat6-global">
-		<display>
-			{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.g {DST}, g[{SSBO}], {SRC1}, {SRC2}, {SRC3}
-		</display>
-		<field   low="1"  high="8"  name="SRC3" type="#reg-gpr"/>
-		<field   low="41" high="48" name="SSBO" type="#cat6-src">   <!-- SSBO/image binding point -->
-			<param name="SSBO_IM" as="SRC_IM"/>
-		</field>
-		<field   pos="53"           name="SSBO_IM" type="bool"/>
-	</override>
 	<display>
 		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.l {DST}, l[{SRC1}], {SRC2}
 	</display>
@@ -500,7 +498,6 @@ SOFTWARE.
 	<derived name="TYPE_SIZE" expr="#cat6-type-size" type="uint"/>
 
 	<pattern pos="0"           >1</pattern>
-	<pattern low="1"  high="8" >xxxxxxxx</pattern>       <!-- SRC3 -->
 	<field   low="9"  high="10" name="D_MINUS_ONE" type="uint"/>
 	<field   pos="11"           name="TYPED" type="#cat6-typed"/>
 	<field   low="12" high="13" name="TYPE_SIZE_MINUS_ONE" type="uint"/>
@@ -514,30 +511,29 @@ SOFTWARE.
 	</field>
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
 	<pattern pos="40"          >x</pattern>
-	<assert  low="41" high="48">00000000</assert>       <!-- SSBO/image binding point -->
-	<field   pos="52"           name="G" type="bool"/>
-	<assert  pos="53"          >0</assert>              <!-- SSBO_IM -->
 	<encode>
-		<map name="G">!!(src->flags &amp; IR3_INSTR_G)</map>
 		<map name="TYPED">src</map>
 		<map name="D_MINUS_ONE">src->cat6.d - 1</map>
 		<map name="TYPE_SIZE_MINUS_ONE">src->cat6.iim_val - 1</map>
-		<map name="SSBO">src->srcs[0]</map>
-		<map name="SSBO_IM">!!(src->srcs[0]->flags &amp; IR3_REG_IMMED)</map>
 		<map name="SRC1">extract_cat6_SRC(src, 0)</map>
 		<map name="SRC1_IM">!!(extract_cat6_SRC(src, 0)->flags &amp; IR3_REG_IMMED)</map>
 		<map name="SRC2">extract_cat6_SRC(src, 1)</map>
 		<map name="SRC2_IM">!!(extract_cat6_SRC(src, 1)->flags &amp; IR3_REG_IMMED)</map>
-		<map name="SRC3">extract_cat6_SRC(src, 2)</map>
-		<map name="SRC3_IM">!!(extract_cat6_SRC(src, 2)->flags &amp; IR3_REG_IMMED)</map>
 	</encode>
 </bitset>
 
-<bitset name="#instruction-cat6-a3xx-atomic-1src" extends="#instruction-cat6-a3xx-atomic">
+<bitset name="#instruction-cat6-a3xx-atomic-local" extends="#instruction-cat6-a3xx-atomic">
+	<pattern low="1"  high="8"  >00000000</pattern> <!-- SRC3 -->
+	<pattern low="41" high="48" >00000000</pattern> <!-- SSBO/image binding point -->
+	<pattern pos="52"           >0</pattern> <!-- "G" -->
+	<pattern pos="53"           >0</pattern> <!-- SSBO_IM -->
+</bitset>
+
+<bitset name="#instruction-cat6-a3xx-atomic-1src" extends="#instruction-cat6-a3xx-atomic-local">
 	<!-- TODO when asm parser is updated, shift display templates, etc, here -->
 </bitset>
 
-<bitset name="#instruction-cat6-a3xx-atomic-2src" extends="#instruction-cat6-a3xx-atomic">
+<bitset name="#instruction-cat6-a3xx-atomic-2src" extends="#instruction-cat6-a3xx-atomic-local">
 	<!-- TODO when asm parser is updated, shift display templates, etc, here -->
 </bitset>
 
@@ -585,6 +581,136 @@ SOFTWARE.
 	<pattern low="54" high="58">11010</pattern>  <!-- OPC -->
 </bitset>
 
+<bitset name="#instruction-cat6-a3xx-atomic-global" extends="#instruction-cat6-a3xx-atomic">
+	<doc>
+		Pre-a6xx atomics for Image/SSBO
+	</doc>
+
+	<gen max="599"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.g {DST}, g[{SSBO}], {SRC1}, {SRC2}, {SRC3}
+	</display>
+
+	<field   low="1"  high="8"  name="SRC3" type="#reg-gpr"/>
+	<field   low="41" high="48" name="SSBO" type="#cat6-src">   <!-- SSBO/image binding point -->
+		<param name="SSBO_IM" as="SRC_IM"/>
+	</field>
+	<pattern pos="52" >1</pattern> <!-- "G" -->
+	<field   pos="53" name="SSBO_IM" type="bool"/>
+
+	<encode>
+		<map name="SSBO">src->srcs[0]</map>
+		<map name="SSBO_IM">!!(src->srcs[0]->flags &amp; IR3_REG_IMMED)</map>
+		<map name="SRC3">extract_cat6_SRC(src, 2)</map>
+		<map name="SRC3_IM">!!(extract_cat6_SRC(src, 2)->flags &amp; IR3_REG_IMMED)</map>
+	</encode>
+</bitset>
+
+<bitset name="atomic.s.add" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.sub" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10001</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.xchg" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10010</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.inc" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10011</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.dec" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10100</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.cmpxchg" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10101</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.min" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10110</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.max" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">10111</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.and" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">11000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.or" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">11001</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.s.xor" extends="#instruction-cat6-a3xx-atomic-global">
+	<pattern low="54" high="58">11010</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="#instruction-cat6-a6xx-atomic-global" extends="#instruction-cat6-a3xx-atomic">
+	<doc>
+		a6xx+ global atomics which take iova in SRC1
+	</doc>
+
+	<gen min="600"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.g {DST}, {SRC1}, {SRC2}
+	</display>
+
+	<pattern low="1"  high="8"  >00000000</pattern> <!-- SRC3 -->
+	<pattern low="41" high="48" >00000000</pattern> <!-- SSBO/image binding point -->
+	<pattern pos="52"           >1</pattern> <!-- "G" -->
+	<pattern pos="53"           >0</pattern> <!-- SSBO_IM -->
+</bitset>
+
+<bitset name="atomic.g.add" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.sub" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10001</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.xchg" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10010</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.inc" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10011</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.dec" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10100</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.cmpxchg" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10101</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.min" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10110</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.max" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">10111</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.and" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">11000</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.or" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">11001</pattern>  <!-- OPC -->
+</bitset>
+
+<bitset name="atomic.g.xor" extends="#instruction-cat6-a6xx-atomic-global">
+	<pattern low="54" high="58">11010</pattern>  <!-- OPC -->
+</bitset>
 
 <!--
 	New a6xx+ encodings for potentially bindless image/ssbo:
@@ -701,6 +827,29 @@ SOFTWARE.
 	<pattern low="52" high="53">1x</pattern>
 </bitset>
 
+<bitset name="getfiberid" extends="#instruction-cat6-a6xx">
+	<doc>
+		GET Fiber ID (gl_SubgroupID)
+	</doc>
+
+	<gen min="600"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} {DST}
+	</display>
+
+	<pattern pos="0"           >0</pattern>
+	<pattern low="9"  high="10">xx</pattern>   <!-- D_MINUS_ONE -->
+	<pattern pos="11"          >x</pattern>    <!-- TYPED -->
+	<pattern low="14" high="19">100110</pattern>   <!-- OPC -->
+	<pattern low="20" high="23">11xx</pattern>
+	<pattern low="24" high="31">xxxxxxxx</pattern>    <!-- SRC2 -->
+	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
+	<pattern low="41" high="48">xxxxxxxx</pattern>  <!-- SSBO/image binding point -->
+	<field   low="49" high="51" name="TYPE" type="#type"/>
+	<pattern low="52" high="53">1x</pattern>
+</bitset>
+
 <bitset name="resinfo.b" extends="#instruction-cat6-a6xx">
 	<doc>
 		RESourceINFO - returns image/ssbo dimensions (3 components)
@@ -738,7 +887,7 @@ SOFTWARE.
 		IBO (ie. Image/SSBO) instructions
 	</doc>
 	<display>
-		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.{MODE}{BASE} {SRC1}, {SRC2}, {SSBO}
+		{SY}{JP}{NAME}.{TYPED}.{D}d.{TYPE}.{TYPE_SIZE}.{MODE}{BASE} {TYPE_HALF}{SRC1}, {SRC2}, {SSBO}
 	</display>
 
 	<derived name="D" expr="#cat6-d" type="uint"/>
@@ -848,11 +997,6 @@ SOFTWARE.
 
 <expr name="#cat6-type-size">
 	{TYPE_SIZE_MINUS_ONE} + 1
-</expr>
-
-<!-- Image/SSBO (ie. not local) -->
-<expr name="#cat6-global">
-	{G}
 </expr>
 
 <bitset name="#cat6-typed" size="1">

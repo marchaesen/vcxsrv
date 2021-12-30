@@ -40,7 +40,9 @@
 #include "mtypes.h"
 #include "glformats.h"
 #include "hash.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_texture.h"
 
 /**
  * Check if the given texture target is a legal texture object target
@@ -48,11 +50,12 @@
  * This is a bit different than legal_teximage_target() when it comes
  * to cube maps.
  */
-static bool
-legal_texobj_target(const struct gl_context *ctx, GLuint dims, GLenum target)
+bool
+_mesa_is_legal_tex_storage_target(const struct gl_context *ctx,
+                                  GLuint dims, GLenum target)
 {
    if (dims < 1 || dims > 3) {
-      _mesa_problem(ctx, "invalid dims=%u in legal_texobj_target()", dims);
+      _mesa_problem(ctx, "invalid dims=%u in _mesa_is_legal_tex_storage_target()", dims);
       return false;
    }
 
@@ -60,9 +63,8 @@ legal_texobj_target(const struct gl_context *ctx, GLuint dims, GLenum target)
    case 2:
       switch (target) {
       case GL_TEXTURE_2D:
-         return true;
       case GL_TEXTURE_CUBE_MAP:
-         return ctx->Extensions.ARB_texture_cube_map;
+         return true;
       }
       break;
    case 3:
@@ -92,9 +94,8 @@ legal_texobj_target(const struct gl_context *ctx, GLuint dims, GLenum target)
    case 2:
       switch (target) {
       case GL_PROXY_TEXTURE_2D:
-         return true;
       case GL_PROXY_TEXTURE_CUBE_MAP:
-         return ctx->Extensions.ARB_texture_cube_map;
+         return true;
       case GL_TEXTURE_RECTANGLE:
       case GL_PROXY_TEXTURE_RECTANGLE:
          return ctx->Extensions.NV_texture_rectangle;
@@ -286,7 +287,7 @@ _mesa_AllocTextureStorage_sw(struct gl_context *ctx,
    for (face = 0; face < numFaces; face++) {
       for (level = 0; level < levels; level++) {
          struct gl_texture_image *const texImage = texObj->Image[face][level];
-         if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage))
+         if (!st_AllocTextureImageBuffer(ctx, texImage))
             return GL_FALSE;
       }
    }
@@ -383,6 +384,87 @@ tex_storage_error_check(struct gl_context *ctx,
    return GL_FALSE;
 }
 
+static GLboolean
+sparse_texture_error_check(struct gl_context *ctx, GLuint dims,
+                           struct gl_texture_object *texObj,
+                           mesa_format format, GLenum target, GLsizei levels,
+                           GLsizei width, GLsizei height, GLsizei depth,
+                           bool dsa)
+{
+   const char* suffix = dsa ? "ture" : "";
+
+   int px, py, pz;
+   int index = texObj->VirtualPageSizeIndex;
+   if (!st_GetSparseTextureVirtualPageSize(ctx, target, format, index,
+                                           &px, &py, &pz)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(sparse index = %d)",
+                  suffix, dims, index);
+      return GL_TRUE;
+   }
+
+   if (target == GL_TEXTURE_3D) {
+      if (width > ctx->Const.MaxSparse3DTextureSize ||
+          height > ctx->Const.MaxSparse3DTextureSize ||
+          depth > ctx->Const.MaxSparse3DTextureSize)
+         goto exceed_max_size;
+   } else {
+      if (width > ctx->Const.MaxSparseTextureSize ||
+          height > ctx->Const.MaxSparseTextureSize)
+         goto exceed_max_size;
+
+      if (target == GL_TEXTURE_2D_ARRAY ||
+          target == GL_TEXTURE_CUBE_MAP_ARRAY) {
+         if (depth > ctx->Const.MaxSparseArrayTextureLayers)
+            goto exceed_max_size;
+      } else if (target == GL_TEXTURE_1D_ARRAY) {
+         if (height > ctx->Const.MaxSparseArrayTextureLayers)
+            goto exceed_max_size;
+      }
+   }
+
+   if (width % px || height % py || depth % pz) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glTex%sStorage%uD(sparse page size)",
+                  suffix, dims);
+      return GL_TRUE;
+   }
+
+   /* ARB_sparse_texture spec:
+    *
+    *   If the value of SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS_ARB is FALSE,
+    *   then TexStorage* will generate an INVALID_OPERATION error if
+    *     * the texture's TEXTURE_SPARSE_ARB parameter is TRUE,
+    *     * <target> is one of TEXTURE_1D_ARRAY, TEXTURE_2D_ARRAY,
+    *       TEXTURE_CUBE_MAP, or TEXTURE_CUBE_MAP_ARRAY, and
+    *     * for the virtual page size corresponding to the
+    *       VIRTUAL_PAGE_SIZE_INDEX_ARB parameter, either of the following is
+    *       true:
+    *         - <width> is not a multiple of VIRTUAL_PAGE_SIZE_X_ARB *
+    *            2^(<levels>-1), or
+    *         - <height> is not a multiple of VIRTUAL_PAGE_SIZE_Y_ARB *
+    *            2^(<levels>-1).
+    *
+    * This make sure all allocated mipmap level size is multiple of virtual
+    * page size when SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS_ARB is FALSE.
+    */
+   if (!ctx->Const.SparseTextureFullArrayCubeMipmaps &&
+       (target == GL_TEXTURE_1D_ARRAY ||
+        target == GL_TEXTURE_2D_ARRAY ||
+        target == GL_TEXTURE_CUBE_MAP ||
+        target == GL_TEXTURE_CUBE_MAP_ARRAY) &&
+       (width % (px << (levels - 1)) ||
+        height % (py << (levels - 1)))) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(sparse array align)",
+                  suffix, dims);
+      return GL_TRUE;
+   }
+
+   return GL_FALSE;
+
+exceed_max_size:
+   _mesa_error(ctx, GL_INVALID_VALUE, "glTex%sStorage%uD(exceed max sparse size)",
+               suffix, dims);
+   return GL_TRUE;
+}
 
 /**
  * Helper that does the storage allocation for _mesa_TexStorage1/2/3D()
@@ -418,8 +500,8 @@ texture_storage(struct gl_context *ctx, GLuint dims,
       dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, 0,
                                                      width, height, depth, 0);
 
-      sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, levels, 0, texFormat,
-                                             1, width, height, depth);
+      sizeOK = st_TestProxyTexImage(ctx, target, levels, 0, texFormat,
+                                    1, width, height, depth);
    }
 
    if (_mesa_is_proxy_texture(target)) {
@@ -447,6 +529,11 @@ texture_storage(struct gl_context *ctx, GLuint dims,
                         suffix, dims);
             return;
          }
+
+         if (texObj->IsSparse &&
+             sparse_texture_error_check(ctx, dims, texObj, texFormat, target, levels,
+                                        width, height, depth, dsa))
+            return; /* error was recorded */
       }
 
       assert(levels > 0);
@@ -461,18 +548,18 @@ texture_storage(struct gl_context *ctx, GLuint dims,
 
       /* Setup the backing memory */
       if (memObj) {
-         if (!ctx->Driver.SetTextureStorageForMemoryObject(ctx, texObj, memObj,
-                                                           levels,
-                                                           width, height, depth,
-                                                           offset)) {
+         if (!st_SetTextureStorageForMemoryObject(ctx, texObj, memObj,
+                                                  levels,
+                                                  width, height, depth,
+                                                  offset)) {
 
             clear_texture_fields(ctx, texObj);
             return;
          }
       }
       else {
-         if (!ctx->Driver.AllocTextureStorage(ctx, texObj, levels,
-                                              width, height, depth)) {
+         if (!st_AllocTextureStorage(ctx, texObj, levels,
+                                     width, height, depth)) {
             /* Reset the texture images' info to zeros.
              * Strictly speaking, we probably don't have to do this since
              * generating GL_OUT_OF_MEMORY can leave things in an undefined
@@ -530,7 +617,7 @@ texstorage_error(GLuint dims, GLenum target, GLsizei levels,
    /* Check target.  This is done here so that texture_storage
     * can receive unsized formats.
     */
-   if (!legal_texobj_target(ctx, dims, target)) {
+   if (!_mesa_is_legal_tex_storage_target(ctx, dims, target)) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "%s(illegal target=%s)",
                   caller, _mesa_enum_to_string(target));
@@ -605,7 +692,7 @@ texturestorage_error(GLuint dims, GLuint texture, GLsizei levels,
    /* Check target.  This is done here so that texture_storage
     * can receive unsized formats.
     */
-   if (!legal_texobj_target(ctx, dims, texObj->Target)) {
+   if (!_mesa_is_legal_tex_storage_target(ctx, dims, texObj->Target)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(illegal target=%s)", caller,
                   _mesa_enum_to_string(texObj->Target));

@@ -18,7 +18,8 @@ The unique features of the Xlib driver follows.
 X Visual Selection
 ------------------
 
-Mesa supports RGB(A) rendering into almost any X visual type and depth.
+Mesa supports RGB(A) rendering into TrueColor and DirectColor visuals, for
+any depth with a corresponding renderable OpenGL texture format.
 
 The glXChooseVisual function tries to choose the best X visual for the
 given attribute list. However, if this doesn't suit your needs you can
@@ -36,11 +37,11 @@ Here are some examples:
 
    using csh:
        % setenv MESA_RGB_VISUAL "TrueColor 8"      // 8-bit TrueColor
-       % setenv MESA_RGB_VISUAL "PseudoColor 8"    // 8-bit PseudoColor
+       % setenv MESA_RGB_VISUAL "DirectColor 30"   // 30-bit DirectColor
 
    using bash:
        $ export MESA_RGB_VISUAL="TrueColor 8"
-       $ export MESA_RGB_VISUAL="PseudoColor 8"
+       $ export MESA_RGB_VISUAL="DirectColor 30"
 
 Double Buffering
 ----------------
@@ -76,46 +77,6 @@ window. Otherwise, a new, private colormap will be allocated.
 When sharing the root colormap, Mesa may be unable to allocate the
 colors it needs, resulting in poor color quality. This can happen when a
 large number of colorcells in the root colormap are already allocated.
-
-Gamma Correction
-----------------
-
-To compensate for the nonlinear relationship between pixel values and
-displayed intensities, there is a gamma correction feature in Mesa. Some
-systems, such as Silicon Graphics, support gamma correction in hardware
-(man gamma) so you won't need to use Mesa's gamma facility. Other
-systems, however, may need gamma adjustment to produce images which look
-correct. If you believe that Mesa's images are too dim, read on.
-
-Gamma correction is controlled with the **MESA_GAMMA** environment
-variable. Its value is of the form **Gr Gg Gb** or just **G** where Gr
-is the red gamma value, Gg is the green gamma value, Gb is the blue
-gamma value and G is one gamma value to use for all three channels. Each
-value is a positive real number typically in the range 1.0 to 2.5. The
-defaults are all 1.0, effectively disabling gamma correction. Examples:
-
-.. code-block:: console
-
-   % export MESA_GAMMA="2.3 2.2 2.4"  # separate R,G,B values
-   % export MESA_GAMMA="2.0"          # same gamma for R,G,B
-
-The ``demos/gamma.c`` program in mesa/demos repository may help you to
-determine reasonable gamma value for your display. With correct gamma
-values, the color intensities displayed in the top row (drawn by
-dithering) should nearly match those in the bottom row (drawn as grays).
-
-Alex De Bruyn reports that gamma values of 1.6, 1.6 and 1.9 work well on
-HP displays using the HP-ColorRecovery technology.
-
-Mesa implements gamma correction with a lookup table which translates a
-"linear" pixel value to a gamma-corrected pixel value. There is a small
-performance penalty. Gamma correction only works in RGB mode. Also be
-aware that pixel values read back from the frame buffer will not be
-"un-corrected" so glReadPixels may not return the same data drawn with
-glDrawPixels.
-
-For more information about gamma correction, see the `Wikipedia
-article <https://en.wikipedia.org/wiki/Gamma_correction>`__
 
 Overlay Planes
 --------------

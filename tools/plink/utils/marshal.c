@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -78,7 +79,7 @@ void BinarySink_put_stringz(BinarySink *bs, const char *str)
     BinarySink_put_string(bs, str, strlen(str));
 }
 
-void BinarySink_put_stringsb(BinarySink *bs, struct strbuf *buf)
+void BinarySink_put_stringsb(BinarySink *bs, strbuf *buf)
 {
     BinarySink_put_string(bs, buf->s, buf->len);
     strbuf_free(buf);
@@ -97,6 +98,25 @@ bool BinarySink_put_pstring(BinarySink *bs, const char *str)
     BinarySink_put_byte(bs, len);
     bs->write(bs, str, len);
     return true;
+}
+
+void BinarySink_put_fmtv(BinarySink *bs, const char *fmt, va_list ap)
+{
+    if (bs->writefmtv) {
+        bs->writefmtv(bs, fmt, ap);
+    } else {
+        char *str = dupvprintf(fmt, ap);
+        bs->write(bs, str, strlen(str));
+        burnstr(str);
+    }
+}
+
+void BinarySink_put_fmt(BinarySink *bs, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    BinarySink_put_fmtv(bs, fmt, ap);
+    va_end(ap);
 }
 
 /* ---------------------------------------------------------------------- */

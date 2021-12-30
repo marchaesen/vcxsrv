@@ -67,7 +67,7 @@ fill_cbv_descriptors(struct d3d12_context *ctx,
          cbv_desc.BufferLocation = d3d12_resource_gpu_virtual_address(res) + buffer->buffer_offset;
          cbv_desc.SizeInBytes = MIN2(D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
             align(buffer->buffer_size, 256));
-         d3d12_batch_reference_resource(batch, res);
+         d3d12_batch_reference_resource(batch, res, false);
       }
 
       struct d3d12_descriptor_handle handle;
@@ -105,6 +105,13 @@ fill_srv_descriptors(struct d3d12_context *ctx,
          descs[desc_idx] = view->handle.cpu_handle;
          d3d12_batch_reference_sampler_view(batch, view);
 
+         struct d3d12_resource *res = d3d12_resource(view->base.texture);
+         /* If this is a buffer that's been replaced, re-create the descriptor */
+         if (view->texture_generation_id != res->generation_id) {
+            d3d12_init_sampler_view_descriptor(view);
+            view->texture_generation_id = res->generation_id;
+         }
+
          D3D12_RESOURCE_STATES state = (stage == PIPE_SHADER_FRAGMENT) ?
                                        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE :
                                        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
@@ -127,6 +134,45 @@ fill_srv_descriptors(struct d3d12_context *ctx,
    }
 
    d3d12_descriptor_heap_append_handles(batch->view_heap, descs, shader->end_srv_binding - shader->begin_srv_binding);
+
+   return table_start.gpu_handle;
+}
+
+static D3D12_GPU_DESCRIPTOR_HANDLE
+fill_uav_descriptors(struct d3d12_context *ctx,
+                     const struct d3d12_shader *shader,
+                     int stage)
+{
+   struct d3d12_batch *batch = d3d12_current_batch(ctx);
+   struct d3d12_descriptor_handle table_start;
+
+   d2d12_descriptor_heap_get_next_handle(batch->view_heap, &table_start);
+
+   for (unsigned i = 0; i < shader->nir->info.num_ssbos; i++)
+   {
+      struct pipe_shader_buffer *view = &ctx->ssbo_views[stage][i];
+
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc;
+      uav_desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+      uav_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+      uav_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+      uav_desc.Buffer.StructureByteStride = 0;
+      uav_desc.Buffer.CounterOffsetInBytes = 0;
+      ID3D12Resource *d3d12_res = nullptr;
+      if (view->buffer) {
+         struct d3d12_resource *res = d3d12_resource(view->buffer);
+         uint64_t res_offset = 0;
+         d3d12_res = d3d12_resource_underlying(res, &res_offset);
+         d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_BIND_INVALIDATE_NONE);
+         uav_desc.Buffer.FirstElement = (view->buffer_offset + res_offset) / 4;
+         uav_desc.Buffer.NumElements = DIV_ROUND_UP(view->buffer_size, 4);
+         d3d12_batch_reference_resource(batch, res, true);
+      }
+
+      struct d3d12_descriptor_handle handle;
+      d3d12_descriptor_heap_alloc_handle(batch->view_heap, &handle);
+      d3d12_screen(ctx->base.screen)->dev->CreateUnorderedAccessView(d3d12_res, nullptr, &uav_desc, handle.cpu_handle);
+   }
 
    return table_start.gpu_handle;
 }
@@ -222,6 +268,7 @@ check_descriptors_left(struct d3d12_context *ctx)
 
       needed_descs += shader->current->num_cb_bindings;
       needed_descs += shader->current->end_srv_binding - shader->current->begin_srv_binding;
+      needed_descs += shader->current->nir->info.num_ssbos;
    }
 
    if (d3d12_descriptor_heap_get_remaining_handles(batch->view_heap) < needed_descs)
@@ -243,7 +290,7 @@ check_descriptors_left(struct d3d12_context *ctx)
    return true;
 }
 
-#define MAX_DESCRIPTOR_TABLES (D3D12_GFX_SHADER_STAGES * 3)
+#define MAX_DESCRIPTOR_TABLES (D3D12_GFX_SHADER_STAGES * 4)
 
 static unsigned
 update_graphics_root_parameters(struct d3d12_context *ctx,
@@ -291,6 +338,14 @@ update_graphics_root_parameters(struct d3d12_context *ctx,
          uint32_t constants[D3D12_MAX_STATE_VARS * 4];
          unsigned size = fill_state_vars(ctx, dinfo, draw, shader, constants);
          ctx->cmdlist->SetGraphicsRoot32BitConstants(num_params, size, constants, 0);
+         num_params++;
+      }
+      if (shader->nir->info.num_ssbos > 0) {
+         if (dirty & D3D12_SHADER_DIRTY_UAVS) {
+            assert(num_root_desciptors < MAX_DESCRIPTOR_TABLES);
+            root_desc_tables[num_root_desciptors] = fill_uav_descriptors(ctx, shader, i);
+            root_desc_indices[num_root_desciptors++] = num_params;
+         }
          num_params++;
       }
    }
@@ -393,7 +448,7 @@ transition_surface_subresources_state(struct d3d12_context *ctx,
 {
    struct d3d12_resource *res = d3d12_resource(pres);
    unsigned start_layer, num_layers;
-   if (!d3d12_subresource_id_uses_layer(res->base.target)) {
+   if (!d3d12_subresource_id_uses_layer(res->base.b.target)) {
       start_layer = 0;
       num_layers = 1;
    } else {
@@ -479,7 +534,7 @@ d3d12_draw_vbo(struct pipe_context *pctx,
    for (int i = 0; i < ctx->fb.nr_cbufs; ++i) {
       if (ctx->fb.cbufs[i]) {
          struct d3d12_surface *surface = d3d12_surface(ctx->fb.cbufs[i]);
-         conversion_modes[i] = d3d12_surface_update_pre_draw(surface, d3d12_rtv_format(ctx, i));
+         conversion_modes[i] = d3d12_surface_update_pre_draw(pctx, surface, d3d12_rtv_format(ctx, i));
          if (conversion_modes[i] != D3D12_SURFACE_CONVERSION_NONE)
             ctx->cmdlist_dirty |= D3D12_DIRTY_FRAMEBUFFER;
       }
@@ -647,7 +702,7 @@ d3d12_draw_vbo(struct pipe_context *pctx,
          struct d3d12_resource *res = d3d12_resource(ctx->vbs[i].buffer.resource);
          d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_BIND_INVALIDATE_NONE);
          if (ctx->cmdlist_dirty & D3D12_DIRTY_VERTEX_BUFFERS)
-            d3d12_batch_reference_resource(batch, res);
+            d3d12_batch_reference_resource(batch, res, false);
       }
    }
    if (ctx->cmdlist_dirty & D3D12_DIRTY_VERTEX_BUFFERS)
@@ -657,13 +712,13 @@ d3d12_draw_vbo(struct pipe_context *pctx,
       D3D12_INDEX_BUFFER_VIEW ibv;
       struct d3d12_resource *res = d3d12_resource(index_buffer);
       ibv.BufferLocation = d3d12_resource_gpu_virtual_address(res) + index_offset;
-      ibv.SizeInBytes = res->base.width0 - index_offset;
+      ibv.SizeInBytes = res->base.b.width0 - index_offset;
       ibv.Format = ib_format(dinfo->index_size);
       d3d12_transition_resource_state(ctx, res, D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_BIND_INVALIDATE_NONE);
       if (ctx->cmdlist_dirty & D3D12_DIRTY_INDEX_BUFFER ||
           memcmp(&ctx->ibv, &ibv, sizeof(D3D12_INDEX_BUFFER_VIEW)) != 0) {
          ctx->ibv = ibv;
-         d3d12_batch_reference_resource(batch, res);
+         d3d12_batch_reference_resource(batch, res, false);
          ctx->cmdlist->IASetIndexBuffer(&ibv);
       }
 
@@ -707,8 +762,8 @@ d3d12_draw_vbo(struct pipe_context *pctx,
       d3d12_resource_make_writeable(pctx, target->base.buffer);
 
       if (ctx->cmdlist_dirty & D3D12_DIRTY_STREAM_OUTPUT) {
-         d3d12_batch_reference_resource(batch, so_buffer);
-         d3d12_batch_reference_resource(batch, fill_buffer);
+         d3d12_batch_reference_resource(batch, so_buffer, true);
+         d3d12_batch_reference_resource(batch, fill_buffer, true);
       }
 
       d3d12_transition_resource_state(ctx, so_buffer, D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_BIND_INVALIDATE_NONE);
@@ -759,7 +814,7 @@ d3d12_draw_vbo(struct pipe_context *pctx,
    for (int i = 0; i < ctx->fb.nr_cbufs; ++i) {
       if (ctx->fb.cbufs[i]) {
          struct d3d12_surface *surface = d3d12_surface(ctx->fb.cbufs[i]);
-         d3d12_surface_update_post_draw(surface, conversion_modes[i]);
+         d3d12_surface_update_post_draw(pctx, surface, conversion_modes[i]);
       }
    }
 }

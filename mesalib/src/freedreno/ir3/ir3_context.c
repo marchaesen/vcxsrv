@@ -35,14 +35,13 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader_variant *so)
 {
    struct ir3_context *ctx = rzalloc(NULL, struct ir3_context);
 
-   if (compiler->gen >= 4) {
+   if (compiler->gen == 4) {
       if (so->type == MESA_SHADER_VERTEX) {
          ctx->astc_srgb = so->key.vastc_srgb;
       } else if (so->type == MESA_SHADER_FRAGMENT) {
          ctx->astc_srgb = so->key.fastc_srgb;
       }
-
-   } else {
+   } else if (compiler->gen == 3) {
       if (so->type == MESA_SHADER_VERTEX) {
          ctx->samples = so->key.vsamples;
       } else if (so->type == MESA_SHADER_FRAGMENT) {

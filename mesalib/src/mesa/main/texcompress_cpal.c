@@ -38,6 +38,7 @@
 #include "pixelstore.h"
 #include "texcompress_cpal.h"
 #include "teximage.h"
+#include "api_exec_decl.h"
 
 
 static const struct cpal_format_info {

@@ -74,22 +74,6 @@ _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
    rb->Format = MESA_FORMAT_NONE;
 }
 
-
-/**
- * Allocate a new gl_renderbuffer object.  This can be used for user-created
- * renderbuffers or window-system renderbuffers.
- */
-struct gl_renderbuffer *
-_mesa_new_renderbuffer(struct gl_context *ctx, GLuint name)
-{
-   struct gl_renderbuffer *rb = CALLOC_STRUCT(gl_renderbuffer);
-   if (rb) {
-      _mesa_init_renderbuffer(rb, name);
-   }
-   return rb;
-}
-
-
 /**
  * Delete a gl_framebuffer.
  * This is the default function for renderbuffer->Delete().

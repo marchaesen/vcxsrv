@@ -40,8 +40,6 @@
 #include "macros.h"
 #include "pbo.h"
 
-
-
 /**
  * When we're about to read pixel data out of a PBO (via glDrawPixels,
  * glTexImage, etc) or write data into a PBO (via glReadPixels,
@@ -153,11 +151,11 @@ _mesa_map_pbo_source(struct gl_context *ctx,
 
    if (unpack->BufferObj) {
       /* unpack from PBO */
-      buf = (GLubyte *) ctx->Driver.MapBufferRange(ctx, 0,
-						   unpack->BufferObj->Size,
-						   GL_MAP_READ_BIT,
-						   unpack->BufferObj,
-                                                   MAP_INTERNAL);
+      buf = (GLubyte *) _mesa_bufferobj_map_range(ctx, 0,
+                                                  unpack->BufferObj->Size,
+                                                  GL_MAP_READ_BIT,
+                                                  unpack->BufferObj,
+                                                  MAP_INTERNAL);
       if (!buf)
          return NULL;
 
@@ -285,7 +283,7 @@ _mesa_unmap_pbo_source(struct gl_context *ctx,
 {
    assert(unpack != &ctx->Pack); /* catch pack/unpack mismatch */
    if (unpack->BufferObj) {
-      ctx->Driver.UnmapBuffer(ctx, unpack->BufferObj, MAP_INTERNAL);
+      _mesa_bufferobj_unmap(ctx, unpack->BufferObj, MAP_INTERNAL);
    }
 }
 
@@ -307,11 +305,11 @@ _mesa_map_pbo_dest(struct gl_context *ctx,
 
    if (pack->BufferObj) {
       /* pack into PBO */
-      buf = (GLubyte *) ctx->Driver.MapBufferRange(ctx, 0,
-						   pack->BufferObj->Size,
-						   GL_MAP_WRITE_BIT,
-						   pack->BufferObj,
-                                                   MAP_INTERNAL);
+      buf = (GLubyte *) _mesa_bufferobj_map_range(ctx, 0,
+                                                  pack->BufferObj->Size,
+                                                  GL_MAP_WRITE_BIT,
+                                                  pack->BufferObj,
+                                                  MAP_INTERNAL);
       if (!buf)
          return NULL;
 
@@ -382,7 +380,7 @@ _mesa_unmap_pbo_dest(struct gl_context *ctx,
 {
    assert(pack != &ctx->Unpack); /* catch pack/unpack mismatch */
    if (pack->BufferObj) {
-      ctx->Driver.UnmapBuffer(ctx, pack->BufferObj, MAP_INTERNAL);
+      _mesa_bufferobj_unmap(ctx, pack->BufferObj, MAP_INTERNAL);
    }
 }
 
@@ -413,11 +411,11 @@ _mesa_validate_pbo_teximage(struct gl_context *ctx, GLuint dimensions,
       return NULL;
    }
 
-   buf = (GLubyte *) ctx->Driver.MapBufferRange(ctx, 0,
-                                                unpack->BufferObj->Size,
-						GL_MAP_READ_BIT,
-						unpack->BufferObj,
-                                                MAP_INTERNAL);
+   buf = (GLubyte *) _mesa_bufferobj_map_range(ctx, 0,
+                                               unpack->BufferObj->Size,
+                                               GL_MAP_READ_BIT,
+                                               unpack->BufferObj,
+                                               MAP_INTERNAL);
    if (!buf) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s%uD(PBO is mapped)", funcName,
                   dimensions);
@@ -455,11 +453,11 @@ _mesa_validate_pbo_compressed_teximage(struct gl_context *ctx,
       return pixels;
    }
 
-   buf = (GLubyte*) ctx->Driver.MapBufferRange(ctx, 0,
-					       packing->BufferObj->Size,
-					       GL_MAP_READ_BIT,
-					       packing->BufferObj,
-                                               MAP_INTERNAL);
+   buf = (GLubyte*) _mesa_bufferobj_map_range(ctx, 0,
+                                              packing->BufferObj->Size,
+                                              GL_MAP_READ_BIT,
+                                              packing->BufferObj,
+                                              MAP_INTERNAL);
 
    /* Validation above already checked that PBO is not mapped, so buffer
     * should not be null.
@@ -479,6 +477,6 @@ _mesa_unmap_teximage_pbo(struct gl_context *ctx,
                          const struct gl_pixelstore_attrib *unpack)
 {
    if (unpack->BufferObj) {
-      ctx->Driver.UnmapBuffer(ctx, unpack->BufferObj, MAP_INTERNAL);
+      _mesa_bufferobj_unmap(ctx, unpack->BufferObj, MAP_INTERNAL);
    }
 }

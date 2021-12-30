@@ -32,7 +32,7 @@ TOOL=$(srcdir)/$(DIR).py
 noinst_SCRIPTS = $(TOOL)
 EXTRA_DIST = $(TARG) $(TMPL) $(DIST)
 
-$(TARG): $(TMPL) $(TOOL)
+$(TARG): $(TMPL) $(TOOL) $(DEPS)
 	$(AM_V_GEN) \
 	$(RM) $(TARG) && \
 	$(PYTHON) $(TOOL) $(ARGS) --template $< --output $(TARG).tmp && \

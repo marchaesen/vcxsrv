@@ -45,7 +45,7 @@ struct radv_shader_context {
    const struct nir_shader *shader;
    struct ac_shader_abi abi;
    const struct radv_nir_compiler_options *options;
-   struct radv_shader_info *shader_info;
+   const struct radv_shader_info *shader_info;
    const struct radv_shader_args *args;
 
    gl_shader_stage stage;
@@ -113,7 +113,7 @@ create_llvm_function(struct ac_llvm_context *ctx, LLVMModuleRef module, LLVMBuil
 static void
 load_descriptor_sets(struct radv_shader_context *ctx)
 {
-   struct radv_userdata_locations *user_sgprs_locs = &ctx->shader_info->user_sgprs_locs;
+   const struct radv_userdata_locations *user_sgprs_locs = &ctx->shader_info->user_sgprs_locs;
    uint32_t mask = ctx->shader_info->desc_set_used_mask;
 
    if (user_sgprs_locs->shader_data[AC_UD_INDIRECT_DESCRIPTOR_SETS].sgpr_idx != -1) {
@@ -1168,7 +1168,7 @@ radv_emit_streamout(struct radv_shader_context *ctx, unsigned stream)
       /* Write streamout data. */
       for (i = 0; i < ctx->shader_info->so.num_outputs; i++) {
          struct radv_shader_output_values shader_out = {0};
-         struct radv_stream_output *output = &ctx->shader_info->so.outputs[i];
+         const struct radv_stream_output *output = &ctx->shader_info->so.outputs[i];
 
          if (stream != output->stream)
             continue;
@@ -1185,7 +1185,7 @@ radv_emit_streamout(struct radv_shader_context *ctx, unsigned stream)
 
 static void
 radv_build_param_exports(struct radv_shader_context *ctx, struct radv_shader_output_values *outputs,
-                         unsigned noutput, struct radv_vs_output_info *outinfo,
+                         unsigned noutput, const struct radv_vs_output_info *outinfo,
                          bool export_clip_dists)
 {
    for (unsigned i = 0; i < noutput; i++) {
@@ -1211,7 +1211,8 @@ radv_build_param_exports(struct radv_shader_context *ctx, struct radv_shader_out
  */
 static void
 radv_llvm_export_vs(struct radv_shader_context *ctx, struct radv_shader_output_values *outputs,
-                    unsigned noutput, struct radv_vs_output_info *outinfo, bool export_clip_dists)
+                    unsigned noutput, const struct radv_vs_output_info *outinfo,
+                    bool export_clip_dists)
 {
    LLVMValueRef psize_value = NULL, layer_value = NULL, viewport_value = NULL;
    LLVMValueRef primitive_shading_rate = NULL;
@@ -1353,7 +1354,7 @@ radv_llvm_export_vs(struct radv_shader_context *ctx, struct radv_shader_output_v
 
 static void
 handle_vs_outputs_post(struct radv_shader_context *ctx, bool export_prim_id, bool export_clip_dists,
-                       struct radv_vs_output_info *outinfo)
+                       const struct radv_vs_output_info *outinfo)
 {
    struct radv_shader_output_values *outputs;
    unsigned noutput = 0;
@@ -1659,9 +1660,9 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
    /* Export per-vertex data (positions and parameters). */
    ac_build_ifcc(&ctx->ac, is_es_thread, 6002);
    {
-      struct radv_vs_output_info *outinfo = ctx->stage == MESA_SHADER_TESS_EVAL
-                                               ? &ctx->shader_info->tes.outinfo
-                                               : &ctx->shader_info->vs.outinfo;
+      const struct radv_vs_output_info *outinfo = ctx->stage == MESA_SHADER_TESS_EVAL
+                                                  ? &ctx->shader_info->tes.outinfo
+                                                  : &ctx->shader_info->vs.outinfo;
 
       /* Exporting the primitive ID is handled below. */
       /* TODO: use the new VS export path */
@@ -1937,7 +1938,7 @@ gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
    tmp = LLVMBuildICmp(builder, LLVMIntULT, tid, vertlive_scan.result_reduce, "");
    ac_build_ifcc(&ctx->ac, tmp, 5145);
    {
-      struct radv_vs_output_info *outinfo = &ctx->shader_info->vs.outinfo;
+      const struct radv_vs_output_info *outinfo = &ctx->shader_info->vs.outinfo;
       bool export_view_index = ctx->options->key.has_multiview_view_index;
       struct radv_shader_output_values *outputs;
       unsigned noutput = 0;
@@ -2221,36 +2222,6 @@ ac_llvm_finalize_module(struct radv_shader_context *ctx, LLVMPassManagerRef pass
 }
 
 static void
-ac_nir_eliminate_const_vs_outputs(struct radv_shader_context *ctx)
-{
-   struct radv_vs_output_info *outinfo;
-
-   switch (ctx->stage) {
-   case MESA_SHADER_FRAGMENT:
-   case MESA_SHADER_COMPUTE:
-   case MESA_SHADER_TESS_CTRL:
-   case MESA_SHADER_GEOMETRY:
-      return;
-   case MESA_SHADER_VERTEX:
-      if (ctx->shader_info->vs.as_ls ||
-          ctx->shader_info->vs.as_es)
-         return;
-      outinfo = &ctx->shader_info->vs.outinfo;
-      break;
-   case MESA_SHADER_TESS_EVAL:
-      if (ctx->shader_info->tes.as_es)
-         return;
-      outinfo = &ctx->shader_info->tes.outinfo;
-      break;
-   default:
-      unreachable("Unhandled shader type");
-   }
-
-   ac_optimize_vs_outputs(&ctx->ac, ctx->main_function, outinfo->vs_output_param_offset,
-                          VARYING_SLOT_MAX, 0, &outinfo->param_exports);
-}
-
-static void
 ac_setup_rings(struct radv_shader_context *ctx)
 {
    if (ctx->options->chip_class <= GFX8 &&
@@ -2387,7 +2358,7 @@ declare_esgs_ring(struct radv_shader_context *ctx)
 static LLVMModuleRef
 ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
                          const struct radv_nir_compiler_options *options,
-                         struct radv_shader_info *info,
+                         const struct radv_shader_info *info,
                          struct nir_shader *const *shaders, int shader_count,
                          const struct radv_shader_args *args)
 {
@@ -2428,6 +2399,7 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
    ctx.abi.clamp_shadow_reference = false;
    ctx.abi.adjust_frag_coord_z = options->adjust_frag_coord_z;
    ctx.abi.robust_buffer_access = options->robust_buffer_access;
+   ctx.abi.disable_aniso_single_level = false;
 
    bool is_ngg = is_pre_gs_stage(shaders[0]->info.stage) && info->is_ngg;
    if (shader_count >= 2 || is_ngg)
@@ -2587,9 +2559,6 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 
    ac_llvm_finalize_module(&ctx, ac_llvm->passmgr);
 
-   if (shader_count == 1)
-      ac_nir_eliminate_const_vs_outputs(&ctx);
-
    return ctx.ac.module;
 }
 
@@ -2677,7 +2646,7 @@ ac_compile_llvm_module(struct ac_llvm_compiler *ac_llvm, LLVMModuleRef llvm_modu
 static void
 radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm,
                         const struct radv_nir_compiler_options *options,
-                        struct radv_shader_info *info,
+                        const struct radv_shader_info *info,
                         struct radv_shader_binary **rbinary,
                         const struct radv_shader_args *args, struct nir_shader *const *nir,
                         int nir_count)
@@ -2780,7 +2749,7 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 static void
 radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
                             const struct radv_nir_compiler_options *options,
-                            struct radv_shader_info *info,
+                            const struct radv_shader_info *info,
                             struct nir_shader *geom_shader,
                             struct radv_shader_binary **rbinary,
                             const struct radv_shader_args *args)
@@ -2822,7 +2791,7 @@ radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
 
 void
 llvm_compile_shader(const struct radv_nir_compiler_options *options,
-                    struct radv_shader_info *info, unsigned shader_count,
+                    const struct radv_shader_info *info, unsigned shader_count,
                     struct nir_shader *const *shaders, struct radv_shader_binary **binary,
                     const struct radv_shader_args *args)
 {

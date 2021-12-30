@@ -71,6 +71,10 @@ endif
 
 if get_option('pciaccess')
     srcs_xorg_common += ['xf86pciBus.c', 'xf86VGAarbiter.c']
+
+    if host_machine.cpu() == 'sparc' or host_machine.cpu() == 'sparc64'
+        srcs_xorg_common += 'xf86sbusBus.c'
+    endif
 endif
 
 srcs_xorg_common += custom_target(

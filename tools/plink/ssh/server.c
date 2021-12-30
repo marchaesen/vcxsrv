@@ -97,17 +97,20 @@ void mainchan_terminal_size(mainchan *mc, int width, int height) {}
 
 /* Seat functions to ensure we don't get choosy about crypto - as the
  * server, it's not up to us to give user warnings */
-static int server_confirm_weak_crypto_primitive(
+static SeatPromptResult server_confirm_weak_crypto_primitive(
     Seat *seat, const char *algtype, const char *algname,
-    void (*callback)(void *ctx, int result), void *ctx) { return 1; }
-static int server_confirm_weak_cached_hostkey(
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
+{ return SPR_OK; }
+static SeatPromptResult server_confirm_weak_cached_hostkey(
     Seat *seat, const char *algname, const char *betteralgs,
-    void (*callback)(void *ctx, int result), void *ctx) { return 1; }
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
+{ return SPR_OK; }
 
 static const SeatVtable server_seat_vt = {
     .output = nullseat_output,
     .eof = nullseat_eof,
     .sent = nullseat_sent,
+    .banner = nullseat_banner,
     .get_userpass_input = nullseat_get_userpass_input,
     .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
@@ -127,6 +130,7 @@ static const SeatVtable server_seat_vt = {
     .stripctrl_new = nullseat_stripctrl_new,
     .set_trust_status = nullseat_set_trust_status,
     .can_set_trust_status = nullseat_can_set_trust_status_no,
+    .has_mixed_input_stream = nullseat_has_mixed_input_stream_no,
     .verbose = nullseat_verbose_no,
     .interactive = nullseat_interactive_no,
     .get_cursor_position = nullseat_get_cursor_position,
@@ -139,10 +143,11 @@ static void server_socket_log(Plug *plug, PlugLogType type, SockAddr *addr,
     /* FIXME */
 }
 
-static void server_closing(Plug *plug, const char *error_msg, int error_code)
+static void server_closing(Plug *plug, PlugCloseType type,
+                           const char *error_msg)
 {
     server *srv = container_of(plug, server, plug);
-    if (error_msg) {
+    if (type != PLUGCLOSE_NORMAL) {
         ssh_remote_error(&srv->ssh, "%s", error_msg);
     } else if (srv->bpp) {
         srv->bpp->input_eof = true;
@@ -374,6 +379,7 @@ static void server_connect_ppl(server *srv, PacketProtocolLayer *ppl)
     ppl->logctx = srv->logctx;
     ppl->ssh = &srv->ssh;
     ppl->seat = &srv->seat;
+    ppl->interactor = NULL;
     ppl->remote_bugs = srv->remote_bugs;
 }
 

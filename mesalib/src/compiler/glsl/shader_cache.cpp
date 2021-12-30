@@ -124,7 +124,7 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
       goto fail;
 
    for (unsigned i = 0; i < prog->NumShaders; i++) {
-      memcpy(cache_item_metadata.keys[i], prog->Shaders[i]->sha1,
+      memcpy(cache_item_metadata.keys[i], prog->Shaders[i]->disk_cache_sha1,
              sizeof(cache_key));
    }
 
@@ -204,7 +204,7 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
 
    for (unsigned i = 0; i < prog->NumShaders; i++) {
       struct gl_shader *sh = prog->Shaders[i];
-      _mesa_sha1_format(sha1buf, sh->sha1);
+      _mesa_sha1_format(sha1buf, sh->disk_cache_sha1);
       ralloc_asprintf_append(&buf, "%s: %s\n",
                              _mesa_shader_stage_to_abbrev(sh->Stage), sha1buf);
    }

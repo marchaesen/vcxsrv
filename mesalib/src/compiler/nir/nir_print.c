@@ -29,6 +29,7 @@
 #include "compiler/shader_enums.h"
 #include "util/half_float.h"
 #include "util/memstream.h"
+#include "util/mesa-sha1.h"
 #include "vulkan/vulkan_core.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,10 +111,93 @@ print_ssa_def(nir_ssa_def *def, print_state *state)
 }
 
 static void
+print_const_from_load(nir_load_const_instr *instr, print_state *state)
+{
+   FILE *fp = state->fp;
+
+   /*
+    * we don't really know the type of the constant (if it will be used as a
+    * float or an int), so just print the raw constant in hex for fidelity
+    * and then print in float again for readability.
+    */
+
+   fprintf(fp, "(");
+
+   for (unsigned i = 0; i < instr->def.num_components; i++) {
+      if (i != 0)
+         fprintf(fp, ", ");
+
+      switch (instr->def.bit_size) {
+      case 64:
+         fprintf(fp, "0x%016" PRIx64, instr->value[i].u64);
+         break;
+      case 32:
+         fprintf(fp, "0x%08x", instr->value[i].u32);
+         break;
+      case 16:
+         fprintf(fp, "0x%04x", instr->value[i].u16);
+         break;
+      case 8:
+         fprintf(fp, "0x%02x", instr->value[i].u8);
+         break;
+      case 1:
+         fprintf(fp, "%s", instr->value[i].b ? "true" : "false");
+         break;
+      }
+   }
+
+   if (instr->def.bit_size > 8) {
+      if (instr->def.num_components > 1)
+         fprintf(fp, ") = (");
+      else
+         fprintf(fp, " = ");
+
+      for (unsigned i = 0; i < instr->def.num_components; i++) {
+         if (i != 0)
+            fprintf(fp, ", ");
+
+         switch (instr->def.bit_size) {
+         case 64:
+            fprintf(fp, "%f", instr->value[i].f64);
+            break;
+         case 32:
+            fprintf(fp, "%f", instr->value[i].f32);
+            break;
+         case 16:
+            fprintf(fp, "%f", _mesa_half_to_float(instr->value[i].u16));
+            break;
+         default:
+            unreachable("unhandled bit size");
+         }
+      }
+   }
+
+   fprintf(fp, ")");
+}
+
+static void
+print_load_const_instr(nir_load_const_instr *instr, print_state *state)
+{
+   FILE *fp = state->fp;
+
+   print_ssa_def(&instr->def, state);
+
+   fprintf(fp, " = load_const ");
+
+   print_const_from_load(instr, state);
+}
+
+static void
 print_ssa_use(nir_ssa_def *def, print_state *state)
 {
    FILE *fp = state->fp;
    fprintf(fp, "ssa_%u", def->index);
+   nir_instr *instr = def->parent_instr;
+   if (instr->type == nir_instr_type_load_const && NIR_DEBUG(PRINT_CONSTS)) {
+      fprintf(fp, " /*");
+      print_const_from_load(nir_instr_as_load_const(instr), state);
+      fprintf(fp, "*/");
+   }
 }
 
 static void print_src(const nir_src *src, print_state *state);
@@ -493,8 +577,9 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const inv = (var->data.invariant) ? "invariant " : "";
    const char *const per_view = (var->data.per_view) ? "per_view " : "";
    const char *const per_primitive = (var->data.per_primitive) ? "per_primitive " : "";
-   fprintf(fp, "%s%s%s%s%s%s%s%s %s ",
-           bindless, cent, samp, patch, inv, per_view, per_primitive,
+   const char *const ray_query = (var->data.ray_query) ? "ray_query " : "";
+   fprintf(fp, "%s%s%s%s%s%s%s%s%s %s ",
+           bindless, cent, samp, patch, inv, per_view, per_primitive, ray_query,
            get_variable_mode_str(var->data.mode, false),
            glsl_interp_mode_name(var->data.interpolation));
 
@@ -505,7 +590,12 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const ronly = (access & ACCESS_NON_WRITEABLE) ? "readonly " : "";
    const char *const wonly = (access & ACCESS_NON_READABLE) ? "writeonly " : "";
    const char *const reorder = (access & ACCESS_CAN_REORDER) ? "reorderable " : "";
-   fprintf(fp, "%s%s%s%s%s%s", coher, volat, restr, ronly, wonly, reorder);
+   const char *const stream_cache_policy = (access & ACCESS_STREAM_CACHE_POLICY) ?
+                                           "stream-cache-policy " : "";
+   const char *const include_helpers = (access & ACCESS_INCLUDE_HELPERS) ?
+                                       "include-helpers " : "";
+   fprintf(fp, "%s%s%s%s%s%s%s%s", coher, volat, restr, ronly, wonly, reorder,
+           stream_cache_policy, include_helpers);
 
    if (glsl_get_base_type(glsl_without_array(var->type)) == GLSL_TYPE_IMAGE) {
       fprintf(fp, "%s ", util_format_short_name(var->data.image.format));
@@ -541,6 +631,8 @@ print_var_decl(nir_variable *var, print_state *state)
             loc = gl_varying_slot_name_for_stage(var->data.location,
                                                  state->shader->info.stage);
          break;
+      case MESA_SHADER_TASK:
+      case MESA_SHADER_MESH:
       case MESA_SHADER_GEOMETRY:
          if ((var->data.mode == nir_var_shader_in) ||
              (var->data.mode == nir_var_shader_out)) {
@@ -821,22 +913,15 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
    fprintf(fp, ") (");
 
    for (unsigned i = 0; i < info->num_indices; i++) {
+      unsigned idx = info->indices[i];
+      bool print_raw = true;
       if (i != 0)
          fprintf(fp, ", ");
-
-      fprintf(fp, "%d", instr->const_index[i]);
-   }
-
-   fprintf(fp, ")");
-
-   for (unsigned i = 0; i < info->num_indices; i++) {
-      unsigned idx = info->indices[i];
-      fprintf(fp, " /*");
       switch (idx) {
       case NIR_INTRINSIC_WRITE_MASK: {
          /* special case wrmask to show it as a writemask.. */
          unsigned wrmask = nir_intrinsic_write_mask(instr);
-         fprintf(fp, " wrmask=");
+         fprintf(fp, "wrmask=");
          for (unsigned i = 0; i < instr->num_components; i++)
             if ((wrmask >> i) & 1)
                fprintf(fp, "%c", comp_mask_string(instr->num_components)[i]);
@@ -845,7 +930,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
 
       case NIR_INTRINSIC_REDUCTION_OP: {
          nir_op reduction_op = nir_intrinsic_reduction_op(instr);
-         fprintf(fp, " reduction_op=%s", nir_op_infos[reduction_op].name);
+         fprintf(fp, "reduction_op=%s", nir_op_infos[reduction_op].name);
          break;
       }
 
@@ -863,42 +948,42 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          };
          enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
          assert(dim < ARRAY_SIZE(dim_name) && dim_name[dim]);
-         fprintf(fp, " image_dim=%s", dim_name[dim]);
+         fprintf(fp, "image_dim=%s", dim_name[dim]);
          break;
       }
 
       case NIR_INTRINSIC_IMAGE_ARRAY: {
          bool array = nir_intrinsic_image_array(instr);
-         fprintf(fp, " image_array=%s", array ? "true" : "false");
+         fprintf(fp, "image_array=%s", array ? "true" : "false");
          break;
       }
 
       case NIR_INTRINSIC_FORMAT: {
          enum pipe_format format = nir_intrinsic_format(instr);
-         fprintf(fp, " format=%s ", util_format_short_name(format));
+         fprintf(fp, "format=%s", util_format_short_name(format));
          break;
       }
 
       case NIR_INTRINSIC_DESC_TYPE: {
          VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
-         fprintf(fp, " desc_type=%s", vulkan_descriptor_type_name(desc_type));
+         fprintf(fp, "desc_type=%s", vulkan_descriptor_type_name(desc_type));
          break;
       }
 
       case NIR_INTRINSIC_SRC_TYPE: {
-         fprintf(fp, " src_type=");
+         fprintf(fp, "src_type=");
          print_alu_type(nir_intrinsic_src_type(instr), state);
          break;
       }
 
       case NIR_INTRINSIC_DEST_TYPE: {
-         fprintf(fp, " dest_type=");
+         fprintf(fp, "dest_type=");
          print_alu_type(nir_intrinsic_dest_type(instr), state);
          break;
       }
 
       case NIR_INTRINSIC_SWIZZLE_MASK: {
-         fprintf(fp, " swizzle_mask=");
+         fprintf(fp, "swizzle_mask=");
          unsigned mask = nir_intrinsic_swizzle_mask(instr);
          if (instr->intrinsic == nir_intrinsic_quad_swizzle_amd) {
             for (unsigned i = 0; i < 4; i++)
@@ -915,7 +1000,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
 
       case NIR_INTRINSIC_MEMORY_SEMANTICS: {
          nir_memory_semantics semantics = nir_intrinsic_memory_semantics(instr);
-         fprintf(fp, " mem_semantics=");
+         fprintf(fp, "mem_semantics=");
          switch (semantics & (NIR_MEMORY_ACQUIRE | NIR_MEMORY_RELEASE)) {
          case 0:                  fprintf(fp, "NONE");    break;
          case NIR_MEMORY_ACQUIRE: fprintf(fp, "ACQ");     break;
@@ -928,7 +1013,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       }
 
       case NIR_INTRINSIC_MEMORY_MODES: {
-         fprintf(fp, " mem_modes=");
+         fprintf(fp, "mem_modes=");
          unsigned int modes = nir_intrinsic_memory_modes(instr);
          while (modes) {
             nir_variable_mode m = u_bit_scan(&modes);
@@ -939,7 +1024,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
 
       case NIR_INTRINSIC_EXECUTION_SCOPE:
       case NIR_INTRINSIC_MEMORY_SCOPE: {
-         fprintf(fp, " %s=", nir_intrinsic_index_names[idx]);
+         fprintf(fp, "%s=", nir_intrinsic_index_names[idx]);
          nir_scope scope =
             idx == NIR_INTRINSIC_MEMORY_SCOPE ? nir_intrinsic_memory_scope(instr)
                                               : nir_intrinsic_execution_scope(instr);
@@ -955,46 +1040,44 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          break;
       }
 
-      case NIR_INTRINSIC_IO_SEMANTICS:
-         fprintf(fp, " location=%u slots=%u",
-                 nir_intrinsic_io_semantics(instr).location,
-                 nir_intrinsic_io_semantics(instr).num_slots);
-         if (state->shader) {
-            if (state->shader->info.stage == MESA_SHADER_FRAGMENT &&
-                instr->intrinsic == nir_intrinsic_store_output &&
-                nir_intrinsic_io_semantics(instr).dual_source_blend_index) {
-               fprintf(fp, " dualsrc=1");
+      case NIR_INTRINSIC_IO_SEMANTICS: {
+         struct nir_io_semantics io = nir_intrinsic_io_semantics(instr);
+         fprintf(fp, "io location=%u slots=%u", io.location, io.num_slots);
+
+         if (io.dual_source_blend_index)
+            fprintf(fp, " dualsrc");
+
+         if (io.fb_fetch_output)
+            fprintf(fp, " fbfetch");
+
+         if (io.per_view)
+            fprintf(fp, " perview");
+
+         if (io.medium_precision)
+            fprintf(fp, " mediump");
+
+         if (io.high_16bits)
+            fprintf(fp, " high_16bits");
+
+         if (state->shader &&
+               state->shader->info.stage == MESA_SHADER_GEOMETRY &&
+               (instr->intrinsic == nir_intrinsic_store_output ||
+                instr->intrinsic == nir_intrinsic_store_per_primitive_output ||
+                instr->intrinsic == nir_intrinsic_store_per_vertex_output)) {
+            unsigned gs_streams = io.gs_streams;
+            fprintf(fp, " gs_streams(");
+            for (unsigned i = 0; i < 4; i++) {
+               fprintf(fp, "%s%c=%u", i ? " " : "", "xyzw"[i],
+                       (gs_streams >> (i * 2)) & 0x3);
             }
-            if (state->shader->info.stage == MESA_SHADER_FRAGMENT &&
-                instr->intrinsic == nir_intrinsic_load_output &&
-                nir_intrinsic_io_semantics(instr).fb_fetch_output) {
-               fprintf(fp, " fbfetch=1");
-            }
-            if (instr->intrinsic == nir_intrinsic_store_output &&
-                nir_intrinsic_io_semantics(instr).per_view) {
-               fprintf(fp, " perview=1");
-            }
-            if (state->shader->info.stage == MESA_SHADER_GEOMETRY &&
-                instr->intrinsic == nir_intrinsic_store_output) {
-               unsigned gs_streams = nir_intrinsic_io_semantics(instr).gs_streams;
-               fprintf(fp, " gs_streams(");
-               for (unsigned i = 0; i < 4; i++) {
-                  fprintf(fp, "%s%c=%u", i ? " " : "", "xyzw"[i],
-                          (gs_streams >> (i * 2)) & 0x3);
-               }
-               fprintf(fp, ")");
-            }
-            if (nir_intrinsic_io_semantics(instr).medium_precision) {
-               fprintf(fp, " mediump");
-            }
-            if (nir_intrinsic_io_semantics(instr).high_16bits) {
-               fprintf(fp, " high_16bits");
-            }
+            fprintf(fp, ")");
          }
+
          break;
+      }
 
       case NIR_INTRINSIC_ROUNDING_MODE: {
-         fprintf(fp, " rounding_mode=");
+         fprintf(fp, "rounding_mode=");
          switch (nir_intrinsic_rounding_mode(instr)) {
          case nir_rounding_mode_undef: fprintf(fp, "undef");   break;
          case nir_rounding_mode_rtne:  fprintf(fp, "rtne");    break;
@@ -1008,12 +1091,15 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
 
       default: {
          unsigned off = info->index_map[idx] - 1;
-         fprintf(fp, " %s=%d", nir_intrinsic_index_names[idx], instr->const_index[off]);
+         fprintf(fp, "%s=%d", nir_intrinsic_index_names[idx], instr->const_index[off]);
+         print_raw = false;
          break;
       }
       }
-      fprintf(fp, " */");
+      if (print_raw)
+         fprintf(fp, " /*%d*/", instr->const_index[i]);
    }
+   fprintf(fp, ")");
 
    if (!state->shader)
       return;
@@ -1245,49 +1331,6 @@ print_call_instr(nir_call_instr *instr, print_state *state)
 
       print_src(&instr->params[i], state);
    }
-}
-
-static void
-print_load_const_instr(nir_load_const_instr *instr, print_state *state)
-{
-   FILE *fp = state->fp;
-
-   print_ssa_def(&instr->def, state);
-
-   fprintf(fp, " = load_const (");
-
-   for (unsigned i = 0; i < instr->def.num_components; i++) {
-      if (i != 0)
-         fprintf(fp, ", ");
-
-      /*
-       * we don't really know the type of the constant (if it will be used as a
-       * float or an int), so just print the raw constant in hex for fidelity
-       * and then print the float in a comment for readability.
-       */
-
-      switch (instr->def.bit_size) {
-      case 64:
-         fprintf(fp, "0x%016" PRIx64 " /* %f */", instr->value[i].u64,
-                 instr->value[i].f64);
-         break;
-      case 32:
-         fprintf(fp, "0x%08x /* %f */", instr->value[i].u32, instr->value[i].f32);
-         break;
-      case 16:
-         fprintf(fp, "0x%04x /* %f */", instr->value[i].u16,
-                 _mesa_half_to_float(instr->value[i].u16));
-         break;
-      case 8:
-         fprintf(fp, "0x%02x", instr->value[i].u8);
-         break;
-      case 1:
-         fprintf(fp, "%s", instr->value[i].b ? "true" : "false");
-         break;
-      }
-   }
-
-   fprintf(fp, ")");
 }
 
 static void
@@ -1604,6 +1647,10 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
 
    fprintf(fp, "shader: %s\n", gl_shader_stage_name(shader->info.stage));
 
+   fprintf(fp, "source_sha1: {");
+   _mesa_sha1_print(fp, shader->info.source_sha1);
+   fprintf(fp, "}\n");
+
    if (shader->info.name)
       fprintf(fp, "name: %s\n", shader->info.name);
 
@@ -1625,6 +1672,7 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
    if (shader->info.num_ubos)
       fprintf(fp, "ubos: %u\n", shader->info.num_ubos);
    fprintf(fp, "shared: %u\n", shader->info.shared_size);
+   fprintf(fp, "ray queries: %u\n", shader->info.ray_queries);
    if (shader->scratch_size)
       fprintf(fp, "scratch: %u\n", shader->scratch_size);
    if (shader->constant_data_size)
@@ -1638,6 +1686,10 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
       fprintf(fp, "output primitive: %s\n", primitive_name(shader->info.gs.output_primitive));
       fprintf(fp, "active_stream_mask: 0x%x\n", shader->info.gs.active_stream_mask);
       fprintf(fp, "uses_end_primitive: %u\n", shader->info.gs.uses_end_primitive);
+   } else if (shader->info.stage == MESA_SHADER_MESH) {
+      fprintf(fp, "output primitive: %s\n", primitive_name(shader->info.mesh.primitive_type));
+      fprintf(fp, "max primitives out: %u\n", shader->info.mesh.max_primitives_out);
+      fprintf(fp, "max vertices out: %u\n", shader->info.mesh.max_vertices_out);
    }
 
    nir_foreach_variable_in_shader(var, shader)

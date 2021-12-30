@@ -178,6 +178,26 @@ loader_open_render_node(const char *name)
    return fd;
 }
 
+char *
+loader_get_render_node(dev_t device)
+{
+   char *render_node = NULL;
+   drmDevicePtr dev_ptr;
+
+   if (drmGetDeviceFromDevId(device, 0, &dev_ptr) < 0)
+      return NULL;
+
+   if (dev_ptr->available_nodes & (1 << DRM_NODE_RENDER)) {
+      render_node = strdup(dev_ptr->nodes[DRM_NODE_RENDER]);
+      if (!render_node)
+         log_(_LOADER_DEBUG, "MESA-LOADER: failed to allocate memory for render node\n");
+   }
+
+   drmFreeDevice(&dev_ptr);
+
+   return render_node;
+}
+
 #ifdef USE_DRICONF
 static const driOptionDescription __driConfigOptionsLoader[] = {
     DRI_CONF_SECTION_INITIALIZATION
@@ -374,6 +394,12 @@ int
 loader_open_render_node(const char *name)
 {
    return -1;
+}
+
+char *
+loader_get_render_node(dev_t device)
+{
+   return NULL;
 }
 
 int loader_get_user_preferred_fd(int default_fd, bool *different_device)

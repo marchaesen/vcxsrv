@@ -51,9 +51,6 @@ struct fd5_context {
    struct u_upload_mgr *border_color_uploader;
    struct pipe_resource *border_color_buf;
 
-   /* bitmask of samplers which need astc srgb workaround: */
-   uint16_t vastc_srgb, fastc_srgb;
-
    /* storage for ctx->last.key: */
    struct ir3_shader_key last_key;
 

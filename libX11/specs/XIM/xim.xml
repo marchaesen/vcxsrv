@@ -1543,12 +1543,12 @@ XIM_ENCODING_NEGOTIATION (IM library -&gt; IM Server).sp 6p
      p                            unused, p = Pad(n)
      2     m                      byte length of encodings listed by detailed data
      2                            unused
-     m     LISTofENCODINGINFO     list of encordings supported in the IM library
+     m     LISTofENCODINGINFO     list of encodings supported in the IM library
 </literallayout>
 
 <para>
 The IM Server must choose one encoding from the list sent by the IM library.
-If index of the encording determined is -1 to indicate that the negotiation
+If index of the encoding determined is -1 to indicate that the negotiation
 is failed, the fallback default encoding is used.
 The message must be issued after sending
 <function>XIM_OPEN</function> message via XOpenIM().

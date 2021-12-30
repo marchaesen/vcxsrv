@@ -188,6 +188,8 @@ struct ir3_context_funcs {
                                           struct ir3_instruction **dst);
    void (*emit_intrinsic_store_global_ir3)(struct ir3_context *ctx,
                                            nir_intrinsic_instr *intr);
+   struct ir3_instruction *(*emit_intrinsic_atomic_global)(
+      struct ir3_context *ctx, nir_intrinsic_instr *intr);
 };
 
 extern const struct ir3_context_funcs ir3_a4xx_funcs;

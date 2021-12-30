@@ -702,11 +702,11 @@ bi_collect_blend_ret_addr(bi_context *ctx, struct util_dynarray *emission,
 
 
         unsigned loc = tuple->regs.fau_idx - BIR_FAU_BLEND_0;
-        assert(loc < ARRAY_SIZE(ctx->info->bifrost.blend));
-        assert(!ctx->info->bifrost.blend[loc].return_offset);
-        ctx->info->bifrost.blend[loc].return_offset =
+        assert(loc < ARRAY_SIZE(ctx->info.bifrost->blend));
+        assert(!ctx->info.bifrost->blend[loc].return_offset);
+        ctx->info.bifrost->blend[loc].return_offset =
                 util_dynarray_num_elements(emission, uint8_t);
-        assert(!(ctx->info->bifrost.blend[loc].return_offset & 0x7));
+        assert(!(ctx->info.bifrost->blend[loc].return_offset & 0x7));
 }
 
 unsigned

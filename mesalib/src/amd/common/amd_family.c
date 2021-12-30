@@ -31,75 +31,75 @@ const char *ac_get_family_name(enum radeon_family family)
 {
    switch (family) {
    case CHIP_TAHITI:
-      return "tahiti";
+      return "TAHITI";
    case CHIP_PITCAIRN:
-      return "pitcairn";
+      return "PITCAIRN";
    case CHIP_VERDE:
-      return "verde";
+      return "VERDE";
    case CHIP_OLAND:
-      return "oland";
+      return "OLAND";
    case CHIP_HAINAN:
-      return "hainan";
+      return "HAINAN";
    case CHIP_BONAIRE:
-      return "bonaire";
+      return "BONAIRE";
    case CHIP_KABINI:
-      return "kabini";
+      return "KABINI";
    case CHIP_KAVERI:
-      return "kaveri";
+      return "KAVERI";
    case CHIP_HAWAII:
-      return "hawaii";
+      return "HAWAII";
    case CHIP_TONGA:
-      return "tonga";
+      return "TONGA";
    case CHIP_ICELAND:
-      return "iceland";
+      return "ICELAND";
    case CHIP_CARRIZO:
-      return "carrizo";
+      return "CARRIZO";
    case CHIP_FIJI:
-      return "fiji";
+      return "FIJI";
    case CHIP_STONEY:
-      return "stoney";
+      return "STONEY";
    case CHIP_POLARIS10:
-      return "polaris10";
+      return "POLARIS10";
    case CHIP_POLARIS11:
-      return "polaris11";
+      return "POLARIS11";
    case CHIP_POLARIS12:
-      return "polaris12";
+      return "POLARIS12";
    case CHIP_VEGAM:
-      return "vegam";
+      return "VEGAM";
    case CHIP_VEGA10:
-      return "vega10";
+      return "VEGA10";
    case CHIP_RAVEN:
-      return "raven";
+      return "RAVEN";
    case CHIP_VEGA12:
-      return "vega12";
+      return "VEGA12";
    case CHIP_VEGA20:
-      return "vega20";
+      return "VEGA20";
    case CHIP_RAVEN2:
-      return "raven2";
+      return "RAVEN2";
    case CHIP_RENOIR:
-      return "renoir";
+      return "RENOIR";
    case CHIP_ARCTURUS:
-      return "arcturus";
+      return "ARCTURUS";
    case CHIP_ALDEBARAN:
-      return "aldebaran";
+      return "ALDEBARAN";
    case CHIP_NAVI10:
-      return "navi10";
+      return "NAVI10";
    case CHIP_NAVI12:
-      return "navi12";
+      return "NAVI12";
    case CHIP_NAVI14:
-      return "navi14";
+      return "NAVI14";
    case CHIP_SIENNA_CICHLID:
-      return "sienna_cichlid";
+      return "SIENNA_CICHLID";
    case CHIP_NAVY_FLOUNDER:
-      return "navy_flounder";
+      return "NAVY_FLOUNDER";
    case CHIP_DIMGREY_CAVEFISH:
-      return "dimgrey_cavefish";
+      return "DIMGREY_CAVEFISH";
    case CHIP_VANGOGH:
-      return "vangogh";
+      return "VANGOGH";
    case CHIP_BEIGE_GOBY:
-      return "beige_goby";
+      return "BEIGE_GOBY";
    case CHIP_YELLOW_CARP:
-      return "yellow_carp";
+      return "YELLOW_CARP";
    default:
       unreachable("Unknown GPU family");
    }

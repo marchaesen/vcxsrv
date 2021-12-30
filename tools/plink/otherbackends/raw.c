@@ -25,6 +25,7 @@ struct Raw {
 
     Plug plug;
     Backend backend;
+    Interactor interactor;
 };
 
 static void raw_size(Backend *be, int width, int height);
@@ -45,12 +46,6 @@ static void raw_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
         raw->socket_connected = true;
         if (raw->ldisc)
             ldisc_check_sendok(raw->ldisc);
-        if (is_tempseat(raw->seat)) {
-            Seat *ts = raw->seat;
-            tempseat_flush(ts);
-            raw->seat = tempseat_get_real(ts);
-            tempseat_free(ts);
-        }
     }
 }
 
@@ -70,11 +65,11 @@ static void raw_check_close(Raw *raw)
     }
 }
 
-static void raw_closing(Plug *plug, const char *error_msg, int error_code)
+static void raw_closing(Plug *plug, PlugCloseType type, const char *error_msg)
 {
     Raw *raw = container_of(plug, Raw, plug);
 
-    if (error_msg) {
+    if (type != PLUGCLOSE_NORMAL) {
         /* A socket error has occurred. */
         if (raw->s) {
             sk_close(raw->s);
@@ -84,7 +79,8 @@ static void raw_closing(Plug *plug, const char *error_msg, int error_code)
             seat_notify_remote_disconnect(raw->seat);
         }
         logevent(raw->logctx, error_msg);
-        seat_connection_fatal(raw->seat, "%s", error_msg);
+        if (type != PLUGCLOSE_USER_ABORT)
+            seat_connection_fatal(raw->seat, "%s", error_msg);
     } else {
         /* Otherwise, the remote side closed the connection normally. */
         if (!raw->sent_console_eof && seat_eof(raw->seat)) {
@@ -116,24 +112,42 @@ static void raw_sent(Plug *plug, size_t bufsize)
     seat_sent(raw->seat, raw->bufsize);
 }
 
-static char *raw_plug_description(Plug *plug)
-{
-    Raw *raw = container_of(plug, Raw, plug);
-    return dupstr(raw->description);
-}
-
-static char *raw_backend_description(Backend *backend)
-{
-    Raw *raw = container_of(backend, Raw, backend);
-    return dupstr(raw->description);
-}
-
 static const PlugVtable Raw_plugvt = {
     .log = raw_log,
     .closing = raw_closing,
     .receive = raw_receive,
     .sent = raw_sent,
-    .description = raw_plug_description,
+};
+
+static char *raw_description(Interactor *itr)
+{
+    Raw *raw = container_of(itr, Raw, interactor);
+    return dupstr(raw->description);
+}
+
+static LogPolicy *raw_logpolicy(Interactor *itr)
+{
+    Raw *raw = container_of(itr, Raw, interactor);
+    return log_get_policy(raw->logctx);
+}
+
+static Seat *raw_get_seat(Interactor *itr)
+{
+    Raw *raw = container_of(itr, Raw, interactor);
+    return raw->seat;
+}
+
+static void raw_set_seat(Interactor *itr, Seat *seat)
+{
+    Raw *raw = container_of(itr, Raw, interactor);
+    raw->seat = seat;
+}
+
+static const InteractorVtable Raw_interactorvt = {
+    .description = raw_description,
+    .logpolicy = raw_logpolicy,
+    .get_seat = raw_get_seat,
+    .set_seat = raw_set_seat,
 };
 
 /*
@@ -156,8 +170,11 @@ static char *raw_init(const BackendVtable *vt, Seat *seat,
     char *loghost;
 
     raw = snew(Raw);
+    memset(raw, 0, sizeof(Raw));
     raw->plug.vt = &Raw_plugvt;
     raw->backend.vt = vt;
+    raw->interactor.vt = &Raw_interactorvt;
+    raw->backend.interactor = &raw->interactor;
     raw->s = NULL;
     raw->closed_on_socket_error = false;
     *backend_handle = &raw->backend;
@@ -188,8 +205,7 @@ static char *raw_init(const BackendVtable *vt, Seat *seat,
      * Open socket.
      */
     raw->s = new_connection(addr, *realhost, port, false, true, nodelay,
-                            keepalive, &raw->plug, conf,
-                            log_get_policy(logctx), &raw->seat);
+                            keepalive, &raw->plug, conf, &raw->interactor);
     if ((err = sk_socket_error(raw->s)) != NULL)
         return dupstr(err);
 
@@ -353,7 +369,6 @@ const BackendVtable raw_backend = {
     .provide_ldisc = raw_provide_ldisc,
     .unthrottle = raw_unthrottle,
     .cfg_info = raw_cfg_info,
-    .description = raw_backend_description,
     .id = "raw",
     .displayname_tc = "Raw",
     .displayname_lc = "raw",

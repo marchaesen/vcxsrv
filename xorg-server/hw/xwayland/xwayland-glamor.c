@@ -58,10 +58,12 @@ glamor_egl_make_current(struct glamor_context *glamor_ctx)
 void
 xwl_glamor_egl_make_current(struct xwl_screen *xwl_screen)
 {
-    if (lastGLContext == xwl_screen->glamor_ctx)
+    EGLContext ctx = xwl_screen->glamor_ctx->ctx;
+    
+    if (lastGLContext == ctx)
         return;
 
-    lastGLContext = xwl_screen->glamor_ctx;
+    lastGLContext = ctx;
     xwl_screen->glamor_ctx->make_current(xwl_screen->glamor_ctx);
 }
 
@@ -410,10 +412,12 @@ xwl_glamor_select_gbm_backend(struct xwl_screen *xwl_screen)
     if (xwl_screen->gbm_backend.is_available &&
         xwl_glamor_has_wl_interfaces(xwl_screen, &xwl_screen->gbm_backend)) {
         xwl_screen->egl_backend = &xwl_screen->gbm_backend;
+        LogMessageVerb(X_INFO, 3, "glamor: Using GBM backend\n");
         return TRUE;
     }
     else
-        ErrorF("Missing Wayland requirements for glamor GBM backend\n");
+        LogMessageVerb(X_INFO, 3,
+                       "Missing Wayland requirements for glamor GBM backend\n");
 #endif
 
     return FALSE;
@@ -426,10 +430,12 @@ xwl_glamor_select_eglstream_backend(struct xwl_screen *xwl_screen)
     if (xwl_screen->eglstream_backend.is_available &&
         xwl_glamor_has_wl_interfaces(xwl_screen, &xwl_screen->eglstream_backend)) {
         xwl_screen->egl_backend = &xwl_screen->eglstream_backend;
+        LogMessageVerb(X_INFO, 3, "glamor: Using EGLStream backend\n");
         return TRUE;
     }
     else
-        ErrorF("Missing Wayland requirements for glamor EGLStream backend\n");
+        LogMessageVerb(X_INFO, 3,
+                       "Missing Wayland requirements for glamor EGLStream backend\n");
 #endif
 
     return FALSE;
@@ -438,13 +444,9 @@ xwl_glamor_select_eglstream_backend(struct xwl_screen *xwl_screen)
 void
 xwl_glamor_select_backend(struct xwl_screen *xwl_screen, Bool use_eglstream)
 {
-    if (use_eglstream) {
-        if (!xwl_glamor_select_eglstream_backend(xwl_screen))
+    if (!xwl_glamor_select_eglstream_backend(xwl_screen)) {
+        if (!use_eglstream)
             xwl_glamor_select_gbm_backend(xwl_screen);
-    }
-    else {
-        if (!xwl_glamor_select_gbm_backend(xwl_screen))
-            xwl_glamor_select_eglstream_backend(xwl_screen);
     }
 }
 

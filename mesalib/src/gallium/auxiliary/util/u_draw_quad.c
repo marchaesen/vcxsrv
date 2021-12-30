@@ -61,7 +61,7 @@ util_draw_vertex_buffer(struct pipe_context *pipe,
    /* note: vertex elements already set by caller */
 
    if (cso) {
-      cso_set_vertex_buffers(cso, vbuf_slot, 1, &vbuffer);
+      cso_set_vertex_buffers(cso, vbuf_slot, 1, 0, false, &vbuffer);
       cso_draw_arrays(cso, prim_type, 0, num_verts);
    } else {
       pipe->set_vertex_buffers(pipe, vbuf_slot, 1, 0, false, &vbuffer);
@@ -88,6 +88,6 @@ util_draw_user_vertex_buffer(struct cso_context *cso, void *buffer,
 
    /* note: vertex elements already set by caller */
 
-   cso_set_vertex_buffers(cso, 0, 1, &vbuffer);
+   cso_set_vertex_buffers(cso, 0, 1, 0, false, &vbuffer);
    cso_draw_arrays(cso, prim_type, 0, num_verts);
 }

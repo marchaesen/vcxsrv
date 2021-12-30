@@ -72,10 +72,7 @@ st_new_program(struct gl_context *ctx, gl_shader_stage stage, GLuint id,
 }
 
 
-/**
- * Called via ctx->Driver.DeleteProgram()
- */
-static void
+void
 st_delete_program(struct gl_context *ctx, struct gl_program *prog)
 {
    struct st_context *st = st_context(ctx);
@@ -93,14 +90,13 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
 }
 
 /**
- * Called via ctx->Driver.ProgramStringNotify()
  * Called when the program's text/code is changed.  We have to free
  * all shader variants and corresponding gallium shaders when this happens.
  */
-static GLboolean
+GLboolean
 st_program_string_notify( struct gl_context *ctx,
-                                           GLenum target,
-                                           struct gl_program *prog )
+                          GLenum target,
+                          struct gl_program *prog )
 {
    struct st_context *st = st_context(ctx);
    struct st_program *stp = (struct st_program *) prog;
@@ -134,20 +130,19 @@ st_program_string_notify( struct gl_context *ctx,
 }
 
 /**
- * Called via ctx->Driver.NewATIfs()
  * Called in glEndFragmentShaderATI()
  */
-static struct gl_program *
+struct gl_program *
 st_new_ati_fs(struct gl_context *ctx, struct ati_fragment_shader *curProg)
 {
-   struct gl_program *prog = ctx->Driver.NewProgram(ctx, MESA_SHADER_FRAGMENT,
+   struct gl_program *prog = st_new_program(ctx, MESA_SHADER_FRAGMENT,
          curProg->Id, true);
    struct st_program *stfp = (struct st_program *)prog;
    stfp->ati_fs = curProg;
    return prog;
 }
 
-static void
+void
 st_max_shader_compiler_threads(struct gl_context *ctx, unsigned count)
 {
    struct pipe_screen *screen = st_context(ctx)->screen;
@@ -156,7 +151,7 @@ st_max_shader_compiler_threads(struct gl_context *ctx, unsigned count)
       screen->set_max_shader_compiler_threads(screen, count);
 }
 
-static bool
+bool
 st_get_shader_program_completion_status(struct gl_context *ctx,
                                         struct gl_shader_program *shprog)
 {
@@ -191,11 +186,4 @@ void
 st_init_program_functions(struct dd_function_table *functions)
 {
    functions->NewProgram = st_new_program;
-   functions->DeleteProgram = st_delete_program;
-   functions->ProgramStringNotify = st_program_string_notify;
-   functions->NewATIfs = st_new_ati_fs;
-   functions->LinkShader = st_link_shader;
-   functions->SetMaxShaderCompilerThreads = st_max_shader_compiler_threads;
-   functions->GetShaderProgramCompletionStatus =
-      st_get_shader_program_completion_status;
 }

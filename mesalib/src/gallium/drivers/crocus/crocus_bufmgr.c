@@ -55,7 +55,6 @@
 #include "dev/intel_debug.h"
 #include "common/intel_gem.h"
 #include "dev/intel_device_info.h"
-#include "main/macros.h"
 #include "util/debug.h"
 #include "util/macros.h"
 #include "util/hash_table.h"
@@ -610,6 +609,16 @@ bo_close(struct crocus_bo *bo)
 
       entry = _mesa_hash_table_search(bufmgr->handle_table, &bo->gem_handle);
       _mesa_hash_table_remove(bufmgr->handle_table, entry);
+
+      list_for_each_entry_safe(struct bo_export, export, &bo->exports, link) {
+         struct drm_gem_close close = { .handle = export->gem_handle };
+         intel_ioctl(export->drm_fd, DRM_IOCTL_GEM_CLOSE, &close);
+
+         list_del(&export->link);
+         free(export);
+      }
+   } else {
+      assert(list_is_empty(&bo->exports));
    }
 
    /* Close this object */

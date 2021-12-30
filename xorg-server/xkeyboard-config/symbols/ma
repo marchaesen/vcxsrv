@@ -322,3 +322,31 @@ xkb_symbols "tifinagh-alt-phonetic" {
 
     include "level3(ralt_switch)"
 };
+
+// Latin Tarifit keyboard. Used by the riffian community
+// Tarifit characters are accessed using ALTGR
+
+
+partial alphanumeric_keys
+xkb_symbols "rif" {
+     // Tarifit keyboard (QWERTY varient)   
+     // By Ilyahoo Proshel <ip@ipshel.com> 2021
+     // Only "ʷ ɛ ṭ ḍ γ ḥ ẓ ṣ" are supported by Rif Community.
+
+    include "us"
+
+    name[Group1]= "Tarifit"; 
+    
+    key <AD02>	{[	w,	W,		U02B7 	]}; // ʷ
+    key <AD03>	{[	e,	E,		U025B,		U0190	]}; // e E ɛ Ɛ
+    key <AD05>	{[	t,	T,		U1E6D,		U1E6C	]}; // t T ṭ Ṭ
+    key <AC02>  {[	s,	S,		U1E63,		U1E62	]}; // s S ṣ Ṣ
+    key <AC03>	{[	d,	D,		U1E0D,		U1E0C	]}; // d D ḍ Ḍ
+    key <AC05>	{[	g,	G,		U0263,		U0194	]}; // g G ɣ Ɣ
+    key <AC06>	{[	h,	H,		U1E25,		U1E24	]}; // h H ḥ Ḥ
+    key <AB01>	{[	z,	Z,		U1E93,		U1E92   ]}; // z Z ẓ Ẓ
+
+
+    include "level3(ralt_switch)"
+};
+

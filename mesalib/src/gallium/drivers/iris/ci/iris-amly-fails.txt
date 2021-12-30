@@ -54,9 +54,6 @@ glx@glx-make-current,Crash
 
 glx@glx-multi-window-single-context,Fail
 
-# error: no fbconfig id returned
-glx@glx-query-drawable-glx_fbconfig_id-window,Fail
-
 glx@glx-swap-pixmap-bad,Fail
 
 # failed to create drawable
@@ -105,8 +102,6 @@ spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
 spec@!opengl 1.1@linestipple@Line loop,Fail
 spec@!opengl 1.1@linestipple@Line strip,Fail
-
-spec@!opengl 1.1@windowoverlap,Fail
 
 # Fail: nothing rendered.
 spec@!opengl 2.0@vs-point_size-zero,Fail

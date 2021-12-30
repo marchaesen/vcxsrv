@@ -95,7 +95,7 @@ xkb_symbols "basic" {
 	key <AB05> {[ b,		B,		b,			B			]};
 	key <AB06> {[ n,		N,		ncedilla,		Ncedilla		]};
 	key <AB07> {[ m,		M,		m,			M			]};
-	key <AB08> {[ comma,		less,		horizconnector,		multiply		]};
+	key <AB08> {[ comma,		less,		U2022,			multiply		]}; // bullet
 	key <AB09> {[ period,		greater,	periodcentered,		division		]};
 	key <AB10> {[ slash,		question,	slash,			abovedot		]};
 	key <BKSL> {[ backslash,	bar,		grave,			breve			]};

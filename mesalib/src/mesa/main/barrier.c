@@ -29,19 +29,71 @@
  */
 
 #include "context.h"
-#include "barrier.h"
+#include "api_exec_decl.h"
+
+#include "pipe/p_context.h"
 
 
 static void
-_mesa_texture_barrier(struct gl_context *ctx)
+memory_barrier(struct gl_context *ctx, GLbitfield barriers)
 {
-   /* no-op */
-}
+   struct pipe_context *pipe = ctx->pipe;
+   unsigned flags = 0;
 
-void
-_mesa_init_barrier_functions(struct dd_function_table *driver)
-{
-   driver->TextureBarrier = _mesa_texture_barrier;
+   if (barriers & GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
+      flags |= PIPE_BARRIER_VERTEX_BUFFER;
+   if (barriers & GL_ELEMENT_ARRAY_BARRIER_BIT)
+      flags |= PIPE_BARRIER_INDEX_BUFFER;
+   if (barriers & GL_UNIFORM_BARRIER_BIT)
+      flags |= PIPE_BARRIER_CONSTANT_BUFFER;
+   if (barriers & GL_TEXTURE_FETCH_BARRIER_BIT)
+      flags |= PIPE_BARRIER_TEXTURE;
+   if (barriers & GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
+      flags |= PIPE_BARRIER_IMAGE;
+   if (barriers & GL_COMMAND_BARRIER_BIT)
+      flags |= PIPE_BARRIER_INDIRECT_BUFFER;
+   if (barriers & GL_PIXEL_BUFFER_BARRIER_BIT) {
+      /* The PBO may be
+       *  (1) bound as a texture for PBO uploads, or
+       *  (2) accessed by the CPU via transfer ops.
+       * For case (2), we assume automatic flushing by the driver.
+       */
+      flags |= PIPE_BARRIER_TEXTURE;
+   }
+   if (barriers & GL_TEXTURE_UPDATE_BARRIER_BIT) {
+      /* GL_TEXTURE_UPDATE_BARRIER_BIT:
+       * Texture updates translate to:
+       *  (1) texture transfers to/from the CPU,
+       *  (2) texture as blit destination, or
+       *  (3) texture as framebuffer.
+       * Some drivers may handle these automatically, and can ignore the bit.
+       */
+      flags |= PIPE_BARRIER_UPDATE_TEXTURE;
+   }
+   if (barriers & GL_BUFFER_UPDATE_BARRIER_BIT) {
+      /* GL_BUFFER_UPDATE_BARRIER_BIT:
+       * Buffer updates translate to
+       *  (1) buffer transfers to/from the CPU,
+       *  (2) resource copies and clears.
+       * Some drivers may handle these automatically, and can ignore the bit.
+       */
+      flags |= PIPE_BARRIER_UPDATE_BUFFER;
+   }
+   if (barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+      flags |= PIPE_BARRIER_MAPPED_BUFFER;
+   if (barriers & GL_QUERY_BUFFER_BARRIER_BIT)
+      flags |= PIPE_BARRIER_QUERY_BUFFER;
+   if (barriers & GL_FRAMEBUFFER_BARRIER_BIT)
+      flags |= PIPE_BARRIER_FRAMEBUFFER;
+   if (barriers & GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
+      flags |= PIPE_BARRIER_STREAMOUT_BUFFER;
+   if (barriers & GL_ATOMIC_COUNTER_BARRIER_BIT)
+      flags |= PIPE_BARRIER_SHADER_BUFFER;
+   if (barriers & GL_SHADER_STORAGE_BARRIER_BIT)
+      flags |= PIPE_BARRIER_SHADER_BUFFER;
+
+   if (flags && pipe->memory_barrier)
+      pipe->memory_barrier(pipe, flags);
 }
 
 void GLAPIENTRY
@@ -55,7 +107,7 @@ _mesa_TextureBarrierNV(void)
       return;
    }
 
-   ctx->Driver.TextureBarrier(ctx);
+   ctx->pipe->texture_barrier(ctx->pipe, PIPE_TEXTURE_BARRIER_SAMPLER);
 }
 
 void GLAPIENTRY
@@ -63,8 +115,7 @@ _mesa_MemoryBarrier(GLbitfield barriers)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (ctx->Driver.MemoryBarrier)
-      ctx->Driver.MemoryBarrier(ctx, barriers);
+   memory_barrier(ctx, barriers);
 }
 
 static ALWAYS_INLINE void
@@ -78,34 +129,32 @@ memory_barrier_by_region(struct gl_context *ctx, GLbitfield barriers,
                                  GL_TEXTURE_FETCH_BARRIER_BIT |
                                  GL_UNIFORM_BARRIER_BIT;
 
-   if (ctx->Driver.MemoryBarrier) {
-      /* From section 7.11.2 of the OpenGL ES 3.1 specification:
-       *
-       *    "When barriers is ALL_BARRIER_BITS, shader memory accesses will be
-       *     synchronized relative to all these barrier bits, but not to other
-       *     barrier bits specific to MemoryBarrier."
-       *
-       * That is, if barriers is the special value GL_ALL_BARRIER_BITS, then all
-       * barriers allowed by glMemoryBarrierByRegion should be activated."
-       */
-      if (barriers == GL_ALL_BARRIER_BITS) {
-         ctx->Driver.MemoryBarrier(ctx, all_allowed_bits);
-         return;
-      }
-
-      /* From section 7.11.2 of the OpenGL ES 3.1 specification:
-       *
-       *    "An INVALID_VALUE error is generated if barriers is not the special
-       *     value ALL_BARRIER_BITS, and has any bits set other than those
-       *     described above."
-       */
-      if (!no_error && (barriers & ~all_allowed_bits) != 0) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glMemoryBarrierByRegion(unsupported barrier bit");
-      }
-
-      ctx->Driver.MemoryBarrier(ctx, barriers);
+   /* From section 7.11.2 of the OpenGL ES 3.1 specification:
+    *
+    *    "When barriers is ALL_BARRIER_BITS, shader memory accesses will be
+    *     synchronized relative to all these barrier bits, but not to other
+    *     barrier bits specific to MemoryBarrier."
+    *
+    * That is, if barriers is the special value GL_ALL_BARRIER_BITS, then all
+    * barriers allowed by glMemoryBarrierByRegion should be activated."
+    */
+   if (barriers == GL_ALL_BARRIER_BITS) {
+      memory_barrier(ctx, all_allowed_bits);
+      return;
    }
+
+   /* From section 7.11.2 of the OpenGL ES 3.1 specification:
+    *
+    *    "An INVALID_VALUE error is generated if barriers is not the special
+    *     value ALL_BARRIER_BITS, and has any bits set other than those
+    *     described above."
+    */
+   if (!no_error && (barriers & ~all_allowed_bits) != 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glMemoryBarrierByRegion(unsupported barrier bit");
+   }
+
+   memory_barrier(ctx, barriers);
 }
 
 void GLAPIENTRY
@@ -133,7 +182,7 @@ _mesa_BlendBarrier(void)
       return;
    }
 
-   ctx->Driver.FramebufferFetchBarrier(ctx);
+   ctx->pipe->texture_barrier(ctx->pipe, PIPE_TEXTURE_BARRIER_FRAMEBUFFER);
 }
 
 void GLAPIENTRY
@@ -147,5 +196,5 @@ _mesa_FramebufferFetchBarrierEXT(void)
       return;
    }
 
-   ctx->Driver.FramebufferFetchBarrier(ctx);
+   ctx->pipe->texture_barrier(ctx->pipe, PIPE_TEXTURE_BARRIER_FRAMEBUFFER);
 }

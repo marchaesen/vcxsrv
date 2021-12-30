@@ -119,74 +119,6 @@ count_instruction(struct ir3_instruction *n)
           (is_flow(n) && (n->opc != OPC_JUMP) && (n->opc != OPC_B));
 }
 
-static unsigned
-distance(struct ir3_block *block, struct ir3_instruction *instr, unsigned maxd)
-{
-   unsigned d = 0;
-
-   /* Note that this relies on incrementally building up the block's
-    * instruction list.. but this is how scheduling and nopsched
-    * work.
-    */
-   foreach_instr_rev (n, &block->instr_list) {
-      if ((n == instr) || (d >= maxd))
-         return MIN2(maxd, d + n->nop);
-      if (count_instruction(n))
-         d = MIN2(maxd, d + 1 + n->repeat + n->nop);
-   }
-
-   return maxd;
-}
-
-static unsigned
-delay_calc_srcn_prera(struct ir3_block *block, struct ir3_instruction *assigner,
-                      struct ir3_instruction *consumer, unsigned srcn)
-{
-   unsigned delay = 0;
-
-   if (assigner->opc == OPC_META_PHI)
-      return 0;
-
-   if (is_meta(assigner)) {
-      foreach_src_n (src, n, assigner) {
-         unsigned d;
-
-         if (!src->def)
-            continue;
-
-         d = delay_calc_srcn_prera(block, src->def->instr, consumer, srcn);
-         delay = MAX2(delay, d);
-      }
-   } else {
-      delay = ir3_delayslots(assigner, consumer, srcn, false);
-      delay -= distance(block, assigner, delay);
-   }
-
-   return delay;
-}
-
-/**
- * Calculate delay for instruction before register allocation, using SSA
- * source pointers. This can't handle inter-block dependencies.
- */
-unsigned
-ir3_delay_calc_prera(struct ir3_block *block, struct ir3_instruction *instr)
-{
-   unsigned delay = 0;
-
-   foreach_src_n (src, i, instr) {
-      unsigned d = 0;
-
-      if (src->def && src->def->instr->block == block) {
-         d = delay_calc_srcn_prera(block, src->def->instr, instr, i);
-      }
-
-      delay = MAX2(delay, d);
-   }
-
-   return delay;
-}
-
 /* Post-RA, we don't have arrays any more, so we have to be a bit careful here
  * and have to handle relative accesses specially.
  */
@@ -207,35 +139,21 @@ post_ra_reg_num(struct ir3_register *reg)
    return reg->num;
 }
 
-static unsigned
-delay_calc_srcn_postra(struct ir3_instruction *assigner,
-                       struct ir3_instruction *consumer, unsigned assigner_n,
-                       unsigned consumer_n, bool soft, bool mergedregs)
+unsigned
+ir3_delayslots_with_repeat(struct ir3_instruction *assigner,
+                           struct ir3_instruction *consumer,
+                           unsigned assigner_n, unsigned consumer_n)
 {
+   unsigned delay = ir3_delayslots(assigner, consumer, consumer_n, false);
+
    struct ir3_register *src = consumer->srcs[consumer_n];
    struct ir3_register *dst = assigner->dsts[assigner_n];
-   bool mismatched_half =
-      (src->flags & IR3_REG_HALF) != (dst->flags & IR3_REG_HALF);
-
-   /* In the mergedregs case or when the register is a special register,
-    * half-registers do not alias with full registers.
-    */
-   if ((!mergedregs || is_reg_special(src) || is_reg_special(dst)) &&
-       mismatched_half)
-      return 0;
-
-   unsigned src_start = post_ra_reg_num(src) * reg_elem_size(src);
-   unsigned src_end = src_start + post_ra_reg_elems(src) * reg_elem_size(src);
-   unsigned dst_start = post_ra_reg_num(dst) * reg_elem_size(dst);
-   unsigned dst_end = dst_start + post_ra_reg_elems(dst) * reg_elem_size(dst);
-
-   if (dst_start >= src_end || src_start >= dst_end)
-      return 0;
-
-   unsigned delay = ir3_delayslots(assigner, consumer, consumer_n, soft);
 
    if (assigner->repeat == 0 && consumer->repeat == 0)
       return delay;
+
+   unsigned src_start = post_ra_reg_num(src) * reg_elem_size(src);
+   unsigned dst_start = post_ra_reg_num(dst) * reg_elem_size(dst);
 
    /* If either side is a relative access, we can't really apply most of the
     * reasoning below because we don't know which component aliases which.
@@ -249,6 +167,9 @@ delay_calc_srcn_postra(struct ir3_instruction *assigner,
     */
    if (assigner->opc == OPC_MOVMSK)
       return delay;
+
+   bool mismatched_half =
+      (src->flags & IR3_REG_HALF) != (dst->flags & IR3_REG_HALF);
 
    /* TODO: Handle the combination of (rpt) and different component sizes
     * better like below. This complicates things significantly because the
@@ -303,10 +224,41 @@ delay_calc_srcn_postra(struct ir3_instruction *assigner,
 }
 
 static unsigned
-delay_calc_postra(struct ir3_block *block, struct ir3_instruction *start,
-                  struct ir3_instruction *consumer, unsigned distance,
-                  bool soft, bool pred, bool mergedregs)
+delay_calc_srcn(struct ir3_instruction *assigner,
+                struct ir3_instruction *consumer, unsigned assigner_n,
+                unsigned consumer_n, bool mergedregs)
 {
+   struct ir3_register *src = consumer->srcs[consumer_n];
+   struct ir3_register *dst = assigner->dsts[assigner_n];
+   bool mismatched_half =
+      (src->flags & IR3_REG_HALF) != (dst->flags & IR3_REG_HALF);
+
+   /* In the mergedregs case or when the register is a special register,
+    * half-registers do not alias with full registers.
+    */
+   if ((!mergedregs || is_reg_special(src) || is_reg_special(dst)) &&
+       mismatched_half)
+      return 0;
+
+   unsigned src_start = post_ra_reg_num(src) * reg_elem_size(src);
+   unsigned src_end = src_start + post_ra_reg_elems(src) * reg_elem_size(src);
+   unsigned dst_start = post_ra_reg_num(dst) * reg_elem_size(dst);
+   unsigned dst_end = dst_start + post_ra_reg_elems(dst) * reg_elem_size(dst);
+
+   if (dst_start >= src_end || src_start >= dst_end)
+      return 0;
+
+   return ir3_delayslots_with_repeat(assigner, consumer, assigner_n, consumer_n);
+}
+
+static unsigned
+delay_calc(struct ir3_block *block, struct ir3_instruction *start,
+           struct ir3_instruction *consumer, unsigned distance,
+           regmask_t *in_mask, bool mergedregs)
+{
+   regmask_t mask;
+   memcpy(&mask, in_mask, sizeof(mask));
+
    unsigned delay = 0;
    /* Search backwards starting at the instruction before start, unless it's
     * NULL then search backwards from the block end.
@@ -318,7 +270,7 @@ delay_calc_postra(struct ir3_block *block, struct ir3_instruction *start,
       if (count_instruction(assigner))
          distance += assigner->nop;
 
-      if (distance + delay >= (soft ? SOFT_SS_NOPS : MAX_NOPS))
+      if (distance + delay >= MAX_NOPS)
          return delay;
 
       if (is_meta(assigner))
@@ -329,14 +281,17 @@ delay_calc_postra(struct ir3_block *block, struct ir3_instruction *start,
       foreach_dst_n (dst, dst_n, assigner) {
          if (dst->wrmask == 0)
             continue;
+         if (!regmask_get(&mask, dst))
+            continue;
          foreach_src_n (src, src_n, consumer) {
             if (src->flags & (IR3_REG_IMMED | IR3_REG_CONST))
                continue;
 
-            unsigned src_delay = delay_calc_srcn_postra(
-               assigner, consumer, dst_n, src_n, soft, mergedregs);
+            unsigned src_delay = delay_calc_srcn(
+               assigner, consumer, dst_n, src_n, mergedregs);
             new_delay = MAX2(new_delay, src_delay);
          }
+         regmask_clear(&mask, dst);
       }
 
       new_delay = new_delay > distance ? new_delay - distance : 0;
@@ -360,13 +315,13 @@ delay_calc_postra(struct ir3_block *block, struct ir3_instruction *start,
     * However any other recursion would be unnecessary.
     */
 
-   if (pred && block->data != block) {
+   if (block->data != block) {
       block->data = block;
 
       for (unsigned i = 0; i < block->predecessors_count; i++) {
          struct ir3_block *pred = block->predecessors[i];
-         unsigned pred_delay = delay_calc_postra(pred, NULL, consumer, distance,
-                                                 soft, pred, mergedregs);
+         unsigned pred_delay = delay_calc(pred, NULL, consumer, distance,
+                                          &mask, mergedregs);
          delay = MAX2(delay, pred_delay);
       }
 
@@ -377,50 +332,19 @@ delay_calc_postra(struct ir3_block *block, struct ir3_instruction *start,
 }
 
 /**
- * Calculate delay for post-RA scheduling based on physical registers but not
- * exact (i.e. don't recurse into predecessors, and make it possible to
- * estimate impact of sync flags).
- *
- * @soft:  If true, add additional delay for situations where they
- *    would not be strictly required because a sync flag would be
- *    used (but scheduler would prefer to schedule some other
- *    instructions first to avoid stalling on sync flag)
- * @mergedregs: True if mergedregs is enabled.
- */
-unsigned
-ir3_delay_calc_postra(struct ir3_block *block, struct ir3_instruction *instr,
-                      bool soft, bool mergedregs)
-{
-   return delay_calc_postra(block, NULL, instr, 0, soft, false, mergedregs);
-}
-
-/**
  * Calculate delay for nop insertion. This must exactly match hardware
  * requirements, including recursing into predecessor blocks.
  */
 unsigned
-ir3_delay_calc_exact(struct ir3_block *block, struct ir3_instruction *instr,
-                     bool mergedregs)
+ir3_delay_calc(struct ir3_block *block, struct ir3_instruction *instr,
+               bool mergedregs)
 {
-   return delay_calc_postra(block, NULL, instr, 0, false, true, mergedregs);
-}
-
-/**
- * Remove nop instructions.  The scheduler can insert placeholder nop's
- * so that ir3_delay_calc() can account for nop's that won't be needed
- * due to nop's triggered by a previous instruction.  However, before
- * legalize, we want to remove these.  The legalize pass can insert
- * some nop's if needed to hold (for example) sync flags.  This final
- * remaining nops are inserted by legalize after this.
- */
-void
-ir3_remove_nops(struct ir3 *ir)
-{
-   foreach_block (block, &ir->block_list) {
-      foreach_instr_safe (instr, &block->instr_list) {
-         if (instr->opc == OPC_NOP) {
-            list_del(&instr->node);
-         }
-      }
+   regmask_t mask;
+   regmask_init(&mask, mergedregs);
+   foreach_src (src, instr) {
+      if (!(src->flags & (IR3_REG_IMMED | IR3_REG_CONST)))
+         regmask_set(&mask, src);
    }
+
+   return delay_calc(block, NULL, instr, 0, &mask, mergedregs);
 }

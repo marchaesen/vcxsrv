@@ -65,12 +65,13 @@ struct virgl_winsys {
                        uint32_t buf_offset, uint32_t level);
 
    struct virgl_hw_res *(*resource_create)(struct virgl_winsys *vws,
-                               enum pipe_texture_target target,
-                               uint32_t format, uint32_t bind,
-                               uint32_t width, uint32_t height,
-                               uint32_t depth, uint32_t array_size,
-                               uint32_t last_level, uint32_t nr_samples,
-                               uint32_t flags, uint32_t size);
+                                           enum pipe_texture_target target,
+                                           const void *map_front_private,
+                                           uint32_t format, uint32_t bind,
+                                           uint32_t width, uint32_t height,
+                                           uint32_t depth, uint32_t array_size,
+                                           uint32_t last_level, uint32_t nr_samples,
+                                           uint32_t flags, uint32_t size);
 
    void (*resource_reference)(struct virgl_winsys *qws,
                               struct virgl_hw_res **dres,
@@ -171,6 +172,7 @@ static inline void virgl_ws_fill_new_caps_defaults(struct virgl_drm_caps *caps)
    caps->caps.v2.max_compute_work_group_invocations = 0;
    caps->caps.v2.max_compute_shared_memory_size = 0;
    caps->caps.v2.host_feature_check_version = 0;
+   caps->caps.v2.max_shader_sampler_views = 16;
 }
 
 extern enum virgl_formats pipe_to_virgl_format(enum pipe_format format);

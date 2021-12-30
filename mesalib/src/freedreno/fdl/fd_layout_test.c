@@ -35,6 +35,7 @@ fdl_test_layout(const struct testcase *testcase, int gpu_id)
    struct fdl_layout layout = {
       .ubwc = testcase->layout.ubwc,
       .tile_mode = testcase->layout.tile_mode,
+      .tile_all = testcase->layout.tile_all,
    };
    bool ok = true;
 
@@ -87,6 +88,19 @@ fdl_test_layout(const struct testcase *testcase, int gpu_id)
          ok = false;
       }
 
+      /* Test optional requirement of the slice size.  Important for testing 3D
+       * layouts.
+       */
+      if (testcase->layout.slices[l].size0 && layout.slices[l].size0 !=
+          testcase->layout.slices[l].size0) {
+         fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: slice size %d != %d\n",
+                 util_format_short_name(testcase->format), layout.width0,
+                 layout.height0, layout.depth0, layout.nr_samples, l,
+                 layout.slices[l].size0,
+                 testcase->layout.slices[l].size0);
+         ok = false;
+      }
+
       if (layout.ubwc_slices[l].offset !=
           testcase->layout.ubwc_slices[l].offset) {
          fprintf(stderr, "%s %dx%dx%d@%dx lvl%d: UBWC offset 0x%x != 0x%x\n",
@@ -106,8 +120,10 @@ fdl_test_layout(const struct testcase *testcase, int gpu_id)
       }
    }
 
-   if (!ok)
+   if (!ok) {
+      fdl_dump_layout(&layout);
       fprintf(stderr, "\n");
+   }
 
    return ok;
 }

@@ -39,7 +39,7 @@ void v3dX(bcl_epilogue)(struct v3d_context *v3d, struct v3d_job *job)
 #endif
                                                 cl_packet_length(FLUSH));
 
-                if (job->tf_enabled) {
+                if (job->tf_enabled || job->needs_primitives_generated) {
                         /* Write primitive counts to memory. */
                         assert(v3d->prim_counts);
                         struct v3d_resource *rsc =

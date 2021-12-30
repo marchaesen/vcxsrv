@@ -42,13 +42,6 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.Name = "ILLEGAL OPCODE"
 	},
 	{
-		.Opcode = RC_OPCODE_ABS,
-		.Name = "ABS",
-		.NumSrcRegs = 1,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
-	},
-	{
 		.Opcode = RC_OPCODE_ADD,
 		.Name = "ADD",
 		.NumSrcRegs = 2,
@@ -71,13 +64,6 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.Opcode = RC_OPCODE_CEIL,
 		.Name = "CEIL",
 		.NumSrcRegs = 1,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
-	},
-	{
-		.Opcode = RC_OPCODE_CLAMP,
-		.Name = "CLAMP",
-		.NumSrcRegs = 3,
 		.HasDstReg = 1,
 		.IsComponentwise = 1
 	},
@@ -131,12 +117,6 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 	{
 		.Opcode = RC_OPCODE_DP4,
 		.Name = "DP4",
-		.NumSrcRegs = 2,
-		.HasDstReg = 1
-	},
-	{
-		.Opcode = RC_OPCODE_DPH,
-		.Name = "DPH",
 		.NumSrcRegs = 2,
 		.HasDstReg = 1
 	},
@@ -268,22 +248,9 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.IsStandardScalar = 1
 	},
 	{
-		.Opcode = RC_OPCODE_SCS,
-		.Name = "SCS",
-		.NumSrcRegs = 1,
-		.HasDstReg = 1
-	},
-	{
 		.Opcode = RC_OPCODE_SEQ,
 		.Name = "SEQ",
 		.NumSrcRegs = 2,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
-	},
-	{
-		.Opcode = RC_OPCODE_SFL,
-		.Name = "SFL",
-		.NumSrcRegs = 0,
 		.HasDstReg = 1,
 		.IsComponentwise = 1
 	},
@@ -344,24 +311,11 @@ const struct rc_opcode_info rc_opcodes[MAX_RC_OPCODE] = {
 		.IsComponentwise = 1
 	},
 	{
-		.Opcode = RC_OPCODE_SWZ,
-		.Name = "SWZ",
-		.NumSrcRegs = 1,
-		.HasDstReg = 1,
-		.IsComponentwise = 1
-	},
-	{
 		.Opcode = RC_OPCODE_TRUNC,
 		.Name = "TRUNC",
 		.NumSrcRegs = 1,
 		.HasDstReg = 1,
 		.IsComponentwise = 1
-	},
-	{
-		.Opcode = RC_OPCODE_XPD,
-		.Name = "XPD",
-		.NumSrcRegs = 2,
-		.HasDstReg = 1
 	},
 	{
 		.Opcode = RC_OPCODE_TEX,
@@ -562,16 +516,11 @@ void rc_compute_sources_for_writemask(
 			srcmasks[1] |= RC_MASK_XY;
 			break;
 		case RC_OPCODE_DP3:
-		case RC_OPCODE_XPD:
 			srcmasks[0] |= RC_MASK_XYZ;
 			srcmasks[1] |= RC_MASK_XYZ;
 			break;
 		case RC_OPCODE_DP4:
 			srcmasks[0] |= RC_MASK_XYZW;
-			srcmasks[1] |= RC_MASK_XYZW;
-			break;
-		case RC_OPCODE_DPH:
-			srcmasks[0] |= RC_MASK_XYZ;
 			srcmasks[1] |= RC_MASK_XYZW;
 			break;
 		case RC_OPCODE_TXB:

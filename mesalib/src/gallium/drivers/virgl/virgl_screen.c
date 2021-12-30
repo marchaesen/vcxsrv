@@ -51,6 +51,7 @@ static const struct debug_named_value virgl_debug_options[] = {
    { "nobgraswz", VIRGL_DEBUG_NO_BGRA_DEST_SWIZZLE,"Disable tweak to swizzle emulated BGRA on GLES hosts" },
    { "sync",      VIRGL_DEBUG_SYNC,                "Sync after every flush" },
    { "xfer",      VIRGL_DEBUG_XFER,                "Do not optimize for transfers" },
+   { "r8srgb-readback",   VIRGL_DEBUG_L8_SRGB_ENABLE_READBACK, "Enable redaback for L8 sRGB textures" },
    { "nocoherent", VIRGL_DEBUG_NO_COHERENT,        "Disable coherent memory"},
    DEBUG_NAMED_VALUE_END
 };
@@ -126,8 +127,6 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
       if (vscreen->caps.caps.v1.bset.depth_clip_disable)
          return 1;
-      if (vscreen->caps.caps.v2.host_feature_check_version >= 3)
-         return 2;
       return 0;
    case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
       return vscreen->caps.caps.v1.max_streamout_buffers;
@@ -168,10 +167,12 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
       return (vscreen->caps.caps.v2.capability_bits & VIRGL_CAP_FBO_MIXED_COLOR_FORMATS) ||
             (vscreen->caps.caps.v2.host_feature_check_version < 1);
+   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
+       if (vscreen->caps.caps.v2.host_feature_check_version < 6)
+           return MIN2(vscreen->caps.caps.v1.glsl_level, 140);
+       FALLTHROUGH;
    case PIPE_CAP_GLSL_FEATURE_LEVEL:
       return vscreen->caps.caps.v1.glsl_level;
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return MIN2(vscreen->caps.caps.v1.glsl_level, 140);
    case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
       return 1;
    case PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE:
@@ -191,7 +192,7 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY:
-   case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
+   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
    case PIPE_CAP_NIR_IMAGES_AS_DEREF:
       return 0;
    case PIPE_CAP_QUERY_TIMESTAMP:
@@ -350,6 +351,8 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
        return vscreen->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_STRING_MARKER;
    case PIPE_CAP_SURFACE_SAMPLE_COUNT:
        return vscreen->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_IMPLICIT_MSAA;
+   case PIPE_CAP_IMAGE_STORE_FORMATTED:
+      return 1;
    default:
       return u_pipe_screen_get_param_defaults(screen, param);
    }
@@ -411,7 +414,8 @@ virgl_get_shader_param(struct pipe_screen *screen,
       case PIPE_SHADER_CAP_SUBROUTINES:
          return 1;
       case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-            return 16;
+         return MIN2(vscreen->caps.caps.v2.max_shader_sampler_views,
+                     PIPE_MAX_SHADER_SAMPLER_VIEWS);
       case PIPE_SHADER_CAP_INTEGERS:
          return vscreen->caps.caps.v1.glsl_level >= 130;
       case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
@@ -458,13 +462,21 @@ virgl_get_paramf(struct pipe_screen *screen, enum pipe_capf param)
 {
    struct virgl_screen *vscreen = virgl_screen(screen);
    switch (param) {
+   case PIPE_CAPF_MIN_LINE_WIDTH:
+   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
+   case PIPE_CAPF_MIN_POINT_SIZE:
+   case PIPE_CAPF_MIN_POINT_SIZE_AA:
+      return 1;
+   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
+   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
+      return 0.1;
    case PIPE_CAPF_MAX_LINE_WIDTH:
       return vscreen->caps.caps.v2.max_aliased_line_width;
    case PIPE_CAPF_MAX_LINE_WIDTH_AA:
       return vscreen->caps.caps.v2.max_smooth_line_width;
-   case PIPE_CAPF_MAX_POINT_WIDTH:
+   case PIPE_CAPF_MAX_POINT_SIZE:
       return vscreen->caps.caps.v2.max_aliased_point_size;
-   case PIPE_CAPF_MAX_POINT_WIDTH_AA:
+   case PIPE_CAPF_MAX_POINT_SIZE_AA:
       return vscreen->caps.caps.v2.max_smooth_point_size;
    case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
       return vscreen->caps.caps.v2.max_anisotropy;
@@ -542,8 +554,15 @@ virgl_has_readback_format(struct pipe_screen *screen,
                           enum virgl_formats fmt)
 {
    struct virgl_screen *vscreen = virgl_screen(screen);
-   return has_format_bit(&vscreen->caps.caps.v2.supported_readback_formats,
-                         fmt);
+   if (has_format_bit(&vscreen->caps.caps.v2.supported_readback_formats,
+                         fmt))
+      return true;
+
+   if (fmt == VIRGL_FORMAT_L8_SRGB && vscreen->tweak_l8_srgb_readback) {
+      return true;
+   }
+
+   return false;
 }
 
 static bool
@@ -784,10 +803,13 @@ static void virgl_flush_frontbuffer(struct pipe_screen *screen,
    struct virgl_screen *vscreen = virgl_screen(screen);
    struct virgl_winsys *vws = vscreen->vws;
    struct virgl_resource *vres = virgl_resource(res);
+   struct virgl_context *vctx = virgl_context(ctx);
 
-   if (vws->flush_frontbuffer)
+   if (vws->flush_frontbuffer) {
+      virgl_flush_eq(vctx, vctx, NULL);
       vws->flush_frontbuffer(vws, vres->hw_res, level, layer, winsys_drawable_handle,
                              sub_box);
+   }
 }
 
 static void virgl_fence_reference(struct pipe_screen *screen,
@@ -956,6 +978,7 @@ virgl_create_screen(struct virgl_winsys *vws, const struct pipe_screen_config *c
    const char *VIRGL_GLES_EMULATE_BGRA = "gles_emulate_bgra";
    const char *VIRGL_GLES_APPLY_BGRA_DEST_SWIZZLE = "gles_apply_bgra_dest_swizzle";
    const char *VIRGL_GLES_SAMPLES_PASSED_VALUE = "gles_samples_passed_value";
+   const char *VIRGL_FORMAT_L8_SRGB_ENABLE_READBACK = "format_l8_srgb_enable_readback";
 
    if (!screen)
       return NULL;
@@ -972,10 +995,13 @@ virgl_create_screen(struct virgl_winsys *vws, const struct pipe_screen_config *c
             driQueryOptionb(config->options, VIRGL_GLES_APPLY_BGRA_DEST_SWIZZLE);
       screen->tweak_gles_tf3_value =
             driQueryOptioni(config->options, VIRGL_GLES_SAMPLES_PASSED_VALUE);
+      screen->tweak_l8_srgb_readback =
+            driQueryOptionb(config->options, VIRGL_FORMAT_L8_SRGB_ENABLE_READBACK);
    }
    screen->tweak_gles_emulate_bgra &= !(virgl_debug & VIRGL_DEBUG_NO_EMULATE_BGRA);
    screen->tweak_gles_apply_bgra_dest_swizzle &= !(virgl_debug & VIRGL_DEBUG_NO_BGRA_DEST_SWIZZLE);
    screen->no_coherent = virgl_debug & VIRGL_DEBUG_NO_COHERENT;
+   screen->tweak_l8_srgb_readback |= !!(virgl_debug & VIRGL_DEBUG_L8_SRGB_ENABLE_READBACK);
 
    screen->vws = vws;
    screen->base.get_name = virgl_get_name;

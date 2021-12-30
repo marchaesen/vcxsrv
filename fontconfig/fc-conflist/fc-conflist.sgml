@@ -42,7 +42,7 @@ manpage.1: manpage.sgml
   <!ENTITY dhfirstname "<firstname>Akira</firstname>">
   <!ENTITY dhsurname   "<surname>TAGOH</surname>">
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>Apr  1, 2014</date>">
+  <!ENTITY dhdate      "<date>Dec 21, 2021</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>1</manvolnum>">
@@ -78,7 +78,7 @@ manpage.1: manpage.sgml
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>Show the ruleset files information on the system</refpurpose>
+    <refpurpose>list the configuration files processed by Fontconfig</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -94,8 +94,10 @@ manpage.1: manpage.sgml
   <refsect1>
     <title>DESCRIPTION</title>
 
-    <para><command>&dhpackage;</command> shows the ruleset files' information
-      being installed on the system.</para>
+    <para><command>&dhpackage;</command> prints an annotated list of all the configuration files processed by Fontconfig.</para>
+    <para>The output is a `-' or `+' depending on whether the file is ignored or processed, a space, the file's path, a colon and space, and the description from the file or `No description' if none is present.</para>
+    <para>The order of files looks like how fontconfig acautlly process them except one contains &lt;include&gt; element.
+      In that case, it will be shown after processing all the sub directories where is targeted by &lt;include&gt;.</para>
 
   </refsect1>
   <refsect1>

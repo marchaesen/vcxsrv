@@ -19,6 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import argparse
+import gl_XML
+
 class exec_info():
     """Information relating GL APIs to a function.
 
@@ -295,3 +298,63 @@ functions = {
     # GL_ARB_bindless_texture
     "GetVertexAttribLui64vARB": exec_info(compatibility=30, core=31),
 }
+
+def get_api_condition(f):
+    condition_parts = []
+    if f.name in functions:
+        ex = functions[f.name]
+        unconditional_count = 0
+
+        if ex.compatibility is not None:
+            condition_parts.append('ctx->API == API_OPENGL_COMPAT')
+            unconditional_count += 1
+
+        if ex.core is not None:
+            condition_parts.append('ctx->API == API_OPENGL_CORE')
+            unconditional_count += 1
+
+        if ex.es1 is not None:
+            condition_parts.append('ctx->API == API_OPENGLES')
+            unconditional_count += 1
+
+        if ex.es2 is not None:
+            if ex.es2 > 20:
+                condition_parts.append('(ctx->API == API_OPENGLES2 && ctx->Version >= {0})'.format(ex.es2))
+            else:
+                condition_parts.append('ctx->API == API_OPENGLES2')
+                unconditional_count += 1
+
+        # If the function is unconditionally available in all four
+        # APIs, then it is always available.  Replace the complex
+        # tautology condition with "true" and let GCC do the right
+        # thing.
+        if unconditional_count == 4:
+            condition_parts = ['true']
+    else:
+        if f.desktop:
+            if f.deprecated:
+                condition_parts.append('ctx->API == API_OPENGL_COMPAT')
+            else:
+                condition_parts.append('_mesa_is_desktop_gl(ctx)')
+        if 'es1' in f.api_map:
+            condition_parts.append('ctx->API == API_OPENGLES')
+        if 'es2' in f.api_map:
+            if f.api_map['es2'] > 2.0:
+                condition_parts.append('(ctx->API == API_OPENGLES2 && ctx->Version >= {0})'.format(int(f.api_map['es2'] * 10)))
+            else:
+                condition_parts.append('ctx->API == API_OPENGLES2')
+
+    if not condition_parts:
+        # This function does not exist in any API.
+        return None
+    return ' || '.join(condition_parts)
+
+def print_glapi_file(printer):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        dest='filename',
+                        default='gl_and_es_API.xml',
+                        help='an xml file describing an API')
+    args = parser.parse_args()
+    api = gl_XML.parse_GL_API(args.filename)
+    printer.Print(api)

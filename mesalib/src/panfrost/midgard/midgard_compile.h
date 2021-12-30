@@ -86,7 +86,6 @@ static const nir_shader_compiler_options midgard_nir_options = {
 
         .lower_doubles_options = nir_lower_dmod,
 
-        .lower_bitfield_extract_to_shifts = true,
         .lower_uniforms_to_ubo = true,
         .has_fsub = true,
         .has_isub = true,

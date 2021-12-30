@@ -40,13 +40,13 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "vbo_attrib.h"
 
 void
-vbo_exec_init(struct gl_context *ctx, bool use_buffer_objects);
+vbo_exec_init(struct gl_context *ctx);
 
 void
 vbo_exec_destroy(struct gl_context *ctx);
 
 void
-vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects);
+vbo_exec_vtx_init(struct vbo_exec_context *exec);
 
 void
 vbo_exec_vtx_destroy(struct vbo_exec_context *exec);

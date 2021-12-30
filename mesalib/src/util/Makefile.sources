@@ -144,7 +144,10 @@ MESA_UTIL_FILES := \
 	vma.c \
 	vma.h \
 	xxhash.h \
-        u_qsort.cpp
+        u_qsort.cpp \
+	u_debug_describe.c \
+	indices/u_primconvert.c \
+	u_indices_gen.c
 
 
 MESA_UTIL_GENERATED_FILES = \

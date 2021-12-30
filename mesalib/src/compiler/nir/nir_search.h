@@ -36,7 +36,7 @@
 
 struct nir_builder;
 
-typedef enum {
+typedef enum PACKED {
    nir_search_value_expression,
    nir_search_value_variable,
    nir_search_value_constant,
@@ -60,21 +60,21 @@ typedef struct {
     * - If bit_size < 0, then the value is constructed with the same bit size
     *   as variable (-bit_size - 1).
     */
-   int bit_size;
+   int8_t bit_size;
 } nir_search_value;
 
 typedef struct {
    nir_search_value value;
 
    /** The variable index;  Must be less than NIR_SEARCH_MAX_VARIABLES */
-   unsigned variable;
+   uint8_t variable : 7;
 
    /** Indicates that the given variable must be a constant
     *
     * This is only allowed in search expressions and indicates that the
     * given variable is only allowed to match constant values.
     */
-   bool is_constant;
+   bool is_constant : 1;
 
    /** Indicates that the given variable must have a certain type
     *
@@ -88,15 +88,14 @@ typedef struct {
     */
    nir_alu_type type;
 
-   /** Optional condition fxn ptr
+   /** Optional table->variable_cond[] fxn ptr index
     *
     * This is only allowed in search expressions, and allows additional
     * constraints to be placed on the match.  Typically used for 'is_constant'
     * variables to require, for example, power-of-two in order for the search
     * to match.
     */
-   bool (*cond)(struct hash_table *range_ht, const nir_alu_instr *instr,
-                unsigned src, unsigned num_components, const uint8_t *swizzle);
+   int16_t cond_index;
 
    /** Swizzle (for replace only) */
    uint8_t swizzle[NIR_MAX_VEC_COMPONENTS];
@@ -138,10 +137,13 @@ typedef struct {
     * value that does *not* have the exact bit set.  If unset, the exact bit
     * on the SSA value is ignored.
     */
-   bool inexact;
+   bool inexact : 1;
 
    /** In a replacement, requests that the instruction be marked exact. */
-   bool exact;
+   bool exact : 1;
+
+   /* One of nir_op or nir_search_op */
+   uint16_t opcode : 14;
 
    /* Commutative expression index.  This is assigned by opt_algebraic.py when
     * search structures are constructed and is a unique (to this structure)
@@ -155,17 +157,16 @@ typedef struct {
     */
    uint8_t comm_exprs;
 
-   /* One of nir_op or nir_search_op */
-   uint16_t opcode;
-   const nir_search_value *srcs[4];
+   /* Index in table->values[] for the expression operands */
+   uint16_t srcs[4];
 
-   /** Optional condition fxn ptr
+   /** Optional table->expression_cond[] fxn ptr index
     *
     * This allows additional constraints on expression matching, it is
     * typically used to match an expressions uses such as the number of times
     * the expression is used, and whether its used by an if.
     */
-   bool (*cond)(nir_alu_instr *instr);
+   int16_t cond_index;
 } nir_search_expression;
 
 struct per_op_table {
@@ -175,10 +176,46 @@ struct per_op_table {
 };
 
 struct transform {
-   const nir_search_expression *search;
-   const nir_search_value *replace;
+   uint16_t search; /* Index in table->values[] for the search expression. */
+   uint16_t replace; /* Index in table->values[] for the replace value. */
    unsigned condition_offset;
 };
+
+typedef union {
+   nir_search_value value; /* base type of the union, first element of each variant struct */
+
+   nir_search_constant constant;
+   nir_search_variable variable;
+   nir_search_expression expression;
+} nir_search_value_union;
+
+typedef bool (*nir_search_expression_cond)(nir_alu_instr *instr);
+typedef bool (*nir_search_variable_cond)(struct hash_table *range_ht,
+                                         const nir_alu_instr *instr,
+                                         unsigned src, unsigned num_components,
+                                         const uint8_t *swizzle);
+
+/* Generated data table for an algebraic optimization pass. */
+typedef struct {
+   /** Array of all transforms in the pass. */
+   const struct transform *transforms;
+   /** Mapping from automaton state index to location in *transforms. */
+   const uint16_t *transform_offsets;
+   const struct per_op_table *pass_op_table;
+   const nir_search_value_union *values;
+
+   /**
+    * Array of condition functions for expressions, referenced by
+    * nir_search_expression->cond.
+    */
+   const nir_search_expression_cond *expression_cond;
+
+   /**
+    * Array of condition functions for variables, referenced by
+    * nir_search_variable->cond.
+    */
+   const nir_search_variable_cond *variable_cond;
+} nir_algebraic_table;
 
 /* Note: these must match the start states created in
  * TreeAutomaton._build_table()
@@ -201,15 +238,13 @@ nir_ssa_def *
 nir_replace_instr(struct nir_builder *b, nir_alu_instr *instr,
                   struct hash_table *range_ht,
                   struct util_dynarray *states,
-                  const struct per_op_table *pass_op_table,
+                  const nir_algebraic_table *table,
                   const nir_search_expression *search,
                   const nir_search_value *replace,
                   nir_instr_worklist *algebraic_worklist);
 bool
 nir_algebraic_impl(nir_function_impl *impl,
                    const bool *condition_flags,
-                   const struct transform **transforms,
-                   const uint16_t *transform_counts,
-                   const struct per_op_table *pass_op_table);
+                   const nir_algebraic_table *table);
 
 #endif /* _NIR_SEARCH_ */

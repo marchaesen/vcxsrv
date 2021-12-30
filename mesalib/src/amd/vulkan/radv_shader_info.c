@@ -51,15 +51,6 @@ gather_intrinsic_load_input_info(const nir_shader *nir, const nir_intrinsic_inst
    }
 }
 
-static uint32_t
-widen_writemask(uint32_t wrmask)
-{
-   uint32_t new_wrmask = 0;
-   for (unsigned i = 0; i < 4; i++)
-      new_wrmask |= (wrmask & (1 << i) ? 0x3 : 0x0) << (i * 2);
-   return new_wrmask;
-}
-
 static void
 set_writes_memory(const nir_shader *nir, struct radv_shader_info *info)
 {
@@ -78,7 +69,7 @@ gather_intrinsic_store_output_info(const nir_shader *nir, const nir_intrinsic_in
    uint8_t *output_usage_mask = NULL;
 
    if (instr->src[0].ssa->bit_size == 64)
-      write_mask = widen_writemask(write_mask);
+      write_mask = util_widen_mask(write_mask, 2);
 
    switch (nir->info.stage) {
    case MESA_SHADER_VERTEX:

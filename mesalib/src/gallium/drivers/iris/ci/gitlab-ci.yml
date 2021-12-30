@@ -259,7 +259,7 @@ iris-whl-traces-performance:
   variables:
     GPU_VERSION: intel-whl
 
-iris-cml-traces-performance:
+.iris-cml-traces-performance:
   extends:
     - .iris-cml-test
     - .profile-traces

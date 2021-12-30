@@ -71,6 +71,6 @@ libnine_st = static_library(
     dep_thread, idep_nir, idep_nir_headers
   ],
   link_with : [
-    libmesa_gallium
+    libmesa
   ]
 )

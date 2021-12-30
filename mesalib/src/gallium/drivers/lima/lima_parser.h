@@ -61,7 +61,7 @@ static const char *PIPE_BLENDFACTOR_STRING[] = {
    "CONST_COLOR",      /* 2 */
    "ZERO",             /* 3 */
    "UNKNOWN_4",        /* 4 */
-   "UNKNOWN_5",        /* 5 */
+   "SRC2_COLOR",       /* 5 */
    "UNKNOWN_6",        /* 6 */
    "SRC_ALPHA_SAT",    /* 7 */
    "INV_SRC_COLOR",    /* 8 */
@@ -69,7 +69,7 @@ static const char *PIPE_BLENDFACTOR_STRING[] = {
    "INV_CONST_COLOR",  /* 10 */
    "ONE",              /* 11 */
    "UNKNOWN_12",       /* 12 */
-   "UNKNOWN_13",       /* 13 */
+   "INV_SRC2_COLOR",   /* 13 */
    "UNKNOWN_14",       /* 14 */
    "UNKNOWN_15",       /* 15 */
    "SRC_ALPHA",        /* 16 */
@@ -77,13 +77,26 @@ static const char *PIPE_BLENDFACTOR_STRING[] = {
    "CONST_ALPHA",      /* 18 */
    "UNKNOWN_19",       /* 19 */
    "UNKNOWN_20",       /* 20 */
-   "UNKNOWN_21",       /* 21 */
+   "SRC2_ALPHA",       /* 21 */
    "UNKNOWN_22",       /* 22 */
    "UNKNOWN_23",       /* 23 */
    "INV_SRC_ALPHA",    /* 24 */
    "INV_DST_ALPHA",    /* 25 */
    "INV_CONST_ALPHA",  /* 26 */
+   "UNKNOWN_27",       /* 27 */
+   "UNKNOWN_28",       /* 28 */
+   "INV_SRC2_ALPHA",   /* 29 */
+};
 
+static const char *LIMA_WRAP_MODE_STRING[] = {
+   "TEX_WRAP_REPEAT",                  /* 0 */
+   "TEX_WRAP_CLAMP_TO_EDGE",           /* 1 */
+   "TEX_WRAP_CLAMP",                   /* 2 */
+   "TEX_WRAP_CLAMP_TO_BORDER",         /* 3 */
+   "TEX_WRAP_MIRROR_REPEAT",           /* 4 */
+   "TEX_WRAP_MIRROR_CLAMP_TO_EDGE",    /* 5 */
+   "TEX_WRAP_MIRROR_CLAMP",            /* 6 */
+   "TEX_WRAP_MIRROR_CLAMP_TO_BORDER",  /* 7 */
 };
 
 static inline const char
@@ -114,6 +127,14 @@ static inline const char
 *lima_get_blendfactor_string(int func) {
    if ((func >= 0) && (func <= 26))
       return PIPE_BLENDFACTOR_STRING[func];
+   else
+      return "UNKNOWN";
+}
+
+static inline const char
+*lima_get_wrap_mode_string(int mode) {
+   if ((mode >= 0) && (mode <= 7))
+      return LIMA_WRAP_MODE_STRING[mode];
    else
       return "UNKNOWN";
 }

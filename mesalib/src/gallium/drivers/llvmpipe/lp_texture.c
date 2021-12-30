@@ -950,7 +950,10 @@ llvmpipe_memory_barrier(struct pipe_context *pipe,
 
 static struct pipe_memory_allocation *llvmpipe_allocate_memory(struct pipe_screen *screen, uint64_t size)
 {
-   return os_malloc_aligned(size, 256);
+   uint64_t alignment;
+   if (!os_get_page_size(&alignment))
+      alignment = 256;
+   return os_malloc_aligned(size, alignment);
 }
 
 static void llvmpipe_free_memory(struct pipe_screen *screen,
@@ -965,7 +968,10 @@ static const char *driver_id = "llvmpipe" MESA_GIT_SHA1;
 
 static struct pipe_memory_allocation *llvmpipe_allocate_memory_fd(struct pipe_screen *screen, uint64_t size, int *fd)
 {
-   return os_malloc_aligned_fd(size, 256, fd, "llvmpipe memory fd", driver_id);
+   uint64_t alignment;
+   if (!os_get_page_size(&alignment))
+      alignment = 256;
+   return os_malloc_aligned_fd(size, alignment, fd, "llvmpipe memory fd", driver_id);
 }
 
 static bool llvmpipe_import_memory_fd(struct pipe_screen *screen, int fd, struct pipe_memory_allocation **ptr, uint64_t *size)
@@ -1097,7 +1103,7 @@ llvmpipe_resource_get_param(struct pipe_screen *screen,
 
       if (!llvmpipe_resource_get_handle(screen, context, resource, &whandle, handle_usage))
          return false;
-      *value = whandle.handle;
+      *value = (uint64_t)(uintptr_t)whandle.handle;
       return true;
    default:
       break;

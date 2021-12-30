@@ -1905,7 +1905,7 @@ ProcessDeviceEvent(InternalEvent *ev, DeviceIntPtr device)
          * nested) to clients. */
         if (event->source_type == EVENT_SOURCE_FOCUS)
             return;
-        if (!grab && CheckDeviceGrabs(device, event, 0))
+        if (!grab && CheckDeviceGrabs(device, ev, 0))
             return;
         break;
     case ET_KeyRelease:
@@ -1918,7 +1918,7 @@ ProcessDeviceEvent(InternalEvent *ev, DeviceIntPtr device)
         if (b->map[key] == 0)   /* there's no button 0 */
             return;
         event->detail.button = b->map[key];
-        if (!grab && CheckDeviceGrabs(device, event, 0)) {
+        if (!grab && CheckDeviceGrabs(device, ev, 0)) {
             /* if a passive grab was activated, the event has been sent
              * already */
             return;

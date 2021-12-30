@@ -1,3 +1,52 @@
+KHR-GL46.compute_shader.conditional-dispatching,Fail
+KHR-GL46.cull_distance.functional,Fail
+KHR-GL46.direct_state_access.queries_functional,Fail
+KHR-GL46.direct_state_access.renderbuffers_storage,Fail
+KHR-GL46.direct_state_access.renderbuffers_storage_multisample,Fail
+KHR-GL46.direct_state_access.vertex_arrays_attribute_format,Fail
+KHR-GL46.get_texture_sub_image.errors_test,Fail
+KHR-GL46.get_texture_sub_image.functional_test,Fail
+KHR-GL46.gpu_shader_fp64.builtin.mod_dvec2,Fail
+KHR-GL46.gpu_shader_fp64.builtin.mod_dvec3,Fail
+KHR-GL46.gpu_shader_fp64.builtin.mod_dvec4,Fail
+KHR-GL46.multi_bind.dispatch_bind_buffers_base,Crash
+KHR-GL46.pipeline_statistics_query_tests_ARB.functional_primitives_vertices_submitted_and_clipping_input_output_primitives,Fail
+KHR-GL46.sample_shading.render.rgba32f.full,Fail
+KHR-GL46.sample_shading.render.rgba32f.half,Fail
+KHR-GL46.sample_shading.render.rgba8.full,Fail
+KHR-GL46.sample_shading.render.rgba8.half,Fail
+KHR-GL46.sample_shading.render.rgba8i.full,Fail
+KHR-GL46.sample_shading.render.rgba8i.half,Fail
+KHR-GL46.sample_shading.render.rgba8ui.full,Fail
+KHR-GL46.sample_shading.render.rgba8ui.half,Fail
+KHR-GL46.shader_ballot_tests.ShaderBallotAvailability,Crash
+KHR-GL46.shader_ballot_tests.ShaderBallotFunctionRead,Crash
+KHR-GL46.shading_language_420pack.binding_uniform_block_array,Crash
+KHR-GL46.tessellation_shader.single.isolines_tessellation,Fail
+KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.data_pass_through,Fail
+KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_PatchVerticesIn,Fail
+KHR-GL46.tessellation_shader.tessellation_invariance.invariance_rule3,Fail
+KHR-GL46.tessellation_shader.tessellation_shader_point_mode.points_verification,Fail
+KHR-GL46.tessellation_shader.tessellation_shader_quads_tessellation.degenerate_case,Fail
+KHR-GL46.tessellation_shader.tessellation_shader_quads_tessellation.inner_tessellation_level_rounding,Fail
+KHR-GL46.tessellation_shader.tessellation_shader_tessellation.gl_InvocationID_PatchVerticesIn_PrimitiveID,Fail
+KHR-GL46.tessellation_shader.vertex.vertex_spacing,Fail
+KHR-GL46.texture_barrier_ARB.disjoint-texels,Fail
+KHR-GL46.texture_barrier_ARB.overlapping-texels,Fail
+KHR-GL46.texture_barrier.disjoint-texels,Fail
+KHR-GL46.texture_barrier.overlapping-texels,Fail
+KHR-GL46.texture_view.view_classes,Fail
+KHR-GL46.texture_view.view_sampling,Fail
+KHR-GL46.transform_feedback.capture_geometry_separate_test,Fail
+KHR-GL46.transform_feedback.capture_vertex_interleaved_test,Fail
+KHR-GL46.transform_feedback.capture_vertex_separate_test,Fail
+KHR-GL46.transform_feedback.discard_vertex_test,Fail
+KHR-GL46.transform_feedback.draw_xfb_instanced_test,Crash
+KHR-GL46.transform_feedback.draw_xfb_stream_instanced_test,Crash
+KHR-GL46.transform_feedback.query_geometry_separate_test,Fail
+KHR-GL46.transform_feedback.query_vertex_interleaved_test,Fail
+KHR-GL46.transform_feedback.query_vertex_separate_test,Fail
+
 dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner,Fail
@@ -42,7 +91,6 @@ glx@glx-visuals-depth,Crash
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil,Crash
 glx@glx-visuals-stencil -pixmap,Crash
-glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_ext_import_context@free context,Fail

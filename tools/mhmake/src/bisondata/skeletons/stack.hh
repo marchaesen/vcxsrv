@@ -19,8 +19,8 @@
 # b4_stack_file
 # -------------
 # Name of the file containing the stack class, if we want this file.
-b4_defines_if([b4_required_version_if([30200], [],
-                                      [m4_define([b4_stack_file], [stack.hh])])])
+b4_header_if([b4_required_version_if([30200], [],
+                                     [m4_define([b4_stack_file], [stack.hh])])])
 
 
 # b4_stack_define
@@ -37,7 +37,7 @@ m4_define([b4_stack_define],
       typedef typename S::size_type size_type;
       typedef typename std::ptrdiff_t index_type;
 
-      stack (size_type n = 200)
+      stack (size_type n = 200) YY_NOEXCEPT
         : seq_ (n)
       {}
 
@@ -116,7 +116,7 @@ m4_define([b4_stack_define],
       class slice
       {
       public:
-        slice (const stack& stack, index_type range)
+        slice (const stack& stack, index_type range) YY_NOEXCEPT
           : stack_ (stack)
           , range_ (range)
         {}

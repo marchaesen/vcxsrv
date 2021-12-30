@@ -146,9 +146,6 @@ print_stats(struct disasm_ctx *ctx)
            ctx->stats->sy);
 }
 
-/* size of largest OPC field of all the instruction categories: */
-#define NOPC_BITS 6
-
 static const struct opc_info {
    const char *name;
 } opcs[1 << (3 + NOPC_BITS)] = {
@@ -176,6 +173,7 @@ static const struct opc_info {
    OPC(0, OPC_STKR,         stkr),
    OPC(0, OPC_XSET,         xset),
    OPC(0, OPC_XCLR,         xclr),
+   OPC(0, OPC_GETLAST,      getlast),
    OPC(0, OPC_GETONE,       getone),
    OPC(0, OPC_DBG,          dbg),
    OPC(0, OPC_SHPS,         shps),
@@ -303,6 +301,11 @@ static const struct opc_info {
    OPC(5, OPC_DSYPP_1,      dsypp.1),
    OPC(5, OPC_RGETPOS,      rgetpos),
    OPC(5, OPC_RGETINFO,     rgetinfo),
+   OPC(5, OPC_BRCST_ACTIVE, brcst.active),
+   OPC(5, OPC_QUAD_SHUFFLE_BRCST, quad_shuffle.brcst),
+   OPC(5, OPC_QUAD_SHUFFLE_HORIZ, quad_shuffle.horiz),
+   OPC(5, OPC_QUAD_SHUFFLE_VERT,  quad_shuffle.vert),
+   OPC(5, OPC_QUAD_SHUFFLE_DIAG,  quad_shuffle.diag),
    /* macros are needed here for ir3_print */
    OPC(5, OPC_DSXPP_MACRO,  dsxpp.macro),
    OPC(5, OPC_DSYPP_MACRO,  dsypp.macro),
@@ -336,6 +339,39 @@ static const struct opc_info {
    OPC(6, OPC_ATOMIC_AND,     atomic.and),
    OPC(6, OPC_ATOMIC_OR,      atomic.or),
    OPC(6, OPC_ATOMIC_XOR,     atomic.xor),
+   OPC(6, OPC_ATOMIC_B_ADD,     atomic.b.add),
+   OPC(6, OPC_ATOMIC_B_SUB,     atomic.b.sub),
+   OPC(6, OPC_ATOMIC_B_XCHG,    atomic.b.xchg),
+   OPC(6, OPC_ATOMIC_B_INC,     atomic.b.inc),
+   OPC(6, OPC_ATOMIC_B_DEC,     atomic.b.dec),
+   OPC(6, OPC_ATOMIC_B_CMPXCHG, atomic.b.cmpxchg),
+   OPC(6, OPC_ATOMIC_B_MIN,     atomic.b.min),
+   OPC(6, OPC_ATOMIC_B_MAX,     atomic.b.max),
+   OPC(6, OPC_ATOMIC_B_AND,     atomic.b.and),
+   OPC(6, OPC_ATOMIC_B_OR,      atomic.b.or),
+   OPC(6, OPC_ATOMIC_B_XOR,     atomic.b.xor),
+   OPC(6, OPC_ATOMIC_S_ADD,     atomic.s.add),
+   OPC(6, OPC_ATOMIC_S_SUB,     atomic.s.sub),
+   OPC(6, OPC_ATOMIC_S_XCHG,    atomic.s.xchg),
+   OPC(6, OPC_ATOMIC_S_INC,     atomic.s.inc),
+   OPC(6, OPC_ATOMIC_S_DEC,     atomic.s.dec),
+   OPC(6, OPC_ATOMIC_S_CMPXCHG, atomic.s.cmpxchg),
+   OPC(6, OPC_ATOMIC_S_MIN,     atomic.s.min),
+   OPC(6, OPC_ATOMIC_S_MAX,     atomic.s.max),
+   OPC(6, OPC_ATOMIC_S_AND,     atomic.s.and),
+   OPC(6, OPC_ATOMIC_S_OR,      atomic.s.or),
+   OPC(6, OPC_ATOMIC_S_XOR,     atomic.s.xor),
+   OPC(6, OPC_ATOMIC_G_ADD,     atomic.g.add),
+   OPC(6, OPC_ATOMIC_G_SUB,     atomic.g.sub),
+   OPC(6, OPC_ATOMIC_G_XCHG,    atomic.g.xchg),
+   OPC(6, OPC_ATOMIC_G_INC,     atomic.g.inc),
+   OPC(6, OPC_ATOMIC_G_DEC,     atomic.g.dec),
+   OPC(6, OPC_ATOMIC_G_CMPXCHG, atomic.g.cmpxchg),
+   OPC(6, OPC_ATOMIC_G_MIN,     atomic.g.min),
+   OPC(6, OPC_ATOMIC_G_MAX,     atomic.g.max),
+   OPC(6, OPC_ATOMIC_G_AND,     atomic.g.and),
+   OPC(6, OPC_ATOMIC_G_OR,      atomic.g.or),
+   OPC(6, OPC_ATOMIC_G_XOR,     atomic.g.xor),
    OPC(6, OPC_LDGB,         ldgb),
    OPC(6, OPC_STGB,         stgb),
    OPC(6, OPC_STIB,         stib),
@@ -347,6 +383,7 @@ static const struct opc_info {
    OPC(6, OPC_ENDLS,        endls),
    OPC(6, OPC_GETSPID,      getspid),
    OPC(6, OPC_GETWID,       getwid),
+   OPC(6, OPC_GETFIBERID,   getfiberid),
 
    OPC(6, OPC_SPILL_MACRO,  spill.macro),
    OPC(6, OPC_RELOAD_MACRO, reload.macro),

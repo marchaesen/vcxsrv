@@ -285,6 +285,13 @@ drisw_copy_sub_buffer(__DRIdrawable *dPriv, int x, int y,
 
       ctx->st->flush(ctx->st, ST_FLUSH_FRONT, NULL, NULL, NULL);
 
+      if (drawable->stvis.samples > 1) {
+         /* Resolve the back buffer. */
+         dri_pipe_blit(ctx->st->pipe,
+                       drawable->textures[ST_ATTACHMENT_BACK_LEFT],
+                       drawable->msaa_textures[ST_ATTACHMENT_BACK_LEFT]);
+      }
+
       u_box_2d(x, dPriv->h - y - h, w, h, &box);
       drisw_present_texture(ctx->st->pipe, dPriv, ptex, &box);
    }

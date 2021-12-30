@@ -458,7 +458,7 @@ WindowHasNewCursor(WindowPtr /* pWin */ );
 
 extern Bool
 CheckDeviceGrabs(DeviceIntPtr /* device */ ,
-                 DeviceEvent * /* event */ ,
+                 InternalEvent * /* event */ ,
                  WindowPtr /* ancestor */ );
 
 extern void

@@ -11,7 +11,7 @@ prompts_t *new_prompts(void)
     p->prompts = NULL;
     p->n_prompts = p->prompts_size = 0;
     p->data = NULL;
-    p->idata = -1;
+    p->spr = SPR_INCOMPLETE;
     p->to_server = true; /* to be on the safe side */
     p->name = p->instruction = NULL;
     p->name_reqd = p->instr_reqd = false;
@@ -34,7 +34,7 @@ void add_prompt(prompts_t *p, char *promptstr, bool echo)
 void prompt_set_result(prompt_t *pr, const char *newstr)
 {
     strbuf_clear(pr->result);
-    put_datapl(pr->result, ptrlen_from_asciz(newstr));
+    put_dataz(pr->result, newstr);
 }
 
 const char *prompt_get_result_ref(prompt_t *pr)

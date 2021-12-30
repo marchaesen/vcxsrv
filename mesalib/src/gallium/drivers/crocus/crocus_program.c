@@ -1396,7 +1396,7 @@ crocus_compile_tcs(struct crocus_context *ice,
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    const struct brw_compiler *compiler = screen->compiler;
    const struct nir_shader_compiler_options *options =
-      compiler->glsl_compiler_options[MESA_SHADER_TESS_CTRL].NirOptions;
+      compiler->nir_options[MESA_SHADER_TESS_CTRL];
    void *mem_ctx = ralloc_context(NULL);
    struct brw_tcs_prog_data *tcs_prog_data =
       rzalloc(mem_ctx, struct brw_tcs_prog_data);
@@ -1461,12 +1461,17 @@ crocus_compile_tcs(struct crocus_context *ice,
 
    struct brw_tcs_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_tcs(compiler, &ice->dbg, mem_ctx, &key_clean, tcs_prog_data, nir,
-                      -1, NULL, &error_str);
+
+   struct brw_compile_tcs_params params = {
+      .nir = nir,
+      .key = &key_clean,
+      .prog_data = tcs_prog_data,
+      .log_data = &ice->dbg,
+   };
+
+   const unsigned *program = brw_compile_tcs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile control shader: %s\n", error_str);
+      dbg_printf("Failed to compile control shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -1594,12 +1599,18 @@ crocus_compile_tes(struct crocus_context *ice,
 
    struct brw_tes_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_tes(compiler, &ice->dbg, mem_ctx, &key_clean, &input_vue_map,
-                      tes_prog_data, nir, -1, NULL, &error_str);
+
+   struct brw_compile_tes_params params = {
+      .nir = nir,
+      .key = &key_clean,
+      .prog_data = tes_prog_data,
+      .input_vue_map = &input_vue_map,
+      .log_data = &ice->dbg,
+   };
+
+   const unsigned *program = brw_compile_tes(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile evaluation shader: %s\n", error_str);
+      dbg_printf("Failed to compile evaluation shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -1728,12 +1739,16 @@ crocus_compile_gs(struct crocus_context *ice,
    struct brw_gs_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
-   char *error_str = NULL;
-   const unsigned *program =
-      brw_compile_gs(compiler, &ice->dbg, mem_ctx, &key_clean, gs_prog_data, nir,
-                     -1, NULL, &error_str);
+   struct brw_compile_gs_params params = {
+      .nir = nir,
+      .key = &key_clean,
+      .prog_data = gs_prog_data,
+      .log_data = &ice->dbg,
+   };
+
+   const unsigned *program = brw_compile_gs(compiler, mem_ctx, &params);
    if (program == NULL) {
-      dbg_printf("Failed to compile geometry shader: %s\n", error_str);
+      dbg_printf("Failed to compile geometry shader: %s\n", params.error_str);
       ralloc_free(mem_ctx);
       return false;
    }
@@ -2685,6 +2700,9 @@ crocus_create_uncompiled_shader(struct pipe_context *ctx,
 
    NIR_PASS_V(nir, brw_nir_lower_storage_image, devinfo);
    NIR_PASS_V(nir, crocus_lower_storage_image_derefs);
+
+   if (nir->info.stage != MESA_SHADER_FRAGMENT && nir->info.stage != MESA_SHADER_COMPUTE)
+      NIR_PASS_V(nir, nir_lower_point_size, 1.0, 255.0);
 
    nir_sweep(nir);
 

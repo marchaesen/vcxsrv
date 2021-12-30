@@ -288,7 +288,7 @@ static void emit_state(struct rendering_state *state)
    }
 
    if (state->vb_dirty) {
-      cso_set_vertex_buffers(state->cso, state->start_vb, state->num_vb, state->vb);
+      cso_set_vertex_buffers(state->cso, state->start_vb, state->num_vb, 0, false, state->vb);
       state->vb_dirty = false;
    }
 
@@ -1285,6 +1285,12 @@ static void handle_descriptor_sets(struct vk_cmd_queue_entry *cmd,
 
    for (i = 0; i < bds->descriptor_set_count; i++) {
       const struct lvp_descriptor_set *set = lvp_descriptor_set_from_handle(bds->descriptor_sets[i]);
+      /* verify that there's enough total offsets */
+      assert(set->layout->dynamic_offset_count <= dyn_info.dynamic_offset_count);
+      /* verify there's either no offsets... */
+      assert(!dyn_info.dynamic_offset_count ||
+             /* or that the total number of offsets required is <= the number remaining */
+             set->layout->dynamic_offset_count <= dyn_info.dynamic_offset_count - dyn_info.dyn_index);
 
       if (set->layout->shader_stages & VK_SHADER_STAGE_VERTEX_BIT)
          handle_set_stage(state, &dyn_info, set, MESA_SHADER_VERTEX, PIPE_SHADER_VERTEX);
@@ -1805,8 +1811,171 @@ static void handle_begin_render_pass2(struct vk_cmd_queue_entry *cmd,
    begin_render_pass(cmd->u.begin_render_pass2.render_pass_begin, state);
 }
 
-static void handle_end_render_pass2(struct vk_cmd_queue_entry *cmd,
-                                    struct rendering_state *state)
+static VkAttachmentLoadOp
+get_load_op(VkAttachmentLoadOp op, bool resuming)
+{
+   if (!resuming)
+      return op;
+   if (op == VK_ATTACHMENT_LOAD_OP_CLEAR)
+      return VK_ATTACHMENT_LOAD_OP_LOAD;
+   return op;
+}
+
+static void handle_begin_rendering(struct vk_cmd_queue_entry *cmd,
+                                   struct rendering_state *state)
+{
+   const VkRenderingInfoKHR *info = cmd->u.begin_rendering_khr.rendering_info;
+   bool resuming = (info->flags & VK_RENDERING_RESUMING_BIT_KHR) == VK_RENDERING_RESUMING_BIT_KHR;
+   bool suspending = (info->flags & VK_RENDERING_SUSPENDING_BIT_KHR) == VK_RENDERING_SUSPENDING_BIT_KHR;
+   assert(!state->pass);
+   state->vk_framebuffer = NULL;
+   state->render_area = info->renderArea;
+
+   unsigned num_attachments = info->colorAttachmentCount + (info->pDepthAttachment || info->pStencilAttachment);
+   unsigned i, color_resolves = 0;
+   for (i = 0; i < info->colorAttachmentCount; i++) {
+      if (info->pColorAttachments[i].resolveImageView)
+         color_resolves++;
+   }
+   bool zresolve = info->pDepthAttachment && info->pDepthAttachment->resolveImageView;
+   bool sresolve = info->pStencilAttachment && info->pStencilAttachment->resolveImageView;
+   unsigned num_resolves = color_resolves + (zresolve || sresolve);
+   unsigned attachment_count = num_attachments + num_resolves;
+   state->imageless_views = realloc(state->imageless_views, sizeof(*state->imageless_views) * attachment_count);
+
+   state->render_area = info->renderArea;
+   state->framebuffer.width = info->renderArea.offset.x + info->renderArea.extent.width;
+   state->framebuffer.height = info->renderArea.offset.y + info->renderArea.extent.height;
+   state->framebuffer.layers = info->layerCount;
+
+   if (state->num_pending_aspects < attachment_count) {
+      state->pending_clear_aspects = realloc(state->pending_clear_aspects, sizeof(VkImageAspectFlags) * attachment_count);
+      state->cleared_views = realloc(state->cleared_views, sizeof(uint32_t) * attachment_count);
+      state->num_pending_aspects = attachment_count;
+   }
+
+   /* [lvp_subpass] [attachment_count * lvp_render_pass_attachment] [attachment_count * lvp_render_pass_attachment*] */
+   size_t size = sizeof(struct lvp_subpass) + attachment_count * (sizeof(void*) + sizeof(struct lvp_render_pass_attachment));
+   size_t attachment_offset = sizeof(struct lvp_subpass);
+   size_t attachment_ref_offset = attachment_offset + attachment_count * sizeof(struct lvp_render_pass_attachment);
+   struct lvp_subpass *subpass = calloc(1, size);
+   subpass->color_count = info->colorAttachmentCount;
+   bool has_ds = !!info->pDepthAttachment + !!info->pStencilAttachment;
+   state->attachments = realloc(state->attachments, sizeof(*state->attachments) * attachment_count);
+   struct lvp_render_pass_attachment *attachments = (void*)((uint8_t*)subpass + attachment_offset);
+   struct lvp_render_pass_attachment *resolve_attachments = num_resolves ? &attachments[subpass->color_count + has_ds] : NULL;
+   struct lvp_render_pass_attachment **attachment_refs = (void*)((uint8_t*)subpass + attachment_ref_offset);
+   struct lvp_render_pass_attachment **resolve_attachment_refs = num_resolves ? &attachment_refs[subpass->color_count + has_ds] : NULL;
+
+   subpass->view_mask = info->viewMask;
+   subpass->has_color_resolve = color_resolves > 0;
+   if (info->colorAttachmentCount)
+      subpass->color_attachments = attachment_refs;
+   if (has_ds)
+      subpass->depth_stencil_attachment = &attachment_refs[info->colorAttachmentCount];
+   if (color_resolves)
+      subpass->resolve_attachments = resolve_attachment_refs;
+   if (zresolve || sresolve)
+      subpass->ds_resolve_attachment = &resolve_attachment_refs[color_resolves];
+
+   unsigned resolve_idx = 0;
+   for (i = 0; i < info->colorAttachmentCount; i++) {
+      if (!info->pColorAttachments[i].imageView)
+         continue;
+      struct lvp_render_pass_attachment *att = &attachments[i];
+
+      att->attachment = i;
+      att->load_op = get_load_op(info->pColorAttachments[i].loadOp, resuming);
+      if (att->load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
+         state->attachments[i].pending_clear_aspects = VK_IMAGE_ASPECT_COLOR_BIT;
+         state->attachments[i].clear_value = info->pColorAttachments[i].clearValue;
+      } else
+         state->attachments[i].pending_clear_aspects = 0;
+
+      state->pending_clear_aspects[i] = state->attachments[i].pending_clear_aspects;
+      state->cleared_views[i] = 0;
+
+      state->imageless_views[i] = lvp_image_view_from_handle(info->pColorAttachments[i].imageView);
+      att->format = state->imageless_views[i]->format;
+      att->samples = state->imageless_views[i]->image->bo->nr_samples;
+      attachment_refs[i] = att;
+      if (!suspending && info->pColorAttachments[i].resolveImageView) {
+         struct lvp_render_pass_attachment *resolve_att = &resolve_attachments[resolve_idx];
+         resolve_att->attachment = num_attachments + resolve_idx;
+         resolve_att->load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+         state->imageless_views[num_attachments + resolve_idx] = lvp_image_view_from_handle(info->pColorAttachments[i].resolveImageView);
+         resolve_att->format = state->imageless_views[num_attachments + resolve_idx]->format;
+         resolve_att->samples = state->imageless_views[num_attachments + resolve_idx]->image->bo->nr_samples;
+         resolve_attachment_refs[resolve_idx] = resolve_att;
+         resolve_idx++;
+      }
+   }
+   if (info->pDepthAttachment && info->pDepthAttachment->imageView) {
+      struct lvp_render_pass_attachment *att = &attachments[i];
+
+      att->attachment = i;
+      att->load_op = get_load_op(info->pDepthAttachment->loadOp, resuming);
+      att->stencil_load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+      if (att->load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
+         state->attachments[i].pending_clear_aspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+         state->attachments[i].clear_value = info->pDepthAttachment->clearValue;
+      } else
+         state->attachments[i].pending_clear_aspects = 0;
+
+      state->pending_clear_aspects[i] = state->attachments[i].pending_clear_aspects;
+      state->cleared_views[i] = 0;
+
+      state->imageless_views[i] = lvp_image_view_from_handle(info->pDepthAttachment->imageView);
+      att->format = state->imageless_views[i]->format;
+      att->samples = state->imageless_views[i]->image->bo->nr_samples;
+      attachment_refs[i] = att;
+      if (!suspending && info->pDepthAttachment->resolveImageView) {
+         struct lvp_render_pass_attachment *resolve_att = &resolve_attachments[resolve_idx];
+         resolve_att->attachment = num_attachments + resolve_idx;
+         resolve_att->load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+         state->imageless_views[num_attachments + resolve_idx] = lvp_image_view_from_handle(info->pDepthAttachment->resolveImageView);
+         resolve_att->format = state->imageless_views[num_attachments + resolve_idx]->format;
+         resolve_att->samples = state->imageless_views[num_attachments + resolve_idx]->image->bo->nr_samples;
+         resolve_attachment_refs[resolve_idx] = resolve_att;
+      }
+   }
+   if (info->pStencilAttachment && info->pStencilAttachment->imageView) {
+      struct lvp_render_pass_attachment *att = &attachments[i];
+
+      att->attachment = i;
+      if (!info->pDepthAttachment)
+         att->load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+      att->stencil_load_op = get_load_op(info->pStencilAttachment->loadOp, resuming);
+      if (!info->pDepthAttachment)
+         state->attachments[i].pending_clear_aspects = 0;
+      if (att->stencil_load_op == VK_ATTACHMENT_LOAD_OP_CLEAR) {
+         state->attachments[i].pending_clear_aspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+         state->attachments[i].clear_value.depthStencil.stencil = info->pStencilAttachment->clearValue.depthStencil.stencil;
+      }
+
+      state->pending_clear_aspects[i] |= state->attachments[i].pending_clear_aspects;
+      state->cleared_views[i] = 0;
+
+      state->imageless_views[i] = lvp_image_view_from_handle(info->pStencilAttachment->imageView);
+      att->format = state->imageless_views[i]->format;
+      att->samples = state->imageless_views[i]->image->bo->nr_samples;
+      attachment_refs[i] = att;
+      if (!suspending && info->pStencilAttachment->resolveImageView) {
+         struct lvp_render_pass_attachment *resolve_att = &resolve_attachments[resolve_idx];
+         resolve_att->attachment = num_attachments + resolve_idx;
+         resolve_att->load_op = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+         state->imageless_views[num_attachments + resolve_idx] = lvp_image_view_from_handle(info->pStencilAttachment->resolveImageView);
+         resolve_att->format = state->imageless_views[num_attachments + resolve_idx]->format;
+         resolve_att->samples = state->imageless_views[num_attachments + resolve_idx]->image->bo->nr_samples;
+         resolve_attachment_refs[resolve_idx] = resolve_att;
+      }
+   }
+
+   begin_render_subpass(state, subpass);
+}
+
+static void
+end_rendering(struct rendering_state *state)
 {
    state->pctx->flush(state->pctx, NULL, 0);
 
@@ -1815,6 +1984,20 @@ static void handle_end_render_pass2(struct vk_cmd_queue_entry *cmd,
    free(state->attachments);
    state->attachments = NULL;
    state->pass = NULL;
+}
+
+static void handle_end_rendering(struct vk_cmd_queue_entry *cmd,
+                                 struct rendering_state *state)
+{
+   end_rendering(state);
+   free(state->subpass);
+   state->subpass = NULL;
+}
+
+static void handle_end_render_pass2(struct vk_cmd_queue_entry *cmd,
+                                    struct rendering_state *state)
+{
+   end_rendering(state);
    state->subpass = NULL;
 }
 
@@ -3908,6 +4091,12 @@ static void lvp_execute_cmd_buffer(struct lvp_cmd_buffer *cmd_buffer,
          break;
       case VK_CMD_SET_COLOR_WRITE_ENABLE_EXT:
          handle_set_color_write_enable(cmd, state);
+         break;
+      case VK_CMD_BEGIN_RENDERING_KHR:
+         handle_begin_rendering(cmd, state);
+         break;
+      case VK_CMD_END_RENDERING_KHR:
+         handle_end_rendering(cmd, state);
          break;
       case VK_CMD_SET_DEVICE_MASK:
          /* no-op */

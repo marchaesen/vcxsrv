@@ -1,0 +1,19 @@
+test-spirv2dxil-windows:
+  extends:
+    - .build-windows
+    - .use-windows_build_vs2019
+    - .windows-test-rules
+  stage: layered-backends
+  dependencies:
+    - windows-vs2019
+  needs:
+    - windows-vs2019
+  variables:
+    GIT_STRATEGY: none # testing doesn't build anything from source
+  script:
+    - . _install/spirv2dxil_run.ps1
+  artifacts:
+    when: on_failure
+    name: "mesa_${CI_JOB_NAME}"
+    paths:
+      - spirv2dxil_results.txt

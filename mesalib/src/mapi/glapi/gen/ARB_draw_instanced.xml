@@ -8,14 +8,14 @@
 
 <category name="GL_ARB_draw_instanced" number="44">
 
-  <function name="DrawArraysInstancedARB" marshal="custom">
+  <function name="DrawArraysInstancedARB" marshal="custom" exec="dlist">
     <param name="mode" type="GLenum"/>
     <param name="first" type="GLint"/>
     <param name="count" type="GLsizei"/>
     <param name="primcount" type="GLsizei"/>
   </function>
 
-  <function name="DrawElementsInstancedARB" marshal="custom">
+  <function name="DrawElementsInstancedARB" marshal="custom" exec="dlist">
     <param name="mode" type="GLenum"/>
     <param name="count" type="GLsizei"/>
     <param name="type" type="GLenum"/>

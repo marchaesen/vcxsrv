@@ -82,9 +82,6 @@ static void ppir_regalloc_update_reglist_ssa(ppir_compiler *comp)
 {
    list_for_each_entry(ppir_block, block, &comp->block_list, list) {
       list_for_each_entry(ppir_node, node, &block->node_list, list) {
-         if (node->is_end)
-            continue;
-
          if (!node->instr || node->op == ppir_op_const)
             continue;
 
@@ -94,6 +91,8 @@ static void ppir_regalloc_update_reglist_ssa(ppir_compiler *comp)
 
             if (dest->type == ppir_target_ssa) {
                reg = &dest->ssa;
+               if (node->is_out)
+                  reg->out_reg = true;
                list_addtail(&reg->list, &comp->reg_list);
                comp->reg_num++;
             }
@@ -131,6 +130,14 @@ static void ppir_regalloc_print_result(ppir_compiler *comp)
          }
          printf("\n");
       }
+   }
+   printf("--------------------------\n");
+
+   printf("======ppir output regs======\n");
+   for (int i = 0; i < ppir_output_num; i++) {
+      if (comp->out_type_to_reg[i] != -1)
+         printf("%s: $%d\n", ppir_output_type_to_str(i),
+                (int)comp->out_type_to_reg[i]);
    }
    printf("--------------------------\n");
 }
@@ -578,6 +585,11 @@ static bool ppir_regalloc_prog_try(ppir_compiler *comp, bool *spilled)
    n = 0;
    list_for_each_entry(ppir_reg, reg, &comp->reg_list, list) {
       reg->index = ra_get_node_reg(g, n++);
+      if (reg->out_reg) {
+         /* We need actual reg number, we don't have swizzle for output regs */
+         assert(!(reg->index & 0x3) && "ppir: output regs don't have swizzle");
+         comp->out_type_to_reg[reg->out_type] = reg->index / 4;
+      }
    }
 
    ralloc_free(g);
@@ -604,14 +616,25 @@ bool ppir_regalloc_prog(ppir_compiler *comp)
    ppir_regalloc_update_reglist_ssa(comp);
 
    /* No registers? Probably shader consists of discard instruction */
-   if (list_is_empty(&comp->reg_list))
+   if (list_is_empty(&comp->reg_list)) {
+      comp->prog->state.frag_color0_reg = 0;
+      comp->prog->state.frag_color1_reg = -1;
+      comp->prog->state.frag_depth_reg = -1;
       return true;
+   }
 
    /* this will most likely succeed in the first
     * try, except for very complicated shaders */
    while (!ppir_regalloc_prog_try(comp, &spilled))
       if (!spilled)
          return false;
+
+   comp->prog->state.frag_color0_reg =
+      comp->out_type_to_reg[ppir_output_color0];
+   comp->prog->state.frag_color1_reg =
+      comp->out_type_to_reg[ppir_output_color1];
+   comp->prog->state.frag_depth_reg =
+      comp->out_type_to_reg[ppir_output_depth];
 
    return true;
 }

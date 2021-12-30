@@ -812,6 +812,8 @@ _mesa_hash_table_u64_clear(struct hash_table_u64 *ht)
       return;
 
    _mesa_hash_table_clear(ht->table, _mesa_hash_table_u64_delete_key);
+   ht->freed_key_data = NULL;
+   ht->deleted_key_data = NULL;
 }
 
 void

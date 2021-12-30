@@ -69,7 +69,8 @@ resolve_supported(const struct pipe_blit_info *info)
       return false;
    } else {
       if (util_format_get_mask(info->dst.format) != info->mask ||
-          util_format_get_mask(info->src.format) != info->mask)
+          util_format_get_mask(info->src.format) != info->mask ||
+          util_format_has_alpha1(info->src.format))
          return false;
    }
 
@@ -85,7 +86,7 @@ resolve_supported(const struct pipe_blit_info *info)
    if (src->dxgi_format != dst->dxgi_format)
       return false;
 
-   if (util_format_is_pure_integer(src->base.format))
+   if (util_format_is_pure_integer(src->base.b.format))
       return false;
 
    // sizes needs to match
@@ -123,10 +124,10 @@ blit_resolve(struct d3d12_context *ctx, const struct pipe_blit_info *info)
 
    d3d12_apply_resource_states(ctx);
 
-   d3d12_batch_reference_resource(batch, src);
-   d3d12_batch_reference_resource(batch, dst);
+   d3d12_batch_reference_resource(batch, src, false);
+   d3d12_batch_reference_resource(batch, dst, true);
 
-   DXGI_FORMAT dxgi_format = d3d12_get_resource_srv_format(src->base.format, src->base.target);
+   DXGI_FORMAT dxgi_format = d3d12_get_resource_srv_format(src->base.b.format, src->base.b.target);
 
    assert(src->dxgi_format == dst->dxgi_format);
    ctx->cmdlist->ResolveSubresource(
@@ -273,16 +274,16 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
    D3D12_TEXTURE_COPY_LOCATION src_loc, dst_loc;
    unsigned src_z = psrc_box->z;
 
-   int src_subres_stride = src->base.last_level + 1;
-   int dst_subres_stride = dst->base.last_level + 1;
+   int src_subres_stride = src->base.b.last_level + 1;
+   int dst_subres_stride = dst->base.b.last_level + 1;
 
-   int src_array_size = src->base.array_size;
-   int dst_array_size = dst->base.array_size;
+   int src_array_size = src->base.b.array_size;
+   int dst_array_size = dst->base.b.array_size;
 
-   if (dst->base.target == PIPE_TEXTURE_CUBE)
+   if (dst->base.b.target == PIPE_TEXTURE_CUBE)
       dst_array_size *= 6;
 
-   if (src->base.target == PIPE_TEXTURE_CUBE)
+   if (src->base.b.target == PIPE_TEXTURE_CUBE)
       src_array_size *= 6;
 
    int stencil_src_res_offset = 1;
@@ -291,16 +292,16 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
    int src_nres = 1;
    int dst_nres = 1;
 
-   if (dst->base.format == PIPE_FORMAT_Z24_UNORM_S8_UINT ||
-       dst->base.format == PIPE_FORMAT_S8_UINT_Z24_UNORM ||
-       dst->base.format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
+   if (dst->base.b.format == PIPE_FORMAT_Z24_UNORM_S8_UINT ||
+       dst->base.b.format == PIPE_FORMAT_S8_UINT_Z24_UNORM ||
+       dst->base.b.format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
       stencil_dst_res_offset = dst_subres_stride * dst_array_size;
       src_nres = 2;
    }
 
-   if (src->base.format == PIPE_FORMAT_Z24_UNORM_S8_UINT ||
-       src->base.format == PIPE_FORMAT_S8_UINT_Z24_UNORM ||
-       dst->base.format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
+   if (src->base.b.format == PIPE_FORMAT_Z24_UNORM_S8_UINT ||
+       src->base.b.format == PIPE_FORMAT_S8_UINT_Z24_UNORM ||
+       dst->base.b.format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
       stencil_src_res_offset = src_subres_stride * src_array_size;
       dst_nres = 2;
    }
@@ -315,27 +316,27 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
          continue;
 
       src_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-      src_loc.SubresourceIndex = get_subresource_id(src->base.target, src_level, src_subres_stride, src_z, &src_z) +
+      src_loc.SubresourceIndex = get_subresource_id(src->base.b.target, src_level, src_subres_stride, src_z, &src_z) +
                                  subres * stencil_src_res_offset;
       src_loc.pResource = d3d12_resource_resource(src);
 
       dst_loc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-      dst_loc.SubresourceIndex = get_subresource_id(dst->base.target, dst_level, dst_subres_stride, dstz, &dstz) +
+      dst_loc.SubresourceIndex = get_subresource_id(dst->base.b.target, dst_level, dst_subres_stride, dstz, &dstz) +
                                  subres * stencil_dst_res_offset;
       dst_loc.pResource = d3d12_resource_resource(dst);
 
       if (psrc_box->x == 0 && psrc_box->y == 0 && psrc_box->z == 0 &&
-          psrc_box->width == (int)u_minify(src->base.width0, src_level) &&
-          psrc_box->height == (int)u_minify(src->base.height0, src_level) &&
-          psrc_box->depth == (int)u_minify(src->base.depth0, src_level)) {
+          psrc_box->width == (int)u_minify(src->base.b.width0, src_level) &&
+          psrc_box->height == (int)u_minify(src->base.b.height0, src_level) &&
+          psrc_box->depth == (int)u_minify(src->base.b.depth0, src_level)) {
 
          assert((dstx == 0 && dsty == 0 && dstz == 0) ||
                 screen->opts2.ProgrammableSamplePositionsTier !=
                 D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED ||
-                (!util_format_is_depth_or_stencil(dst->base.format) &&
-                 !util_format_is_depth_or_stencil(src->base.format) &&
-                  dst->base.nr_samples <= 1 &&
-                  src->base.nr_samples <= 1));
+                (!util_format_is_depth_or_stencil(dst->base.b.format) &&
+                 !util_format_is_depth_or_stencil(src->base.b.format) &&
+                  dst->base.b.nr_samples <= 1 &&
+                  src->base.b.nr_samples <= 1));
 
          ctx->cmdlist->CopyTextureRegion(&dst_loc, dstx, dsty, dstz,
                                          &src_loc, NULL);
@@ -343,18 +344,18 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
       } else {
          D3D12_BOX src_box;
          src_box.left = psrc_box->x;
-         src_box.right = MIN2(psrc_box->x + psrc_box->width, (int)u_minify(src->base.width0, src_level));
+         src_box.right = MIN2(psrc_box->x + psrc_box->width, (int)u_minify(src->base.b.width0, src_level));
          src_box.top = psrc_box->y;
-         src_box.bottom = MIN2(psrc_box->y + psrc_box->height, (int)u_minify(src->base.height0, src_level));
+         src_box.bottom = MIN2(psrc_box->y + psrc_box->height, (int)u_minify(src->base.b.height0, src_level));
          src_box.front = src_z;
          src_box.back = src_z + psrc_box->depth;
 
          assert((screen->opts2.ProgrammableSamplePositionsTier !=
                  D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED ||
-                 (!util_format_is_depth_or_stencil(dst->base.format) &&
-                  !util_format_is_depth_or_stencil(src->base.format))) &&
-                dst->base.nr_samples <= 1 &&
-                src->base.nr_samples <= 1);
+                 (!util_format_is_depth_or_stencil(dst->base.b.format) &&
+                  !util_format_is_depth_or_stencil(src->base.b.format))) &&
+                dst->base.b.nr_samples <= 1 &&
+                src->base.b.nr_samples <= 1);
 
          ctx->cmdlist->CopyTextureRegion(&dst_loc, dstx, dsty, dstz,
                                          &src_loc, &src_box);
@@ -374,11 +375,11 @@ copy_resource_y_flipped_no_barriers(struct d3d12_context *ctx,
 {
    if (D3D12_DEBUG_BLIT & d3d12_debug) {
       debug_printf("D3D12 BLIT as COPY: from %s@%d %dx%dx%d + %dx%dx%d\n",
-                   util_format_name(src->base.format), src_level,
+                   util_format_name(src->base.b.format), src_level,
                    psrc_box->x, psrc_box->y, psrc_box->z,
                    psrc_box->width, psrc_box->height, psrc_box->depth);
       debug_printf("      to   %s@%d %dx%dx%d\n",
-                   util_format_name(dst->base.format), dst_level,
+                   util_format_name(dst->base.b.format), dst_level,
                    pdst_box->x, pdst_box->y, pdst_box->z);
    }
 
@@ -411,9 +412,9 @@ d3d12_direct_copy(struct d3d12_context *ctx,
 {
    struct d3d12_batch *batch = d3d12_current_batch(ctx);
 
-   unsigned src_subres = get_subresource_id(src->base.target, src_level, src->base.last_level + 1,
+   unsigned src_subres = get_subresource_id(src->base.b.target, src_level, src->base.b.last_level + 1,
                                             psrc_box->z, nullptr);
-   unsigned dst_subres = get_subresource_id(dst->base.target, dst_level, dst->base.last_level + 1,
+   unsigned dst_subres = get_subresource_id(dst->base.b.target, dst_level, dst->base.b.last_level + 1,
                                             pdst_box->z, nullptr);
 
    if (D3D12_DEBUG_BLIT & d3d12_debug)
@@ -421,23 +422,23 @@ d3d12_direct_copy(struct d3d12_context *ctx,
                    src_subres, dst_subres);
 
    d3d12_transition_subresources_state(ctx, src, src_subres, 1, 0, 1,
-                                       d3d12_get_format_start_plane(src->base.format),
-                                       d3d12_get_format_num_planes(src->base.format),
+                                       d3d12_get_format_start_plane(src->base.b.format),
+                                       d3d12_get_format_num_planes(src->base.b.format),
                                        D3D12_RESOURCE_STATE_COPY_SOURCE,
                                        D3D12_BIND_INVALIDATE_FULL);
 
    d3d12_transition_subresources_state(ctx, dst, dst_subres, 1, 0, 1,
-                                       d3d12_get_format_start_plane(dst->base.format),
-                                       d3d12_get_format_num_planes(dst->base.format),
+                                       d3d12_get_format_start_plane(dst->base.b.format),
+                                       d3d12_get_format_num_planes(dst->base.b.format),
                                        D3D12_RESOURCE_STATE_COPY_DEST,
                                        D3D12_BIND_INVALIDATE_FULL);
 
    d3d12_apply_resource_states(ctx);
 
-   d3d12_batch_reference_resource(batch, src);
-   d3d12_batch_reference_resource(batch, dst);
+   d3d12_batch_reference_resource(batch, src, false);
+   d3d12_batch_reference_resource(batch, dst, true);
 
-   if (src->base.target == PIPE_BUFFER) {
+   if (src->base.b.target == PIPE_BUFFER) {
       copy_buffer_region_no_barriers(ctx, dst, pdst_box->x,
                                      src, psrc_box->x, psrc_box->width);
    } else if (psrc_box->height == pdst_box->height) {
@@ -479,7 +480,7 @@ create_staging_resource(struct d3d12_context *ctx,
             abs(src_box->width), abs(src_box->height), abs(src_box->depth),
             &copy_src);
 
-   templ.format = src->base.format;
+   templ.format = src->base.b.format;
    templ.width0 = copy_src.width;
    templ.height0 = copy_src.height;
    templ.depth0 = copy_src.depth;
@@ -488,7 +489,7 @@ create_staging_resource(struct d3d12_context *ctx,
    templ.nr_storage_samples = 1;
    templ.usage = PIPE_USAGE_STAGING;
    templ.bind = util_format_is_depth_or_stencil(templ.format) ? PIPE_BIND_DEPTH_STENCIL : PIPE_BIND_RENDER_TARGET;
-   templ.target = src->base.target;
+   templ.target = src->base.b.target;
 
    staging_res = ctx->base.screen->resource_create(ctx->base.screen, &templ);
 
@@ -557,7 +558,7 @@ util_blit_save_state(struct d3d12_context *ctx)
                                             ctx->sampler_views[PIPE_SHADER_FRAGMENT]);
    util_blitter_save_fragment_constant_buffer_slot(ctx->blitter, ctx->cbufs[PIPE_SHADER_FRAGMENT]);
    util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vbs);
-   util_blitter_save_sample_mask(ctx->blitter, ctx->gfx_pipeline_state.sample_mask);
+   util_blitter_save_sample_mask(ctx->blitter, ctx->gfx_pipeline_state.sample_mask, 0);
    util_blitter_save_so_targets(ctx->blitter, ctx->gfx_pipeline_state.num_so_targets, ctx->so_targets);
 }
 
@@ -827,8 +828,8 @@ blit_resolve_stencil(struct d3d12_context *ctx,
    d3d12_apply_resource_states(ctx);
 
    struct d3d12_batch *batch = d3d12_current_batch(ctx);
-   d3d12_batch_reference_resource(batch, d3d12_resource(tmp));
-   d3d12_batch_reference_resource(batch, dst);
+   d3d12_batch_reference_resource(batch, d3d12_resource(tmp), false);
+   d3d12_batch_reference_resource(batch, dst, true);
 
    D3D12_BOX src_box;
    src_box.left = src_box.top = src_box.front = 0;

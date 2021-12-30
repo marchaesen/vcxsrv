@@ -26,7 +26,6 @@
 #include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"
 #include "util/u_math.h"
-#include "vk_format_info.h"
 #include "vk_util.h"
 #include "vulkan/wsi/wsi_common.h"
 
@@ -297,6 +296,27 @@ create_image(struct v3dv_device *device,
       tiling = VK_IMAGE_TILING_LINEAR;
    }
 
+#ifdef ANDROID
+   const VkNativeBufferANDROID *native_buffer =
+      vk_find_struct_const(pCreateInfo->pNext, NATIVE_BUFFER_ANDROID);
+
+   int native_buf_fd = -1;
+   int native_buf_stride = 0;
+   int native_buf_size = 0;
+
+   if (native_buffer != NULL) {
+      VkResult result = v3dv_gralloc_info(device, native_buffer, &native_buf_fd,
+                                          &native_buf_stride, &native_buf_size, &modifier);
+      if (result != VK_SUCCESS) {
+         vk_image_destroy(&device->vk, pAllocator, &image->vk);
+         return result;
+      }
+
+      if (modifier != DRM_FORMAT_MOD_BROADCOM_UIF)
+         tiling = VK_IMAGE_TILING_LINEAR;
+   }
+#endif
+
    const struct v3dv_format *format =
       v3dv_X(device, get_format)(pCreateInfo->format);
    v3dv_assert(format != NULL && format->supported);
@@ -320,6 +340,21 @@ create_image(struct v3dv_device *device,
    image->vk.create_flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
    v3d_setup_slices(image);
+
+#ifdef ANDROID
+   if (native_buffer != NULL) {
+      image->slices[0].stride = native_buf_stride;
+      image->slices[0].size = image->size = native_buf_size;
+
+      VkResult result = v3dv_import_native_buffer_fd(v3dv_device_to_handle(device),
+                                                     native_buf_fd, pAllocator,
+                                                     v3dv_image_to_handle(image));
+      if (result != VK_SUCCESS) {
+         vk_object_free(&device->vk, pAllocator, image);
+         return result;
+      }
+   }
+#endif
 
    *pImage = v3dv_image_to_handle(image);
 
@@ -435,6 +470,11 @@ v3dv_DestroyImage(VkDevice _device,
 
    if (image == NULL)
       return;
+
+#ifdef ANDROID
+   if (image->is_native_buffer_memory)
+      v3dv_FreeMemory(_device,  v3dv_device_memory_to_handle(image->mem), pAllocator);
+#endif
 
    vk_image_destroy(&device->vk, pAllocator, &image->vk);
 }

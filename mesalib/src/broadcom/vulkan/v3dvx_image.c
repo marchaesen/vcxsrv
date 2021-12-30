@@ -26,8 +26,6 @@
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/compiler/v3d_compiler.h"
 
-#include "vk_format_info.h"
-
 /*
  * This method translates pipe_swizzle to the swizzle values used at the
  * packet TEXTURE_SHADER_STATE

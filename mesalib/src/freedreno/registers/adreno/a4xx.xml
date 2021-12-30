@@ -1666,6 +1666,8 @@ perhaps they should be taken with a grain of salt
 		<reg32 offset="0x0" name="REG">
 			<bitfield name="REGID" low="0" high="7" type="a3xx_regid"/>
 			<bitfield name="HALF_PRECISION" pos="8" type="boolean"/>
+			<bitfield name="COLOR_SINT" pos="10" type="boolean"/>
+			<bitfield name="COLOR_UINT" pos="11" type="boolean"/>
 			<bitfield name="MRTFORMAT" low="12" high="17" type="a4xx_color_fmt"/>
 			<bitfield name="COLOR_SRGB" pos="18" type="boolean"/>
 		</reg32>
@@ -2098,14 +2100,16 @@ perhaps they should be taken with a grain of salt
 	<reg32 offset="0x23d3" name="HLSQ_CL_NDRANGE_6"/>
 	<reg32 offset="0x23d4" name="HLSQ_CL_CONTROL_0">
 		<bitfield name="WGIDCONSTID" low="0" high="11" type="a3xx_regid"/>
-		<bitfield name="UNK12CONSTID" low="12" high="23" type="a3xx_regid"/>
+		<bitfield name="KERNELDIMCONSTID" low="12" high="23" type="a3xx_regid"/>
 		<bitfield name="LOCALIDREGID" low="24" high="31" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0x23d5" name="HLSQ_CL_CONTROL_1">
+		<!-- GLOBALSIZECONSTID? "kernel size" -->
 		<bitfield name="UNK0CONSTID" low="0" high="11" type="a3xx_regid"/>
-		<bitfield name="UNK12CONSTID" low="12" high="23" type="a3xx_regid"/>
+		<bitfield name="WORKGROUPSIZECONSTID" low="12" high="23" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0x23d6" name="HLSQ_CL_KERNEL_CONST">
+		<!-- GLOBALOFFSETCONSTID -->
 		<bitfield name="UNK0CONSTID" low="0" high="11" type="a3xx_regid"/>
 		<bitfield name="NUMWGCONSTID" low="12" high="23" type="a3xx_regid"/>
 	</reg32>
@@ -2113,6 +2117,7 @@ perhaps they should be taken with a grain of salt
 	<reg32 offset="0x23d8" name="HLSQ_CL_KERNEL_GROUP_Y"/>
 	<reg32 offset="0x23d9" name="HLSQ_CL_KERNEL_GROUP_Z"/>
 	<reg32 offset="0x23da" name="HLSQ_CL_WG_OFFSET">
+		<!-- WGOFFSETCONSTID -->
 		<bitfield name="UNK0CONSTID" low="0" high="11" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0x23db" name="HLSQ_UPDATE_CONTROL"/>
@@ -2326,6 +2331,7 @@ perhaps they should be taken with a grain of salt
 		<value name="A4XX_TEX_2D" value="1"/>
 		<value name="A4XX_TEX_CUBE" value="2"/>
 		<value name="A4XX_TEX_3D" value="3"/>
+		<value name="A4XX_TEX_BUFFER" value="4"/>
 	</enum>
 	<reg32 offset="0" name="0">
 		<bitfield name="TILED" pos="0" type="boolean"/>
@@ -2336,7 +2342,7 @@ perhaps they should be taken with a grain of salt
 		<bitfield name="SWIZ_W" low="13" high="15" type="a4xx_tex_swiz"/>
 		<bitfield name="MIPLVLS" low="16" high="19" type="uint"/>
 		<bitfield name="FMT" low="22" high="28" type="a4xx_tex_fmt"/>
-		<bitfield name="TYPE" low="29" high="30" type="a4xx_tex_type"/>
+		<bitfield name="TYPE" low="29" high="31" type="a4xx_tex_type"/>
 	</reg32>
 	<reg32 offset="1" name="1">
 		<bitfield name="HEIGHT" low="0" high="14" type="uint"/>
@@ -2345,6 +2351,7 @@ perhaps they should be taken with a grain of salt
 	<reg32 offset="2" name="2">
 		<!-- minimum pitch (for mipmap levels): log2(pitchalign / 32) -->
 		<bitfield name="PITCHALIGN" low="0" high="3" type="uint"/>
+		<bitfield name="BUFFER" pos="6" type="boolean"/>
 		<doc>Pitch in bytes (so actually stride)</doc>
 		<bitfield name="PITCH" low="9" high="29" type="uint"/>
 		<bitfield name="SWAP" low="30" high="31" type="a3xx_color_swap"/>

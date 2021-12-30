@@ -1184,12 +1184,12 @@ copy_format(VkFormat vk_format, VkImageAspectFlags aspect_mask, bool copy_buffer
    case PIPE_FORMAT_R9G9B9E5_FLOAT:
       return PIPE_FORMAT_R32_UINT;
 
-   case PIPE_FORMAT_R8_G8B8_420_UNORM:
+   case PIPE_FORMAT_G8_B8R8_420_UNORM:
       if (aspect_mask == VK_IMAGE_ASPECT_PLANE_1_BIT)
          return PIPE_FORMAT_R8G8_UNORM;
       else
          return PIPE_FORMAT_Y8_UNORM;
-   case PIPE_FORMAT_R8_G8_B8_420_UNORM:
+   case PIPE_FORMAT_G8_B8_R8_420_UNORM:
       return PIPE_FORMAT_R8_UNORM;
 
    case PIPE_FORMAT_Z24_UNORM_S8_UINT:
@@ -2690,7 +2690,7 @@ tu_emit_blit(struct tu_cmd_buffer *cmd,
    tu_cs_emit_regs(cs, A6XX_RB_BLIT_INFO(
       .unk0 = !resolve,
       .gmem = !resolve,
-      .sample_0 = vk_format_is_int(attachment->format) |
+      .sample_0 = vk_format_is_int(attachment->format) ||
          vk_format_is_depth_or_stencil(attachment->format)));
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_DST_INFO, 4);

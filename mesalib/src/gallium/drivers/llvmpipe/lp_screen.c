@@ -235,7 +235,7 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 134217728;
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
       return 16;
-   case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
+   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
       return 0;
    case PIPE_CAP_MAX_VIEWPORTS:
       return PIPE_MAX_VIEWPORTS;
@@ -315,7 +315,6 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_FBFETCH:
       return 8;
    case PIPE_CAP_FBFETCH_COHERENT:
-      return 0;
    case PIPE_CAP_MULTI_DRAW_INDIRECT:
    case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
       return 1;
@@ -348,6 +347,7 @@ llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE:
    case PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL:
    case PIPE_CAP_RESOURCE_FROM_USER_MEMORY:
+   case PIPE_CAP_IMAGE_STORE_FORMATTED:
       return 1;
 #ifdef PIPE_MEMORY_FD
    case PIPE_CAP_MEMOBJ:
@@ -433,13 +433,21 @@ static float
 llvmpipe_get_paramf(struct pipe_screen *screen, enum pipe_capf param)
 {
    switch (param) {
+   case PIPE_CAPF_MIN_LINE_WIDTH:
+   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
+   case PIPE_CAPF_MIN_POINT_SIZE:
+   case PIPE_CAPF_MIN_POINT_SIZE_AA:
+      return 1;
+   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
+   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
+      return 0.1;
    case PIPE_CAPF_MAX_LINE_WIDTH:
       FALLTHROUGH;
    case PIPE_CAPF_MAX_LINE_WIDTH_AA:
       return 255.0; /* arbitrary */
-   case PIPE_CAPF_MAX_POINT_WIDTH:
+   case PIPE_CAPF_MAX_POINT_SIZE:
       FALLTHROUGH;
-   case PIPE_CAPF_MAX_POINT_WIDTH_AA:
+   case PIPE_CAPF_MAX_POINT_SIZE_AA:
       return LP_MAX_POINT_WIDTH; /* arbitrary */
    case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
       return 16.0; /* not actually signficant at this time */
@@ -749,6 +757,16 @@ llvmpipe_is_format_supported( struct pipe_screen *_screen,
           format_desc->block.bits != 96) {
          return false;
       }
+
+      /* Disable 64-bit integer formats for RT/samplers.
+       * VK CTS crashes with these and they don't make much sense.
+       */
+      int c = util_format_get_first_non_void_channel(format_desc->format);
+      if (c >= 0) {
+         if (format_desc->channel[c].pure_integer && format_desc->channel[c].size == 64)
+            return false;
+      }
+
    }
 
    if (!(bind & PIPE_BIND_VERTEX_BUFFER) &&

@@ -274,7 +274,7 @@ draw_glselect_stage(struct gl_context *ctx, struct draw_context *draw)
 }
 
 
-static void
+void
 st_RenderMode(struct gl_context *ctx, GLenum newMode )
 {
    struct st_context *st = st_context(ctx);
@@ -292,7 +292,6 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
          st->selection_stage = draw_glselect_stage(ctx, draw);
       draw_set_rasterize_stage(draw, st->selection_stage);
       /* Plug in new vbo draw function */
-      ctx->Driver.Draw = st_feedback_draw_vbo;
       ctx->Driver.DrawGallium = _mesa_draw_gallium_fallback;
       ctx->Driver.DrawGalliumMultiMode = _mesa_draw_gallium_multimode_fallback;
    }
@@ -303,18 +302,10 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
          st->feedback_stage = draw_glfeedback_stage(ctx, draw);
       draw_set_rasterize_stage(draw, st->feedback_stage);
       /* Plug in new vbo draw function */
-      ctx->Driver.Draw = st_feedback_draw_vbo;
       ctx->Driver.DrawGallium = _mesa_draw_gallium_fallback;
       ctx->Driver.DrawGalliumMultiMode = _mesa_draw_gallium_multimode_fallback;
       /* need to generate/use a vertex program that emits pos/color/tex */
       if (vp)
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_program(vp));
    }
-}
-
-
-
-void st_init_feedback_functions(struct dd_function_table *functions)
-{
-   functions->RenderMode = st_RenderMode;
 }

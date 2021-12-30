@@ -30,6 +30,9 @@
 #include "etnaviv_priv.h"
 #include "etnaviv_drmif.h"
 
+/* Declare symbol in case we don't link with etnaviv's gallium driver */
+int etna_mesa_debug __attribute__((weak)) = 0;
+
 struct etna_device *etna_device_new(int fd)
 {
 	struct etna_device *dev;

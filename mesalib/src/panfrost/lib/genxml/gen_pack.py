@@ -176,11 +176,16 @@ __gen_unpack_padded(const uint8_t *restrict cl, uint32_t start, uint32_t end)
 #define pan_section_print(fp, A, S, var, indent)                          \\
         PREFIX4(A, SECTION, S, print)(fp, &(var), indent)
 
+static inline void pan_merge_helper(uint32_t *dst, const uint32_t *src, size_t bytes)
+{
+        assert((bytes & 3) == 0);
+
+        for (unsigned i = 0; i < (bytes / 4); ++i)
+                dst[i] |= src[i];
+}
+
 #define pan_merge(packed1, packed2, type) \
-        do { \
-                for (unsigned i = 0; i < (PREFIX2(type, LENGTH) / 4); ++i) \
-                        (packed1).opaque[i] |= (packed2).opaque[i]; \
-        } while(0)
+        pan_merge_helper((packed1).opaque, (packed2).opaque, pan_size(type))
 
 /* From presentations, 16x16 tiles externally. Use shift for fast computation
  * of tile numbers. */
@@ -370,11 +375,11 @@ class Field(object):
             type = 'bool'
         elif self.type == 'float':
             type = 'float'
-        elif self.type == 'uint' and self.end - self.start > 32:
+        elif self.type in ['uint', 'hex'] and self.end - self.start > 32:
             type = 'uint64_t'
         elif self.type == 'int':
             type = 'int32_t'
-        elif self.type in ['uint', 'uint/float', 'padded', 'Pixel Format']:
+        elif self.type in ['uint', 'hex', 'uint/float', 'padded', 'Pixel Format']:
             type = 'uint32_t'
         elif self.type in self.parser.structs:
             type = 'struct ' + self.parser.gen_prefix(safe_name(self.type.upper()))
@@ -530,7 +535,7 @@ class Group(object):
                     elif field.modifier[0] == "log2":
                         value = "util_logbase2({})".format(value)
 
-                if field.type in ["uint", "uint/float", "address", "Pixel Format"]:
+                if field.type in ["uint", "hex", "uint/float", "address", "Pixel Format"]:
                     s = "__gen_uint(%s, %d, %d)" % \
                         (value, start, end)
                 elif field.type == "padded":
@@ -604,7 +609,7 @@ class Group(object):
             args.append(str(fieldref.start))
             args.append(str(fieldref.end))
 
-            if field.type in set(["uint", "uint/float", "address", "Pixel Format"]):
+            if field.type in set(["uint", "hex", "uint/float", "address", "Pixel Format"]):
                 convert = "__gen_unpack_uint"
             elif field.type in self.parser.enums:
                 convert = "(enum %s)__gen_unpack_uint" % enum_name(field.type)
@@ -656,8 +661,10 @@ class Group(object):
                 print('   fprintf(fp, "%*s{}: %s\\n", indent, "", {} ? "true" : "false");'.format(name, val))
             elif field.type == "float":
                 print('   fprintf(fp, "%*s{}: %f\\n", indent, "", {});'.format(name, val))
-            elif field.type == "uint" and (field.end - field.start) >= 32:
+            elif field.type in ["uint", "hex"] and (field.end - field.start) >= 32:
                 print('   fprintf(fp, "%*s{}: 0x%" PRIx64 "\\n", indent, "", {});'.format(name, val))
+            elif field.type == "hex":
+                print('   fprintf(fp, "%*s{}: 0x%x\\n", indent, "", {});'.format(name, val))
             elif field.type == "uint/float":
                 print('   fprintf(fp, "%*s{}: 0x%X (%f)\\n", indent, "", {}, uif({}));'.format(name, val, val))
             elif field.type == "Pixel Format":

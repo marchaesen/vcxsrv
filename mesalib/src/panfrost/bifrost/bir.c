@@ -107,6 +107,8 @@ bi_count_write_registers(const bi_instr *ins, unsigned d)
                         return bi_count_staging_registers(ins);
         } else if (ins->op == BI_OPCODE_SEG_ADD_I64) {
                 return 2;
+        } else if (ins->op == BI_OPCODE_TEXC && d == 1) {
+                return ins->sr_count_2;
         }
 
         return 1;

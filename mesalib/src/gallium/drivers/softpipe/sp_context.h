@@ -40,13 +40,6 @@
 #include "sp_setup.h"
 
 
-/** Do polygon stipple in the draw module? */
-#define DO_PSTIPPLE_IN_DRAW_MODULE 0
-
-/** Do polygon stipple with the util module? */
-#define DO_PSTIPPLE_IN_HELPER_MODULE 1
-
-
 struct softpipe_vbuf_render;
 struct draw_context;
 struct draw_stage;
@@ -80,7 +73,6 @@ struct softpipe_context {
    struct pipe_clip_state clip;
    struct pipe_resource *constants[PIPE_SHADER_TYPES][PIPE_MAX_CONSTANT_BUFFERS];
    struct pipe_framebuffer_state framebuffer;
-   struct pipe_poly_stipple poly_stipple;
    struct pipe_scissor_state scissors[PIPE_MAX_VIEWPORTS];
    struct pipe_sampler_view *sampler_views[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_SAMPLER_VIEWS];
 
@@ -153,19 +145,11 @@ struct softpipe_context {
    enum pipe_render_cond_flag render_cond_mode;
    bool render_cond_cond;
 
-   /** Polygon stipple items */
-   struct {
-      struct pipe_resource *texture;
-      struct pipe_sampler_state *sampler;
-      struct pipe_sampler_view *sampler_view;
-   } pstipple;
-
    /** Software quad rendering pipeline */
    struct {
       struct quad_stage *shade;
       struct quad_stage *depth_test;
       struct quad_stage *blend;
-      struct quad_stage *pstipple;
       struct quad_stage *first; /**< points to one of the above stages */
    } quad;
 

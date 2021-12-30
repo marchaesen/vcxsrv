@@ -2073,13 +2073,6 @@ spec/ext_separate_shader_objects/preprocessor/disabled-undefined-es.geom: skip
 spec/ext_separate_shader_objects/preprocessor/disabled-undefined-es.tesc: skip
 spec/ext_separate_shader_objects/preprocessor/disabled-undefined-es.tese: skip
 spec/ext_separate_shader_objects/preprocessor/disabled-undefined-es.vert: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles2/negative-gl_lastfragdata-write.frag: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles2/negative-inout-fragment-output.frag: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles2/negative-output-layout.frag: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles3/negative-gl_lastfragdata.frag: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles3/negative-inout-gl_fragdepth.frag: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles3/negative-inout-vertex-output.vert: skip
-spec/ext_shader_framebuffer_fetch/compiler/gles3/negative-output-layout.frag: skip
 spec/ext_shader_io_blocks/preprocessor/disabled-defined-es.comp: skip
 spec/ext_shader_io_blocks/preprocessor/disabled-defined-es.frag: skip
 spec/ext_shader_io_blocks/preprocessor/disabled-defined-es.geom: skip

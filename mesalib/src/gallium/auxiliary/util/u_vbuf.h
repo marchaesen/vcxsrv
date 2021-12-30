@@ -50,6 +50,7 @@ struct u_vbuf_caps {
    unsigned buffer_offset_unaligned:1;
    unsigned buffer_stride_unaligned:1;
    unsigned velem_src_offset_unaligned:1;
+   unsigned attrib_component_unaligned:1;
 
    /* Whether the driver supports user vertex buffers. */
    unsigned user_vertex_buffers:1;

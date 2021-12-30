@@ -144,11 +144,9 @@ LIBGLSL_FILES = \
 	glsl/opt_if_simplification.cpp \
 	glsl/opt_minmax.cpp \
 	glsl/opt_rebalance_tree.cpp \
-	glsl/opt_redundant_jumps.cpp \
 	glsl/opt_structure_splitting.cpp \
 	glsl/opt_swizzle.cpp \
 	glsl/opt_tree_grafting.cpp \
-	glsl/opt_vectorize.cpp \
 	glsl/program.h \
 	glsl/propagate_invariance.cpp \
 	glsl/s_expression.cpp \
@@ -201,7 +199,8 @@ NIR_GENERATED_FILES = \
 	nir/nir_intrinsics_indices.h \
 	nir/nir_opcodes.c \
 	nir/nir_opcodes.h \
-	nir/nir_opt_algebraic.c
+	nir/nir_opt_algebraic.c \
+	nir/nir_builder.c
 
 NIR_FILES = \
 	nir/nir.c \

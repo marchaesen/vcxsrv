@@ -96,6 +96,7 @@ fd4_sampler_state_create(struct pipe_context *pctx,
       A4XX_TEX_SAMP_0_XY_MAG(tex_filter(cso->mag_img_filter, aniso)) |
       A4XX_TEX_SAMP_0_XY_MIN(tex_filter(cso->min_img_filter, aniso)) |
       A4XX_TEX_SAMP_0_ANISO(aniso) |
+      A4XX_TEX_SAMP_0_LOD_BIAS(cso->lod_bias) |
       A4XX_TEX_SAMP_0_WRAP_S(tex_clamp(cso->wrap_s, &so->needs_border)) |
       A4XX_TEX_SAMP_0_WRAP_T(tex_clamp(cso->wrap_t, &so->needs_border)) |
       A4XX_TEX_SAMP_0_WRAP_R(tex_clamp(cso->wrap_r, &so->needs_border));
@@ -106,9 +107,15 @@ fd4_sampler_state_create(struct pipe_context *pctx,
       COND(!cso->normalized_coords, A4XX_TEX_SAMP_1_UNNORM_COORDS);
 
    if (cso->min_mip_filter != PIPE_TEX_MIPFILTER_NONE) {
-      so->texsamp0 |= A4XX_TEX_SAMP_0_LOD_BIAS(cso->lod_bias);
       so->texsamp1 |= A4XX_TEX_SAMP_1_MIN_LOD(cso->min_lod) |
                       A4XX_TEX_SAMP_1_MAX_LOD(cso->max_lod);
+   } else {
+      /* If we're not doing mipmap filtering, we still need a slightly > 0
+       * LOD clamp so the HW can decide between min and mag filtering of
+       * level 0.
+       */
+      so->texsamp1 |= A4XX_TEX_SAMP_1_MIN_LOD(MIN2(cso->min_lod, 0.125f)) |
+                      A4XX_TEX_SAMP_1_MAX_LOD(MIN2(cso->max_lod, 0.125f));
    }
 
    if (cso->compare_mode)
@@ -125,6 +132,7 @@ tex_type(unsigned target)
    default:
       assert(0);
    case PIPE_BUFFER:
+      return A4XX_TEX_BUFFER;
    case PIPE_TEXTURE_1D:
    case PIPE_TEXTURE_1D_ARRAY:
       return A4XX_TEX_1D;
@@ -186,8 +194,9 @@ fd4_sampler_view_create(struct pipe_context *pctx, struct pipe_resource *prsc,
 
       lvl = 0;
       so->texconst1 =
-         A4XX_TEX_CONST_1_WIDTH(elements) | A4XX_TEX_CONST_1_HEIGHT(1);
-      so->texconst2 = A4XX_TEX_CONST_2_PITCH(elements * rsc->layout.cpp);
+         A4XX_TEX_CONST_1_WIDTH(elements & MASK(15)) |
+         A4XX_TEX_CONST_1_HEIGHT(elements >> 15);
+      so->texconst2 = A4XX_TEX_CONST_2_BUFFER;
       so->offset = cso->u.buf.offset;
    } else {
       unsigned miplevels;

@@ -331,10 +331,12 @@ print_instr(struct log_stream *stream, struct ir3_instruction *instr, int lvl)
          print_reg_name(stream, instr, reg, true);
          first = false;
       }
-      foreach_src (reg, instr) {
+      foreach_src_n (reg, n, instr) {
          if (!first)
             mesa_log_stream_printf(stream, ", ");
          print_reg_name(stream, instr, reg, false);
+         if (instr->opc == OPC_END || instr->opc == OPC_CHMASK)
+            mesa_log_stream_printf(stream, " (%u)", instr->end.outidxs[n]);
          first = false;
       }
    }

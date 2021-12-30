@@ -158,6 +158,8 @@ extern _X_EXPORT Bool
 xf86CallDriverProbe(struct _DriverRec *drv, Bool detect_only);
 extern _X_EXPORT Bool
 xf86PrivsElevated(void);
+extern _X_EXPORT Bool
+xf86HasTTYs(void);
 
 #endif                          /* _NO_XF86_PROTOTYPES */
 

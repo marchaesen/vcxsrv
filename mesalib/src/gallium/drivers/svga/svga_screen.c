@@ -153,14 +153,22 @@ svga_get_paramf(struct pipe_screen *screen, enum pipe_capf param)
    struct svga_winsys_screen *sws = svgascreen->sws;
 
    switch (param) {
+   case PIPE_CAPF_MIN_LINE_WIDTH:
+   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
+   case PIPE_CAPF_MIN_POINT_SIZE:
+   case PIPE_CAPF_MIN_POINT_SIZE_AA:
+      return 1;
+   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
+   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
+      return 0.1;
    case PIPE_CAPF_MAX_LINE_WIDTH:
       return svgascreen->maxLineWidth;
    case PIPE_CAPF_MAX_LINE_WIDTH_AA:
       return svgascreen->maxLineWidthAA;
 
-   case PIPE_CAPF_MAX_POINT_WIDTH:
+   case PIPE_CAPF_MAX_POINT_SIZE:
       FALLTHROUGH;
-   case PIPE_CAPF_MAX_POINT_WIDTH_AA:
+   case PIPE_CAPF_MAX_POINT_SIZE_AA:
       return svgascreen->maxPointSize;
 
    case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
@@ -278,7 +286,7 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
       return sws->have_sm5 ? 410 : (sws->have_vgpu10 ? 330 : 120);
 
-   case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
+   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
       return 0;
 
    case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:

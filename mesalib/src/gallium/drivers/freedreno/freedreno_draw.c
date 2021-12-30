@@ -69,6 +69,11 @@ batch_draw_tracking_for_dirty_bits(struct fd_batch *batch) assert_dt
       if (fd_depth_enabled(ctx)) {
          if (fd_resource(pfb->zsbuf->texture)->valid) {
             restore_buffers |= FD_BUFFER_DEPTH;
+            /* storing packed d/s depth also stores stencil, so we need
+             * the stencil restored too to avoid invalidating it.
+             */
+            if (pfb->zsbuf->texture->format == PIPE_FORMAT_Z24_UNORM_S8_UINT)
+               restore_buffers |= FD_BUFFER_STENCIL;
          } else {
             batch->invalidated |= FD_BUFFER_DEPTH;
          }
@@ -84,6 +89,11 @@ batch_draw_tracking_for_dirty_bits(struct fd_batch *batch) assert_dt
       if (fd_stencil_enabled(ctx)) {
          if (fd_resource(pfb->zsbuf->texture)->valid) {
             restore_buffers |= FD_BUFFER_STENCIL;
+            /* storing packed d/s stencil also stores depth, so we need
+             * the depth restored too to avoid invalidating it.
+             */
+            if (pfb->zsbuf->texture->format == PIPE_FORMAT_Z24_UNORM_S8_UINT)
+               restore_buffers |= FD_BUFFER_DEPTH;
          } else {
             batch->invalidated |= FD_BUFFER_STENCIL;
          }
@@ -477,11 +487,12 @@ fd_clear(struct pipe_context *pctx, unsigned buffers,
    debug_assert(!batch->flushed);
 
    fd_batch_unlock_submit(batch);
-   fd_batch_check_size(batch);
 
    if (fallback) {
       fd_blitter_clear(pctx, buffers, color, depth, stencil);
    }
+
+   fd_batch_check_size(batch);
 
    fd_batch_reference(&batch, NULL);
 }

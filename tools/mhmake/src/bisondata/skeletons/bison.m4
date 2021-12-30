@@ -261,6 +261,13 @@ m4_define([b4_fatal_at],
 [b4_error([[fatal]], $@)dnl
 m4_exit(1)])
 
+# b4_canary(MSG)
+# --------------
+# Issue a warning on stderr and in the output.  Used in the test suite
+# to catch spurious m4 evaluations.
+m4_define([b4_canary],
+[m4_errprintn([dead canary: $1])DEAD CANARY($1)])
+
 
 ## ------------ ##
 ## Data Types.  ##
@@ -332,14 +339,14 @@ number is the opposite.  If YYTABLE_NINF, syntax error.]])
 $1([check], [b4_check])
 
 $1([stos], [b4_stos],
-   [[YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-symbol of state STATE-NUM.]])
+   [[YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
+state STATE-NUM.]])
 
 $1([r1], [b4_r1],
-   [[YYR1[YYN] -- Symbol number of symbol that rule YYN derives.]])
+   [[YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.]])
 
 $1([r2], [b4_r2],
-   [[YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.]])
+   [[YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.]])
 ])
 
 
@@ -391,9 +398,9 @@ m4_define([b4_$3_if],
 # b4_FLAG_if(IF-TRUE, IF-FALSE)
 # -----------------------------
 # Expand IF-TRUE, if FLAG is true, IF-FALSE otherwise.
-b4_define_flag_if([defines])            # Whether headers are requested.
 b4_define_flag_if([glr])                # Whether a GLR parser is requested.
 b4_define_flag_if([has_translations])   # Whether some tokens are internationalized.
+b4_define_flag_if([header])             # Whether a header is requested.
 b4_define_flag_if([nondeterministic])   # Whether conflicts should be handled.
 b4_define_flag_if([token_table])        # Whether yytoken_table is demanded.
 b4_define_flag_if([yacc])               # Whether POSIX Yacc is emulated.
@@ -404,6 +411,10 @@ b4_define_flag_if([yacc])               # Whether POSIX Yacc is emulated.
 m4_define([b4_glr_cc_if],
           [m4_if(b4_skeleton, ["glr.cc"], $@)])
 
+# b4_glr2_cc_if([IF-TRUE], [IF-FALSE])
+# ------------------------------------
+m4_define([b4_glr2_cc_if],
+          [m4_if(b4_skeleton, ["glr2.cc"], $@)])
 
 ## --------- ##
 ## Symbols.  ##
@@ -480,16 +491,20 @@ m4_define([b4_symbol_slot],
 
 # b4_symbol(NUM, FIELD)
 # ---------------------
-# Fetch FIELD of symbol #NUM (or "orig NUM").  Fail if undefined.
+# Fetch FIELD of symbol #NUM (or "orig NUM", or "empty").  Fail if undefined.
 #
 # If FIELD = id, prepend the token prefix.
 m4_define([b4_symbol],
-[m4_case([$2],
-         [id],        [b4_symbol_token_kind([$1])],
-         [kind_base], [b4_symbol_kind_base([$1])],
-         [kind],      [b4_symbol_kind([$1])],
-         [slot],      [b4_symbol_slot([$1])],
-         [_b4_symbol($@)])])
+[m4_if([$1], [empty], [b4_symbol([-2], [$2])],
+       [$1], [eof],   [b4_symbol([0], [$2])],
+       [$1], [error], [b4_symbol([1], [$2])],
+       [$1], [undef], [b4_symbol([2], [$2])],
+       [m4_case([$2],
+                [id],        [b4_symbol_token_kind([$1])],
+                [kind_base], [b4_symbol_kind_base([$1])],
+                [kind],      [b4_symbol_kind([$1])],
+                [slot],      [b4_symbol_slot([$1])],
+                [_b4_symbol($@)])])])
 
 
 # b4_symbol_if(NUM, FIELD, IF-TRUE, IF-FALSE)
@@ -551,7 +566,7 @@ m4_defn([b4_actions_])[]dnl
         break;
     }dnl
 ],
-[YY_USE (m4_default([$2], [yykind]));])dnl
+[b4_use(m4_default([$2], [yykind]));])dnl
 m4_popdef([b4_actions_])dnl
 ])
 
@@ -967,15 +982,18 @@ m4_define([b4_percent_define_flag_if],
 # For example:
 #
 #   b4_percent_define_default([[foo]], [[default value]])
+m4_define([_b4_percent_define_define],
+[m4_define([b4_percent_define(]$1[)], [$2])dnl
+m4_define([b4_percent_define_kind(]$1[)],
+          [m4_default([$3], [keyword])])dnl
+m4_define([b4_percent_define_loc(]$1[)],
+          [[[[<skeleton default value>:-1.-1]],
+            [[<skeleton default value>:-1.-1]]]])dnl
+m4_define([b4_percent_define_syncline(]$1[)], [[]])])
+
 m4_define([b4_percent_define_default],
 [_b4_percent_define_ifdef([$1], [],
-           [m4_define([b4_percent_define(]$1[)], [$2])dnl
-            m4_define([b4_percent_define_kind(]$1[)],
-                      [m4_default([$3], [keyword])])dnl
-            m4_define([b4_percent_define_loc(]$1[)],
-                      [[[[<skeleton default value>:-1.-1]],
-                        [[<skeleton default value>:-1.-1]]]])dnl
-            m4_define([b4_percent_define_syncline(]$1[)], [[]])])])
+                          [_b4_percent_define_define($@)])])
 
 
 # b4_percent_define_if_define(NAME, [VARIABLE = NAME])
@@ -985,11 +1003,12 @@ m4_define([b4_percent_define_default],
 # to '_'.
 m4_define([_b4_percent_define_if_define],
 [m4_define(m4_bpatsubst([b4_$1_if], [[-.]], [_]),
-           [b4_percent_define_flag_if(m4_default([$2], [$1]),
-                                      [$3], [$4])])])
+           [b4_percent_define_default([m4_default([$2], [$1])], [[false]])dnl
+b4_percent_define_flag_if(m4_default([$2], [$1]),
+                                     [$3], [$4])])])
+
 m4_define([b4_percent_define_if_define],
-[b4_percent_define_default([m4_default([$2], [$1])], [[false]])
-_b4_percent_define_if_define([$1], [$2], $[1], $[2])])
+[_b4_percent_define_if_define([$1], [$2], $[1], $[2])])
 
 
 # b4_percent_define_check_kind(VARIABLE, KIND, [DIAGNOSTIC = complain])
@@ -1095,6 +1114,7 @@ b4_percent_define_if_define([token_ctor], [api.token.constructor])
 b4_percent_define_if_define([locations])     # Whether locations are tracked.
 b4_percent_define_if_define([parse.assert])
 b4_percent_define_if_define([parse.trace])
+b4_percent_define_if_define([posix])
 
 
 # b4_bison_locations_if([IF-TRUE])
@@ -1124,14 +1144,18 @@ m4_define([b4_parse_error_bmatch],
 
 
 
+# b4_union_if([IF-UNION-ARE-USED], [IF-NOT])
 # b4_variant_if([IF-VARIANT-ARE-USED], [IF-NOT])
 # ----------------------------------------------
-b4_percent_define_if_define([variant])
+# Depend on whether api.value.type is union, or variant.
+m4_define([b4_union_flag],   [[0]])
 m4_define([b4_variant_flag], [[0]])
 b4_percent_define_ifdef([[api.value.type]],
    [m4_case(b4_percent_define_get_kind([[api.value.type]]), [keyword],
-            [m4_case(b4_percent_define_get([[api.value.type]]), [variant],
-                    [m4_define([b4_variant_flag], [[1]])])])])
+            [m4_case(b4_percent_define_get([[api.value.type]]),
+                     [union],   [m4_define([b4_union_flag],   [[1]])],
+                     [variant], [m4_define([b4_variant_flag], [[1]])])])])
+b4_define_flag_if([union])
 b4_define_flag_if([variant])
 
 

@@ -708,7 +708,8 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
       return;
    }
 
-   if (desc->layout == UTIL_FORMAT_LAYOUT_ETC && !radv_device_supports_etc(physical_device)) {
+   if (desc->layout == UTIL_FORMAT_LAYOUT_ETC && !radv_device_supports_etc(physical_device) &&
+       !physical_device->emulate_etc2) {
       out_properties->linearTilingFeatures = linear;
       out_properties->optimalTilingFeatures = tiled;
       out_properties->bufferFeatures = buffer;
@@ -866,6 +867,11 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
     */
    if (format == VK_FORMAT_R8_UINT) {
       tiled |= VK_FORMAT_FEATURE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+   }
+
+   /* It's invalid to expose buffer features with depth/stencil formats. */
+   if (vk_format_is_depth_or_stencil(format)) {
+      buffer = 0;
    }
 
    out_properties->linearTilingFeatures = linear;
@@ -1344,9 +1350,13 @@ radv_check_modifier_support(struct radv_physical_device *dev,
                             const VkPhysicalDeviceImageFormatInfo2 *info,
                             VkImageFormatProperties *props, VkFormat format, uint64_t modifier)
 {
+   const struct util_format_description *desc = vk_format_description(format);
    uint32_t max_width, max_height;
 
    if (info->type != VK_IMAGE_TYPE_2D)
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+   if (!desc || (desc->layout == UTIL_FORMAT_LAYOUT_ETC && dev->emulate_etc2))
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
    /* We did not add modifiers for sparse textures. */
@@ -1416,7 +1426,7 @@ radv_check_modifier_support(struct radv_physical_device *dev,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 radv_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice, VkFormat format,
                                         VkFormatProperties2 *pFormatProperties)
 {
@@ -1612,6 +1622,12 @@ radv_get_image_format_properties(struct radv_physical_device *physical_device,
          goto unsupported;
    }
 
+   if ((info->flags &
+        (VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT | VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT)) &&
+       (desc->layout == UTIL_FORMAT_LAYOUT_ETC && physical_device->emulate_etc2)) {
+      goto unsupported;
+   }
+
    *pImageFormatProperties = (VkImageFormatProperties){
       .maxExtent = maxExtent,
       .maxMipLevels = maxMipLevels,
@@ -1654,6 +1670,10 @@ get_external_image_format_properties(struct radv_physical_device *physical_devic
    VkExternalMemoryFeatureFlagBits flags = 0;
    VkExternalMemoryHandleTypeFlags export_flags = 0;
    VkExternalMemoryHandleTypeFlags compat_flags = 0;
+   const struct util_format_description *desc = vk_format_description(pImageFormatInfo->format);
+
+   if (!desc || (desc->layout == UTIL_FORMAT_LAYOUT_ETC && physical_device->emulate_etc2))
+      return;
 
    if (pImageFormatInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
       return;
@@ -1723,7 +1743,7 @@ get_external_image_format_properties(struct radv_physical_device *physical_devic
    };
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 radv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
                                              const VkPhysicalDeviceImageFormatInfo2 *base_info,
                                              VkImageFormatProperties2 *base_props)
@@ -1791,6 +1811,13 @@ radv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
     *    present and VkExternalImageFormatProperties will be ignored.
     */
    if (external_info && external_info->handleType != 0) {
+      VkExternalImageFormatProperties fallback_external_props;
+
+      if (!external_props) {
+         memset(&fallback_external_props, 0, sizeof(fallback_external_props));
+         external_props = &fallback_external_props;
+      }
+
       get_external_image_format_properties(physical_device, base_info, external_info->handleType,
                                            &external_props->externalMemoryProperties,
                                            &base_props->imageFormatProperties);
@@ -1859,7 +1886,7 @@ fill_sparse_image_format_properties(struct radv_physical_device *pdev, VkFormat 
    prop->imageGranularity = (VkExtent3D){w, h, 1};
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 radv_GetPhysicalDeviceSparseImageFormatProperties2(
    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2 *pFormatInfo,
    uint32_t *pPropertyCount, VkSparseImageFormatProperties2 *pProperties)
@@ -1895,7 +1922,7 @@ radv_GetPhysicalDeviceSparseImageFormatProperties2(
    };
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 radv_GetImageSparseMemoryRequirements2(VkDevice _device,
                                        const VkImageSparseMemoryRequirementsInfo2 *pInfo,
                                        uint32_t *pSparseMemoryRequirementCount,
@@ -1945,7 +1972,7 @@ radv_GetImageSparseMemoryRequirements2(VkDevice _device,
    };
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 radv_GetDeviceImageSparseMemoryRequirementsKHR(VkDevice device,
                                                const VkDeviceImageMemoryRequirementsKHR* pInfo,
                                                uint32_t *pSparseMemoryRequirementCount,
@@ -1972,7 +1999,7 @@ radv_GetDeviceImageSparseMemoryRequirementsKHR(VkDevice device,
    radv_DestroyImage(device, image, NULL);
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 radv_GetPhysicalDeviceExternalBufferProperties(
    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
    VkExternalBufferProperties *pExternalBufferProperties)

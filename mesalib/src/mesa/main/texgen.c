@@ -34,9 +34,11 @@
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/macros.h"
-#include "main/texgen.h"
+#include "main/texparam.h"
 #include "main/texstate.h"
 #include "math/m_matrix.h"
+#include "main/texobj.h"
+#include "api_exec_decl.h"
 
 
 /**
@@ -175,9 +177,6 @@ texgenfv( GLuint texunitIndex, GLenum coord, GLenum pname,
       _mesa_error( ctx, GL_INVALID_ENUM, "glTexGenfv(pname)" );
       return;
    }
-
-   if (ctx->Driver.TexGen)
-      ctx->Driver.TexGen( ctx, coord, pname, params );
 }
 
 
@@ -369,42 +368,6 @@ _mesa_MultiTexGendEXT(GLenum texunit, GLenum coord, GLenum pname, GLdouble param
    p[0] = (GLfloat) param;
    p[1] = p[2] = p[3] = 0.0F;
    texgenfv(texunit - GL_TEXTURE0, coord, pname, p, "glMultiTexGendEXT");
-}
-
-void GLAPIENTRY
-_es_GetTexGenfv(GLenum coord, GLenum pname, GLfloat *params)
-{
-   _mesa_GetTexGenfv(GL_S, pname, params);
-}
-
-
-void GLAPIENTRY
-_es_TexGenf(GLenum coord, GLenum pname, GLfloat param)
-{
-   if (coord != GL_TEXTURE_GEN_STR_OES) {
-      GET_CURRENT_CONTEXT(ctx);
-      _mesa_error( ctx, GL_INVALID_ENUM, "glTexGen[fx](pname)" );
-      return;
-   }
-   /* set S, T, and R at the same time */
-   _mesa_TexGenf(GL_S, pname, param);
-   _mesa_TexGenf(GL_T, pname, param);
-   _mesa_TexGenf(GL_R, pname, param);
-}
-
-
-void GLAPIENTRY
-_es_TexGenfv(GLenum coord, GLenum pname, const GLfloat *params)
-{
-   if (coord != GL_TEXTURE_GEN_STR_OES) {
-      GET_CURRENT_CONTEXT(ctx);
-      _mesa_error( ctx, GL_INVALID_ENUM, "glTexGen[fx]v(pname)" );
-      return;
-   }
-   /* set S, T, and R at the same time */
-   _mesa_TexGenfv(GL_S, pname, params);
-   _mesa_TexGenfv(GL_T, pname, params);
-   _mesa_TexGenfv(GL_R, pname, params);
 }
 
 

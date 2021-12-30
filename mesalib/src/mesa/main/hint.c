@@ -30,7 +30,8 @@
 #include "hint.h"
 
 #include "mtypes.h"
-
+#include "state_tracker/st_cb_program.h"
+#include "api_exec_decl.h"
 
 
 void GLAPIENTRY
@@ -138,8 +139,7 @@ _mesa_MaxShaderCompilerThreadsKHR(GLuint count)
 
    ctx->Hint.MaxShaderCompilerThreads = count;
 
-   if (ctx->Driver.SetMaxShaderCompilerThreads)
-      ctx->Driver.SetMaxShaderCompilerThreads(ctx, count);
+   st_max_shader_compiler_threads(ctx, count);
 }
 
 /**********************************************************************/

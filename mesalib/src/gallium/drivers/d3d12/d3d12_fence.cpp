@@ -28,6 +28,9 @@
 
 #include "util/u_memory.h"
 
+constexpr uint64_t NsPerMs = 1000000;
+constexpr uint64_t MaxTimeoutInNs = (uint64_t)UINT_MAX * NsPerMs;
+
 #ifdef _WIN32
 static void
 close_event(HANDLE event, int fd)
@@ -46,7 +49,7 @@ create_event(int *fd)
 static bool
 wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
 {
-   DWORD timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE) ? INFINITE : timeout_ns / 1000000;
+   DWORD timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? INFINITE : timeout_ns / NsPerMs;
    return WaitForSingleObject(event, timeout_ms) == WAIT_OBJECT_0;
 }
 #else
@@ -71,8 +74,8 @@ create_event(int *fd)
 static bool
 wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
 {
-   int timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE) ? -1 : timeout_ns / 1000000;
-   return sync_wait(event_fd, timeout_ms);
+   int timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? -1 : timeout_ns / NsPerMs;
+   return sync_wait(event_fd, timeout_ms) == 0;
 }
 #endif
 
@@ -145,6 +148,7 @@ fence_finish(struct pipe_screen *pscreen, struct pipe_context *pctx,
 {
    bool ret = d3d12_fence_finish(d3d12_fence(pfence), timeout_ns);
    if (ret && pctx) {
+      pctx = threaded_context_unwrap_sync(pctx);
       struct d3d12_context *ctx = d3d12_context(pctx);
       d3d12_foreach_submitted_batch(ctx, batch)
          d3d12_reset_batch(ctx, batch, 0);

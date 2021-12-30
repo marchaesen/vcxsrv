@@ -102,7 +102,7 @@ d3d12_bo_new(ID3D12Device *dev, uint64_t size, const pb_desc *pb_desc)
    res_desc.MipLevels = 1;
    res_desc.SampleDesc.Count = 1;
    res_desc.SampleDesc.Quality = 0;
-   res_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+   res_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
    res_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
    D3D12_HEAP_TYPE heap_type = D3D12_HEAP_TYPE_DEFAULT;
@@ -218,7 +218,8 @@ d3d12_buffer_destroy(void *winsys, struct pb_buffer *pbuf)
 {
    struct d3d12_buffer *buf = d3d12_buffer(pbuf);
 
-   d3d12_bo_unmap(buf->bo, &buf->range);
+   if (buf->map)
+      d3d12_bo_unmap(buf->bo, &buf->range);
    d3d12_bo_unreference(buf->bo);
    FREE(buf);
 }

@@ -33,7 +33,9 @@
 #include "macros.h"
 #include "state.h"
 #include "mtypes.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_fbo.h"
 
 void GLAPIENTRY
 _mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha )
@@ -82,9 +84,9 @@ _mesa_clear_accum_buffer(struct gl_context *ctx)
    width = ctx->DrawBuffer->_Xmax - ctx->DrawBuffer->_Xmin;
    height = ctx->DrawBuffer->_Ymax - ctx->DrawBuffer->_Ymin;
 
-   ctx->Driver.MapRenderbuffer(ctx, accRb, x, y, width, height,
-                               GL_MAP_WRITE_BIT, &accMap, &accRowStride,
-                               ctx->DrawBuffer->FlipY);
+   st_MapRenderbuffer(ctx, accRb, x, y, width, height,
+                      GL_MAP_WRITE_BIT, &accMap, &accRowStride,
+                      ctx->DrawBuffer->FlipY);
 
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
@@ -115,7 +117,7 @@ _mesa_clear_accum_buffer(struct gl_context *ctx)
       _mesa_warning(ctx, "unexpected accum buffer type");
    }
 
-   ctx->Driver.UnmapRenderbuffer(ctx, accRb);
+   st_UnmapRenderbuffer(ctx, accRb);
 }
 
 
@@ -137,10 +139,10 @@ accum_scale_or_bias(struct gl_context *ctx, GLfloat value,
 
    assert(accRb);
 
-   ctx->Driver.MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
-                               GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
-                               &accMap, &accRowStride,
-                               ctx->DrawBuffer->FlipY);
+   st_MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
+                      GL_MAP_READ_BIT | GL_MAP_WRITE_BIT,
+                      &accMap, &accRowStride,
+                      ctx->DrawBuffer->FlipY);
 
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
@@ -174,7 +176,7 @@ accum_scale_or_bias(struct gl_context *ctx, GLfloat value,
       /* other types someday? */
    }
 
-   ctx->Driver.UnmapRenderbuffer(ctx, accRb);
+   st_UnmapRenderbuffer(ctx, accRb);
 }
 
 
@@ -208,21 +210,21 @@ accum_or_load(struct gl_context *ctx, GLfloat value,
       mappingFlags |= GL_MAP_READ_BIT;
 
    /* Map accum buffer */
-   ctx->Driver.MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
-                               mappingFlags, &accMap, &accRowStride,
-                               ctx->DrawBuffer->FlipY);
+   st_MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
+                      mappingFlags, &accMap, &accRowStride,
+                      ctx->DrawBuffer->FlipY);
    if (!accMap) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
       return;
    }
 
    /* Map color buffer */
-   ctx->Driver.MapRenderbuffer(ctx, colorRb, xpos, ypos, width, height,
-                               GL_MAP_READ_BIT,
-                               &colorMap, &colorRowStride,
-                               ctx->DrawBuffer->FlipY);
+   st_MapRenderbuffer(ctx, colorRb, xpos, ypos, width, height,
+                      GL_MAP_READ_BIT,
+                      &colorMap, &colorRowStride,
+                      ctx->DrawBuffer->FlipY);
    if (!colorMap) {
-      ctx->Driver.UnmapRenderbuffer(ctx, accRb);
+      st_UnmapRenderbuffer(ctx, accRb);
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAccum");
       return;
    }
@@ -272,8 +274,8 @@ accum_or_load(struct gl_context *ctx, GLfloat value,
       /* other types someday? */
    }
 
-   ctx->Driver.UnmapRenderbuffer(ctx, accRb);
-   ctx->Driver.UnmapRenderbuffer(ctx, colorRb);
+   st_UnmapRenderbuffer(ctx, accRb);
+   st_UnmapRenderbuffer(ctx, colorRb);
 }
 
 
@@ -291,7 +293,7 @@ accum_return(struct gl_context *ctx, GLfloat value,
    GLuint buffer;
 
    /* Map accum buffer */
-   ctx->Driver.MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
+   st_MapRenderbuffer(ctx, accRb, xpos, ypos, width, height,
                                GL_MAP_READ_BIT,
                                &accMap, &accRowStride, fb->FlipY);
    if (!accMap) {
@@ -312,7 +314,7 @@ accum_return(struct gl_context *ctx, GLfloat value,
          mappingFlags |= GL_MAP_READ_BIT;
 
       /* Map color buffer */
-      ctx->Driver.MapRenderbuffer(ctx, colorRb, xpos, ypos, width, height,
+      st_MapRenderbuffer(ctx, colorRb, xpos, ypos, width, height,
                                   mappingFlags, &colorMap, &colorRowStride,
                                   fb->FlipY);
       if (!colorMap) {
@@ -380,10 +382,10 @@ accum_return(struct gl_context *ctx, GLfloat value,
          /* other types someday? */
       }
 
-      ctx->Driver.UnmapRenderbuffer(ctx, colorRb);
+      st_UnmapRenderbuffer(ctx, colorRb);
    }
 
-   ctx->Driver.UnmapRenderbuffer(ctx, accRb);
+   st_UnmapRenderbuffer(ctx, accRb);
 }
 
 

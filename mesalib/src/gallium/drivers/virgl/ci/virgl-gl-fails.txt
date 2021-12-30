@@ -1,8 +1,6 @@
 dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
-dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center,Fail
-dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner,Fail
 dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
 dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES3.functional.clipping.point.wide_point_clip,Fail
@@ -20,8 +18,7 @@ dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_y,Fa
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_x,Fail
 dEQP-GLES31.functional.draw_buffers_indexed.random.max_required_draw_buffers.4,Fail
 dEQP-GLES31.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.8,Fail
-dEQP-GLES31.functional.image_load_store.buffer.image_size.writeonly_12,Fail
-dEQP-GLES31.functional.image_load_store.buffer.image_size.readonly_writeonly_12,Fail
+dEQP-GLES31.functional.draw_buffers_indexed.random.max_required_draw_buffers.9,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_equal,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.fbo_bbox_equal,Fail
@@ -40,6 +37,7 @@ dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two_samples.multisample_rbo_2,Fail
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two_samples.multisample_texture_1,Fail
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two_samples.multisample_texture_2,Fail
+dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36,Fail
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/2892
 KHR-GL30.shaders30.glsl_constructors.bvec4_from_mat4x2_vs,Crash
 KHR-GL30.transform_feedback.api_errors_test,Fail
@@ -48,7 +46,6 @@ KHR-GL30.transform_feedback.capture_vertex_separate_test,Fail
 KHR-GL30.transform_feedback.discard_vertex_test,Fail
 KHR-GL30.transform_feedback.draw_xfb_instanced_test,Crash
 KHR-GL30.transform_feedback.draw_xfb_stream_instanced_test,Crash
-KHR-GL30.transform_feedback.get_xfb_varying,Fail
 KHR-GL30.transform_feedback.query_vertex_interleaved_test,Fail
 KHR-GL30.transform_feedback.query_vertex_separate_test,Fail
 KHR-GL31.transform_feedback.capture_special_interleaved_test,Crash

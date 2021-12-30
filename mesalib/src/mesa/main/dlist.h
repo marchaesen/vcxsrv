@@ -107,31 +107,6 @@ void
 _mesa_delete_bitmap_atlas(struct gl_context *ctx,
                           struct gl_bitmap_atlas *atlas);
 
-
-GLboolean GLAPIENTRY
-_mesa_IsList(GLuint list);
-
-void GLAPIENTRY
-_mesa_DeleteLists(GLuint list, GLsizei range);
-
-GLuint GLAPIENTRY
-_mesa_GenLists(GLsizei range);
-
-void GLAPIENTRY
-_mesa_NewList(GLuint name, GLenum mode);
-
-void GLAPIENTRY
-_mesa_EndList(void);
-
-void GLAPIENTRY
-_mesa_CallList(GLuint list);
-
-void GLAPIENTRY
-_mesa_CallLists(GLsizei n, GLenum type, const GLvoid *lists);
-
-void GLAPIENTRY
-_mesa_ListBase(GLuint base);
-
 struct gl_display_list *
 _mesa_lookup_list(struct gl_context *ctx, GLuint list, bool locked);
 
@@ -149,11 +124,10 @@ void
 _mesa_initialize_save_table(const struct gl_context *);
 
 void
-_mesa_install_dlist_vtxfmt(struct _glapi_table *disp,
-                           const GLvertexformat *vfmt);
+_mesa_init_display_list(struct gl_context * ctx);
 
 void
-_mesa_init_display_list(struct gl_context * ctx);
+_mesa_install_save_vtxfmt(struct gl_context *ctx);
 
 bool
 _mesa_get_list(struct gl_context *ctx, GLuint list,

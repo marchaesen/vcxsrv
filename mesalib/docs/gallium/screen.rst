@@ -73,9 +73,7 @@ The integer capabilities:
 * ``PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER``: Whether the TGSI
   property FS_COORD_PIXEL_CENTER with value INTEGER is supported.
 * ``PIPE_CAP_DEPTH_CLIP_DISABLE``: Whether the driver is capable of disabling
-  depth clipping (=1) (through pipe_rasterizer_state) or supports lowering
-  depth_clamp in the client shader code (=2), for this the driver must
-  currently use TGSI.
+  depth clipping (through pipe_rasterizer_state).
 * ``PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE``: Whether the driver is capable of
   disabling depth clipping (through pipe_rasterizer_state) separately for
   the near and far plane. If not, depth_clip_near and depth_clip_far will be
@@ -139,6 +137,12 @@ The integer capabilities:
 * ``PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY``: This CAP describes
   a hw limitation.  If true, pipe_vertex_element::src_offset must always be
   aligned to 4.  If false, there are no restrictions on src_offset.
+* ``PIPE_CAP_VERTEX_ATTRIB_ELEMENT_ALIGNED_ONLY``: This CAP describes
+  a hw limitation.  If true, the sum of
+  ``pipe_vertex_element::src_offset + pipe_vertex_buffer::buffer_offset + pipe_vertex_buffer::stride``
+  must always be aligned to the component size for the vertex attributes
+  which access that buffer.  If false, there are no restrictions on these values.
+  This CAP cannot be used with any other alignment-requiring CAPs.
 * ``PIPE_CAP_COMPUTE``: Whether the implementation supports the
   compute entry points defined in pipe_context and pipe_screen.
 * ``PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT``: Describes the required
@@ -171,10 +175,13 @@ The integer capabilities:
 * ``PIPE_CAP_TEXTURE_BUFFER_SAMPLER``: Whether a sampler should still
   be used for PIPE_BUFFER resources (normally a sampler is only used
   if the texture target is PIPE_TEXTURE_*).
-* ``PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER``: Whether it is preferable
-  to use a blit to implement a texture transfer which needs format conversions
+* ``PIPE_CAP_TEXTURE_TRANSFER_MODES``: The ``pipe_texture_transfer_mode`` modes
+  that are supported for implementing a texture transfer which needs format conversions
   and swizzling in gallium frontends. Generally, all hardware drivers with
-  dedicated memory should return 1 and all software rasterizers should return 0.
+  dedicated memory should return PIPE_TEXTURE_TRANSFER_BLIT and all software rasterizers
+  should return PIPE_TEXTURE_TRANSFER_DEFAULT. PIPE_TEXTURE_TRANSFER_COMPUTE requires drivers
+  to support 8bit and 16bit shader storage buffer writes and to implement
+  pipe_screen::is_compute_copy_faster.
 * ``PIPE_CAP_QUERY_PIPELINE_STATISTICS``: Whether PIPE_QUERY_PIPELINE_STATISTICS
   is supported.
 * ``PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK``: Bitmask indicating whether special
@@ -548,6 +555,7 @@ The integer capabilities:
   A driver might rely on the input mapping that was defined with the original
   GLSL code.
 * ``PIPE_CAP_IMAGE_LOAD_FORMATTED``: True if a format for image loads does not need to be specified in the shader IR
+* ``PIPE_CAP_IMAGE_STORE_FORMATTED``: True if a format for image stores does not need to be specified in the shader IR
 * ``PIPE_CAP_THROTTLE``: Whether or not gallium frontends should throttle pipe_context
   execution. 0 = throttling is disabled.
 * ``PIPE_CAP_DMABUF``: Whether Linux DMABUF handles are supported by
@@ -594,7 +602,7 @@ The integer capabilities:
     that backfacing primitives should use the back-side color as the FS input
     color.  If unset, mesa/st will lower it to gl_FrontFacing reads in the
     fragment shader.
-* ``PIPE_CAP_CLIP_PLANES``: Driver supports user-defined clip-planes.
+* ``PIPE_CAP_CLIP_PLANES``: Driver supports user-defined clip-planes. 0 denotes none, 1 denotes MAX_CLIP_PLANES. > 1 overrides MAX.
 * ``PIPE_CAP_MAX_VERTEX_BUFFERS``: Number of supported vertex buffers.
 * ``PIPE_CAP_OPENCL_INTEGER_FUNCTIONS``: Driver supports extended OpenCL-style integer functions.  This includes averge, saturating additiong, saturating subtraction, absolute difference, count leading zeros, and count trailing zeros.
 * ``PIPE_CAP_INTEGER_MULTIPLY_32X16``: Driver supports integer multiplication between a 32-bit integer and a 16-bit integer.  If the second operand is 32-bits, the upper 16-bits are ignored, and the low 16-bits are possibly sign extended as necessary.
@@ -623,6 +631,11 @@ The integer capabilities:
 * ``PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART``: A bitmask of the ``pipe_prim_type`` enum values that the driver can natively support for primitive restart. Only useful if ``PIPE_CAP_PRIMITIVE_RESTART`` is also exported.
 * ``PIPE_CAP_PREFER_BACK_BUFFER_REUSE``: Only applies to DRI_PRIME. If 1, the driver prefers that DRI3 tries to use the same back buffer each frame. If 0, this means DRI3 will at least use 2 back buffers and ping-pong between them to allow the tiled->linear copy to run in parallel.
 * ``PIPE_CAP_DRAW_VERTEX_STATE``: Driver supports `pipe_screen::create_vertex_state/vertex_state_destroy` and `pipe_context::draw_vertex_state`. Only used by display lists and designed to serve vbo_save.
+* ``PIPE_CAP_PREFER_POT_ALIGNED_VARYINGS``: Driver prefers varyings to be aligned to power of two in a slot. If this cap is enabled, vec4 varying will be placed in .xyzw components of the varying slot, vec3 in .xyz and vec2 in .xy or .zw
+* ``PIPE_CAP_MAX_SPARSE_TEXTURE_SIZE``: Maximum 1D/2D/rectangle texture image dimension for a sparse texture.
+* ``PIPE_CAP_MAX_SPARSE_3D_TEXTURE_SIZE``: Maximum 3D texture image dimension for a sparse texture.
+* ``PIPE_CAP_MAX_SPARSE_ARRAY_TEXTURE_LAYERS``: Maximum number of layers in a sparse array texture.
+* ``PIPE_CAP_SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS``: TRUE if there are no restrictions on the allocation of mipmaps in sparse textures and FALSE otherwise. See SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS_ARB description in ARB_sparse_texture extension spec.
 
 .. _pipe_capf:
 
@@ -631,10 +644,16 @@ PIPE_CAPF_*
 
 The floating-point capabilities are:
 
+* ``PIPE_CAPF_MIN_LINE_WIDTH``: The minimum width of a regular line.
+* ``PIPE_CAPF_MIN_LINE_WIDTH_AA``: The minimum width of a smoothed line.
 * ``PIPE_CAPF_MAX_LINE_WIDTH``: The maximum width of a regular line.
 * ``PIPE_CAPF_MAX_LINE_WIDTH_AA``: The maximum width of a smoothed line.
-* ``PIPE_CAPF_MAX_POINT_WIDTH``: The maximum width and height of a point.
-* ``PIPE_CAPF_MAX_POINT_WIDTH_AA``: The maximum width and height of a smoothed point.
+* ``PIPE_CAPF_LINE_WIDTH_GRANULARITY``: The line width is rounded to a multiple of this number.
+* ``PIPE_CAPF_MIN_POINT_SIZE``: The minimum width and height of a point.
+* ``PIPE_CAPF_MIN_POINT_SIZE_AA``: The minimum width and height of a smoothed point.
+* ``PIPE_CAPF_MAX_POINT_SIZE``: The maximum width and height of a point.
+* ``PIPE_CAPF_MAX_POINT_SIZE_AA``: The maximum width and height of a smoothed point.
+* ``PIPE_CAPF_POINT_SIZE_GRANULARITY``: The point size is rounded to a multiple of this number.
 * ``PIPE_CAPF_MAX_TEXTURE_ANISOTROPY``: The maximum level of anisotropy that can be
   applied to anisotropically filtered textures.
 * ``PIPE_CAPF_MAX_TEXTURE_LOD_BIAS``: The maximum :term:`LOD` bias that may be applied

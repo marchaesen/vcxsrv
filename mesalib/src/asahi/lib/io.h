@@ -194,10 +194,10 @@ struct agx_map_header {
 	uint32_t cmdbuf_size;
 	uint32_t nr_handles;
 	uint32_t nr_entries;
-	uint32_t indices[6];
 } __attribute__((packed));
 
 struct agx_map_entry {
+	uint32_t indices[6];
 	uint32_t unkAAA; // 20 00 00 00
 	uint32_t unk2; // 00 00 00 00 
 	uint32_t unk3; // 00 00 00 00
@@ -208,7 +208,6 @@ struct agx_map_entry {
 	uint32_t unk8; // 00 00 00 00
 	uint32_t unk9; // 00 00 00 00
 	uint32_t unka; // ff ff 01 00 
-	uint32_t indices[6];
 } __attribute__((packed));
 
 uint64_t

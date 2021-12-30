@@ -389,8 +389,8 @@ void si_llvm_emit_streamout(struct si_shader_context *ctx, struct si_shader_outp
    ac_build_endif(&ctx->ac, 6501);
 }
 
-static void si_llvm_emit_clipvertex(struct si_shader_context *ctx, struct ac_export_args *pos,
-                                    LLVMValueRef *out_elts)
+void si_llvm_clipvertex_to_clipdist(struct si_shader_context *ctx,
+                                    struct ac_export_args clipdist[2], LLVMValueRef clipvertex[4])
 {
    unsigned reg_index;
    unsigned chan;
@@ -403,7 +403,7 @@ static void si_llvm_emit_clipvertex(struct si_shader_context *ctx, struct ac_exp
                             ~ctx->shader->key.ge.opt.kill_clip_distances;
 
    for (reg_index = 0; reg_index < 2; reg_index++) {
-      struct ac_export_args *args = &pos[2 + reg_index];
+      struct ac_export_args *args = &clipdist[reg_index];
 
       if (!(clipdist_mask & BITFIELD_RANGE(reg_index * 4, 4)))
          continue;
@@ -420,7 +420,7 @@ static void si_llvm_emit_clipvertex(struct si_shader_context *ctx, struct ac_exp
                LLVMConstInt(ctx->ac.i32, ((reg_index * 4 + chan) * 4 + const_chan) * 4, 0);
             base_elt = si_buffer_load_const(ctx, const_resource, addr);
             args->out[chan] =
-               ac_build_fmad(&ctx->ac, base_elt, out_elts[const_chan],
+               ac_build_fmad(&ctx->ac, base_elt, clipvertex[const_chan],
                              const_chan == 0 ? ctx->ac.f32_0 : args->out[chan]);
          }
       }
@@ -611,7 +611,7 @@ void si_llvm_build_vs_exports(struct si_shader_context *ctx,
          }
          break;
       case VARYING_SLOT_CLIP_VERTEX:
-         si_llvm_emit_clipvertex(ctx, pos_args, outputs[i].values);
+         si_llvm_clipvertex_to_clipdist(ctx, pos_args + 2, outputs[i].values);
          break;
       }
    }

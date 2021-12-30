@@ -1235,3 +1235,15 @@ void ac_destroy_perfcounters(struct ac_perfcounters *pc)
    }
    FREE(pc->blocks);
 }
+
+struct ac_pc_block *ac_pc_get_block(const struct ac_perfcounters *pc,
+                                    enum ac_pc_gpu_block gpu_block)
+{
+   for (unsigned i = 0; i < pc->num_blocks; i++) {
+      struct ac_pc_block *block = &pc->blocks[i];
+      if (block->b->b->gpu_block == gpu_block) {
+         return block;
+      }
+   }
+   return NULL;
+}

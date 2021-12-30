@@ -106,15 +106,14 @@ KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2
 KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support
 KHR-GLES31.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guarded_read_calls
 
+# First flaked on 2021-08-19 with a kernel update.
+KHR-GLES31.core.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize
+
+# edfff331b3241d1c18d5c589fcdf75728089c886 mostly fixed this, but apparently it still flakes.
+dEQP-GLES3.functional.fbo.blit.depth_stencil.depth32f_stencil8_scale
+
 # looks like a cache flushing issue, and it does sometimes pass.
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.*
-
-# Testcase was mostly fixed in 23f7e06cd8d40569f8bfabde9c01d1597573abef, but has
-# flaked in CI since then:
-# " [775] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]
-#   [806] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]
-#   ..."
-KHR-GLES31.core.shader_image_load_store.basic-glsl-misc-fs
 
 # Flakes, all seen since merge of:
 # https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/12258
@@ -142,15 +141,20 @@ glx@glx-visuals-stencil
 #  [  375.034086] adreno 5000000.gpu: [drm:a6xx_irq] *ERROR* gpu fault ring 0 fence aefe8 status 00E51005 rb 0602/06d2 ib1 000000010023D000/0000 ib2 0000000100246170/0000
 glx@glx-tfp
 
-# async shader compiler asserts in get_image_samp_tex_src()'s nir_src_comp_as_uint().
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/4474
-spec@arb_shader_image_load_store@invalid
-
 # Flaky since around 2021-03-20.  First appeared on the autotune branch.
 spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
 
 # Flaky since around 2021-03-22.  First appeared on an innocent mingw branch.
 spec@arb_depth_texture@fbo-clear-formats
+
+# Flaky since 2021-12-02, during piglit uprev with commit
+# 0ef03f824d1833a853d1a20b4be121089bb9246c
+spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
+spec@arb_map_buffer_range@map_invalidate_buffer_bit offset=0
+
+# Always been flaky, but didn't show up until the testscase was fixed to not spuriously skip.
+spec@arb_shader_image_load_store@indexing
+spec@arb_shader_image_load_store@indexing@Fragment shader/dynamically uniform indexing test
 
 # Occasionally passes instead of failing
 spec@egl_chromium_sync_control@conformance
@@ -177,3 +181,9 @@ spec@glsl-1.30@execution@tex-miplevel-selection texture\(bias\) cubearray
 
 # First appeared on 2021-05-14 on tc-merge-index-unrefs, but not obviously related.
 spec@!opengl 1.0@rasterpos@glsl_vs_tex1D
+
+# Has only flaked where it fails twice in a run, never as a Flake status.
+spec@!opengl 1.0@rasterpos@glsl_vs_ubo
+
+# First appeared 2021-06-14
+spec@egl 1.4@eglcreatepbuffersurface and then glclear

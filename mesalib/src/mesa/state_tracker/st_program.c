@@ -61,7 +61,6 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_drawpixels.h"
 #include "st_context.h"
-#include "st_tgsi_lower_depth_clamp.h"
 #include "st_tgsi_lower_yuv.h"
 #include "st_program.h"
 #include "st_atifs_to_nir.h"
@@ -589,11 +588,11 @@ st_translate_vertex_program(struct st_context *st,
    ubyte output_semantic_name[VARYING_SLOT_MAX] = {0};
    ubyte output_semantic_index[VARYING_SLOT_MAX] = {0};
 
-   if (stp->Base.arb.IsPositionInvariant)
-      _mesa_insert_mvp_code(st->ctx, &stp->Base);
-
    /* ARB_vp: */
    if (!stp->glsl_to_tgsi) {
+      if (stp->Base.arb.IsPositionInvariant)
+         _mesa_insert_mvp_code(st->ctx, &stp->Base);
+
       _mesa_remove_output_reads(&stp->Base, PROGRAM_OUTPUT);
 
       /* This determines which states will be updated when the assembly
@@ -756,9 +755,6 @@ lower_ucp(struct st_context *st,
    }
 }
 
-static const gl_state_index16 depth_range_state[STATE_LENGTH] =
-   { STATE_DEPTH_RANGE };
-
 static struct st_common_variant *
 st_create_common_variant(struct st_context *st,
                      struct st_program *stp,
@@ -792,26 +788,31 @@ st_create_common_variant(struct st_context *st,
          finalize = true;
       }
 
-      if (key->lower_point_size) {
-         _mesa_add_state_reference(params, point_size_state);
-         NIR_PASS_V(state.ir.nir, nir_lower_point_size_mov,
-                    point_size_state);
+      if (key->export_point_size) {
+         /* if flag is set, shader must export psiz */
+         nir_shader *nir = state.ir.nir;
+         /* avoid clobbering existing psiz output */
+         if (!(nir->info.outputs_written & BITFIELD64_BIT(VARYING_SLOT_PSIZ))) {
+            _mesa_add_state_reference(params, point_size_state);
+            NIR_PASS_V(state.ir.nir, nir_lower_point_size_mov,
+                       point_size_state);
 
-         switch (stp->Base.info.stage) {
-         case MESA_SHADER_VERTEX:
-            stp->affected_states |= ST_NEW_VS_CONSTANTS;
-            break;
-         case MESA_SHADER_TESS_EVAL:
-            stp->affected_states |= ST_NEW_TES_CONSTANTS;
-            break;
-         case MESA_SHADER_GEOMETRY:
-            stp->affected_states |= ST_NEW_GS_CONSTANTS;
-            break;
-         default:
-            unreachable("bad shader stage");
+            switch (stp->Base.info.stage) {
+            case MESA_SHADER_VERTEX:
+               stp->affected_states |= ST_NEW_VS_CONSTANTS;
+               break;
+            case MESA_SHADER_TESS_EVAL:
+               stp->affected_states |= ST_NEW_TES_CONSTANTS;
+               break;
+            case MESA_SHADER_GEOMETRY:
+               stp->affected_states |= ST_NEW_GS_CONSTANTS;
+               break;
+            default:
+               unreachable("bad shader stage");
+            }
+
+            finalize = true;
          }
-
-         finalize = true;
       }
 
       if (key->lower_ucp) {
@@ -874,18 +875,6 @@ st_create_common_variant(struct st_context *st,
       } else {
          fprintf(stderr, "mesa: cannot emulate deprecated features\n");
       }
-   }
-
-   if (key->lower_depth_clamp) {
-      unsigned depth_range_const =
-            _mesa_add_state_reference(params, depth_range_state);
-
-      const struct tgsi_token *tokens;
-      tokens = st_tgsi_lower_depth_clamp(state.tokens, depth_range_const,
-                                         key->clip_negative_one_to_one);
-      if (tokens != state.tokens)
-         tgsi_free_tokens(state.tokens);
-      state.tokens = tokens;
    }
 
    if (ST_DEBUG & DEBUG_PRINT_IR)
@@ -970,13 +959,11 @@ st_get_common_variant(struct st_context *st,
    if (!v) {
       if (stp->variants != NULL) {
          _mesa_perf_debug(st->ctx, MESA_DEBUG_SEVERITY_MEDIUM,
-                          "Compiling %s shader variant (%s%s%s%s%s%s%s%s)",
+                          "Compiling %s shader variant (%s%s%s%s%s%s)",
                           _mesa_shader_stage_to_string(stp->Base.info.stage),
                           key->passthrough_edgeflags ? "edgeflags," : "",
                           key->clamp_color ? "clamp_color," : "",
-                          key->lower_depth_clamp ? "depth_clamp," : "",
-                          key->clip_negative_one_to_one ? "clip_negative_one," : "",
-                          key->lower_point_size ? "point_size," : "",
+                          key->export_point_size ? "point_size," : "",
                           key->lower_ucp ? "ucp," : "",
                           key->is_draw_shader ? "draw," : "",
                           key->gl_clamp[0] || key->gl_clamp[1] || key->gl_clamp[2] ? "GL_CLAMP," : "");
@@ -1629,15 +1616,6 @@ st_create_fp_variant(struct st_context *st,
       }
    }
 
-   if (key->lower_depth_clamp) {
-      unsigned depth_range_const = _mesa_add_state_reference(params, depth_range_state);
-
-      const struct tgsi_token *tokens;
-      tokens = st_tgsi_lower_depth_clamp_fs(state.tokens, depth_range_const);
-      if (state.tokens != stfp->state.tokens)
-         tgsi_free_tokens(state.tokens);
-      state.tokens = tokens;
-   }
 
    if (ST_DEBUG & DEBUG_PRINT_IR)
       tgsi_dump(state.tokens, 0);
@@ -1674,7 +1652,7 @@ st_get_fp_variant(struct st_context *st,
 
       if (stfp->variants != NULL) {
          _mesa_perf_debug(st->ctx, MESA_DEBUG_SEVERITY_MEDIUM,
-                          "Compiling fragment shader variant (%s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
+                          "Compiling fragment shader variant (%s%s%s%s%s%s%s%s%s%s%s%s%s)",
                           key->bitmap ? "bitmap," : "",
                           key->drawpixels ? "drawpixels," : "",
                           key->scaleAndBias ? "scale_bias," : "",
@@ -1682,7 +1660,6 @@ st_get_fp_variant(struct st_context *st,
                           key->clamp_color ? "clamp_color," : "",
                           key->persample_shading ? "persample_shading," : "",
                           key->fog ? "fog," : "",
-                          key->lower_depth_clamp ? "depth_clamp," : "",
                           key->lower_two_sided_color ? "twoside," : "",
                           key->lower_flatshade ? "flatshade," : "",
                           key->lower_texcoord_replace ? "texcoord_replace," : "",
@@ -1950,6 +1927,35 @@ st_destroy_program_variants(struct st_context *st)
                   destroy_shader_program_variants_cb, st);
 }
 
+static bool
+is_last_vertex_stage(struct gl_context *ctx, struct gl_program *prog)
+{
+   struct gl_program *last = NULL;
+   /* fixedfunc */
+   if (prog->Id == 0)
+      return true;
+
+   /* shader info accurately set */
+   if (prog->info.next_stage == MESA_SHADER_FRAGMENT)
+      return true;
+   if (prog->info.next_stage != MESA_SHADER_VERTEX)
+      return false;
+
+   /* check bound programs */
+   if (ctx->GeometryProgram._Current)
+      last = ctx->GeometryProgram._Current;
+   else if (ctx->TessEvalProgram._Current)
+      last = ctx->TessEvalProgram._Current;
+   else
+      last = ctx->VertexProgram._Current;
+   if (last)
+      return prog == last;
+
+   /* assume this will be the last vertex stage;
+    * at worst, another variant without psiz is created later
+    */
+   return true;
+}
 
 /**
  * Compile one shader variant.
@@ -1978,6 +1984,12 @@ st_precompile_shader_variant(struct st_context *st,
          key.clamp_color = true;
       }
 
+      if (prog->Target == GL_VERTEX_PROGRAM_ARB ||
+          prog->Target == GL_TESS_EVALUATION_PROGRAM_NV ||
+          prog->Target == GL_GEOMETRY_PROGRAM_NV) {
+         if (st->ctx->API == API_OPENGLES2 || !st->ctx->VertexProgram.PointSizeEnabled)
+            key.export_point_size = st->lower_point_size && is_last_vertex_stage(st->ctx, prog);
+      }
       key.st = st->has_shareable_shaders ? NULL : st;
       st_get_common_variant(st, p, &key);
       break;
@@ -2022,10 +2034,12 @@ void
 st_finalize_program(struct st_context *st, struct gl_program *prog)
 {
    if (st->current_program[prog->info.stage] == prog) {
-      if (prog->info.stage == MESA_SHADER_VERTEX)
+      if (prog->info.stage == MESA_SHADER_VERTEX) {
+         st->ctx->Array.NewVertexElements = true;
          st->dirty |= ST_NEW_VERTEX_PROGRAM(st, (struct st_program *)prog);
-      else
+      } else {
          st->dirty |= ((struct st_program *)prog)->affected_states;
+      }
    }
 
    if (prog->nir) {

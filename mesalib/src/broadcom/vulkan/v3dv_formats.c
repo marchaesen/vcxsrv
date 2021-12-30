@@ -23,7 +23,6 @@
 
 #include "v3dv_private.h"
 #include "vk_util.h"
-#include "vk_format_info.h"
 
 #include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"

@@ -35,7 +35,7 @@ extern "C" {
 struct dag_edge {
    struct dag_node *child;
    /* User-defined data associated with the edge. */
-   void *data;
+   uintptr_t data;
 };
 
 struct dag_node {
@@ -52,7 +52,8 @@ struct dag {
 
 struct dag *dag_create(void *mem_ctx);
 void dag_init_node(struct dag *dag, struct dag_node *node);
-void dag_add_edge(struct dag_node *parent, struct dag_node *child, void *data);
+void dag_add_edge(struct dag_node *parent, struct dag_node *child, uintptr_t data);
+void dag_add_edge_max_data(struct dag_node *parent, struct dag_node *child, uintptr_t data);
 void dag_remove_edge(struct dag *dag, struct dag_edge *edge);
 void dag_traverse_bottom_up(struct dag *dag, void (*cb)(struct dag_node *node,
                                                         void *data), void *data);

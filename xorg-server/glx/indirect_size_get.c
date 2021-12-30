@@ -527,25 +527,15 @@ __glGetBooleanv_size( GLenum e )
         case GL_CONVOLUTION_2D:
         case GL_SEPARABLE_2D:
         case GL_MAX_CONVOLUTION_WIDTH:
-/*      case GL_MAX_CONVOLUTION_WIDTH_EXT:*/
         case GL_MAX_CONVOLUTION_HEIGHT:
-/*      case GL_MAX_CONVOLUTION_HEIGHT_EXT:*/
         case GL_POST_CONVOLUTION_RED_SCALE:
-/*      case GL_POST_CONVOLUTION_RED_SCALE_EXT:*/
         case GL_POST_CONVOLUTION_GREEN_SCALE:
-/*      case GL_POST_CONVOLUTION_GREEN_SCALE_EXT:*/
         case GL_POST_CONVOLUTION_BLUE_SCALE:
-/*      case GL_POST_CONVOLUTION_BLUE_SCALE_EXT:*/
         case GL_POST_CONVOLUTION_ALPHA_SCALE:
-/*      case GL_POST_CONVOLUTION_ALPHA_SCALE_EXT:*/
         case GL_POST_CONVOLUTION_RED_BIAS:
-/*      case GL_POST_CONVOLUTION_RED_BIAS_EXT:*/
         case GL_POST_CONVOLUTION_GREEN_BIAS:
-/*      case GL_POST_CONVOLUTION_GREEN_BIAS_EXT:*/
         case GL_POST_CONVOLUTION_BLUE_BIAS:
-/*      case GL_POST_CONVOLUTION_BLUE_BIAS_EXT:*/
         case GL_POST_CONVOLUTION_ALPHA_BIAS:
-/*      case GL_POST_CONVOLUTION_ALPHA_BIAS_EXT:*/
         case GL_HISTOGRAM:
         case GL_MINMAX:
         case GL_POLYGON_OFFSET_FACTOR:
@@ -939,7 +929,6 @@ __glGetTexLevelParameterfv_size( GLenum e )
         case GL_TEXTURE_INTENSITY_SIZE:
 /*      case GL_TEXTURE_INTENSITY_SIZE_EXT:*/
         case GL_TEXTURE_DEPTH:
-        case GL_TEXTURE_INDEX_SIZE_EXT:
         case GL_TEXTURE_COMPRESSED_IMAGE_SIZE:
 /*      case GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB:*/
         case GL_TEXTURE_COMPRESSED_ARB:
@@ -981,21 +970,13 @@ __glGetColorTableParameterfv_size( GLenum e )
 {
     switch( e ) {
         case GL_COLOR_TABLE_FORMAT:
-/*      case GL_COLOR_TABLE_FORMAT_EXT:*/
         case GL_COLOR_TABLE_WIDTH:
-/*      case GL_COLOR_TABLE_WIDTH_EXT:*/
         case GL_COLOR_TABLE_RED_SIZE:
-/*      case GL_COLOR_TABLE_RED_SIZE_EXT:*/
         case GL_COLOR_TABLE_GREEN_SIZE:
-/*      case GL_COLOR_TABLE_GREEN_SIZE_EXT:*/
         case GL_COLOR_TABLE_BLUE_SIZE:
-/*      case GL_COLOR_TABLE_BLUE_SIZE_EXT:*/
         case GL_COLOR_TABLE_ALPHA_SIZE:
-/*      case GL_COLOR_TABLE_ALPHA_SIZE_EXT:*/
         case GL_COLOR_TABLE_LUMINANCE_SIZE:
-/*      case GL_COLOR_TABLE_LUMINANCE_SIZE_EXT:*/
         case GL_COLOR_TABLE_INTENSITY_SIZE:
-/*      case GL_COLOR_TABLE_INTENSITY_SIZE_EXT:*/
             return 1;
         case GL_COLOR_TABLE_SCALE:
         case GL_COLOR_TABLE_BIAS:
@@ -1009,12 +990,9 @@ __glConvolutionParameterfv_size( GLenum e )
 {
     switch( e ) {
         case GL_CONVOLUTION_BORDER_MODE:
-/*      case GL_CONVOLUTION_BORDER_MODE_EXT:*/
             return 1;
         case GL_CONVOLUTION_FILTER_SCALE:
-/*      case GL_CONVOLUTION_FILTER_SCALE_EXT:*/
         case GL_CONVOLUTION_FILTER_BIAS:
-/*      case GL_CONVOLUTION_FILTER_BIAS_EXT:*/
         case GL_CONVOLUTION_BORDER_COLOR:
 /*      case GL_CONVOLUTION_BORDER_COLOR_HP:*/
             return 4;
@@ -1027,22 +1005,14 @@ __glGetConvolutionParameterfv_size( GLenum e )
 {
     switch( e ) {
         case GL_CONVOLUTION_BORDER_MODE:
-/*      case GL_CONVOLUTION_BORDER_MODE_EXT:*/
         case GL_CONVOLUTION_FORMAT:
-/*      case GL_CONVOLUTION_FORMAT_EXT:*/
         case GL_CONVOLUTION_WIDTH:
-/*      case GL_CONVOLUTION_WIDTH_EXT:*/
         case GL_CONVOLUTION_HEIGHT:
-/*      case GL_CONVOLUTION_HEIGHT_EXT:*/
         case GL_MAX_CONVOLUTION_WIDTH:
-/*      case GL_MAX_CONVOLUTION_WIDTH_EXT:*/
         case GL_MAX_CONVOLUTION_HEIGHT:
-/*      case GL_MAX_CONVOLUTION_HEIGHT_EXT:*/
             return 1;
         case GL_CONVOLUTION_FILTER_SCALE:
-/*      case GL_CONVOLUTION_FILTER_SCALE_EXT:*/
         case GL_CONVOLUTION_FILTER_BIAS:
-/*      case GL_CONVOLUTION_FILTER_BIAS_EXT:*/
         case GL_CONVOLUTION_BORDER_COLOR:
 /*      case GL_CONVOLUTION_BORDER_COLOR_HP:*/
             return 4;

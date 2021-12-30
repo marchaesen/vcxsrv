@@ -160,7 +160,12 @@ typedef void (*pipe_draw_vbo_func)(struct pipe_context *pipe,
                                    const struct pipe_draw_indirect_info *indirect,
                                    const struct pipe_draw_start_count_bias *draws,
                                    unsigned num_draws);
-
+typedef void (*pipe_draw_vertex_state_func)(struct pipe_context *ctx,
+                                            struct pipe_vertex_state *vstate,
+                                            uint32_t partial_velem_mask,
+                                            struct pipe_draw_vertex_state_info info,
+                                            const struct pipe_draw_start_count_bias *draws,
+                                            unsigned num_draws);
 typedef void (*pipe_launch_grid_func)(struct pipe_context *pipe, const struct pipe_grid_info *info);
 
 typedef enum {
@@ -171,17 +176,9 @@ typedef enum {
 typedef enum {
    ZINK_NO_DYNAMIC_STATE,
    ZINK_DYNAMIC_STATE,
-} zink_dynamic_state;
-
-typedef enum {
-   ZINK_NO_DYNAMIC_STATE2,
    ZINK_DYNAMIC_STATE2,
-} zink_dynamic_state2;
-
-typedef enum {
-   ZINK_NO_DYNAMIC_VERTEX_INPUT,
    ZINK_DYNAMIC_VERTEX_INPUT,
-} zink_dynamic_vertex_input;
+} zink_dynamic_state;
 
 struct zink_context {
    struct pipe_context base;
@@ -191,6 +188,7 @@ struct zink_context {
    struct blitter_context *blitter;
 
    pipe_draw_vbo_func draw_vbo[2]; //batch changed
+   pipe_draw_vertex_state_func draw_state[2]; //batch changed
    pipe_launch_grid_func launch_grid[2]; //batch changed
 
    struct pipe_device_reset_callback reset;
@@ -207,7 +205,6 @@ struct zink_context {
 
    unsigned shader_has_inlinable_uniforms_mask;
    unsigned inlinable_uniforms_valid_mask;
-   uint32_t compute_inlinable_uniforms[MAX_INLINABLE_UNIFORMS];
 
    struct pipe_constant_buffer ubos[PIPE_SHADER_TYPES][PIPE_MAX_CONSTANT_BUFFERS];
    struct pipe_shader_buffer ssbos[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];

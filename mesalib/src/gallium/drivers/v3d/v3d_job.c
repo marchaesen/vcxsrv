@@ -482,6 +482,16 @@ v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
         if (!job->needs_flush)
                 goto done;
 
+        /* The GL_PRIMITIVES_GENERATED query is included with
+         * OES_geometry_shader.
+         */
+        job->needs_primitives_generated =
+                v3d->n_primitives_generated_queries_in_flight > 0 &&
+                v3d->prog.gs;
+
+        if (job->needs_primitives_generated)
+                v3d_ensure_prim_counts_allocated(v3d);
+
         if (screen->devinfo.ver >= 41)
                 v3d41_emit_rcl(job);
         else
@@ -553,9 +563,11 @@ v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
                 }
 
                 /* If we are submitting a job in the middle of transform
-                 * feedback we need to read the primitive counts and accumulate
-                 * them, otherwise they will be reset at the start of the next
-                 * draw when we emit the Tile Binning Mode Configuration packet.
+                 * feedback or there is a primitives generated query with a
+                 * geometry shader then we need to read the primitive counts
+                 * and accumulate them, otherwise they will be reset at the
+                 * start of the next draw when we emit the Tile Binning Mode
+                 * Configuration packet.
                  *
                  * If the job doesn't have any TF draw calls, then we know
                  * the primitive count must be zero and we can skip stalling
@@ -565,7 +577,9 @@ v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
                  * to us reading an obsolete (possibly non-zero) value from
                  * the GPU counters.
                  */
-                if (v3d->streamout.num_targets && job->tf_draw_calls_queued > 0)
+                if (job->needs_primitives_generated ||
+                    (v3d->streamout.num_targets &&
+                     job->tf_draw_calls_queued > 0))
                         v3d_read_and_accumulate_primitive_counters(v3d);
         }
 

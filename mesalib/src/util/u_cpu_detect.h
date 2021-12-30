@@ -35,6 +35,7 @@
 #ifndef _UTIL_CPU_DETECT_H
 #define _UTIL_CPU_DETECT_H
 
+#include <stdbool.h>
 
 #include "pipe/p_config.h"
 #include "util/u_thread.h"
@@ -52,6 +53,8 @@ enum cpu_family {
    CPU_AMD_ZEN3,
    CPU_AMD_ZEN_NEXT,
    CPU_AMD_LAST,
+
+   CPU_S390X,
 };
 
 typedef uint32_t util_affinity_mask[UTIL_MAX_CPUS / 32];

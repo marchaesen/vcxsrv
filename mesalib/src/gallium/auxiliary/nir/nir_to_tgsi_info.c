@@ -460,6 +460,7 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
       info->properties[TGSI_PROPERTY_FS_EARLY_DEPTH_STENCIL] =
          nir->info.fs.early_fragment_tests | nir->info.fs.post_depth_coverage;
       info->properties[TGSI_PROPERTY_FS_POST_DEPTH_COVERAGE] = nir->info.fs.post_depth_coverage;
+      info->uses_fbfetch = nir->info.fs.uses_fbfetch_output;
 
       if (nir->info.fs.pixel_center_integer) {
          info->properties[TGSI_PROPERTY_FS_COORD_PIXEL_CENTER] =

@@ -37,7 +37,9 @@
 #include <libelf.h>
 #include "ac_msgpack.h"
 #include "ac_rgp.h"
-#include "main/macros.h"
+
+#include "util/bitscan.h"
+#include "util/u_math.h"
 
 #ifndef EM_AMDGPU
 // Old distributions may not have this enum constant

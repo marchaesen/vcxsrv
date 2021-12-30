@@ -117,7 +117,7 @@ struct PACKED perf_query_slot {
    query_iova(struct occlusion_query_slot, pool, query, field)
 
 #define pipeline_stat_query_iova(pool, query, field)                 \
-   pool->bo.iova + pool->stride * query +                            \
+   pool->bo.iova + pool->stride * (query) +                            \
    offsetof(struct pipeline_stat_query_slot, field)
 
 #define primitive_query_iova(pool, query, field, i)                  \
@@ -125,9 +125,9 @@ struct PACKED perf_query_slot {
    offsetof(struct primitive_slot_value, values[i])
 
 #define perf_query_iova(pool, query, field, i)                          \
-   pool->bo.iova + pool->stride * query +                             \
+   pool->bo.iova + pool->stride * (query) +                             \
    sizeof(struct query_slot) +                                   \
-   sizeof(struct perfcntr_query_slot) * i +                          \
+   sizeof(struct perfcntr_query_slot) * (i) +                          \
    offsetof(struct perfcntr_query_slot, field)
 
 #define query_available_iova(pool, query)                            \
@@ -135,11 +135,11 @@ struct PACKED perf_query_slot {
 
 #define query_result_iova(pool, query, type, i)                            \
    pool->bo.iova + pool->stride * (query) +                          \
-   sizeof(struct query_slot) + sizeof(type) * i
+   sizeof(struct query_slot) + sizeof(type) * (i)
 
 #define query_result_addr(pool, query, type, i)                            \
-   pool->bo.map + pool->stride * query +                             \
-   sizeof(struct query_slot) + sizeof(type) * i
+   pool->bo.map + pool->stride * (query) +                             \
+   sizeof(struct query_slot) + sizeof(type) * (i)
 
 #define query_is_available(slot) slot->available
 

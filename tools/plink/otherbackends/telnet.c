@@ -200,6 +200,7 @@ struct Telnet {
 
     Plug plug;
     Backend backend;
+    Interactor interactor;
 };
 
 #define TELNET_MAX_BACKLOG 4096
@@ -631,16 +632,11 @@ static void telnet_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
         telnet->socket_connected = true;
         if (telnet->ldisc)
             ldisc_check_sendok(telnet->ldisc);
-        if (is_tempseat(telnet->seat)) {
-            Seat *ts = telnet->seat;
-            tempseat_flush(ts);
-            telnet->seat = tempseat_get_real(ts);
-            tempseat_free(ts);
-        }
     }
 }
 
-static void telnet_closing(Plug *plug, const char *error_msg, int error_code)
+static void telnet_closing(Plug *plug, PlugCloseType type,
+                           const char *error_msg)
 {
     Telnet *telnet = container_of(plug, Telnet, plug);
 
@@ -658,9 +654,10 @@ static void telnet_closing(Plug *plug, const char *error_msg, int error_code)
         seat_notify_remote_exit(telnet->seat);
         seat_notify_remote_disconnect(telnet->seat);
     }
-    if (error_msg) {
+    if (type != PLUGCLOSE_NORMAL) {
         logevent(telnet->logctx, error_msg);
-        seat_connection_fatal(telnet->seat, "%s", error_msg);
+        if (type != PLUGCLOSE_USER_ABORT)
+            seat_connection_fatal(telnet->seat, "%s", error_msg);
     }
     /* Otherwise, the remote side closed the connection normally. */
 }
@@ -681,24 +678,42 @@ static void telnet_sent(Plug *plug, size_t bufsize)
     seat_sent(telnet->seat, telnet->bufsize);
 }
 
-static char *telnet_plug_description(Plug *plug)
-{
-    Telnet *telnet = container_of(plug, Telnet, plug);
-    return dupstr(telnet->description);
-}
-
-static char *telnet_backend_description(Backend *backend)
-{
-    Telnet *telnet = container_of(backend, Telnet, backend);
-    return dupstr(telnet->description);
-}
-
 static const PlugVtable Telnet_plugvt = {
     .log = telnet_log,
     .closing = telnet_closing,
     .receive = telnet_receive,
     .sent = telnet_sent,
-    .description = telnet_plug_description,
+};
+
+static char *telnet_description(Interactor *itr)
+{
+    Telnet *telnet = container_of(itr, Telnet, interactor);
+    return dupstr(telnet->description);
+}
+
+static LogPolicy *telnet_logpolicy(Interactor *itr)
+{
+    Telnet *telnet = container_of(itr, Telnet, interactor);
+    return log_get_policy(telnet->logctx);
+}
+
+static Seat *telnet_get_seat(Interactor *itr)
+{
+    Telnet *telnet = container_of(itr, Telnet, interactor);
+    return telnet->seat;
+}
+
+static void telnet_set_seat(Interactor *itr, Seat *seat)
+{
+    Telnet *telnet = container_of(itr, Telnet, interactor);
+    telnet->seat = seat;
+}
+
+static const InteractorVtable Telnet_interactorvt = {
+    .description = telnet_description,
+    .logpolicy = telnet_logpolicy,
+    .get_seat = telnet_get_seat,
+    .set_seat = telnet_set_seat,
 };
 
 /*
@@ -721,8 +736,11 @@ static char *telnet_init(const BackendVtable *vt, Seat *seat,
     int addressfamily;
 
     telnet = snew(Telnet);
+    memset(telnet, 0, sizeof(Telnet));
     telnet->plug.vt = &Telnet_plugvt;
     telnet->backend.vt = vt;
+    telnet->interactor.vt = &Telnet_interactorvt;
+    telnet->backend.interactor = &telnet->interactor;
     telnet->conf = conf_copy(conf);
     telnet->s = NULL;
     telnet->socket_connected = false;
@@ -760,7 +778,7 @@ static char *telnet_init(const BackendVtable *vt, Seat *seat,
      */
     telnet->s = new_connection(addr, *realhost, port, false, true, nodelay,
                                keepalive, &telnet->plug, telnet->conf,
-                               log_get_policy(logctx), &telnet->seat);
+                               &telnet->interactor);
     if ((err = sk_socket_error(telnet->s)) != NULL)
         return dupstr(err);
 
@@ -1097,7 +1115,6 @@ const BackendVtable telnet_backend = {
     .provide_ldisc = telnet_provide_ldisc,
     .unthrottle = telnet_unthrottle,
     .cfg_info = telnet_cfg_info,
-    .description = telnet_backend_description,
     .id = "telnet",
     .displayname_tc = "Telnet",
     .displayname_lc = "Telnet", /* proper name, so capitalise it anyway */

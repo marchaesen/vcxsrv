@@ -56,9 +56,6 @@
 #include "llvmpipe/lp_public.h"
 #endif
 
-#ifdef GALLIUM_SWR
-#include "swr/swr_public.h"
-#endif
 #ifdef GALLIUM_D3D12
 #include "d3d12/wgl/d3d12_wgl_public.h"
 #endif
@@ -69,9 +66,6 @@
 
 #ifdef GALLIUM_LLVMPIPE
 static boolean use_llvmpipe = FALSE;
-#endif
-#ifdef GALLIUM_SWR
-static boolean use_swr = FALSE;
 #endif
 #ifdef GALLIUM_D3D12
 static boolean use_d3d12 = FALSE;
@@ -92,13 +86,6 @@ wgl_screen_create_by_name(HDC hDC, const char* driver, struct sw_winsys *winsys)
       screen = llvmpipe_create_screen(winsys);
       if (screen)
          use_llvmpipe = TRUE;
-   }
-#endif
-#ifdef GALLIUM_SWR
-   if (strcmp(driver, "swr") == 0) {
-      screen = swr_create_screen(winsys);
-      if (screen)
-         use_swr = TRUE;
    }
 #endif
 #ifdef GALLIUM_D3D12
@@ -142,14 +129,11 @@ wgl_screen_create(HDC hDC)
 #if defined(GALLIUM_LLVMPIPE)
       "llvmpipe",
 #endif
-#if GALLIUM_SWR
-      "swr",
-#endif
 #if defined(GALLIUM_SOFTPIPE)
       "softpipe",
 #endif
    };
-   
+
    /* If the default driver screen creation fails, fall back to the next option in the
     * sorted list. Don't do this if GALLIUM_DRIVER is specified.
     */
@@ -192,13 +176,6 @@ wgl_present(struct pipe_screen *screen,
       winsys = llvmpipe_screen(screen)->winsys;
       dt = llvmpipe_resource(res)->dt;
       gdi_sw_display(winsys, dt, hDC);
-      return;
-   }
-#endif
-
-#ifdef GALLIUM_SWR
-   if (use_swr) {
-      swr_gdi_swap(screen, ctx, res, hDC);
       return;
    }
 #endif

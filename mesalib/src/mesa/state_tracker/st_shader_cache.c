@@ -29,8 +29,8 @@
 #include "compiler/glsl/program.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_serialize.h"
+#include "main/uniforms.h"
 #include "pipe/p_shader_tokens.h"
-#include "program/ir_to_mesa.h"
 #include "tgsi/tgsi_parse.h"
 #include "util/u_memory.h"
 

@@ -35,7 +35,8 @@ UTILS_CSRCS = arm_arch_queries.c \
  security.c \
  split_into_argv.c \
  version.c \
- win_strerror.c
+ win_strerror.c \
+ make_spr_sw_abort_winerror.c
 
 CSRCS =  agent-client.c \
  cliloop.c \

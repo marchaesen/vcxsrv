@@ -88,6 +88,7 @@
 #include "intel/common/intel_l3_config.h"
 #include "intel/common/intel_sample_positions.h"
 #include "intel/compiler/brw_compiler.h"
+#include "compiler/shader_info.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
@@ -111,6 +112,7 @@
 
 #include "crocus_genx_macros.h"
 #include "intel/common/intel_guardband.h"
+#include "main/macros.h" /* UNCLAMPED_* */
 
 /**
  * Statically assert that PIPE_* enums match the hardware packets.
@@ -1125,11 +1127,11 @@ setup_l3_config(struct crocus_batch *batch, const struct intel_l3_config *cfg)
     * client (URB for all validated configurations) set to the
     * lower-bandwidth 2-bank address hashing mode.
     */
-   const bool urb_low_bw = has_slm && !devinfo->is_baytrail;
+   const bool urb_low_bw = has_slm && devinfo->platform != INTEL_PLATFORM_BYT;
    assert(!urb_low_bw || cfg->n[INTEL_L3P_URB] == cfg->n[INTEL_L3P_SLM]);
 
    /* Minimum number of ways that can be allocated to the URB. */
-   const unsigned n0_urb = (devinfo->is_baytrail ? 32 : 0);
+   const unsigned n0_urb = (devinfo->platform == INTEL_PLATFORM_BYT ? 32 : 0);
    assert(cfg->n[INTEL_L3P_URB] >= n0_urb);
 
    uint32_t l3sqcr1, l3cr2, l3cr3;
@@ -1143,7 +1145,7 @@ setup_l3_config(struct crocus_batch *batch, const struct intel_l3_config *cfg)
       reg.L3SQGeneralPriorityCreditInitialization = SQGPCI_DEFAULT;
 #else
       reg.L3SQGeneralPriorityCreditInitialization =
-         devinfo->is_baytrail ? BYT_SQGPCI_DEFAULT : SQGPCI_DEFAULT;
+         devinfo->platform == INTEL_PLATFORM_BYT ? BYT_SQGPCI_DEFAULT : SQGPCI_DEFAULT;
 #endif
       reg.L3SQHighPriorityCreditInitialization = SQHPCI_DEFAULT;
    };
@@ -1348,7 +1350,7 @@ crocus_alloc_push_constants(struct crocus_batch *batch)
     *
     * No such restriction exists for Haswell or Baytrail.
     */
-   if (!(GFX_VERx10 == 75) && !batch->screen->devinfo.is_baytrail)
+   if (batch->screen->devinfo.platform == INTEL_PLATFORM_IVB)
       gen7_emit_cs_stall_flush(batch);
 }
 #endif
@@ -2025,7 +2027,7 @@ crocus_create_rasterizer_state(struct pipe_context *ctx,
 #endif
 #if GFX_VER == 8
       struct crocus_screen *screen = (struct crocus_screen *)ctx->screen;
-      if (screen->devinfo.is_cherryview)
+      if (screen->devinfo.platform == INTEL_PLATFORM_CHV)
          sf.CHVLineWidth = line_width;
       else
          sf.LineWidth = line_width;
@@ -3663,7 +3665,7 @@ crocus_set_vertex_buffers(struct pipe_context *ctx,
    struct crocus_context *ice = (struct crocus_context *) ctx;
    struct crocus_screen *screen = (struct crocus_screen *) ctx->screen;
    const unsigned padding =
-      (GFX_VERx10 < 75 && !screen->devinfo.is_baytrail) * 2;
+      (GFX_VERx10 < 75 && screen->devinfo.platform != INTEL_PLATFORM_BYT) * 2;
    ice->state.bound_vertex_buffers &=
       ~u_bit_consecutive64(start_slot, count + unbind_num_trailing_slots);
 
@@ -4749,6 +4751,22 @@ crocus_populate_gs_key(const struct crocus_context *ice,
       key->nr_userclip_plane_consts = cso_rast->num_clip_plane_consts;
 }
 
+static inline GLenum
+compare_func_to_gl(enum pipe_compare_func pipe_func)
+{
+   static const unsigned map[] = {
+      [PIPE_FUNC_NEVER]    = GL_NEVER,
+      [PIPE_FUNC_LESS]     = GL_LESS,
+      [PIPE_FUNC_EQUAL]    = GL_EQUAL,
+      [PIPE_FUNC_LEQUAL]   = GL_LEQUAL,
+      [PIPE_FUNC_GREATER]  = GL_GREATER,
+      [PIPE_FUNC_NOTEQUAL] = GL_NOTEQUAL,
+      [PIPE_FUNC_GEQUAL]   = GL_GEQUAL,
+      [PIPE_FUNC_ALWAYS]   = GL_ALWAYS,
+   };
+   return map[pipe_func];
+}
+
 /**
  * Populate FS program key fields based on the current state.
  */
@@ -4831,11 +4849,9 @@ crocus_populate_fs_key(const struct crocus_context *ice,
       screen->driconf.dual_color_blend_by_location &&
       (blend->blend_enables & 1) && blend->dual_color_blending;
 
-   /* TODO: Respect glHint for key->high_quality_derivatives */
-
 #if GFX_VER <= 5
    if (fb->nr_cbufs > 1 && zsa->cso.alpha_enabled) {
-      key->alpha_test_func = zsa->cso.alpha_func;
+      key->alpha_test_func = compare_func_to_gl(zsa->cso.alpha_func);
       key->alpha_test_ref = zsa->cso.alpha_ref_value;
    }
 #endif
@@ -5704,7 +5720,7 @@ emit_push_constant_packets(struct crocus_context *ice,
 
 #if GFX_VER == 7
    if (stage == MESA_SHADER_VERTEX) {
-      if (!(GFX_VERx10 == 75) && !batch->screen->devinfo.is_baytrail)
+      if (batch->screen->devinfo.platform == INTEL_PLATFORM_IVB)
          gen7_emit_vs_workaround_flush(batch);
    }
 #endif
@@ -6088,7 +6104,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
                               entries, start, NULL, &constrained);
 
 #if GFX_VER == 7
-         if (GFX_VERx10 < 75 && !devinfo->is_baytrail)
+         if (devinfo->platform == INTEL_PLATFORM_IVB)
             gen7_emit_vs_workaround_flush(batch);
 #endif
          for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++) {
@@ -6731,7 +6747,7 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
       const struct brw_vue_prog_data *vue_prog_data = brw_vue_prog_data(shader->prog_data);
       const struct brw_stage_prog_data *prog_data = &vue_prog_data->base;
 #if GFX_VER == 7
-      if (batch->screen->devinfo.is_ivybridge)
+      if (batch->screen->devinfo.platform == INTEL_PLATFORM_IVB)
          gen7_emit_vs_workaround_flush(batch);
 #endif
 

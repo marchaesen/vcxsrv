@@ -398,9 +398,8 @@
   </struct>
 
   <!--- Command to bind a vertex pipeline, followed by subcommands. Counts are
-	specified in 32-bit word units. Intepretation per-shader stage.
-	Probably actually 17 bytes. -->
-  <struct name="Bind pipeline" size="16">
+	specified in 32-bit word units. Intepretation per-shader stage. -->
+  <struct name="Bind pipeline" size="24">
     <field name="Tag" size="32" start="0:0" type="hex" default="0x4000002e">
       <value name="AGX_BIND_PIPELINE_VERTEX" value="0x4000002e"/>
       <value name="AGX_BIND_PIPELINE_FRAGMENT" value="0x800000"/>
@@ -418,13 +417,16 @@
     <field name="VS Output count 1" size="8" start="3:0" type="uint" default="0"/>
     <field name="VS Output count 2" size="8" start="3:8" type="uint" default="0"/>
     <field name="Padding 2" size="16" start="3:16" type="hex" default="0x0"/>
+
+    <field name="Unk 3" size="32" start="5:0" type="address"/> <!-- C020000 -->
   </struct>
 
   <!-- Subcommands are packed inside sized records -->
   <struct name="Record" size="8">
-    <field name="Size (words)" size="8" start="0:0" type="uint"/>
-    <field name="Tag" size="16" start="0:8" type="hex" default="0x0000"/>
-    <field name="Data" size="40" start="0:24" type="address"/>
+    <field name="Pointer (hi)" size="8" start="0:0" type="hex"/>
+    <field name="Size (words)" size="8" start="0:8" type="uint"/>
+    <field name="Tag" size="16" start="0:16" type="hex" default="0x0000"/>
+    <field name="Pointer (lo)" size="32" start="0:32" type="address"/>
   </struct>
 
   <!--- Command to issue a direct non-indexed draw -->
@@ -479,7 +481,7 @@
     <value name="Depth" value="0xC"/>
   </enum>
 
-  <struct name="IOGPU Header" size="64">
+  <struct name="IOGPU Header" size="192">
     <field name="Unk 0" start="0:0" size="32" default="0x10000" type="hex"/>
     <field name="Total size" start="1:0" size="32" type="uint"/>
     <field name="Unk 2" start="2:0" size="32" default="0x7" type="hex"/>
@@ -490,6 +492,10 @@
     <field name="Unk 4" start="12:0" size="32" default="0x30" type="hex"/>
     <field name="Unk 5" start="13:0" size="32" default="0x01" type="hex"/>
     <field name="Encoder" start="14:0" size="64" type="address"/>
+    <!-- if either deflake address is null, rendering gets flaky for high
+         geometry counts -->
+    <field name="Deflake 1" start="38:0" size="64" type="address"/>
+    <field name="Deflake 2" start="40:0" size="64" type="address"/>
   </struct>
 
   <struct name="IOGPU Attachment" size="24">

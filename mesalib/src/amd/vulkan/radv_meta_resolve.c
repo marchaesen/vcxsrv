@@ -37,7 +37,7 @@ build_nir_fs(void)
    const struct glsl_type *vec4 = glsl_vec4_type();
    nir_variable *f_color; /* vec4, fragment output color */
 
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "meta_resolve_fs");
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_FRAGMENT, "meta_resolve_fs");
 
    f_color = nir_variable_create(b.shader, nir_var_shader_out, vec4, "f_color");
    f_color->data.location = FRAG_RESULT_DATA0;
@@ -322,9 +322,9 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *src_im
    unsigned fs_key = radv_format_meta_fs_key(device, vk_format);
 
    cmd_buffer->state.flush_bits |=
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, src_image) |
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, src_image) |
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, dst_image);
+      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, src_image) |
+      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT_KHR, src_image) |
+      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, dst_image);
 
    radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
                         device->meta_state.resolve.pipeline[fs_key]);
@@ -345,7 +345,7 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *src_im
 
    radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
    cmd_buffer->state.flush_bits |=
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, dst_image);
+      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, dst_image);
 }
 
 enum radv_resolve_method {
@@ -632,7 +632,7 @@ resolve_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image,
    }
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 radv_CmdResolveImage2KHR(VkCommandBuffer commandBuffer,
                          const VkResolveImageInfo2KHR *pResolveImageInfo)
 {
@@ -728,9 +728,9 @@ radv_cmd_buffer_resolve_subpass_hw(struct radv_cmd_buffer *cmd_buffer)
 
       emit_resolve(cmd_buffer, src_img, dst_img, dest_iview->vk_format, &(VkOffset2D){0, 0},
                    &(VkExtent2D){fb->width, fb->height});
-   }
 
-   radv_cmd_buffer_restore_subpass(cmd_buffer, subpass);
+      radv_cmd_buffer_restore_subpass(cmd_buffer, subpass);
+   }
 
    radv_meta_restore(&saved_state, cmd_buffer);
 }
@@ -788,7 +788,7 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 
       /* From the Vulkan spec 1.2.165:
        *
-       * "VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT specifies
+       * "VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR specifies
        *  write access to a color, resolve, or depth/stencil
        *  resolve attachment during a render pass or via
        *  certain subpass load and store operations."
@@ -911,18 +911,22 @@ radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer, struct radv_imag
    const uint32_t src_base_layer =
       radv_meta_get_iview_layer(src_image, &region->srcSubresource, &region->srcOffset);
 
-   VkImageMemoryBarrier barrier = {0};
-   barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-   barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-   barrier.oldLayout = src_image_layout;
-   barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-   barrier.image = radv_image_to_handle(src_image);
-   barrier.subresourceRange = (VkImageSubresourceRange){
-      .aspectMask = region->srcSubresource.aspectMask,
-      .baseMipLevel = region->srcSubresource.mipLevel,
-      .levelCount = 1,
-      .baseArrayLayer = src_base_layer,
-      .layerCount = region->srcSubresource.layerCount,
+   VkImageMemoryBarrier2KHR barrier = {
+      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR,
+      .srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR,
+      .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT_KHR,
+      .dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR,
+      .dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT_KHR,
+      .oldLayout = src_image_layout,
+      .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      .image = radv_image_to_handle(src_image),
+      .subresourceRange = (VkImageSubresourceRange){
+         .aspectMask = region->srcSubresource.aspectMask,
+         .baseMipLevel = region->srcSubresource.mipLevel,
+         .levelCount = 1,
+         .baseArrayLayer = src_base_layer,
+         .layerCount = region->srcSubresource.layerCount,
+      }
    };
 
    if (src_image->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT) {
@@ -941,7 +945,11 @@ radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer, struct radv_imag
       };
    }
 
-   radv_CmdPipelineBarrier(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                           VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, false, 0, NULL, 0, NULL, 1,
-                           &barrier);
+   VkDependencyInfoKHR dep_info = {
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR,
+      .imageMemoryBarrierCount = 1,
+      .pImageMemoryBarriers = &barrier,
+   };
+
+   radv_CmdPipelineBarrier2KHR(radv_cmd_buffer_to_handle(cmd_buffer), &dep_info);
 }

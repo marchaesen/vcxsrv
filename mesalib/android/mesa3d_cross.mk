@@ -93,6 +93,7 @@ MESON_GEN_NINJA := \
 	-Dvulkan-drivers=$(subst $(space),$(comma),$(subst radeon,amd,$(BOARD_MESA3D_VULKAN_DRIVERS)))   \
 	-Dgbm=enabled                                                                \
 	-Degl=enabled                                                                \
+	-Dcpp_rtti=false                                                             \
 
 MESON_BUILD := PATH=/usr/bin:/bin:/sbin:$$PATH ninja -C $(MESON_OUT_DIR)/build
 
@@ -128,7 +129,6 @@ $(MESON_GEN_FILES_TARGET): PRIVATE_C_INCLUDES := $(my_c_includes)
 $(MESON_GEN_FILES_TARGET): PRIVATE_IMPORTED_INCLUDES := $(imported_includes)
 $(MESON_GEN_FILES_TARGET): PRIVATE_LDFLAGS := $(my_ldflags)
 $(MESON_GEN_FILES_TARGET): PRIVATE_LDLIBS := $(my_ldlibs)
-$(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_GLOBAL_LDFLAGS := $(my_target_global_ldflags)
 $(MESON_GEN_FILES_TARGET): PRIVATE_TIDY_CHECKS := $(my_tidy_checks)
 $(MESON_GEN_FILES_TARGET): PRIVATE_TIDY_FLAGS := $(my_tidy_flags)
 $(MESON_GEN_FILES_TARGET): PRIVATE_ARFLAGS := $(my_arflags)
@@ -138,6 +138,11 @@ $(MESON_GEN_FILES_TARGET): PRIVATE_ALL_WHOLE_STATIC_LIBRARIES := $(built_whole_l
 $(MESON_GEN_FILES_TARGET): PRIVATE_ALL_OBJECTS := $(strip $(all_objects))
 
 $(MESON_GEN_FILES_TARGET): PRIVATE_ARM_CFLAGS := $(normal_objects_cflags)
+
+$(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_GLOBAL_CFLAGS := $(my_target_global_cflags)
+$(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_GLOBAL_CONLYFLAGS := $(my_target_global_conlyflags)
+$(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_GLOBAL_CPPFLAGS := $(my_target_global_cppflags)
+$(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_GLOBAL_LDFLAGS := $(my_target_global_ldflags)
 
 $(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_LIBCRT_BUILTINS := $(my_target_libcrt_builtins)
 $(MESON_GEN_FILES_TARGET): PRIVATE_TARGET_LIBATOMIC := $(my_target_libatomic)
@@ -252,8 +257,7 @@ ifneq ($(MESON_GEN_LLVM_STUB),)
 	mkdir -p $(dir $@)/subprojects/llvm/
 	echo -e "project('llvm', 'cpp', version : '$(MESON_LLVM_VERSION)')\n" \
 		"dep_llvm = declare_dependency()\n"                           \
-		"has_rtti = false\n"                                          \
-		"irbuilder_h = files('$(AOSP_ABSOLUTE_PATH)/$(MESON_LLVM_IRBUILDER_PATH)')" > $(dir $@)/subprojects/llvm/meson.build
+		"has_rtti = false\n" > $(dir $@)/subprojects/llvm/meson.build
 endif
 	$(MESON_GEN_NINJA)
 	$(MESON_BUILD)

@@ -31,7 +31,6 @@ CSRCS = base64_decode_atom.c \
  marshal.c \
  memory.c \
  memxor.c \
- miscucs.c \
  null_lp.c \
  nullseat.c \
  nullstrcmp.c \
@@ -65,5 +64,9 @@ CSRCS = base64_decode_atom.c \
  antispoof.c \
  tempseat.c \
  fgetline.c \
- default_description.c
+ default_description.c \
+ log_proxy_stderr.c \
+ spr_get_error_message.c \
+ make_spr_sw_abort_static.c \
+ dup_mb_to_wc.c
 

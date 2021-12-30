@@ -76,8 +76,9 @@ struct si_state_rasterizer {
    unsigned pa_cl_clip_cntl;
    float line_width;
    float max_point_size;
-   unsigned ngg_cull_flags : 8;
-   unsigned ngg_cull_flags_y_inverted : 8;
+   unsigned ngg_cull_flags_tris : 16;
+   unsigned ngg_cull_flags_tris_y_inverted : 16;
+   unsigned ngg_cull_flags_lines : 16;
    unsigned sprite_coord_enable : 8;
    unsigned clip_plane_enable : 8;
    unsigned half_pixel_center : 1;
@@ -98,6 +99,7 @@ struct si_state_rasterizer {
    unsigned clip_halfz : 1;
    unsigned polygon_mode_is_lines : 1;
    unsigned polygon_mode_is_points : 1;
+   unsigned perpendicular_end_caps : 1;
 };
 
 struct si_dsa_stencil_ref_part {
@@ -563,7 +565,7 @@ void si_emit_dpbb_state(struct si_context *sctx);
 /* si_state_shaders.cpp */
 struct si_pm4_state *si_build_vgt_shader_config(struct si_screen *screen, union si_vgt_stages_key key);
 void si_get_ir_cache_key(struct si_shader_selector *sel, bool ngg, bool es,
-                         unsigned char ir_sha1_cache_key[20]);
+                         unsigned wave_size, unsigned char ir_sha1_cache_key[20]);
 bool si_shader_cache_load_shader(struct si_screen *sscreen, unsigned char ir_sha1_cache_key[20],
                                  struct si_shader *shader);
 void si_shader_cache_insert_shader(struct si_screen *sscreen, unsigned char ir_sha1_cache_key[20],

@@ -1,39 +1,61 @@
 dEQP-GLES2.functional.fbo.render.color_clear.tex2d_rgb
 dEQP-GLES2.functional.fbo.render.color_clear.tex2d_rgba_stencil_index8
+dEQP-GLES2.functional.fbo.render.color.blend_npot_rbo_rgb5_a1
+dEQP-GLES2.functional.fbo.render.color.blend_npot_tex2d_rgb_depth_component16
 dEQP-GLES2.functional.fbo.render.color.blend_npot_tex2d_rgba
 dEQP-GLES2.functional.fbo.render.color.blend_npot_tex2d_rgba_depth_component16
+dEQP-GLES2.functional.fbo.render.color.blend_rbo_rgb565_depth_component16
 dEQP-GLES2.functional.fbo.render.color.blend_rbo_rgba4
 dEQP-GLES2.functional.fbo.render.color.blend_rbo_rgba4_depth_component16
+dEQP-GLES2.functional.fbo.render.color.blend_tex2d_rgba_depth_component16
+dEQP-GLES2.functional.fbo.render.color.mix_npot_tex2d_rgba_depth_component16
 dEQP-GLES2.functional.fbo.render.depth.npot_rbo_rgb565_depth_component16
+dEQP-GLES2.functional.fbo.render.depth.npot_tex2d_rgba_depth_component16
+dEQP-GLES2.functional.fbo.render.texsubimage.after_render_tex2d_rgb
 dEQP-GLES2.functional.rasterization.culling.both_triangle_fan
+dEQP-GLES2.functional.rasterization.culling.both_triangle_fan_reverse
 dEQP-GLES2.functional.rasterization.culling.both_triangle_strip
 dEQP-GLES2.functional.rasterization.culling.both_triangle_strip_reverse
 dEQP-GLES2.functional.rasterization.culling.both_triangles
 dEQP-GLES2.functional.rasterization.culling.both_triangles_reverse
-dEQP-GLES2.functional.shaders.random.all_features.fragment.24
-dEQP-GLES2.functional.shaders.random.all_features.fragment.45
-dEQP-GLES2.functional.shaders.random.all_features.fragment.74
-dEQP-GLES2.functional.shaders.random.texture.fragment.26
-dEQP-GLES2.functional.shaders.random.texture.fragment.63
-dEQP-GLES2.functional.shaders.random.texture.fragment.84
-dEQP-GLES2.functional.shaders.random.texture.vertex.39
-dEQP-GLES2.functional.shaders.random.texture.vertex.4
+dEQP-GLES2.functional.shaders.random.all_features.fragment.*
+dEQP-GLES2.functional.shaders.random.texture.fragment.*
+dEQP-GLES2.functional.shaders.random.texture.vertex.*
+dEQP-GLES2.functional.texture.filtering.2d.linear_linear_clamp_rgba8888_npot
+dEQP-GLES2.functional.texture.filtering.2d.linear_mipmap_nearest_nearest_clamp_rgba8888
+dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_nearest_nearest_repeat_rgba4444
 dEQP-GLES2.functional.texture.filtering.2d.nearest_nearest_clamp_rgba8888_npot
-dEQP-GLES2.functional.texture.format.a8_2d_pot
-dEQP-GLES2.functional.texture.format.etc1_cube_npot
-dEQP-GLES2.functional.texture.format.l8_2d_pot
-dEQP-GLES2.functional.texture.format.l8_cube_npot
-dEQP-GLES2.functional.texture.format.la88_cube_pot
-dEQP-GLES2.functional.texture.format.rgb888_2d_npot
-dEQP-GLES2.functional.texture.format.rgba5551_2d_npot
-dEQP-GLES2.functional.texture.format.rgba8888_cube_npot
-dEQP-GLES2.functional.texture.format.rgba8888_cube_pot
+dEQP-GLES2.functional.texture.format.*
+dEQP-GLES2.functional.texture.size.2d.64x64_rgba8888_mipmap
+dEQP-GLES2.functional.uniform_api.random.0
+dEQP-GLES2.functional.uniform_api.random.54
 dEQP-GLES2.functional.uniform_api.random.55
-dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.render.struct_in_array.sampler2D_samplerCube_fragment
-dEQP-GLES2.functional.uniform_api.value.assigned.by_value.render.array_in_struct.sampler2D_samplerCube_fragment
-dEQP-GLES2.functional.uniform_api.value.assigned.by_value.render.basic_array.sampler2D_both
-dEQP-GLES2.functional.uniform_api.value.assigned.by_value.render.basic_struct.sampler2D_samplerCube_fragment
-dEQP-GLES2.functional.uniform_api.value.assigned.by_value.render.basic.sampler2D_vertex
-dEQP-GLES2.functional.uniform_api.value.assigned.by_value.render.basic.samplerCube_vertex
-dEQP-GLES2.functional.uniform_api.value.assigned.by_value.render.struct_in_array.sampler2D_samplerCube_fragment
-dEQP-GLES2.functional.uniform_api.value.initial.render.basic.samplerCube_vertex
+dEQP-GLES2.functional.uniform_api.value.*sampler.*
+
+spec@!opengl 1.0@gl-1.0-textured-triangle
+spec@!opengl 1.1@depthstencil-default_fb-copypixels
+spec@!opengl 1.1@draw-pixels
+spec@!opengl 1.1@texgen
+spec@!opengl 1.1@texredefine
+spec@!opengl 2.0@tex3d-npot
+spec@!opengl 2.1@pbo@test_draw_pixels
+spec@arb_depth_texture@depth-level-clamp
+spec@arb_depth_texture@fbo-depth-gl_depth_component16-copypixels
+spec@arb_depth_texture@fbo-depth-gl_depth_component24-blit
+spec@arb_es2_compatibility@texwrap formats
+spec@arb_pixel_buffer_object@texsubimage pbo manual gl_texture_2d gl_rgb8 6 10 0 94 53 0
+spec@arb_pixel_buffer_object@texsubimage-depth-formats pbo
+spec@arb_pixel_buffer_object@texsubimage-unpack pbo
+spec@arb_texture_rectangle@texrect-many
+spec@arb_texture_storage@texture-storage
+spec@arb_texture_storage@texture-storage@2D mipmap rendering
+spec@arb_texture_storage@texture-storage@cube array texture
+spec@ext_framebuffer_object@fbo-generatemipmap-viewport
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv
+spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-copypixels
+spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-blit
+spec@ext_texture_compression_s3tc@s3tc-texsubimage
+spec@ext_texture_compression_s3tc@s3tc-texsubimage_gles2
+spec@ext_texture_lod_bias@lodbias
+spec@nv_copy_image@nv_copy_image-simple --tex-to-tex
+spec@oes_compressed_etc1_rgb8_texture@miptree

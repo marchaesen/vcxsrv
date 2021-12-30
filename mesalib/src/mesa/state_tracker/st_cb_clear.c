@@ -361,6 +361,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
 
    /* Restore pipe state */
    cso_restore_state(cso, 0);
+   ctx->Array.NewVertexElements = true;
    st->dirty |= ST_NEW_VERTEX_ARRAYS;
 }
 
@@ -418,11 +419,7 @@ is_stencil_masked(struct gl_context *ctx, struct gl_renderbuffer *rb)
    return (ctx->Stencil.WriteMask[0] & stencilMax) != stencilMax;
 }
 
-
-/**
- * Called via ctx->Driver.Clear()
- */
-static void
+void
 st_Clear(struct gl_context *ctx, GLbitfield mask)
 {
    struct st_context *st = st_context(ctx);
@@ -560,9 +557,3 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
       _mesa_clear_accum_buffer(ctx);
 }
 
-
-void
-st_init_clear_functions(struct dd_function_table *functions)
-{
-   functions->Clear = st_Clear;
-}

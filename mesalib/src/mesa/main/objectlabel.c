@@ -29,7 +29,6 @@
 #include "dlist.h"
 #include "enums.h"
 #include "fbobject.h"
-#include "objectlabel.h"
 #include "pipelineobj.h"
 #include "queryobj.h"
 #include "samplerobj.h"
@@ -37,6 +36,7 @@
 #include "syncobj.h"
 #include "texobj.h"
 #include "transformfeedback.h"
+#include "api_exec_decl.h"
 
 
 /**

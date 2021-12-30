@@ -22,6 +22,7 @@
 
 #include "radeon_compiler.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "r300_reg.h"
@@ -559,15 +560,33 @@ struct temporary_allocation {
 	struct rc_instruction * LastRead;
 };
 
+static int get_reg(struct radeon_compiler *c, struct temporary_allocation *ta, bool *hwtemps,
+                   unsigned int orig)
+{
+    if (!ta[orig].Allocated) {
+        int j;
+        for (j = 0; j < c->max_temp_regs; ++j)
+        {
+            if (!hwtemps[j])
+                break;
+        }
+        ta[orig].Allocated = 1;
+        ta[orig].HwTemp = j;
+        hwtemps[ta[orig].HwTemp] = true;
+    }
+
+    return ta[orig].HwTemp;
+}
+
 static void allocate_temporary_registers(struct radeon_compiler *c, void *user)
 {
 	struct r300_vertex_program_compiler *compiler = (struct r300_vertex_program_compiler*)c;
 	struct rc_instruction *inst;
 	struct rc_instruction *end_loop = NULL;
 	unsigned int num_orig_temps = 0;
-	char hwtemps[RC_REGISTER_MAX_INDEX];
+	bool hwtemps[RC_REGISTER_MAX_INDEX];
 	struct temporary_allocation * ta;
-	unsigned int i, j;
+	unsigned int i;
 
 	memset(hwtemps, 0, sizeof(hwtemps));
 
@@ -601,23 +620,8 @@ static void allocate_temporary_registers(struct radeon_compiler *c, void *user)
 		const struct rc_opcode_info * opcode = rc_get_opcode_info(inst->U.I.Opcode);
 		/* Instructions inside of loops need to use the ENDLOOP
 		 * instruction as their LastRead. */
-		if (!end_loop && inst->U.I.Opcode == RC_OPCODE_BGNLOOP) {
-			int endloops = 1;
-			struct rc_instruction * ptr;
-			for(ptr = inst->Next;
-				ptr != &compiler->Base.Program.Instructions;
-							ptr = ptr->Next){
-				if (ptr->U.I.Opcode == RC_OPCODE_BGNLOOP) {
-					endloops++;
-				} else if (ptr->U.I.Opcode == RC_OPCODE_ENDLOOP) {
-					endloops--;
-					if (endloops <= 0) {
-						end_loop = ptr;
-						break;
-					}
-				}
-			}
-		}
+		if (!end_loop && inst->U.I.Opcode == RC_OPCODE_BGNLOOP)
+			end_loop = rc_match_bgnloop(inst);
 
 		if (inst == end_loop) {
 			end_loop = NULL;
@@ -638,28 +642,17 @@ static void allocate_temporary_registers(struct radeon_compiler *c, void *user)
 		for (i = 0; i < opcode->NumSrcRegs; ++i) {
 			if (inst->U.I.SrcReg[i].File == RC_FILE_TEMPORARY) {
 				unsigned int orig = inst->U.I.SrcReg[i].Index;
-				inst->U.I.SrcReg[i].Index = ta[orig].HwTemp;
+				inst->U.I.SrcReg[i].Index = get_reg(c, ta, hwtemps, orig);
 
 				if (ta[orig].Allocated && inst == ta[orig].LastRead)
-					hwtemps[ta[orig].HwTemp] = 0;
+					hwtemps[ta[orig].HwTemp] = false;
 			}
 		}
 
 		if (opcode->HasDstReg) {
 			if (inst->U.I.DstReg.File == RC_FILE_TEMPORARY) {
 				unsigned int orig = inst->U.I.DstReg.Index;
-
-				if (!ta[orig].Allocated) {
-					for(j = 0; j < c->max_temp_regs; ++j) {
-						if (!hwtemps[j])
-							break;
-					}
-					ta[orig].Allocated = 1;
-					ta[orig].HwTemp = j;
-					hwtemps[ta[orig].HwTemp] = 1;
-				}
-
-				inst->U.I.DstReg.Index = ta[orig].HwTemp;
+				inst->U.I.DstReg.Index = get_reg(c, ta, hwtemps, orig);
 			}
 		}
 	}
@@ -724,10 +717,13 @@ static int transform_source_conflicts(
 			inst_mov->U.I.DstReg.File = RC_FILE_TEMPORARY;
 			inst_mov->U.I.DstReg.Index = tmpreg;
 			inst_mov->U.I.SrcReg[0] = inst->U.I.SrcReg[2];
+			inst_mov->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZW;
+			inst_mov->U.I.SrcReg[0].Negate = 0;
+			inst_mov->U.I.SrcReg[0].Abs = 0;
 
-			reset_srcreg(&inst->U.I.SrcReg[2]);
 			inst->U.I.SrcReg[2].File = RC_FILE_TEMPORARY;
 			inst->U.I.SrcReg[2].Index = tmpreg;
+			inst->U.I.SrcReg[2].RelAddr = false;
 		}
 	}
 
@@ -739,10 +735,13 @@ static int transform_source_conflicts(
 			inst_mov->U.I.DstReg.File = RC_FILE_TEMPORARY;
 			inst_mov->U.I.DstReg.Index = tmpreg;
 			inst_mov->U.I.SrcReg[0] = inst->U.I.SrcReg[1];
+			inst_mov->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZW;
+			inst_mov->U.I.SrcReg[0].Negate = 0;
+			inst_mov->U.I.SrcReg[0].Abs = 0;
 
-			reset_srcreg(&inst->U.I.SrcReg[1]);
 			inst->U.I.SrcReg[1].File = RC_FILE_TEMPORARY;
 			inst->U.I.SrcReg[1].Index = tmpreg;
+			inst->U.I.SrcReg[1].RelAddr = false;
 		}
 	}
 

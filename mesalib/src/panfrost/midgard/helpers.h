@@ -377,10 +377,24 @@ midgard_ldst_comp(unsigned reg, unsigned component, unsigned size)
         return component;
 }
 
-/* Packs/unpacks a ubo index immediate */
+/* Packs/unpacks a ubo index immediate. The unpack must be defined here so it
+ * can be used with the disassembler, which need not be linked with the main
+ * compiler.
+ */
 
 void midgard_pack_ubo_index_imm(midgard_load_store_word *word, unsigned index);
-unsigned midgard_unpack_ubo_index_imm(midgard_load_store_word word);
+
+static inline unsigned
+midgard_unpack_ubo_index_imm(midgard_load_store_word word)
+{
+        unsigned ubo = word.arg_comp |
+                       (word.arg_reg << 2)  |
+                       (word.bitsize_toggle << 5) |
+                       (word.index_format << 6);
+
+        return ubo;
+}
+
 
 /* Packs/unpacks varying parameters.
  * FIXME: IMPORTANT: We currently handle varying mode weirdly, by passing all

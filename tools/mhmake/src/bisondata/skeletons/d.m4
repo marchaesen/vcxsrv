@@ -18,24 +18,33 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-# _b4_comment(TEXT, OPEN, CONTINUE, END)
-# --------------------------------------
-# Put TEXT in comment.  Avoid trailing spaces: don't indent empty lines.
-# Avoid adding indentation to the first line, as the indentation comes
-# from OPEN.  That's why we don't patsubst([$1], [^\(.\)], [   \1]).
-#
-# Prefix all the output lines with PREFIX.
-m4_define([_b4_comment],
-[$2[]m4_bpatsubst(m4_expand([[$1]]), [
-\(.\)], [
-$3\1])$4])
+m4_include(b4_skeletonsdir/[c-like.m4])
 
 
-# b4_comment(TEXT, [PREFIX])
-# --------------------------
-# Put TEXT in comment.  Prefix all the output lines with PREFIX.
-m4_define([b4_comment],
-[_b4_comment([$1], [$2/* ], [$2   ], [  */])])
+# b4_symbol_action(SYMBOL-NUM, ACTION)
+# ------------------------------------
+# Run the action ACTION ("destructor" or "printer") for SYMBOL-NUM.
+m4_define([b4_symbol_action],
+[b4_symbol_if([$1], [has_$2],
+[b4_dollar_pushdef([yyval],
+                   [$1],
+                   [],
+                   [yyloc])dnl
+    _b4_symbol_case([$1])[]dnl
+b4_syncline([b4_symbol([$1], [$2_line])], [b4_symbol([$1], [$2_file])])dnl
+b4_symbol([$1], [$2])
+b4_syncline([@oline@], [@ofile@])dnl
+        break;
+
+b4_dollar_popdef[]dnl
+])])
+
+
+# b4_use(EXPR)
+# ------------
+# Pacify the compiler about some maybe unused value.
+m4_define([b4_use],
+[])
 
 
 # b4_sync_start(LINE, FILE)
@@ -58,6 +67,23 @@ m4_define([b4_percent_define_get3],
           [m4_ifval(m4_quote(b4_percent_define_get([$1])),
                 [$2[]b4_percent_define_get([$1])[]$3], [$4])])
 
+# b4_percent_define_if_get2(ARG1, ARG2, DEF, NOT)
+# -----------------------------------------------
+# Expand to the value of DEF if ARG1 or ARG2 are %define'ed,
+# otherwise NOT.
+m4_define([b4_percent_define_if_get2],
+          [m4_ifval(m4_quote(b4_percent_define_get([$1])),
+                [$3], [m4_ifval(m4_quote(b4_percent_define_get([$2])),
+                      [$3], [$4])])])
+
+# b4_percent_define_class_before_interface(CLASS, INTERFACE)
+# ----------------------------------------------------------
+# Expand to a ', ' if both a class and an interface have been %define'ed
+m4_define([b4_percent_define_class_before_interface],
+          [m4_ifval(m4_quote(b4_percent_define_get([$1])),
+                [m4_ifval(m4_quote(b4_percent_define_get([$2])),
+                      [, ])])])
+
 
 # b4_flag_value(BOOLEAN-FLAG)
 # ---------------------------
@@ -78,8 +104,10 @@ b4_percent_define_flag_if([api.parser.public],   [public ])dnl
 b4_percent_define_flag_if([api.parser.abstract], [abstract ])dnl
 b4_percent_define_flag_if([api.parser.final],    [final ])dnl
 [class ]b4_parser_class[]dnl
-b4_percent_define_get3([api.parser.extends], [ extends ])dnl
-b4_percent_define_get3([api.parser.implements], [ implements ])])
+b4_percent_define_if_get2([api.parser.extends], [api.parser.implements], [ : ])dnl
+b4_percent_define_get([api.parser.extends])dnl
+b4_percent_define_class_before_interface([api.parser.extends], [api.parser.implements])dnl
+b4_percent_define_get([api.parser.implements])])
 
 
 # b4_lexer_if(TRUE, FALSE)
@@ -153,6 +181,7 @@ private static immutable b4_int_type_for([$2])[[]] yy$1_ =
 ## ------------- ##
 
 m4_define([b4_symbol(-2, id)],  [[YYEMPTY]])
+b4_percent_define_default([[api.token.raw]], [[true]])
 
 # b4_token_enum(TOKEN-NAME, TOKEN-NUMBER)
 # ---------------------------------------
@@ -167,18 +196,48 @@ m4_define([b4_token_enum],
 m4_define([b4_token_enums],
 [/* Token kinds.  */
 public enum TokenKind {
-  ]b4_symbol_kind([-2])[ = -2,
+  ]b4_symbol(empty, id)[ = -2,
 b4_symbol_foreach([b4_token_enum])dnl
 }
 ])
 
+# b4_symbol_translate(STRING)
+# ---------------------------
+# Used by "bison" in the array of symbol names to mark those that
+# require translation.
+m4_define([b4_symbol_translate],
+[[_($1)]])
 
+
+# _b4_token_constructor_define(SYMBOL-NUM)
+# ----------------------------------------
+# Define Symbol.FOO for SYMBOL-NUM.
+m4_define([_b4_token_constructor_define],
+[b4_token_visible_if([$1],
+[[
+    static auto ]b4_symbol([$1], [id])[(]b4_symbol_if([$1], [has_type],
+[b4_union_if([b4_symbol([$1], [type]],
+[[typeof(YYSemanticType.]b4_symbol([$1], [type])[]])) [val]])dnl
+[]b4_locations_if([b4_symbol_if([$1], [has_type], [[, ]])[Location l]])[)
+    {
+      return Symbol(TokenKind.]b4_symbol([$1], [id])[]b4_symbol_if([$1], [has_type],
+      [[, val]])[]b4_locations_if([[, l]])[);
+    }]])])
+
+# b4_token_constructor_define
+# ---------------------------
+# Define Symbol.FOO for each token kind FOO.
+m4_define([b4_token_constructor_define],
+[[
+    /* Implementation of token constructors for each symbol type visible to
+     * the user. The code generates static methods that have the same names
+     * as the TokenKinds.
+     */]b4_symbol_foreach([_b4_token_constructor_define])dnl
+])
 
 ## -------------- ##
 ## Symbol kinds.  ##
 ## -------------- ##
-
-b4_percent_define_default([[api.symbol.prefix]], [[S_]])
 
 # b4_symbol_kind(NUM)
 # -------------------
@@ -204,16 +263,46 @@ m4_define([b4_symbol_enum],
 # to use a signed type, which matters for yytoken.
 m4_define([b4_declare_symbol_enum],
 [[  /* Symbol kinds.  */
-  public enum SymbolKind
+  struct SymbolKind
   {
-    ]b4_symbol(-2, kind_base)[ = -2,  /* No symbol.  */
+    enum
+    {
+    ]b4_symbol(empty, kind_base)[ = -2,  /* No symbol.  */
 ]b4_symbol_foreach([b4_symbol_enum])dnl
-[  };
-]])])
+[    }
+
+    private int yycode_;
+    alias yycode_ this;
+
+    this(int code)
+    {
+      yycode_ = code;
+    }
+
+    /* Return YYSTR after stripping away unnecessary quotes and
+     backslashes, so that it's suitable for yyerror.  The heuristic is
+     that double-quoting is unnecessary unless the string contains an
+     apostrophe, a comma, or backslash (other than backslash-backslash).
+     YYSTR is taken from yytname.  */
+    final void toString(W)(W sink) const
+    if (isOutputRange!(W, char))
+    {
+      immutable string[] yy_sname = @{
+  ]b4_symbol_names[
+      @};]b4_has_translations_if([[
+      /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YY_SNAME[SYMBOL-NUM] is
+        internationalizable.  */
+      immutable ]b4_int_type_for([b4_translatable])[[] yytranslatable = @{
+  ]b4_translatable[
+      @};]])[
+
+      put(sink, yy_sname[yycode_]);
+    }
+  }
+]])
 
 
-
-# b4-case(ID, CODE, [COMMENTS])
+# b4_case(ID, CODE, [COMMENTS])
 # -----------------------------
 m4_define([b4_case], [    case $1:m4_ifval([$3], [ b4_comment([$3])])
 $2
@@ -238,6 +327,109 @@ m4_define([b4_location_type], b4_percent_define_ifdef([[location_type]],[b4_perc
 
 #b4_percent_define_default([[position_type]], [Position])])
 m4_define([b4_position_type], b4_percent_define_ifdef([[position_type]],[b4_percent_define_get([[position_type]])],[YYPosition]))
+
+
+## ---------------- ##
+## api.value.type.  ##
+## ---------------- ##
+
+
+# ---------------------- #
+# api.value.type=union.  #
+# ---------------------- #
+
+# b4_symbol_type_register(SYMBOL-NUM)
+# -----------------------------------
+# Symbol SYMBOL-NUM has a type (for union) instead of a type-tag.
+# Extend the definition of %union's body (b4_union_members) with a
+# field of that type, and extend the symbol's "type" field to point to
+# the field name, instead of the type name.
+m4_define([b4_symbol_type_register],
+[m4_define([b4_symbol($1, type_tag)],
+           [b4_symbol_if([$1], [has_id],
+                         [b4_symbol([$1], [id])],
+                         [yykind_[]b4_symbol([$1], [number])])])dnl
+m4_append([b4_union_members],
+m4_expand([m4_format([  %-40s %s],
+                     m4_expand([b4_symbol([$1], [type]) b4_symbol([$1], [type_tag]);]),
+                     [b4_symbol_tag_comment([$1])])]))
+])
+
+
+# b4_type_define_tag(SYMBOL1-NUM, ...)
+# ------------------------------------
+# For the batch of symbols SYMBOL1-NUM... (which all have the same
+# type), enhance the %union definition for each of them, and set
+# there "type" field to the field tag name, instead of the type name.
+m4_define([b4_type_define_tag],
+[b4_symbol_if([$1], [has_type],
+              [m4_map([b4_symbol_type_register], [$@])])
+])
+
+
+# b4_symbol_value_union(VAL, SYMBOL-NUM, [TYPE])
+# ----------------------------------------------
+# Same of b4_symbol_value, but when api.value.type=union.
+m4_define([b4_symbol_value_union],
+[m4_ifval([$3],
+          [(*($3*)(&$1))],
+          [m4_ifval([$2],
+                    [b4_symbol_if([$2], [has_type],
+                                  [($1.b4_symbol([$2], [type_tag]))],
+                                  [$1])],
+                    [$1])])])
+
+
+# b4_value_type_setup_union
+# -------------------------
+# Setup support for api.value.type=union.  Symbols are defined with a
+# type instead of a union member name: build the corresponding union,
+# and give the symbols their tag.
+m4_define([b4_value_type_setup_union],
+[m4_define([b4_union_members])
+b4_type_foreach([b4_type_define_tag])
+m4_copy_force([b4_symbol_value_union], [b4_symbol_value])
+])
+
+
+# _b4_value_type_setup_keyword
+# ----------------------------
+# api.value.type is defined with a keyword/string syntax.  Check if
+# that is properly defined, and prepare its use.
+m4_define([_b4_value_type_setup_keyword],
+[b4_percent_define_check_values([[[[api.value.type]],
+                                  [[none]],
+                                  [[union]],
+                                  [[union-directive]],
+                                  [[yystype]]]])dnl
+m4_case(b4_percent_define_get([[api.value.type]]),
+        [union],   [b4_value_type_setup_union])])
+
+
+# b4_value_type_setup
+# -------------------
+# Check if api.value.type is properly defined, and possibly prepare
+# its use.
+b4_define_silent([b4_value_type_setup],
+[
+# Define default value.
+b4_percent_define_ifdef([[api.value.type]], [],
+[# %union => api.value.type=union-directive
+m4_ifdef([b4_union_members],
+[m4_define([b4_percent_define_kind(api.value.type)], [keyword])
+m4_define([b4_percent_define(api.value.type)], [union-directive])],
+[# no tag seen => api.value.type={int}
+m4_if(b4_tag_seen_flag, 0,
+[m4_define([b4_percent_define_kind(api.value.type)], [code])
+m4_define([b4_percent_define(api.value.type)], [int])],
+[# otherwise api.value.type=yystype
+m4_define([b4_percent_define_kind(api.value.type)], [keyword])
+m4_define([b4_percent_define(api.value.type)], [yystype])])])])
+
+# Set up.
+m4_bmatch(b4_percent_define_get_kind([[api.value.type]]),
+   [keyword], [_b4_value_type_setup_keyword])
+])
 
 
 ## ----------------- ##
@@ -286,7 +478,7 @@ m4_define([b4_lhs_location],
 # Expansion of @POS, where the current rule has RULE-LENGTH symbols
 # on RHS.
 m4_define([b4_rhs_location],
-[yystack.locationAt ([$1], [$2])])
+[yystack.locationAt (b4_subtract($@))])
 
 
 # b4_lex_param
@@ -371,3 +563,66 @@ m4_define([b4_var_decls],
 ], [$@])])
 m4_define([b4_var_decl],
           [    protected $1;])
+
+
+# b4_public_types_declare
+# -----------------------
+# Define the public types: token, semantic value, location, and so forth.
+# Depending on %define token_lex, may be output in the header or source file.
+m4_define([b4_public_types_declare],
+[[
+alias Symbol = ]b4_parser_class[.Symbol;
+alias Value = ]b4_yystype[;]b4_locations_if([[
+alias Location = ]b4_location_type[;
+alias Position = ]b4_position_type[;]b4_push_if([[
+alias PUSH_MORE = ]b4_parser_class[.YYPUSH_MORE;
+alias ABORT = ]b4_parser_class[.YYABORT;
+alias ACCEPT = ]b4_parser_class[.YYACCEPT;]])[]])[
+]])
+
+
+# b4_basic_symbol_constructor_define
+# ----------------------------------
+# Create Symbol struct constructors for all the visible types.
+m4_define([b4_basic_symbol_constructor_define],
+[b4_token_visible_if([$1],
+[[    this(TokenKind token]b4_symbol_if([$1], [has_type],
+[[, ]b4_union_if([], [[typeof(YYSemanticType.]])b4_symbol([$1], [type])dnl
+[]b4_union_if([], [[) ]])[ val]])[]b4_locations_if([[, Location loc]])[)
+    {
+      kind = yytranslate_(token);]b4_union_if([b4_symbol_if([$1], [has_type], [[
+      static foreach (member; __traits(allMembers, YYSemanticType))
+      {
+        static if (is(typeof(mixin("value_." ~ member)) == ]b4_symbol([$1], [type])[))
+        {
+          mixin("value_." ~ member ~ " = val;");
+        }
+      }]])], [b4_symbol_if([$1], [has_type], [[
+      value_.]b4_symbol([$1], [type])[ = val;]])])[]b4_locations_if([
+      location_ = loc;])[
+    }
+]])])
+
+
+# b4_symbol_type_define
+# ---------------------
+# Define symbol_type, the external type for symbols used for symbol
+# constructors.
+m4_define([b4_symbol_type_define],
+[[
+  /**
+    * A complete symbol
+    */
+  struct Symbol
+  {
+    private SymbolKind kind;
+    private Value value_;]b4_locations_if([[
+    private Location location_;]])[
+
+]b4_type_foreach([b4_basic_symbol_constructor_define])[
+    SymbolKind token() { return kind; }
+    Value value() { return value_; }]b4_locations_if([[
+    Location location() { return location_; }]])[
+]b4_token_ctor_if([b4_token_constructor_define])[
+  }
+]])

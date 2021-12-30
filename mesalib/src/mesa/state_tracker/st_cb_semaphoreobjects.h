@@ -42,7 +42,32 @@ st_semaphore_object(struct gl_semaphore_object *obj)
    return (struct st_semaphore_object *)obj;
 }
 
-extern void
-st_init_semaphoreobject_functions(struct dd_function_table *functions);
+struct gl_semaphore_object *
+st_semaphoreobj_alloc(struct gl_context *ctx, GLuint name);
+void
+st_semaphoreobj_free(struct gl_context *ctx,
+                     struct gl_semaphore_object *semObj);
 
+void
+st_import_semaphoreobj_fd(struct gl_context *ctx,
+                          struct gl_semaphore_object *semObj,
+                          int fd);
+
+void
+st_server_wait_semaphore(struct gl_context *ctx,
+                         struct gl_semaphore_object *semObj,
+                         GLuint numBufferBarriers,
+                         struct gl_buffer_object **bufObjs,
+                         GLuint numTextureBarriers,
+                         struct gl_texture_object **texObjs,
+                         const GLenum *srcLayouts);
+
+void
+st_server_signal_semaphore(struct gl_context *ctx,
+                           struct gl_semaphore_object *semObj,
+                           GLuint numBufferBarriers,
+                           struct gl_buffer_object **bufObjs,
+                           GLuint numTextureBarriers,
+                           struct gl_texture_object **texObjs,
+                           const GLenum *dstLayouts);
 #endif

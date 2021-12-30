@@ -55,6 +55,8 @@
 
 #define NUM_DEPTH_CLEAR_PIPELINES      2
 #define NUM_DEPTH_DECOMPRESS_PIPELINES 3
+#define MAX_FRAMEBUFFER_WIDTH (1u << 14)
+#define MAX_FRAMEBUFFER_HEIGHT (1u << 14)
 
 /*
  * This is the point we switch from using CP to compute shader

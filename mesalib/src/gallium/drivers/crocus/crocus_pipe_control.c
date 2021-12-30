@@ -189,7 +189,7 @@ crocus_emit_end_of_pipe_sync(struct crocus_batch *batch,
                                      batch->ice->workaround_bo,
                                      batch->ice->workaround_offset, 0);
 
-      if (batch->screen->devinfo.is_haswell) {
+      if (batch->screen->devinfo.platform == INTEL_PLATFORM_HSW) {
 #define GEN7_3DPRIM_START_INSTANCE      0x243C
          batch->screen->vtbl.load_register_mem32(batch, GEN7_3DPRIM_START_INSTANCE,
                                                  batch->ice->workaround_bo,

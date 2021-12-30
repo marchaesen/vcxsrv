@@ -27,7 +27,6 @@
 
 #include "main/mtypes.h"
 
-struct dd_function_table;
 struct pipe_screen;
 
 struct st_memory_object
@@ -45,7 +44,15 @@ st_memory_object(struct gl_memory_object *obj)
    return (struct st_memory_object *)obj;
 }
 
-extern void
-st_init_memoryobject_functions(struct dd_function_table *functions);
+struct gl_memory_object *
+st_memoryobj_alloc(struct gl_context *ctx, GLuint name);
 
+void
+st_memoryobj_free(struct gl_context *ctx,
+                  struct gl_memory_object *obj);
+void
+st_import_memoryobj_fd(struct gl_context *ctx,
+                       struct gl_memory_object *obj,
+                       GLuint64 size,
+                       int fd);
 #endif

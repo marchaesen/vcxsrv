@@ -48,7 +48,7 @@
 #include "state.h"
 #include "util/u_memory.h"
 
-
+#include "state_tracker/st_cb_fbo.h"
 
 /**
  * Compute/set the _DepthMax field for the given framebuffer.
@@ -611,8 +611,7 @@ update_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 
       /* Call device driver function if fb is the bound draw buffer. */
       if (fb == ctx->DrawBuffer) {
-         if (ctx->Driver.DrawBufferAllocate)
-            ctx->Driver.DrawBufferAllocate(ctx);
+         st_DrawBufferAllocate(ctx);
       }
    }
    else {

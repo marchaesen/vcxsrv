@@ -34,6 +34,7 @@ if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
     DEVICE_TREES+=" arch/arm64/boot/dts/qcom/apq8096-db820c.dtb"
     DEVICE_TREES+=" arch/arm64/boot/dts/amlogic/meson-g12b-a311d-khadas-vim3.dtb"
     DEVICE_TREES+=" arch/arm64/boot/dts/mediatek/mt8183-kukui-jacuzzi-juniper-sku16.dtb"
+    DEVICE_TREES+=" arch/arm64/boot/dts/qcom/sc7180-trogdor-lazor-limozeen-nots.dtb"
     KERNEL_IMAGE_NAME="Image"
 elif [[ "$DEBIAN_ARCH" = "armhf" ]]; then
     GCC_ARCH="arm-linux-gnueabihf"
@@ -204,7 +205,7 @@ popd
 . .gitlab-ci/container/container_post_build.sh
 
 ############### Upload the files!
-ci-fairy minio login $CI_JOB_JWT
+ci-fairy minio login --token-file "${CI_JOB_JWT_FILE}"
 FILES_TO_UPLOAD="lava-rootfs.tgz \
                  $KERNEL_IMAGE_NAME"
 

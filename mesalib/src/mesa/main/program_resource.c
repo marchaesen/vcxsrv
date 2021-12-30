@@ -29,8 +29,8 @@
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/context.h"
-#include "program_resource.h"
 #include "compiler/glsl/ir_uniform.h"
+#include "api_exec_decl.h"
 
 static bool
 supported_interface_enum(struct gl_context *ctx, GLenum iface)

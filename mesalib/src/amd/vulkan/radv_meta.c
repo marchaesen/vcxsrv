@@ -288,7 +288,7 @@ radv_meta_get_iview_layer(const struct radv_image *dest_image,
    }
 }
 
-static void *
+static VKAPI_ATTR void * VKAPI_CALL
 meta_alloc(void *_device, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {
    struct radv_device *device = _device;
@@ -296,7 +296,7 @@ meta_alloc(void *_device, size_t size, size_t alignment, VkSystemAllocationScope
                                          VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 }
 
-static void *
+static VKAPI_ATTR void * VKAPI_CALL
 meta_realloc(void *_device, void *original, size_t size, size_t alignment,
              VkSystemAllocationScope allocationScope)
 {
@@ -305,7 +305,7 @@ meta_realloc(void *_device, void *original, size_t size, size_t alignment,
                                            VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 }
 
-static void
+static VKAPI_ATTR void VKAPI_CALL
 meta_free(void *_device, void *data)
 {
    struct radv_device *device = _device;
@@ -491,8 +491,20 @@ radv_device_init_meta(struct radv_device *device)
    if (result != VK_SUCCESS)
       goto fail_accel_struct_build;
 
+   result = radv_device_init_meta_fmask_copy_state(device);
+   if (result != VK_SUCCESS)
+      goto fail_fmask_copy;
+
+   result = radv_device_init_meta_etc_decode_state(device, on_demand);
+   if (result != VK_SUCCESS)
+      goto fail_etc_decode;
+
    return VK_SUCCESS;
 
+fail_etc_decode:
+   radv_device_finish_meta_fmask_copy_state(device);
+fail_fmask_copy:
+   radv_device_finish_accel_struct_build_state(device);
 fail_accel_struct_build:
    radv_device_finish_meta_fmask_expand_state(device);
 fail_fmask_expand:
@@ -526,6 +538,7 @@ fail_clear:
 void
 radv_device_finish_meta(struct radv_device *device)
 {
+   radv_device_finish_meta_etc_decode_state(device);
    radv_device_finish_accel_struct_build_state(device);
    radv_device_finish_meta_clear_state(device);
    radv_device_finish_meta_resolve_state(device);
@@ -541,10 +554,29 @@ radv_device_finish_meta(struct radv_device *device)
    radv_device_finish_meta_fmask_expand_state(device);
    radv_device_finish_meta_dcc_retile_state(device);
    radv_device_finish_meta_copy_vrs_htile_state(device);
+   radv_device_finish_meta_fmask_copy_state(device);
 
    radv_store_meta_pipeline(device);
    radv_pipeline_cache_finish(&device->meta_state.cache);
    mtx_destroy(&device->meta_state.mtx);
+}
+
+nir_builder PRINTFLIKE(2, 3) radv_meta_init_shader(gl_shader_stage stage, const char *name, ...)
+{
+   nir_builder b = nir_builder_init_simple_shader(stage, NULL, NULL);
+   if (name) {
+      va_list args;
+      va_start(args, name);
+      b.shader->info.name = ralloc_vasprintf(b.shader, name, args);
+      va_end(args);
+   }
+
+   b.shader->info.internal = true;
+   b.shader->info.workgroup_size[0] = 1;
+   b.shader->info.workgroup_size[1] = 1;
+   b.shader->info.workgroup_size[2] = 1;
+
+   return b;
 }
 
 nir_ssa_def *
@@ -587,7 +619,7 @@ radv_meta_build_nir_vs_generate_vertices(void)
 
    nir_variable *v_position;
 
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL, "meta_vs_gen_verts");
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_VERTEX, "meta_vs_gen_verts");
 
    nir_ssa_def *outvec = radv_meta_gen_rect_vertices(&b);
 
@@ -602,9 +634,7 @@ radv_meta_build_nir_vs_generate_vertices(void)
 nir_shader *
 radv_meta_build_nir_fs_noop(void)
 {
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "meta_noop_fs");
-
-   return b.shader;
+   return radv_meta_init_shader(MESA_SHADER_FRAGMENT, "meta_noop_fs").shader;
 }
 
 void
@@ -706,4 +736,17 @@ get_global_ids(nir_builder *b, unsigned num_components)
       mask);
 
    return nir_iadd(b, nir_imul(b, block_ids, block_size), local_ids);
+}
+
+void
+radv_break_on_count(nir_builder *b, nir_variable *var, nir_ssa_def *count)
+{
+   nir_ssa_def *counter = nir_load_var(b, var);
+
+   nir_push_if(b, nir_uge(b, counter, count));
+   nir_jump(b, nir_jump_break);
+   nir_pop_if(b, NULL);
+
+   counter = nir_iadd(b, counter, nir_imm_int(b, 1));
+   nir_store_var(b, var, counter, 0x1);
 }

@@ -46,6 +46,7 @@ static void set_name(struct etna_bo *bo, uint32_t name)
 /* Called under etna_drm_table_lock */
 void _etna_bo_del(struct etna_bo *bo)
 {
+	DEBUG_BO("Del bo:", bo);
 	VG_BO_FREE(bo);
 
 	simple_mtx_assert_locked(&etna_drm_table_lock);
@@ -150,6 +151,7 @@ struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
 	bo->reuse = 1;
 	simple_mtx_unlock(&etna_drm_table_lock);
 
+	DEBUG_BO("New bo:", bo);
 	VG_BO_ALLOC(bo);
 
 	return bo;
@@ -210,6 +212,7 @@ struct etna_bo *etna_bo_from_name(struct etna_device *dev,
 	bo = bo_from_handle(dev, req.size, req.handle, 0);
 	if (bo) {
 		set_name(bo, name);
+		DEBUG_BO("New from name:", bo);
 		VG_BO_ALLOC(bo);
 	}
 
@@ -251,6 +254,7 @@ struct etna_bo *etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 
 	bo = bo_from_handle(dev, size, handle, 0);
 
+	DEBUG_BO("New from dmabuf:", bo);
 	VG_BO_ALLOC(bo);
 
 out_unlock:

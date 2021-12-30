@@ -664,6 +664,19 @@ static void noop_get_device_uuid(struct pipe_screen *screen, char *uuid)
    oscreen->get_device_uuid(oscreen, uuid);
 }
 
+static int noop_get_sparse_texture_virtual_page_size(struct pipe_screen *screen,
+                                                     enum pipe_texture_target target,
+                                                     enum pipe_format format,
+                                                     unsigned offset, unsigned size,
+                                                     int *x, int *y, int *z)
+{
+   struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)screen;
+   struct pipe_screen *oscreen = noop_screen->oscreen;
+
+   return oscreen->get_sparse_texture_virtual_page_size(screen, target, format, offset,
+                                                        size, x, y, z);
+}
+
 static void noop_query_dmabuf_modifiers(struct pipe_screen *screen,
                                         enum pipe_format format, int max,
                                         uint64_t *modifiers,
@@ -753,6 +766,8 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
    screen->resource_create_with_modifiers = noop_resource_create_with_modifiers;
    screen->create_vertex_state = noop_create_vertex_state;
    screen->vertex_state_destroy = noop_vertex_state_destroy;
+   if (oscreen->get_sparse_texture_virtual_page_size)
+      screen->get_sparse_texture_virtual_page_size = noop_get_sparse_texture_virtual_page_size;
 
    slab_create_parent(&noop_screen->pool_transfers,
                       sizeof(struct pipe_transfer), 64);

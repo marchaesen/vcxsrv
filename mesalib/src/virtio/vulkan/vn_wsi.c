@@ -181,6 +181,7 @@ vn_DestroySwapchainKHR(VkDevice device,
 VkResult
 vn_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
 {
+   VN_TRACE_FUNC();
    struct vn_queue *queue = vn_queue_from_handle(_queue);
 
    VkResult result =
@@ -206,6 +207,7 @@ vn_AcquireNextImage2KHR(VkDevice device,
                         const VkAcquireNextImageInfoKHR *pAcquireInfo,
                         uint32_t *pImageIndex)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
    VkResult result = wsi_common_acquire_next_image2(

@@ -941,9 +941,6 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
                                            neg(op_expr[0]->operands[0]));
       }
 
-      /* While ir_to_mesa.cpp will lower sqrt(x) to rcp(rsq(x)), it does so at
-       * its IR level, so we can always apply this transformation.
-       */
       if (op_expr[0] && op_expr[0]->operation == ir_unop_rsq)
          return sqrt(op_expr[0]->operands[0]);
 

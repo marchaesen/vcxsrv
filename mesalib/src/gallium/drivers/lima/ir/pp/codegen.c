@@ -91,8 +91,20 @@ static void ppir_codegen_encode_varying(ppir_node *node, void *code)
             f->imm.perspective = 1;
             break;
          case ppir_op_load_coords:
-            /* num_components == 3 implies cubemap as we don't support 3D textures */
-            f->imm.source_type = num_components == 3 ? 2 : 0;
+            if (load->sampler_dim == GLSL_SAMPLER_DIM_CUBE)
+               f->imm.source_type = 2;
+
+            switch (load->perspective) {
+            case ppir_perspective_none:
+               f->imm.perspective = 0;
+               break;
+            case ppir_perspective_z:
+               f->imm.perspective = 2;
+               break;
+            case ppir_perspective_w:
+               f->imm.perspective = 3;
+               break;
+            }
             break;
          default:
             break;
@@ -103,12 +115,22 @@ static void ppir_codegen_encode_varying(ppir_node *node, void *code)
       f->reg.mask = dest->write_mask << (index & 0x3);
 
       if (load->num_src) {
-         /* num_components == 3 implies cubemap as we don't support 3D textures */
-         if (num_components == 3) {
+         if (load->sampler_dim == GLSL_SAMPLER_DIM_CUBE) {
             f->reg.source_type = 2;
             f->reg.perspective = 1;
          } else {
             f->reg.source_type = 1;
+            switch (load->perspective) {
+            case ppir_perspective_none:
+               f->reg.perspective = 0;
+               break;
+            case ppir_perspective_z:
+               f->reg.perspective = 2;
+               break;
+            case ppir_perspective_w:
+               f->reg.perspective = 3;
+               break;
+            }
          }
          ppir_src *src = &load->src;
          index = ppir_target_get_src_reg_index(src);
@@ -134,9 +156,10 @@ static void ppir_codegen_encode_texld(ppir_node *node, void *code)
 
    switch (ldtex->sampler_dim) {
    case GLSL_SAMPLER_DIM_2D:
+   case GLSL_SAMPLER_DIM_3D:
    case GLSL_SAMPLER_DIM_RECT:
    case GLSL_SAMPLER_DIM_EXTERNAL:
-      f->type = ppir_codegen_sampler_type_2d;
+      f->type = ppir_codegen_sampler_type_generic;
       break;
    case GLSL_SAMPLER_DIM_CUBE:
       f->type = ppir_codegen_sampler_type_cube;
@@ -750,7 +773,7 @@ static int encode_instr(ppir_instr *instr, void *code, void *last_code)
    size = align_to_word(size) + 1;
 
    ctrl->count = size;
-   if (instr->is_end)
+   if (instr->stop)
       ctrl->stop = true;
 
    if (last_code) {
@@ -794,6 +817,11 @@ bool ppir_codegen_prog(ppir_compiler *comp)
          instr->offset = size;
          instr->encode_size = get_instr_encode_size(instr);
          size += instr->encode_size;
+      }
+      /* Set stop flag for the last instruction if block has stop flag */
+      if (block->stop) {
+         ppir_instr *instr = list_last_entry(&block->instr_list, ppir_instr, list);
+         instr->stop = true;
       }
    }
 

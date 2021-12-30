@@ -170,7 +170,10 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
 {
    const struct glsl_type *type = var->type;
 
-   if (nir_is_arrayed_io(var, shader->info.stage)) {
+   if (nir_is_arrayed_io(var, shader->info.stage) ||
+       /* For NV_mesh_shader. */
+       (shader->info.stage == MESA_SHADER_MESH &&
+        var->data.location == VARYING_SLOT_PRIMITIVE_INDICES)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -194,7 +197,8 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
 }
 
 static unsigned
-get_io_offset(nir_deref_instr *deref, nir_variable *var, bool is_arrayed)
+get_io_offset(nir_deref_instr *deref, nir_variable *var, bool is_arrayed,
+              bool skip_non_arrayed)
 {
    if (var->data.compact) {
       assert(deref->deref_type == nir_deref_type_array);
@@ -208,6 +212,9 @@ get_io_offset(nir_deref_instr *deref, nir_variable *var, bool is_arrayed)
    for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
       if (d->deref_type == nir_deref_type_array) {
          if (is_arrayed && nir_deref_instr_parent(d)->deref_type == nir_deref_type_var)
+            break;
+
+         if (!is_arrayed && skip_non_arrayed)
             break;
 
          if (!nir_src_is_const(d->arr.index))
@@ -240,6 +247,7 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
 {
    const struct glsl_type *type = var->type;
    bool is_arrayed = nir_is_arrayed_io(var, shader->info.stage);
+   bool skip_non_arrayed = shader->info.stage == MESA_SHADER_MESH;
 
    if (is_arrayed) {
       assert(glsl_type_is_array(type));
@@ -250,7 +258,7 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
    if (var->data.per_view)
       return false;
 
-   unsigned offset = get_io_offset(deref, var, is_arrayed);
+   unsigned offset = get_io_offset(deref, var, is_arrayed, skip_non_arrayed);
    if (offset == -1)
       return false;
 
@@ -336,6 +344,16 @@ nir_intrinsic_writes_external_memory(const nir_intrinsic_instr *instr)
    case nir_intrinsic_global_atomic_umax:
    case nir_intrinsic_global_atomic_umin:
    case nir_intrinsic_global_atomic_xor:
+   case nir_intrinsic_global_atomic_add_ir3:
+   case nir_intrinsic_global_atomic_and_ir3:
+   case nir_intrinsic_global_atomic_comp_swap_ir3:
+   case nir_intrinsic_global_atomic_exchange_ir3:
+   case nir_intrinsic_global_atomic_imax_ir3:
+   case nir_intrinsic_global_atomic_imin_ir3:
+   case nir_intrinsic_global_atomic_or_ir3:
+   case nir_intrinsic_global_atomic_umax_ir3:
+   case nir_intrinsic_global_atomic_umin_ir3:
+   case nir_intrinsic_global_atomic_xor_ir3:
    case nir_intrinsic_image_atomic_add:
    case nir_intrinsic_image_atomic_and:
    case nir_intrinsic_image_atomic_comp_swap:
@@ -527,7 +545,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
           instr->intrinsic == nir_intrinsic_load_per_vertex_input &&
-          !src_is_invocation_id(nir_get_io_vertex_index_src(instr)))
+          !src_is_invocation_id(nir_get_io_arrayed_index_src(instr)))
          shader->info.tess.tcs_cross_invocation_inputs_read |= slot_mask;
       break;
 
@@ -550,7 +568,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
           instr->intrinsic == nir_intrinsic_load_per_vertex_output &&
-          !src_is_invocation_id(nir_get_io_vertex_index_src(instr)))
+          !src_is_invocation_id(nir_get_io_arrayed_index_src(instr)))
          shader->info.tess.tcs_cross_invocation_outputs_read |= slot_mask;
 
       if (shader->info.stage == MESA_SHADER_FRAGMENT &&
@@ -611,6 +629,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_front_face:
    case nir_intrinsic_load_sample_id:
    case nir_intrinsic_load_sample_pos:
+   case nir_intrinsic_load_sample_pos_or_center:
    case nir_intrinsic_load_sample_mask_in:
    case nir_intrinsic_load_helper_invocation:
    case nir_intrinsic_load_tess_coord:
@@ -933,6 +952,24 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
                glsl_count_attribute_slots(var->type, false);
             shader->info.per_primitive_inputs |= BITFIELD64_RANGE(var->data.location, slots);
          }
+      }
+   }
+
+   shader->info.ray_queries = 0;
+   nir_foreach_variable_in_shader(var, shader) {
+      if (!var->data.ray_query)
+         continue;
+
+      shader->info.ray_queries += MAX2(glsl_get_aoa_size(var->type), 1);
+   }
+   nir_foreach_function(func, shader) {
+      if (!func->impl)
+         continue;
+      nir_foreach_function_temp_variable(var, func->impl) {
+         if (!var->data.ray_query)
+            continue;
+
+         shader->info.ray_queries += MAX2(glsl_get_aoa_size(var->type), 1);
       }
    }
 }

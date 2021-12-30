@@ -259,7 +259,7 @@ cnd_timedwait(cnd_t *cond, mtx_t *mtx, const struct timespec *abs_time)
     const DWORD timeout = impl_abs2relmsec(abs_time);
     if (SleepConditionVariableCS(cond, mtx, timeout))
         return thrd_success;
-    return (GetLastError() == ERROR_TIMEOUT) ? thrd_busy : thrd_error;
+    return (GetLastError() == ERROR_TIMEOUT) ? thrd_timedout : thrd_error;
 #else
     return thrd_error;
 #endif
@@ -317,7 +317,7 @@ mtx_timedlock(mtx_t *mtx, const struct timespec *ts)
 #ifdef HAVE_TIMESPEC_GET
     while (mtx_trylock(mtx) != thrd_success) {
         if (impl_abs2relmsec(ts) == 0)
-            return thrd_busy;
+            return thrd_timedout;
         // busy loop!
         thrd_yield();
     }

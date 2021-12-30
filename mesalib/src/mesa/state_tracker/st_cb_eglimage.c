@@ -226,10 +226,10 @@ st_pipe_format_to_base_format(enum pipe_format format)
    return base_format;
 }
 
-static void
+void
 st_egl_image_target_renderbuffer_storage(struct gl_context *ctx,
-					 struct gl_renderbuffer *rb,
-					 GLeglImageOES image_handle)
+                                         struct gl_renderbuffer *rb,
+                                         GLeglImageOES image_handle)
 {
    struct st_renderbuffer *strb = st_renderbuffer(rb);
    struct st_egl_image stimg;
@@ -395,11 +395,11 @@ st_bind_egl_image(struct gl_context *ctx,
    _mesa_dirty_texobj(ctx, texObj);
 }
 
-static void
+void
 st_egl_image_target_texture_2d(struct gl_context *ctx, GLenum target,
-			       struct gl_texture_object *texObj,
-			       struct gl_texture_image *texImage,
-			       GLeglImageOES image_handle)
+                               struct gl_texture_object *texObj,
+                               struct gl_texture_image *texImage,
+                               GLeglImageOES image_handle)
 {
    struct st_egl_image stimg;
    bool native_supported;
@@ -415,7 +415,7 @@ st_egl_image_target_texture_2d(struct gl_context *ctx, GLenum target,
    pipe_resource_reference(&stimg.texture, NULL);
 }
 
-static void
+void
 st_egl_image_target_tex_storage(struct gl_context *ctx, GLenum target,
                                 struct gl_texture_object *texObj,
                                 struct gl_texture_image *texImage,
@@ -447,10 +447,6 @@ void
 st_init_eglimage_functions(struct dd_function_table *functions,
                            bool has_egl_image_validate)
 {
-   functions->EGLImageTargetTexture2D = st_egl_image_target_texture_2d;
-   functions->EGLImageTargetTexStorage = st_egl_image_target_tex_storage;
-   functions->EGLImageTargetRenderbufferStorage = st_egl_image_target_renderbuffer_storage;
-
    if (has_egl_image_validate)
       functions->ValidateEGLImage = st_validate_egl_image;
 }

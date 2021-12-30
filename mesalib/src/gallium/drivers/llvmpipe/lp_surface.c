@@ -122,7 +122,7 @@ static void lp_blit(struct pipe_context *pipe,
    if (blit_info->render_condition_enable && !llvmpipe_check_render_cond(lp))
       return;
 
-   if (util_try_blit_via_copy_region(pipe, &info)) {
+   if (util_try_blit_via_copy_region(pipe, &info, lp->render_cond_query != NULL)) {
       return; /* done */
    }
 
@@ -159,7 +159,7 @@ static void lp_blit(struct pipe_context *pipe,
    util_blitter_save_tesseval_shader(lp->blitter, (void*)lp->tes);
    util_blitter_save_depth_stencil_alpha(lp->blitter, (void*)lp->depth_stencil);
    util_blitter_save_stencil_ref(lp->blitter, &lp->stencil_ref);
-   util_blitter_save_sample_mask(lp->blitter, lp->sample_mask);
+   util_blitter_save_sample_mask(lp->blitter, lp->sample_mask, lp->min_samples);
    util_blitter_save_framebuffer(lp->blitter, &lp->framebuffer);
    util_blitter_save_fragment_sampler_states(lp->blitter,
                      lp->num_samplers[PIPE_SHADER_FRAGMENT],

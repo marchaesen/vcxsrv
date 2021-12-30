@@ -37,3 +37,9 @@ IADD.u32.ts r0, tls_ptr, wls_ptr
 IADD.u32.ts r0, tls_ptr, tls_ptr_hi
 IADD.u32.id r0, tls_ptr, tls_ptr_hi
 IADD.u32.id r0, tls_ptr, 0x40490FDB
+
+# If an instruction accesses multiple staging registers, they must be aligned
+# to a register pair.
+LOAD.i32.unsigned.slot0.wait0 @r1:r2, `r0, offset:0
+STORE.i32.slot0.reconverge @r3:r4:r5, `r2, offset:0
+STORE.i96.vary.slot0.return @r1:r2:r3:r4, `r4, offset:0

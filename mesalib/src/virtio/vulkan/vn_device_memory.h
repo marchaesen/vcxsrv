@@ -23,11 +23,15 @@ struct vn_device_memory {
    struct vn_object_base base;
 
    VkDeviceSize size;
+   VkMemoryPropertyFlags flags;
 
    /* non-NULL when suballocated */
    struct vn_device_memory *base_memory;
    /* non-NULL when mappable or external */
    struct vn_renderer_bo *base_bo;
+   /* enforce kernel and ring ordering between memory export and free */
+   bool bo_roundtrip_seqno_valid;
+   uint32_t bo_roundtrip_seqno;
    VkDeviceSize base_offset;
 
    VkDeviceSize map_end;

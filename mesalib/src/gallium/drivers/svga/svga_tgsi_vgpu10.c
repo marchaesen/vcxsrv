@@ -1450,7 +1450,7 @@ static boolean
 need_temp_reg_initialization(struct svga_shader_emitter_v10 *emit,
                              unsigned index)
 {
-   if (!(emit->info.indirect_files && (1u << TGSI_FILE_TEMPORARY))
+   if (!(emit->info.indirect_files & (1u << TGSI_FILE_TEMPORARY))
        && emit->current_loop_depth == 0) {
       if (!emit->temp_map[index].initialized &&
           emit->temp_map[index].index < emit->num_shader_temps) {

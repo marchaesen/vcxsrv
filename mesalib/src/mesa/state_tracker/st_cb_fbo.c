@@ -35,6 +35,7 @@
 
 
 #include "main/context.h"
+#include "main/bufferobj.h"
 #include "main/fbobject.h"
 #include "main/framebuffer.h"
 #include "main/glformats.h"
@@ -47,7 +48,6 @@
 #include "pipe/p_screen.h"
 #include "st_atom.h"
 #include "st_context.h"
-#include "st_cb_bufferobjects.h"
 #include "st_cb_fbo.h"
 #include "st_cb_flush.h"
 #include "st_cb_texture.h"
@@ -300,7 +300,7 @@ st_renderbuffer_delete(struct gl_context *ctx, struct gl_renderbuffer *rb)
 /**
  * Called via ctx->Driver.NewRenderbuffer()
  */
-static struct gl_renderbuffer *
+struct gl_renderbuffer *
 st_new_renderbuffer(struct gl_context *ctx, GLuint name)
 {
    struct st_renderbuffer *strb = ST_CALLOC_STRUCT(st_renderbuffer);
@@ -597,7 +597,7 @@ get_teximage_resource(struct gl_texture_object *texObj,
 /**
  * Called by ctx->Driver.RenderTexture
  */
-static void
+void
 st_render_texture(struct gl_context *ctx,
                   struct gl_framebuffer *fb,
                   struct gl_renderbuffer_attachment *att)
@@ -640,7 +640,7 @@ st_render_texture(struct gl_context *ctx,
 /**
  * Called via ctx->Driver.FinishRenderTexture.
  */
-static void
+void
 st_finish_render_texture(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
    struct st_context *st = st_context(ctx);
@@ -726,7 +726,7 @@ st_validate_attachment(struct gl_context *ctx,
  *
  * For Gallium we only supports combined Z+stencil, not separate buffers.
  */
-static void
+void
 st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 {
    struct st_context *st = st_context(ctx);
@@ -804,7 +804,7 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 /**
  * Called by ctx->Driver.DiscardFramebuffer
  */
-static void
+void
 st_discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
                        struct gl_renderbuffer_attachment *att)
 {
@@ -833,7 +833,7 @@ st_discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
  * that buffer.  Note, this is only for window system buffers, not user-
  * created FBOs.
  */
-static void
+void
 st_DrawBufferAllocate(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
@@ -857,7 +857,7 @@ st_DrawBufferAllocate(struct gl_context *ctx)
  * Called via glReadBuffer.  As with st_DrawBufferAllocate, we use this
  * function to check if we need to allocate a renderbuffer on demand.
  */
-static void
+void
 st_ReadBuffer(struct gl_context *ctx, GLenum buffer)
 {
    struct st_context *st = st_context(ctx);
@@ -885,7 +885,7 @@ st_ReadBuffer(struct gl_context *ctx, GLenum buffer)
 /**
  * Called via ctx->Driver.MapRenderbuffer.
  */
-static void
+void
 st_MapRenderbuffer(struct gl_context *ctx,
                    struct gl_renderbuffer *rb,
                    GLuint x, GLuint y, GLuint w, GLuint h,
@@ -922,7 +922,7 @@ st_MapRenderbuffer(struct gl_context *ctx,
                     GL_MAP_INVALIDATE_RANGE_BIT)) == 0);
 
    const enum pipe_map_flags transfer_flags =
-      st_access_flags_to_transfer_flags(mode, false);
+      _mesa_access_flags_to_transfer_flags(mode, false);
 
    /* Note: y=0=bottom of buffer while y2=0=top of buffer.
     * 'invert' will be true for window-system buffers and false for
@@ -958,7 +958,7 @@ st_MapRenderbuffer(struct gl_context *ctx,
 /**
  * Called via ctx->Driver.UnmapRenderbuffer.
  */
-static void
+void
 st_UnmapRenderbuffer(struct gl_context *ctx,
                      struct gl_renderbuffer *rb)
 {
@@ -979,7 +979,7 @@ st_UnmapRenderbuffer(struct gl_context *ctx,
 /**
  * Called via ctx->Driver.EvaluateDepthValues.
  */
-static void
+void
 st_EvaluateDepthValues(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
@@ -987,24 +987,4 @@ st_EvaluateDepthValues(struct gl_context *ctx)
    st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
 
    st->pipe->evaluate_depth_buffer(st->pipe);
-}
-
-
-void
-st_init_fbo_functions(struct dd_function_table *functions)
-{
-   functions->NewFramebuffer = _mesa_new_framebuffer;
-   functions->NewRenderbuffer = st_new_renderbuffer;
-   functions->FramebufferRenderbuffer = _mesa_FramebufferRenderbuffer_sw;
-   functions->RenderTexture = st_render_texture;
-   functions->FinishRenderTexture = st_finish_render_texture;
-   functions->ValidateFramebuffer = st_validate_framebuffer;
-   functions->DiscardFramebuffer = st_discard_framebuffer;
-
-   functions->DrawBufferAllocate = st_DrawBufferAllocate;
-   functions->ReadBuffer = st_ReadBuffer;
-
-   functions->MapRenderbuffer = st_MapRenderbuffer;
-   functions->UnmapRenderbuffer = st_UnmapRenderbuffer;
-   functions->EvaluateDepthValues = st_EvaluateDepthValues;
 }

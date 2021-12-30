@@ -229,9 +229,24 @@ lower_64b_global_filter(const nir_instr *instr, const void *unused)
       return false;
 
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-   return (intr->intrinsic == nir_intrinsic_load_global) ||
-          (intr->intrinsic == nir_intrinsic_load_global_constant) ||
-          (intr->intrinsic == nir_intrinsic_store_global);
+   switch (intr->intrinsic) {
+   case nir_intrinsic_load_global:
+   case nir_intrinsic_load_global_constant:
+   case nir_intrinsic_store_global:
+   case nir_intrinsic_global_atomic_add:
+   case nir_intrinsic_global_atomic_imin:
+   case nir_intrinsic_global_atomic_umin:
+   case nir_intrinsic_global_atomic_imax:
+   case nir_intrinsic_global_atomic_umax:
+   case nir_intrinsic_global_atomic_and:
+   case nir_intrinsic_global_atomic_or:
+   case nir_intrinsic_global_atomic_xor:
+   case nir_intrinsic_global_atomic_exchange:
+   case nir_intrinsic_global_atomic_comp_swap:
+      return true;
+   default:
+      return false;
+   }
 }
 
 static nir_ssa_def *
@@ -249,6 +264,32 @@ lower_64b_global(nir_builder *b, nir_instr *instr, void *unused)
     * Note that we can get vec8/vec16 with OpenCL.. we need to split
     * those up into max 4 components per load/store.
     */
+
+#define GLOBAL_IR3_2SRC(name)                                                 \
+   case nir_intrinsic_##name: {                                               \
+      return nir_build_##name##_ir3(b, nir_dest_bit_size(intr->dest), addr,   \
+                                  nir_ssa_for_src(b, intr->src[1], 1));       \
+   }
+
+   switch (intr->intrinsic) {
+   GLOBAL_IR3_2SRC(global_atomic_add)
+   GLOBAL_IR3_2SRC(global_atomic_imin)
+   GLOBAL_IR3_2SRC(global_atomic_umin)
+   GLOBAL_IR3_2SRC(global_atomic_imax)
+   GLOBAL_IR3_2SRC(global_atomic_umax)
+   GLOBAL_IR3_2SRC(global_atomic_and)
+   GLOBAL_IR3_2SRC(global_atomic_or)
+   GLOBAL_IR3_2SRC(global_atomic_xor)
+   GLOBAL_IR3_2SRC(global_atomic_exchange)
+   case nir_intrinsic_global_atomic_comp_swap:
+      return nir_build_global_atomic_comp_swap_ir3(
+         b, nir_dest_bit_size(intr->dest), addr,
+         nir_ssa_for_src(b, intr->src[1], 1),
+         nir_ssa_for_src(b, intr->src[2], 1));
+   default:
+      break;
+   }
+#undef GLOBAL_IR3_2SRC
 
    if (load) {
       unsigned num_comp = nir_intrinsic_dest_components(intr);

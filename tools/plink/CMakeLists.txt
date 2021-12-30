@@ -29,11 +29,18 @@ add_library(settings STATIC
   cmdline.c settings.c)
 
 add_library(crypto STATIC
-  cproxy.c sshproxy.c)
+  proxy/cproxy.c proxy/sshproxy.c)
 add_subdirectory(crypto)
 
 add_library(network STATIC
-  be_misc.c nullplug.c errsock.c proxy.c logging.c x11disp.c)
+  stubs/nullplug.c errsock.c logging.c x11disp.c
+  proxy/proxy.c
+  proxy/http.c
+  proxy/socks4.c
+  proxy/socks5.c
+  proxy/telnet.c
+  proxy/local.c
+  proxy/interactor.c)
 
 add_library(keygen STATIC
   import.c)
@@ -48,7 +55,7 @@ add_library(guiterminal STATIC
   $<TARGET_OBJECTS:logging>)
 
 add_library(noterminal STATIC
-  noterm.c ldisc.c)
+  stubs/noterm.c ldisc.c)
 
 add_library(all-backends OBJECT
   pinger.c)
@@ -63,7 +70,7 @@ add_library(otherbackends STATIC
 add_subdirectory(otherbackends)
 
 add_executable(testcrypt
-  testcrypt.c sshpubk.c ssh/crc-attack-detector.c)
+  test/testcrypt.c sshpubk.c ssh/crc-attack-detector.c)
 target_link_libraries(testcrypt
   keygen crypto utils ${platform_libraries})
 
@@ -91,8 +98,13 @@ add_executable(bidi_test
 target_link_libraries(bidi_test guiterminal utils ${platform_libraries})
 
 add_executable(plink
-  ${platform}/plink.c
-  be_all_s.c)
+  ${platform}/plink.c)
+# Note: if we ever port Plink to a platform where we can't implement a
+# serial backend, this be_list command will need to become platform-
+# dependent, so that it only sets the SERIAL option on platforms where
+# that backend exists. For the moment, though, we have serial port
+# backends for both our platforms, so we can do this unconditionally.
+be_list(plink Plink SSH SERIAL OTHERBACKENDS)
 target_link_libraries(plink
   eventloop noterminal console sshclient otherbackends settings network crypto
   utils
@@ -100,16 +112,16 @@ target_link_libraries(plink
 installed_program(plink)
 
 add_executable(pscp
-  pscp.c
-  be_ssh.c)
+  pscp.c)
+be_list(pscp PSCP SSH)
 target_link_libraries(pscp
   sftpclient eventloop console sshclient settings network crypto utils
   ${platform_libraries})
 installed_program(pscp)
 
 add_executable(psftp
-  psftp.c
-  be_ssh.c)
+  psftp.c)
+be_list(psftp PSFTP SSH)
 target_link_libraries(psftp
   sftpclient eventloop console sshclient settings network crypto utils
   ${platform_libraries})
@@ -118,9 +130,9 @@ installed_program(psftp)
 add_executable(psocks
   ${platform}/psocks.c
   psocks.c
-  norand.c
-  nocproxy.c
-  nosshproxy.c
+  stubs/norand.c
+  proxy/nocproxy.c
+  proxy/nosshproxy.c
   ssh/portfwd.c)
 target_link_libraries(psocks
   eventloop console network utils

@@ -260,6 +260,7 @@ fail:
    cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEWS | CSO_UNBIND_FS_IMAGE0);
    st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = 0;
 
+   st->ctx->Array.NewVertexElements = true;
    st->dirty |= ST_NEW_FS_CONSTANTS |
                 ST_NEW_FS_IMAGES |
                 ST_NEW_FS_SAMPLER_VIEWS |
@@ -407,7 +408,7 @@ try_cached_readpixels(struct st_context *st, struct st_renderbuffer *strb,
  *       texture layouts during texture uploads/downloads, so the blit
  *       we do here should be free in such cases.
  */
-static void
+void
 st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
               GLsizei width, GLsizei height,
               GLenum format, GLenum type,
@@ -564,9 +565,4 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
 
 fallback:
    _mesa_readpixels(ctx, x, y, width, height, format, type, pack, pixels);
-}
-
-void st_init_readpixels_functions(struct dd_function_table *functions)
-{
-   functions->ReadPixels = st_ReadPixels;
 }

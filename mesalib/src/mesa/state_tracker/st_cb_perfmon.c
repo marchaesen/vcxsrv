@@ -148,7 +148,7 @@ reset_perf_monitor(struct st_perf_monitor_object *stm,
    stm->batch_result = NULL;
 }
 
-static struct gl_perf_monitor_object *
+struct gl_perf_monitor_object *
 st_NewPerfMonitor(struct gl_context *ctx)
 {
    struct st_perf_monitor_object *stq = ST_CALLOC_STRUCT(st_perf_monitor_object);
@@ -157,7 +157,7 @@ st_NewPerfMonitor(struct gl_context *ctx)
    return NULL;
 }
 
-static void
+void
 st_DeletePerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
 {
    struct st_perf_monitor_object *stm = st_perf_monitor_object(m);
@@ -167,7 +167,7 @@ st_DeletePerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
    FREE(stm);
 }
 
-static GLboolean
+GLboolean
 st_BeginPerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
 {
    struct st_perf_monitor_object *stm = st_perf_monitor_object(m);
@@ -199,7 +199,7 @@ fail:
    return false;
 }
 
-static void
+void
 st_EndPerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
 {
    struct st_perf_monitor_object *stm = st_perf_monitor_object(m);
@@ -217,7 +217,7 @@ st_EndPerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
       pipe->end_query(pipe, stm->batch_query);
 }
 
-static void
+void
 st_ResetPerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
 {
    struct st_perf_monitor_object *stm = st_perf_monitor_object(m);
@@ -232,7 +232,7 @@ st_ResetPerfMonitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
       st_BeginPerfMonitor(ctx, m);
 }
 
-static GLboolean
+GLboolean
 st_IsPerfMonitorResultAvailable(struct gl_context *ctx,
                                 struct gl_perf_monitor_object *m)
 {
@@ -261,7 +261,7 @@ st_IsPerfMonitorResultAvailable(struct gl_context *ctx,
    return true;
 }
 
-static void
+void
 st_GetPerfMonitorResult(struct gl_context *ctx,
                         struct gl_perf_monitor_object *m,
                         GLsizei dataSize,
@@ -339,7 +339,7 @@ st_have_perfmon(struct st_context *st)
    return screen->get_driver_query_group_info(screen, 0, NULL) != 0;
 }
 
-static void
+void
 st_InitPerfMonitorGroups(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
@@ -462,16 +462,4 @@ st_destroy_perfmon(struct st_context *st)
    }
    FREE(st->perfmon);
    FREE((void *)perfmon->Groups);
-}
-
-void st_init_perfmon_functions(struct dd_function_table *functions)
-{
-   functions->InitPerfMonitorGroups = st_InitPerfMonitorGroups;
-   functions->NewPerfMonitor = st_NewPerfMonitor;
-   functions->DeletePerfMonitor = st_DeletePerfMonitor;
-   functions->BeginPerfMonitor = st_BeginPerfMonitor;
-   functions->EndPerfMonitor = st_EndPerfMonitor;
-   functions->ResetPerfMonitor = st_ResetPerfMonitor;
-   functions->IsPerfMonitorResultAvailable = st_IsPerfMonitorResultAvailable;
-   functions->GetPerfMonitorResult = st_GetPerfMonitorResult;
 }

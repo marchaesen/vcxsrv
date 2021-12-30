@@ -35,6 +35,9 @@
 #include "texobj.h"
 #include "teximage.h"
 #include "enums.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_context.h"
 
 mesa_format
 _mesa_get_shader_image_format(GLenum format)
@@ -589,7 +592,7 @@ bind_image_texture(struct gl_context *ctx, struct gl_texture_object *texObj,
    u = &ctx->ImageUnits[unit];
 
    FLUSH_VERTICES(ctx, 0, 0);
-   ctx->NewDriverState |= ctx->DriverFlags.NewImageUnits;
+   ctx->NewDriverState |= ST_NEW_IMAGE_UNITS;
 
    set_image_binding(u, texObj, level, layered, layer, access, format);
 }
@@ -687,7 +690,7 @@ bind_image_textures(struct gl_context *ctx, GLuint first, GLuint count,
 
    /* Assume that at least one binding will be changed */
    FLUSH_VERTICES(ctx, 0, 0);
-   ctx->NewDriverState |= ctx->DriverFlags.NewImageUnits;
+   ctx->NewDriverState |= ST_NEW_IMAGE_UNITS;
 
    /* Note that the error semantics for multi-bind commands differ from
     * those of other GL commands.

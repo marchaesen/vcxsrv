@@ -59,7 +59,7 @@ xkb_symbols "basic" {
 //
 // Default layout, additional characters must be in "phoneticx" (with "x") or other extended layout variants below
 //
-default partial alphanumeric_keys
+partial alphanumeric_keys
 xkb_symbols "phonetic" {
 
     name[Group1]= "Indonesian (Arab Pegon, phonetic)";

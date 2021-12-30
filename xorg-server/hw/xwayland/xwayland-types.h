@@ -30,5 +30,6 @@ struct xwl_pixmap;
 struct xwl_window;
 struct xwl_screen;
 struct xwl_egl_backend;
+struct xwl_drm_lease;
 
 #endif /* XWAYLAND_TYPES_H */

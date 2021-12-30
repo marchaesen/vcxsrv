@@ -319,13 +319,13 @@ cross_validate_types_and_qualifiers(struct gl_context *ctx,
       return;
    }
 
-   /* The GLSL 4.30 and GLSL ES 3.00 specifications say:
+   /* The GLSL 4.20 and GLSL ES 3.00 specifications say:
     *
     *    "As only outputs need be declared with invariant, an output from
     *     one shader stage will still match an input of a subsequent stage
     *     without the input being declared as invariant."
     *
-    * while GLSL 4.20 says:
+    * while GLSL 4.10 says:
     *
     *    "For variables leaving one shader and coming into another shader,
     *     the invariant keyword has to be used in both shaders, or a link
@@ -337,7 +337,7 @@ cross_validate_types_and_qualifiers(struct gl_context *ctx,
     *     and fragment shaders must match."
     */
    if (input->data.explicit_invariant != output->data.explicit_invariant &&
-       prog->data->Version < (prog->IsES ? 300 : 430)) {
+       prog->data->Version < (prog->IsES ? 300 : 420)) {
       linker_error(prog,
                    "%s shader output `%s' %s invariant qualifier, "
                    "but %s shader input %s invariant qualifier\n",
@@ -1719,6 +1719,7 @@ public:
                    bool disable_xfb_packing,
                    bool xfb_enabled,
                    bool enhanced_layouts_enabled,
+                   bool prefer_pot_aligned_varyings,
                    gl_shader_stage producer_stage,
                    gl_shader_stage consumer_stage);
    ~varying_matches();
@@ -1759,6 +1760,12 @@ private:
    const bool xfb_enabled;
 
    const bool enhanced_layouts_enabled;
+
+   /**
+    * If true, this driver prefers varyings to be aligned to power of two
+    * in a slot.
+    */
+   const bool prefer_pot_aligned_varyings;
 
    /**
     * Enum representing the order in which varyings are packed within a
@@ -1838,12 +1845,14 @@ varying_matches::varying_matches(bool disable_varying_packing,
                                  bool disable_xfb_packing,
                                  bool xfb_enabled,
                                  bool enhanced_layouts_enabled,
+                                 bool prefer_pot_aligned_varyings,
                                  gl_shader_stage producer_stage,
                                  gl_shader_stage consumer_stage)
    : disable_varying_packing(disable_varying_packing),
      disable_xfb_packing(disable_xfb_packing),
      xfb_enabled(xfb_enabled),
      enhanced_layouts_enabled(enhanced_layouts_enabled),
+     prefer_pot_aligned_varyings(prefer_pot_aligned_varyings),
      producer_stage(producer_stage),
      consumer_stage(consumer_stage)
 {
@@ -2046,10 +2055,15 @@ varying_matches::assign_locations(struct gl_shader_program *prog,
     * packing vec3 attributes can cause trouble because splitting a vec3
     * effectively creates an additional transform feedback output.  The
     * extra TFB output may exceed device driver limits.
+    *
+    * Also don't pack vec3 if the driver prefers power of two aligned
+    * varyings. Packing order guarantees that vec4, vec2 and vec1 will be
+    * pot-aligned, we only need to take care of vec3s
     */
    const bool dont_pack_vec3 =
       (prog->TransformFeedback.BufferMode == GL_SEPARATE_ATTRIBS &&
-       prog->TransformFeedback.NumVarying > 0);
+       prog->TransformFeedback.NumVarying > 0) ||
+      this->prefer_pot_aligned_varyings;
 
    for (unsigned i = 0; i < this->num_matches; i++) {
       unsigned *location = &generic_location;
@@ -2794,10 +2808,14 @@ assign_varying_locations(struct gl_context *ctx,
    if (prog->SeparateShader && (producer == NULL || consumer == NULL))
       disable_varying_packing = true;
 
+   bool prefer_pot_aligned_varyings =
+      ctx->Const.PreferPOTAlignedVaryings;
+
    varying_matches matches(disable_varying_packing,
                            disable_xfb_packing,
                            xfb_enabled,
                            ctx->Extensions.ARB_enhanced_layouts,
+                           prefer_pot_aligned_varyings,
                            producer ? producer->Stage : MESA_SHADER_NONE,
                            consumer ? consumer->Stage : MESA_SHADER_NONE);
    void *hash_table_ctx = ralloc_context(NULL);

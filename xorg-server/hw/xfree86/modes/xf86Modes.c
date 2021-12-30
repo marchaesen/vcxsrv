@@ -803,10 +803,14 @@ xf86CVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
 {
     struct libxcvt_mode_info *libxcvt_mode_info;
     DisplayModeRec *Mode = xnfcalloc(1, sizeof(DisplayModeRec));
+    char *tmp;
 
     libxcvt_mode_info =
         libxcvt_gen_mode_info(HDisplay, VDisplay, VRefresh, Reduced, Interlaced);
 
+    XNFasprintf(&tmp, "%dx%d", HDisplay, VDisplay);
+    Mode->name = tmp;
+    
     Mode->VDisplay   = libxcvt_mode_info->vdisplay;
     Mode->HDisplay   = libxcvt_mode_info->hdisplay;
     Mode->Clock      = libxcvt_mode_info->dot_clock;

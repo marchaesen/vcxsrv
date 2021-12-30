@@ -29,12 +29,14 @@
 #include "glheader.h"
 #include "errors.h"
 #include "enums.h"
-#include "copyimage.h"
 #include "teximage.h"
 #include "texobj.h"
 #include "fbobject.h"
 #include "textureview.h"
 #include "glformats.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_copyimage.h"
 
 enum mesa_block_class {
    BLOCK_CLASS_128_BITS,
@@ -567,12 +569,12 @@ copy_image_subdata(struct gl_context *ctx,
          newDstZ = 0;
       }
 
-      ctx->Driver.CopyImageSubData(ctx,
-                                   srcTexImage, srcRenderbuffer,
-                                   srcX, srcY, newSrcZ,
-                                   dstTexImage, dstRenderbuffer,
-                                   dstX, dstY, newDstZ,
-                                   srcWidth, srcHeight);
+      st_CopyImageSubData(ctx,
+                          srcTexImage, srcRenderbuffer,
+                          srcX, srcY, newSrcZ,
+                          dstTexImage, dstRenderbuffer,
+                          dstX, dstY, newDstZ,
+                          srcWidth, srcHeight);
    }
 }
 

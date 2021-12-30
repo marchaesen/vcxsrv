@@ -87,7 +87,6 @@ Linux, FreeBSD, and other operating systems.
    drivers/freedreno
    drivers/lima
    drivers/llvmpipe
-   drivers/openswr
    drivers/panfrost
    drivers/svga3d
    drivers/v3d

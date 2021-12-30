@@ -382,6 +382,10 @@ xf86VTLeave(void)
     for (i = 0; i < xf86NumGPUScreens; i++)
         xf86GPUScreens[i]->LeaveVT(xf86GPUScreens[i]);
 
+    if (systemd_logind_controls_session()) {
+        systemd_logind_drop_master();
+    }
+
     if (!xf86VTSwitchAway())
         goto switch_failed;
 

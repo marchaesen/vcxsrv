@@ -207,9 +207,6 @@ iris_disk_cache_retrieve(struct iris_screen *screen,
    }
 
    prog_data->param = NULL;
-   prog_data->pull_param = NULL;
-   assert(prog_data->nr_pull_params == 0);
-
    if (prog_data->nr_params) {
       prog_data->param = ralloc_array(NULL, uint32_t, prog_data->nr_params);
       blob_copy_bytes(&blob, prog_data->param,

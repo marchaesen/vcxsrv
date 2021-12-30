@@ -242,12 +242,12 @@ fd4_emit_tile_gmem2mem(struct fd_batch *batch,
    OUT_RING(ring, 0x80000); /* GRAS_CL_CLIP_CNTL */
 
    OUT_PKT0(ring, REG_A4XX_GRAS_CL_VPORT_XOFFSET_0, 6);
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XOFFSET_0((float)pfb->width / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XSCALE_0((float)pfb->width / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YOFFSET_0((float)pfb->height / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YSCALE_0(-(float)pfb->height / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZOFFSET_0(0.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZSCALE_0(1.0));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XOFFSET_0((float)pfb->width / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XSCALE_0((float)pfb->width / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YOFFSET_0((float)pfb->height / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YSCALE_0(-(float)pfb->height / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZOFFSET_0(0.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZSCALE_0(1.0f));
 
    OUT_PKT0(ring, REG_A4XX_RB_RENDER_CONTROL, 1);
    OUT_RING(ring, A4XX_RB_RENDER_CONTROL_DISABLE_COLOR_PIPE | 0xa); /* XXX */
@@ -408,12 +408,12 @@ fd4_emit_tile_mem2gmem(struct fd_batch *batch,
                      A4XX_GRAS_SU_MODE_CONTROL_RENDERING_PASS);
 
    OUT_PKT0(ring, REG_A4XX_GRAS_CL_VPORT_XOFFSET_0, 6);
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XOFFSET_0((float)bin_w / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XSCALE_0((float)bin_w / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YOFFSET_0((float)bin_h / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YSCALE_0(-(float)bin_h / 2.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZOFFSET_0(0.0));
-   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZSCALE_0(1.0));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XOFFSET_0((float)bin_w / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_XSCALE_0((float)bin_w / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YOFFSET_0((float)bin_h / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_YSCALE_0(-(float)bin_h / 2.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZOFFSET_0(0.0f));
+   OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZSCALE_0(1.0f));
 
    OUT_PKT0(ring, REG_A4XX_GRAS_SC_WINDOW_SCISSOR_BR, 2);
    OUT_RING(ring, A4XX_GRAS_SC_WINDOW_SCISSOR_BR_X(bin_w - 1) |

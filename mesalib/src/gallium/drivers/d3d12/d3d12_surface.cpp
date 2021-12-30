@@ -280,7 +280,7 @@ d3d12_surface_destroy(struct pipe_context *pctx,
 }
 
 static void
-blit_surface(struct d3d12_surface *surface, bool pre)
+blit_surface(struct pipe_context *pctx, struct d3d12_surface *surface, bool pre)
 {
    struct pipe_blit_info info = {};
 
@@ -297,11 +297,12 @@ blit_surface(struct d3d12_surface *surface, bool pre)
    info.src.box.depth = info.dst.box.depth = 0;
    info.mask = PIPE_MASK_RGBA;
 
-   d3d12_blit(surface->base.context, &info);
+   d3d12_blit(pctx, &info);
 }
 
 enum d3d12_surface_conversion_mode
-d3d12_surface_update_pre_draw(struct d3d12_surface *surface,
+d3d12_surface_update_pre_draw(struct pipe_context *pctx,
+                              struct d3d12_surface *surface,
                               DXGI_FORMAT format)
 {
    struct d3d12_screen *screen = d3d12_screen(surface->base.context->screen);
@@ -337,12 +338,12 @@ d3d12_surface_update_pre_draw(struct d3d12_surface *surface,
          surface->rgba_texture = screen->base.resource_create(&screen->base, &templ);
       }
 
-      blit_surface(surface, true);
+      blit_surface(pctx, surface, true);
       res = d3d12_resource(surface->rgba_texture);
    }
 
    if (!d3d12_descriptor_handle_is_allocated(&surface->uint_rtv_handle)) {
-      initialize_rtv(surface->base.context, &res->base, &surface->base,
+      initialize_rtv(surface->base.context, &res->base.b, &surface->base,
                      &surface->uint_rtv_handle, DXGI_FORMAT_R8G8B8A8_UINT);
    }
 
@@ -350,11 +351,12 @@ d3d12_surface_update_pre_draw(struct d3d12_surface *surface,
 }
 
 void
-d3d12_surface_update_post_draw(struct d3d12_surface *surface,
+d3d12_surface_update_post_draw(struct pipe_context *pctx,
+                               struct d3d12_surface *surface,
                                enum d3d12_surface_conversion_mode mode)
 {
    if (mode == D3D12_SURFACE_CONVERSION_BGRA_UINT)
-      blit_surface(surface, false);
+      blit_surface(pctx, surface, false);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE

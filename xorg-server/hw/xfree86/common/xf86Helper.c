@@ -55,7 +55,6 @@
 #include "xf86Xinput.h"
 #include "xf86InPriv.h"
 #include "mivalidate.h"
-#include "xf86Crtc.h"
 
 /* For xf86GetClocks */
 #if defined(CSRG_BASED) || defined(__GNU__)
@@ -852,9 +851,8 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
 {
     MessageType from = X_DEFAULT;
     xf86MonPtr DDC = (xf86MonPtr) (pScrn->monitor->DDC);
-    int probedWidthmm, probedHeightmm;
+    int ddcWidthmm, ddcHeightmm;
     int widthErr, heightErr;
-    xf86OutputPtr compat = xf86CompatOutput(pScrn);
 
     /* XXX Maybe there is no need for widthmm/heightmm in ScrnInfoRec */
     pScrn->widthmm = pScrn->monitor->widthmm;
@@ -864,15 +862,11 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
         /* DDC gives display size in mm for individual modes,
          * but cm for monitor
          */
-        probedWidthmm = DDC->features.hsize * 10;  /* 10mm in 1cm */
-        probedHeightmm = DDC->features.vsize * 10; /* 10mm in 1cm */
-    }
-    else if (compat && compat->mm_width > 0 && compat->mm_height > 0) {
-        probedWidthmm = compat->mm_width;
-        probedHeightmm = compat->mm_height;
+        ddcWidthmm = DDC->features.hsize * 10;  /* 10mm in 1cm */
+        ddcHeightmm = DDC->features.vsize * 10; /* 10mm in 1cm */
     }
     else {
-        probedWidthmm = probedHeightmm = 0;
+        ddcWidthmm = ddcHeightmm = 0;
     }
 
     if (monitorResolution > 0) {
@@ -898,15 +892,15 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
                    pScrn->widthmm, pScrn->heightmm);
 
         /* Warn if config and probe disagree about display size */
-        if (probedWidthmm && probedHeightmm) {
+        if (ddcWidthmm && ddcHeightmm) {
             if (pScrn->widthmm > 0) {
-                widthErr = abs(probedWidthmm - pScrn->widthmm);
+                widthErr = abs(ddcWidthmm - pScrn->widthmm);
             }
             else {
                 widthErr = 0;
             }
             if (pScrn->heightmm > 0) {
-                heightErr = abs(probedHeightmm - pScrn->heightmm);
+                heightErr = abs(ddcHeightmm - pScrn->heightmm);
             }
             else {
                 heightErr = 0;
@@ -915,17 +909,17 @@ xf86SetDpi(ScrnInfoPtr pScrn, int x, int y)
                 /* Should include config file name for monitor here */
                 xf86DrvMsg(pScrn->scrnIndex, X_WARNING,
                            "Probed monitor is %dx%d mm, using Displaysize %dx%d mm\n",
-                           probedWidthmm, probedHeightmm, pScrn->widthmm,
+                           ddcWidthmm, ddcHeightmm, pScrn->widthmm,
                            pScrn->heightmm);
             }
         }
     }
-    else if (probedWidthmm && probedHeightmm) {
+    else if (ddcWidthmm && ddcHeightmm) {
         from = X_PROBED;
         xf86DrvMsg(pScrn->scrnIndex, from, "Display dimensions: (%d, %d) mm\n",
-                   probedWidthmm, probedHeightmm);
-        pScrn->widthmm = probedWidthmm;
-        pScrn->heightmm = probedHeightmm;
+                   ddcWidthmm, ddcHeightmm);
+        pScrn->widthmm = ddcWidthmm;
+        pScrn->heightmm = ddcHeightmm;
         if (pScrn->widthmm > 0) {
             pScrn->xDpi =
                 (int) ((double) pScrn->virtualX * MMPERINCH / pScrn->widthmm);

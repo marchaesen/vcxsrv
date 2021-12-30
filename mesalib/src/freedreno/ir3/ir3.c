@@ -275,7 +275,8 @@ ir3_collect_info(struct ir3_shader_variant *v)
                info->ldp_count += components;
          }
 
-         if ((instr->opc == OPC_BARY_F) && (instr->dsts[0]->flags & IR3_REG_EI))
+         if ((instr->opc == OPC_BARY_F || instr->opc == OPC_FLAT_B) &&
+             (instr->dsts[0]->flags & IR3_REG_EI))
             info->last_baryf = info->instrs_count;
 
          unsigned instrs_count = 1 + instr->repeat + instr->nop;
@@ -490,6 +491,11 @@ ir3_instr_clone(struct ir3_instruction *instr)
       struct ir3_register *new_reg =
          ir3_src_create(new_instr, reg->num, reg->flags);
       *new_reg = *reg;
+   }
+
+   if (instr->address) {
+      assert(instr->srcs_count > 0);
+      new_instr->address = new_instr->srcs[instr->srcs_count - 1];
    }
 
    return new_instr;
@@ -858,6 +864,11 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
       if (flags & ~valid_flags)
          return false;
 
+      /* Allow an immediate src1 for flat.b, since it's ignored */
+      if (instr->opc == OPC_FLAT_B &&
+          n == 1 && flags == IR3_REG_IMMED)
+         return true;
+
       if (flags & (IR3_REG_CONST | IR3_REG_IMMED | IR3_REG_SHARED)) {
          unsigned m = n ^ 1;
          /* cannot deal w/ const or shared in both srcs:
@@ -946,10 +957,11 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
          /* disallow immediates in anything but the SSBO slot argument for
           * cat6 instructions:
           */
-         if (is_atomic(instr->opc) && (n != 0))
+         if (is_global_a3xx_atomic(instr->opc) && (n != 0))
             return false;
 
-         if (is_atomic(instr->opc) && !(instr->flags & IR3_INSTR_G))
+         if (is_local_atomic(instr->opc) || is_global_a6xx_atomic(instr->opc) ||
+             is_bindless_atomic(instr->opc))
             return false;
 
          if (instr->opc == OPC_STG && (n == 2))

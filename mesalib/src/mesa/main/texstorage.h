@@ -54,82 +54,13 @@ _mesa_valid_tex_storage_dim(GLsizei width, GLsizei height, GLsizei depth)
 
 /*@}*/
 
-/**
- * \name API functions
- */
-/*@{*/
-
-void GLAPIENTRY
-_mesa_TexStorage1D_no_error(GLenum target, GLsizei levels,
-                            GLenum internalformat, GLsizei width);
-
-extern void GLAPIENTRY
-_mesa_TexStorage1D(GLenum target, GLsizei levels, GLenum internalformat,
-                   GLsizei width);
-
-void GLAPIENTRY
-_mesa_TexStorage2D_no_error(GLenum target, GLsizei levels,
-                            GLenum internalformat, GLsizei width,
-                            GLsizei height);
-
-extern void GLAPIENTRY
-_mesa_TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat,
-                   GLsizei width, GLsizei height);
-
-void GLAPIENTRY
-_mesa_TexStorage3D_no_error(GLenum target, GLsizei levels,
-                            GLenum internalformat, GLsizei width,
-                            GLsizei height, GLsizei depth);
-
-extern void GLAPIENTRY
-_mesa_TexStorage3D(GLenum target, GLsizei levels, GLenum internalformat,
-                   GLsizei width, GLsizei height, GLsizei depth);
-
-void GLAPIENTRY
-_mesa_TextureStorage1D_no_error(GLuint texture, GLsizei levels,
-                                GLenum internalformat, GLsizei width);
-
-extern void GLAPIENTRY
-_mesa_TextureStorage1D(GLuint texture, GLsizei levels, GLenum internalformat,
-                       GLsizei width);
-
-void GLAPIENTRY
-_mesa_TextureStorage2D_no_error(GLuint texture, GLsizei levels,
-                                GLenum internalformat, GLsizei width,
-                                GLsizei height);
-
-extern void GLAPIENTRY
-_mesa_TextureStorage2D(GLuint texture, GLsizei levels, GLenum internalformat,
-                       GLsizei width, GLsizei height);
-
-void GLAPIENTRY
-_mesa_TextureStorage3D_no_error(GLuint texture, GLsizei levels,
-                                GLenum internalformat, GLsizei width,
-                                GLsizei height, GLsizei depth);
-
-extern void GLAPIENTRY
-_mesa_TextureStorage3D(GLuint texture, GLsizei levels, GLenum internalformat,
-                       GLsizei width, GLsizei height, GLsizei depth);
-
-
-extern void GLAPIENTRY
-_mesa_TextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels,
-                          GLenum internalformat,
-                          GLsizei width);
-
-extern void GLAPIENTRY
-_mesa_TextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
-                          GLenum internalformat,
-                          GLsizei width, GLsizei height);
-
-extern void GLAPIENTRY
-_mesa_TextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels,
-                          GLenum internalformat,
-                          GLsizei width, GLsizei height, GLsizei depth);
-
 extern GLboolean
 _mesa_is_legal_tex_storage_format(const struct gl_context *ctx,
                                   GLenum internalformat);
+
+extern bool
+_mesa_is_legal_tex_storage_target(const struct gl_context *ctx,
+                                  GLuint dims, GLenum target);
 
 extern GLboolean
 _mesa_AllocTextureStorage_sw(struct gl_context *ctx,

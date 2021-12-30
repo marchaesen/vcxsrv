@@ -29,14 +29,81 @@
  * 1. ldp/stp can only load/store 4 components at a time, but spilling ignores
  *    that and just spills/restores entire values, including arrays and values
  *    created for texture setup which can be more than 4 components.
- * 2. The spiller doesn't add barrier dependencies needed for post-RA
+ * 2. The immediate offset only has 13 bits and is signed, so if we spill a lot
+ *    or have very large arrays before spilling then we could run out.
+ * 3. The spiller doesn't add barrier dependencies needed for post-RA
  *    scheduling.
  *
  * The first one, in particular, is much easier to handle after RA because
  * arrays and normal values can be treated the same way. Therefore this pass
- * runs after RA, and handles both issues. This keeps the complexity out of the
- * spiller.
+ * runs after RA, and handles all three issues. This keeps the complexity out of
+ * the spiller.
  */
+
+static unsigned
+component_bytes(struct ir3_register *src)
+{
+   return (src->flags & IR3_REG_HALF) ? 2 : 4;
+}
+
+/* Note: this won't work if the base register is anything other than 0!
+ * Dynamic bases, which we'll need for "real" function call support, will
+ * probably be a lot harder to handle and may require reserving another
+ * register.
+ */
+static void
+set_base_reg(struct ir3_instruction *mem, unsigned val)
+{
+   struct ir3_instruction *mov = ir3_instr_create(mem->block, OPC_MOV, 1, 1);
+   ir3_dst_create(mov, mem->srcs[0]->num, mem->srcs[0]->flags);
+   ir3_src_create(mov, INVALID_REG, IR3_REG_IMMED)->uim_val = val;
+   mov->cat1.dst_type = mov->cat1.src_type = TYPE_U32;
+
+   ir3_instr_move_before(mov, mem);
+}
+
+static void
+reset_base_reg(struct ir3_instruction *mem)
+{
+   struct ir3_instruction *mov = ir3_instr_create(mem->block, OPC_MOV, 1, 1);
+   ir3_dst_create(mov, mem->srcs[0]->num, mem->srcs[0]->flags);
+   ir3_src_create(mov, INVALID_REG, IR3_REG_IMMED)->uim_val = 0;
+   mov->cat1.dst_type = mov->cat1.src_type = TYPE_U32;
+
+   ir3_instr_move_after(mov, mem);
+}
+
+/* There are 13 bits, but 1 << 12 will be sign-extended into a negative offset
+ * so it can't be used directly. Therefore only offsets under 1 << 12 can be
+ * used without any adjustments.
+ */
+#define MAX_CAT6_SIZE (1u << 12)
+
+static void
+handle_oob_offset_spill(struct ir3_instruction *spill)
+{
+   unsigned components = spill->srcs[2]->uim_val;
+
+   if (spill->cat6.dst_offset + components * component_bytes(spill->srcs[1]) < MAX_CAT6_SIZE)
+      return;
+
+   set_base_reg(spill, spill->cat6.dst_offset);
+   reset_base_reg(spill);
+   spill->cat6.dst_offset = 0;
+}
+
+static void
+handle_oob_offset_reload(struct ir3_instruction *reload)
+{
+   unsigned components = reload->srcs[2]->uim_val;
+   unsigned offset = reload->srcs[1]->uim_val;
+   if (offset + components * component_bytes(reload->dsts[0]) < MAX_CAT6_SIZE)
+      return;
+
+   set_base_reg(reload, offset);
+   reset_base_reg(reload);
+   reload->srcs[1]->uim_val = 0;
+}
 
 static void
 split_spill(struct ir3_instruction *spill)
@@ -67,8 +134,7 @@ split_spill(struct ir3_instruction *spill)
       }
 
       clone->srcs[2]->uim_val = components;
-      clone->cat6.dst_offset +=
-         comp * ((spill->srcs[1]->flags & IR3_REG_HALF) ? 2 : 4);
+      clone->cat6.dst_offset += comp * component_bytes(spill->srcs[1]);
    }
 
    list_delinit(&spill->node);
@@ -102,8 +168,7 @@ split_reload(struct ir3_instruction *reload)
       }
 
       clone->srcs[2]->uim_val = components;
-      clone->srcs[1]->uim_val +=
-         comp * ((reload->dsts[0]->flags & IR3_REG_HALF) ? 2 : 4);
+      clone->srcs[1]->uim_val += comp * component_bytes(reload->dsts[0]);
    }
 
    list_delinit(&reload->node);
@@ -143,10 +208,13 @@ ir3_lower_spill(struct ir3 *ir)
 {
    foreach_block (block, &ir->block_list) {
       foreach_instr_safe (instr, &block->instr_list) {
-         if (instr->opc == OPC_SPILL_MACRO)
+         if (instr->opc == OPC_SPILL_MACRO) {
+            handle_oob_offset_spill(instr);
             split_spill(instr);
-         else if (instr->opc == OPC_RELOAD_MACRO)
+         } else if (instr->opc == OPC_RELOAD_MACRO) {
+            handle_oob_offset_reload(instr);
             split_reload(instr);
+         }
       }
 
       add_spill_reload_deps(block);

@@ -36,6 +36,7 @@
 #include "util/list.h"
 #include "util/slab.h"
 #include "util/u_suballoc.h"
+#include "util/u_threaded_context.h"
 
 #include <directx/d3d12.h>
 
@@ -68,6 +69,7 @@ enum d3d12_shader_dirty_flags
    D3D12_SHADER_DIRTY_CONSTBUF      = (1 << 0),
    D3D12_SHADER_DIRTY_SAMPLER_VIEWS = (1 << 1),
    D3D12_SHADER_DIRTY_SAMPLERS      = (1 << 2),
+   D3D12_SHADER_DIRTY_UAVS          = (1 << 3),
 };
 
 #define D3D12_DIRTY_PSO (D3D12_DIRTY_BLEND | D3D12_DIRTY_RASTERIZER | D3D12_DIRTY_ZSA | \
@@ -77,7 +79,7 @@ enum d3d12_shader_dirty_flags
                          D3D12_DIRTY_STRIP_CUT_VALUE)
 
 #define D3D12_SHADER_DIRTY_ALL (D3D12_SHADER_DIRTY_CONSTBUF | D3D12_SHADER_DIRTY_SAMPLER_VIEWS | \
-                                D3D12_SHADER_DIRTY_SAMPLERS)
+                                D3D12_SHADER_DIRTY_SAMPLERS | D3D12_SHADER_DIRTY_UAVS)
 
 enum d3d12_binding_type {
    D3D12_BINDING_CONSTANT_BUFFER,
@@ -113,6 +115,7 @@ struct d3d12_sampler_view {
    struct d3d12_descriptor_handle handle;
    unsigned mip_levels;
    unsigned array_size;
+   unsigned texture_generation_id;
    unsigned swizzle_override_r:3;         /**< PIPE_SWIZZLE_x for red component */
    unsigned swizzle_override_g:3;         /**< PIPE_SWIZZLE_x for green component */
    unsigned swizzle_override_b:3;         /**< PIPE_SWIZZLE_x for blue component */
@@ -148,6 +151,8 @@ class ResourceStateManager;
 struct d3d12_context {
    struct pipe_context base;
    struct slab_child_pool transfer_pool;
+   struct slab_child_pool transfer_pool_unsync;
+   struct threaded_context *threaded_context;
    struct primconvert_context *primconvert;
    struct blitter_context *blitter;
    struct u_suballocator query_allocator;
@@ -177,6 +182,8 @@ struct d3d12_context {
    struct pipe_sampler_view *sampler_views[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_SAMPLER_VIEWS];
    unsigned num_sampler_views[PIPE_SHADER_TYPES];
    unsigned has_int_samplers;
+   struct pipe_shader_buffer ssbo_views[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];
+   unsigned num_ssbo_views[PIPE_SHADER_TYPES];
    struct d3d12_sampler_state *samplers[PIPE_SHADER_TYPES][PIPE_MAX_SAMPLERS];
    unsigned num_samplers[PIPE_SHADER_TYPES];
    D3D12_INDEX_BUFFER_VIEW ibv;
@@ -311,5 +318,8 @@ d3d12_context_query_init(struct pipe_context *pctx);
 
 bool
 d3d12_need_zero_one_depth_range(struct d3d12_context *ctx);
+
+void
+d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view);
 
 #endif

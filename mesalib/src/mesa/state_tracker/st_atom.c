@@ -38,21 +38,31 @@
 #include "st_manager.h"
 #include "st_util.h"
 
+#include "util/u_cpu_detect.h"
+
 
 typedef void (*update_func_t)(struct st_context *st);
 
 /* The list state update functions. */
-static const update_func_t update_functions[] =
+static update_func_t update_functions[ST_NUM_ATOMS];
+
+static void
+init_atoms_once(void)
 {
-#define ST_STATE(FLAG, st_update) st_update,
+#define ST_STATE(FLAG, st_update) update_functions[FLAG##_INDEX] = st_update;
 #include "st_atom_list.h"
 #undef ST_STATE
-};
 
+   if (util_get_cpu_caps()->has_popcnt)
+      update_functions[ST_NEW_VERTEX_ARRAYS_INDEX] = st_update_array_with_popcnt;
+}
 
 void st_init_atoms( struct st_context *st )
 {
    STATIC_ASSERT(ARRAY_SIZE(update_functions) <= 64);
+
+   static once_flag flag = ONCE_FLAG_INIT;
+   call_once(&flag, init_atoms_once);
 }
 
 
@@ -85,6 +95,7 @@ static void check_program_state( struct st_context *st )
     * properly when transitioning to shaders that don't use them.
     */
    if (unlikely(new_vp != (old_vp ? &old_vp->Base : NULL))) {
+      ctx->Array.NewVertexElements = true;
       if (old_vp)
          dirty |= old_vp->affected_states;
       if (new_vp)

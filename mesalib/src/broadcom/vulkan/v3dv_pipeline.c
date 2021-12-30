@@ -26,8 +26,6 @@
 #include "v3dv_debug.h"
 #include "v3dv_private.h"
 
-#include "vk_format_info.h"
-
 #include "common/v3d_debug.h"
 
 #include "compiler/nir/nir_builder.h"
@@ -454,6 +452,11 @@ shader_module_compile_to_nir(struct v3dv_device *device,
       assert(nir);
       nir_validate_shader(nir, "after spirv_to_nir");
       free(spec_entries);
+      if (unlikely(V3D_DEBUG & V3D_DEBUG_SHADERDB)) {
+            char sha1buf[41];
+            _mesa_sha1_format(sha1buf, stage->pipeline->sha1);
+            nir->info.name = ralloc_strdup(nir, sha1buf);
+      }
    } else {
       /* For NIR modules created by the driver we can't consume the NIR
        * directly, we need to clone it first, since ownership of the NIR code
@@ -1198,8 +1201,9 @@ pipeline_populate_v3d_fs_key(struct v3d_fs_key *key,
        */
       if (key->logicop_func != PIPE_LOGICOP_COPY) {
          key->color_fmt[i].format = fb_pipe_format;
-         key->color_fmt[i].swizzle =
-            v3dv_get_format_swizzle(p_stage->pipeline->device, fb_format);
+         memcpy(key->color_fmt[i].swizzle,
+                v3dv_get_format_swizzle(p_stage->pipeline->device, fb_format),
+                sizeof(key->color_fmt[i].swizzle));
       }
 
       const struct util_format_description *desc =
@@ -2039,8 +2043,9 @@ pipeline_populate_graphics_key(struct v3dv_pipeline *pipeline,
        */
       if (key->logicop_func != PIPE_LOGICOP_COPY) {
          key->color_fmt[i].format = fb_pipe_format;
-         key->color_fmt[i].swizzle = v3dv_get_format_swizzle(pipeline->device,
-                                                             fb_format);
+         memcpy(key->color_fmt[i].swizzle,
+                v3dv_get_format_swizzle(pipeline->device, fb_format),
+                sizeof(key->color_fmt[i].swizzle));
       }
 
       const struct util_format_description *desc =
@@ -2496,14 +2501,13 @@ pipeline_compile_graphics(struct v3dv_pipeline *pipeline,
    /* First we try to get the variants from the pipeline cache */
    struct v3dv_pipeline_key pipeline_key;
    pipeline_populate_graphics_key(pipeline, &pipeline_key, pCreateInfo);
-   unsigned char pipeline_sha1[20];
-   pipeline_hash_graphics(pipeline, &pipeline_key, pipeline_sha1);
+   pipeline_hash_graphics(pipeline, &pipeline_key, pipeline->sha1);
 
    bool cache_hit = false;
 
    pipeline->shared_data =
       v3dv_pipeline_cache_search_for_pipeline(cache,
-                                              pipeline_sha1,
+                                              pipeline->sha1,
                                               &cache_hit);
 
    if (pipeline->shared_data != NULL) {
@@ -2530,7 +2534,7 @@ pipeline_compile_graphics(struct v3dv_pipeline *pipeline,
     * shader or the pipeline cache) and compile.
     */
    pipeline->shared_data =
-      v3dv_pipeline_shared_data_new_empty(pipeline_sha1, pipeline, true);
+      v3dv_pipeline_shared_data_new_empty(pipeline->sha1, pipeline, true);
 
    pipeline->vs->feedback.flags |=
       VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT;
@@ -2692,8 +2696,15 @@ pipeline_init_dynamic_state(
    const VkPipelineRasterizationStateCreateInfo *pRasterizationState,
    const VkPipelineColorWriteCreateInfoEXT *pColorWriteState)
 {
-   pipeline->dynamic_state = default_dynamic_state;
+   /* Initialize to default values */
    struct v3dv_dynamic_state *dynamic = &pipeline->dynamic_state;
+   memset(dynamic, 0, sizeof(*dynamic));
+   dynamic->stencil_compare_mask.front = ~0;
+   dynamic->stencil_compare_mask.back = ~0;
+   dynamic->stencil_write_mask.front = ~0;
+   dynamic->stencil_write_mask.back = ~0;
+   dynamic->line_width = 1.0f;
+   dynamic->color_write_enable = (1ull << (4 * V3D_MAX_DRAW_BUFFERS)) - 1;
 
    /* Create a mask of enabled dynamic states */
    uint32_t dynamic_states = 0;
@@ -3181,12 +3192,11 @@ pipeline_compile_compute(struct v3dv_pipeline *pipeline,
 
    struct v3dv_pipeline_key pipeline_key;
    pipeline_populate_compute_key(pipeline, &pipeline_key, info);
-   unsigned char pipeline_sha1[20];
-   pipeline_hash_compute(pipeline, &pipeline_key, pipeline_sha1);
+   pipeline_hash_compute(pipeline, &pipeline_key, pipeline->sha1);
 
    bool cache_hit = false;
    pipeline->shared_data =
-      v3dv_pipeline_cache_search_for_pipeline(cache, pipeline_sha1, &cache_hit);
+      v3dv_pipeline_cache_search_for_pipeline(cache, pipeline->sha1, &cache_hit);
 
    if (pipeline->shared_data != NULL) {
       assert(pipeline->shared_data->variants[BROADCOM_SHADER_COMPUTE]);
@@ -3200,7 +3210,7 @@ pipeline_compile_compute(struct v3dv_pipeline *pipeline,
    if (info->flags & VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT_EXT)
       return VK_PIPELINE_COMPILE_REQUIRED_EXT;
 
-   pipeline->shared_data = v3dv_pipeline_shared_data_new_empty(pipeline_sha1,
+   pipeline->shared_data = v3dv_pipeline_shared_data_new_empty(pipeline->sha1,
                                                                pipeline,
                                                                false);
 

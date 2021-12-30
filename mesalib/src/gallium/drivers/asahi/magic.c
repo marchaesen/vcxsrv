@@ -156,6 +156,9 @@ demo_cmdbuf(uint64_t *buf, size_t size,
       cfg.attachment_length = nr_attachments * AGX_IOGPU_ATTACHMENT_LENGTH;
       cfg.unknown_offset = offset_unk;
       cfg.encoder = encoder_ptr;
+
+      cfg.deflake_1 = demo_zero(pool, 0x540);
+      cfg.deflake_2 = demo_zero(pool, 0x280);
    }
 
    return total_size;
@@ -173,9 +176,8 @@ demo_map_header(uint64_t cmdbuf_id, uint64_t encoder_id, unsigned cmdbuf_size, u
       .cmdbuf_size = cmdbuf_size,
 
       /* +1 for the sentinel ending */
-      .nr_entries = count + 1,
-      .nr_handles = count + 1,
-      .indices = {0x0b},
+      .nr_entries = count,
+      .nr_handles = count,
    };
 }
 
@@ -184,7 +186,7 @@ demo_mem_map(void *map, size_t size, unsigned *handles, unsigned count,
              uint64_t cmdbuf_id, uint64_t encoder_id, unsigned cmdbuf_size)
 {
    struct agx_map_header *header = map;
-   struct agx_map_entry *entries = (struct agx_map_entry *) (((uint8_t *) map) + 0x40);
+   struct agx_map_entry *entries = (struct agx_map_entry *) (((uint8_t *) map) + sizeof(*header));
    struct agx_map_entry *end = (struct agx_map_entry *) (((uint8_t *) map) + size);
 
    /* Header precedes the entry */
@@ -194,18 +196,10 @@ demo_mem_map(void *map, size_t size, unsigned *handles, unsigned count,
    for (unsigned i = 0; i < count; ++i) {
 	   assert((entries + i) < end);
       entries[i] = (struct agx_map_entry) {
+         .indices = {handles[i]},
          .unkAAA = 0x20,
          .unkBBB = 0x1,
          .unka = 0x1ffff,
-         .indices = {handles[i]}
       };
    }
-
-   /* Final entry is a sentinel */
-   assert((entries + count) < end);
-   entries[count] = (struct agx_map_entry) {
-      .unkAAA = 0x40,
-      .unkBBB = 0x1,
-      .unka = 0x1ffff,
-   };
 }

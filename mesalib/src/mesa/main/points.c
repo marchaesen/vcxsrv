@@ -33,6 +33,7 @@
 #include "macros.h"
 #include "points.h"
 #include "mtypes.h"
+#include "api_exec_decl.h"
 
 
 /**
@@ -53,9 +54,6 @@ point_size(struct gl_context *ctx, GLfloat size, bool no_error)
 
    FLUSH_VERTICES(ctx, _NEW_POINT, GL_POINT_BIT);
    ctx->Point.Size = size;
-
-   if (ctx->Driver.PointSize)
-      ctx->Driver.PointSize(ctx, size);
 }
 
 
@@ -198,9 +196,6 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
                       "glPointParameterf[v]{EXT,ARB}(pname)" );
          return;
    }
-
-   if (ctx->Driver.PointParameterfv)
-      ctx->Driver.PointParameterfv(ctx, pname, params);
 }
 
 

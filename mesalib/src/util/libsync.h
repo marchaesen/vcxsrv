@@ -36,6 +36,7 @@
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <unistd.h>
+#include <time.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -102,12 +103,15 @@ static inline int sync_wait(int fd, int timeout)
 {
 	struct pollfd fds = {0};
 	int ret;
+	struct timespec poll_start, poll_end;
 
 	fds.fd = fd;
 	fds.events = POLLIN;
 
 	do {
+		clock_gettime(CLOCK_MONOTONIC, &poll_start);
 		ret = poll(&fds, 1, timeout);
+		clock_gettime(CLOCK_MONOTONIC, &poll_end);
 		if (ret > 0) {
 			if (fds.revents & (POLLERR | POLLNVAL)) {
 				errno = EINVAL;
@@ -118,6 +122,8 @@ static inline int sync_wait(int fd, int timeout)
 			errno = ETIME;
 			return -1;
 		}
+		timeout -= (poll_end.tv_sec - poll_start.tv_sec) * 1000 +
+			(poll_end.tv_nsec - poll_end.tv_nsec) / 1000000;
 	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
 
 	return ret;

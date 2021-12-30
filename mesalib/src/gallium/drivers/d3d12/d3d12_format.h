@@ -37,6 +37,16 @@ DXGI_FORMAT
 d3d12_get_format(enum pipe_format format);
 
 DXGI_FORMAT
+d3d12_get_typeless_format(enum pipe_format format);
+
+/* These two are only used for importing external resources without a provided template */
+enum pipe_format
+d3d12_get_pipe_format(DXGI_FORMAT format);
+
+enum pipe_format
+d3d12_get_default_pipe_format(DXGI_FORMAT format);
+
+DXGI_FORMAT
 d3d12_get_resource_srv_format(enum pipe_format f, enum pipe_texture_target target);
 
 DXGI_FORMAT
@@ -51,7 +61,7 @@ struct d3d12_format_info {
 };
 
 struct d3d12_format_info
-d3d12_get_format_info(enum pipe_format format, enum pipe_texture_target);
+d3d12_get_format_info(enum pipe_format resource_format, enum pipe_format format, enum pipe_texture_target);
 
 enum pipe_format
 d3d12_emulated_vtx_format(enum pipe_format fmt);

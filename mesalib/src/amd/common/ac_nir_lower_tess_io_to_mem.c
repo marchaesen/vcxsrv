@@ -253,7 +253,7 @@ filter_load_tcs_per_vertex_input(const nir_instr *instr,
     * can use temporaries, no need to use shared memory.
     */
    nir_src *off_src = nir_get_io_offset_src(intrin);
-   nir_src *vertex_index_src = nir_get_io_vertex_index_src(intrin);
+   nir_src *vertex_index_src = nir_get_io_arrayed_index_src(intrin);
    nir_instr *vertex_index_instr = vertex_index_src->ssa->parent_instr;
 
    bool can_use_temps = nir_src_is_const(*off_src) &&
@@ -275,7 +275,7 @@ hs_per_vertex_input_lds_offset(nir_builder *b,
    nir_ssa_def *tcs_in_patch_stride = nir_imul_imm(b, tcs_in_vtxcnt, tcs_in_vertex_stride);
    nir_ssa_def *tcs_in_current_patch_offset = nir_imul(b, rel_patch_id, tcs_in_patch_stride);
 
-   nir_ssa_def *vertex_index = nir_get_io_vertex_index_src(instr)->ssa;
+   nir_ssa_def *vertex_index = nir_get_io_arrayed_index_src(instr)->ssa;
    nir_ssa_def *vertex_index_off = nir_imul_imm(b, vertex_index, tcs_in_vertex_stride);
 
    nir_ssa_def *io_offset = nir_build_calc_io_offset(b, instr, nir_imm_int(b, 16u), 4u);
@@ -310,7 +310,7 @@ hs_output_lds_offset(nir_builder *b,
    nir_ssa_def *output_patch_offset = nir_iadd_nuw(b, patch_offset, output_patch0_offset);
 
    if (per_vertex) {
-      nir_ssa_def *vertex_index = nir_ssa_for_src(b, *nir_get_io_vertex_index_src(intrin), 1);
+      nir_ssa_def *vertex_index = nir_ssa_for_src(b, *nir_get_io_arrayed_index_src(intrin), 1);
       nir_ssa_def *vertex_index_off = nir_imul_imm(b, vertex_index, output_vertex_size);
 
       off = nir_iadd_nuw(b, off, vertex_index_off);
@@ -337,7 +337,7 @@ hs_per_vertex_output_vmem_offset(nir_builder *b,
    nir_ssa_def *rel_patch_id = nir_build_load_tess_rel_patch_id_amd(b);
    nir_ssa_def *patch_offset = nir_imul(b, rel_patch_id, nir_imul_imm(b, out_vertices_per_patch, 16u));
 
-   nir_ssa_def *vertex_index = nir_ssa_for_src(b, *nir_get_io_vertex_index_src(intrin), 1);
+   nir_ssa_def *vertex_index = nir_ssa_for_src(b, *nir_get_io_arrayed_index_src(intrin), 1);
    nir_ssa_def *vertex_index_off = nir_imul_imm(b, vertex_index, 16u);
 
    return nir_iadd_nuw(b, nir_iadd_nuw(b, patch_offset, vertex_index_off), io_offset);

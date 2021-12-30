@@ -81,8 +81,8 @@ can_fast_clear_color(struct crocus_context *ice,
 
    /* Check for partial clear */
    if (box->x > 0 || box->y > 0 ||
-       box->width < minify(p_res->width0, level) ||
-       box->height < minify(p_res->height0, level)) {
+       box->width < u_minify(p_res->width0, level) ||
+       box->height < u_minify(p_res->height0, level)) {
       return false;
    }
 
@@ -440,8 +440,8 @@ can_fast_clear_depth(struct crocus_context *ice,
        *        optimization must be disabled.
        */
       if (devinfo->ver == 6 &&
-          (minify(res->surf.phys_level0_sa.width,
-                  level) % 16) != 0)
+          (u_minify(res->surf.phys_level0_sa.width,
+                    level) % 16) != 0)
          return false;
    }
    return true;

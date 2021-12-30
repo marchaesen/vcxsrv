@@ -96,7 +96,7 @@ add_dep(enum direction dir,
                 after = t;
         }
 
-        dag_add_edge(&after->dag, &before->dag, NULL);
+        dag_add_edge(&after->dag, &before->dag, 0);
 }
 
 static void

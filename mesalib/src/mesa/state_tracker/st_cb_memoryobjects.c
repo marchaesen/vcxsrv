@@ -39,7 +39,7 @@
 #include "drm-uapi/drm_fourcc.h"
 #endif
 
-static struct gl_memory_object *
+struct gl_memory_object *
 st_memoryobj_alloc(struct gl_context *ctx, GLuint name)
 {
    struct st_memory_object *st_obj = ST_CALLOC_STRUCT(st_memory_object);
@@ -50,7 +50,7 @@ st_memoryobj_alloc(struct gl_context *ctx, GLuint name)
    return &st_obj->Base;
 }
 
-static void
+void
 st_memoryobj_free(struct gl_context *ctx,
                   struct gl_memory_object *obj)
 {
@@ -64,12 +64,13 @@ st_memoryobj_free(struct gl_context *ctx,
 }
 
 
-static void
+void
 st_import_memoryobj_fd(struct gl_context *ctx,
                        struct gl_memory_object *obj,
                        GLuint64 size,
                        int fd)
 {
+#if !defined(_WIN32)
    struct st_memory_object *st_obj = st_memory_object(obj);
    struct st_context *st = st_context(ctx);
    struct pipe_screen *screen = st->screen;
@@ -85,16 +86,7 @@ st_import_memoryobj_fd(struct gl_context *ctx,
                                                       &whandle,
                                                       obj->Dedicated);
 
-#if !defined(_WIN32)
    /* We own fd, but we no longer need it. So get rid of it */
    close(fd);
 #endif
-}
-
-void
-st_init_memoryobject_functions(struct dd_function_table *functions)
-{
-   functions->NewMemoryObject = st_memoryobj_alloc;
-   functions->DeleteMemoryObject = st_memoryobj_free;
-   functions->ImportMemoryObjectFd = st_import_memoryobj_fd;
 }

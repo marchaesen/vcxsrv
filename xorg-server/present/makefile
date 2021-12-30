@@ -8,8 +8,7 @@ CSRCS = \
 	present_request.c \
 	present_scmd.c \
 	present_screen.c \
-	present_vblank.c \
-	present_wnmd.c
+	present_vblank.c
 
 LIBRARY=libpresent
 

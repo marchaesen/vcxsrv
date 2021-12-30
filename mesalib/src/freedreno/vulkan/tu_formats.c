@@ -69,9 +69,9 @@ tu_vk_format_to_pipe_format(VkFormat vk_format)
    case VK_FORMAT_B8G8R8G8_422_UNORM: /* UYVY */
       return PIPE_FORMAT_G8R8_B8R8_UNORM;
    case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-      return PIPE_FORMAT_R8_G8B8_420_UNORM;
+      return PIPE_FORMAT_G8_B8R8_420_UNORM;
    case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
-      return PIPE_FORMAT_R8_G8_B8_420_UNORM;
+      return PIPE_FORMAT_G8_B8_R8_420_UNORM;
    default:
       return vk_format_to_pipe_format(vk_format);
    }

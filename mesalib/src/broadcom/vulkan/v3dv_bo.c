@@ -67,8 +67,8 @@ bo_dump_stats(struct v3dv_device *device)
 
       struct timespec time;
       clock_gettime(CLOCK_MONOTONIC, &time);
-      fprintf(stderr, "  now:               %ld\n",
-              time.tv_sec);
+      fprintf(stderr, "  now:               %lld\n",
+              (long long)time.tv_sec);
    }
 
    if (cache->size_list_size) {

@@ -32,7 +32,6 @@
 
 #include "glformats.h"
 #include "glheader.h"
-#include "clear.h"
 #include "context.h"
 #include "enums.h"
 #include "fbobject.h"
@@ -40,8 +39,9 @@
 #include "macros.h"
 #include "mtypes.h"
 #include "state.h"
+#include "api_exec_decl.h"
 
-
+#include "state_tracker/st_cb_clear.h"
 
 void GLAPIENTRY
 _mesa_ClearIndex( GLfloat c )
@@ -221,8 +221,7 @@ clear(struct gl_context *ctx, GLbitfield mask, bool no_error)
          bufferMask |= BUFFER_BIT_ACCUM;
       }
 
-      assert(ctx->Driver.Clear);
-      ctx->Driver.Clear(ctx, bufferMask);
+      st_Clear(ctx, bufferMask);
    }
 }
 
@@ -377,12 +376,12 @@ clear_bufferiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
                && !ctx->RasterDiscard) {
          /* Save current stencil clear value, set to 'value', do the
           * stencil clear and restore the clear value.
-          * XXX in the future we may have a new ctx->Driver.ClearBuffer()
+          * XXX in the future we may have a new st_ClearBuffer()
           * hook instead.
           */
          const GLuint clearSave = ctx->Stencil.Clear;
          ctx->Stencil.Clear = *value;
-         ctx->Driver.Clear(ctx, BUFFER_BIT_STENCIL);
+         st_Clear(ctx, BUFFER_BIT_STENCIL);
          ctx->Stencil.Clear = clearSave;
       }
       break;
@@ -402,7 +401,7 @@ clear_bufferiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
             /* set color */
             COPY_4V(ctx->Color.ClearColor.i, value);
             /* clear buffer(s) */
-            ctx->Driver.Clear(ctx, mask);
+            st_Clear(ctx, mask);
             /* restore color */
             ctx->Color.ClearColor = clearSave;
          }
@@ -495,7 +494,7 @@ clear_bufferuiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
             /* set color */
             COPY_4V(ctx->Color.ClearColor.ui, value);
             /* clear buffer(s) */
-            ctx->Driver.Clear(ctx, mask);
+            st_Clear(ctx, mask);
             /* restore color */
             ctx->Color.ClearColor = clearSave;
          }
@@ -590,7 +589,7 @@ clear_bufferfv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
                && !ctx->RasterDiscard) {
          /* Save current depth clear value, set to 'value', do the
           * depth clear and restore the clear value.
-          * XXX in the future we may have a new ctx->Driver.ClearBuffer()
+          * XXX in the future we may have a new st_ClearBuffer()
           * hook instead.
           */
          const GLclampd clearSave = ctx->Depth.Clear;
@@ -608,7 +607,7 @@ clear_bufferfv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
             _mesa_has_depth_float_channel(rb->InternalFormat);
          ctx->Depth.Clear = is_float_depth ? *value : SATURATE(*value);
 
-         ctx->Driver.Clear(ctx, BUFFER_BIT_DEPTH);
+         st_Clear(ctx, BUFFER_BIT_DEPTH);
          ctx->Depth.Clear = clearSave;
       }
       /* clear depth buffer to value */
@@ -629,7 +628,7 @@ clear_bufferfv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
             /* set color */
             COPY_4V(ctx->Color.ClearColor.f, value);
             /* clear buffer(s) */
-            ctx->Driver.Clear(ctx, mask);
+            st_Clear(ctx, mask);
             /* restore color */
             ctx->Color.ClearColor = clearSave;
          }
@@ -759,7 +758,7 @@ clear_bufferfi(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
       ctx->Stencil.Clear = stencil;
 
       /* clear buffers */
-      ctx->Driver.Clear(ctx, mask);
+      st_Clear(ctx, mask);
 
       /* restore */
       ctx->Depth.Clear = clearDepthSave;

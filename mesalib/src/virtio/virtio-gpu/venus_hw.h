@@ -32,6 +32,9 @@ struct virgl_renderer_capset_venus {
    uint32_t vk_xml_version;
    uint32_t vk_ext_command_serialization_spec_version;
    uint32_t vk_mesa_venus_protocol_spec_version;
+
+   /* TODO revisit this when we bump up wire_format_version to 1 */
+   uint32_t supports_blob_id_0;
 };
 #endif
 
