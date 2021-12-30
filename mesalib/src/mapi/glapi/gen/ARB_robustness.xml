@@ -98,7 +98,7 @@
 
 
 <!-- ARB_imaging sized buffer queries -->
-    <function name="GetnColorTableARB" deprecated="3.1">
+    <function name="GetnColorTableARB" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -106,7 +106,7 @@
         <param name="table" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnConvolutionFilterARB" deprecated="3.1">
+    <function name="GetnConvolutionFilterARB" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -114,7 +114,7 @@
         <param name="image" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnSeparableFilterARB" deprecated="3.1">
+    <function name="GetnSeparableFilterARB" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -125,7 +125,7 @@
         <param name="span" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnHistogramARB" deprecated="3.1">
+    <function name="GetnHistogramARB" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="reset" type="GLboolean"/>
         <param name="format" type="GLenum"/>
@@ -134,7 +134,7 @@
         <param name="values" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnMinmaxARB" deprecated="3.1">
+    <function name="GetnMinmaxARB" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="reset" type="GLboolean"/>
         <param name="format" type="GLenum"/>

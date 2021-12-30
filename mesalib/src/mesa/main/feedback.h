@@ -26,26 +26,7 @@
 #ifndef FEEDBACK_H
 #define FEEDBACK_H
 
-
 #include "main/mtypes.h"
-
-
-void GLAPIENTRY
-_mesa_FeedbackBuffer( GLsizei size, GLenum type, GLfloat *buffer );
-void GLAPIENTRY
-_mesa_PassThrough( GLfloat token );
-void GLAPIENTRY
-_mesa_SelectBuffer( GLsizei size, GLuint *buffer );
-void GLAPIENTRY
-_mesa_InitNames( void );
-void GLAPIENTRY
-_mesa_LoadName( GLuint name );
-void GLAPIENTRY
-_mesa_PushName( GLuint name );
-void GLAPIENTRY
-_mesa_PopName( void );
-GLint GLAPIENTRY
-_mesa_RenderMode( GLenum mode );
 
 extern void
 _mesa_feedback_vertex( struct gl_context *ctx,

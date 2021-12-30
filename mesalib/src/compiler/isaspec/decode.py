@@ -76,7 +76,7 @@ static const struct isa_enum ${enum.get_c_name()} = {
 static uint64_t
 ${expr.get_c_name()}(struct decode_scope *scope)
 {
-%   for fieldname in expr.fieldnames:
+%   for fieldname in sorted(expr.fieldnames):
     int64_t ${fieldname} = isa_decode_field(scope, "${fieldname}");
 %   endfor
     return ${expr.expr};

@@ -37,13 +37,111 @@
 #include "util/u_prim.h"
 #include "tgsi/tgsi_from_mesa.h"
 
+unsigned si_determine_wave_size(struct si_screen *sscreen, struct si_shader *shader)
+{
+   /* There are a few uses that pass shader=NULL here, expecting the default compute wave size. */
+   struct si_shader_info *info = shader ? &shader->selector->info : NULL;
+   gl_shader_stage stage = info ? info->stage : MESA_SHADER_COMPUTE;
+
+   if (sscreen->info.chip_class < GFX10)
+      return 64;
+
+   /* Legacy GS only supports Wave64. */
+   if ((stage == MESA_SHADER_VERTEX && shader->key.ge.as_es && !shader->key.ge.as_ngg) ||
+       (stage == MESA_SHADER_TESS_EVAL && shader->key.ge.as_es && !shader->key.ge.as_ngg) ||
+       (stage == MESA_SHADER_GEOMETRY && !shader->key.ge.as_ngg))
+      return 64;
+
+   /* Small workgroups use Wave32 unconditionally. */
+   if (stage == MESA_SHADER_COMPUTE && info &&
+       !info->base.workgroup_size_variable &&
+       info->base.workgroup_size[0] *
+       info->base.workgroup_size[1] *
+       info->base.workgroup_size[2] <= 32)
+      return 32;
+
+   /* Debug flags. */
+   unsigned dbg_wave_size = 0;
+   if (sscreen->debug_flags &
+       (stage == MESA_SHADER_COMPUTE ? DBG(W32_CS) :
+        stage == MESA_SHADER_FRAGMENT ? DBG(W32_PS) | DBG(W32_PS_DISCARD) : DBG(W32_GE)))
+      dbg_wave_size = 32;
+
+   if (sscreen->debug_flags &
+       (stage == MESA_SHADER_COMPUTE ? DBG(W64_CS) :
+        stage == MESA_SHADER_FRAGMENT ? DBG(W64_PS) : DBG(W64_GE))) {
+      assert(!dbg_wave_size);
+      dbg_wave_size = 64;
+   }
+
+   /* Shader profiles. */
+   unsigned profile_wave_size = 0;
+   if (info && info->options & SI_PROFILE_WAVE32)
+      profile_wave_size = 32;
+
+   if (info && info->options & SI_PROFILE_WAVE64) {
+      assert(!profile_wave_size);
+      profile_wave_size = 64;
+   }
+
+   if (profile_wave_size) {
+      /* Only debug flags override shader profiles. */
+      if (dbg_wave_size)
+         return dbg_wave_size;
+
+      return profile_wave_size;
+   }
+
+   /* LLVM 13 and 14 have a bug that causes compile failures with discard in Wave32
+    * in some cases. Alpha test in Wave32 is luckily unaffected.
+    */
+   if (stage == MESA_SHADER_FRAGMENT && info->base.fs.uses_discard &&
+       !(info && info->options & SI_PROFILE_IGNORE_LLVM_DISCARD_BUG) &&
+       LLVM_VERSION_MAJOR >= 13 && !(sscreen->debug_flags & DBG(W32_PS_DISCARD)))
+      return 64;
+
+   /* Debug flags except w32psdiscard don't override the discard bug workaround,
+    * but they override everything else.
+    */
+   if (dbg_wave_size)
+      return dbg_wave_size;
+
+   /* Pixel shaders without interp instructions don't suffer from reduced interpolation
+    * performance in Wave32, so use Wave32. This helps Piano and Voloplosion.
+    */
+   if (stage == MESA_SHADER_FRAGMENT && !info->num_inputs)
+      return 32;
+
+   /* There are a few very rare cases where VS is better with Wave32, and there are no known
+    * cases where Wave64 is better.
+    */
+   if (stage <= MESA_SHADER_GEOMETRY)
+      return 32;
+
+   /* TODO: Merged shaders must use the same wave size because the driver doesn't recompile
+    * individual shaders of merged shaders to match the wave size between them.
+    */
+   bool merged_shader = shader && !shader->is_gs_copy_shader &&
+                        (shader->key.ge.as_ls || shader->key.ge.as_es ||
+                         stage == MESA_SHADER_TESS_CTRL || stage == MESA_SHADER_GEOMETRY);
+
+   /* Divergent loops in Wave64 can end up having too many iterations in one half of the wave
+    * while the other half is idling but occupying VGPRs, preventing other waves from launching.
+    * Wave32 eliminates the idling half to allow the next wave to start.
+    */
+   if (!merged_shader && info && info->has_divergent_loop)
+      return 32;
+
+   return 64;
+}
+
 /* SHADER_CACHE */
 
 /**
  * Return the IR key for the shader cache.
  */
 void si_get_ir_cache_key(struct si_shader_selector *sel, bool ngg, bool es,
-                         unsigned char ir_sha1_cache_key[20])
+                         unsigned wave_size, unsigned char ir_sha1_cache_key[20])
 {
    struct blob blob = {};
    unsigned ir_size;
@@ -70,7 +168,7 @@ void si_get_ir_cache_key(struct si_shader_selector *sel, bool ngg, bool es,
       shader_variant_flags |= 1 << 0;
    if (sel->nir)
       shader_variant_flags |= 1 << 1;
-   if (si_get_wave_size(sel->screen, sel->info.stage, ngg, es) == 32)
+   if (wave_size == 32)
       shader_variant_flags |= 1 << 2;
    if (sel->info.stage == MESA_SHADER_FRAGMENT &&
        /* Derivatives imply helper invocations so check for needs_quad_helper_invocations. */
@@ -586,7 +684,7 @@ static void si_shader_hs(struct si_screen *sscreen, struct si_shader *shader)
 
    si_pm4_set_reg(
       pm4, R_00B428_SPI_SHADER_PGM_RSRC1_HS,
-      S_00B428_VGPRS((shader->config.num_vgprs - 1) / (sscreen->ge_wave_size == 32 ? 8 : 4)) |
+      S_00B428_VGPRS((shader->config.num_vgprs - 1) / (shader->wave_size == 32 ? 8 : 4)) |
          (sscreen->info.chip_class <= GFX9 ? S_00B428_SGPRS((shader->config.num_sgprs - 1) / 8)
                                            : 0) |
          S_00B428_DX10_CLAMP(1) | S_00B428_MEM_ORDERED(si_shader_mem_ordered(shader)) |
@@ -910,9 +1008,9 @@ static void si_shader_gs(struct si_screen *sscreen, struct si_shader *shader)
 
       unsigned num_user_sgprs;
       if (es_stage == MESA_SHADER_VERTEX)
-         num_user_sgprs = si_get_num_vs_user_sgprs(shader, GFX9_VSGS_NUM_USER_SGPR);
+         num_user_sgprs = si_get_num_vs_user_sgprs(shader, GFX9_GS_NUM_USER_SGPR);
       else
-         num_user_sgprs = GFX9_TESGS_NUM_USER_SGPR;
+         num_user_sgprs = GFX9_GS_NUM_USER_SGPR;
 
       if (sscreen->info.chip_class >= GFX10) {
          si_pm4_set_reg(pm4, R_00B320_SPI_SHADER_PGM_LO_ES, va >> 8);
@@ -1178,12 +1276,12 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
          num_user_sgprs =
             SI_SGPR_VS_BLIT_DATA + es_info->base.vs.blit_sgprs_amd;
       } else {
-         num_user_sgprs = si_get_num_vs_user_sgprs(shader, GFX9_VSGS_NUM_USER_SGPR);
+         num_user_sgprs = si_get_num_vs_user_sgprs(shader, GFX9_GS_NUM_USER_SGPR);
       }
    } else {
       assert(es_stage == MESA_SHADER_TESS_EVAL);
       es_vgpr_comp_cnt = es_enable_prim_id ? 3 : 2;
-      num_user_sgprs = GFX9_TESGS_NUM_USER_SGPR;
+      num_user_sgprs = GFX9_GS_NUM_USER_SGPR;
 
       if (es_enable_prim_id || gs_info->uses_primid)
          break_wave_at_eoi = true;
@@ -1207,7 +1305,6 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
    else
       gs_vgpr_comp_cnt = 0; /* VGPR0 contains offsets 0, 1 */
 
-   unsigned wave_size = si_get_shader_wave_size(shader);
    unsigned late_alloc_wave64, cu_mask;
 
    ac_compute_late_alloc(&sscreen->info, true, shader->key.ge.opt.ngg_culling,
@@ -1217,7 +1314,7 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
    si_pm4_set_reg(pm4, R_00B320_SPI_SHADER_PGM_LO_ES, va >> 8);
    si_pm4_set_reg(
       pm4, R_00B228_SPI_SHADER_PGM_RSRC1_GS,
-      S_00B228_VGPRS((shader->config.num_vgprs - 1) / (wave_size == 32 ? 8 : 4)) |
+      S_00B228_VGPRS((shader->config.num_vgprs - 1) / (shader->wave_size == 32 ? 8 : 4)) |
          S_00B228_FLOAT_MODE(shader->config.float_mode) | S_00B228_DX10_CLAMP(1) |
          S_00B228_MEM_ORDERED(si_shader_mem_ordered(shader)) |
          /* Disable the WGP mode on gfx10.3 because it can hang. (it happened on VanGogh)
@@ -1343,6 +1440,7 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
    shader->ctx_reg.ngg.vgt_stages.u.ngg = 1;
    shader->ctx_reg.ngg.vgt_stages.u.streamout = gs_sel->so.num_outputs;
    shader->ctx_reg.ngg.vgt_stages.u.ngg_passthrough = gfx10_is_ngg_passthrough(shader);
+   shader->ctx_reg.ngg.vgt_stages.u.gs_wave32 = shader->wave_size == 32;
 }
 
 static void si_emit_shader_vs(struct si_context *sctx)
@@ -1511,7 +1609,7 @@ static void si_shader_vs(struct si_screen *sscreen, struct si_shader *shader,
                   S_00B124_MEM_BASE(sscreen->info.address32_hi >> 8));
 
    uint32_t rsrc1 =
-      S_00B128_VGPRS((shader->config.num_vgprs - 1) / (sscreen->ge_wave_size == 32 ? 8 : 4)) |
+      S_00B128_VGPRS((shader->config.num_vgprs - 1) / (shader->wave_size == 32 ? 8 : 4)) |
       S_00B128_VGPR_COMP_CNT(vgpr_comp_cnt) | S_00B128_DX10_CLAMP(1) |
       S_00B128_MEM_ORDERED(si_shader_mem_ordered(shader)) |
       S_00B128_FLOAT_MODE(shader->config.float_mode);
@@ -1715,7 +1813,7 @@ static void si_shader_ps(struct si_screen *sscreen, struct si_shader *shader)
 
    /* Set interpolation controls. */
    spi_ps_in_control = S_0286D8_NUM_INTERP(num_interp) |
-                       S_0286D8_PS_W32_EN(sscreen->ps_wave_size == 32);
+                       S_0286D8_PS_W32_EN(shader->wave_size == 32);
 
    shader->ctx_reg.ps.num_interp = num_interp;
    shader->ctx_reg.ps.spi_baryc_cntl = spi_baryc_cntl;
@@ -1731,7 +1829,7 @@ static void si_shader_ps(struct si_screen *sscreen, struct si_shader *shader)
                   S_00B024_MEM_BASE(sscreen->info.address32_hi >> 8));
 
    uint32_t rsrc1 =
-      S_00B028_VGPRS((shader->config.num_vgprs - 1) / (sscreen->ps_wave_size == 32 ? 8 : 4)) |
+      S_00B028_VGPRS((shader->config.num_vgprs - 1) / (shader->wave_size == 32 ? 8 : 4)) |
       S_00B028_DX10_CLAMP(1) | S_00B028_MEM_ORDERED(si_shader_mem_ordered(shader)) |
       S_00B028_FLOAT_MODE(shader->config.float_mode);
 
@@ -1748,6 +1846,8 @@ static void si_shader_ps(struct si_screen *sscreen, struct si_shader *shader)
 
 static void si_shader_init_pm4_state(struct si_screen *sscreen, struct si_shader *shader)
 {
+   assert(shader->wave_size);
+
    switch (shader->selector->info.stage) {
    case MESA_SHADER_VERTEX:
       if (shader->key.ge.as_ls)
@@ -1900,7 +2000,6 @@ void si_update_ps_inputs_read_or_disabled(struct si_context *sctx)
 static void si_get_vs_key_outputs(struct si_context *sctx, struct si_shader_selector *vs,
                                   union si_shader_key *key)
 {
-
    key->ge.opt.kill_clip_distances = vs->clipdist_mask & ~sctx->queued.named.rasterizer->clip_plane_enable;
 
    /* Find out which VS outputs aren't used by the PS. */
@@ -1908,15 +2007,9 @@ static void si_get_vs_key_outputs(struct si_context *sctx, struct si_shader_sele
    uint64_t linked = outputs_written & sctx->ps_inputs_read_or_disabled;
 
    key->ge.opt.kill_outputs = ~linked & outputs_written;
-
-   if (vs->info.stage != MESA_SHADER_GEOMETRY) {
-      key->ge.opt.ngg_culling = sctx->ngg_culling;
-      key->ge.mono.u.vs_export_prim_id = sctx->shader.ps.cso && sctx->shader.ps.cso->info.uses_primid;
-   } else {
-      key->ge.opt.ngg_culling = 0;
-      key->ge.mono.u.vs_export_prim_id = 0;
-   }
-
+   key->ge.opt.ngg_culling = sctx->ngg_culling;
+   key->ge.mono.u.vs_export_prim_id = vs->info.stage != MESA_SHADER_GEOMETRY &&
+                                      sctx->shader.ps.cso && sctx->shader.ps.cso->info.uses_primid;
    key->ge.opt.kill_pointsize = vs->info.writes_psize &&
                                 sctx->current_rast_prim != PIPE_PRIM_POINTS &&
                                 !sctx->queued.named.rasterizer->polygon_mode_is_points;
@@ -2275,6 +2368,7 @@ static bool si_check_missing_main_part(struct si_screen *sscreen, struct si_shad
          main_part->key.ge.as_ngg = key->ge.as_ngg;
       }
       main_part->is_monolithic = false;
+      main_part->wave_size = si_determine_wave_size(sscreen, main_part);
 
       if (!si_compile_shader(sscreen, compiler_state->compiler, main_part,
                              &compiler_state->debug)) {
@@ -2451,6 +2545,7 @@ current_not_ready:
 
    shader->selector = sel;
    *((SHADER_KEY_TYPE*)&shader->key) = *key;
+   shader->wave_size = si_determine_wave_size(sscreen, shader);
    shader->compiler_ctx_state.compiler = &sctx->compiler;
    shader->compiler_ctx_state.debug = sctx->debug;
    shader->compiler_ctx_state.is_debug_context = sctx->is_debug;
@@ -2717,11 +2812,15 @@ static void si_init_shader_selector_async(void *job, void *gdata, int thread_ind
            sel->info.stage == MESA_SHADER_TESS_EVAL || sel->info.stage == MESA_SHADER_GEOMETRY))
          shader->key.ge.as_ngg = 1;
 
+      shader->wave_size = si_determine_wave_size(sscreen, shader);
+
       if (sel->nir) {
-         if (sel->info.stage <= MESA_SHADER_GEOMETRY)
-            si_get_ir_cache_key(sel, shader->key.ge.as_ngg, shader->key.ge.as_es, ir_sha1_cache_key);
-         else
-            si_get_ir_cache_key(sel, false, false, ir_sha1_cache_key);
+         if (sel->info.stage <= MESA_SHADER_GEOMETRY) {
+            si_get_ir_cache_key(sel, shader->key.ge.as_ngg, shader->key.ge.as_es,
+                                shader->wave_size, ir_sha1_cache_key);
+         } else {
+            si_get_ir_cache_key(sel, false, false, shader->wave_size, ir_sha1_cache_key);
+         }
       }
 
       /* Try to load the shader from the shader cache. */
@@ -3024,11 +3123,12 @@ static void *si_create_shader_selector(struct pipe_context *ctx,
    bool ngg_culling_allowed =
       sscreen->info.chip_class >= GFX10 &&
       sscreen->use_ngg_culling &&
-      (sel->info.stage == MESA_SHADER_VERTEX ||
-       sel->info.stage == MESA_SHADER_TESS_EVAL) &&
       sel->info.writes_position &&
       !sel->info.writes_viewport_index && /* cull only against viewport 0 */
-      !sel->info.base.writes_memory && !sel->so.num_outputs &&
+      !sel->info.base.writes_memory &&
+      /* NGG GS supports culling with streamout because it culls after streamout. */
+      (sel->info.stage == MESA_SHADER_GEOMETRY || !sel->so.num_outputs) &&
+      (sel->info.stage != MESA_SHADER_GEOMETRY || sel->info.num_stream_output_components[0]) &&
       (sel->info.stage != MESA_SHADER_VERTEX ||
        (!sel->info.base.vs.blit_sgprs_amd &&
         !sel->info.base.vs.window_space_position));
@@ -3041,7 +3141,8 @@ static void *si_create_shader_selector(struct pipe_context *ctx,
             sel->ngg_cull_vert_threshold = 0; /* always enabled */
          else
             sel->ngg_cull_vert_threshold = 128;
-      } else if (sel->info.stage == MESA_SHADER_TESS_EVAL) {
+      } else if (sel->info.stage == MESA_SHADER_TESS_EVAL ||
+                 sel->info.stage == MESA_SHADER_GEOMETRY) {
          if (sel->rast_prim != PIPE_PRIM_POINTS)
             sel->ngg_cull_vert_threshold = 0; /* always enabled */
       }
@@ -3235,6 +3336,15 @@ static void si_bind_vs_shader(struct pipe_context *ctx, void *state)
                        si_get_vs(sctx)->current);
    si_update_rasterized_prim(sctx);
    si_vs_key_update_inputs(sctx);
+
+   if (sctx->screen->dpbb_allowed) {
+      bool force_off = sel && sel->info.options & SI_PROFILE_VS_NO_BINNING;
+
+      if (force_off != sctx->dpbb_force_off_profile_vs) {
+         sctx->dpbb_force_off_profile_vs = force_off;
+         si_mark_atom_dirty(sctx, &sctx->atoms.s.dpbb_state);
+      }
+   }
 }
 
 static void si_update_tess_uses_prim_id(struct si_context *sctx)
@@ -3454,6 +3564,15 @@ static void si_bind_ps_shader(struct pipe_context *ctx, void *state)
    si_update_ps_inputs_read_or_disabled(sctx);
    si_update_ps_kill_enable(sctx);
    si_update_vrs_flat_shading(sctx);
+
+   if (sctx->screen->dpbb_allowed) {
+      bool force_off = sel && sel->info.options & SI_PROFILE_PS_NO_BINNING;
+
+      if (force_off != sctx->dpbb_force_off_profile_ps) {
+         sctx->dpbb_force_off_profile_ps = force_off;
+         si_mark_atom_dirty(sctx, &sctx->atoms.s.dpbb_state);
+      }
+   }
 }
 
 static void si_delete_shader(struct si_context *sctx, struct si_shader *shader)
@@ -4055,10 +4174,12 @@ struct si_pm4_state *si_build_vgt_shader_config(struct si_screen *screen, union 
    if (screen->info.chip_class >= GFX9)
       stages |= S_028B54_MAX_PRIMGRP_IN_WAVE(2);
 
-   if (screen->info.chip_class >= GFX10 && screen->ge_wave_size == 32) {
-      stages |= S_028B54_HS_W32_EN(1) |
-                S_028B54_GS_W32_EN(key.u.ngg) | /* legacy GS only supports Wave64 */
-                S_028B54_VS_W32_EN(1);
+   if (screen->info.chip_class >= GFX10) {
+      stages |= S_028B54_HS_W32_EN(key.u.hs_wave32) |
+                S_028B54_GS_W32_EN(key.u.gs_wave32) |
+                S_028B54_VS_W32_EN(key.u.vs_wave32);
+      /* Legacy GS only supports Wave64. Read it as an implication. */
+      assert(!(key.u.gs && !key.u.ngg) || !key.u.gs_wave32);
    }
 
    si_pm4_set_reg(pm4, R_028B54_VGT_SHADER_STAGES_EN, stages);

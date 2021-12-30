@@ -94,8 +94,10 @@ lower_pntc_ytransform_block(lower_pntc_ytransform_state *state,
             nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
             nir_variable *var = nir_deref_instr_get_variable(deref);
 
-            if (var->data.mode == nir_var_shader_in &&
-                var->data.location == VARYING_SLOT_PNTC) {
+            if ((var->data.mode == nir_var_shader_in &&
+                 var->data.location == VARYING_SLOT_PNTC) ||
+                (var->data.mode == nir_var_system_value &&
+                 var->data.location == SYSTEM_VALUE_POINT_COORD)) {
                 lower_load_pointcoord(state, intr);
             }
          }

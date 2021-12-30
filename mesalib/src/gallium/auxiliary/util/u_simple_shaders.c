@@ -527,6 +527,7 @@ util_make_fragment_cloneinput_shader(struct pipe_context *pipe, int num_cbufs,
 static void *
 util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
                            enum tgsi_texture_type tgsi_tex,
+                           bool sample_shading,
                            const char *samp_type,
                            const char *output_semantic,
                            const char *output_mask,
@@ -541,15 +542,17 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
          "DCL OUT[0], %s\n"
          "DCL TEMP[0]\n"
          "%s"
+         "%s"
 
          "F2U TEMP[0], IN[0]\n"
+         "%s"
          "TXF TEMP[0], TEMP[0], SAMP[0], %s\n"
          "%s"
          "MOV OUT[0]%s, TEMP[0]\n"
          "END\n";
 
    const char *type = tgsi_texture_names[tgsi_tex];
-   char text[sizeof(shader_templ)+100];
+   char text[sizeof(shader_templ)+400];
    struct tgsi_token tokens[1000];
    struct pipe_shader_state state = {0};
 
@@ -557,7 +560,9 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
 
    snprintf(text, sizeof(text), shader_templ, type, samp_type,
-            output_semantic, conversion_decl, type, conversion, output_mask);
+            output_semantic, sample_shading ? "DCL SV[0], SAMPLEID\n" : "",
+            conversion_decl, sample_shading ? "MOV TEMP[0].w, SV[0].xxxx\n" : "",
+            type, conversion, output_mask);
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       puts(text);
@@ -582,7 +587,8 @@ void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
                              enum tgsi_texture_type tgsi_tex,
                              enum tgsi_return_type stype,
-                             enum tgsi_return_type dtype)
+                             enum tgsi_return_type dtype,
+                             bool sample_shading)
 {
    const char *samp_type;
    const char *conversion_decl = "";
@@ -607,7 +613,7 @@ util_make_fs_blit_msaa_color(struct pipe_context *pipe,
       samp_type = "FLOAT";
    }
 
-   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, samp_type,
+   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, sample_shading, samp_type,
                                      "COLOR[0]", "", conversion_decl,
                                      conversion);
 }
@@ -620,9 +626,10 @@ util_make_fs_blit_msaa_color(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
-                             enum tgsi_texture_type tgsi_tex)
+                             enum tgsi_texture_type tgsi_tex,
+                             bool sample_shading)
 {
-   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "FLOAT",
+   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, sample_shading, "FLOAT",
                                      "POSITION", ".z", "",
                                      "MOV TEMP[0].z, TEMP[0].xxxx\n");
 }
@@ -635,9 +642,10 @@ util_make_fs_blit_msaa_depth(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
-                               enum tgsi_texture_type tgsi_tex)
+                               enum tgsi_texture_type tgsi_tex,
+                               bool sample_shading)
 {
-   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, "UINT",
+   return util_make_fs_blit_msaa_gen(pipe, tgsi_tex, sample_shading, "UINT",
                                      "STENCIL", ".y", "",
                                      "MOV TEMP[0].y, TEMP[0].xxxx\n");
 }
@@ -652,7 +660,8 @@ util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
  */
 void *
 util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
-                                    enum tgsi_texture_type tgsi_tex)
+                                    enum tgsi_texture_type tgsi_tex,
+                                    bool sample_shading)
 {
    static const char shader_templ[] =
          "FRAG\n"
@@ -663,21 +672,26 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
          "DCL OUT[0], POSITION\n"
          "DCL OUT[1], STENCIL\n"
          "DCL TEMP[0]\n"
+         "%s"
 
          "F2U TEMP[0], IN[0]\n"
+         "%s"
          "TXF OUT[0].z, TEMP[0], SAMP[0], %s\n"
          "TXF OUT[1].y, TEMP[0], SAMP[1], %s\n"
          "END\n";
 
    const char *type = tgsi_texture_names[tgsi_tex];
-   char text[sizeof(shader_templ)+100];
+   char text[sizeof(shader_templ)+400];
    struct tgsi_token tokens[1000];
    struct pipe_shader_state state = {0};
 
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
 
-   sprintf(text, shader_templ, type, type, type, type);
+   sprintf(text, shader_templ, type, type,
+           sample_shading ? "DCL SV[0], SAMPLEID\n" : "",
+           sample_shading ? "MOV TEMP[0].w, SV[0].xxxx\n" : "",
+           type, type);
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       assert(0);

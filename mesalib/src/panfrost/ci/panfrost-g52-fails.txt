@@ -1,7 +1,6 @@
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
-glx@glx-copy-sub-buffer samples=2,Fail
 glx@glx_ext_import_context@free context,Fail
 glx@glx_ext_import_context@get context id,Fail
 glx@glx_ext_import_context@get current display,Fail
@@ -14,12 +13,10 @@ glx@glx_ext_import_context@query context info,Fail
 glx@glx-make-current,Crash
 glx@glx-multithread-clearbuffer,Crash
 glx@glx-multi-window-single-context,Fail
-glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 shaders@glsl-bug-110796,Fail
-shaders@glsl-fs-pointcoord,Fail
 shaders@glsl-uniform-interstage-limits@subdivide 5,Crash
 shaders@glsl-uniform-interstage-limits@subdivide 5- statechanges,Crash
 shaders@glsl-vs-if-bool,Fail
@@ -102,7 +99,6 @@ spec@arb_fragment_program@sparse-samplers,Crash
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_depth32f_stencil8,Fail
-spec@arb_framebuffer_object@fbo-gl_pointcoord,Fail
 spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
 spec@arb_framebuffer_srgb@fbo-fast-clear,Fail
 spec@arb_get_program_binary@restore-sso-program,Fail
@@ -194,8 +190,8 @@ spec@arb_texture_float@fbo-clear-formats@GL_INTENSITY16F_ARB,Fail
 spec@arb_texture_float@fbo-generatemipmap-formats,Fail
 spec@arb_texture_float@fbo-generatemipmap-formats@GL_INTENSITY16F_ARB,Fail
 spec@arb_texture_float@fbo-generatemipmap-formats@GL_INTENSITY16F_ARB NPOT,Fail
-spec@arb_texture_float@multisample-formats 2 gl_arb_texture_float,Crash
-spec@arb_texture_float@multisample-formats 4 gl_arb_texture_float,Crash
+spec@arb_texture_float@multisample-formats 2 gl_arb_texture_float,Fail
+spec@arb_texture_float@multisample-formats 4 gl_arb_texture_float,Fail
 spec@arb_texture_float@texwrap formats bordercolor,Fail
 spec@arb_texture_float@texwrap formats bordercolor@GL_ALPHA16F_ARB- border color only,Fail
 spec@arb_texture_float@texwrap formats bordercolor@GL_ALPHA32F_ARB- border color only,Fail
@@ -270,7 +266,6 @@ spec@arb_texture_gather@texturegather@fs-rg-red-float-cubearray,Fail
 spec@arb_texture_gather@texturegather@fs-rg-red-int-cubearray,Fail
 spec@arb_texture_gather@texturegather@fs-rg-red-uint-cubearray,Fail
 spec@arb_texture_gather@texturegather@fs-rg-red-unorm-cubearray,Fail
-spec@arb_texture_gather@texturegather@fs-r-none-float-cubearray,Fail
 spec@arb_texture_gather@texturegather@fs-r-none-int-cubearray,Fail
 spec@arb_texture_gather@texturegather@fs-r-none-uint-cubearray,Fail
 spec@arb_texture_gather@texturegather@fs-r-none-unorm-cubearray,Fail
@@ -409,7 +404,6 @@ spec@arb_uniform_buffer_object@rendering,Fail
 spec@arb_uniform_buffer_object@rendering-offset,Fail
 spec@arb_vertex_program@clip-plane-transformation arb,Fail
 spec@egl 1.4@egl-copy-buffers,Crash
-spec@egl 1.4@egl-ext_egl_image_storage,Crash
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
 spec@egl_chromium_sync_control@conformance,Fail
@@ -438,8 +432,6 @@ spec@ext_framebuffer_multisample@sample-alpha-to-coverage 2 depth,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 2,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 4,Fail
-spec@ext_framebuffer_multisample@unaligned-blit 2 color upsample,Fail
-spec@ext_framebuffer_multisample@unaligned-blit 4 color upsample,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY4,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_INTENSITY8,Fail
@@ -540,12 +532,6 @@ spec@ext_texture_array@copyteximage 1d_array samples=4,Fail
 spec@ext_texture_array@fbo-generatemipmap-array,Fail
 spec@ext_texture_array@fbo-generatemipmap-array rgb9_e5,Fail
 spec@ext_texture_array@texsubimage array,Fail
-spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_red_green_rgtc2_ext,Crash
-spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_red_rgtc1_ext,Crash
-spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_signed_red_green_rgtc2_ext,Crash
-spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_signed_red_rgtc1_ext,Crash
-spec@ext_texture_compression_rgtc@fbo-generatemipmap-formats,Crash
-spec@ext_texture_compression_rgtc@fbo-generatemipmap-formats-signed,Crash
 spec@ext_texture_compression_rgtc@rgtc-teximage-01,Fail
 spec@ext_texture_compression_rgtc@rgtc-teximage-02,Fail
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor,Fail
@@ -839,11 +825,7 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x223344ff,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x76356278,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x76356278,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color,Crash
+spec@nv_conditional_render@blitframebuffer,Crash
 spec@nv_copy_image@nv_copy_image-formats,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
@@ -946,6 +928,7 @@ spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_D
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
+spec@oes_point_sprite@arb_point_sprite-checkerboard_gles1,Fail
 spec@oes_texture_view@sampling-2d-array-as-cubemap,Crash
 spec@!opengl 1.0@gl-1.0-edgeflag-const,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
@@ -1171,7 +1154,7 @@ spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glP
 spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
 spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
 spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
-spec@!opengl 1.1@getteximage-formats,Crash
+spec@!opengl 1.1@getteximage-formats,Fail
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
 spec@!opengl 1.1@linestipple,Fail
@@ -1277,7 +1260,6 @@ spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA16- swizzled- borde
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA4- swizzled- border color only,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA8- swizzled- border color only,Fail
 spec@!opengl 1.1@user-clip,Fail
-spec@!opengl 1.1@windowoverlap,Fail
 spec@!opengl 1.2@texwrap 3d bordercolor,Fail
 spec@!opengl 1.2@texwrap 3d bordercolor@GL_RGBA8- border color only,Fail
 spec@!opengl 1.2@texwrap 3d proj bordercolor,Fail
@@ -1296,6 +1278,5 @@ spec@!opengl 3.1@primitive-restart-xfb generated,Fail
 spec@!opengl 3.1@primitive-restart-xfb written,Fail
 spec@!opengl 3.1@required-texture-attachment-formats,Fail
 spec@!opengl 3.2@coord-replace-doesnt-eliminate-frag-tex-coords,Fail
-spec@!opengl es 2.0@glsl-fs-pointcoord,Fail
 spec@!opengl es 3.0@ext_texture_array-compressed_gles3 texsubimage,Fail
 spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail

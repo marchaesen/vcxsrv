@@ -103,10 +103,6 @@ no_16bit_conv += [
   (('u2u32', ('f2f16_rtz', 'a@32')), ('pack_half_2x16_split', 'a', 0)),
 ]
 
-lower_inot = [
-    (('inot', a), ('ixor', a, -1)),
-]
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--import-path', required=True)
@@ -126,8 +122,6 @@ def run():
                                       no_16bit_conv).render())
     print(nir_algebraic.AlgebraicPass("dxil_nir_lower_x2b",
                                       lower_x2b).render())
-    print(nir_algebraic.AlgebraicPass("dxil_nir_lower_inot",
-                                      lower_inot).render())
 
 if __name__ == '__main__':
     main()

@@ -1204,6 +1204,12 @@ SpvId
 spirv_builder_type_uint(struct spirv_builder *b, unsigned width)
 {
    uint32_t args[] = { width, 0 };
+   if (width == 8)
+      spirv_builder_emit_cap(b, SpvCapabilityInt8);
+   else if (width == 16)
+      spirv_builder_emit_cap(b, SpvCapabilityInt16);
+   else if (width == 64)
+      spirv_builder_emit_cap(b, SpvCapabilityInt64);
    return get_type_def(b, SpvOpTypeInt, args, ARRAY_SIZE(args));
 }
 
@@ -1211,6 +1217,10 @@ SpvId
 spirv_builder_type_float(struct spirv_builder *b, unsigned width)
 {
    uint32_t args[] = { width };
+   if (width == 16)
+      spirv_builder_emit_cap(b, SpvCapabilityFloat16);
+   else if (width == 64)
+      spirv_builder_emit_cap(b, SpvCapabilityFloat64);
    return get_type_def(b, SpvOpTypeFloat, args, ARRAY_SIZE(args));
 }
 
@@ -1224,6 +1234,8 @@ spirv_builder_type_image(struct spirv_builder *b, SpvId sampled_type,
       sampled_type, dim, depth ? 1 : 0, arrayed ? 1 : 0, ms ? 1 : 0, sampled,
       image_format
    };
+   if (sampled == 2 && ms)
+      spirv_builder_emit_cap(b, SpvCapabilityStorageImageMultisample);
    return get_type_def(b, SpvOpTypeImage, args, ARRAY_SIZE(args));
 }
 
@@ -1428,6 +1440,12 @@ SpvId
 spirv_builder_const_uint(struct spirv_builder *b, int width, uint64_t val)
 {
    assert(width >= 8);
+   if (width == 8)
+      spirv_builder_emit_cap(b, SpvCapabilityInt8);
+   else if (width == 16)
+      spirv_builder_emit_cap(b, SpvCapabilityInt16);
+   else if (width == 64)
+      spirv_builder_emit_cap(b, SpvCapabilityInt64);
    SpvId type = spirv_builder_type_uint(b, width);
    if (width <= 32)
       return emit_constant_32(b, type, val);
@@ -1447,12 +1465,15 @@ spirv_builder_const_float(struct spirv_builder *b, int width, double val)
 {
    assert(width >= 16);
    SpvId type = spirv_builder_type_float(b, width);
-   if (width == 16)
+   if (width == 16) {
+      spirv_builder_emit_cap(b, SpvCapabilityFloat16);
       return emit_constant_32(b, type, _mesa_float_to_half(val));
-   else if (width == 32)
+   } else if (width == 32)
       return emit_constant_32(b, type, u_bitcast_f2u(val));
-   else if (width == 64)
+   else if (width == 64) {
+      spirv_builder_emit_cap(b, SpvCapabilityFloat64);
       return emit_constant_64(b, type, u_bitcast_d2u(val));
+   }
 
    unreachable("unhandled float-width");
 }

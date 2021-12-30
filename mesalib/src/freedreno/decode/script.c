@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "util/u_math.h"
 
 #include "cffdec.h"
 #include "rnnutil.h"
@@ -181,7 +182,7 @@ static int l_rnn_etype_reg(lua_State *L, struct rnn *rnn, struct rnndelem *elem,
                            uint64_t offset);
 
 static int
-pushdecval(struct lua_State *L, struct rnn *rnn, uint32_t regval,
+pushdecval(struct lua_State *L, struct rnn *rnn, uint64_t regval,
            struct rnntypeinfo *info)
 {
    union rnndecval val;
@@ -198,7 +199,7 @@ pushdecval(struct lua_State *L, struct rnn *rnn, uint32_t regval,
       lua_pushunsigned(L, val.u);
       return 1;
    case RNN_TTYPE_FLOAT:
-      lua_pushnumber(L, val.f);
+      lua_pushnumber(L, uif(val.u));
       return 1;
    case RNN_TTYPE_BOOLEAN:
       lua_pushboolean(L, val.u);
@@ -214,7 +215,7 @@ l_rnn_etype(lua_State *L, struct rnn *rnn, struct rnndelem *elem,
             uint64_t offset)
 {
    int ret;
-   uint32_t regval;
+   uint64_t regval;
    DBG("elem=%p (%d), offset=%lu", elem, elem->type, offset);
    switch (elem->type) {
    case RNN_ETYPE_REG:
@@ -222,6 +223,8 @@ l_rnn_etype(lua_State *L, struct rnn *rnn, struct rnndelem *elem,
        * the raw value:
        */
       regval = rnn_val(rnn, offset);
+      if (elem->width == 64)
+         regval |= (uint64_t)rnn_val(rnn, offset + 1) << 32;
       regval <<= elem->typeinfo.shr;
       ret = pushdecval(L, rnn, regval, &elem->typeinfo);
       if (ret)

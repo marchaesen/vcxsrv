@@ -510,7 +510,7 @@
         <variant>
           <configItem popularity="exotic">
             <name>altgr-weur</name>
-            <description>QWERTY (Western European AltGr dead keys)</description>
+            <description>English (Western European AltGr dead keys)</description>
             <languageList><iso639Id>dan</iso639Id>
                           <iso639Id>nld</iso639Id>
                           <iso639Id>eng</iso639Id>
@@ -682,7 +682,7 @@
         <variant>
           <configItem popularity="exotic">
             <name>gost-6431-75-48</name>
-            <description>Russian (GOST 6431-75, 48-key)</description>
+            <description>Russian (GOST 6431-75)</description>
           </configItem>
         </variant>
         <variant>
@@ -839,7 +839,7 @@
 	<variant>
           <configItem popularity="exotic">
             <name>ergoarabic</name>
-            <description>Arabic (Ergoarabic)</description>
+            <description>Arabic (ErgoArabic)</description>
           </configItem>
 	</variant>
       </variantList>
@@ -1120,7 +1120,7 @@
         <variant>
           <configItem popularity="exotic">
           <name>urd-navees</name>
-          <description>Urdu (Navees, Pakistan)</description>
+          <description>Urdu (Pakistan, Navees)</description>
           <languageList>
               <iso639Id>urd</iso639Id>
             </languageList>
@@ -1253,6 +1253,12 @@
           <configItem popularity="exotic">
             <name>otk</name>
             <description>Old Turkic</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>us</name>
+            <description>Turkish (Turkey, Latin Q, Swap i and ı)</description>
           </configItem>
         </variant>
       </variantList>

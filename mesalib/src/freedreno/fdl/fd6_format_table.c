@@ -71,7 +71,9 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
 
    FMT(A8_UNORM,   NONE, 8_UNORM, A8_UNORM,     WZYX),
    _TC(L8_UNORM,   8_UNORM,                     WZYX),
+   _TC(L8_SNORM,   8_SNORM,                     WZYX),
    _T_(I8_UNORM,   8_UNORM,                     WZYX),
+   _T_(I8_SNORM,   8_SNORM,                     WZYX),
 
    _T_(A8_UINT,    8_UINT,                      WZYX),
    _T_(A8_SINT,    8_SINT,                      WZYX),
@@ -96,14 +98,17 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _T_(A16_SNORM,   16_SNORM,                   WZYX),
    _T_(A16_UINT,    16_UINT,                    WZYX),
    _T_(A16_SINT,    16_SINT,                    WZYX),
+   _T_(A16_FLOAT,   16_FLOAT,                   WZYX),
    _T_(L16_UNORM,   16_UNORM,                   WZYX),
    _T_(L16_SNORM,   16_SNORM,                   WZYX),
    _T_(L16_UINT,    16_UINT,                    WZYX),
    _T_(L16_SINT,    16_SINT,                    WZYX),
+   _T_(L16_FLOAT,   16_FLOAT,                   WZYX),
    _T_(I16_UNORM,   16_UNORM,                   WZYX),
    _T_(I16_SNORM,   16_SNORM,                   WZYX),
    _T_(I16_UINT,    16_UINT,                    WZYX),
    _T_(I16_SINT,    16_SINT,                    WZYX),
+   _T_(I16_FLOAT,   16_FLOAT,                   WZYX),
 
    VTC(R8G8_UNORM,   8_8_UNORM,                 WZYX),
    VTC(R8G8_SNORM,   8_8_SNORM,                 WZYX),
@@ -113,6 +118,7 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    V__(R8G8_SSCALED, 8_8_SINT,                  WZYX),
    _TC(R8G8_SRGB,    8_8_UNORM,                 WZYX),
 
+   _T_(L8A8_UNORM,   8_8_UNORM,                 WZYX),
    _T_(L8A8_UINT,    8_8_UINT,                  WZYX),
    _T_(L8A8_SINT,    8_8_SINT,                  WZYX),
 
@@ -149,10 +155,13 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
 
    _T_(A32_UINT,    32_UINT,                    WZYX),
    _T_(A32_SINT,    32_SINT,                    WZYX),
+   _T_(A32_FLOAT,   32_FLOAT,                   WZYX),
    _T_(L32_UINT,    32_UINT,                    WZYX),
    _T_(L32_SINT,    32_SINT,                    WZYX),
+   _T_(L32_FLOAT,   32_FLOAT,                   WZYX),
    _T_(I32_UINT,    32_UINT,                    WZYX),
    _T_(I32_SINT,    32_SINT,                    WZYX),
+   _T_(I32_FLOAT,   32_FLOAT,                   WZYX),
 
    VTC(R16G16_UNORM,   16_16_UNORM,             WZYX),
    VTC(R16G16_SNORM,   16_16_SNORM,             WZYX),
@@ -166,6 +175,7 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _T_(L16A16_SNORM,   16_16_SNORM,             WZYX),
    _T_(L16A16_UINT,    16_16_UINT,              WZYX),
    _T_(L16A16_SINT,    16_16_SINT,              WZYX),
+   _T_(L16A16_FLOAT,   16_16_FLOAT,             WZYX),
 
    VTC(R8G8B8A8_UNORM,   8_8_8_8_UNORM,         WZYX),
    _TC(R8G8B8X8_UNORM,   8_8_8_8_UNORM,         WZYX),
@@ -258,6 +268,7 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
 
    _T_(L32A32_UINT,    32_32_UINT,              WZYX),
    _T_(L32A32_SINT,    32_32_SINT,              WZYX),
+   _T_(L32A32_FLOAT,   32_32_FLOAT,             WZYX),
 
    /* 96-bit */
    V__(R32G32B32_UNORM,   32_32_32_UNORM,       WZYX),
@@ -351,8 +362,9 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _T_(R8G8_R8B8_UNORM, R8G8R8B8_422_UNORM, WZYX), /* YUYV */
    _T_(G8R8_B8R8_UNORM, G8R8B8R8_422_UNORM, WZYX), /* UYVY */
 
-   _T_(R8_G8B8_420_UNORM, R8_G8B8_2PLANE_420_UNORM, WZYX),
-   _T_(R8_G8_B8_420_UNORM, R8_G8_B8_3PLANE_420_UNORM, WZYX),
+   _T_(R8_G8B8_420_UNORM, R8_G8B8_2PLANE_420_UNORM, WZYX), /* Gallium NV12 */
+   _T_(G8_B8R8_420_UNORM, R8_G8B8_2PLANE_420_UNORM, WZYX), /* Vulkan NV12 */
+   _T_(G8_B8_R8_420_UNORM, R8_G8_B8_3PLANE_420_UNORM, WZYX),
 };
 /* clang-format on */
 

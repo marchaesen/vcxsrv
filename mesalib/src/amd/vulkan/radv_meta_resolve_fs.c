@@ -34,7 +34,7 @@ static nir_shader *
 build_nir_vertex_shader(void)
 {
    const struct glsl_type *vec4 = glsl_vec4_type();
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL, "meta_resolve_vs");
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_VERTEX, "meta_resolve_vs");
 
    nir_variable *pos_out = nir_variable_create(b.shader, nir_var_shader_out, vec4, "gl_Position");
    pos_out->data.location = VARYING_SLOT_POS;
@@ -52,8 +52,8 @@ build_resolve_fragment_shader(struct radv_device *dev, bool is_integer, int samp
    const struct glsl_type *sampler_type =
       glsl_sampler_type(GLSL_SAMPLER_DIM_MS, false, false, GLSL_TYPE_FLOAT);
 
-   nir_builder b = nir_builder_init_simple_shader(
-      MESA_SHADER_FRAGMENT, NULL, "meta_resolve_fs-%d-%s", samples, is_integer ? "int" : "float");
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_FRAGMENT, "meta_resolve_fs-%d-%s", samples,
+                                         is_integer ? "int" : "float");
 
    nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, sampler_type, "s_tex");
    input_img->data.descriptor_set = 0;
@@ -329,9 +329,9 @@ build_depth_stencil_resolve_fragment_shader(struct radv_device *dev, int samples
    const struct glsl_type *sampler_type =
       glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, GLSL_TYPE_FLOAT);
 
-   nir_builder b = nir_builder_init_simple_shader(
-      MESA_SHADER_FRAGMENT, NULL, "meta_resolve_fs_%s-%s-%d",
-      index == DEPTH_RESOLVE ? "depth" : "stencil", get_resolve_mode_str(resolve_mode), samples);
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_FRAGMENT, "meta_resolve_fs_%s-%s-%d",
+                                         index == DEPTH_RESOLVE ? "depth" : "stencil",
+                                         get_resolve_mode_str(resolve_mode), samples);
 
    nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, sampler_type, "s_tex");
    input_img->data.descriptor_set = 0;
@@ -806,8 +806,8 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivi
                                  });
 
    cmd_buffer->state.flush_bits |=
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_SHADER_READ_BIT, src_iview->image) |
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, dest_iview->image);
+      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT_KHR, src_iview->image) |
+      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, dest_iview->image);
 
    unsigned push_constants[2] = {
       src_offset->x - dest_offset->x,
@@ -837,7 +837,7 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivi
 
    radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
    cmd_buffer->state.flush_bits |=
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, dest_iview->image);
+      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR, dest_iview->image);
 }
 
 static void
@@ -1075,9 +1075,9 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 
    /* Resolves happen before the end-of-subpass barriers get executed,
     * so we have to make the attachment shader-readable */
-   barrier.src_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-   barrier.src_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-   barrier.dst_access_mask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+   barrier.src_stage_mask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+   barrier.src_access_mask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR;
+   barrier.dst_access_mask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR;
    radv_emit_subpass_barrier(cmd_buffer, &barrier);
 
    radv_decompress_resolve_subpass_src(cmd_buffer);
@@ -1106,9 +1106,9 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 
       emit_resolve(cmd_buffer, src_iview, dest_iview, &(VkOffset2D){0, 0}, &(VkOffset2D){0, 0},
                    &(VkExtent2D){fb->width, fb->height});
-   }
 
-   radv_cmd_buffer_restore_subpass(cmd_buffer, subpass);
+      radv_cmd_buffer_restore_subpass(cmd_buffer, subpass);
+   }
 
    radv_meta_restore(&saved_state, cmd_buffer);
 }
@@ -1128,9 +1128,9 @@ radv_depth_stencil_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer,
 
    /* Resolves happen before the end-of-subpass barriers get executed,
     * so we have to make the attachment shader-readable */
-   barrier.src_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-   barrier.src_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-   barrier.dst_access_mask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+   barrier.src_stage_mask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR;
+   barrier.src_access_mask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR;
+   barrier.dst_access_mask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR;
    radv_emit_subpass_barrier(cmd_buffer, &barrier);
 
    struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;

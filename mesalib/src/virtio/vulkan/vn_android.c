@@ -537,6 +537,7 @@ vn_AcquireImageANDROID(VkDevice device,
                        VkSemaphore semaphore,
                        VkFence fence)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
    VkResult result = VK_SUCCESS;
 
@@ -626,6 +627,7 @@ vn_QueueSignalReleaseImageANDROID(VkQueue queue,
                                   VkImage image,
                                   int *pNativeFenceFd)
 {
+   VN_TRACE_FUNC();
    struct vn_queue *que = vn_queue_from_handle(queue);
    struct vn_device *dev = que->device;
    const VkAllocationCallbacks *alloc = &dev->base.base.alloc;

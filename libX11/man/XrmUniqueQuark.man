@@ -60,7 +60,7 @@ XrmQuark XrmUniqueQuark\^(void);
 .br
 \&#define XrmStringToRepresentation(string) XrmStringToQuark(string)
 .HP
-int XrmQuark XrmStringToQuark\^(\^char *\fIstring\fP\^);
+XrmQuark XrmStringToQuark\^(\^char *\fIstring\fP\^);
 .HP
 XrmQuark XrmPermStringToQuark\^(\^_Xconst char *\fIstring\fP\^);
 .LP

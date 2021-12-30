@@ -1,0 +1,13 @@
+# Timeout city
+#KHR-GLES2.texture_3d.filtering.combinations.*
+
+# Timeouts
+KHR-GLES2.texture_3d.filtering.combinations.*linear_mipmap_linear
+KHR-GLES2.texture_3d.filtering.sizes.*linear_mipmap_linear
+shaders@glsl-predication-on-large-array
+
+# I'm running it with gl_rgba8_snorm
+glx@
+
+# GPU hang
+dEQP-GLES2.functional.shaders.struct.local.dynamic_loop_nested_struct_array_vertex

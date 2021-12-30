@@ -111,7 +111,7 @@ traces:
       # - device: freedreno-a530
       #   checksum: 2a53e6086588f4675ae3dcda9f26603b
       - device: freedreno-a630
-        checksum: 7038fe16ec1483ca1f475c563afcee84
+        checksum: 730692659fbb9eefa44d6b1a2df2fa8e
   - path: behdad-glyphy/glyphy.trace
     expectations:
       - device: freedreno-a306

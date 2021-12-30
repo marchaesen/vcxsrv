@@ -27,6 +27,7 @@
 #include "compiler/nir/nir_builder.h"
 #include "v3d_context.h"
 #include "broadcom/common/v3d_tiling.h"
+#include "broadcom/common/v3d_tfu.h"
 
 void
 v3d_blitter_save(struct v3d_context *v3d)
@@ -46,7 +47,7 @@ v3d_blitter_save(struct v3d_context *v3d)
         util_blitter_save_blend(v3d->blitter, v3d->blend);
         util_blitter_save_depth_stencil_alpha(v3d->blitter, v3d->zsa);
         util_blitter_save_stencil_ref(v3d->blitter, &v3d->stencil_ref);
-        util_blitter_save_sample_mask(v3d->blitter, v3d->sample_mask);
+        util_blitter_save_sample_mask(v3d->blitter, v3d->sample_mask, 0);
         util_blitter_save_framebuffer(v3d->blitter, &v3d->framebuffer);
         util_blitter_save_fragment_sampler_states(v3d->blitter,
                         v3d->tex[PIPE_SHADER_FRAGMENT].num_samplers,
@@ -190,30 +191,6 @@ v3d_stencil_blit(struct pipe_context *ctx, struct pipe_blit_info *info)
         info->mask &= ~PIPE_MASK_S;
 }
 
-/* Disable level 0 write, just write following mipmaps */
-#define V3D_TFU_IOA_DIMTW (1 << 0)
-#define V3D_TFU_IOA_FORMAT_SHIFT 3
-#define V3D_TFU_IOA_FORMAT_LINEARTILE 3
-#define V3D_TFU_IOA_FORMAT_UBLINEAR_1_COLUMN 4
-#define V3D_TFU_IOA_FORMAT_UBLINEAR_2_COLUMN 5
-#define V3D_TFU_IOA_FORMAT_UIF_NO_XOR 6
-#define V3D_TFU_IOA_FORMAT_UIF_XOR 7
-
-#define V3D_TFU_ICFG_NUMMM_SHIFT 5
-#define V3D_TFU_ICFG_TTYPE_SHIFT 9
-
-#define V3D_TFU_ICFG_OPAD_SHIFT 22
-
-#define V3D_TFU_ICFG_FORMAT_SHIFT 18
-#define V3D_TFU_ICFG_FORMAT_RASTER 0
-#define V3D_TFU_ICFG_FORMAT_SAND_128 1
-#define V3D_TFU_ICFG_FORMAT_SAND_256 2
-#define V3D_TFU_ICFG_FORMAT_LINEARTILE 11
-#define V3D_TFU_ICFG_FORMAT_UBLINEAR_1_COLUMN 12
-#define V3D_TFU_ICFG_FORMAT_UBLINEAR_2_COLUMN 13
-#define V3D_TFU_ICFG_FORMAT_UIF_NO_XOR 14
-#define V3D_TFU_ICFG_FORMAT_UIF_XOR 15
-
 static bool
 v3d_tfu(struct pipe_context *pctx,
         struct pipe_resource *pdst,
@@ -289,25 +266,25 @@ v3d_tfu(struct pipe_context *pctx,
                                v3d_layer_offset(psrc, src_level, src_layer));
         tfu.iia |= src_offset;
         if (src_base_slice->tiling == V3D_TILING_RASTER) {
-                tfu.icfg |= (V3D_TFU_ICFG_FORMAT_RASTER <<
-                             V3D_TFU_ICFG_FORMAT_SHIFT);
+                tfu.icfg |= (V3D33_TFU_ICFG_FORMAT_RASTER <<
+                             V3D33_TFU_ICFG_FORMAT_SHIFT);
         } else {
-                tfu.icfg |= ((V3D_TFU_ICFG_FORMAT_LINEARTILE +
+                tfu.icfg |= ((V3D33_TFU_ICFG_FORMAT_LINEARTILE +
                               (src_base_slice->tiling - V3D_TILING_LINEARTILE)) <<
-                             V3D_TFU_ICFG_FORMAT_SHIFT);
+                             V3D33_TFU_ICFG_FORMAT_SHIFT);
         }
 
         uint32_t dst_offset = (dst->bo->offset +
                                v3d_layer_offset(pdst, base_level, dst_layer));
         tfu.ioa |= dst_offset;
         if (last_level != base_level)
-                tfu.ioa |= V3D_TFU_IOA_DIMTW;
-        tfu.ioa |= ((V3D_TFU_IOA_FORMAT_LINEARTILE +
+                tfu.ioa |= V3D33_TFU_IOA_DIMTW;
+        tfu.ioa |= ((V3D33_TFU_IOA_FORMAT_LINEARTILE +
                      (dst_base_slice->tiling - V3D_TILING_LINEARTILE)) <<
-                    V3D_TFU_IOA_FORMAT_SHIFT);
+                    V3D33_TFU_IOA_FORMAT_SHIFT);
 
-        tfu.icfg |= tex_format << V3D_TFU_ICFG_TTYPE_SHIFT;
-        tfu.icfg |= (last_level - base_level) << V3D_TFU_ICFG_NUMMM_SHIFT;
+        tfu.icfg |= tex_format << V3D33_TFU_ICFG_TTYPE_SHIFT;
+        tfu.icfg |= (last_level - base_level) << V3D33_TFU_ICFG_NUMMM_SHIFT;
 
         switch (src_base_slice->tiling) {
         case V3D_TILING_UIF_NO_XOR:
@@ -336,7 +313,7 @@ v3d_tfu(struct pipe_context *pctx,
 
                 tfu.icfg |= (((dst_base_slice->padded_height -
                                implicit_padded_height) / uif_block_h) <<
-                             V3D_TFU_ICFG_OPAD_SHIFT);
+                             V3D33_TFU_ICFG_OPAD_SHIFT);
         }
 
         int ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_SUBMIT_TFU, &tfu);

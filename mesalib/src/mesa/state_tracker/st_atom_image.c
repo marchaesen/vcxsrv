@@ -36,7 +36,6 @@
 #include "util/u_surface.h"
 #include "cso_cache/cso_context.h"
 
-#include "st_cb_bufferobjects.h"
 #include "st_cb_texture.h"
 #include "st_debug.h"
 #include "st_texture.h"
@@ -88,8 +87,7 @@ st_convert_image(const struct st_context *st, const struct gl_image_unit *u,
    }
 
    if (stObj->base.Target == GL_TEXTURE_BUFFER) {
-      struct st_buffer_object *stbuf =
-         st_buffer_object(stObj->base.BufferObject);
+      struct gl_buffer_object *stbuf = stObj->base.BufferObject;
       unsigned base, size;
 
       if (!stbuf || !stbuf->buffer) {

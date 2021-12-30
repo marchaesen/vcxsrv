@@ -25,12 +25,13 @@
 #include "wsi_common_entrypoints.h"
 #include "util/macros.h"
 #include "util/os_file.h"
-#include "util/os_time.h"
 #include "util/xmlconfig.h"
 #include "vk_device.h"
+#include "vk_fence.h"
 #include "vk_instance.h"
 #include "vk_physical_device.h"
 #include "vk_queue.h"
+#include "vk_semaphore.h"
 #include "vk_util.h"
 
 #include <time.h>
@@ -74,6 +75,8 @@ wsi_device_init(struct wsi_device *wsi,
 
    GetPhysicalDeviceMemoryProperties(pdevice, &wsi->memory_props);
    GetPhysicalDeviceQueueFamilyProperties(pdevice, &wsi->queue_family_count, NULL);
+
+   list_inithead(&wsi->hotplug_fences);
 
 #define WSI_GET_CB(func) \
    wsi->func = (PFN_vk##func)proc_addr(pdevice, "vk" #func)
@@ -201,6 +204,15 @@ wsi_DestroySurfaceKHR(VkInstance _instance,
       return;
 
    vk_free2(&instance->alloc, pAllocator, surface);
+}
+
+void
+wsi_device_setup_syncobj_fd(struct wsi_device *wsi_device,
+                            int fd)
+{
+#ifdef VK_USE_PLATFORM_DISPLAY_KHR
+   wsi_display_setup_syncobj_fd(wsi_device, fd);
+#endif
 }
 
 VkResult
@@ -610,11 +622,12 @@ wsi_AcquireNextImageKHR(VkDevice _device,
 
 VkResult
 wsi_common_acquire_next_image2(const struct wsi_device *wsi,
-                               VkDevice device,
+                               VkDevice _device,
                                const VkAcquireNextImageInfoKHR *pAcquireInfo,
                                uint32_t *pImageIndex)
 {
    VK_FROM_HANDLE(wsi_swapchain, swapchain, pAcquireInfo->swapchain);
+   VK_FROM_HANDLE(vk_device, device, _device);
 
    VkResult result = swapchain->acquire_next_image(swapchain, pAcquireInfo,
                                                    pImageIndex);
@@ -627,19 +640,33 @@ wsi_common_acquire_next_image2(const struct wsi_device *wsi,
    }
 
    if (pAcquireInfo->semaphore != VK_NULL_HANDLE &&
-       wsi->signal_semaphore_for_memory != NULL) {
+       wsi->signal_semaphore_with_memory) {
+      VK_FROM_HANDLE(vk_semaphore, semaphore, pAcquireInfo->semaphore);
       struct wsi_image *image =
          swapchain->get_wsi_image(swapchain, *pImageIndex);
-      wsi->signal_semaphore_for_memory(device, pAcquireInfo->semaphore,
-                                       image->memory);
+
+      vk_semaphore_reset_temporary(device, semaphore);
+      VkResult lresult =
+         device->create_sync_for_memory(device, image->memory,
+                                        false /* signal_memory */,
+                                        &semaphore->temporary);
+      if (lresult != VK_SUCCESS)
+         return lresult;
    }
 
    if (pAcquireInfo->fence != VK_NULL_HANDLE &&
-       wsi->signal_fence_for_memory != NULL) {
+       wsi->signal_fence_with_memory) {
+      VK_FROM_HANDLE(vk_fence, fence, pAcquireInfo->fence);
       struct wsi_image *image =
          swapchain->get_wsi_image(swapchain, *pImageIndex);
-      wsi->signal_fence_for_memory(device, pAcquireInfo->fence,
-                                   image->memory);
+
+      vk_fence_reset_temporary(device, fence);
+      VkResult lresult =
+         device->create_sync_for_memory(device, image->memory,
+                                        false /* signal_memory */,
+                                        &fence->temporary);
+      if (lresult != VK_SUCCESS)
+         return lresult;
    }
 
    return result;
@@ -789,12 +816,6 @@ wsi_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
                                    _queue,
                                    queue->queue_family_index,
                                    pPresentInfo);
-}
-
-uint64_t
-wsi_common_get_current_time(void)
-{
-   return os_time_get_nano();
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

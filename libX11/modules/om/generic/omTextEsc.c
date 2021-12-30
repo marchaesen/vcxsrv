@@ -169,10 +169,10 @@ TextWidthWithFontSet(
 	 *
 	 */
 
-	if(fd == (FontData) NULL ||
-	   (font = font_set->font) == (XFontStruct *) NULL) {
+	if((font = font_set->font) == (XFontStruct *) NULL) {
 
-	    if((font = fd->font) == (XFontStruct *) NULL)
+	    if(fd == (FontData) NULL ||
+	       (font = fd->font) == (XFontStruct *) NULL)
 		break;
 	}
 

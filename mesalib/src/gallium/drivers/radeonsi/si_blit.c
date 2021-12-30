@@ -56,7 +56,7 @@ void si_blitter_begin(struct si_context *sctx, enum si_blitter_op op)
       util_blitter_save_depth_stencil_alpha(sctx->blitter, sctx->queued.named.dsa);
       util_blitter_save_stencil_ref(sctx->blitter, &sctx->stencil_ref.state);
       util_blitter_save_fragment_shader(sctx->blitter, sctx->shader.ps.cso);
-      util_blitter_save_sample_mask(sctx->blitter, sctx->sample_mask);
+      util_blitter_save_sample_mask(sctx->blitter, sctx->sample_mask, sctx->ps_iter_samples);
       util_blitter_save_scissor(sctx->blitter, &sctx->scissors[0]);
       util_blitter_save_window_rectangles(sctx->blitter, sctx->window_rectangles_include,
                                           sctx->num_window_rectangles, sctx->window_rectangles);
@@ -98,6 +98,10 @@ void si_blitter_end(struct si_context *sctx)
    /* Restore shader pointers because the VS blit shader changed all
     * non-global VS user SGPRs. */
    sctx->shader_pointers_dirty |= SI_DESCS_SHADER_MASK(VERTEX);
+
+   /* Reset SI_SGPR_SMALL_PRIM_CULL_INFO: */
+   if (sctx->screen->use_ngg_culling)
+      si_mark_atom_dirty(sctx, &sctx->atoms.s.ngg_cull_state);
 
    unsigned num_vbos_in_user_sgprs = si_num_vbos_in_user_sgprs(sctx->screen);
    sctx->vertex_buffer_pointer_dirty = sctx->vb_descriptors_buffer != NULL &&
@@ -395,11 +399,12 @@ static void si_decompress_depth(struct si_context *sctx, struct si_texture *tex,
       si_make_CB_shader_coherent(sctx, tex->buffer.b.b.nr_samples, false, true /* no DCC */);
 }
 
-static void si_decompress_sampler_depth_textures(struct si_context *sctx,
+static bool si_decompress_sampler_depth_textures(struct si_context *sctx,
                                                  struct si_samplers *textures)
 {
    unsigned i;
    unsigned mask = textures->needs_depth_decompress_mask;
+   bool need_flush = false;
 
    while (mask) {
       struct pipe_sampler_view *view;
@@ -418,7 +423,14 @@ static void si_decompress_sampler_depth_textures(struct si_context *sctx,
       si_decompress_depth(sctx, tex, sview->is_stencil_sampler ? PIPE_MASK_S : PIPE_MASK_Z,
                           view->u.tex.first_level, view->u.tex.last_level, 0,
                           util_max_layer(&tex->buffer.b.b, view->u.tex.first_level));
+
+      if (tex->need_flush_after_depth_decompression) {
+         need_flush = true;
+         tex->need_flush_after_depth_decompression = false;
+      }
    }
+
+   return need_flush;
 }
 
 static void si_blit_decompress_color(struct si_context *sctx, struct si_texture *tex,
@@ -757,6 +769,7 @@ static void si_decompress_resident_images(struct si_context *sctx)
 void si_decompress_textures(struct si_context *sctx, unsigned shader_mask)
 {
    unsigned compressed_colortex_counter, mask;
+   bool need_flush = false;
 
    if (sctx->blitter_running)
       return;
@@ -774,7 +787,7 @@ void si_decompress_textures(struct si_context *sctx, unsigned shader_mask)
       unsigned i = u_bit_scan(&mask);
 
       if (sctx->samplers[i].needs_depth_decompress_mask) {
-         si_decompress_sampler_depth_textures(sctx, &sctx->samplers[i]);
+         need_flush |= si_decompress_sampler_depth_textures(sctx, &sctx->samplers[i]);
       }
       if (sctx->samplers[i].needs_color_decompress_mask) {
          si_decompress_sampler_color_textures(sctx, &sctx->samplers[i]);
@@ -782,6 +795,16 @@ void si_decompress_textures(struct si_context *sctx, unsigned shader_mask)
       if (sctx->images[i].needs_color_decompress_mask) {
          si_decompress_image_color_textures(sctx, &sctx->images[i]);
       }
+   }
+
+   if (sctx->chip_class == GFX10_3 && need_flush) {
+      /* This fixes a corruption with the following sequence:
+       *   - fast clear depth
+       *   - decompress depth
+       *   - draw
+       * (see https://gitlab.freedesktop.org/drm/amd/-/issues/1810#note_1170171)
+       */
+      sctx->b.flush(&sctx->b, NULL, RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW);
    }
 
    if (shader_mask & u_bit_consecutive(0, SI_NUM_GRAPHICS_SHADERS)) {
@@ -1220,7 +1243,8 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
                         info->dst.level == 0 && info->src.level == 0 &&
                         info->src.box.width == info->dst.resource->width0 &&
                         info->src.box.height == info->dst.resource->height0 &&
-                        info->src.box.depth == 1 && util_can_blit_via_copy_region(info, true);
+                        info->src.box.depth == 1 &&
+                        util_can_blit_via_copy_region(info, true, sctx->render_cond != NULL);
       /* Try SDMA first... */
       if (async_copy && si_sdma_copy_image(sctx, sdst, ssrc))
          return;
@@ -1252,7 +1276,7 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
    /* Using compute for copying to a linear texture in GTT is much faster than
     * going through RBs (render backends). This improves DRI PRIME performance.
     */
-   if (util_can_blit_via_copy_region(info, false)) {
+   if (util_can_blit_via_copy_region(info, false, sctx->render_cond != NULL)) {
       si_resource_copy_region(ctx, info->dst.resource, info->dst.level,
                               info->dst.box.x, info->dst.box.y, info->dst.box.z,
                               info->src.resource, info->src.level, &info->src.box);

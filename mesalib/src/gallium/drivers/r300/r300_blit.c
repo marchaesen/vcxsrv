@@ -68,7 +68,7 @@ static void r300_blitter_begin(struct r300_context* r300, enum r300_blitter_op o
     util_blitter_save_vertex_shader(r300->blitter, r300->vs_state.state);
     util_blitter_save_viewport(r300->blitter, &r300->viewport);
     util_blitter_save_scissor(r300->blitter, r300->scissor_state.state);
-    util_blitter_save_sample_mask(r300->blitter, *(unsigned*)r300->sample_mask.state);
+    util_blitter_save_sample_mask(r300->blitter, *(unsigned*)r300->sample_mask.state, 0);
     util_blitter_save_vertex_buffer_slot(r300->blitter, r300->vertex_buffer);
     util_blitter_save_vertex_elements(r300->blitter, r300->velems);
 

@@ -235,8 +235,6 @@ void keylist_update(void)
 
 #define PAGEANT_DIR_PREFIX "/tmp/pageant"
 
-const char *const appname = "Pageant";
-
 static bool time_to_die = false;
 
 /*
@@ -249,7 +247,7 @@ static void x11_log(Plug *p, PlugLogType type, SockAddr *addr, int port,
                     const char *error_msg, int error_code) {}
 static void x11_receive(Plug *plug, int urgent, const char *data, size_t len) {}
 static void x11_sent(Plug *plug, size_t bufsize) {}
-static void x11_closing(Plug *plug, const char *error_msg, int error_code)
+static void x11_closing(Plug *plug, PlugCloseType type, const char *error_msg)
 {
     time_to_die = true;
 }
@@ -439,18 +437,22 @@ static FingerprintType key_list_fptype = SSH_FPTYPE_DEFAULT;
 
 static char *askpass_tty(const char *prompt)
 {
-    int ret;
     prompts_t *p = new_prompts();
     p->to_server = false;
     p->from_server = false;
     p->name = dupstr("Pageant passphrase prompt");
     add_prompt(p, dupcat(prompt, ": "), false);
-    ret = console_get_userpass_input(p);
-    assert(ret >= 0);
+    SeatPromptResult spr = console_get_userpass_input(p);
+    assert(spr.kind != SPRK_INCOMPLETE);
 
-    if (!ret) {
-        perror("pageant: unable to read passphrase");
+    if (spr.kind == SPRK_USER_ABORT) {
         free_prompts(p);
+        return NULL;
+    } else if (spr.kind == SPRK_SW_ABORT) {
+        free_prompts(p);
+        char *err = spr_get_error_message(spr);
+        fprintf(stderr, "pageant: unable to read passphrase: %s", err);
+        sfree(err);
         return NULL;
     } else {
         char *passphrase = prompt_get_result(p->prompts[0]);
@@ -1189,7 +1191,7 @@ void run_agent(FILE *logfp, const char *symlink_path)
         s = new_connection(sk_addr_dup(disp->addr),
                            disp->realhost, disp->port,
                            false, true, false, false, &conn->plug, conf,
-                           NULL, NULL);
+                           NULL);
         if ((err = sk_socket_error(s)) != NULL) {
             fprintf(stderr, "pageant: unable to connect to X server: %s", err);
             exit(1);

@@ -122,10 +122,7 @@ load_unswizzled_block(struct gallivm_state *gallivm,
                       LLVMValueRef* dst,
                       struct lp_type dst_type,
                       unsigned dst_count,
-                      unsigned dst_alignment,
-                      LLVMValueRef x_offset,
-                      LLVMValueRef y_offset,
-                      bool fb_fetch_twiddle);
+                      unsigned dst_alignment);
 /**
  * Checks if a format description is an arithmetic format
  *
@@ -467,48 +464,16 @@ static void fs_fb_fetch(const struct lp_build_fs_iface *iface,
    LLVMValueRef color_ptr = LLVMBuildLoad(builder, LLVMBuildGEP(builder, fs_iface->color_ptr_ptr, &index, 1, ""), "");
    LLVMValueRef stride = LLVMBuildLoad(builder, LLVMBuildGEP(builder, fs_iface->color_stride_ptr, &index, 1, ""), "");
 
-   LLVMValueRef dst[4 * 4];
    enum pipe_format cbuf_format = key->cbuf_format[cbuf];
    const struct util_format_description* out_format_desc = util_format_description(cbuf_format);
-   struct lp_type dst_type;
+   if (out_format_desc->format == PIPE_FORMAT_NONE) {
+      result[0] = result[1] = result[2] = result[3] = bld->undef;
+      return;
+   }
+
    unsigned block_size = bld->type.length;
    unsigned block_height = key->resource_1d ? 1 : 2;
    unsigned block_width = block_size / block_height;
-
-   lp_mem_type_from_format_desc(out_format_desc, &dst_type);
-
-   struct lp_type blend_type;
-   memset(&blend_type, 0, sizeof blend_type);
-   blend_type.floating = FALSE; /* values are integers */
-   blend_type.sign = FALSE;     /* values are unsigned */
-   blend_type.norm = TRUE;      /* values are in [0,1] or [-1,1] */
-   blend_type.width = 8;        /* 8-bit ubyte values */
-   blend_type.length = 16;      /* 16 elements per vector */
-
-   uint32_t dst_alignment;
-   /*
-    * Compute the alignment of the destination pointer in bytes
-    * We fetch 1-4 pixels, if the format has pot alignment then those fetches
-    * are always aligned by MIN2(16, fetch_width) except for buffers (not
-    * 1d tex but can't distinguish here) so need to stick with per-pixel
-    * alignment in this case.
-    */
-   if (key->resource_1d) {
-      dst_alignment = (out_format_desc->block.bits + 7)/(out_format_desc->block.width * 8);
-   }
-   else {
-      dst_alignment = dst_type.length * dst_type.width / 8;
-   }
-   /* Force power-of-two alignment by extracting only the least-significant-bit */
-   dst_alignment = 1 << (ffs(dst_alignment) - 1);
-   /*
-    * Resource base and stride pointers are aligned to 16 bytes, so that's
-    * the maximum alignment we can guarantee
-    */
-   dst_alignment = MIN2(16, dst_alignment);
-
-   LLVMTypeRef blend_vec_type = lp_build_vec_type(gallivm, blend_type);
-   color_ptr = LLVMBuildBitCast(builder, color_ptr, LLVMPointerType(blend_vec_type, 0), "");
 
    if (key->multisample) {
       LLVMValueRef sample_stride = LLVMBuildLoad(builder,
@@ -531,12 +496,36 @@ static void fs_fb_fetch(const struct lp_build_fs_iface *iface,
       }
       y_offset = LLVMBuildMul(builder, counter, lp_build_const_int32(gallivm, 2), "");
    }
-   load_unswizzled_block(gallivm, color_ptr, stride, block_width, block_height, dst, dst_type, block_size, dst_alignment, x_offset, y_offset, true);
 
+   LLVMValueRef offsets[4 * 4];
    for (unsigned i = 0; i < block_size; i++) {
-      dst[i] = LLVMBuildBitCast(builder, dst[i], LLVMInt32TypeInContext(gallivm->context), "");
+      unsigned x = i % block_width;
+      unsigned y = i / block_width;
+
+      if (block_size == 8) {
+         /* remap the raw slots into the fragment shader execution mode. */
+         /* this math took me way too long to work out, I'm sure it's overkill. */
+         x = (i & 1) + ((i >> 2) << 1);
+         if (!key->resource_1d)
+            y = (i & 2) >> 1;
+      }
+
+      LLVMValueRef x_val;
+      if (x_offset) {
+         x_val = LLVMBuildAdd(builder, lp_build_const_int32(gallivm, x), x_offset, "");
+         x_val = LLVMBuildMul(builder, x_val, lp_build_const_int32(gallivm, out_format_desc->block.bits / 8), "");
+      } else {
+         x_val = lp_build_const_int32(gallivm, x * (out_format_desc->block.bits / 8));
+      }
+
+      LLVMValueRef y_val = lp_build_const_int32(gallivm, y);
+      if (y_offset)
+         y_val = LLVMBuildAdd(builder, y_val, y_offset, "");
+      y_val = LLVMBuildMul(builder, y_val, stride, "");
+
+      offsets[i] = LLVMBuildAdd(builder, x_val, y_val, "");
    }
-   LLVMValueRef packed = lp_build_gather_values(gallivm, dst, block_size);
+   LLVMValueRef offset = lp_build_gather_values(gallivm, offsets, block_size);
 
    struct lp_type texel_type = bld->type;
    if (out_format_desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB &&
@@ -548,9 +537,10 @@ static void fs_fb_fetch(const struct lp_build_fs_iface *iface,
          texel_type = lp_type_uint_vec(bld->type.width, bld->type.width * bld->type.length);
       }
    }
-   lp_build_unpack_rgba_soa(gallivm, out_format_desc,
-                            texel_type,
-                            packed, result);
+
+   lp_build_fetch_rgba_soa(gallivm, out_format_desc, texel_type,
+                           true, color_ptr, offset,
+                           NULL, NULL, NULL, result);
 }
 
 /**
@@ -1091,7 +1081,7 @@ generate_fs_loop(struct gallivm_state *gallivm,
       LLVMBuildStore(builder, out, ptr);
    }
 
-
+   bool has_cbuf0_write = false;
    /* Color write - per fragment sample */
    for (attrib = 0; attrib < shader->info.base.num_outputs; ++attrib)
    {
@@ -1099,6 +1089,21 @@ generate_fs_loop(struct gallivm_state *gallivm,
       if ((shader->info.base.output_semantic_name[attrib] == TGSI_SEMANTIC_COLOR) &&
            ((cbuf < key->nr_cbufs) || (cbuf == 1 && dual_source_blend)))
       {
+         if (cbuf == 0 && shader->info.base.properties[TGSI_PROPERTY_FS_COLOR0_WRITES_ALL_CBUFS]) {
+            /* XXX: there is an edge case with FB fetch where gl_FragColor and gl_LastFragData[0]
+             * are used together. This creates both FRAG_RESULT_COLOR and FRAG_RESULT_DATA* output
+             * variables. This loop then writes to cbuf 0 twice, owerwriting the correct value
+             * from gl_FragColor with some garbage. This case is excercised in one of deqp tests.
+             * A similar bug can happen if gl_SecondaryFragColorEXT and gl_LastFragData[1]
+             * are mixed in the same fashion...
+             * This workaround will break if gl_LastFragData[0] goes in outputs list before
+             * gl_FragColor. This doesn't seem to happen though.
+             */
+            if (has_cbuf0_write)
+               continue;
+            has_cbuf0_write = true;
+         }
+
          for(chan = 0; chan < TGSI_NUM_CHANNELS; ++chan) {
             if(outputs[attrib][chan]) {
                /* XXX: just initialize outputs to point at colors[] and
@@ -1519,10 +1524,7 @@ load_unswizzled_block(struct gallivm_state *gallivm,
                       LLVMValueRef* dst,
                       struct lp_type dst_type,
                       unsigned dst_count,
-                      unsigned dst_alignment,
-                      LLVMValueRef x_offset,
-                      LLVMValueRef y_offset,
-                      bool fb_fetch_twiddle)
+                      unsigned dst_alignment)
 {
    LLVMBuilderRef builder = gallivm->builder;
    unsigned row_size = dst_count / block_height;
@@ -1535,28 +1537,8 @@ load_unswizzled_block(struct gallivm_state *gallivm,
       unsigned x = i % row_size;
       unsigned y = i / row_size;
 
-      if (block_height == 2 && dst_count == 8 && fb_fetch_twiddle) {
-         /* remap the raw slots into the fragment shader execution mode. */
-         /* this math took me way too long to work out, I'm sure it's overkill. */
-         x = (i & 1) + ((i >> 2) << 1);
-         y = (i & 2) >> 1;
-      }
-
-      LLVMValueRef x_val;
-      if (x_offset) {
-         x_val = lp_build_const_int32(gallivm, x);
-         if (x_offset)
-            x_val = LLVMBuildAdd(builder, x_val, x_offset, "");
-         x_val = LLVMBuildMul(builder, x_val, lp_build_const_int32(gallivm, (dst_type.width / 8) * dst_type.length), "");
-      } else
-         x_val = lp_build_const_int32(gallivm, x * (dst_type.width / 8) * dst_type.length);
-
-      LLVMValueRef bx = x_val;
-
-      LLVMValueRef y_val = lp_build_const_int32(gallivm, y);
-      if (y_offset)
-         y_val = LLVMBuildAdd(builder, y_val, y_offset, "");
-      LLVMValueRef by = LLVMBuildMul(builder, y_val, stride, "");
+      LLVMValueRef bx = lp_build_const_int32(gallivm, x * (dst_type.width / 8) * dst_type.length);
+      LLVMValueRef by = LLVMBuildMul(builder, lp_build_const_int32(gallivm, y), stride, "");
 
       LLVMValueRef gep[2];
       LLVMValueRef dst_ptr;
@@ -2846,7 +2828,7 @@ generate_unswizzled_blend(struct gallivm_state *gallivm,
 
    if (is_1d) {
       load_unswizzled_block(gallivm, color_ptr, stride, block_width, 1,
-                            dst, ls_type, dst_count / 4, dst_alignment, NULL, NULL, false);
+                            dst, ls_type, dst_count / 4, dst_alignment);
       for (i = dst_count / 4; i < dst_count; i++) {
          dst[i] = lp_build_undef(gallivm, ls_type);
       }
@@ -2854,7 +2836,7 @@ generate_unswizzled_blend(struct gallivm_state *gallivm,
    }
    else {
       load_unswizzled_block(gallivm, color_ptr, stride, block_width, block_height,
-                            dst, ls_type, dst_count, dst_alignment, NULL, NULL, false);
+                            dst, ls_type, dst_count, dst_alignment);
    }
 
 
@@ -3627,7 +3609,8 @@ generate_variant(struct llvmpipe_context *lp,
          !key->blend.alpha_to_coverage &&
          !key->depth.enabled &&
          !shader->info.base.uses_kill &&
-         !shader->info.base.writes_samplemask;
+         !shader->info.base.writes_samplemask &&
+         !shader->info.base.uses_fbfetch;
 
    variant->opaque =
          no_kill &&

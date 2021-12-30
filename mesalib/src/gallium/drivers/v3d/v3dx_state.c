@@ -825,6 +825,34 @@ translate_swizzle(unsigned char pipe_swizzle)
 #endif
 
 static void
+v3d_setup_texture_shader_state_from_buffer(struct V3DX(TEXTURE_SHADER_STATE) *tex,
+                                           struct pipe_resource *prsc,
+                                           enum pipe_format format,
+                                           unsigned offset,
+                                           unsigned size)
+{
+        struct v3d_resource *rsc = v3d_resource(prsc);
+
+        tex->image_depth = 1;
+        tex->image_width = size / util_format_get_blocksize(format);
+
+        /* On 4.x, the height of a 1D texture is redefined to be the
+         * upper 14 bits of the width (which is only usable with txf).
+         */
+        tex->image_height = tex->image_width >> 14;
+
+        tex->image_width &= (1 << 14) - 1;
+        tex->image_height &= (1 << 14) - 1;
+
+        /* Note that we don't have a job to reference the texture's sBO
+         * at state create time, so any time this sampler view is used
+         * we need to add the texture to the job.
+         */
+        tex->texture_base_pointer =
+                cl_address(NULL, rsc->bo->offset + offset);
+}
+
+static void
 v3d_setup_texture_shader_state(struct V3DX(TEXTURE_SHADER_STATE) *tex,
                                struct pipe_resource *prsc,
                                int base_level, int last_level,
@@ -912,11 +940,18 @@ v3dX(create_texture_shader_state_bo)(struct v3d_context *v3d,
 #endif
 
         v3dx_pack(map, TEXTURE_SHADER_STATE, tex) {
-                v3d_setup_texture_shader_state(&tex, prsc,
-                                               cso->u.tex.first_level,
-                                               cso->u.tex.last_level,
-                                               cso->u.tex.first_layer,
-                                               cso->u.tex.last_layer);
+                if (prsc->target != PIPE_BUFFER) {
+                        v3d_setup_texture_shader_state(&tex, prsc,
+                                                       cso->u.tex.first_level,
+                                                       cso->u.tex.last_level,
+                                                       cso->u.tex.first_layer,
+                                                       cso->u.tex.last_layer);
+                } else {
+                        v3d_setup_texture_shader_state_from_buffer(&tex, prsc,
+                                                                   cso->format,
+                                                                   cso->u.buf.offset,
+                                                                   cso->u.buf.size);
+                }
 
                 tex.srgb = util_format_is_srgb(cso->format);
 
@@ -1093,7 +1128,8 @@ v3d_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
          * have to copy to a temporary tiled texture.
          */
         if (!rsc->tiled && !(prsc->target == PIPE_TEXTURE_1D ||
-                             prsc->target == PIPE_TEXTURE_1D_ARRAY)) {
+                             prsc->target == PIPE_TEXTURE_1D_ARRAY ||
+                             prsc->target == PIPE_BUFFER)) {
                 struct v3d_resource *shadow_parent = rsc;
                 struct pipe_resource tmpl = {
                         .target = prsc->target,
@@ -1243,14 +1279,8 @@ v3d_set_stream_output_targets(struct pipe_context *pctx,
         so->num_targets = num_targets;
 
         /* Create primitive counters BO if needed */
-        if (num_targets > 0 && !ctx->prim_counts) {
-                /* Init all 7 counters and 1 padding to 0 */
-                uint32_t zeroes[8] = { 0 };
-                u_upload_data(ctx->uploader,
-                              0, sizeof(zeroes), 32, zeroes,
-                              &ctx->prim_counts_offset,
-                              &ctx->prim_counts);
-        }
+        if (num_targets > 0)
+                v3d_ensure_prim_counts_allocated(ctx);
 
         ctx->dirty |= V3D_DIRTY_STREAMOUT;
 }
@@ -1321,11 +1351,18 @@ v3d_create_image_view_texture_shader_state(struct v3d_context *v3d,
         struct pipe_resource *prsc = iview->base.resource;
 
         v3dx_pack(map, TEXTURE_SHADER_STATE, tex) {
-                v3d_setup_texture_shader_state(&tex, prsc,
-                                               iview->base.u.tex.level,
-                                               iview->base.u.tex.level,
-                                               iview->base.u.tex.first_layer,
-                                               iview->base.u.tex.last_layer);
+                if (prsc->target != PIPE_BUFFER) {
+                        v3d_setup_texture_shader_state(&tex, prsc,
+                                                       iview->base.u.tex.level,
+                                                       iview->base.u.tex.level,
+                                                       iview->base.u.tex.first_layer,
+                                                       iview->base.u.tex.last_layer);
+                } else {
+                        v3d_setup_texture_shader_state_from_buffer(&tex, prsc,
+                                                                   iview->base.format,
+                                                                   iview->base.u.buf.offset,
+                                                                   iview->base.u.buf.size);
+                }
 
                 tex.swizzle_r = translate_swizzle(PIPE_SWIZZLE_X);
                 tex.swizzle_g = translate_swizzle(PIPE_SWIZZLE_Y);

@@ -49,6 +49,11 @@ struct ac_thread_trace_data {
    struct rgp_code_object rgp_code_object;
    struct rgp_loader_events rgp_loader_events;
    struct rgp_pso_correlation rgp_pso_correlation;
+
+   struct rgp_queue_info rgp_queue_info;
+   struct rgp_queue_event rgp_queue_event;
+
+   struct rgp_clock_calibration rgp_clock_calibration;
 };
 
 #define SQTT_BUFFER_ALIGN_SHIFT 12
@@ -492,5 +497,7 @@ bool ac_sqtt_add_pso_correlation(struct ac_thread_trace_data *thread_trace_data,
 bool ac_sqtt_add_code_object_loader_event(struct ac_thread_trace_data *thread_trace_data,
                                           uint64_t pipeline_hash,
                                           uint64_t base_address);
+
+bool ac_check_profile_state(const struct radeon_info *info);
 
 #endif

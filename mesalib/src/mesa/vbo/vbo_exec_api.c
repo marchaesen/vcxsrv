@@ -34,7 +34,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/bufferobj.h"
 #include "main/context.h"
 #include "main/macros.h"
-#include "main/vtxfmt.h"
 #include "main/dlist.h"
 #include "main/eval.h"
 #include "main/state.h"
@@ -44,23 +43,12 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "main/dispatch.h"
 #include "util/bitscan.h"
 #include "util/u_memory.h"
+#include "api_exec_decl.h"
 
-#include "vbo_noop.h"
 #include "vbo_private.h"
-
 
 /** ID/name for immediate-mode VBO */
 #define IMM_BUFFER_NAME 0xaabbccdd
-
-
-static void GLAPIENTRY
-vbo_exec_Materialfv(GLenum face, GLenum pname, const GLfloat *params);
-
-static void GLAPIENTRY
-vbo_exec_EvalCoord1f(GLfloat u);
-
-static void GLAPIENTRY
-vbo_exec_EvalCoord2f(GLfloat u, GLfloat v);
 
 
 static void
@@ -572,18 +560,18 @@ do {                                                                    \
 
 #undef ERROR
 #define ERROR(err) _mesa_error(ctx, err, __func__)
-#define TAG(x) vbo_exec_##x
+#define TAG(x) _mesa_##x
+#define SUPPRESS_STATIC
 
 #include "vbo_attrib_tmp.h"
-
 
 
 /**
  * Execute a glMaterial call.  Note that if GL_COLOR_MATERIAL is enabled,
  * this may be a (partial) no-op.
  */
-static void GLAPIENTRY
-vbo_exec_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
+void GLAPIENTRY
+_mesa_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
 {
    GLbitfield updateMats;
    GET_CURRENT_CONTEXT(ctx);
@@ -712,8 +700,8 @@ vbo_exec_FlushVertices_internal(struct vbo_exec_context *exec, unsigned flags)
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalCoord1f(GLfloat u)
+void GLAPIENTRY
+_mesa_EvalCoord1f(GLfloat u)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
@@ -740,8 +728,8 @@ vbo_exec_EvalCoord1f(GLfloat u)
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalCoord2f(GLfloat u, GLfloat v)
+void GLAPIENTRY
+_mesa_EvalCoord2f(GLfloat u, GLfloat v)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
@@ -772,34 +760,34 @@ vbo_exec_EvalCoord2f(GLfloat u, GLfloat v)
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalCoord1fv(const GLfloat *u)
+void GLAPIENTRY
+_mesa_EvalCoord1fv(const GLfloat *u)
 {
-   vbo_exec_EvalCoord1f(u[0]);
+   _mesa_EvalCoord1f(u[0]);
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalCoord2fv(const GLfloat *u)
+void GLAPIENTRY
+_mesa_EvalCoord2fv(const GLfloat *u)
 {
-   vbo_exec_EvalCoord2f(u[0], u[1]);
+   _mesa_EvalCoord2f(u[0], u[1]);
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalPoint1(GLint i)
+void GLAPIENTRY
+_mesa_EvalPoint1(GLint i)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLfloat du = ((ctx->Eval.MapGrid1u2 - ctx->Eval.MapGrid1u1) /
                  (GLfloat) ctx->Eval.MapGrid1un);
    GLfloat u = i * du + ctx->Eval.MapGrid1u1;
 
-   vbo_exec_EvalCoord1f(u);
+   _mesa_EvalCoord1f(u);
 }
 
 
-static void GLAPIENTRY
-vbo_exec_EvalPoint2(GLint i, GLint j)
+void GLAPIENTRY
+_mesa_EvalPoint2(GLint i, GLint j)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLfloat du = ((ctx->Eval.MapGrid2u2 - ctx->Eval.MapGrid2u1) /
@@ -809,15 +797,15 @@ vbo_exec_EvalPoint2(GLint i, GLint j)
    GLfloat u = i * du + ctx->Eval.MapGrid2u1;
    GLfloat v = j * dv + ctx->Eval.MapGrid2v1;
 
-   vbo_exec_EvalCoord2f(u, v);
+   _mesa_EvalCoord2f(u, v);
 }
 
 
 /**
  * Called via glBegin.
  */
-static void GLAPIENTRY
-vbo_exec_Begin(GLenum mode)
+void GLAPIENTRY
+_mesa_Begin(GLenum mode)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_context *vbo = vbo_context(ctx);
@@ -859,7 +847,7 @@ vbo_exec_Begin(GLenum mode)
    /* We may have been called from a display list, in which case we should
     * leave dlist.c's dispatch table in place.
     */
-   if (ctx->CurrentClientDispatch == ctx->MarshalExec) {
+   if (ctx->GLThread.enabled) {
       ctx->CurrentServerDispatch = ctx->Exec;
    } else if (ctx->CurrentClientDispatch == ctx->OutsideBeginEnd) {
       ctx->CurrentClientDispatch = ctx->Exec;
@@ -905,8 +893,8 @@ try_vbo_merge(struct vbo_exec_context *exec)
 /**
  * Called via glEnd.
  */
-static void GLAPIENTRY
-vbo_exec_End(void)
+void GLAPIENTRY
+_mesa_End(void)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
@@ -918,7 +906,7 @@ vbo_exec_End(void)
 
    ctx->Exec = ctx->OutsideBeginEnd;
 
-   if (ctx->CurrentClientDispatch == ctx->MarshalExec) {
+   if (ctx->GLThread.enabled) {
       ctx->CurrentServerDispatch = ctx->Exec;
    } else if (ctx->CurrentClientDispatch == ctx->BeginEnd) {
       ctx->CurrentClientDispatch = ctx->Exec;
@@ -979,8 +967,8 @@ vbo_exec_End(void)
 /**
  * Called via glPrimitiveRestartNV()
  */
-static void GLAPIENTRY
-vbo_exec_PrimitiveRestartNV(void)
+void GLAPIENTRY
+_mesa_PrimitiveRestartNV(void)
 {
    GLenum curPrim;
    GET_CURRENT_CONTEXT(ctx);
@@ -991,24 +979,97 @@ vbo_exec_PrimitiveRestartNV(void)
       _mesa_error(ctx, GL_INVALID_OPERATION, "glPrimitiveRestartNV");
    }
    else {
-      vbo_exec_End();
-      vbo_exec_Begin(curPrim);
+      _mesa_End();
+      _mesa_Begin(curPrim);
    }
 }
 
 
+/**
+ * A special version of glVertexAttrib4f that does not treat index 0 as
+ * VBO_ATTRIB_POS.
+ */
 static void
-vbo_exec_vtxfmt_init(struct vbo_exec_context *exec)
+VertexAttrib4f_nopos(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
-   struct gl_context *ctx = gl_context_from_vbo_exec(exec);
-   GLvertexformat *vfmt = &exec->vtxfmt;
+   GET_CURRENT_CONTEXT(ctx);
+   if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTRF(VBO_ATTRIB_GENERIC0 + index, 4, x, y, z, w);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
 
-#define NAME_AE(x) _ae_##x
+static void GLAPIENTRY
+_es_VertexAttrib4fARB(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+{
+   VertexAttrib4f_nopos(index, x, y, z, w);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib1fARB(GLuint indx, GLfloat x)
+{
+   VertexAttrib4f_nopos(indx, x, 0.0f, 0.0f, 1.0f);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib1fvARB(GLuint indx, const GLfloat* values)
+{
+   VertexAttrib4f_nopos(indx, values[0], 0.0f, 0.0f, 1.0f);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib2fARB(GLuint indx, GLfloat x, GLfloat y)
+{
+   VertexAttrib4f_nopos(indx, x, y, 0.0f, 1.0f);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib2fvARB(GLuint indx, const GLfloat* values)
+{
+   VertexAttrib4f_nopos(indx, values[0], values[1], 0.0f, 1.0f);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib3fARB(GLuint indx, GLfloat x, GLfloat y, GLfloat z)
+{
+   VertexAttrib4f_nopos(indx, x, y, z, 1.0f);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib3fvARB(GLuint indx, const GLfloat* values)
+{
+   VertexAttrib4f_nopos(indx, values[0], values[1], values[2], 1.0f);
+}
+
+
+static void GLAPIENTRY
+_es_VertexAttrib4fvARB(GLuint indx, const GLfloat* values)
+{
+   VertexAttrib4f_nopos(indx, values[0], values[1], values[2], values[3]);
+}
+
+
+void
+vbo_install_exec_vtxfmt(struct gl_context *ctx)
+{
+#define NAME_AE(x) _mesa_##x
 #define NAME_CALLLIST(x) _mesa_##x
-#define NAME(x) vbo_exec_##x
+#define NAME(x) _mesa_##x
 #define NAME_ES(x) _es_##x
 
-#include "vbo_init_tmp.h"
+   struct _glapi_table *tab = ctx->Exec;
+   #include "api_vtxfmt_init.h"
+
+   if (ctx->BeginEnd) {
+      tab = ctx->BeginEnd;
+      #include "api_vtxfmt_init.h"
+   }
 }
 
 
@@ -1030,24 +1091,11 @@ vbo_reset_all_attr(struct vbo_exec_context *exec)
 
 
 void
-vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects)
+vbo_exec_vtx_init(struct vbo_exec_context *exec)
 {
    struct gl_context *ctx = gl_context_from_vbo_exec(exec);
 
-   if (use_buffer_objects) {
-      /* Use buffer objects for immediate mode. */
-      struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-      exec->vtx.bufferobj = ctx->Driver.NewBufferObject(ctx, IMM_BUFFER_NAME);
-   } else {
-      /* Use allocated memory for immediate mode. */
-      exec->vtx.bufferobj = NULL;
-      exec->vtx.buffer_map =
-         align_malloc(ctx->Const.glBeginEndBufferSize, 64);
-      exec->vtx.buffer_ptr = exec->vtx.buffer_map;
-   }
-
-   vbo_exec_vtxfmt_init(exec);
-   _mesa_noop_vtxfmt_init(ctx, &exec->vtxfmt_noop);
+   exec->vtx.bufferobj = _mesa_bufferobj_alloc(ctx, IMM_BUFFER_NAME);
 
    exec->vtx.enabled = u_bit_consecutive64(0, VBO_ATTRIB_MAX); /* reset all */
    vbo_reset_all_attr(exec);
@@ -1079,7 +1127,7 @@ vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
     */
    if (exec->vtx.bufferobj &&
        _mesa_bufferobj_mapped(exec->vtx.bufferobj, MAP_INTERNAL)) {
-      ctx->Driver.UnmapBuffer(ctx, exec->vtx.bufferobj, MAP_INTERNAL);
+      _mesa_bufferobj_unmap(ctx, exec->vtx.bufferobj, MAP_INTERNAL);
    }
    _mesa_reference_buffer_object(ctx, &exec->vtx.bufferobj, NULL);
 }
@@ -1129,28 +1177,28 @@ vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags)
 void GLAPIENTRY
 _es_Color4f(GLfloat r, GLfloat g, GLfloat b, GLfloat a)
 {
-   vbo_exec_Color4f(r, g, b, a);
+   _mesa_Color4f(r, g, b, a);
 }
 
 
 void GLAPIENTRY
 _es_Normal3f(GLfloat x, GLfloat y, GLfloat z)
 {
-   vbo_exec_Normal3f(x, y, z);
+   _mesa_Normal3f(x, y, z);
 }
 
 
 void GLAPIENTRY
 _es_MultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
 {
-   vbo_exec_MultiTexCoord4f(target, s, t, r, q);
+   _mesa_MultiTexCoord4fARB(target, s, t, r, q);
 }
 
 
 void GLAPIENTRY
 _es_Materialfv(GLenum face, GLenum pname, const GLfloat *params)
 {
-   vbo_exec_Materialfv(face, pname, params);
+   _mesa_Materialfv(face, pname, params);
 }
 
 
@@ -1160,75 +1208,5 @@ _es_Materialf(GLenum face, GLenum pname, GLfloat param)
    GLfloat p[4];
    p[0] = param;
    p[1] = p[2] = p[3] = 0.0F;
-   vbo_exec_Materialfv(face, pname, p);
-}
-
-
-/**
- * A special version of glVertexAttrib4f that does not treat index 0 as
- * VBO_ATTRIB_POS.
- */
-static void
-VertexAttrib4f_nopos(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   if (index < MAX_VERTEX_GENERIC_ATTRIBS)
-      ATTRF(VBO_ATTRIB_GENERIC0 + index, 4, x, y, z, w);
-   else
-      ERROR(GL_INVALID_VALUE);
-}
-
-void GLAPIENTRY
-_es_VertexAttrib4f(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
-{
-   VertexAttrib4f_nopos(index, x, y, z, w);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib1f(GLuint indx, GLfloat x)
-{
-   VertexAttrib4f_nopos(indx, x, 0.0f, 0.0f, 1.0f);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib1fv(GLuint indx, const GLfloat* values)
-{
-   VertexAttrib4f_nopos(indx, values[0], 0.0f, 0.0f, 1.0f);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib2f(GLuint indx, GLfloat x, GLfloat y)
-{
-   VertexAttrib4f_nopos(indx, x, y, 0.0f, 1.0f);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib2fv(GLuint indx, const GLfloat* values)
-{
-   VertexAttrib4f_nopos(indx, values[0], values[1], 0.0f, 1.0f);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z)
-{
-   VertexAttrib4f_nopos(indx, x, y, z, 1.0f);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib3fv(GLuint indx, const GLfloat* values)
-{
-   VertexAttrib4f_nopos(indx, values[0], values[1], values[2], 1.0f);
-}
-
-
-void GLAPIENTRY
-_es_VertexAttrib4fv(GLuint indx, const GLfloat* values)
-{
-   VertexAttrib4f_nopos(indx, values[0], values[1], values[2], values[3]);
+   _mesa_Materialfv(face, pname, p);
 }

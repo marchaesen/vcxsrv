@@ -81,7 +81,8 @@ init_range_root_param(D3D12_ROOT_PARAMETER1 *param,
    range->NumDescriptors = num_descs;
    range->BaseShaderRegister = base_shader_register;
    range->RegisterSpace = 0;
-   if (type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+   if (type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ||
+       type == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
       range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
    else
       range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS;
@@ -142,6 +143,16 @@ create_root_signature(struct d3d12_context *ctx, struct d3d12_root_signature_key
                                   visibility);
          num_params++;
       }
+
+      if (key->stages[i].num_uavs > 0) {
+         init_range_root_param(&root_params[num_params],
+                               &desc_ranges[num_params],
+                               D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+                               key->stages[i].num_uavs,
+                               visibility,
+                               0);
+         num_params++;
+      }
    }
 
    D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_sig_desc;
@@ -190,6 +201,7 @@ fill_key(struct d3d12_context *ctx, struct d3d12_root_signature_key *key)
          key->stages[i].begin_srv_binding = shader->begin_srv_binding;
          key->stages[i].state_vars_size = shader->state_vars_size;
          key->stages[i].has_default_ubo0 = shader->has_default_ubo0;
+         key->stages[i].num_uavs = shader->nir->info.num_ssbos;
 
          if (ctx->gfx_stages[i]->so_info.num_outputs > 0)
             key->has_stream_output = true;

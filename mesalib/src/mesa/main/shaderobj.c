@@ -118,9 +118,6 @@ _mesa_new_shader(GLuint name, gl_shader_stage stage)
    if (shader) {
       shader->Stage = stage;
       shader->Name = name;
-#ifdef DEBUG
-      shader->SourceChecksum = 0xa110c; /* alloc */
-#endif
       _mesa_init_shader(shader);
    }
    return shader;
@@ -485,11 +482,4 @@ _mesa_lookup_shader_program_err(struct gl_context *ctx, GLuint name,
                                 const char *caller)
 {
    return _mesa_lookup_shader_program_err_glthread(ctx, name, false, caller);
-}
-
-
-void
-_mesa_init_shader_object_functions(struct dd_function_table *driver)
-{
-   driver->LinkShader = _mesa_ir_link_shader;
 }

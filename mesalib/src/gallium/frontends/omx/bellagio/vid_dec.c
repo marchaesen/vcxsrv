@@ -49,7 +49,7 @@
 #include "util/u_memory.h"
 #include "util/u_surface.h"
 #include "vl/vl_video_buffer.h"
-#include "vl/vl_vlc.h"
+#include "util/vl_vlc.h"
 
 #include "entrypoint.h"
 #include "vid_dec.h"

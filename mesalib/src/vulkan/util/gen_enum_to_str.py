@@ -457,7 +457,7 @@ def main():
     for template, file_ in [(C_TEMPLATE, os.path.join(args.outdir, 'vk_enum_to_str.c')),
                             (H_TEMPLATE, os.path.join(args.outdir, 'vk_enum_to_str.h')),
                             (H_DEFINE_TEMPLATE, os.path.join(args.outdir, 'vk_enum_defines.h'))]:
-        with open(file_, 'w') as f:
+        with open(file_, 'w', encoding='utf-8') as f:
             f.write(template.render(
                 file=os.path.basename(__file__),
                 enums=enums,

@@ -39,6 +39,7 @@
 #include "main/errors.h"
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
+#include "main/context.h"
 #include "util/u_math.h"
 
 /*
@@ -2607,6 +2608,13 @@ nir_shader *
 glsl_float64_funcs_to_nir(struct gl_context *ctx,
                           const nir_shader_compiler_options *options)
 {
+   /* It's not possible to use float64 on GLSL ES, so don't bother trying to
+    * build the support code.  The support code depends on higher versions of
+    * desktop GLSL, so it will fail to compile (below) anyway.
+    */
+   if (!_mesa_is_desktop_gl(ctx) || ctx->Const.GLSLVersion < 400)
+      return NULL;
+
    /* We pretend it's a vertex shader.  Ultimately, the stage shouldn't
     * matter because we're not optimizing anything here.
     */

@@ -99,6 +99,7 @@ vir_opt_redundant_flags_block(struct v3d_compile *c, struct qblock *block)
         struct qinst *last_flags = NULL;
         bool progress = false;
 
+        c->cur_block = block;
         vir_for_each_inst(inst, block) {
                 if (inst->qpu.type != V3D_QPU_INSTR_TYPE_ALU ||
                     inst->qpu.flags.auf != V3D_QPU_UF_NONE ||

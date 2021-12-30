@@ -52,7 +52,6 @@ struct fd5_pipe_sampler_view {
    uint32_t texconst0, texconst1, texconst2, texconst3, texconst5;
    uint32_t texconst6, texconst7, texconst8, texconst9, texconst10, texconst11;
    uint32_t offset;
-   bool astc_srgb;
 };
 
 static inline struct fd5_pipe_sampler_view *
@@ -70,6 +69,7 @@ fd5_tex_type(unsigned target)
    default:
       assert(0);
    case PIPE_BUFFER:
+      return A5XX_TEX_BUFFER;
    case PIPE_TEXTURE_1D:
    case PIPE_TEXTURE_1D_ARRAY:
       return A5XX_TEX_1D;

@@ -34,8 +34,8 @@
 #include "util/u_dynarray.h"
 #include "util/set.h"
 #include "util/list.h"
+#include "util/u_math.h"
 
-#include "main/mtypes.h"
 #include "compiler/nir_types.h"
 #include "compiler/nir/nir.h"
 #include "panfrost/util/pan_ir.h"

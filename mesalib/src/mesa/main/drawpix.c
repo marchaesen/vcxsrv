@@ -26,7 +26,6 @@
 #include "draw_validate.h"
 #include "bufferobj.h"
 #include "context.h"
-#include "drawpix.h"
 #include "enums.h"
 #include "feedback.h"
 #include "framebuffer.h"
@@ -38,7 +37,10 @@
 #include "fbobject.h"
 #include "util/u_math.h"
 #include "util/rounding.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_bitmap.h"
+#include "state_tracker/st_cb_drawpixels.h"
 
 /*
  * Execute glDrawPixels
@@ -73,8 +75,7 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
     */
    _mesa_set_vp_override(ctx, GL_TRUE);
 
-   if (ctx->NewState & _NEW_PIXEL)
-      _mesa_update_pixel(ctx);
+   _mesa_update_pixel(ctx);
 
    if (ctx->NewState)
       _mesa_update_state(ctx);
@@ -167,8 +168,8 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
             }
          }
 
-         ctx->Driver.DrawPixels(ctx, x, y, width, height, format, type,
-                                &ctx->Unpack, pixels);
+         st_DrawPixels(ctx, x, y, width, height, format, type,
+                       &ctx->Unpack, pixels);
       }
    }
    else if (ctx->RenderMode == GL_FEEDBACK) {
@@ -245,8 +246,7 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
     */
    _mesa_set_vp_override(ctx, GL_TRUE);
 
-   if (ctx->NewState & _NEW_PIXEL)
-      _mesa_update_pixel(ctx);
+   _mesa_update_pixel(ctx);
 
    if (ctx->NewState)
       _mesa_update_state(ctx);
@@ -290,8 +290,8 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
       if (width > 0 && height > 0) {
          GLint destx = lroundf(ctx->Current.RasterPos[0]);
          GLint desty = lroundf(ctx->Current.RasterPos[1]);
-         ctx->Driver.CopyPixels( ctx, srcx, srcy, width, height, destx, desty,
-                                 type );
+         st_CopyPixels( ctx, srcx, srcy, width, height, destx, desty,
+                        type );
       }
    }
    else if (ctx->RenderMode == GL_FEEDBACK) {
@@ -334,8 +334,7 @@ _mesa_Bitmap( GLsizei width, GLsizei height,
       return;    /* do nothing */
    }
 
-   if (ctx->NewState & _NEW_PIXEL)
-      _mesa_update_pixel(ctx);
+   _mesa_update_pixel(ctx);
 
    if (ctx->NewState)
       _mesa_update_state(ctx);
@@ -372,7 +371,7 @@ _mesa_Bitmap( GLsizei width, GLsizei height,
             }
          }
 
-         ctx->Driver.Bitmap( ctx, x, y, width, height, &ctx->Unpack, bitmap );
+         st_Bitmap( ctx, x, y, width, height, &ctx->Unpack, bitmap );
       }
    }
    else if (ctx->RenderMode == GL_FEEDBACK) {

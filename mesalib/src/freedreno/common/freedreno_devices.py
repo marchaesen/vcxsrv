@@ -206,6 +206,7 @@ add_gpus([
 a6xx_gen1 = dict(
         fibers_per_sp = 128 * 16,
         reg_size_vec4 = 96,
+        instr_cache_size = 64,
         ccu_cntl_gmem_unk2 = True,
         indirect_draw_wfm_quirk = True,
         depth_bounds_require_depth_test_quirk = True,
@@ -218,6 +219,7 @@ a6xx_gen1 = dict(
 a6xx_gen2 = dict(
         fibers_per_sp = 128 * 4 * 16,
         reg_size_vec4 = 96,
+        instr_cache_size = 64, # TODO
         supports_multiview_mask = True,
         has_z24uint_s8uint = True,
         indirect_draw_wfm_quirk = True,
@@ -231,6 +233,8 @@ a6xx_gen2 = dict(
 a6xx_gen3 = dict(
         fibers_per_sp = 128 * 2 * 16,
         reg_size_vec4 = 64,
+        # Blob limits it to 128 but we hang with 128
+        instr_cache_size = 127,
         supports_multiview_mask = True,
         has_z24uint_s8uint = True,
         tess_use_shared = True,
@@ -249,6 +253,8 @@ a6xx_gen3 = dict(
 a6xx_gen4 = dict(
         fibers_per_sp = 128 * 2 * 16,
         reg_size_vec4 = 64,
+        # Blob limits it to 128 but we hang with 128
+        instr_cache_size = 127,
         supports_multiview_mask = True,
         has_z24uint_s8uint = True,
         tess_use_shared = True,
@@ -259,6 +265,7 @@ a6xx_gen4 = dict(
         has_8bpp_ubwc = False,
         has_lpac = True,
         has_shading_rate = True,
+        has_getfiberid = True,
         magic = dict(
             TPL1_DBG_ECO_CNTL = 0x5008000,
         ),

@@ -30,7 +30,6 @@
 #include "program/program.h"
 #include "program/prog_statevars.h"
 #include "program/prog_parameter.h"
-#include "program/ir_to_mesa.h"
 #include "main/context.h"
 #include "main/mtypes.h"
 #include "main/errors.h"
@@ -219,9 +218,6 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
          }
       } else if (uniform->state_slots) {
          const gl_state_index16 *const stateTokens = uniform->state_slots[0].tokens;
-         /* This state reference has already been setup by ir_to_mesa, but we'll
-          * get the same index back here.
-          */
 
          unsigned comps;
          if (glsl_type_is_struct_or_ifc(type)) {
@@ -769,6 +765,8 @@ st_link_nir(struct gl_context *ctx,
          prog->nir = glsl_to_nir(st->ctx, shader_program, shader->Stage, options);
       }
 
+      memcpy(prog->nir->info.source_sha1, shader->linked_source_sha1,
+             SHA1_DIGEST_LENGTH);
       st_nir_preprocess(st, prog, shader_program, shader->Stage);
 
       if (options->lower_to_scalar) {

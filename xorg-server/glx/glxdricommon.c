@@ -115,6 +115,16 @@ render_type_is_pbuffer_only(unsigned renderType)
                             | __DRI_ATTRIB_FLOAT_BIT));
 }
 
+static int
+server_has_depth(int depth)
+{
+    int i;
+    for (i = 0; i < screenInfo.numPixmapFormats; i++)
+        if (screenInfo.formats[i].depth == depth)
+            return 1;
+    return 0;
+}
+
 static __GLXconfig *
 createModeFromConfig(const __DRIcoreExtension * core,
                      const __DRIconfig * driConfig,
@@ -177,6 +187,16 @@ createModeFromConfig(const __DRIcoreExtension * core,
 
     if (!render_type_is_pbuffer_only(renderType))
         drawableType |= GLX_WINDOW_BIT | GLX_PIXMAP_BIT;
+
+    /* Make sure we don't advertise things the server isn't configured for */
+    if ((drawableType & (GLX_PBUFFER_BIT | GLX_PIXMAP_BIT)) &&
+        !server_has_depth(config->config.rgbBits)) {
+        drawableType &= ~(GLX_PBUFFER_BIT | GLX_PIXMAP_BIT);
+        if (!drawableType) {
+            free(config);
+            return NULL;
+        }
+    }
 
     config->config.next = NULL;
     config->config.visualType = visualType;

@@ -35,7 +35,6 @@ extern "C" {
 bool dxil_nir_lower_8bit_conv(nir_shader *shader);
 bool dxil_nir_lower_16bit_conv(nir_shader *shader);
 bool dxil_nir_lower_x2b(nir_shader *shader);
-bool dxil_nir_lower_inot(nir_shader *shader);
 bool dxil_nir_lower_ubo_to_temp(nir_shader *shader);
 bool dxil_nir_lower_loads_stores_to_dxil(nir_shader *shader);
 bool dxil_nir_lower_atomics_to_dxil(nir_shader *shader);
@@ -49,8 +48,9 @@ bool dxil_nir_lower_double_math(nir_shader *shader);
 bool dxil_nir_lower_system_values_to_zero(nir_shader *shader,
                                           gl_system_value* system_value,
                                           uint32_t count);
-bool dxil_nir_create_bare_samplers(nir_shader *shader);
+bool dxil_nir_split_typed_samplers(nir_shader *shader);
 bool dxil_nir_lower_bool_input(struct nir_shader *s);
+bool dxil_nir_lower_sysval_to_load_input(nir_shader *s, nir_variable **sysval_vars);
 
 nir_ssa_def *
 build_load_ubo_dxil(nir_builder *b, nir_ssa_def *buffer,

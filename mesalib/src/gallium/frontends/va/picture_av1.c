@@ -25,7 +25,7 @@
  *
  **************************************************************************/
 
-#include "vl/vl_vlc.h"
+#include "util/vl_vlc.h"
 #include "va_private.h"
 
 #define AV1_REFS_PER_FRAME 7

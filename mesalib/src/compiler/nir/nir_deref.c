@@ -1055,6 +1055,10 @@ opt_replace_struct_wrapper_cast(nir_builder *b, nir_deref_instr *cast)
    if (!glsl_type_is_struct(parent->type))
       return false;
 
+   /* Empty struct */
+   if (glsl_get_length(parent->type) < 1)
+      return false;
+
    if (glsl_get_struct_field_offset(parent->type, 0) != 0)
       return false;
 

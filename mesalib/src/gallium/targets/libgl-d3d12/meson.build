@@ -28,7 +28,7 @@ libopenglon12 = shared_library(
   ],
   link_whole : [libwgl],
   link_with : [
-    libgallium, libglsl, libmesa_gallium, libwsgdi, libd3d12winsys, libglapi_static, libglapi
+    libgallium, libglsl, libmesa, libwsgdi, libd3d12winsys, libglapi_static, libglapi
   ],
   dependencies : [
     dep_ws2_32, idep_nir, idep_mesautil, driver_d3d12

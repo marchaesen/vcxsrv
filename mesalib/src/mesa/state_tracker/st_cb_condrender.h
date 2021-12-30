@@ -28,10 +28,8 @@
 #ifndef ST_CB_CONDRENDER_H
 #define ST_CB_CONDRENDER_H
 
-
-struct dd_function_table;
-
-extern void st_init_cond_render_functions(struct dd_function_table *functions);
-
+void st_BeginConditionalRender(struct gl_context *ctx, struct gl_query_object *q,
+                               GLenum mode);
+void st_EndConditionalRender(struct gl_context *ctx, struct gl_query_object *q);
 
 #endif

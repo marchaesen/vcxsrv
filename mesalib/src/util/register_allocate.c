@@ -75,7 +75,6 @@
 
 #include "blob.h"
 #include "ralloc.h"
-#include "main/macros.h"
 #include "util/bitset.h"
 #include "util/u_dynarray.h"
 #include "u_math.h"
@@ -454,6 +453,8 @@ ra_set_deserialize(void *mem_ctx, struct blob_reader *blob)
    for (unsigned int c = 0; c < class_count; c++) {
       struct ra_class *class = rzalloc(regs, struct ra_class);
       regs->classes[c] = class;
+      class->regset = regs;
+      class->index = c;
 
       class->regs = ralloc_array(class, BITSET_WORD, BITSET_WORDS(reg_count));
       blob_copy_bytes(blob, class->regs, BITSET_WORDS(reg_count) *
@@ -471,11 +472,45 @@ ra_set_deserialize(void *mem_ctx, struct blob_reader *blob)
    return regs;
 }
 
+static uint64_t
+ra_get_num_adjacency_bits(uint64_t n)
+{
+   return (n * (n - 1)) / 2;
+}
+
+static uint64_t
+ra_get_adjacency_bit_index(unsigned n1, unsigned n2)
+{
+   assert(n1 != n2);
+   unsigned k1 = MAX2(n1, n2);
+   unsigned k2 = MIN2(n1, n2);
+   return ra_get_num_adjacency_bits(k1) + k2;
+}
+
+static bool
+ra_test_adjacency_bit(struct ra_graph *g, unsigned n1, unsigned n2)
+{
+   uint64_t index = ra_get_adjacency_bit_index(n1, n2);
+   return BITSET_TEST(g->adjacency, index);
+}
+
+static void
+ra_set_adjacency_bit(struct ra_graph *g, unsigned n1, unsigned n2)
+{
+   unsigned index = ra_get_adjacency_bit_index(n1, n2);
+   BITSET_SET(g->adjacency, index);
+}
+
+static void
+ra_clear_adjacency_bit(struct ra_graph *g, unsigned n1, unsigned n2)
+{
+   unsigned index = ra_get_adjacency_bit_index(n1, n2);
+   BITSET_CLEAR(g->adjacency, index);
+}
+
 static void
 ra_add_node_adjacency(struct ra_graph *g, unsigned int n1, unsigned int n2)
 {
-   BITSET_SET(g->nodes[n1].adjacency, n2);
-
    assert(n1 != n2);
 
    int n1_class = g->nodes[n1].class;
@@ -488,9 +523,8 @@ ra_add_node_adjacency(struct ra_graph *g, unsigned int n1, unsigned int n2)
 static void
 ra_node_remove_adjacency(struct ra_graph *g, unsigned int n1, unsigned int n2)
 {
-   BITSET_CLEAR(g->nodes[n1].adjacency, n2);
-
    assert(n1 != n2);
+   ra_clear_adjacency_bit(g, n1, n2);
 
    int n1_class = g->nodes[n1].class;
    int n2_class = g->nodes[n2].class;
@@ -511,32 +545,24 @@ ra_realloc_interference_graph(struct ra_graph *g, unsigned int alloc)
     */
    assert(g->alloc % BITSET_WORDBITS == 0);
    alloc = align64(alloc, BITSET_WORDBITS);
+   g->nodes = rerzalloc(g, g->nodes, struct ra_node, g->alloc, alloc);
+   g->adjacency = rerzalloc(g, g->adjacency, BITSET_WORD,
+                            BITSET_WORDS(ra_get_num_adjacency_bits(g->alloc)),
+                            BITSET_WORDS(ra_get_num_adjacency_bits(alloc)));
 
-   g->nodes = reralloc(g, g->nodes, struct ra_node, alloc);
-
-   unsigned g_bitset_count = BITSET_WORDS(g->alloc);
-   unsigned bitset_count = BITSET_WORDS(alloc);
-   /* For nodes already in the graph, we just have to grow the adjacency set */
-   for (unsigned i = 0; i < g->alloc; i++) {
-      assert(g->nodes[i].adjacency != NULL);
-      g->nodes[i].adjacency = rerzalloc(g, g->nodes[i].adjacency, BITSET_WORD,
-                                        g_bitset_count, bitset_count);
-   }
-
-   /* For new nodes, we have to fully initialize them */
+   /* Initialize new nodes. */
    for (unsigned i = g->alloc; i < alloc; i++) {
-      memset(&g->nodes[i], 0, sizeof(g->nodes[i]));
-      g->nodes[i].adjacency = rzalloc_array(g, BITSET_WORD, bitset_count);
-      util_dynarray_init(&g->nodes[i].adjacency_list, g);
-      g->nodes[i].q_total = 0;
-
-      g->nodes[i].forced_reg = NO_REG;
-      g->nodes[i].reg = NO_REG;
+      struct ra_node* node = g->nodes + i;
+      util_dynarray_init(&node->adjacency_list, g);
+      node->q_total = 0;
+      node->forced_reg = NO_REG;
+      node->reg = NO_REG;
    }
 
    /* These are scratch values and don't need to be zeroed.  We'll clear them
     * as part of ra_select() setup.
     */
+   unsigned bitset_count = BITSET_WORDS(alloc);
    g->tmp.stack = reralloc(g, g->tmp.stack, unsigned int, alloc);
    g->tmp.in_stack = reralloc(g, g->tmp.in_stack, BITSET_WORD, bitset_count);
 
@@ -610,7 +636,8 @@ ra_add_node_interference(struct ra_graph *g,
                          unsigned int n1, unsigned int n2)
 {
    assert(n1 < g->count && n2 < g->count);
-   if (n1 != n2 && !BITSET_TEST(g->nodes[n1].adjacency, n2)) {
+   if (n1 != n2 && !ra_test_adjacency_bit(g, n1, n2)) {
+      ra_set_adjacency_bit(g, n1, n2);
       ra_add_node_adjacency(g, n1, n2);
       ra_add_node_adjacency(g, n2, n1);
    }
@@ -623,8 +650,6 @@ ra_reset_node_interference(struct ra_graph *g, unsigned int n)
       ra_node_remove_adjacency(g, *n2p, n);
    }
 
-   memset(g->nodes[n].adjacency, 0,
-          BITSET_WORDS(g->count) * sizeof(BITSET_WORD));
    util_dynarray_clear(&g->nodes[n].adjacency_list);
 }
 

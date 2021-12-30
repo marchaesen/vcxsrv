@@ -468,7 +468,7 @@ panvk_draw_prepare_fs_rsd(struct panvk_cmd_buffer *cmdbuf,
 
       void *bd = rsd.cpu + pan_size(RENDERER_STATE);
       for (unsigned i = 0; i < pipeline->blend.state.rt_count; i++) {
-         if (pipeline->blend.constant[i].index != ~0) {
+         if (pipeline->blend.constant[i].index != (uint8_t)~0) {
             struct mali_blend_packed bd_dyn;
             struct mali_blend_packed *bd_templ =
                (struct mali_blend_packed *)&pipeline->blend.bd_template[i];

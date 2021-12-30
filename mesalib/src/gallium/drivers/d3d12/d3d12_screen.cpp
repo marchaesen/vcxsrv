@@ -174,6 +174,7 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
    case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND:
+   case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
       return 1;
 
    /* We need to do some lowering that requires a link to the sampler */
@@ -202,7 +203,7 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_GLSL_FEATURE_LEVEL:
       return 330;
    case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return 140;
+      return 330;
 
 #if 0 /* TODO: Enable me */
    case PIPE_CAP_COMPUTE:
@@ -220,7 +221,7 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return 1;
 
-   case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
+   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
       return 0; /* unsure */
 
    case PIPE_CAP_ENDIANNESS:
@@ -260,10 +261,8 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
       return 1;
 
-#if 0 /* TODO: Enable me. Enables GL_ARB_shader_storage_buffer_object */
    case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
-      return screen->max_feature_level >= D3D_FEATURE_LEVEL_10_0;
-#endif
+      return D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
 
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
       return 256;
@@ -331,12 +330,22 @@ d3d12_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
    struct d3d12_screen *screen = d3d12_screen(pscreen);
 
    switch (param) {
+   case PIPE_CAPF_MIN_LINE_WIDTH:
+   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
+   case PIPE_CAPF_MIN_POINT_SIZE:
+   case PIPE_CAPF_MIN_POINT_SIZE_AA:
+      return 1;
+
+   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
+   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
+      return 0.1;
+
    case PIPE_CAPF_MAX_LINE_WIDTH:
    case PIPE_CAPF_MAX_LINE_WIDTH_AA:
       return 1.0f; /* no clue */
 
-   case PIPE_CAPF_MAX_POINT_WIDTH:
-   case PIPE_CAPF_MAX_POINT_WIDTH_AA:
+   case PIPE_CAPF_MAX_POINT_SIZE:
+   case PIPE_CAPF_MAX_POINT_SIZE_AA:
       return D3D12_MAX_POINT_SIZE;
 
    case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
@@ -440,10 +449,11 @@ d3d12_get_shader_param(struct pipe_screen *pscreen,
    case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
       return 32; /* arbitrary */
 
-#if 0
    case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-      return 8; /* no clue */
-#endif
+      return
+         (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_1 ||
+          screen->opts.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3) ?
+         PIPE_MAX_SHADER_BUFFERS : D3D12_PS_CS_UAV_REGISTER_COUNT;
 
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
       return 1 << PIPE_SHADER_IR_NIR;
@@ -492,10 +502,12 @@ d3d12_is_format_supported(struct pipe_screen *pscreen,
 
    /* Don't advertise alpha/luminance_alpha formats because they can't be used
     * for render targets (except A8_UNORM) and can't be emulated by R/RG formats.
-    * Let the state tracker choose an RGBA format instead. */
+    * Let the state tracker choose an RGBA format instead. For YUV formats, we
+    * want the state tracker to lower these to individual planes. */
    if (format != PIPE_FORMAT_A8_UNORM &&
        (util_format_is_alpha(format) ||
-        util_format_is_luminance_alpha(format)))
+        util_format_is_luminance_alpha(format) ||
+        util_format_is_yuv(format)))
       return false;
 
    DXGI_FORMAT dxgi_format = d3d12_get_format(format);
@@ -637,6 +649,7 @@ d3d12_flush_frontbuffer(struct pipe_screen * pscreen,
    void *map = winsys->displaytarget_map(winsys, res->dt, 0);
 
    if (map) {
+      pctx = threaded_context_unwrap_sync(pctx);
       pipe_transfer *transfer = nullptr;
       void *res_map = pipe_texture_map(pctx, pres, level, layer, PIPE_MAP_READ, 0, 0,
                                         u_minify(pres->width0, level),

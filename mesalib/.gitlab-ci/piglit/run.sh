@@ -107,7 +107,6 @@ else
 
             LD_LIBRARY_PATH="$__LD_LIBRARY_PATH" \
             GALLIUM_DRIVER=llvmpipe \
-            GALLIVM_PERF="nopt" \
             VTEST_USE_EGL_SURFACELESS=1 \
             VTEST_USE_GLES=1 \
             virgl_test_server >"$RESULTS"/vtest-log.txt 2>&1 &
@@ -202,7 +201,7 @@ FAILURE_MESSAGE=$(printf "%s" "Unexpected change in results:")
 
 if [ "x$PIGLIT_PROFILES" = "xreplay" ] \
        && [ ${PIGLIT_REPLAY_UPLOAD_TO_MINIO:-0} -eq 1 ]; then
-    ci-fairy minio login $MINIO_ARGS $CI_JOB_JWT
+    ci-fairy minio login $MINIO_ARGS --token-file "${CI_JOB_JWT_FILE}"
 fi
 
 eval $RUN_CMD

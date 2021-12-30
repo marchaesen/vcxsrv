@@ -4,74 +4,6 @@ dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner,Fail
 
-# "../src/compiler/glsl/ir.cpp:534: ir_expression::ir_expression(int, ir_rvalue*, ir_rvalue*): Assertion `op0->type == op1->type' failed."
-# in lower_instructions_visitor::extract_to_shifts().
-# This GLSL path would be avoided if we had ARB_gpu_shader5.
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.int_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.int_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.int_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.int_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec2_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec2_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec2_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec2_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec3_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec3_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec3_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec3_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec4_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec4_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec4_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.ivec4_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uint_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uint_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uint_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uint_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec2_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec2_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec2_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec2_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec3_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec3_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec3_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec3_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec4_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec4_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec4_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldextract.uvec4_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.int_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.int_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.int_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.int_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec2_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec2_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec2_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec2_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec3_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec3_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec3_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec3_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec4_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec4_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec4_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.ivec4_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uint_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uint_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uint_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uint_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec2_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec2_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec2_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec2_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_mediump_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec4_lowp_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec4_lowp_fragment,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec4_mediump_compute,Crash
-dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec4_mediump_fragment,Crash
-
 dEQP-GLES31.functional.ubo.random.all_per_block_buffers.20,Fail
 dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
 dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail
@@ -146,6 +78,10 @@ KHR-GLES31.core.layout_binding.sampler3D_layout_binding_texture_ComputeShader,Fa
 # msm 900000.mdss: [drm:a5xx_irq] *ERROR* gpu fault ring 0 fence 2c54ef status E40801C1 rb 0162/0162 ib1 000000000104B000/0000 ib2 000000000104C000/0000
 KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions,Fail
 
+# Seems to be applying clamp_to_edge at the wrong time?
+KHR-GLES31.core.gpu_shader5.texture_gather_offset_color_clamp_to_edge,Fail
+KHR-GLES31.core.gpu_shader5.texture_gather_offset_depth_clamp_edge,Fail
+
 # Many failures, across formats
 KHR-GLES3.copy_tex_image_conversions.required.cubemap_posx_cubemap_posx,Fail
 KHR-GLES3.copy_tex_image_conversions.required.cubemap_posx_texture2d,Fail
@@ -158,7 +94,6 @@ KHR-GLES3.copy_tex_image_conversions.required.texture3d_texture2d,Fail
 
 KHR-GLES3.packed_depth_stencil.blit.depth24_stencil8,Fail
 KHR-GLES3.packed_depth_stencil.blit.depth32f_stencil8,Fail
-KHR-GLES3.packed_depth_stencil.verify_read_pixels.depth24_stencil8,Fail
 
 # "Non-integer comparison: 1, 0, 18, 1e-05: 0.142857 == 0: not equal.
 #  Copy stage: Gradient comparison failed during ReadPixels for input = [GL_RG, GL_FLOAT] output = [GL_RED, GL_FLOAT]"
@@ -196,12 +131,8 @@ KHR-GLES3.packed_pixels.varied_rectangle.rgba32f,Fail
 KHR-GLES3.packed_pixels.varied_rectangle.rgba32i,Fail
 KHR-GLES3.packed_pixels.varied_rectangle.rgba32ui,Fail
 
-# "[31] Check failed. Received: [1,0,0,2] instead of: [5,0,0,2]"
-KHR-GLES31.core.shader_image_load_store.basic-glsl-misc-fs,Fail
-
 glx@glx-make-current,Crash
 glx@glx-multi-window-single-context,Fail
-glx@glx-query-drawable-glx_fbconfig_id-window,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
@@ -279,7 +210,6 @@ spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on top edge,
 spec@!opengl 1.1@polygon-mode-offset@config 5: Expected blue pixel in center,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fail
 spec@!opengl 1.1@ppgtt_memory_alignment,Crash
-spec@!opengl 1.1@windowoverlap,Fail
 spec@!opengl 1.2@copyteximage 3d,Fail
 spec@!opengl 1.4@copy-pixels,Fail
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
@@ -294,10 +224,6 @@ spec@!opengl 3.0@clearbuffer-stencil,Fail
 spec@!opengl 3.1@primitive-restart-xfb generated,Fail
 spec@!opengl 3.1@primitive-restart-xfb written,Fail
 spec@!opengl 3.1@vao-broken-attrib,Crash
-spec@arb_color_buffer_float@gl_rgba8_snorm-render,Fail
-spec@arb_color_buffer_float@gl_rgba8_snorm-render-fog,Fail
-spec@arb_color_buffer_float@gl_rgba8_snorm-render-sanity,Fail
-spec@arb_color_buffer_float@gl_rgba8_snorm-render-sanity-fog,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil@GL_DEPTH32F_STENCIL8,Fail
 spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-blit,Fail
@@ -307,10 +233,6 @@ spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-copypixels,Fail
 spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_draw_indirect@gl_vertexid used with gldrawarraysindirect,Fail
 spec@arb_draw_indirect@gl_vertexid used with gldrawelementsindirect,Fail
-spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic,Fail
-spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@MS4,Fail
-spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-query,Fail
-spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-query@MS4,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth24_stencil8,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_depth24_stencil8,Fail
@@ -326,31 +248,6 @@ spec@arb_occlusion_query@occlusion_query_order,Fail
 spec@arb_point_sprite@arb_point_sprite-interactions 1.0,Fail
 spec@arb_separate_shader_objects@400 combinations by location,Fail
 spec@arb_separate_shader_objects@400 combinations by name,Fail
-spec@arb_texture_buffer_object@formats (fs- arb),Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE8_ALPHA8,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb),Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE8_ALPHA8,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_LUMINANCE_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
 spec@arb_timer_query@query gl_timestamp,Fail
 spec@arb_timer_query@timestamp-get,Fail
@@ -364,7 +261,6 @@ spec@arb_transform_feedback3@gl_skipcomponents3,Fail
 spec@arb_transform_feedback3@gl_skipcomponents4,Fail
 spec@arb_transform_feedback_instanced@draw-auto instanced,Fail
 spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
-spec@egl 1.4@egl-copy-buffers,Crash
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
@@ -408,11 +304,6 @@ spec@ext_render_snorm@render@format 0x8f94 read fail,Fail
 spec@ext_render_snorm@render@format 0x8f95 read fail,Fail
 spec@ext_render_snorm@render@format 0x8f97 read fail,Fail
 spec@ext_texture_integer@fbo-integer,Fail
-spec@ext_texture_snorm@fbo-blending-formats,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE_SNORM,Fail
 spec@ext_transform_feedback2@draw-auto,Fail
 spec@ext_transform_feedback@generatemipmap prims_generated,Fail
 spec@ext_transform_feedback@immediate-reuse,Fail
@@ -515,16 +406,11 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb@sRGB decode,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x223344ff,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x76356278,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Crash
-spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x76356278,Crash
+
 spec@nv_copy_image@nv_copy_image-formats,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_DEPTH32F_STENCIL8/Destination: GL_DEPTH32F_STENCIL8,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageLoad,Fail
-spec@glsl-1.30@execution@clipping@fs-clip-distance-interpolated,Crash
 spec@glsl-1.30@execution@fs-large-local-array-vec2,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec3,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec4,Fail

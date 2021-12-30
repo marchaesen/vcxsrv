@@ -242,6 +242,7 @@ create_batch_state(struct zink_context *ctx)
       goto fail;
 
    util_queue_fence_init(&bs->flush_completed);
+   bs->queue = screen->threaded ? screen->thread_queue : screen->queue;
 
    return bs;
 fail:
@@ -339,8 +340,8 @@ post_submit(void *data, void *gdata, int thread_index)
       if (bs->ctx->reset.reset)
          bs->ctx->reset.reset(bs->ctx->reset.data, PIPE_GUILTY_CONTEXT_RESET);
       screen->device_lost = true;
-   } else if (bs->ctx->batch_states_count > 5000) {
-      zink_screen_batch_id_wait(screen, bs->fence.batch_id - 2500, PIPE_TIMEOUT_INFINITE);
+   } else if (bs->ctx->batch_states_count > screen->max_fences) {
+      zink_screen_batch_id_wait(screen, bs->fence.batch_id - (screen->max_fences / 2), PIPE_TIMEOUT_INFINITE);
    }
 }
 
@@ -418,10 +419,12 @@ submit_queue(void *data, void *gdata, int thread_index)
        VKSCR(FlushMappedMemoryRanges)(screen->dev, 1, &range);
    }
 
+   simple_mtx_lock(&screen->queue_lock);
    if (VKSCR(QueueSubmit)(bs->queue, 1, &si, bs->fence.fence) != VK_SUCCESS) {
       debug_printf("ZINK: vkQueueSubmit() failed\n");
       bs->is_device_lost = true;
    }
+   simple_mtx_unlock(&screen->queue_lock);
    bs->submit_count++;
 end:
    cnd_broadcast(&bs->usage.flush);
@@ -617,11 +620,9 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
       return;
 
    if (screen->threaded) {
-      bs->queue = screen->thread_queue;
       util_queue_add_job(&screen->flush_queue, bs, &bs->flush_completed,
                          submit_queue, post_submit, 0);
    } else {
-      bs->queue = screen->queue;
       submit_queue(bs, NULL, 0);
       post_submit(bs, NULL, 0);
    }

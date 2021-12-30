@@ -52,7 +52,7 @@ fd6_pipe2swiz(unsigned swiz)
 }
 
 void
-fd6_tex_swiz(enum pipe_format format, enum a6xx_tile_mode tile_mode, unsigned char *swiz, unsigned swizzle_r,
+fd6_tex_swiz(enum pipe_format format, unsigned char *swiz, unsigned swizzle_r,
              unsigned swizzle_g, unsigned swizzle_b, unsigned swizzle_a)
 {
    const struct util_format_description *desc = util_format_description(format);
@@ -80,26 +80,4 @@ fd6_tex_swiz(enum pipe_format format, enum a6xx_tile_mode tile_mode, unsigned ch
        */
       util_format_compose_swizzles(desc->swizzle, uswiz, swiz);
    }
-}
-
-/* Compute the TEX_CONST_0 value for texture state, including SWIZ/SWAP/etc: */
-uint32_t
-fd6_tex_const_0(struct pipe_resource *prsc, unsigned level,
-                enum pipe_format format, unsigned swizzle_r, unsigned swizzle_g,
-                unsigned swizzle_b, unsigned swizzle_a)
-{
-   struct fd_resource *rsc = fd_resource(prsc);
-   unsigned char swiz[4];
-
-   fd6_tex_swiz(format, rsc->layout.tile_mode, swiz, swizzle_r, swizzle_g, swizzle_b, swizzle_a);
-
-   return A6XX_TEX_CONST_0_FMT(fd6_texture_format(format, rsc->layout.tile_mode)) |
-          A6XX_TEX_CONST_0_SAMPLES(fd_msaa_samples(prsc->nr_samples)) |
-          A6XX_TEX_CONST_0_SWAP(fd6_texture_swap(format, rsc->layout.tile_mode)) |
-          A6XX_TEX_CONST_0_TILE_MODE(fd_resource_tile_mode(prsc, level)) |
-          COND(util_format_is_srgb(format), A6XX_TEX_CONST_0_SRGB) |
-          A6XX_TEX_CONST_0_SWIZ_X(fd6_pipe2swiz(swiz[0])) |
-          A6XX_TEX_CONST_0_SWIZ_Y(fd6_pipe2swiz(swiz[1])) |
-          A6XX_TEX_CONST_0_SWIZ_Z(fd6_pipe2swiz(swiz[2])) |
-          A6XX_TEX_CONST_0_SWIZ_W(fd6_pipe2swiz(swiz[3]));
 }

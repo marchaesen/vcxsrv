@@ -201,7 +201,7 @@ rnn_regoff(struct rnn *rnn, uint32_t offset)
 }
 
 enum rnnttype
-rnn_decodelem(struct rnn *rnn, struct rnntypeinfo *info, uint32_t regval,
+rnn_decodelem(struct rnn *rnn, struct rnntypeinfo *info, uint64_t regval,
               union rnndecval *val)
 {
    val->u = regval;

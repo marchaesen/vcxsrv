@@ -211,9 +211,10 @@ enum
 
    /* GS limits */
    GFX6_GS_NUM_USER_SGPR = SI_NUM_RESOURCE_SGPRS,
-   GFX9_VSGS_NUM_USER_SGPR = SI_VS_NUM_USER_SGPR,
-   GFX9_TESGS_NUM_USER_SGPR = SI_TES_NUM_USER_SGPR,
    SI_GSCOPY_NUM_USER_SGPR = SI_NUM_VS_STATE_RESOURCE_SGPRS,
+
+   GFX9_SGPR_SMALL_PRIM_CULL_INFO = MAX2(SI_VS_NUM_USER_SGPR, SI_TES_NUM_USER_SGPR),
+   GFX9_GS_NUM_USER_SGPR,
 
    /* PS only */
    SI_SGPR_ALPHA_REF = SI_NUM_RESOURCE_SGPRS,
@@ -279,10 +280,19 @@ enum
    SI_VS_BLIT_SGPRS_POS_TEXCOORD = 9,
 };
 
-#define SI_NGG_CULL_ENABLED                  (1 << 0)   /* this implies W, view.xy, and small prim culling */
+#define SI_NGG_CULL_TRIANGLES                (1 << 0)   /* this implies W, view.xy, and small prim culling */
 #define SI_NGG_CULL_BACK_FACE                (1 << 1)   /* back faces */
 #define SI_NGG_CULL_FRONT_FACE               (1 << 2)   /* front faces */
 #define SI_NGG_CULL_LINES                    (1 << 3)   /* the primitive type is lines */
+#define SI_NGG_CULL_SMALL_LINES_DIAMOND_EXIT (1 << 4)   /* cull small lines according to the diamond exit rule */
+#define SI_NGG_CULL_CLIP_PLANE_ENABLE(enable) (((enable) & 0xff) << 5)
+#define SI_NGG_CULL_GET_CLIP_PLANE_ENABLE(x)  (((x) >> 5) & 0xff)
+
+#define SI_PROFILE_WAVE32                    (1 << 0)
+#define SI_PROFILE_WAVE64                    (1 << 1)
+#define SI_PROFILE_IGNORE_LLVM_DISCARD_BUG   (1 << 2)
+#define SI_PROFILE_VS_NO_BINNING             (1 << 3)
+#define SI_PROFILE_PS_NO_BINNING             (1 << 4)
 
 /**
  * For VS shader keys, describe any fixups required for vertex fetch.
@@ -340,6 +350,7 @@ struct si_shader_info {
    shader_info base;
 
    gl_shader_stage stage;
+   uint32_t options; /* bitmask of SI_PROFILE_* */
 
    ubyte num_inputs;
    ubyte num_outputs;
@@ -400,6 +411,7 @@ struct si_shader_info {
    bool uses_bindless_samplers;
    bool uses_bindless_images;
    bool uses_indirect_descriptor;
+   bool has_divergent_loop;
 
    bool uses_vmem_return_type_sampler_or_bvh;
    bool uses_vmem_return_type_other; /* all other VMEM loads and atomics with return */
@@ -573,6 +585,7 @@ struct si_ps_epilog_bits {
 union si_shader_part_key {
    struct {
       struct si_vs_prolog_bits states;
+      unsigned wave32 : 1;
       unsigned num_input_sgprs : 6;
       /* For merged stages such as LS-HS, HS input VGPRs are first. */
       unsigned num_merged_next_stage_vgprs : 3;
@@ -586,9 +599,11 @@ union si_shader_part_key {
    } vs_prolog;
    struct {
       struct si_tcs_epilog_bits states;
+      unsigned wave32 : 1;
    } tcs_epilog;
    struct {
       struct si_ps_prolog_bits states;
+      unsigned wave32 : 1;
       unsigned num_input_sgprs : 6;
       unsigned num_input_vgprs : 5;
       /* Color interpolation and two-side color selection. */
@@ -602,6 +617,7 @@ union si_shader_part_key {
    } ps_prolog;
    struct {
       struct si_ps_epilog_bits states;
+      unsigned wave32 : 1;
       unsigned colors_written : 8;
       unsigned color_types : 16;
       unsigned writes_z : 1;
@@ -660,7 +676,7 @@ struct si_shader_key_ge {
       unsigned kill_pointsize : 1;
 
       /* For NGG VS and TES. */
-      unsigned ngg_culling : 4; /* SI_NGG_CULL_* */
+      unsigned ngg_culling : 13; /* SI_NGG_CULL_* */
 
       /* For shaders where monolithic variants have better code.
        *
@@ -756,7 +772,7 @@ struct gfx9_gs_info {
    unsigned esgs_ring_size; /* in bytes */
 };
 
-#define SI_NUM_VGT_STAGES_KEY_BITS 5
+#define SI_NUM_VGT_STAGES_KEY_BITS 8
 #define SI_NUM_VGT_STAGES_STATES   (1 << SI_NUM_VGT_STAGES_KEY_BITS)
 
 /* The VGT_SHADER_STAGES key used to index the table of precomputed values.
@@ -770,9 +786,13 @@ union si_vgt_stages_key {
       uint8_t ngg_passthrough : 1;
       uint8_t ngg : 1;       /* gfx10+ */
       uint8_t streamout : 1; /* only used with NGG */
-      uint8_t _pad : 8 - SI_NUM_VGT_STAGES_KEY_BITS;
+      uint8_t hs_wave32 : 1;
+      uint8_t gs_wave32 : 1;
+      uint8_t vs_wave32 : 1;
 #else /* UTIL_ARCH_BIG_ENDIAN */
-      uint8_t _pad : 8 - SI_NUM_VGT_STAGES_KEY_BITS;
+      uint8_t vs_wave32 : 1;
+      uint8_t gs_wave32 : 1;
+      uint8_t hs_wave32 : 1;
       uint8_t streamout : 1;
       uint8_t ngg : 1;
       uint8_t ngg_passthrough : 1;
@@ -805,6 +825,7 @@ struct si_shader {
    bool is_optimized;
    bool is_binary_shared;
    bool is_gs_copy_shader;
+   uint8_t wave_size;
 
    /* The following data is all that's needed for binary shaders. */
    struct si_shader_binary binary;
@@ -940,6 +961,7 @@ void si_nir_late_opts(nir_shader *nir);
 char *si_finalize_nir(struct pipe_screen *screen, void *nirptr);
 
 /* si_state_shaders.cpp */
+unsigned si_determine_wave_size(struct si_screen *sscreen, struct si_shader *shader);
 void gfx9_get_gs_info(struct si_shader_selector *es, struct si_shader_selector *gs,
                       struct gfx9_gs_info *out);
 bool gfx10_is_ngg_passthrough(struct si_shader *shader);

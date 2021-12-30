@@ -130,20 +130,12 @@ agxdecode_validate_map(void *map)
       return;
    }
 
-   for (unsigned i = 0; i < 6; ++i) {
-      unsigned handle = hdr->indices[i];
-      if (handle) {
-         agxdecode_mark_mapped(handle);
-         nr_handles++;
-      }
-   }
-
    /* Check the entries */
-   struct agx_map_entry *entries = (struct agx_map_entry *) (&hdr[1]);
-   for (unsigned i = 0; i < hdr->nr_entries - 1; ++i) {
+   struct agx_map_entry *entries = ((void *) hdr) + sizeof(*hdr);
+   for (unsigned i = 0; i < hdr->nr_entries; ++i) {
       struct agx_map_entry entry = entries[i];
       
-      for (unsigned j = 0; j < 6; ++j) {
+      for (unsigned j = 0; j < ARRAY_SIZE(entry.indices); ++j) {
          unsigned handle = entry.indices[j];
          if (handle) {
             agxdecode_mark_mapped(handle);
@@ -152,16 +144,10 @@ agxdecode_validate_map(void *map)
       }
    }
 
-   /* Check the sentinel */
-   if (entries[hdr->nr_entries - 1].indices[0]) {
-      fprintf(stderr, "ERROR - last entry nonzero %u\n", entries[hdr->nr_entries - 1].indices[0]);
-      return;
-   }
-
    /* Check the handle count */
    if (nr_handles != hdr->nr_handles) {
-      fprintf(stderr, "ERROR - wrong handle count, got %u, expected %u\n",
-            nr_handles, hdr->nr_handles);
+      fprintf(stderr, "ERROR - wrong handle count, got %u, expected %u (%u entries)\n",
+            nr_handles, hdr->nr_handles, hdr->nr_entries);
    }
 }
 
@@ -368,7 +354,7 @@ agxdecode_record(uint64_t va, size_t size, bool verbose)
       assert(size == AGX_CULL_LENGTH);
       DUMP_CL(CULL, map, "Cull");
    } else if (tag == 0x800000) {
-      assert(size == (AGX_BIND_PIPELINE_LENGTH + 4));
+      assert(size == (AGX_BIND_PIPELINE_LENGTH - 4));
 
       agx_unpack(agxdecode_dump_stream, map, BIND_PIPELINE, cmd);
       agxdecode_stateful(cmd.pipeline, "Pipeline", agxdecode_pipeline, verbose);
@@ -408,35 +394,24 @@ agxdecode_cmd(const uint8_t *map, bool verbose)
       agx_unpack(agxdecode_dump_stream, map, BIND_PIPELINE, cmd);
       agxdecode_stateful(cmd.pipeline, "Pipeline", agxdecode_pipeline, verbose);
       DUMP_UNPACKED(BIND_PIPELINE, cmd, "Bind vertex pipeline\n");
-
-      /* Random unaligned null byte, it's pretty awful.. */
-      if (map[AGX_BIND_PIPELINE_LENGTH]) {
-         fprintf(agxdecode_dump_stream, "Unk unaligned %X\n",
-               map[AGX_BIND_PIPELINE_LENGTH]);
-      }
-
-      return AGX_BIND_PIPELINE_LENGTH + 1;
-   } else if (map[1] == 0xc0 && map[2] == 0x61) {
-      DUMP_CL(DRAW, map - 1, "Draw");
+      return AGX_BIND_PIPELINE_LENGTH;
+   } else if (map[2] == 0xc0 && map[3] == 0x61) {
+      DUMP_CL(DRAW, map, "Draw");
       return AGX_DRAW_LENGTH;
-   } else if (map[1] == 0x00 && map[2] == 0x00) {
+   } else if (map[2] == 0x00 && map[3] == 0x00) {
       /* No need to explicitly dump the record */
       agx_unpack(agxdecode_dump_stream, map, RECORD, cmd);
 
-      /* XXX: Why? */
-      if (pipeline_base && ((cmd.data >> 32) == 0)) {
-         cmd.data |= pipeline_base & 0xFF00000000ull;
-      }
-
-      struct agx_bo *mem = agxdecode_find_mapped_gpu_mem_containing(cmd.data);
+      uint64_t address = (((uint64_t) cmd.pointer_hi) << 32) | cmd.pointer_lo;
+      struct agx_bo *mem = agxdecode_find_mapped_gpu_mem_containing(address);
 
       if (mem)
-         agxdecode_record(cmd.data, cmd.size_words * 4, verbose);
+         agxdecode_record(address, cmd.size_words * 4, verbose);
       else
          DUMP_UNPACKED(RECORD, cmd, "Non-existant record (XXX)\n");
 
       return AGX_RECORD_LENGTH;
-   } else if (map[0] == 0 && map[1] == 0 && map[2] == 0xC0 && map[3] == 0x00) {
+   } else if (map[1] == 0 && map[2] == 0 && map[3] == 0xC0 && map[4] == 0x00) {
       ASSERTED unsigned zero[4] = { 0 };
       assert(memcmp(map + 4, zero, sizeof(zero)) == 0);
       return STATE_DONE;
@@ -562,7 +537,7 @@ agxdecode_dump_file_open(void)
    /* This does a getenv every frame, so it is possible to use
     * setenv to change the base at runtime.
     */
-   const char *dump_file_base = getenv("PANDECODE_DUMP_FILE") ?: "agxdecode.dump";
+   const char *dump_file_base = getenv("AGXDECODE_DUMP_FILE") ?: "agxdecode.dump";
    if (!strcmp(dump_file_base, "stderr"))
       agxdecode_dump_stream = stderr;
    else {

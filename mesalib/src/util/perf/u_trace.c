@@ -24,18 +24,21 @@
 #include <inttypes.h>
 
 #include "util/list.h"
-#include "util/ralloc.h"
 #include "util/u_debug.h"
 #include "util/u_inlines.h"
 #include "util/u_fifo.h"
+#include "util/u_vector.h"
 
 #include "u_trace.h"
 
 #define __NEEDS_TRACE_PRIV
 #include "u_trace_priv.h"
 
+#define PAYLOAD_BUFFER_SIZE 0x100
 #define TIMESTAMP_BUF_SIZE 0x1000
 #define TRACES_PER_CHUNK   (TIMESTAMP_BUF_SIZE / sizeof(uint64_t))
+
+bool ut_trace_instrument;
 
 #ifdef HAVE_PERFETTO
 int ut_perfetto_enabled;
@@ -48,6 +51,14 @@ int ut_perfetto_enabled;
  */
 struct list_head ctx_list = { &ctx_list, &ctx_list };
 #endif
+
+struct u_trace_payload_buf {
+   uint32_t refcount;
+
+   uint8_t *buf;
+   uint8_t *next;
+   uint8_t *end;
+};
 
 struct u_trace_event {
    const struct u_tracepoint *tp;
@@ -76,12 +87,12 @@ struct u_trace_chunk {
     */
    void *timestamps;
 
-   /**
-    * For trace payload, we sub-allocate from ralloc'd buffers which
-    * hang off of the chunk's ralloc context, so they are automatically
-    * free'd when the chunk is free'd
+   /* Array of u_trace_payload_buf referenced by traces[] elements.
     */
-   uint8_t *payload_buf, *payload_end;
+   struct u_vector payloads;
+
+   /* Current payload buffer being written. */
+   struct u_trace_payload_buf *payload;
 
    struct util_queue_fence fence;
 
@@ -97,6 +108,35 @@ struct u_trace_chunk {
    bool free_flush_data;
 };
 
+static struct u_trace_payload_buf *
+u_trace_payload_buf_create(void)
+{
+   struct u_trace_payload_buf *payload =
+      malloc(sizeof(*payload) + PAYLOAD_BUFFER_SIZE);
+
+   p_atomic_set(&payload->refcount, 1);
+
+   payload->buf = (uint8_t *) (payload + 1);
+   payload->end = payload->buf + PAYLOAD_BUFFER_SIZE;
+   payload->next = payload->buf;
+
+   return payload;
+}
+
+static struct u_trace_payload_buf *
+u_trace_payload_buf_ref(struct u_trace_payload_buf *payload)
+{
+   p_atomic_inc(&payload->refcount);
+   return payload;
+}
+
+static void
+u_trace_payload_buf_unref(struct u_trace_payload_buf *payload)
+{
+   if (p_atomic_dec_zero(&payload->refcount))
+      free(payload);
+}
+
 static void
 free_chunk(void *ptr)
 {
@@ -104,7 +144,14 @@ free_chunk(void *ptr)
 
    chunk->utctx->delete_timestamp_buffer(chunk->utctx, chunk->timestamps);
 
+   /* Unref payloads attached to this chunk. */
+   struct u_trace_payload_buf **payload;
+   u_vector_foreach(payload, &chunk->payloads)
+      u_trace_payload_buf_unref(*payload);
+   u_vector_finish(&chunk->payloads);
+
    list_del(&chunk->node);
+   free(chunk);
 }
 
 static void
@@ -113,21 +160,41 @@ free_chunks(struct list_head *chunks)
    while (!list_is_empty(chunks)) {
       struct u_trace_chunk *chunk = list_first_entry(chunks,
             struct u_trace_chunk, node);
-      ralloc_free(chunk);
+      free_chunk(chunk);
    }
 }
 
 static struct u_trace_chunk *
-get_chunk(struct u_trace *ut)
+get_chunk(struct u_trace *ut, size_t payload_size)
 {
    struct u_trace_chunk *chunk;
+
+   assert(payload_size <= PAYLOAD_BUFFER_SIZE);
 
    /* do we currently have a non-full chunk to append msgs to? */
    if (!list_is_empty(&ut->trace_chunks)) {
            chunk = list_last_entry(&ut->trace_chunks,
                            struct u_trace_chunk, node);
-           if (chunk->num_traces < TRACES_PER_CHUNK)
-                   return chunk;
+           /* Can we store a new trace in the chunk? */
+           if (chunk->num_traces < TRACES_PER_CHUNK) {
+              /* If no payload required, nothing else to check. */
+              if (payload_size <= 0)
+                 return chunk;
+
+              /* If the payload buffer has space for the payload, we're good.
+               */
+              if (chunk->payload &&
+                  (chunk->payload->end - chunk->payload->next) >= payload_size)
+                 return chunk;
+
+              /* If we don't have enough space in the payload buffer, can we
+               * allocate a new one?
+               */
+              struct u_trace_payload_buf **buf = u_vector_add(&chunk->payloads);
+              *buf = u_trace_payload_buf_create();
+              chunk->payload = *buf;
+              return chunk;
+           }
            /* we need to expand to add another chunk to the batch, so
             * the current one is no longer the last one of the batch:
             */
@@ -135,18 +202,24 @@ get_chunk(struct u_trace *ut)
    }
 
    /* .. if not, then create a new one: */
-   chunk = rzalloc_size(NULL, sizeof(*chunk));
-   ralloc_set_destructor(chunk, free_chunk);
+   chunk = calloc(1, sizeof(*chunk));
 
    chunk->utctx = ut->utctx;
    chunk->timestamps = ut->utctx->create_timestamp_buffer(ut->utctx, TIMESTAMP_BUF_SIZE);
    chunk->last = true;
+   u_vector_init(&chunk->payloads, 4, sizeof(struct u_trace_payload_buf *));
+   if (payload_size > 0) {
+      struct u_trace_payload_buf **buf = u_vector_add(&chunk->payloads);
+      *buf = u_trace_payload_buf_create();
+      chunk->payload = *buf;
+   }
 
    list_addtail(&chunk->node, &ut->trace_chunks);
 
    return chunk;
 }
 
+DEBUG_GET_ONCE_BOOL_OPTION(trace_instrument, "GPU_TRACE_INSTRUMENT", false)
 DEBUG_GET_ONCE_BOOL_OPTION(trace, "GPU_TRACE", false)
 DEBUG_GET_ONCE_FILE_OPTION(trace_file, "GPU_TRACEFILE", NULL, "w")
 
@@ -161,6 +234,8 @@ get_tracefile(void)
       if (!tracefile && debug_get_option_trace()) {
          tracefile = stdout;
       }
+
+      ut_trace_instrument = debug_get_option_trace_instrument();
 
       firsttime = false;
    }
@@ -211,7 +286,7 @@ u_trace_context_init(struct u_trace_context *utctx,
    list_add(&utctx->node, &ctx_list);
 #endif
 
-   if (!u_trace_context_tracing(utctx))
+   if (!u_trace_context_actively_tracing(utctx))
       return;
 
    queue_init(utctx);
@@ -319,7 +394,7 @@ process_chunk(void *job, void *gdata, int thread_index)
 static void
 cleanup_chunk(void *job, void *gdata, int thread_index)
 {
-   ralloc_free(job);
+   free_chunk(job);
 }
 
 void
@@ -355,7 +430,7 @@ u_trace_init(struct u_trace *ut, struct u_trace_context *utctx)
 {
    ut->utctx = utctx;
    list_inithead(&ut->trace_chunks);
-   ut->enabled = u_trace_context_tracing(utctx);
+   ut->enabled = u_trace_context_instrumenting(utctx);
 }
 
 void
@@ -417,7 +492,7 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
    uint32_t from_idx = begin_it.event_idx;
 
    while (from_chunk != end_it.chunk || from_idx != end_it.event_idx) {
-      struct u_trace_chunk *to_chunk = get_chunk(into);
+      struct u_trace_chunk *to_chunk = get_chunk(into, 0 /* payload_size */);
 
       unsigned to_copy = MIN2(TRACES_PER_CHUNK - to_chunk->num_traces,
                               from_chunk->num_traces - from_idx);
@@ -432,6 +507,17 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
       memcpy(&to_chunk->traces[to_chunk->num_traces],
              &from_chunk->traces[from_idx],
              to_copy * sizeof(struct u_trace_event));
+
+      /* Take a refcount on payloads from from_chunk if needed. */
+      if (begin_it.ut != into) {
+         struct u_trace_payload_buf **in_payload;
+         u_vector_foreach(in_payload, &from_chunk->payloads) {
+            struct u_trace_payload_buf **out_payload =
+               u_vector_add(&to_chunk->payloads);
+
+            *out_payload = u_trace_payload_buf_ref(*in_payload);
+         }
+      }
 
       to_chunk->num_traces += to_copy;
       from_idx += to_copy;
@@ -473,25 +559,19 @@ u_trace_disable_event_range(struct u_trace_iterator begin_it,
 void *
 u_trace_append(struct u_trace *ut, void *cs, const struct u_tracepoint *tp)
 {
-   struct u_trace_chunk *chunk = get_chunk(ut);
+   struct u_trace_chunk *chunk = get_chunk(ut, tp->payload_sz);
 
    assert(tp->payload_sz == ALIGN_NPOT(tp->payload_sz, 8));
 
-   if (unlikely((chunk->payload_buf + tp->payload_sz) > chunk->payload_end)) {
-      const unsigned payload_chunk_sz = 0x100;  /* TODO arbitrary size? */
-
-      assert(tp->payload_sz < payload_chunk_sz);
-
-      chunk->payload_buf = ralloc_size(chunk, payload_chunk_sz);
-      chunk->payload_end = chunk->payload_buf + payload_chunk_sz;
+   /* sub-allocate storage for trace payload: */
+   void *payload = NULL;
+   if (tp->payload_sz > 0) {
+      payload = chunk->payload->next;
+      chunk->payload->next += tp->payload_sz;
    }
 
-   /* sub-allocate storage for trace payload: */
-   void *payload = chunk->payload_buf;
-   chunk->payload_buf += tp->payload_sz;
-
    /* record a timestamp for the trace: */
-   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, chunk->num_traces);
+   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, chunk->num_traces, tp->end_of_pipe);
 
    chunk->traces[chunk->num_traces] = (struct u_trace_event) {
          .tp = tp,

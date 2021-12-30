@@ -181,7 +181,7 @@ if (!$?) {
   Exit 1
 }
 Push-Location -Path C:\src\piglit
-git checkout b0bbeb876a506e0ee689dd7e17cee374c8284058
+git checkout f7f2a6c2275cae023a27b6cc81be3dda8c99492d
 Pop-Location
 
 Get-Date
@@ -200,6 +200,13 @@ if (!$buildstatus -Or !$installstatus) {
 }
 
 Copy-Item -Path C:\freeglut\bin\x64\freeglut.dll -Destination C:\Piglit\lib\piglit\bin\freeglut.dll
+
+Get-Date
+Write-Host "Cloning spirv-samples"
+git clone --no-progress --single-branch --no-checkout https://github.com/dneto0/spirv-samples.git  C:\spirv-samples\
+Push-Location -Path C:\spirv-samples\
+git checkout 7ac0ad5a7fe0ec884faba1dc2916028d0268eeef
+Pop-Location
 
 Get-Date
 Write-Host "Complete"

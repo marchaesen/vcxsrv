@@ -237,9 +237,6 @@ struct radv_shader_info {
    uint8_t wave_size;
    uint8_t ballot_bit_size;
    struct radv_userdata_locations user_sgprs_locs;
-   unsigned num_user_sgprs;
-   unsigned num_input_sgprs;
-   unsigned num_input_vgprs;
    bool is_ngg;
    bool is_ngg_passthrough;
    bool has_ngg_culling;
@@ -454,11 +451,11 @@ union radv_shader_arena_block {
    };
 };
 
-struct radv_shader_variant {
+struct radv_shader {
    uint32_t ref_count;
 
-   struct radeon_winsys_bo *bo;
-   union radv_shader_arena_block *alloc;
+   uint64_t va;
+
    struct ac_shader_config config;
    uint8_t *code_ptr;
    uint32_t code_size;
@@ -505,37 +502,47 @@ VkResult radv_create_shaders(struct radv_pipeline *pipeline,
                              VkPipelineCreationFeedbackEXT *pipeline_feedback,
                              VkPipelineCreationFeedbackEXT **stage_feedbacks);
 
-struct radv_shader_variant *radv_shader_variant_create(struct radv_device *device,
-                                                       const struct radv_shader_binary *binary,
-                                                       bool keep_shader_info, bool from_cache);
-struct radv_shader_variant *radv_shader_variant_compile(
+struct radv_shader_args;
+
+struct radv_shader *radv_shader_create(struct radv_device *device,
+                                       const struct radv_shader_binary *binary,
+                                       bool keep_shader_info, bool from_cache,
+                                       const struct radv_shader_args *args);
+struct radv_shader *radv_shader_compile(
    struct radv_device *device, struct vk_shader_module *module, struct nir_shader *const *shaders,
    int shader_count, struct radv_pipeline_layout *layout, const struct radv_pipeline_key *key,
    struct radv_shader_info *info, bool keep_shader_info, bool keep_statistic_info,
    struct radv_shader_binary **binary_out);
 
-struct radv_shader_variant *
+bool radv_shader_binary_upload(struct radv_device *device, const struct radv_shader_binary *binary,
+                               struct radv_shader *shader, void *dest_ptr);
+
+union radv_shader_arena_block *radv_alloc_shader_memory(struct radv_device *device, uint32_t size,
+                                                        void *ptr);
+void radv_free_shader_memory(struct radv_device *device, union radv_shader_arena_block *alloc);
+
+struct radv_shader *
 radv_create_gs_copy_shader(struct radv_device *device, struct nir_shader *nir,
                            struct radv_shader_info *info, struct radv_shader_binary **binary_out,
                            bool multiview, bool keep_shader_info, bool keep_statistic_info,
                            bool disable_optimizations);
 
-struct radv_shader_variant *radv_create_trap_handler_shader(struct radv_device *device);
+struct radv_shader *radv_create_trap_handler_shader(struct radv_device *device);
 
 struct radv_shader_prolog *radv_create_vs_prolog(struct radv_device *device,
                                                  const struct radv_vs_prolog_key *key);
 
-void radv_shader_variant_destroy(struct radv_device *device, struct radv_shader_variant *variant);
+void radv_shader_destroy(struct radv_device *device, struct radv_shader *shader);
 
 void radv_prolog_destroy(struct radv_device *device, struct radv_shader_prolog *prolog);
 
-uint64_t radv_shader_variant_get_va(const struct radv_shader_variant *variant);
-struct radv_shader_variant *radv_find_shader_variant(struct radv_device *device, uint64_t pc);
+uint64_t radv_shader_get_va(const struct radv_shader *shader);
+struct radv_shader *radv_find_shader(struct radv_device *device, uint64_t pc);
 
-unsigned radv_get_max_waves(const struct radv_device *device, struct radv_shader_variant *variant,
+unsigned radv_get_max_waves(const struct radv_device *device, struct radv_shader *shader,
                             gl_shader_stage stage);
 
-const char *radv_get_shader_name(struct radv_shader_info *info, gl_shader_stage stage);
+const char *radv_get_shader_name(const struct radv_shader_info *info, gl_shader_stage stage);
 
 unsigned radv_compute_spi_ps_input(const struct radv_device *device,
                                    const struct radv_shader_info *info);

@@ -29,8 +29,7 @@
 #include "util/u_video.h"
 #include "va_private.h"
 
-#include "vl/vl_vlc.h"
-#include "vl/vl_rbsp.h"
+#include "util/vl_rbsp.h"
 
 enum HEVCNALUnitType {
     HEVC_NAL_VPS        = 32,
@@ -129,6 +128,7 @@ vlVaHandleVAEncSequenceParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *con
    VAEncSequenceParameterBufferHEVC *h265 = (VAEncSequenceParameterBufferHEVC *)buf->data;
 
    if (!context->decoder) {
+      context->templat.max_references = 1;
       context->templat.level = h265->general_level_idc;
       context->decoder = drv->pipe->create_video_codec(drv->pipe, &context->templat);
 

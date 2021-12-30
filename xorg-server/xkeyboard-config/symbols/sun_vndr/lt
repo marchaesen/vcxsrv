@@ -75,8 +75,8 @@ xkb_symbols "sun_type6" {
     key <LSGT>  { [  backslash,       bar,	dead_grave,   dead_breve ] };
 
     key <BKSL>  { [ backslash,        bar,	dead_grave,   dead_breve ] };
-    key <AB01>  { [         z,          Z,	guillemotleft,       U2039 ] };
-    key <AB02>  { [         x,          X,	guillemotright,      U203A ] };
+    key <AB01>  { [         z,          Z,	guillemotleft,        less ] };
+    key <AB02>  { [         x,          X,	guillemotright,    greater ] };
     key <AB03>  { [         c,          C,	cent,    copyright ] };
     key <AB04>	{ [         v,          V,   doublelowquotemark, singlelowquotemark ] };
     key <AB05>	{ [         b,          B,  leftdoublequotemark, leftsinglequotemark ] };

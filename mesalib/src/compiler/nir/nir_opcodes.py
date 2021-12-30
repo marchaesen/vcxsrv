@@ -1056,7 +1056,7 @@ if (bits == 0) {
 } else if (offset < 0 || bits < 0 || offset + bits > 32) {
    dst = 0;
 } else {
-   dst = (base << (32 - offset - bits)) >> offset; /* use sign-extending shift */
+   dst = (base << (32 - offset - bits)) >> (32 - bits); /* use sign-extending shift */
 }
 """)
 

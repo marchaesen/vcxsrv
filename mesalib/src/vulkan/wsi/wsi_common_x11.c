@@ -39,6 +39,7 @@
 #include <xf86drm.h>
 #include "drm-uapi/drm_fourcc.h"
 #include "util/hash_table.h"
+#include "util/os_time.h"
 #include "util/u_debug.h"
 #include "util/u_thread.h"
 #include "util/xmlconfig.h"
@@ -358,9 +359,15 @@ wsi_x11_get_connection(struct wsi_device *wsi_dev,
    return entry->data;
 }
 
-static const VkFormat formats[] = {
-   VK_FORMAT_B8G8R8A8_SRGB,
-   VK_FORMAT_B8G8R8A8_UNORM,
+struct surface_format {
+   VkFormat format;
+   unsigned bits_per_rgb;
+};
+
+static const struct surface_format formats[] = {
+   { VK_FORMAT_B8G8R8A8_SRGB,             8 },
+   { VK_FORMAT_B8G8R8A8_UNORM,            8 },
+   { VK_FORMAT_A2R10G10B10_UNORM_PACK32, 10 },
 };
 
 static const VkPresentModeKHR present_modes[] = {
@@ -408,8 +415,7 @@ screen_get_visualtype(xcb_screen_t *screen, xcb_visualid_t visual_id,
 }
 
 static xcb_visualtype_t *
-connection_get_visualtype(xcb_connection_t *conn, xcb_visualid_t visual_id,
-                          unsigned *depth)
+connection_get_visualtype(xcb_connection_t *conn, xcb_visualid_t visual_id)
 {
    xcb_screen_iterator_t screen_iter =
       xcb_setup_roots_iterator(xcb_get_setup(conn));
@@ -419,7 +425,7 @@ connection_get_visualtype(xcb_connection_t *conn, xcb_visualid_t visual_id,
     */
    for (; screen_iter.rem; xcb_screen_next (&screen_iter)) {
       xcb_visualtype_t *visual = screen_get_visualtype(screen_iter.data,
-                                                       visual_id, depth);
+                                                       visual_id, NULL);
       if (visual)
          return visual;
    }
@@ -472,6 +478,15 @@ visual_has_alpha(xcb_visualtype_t *visual, unsigned depth)
    return (all_mask & ~rgb_mask) != 0;
 }
 
+static bool
+visual_supported(xcb_visualtype_t *visual)
+{
+   if (!visual)
+      return false;
+
+   return visual->bits_per_rgb_value == 8 || visual->bits_per_rgb_value == 10;
+}
+
 VKAPI_ATTR VkBool32 VKAPI_CALL
 wsi_GetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice,
                                                uint32_t queueFamilyIndex,
@@ -491,11 +506,7 @@ wsi_GetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice,
          return false;
    }
 
-   unsigned visual_depth;
-   if (!connection_get_visualtype(connection, visual_id, &visual_depth))
-      return false;
-
-   if (visual_depth != 24 && visual_depth != 32)
+   if (!visual_supported(connection_get_visualtype(connection, visual_id)))
       return false;
 
    return true;
@@ -552,13 +563,7 @@ x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
       }
    }
 
-   unsigned visual_depth;
-   if (!get_visualtype_for_window(conn, window, &visual_depth)) {
-      *pSupported = false;
-      return VK_SUCCESS;
-   }
-
-   if (visual_depth != 24 && visual_depth != 32) {
+   if (!visual_supported(get_visualtype_for_window(conn, window, NULL))) {
       *pSupported = false;
       return VK_SUCCESS;
    }
@@ -686,13 +691,24 @@ x11_surface_get_capabilities2(VkIcdSurfaceBase *icd_surface,
    return result;
 }
 
-static void
-get_sorted_vk_formats(struct wsi_device *wsi_device, VkFormat *sorted_formats)
+static bool
+get_sorted_vk_formats(VkIcdSurfaceBase *surface, struct wsi_device *wsi_device,
+                      VkFormat *sorted_formats, unsigned *count)
 {
-   memcpy(sorted_formats, formats, sizeof(formats));
+   xcb_connection_t *conn = x11_surface_get_connection(surface);
+   xcb_window_t window = x11_surface_get_window(surface);
+   xcb_visualtype_t *visual = get_visualtype_for_window(conn, window, NULL);
+   if (!visual)
+      return false;
+
+   *count = 0;
+   for (unsigned i = 0; i < ARRAY_SIZE(formats); i++) {
+      if (formats[i].bits_per_rgb == visual->bits_per_rgb_value)
+         sorted_formats[(*count)++] = formats[i].format;
+   }
 
    if (wsi_device->force_bgra8_unorm_first) {
-      for (unsigned i = 0; i < ARRAY_SIZE(formats); i++) {
+      for (unsigned i = 0; i < *count; i++) {
          if (sorted_formats[i] == VK_FORMAT_B8G8R8A8_UNORM) {
             sorted_formats[i] = sorted_formats[0];
             sorted_formats[0] = VK_FORMAT_B8G8R8A8_UNORM;
@@ -700,6 +716,8 @@ get_sorted_vk_formats(struct wsi_device *wsi_device, VkFormat *sorted_formats)
          }
       }
    }
+
+   return true;
 }
 
 static VkResult
@@ -710,10 +728,12 @@ x11_surface_get_formats(VkIcdSurfaceBase *surface,
 {
    VK_OUTARRAY_MAKE(out, pSurfaceFormats, pSurfaceFormatCount);
 
+   unsigned count;
    VkFormat sorted_formats[ARRAY_SIZE(formats)];
-   get_sorted_vk_formats(wsi_device, sorted_formats);
+   if (!get_sorted_vk_formats(surface, wsi_device, sorted_formats, &count))
+      return VK_ERROR_SURFACE_LOST_KHR;
 
-   for (unsigned i = 0; i < ARRAY_SIZE(sorted_formats); i++) {
+   for (unsigned i = 0; i < count; i++) {
       vk_outarray_append(&out, f) {
          f->format = sorted_formats[i];
          f->colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
@@ -732,10 +752,12 @@ x11_surface_get_formats2(VkIcdSurfaceBase *surface,
 {
    VK_OUTARRAY_MAKE(out, pSurfaceFormats, pSurfaceFormatCount);
 
+   unsigned count;
    VkFormat sorted_formats[ARRAY_SIZE(formats)];
-   get_sorted_vk_formats(wsi_device, sorted_formats);
+   if (!get_sorted_vk_formats(surface, wsi_device, sorted_formats, &count))
+      return VK_ERROR_SURFACE_LOST_KHR;
 
-   for (unsigned i = 0; i < ARRAY_SIZE(sorted_formats); i++) {
+   for (unsigned i = 0; i < count; i++) {
       vk_outarray_append(&out, f) {
          assert(f->sType == VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR);
          f->surfaceFormat.format = sorted_formats[i];
@@ -1029,7 +1051,7 @@ x11_handle_dri3_present_event(struct x11_swapchain *chain,
 
 static uint64_t wsi_get_absolute_timeout(uint64_t timeout)
 {
-   uint64_t current_time = wsi_common_get_current_time();
+   uint64_t current_time = os_time_get_nano();
 
    timeout = MIN2(UINT64_MAX - current_time, timeout);
 
@@ -1080,7 +1102,7 @@ x11_acquire_next_image_poll_x11(struct x11_swapchain *chain,
             /* If a non-special event happens, the fd will still
              * poll. So recalculate the timeout now just in case.
              */
-            uint64_t current_time = wsi_common_get_current_time();
+            uint64_t current_time = os_time_get_nano();
             if (atimeout > current_time)
                timeout = atimeout - current_time;
             else

@@ -24,6 +24,7 @@
 #include "glthread_marshal.h"
 #include "dispatch.h"
 #include "uniforms.h"
+#include "api_exec_decl.h"
 
 struct marshal_cmd_ShaderSource
 {

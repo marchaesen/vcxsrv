@@ -28,11 +28,17 @@
 #ifndef ST_CB_SYNCOBJ_H
 #define ST_CB_SYNCOBJ_H
 
+struct gl_sync_object *st_new_sync_object(struct gl_context *ctx);
+void st_delete_sync_object(struct gl_context *ctx,
+                           struct gl_sync_object *obj);
+void st_fence_sync(struct gl_context *ctx, struct gl_sync_object *obj,
+                   GLenum condition, GLbitfield flags);
+void st_client_wait_sync(struct gl_context *ctx,
+                         struct gl_sync_object *obj,
+                         GLbitfield flags, GLuint64 timeout);
 
-struct dd_function_table;
-
-extern void
-st_init_syncobj_functions(struct dd_function_table *functions);
-
-
+void st_check_sync(struct gl_context *ctx, struct gl_sync_object *obj);
+void st_server_wait_sync(struct gl_context *ctx,
+                         struct gl_sync_object *obj,
+                         GLbitfield flags, GLuint64 timeout);
 #endif /* ST_CB_SYNCOBJ_H */

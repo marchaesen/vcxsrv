@@ -25,12 +25,13 @@ radv_entrypoints = custom_target(
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'radv',
-    '--device-prefix', 'sqtt',
+    '--device-prefix', 'sqtt', '--device-prefix', 'metro_exodus',
   ],
   depend_files : vk_entrypoints_gen_depend_files,
 )
 
 libradv_files = files(
+  'layers/radv_metro_exodus.c',
   'layers/radv_sqtt_layer.c',
   'winsys/null/radv_null_bo.c',
   'winsys/null/radv_null_bo.h',
@@ -61,13 +62,16 @@ libradv_files = files(
   'radv_meta_copy_vrs_htile.c',
   'radv_meta_dcc_retile.c',
   'radv_meta_decompress.c',
+  'radv_meta_etc_decode.c',
   'radv_meta_fast_clear.c',
+  'radv_meta_fmask_copy.c',
   'radv_meta_fmask_expand.c',
   'radv_meta_resolve.c',
   'radv_meta_resolve_cs.c',
   'radv_meta_resolve_fs.c',
   'radv_nir_lower_ycbcr_textures.c',
   'radv_pass.c',
+  'radv_perfcounter.c',
   'radv_pipeline.c',
   'radv_pipeline_cache.c',
   'radv_pipeline_rt.c',
@@ -78,6 +82,7 @@ libradv_files = files(
   'radv_shader_args.c',
   'radv_shader_args.h',
   'radv_shader_info.c',
+  'radv_spm.c',
   'radv_sqtt.c',
   'radv_query.c',
   'radv_util.c',
@@ -136,7 +141,7 @@ endif
 libvulkan_radeon_ld_args = []
 libvulkan_radeon_link_depends = []
 
-if with_llvm and with_ld_version_script
+if with_ld_version_script
   libvulkan_radeon_ld_args += ['-Wl,--version-script', join_paths(meson.current_source_dir(), 'vulkan.sym')]
   libvulkan_radeon_link_depends += files('vulkan.sym')
 endif
@@ -190,16 +195,21 @@ if with_platform_windows
   icd_file_name = 'vulkan_radeon.dll'
 endif
 
+icd_command = [
+  prog_python, '@INPUT0@',
+  '--api-version', '1.2', '--xml', '@INPUT1@',
+  '--lib-path', join_paths(icd_lib_path, icd_file_name),
+  '--out', '@OUTPUT@',
+]
+if with_platform_windows
+  icd_command += '--use-backslash'
+endif
+
 radeon_icd = custom_target(
   'radeon_icd',
   input : [vk_icd_gen, vk_api_xml],
   output : 'radeon_icd.@0@.json'.format(host_machine.cpu()),
-  command : [
-    prog_python, '@INPUT0@',
-    '--api-version', '1.2', '--xml', '@INPUT1@',
-    '--lib-path', join_paths(icd_lib_path, icd_file_name),
-    '--out', '@OUTPUT@',
-  ],
+  command : icd_command,
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
   install : true,

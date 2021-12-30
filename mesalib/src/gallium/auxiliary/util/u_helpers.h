@@ -130,6 +130,9 @@ util_init_pipe_vertex_state(struct pipe_screen *screen,
                             uint32_t full_velem_mask,
                             struct pipe_vertex_state *state);
 
+union pipe_color_union util_clamp_color(enum pipe_format format,
+                                        const union pipe_color_union *color);
+
 #ifdef __cplusplus
 }
 #endif

@@ -14,7 +14,6 @@ glx/glx-multithread-makecurrent-2: skip
 glx/glx-multithread-makecurrent-3: skip
 glx/glx-multithread-makecurrent-4: skip
 glx/glx-multithread-texture: fail
-glx/glx-query-drawable-glx_fbconfig_id-window: fail
 glx/glx-swap-copy: fail
 glx/glx-swap-event_async: skip
 glx/glx-swap-event_event: skip

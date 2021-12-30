@@ -101,9 +101,6 @@ struct vbo_markers
 
 struct vbo_exec_context
 {
-   GLvertexformat vtxfmt;
-   GLvertexformat vtxfmt_noop;
-
    struct {
       /* Multi draw where the mode can vary between draws. */
       struct pipe_draw_info info;
@@ -153,8 +150,6 @@ struct vbo_exec_context
 
 
 struct vbo_save_context {
-   GLvertexformat vtxfmt;
-
    GLbitfield64 enabled; /**< mask of enabled vbo arrays. */
    GLubyte attrsz[VBO_ATTRIB_MAX];  /**< 1, 2, 3 or 4 */
    GLenum16 attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_INT, etc */
@@ -184,24 +179,25 @@ struct vbo_save_context {
 };
 
 GLboolean
-_vbo_CreateContext(struct gl_context *ctx, bool use_buffer_objects);
+_mesa_using_noop_vtxfmt(const struct _glapi_table *dispatch);
+
+GLboolean
+_vbo_CreateContext(struct gl_context *ctx);
 
 void
 _vbo_DestroyContext(struct gl_context *ctx);
 
 void
+vbo_install_exec_vtxfmt(struct gl_context *ctx);
+
+void
+vbo_install_exec_vtxfmt_noop(struct gl_context *ctx);
+
+void
+vbo_install_save_vtxfmt_noop(struct gl_context *ctx);
+
+void
 vbo_exec_update_eval_maps(struct gl_context *ctx);
-
-void
-_vbo_install_exec_vtxfmt(struct gl_context *ctx);
-
-void
-vbo_initialize_exec_dispatch(const struct gl_context *ctx,
-                             struct _glapi_table *exec);
-
-void
-vbo_initialize_save_dispatch(const struct gl_context *ctx,
-                             struct _glapi_table *exec);
 
 void
 vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags);
@@ -244,11 +240,6 @@ vbo_get_minmax_indices_gallium(struct gl_context *ctx,
 const struct gl_array_attributes*
 _vbo_current_attrib(const struct gl_context *ctx, gl_vert_attrib attr);
 
-
-const struct gl_vertex_buffer_binding*
-_vbo_current_binding(const struct gl_context *ctx);
-
-
 void GLAPIENTRY
 _es_Color4f(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
 
@@ -263,30 +254,6 @@ _es_Materialfv(GLenum face, GLenum pname, const GLfloat *params);
 
 void GLAPIENTRY
 _es_Materialf(GLenum face, GLenum pname, GLfloat param);
-
-void GLAPIENTRY
-_es_VertexAttrib4f(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-
-void GLAPIENTRY
-_es_VertexAttrib1f(GLuint indx, GLfloat x);
-
-void GLAPIENTRY
-_es_VertexAttrib1fv(GLuint indx, const GLfloat* values);
-
-void GLAPIENTRY
-_es_VertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
-
-void GLAPIENTRY
-_es_VertexAttrib2fv(GLuint indx, const GLfloat* values);
-
-void GLAPIENTRY
-_es_VertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
-
-void GLAPIENTRY
-_es_VertexAttrib3fv(GLuint indx, const GLfloat* values);
-
-void GLAPIENTRY
-_es_VertexAttrib4fv(GLuint indx, const GLfloat* values);
 
 #ifdef __cplusplus
 } // extern "C"

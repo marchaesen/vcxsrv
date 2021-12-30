@@ -37,6 +37,7 @@
 #include "util/simple_mtx.h"
 #include "util/u_queue.h"
 #include "util/u_live_shader_cache.h"
+#include "util/u_vertex_state_cache.h"
 #include "pipebuffer/pb_cache.h"
 #include "pipebuffer/pb_slab.h"
 #include <vulkan/vulkan.h>
@@ -76,6 +77,7 @@ struct zink_modifier_prop {
 struct zink_screen {
    struct pipe_screen base;
    bool threaded;
+   bool is_cpu;
    uint32_t curr_batch; //the current batch id
    uint32_t last_finished; //this is racy but ultimately doesn't matter
    VkSemaphore sem;
@@ -119,6 +121,7 @@ struct zink_screen {
    VkPhysicalDevice pdev;
    uint32_t vk_version, spirv_version;
    struct util_idalloc_mt buffer_ids;
+   struct util_vertex_state_cache vertex_state_cache;
 
    struct zink_device_info info;
    struct nir_shader_compiler_options nir_options;
@@ -126,13 +129,16 @@ struct zink_screen {
    bool have_X8_D24_UNORM_PACK32;
    bool have_D24_UNORM_S8_UINT;
    bool have_triangle_fans;
+   bool need_2D_zs;
 
    uint32_t gfx_queue;
    uint32_t max_queues;
    uint32_t timestamp_valid_bits;
+   unsigned max_fences;
    VkDevice dev;
    VkQueue queue; //gfx+compute
    VkQueue thread_queue; //gfx+compute
+   simple_mtx_t queue_lock;
    VkDebugUtilsMessengerEXT debugUtilsCallbackHandle;
 
    uint32_t cur_custom_border_color_samplers;

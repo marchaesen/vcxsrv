@@ -1,9 +1,8 @@
 
 #include <stdbool.h>
 
-#include "api_exec.h"
+#include "context.h"
 #include "blend.h"
-#include "clear.h"
 #include "clip.h"
 #include "context.h"
 #include "depth.h"
@@ -17,16 +16,11 @@
 #include "points.h"
 #include "polygon.h"
 #include "readpix.h"
-#include "texenv.h"
-#include "texgen.h"
-#include "texobj.h"
 #include "texparam.h"
 #include "mtypes.h"
 #include "viewport.h"
-#include "main/drawtex.h"
 #include "vbo/vbo.h"
-
-#include "main/es1_conversion.h"
+#include "api_exec_decl.h"
 
 void GL_APIENTRY
 _mesa_AlphaFuncx(GLenum func, GLclampx ref)
@@ -73,15 +67,6 @@ _mesa_ClipPlanex(GLenum plane, const GLfixed *equation)
    }
 
    _mesa_ClipPlane(plane, converted_equation);
-}
-
-void GL_APIENTRY
-_es_Color4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha)
-{
-    _es_Color4f((GLfloat) (red / 255.0f),
-                (GLfloat) (green / 255.0f),
-                (GLfloat) (blue / 255.0f),
-                (GLfloat) (alpha / 255.0f));
 }
 
 void GL_APIENTRY
@@ -403,12 +388,6 @@ _mesa_GetTexEnvxv(GLenum target, GLenum pname, GLfixed *params)
          params[i] = (GLfixed) converted_params[i];
       }
    }
-}
-
-void GL_APIENTRY
-_check_GetTexGenivOES(GLenum coord, GLenum pname, GLint *params)
-{
-   _mesa_GetTexGeniv(coord, pname, params);
 }
 
 void GL_APIENTRY
@@ -856,16 +835,18 @@ _mesa_TexEnvxv(GLenum target, GLenum pname, const GLfixed *params)
    }
 }
 
-void GL_APIENTRY
-_check_TexGeniOES(GLenum coord, GLenum pname, GLint param)
+static void
+_es_TexGenf(GLenum coord, GLenum pname, GLfloat param)
 {
-   _es_TexGenf(coord, pname, (GLfloat) param);
-}
-
-void GL_APIENTRY
-_check_TexGenivOES(GLenum coord, GLenum pname, const GLint *params)
-{
-   _es_TexGenf(coord, pname, (GLfloat) params[0]);
+   if (coord != GL_TEXTURE_GEN_STR_OES) {
+      GET_CURRENT_CONTEXT(ctx);
+      _mesa_error( ctx, GL_INVALID_ENUM, "glTexGen[fx](pname)" );
+      return;
+   }
+   /* set S, T, and R at the same time */
+   _mesa_TexGenf(GL_S, pname, param);
+   _mesa_TexGenf(GL_T, pname, param);
+   _mesa_TexGenf(GL_R, pname, param);
 }
 
 void GL_APIENTRY

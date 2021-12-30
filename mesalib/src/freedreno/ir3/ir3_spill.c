@@ -79,6 +79,9 @@ struct ra_spill_interval {
     * - It is a destination and we're making space for destinations.
     */
    bool cant_spill;
+
+   /* Whether this interval can be rematerialized. */
+   bool can_rematerialize;
 };
 
 struct ra_spill_block_state {
@@ -328,6 +331,49 @@ compute_next_distance(struct ra_spill_ctx *ctx, struct ir3 *ir)
    }
 }
 
+static bool
+can_rematerialize(struct ir3_register *reg)
+{
+   if (reg->flags & IR3_REG_ARRAY)
+      return false;
+   if (reg->instr->opc != OPC_MOV)
+      return false;
+   if (!(reg->instr->srcs[0]->flags & (IR3_REG_IMMED | IR3_REG_CONST)))
+      return false;
+   if (reg->instr->srcs[0]->flags & IR3_REG_RELATIV)
+      return false;
+   return true;
+}
+
+static struct ir3_register *
+rematerialize(struct ir3_register *reg, struct ir3_instruction *after,
+              struct ir3_block *block)
+{
+   d("rematerializing ssa_%u:%u", reg->instr->serialno, reg->name);
+
+   struct ir3_instruction *remat =
+      ir3_instr_create(block, reg->instr->opc, 1, reg->instr->srcs_count);
+   struct ir3_register *dst = __ssa_dst(remat);
+   dst->flags |= reg->flags & (IR3_REG_HALF | IR3_REG_ARRAY);
+   for (unsigned i = 0; i < reg->instr->srcs_count; i++) {
+      struct ir3_register *src =
+         ir3_src_create(remat, INVALID_REG, reg->instr->srcs[i]->flags);
+      *src = *reg->instr->srcs[i];
+   }
+
+   remat->cat1 = reg->instr->cat1;
+
+   dst->merge_set = reg->merge_set;
+   dst->merge_set_offset = reg->merge_set_offset;
+   dst->interval_start = reg->interval_start;
+   dst->interval_end = reg->interval_end;
+
+   if (after)
+      ir3_instr_move_before(remat, after);
+
+   return dst;
+}
+
 static void
 ra_spill_interval_init(struct ra_spill_interval *interval,
                        struct ir3_register *reg)
@@ -338,6 +384,7 @@ ra_spill_interval_init(struct ra_spill_interval *interval,
    interval->already_spilled = false;
    interval->needs_reload = false;
    interval->cant_spill = false;
+   interval->can_rematerialize = can_rematerialize(reg);
 }
 
 static struct ra_spill_interval *
@@ -362,13 +409,26 @@ ir3_reg_ctx_to_ctx(struct ir3_reg_ctx *ctx)
 }
 
 static int
+spill_interval_cmp(const struct ra_spill_interval *a,
+                   const struct ra_spill_interval *b)
+{
+   /* Prioritize intervals that we can rematerialize. */
+   if (a->can_rematerialize && !b->can_rematerialize)
+      return 1;
+   if (!a->can_rematerialize && b->can_rematerialize)
+      return -1;
+
+   return a->next_use_distance - b->next_use_distance;
+}
+
+static int
 ra_spill_interval_cmp(const struct rb_node *_a, const struct rb_node *_b)
 {
    const struct ra_spill_interval *a =
       rb_node_data(const struct ra_spill_interval, _a, node);
    const struct ra_spill_interval *b =
       rb_node_data(const struct ra_spill_interval, _b, node);
-   return a->next_use_distance - b->next_use_distance;
+   return spill_interval_cmp(a, b);
 }
 
 static int
@@ -378,7 +438,7 @@ ra_spill_interval_half_cmp(const struct rb_node *_a, const struct rb_node *_b)
       rb_node_data(const struct ra_spill_interval, _a, half_node);
    const struct ra_spill_interval *b =
       rb_node_data(const struct ra_spill_interval, _b, half_node);
-   return a->next_use_distance - b->next_use_distance;
+   return spill_interval_cmp(a, b);
 }
 
 static void
@@ -482,8 +542,16 @@ init_dst(struct ra_spill_ctx *ctx, struct ir3_register *dst)
 {
    struct ra_spill_interval *interval = ctx->intervals[dst->name];
    ra_spill_interval_init(interval, dst);
-   if (ctx->spilling)
+   if (ctx->spilling) {
       interval->next_use_distance = dst->next_use;
+
+      /* We only need to keep track of used-ness if this value may be
+       * rematerialized. This also keeps us from nuking things that may be
+       * in the keeps list (e.g. atomics, input splits).
+       */
+      if (interval->can_rematerialize)
+         dst->instr->flags |= IR3_INSTR_UNUSED;
+   }
 }
 
 static void
@@ -520,14 +588,14 @@ insert_src(struct ra_spill_ctx *ctx, struct ir3_register *src)
 {
    struct ra_spill_interval *interval = ctx->intervals[src->def->name];
 
+   if (!interval->interval.inserted) {
+      ra_spill_ctx_insert(ctx, interval);
+      interval->needs_reload = true;
+      interval->already_spilled = true;
+   }
+
    ra_spill_interval_root(interval)->cant_spill = true;
 
-   if (interval->interval.inserted)
-      return;
-
-   ra_spill_ctx_insert(ctx, interval);
-   interval->needs_reload = true;
-   interval->already_spilled = true;
 }
 
 static void
@@ -631,6 +699,7 @@ set_src_val(struct ir3_register *src, const struct reg_or_immed *val)
       src->def = NULL;
    } else {
       src->def = val->def;
+      val->def->instr->flags &= ~IR3_INSTR_UNUSED;
    }
 }
 
@@ -665,6 +734,7 @@ spill(struct ra_spill_ctx *ctx, const struct reg_or_immed *val,
       reg = materialize_pcopy_src(val, instr, block);
    } else {
       reg = val->def;
+      reg->instr->flags &= ~IR3_INSTR_UNUSED;
    }
 
    d("spilling ssa_%u:%u to %u", reg->instr->serialno, reg->name,
@@ -699,6 +769,9 @@ static void
 spill_interval(struct ra_spill_ctx *ctx, struct ra_spill_interval *interval,
                struct ir3_instruction *instr, struct ir3_block *block)
 {
+   if (interval->can_rematerialize && !interval->interval.reg->merge_set)
+      return;
+
    spill(ctx, &interval->dst, get_spill_slot(ctx, interval->interval.reg),
          instr, block);
 }
@@ -901,7 +974,11 @@ reload_def(struct ra_spill_ctx *ctx, struct ir3_register *def,
       }
    }
 
-   struct ir3_register *dst = reload(ctx, def, instr, block);
+   struct ir3_register *dst;
+   if (interval->can_rematerialize)
+      dst = rematerialize(def, instr, block);
+   else
+      dst = reload(ctx, def, instr, block);
 
    rewrite_src_interval(ctx, interval, dst, instr, block);
 }
@@ -1340,7 +1417,9 @@ spill_live_ins(struct ra_spill_ctx *ctx, struct ir3_block *block)
          if (all_preds_visited &&
              is_live_in_all_preds(ctx, interval->interval.reg, block))
             continue;
-         spill_live_in(ctx, interval->interval.reg, block);
+         if (interval->interval.reg->merge_set ||
+             !interval->can_rematerialize)
+            spill_live_in(ctx, interval->interval.reg, block);
          ir3_reg_interval_remove_all(&ctx->reg_ctx, &interval->interval);
          if (ctx->cur_pressure.half <= ctx->limit_pressure.half)
             break;
@@ -1410,7 +1489,10 @@ reload_live_in(struct ra_spill_ctx *ctx, struct ir3_register *def,
 
       if (!new_val) {
          new_val = ralloc(ctx, struct reg_or_immed);
-         new_val->def = reload(ctx, def, NULL, pred);
+         if (interval->can_rematerialize)
+            new_val->def = rematerialize(def, NULL, pred);
+         else
+            new_val->def = reload(ctx, def, NULL, pred);
          new_val->flags = new_val->def->flags;
       }
       live_in_rewrite(ctx, interval, new_val, block, i);
@@ -1557,7 +1639,9 @@ spill_live_out(struct ra_spill_ctx *ctx, struct ra_spill_interval *interval,
 {
    struct ir3_register *def = interval->interval.reg;
 
-   spill(ctx, &interval->dst, get_spill_slot(ctx, def), NULL, block);
+   if (interval->interval.reg->merge_set ||
+       !interval->can_rematerialize)
+      spill(ctx, &interval->dst, get_spill_slot(ctx, def), NULL, block);
    ir3_reg_interval_remove_all(&ctx->reg_ctx, &interval->interval);
 }
 

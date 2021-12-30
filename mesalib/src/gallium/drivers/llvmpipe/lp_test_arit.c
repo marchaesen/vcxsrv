@@ -480,6 +480,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
          }
 
          if (!util_get_cpu_caps()->has_neon &&
+             util_get_cpu_caps()->family != CPU_S390X &&
              test->ref == &nearbyintf && length == 2 &&
              ref != roundf(testval)) {
             /* FIXME: The generic (non SSE) path in lp_build_iround, which is

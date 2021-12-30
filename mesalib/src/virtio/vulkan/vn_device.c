@@ -420,6 +420,7 @@ vn_GetDeviceGroupPeerMemoryFeatures(
 VkResult
 vn_DeviceWaitIdle(VkDevice device)
 {
+   VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
    for (uint32_t i = 0; i < dev->queue_count; i++) {

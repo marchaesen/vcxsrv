@@ -149,6 +149,9 @@ instr_cp_postsched(struct ir3_instruction *mov)
       if (is_meta(use))
          continue;
 
+      if (is_subgroup_cond_mov_macro(use))
+         continue;
+
       struct ir3_register *def = src->def;
       if (has_conflicting_write(mov, use, &def, src->array.id, offset))
          continue;

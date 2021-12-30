@@ -90,6 +90,9 @@ pan_arch(unsigned gpu_id)
 #elif (PAN_ARCH == 7)
 #  define GENX(X) X##_v7
 #  include "genxml/v7_pack.h"
+#elif (PAN_ARCH == 9)
+#  define GENX(X) X##_v9
+#  include "genxml/v9_pack.h"
 #else
 #  error "Need to add suffixing macro for this architecture"
 #endif

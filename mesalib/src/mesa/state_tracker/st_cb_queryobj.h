@@ -56,8 +56,23 @@ st_query_object(struct gl_query_object *q)
 }
 
 
-extern void
-st_init_query_functions(struct dd_function_table *functions);
+struct gl_query_object *
+st_NewQueryObject(struct gl_context *ctx, GLuint id);
+void
+st_DeleteQuery(struct gl_context *ctx, struct gl_query_object *q);
+void
+st_BeginQuery(struct gl_context *ctx, struct gl_query_object *q);
+void
+st_EndQuery(struct gl_context *ctx, struct gl_query_object *q);
+void
+st_WaitQuery(struct gl_context *ctx, struct gl_query_object *q);
+void
+st_CheckQuery(struct gl_context *ctx, struct gl_query_object *q);
+void
+st_StoreQueryResult(struct gl_context *ctx, struct gl_query_object *q,
+                    struct gl_buffer_object *buf, intptr_t offset,
+                    GLenum pname, GLenum ptype);
 
-
+uint64_t
+st_GetTimestamp(struct gl_context *ctx);
 #endif

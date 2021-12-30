@@ -26,7 +26,7 @@
 
 #include "compiler.h"
 
-/* Bifrost texture operations have a `skip` bit, instructinh helper invocations
+/* Bifrost texture operations have a `skip` bit, instructing helper invocations
  * to skip execution. Each clause has a `terminate_discarded_threads` bit,
  * which will terminate helper invocations.
  *

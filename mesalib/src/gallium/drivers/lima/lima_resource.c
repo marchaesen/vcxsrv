@@ -848,7 +848,7 @@ lima_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
    struct lima_context *ctx = lima_context(pctx);
    struct pipe_blit_info info = *blit_info;
 
-   if (util_try_blit_via_copy_region(pctx, &info)) {
+   if (util_try_blit_via_copy_region(pctx, &info, false)) {
       return; /* done */
    }
 

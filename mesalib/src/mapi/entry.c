@@ -31,6 +31,7 @@
 #include "entry.h"
 #include "u_current.h"
 #include "util/u_endian.h"
+#include "util/u_thread.h"
 
 #define _U_STRINGIFY(x) #x
 #define U_STRINGIFY(x) _U_STRINGIFY(x)
@@ -45,20 +46,18 @@
 #define ENTRY_CURRENT_TABLE_GET U_STRINGIFY(u_current_get_table_internal)
 #endif
 
-#if defined(USE_X86_ASM) && defined(__GNUC__)
-#   ifdef USE_ELF_TLS
-#      include "entry_x86_tls.h"
-#   else                 
-#      include "entry_x86_tsd.h"
-#   endif
-#elif defined(USE_X86_64_ASM) && defined(__GNUC__) && defined(USE_ELF_TLS)
-#   include "entry_x86-64_tls.h"
-#elif defined(USE_PPC64LE_ASM) && defined(__GNUC__) && UTIL_ARCH_LITTLE_ENDIAN
-#   ifdef USE_ELF_TLS
-#      include "entry_ppc64le_tls.h"
-#   else
-#      include "entry_ppc64le_tsd.h"
-#   endif
+/* REALLY_INITIAL_EXEC implies USE_ELF_TLS and __GNUC__ */
+#if defined(USE_X86_ASM) && defined(REALLY_INITIAL_EXEC)
+#include "entry_x86_tls.h"
+#elif defined(USE_X86_ASM) && !defined(GLX_X86_READONLY_TEXT) && defined(__GNUC__)
+#include "entry_x86_tsd.h"
+#elif defined(USE_X86_64_ASM) && defined(REALLY_INITIAL_EXEC)
+#include "entry_x86-64_tls.h"
+#elif defined(USE_PPC64LE_ASM) && UTIL_ARCH_LITTLE_ENDIAN && defined(REALLY_INITIAL_EXEC)
+#include "entry_ppc64le_tls.h"
+/* ppc64le non-IE TSD stubs are possible but not currently implemented */
+#elif defined(USE_PPC64LE_ASM) && UTIL_ARCH_LITTLE_ENDIAN && !defined(USE_ELF_TLS) && defined(__GNUC__)
+#include "entry_ppc64le_tsd.h"
 #else
 
 static inline const struct _glapi_table *

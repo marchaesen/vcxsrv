@@ -299,8 +299,8 @@ struct ir3_shader_key {
           * topology the TES uses, which the TCS needs to know.
           */
 #define IR3_TESS_NONE      0
-#define IR3_TESS_TRIANGLES 1
-#define IR3_TESS_QUADS     2
+#define IR3_TESS_QUADS     1
+#define IR3_TESS_TRIANGLES 2
 #define IR3_TESS_ISOLINES  3
          unsigned tessellation : 2;
 
@@ -330,7 +330,7 @@ struct ir3_shader_key {
    /* bitmask of ms shifts (a3xx) */
    uint32_t vsamples, fsamples;
 
-   /* bitmask of samplers which need astc srgb workaround (a4xx+a5xx): */
+   /* bitmask of samplers which need astc srgb workaround (a4xx): */
    uint16_t vastc_srgb, fastc_srgb;
 };
 
@@ -344,6 +344,22 @@ ir3_tess_mode(unsigned gl_tess_mode)
       return IR3_TESS_TRIANGLES;
    case GL_QUADS:
       return IR3_TESS_QUADS;
+   default:
+      unreachable("bad tessmode");
+   }
+}
+
+static inline uint32_t
+ir3_tess_factor_stride(unsigned patch_type)
+{
+   /* note: this matches the stride used by ir3's build_tessfactor_base */
+   switch (patch_type) {
+   case IR3_TESS_ISOLINES:
+      return 12;
+   case IR3_TESS_TRIANGLES:
+      return 20;
+   case IR3_TESS_QUADS:
+      return 28;
    default:
       unreachable("bad tessmode");
    }
@@ -891,6 +907,7 @@ struct ir3_shader_linkage {
 
    /* Map from VS output to location. */
    struct {
+      uint8_t slot;
       uint8_t regid;
       uint8_t compmask;
       uint8_t loc;
@@ -907,8 +924,8 @@ struct ir3_shader_linkage {
 };
 
 static inline void
-ir3_link_add(struct ir3_shader_linkage *l, uint8_t regid_, uint8_t compmask,
-             uint8_t loc)
+ir3_link_add(struct ir3_shader_linkage *l, uint8_t slot, uint8_t regid_,
+             uint8_t compmask, uint8_t loc)
 {
    for (int j = 0; j < util_last_bit(compmask); j++) {
       uint8_t comploc = loc + j;
@@ -921,6 +938,7 @@ ir3_link_add(struct ir3_shader_linkage *l, uint8_t regid_, uint8_t compmask,
       int i = l->cnt++;
       debug_assert(i < ARRAY_SIZE(l->var));
 
+      l->var[i].slot = slot;
       l->var[i].regid = regid_;
       l->var[i].compmask = compmask;
       l->var[i].loc = loc;
@@ -974,7 +992,8 @@ ir3_link_shaders(struct ir3_shader_linkage *l,
       if (fs->inputs[j].slot == VARYING_SLOT_CLIP_DIST1)
          l->clip1_loc = fs->inputs[j].inloc;
 
-      ir3_link_add(l, k >= 0 ? vs->outputs[k].regid : default_regid,
+      ir3_link_add(l, fs->inputs[j].slot,
+                   k >= 0 ? vs->outputs[k].regid : default_regid,
                    fs->inputs[j].compmask, fs->inputs[j].inloc);
    }
 }

@@ -194,7 +194,7 @@ fd6_zsa_state_create(struct pipe_context *pctx,
          so->alpha_test = true;
       }
 
-      uint32_t ref = cso->alpha_ref_value * 255.0;
+      uint32_t ref = cso->alpha_ref_value * 255.0f;
       so->rb_alpha_control =
          A6XX_RB_ALPHA_CONTROL_ALPHA_TEST |
          A6XX_RB_ALPHA_CONTROL_ALPHA_REF(ref) |

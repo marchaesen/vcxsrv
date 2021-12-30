@@ -33,6 +33,7 @@ int systemd_logind_take_fd(int major, int minor, const char *path, Bool *paus);
 void systemd_logind_release_fd(int major, int minor, int fd);
 int systemd_logind_controls_session(void);
 void systemd_logind_vtenter(void);
+void systemd_logind_drop_master(void);
 #else
 #define systemd_logind_init()
 #define systemd_logind_fini()
@@ -40,6 +41,7 @@ void systemd_logind_vtenter(void);
 #define systemd_logind_release_fd(major, minor, fd) close(fd)
 #define systemd_logind_controls_session() 0
 #define systemd_logind_vtenter()
+#define systemd_logind_drop_master()
 #endif
 
 #endif

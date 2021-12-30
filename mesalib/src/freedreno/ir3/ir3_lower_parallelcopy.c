@@ -109,11 +109,18 @@ do_swap(struct ir3_compiler *compiler, struct ir3_instruction *instr,
                     .flags = entry->flags & ~IR3_REG_HALF,
                  });
 
+         /* If src and dst are within the same full register, then swapping src
+          * with tmp above will also move dst to tmp. Account for that here.
+          */
+         unsigned dst =
+            (entry->src.reg & ~1u) == (entry->dst & ~1u) ?
+            tmp + (entry->dst & 1u) : entry->dst;
+
          /* Do the original swap with src replaced with tmp */
          do_swap(compiler, instr,
                  &(struct copy_entry){
                     .src = {.reg = tmp + (entry->src.reg & 1)},
-                    .dst = entry->dst,
+                    .dst = dst,
                     .flags = entry->flags,
                  });
 
@@ -192,9 +199,16 @@ do_copy(struct ir3_compiler *compiler, struct ir3_instruction *instr,
                     .flags = entry->flags & ~IR3_REG_HALF,
                  });
 
+         /* Similar to in do_swap(), account for src being swapped with tmp if
+          * src and dst are in the same register.
+          */
+         struct copy_src src = entry->src;
+         if (!src.flags && (src.reg & ~1u) == (entry->dst & ~1u))
+            src.reg = tmp + (src.reg & 1u);
+
          do_copy(compiler, instr,
                  &(struct copy_entry){
-                    .src = entry->src,
+                    .src = src,
                     .dst = tmp + (entry->dst & 1),
                     .flags = entry->flags,
                  });
@@ -223,12 +237,12 @@ do_copy(struct ir3_compiler *compiler, struct ir3_instruction *instr,
             cov->cat1.src_type = TYPE_U32;
             ir3_instr_move_before(cov, instr);
          } else {
-            /* shr.b dst, src, h(16) */
+            /* shr.b dst, src, (16) */
             struct ir3_instruction *shr =
                ir3_instr_create(instr->block, OPC_SHR_B, 1, 2);
             ir3_dst_create(shr, dst_num, entry->flags);
             ir3_src_create(shr, src_num, entry->flags & ~IR3_REG_HALF);
-            ir3_src_create(shr, 0, entry->flags | IR3_REG_IMMED)->uim_val = 16;
+            ir3_src_create(shr, 0, IR3_REG_IMMED)->uim_val = 16;
             ir3_instr_move_before(shr, instr);
          }
          return;

@@ -22,6 +22,8 @@ xkb_symbols "basic" {
 
     key <BKSL>	{ [braceright, bracketright, dead_grave,   braceright ]	};
 
+    key <LSGT>	{ [      less,    greater,    backslash,          bar ] };
+
     include "level3(ralt_switch)"
 };
 

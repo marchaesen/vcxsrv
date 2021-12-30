@@ -31,6 +31,7 @@
 #include "ac_rgp.h"
 #include "ac_sqtt.h"
 #include "util/u_memory.h"
+#include "tgsi/tgsi_from_mesa.h"
 
 static void
 si_emit_spi_config_cntl(struct si_context* sctx,
@@ -320,7 +321,7 @@ si_emit_thread_trace_stop(struct si_context *sctx,
          radeon_emit(R_008D20_SQ_THREAD_TRACE_STATUS >> 2);  /* register */
          radeon_emit(0);
          radeon_emit(0); /* reference value */
-         radeon_emit(S_008D20_FINISH_DONE(1)); /* mask */
+         radeon_emit(~C_008D20_FINISH_DONE); /* mask */
          radeon_emit(4); /* poll interval */
 
          /* Disable the thread trace mode. */
@@ -333,7 +334,7 @@ si_emit_thread_trace_stop(struct si_context *sctx,
          radeon_emit(R_008D20_SQ_THREAD_TRACE_STATUS >> 2);  /* register */
          radeon_emit(0);
          radeon_emit(0); /* reference value */
-         radeon_emit(S_008D20_BUSY(1)); /* mask */
+         radeon_emit(~C_008D20_BUSY); /* mask */
          radeon_emit(4); /* poll interval */
       } else {
          /* Disable the thread trace mode. */
@@ -346,7 +347,7 @@ si_emit_thread_trace_stop(struct si_context *sctx,
          radeon_emit(R_030CE8_SQ_THREAD_TRACE_STATUS >> 2);  /* register */
          radeon_emit(0);
          radeon_emit(0); /* reference value */
-         radeon_emit(S_030CE8_BUSY(1)); /* mask */
+         radeon_emit(~C_030CE8_BUSY); /* mask */
          radeon_emit(4); /* poll interval */
       }
       radeon_end();
@@ -579,8 +580,8 @@ si_init_thread_trace(struct si_context *sctx)
       return false;
    }
 
-   /* Default buffer size set to 1MB per SE. */
-   sctx->thread_trace->buffer_size = debug_get_num_option("AMD_THREAD_TRACE_BUFFER_SIZE", 1024) * 1024;
+   /* Default buffer size set to 32MB per SE. */
+   sctx->thread_trace->buffer_size = debug_get_num_option("AMD_THREAD_TRACE_BUFFER_SIZE", 32 * 1024) * 1024;
    sctx->thread_trace->start_frame = 10;
 
    const char *trigger = getenv("AMD_THREAD_TRACE_TRIGGER");
@@ -709,7 +710,7 @@ si_handle_thread_trace(struct si_context *sctx, struct radeon_cmdbuf *rcs)
       /* Wait for SQTT to finish and read back the bo */
       if (sctx->ws->fence_wait(sctx->ws, sctx->last_sqtt_fence, PIPE_TIMEOUT_INFINITE) &&
           si_get_thread_trace(sctx, &thread_trace)) {
-         ac_dump_rgp_capture(&sctx->screen->info, &thread_trace);
+         ac_dump_rgp_capture(&sctx->screen->info, &thread_trace, NULL);
       } else {
          fprintf(stderr, "Failed to read the trace\n");
       }
@@ -957,7 +958,6 @@ si_sqtt_pipe_to_rgp_shader_stage(union si_shader_key* key, enum pipe_shader_type
    }
 }
 
-
 static bool
 si_sqtt_add_code_object(struct si_context* sctx,
                         uint64_t pipeline_hash,
@@ -1002,20 +1002,21 @@ si_sqtt_add_code_object(struct si_context* sctx,
       memcpy(code, shader->binary.uploaded_code, shader->binary.uploaded_code_size);
 
       uint64_t va = shader->bo->gpu_address;
-      record->shader_data[i].hash[0] = _mesa_hash_data(code, shader->binary.uploaded_code_size);
-      record->shader_data[i].hash[1] = record->shader_data[i].hash[0];
-      record->shader_data[i].code_size = shader->binary.uploaded_code_size;
-      record->shader_data[i].code = code;
-      record->shader_data[i].vgpr_count = shader->config.num_vgprs;
-      record->shader_data[i].sgpr_count = shader->config.num_sgprs;
-      record->shader_data[i].base_address = va & 0xffffffffffff;
-      record->shader_data[i].elf_symbol_offset = 0;
-      record->shader_data[i].hw_stage = hw_stage;
-      record->shader_data[i].is_combined = false;
-      record->shader_data[i].scratch_memory_size = shader->config.scratch_bytes_per_wave;
-      record->shader_data[i].wavefront_size = si_get_shader_wave_size(shader);
+      unsigned gl_shader_stage = tgsi_processor_to_shader_stage(i);
+      record->shader_data[gl_shader_stage].hash[0] = _mesa_hash_data(code, shader->binary.uploaded_code_size);
+      record->shader_data[gl_shader_stage].hash[1] = record->shader_data[gl_shader_stage].hash[0];
+      record->shader_data[gl_shader_stage].code_size = shader->binary.uploaded_code_size;
+      record->shader_data[gl_shader_stage].code = code;
+      record->shader_data[gl_shader_stage].vgpr_count = shader->config.num_vgprs;
+      record->shader_data[gl_shader_stage].sgpr_count = shader->config.num_sgprs;
+      record->shader_data[gl_shader_stage].base_address = va & 0xffffffffffff;
+      record->shader_data[gl_shader_stage].elf_symbol_offset = 0;
+      record->shader_data[gl_shader_stage].hw_stage = hw_stage;
+      record->shader_data[gl_shader_stage].is_combined = false;
+      record->shader_data[gl_shader_stage].scratch_memory_size = shader->config.scratch_bytes_per_wave;
+      record->shader_data[gl_shader_stage].wavefront_size = shader->wave_size;
 
-      record->shader_stages_mask |= (1 << i);
+      record->shader_stages_mask |= 1 << gl_shader_stage;
       record->num_shaders_combined++;
    }
 

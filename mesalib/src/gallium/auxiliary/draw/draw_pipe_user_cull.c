@@ -38,11 +38,6 @@ struct user_cull_stage {
    struct draw_stage stage;
 };
 
-static inline struct user_cull_stage *user_cull_stage( struct draw_stage *stage )
-{
-   return (struct user_cull_stage *)stage;
-}
-
 static inline boolean
 cull_distance_is_out(float dist)
 {

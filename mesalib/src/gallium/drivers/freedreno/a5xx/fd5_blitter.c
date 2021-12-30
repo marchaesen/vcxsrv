@@ -156,11 +156,11 @@ emit_setup(struct fd_ringbuffer *ring)
    OUT_PKT4(ring, REG_A5XX_RB_RENDER_CNTL, 1);
    OUT_RING(ring, 0x00000008);
 
-   OUT_PKT4(ring, REG_A5XX_UNKNOWN_2100, 1);
-   OUT_RING(ring, 0x86000000); /* UNKNOWN_2100 */
+   OUT_PKT4(ring, REG_A5XX_RB_2D_BLIT_CNTL, 1);
+   OUT_RING(ring, 0x86000000); /* RB_2D_BLIT_CNTL */
 
-   OUT_PKT4(ring, REG_A5XX_UNKNOWN_2180, 1);
-   OUT_RING(ring, 0x86000000); /* UNKNOWN_2180 */
+   OUT_PKT4(ring, REG_A5XX_GRAS_2D_BLIT_CNTL, 1);
+   OUT_RING(ring, 0x86000000); /* 2D_BLIT_CNTL */
 
    OUT_PKT4(ring, REG_A5XX_UNKNOWN_2184, 1);
    OUT_RING(ring, 0x00000009); /* UNKNOWN_2184 */
@@ -308,19 +308,15 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
    const struct pipe_box *sbox = &info->src.box;
    const struct pipe_box *dbox = &info->dst.box;
    struct fd_resource *src, *dst;
-   struct fdl_slice *sslice, *dslice;
    enum a5xx_color_fmt sfmt, dfmt;
    enum a5xx_tile_mode stile, dtile;
    enum a3xx_color_swap sswap, dswap;
-   unsigned ssize, dsize, spitch, dpitch;
+   unsigned spitch, dpitch;
    unsigned sx1, sy1, sx2, sy2;
    unsigned dx1, dy1, dx2, dy2;
 
    src = fd_resource(info->src.resource);
    dst = fd_resource(info->dst.resource);
-
-   sslice = fd_resource_slice(src, info->src.level);
-   dslice = fd_resource_slice(dst, info->dst.level);
 
    sfmt = fd5_pipe2color(info->src.format);
    dfmt = fd5_pipe2color(info->dst.format);
@@ -354,15 +350,8 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
    dx2 = dbox->x + dbox->width - 1;
    dy2 = dbox->y + dbox->height - 1;
 
-   if (info->src.resource->target == PIPE_TEXTURE_3D)
-      ssize = sslice->size0;
-   else
-      ssize = src->layout.layer_size;
-
-   if (info->dst.resource->target == PIPE_TEXTURE_3D)
-      dsize = dslice->size0;
-   else
-      dsize = dst->layout.layer_size;
+   uint32_t sarray_pitch = fd_resource_layer_stride(src, info->src.level);
+   uint32_t darray_pitch = fd_resource_layer_stride(dst, info->dst.level);
 
    for (unsigned i = 0; i < info->dst.box.depth; i++) {
       unsigned soff = fd_resource_offset(src, info->src.level, sbox->z + i);
@@ -383,7 +372,7 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
                         A5XX_RB_2D_SRC_INFO_COLOR_SWAP(sswap));
       OUT_RELOC(ring, src->bo, soff, 0, 0); /* RB_2D_SRC_LO/HI */
       OUT_RING(ring, A5XX_RB_2D_SRC_SIZE_PITCH(spitch) |
-                        A5XX_RB_2D_SRC_SIZE_ARRAY_PITCH(ssize));
+                        A5XX_RB_2D_SRC_SIZE_ARRAY_PITCH(sarray_pitch));
       OUT_RING(ring, 0x00000000);
       OUT_RING(ring, 0x00000000);
       OUT_RING(ring, 0x00000000);
@@ -404,7 +393,7 @@ emit_blit(struct fd_ringbuffer *ring, const struct pipe_blit_info *info)
                         A5XX_RB_2D_DST_INFO_COLOR_SWAP(dswap));
       OUT_RELOC(ring, dst->bo, doff, 0, 0); /* RB_2D_DST_LO/HI */
       OUT_RING(ring, A5XX_RB_2D_DST_SIZE_PITCH(dpitch) |
-                        A5XX_RB_2D_DST_SIZE_ARRAY_PITCH(dsize));
+                        A5XX_RB_2D_DST_SIZE_ARRAY_PITCH(darray_pitch));
       OUT_RING(ring, 0x00000000);
       OUT_RING(ring, 0x00000000);
       OUT_RING(ring, 0x00000000);

@@ -31,6 +31,7 @@
 #include "pipe/p_compiler.h"
 #include "pipe/p_format.h"
 #include "frontend/api.h"
+#include "dri_util.h"
 
 struct pipe_surface;
 struct st_framebuffer;

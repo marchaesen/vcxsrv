@@ -1,4 +1,4 @@
-lima-mali450-test:arm64:
+.lima-mali450-test:arm64:
   extends:
     - .lava-test:arm64
     - .lima-rules

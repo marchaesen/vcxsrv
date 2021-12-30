@@ -4,21 +4,21 @@ License and Copyright
 Disclaimer
 ----------
 
-Mesa is a 3-D graphics library with an API which is very similar to that
-of `OpenGL <https://www.opengl.org/>`_ [1]_.
-To the extent that Mesa utilizes the OpenGL command syntax or state
-machine, it is being used with authorization from `Silicon Graphics,
-Inc. <https://www.sgi.com/>`__\ (SGI). However, the author does not
-possess an OpenGL license from SGI, and makes no claim that Mesa is in
-any way a compatible replacement for OpenGL or associated with SGI.
-Those who want a licensed implementation of OpenGL should contact a
-licensed vendor.
+Mesa implements various APIs, including `OpenGL`_, `OpenGL ES`_,
+`Vulkan`_ and `OpenCL`_. Even though Mesa implements these APIs, the
+implementation isn't formally conformant on all combinations of drivers
+and hardware. `Khronos`_ maintains lists of conformant implementations
+for each of their APIs, as well as `trademark details`_.
 
 Please do not refer to the library as *MesaGL* (for legal reasons). It's
 just *Mesa* or *The Mesa 3-D graphics library*.
 
-.. [1] OpenGL is a trademark of `Silicon Graphics
-       Incorporated <https://www.sgi.com/>`__.
+.. _OpenGL: https://www.opengl.org/
+.. _OpenGL ES: https://www.khronos.org/opengles/
+.. _Vulkan: https://www.vulkan.org/
+.. _OpenCL: https://www.khronos.org/opencl/
+.. _Khronos: https://www.khronos.org/
+.. _trademark details: https://www.khronos.org/legal/trademarks/
 
 License / Copyright Information
 -------------------------------
@@ -72,8 +72,6 @@ Mesa Component Licenses
 | Component       | Location               | License                     |
 +=================+========================+=============================+
 | Main Mesa code  | src/mesa/              | MIT                         |
-+-----------------+------------------------+-----------------------------+
-| Device drivers  | src/mesa/drivers/*     | MIT, generally              |
 +-----------------+------------------------+-----------------------------+
 | Gallium code    | src/gallium/           | MIT                         |
 +-----------------+------------------------+-----------------------------+

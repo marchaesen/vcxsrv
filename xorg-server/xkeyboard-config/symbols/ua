@@ -349,6 +349,65 @@ xkb_symbols "homophonic" {
     key <AB10> { [ slash,             question           ] };
 };
 
+// Crimean Tatar (Crimean Turkish) layouts.
+// First released (by Ubuntu): 2009-02-24.
+// These layouts are not yet standard.  In particular, the mapping of
+// the letter 'x' might change in the future.  This letter is not used
+// in the current official alphabet, but is included in the layouts for
+// foreign words and for shortcuts.
+// Reşat SABIQ <tilde.birlik @ gmail . com>, 2009
+// Özgür Qarahan <qarahan @ gmail . com>, 2009
+
+// Crimean Tatar (Crimean Turkish) Q layout
+partial
+xkb_symbols "crh" {
+
+    include "tr(basic)"
+
+    name[Group1]="Crimean Tatar (Turkish Q)";
+
+    key <AE11>  { [         x,          X,        asterisk,        question ] };
+
+    key <AC04>  { [         f,          F,          iacute,          Iacute ] };
+    key <AC07>  { [         j,          J,          ibreve,          Ibreve ] };
+    key <TLDE>  { [  quotedbl,  backslash,            less,          degree ] };
+
+    key <AB02>  { [    ntilde,     Ntilde,  guillemotright,           greater ] };
+};
+
+// Crimean Tatar (Crimean Turkish) F layout
+partial
+xkb_symbols "crh_f" {
+
+    include "tr(f)"
+
+    name[Group1]="Crimean Tatar (Turkish F)";
+
+    key <AE11>  { [         x,          X,           slash,        question ] };
+
+    key <AD04>  { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC",
+                  [  idotless,          I,          iacute,          Iacute ] };
+
+    key <AC07>  { [         k,          K,          ibreve,          Ibreve ] };
+    key <TLDE>  { [      plus,   asterisk,       backslash,       plusminus ] };
+
+    key <BKSL>  { [    ntilde,     Ntilde,           grave,      dead_grave ] };
+};
+
+// Crimean Tatar (Crimean Turkish) Alt-Q layout
+partial
+xkb_symbols "crh_alt" {
+
+    include "tr(alt)"
+
+    name[Group1]="Crimean Tatar (Turkish Alt-Q)";
+
+    key <AC04>  { [         f,          F,          iacute,          Iacute ] };
+    key <AC07>  { [         j,          J,          ibreve,          Ibreve ] };
+
+    key <AB06>  { [         n,          N,          ntilde,          Ntilde ] };
+};
+
 // EXTRAS:
 
 partial alphanumeric_keys

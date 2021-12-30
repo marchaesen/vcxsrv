@@ -53,6 +53,9 @@ ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
 
    memcpy(fd_bo_map(v->bo), kernel->bin, sz);
 
+   /* Always include shaders in kernel crash dumps. */
+   fd_bo_mark_for_dump(v->bo);
+
    return kernel;
 }
 

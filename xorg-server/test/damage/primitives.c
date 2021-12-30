@@ -31,6 +31,9 @@
  * them.
  */
 
+/* Test relies on assert() */
+#undef NDEBUG
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>

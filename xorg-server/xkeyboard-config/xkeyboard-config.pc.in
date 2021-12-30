@@ -1,8 +1,0 @@
-prefix=@prefix@
-datarootdir=@datarootdir@
-datadir=@datadir@
-xkb_base=@xkb_base@
-
-Name: XKeyboardConfig
-Description: X Keyboard configuration data
-Version: @VERSION@

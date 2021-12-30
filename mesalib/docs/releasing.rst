@@ -175,22 +175,27 @@ to stabilization and bugfixing.
    testing is done and there are little to-no issues. Ideally all of those
    should be tackled already.
 
-Check if the version number is going to remain as, alternatively
-``git mv docs/relnotes/{current,new}.rst`` as appropriate.
-
 To setup the branchpoint:
 
 .. code-block:: console
 
-   git checkout main # make sure we're in main first
+   git fetch origin # make sure we have the latest commits
+   git checkout main # make sure we're on main
+   git reset origin # make sure we're at the latest commit
+
    git tag -s X.Y-branchpoint -m "Mesa X.Y branchpoint"
-   git checkout -b X.Y
-   git checkout main
-   $EDITOR VERSION # bump the version number
-   git commit -as
-   truncate docs/relnotes/new_features.txt
-   git commit -a
-   git push origin X.Y-branchpoint X.Y
+
+   # Make sure main can carry on at the new version
+   $EDITOR VERSION # bump the version number, keeping in mind the wrap around at the end of the year
+   git commit -asm 'VERSION: bump to X.(Y+1)'
+   truncate -s0 docs/relnotes/new_features.txt
+   git commit -asm 'docs: reset new_features.txt'
+   git push origin main
+
+   # Create the tag and branches on the server
+   git push origin X.Y-branchpoint
+   git push origin X.Y-branchpoint:refs/heads/X.Y
+   git push origin X.Y-branchpoint:refs/heads/staging/X.Y
 
 Now go to
 `GitLab <https://gitlab.freedesktop.org/mesa/mesa/-/milestones>`__ and
@@ -293,6 +298,15 @@ Add the sha256sums to the release notes
 
 Edit ``docs/relnotes/X.Y.Z.rst`` to add the ``sha256sum`` as available in the
 ``mesa-X.Y.Z.announce`` template. Commit this change.
+
+Don't forget to push the commits to both the ``staging/X.Y`` branch and
+the ``X.Y`` branch:
+
+.. code-block:: console
+
+   git push origin HEAD:staging/X.Y
+   git push origin HEAD:X.Y
+
 
 Back on mesa main, add the new release notes into the tree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

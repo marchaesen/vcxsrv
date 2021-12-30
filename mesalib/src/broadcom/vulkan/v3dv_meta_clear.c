@@ -25,7 +25,6 @@
 #include "v3dv_meta_common.h"
 
 #include "compiler/nir/nir_builder.h"
-#include "vk_format_info.h"
 #include "util/u_pack_color.h"
 
 static void
@@ -712,7 +711,8 @@ create_color_clear_render_pass(struct v3dv_device *device,
                                uint32_t samples,
                                VkRenderPass *pass)
 {
-   VkAttachmentDescription att = {
+   VkAttachmentDescription2 att = {
+      .sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
       .format = format,
       .samples = samples,
       .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -721,12 +721,14 @@ create_color_clear_render_pass(struct v3dv_device *device,
       .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
    };
 
-   VkAttachmentReference att_ref = {
+   VkAttachmentReference2 att_ref = {
+      .sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
       .attachment = rt_idx,
       .layout = VK_IMAGE_LAYOUT_GENERAL,
    };
 
-   VkSubpassDescription subpass = {
+   VkSubpassDescription2 subpass = {
+      .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
       .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
       .inputAttachmentCount = 0,
       .colorAttachmentCount = 1,
@@ -737,8 +739,8 @@ create_color_clear_render_pass(struct v3dv_device *device,
       .pPreserveAttachments = NULL,
    };
 
-   VkRenderPassCreateInfo info = {
-      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+   VkRenderPassCreateInfo2 info = {
+      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
       .attachmentCount = 1,
       .pAttachments = &att,
       .subpassCount = 1,
@@ -747,8 +749,8 @@ create_color_clear_render_pass(struct v3dv_device *device,
       .pDependencies = NULL,
    };
 
-   return v3dv_CreateRenderPass(v3dv_device_to_handle(device),
-                                &info, &device->vk.alloc, pass);
+   return v3dv_CreateRenderPass2(v3dv_device_to_handle(device),
+                                 &info, &device->vk.alloc, pass);
 }
 
 static inline uint64_t

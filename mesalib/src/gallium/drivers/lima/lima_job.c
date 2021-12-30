@@ -395,12 +395,12 @@ lima_pack_reload_plbu_cmd(struct lima_job *job, struct pipe_surface *psurf)
    lima_texture_desc_set_res(ctx, td, psurf->texture, level, level, first_layer);
    td->format = lima_format_get_texel_reload(psurf->format);
    td->unnorm_coords = 1;
-   td->texture_type = LIMA_TEXTURE_TYPE_2D;
+   td->sampler_dim = LIMA_SAMPLER_DIM_2D;
    td->min_img_filter_nearest = 1;
    td->mag_img_filter_nearest = 1;
-   td->wrap_s_clamp_to_edge = 1;
-   td->wrap_t_clamp_to_edge = 1;
-   td->unknown_2_2 = 0x1;
+   td->wrap_s = LIMA_TEX_WRAP_CLAMP_TO_EDGE;
+   td->wrap_t = LIMA_TEX_WRAP_CLAMP_TO_EDGE;
+   td->wrap_r = LIMA_TEX_WRAP_CLAMP_TO_EDGE;
 
    uint32_t *ta = cpu + lima_reload_tex_array_offset;
    ta[0] = va + lima_reload_tex_desc_offset;

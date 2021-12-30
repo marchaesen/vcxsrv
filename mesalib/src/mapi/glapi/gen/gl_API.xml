@@ -1110,7 +1110,7 @@
     <type name="DEBUGPROCARB" size="4" pointer="true"/>
     <type name="DEBUGPROC" size="4" pointer="true"/>
 
-    <function name="NewList" deprecated="3.1"
+    <function name="NewList" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_NewList(ctx, list, mode);">
         <param name="list" type="GLuint"/>
         <param name="mode" type="GLenum"/>
@@ -1122,12 +1122,12 @@
         <glx sop="102"/>
     </function>
 
-    <function name="CallList" deprecated="3.1" marshal="custom">
+    <function name="CallList" deprecated="3.1" marshal="custom" exec="vtxfmt">
         <param name="list" type="GLuint"/>
         <glx rop="1"/>
     </function>
 
-    <function name="CallLists" deprecated="3.1"
+    <function name="CallLists" deprecated="3.1" exec="vtxfmt"
               marshal_call_after="_mesa_glthread_CallLists(ctx, n, type, lists);">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="type" type="GLenum"/>
@@ -1149,18 +1149,18 @@
         <glx sop="104"/>
     </function>
 
-    <function name="ListBase" deprecated="3.1"
+    <function name="ListBase" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_ListBase(ctx, base);">
         <param name="base" type="GLuint"/>
         <glx rop="3"/>
     </function>
 
-    <function name="Begin" deprecated="3.1" exec="dynamic">
+    <function name="Begin" deprecated="3.1" exec="vtxfmt">
         <param name="mode" type="GLenum"/>
         <glx rop="4"/>
     </function>
 
-    <function name="Bitmap" deprecated="3.1"
+    <function name="Bitmap" deprecated="3.1" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="width" type="GLsizei"/>
         <param name="height" type="GLsizei"/>
@@ -1172,157 +1172,157 @@
         <glx rop="5" large="true"/>
     </function>
 
-    <function name="Color3b" vectorequiv="Color3bv" deprecated="3.1" exec="dynamic">
+    <function name="Color3b" vectorequiv="Color3bv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLbyte"/>
         <param name="green" type="GLbyte"/>
         <param name="blue" type="GLbyte"/>
     </function>
 
-    <function name="Color3bv" deprecated="3.1" exec="dynamic">
+    <function name="Color3bv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLbyte *" count="3"/>
         <glx rop="6"/>
     </function>
 
-    <function name="Color3d" vectorequiv="Color3dv" deprecated="3.1" exec="dynamic">
+    <function name="Color3d" vectorequiv="Color3dv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLdouble"/>
         <param name="green" type="GLdouble"/>
         <param name="blue" type="GLdouble"/>
     </function>
 
-    <function name="Color3dv" deprecated="3.1"  exec="dynamic">
+    <function name="Color3dv" deprecated="3.1"  exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="7"/>
     </function>
 
     <function name="Color3f" vectorequiv="Color3fv"
-	      deprecated="3.1" exec="dynamic">
+	      deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLfloat"/>
         <param name="green" type="GLfloat"/>
         <param name="blue" type="GLfloat"/>
     </function>
 
-    <function name="Color3fv" deprecated="3.1" exec="dynamic">
+    <function name="Color3fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="8"/>
     </function>
 
-    <function name="Color3i" vectorequiv="Color3iv" deprecated="3.1" exec="dynamic">
+    <function name="Color3i" vectorequiv="Color3iv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLint"/>
         <param name="green" type="GLint"/>
         <param name="blue" type="GLint"/>
     </function>
 
-    <function name="Color3iv" deprecated="3.1" exec="dynamic">
+    <function name="Color3iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="9"/>
     </function>
 
-    <function name="Color3s" vectorequiv="Color3sv" deprecated="3.1" exec="dynamic">
+    <function name="Color3s" vectorequiv="Color3sv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLshort"/>
         <param name="green" type="GLshort"/>
         <param name="blue" type="GLshort"/>
     </function>
 
-    <function name="Color3sv" deprecated="3.1" exec="dynamic">
+    <function name="Color3sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="10"/>
     </function>
 
-    <function name="Color3ub" vectorequiv="Color3ubv" deprecated="3.1" exec="dynamic">
+    <function name="Color3ub" vectorequiv="Color3ubv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLubyte"/>
         <param name="green" type="GLubyte"/>
         <param name="blue" type="GLubyte"/>
     </function>
 
-    <function name="Color3ubv" deprecated="3.1" exec="dynamic">
+    <function name="Color3ubv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLubyte *" count="3"/>
         <glx rop="11"/>
     </function>
 
-    <function name="Color3ui" vectorequiv="Color3uiv" deprecated="3.1" exec="dynamic">
+    <function name="Color3ui" vectorequiv="Color3uiv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLuint"/>
         <param name="green" type="GLuint"/>
         <param name="blue" type="GLuint"/>
     </function>
 
-    <function name="Color3uiv" deprecated="3.1" exec="dynamic">
+    <function name="Color3uiv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLuint *" count="3"/>
         <glx rop="12"/>
     </function>
 
-    <function name="Color3us" vectorequiv="Color3usv" deprecated="3.1" exec="dynamic">
+    <function name="Color3us" vectorequiv="Color3usv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLushort"/>
         <param name="green" type="GLushort"/>
         <param name="blue" type="GLushort"/>
     </function>
 
-    <function name="Color3usv" deprecated="3.1" exec="dynamic">
+    <function name="Color3usv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLushort *" count="3"/>
         <glx rop="13"/>
     </function>
 
-    <function name="Color4b" vectorequiv="Color4bv" deprecated="3.1" exec="dynamic">
+    <function name="Color4b" vectorequiv="Color4bv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLbyte"/>
         <param name="green" type="GLbyte"/>
         <param name="blue" type="GLbyte"/>
         <param name="alpha" type="GLbyte"/>
     </function>
 
-    <function name="Color4bv" deprecated="3.1" exec="dynamic">
+    <function name="Color4bv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLbyte *" count="4"/>
         <glx rop="14"/>
     </function>
 
-    <function name="Color4d" vectorequiv="Color4dv" deprecated="3.1" exec="dynamic">
+    <function name="Color4d" vectorequiv="Color4dv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLdouble"/>
         <param name="green" type="GLdouble"/>
         <param name="blue" type="GLdouble"/>
         <param name="alpha" type="GLdouble"/>
     </function>
 
-    <function name="Color4dv" deprecated="3.1" exec="dynamic">
+    <function name="Color4dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="15"/>
     </function>
 
     <function name="Color4f" vectorequiv="Color4fv" es1="1.0"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLfloat"/>
         <param name="green" type="GLfloat"/>
         <param name="blue" type="GLfloat"/>
         <param name="alpha" type="GLfloat"/>
     </function>
 
-    <function name="Color4fv" deprecated="3.1" exec="dynamic">
+    <function name="Color4fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="16"/>
     </function>
 
-    <function name="Color4i" vectorequiv="Color4iv" deprecated="3.1" exec="dynamic">
+    <function name="Color4i" vectorequiv="Color4iv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLint"/>
         <param name="green" type="GLint"/>
         <param name="blue" type="GLint"/>
         <param name="alpha" type="GLint"/>
     </function>
 
-    <function name="Color4iv" deprecated="3.1" exec="dynamic">
+    <function name="Color4iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="17"/>
     </function>
 
-    <function name="Color4s" vectorequiv="Color4sv" deprecated="3.1" exec="dynamic">
+    <function name="Color4s" vectorequiv="Color4sv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLshort"/>
         <param name="green" type="GLshort"/>
         <param name="blue" type="GLshort"/>
         <param name="alpha" type="GLshort"/>
     </function>
 
-    <function name="Color4sv" deprecated="3.1" exec="dynamic">
+    <function name="Color4sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="18"/>
     </function>
 
-    <function name="Color4ub" vectorequiv="Color4ubv" es1="1.1" exec="dynamic"
+    <function name="Color4ub" vectorequiv="Color4ubv" es1="1.1" exec="vtxfmt"
               deprecated="3.1">
         <param name="red" type="GLubyte"/>
         <param name="green" type="GLubyte"/>
@@ -1330,270 +1330,270 @@
         <param name="alpha" type="GLubyte"/>
     </function>
 
-    <function name="Color4ubv" deprecated="3.1" exec="dynamic">
+    <function name="Color4ubv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLubyte *" count="4"/>
         <glx rop="19"/>
     </function>
 
-    <function name="Color4ui" vectorequiv="Color4uiv" deprecated="3.1" exec="dynamic">
+    <function name="Color4ui" vectorequiv="Color4uiv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLuint"/>
         <param name="green" type="GLuint"/>
         <param name="blue" type="GLuint"/>
         <param name="alpha" type="GLuint"/>
     </function>
 
-    <function name="Color4uiv" deprecated="3.1" exec="dynamic">
+    <function name="Color4uiv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLuint *" count="4"/>
         <glx rop="20"/>
     </function>
 
-    <function name="Color4us" vectorequiv="Color4usv" deprecated="3.1" exec="dynamic">
+    <function name="Color4us" vectorequiv="Color4usv" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLushort"/>
         <param name="green" type="GLushort"/>
         <param name="blue" type="GLushort"/>
         <param name="alpha" type="GLushort"/>
     </function>
 
-    <function name="Color4usv" deprecated="3.1" exec="dynamic">
+    <function name="Color4usv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLushort *" count="4"/>
         <glx rop="21"/>
     </function>
 
     <function name="EdgeFlag" vectorequiv="EdgeFlagv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="flag" type="GLboolean"/>
     </function>
 
-    <function name="EdgeFlagv" deprecated="3.1" exec="dynamic">
+    <function name="EdgeFlagv" deprecated="3.1" exec="vtxfmt">
         <param name="flag" type="const GLboolean *" count="1"/>
         <glx rop="22"/>
     </function>
 
-    <function name="End" deprecated="3.1" exec="dynamic">
+    <function name="End" deprecated="3.1" exec="vtxfmt">
         <glx rop="23"/>
     </function>
 
-    <function name="Indexd" vectorequiv="Indexdv" deprecated="3.1" exec="dynamic">
+    <function name="Indexd" vectorequiv="Indexdv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="GLdouble"/>
     </function>
 
-    <function name="Indexdv" deprecated="3.1" exec="dynamic">
+    <function name="Indexdv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="const GLdouble *" count="1"/>
         <glx rop="24"/>
     </function>
 
     <function name="Indexf" vectorequiv="Indexfv" deprecated="3.1"
-              exec="dynamic">
+              exec="vtxfmt">
         <param name="c" type="GLfloat"/>
     </function>
 
-    <function name="Indexfv" deprecated="3.1" exec="dynamic">
+    <function name="Indexfv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="const GLfloat *" count="1"/>
         <glx rop="25"/>
     </function>
 
-    <function name="Indexi" vectorequiv="Indexiv" deprecated="3.1" exec="dynamic">
+    <function name="Indexi" vectorequiv="Indexiv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="GLint"/>
     </function>
 
-    <function name="Indexiv" deprecated="3.1" exec="dynamic">
+    <function name="Indexiv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="const GLint *" count="1"/>
         <glx rop="26"/>
     </function>
 
-    <function name="Indexs" vectorequiv="Indexsv" deprecated="3.1" exec="dynamic">
+    <function name="Indexs" vectorequiv="Indexsv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="GLshort"/>
     </function>
 
-    <function name="Indexsv" deprecated="3.1" exec="dynamic">
+    <function name="Indexsv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="const GLshort *" count="1"/>
         <glx rop="27"/>
     </function>
 
-    <function name="Normal3b" vectorequiv="Normal3bv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3b" vectorequiv="Normal3bv" deprecated="3.1" exec="vtxfmt">
         <param name="nx" type="GLbyte"/>
         <param name="ny" type="GLbyte"/>
         <param name="nz" type="GLbyte"/>
     </function>
 
-    <function name="Normal3bv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3bv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLbyte *" count="3"/>
         <glx rop="28"/>
     </function>
 
-    <function name="Normal3d" vectorequiv="Normal3dv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3d" vectorequiv="Normal3dv" deprecated="3.1" exec="vtxfmt">
         <param name="nx" type="GLdouble"/>
         <param name="ny" type="GLdouble"/>
         <param name="nz" type="GLdouble"/>
     </function>
 
-    <function name="Normal3dv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="29"/>
     </function>
 
     <function name="Normal3f" vectorequiv="Normal3fv" es1="1.0"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="nx" type="GLfloat"/>
         <param name="ny" type="GLfloat"/>
         <param name="nz" type="GLfloat"/>
     </function>
 
-    <function name="Normal3fv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="30"/>
     </function>
 
-    <function name="Normal3i" vectorequiv="Normal3iv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3i" vectorequiv="Normal3iv" deprecated="3.1" exec="vtxfmt">
         <param name="nx" type="GLint"/>
         <param name="ny" type="GLint"/>
         <param name="nz" type="GLint"/>
     </function>
 
-    <function name="Normal3iv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="31"/>
     </function>
 
-    <function name="Normal3s" vectorequiv="Normal3sv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3s" vectorequiv="Normal3sv" deprecated="3.1" exec="vtxfmt">
         <param name="nx" type="GLshort"/>
         <param name="ny" type="GLshort"/>
         <param name="nz" type="GLshort"/>
     </function>
 
-    <function name="Normal3sv" deprecated="3.1" exec="dynamic">
+    <function name="Normal3sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="32"/>
     </function>
 
-    <function name="RasterPos2d" vectorequiv="RasterPos2dv" deprecated="3.1">
+    <function name="RasterPos2d" vectorequiv="RasterPos2dv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="RasterPos2dv" deprecated="3.1">
+    <function name="RasterPos2dv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLdouble *" count="2"/>
         <glx rop="33"/>
     </function>
 
-    <function name="RasterPos2f" vectorequiv="RasterPos2fv" deprecated="3.1">
+    <function name="RasterPos2f" vectorequiv="RasterPos2fv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
     </function>
 
-    <function name="RasterPos2fv" deprecated="3.1">
+    <function name="RasterPos2fv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLfloat *" count="2"/>
         <glx rop="34"/>
     </function>
 
-    <function name="RasterPos2i" vectorequiv="RasterPos2iv" deprecated="3.1">
+    <function name="RasterPos2i" vectorequiv="RasterPos2iv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
     </function>
 
-    <function name="RasterPos2iv" deprecated="3.1">
+    <function name="RasterPos2iv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLint *" count="2"/>
         <glx rop="35"/>
     </function>
 
-    <function name="RasterPos2s" vectorequiv="RasterPos2sv" deprecated="3.1">
+    <function name="RasterPos2s" vectorequiv="RasterPos2sv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
     </function>
 
-    <function name="RasterPos2sv" deprecated="3.1">
+    <function name="RasterPos2sv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLshort *" count="2"/>
         <glx rop="36"/>
     </function>
 
-    <function name="RasterPos3d" vectorequiv="RasterPos3dv" deprecated="3.1">
+    <function name="RasterPos3d" vectorequiv="RasterPos3dv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="RasterPos3dv" deprecated="3.1">
+    <function name="RasterPos3dv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="37"/>
     </function>
 
-    <function name="RasterPos3f" vectorequiv="RasterPos3fv" deprecated="3.1">
+    <function name="RasterPos3f" vectorequiv="RasterPos3fv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
     </function>
 
-    <function name="RasterPos3fv" deprecated="3.1">
+    <function name="RasterPos3fv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="38"/>
     </function>
 
-    <function name="RasterPos3i" vectorequiv="RasterPos3iv" deprecated="3.1">
+    <function name="RasterPos3i" vectorequiv="RasterPos3iv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
     </function>
 
-    <function name="RasterPos3iv" deprecated="3.1">
+    <function name="RasterPos3iv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="39"/>
     </function>
 
-    <function name="RasterPos3s" vectorequiv="RasterPos3sv" deprecated="3.1">
+    <function name="RasterPos3s" vectorequiv="RasterPos3sv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
     </function>
 
-    <function name="RasterPos3sv" deprecated="3.1">
+    <function name="RasterPos3sv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="40"/>
     </function>
 
-    <function name="RasterPos4d" vectorequiv="RasterPos4dv" deprecated="3.1">
+    <function name="RasterPos4d" vectorequiv="RasterPos4dv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="RasterPos4dv" deprecated="3.1">
+    <function name="RasterPos4dv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="41"/>
     </function>
 
-    <function name="RasterPos4f" vectorequiv="RasterPos4fv" deprecated="3.1">
+    <function name="RasterPos4f" vectorequiv="RasterPos4fv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
         <param name="w" type="GLfloat"/>
     </function>
 
-    <function name="RasterPos4fv" deprecated="3.1">
+    <function name="RasterPos4fv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="42"/>
     </function>
 
-    <function name="RasterPos4i" vectorequiv="RasterPos4iv" deprecated="3.1">
+    <function name="RasterPos4i" vectorequiv="RasterPos4iv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
         <param name="w" type="GLint"/>
     </function>
 
-    <function name="RasterPos4iv" deprecated="3.1">
+    <function name="RasterPos4iv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="43"/>
     </function>
 
-    <function name="RasterPos4s" vectorequiv="RasterPos4sv" deprecated="3.1">
+    <function name="RasterPos4s" vectorequiv="RasterPos4sv" deprecated="3.1" exec="dlist">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
         <param name="w" type="GLshort"/>
     </function>
 
-    <function name="RasterPos4sv" deprecated="3.1">
+    <function name="RasterPos4sv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="44"/>
     </function>
@@ -1605,420 +1605,420 @@
         <param name="y2" type="GLdouble"/>
     </function>
 
-    <function name="Rectdv" deprecated="3.1">
+    <function name="Rectdv" deprecated="3.1" exec="dlist">
         <param name="v1" type="const GLdouble *" count="2"/>
         <param name="v2" type="const GLdouble *" count="2"/>
         <glx rop="45"/>
     </function>
 
-    <function name="Rectf" vectorequiv="Rectfv" deprecated="3.1">
+    <function name="Rectf" vectorequiv="Rectfv" deprecated="3.1" exec="dlist">
         <param name="x1" type="GLfloat"/>
         <param name="y1" type="GLfloat"/>
         <param name="x2" type="GLfloat"/>
         <param name="y2" type="GLfloat"/>
     </function>
 
-    <function name="Rectfv" deprecated="3.1">
+    <function name="Rectfv" deprecated="3.1" exec="dlist">
         <param name="v1" type="const GLfloat *" count="2"/>
         <param name="v2" type="const GLfloat *" count="2"/>
         <glx rop="46"/>
     </function>
 
-    <function name="Recti" vectorequiv="Rectiv" deprecated="3.1">
+    <function name="Recti" vectorequiv="Rectiv" deprecated="3.1" exec="dlist">
         <param name="x1" type="GLint"/>
         <param name="y1" type="GLint"/>
         <param name="x2" type="GLint"/>
         <param name="y2" type="GLint"/>
     </function>
 
-    <function name="Rectiv" deprecated="3.1">
+    <function name="Rectiv" deprecated="3.1" exec="dlist">
         <param name="v1" type="const GLint *" count="2"/>
         <param name="v2" type="const GLint *" count="2"/>
         <glx rop="47"/>
     </function>
 
-    <function name="Rects" vectorequiv="Rectsv" deprecated="3.1">
+    <function name="Rects" vectorequiv="Rectsv" deprecated="3.1" exec="dlist">
         <param name="x1" type="GLshort"/>
         <param name="y1" type="GLshort"/>
         <param name="x2" type="GLshort"/>
         <param name="y2" type="GLshort"/>
     </function>
 
-    <function name="Rectsv" deprecated="3.1">
+    <function name="Rectsv" deprecated="3.1" exec="dlist">
         <param name="v1" type="const GLshort *" count="2"/>
         <param name="v2" type="const GLshort *" count="2"/>
         <glx rop="48"/>
     </function>
 
-    <function name="TexCoord1d" vectorequiv="TexCoord1dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1d" vectorequiv="TexCoord1dv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLdouble"/>
     </function>
 
-    <function name="TexCoord1dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="1"/>
         <glx rop="49"/>
     </function>
 
     <function name="TexCoord1f" vectorequiv="TexCoord1fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLfloat"/>
     </function>
 
-    <function name="TexCoord1fv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="1"/>
         <glx rop="50"/>
     </function>
 
-    <function name="TexCoord1i" vectorequiv="TexCoord1iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1i" vectorequiv="TexCoord1iv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLint"/>
     </function>
 
-    <function name="TexCoord1iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="1"/>
         <glx rop="51"/>
     </function>
 
-    <function name="TexCoord1s" vectorequiv="TexCoord1sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1s" vectorequiv="TexCoord1sv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLshort"/>
     </function>
 
-    <function name="TexCoord1sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord1sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="1"/>
         <glx rop="52"/>
     </function>
 
-    <function name="TexCoord2d" vectorequiv="TexCoord2dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2d" vectorequiv="TexCoord2dv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLdouble"/>
         <param name="t" type="GLdouble"/>
     </function>
 
-    <function name="TexCoord2dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="2"/>
         <glx rop="53"/>
     </function>
 
     <function name="TexCoord2f" vectorequiv="TexCoord2fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLfloat"/>
         <param name="t" type="GLfloat"/>
     </function>
 
-    <function name="TexCoord2fv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="2"/>
         <glx rop="54"/>
     </function>
 
-    <function name="TexCoord2i" vectorequiv="TexCoord2iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2i" vectorequiv="TexCoord2iv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLint"/>
         <param name="t" type="GLint"/>
     </function>
 
-    <function name="TexCoord2iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="2"/>
         <glx rop="55"/>
     </function>
 
-    <function name="TexCoord2s" vectorequiv="TexCoord2sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2s" vectorequiv="TexCoord2sv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLshort"/>
         <param name="t" type="GLshort"/>
     </function>
 
-    <function name="TexCoord2sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord2sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="2"/>
         <glx rop="56"/>
     </function>
 
-    <function name="TexCoord3d" vectorequiv="TexCoord3dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3d" vectorequiv="TexCoord3dv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLdouble"/>
         <param name="t" type="GLdouble"/>
         <param name="r" type="GLdouble"/>
     </function>
 
-    <function name="TexCoord3dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="57"/>
     </function>
 
     <function name="TexCoord3f" vectorequiv="TexCoord3fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLfloat"/>
         <param name="t" type="GLfloat"/>
         <param name="r" type="GLfloat"/>
     </function>
 
-    <function name="TexCoord3fv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="58"/>
     </function>
 
-    <function name="TexCoord3i" vectorequiv="TexCoord3iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3i" vectorequiv="TexCoord3iv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLint"/>
         <param name="t" type="GLint"/>
         <param name="r" type="GLint"/>
     </function>
 
-    <function name="TexCoord3iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="59"/>
     </function>
 
-    <function name="TexCoord3s" vectorequiv="TexCoord3sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3s" vectorequiv="TexCoord3sv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLshort"/>
         <param name="t" type="GLshort"/>
         <param name="r" type="GLshort"/>
     </function>
 
-    <function name="TexCoord3sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord3sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="60"/>
     </function>
 
-    <function name="TexCoord4d" vectorequiv="TexCoord4dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4d" vectorequiv="TexCoord4dv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLdouble"/>
         <param name="t" type="GLdouble"/>
         <param name="r" type="GLdouble"/>
         <param name="q" type="GLdouble"/>
     </function>
 
-    <function name="TexCoord4dv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="61"/>
     </function>
 
     <function name="TexCoord4f" vectorequiv="TexCoord4fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLfloat"/>
         <param name="t" type="GLfloat"/>
         <param name="r" type="GLfloat"/>
         <param name="q" type="GLfloat"/>
     </function>
 
-    <function name="TexCoord4fv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="62"/>
     </function>
 
-    <function name="TexCoord4i" vectorequiv="TexCoord4iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4i" vectorequiv="TexCoord4iv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLint"/>
         <param name="t" type="GLint"/>
         <param name="r" type="GLint"/>
         <param name="q" type="GLint"/>
     </function>
 
-    <function name="TexCoord4iv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="63"/>
     </function>
 
-    <function name="TexCoord4s" vectorequiv="TexCoord4sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4s" vectorequiv="TexCoord4sv" deprecated="3.1" exec="vtxfmt">
         <param name="s" type="GLshort"/>
         <param name="t" type="GLshort"/>
         <param name="r" type="GLshort"/>
         <param name="q" type="GLshort"/>
     </function>
 
-    <function name="TexCoord4sv" deprecated="3.1" exec="dynamic">
+    <function name="TexCoord4sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="64"/>
     </function>
 
-    <function name="Vertex2d" vectorequiv="Vertex2dv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2d" vectorequiv="Vertex2dv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="Vertex2dv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="2"/>
         <glx rop="65"/>
     </function>
 
     <function name="Vertex2f" vectorequiv="Vertex2fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
     </function>
 
-    <function name="Vertex2fv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="2"/>
         <glx rop="66"/>
     </function>
 
-    <function name="Vertex2i" vectorequiv="Vertex2iv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2i" vectorequiv="Vertex2iv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
     </function>
 
-    <function name="Vertex2iv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="2"/>
         <glx rop="67"/>
     </function>
 
-    <function name="Vertex2s" vectorequiv="Vertex2sv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2s" vectorequiv="Vertex2sv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
     </function>
 
-    <function name="Vertex2sv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex2sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="2"/>
         <glx rop="68"/>
     </function>
 
-    <function name="Vertex3d" vectorequiv="Vertex3dv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3d" vectorequiv="Vertex3dv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="Vertex3dv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="69"/>
     </function>
 
     <function name="Vertex3f" vectorequiv="Vertex3fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
     </function>
 
-    <function name="Vertex3fv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="70"/>
     </function>
 
-    <function name="Vertex3i" vectorequiv="Vertex3iv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3i" vectorequiv="Vertex3iv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
     </function>
 
-    <function name="Vertex3iv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="71"/>
     </function>
 
-    <function name="Vertex3s" vectorequiv="Vertex3sv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3s" vectorequiv="Vertex3sv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
     </function>
 
-    <function name="Vertex3sv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex3sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="72"/>
     </function>
 
-    <function name="Vertex4d" vectorequiv="Vertex4dv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4d" vectorequiv="Vertex4dv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="Vertex4dv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="73"/>
     </function>
 
     <function name="Vertex4f" vectorequiv="Vertex4fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
         <param name="w" type="GLfloat"/>
     </function>
 
-    <function name="Vertex4fv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4fv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="74"/>
     </function>
 
-    <function name="Vertex4i" vectorequiv="Vertex4iv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4i" vectorequiv="Vertex4iv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
         <param name="w" type="GLint"/>
     </function>
 
-    <function name="Vertex4iv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="75"/>
     </function>
 
-    <function name="Vertex4s" vectorequiv="Vertex4sv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4s" vectorequiv="Vertex4sv" deprecated="3.1" exec="vtxfmt">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
         <param name="w" type="GLshort"/>
     </function>
 
-    <function name="Vertex4sv" deprecated="3.1" exec="dynamic">
+    <function name="Vertex4sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="76"/>
     </function>
 
-    <function name="ClipPlane" deprecated="3.1">
+    <function name="ClipPlane" deprecated="3.1" exec="dlist">
         <param name="plane" type="GLenum"/>
         <param name="equation" type="const GLdouble *" count="4"/>
         <glx rop="77"/>
     </function>
 
-    <function name="ColorMaterial" deprecated="3.1">
+    <function name="ColorMaterial" deprecated="3.1" exec="dlist">
         <param name="face" type="GLenum"/>
         <param name="mode" type="GLenum"/>
         <glx rop="78"/>
     </function>
 
-    <function name="CullFace" es1="1.0" es2="2.0" no_error="true">
+    <function name="CullFace" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="mode" type="GLenum"/>
         <glx rop="79"/>
     </function>
 
-    <function name="Fogf" es1="1.0" deprecated="3.1">
+    <function name="Fogf" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="80"/>
     </function>
 
-    <function name="Fogfv" es1="1.0" deprecated="3.1">
+    <function name="Fogfv" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
                marshal_count="_mesa_fog_enum_to_count(pname)"/>
         <glx rop="81"/>
     </function>
 
-    <function name="Fogi" deprecated="3.1">
+    <function name="Fogi" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="82"/>
     </function>
 
-    <function name="Fogiv" deprecated="3.1">
+    <function name="Fogiv" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
                marshal_count="_mesa_fog_enum_to_count(pname)"/>
         <glx rop="83"/>
     </function>
 
-    <function name="FrontFace" es1="1.0" es2="2.0" no_error="true">
+    <function name="FrontFace" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="mode" type="GLenum"/>
         <glx rop="84"/>
     </function>
 
-    <function name="Hint" es1="1.0" es2="2.0">
+    <function name="Hint" es1="1.0" es2="2.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="mode" type="GLenum"/>
         <glx rop="85"/>
     </function>
 
-    <function name="Lightf" es1="1.0" deprecated="3.1">
+    <function name="Lightf" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="light" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="86"/>
     </function>
 
-    <function name="Lightfv" es1="1.0" deprecated="3.1">
+    <function name="Lightfv" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="light" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
@@ -2026,14 +2026,14 @@
         <glx rop="87"/>
     </function>
 
-    <function name="Lighti" deprecated="3.1">
+    <function name="Lighti" deprecated="3.1" exec="dlist">
         <param name="light" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="88"/>
     </function>
 
-    <function name="Lightiv" deprecated="3.1">
+    <function name="Lightiv" deprecated="3.1" exec="dlist">
         <param name="light" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
@@ -2041,51 +2041,51 @@
         <glx rop="89"/>
     </function>
 
-    <function name="LightModelf" es1="1.0" deprecated="3.1">
+    <function name="LightModelf" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="90"/>
     </function>
 
-    <function name="LightModelfv" es1="1.0" deprecated="3.1">
+    <function name="LightModelfv" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
                marshal_count="_mesa_light_model_enum_to_count(pname)"/>
         <glx rop="91"/>
     </function>
 
-    <function name="LightModeli" deprecated="3.1">
+    <function name="LightModeli" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="92"/>
     </function>
 
-    <function name="LightModeliv" deprecated="3.1">
+    <function name="LightModeliv" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
                marshal_count="_mesa_light_model_enum_to_count(pname)"/>
         <glx rop="93"/>
     </function>
 
-    <function name="LineStipple" deprecated="3.1">
+    <function name="LineStipple" deprecated="3.1" exec="dlist">
         <param name="factor" type="GLint"/>
         <param name="pattern" type="GLushort"/>
         <glx rop="94"/>
     </function>
 
-    <function name="LineWidth" es1="1.0" es2="2.0" no_error="true">
+    <function name="LineWidth" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="width" type="GLfloat"/>
         <glx rop="95"/>
     </function>
 
-    <function name="Materialf" es1="1.0" deprecated="3.1" exec="dynamic">
+    <function name="Materialf" es1="1.0" deprecated="3.1" exec="vtxfmt">
         <param name="face" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="96"/>
     </function>
 
-    <function name="Materialfv" es1="1.0" deprecated="3.1" exec="dynamic">
+    <function name="Materialfv" es1="1.0" deprecated="3.1" exec="vtxfmt">
         <param name="face" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
@@ -2093,14 +2093,14 @@
         <glx rop="97"/>
     </function>
 
-    <function name="Materiali" deprecated="3.1" exec="dynamic">
+    <function name="Materiali" deprecated="3.1" exec="vtxfmt">
         <param name="face" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="98"/>
     </function>
 
-    <function name="Materialiv" deprecated="3.1" exec="dynamic">
+    <function name="Materialiv" deprecated="3.1" exec="vtxfmt">
         <param name="face" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
@@ -2108,24 +2108,24 @@
         <glx rop="99"/>
     </function>
 
-    <function name="PointSize" es1="1.0" no_error="true">
+    <function name="PointSize" es1="1.0" no_error="true" exec="dlist">
         <param name="size" type="GLfloat"/>
         <glx rop="100"/>
     </function>
 
-    <function name="PolygonMode" no_error="true">
+    <function name="PolygonMode" no_error="true" exec="dlist">
         <param name="face" type="GLenum"/>
         <param name="mode" type="GLenum"/>
         <glx rop="101"/>
     </function>
 
-    <function name="PolygonStipple" deprecated="3.1"
+    <function name="PolygonStipple" deprecated="3.1" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="mask" type="const GLubyte *" img_width="32" img_height="32" img_format="GL_COLOR_INDEX" img_type="GL_BITMAP" img_target="0" img_pad_dimensions="false"/>
         <glx rop="102"/>
     </function>
 
-    <function name="Scissor" es1="1.0" es2="2.0" no_error="true">
+    <function name="Scissor" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -2133,19 +2133,19 @@
         <glx rop="103"/>
     </function>
 
-    <function name="ShadeModel" es1="1.0" deprecated="3.1">
+    <function name="ShadeModel" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="mode" type="GLenum"/>
         <glx rop="104"/>
     </function>
 
-    <function name="TexParameterf" es1="1.0" es2="2.0">
+    <function name="TexParameterf" es1="1.0" es2="2.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="105"/>
     </function>
 
-    <function name="TexParameterfv" es1="1.1" es2="2.0">
+    <function name="TexParameterfv" es1="1.1" es2="2.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
@@ -2153,14 +2153,14 @@
         <glx rop="106"/>
     </function>
 
-    <function name="TexParameteri" es1="1.1" es2="2.0">
+    <function name="TexParameteri" es1="1.1" es2="2.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="107"/>
     </function>
 
-    <function name="TexParameteriv" es1="1.1" es2="2.0">
+    <function name="TexParameteriv" es1="1.1" es2="2.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
@@ -2168,7 +2168,7 @@
         <glx rop="108"/>
     </function>
 
-    <function name="TexImage1D" no_error="true"
+    <function name="TexImage1D" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -2181,7 +2181,7 @@
         <glx rop="109" large="true"/>
     </function>
 
-    <function name="TexImage2D" es1="1.0" es2="2.0" no_error="true"
+    <function name="TexImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -2195,14 +2195,14 @@
         <glx rop="110" large="true"/>
     </function>
 
-    <function name="TexEnvf" es1="1.0" deprecated="3.1">
+    <function name="TexEnvf" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="111"/>
     </function>
 
-    <function name="TexEnvfv" es1="1.0" deprecated="3.1">
+    <function name="TexEnvfv" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
@@ -2210,14 +2210,14 @@
         <glx rop="112"/>
     </function>
 
-    <function name="TexEnvi" es1="1.1" deprecated="3.1">
+    <function name="TexEnvi" es1="1.1" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="113"/>
     </function>
 
-    <function name="TexEnviv" es1="1.1" deprecated="3.1">
+    <function name="TexEnviv" es1="1.1" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
@@ -2225,14 +2225,14 @@
         <glx rop="114"/>
     </function>
 
-    <function name="TexGend" deprecated="3.1">
+    <function name="TexGend" deprecated="3.1" exec="dlist">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLdouble"/>
         <glx rop="115"/>
     </function>
 
-    <function name="TexGendv" deprecated="3.1">
+    <function name="TexGendv" deprecated="3.1" exec="dlist">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLdouble *" variable_param="pname"
@@ -2240,14 +2240,14 @@
         <glx rop="116"/>
     </function>
 
-    <function name="TexGenf" deprecated="3.1">
+    <function name="TexGenf" deprecated="3.1" exec="dlist">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="117"/>
     </function>
 
-    <function name="TexGenfv" deprecated="3.1">
+    <function name="TexGenfv" deprecated="3.1" exec="dlist">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
@@ -2255,14 +2255,14 @@
         <glx rop="118"/>
     </function>
 
-    <function name="TexGeni" deprecated="3.1">
+    <function name="TexGeni" deprecated="3.1" exec="dlist">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="119"/>
     </function>
 
-    <function name="TexGeniv" deprecated="3.1">
+    <function name="TexGeniv" deprecated="3.1" exec="dlist">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
@@ -2289,40 +2289,40 @@
         <glx sop="107" handcode="true"/>
     </function>
 
-    <function name="InitNames" deprecated="3.1">
+    <function name="InitNames" deprecated="3.1" exec="dlist">
         <glx rop="121"/>
     </function>
 
-    <function name="LoadName" deprecated="3.1">
+    <function name="LoadName" deprecated="3.1" exec="dlist">
         <param name="name" type="GLuint"/>
         <glx rop="122"/>
     </function>
 
-    <function name="PassThrough" deprecated="3.1">
+    <function name="PassThrough" deprecated="3.1" exec="dlist">
         <param name="token" type="GLfloat"/>
         <glx rop="123"/>
     </function>
 
-    <function name="PopName" deprecated="3.1">
+    <function name="PopName" deprecated="3.1" exec="dlist">
         <glx rop="124"/>
     </function>
 
-    <function name="PushName" deprecated="3.1">
+    <function name="PushName" deprecated="3.1" exec="dlist">
         <param name="name" type="GLuint"/>
         <glx rop="125"/>
     </function>
 
-    <function name="DrawBuffer" no_error="true">
+    <function name="DrawBuffer" no_error="true" exec="dlist">
         <param name="mode" type="GLenum"/>
         <glx rop="126"/>
     </function>
 
-    <function name="Clear" es1="1.0" es2="2.0" no_error="true">
+    <function name="Clear" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="mask" type="GLbitfield"/>
         <glx rop="127"/>
     </function>
 
-    <function name="ClearAccum" deprecated="3.1">
+    <function name="ClearAccum" deprecated="3.1" exec="dlist">
         <param name="red" type="GLfloat"/>
         <param name="green" type="GLfloat"/>
         <param name="blue" type="GLfloat"/>
@@ -2330,12 +2330,12 @@
         <glx rop="128"/>
     </function>
 
-    <function name="ClearIndex" deprecated="3.1">
+    <function name="ClearIndex" deprecated="3.1" exec="dlist">
         <param name="c" type="GLfloat"/>
         <glx rop="129"/>
     </function>
 
-    <function name="ClearColor" es1="1.0" es2="2.0">
+    <function name="ClearColor" es1="1.0" es2="2.0" exec="dlist">
         <param name="red" type="GLclampf"/>
         <param name="green" type="GLclampf"/>
         <param name="blue" type="GLclampf"/>
@@ -2343,22 +2343,22 @@
         <glx rop="130"/>
     </function>
 
-    <function name="ClearStencil" es1="1.0" es2="2.0">
+    <function name="ClearStencil" es1="1.0" es2="2.0" exec="dlist">
         <param name="s" type="GLint"/>
         <glx rop="131"/>
     </function>
 
-    <function name="ClearDepth">
+    <function name="ClearDepth" exec="dlist">
         <param name="depth" type="GLclampd"/>
         <glx rop="132"/>
     </function>
 
-    <function name="StencilMask" es1="1.0" es2="2.0">
+    <function name="StencilMask" es1="1.0" es2="2.0" exec="dlist">
         <param name="mask" type="GLuint"/>
         <glx rop="133"/>
     </function>
 
-    <function name="ColorMask" es1="1.0" es2="2.0">
+    <function name="ColorMask" es1="1.0" es2="2.0" exec="dlist">
         <param name="red" type="GLboolean"/>
         <param name="green" type="GLboolean"/>
         <param name="blue" type="GLboolean"/>
@@ -2366,29 +2366,29 @@
         <glx rop="134"/>
     </function>
 
-    <function name="DepthMask" es1="1.0" es2="2.0">
+    <function name="DepthMask" es1="1.0" es2="2.0" exec="dlist">
         <param name="flag" type="GLboolean"/>
         <glx rop="135"/>
     </function>
 
-    <function name="IndexMask" deprecated="3.1">
+    <function name="IndexMask" deprecated="3.1" exec="dlist">
         <param name="mask" type="GLuint"/>
         <glx rop="136"/>
     </function>
 
-    <function name="Accum" deprecated="3.1">
+    <function name="Accum" deprecated="3.1" exec="dlist">
         <param name="op" type="GLenum"/>
         <param name="value" type="GLfloat"/>
         <glx rop="137"/>
     </function>
 
-    <function name="Disable" es1="1.0" es2="2.0"
+    <function name="Disable" es1="1.0" es2="2.0" exec="dlist"
               marshal_call_after="_mesa_glthread_Disable(ctx, cap);">
         <param name="cap" type="GLenum"/>
         <glx rop="138" handcode="client"/>
     </function>
 
-    <function name="Enable" es1="1.0" es2="2.0"
+    <function name="Enable" es1="1.0" es2="2.0" exec="dlist"
               marshal_call_after='_mesa_glthread_Enable(ctx, cap);'>
         <param name="cap" type="GLenum"/>
         <glx rop="139" handcode="client"/>
@@ -2403,18 +2403,18 @@
         <glx sop="142" handcode="true"/>
     </function>
 
-    <function name="PopAttrib" deprecated="3.1"
+    <function name="PopAttrib" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_PopAttrib(ctx);">
         <glx rop="141"/>
     </function>
 
-    <function name="PushAttrib" deprecated="3.1"
+    <function name="PushAttrib" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_PushAttrib(ctx, mask);">
         <param name="mask" type="GLbitfield"/>
         <glx rop="142"/>
     </function>
 
-    <function name="Map1d" deprecated="3.1">
+    <function name="Map1d" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="u1" type="GLdouble"/>
         <param name="u2" type="GLdouble"/>
@@ -2424,7 +2424,7 @@
         <glx rop="143" handcode="true"/>
     </function>
 
-    <function name="Map1f" deprecated="3.1">
+    <function name="Map1f" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="u1" type="GLfloat"/>
         <param name="u2" type="GLfloat"/>
@@ -2434,7 +2434,7 @@
         <glx rop="144" handcode="true"/>
     </function>
 
-    <function name="Map2d" deprecated="3.1">
+    <function name="Map2d" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="u1" type="GLdouble"/>
         <param name="u2" type="GLdouble"/>
@@ -2448,7 +2448,7 @@
         <glx rop="145" handcode="true"/>
     </function>
 
-    <function name="Map2f" deprecated="3.1">
+    <function name="Map2f" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="u1" type="GLfloat"/>
         <param name="u2" type="GLfloat"/>
@@ -2462,21 +2462,21 @@
         <glx rop="146" handcode="true"/>
     </function>
 
-    <function name="MapGrid1d" deprecated="3.1">
+    <function name="MapGrid1d" deprecated="3.1" exec="dlist">
         <param name="un" type="GLint"/>
         <param name="u1" type="GLdouble"/>
         <param name="u2" type="GLdouble"/>
         <glx rop="147"/>
     </function>
 
-    <function name="MapGrid1f" deprecated="3.1">
+    <function name="MapGrid1f" deprecated="3.1" exec="dlist">
         <param name="un" type="GLint"/>
         <param name="u1" type="GLfloat"/>
         <param name="u2" type="GLfloat"/>
         <glx rop="148"/>
     </function>
 
-    <function name="MapGrid2d" deprecated="3.1">
+    <function name="MapGrid2d" deprecated="3.1" exec="dlist">
         <param name="un" type="GLint"/>
         <param name="u1" type="GLdouble"/>
         <param name="u2" type="GLdouble"/>
@@ -2486,7 +2486,7 @@
         <glx rop="149"/>
     </function>
 
-    <function name="MapGrid2f" deprecated="3.1">
+    <function name="MapGrid2f" deprecated="3.1" exec="dlist">
         <param name="un" type="GLint"/>
         <param name="u1" type="GLfloat"/>
         <param name="u2" type="GLfloat"/>
@@ -2496,59 +2496,59 @@
         <glx rop="150"/>
     </function>
 
-    <function name="EvalCoord1d" vectorequiv="EvalCoord1dv" deprecated="3.1" exec="dynamic">
+    <function name="EvalCoord1d" vectorequiv="EvalCoord1dv" deprecated="3.1" exec="vtxfmt">
         <param name="u" type="GLdouble"/>
     </function>
 
-    <function name="EvalCoord1dv" deprecated="3.1" exec="dynamic">
+    <function name="EvalCoord1dv" deprecated="3.1" exec="vtxfmt">
         <param name="u" type="const GLdouble *" count="1"/>
         <glx rop="151"/>
     </function>
 
     <function name="EvalCoord1f" vectorequiv="EvalCoord1fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="u" type="GLfloat"/>
     </function>
 
-    <function name="EvalCoord1fv" deprecated="3.1" exec="dynamic">
+    <function name="EvalCoord1fv" deprecated="3.1" exec="vtxfmt">
         <param name="u" type="const GLfloat *" count="1"/>
         <glx rop="152"/>
     </function>
 
-    <function name="EvalCoord2d" vectorequiv="EvalCoord2dv" deprecated="3.1" exec="dynamic">
+    <function name="EvalCoord2d" vectorequiv="EvalCoord2dv" deprecated="3.1" exec="vtxfmt">
         <param name="u" type="GLdouble"/>
         <param name="v" type="GLdouble"/>
     </function>
 
-    <function name="EvalCoord2dv" deprecated="3.1" exec="dynamic">
+    <function name="EvalCoord2dv" deprecated="3.1" exec="vtxfmt">
         <param name="u" type="const GLdouble *" count="2"/>
         <glx rop="153"/>
     </function>
 
     <function name="EvalCoord2f" vectorequiv="EvalCoord2fv"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="u" type="GLfloat"/>
         <param name="v" type="GLfloat"/>
     </function>
 
-    <function name="EvalCoord2fv" deprecated="3.1" exec="dynamic">
+    <function name="EvalCoord2fv" deprecated="3.1" exec="vtxfmt">
         <param name="u" type="const GLfloat *" count="2"/>
         <glx rop="154"/>
     </function>
 
-    <function name="EvalMesh1" deprecated="3.1">
+    <function name="EvalMesh1" deprecated="3.1" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="i1" type="GLint"/>
         <param name="i2" type="GLint"/>
         <glx rop="155"/>
     </function>
 
-    <function name="EvalPoint1" deprecated="3.1" exec="dynamic">
+    <function name="EvalPoint1" deprecated="3.1" exec="vtxfmt">
         <param name="i" type="GLint"/>
         <glx rop="156"/>
     </function>
 
-    <function name="EvalMesh2" deprecated="3.1">
+    <function name="EvalMesh2" deprecated="3.1" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="i1" type="GLint"/>
         <param name="i2" type="GLint"/>
@@ -2557,61 +2557,61 @@
         <glx rop="157"/>
     </function>
 
-    <function name="EvalPoint2" deprecated="3.1" exec="dynamic">
+    <function name="EvalPoint2" deprecated="3.1" exec="vtxfmt">
         <param name="i" type="GLint"/>
         <param name="j" type="GLint"/>
         <glx rop="158"/>
     </function>
 
-    <function name="AlphaFunc" es1="1.0" deprecated="3.1">
+    <function name="AlphaFunc" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="func" type="GLenum"/>
         <param name="ref" type="GLclampf"/>
         <glx rop="159"/>
     </function>
 
-    <function name="BlendFunc" es1="1.0" es2="2.0" no_error="true">
+    <function name="BlendFunc" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="sfactor" type="GLenum"/>
         <param name="dfactor" type="GLenum"/>
         <glx rop="160"/>
     </function>
 
-    <function name="LogicOp" es1="1.0" no_error="true">
+    <function name="LogicOp" es1="1.0" no_error="true" exec="dlist">
         <param name="opcode" type="GLenum"/>
         <glx rop="161"/>
     </function>
 
-    <function name="StencilFunc" es1="1.0" es2="2.0" no_error="true">
+    <function name="StencilFunc" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="func" type="GLenum"/>
         <param name="ref" type="GLint"/>
         <param name="mask" type="GLuint"/>
         <glx rop="162"/>
     </function>
 
-    <function name="StencilOp" es1="1.0" es2="2.0" no_error="true">
+    <function name="StencilOp" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="fail" type="GLenum"/>
         <param name="zfail" type="GLenum"/>
         <param name="zpass" type="GLenum"/>
         <glx rop="163"/>
     </function>
 
-    <function name="DepthFunc" es1="1.0" es2="2.0" no_error="true">
+    <function name="DepthFunc" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="func" type="GLenum"/>
         <glx rop="164"/>
     </function>
 
-    <function name="PixelZoom" deprecated="3.1">
+    <function name="PixelZoom" deprecated="3.1" exec="dlist">
         <param name="xfactor" type="GLfloat"/>
         <param name="yfactor" type="GLfloat"/>
         <glx rop="165"/>
     </function>
 
-    <function name="PixelTransferf" deprecated="3.1">
+    <function name="PixelTransferf" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="166"/>
     </function>
 
-    <function name="PixelTransferi" deprecated="3.1">
+    <function name="PixelTransferi" deprecated="3.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="167"/>
@@ -2629,7 +2629,7 @@
         <glx sop="110" handcode="client"/>
     </function>
 
-    <function name="PixelMapfv" deprecated="3.1"
+    <function name="PixelMapfv" deprecated="3.1" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
@@ -2637,7 +2637,7 @@
         <glx rop="168" large="true"/>
     </function>
 
-    <function name="PixelMapuiv" deprecated="3.1"
+    <function name="PixelMapuiv" deprecated="3.1" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
@@ -2645,7 +2645,7 @@
         <glx rop="169" large="true"/>
     </function>
 
-    <function name="PixelMapusv" deprecated="3.1"
+    <function name="PixelMapusv" deprecated="3.1" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
@@ -2653,12 +2653,12 @@
         <glx rop="170" large="true"/>
     </function>
 
-    <function name="ReadBuffer" es2="3.0" no_error="true">
+    <function name="ReadBuffer" es2="3.0" no_error="true" exec="dlist">
         <param name="mode" type="GLenum"/>
         <glx rop="171"/>
     </function>
 
-    <function name="CopyPixels" deprecated="3.1">
+    <function name="CopyPixels" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -2679,7 +2679,7 @@
         <glx sop="111"/>
     </function>
 
-    <function name="DrawPixels" deprecated="3.1"
+    <function name="DrawPixels" deprecated="3.1" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="width" type="GLsizei"/>
         <param name="height" type="GLsizei"/>
@@ -2894,13 +2894,13 @@
         <glx sop="141"/>
     </function>
 
-    <function name="DepthRange">
+    <function name="DepthRange" exec="dlist">
         <param name="zNear" type="GLclampd"/>
         <param name="zFar" type="GLclampd"/>
         <glx rop="174"/>
     </function>
 
-    <function name="Frustum" deprecated="3.1">
+    <function name="Frustum" deprecated="3.1" exec="dlist">
         <param name="left" type="GLdouble"/>
         <param name="right" type="GLdouble"/>
         <param name="bottom" type="GLdouble"/>
@@ -2910,37 +2910,37 @@
         <glx rop="175"/>
     </function>
 
-    <function name="LoadIdentity" es1="1.0" deprecated="3.1">
+    <function name="LoadIdentity" es1="1.0" deprecated="3.1" exec="dlist">
         <glx rop="176"/>
     </function>
 
-    <function name="LoadMatrixf" es1="1.0" deprecated="3.1">
+    <function name="LoadMatrixf" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLfloat *" count="16"/>
         <glx rop="177"/>
     </function>
 
-    <function name="LoadMatrixd" deprecated="3.1">
+    <function name="LoadMatrixd" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLdouble *" count="16"/>
         <glx rop="178"/>
     </function>
 
-    <function name="MatrixMode" es1="1.0" deprecated="3.1"
+    <function name="MatrixMode" es1="1.0" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_MatrixMode(ctx, mode);">
         <param name="mode" type="GLenum"/>
         <glx rop="179"/>
     </function>
 
-    <function name="MultMatrixf" es1="1.0" deprecated="3.1">
+    <function name="MultMatrixf" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLfloat *" count="16"/>
         <glx rop="180"/>
     </function>
 
-    <function name="MultMatrixd" deprecated="3.1">
+    <function name="MultMatrixd" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLdouble *" count="16"/>
         <glx rop="181"/>
     </function>
 
-    <function name="Ortho" deprecated="3.1">
+    <function name="Ortho" deprecated="3.1" exec="dlist">
         <param name="left" type="GLdouble"/>
         <param name="right" type="GLdouble"/>
         <param name="bottom" type="GLdouble"/>
@@ -2950,17 +2950,17 @@
         <glx rop="182"/>
     </function>
 
-    <function name="PopMatrix" es1="1.0" deprecated="3.1"
+    <function name="PopMatrix" es1="1.0" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_PopMatrix(ctx);">
         <glx rop="183"/>
     </function>
 
-    <function name="PushMatrix" es1="1.0" deprecated="3.1"
+    <function name="PushMatrix" es1="1.0" deprecated="3.1" exec="dlist"
               marshal_call_after="_mesa_glthread_PushMatrix(ctx);">
         <glx rop="184"/>
     </function>
 
-    <function name="Rotated" deprecated="3.1">
+    <function name="Rotated" deprecated="3.1" exec="dlist">
         <param name="angle" type="GLdouble"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
@@ -2968,7 +2968,7 @@
         <glx rop="185"/>
     </function>
 
-    <function name="Rotatef" es1="1.0" deprecated="3.1">
+    <function name="Rotatef" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="angle" type="GLfloat"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
@@ -2976,35 +2976,35 @@
         <glx rop="186"/>
     </function>
 
-    <function name="Scaled" deprecated="3.1">
+    <function name="Scaled" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
         <glx rop="187"/>
     </function>
 
-    <function name="Scalef" es1="1.0" deprecated="3.1">
+    <function name="Scalef" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
         <glx rop="188"/>
     </function>
 
-    <function name="Translated" deprecated="3.1">
+    <function name="Translated" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
         <glx rop="189"/>
     </function>
 
-    <function name="Translatef" es1="1.0" deprecated="3.1">
+    <function name="Translatef" es1="1.0" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
         <glx rop="190"/>
     </function>
 
-    <function name="Viewport" es1="1.0" es2="2.0" no_error="true">
+    <function name="Viewport" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -3186,7 +3186,7 @@
     <enum name="CLIENT_VERTEX_ARRAY_BIT"                  value="0x00000002"/>
     <enum name="CLIENT_ALL_ATTRIB_BITS"                   value="0xFFFFFFFF"/>
 
-    <function name="ArrayElement" deprecated="3.1" exec="dynamic">
+    <function name="ArrayElement" deprecated="3.1" exec="vtxfmt">
         <param name="i" type="GLint"/>
         <glx handcode="true"/>
     </function>
@@ -3207,14 +3207,14 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="DrawArrays" es1="1.0" es2="2.0" marshal="custom">
+    <function name="DrawArrays" es1="1.0" es2="2.0" marshal="custom" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="first" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <glx rop="193" handcode="true"/>
     </function>
 
-    <function name="DrawElements" es1="1.0" es2="2.0" marshal="custom">
+    <function name="DrawElements" es1="1.0" es2="2.0" marshal="custom" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -3288,13 +3288,13 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="PolygonOffset" es1="1.0" es2="2.0">
+    <function name="PolygonOffset" es1="1.0" es2="2.0" exec="dlist">
         <param name="factor" type="GLfloat"/>
         <param name="units" type="GLfloat"/>
         <glx rop="192"/>
     </function>
 
-    <function name="CopyTexImage1D" no_error="true">
+    <function name="CopyTexImage1D" no_error="true" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -3305,7 +3305,7 @@
         <glx rop="4119"/>
     </function>
 
-    <function name="CopyTexImage2D" es1="1.0" es2="2.0" no_error="true">
+    <function name="CopyTexImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -3317,7 +3317,7 @@
         <glx rop="4120"/>
     </function>
 
-    <function name="CopyTexSubImage1D" no_error="true">
+    <function name="CopyTexSubImage1D" no_error="true" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3327,7 +3327,7 @@
         <glx rop="4121"/>
     </function>
 
-    <function name="CopyTexSubImage2D" es1="1.0" es2="2.0" no_error="true">
+    <function name="CopyTexSubImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3339,7 +3339,7 @@
         <glx rop="4122"/>
     </function>
 
-    <function name="TexSubImage1D" no_error="true"
+    <function name="TexSubImage1D" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -3352,7 +3352,7 @@
         <glx rop="4099" large="true"/>
     </function>
 
-    <function name="TexSubImage2D" es1="1.0" es2="2.0" no_error="true"
+    <function name="TexSubImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -3375,7 +3375,7 @@
         <glx sop="143" handcode="client" always_array="true"/>
     </function>
 
-    <function name="BindTexture" es1="1.0" es2="2.0" no_error="true">
+    <function name="BindTexture" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="texture" type="GLuint"/>
         <glx rop="4117"/>
@@ -3399,18 +3399,18 @@
         <glx sop="146"/>
     </function>
 
-    <function name="PrioritizeTextures" deprecated="3.1">
+    <function name="PrioritizeTextures" deprecated="3.1" exec="dlist">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="textures" type="const GLuint *" count="n"/>
         <param name="priorities" type="const GLclampf *" count="n"/>
         <glx rop="4118"/>
     </function>
 
-    <function name="Indexub" vectorequiv="Indexubv" deprecated="3.1" exec="dynamic">
+    <function name="Indexub" vectorequiv="Indexubv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="GLubyte"/>
     </function>
 
-    <function name="Indexubv" deprecated="3.1" exec="dynamic">
+    <function name="Indexubv" deprecated="3.1" exec="vtxfmt">
         <param name="c" type="const GLubyte *" count="1"/>
         <glx rop="194"/>
     </function>
@@ -3774,7 +3774,7 @@
     </enum>
 
 
-    <function name="BlendColor" es2="2.0">
+    <function name="BlendColor" es2="2.0" exec="dlist">
         <param name="red" type="GLclampf"/>
         <param name="green" type="GLclampf"/>
         <param name="blue" type="GLclampf"/>
@@ -3782,12 +3782,12 @@
         <glx rop="4096"/>
     </function>
 
-    <function name="BlendEquation" es2="2.0">
+    <function name="BlendEquation" es2="2.0" exec="dlist">
         <param name="mode" type="GLenum"/>
         <glx rop="4097"/>
     </function>
 
-    <function name="DrawRangeElements" es2="3.0" marshal="custom">
+    <function name="DrawRangeElements" es2="3.0" marshal="custom" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -3797,7 +3797,7 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="ColorTable" deprecated="3.1">
+    <function name="ColorTable" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="width" type="GLsizei"/>
@@ -3807,21 +3807,21 @@
         <glx rop="2053" large="true"/>
     </function>
 
-    <function name="ColorTableParameterfv" deprecated="3.1">
+    <function name="ColorTableParameterfv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"/>
         <glx rop="2054"/>
     </function>
 
-    <function name="ColorTableParameteriv" deprecated="3.1">
+    <function name="ColorTableParameteriv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"/>
         <glx rop="2055"/>
     </function>
 
-    <function name="CopyColorTable" deprecated="3.1">
+    <function name="CopyColorTable" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="x" type="GLint"/>
@@ -3830,7 +3830,7 @@
         <glx rop="2056"/>
     </function>
 
-    <function name="GetColorTable" deprecated="3.1">
+    <function name="GetColorTable" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -3838,21 +3838,21 @@
         <glx sop="147" dimensions_in_reply="true"/>
     </function>
 
-    <function name="GetColorTableParameterfv" deprecated="3.1">
+    <function name="GetColorTableParameterfv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
         <glx sop="148"/>
     </function>
 
-    <function name="GetColorTableParameteriv" deprecated="3.1">
+    <function name="GetColorTableParameteriv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true" variable_param="pname"/>
         <glx sop="149"/>
     </function>
 
-    <function name="ColorSubTable" deprecated="3.1">
+    <function name="ColorSubTable" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="start" type="GLsizei"/>
         <param name="count" type="GLsizei"/>
@@ -3862,7 +3862,7 @@
         <glx rop="195" large="true"/>
     </function>
 
-    <function name="CopyColorSubTable" deprecated="3.1">
+    <function name="CopyColorSubTable" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="start" type="GLsizei"/>
         <param name="x" type="GLint"/>
@@ -3871,7 +3871,7 @@
         <glx rop="196"/>
     </function>
 
-    <function name="ConvolutionFilter1D" deprecated="3.1">
+    <function name="ConvolutionFilter1D" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="width" type="GLsizei"/>
@@ -3881,7 +3881,7 @@
         <glx rop="4101" large="true"/>
     </function>
 
-    <function name="ConvolutionFilter2D" deprecated="3.1">
+    <function name="ConvolutionFilter2D" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="width" type="GLsizei"/>
@@ -3892,35 +3892,35 @@
         <glx rop="4102" large="true"/>
     </function>
 
-    <function name="ConvolutionParameterf" deprecated="3.1">
+    <function name="ConvolutionParameterf" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat"/>
         <glx rop="4103"/>
     </function>
 
-    <function name="ConvolutionParameterfv" deprecated="3.1">
+    <function name="ConvolutionParameterfv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"/>
         <glx rop="4104"/>
     </function>
 
-    <function name="ConvolutionParameteri" deprecated="3.1">
+    <function name="ConvolutionParameteri" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint"/>
         <glx rop="4105"/>
     </function>
 
-    <function name="ConvolutionParameteriv" deprecated="3.1">
+    <function name="ConvolutionParameteriv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"/>
         <glx rop="4106"/>
     </function>
 
-    <function name="CopyConvolutionFilter1D" deprecated="3.1">
+    <function name="CopyConvolutionFilter1D" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="x" type="GLint"/>
@@ -3929,7 +3929,7 @@
         <glx rop="4107"/>
     </function>
 
-    <function name="CopyConvolutionFilter2D" deprecated="3.1">
+    <function name="CopyConvolutionFilter2D" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="x" type="GLint"/>
@@ -3939,7 +3939,7 @@
         <glx rop="4108"/>
     </function>
 
-    <function name="GetConvolutionFilter" deprecated="3.1">
+    <function name="GetConvolutionFilter" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -3947,21 +3947,21 @@
         <glx sop="150" dimensions_in_reply="true"/>
     </function>
 
-    <function name="GetConvolutionParameterfv" deprecated="3.1">
+    <function name="GetConvolutionParameterfv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
         <glx sop="151"/>
     </function>
 
-    <function name="GetConvolutionParameteriv" deprecated="3.1">
+    <function name="GetConvolutionParameteriv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true" variable_param="pname"/>
         <glx sop="152"/>
     </function>
 
-    <function name="GetSeparableFilter" deprecated="3.1">
+    <function name="GetSeparableFilter" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -3971,7 +3971,7 @@
         <glx sop="153" handcode="true"/>
     </function>
 
-    <function name="SeparableFilter2D" deprecated="3.1">
+    <function name="SeparableFilter2D" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="width" type="GLsizei"/>
@@ -3983,7 +3983,7 @@
         <glx rop="4109" handcode="true"/>
     </function>
 
-    <function name="GetHistogram" deprecated="3.1">
+    <function name="GetHistogram" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="reset" type="GLboolean"/>
         <param name="format" type="GLenum"/>
@@ -3992,21 +3992,21 @@
         <glx sop="154" dimensions_in_reply="true" img_reset="reset"/>
     </function>
 
-    <function name="GetHistogramParameterfv" deprecated="3.1">
+    <function name="GetHistogramParameterfv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
         <glx sop="155"/>
     </function>
 
-    <function name="GetHistogramParameteriv" deprecated="3.1">
+    <function name="GetHistogramParameteriv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true" variable_param="pname"/>
         <glx sop="156"/>
     </function>
 
-    <function name="GetMinmax" deprecated="3.1">
+    <function name="GetMinmax" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="reset" type="GLboolean"/>
         <param name="format" type="GLenum"/>
@@ -4015,21 +4015,21 @@
         <glx sop="157" img_reset="reset"/>
     </function>
 
-    <function name="GetMinmaxParameterfv" deprecated="3.1">
+    <function name="GetMinmaxParameterfv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
         <glx sop="158"/>
     </function>
 
-    <function name="GetMinmaxParameteriv" deprecated="3.1">
+    <function name="GetMinmaxParameteriv" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLint *" output="true" variable_param="pname"/>
         <glx sop="159"/>
     </function>
 
-    <function name="Histogram" deprecated="3.1">
+    <function name="Histogram" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="width" type="GLsizei"/>
         <param name="internalformat" type="GLenum"/>
@@ -4037,24 +4037,24 @@
         <glx rop="4110"/>
     </function>
 
-    <function name="Minmax" deprecated="3.1">
+    <function name="Minmax" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="sink" type="GLboolean"/>
         <glx rop="4111"/>
     </function>
 
-    <function name="ResetHistogram" deprecated="3.1">
+    <function name="ResetHistogram" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <glx rop="4112"/>
     </function>
 
-    <function name="ResetMinmax" deprecated="3.1">
+    <function name="ResetMinmax" deprecated="3.1" exec="skip">
         <param name="target" type="GLenum"/>
         <glx rop="4113"/>
     </function>
 
-    <function name="TexImage3D" es2="3.0" no_error="true"
+    <function name="TexImage3D" es2="3.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4069,7 +4069,7 @@
         <glx rop="4114" large="true"/>
     </function>
 
-    <function name="TexSubImage3D" es2="3.0" no_error="true"
+    <function name="TexSubImage3D" es2="3.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4086,7 +4086,7 @@
         <glx rop="4115" large="true"/>
     </function>
 
-    <function name="CopyTexSubImage3D" es2="3.0" no_error="true">
+    <function name="CopyTexSubImage3D" es2="3.0" no_error="true" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4313,7 +4313,7 @@
     <enum name="DOT3_RGB"                                 value="0x86AE"/>
     <enum name="DOT3_RGBA"                                value="0x86AF"/>
 
-    <function name="ActiveTexture" es1="1.0" es2="2.0" no_error="true"
+    <function name="ActiveTexture" es1="1.0" es2="2.0" no_error="true" exec="dlist"
               marshal_call_after="ctx->GLThread.ActiveTexture = texture - GL_TEXTURE0; if (ctx->GLThread.MatrixMode == GL_TEXTURE) ctx->GLThread.MatrixIndex = _mesa_get_matrix_index(ctx, texture);">
         <param name="texture" type="GLenum"/>
         <glx rop="197"/>
@@ -4325,12 +4325,12 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="MultiTexCoord1d" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord1d" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLdouble"/>
     </function>
 
-    <function name="MultiTexCoord1dv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord1dv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLdouble *" count="1"/>
         <glx rop="198"/>
@@ -4347,35 +4347,35 @@
         <param name="v" type="const GLfloat *"/>
     </function>
 
-    <function name="MultiTexCoord1i" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord1i" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLint"/>
     </function>
 
-    <function name="MultiTexCoord1iv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord1iv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLint *" count="1"/>
         <glx rop="200"/>
     </function>
 
-    <function name="MultiTexCoord1s" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord1s" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLshort"/>
     </function>
 
-    <function name="MultiTexCoord1sv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord1sv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLshort *" count="1"/>
         <glx rop="201"/>
     </function>
 
-    <function name="MultiTexCoord2d" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord2d" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLdouble"/>
         <param name="t" type="GLdouble"/>
     </function>
 
-    <function name="MultiTexCoord2dv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord2dv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLdouble *" count="2"/>
         <glx rop="202"/>
@@ -4394,38 +4394,38 @@
         <param name="v" type="const GLfloat *"/>
     </function>
 
-    <function name="MultiTexCoord2i" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord2i" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLint"/>
         <param name="t" type="GLint"/>
     </function>
 
-    <function name="MultiTexCoord2iv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord2iv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLint *" count="2"/>
         <glx rop="204"/>
     </function>
 
-    <function name="MultiTexCoord2s" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord2s" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLshort"/>
         <param name="t" type="GLshort"/>
     </function>
 
-    <function name="MultiTexCoord2sv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord2sv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLshort *" count="2"/>
         <glx rop="205"/>
     </function>
 
-    <function name="MultiTexCoord3d" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord3d" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLdouble"/>
         <param name="t" type="GLdouble"/>
         <param name="r" type="GLdouble"/>
     </function>
 
-    <function name="MultiTexCoord3dv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord3dv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="206"/>
@@ -4445,33 +4445,33 @@
         <param name="v" type="const GLfloat *"/>
     </function>
 
-    <function name="MultiTexCoord3i" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord3i" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLint"/>
         <param name="t" type="GLint"/>
         <param name="r" type="GLint"/>
     </function>
 
-    <function name="MultiTexCoord3iv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord3iv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="208"/>
     </function>
 
-    <function name="MultiTexCoord3s" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord3s" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLshort"/>
         <param name="t" type="GLshort"/>
         <param name="r" type="GLshort"/>
     </function>
 
-    <function name="MultiTexCoord3sv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord3sv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="209"/>
     </function>
 
-    <function name="MultiTexCoord4d" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord4d" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLdouble"/>
         <param name="t" type="GLdouble"/>
@@ -4479,7 +4479,7 @@
         <param name="q" type="GLdouble"/>
     </function>
 
-    <function name="MultiTexCoord4dv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord4dv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="210"/>
@@ -4500,7 +4500,7 @@
         <param name="v" type="const GLfloat *"/>
     </function>
 
-    <function name="MultiTexCoord4i" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord4i" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLint"/>
         <param name="t" type="GLint"/>
@@ -4508,13 +4508,13 @@
         <param name="q" type="GLint"/>
     </function>
 
-    <function name="MultiTexCoord4iv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord4iv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="212"/>
     </function>
 
-    <function name="MultiTexCoord4s" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord4s" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLshort"/>
         <param name="t" type="GLshort"/>
@@ -4522,39 +4522,39 @@
         <param name="q" type="GLshort"/>
     </function>
 
-    <function name="MultiTexCoord4sv" deprecated="3.1" exec="dynamic">
+    <function name="MultiTexCoord4sv" deprecated="3.1" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="213"/>
     </function>
 
-    <function name="LoadTransposeMatrixf" deprecated="3.1">
+    <function name="LoadTransposeMatrixf" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLfloat *" count="16"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="LoadTransposeMatrixd" deprecated="3.1">
+    <function name="LoadTransposeMatrixd" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLdouble *" count="16"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="MultTransposeMatrixf" deprecated="3.1">
+    <function name="MultTransposeMatrixf" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLfloat *" count="16"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="MultTransposeMatrixd" deprecated="3.1">
+    <function name="MultTransposeMatrixd" deprecated="3.1" exec="dlist">
         <param name="m" type="const GLdouble *" count="16"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="SampleCoverage" es1="1.0" es2="2.0">
+    <function name="SampleCoverage" es1="1.0" es2="2.0" exec="dlist">
         <param name="value" type="GLclampf"/>
         <param name="invert" type="GLboolean"/>
         <glx rop="229"/>
     </function>
 
-    <function name="CompressedTexImage3D" es2="3.0" no_error="true"
+    <function name="CompressedTexImage3D" es2="3.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4568,7 +4568,7 @@
         <glx rop="216" handcode="client"/>
     </function>
 
-    <function name="CompressedTexImage2D" es1="1.0" es2="2.0" no_error="true"
+    <function name="CompressedTexImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4581,7 +4581,7 @@
         <glx rop="215" handcode="client"/>
     </function>
 
-    <function name="CompressedTexImage1D" no_error="true"
+    <function name="CompressedTexImage1D" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4593,7 +4593,7 @@
         <glx rop="214" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage3D" es2="3.0" no_error="true"
+    <function name="CompressedTexSubImage3D" es2="3.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4609,7 +4609,7 @@
         <glx rop="219" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0" no_error="true"
+    <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4623,7 +4623,7 @@
         <glx rop="218" handcode="client"/>
     </function>
 
-    <function name="CompressedTexSubImage1D" no_error="true"
+    <function name="CompressedTexSubImage1D" no_error="true" exec="dlist"
               marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
@@ -4759,7 +4759,7 @@
     </enum>
     <enum name="COMPARE_R_TO_TEXTURE"                     value="0x884E"/>
 
-    <function name="BlendFuncSeparate" es2="2.0" no_error="true">
+    <function name="BlendFuncSeparate" es2="2.0" no_error="true" exec="dlist">
         <param name="sfactorRGB" type="GLenum"/>
         <param name="dfactorRGB" type="GLenum"/>
         <param name="sfactorAlpha" type="GLenum"/>
@@ -4775,11 +4775,11 @@
         <param name="coord" type="const GLfloat *"/>
     </function>
 
-    <function name="FogCoordd" deprecated="3.1" exec="dynamic">
+    <function name="FogCoordd" deprecated="3.1" exec="vtxfmt">
         <param name="coord" type="GLdouble"/>
     </function>
 
-    <function name="FogCoorddv" deprecated="3.1" exec="dynamic">
+    <function name="FogCoorddv" deprecated="3.1" exec="vtxfmt">
         <param name="coord" type="const GLdouble *" count="1"/>
         <glx rop="4125"/>
     </function>
@@ -4793,7 +4793,7 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="MultiDrawArrays" marshal="custom">
+    <function name="MultiDrawArrays" marshal="custom" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="first" type="const GLint *" count="primcount"/>
         <param name="count" type="const GLsizei *" count="primcount"/>
@@ -4809,117 +4809,117 @@
         <param name="primcount" type="GLsizei"/>
     </function>
 
-    <function name="PointParameterf" es1="1.1">
+    <function name="PointParameterf" es1="1.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx rop="2065"/>
     </function>
 
-    <function name="PointParameterfv" es1="1.1">
+    <function name="PointParameterfv" es1="1.1" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLfloat *" variable_param="pname"
                marshal_count="_mesa_point_param_enum_to_count(pname)"/>
         <glx rop="2066"/>
     </function>
 
-    <function name="PointParameteri">
+    <function name="PointParameteri" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx rop="4221"/>
     </function>
 
-    <function name="PointParameteriv">
+    <function name="PointParameteriv" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="params" type="const GLint *" variable_param="pname"
                marshal_count="_mesa_point_param_enum_to_count(pname)"/>
         <glx rop="4222"/>
     </function>
 
-    <function name="SecondaryColor3b" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3b" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLbyte"/>
         <param name="green" type="GLbyte"/>
         <param name="blue" type="GLbyte"/>
     </function>
 
-    <function name="SecondaryColor3bv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3bv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLbyte *" count="3"/>
         <glx rop="4126"/>
     </function>
 
-    <function name="SecondaryColor3d" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3d" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLdouble"/>
         <param name="green" type="GLdouble"/>
         <param name="blue" type="GLdouble"/>
     </function>
 
-    <function name="SecondaryColor3dv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3dv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="4130"/>
     </function>
 
     <function name="SecondaryColor3f" alias="SecondaryColor3fEXT"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLfloat"/>
         <param name="green" type="GLfloat"/>
         <param name="blue" type="GLfloat"/>
     </function>
 
     <function name="SecondaryColor3fv" alias="SecondaryColor3fvEXT"
-              deprecated="3.1" exec="dynamic">
+              deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLfloat *"/>
     </function>
 
-    <function name="SecondaryColor3i" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3i" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLint"/>
         <param name="green" type="GLint"/>
         <param name="blue" type="GLint"/>
     </function>
 
-    <function name="SecondaryColor3iv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3iv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLint *" count="3"/>
         <glx rop="4128"/>
     </function>
 
-    <function name="SecondaryColor3s" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3s" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLshort"/>
         <param name="green" type="GLshort"/>
         <param name="blue" type="GLshort"/>
     </function>
 
-    <function name="SecondaryColor3sv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3sv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="4127"/>
     </function>
 
-    <function name="SecondaryColor3ub" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3ub" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLubyte"/>
         <param name="green" type="GLubyte"/>
         <param name="blue" type="GLubyte"/>
     </function>
 
-    <function name="SecondaryColor3ubv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3ubv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLubyte *" count="3"/>
         <glx rop="4131"/>
     </function>
 
-    <function name="SecondaryColor3ui" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3ui" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLuint"/>
         <param name="green" type="GLuint"/>
         <param name="blue" type="GLuint"/>
     </function>
 
-    <function name="SecondaryColor3uiv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3uiv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLuint *" count="3"/>
         <glx rop="4133"/>
     </function>
 
-    <function name="SecondaryColor3us" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3us" deprecated="3.1" exec="vtxfmt">
         <param name="red" type="GLushort"/>
         <param name="green" type="GLushort"/>
         <param name="blue" type="GLushort"/>
     </function>
 
-    <function name="SecondaryColor3usv" deprecated="3.1" exec="dynamic">
+    <function name="SecondaryColor3usv" deprecated="3.1" exec="vtxfmt">
         <param name="v" type="const GLushort *" count="3"/>
         <glx rop="4132"/>
     </function>
@@ -4934,93 +4934,93 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2d" deprecated="3.1">
+    <function name="WindowPos2d" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2dv" deprecated="3.1">
+    <function name="WindowPos2dv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLdouble *" count="2"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2f" deprecated="3.1">
+    <function name="WindowPos2f" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2fv" deprecated="3.1">
+    <function name="WindowPos2fv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLfloat *" count="2"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2i" deprecated="3.1">
+    <function name="WindowPos2i" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2iv" deprecated="3.1">
+    <function name="WindowPos2iv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLint *" count="2"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2s" deprecated="3.1">
+    <function name="WindowPos2s" deprecated="3.1" exec="dlist">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos2sv" deprecated="3.1">
+    <function name="WindowPos2sv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLshort *" count="2"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos3d" deprecated="3.1">
+    <function name="WindowPos3d" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos3dv" deprecated="3.1">
+    <function name="WindowPos3dv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLdouble *" count="3"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos3f" deprecated="3.1">
+    <function name="WindowPos3f" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
     </function>
 
-    <function name="WindowPos3fv" deprecated="3.1">
+    <function name="WindowPos3fv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="230"/>
     </function>
 
-    <function name="WindowPos3i" deprecated="3.1">
+    <function name="WindowPos3i" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos3iv" deprecated="3.1">
+    <function name="WindowPos3iv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLint *" count="3"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos3s" deprecated="3.1">
+    <function name="WindowPos3s" deprecated="3.1" exec="dlist">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
         <glx handcode="true"/>
     </function>
 
-    <function name="WindowPos3sv" deprecated="3.1">
+    <function name="WindowPos3sv" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLshort *" count="3"/>
         <glx handcode="true"/>
     </function>
@@ -5187,13 +5187,13 @@
         <glx sop="163"/>
     </function>
 
-    <function name="BeginQuery" es2="3.0">
+    <function name="BeginQuery" es2="3.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="id" type="GLuint"/>
         <glx rop="231"/>
     </function>
 
-    <function name="EndQuery" es2="3.0">
+    <function name="EndQuery" es2="3.0" exec="dlist">
         <param name="target" type="GLenum"/>
         <glx rop="232"/>
     </function>
@@ -5315,19 +5315,19 @@
     <enum name="STENCIL_BACK_VALUE_MASK"          value="0x8CA4"/>
     <enum name="STENCIL_BACK_WRITEMASK"           value="0x8CA5"/>
 
-    <function name="BlendEquationSeparate" es2="2.0" no_error="true">
+    <function name="BlendEquationSeparate" es2="2.0" no_error="true" exec="dlist">
         <param name="modeRGB" type="GLenum"/>
         <param name="modeA" type="GLenum"/>
         <glx rop="4228"/>
     </function>
 
-    <function name="DrawBuffers" es2="3.0" no_error="true">
+    <function name="DrawBuffers" es2="3.0" no_error="true" exec="dlist">
         <param name="n" type="GLsizei" counter="true"/>
         <param name="bufs" type="const GLenum *" count="n"/>
         <glx rop="233" large="true"/>
     </function>
 
-    <function name="StencilFuncSeparate" es2="2.0" no_error="true">
+    <function name="StencilFuncSeparate" es2="2.0" no_error="true" exec="dlist">
         <param name="face" type="GLenum"/>
         <param name="func" type="GLenum"/>
         <param name="ref" type="GLint"/>
@@ -5335,7 +5335,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="StencilOpSeparate" es2="2.0" no_error="true">
+    <function name="StencilOpSeparate" es2="2.0" no_error="true" exec="dlist">
         <param name="face" type="GLenum"/>
         <param name="sfail" type="GLenum"/>
         <param name="zfail" type="GLenum"/>
@@ -5343,7 +5343,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="StencilMaskSeparate" es2="2.0" no_error="true">
+    <function name="StencilMaskSeparate" es2="2.0" no_error="true" exec="dlist">
         <param name="face" type="GLenum"/>
         <param name="mask" type="GLuint"/>
         <glx ignore="true"/>
@@ -5563,30 +5563,31 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="UseProgram" es2="2.0" no_error="true">
+    <function name="UseProgram" es2="2.0" no_error="true" exec="dlist"
+              marshal_call_after="ctx->GLThread.CurrentProgram = program;">
         <param name="program" type="GLuint"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="Uniform1f" es2="2.0">
+    <function name="Uniform1f" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLfloat"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform2f" es2="2.0">
+    <function name="Uniform2f" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLfloat"/>
         <param name="v1" type="GLfloat"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform3f" es2="2.0">
+    <function name="Uniform3f" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLfloat"/>
         <param name="v1" type="GLfloat"/>
         <param name="v2" type="GLfloat"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform4f" es2="2.0">
+    <function name="Uniform4f" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLfloat"/>
         <param name="v1" type="GLfloat"/>
@@ -5595,25 +5596,25 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="Uniform1i" es2="2.0">
+    <function name="Uniform1i" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLint"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform2i" es2="2.0">
+    <function name="Uniform2i" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLint"/>
         <param name="v1" type="GLint"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform3i" es2="2.0">
+    <function name="Uniform3i" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLint"/>
         <param name="v1" type="GLint"/>
         <param name="v2" type="GLint"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform4i" es2="2.0">
+    <function name="Uniform4i" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="v0" type="GLint"/>
         <param name="v1" type="GLint"/>
@@ -5622,71 +5623,71 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="Uniform1fv" es2="2.0">
+    <function name="Uniform1fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLfloat *" count="count"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform2fv" es2="2.0">
+    <function name="Uniform2fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="2"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform3fv" es2="2.0">
+    <function name="Uniform3fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="3"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform4fv" es2="2.0">
+    <function name="Uniform4fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="4"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="Uniform1iv" es2="2.0">
+    <function name="Uniform1iv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLint *" count="count"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform2iv" es2="2.0">
+    <function name="Uniform2iv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLint *" count="count" count_scale="2"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform3iv" es2="2.0">
+    <function name="Uniform3iv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLint *" count="count" count_scale="3"/>
         <glx ignore="true"/>
     </function>
-    <function name="Uniform4iv" es2="2.0">
+    <function name="Uniform4iv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="value" type="const GLint *" count="count" count_scale="4"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="UniformMatrix2fv" es2="2.0">
+    <function name="UniformMatrix2fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="4"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix3fv" es2="2.0">
+    <function name="UniformMatrix3fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="9"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix4fv" es2="2.0">
+    <function name="UniformMatrix4fv" es2="2.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
@@ -5699,11 +5700,11 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="VertexAttrib1d" exec="dynamic">
+    <function name="VertexAttrib1d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
     </function>
-    <function name="VertexAttrib1dv" exec="dynamic">
+    <function name="VertexAttrib1dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="1"/>
         <glx rop="4197" doubles_in_order="true"/>
@@ -5716,22 +5717,22 @@
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *"/>
     </function>
-    <function name="VertexAttrib1s" exec="dynamic">
+    <function name="VertexAttrib1s" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
     </function>
-    <function name="VertexAttrib1sv" exec="dynamic">
+    <function name="VertexAttrib1sv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="1"/>
         <glx rop="4189"/>
     </function>
 
-    <function name="VertexAttrib2d" exec="dynamic">
+    <function name="VertexAttrib2d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
-    <function name="VertexAttrib2dv" exec="dynamic">
+    <function name="VertexAttrib2dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="2"/>
         <glx rop="4198" doubles_in_order="true"/>
@@ -5745,24 +5746,24 @@
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *"/>
     </function>
-    <function name="VertexAttrib2s" exec="dynamic">
+    <function name="VertexAttrib2s" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
     </function>
-    <function name="VertexAttrib2sv" exec="dynamic">
+    <function name="VertexAttrib2sv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="2"/>
         <glx rop="4190"/>
     </function>
 
-    <function name="VertexAttrib3d" exec="dynamic">
+    <function name="VertexAttrib3d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
-    <function name="VertexAttrib3dv" exec="dynamic">
+    <function name="VertexAttrib3dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="4199" doubles_in_order="true"/>
@@ -5777,68 +5778,68 @@
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *"/>
     </function>
-    <function name="VertexAttrib3s" exec="dynamic">
+    <function name="VertexAttrib3s" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
     </function>
-    <function name="VertexAttrib3sv" exec="dynamic">
+    <function name="VertexAttrib3sv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="4191"/>
     </function>
 
-    <function name="VertexAttrib4Nbv" exec="dynamic">
+    <function name="VertexAttrib4Nbv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLbyte *" count="4"/>
         <glx rop="4235"/>
     </function>
-    <function name="VertexAttrib4Niv" exec="dynamic">
+    <function name="VertexAttrib4Niv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="4237"/>
     </function>
-    <function name="VertexAttrib4Nsv" exec="dynamic">
+    <function name="VertexAttrib4Nsv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="4236"/>
     </function>
-    <function name="VertexAttrib4Nub" exec="dynamic">
+    <function name="VertexAttrib4Nub" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLubyte"/>
         <param name="y" type="GLubyte"/>
         <param name="z" type="GLubyte"/>
         <param name="w" type="GLubyte"/>
     </function>
-    <function name="VertexAttrib4Nubv" exec="dynamic">
+    <function name="VertexAttrib4Nubv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLubyte *" count="4"/>
         <glx rop="4201"/>
     </function>
-    <function name="VertexAttrib4Nuiv" exec="dynamic">
+    <function name="VertexAttrib4Nuiv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLuint *" count="4"/>
         <glx rop="4239"/>
     </function>
-    <function name="VertexAttrib4Nusv" exec="dynamic">
+    <function name="VertexAttrib4Nusv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLushort *" count="4"/>
         <glx rop="4238"/>
     </function>
-    <function name="VertexAttrib4bv" exec="dynamic">
+    <function name="VertexAttrib4bv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLbyte *" count="4"/>
         <glx rop="4230"/>
     </function>
-    <function name="VertexAttrib4d" exec="dynamic">
+    <function name="VertexAttrib4d" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
         <param name="w" type="GLdouble"/>
     </function>
-    <function name="VertexAttrib4dv" exec="dynamic">
+    <function name="VertexAttrib4dv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="4200" doubles_in_order="true"/>
@@ -5854,34 +5855,34 @@
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *"/>
     </function>
-    <function name="VertexAttrib4iv" exec="dynamic">
+    <function name="VertexAttrib4iv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *" count="4"/>
         <glx rop="4231"/>
     </function>
-    <function name="VertexAttrib4s" exec="dynamic">
+    <function name="VertexAttrib4s" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
         <param name="w" type="GLshort"/>
     </function>
-    <function name="VertexAttrib4sv" exec="dynamic">
+    <function name="VertexAttrib4sv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="4192"/>
     </function>
-    <function name="VertexAttrib4ubv" exec="dynamic">
+    <function name="VertexAttrib4ubv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLubyte *" count="4"/>
         <glx rop="4232"/>
     </function>
-    <function name="VertexAttrib4uiv" exec="dynamic">
+    <function name="VertexAttrib4uiv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLuint *" count="4"/>
         <glx rop="4234"/>
     </function>
-    <function name="VertexAttrib4usv" exec="dynamic">
+    <function name="VertexAttrib4usv" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLushort *" count="4"/>
         <glx rop="4233"/>
@@ -5930,42 +5931,42 @@
     <enum name="COMPRESSED_SLUMINANCE"          value="0x8C4A"/>
     <enum name="COMPRESSED_SLUMINANCE_ALPHA"    value="0x8C4B"/>
 
-    <function name="UniformMatrix2x3fv" es2="3.0">
+    <function name="UniformMatrix2x3fv" es2="3.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="6"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix3x2fv" es2="3.0">
+    <function name="UniformMatrix3x2fv" es2="3.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="6"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix2x4fv" es2="3.0">
+    <function name="UniformMatrix2x4fv" es2="3.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="8"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix4x2fv" es2="3.0">
+    <function name="UniformMatrix4x2fv" es2="3.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="8"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix3x4fv" es2="3.0">
+    <function name="UniformMatrix3x4fv" es2="3.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLfloat *" count="count" count_scale="12"/>
         <glx ignore="true"/>
     </function>
-    <function name="UniformMatrix4x3fv" es2="3.0">
+    <function name="UniformMatrix4x3fv" es2="3.0" exec="dlist">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei" counter="true"/>
         <param name="transpose" type="GLboolean"/>
@@ -6041,12 +6042,12 @@
     </function>
 
     <function name="MultiTexCoord1fARB"
-              vectorequiv="MultiTexCoord1fvARB" exec="dynamic">
+              vectorequiv="MultiTexCoord1fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLfloat"/>
     </function>
 
-    <function name="MultiTexCoord1fvARB" exec="dynamic">
+    <function name="MultiTexCoord1fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLfloat *" count="1"/>
         <glx rop="199"/>
@@ -6087,13 +6088,13 @@
     </function>
 
     <function name="MultiTexCoord2fARB"
-              vectorequiv="MultiTexCoord2fvARB" exec="dynamic">
+              vectorequiv="MultiTexCoord2fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLfloat"/>
         <param name="t" type="GLfloat"/>
     </function>
 
-    <function name="MultiTexCoord2fvARB" exec="dynamic">
+    <function name="MultiTexCoord2fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLfloat *" count="2"/>
         <glx rop="203"/>
@@ -6137,14 +6138,14 @@
     </function>
 
     <function name="MultiTexCoord3fARB"
-              vectorequiv="MultiTexCoord3fvARB" exec="dynamic">
+              vectorequiv="MultiTexCoord3fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLfloat"/>
         <param name="t" type="GLfloat"/>
         <param name="r" type="GLfloat"/>
     </function>
 
-    <function name="MultiTexCoord3fvARB" exec="dynamic">
+    <function name="MultiTexCoord3fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="207"/>
@@ -6191,7 +6192,7 @@
     </function>
 
     <function name="MultiTexCoord4fARB"
-              vectorequiv="MultiTexCoord4fvARB" exec="dynamic">
+              vectorequiv="MultiTexCoord4fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="s" type="GLfloat"/>
         <param name="t" type="GLfloat"/>
@@ -6199,7 +6200,7 @@
         <param name="q" type="GLfloat"/>
     </function>
 
-    <function name="MultiTexCoord4fvARB" exec="dynamic">
+    <function name="MultiTexCoord4fvARB" exec="vtxfmt">
         <param name="target" type="GLenum"/>
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="211"/>
@@ -7068,12 +7069,12 @@
     </function>
 
     <function name="VertexAttrib1fARB"
-	      vectorequiv="VertexAttrib1fvARB" exec="dynamic">
+	      vectorequiv="VertexAttrib1fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib1fvARB" exec="dynamic">
+    <function name="VertexAttrib1fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="1"/>
         <glx rop="4193"/>
@@ -7103,13 +7104,13 @@
     </function>
 
     <function name="VertexAttrib2fARB"
-              vectorequiv="VertexAttrib2fvARB" exec="dynamic">
+              vectorequiv="VertexAttrib2fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib2fvARB" exec="dynamic">
+    <function name="VertexAttrib2fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="2"/>
         <glx rop="4194"/>
@@ -7141,14 +7142,14 @@
     </function>
 
     <function name="VertexAttrib3fARB"
-              vectorequiv="VertexAttrib3fvARB" exec="dynamic">
+              vectorequiv="VertexAttrib3fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib3fvARB" exec="dynamic">
+    <function name="VertexAttrib3fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="4195"/>
@@ -7182,7 +7183,7 @@
     </function>
 
     <function name="VertexAttrib4fARB"
-              vectorequiv="VertexAttrib4fvARB" exec="dynamic">
+              vectorequiv="VertexAttrib4fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
@@ -7190,7 +7191,7 @@
         <param name="w" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib4fvARB" exec="dynamic">
+    <function name="VertexAttrib4fvARB" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="4196"/>
@@ -7291,7 +7292,7 @@
         <param name="index" type="GLuint"/>
     </function>
 
-    <function name="ProgramStringARB" deprecated="3.1">
+    <function name="ProgramStringARB" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="len" type="GLsizei" counter="true"/>
@@ -7299,7 +7300,7 @@
         <glx rop="4217" large="true"/>
     </function>
 
-    <function name="BindProgramARB">
+    <function name="BindProgramARB" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="program" type="GLuint"/>
         <glx rop="4180"/>
@@ -7323,7 +7324,7 @@
         <glx vendorpriv="1304"/>
     </function>
 
-    <function name="ProgramEnvParameter4dARB"
+    <function name="ProgramEnvParameter4dARB" exec="dlist"
               vectorequiv="ProgramEnvParameter4dvARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7333,7 +7334,7 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="ProgramEnvParameter4dvARB"
+    <function name="ProgramEnvParameter4dvARB" exec="dlist"
               deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7341,7 +7342,7 @@
         <glx rop="4185" doubles_in_order="true"/>
     </function>
 
-    <function name="ProgramEnvParameter4fARB"
+    <function name="ProgramEnvParameter4fARB" exec="dlist"
               vectorequiv="ProgramEnvParameter4fvARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7351,7 +7352,7 @@
         <param name="w" type="GLfloat"/>
     </function>
 
-    <function name="ProgramEnvParameter4fvARB"
+    <function name="ProgramEnvParameter4fvARB" exec="dlist"
               deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7359,7 +7360,7 @@
         <glx rop="4184"/>
     </function>
 
-    <function name="ProgramLocalParameter4dARB"
+    <function name="ProgramLocalParameter4dARB" exec="dlist"
               vectorequiv="ProgramLocalParameter4dvARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7369,7 +7370,7 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="ProgramLocalParameter4dvARB"
+    <function name="ProgramLocalParameter4dvARB" exec="dlist"
               deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7377,7 +7378,7 @@
         <glx rop="4216" doubles_in_order="true"/>
     </function>
 
-    <function name="ProgramLocalParameter4fARB"
+    <function name="ProgramLocalParameter4fARB" exec="dlist"
               vectorequiv="ProgramLocalParameter4fvARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
@@ -7387,7 +7388,7 @@
         <param name="w" type="GLfloat"/>
     </function>
 
-    <function name="ProgramLocalParameter4fvARB" deprecated="3.1">
+    <function name="ProgramLocalParameter4fvARB" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
         <param name="params" type="const GLfloat *" count="4"/>
@@ -8155,7 +8156,7 @@
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLuint64 *"/>
     </function>
-    <function name="QueryCounter">
+    <function name="QueryCounter" exec="dlist">
         <param name="id" type="GLuint"/>
         <param name="target" type="GLenum"/>
     </function>
@@ -8181,19 +8182,19 @@
   <enum name="MAX_TRANSFORM_FEEDBACK_BUFFERS" value="0x8E70"/>
   <enum name="MAX_VERTEX_STREAMS"             value="0x8E71"/>
 
-  <function name="DrawTransformFeedbackStream">
+  <function name="DrawTransformFeedbackStream" exec="dlist">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="stream" type="GLuint"/>
   </function>
 
-  <function name="BeginQueryIndexed">
+  <function name="BeginQueryIndexed" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
     <param name="id" type="GLuint"/>
   </function>
 
-  <function name="EndQueryIndexed">
+  <function name="EndQueryIndexed" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
   </function>
@@ -8229,13 +8230,13 @@
 <xi:include href="ARB_base_instance.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_ARB_transform_feedback_instanced" number="109">
-  <function name="DrawTransformFeedbackInstanced">
+  <function name="DrawTransformFeedbackInstanced" exec="dlist">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="primcount" type="GLsizei"/>
   </function>
 
-  <function name="DrawTransformFeedbackStreamInstanced">
+  <function name="DrawTransformFeedbackStreamInstanced" exec="dlist">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="stream" type="GLuint"/>
@@ -8361,7 +8362,11 @@
 
 <xi:include href="ARB_indirect_parameters.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions 155 - 159 -->
+<!-- ARB extensions 155 - 157 -->
+
+<xi:include href="ARB_sparse_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions 159 -->
 
 <xi:include href="ARB_clip_control.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8403,7 +8408,7 @@
 <category name="es3.2">
     <!-- This should be in es_EXT, but this file is included first and
          the alias doesn't work otherwise. -->
-    <function name="PrimitiveBoundingBox" es2="3.2">
+    <function name="PrimitiveBoundingBox" es2="3.2" exec="dlist">
         <param name="minX" type="GLfloat"/>
         <param name="minY" type="GLfloat"/>
         <param name="minZ" type="GLfloat"/>
@@ -8700,403 +8705,6 @@
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
         <param name="height" type="GLsizei"/>
-    </function>
-</category>
-
-<category name="GL_EXT_histogram" number="11">
-    <enum name="HISTOGRAM_EXT"                            value="0x8024"/>
-    <enum name="PROXY_HISTOGRAM_EXT"                      value="0x8025"/>
-    <enum name="HISTOGRAM_WIDTH_EXT"           count="1"  value="0x8026">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_FORMAT_EXT"          count="1"  value="0x8027">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_RED_SIZE_EXT"        count="1"  value="0x8028">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_GREEN_SIZE_EXT"      count="1"  value="0x8029">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_BLUE_SIZE_EXT"       count="1"  value="0x802A">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_ALPHA_SIZE_EXT"      count="1"  value="0x802B">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_LUMINANCE_SIZE_EXT"  count="1"  value="0x802C">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="HISTOGRAM_SINK_EXT"            count="1"  value="0x802D">
-        <size name="GetHistogramParameterfvEXT" mode="get"/>
-        <size name="GetHistogramParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="MINMAX_EXT"                               value="0x802E"/>
-    <enum name="MINMAX_FORMAT_EXT"             count="1"  value="0x802F">
-        <size name="GetMinmaxParameterfvEXT" mode="get"/>
-        <size name="GetMinmaxParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="MINMAX_SINK_EXT"               count="1"  value="0x8030">
-        <size name="GetMinmaxParameterfvEXT" mode="get"/>
-        <size name="GetMinmaxParameterivEXT" mode="get"/>
-    </enum>
-    <enum name="TABLE_TOO_LARGE_EXT"                      value="0x8031"/>
-
-    <function name="GetHistogramEXT" alias="GetHistogram">
-        <param name="target" type="GLenum"/>
-        <param name="reset" type="GLboolean"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="values" type="GLvoid *" output="true" img_width="width" img_format="format" img_type="type"/>
-        <glx vendorpriv="5" dimensions_in_reply="true" img_reset="reset"/>
-    </function>
-
-    <function name="GetHistogramParameterfvEXT" alias="GetHistogramParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
-        <glx vendorpriv="6"/>
-    </function>
-
-    <function name="GetHistogramParameterivEXT" alias="GetHistogramParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLint *" output="true" variable_param="pname"/>
-        <glx vendorpriv="7"/>
-    </function>
-
-    <function name="GetMinmaxEXT" alias="GetMinmax">
-        <param name="target" type="GLenum"/>
-        <param name="reset" type="GLboolean"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="values" type="GLvoid *" output="true" img_width="2" img_format="format" img_type="type"/>
-        <glx vendorpriv="8" img_reset="reset"/>
-    </function>
-
-    <function name="GetMinmaxParameterfvEXT" alias="GetMinmaxParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
-        <glx vendorpriv="9"/>
-    </function>
-
-    <function name="GetMinmaxParameterivEXT" alias="GetMinmaxParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLint *" output="true" variable_param="pname"/>
-        <glx vendorpriv="10"/>
-    </function>
-
-    <function name="HistogramEXT" alias="Histogram">
-        <param name="target" type="GLenum"/>
-        <param name="width" type="GLsizei"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="sink" type="GLboolean"/>
-    </function>
-
-    <function name="MinmaxEXT" alias="Minmax">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="sink" type="GLboolean"/>
-    </function>
-
-    <function name="ResetHistogramEXT" alias="ResetHistogram">
-        <param name="target" type="GLenum"/>
-    </function>
-
-    <function name="ResetMinmaxEXT" alias="ResetMinmax">
-        <param name="target" type="GLenum"/>
-    </function>
-</category>
-
-<category name="GL_EXT_convolution" number="12">
-    <enum name="CONVOLUTION_BORDER_MODE_EXT"   count="1"  value="0x8013">
-        <size name="ConvolutionParameterfv"/>
-        <size name="ConvolutionParameteriv"/>
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-    </enum>
-    <enum name="CONVOLUTION_FILTER_SCALE_EXT"  count="4"  value="0x8014">
-        <size name="ConvolutionParameterfv"/>
-        <size name="ConvolutionParameteriv"/>
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-    </enum>
-    <enum name="CONVOLUTION_FILTER_BIAS_EXT"   count="4"  value="0x8015">
-        <size name="ConvolutionParameterfv"/>
-        <size name="ConvolutionParameteriv"/>
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-    </enum>
-    <enum name="REDUCE_EXT"                               value="0x8016"/>
-    <enum name="CONVOLUTION_FORMAT_EXT"        count="1"  value="0x8017">
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-    </enum>
-    <enum name="CONVOLUTION_WIDTH_EXT"         count="1"  value="0x8018">
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-    </enum>
-    <enum name="CONVOLUTION_HEIGHT_EXT"        count="1"  value="0x8019">
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-    </enum>
-    <enum name="MAX_CONVOLUTION_WIDTH_EXT"     count="1"  value="0x801A">
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="MAX_CONVOLUTION_HEIGHT_EXT"    count="1"  value="0x801B">
-        <size name="GetConvolutionParameterfv" mode="get"/>
-        <size name="GetConvolutionParameteriv" mode="get"/>
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_RED_SCALE_EXT" count="1" value="0x801C">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_GREEN_SCALE_EXT" count="1" value="0x801D">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_BLUE_SCALE_EXT" count="1" value="0x801E">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_ALPHA_SCALE_EXT" count="1" value="0x801F">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_RED_BIAS_EXT" count="1"  value="0x8020">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_GREEN_BIAS_EXT" count="1" value="0x8021">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_BLUE_BIAS_EXT" count="1" value="0x8022">
-        <size name="Get" mode="get"/>
-    </enum>
-    <enum name="POST_CONVOLUTION_ALPHA_BIAS_EXT" count="1" value="0x8023">
-        <size name="Get" mode="get"/>
-    </enum>
-
-    <function name="ConvolutionFilter1DEXT" alias="ConvolutionFilter1D">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="width" type="GLsizei"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="image" type="const GLvoid *"/>
-    </function>
-
-    <function name="ConvolutionFilter2DEXT" alias="ConvolutionFilter2D">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="width" type="GLsizei"/>
-        <param name="height" type="GLsizei"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="image" type="const GLvoid *"/>
-    </function>
-
-    <function name="ConvolutionParameterfEXT" alias="ConvolutionParameterf">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLfloat"/>
-    </function>
-
-    <function name="ConvolutionParameterfvEXT" alias="ConvolutionParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLfloat *"/>
-    </function>
-
-    <function name="ConvolutionParameteriEXT" alias="ConvolutionParameteri">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLint"/>
-    </function>
-
-    <function name="ConvolutionParameterivEXT" alias="ConvolutionParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLint *"/>
-    </function>
-
-    <function name="CopyConvolutionFilter1DEXT" alias="CopyConvolutionFilter1D">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="x" type="GLint"/>
-        <param name="y" type="GLint"/>
-        <param name="width" type="GLsizei"/>
-    </function>
-
-    <function name="CopyConvolutionFilter2DEXT" alias="CopyConvolutionFilter2D">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="x" type="GLint"/>
-        <param name="y" type="GLint"/>
-        <param name="width" type="GLsizei"/>
-        <param name="height" type="GLsizei"/>
-    </function>
-
-    <function name="GetConvolutionFilterEXT" alias="GetConvolutionFilter">
-        <param name="target" type="GLenum"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="image" type="GLvoid *" output="true" img_width="width" img_height="height" img_format="format" img_type="type"/>
-        <glx vendorpriv="1" dimensions_in_reply="true"/>
-    </function>
-
-    <function name="GetConvolutionParameterfvEXT" alias="GetConvolutionParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
-        <glx vendorpriv="2"/>
-    </function>
-
-    <function name="GetConvolutionParameterivEXT" alias="GetConvolutionParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLint *" output="true" variable_param="pname"/>
-        <glx vendorpriv="3"/>
-    </function>
-
-    <function name="GetSeparableFilterEXT" alias="GetSeparableFilter">
-        <param name="target" type="GLenum"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="row" type="GLvoid *" output="true"/>
-        <param name="column" type="GLvoid *" output="true"/>
-        <param name="span" type="GLvoid *" output="true"/>
-        <glx vendorpriv="4" handcode="true"/>
-    </function>
-
-    <function name="SeparableFilter2DEXT" alias="SeparableFilter2D">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="width" type="GLsizei"/>
-        <param name="height" type="GLsizei"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="row" type="const GLvoid *"/>
-        <param name="column" type="const GLvoid *"/>
-    </function>
-</category>
-
-<category name="GL_SGI_color_matrix" number="13">
-    <enum name="COLOR_MATRIX_SGI"                         value="0x80B1"/>
-    <enum name="COLOR_MATRIX_STACK_DEPTH_SGI"             value="0x80B2"/>
-    <enum name="MAX_COLOR_MATRIX_STACK_DEPTH_SGI"         value="0x80B3"/>
-    <enum name="POST_COLOR_MATRIX_RED_SCALE_SGI"          value="0x80B4"/>
-    <enum name="POST_COLOR_MATRIX_GREEN_SCALE_SGI"        value="0x80B5"/>
-    <enum name="POST_COLOR_MATRIX_BLUE_SCALE_SGI"         value="0x80B6"/>
-    <enum name="POST_COLOR_MATRIX_ALPHA_SCALE_SGI"        value="0x80B7"/>
-    <enum name="POST_COLOR_MATRIX_RED_BIAS_SGI"           value="0x80B8"/>
-    <enum name="POST_COLOR_MATRIX_GREEN_BIAS_SGI"         value="0x80B9"/>
-    <enum name="POST_COLOR_MATRIX_BLUE_BIAS_SGI"          value="0x80BA"/>
-    <enum name="POST_COLOR_MATRIX_ALPHA_BIAS_SGI"         value="0x80BB"/>
-</category>
-
-<category name="GL_SGI_color_table" number="14">
-    <enum name="COLOR_TABLE_SCALE_SGI"         count="4"  value="0x80D6">
-        <size name="ColorTableParameterfvSGI"/>
-        <size name="ColorTableParameterivSGI"/>
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_BIAS_SGI"          count="4"  value="0x80D7">
-        <size name="ColorTableParameterfvSGI"/>
-        <size name="ColorTableParameterivSGI"/>
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_FORMAT_SGI"        count="1"  value="0x80D8">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_WIDTH_SGI"         count="1"  value="0x80D9">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_RED_SIZE_SGI"      count="1"  value="0x80DA">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_GREEN_SIZE_SGI"    count="1"  value="0x80DB">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_BLUE_SIZE_SGI"     count="1"  value="0x80DC">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_ALPHA_SIZE_SGI"    count="1"  value="0x80DD">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_LUMINANCE_SIZE_SGI" count="1" value="0x80DE">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_INTENSITY_SIZE_SGI" count="1" value="0x80DF">
-        <size name="GetColorTableParameterfvSGI" mode="get"/>
-        <size name="GetColorTableParameterivSGI" mode="get"/>
-    </enum>
-
-    <function name="ColorTableSGI" alias="ColorTable">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="width" type="GLsizei"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="table" type="const GLvoid *"/>
-    </function>
-
-    <function name="ColorTableParameterfvSGI" alias="ColorTableParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLfloat *"/>
-    </function>
-
-    <function name="ColorTableParameterivSGI" alias="ColorTableParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLint *"/>
-    </function>
-
-    <function name="CopyColorTableSGI" alias="CopyColorTable">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="x" type="GLint"/>
-        <param name="y" type="GLint"/>
-        <param name="width" type="GLsizei"/>
-    </function>
-
-    <function name="GetColorTableSGI" alias="GetColorTable">
-        <param name="target" type="GLenum"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="table" type="GLvoid *" output="true" img_width="width" img_format="format" img_type="type"/>
-        <glx vendorpriv="4098" dimensions_in_reply="true"/>
-    </function>
-
-    <function name="GetColorTableParameterfvSGI" alias="GetColorTableParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
-        <glx vendorpriv="4099"/>
-    </function>
-
-    <function name="GetColorTableParameterivSGI" alias="GetColorTableParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLint *" output="true" variable_param="pname"/>
-        <glx vendorpriv="4100"/>
     </function>
 </category>
 
@@ -9701,76 +9309,6 @@
     </function>
 </category>
 
-<category name="GL_EXT_paletted_texture" number="78">
-    <enum name="COLOR_TABLE_FORMAT_EXT"        count="1"  value="0x80D8">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_WIDTH_EXT"         count="1"  value="0x80D9">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_RED_SIZE_EXT"      count="1"  value="0x80DA">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_GREEN_SIZE_EXT"    count="1"  value="0x80DB">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_BLUE_SIZE_EXT"     count="1"  value="0x80DC">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_ALPHA_SIZE_EXT"    count="1"  value="0x80DD">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_LUMINANCE_SIZE_EXT" count="1" value="0x80DE">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="COLOR_TABLE_INTENSITY_SIZE_EXT" count="1" value="0x80DF">
-        <size name="GetColorTableParameterfv" mode="get"/>
-        <size name="GetColorTableParameteriv" mode="get"/>
-    </enum>
-    <enum name="TEXTURE_INDEX_SIZE_EXT"        count="1"  value="0x80ED">
-        <size name="GetTexLevelParameterfv" mode="get"/>
-        <size name="GetTexLevelParameteriv" mode="get"/>
-    </enum>
-
-    <function name="ColorTableEXT" alias="ColorTable">
-        <param name="target" type="GLenum"/>
-        <param name="internalformat" type="GLenum"/>
-        <param name="width" type="GLsizei"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="table" type="const GLvoid *"/>
-    </function>
-
-    <function name="GetColorTableEXT" alias="GetColorTable">
-        <param name="target" type="GLenum"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="table" type="GLvoid *" output="true" img_width="width" img_format="format" img_type="type"/>
-        <glx vendorpriv="4098" dimensions_in_reply="true"/>
-    </function>
-
-    <function name="GetColorTableParameterivEXT" alias="GetColorTableParameteriv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLint *" output="true" variable_param="pname"/>
-        <glx vendorpriv="4100"/>
-    </function>
-
-    <function name="GetColorTableParameterfvEXT" alias="GetColorTableParameterfv">
-        <param name="target" type="GLenum"/>
-        <param name="pname" type="GLenum"/>
-        <param name="params" type="GLfloat *" output="true" variable_param="pname"/>
-        <glx vendorpriv="4099"/>
-    </function>
-</category>
-
 <category name="GL_EXT_clip_volume_hint" number="79">
     <enum name="CLIP_VOLUME_CLIPPING_HINT_EXT" count="1"  value="0x80F0">
         <size name="Get" mode="get"/>
@@ -10320,7 +9858,7 @@
         <param name="primcount" type="GLsizei"/>
     </function>
 
-    <function name="MultiDrawElementsEXT" es1="1.0" es2="2.0" marshal="custom">
+    <function name="MultiDrawElementsEXT" es1="1.0" es2="2.0" marshal="custom" exec="dlist">
         <param name="mode" type="GLenum"/>
         <param name="count" type="const GLsizei *" count="primcount"/>
         <param name="type" type="GLenum"/>
@@ -10331,11 +9869,11 @@
 </category>
 
 <category name="GL_EXT_fog_coord" number="149">
-    <function name="FogCoordfEXT" vectorequiv="FogCoordfvEXT" exec="dynamic">
+    <function name="FogCoordfEXT" vectorequiv="FogCoordfvEXT" exec="vtxfmt">
         <param name="coord" type="GLfloat"/>
     </function>
 
-    <function name="FogCoordfvEXT" exec="dynamic">
+    <function name="FogCoordfvEXT" exec="vtxfmt">
         <param name="coord" type="const GLfloat *" count="1"/>
         <glx rop="4124"/>
     </function>
@@ -11373,7 +10911,7 @@
         <param name="v" type="const GLshort *"/>
     </function>
 
-    <function name="WindowPos4dMESA" deprecated="3.1">
+    <function name="WindowPos4dMESA" deprecated="3.1" exec="dlist">
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
@@ -11381,12 +10919,12 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4dvMESA" deprecated="3.1">
+    <function name="WindowPos4dvMESA" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLdouble *" count="4"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4fMESA" deprecated="3.1">
+    <function name="WindowPos4fMESA" deprecated="3.1" exec="dlist">
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
@@ -11394,12 +10932,12 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4fvMESA" deprecated="3.1">
+    <function name="WindowPos4fvMESA" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLfloat *" count="4"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4iMESA" deprecated="3.1">
+    <function name="WindowPos4iMESA" deprecated="3.1" exec="dlist">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="z" type="GLint"/>
@@ -11407,12 +10945,12 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4ivMESA" deprecated="3.1">
+    <function name="WindowPos4ivMESA" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLint *" count="4"/>
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4sMESA" deprecated="3.1">
+    <function name="WindowPos4sMESA" deprecated="3.1" exec="dlist">
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
         <param name="z" type="GLshort"/>
@@ -11420,7 +10958,7 @@
         <glx ignore="true"/>
     </function>
 
-    <function name="WindowPos4svMESA" deprecated="3.1">
+    <function name="WindowPos4svMESA" deprecated="3.1" exec="dlist">
         <param name="v" type="const GLshort *" count="4"/>
         <glx ignore="true"/>
     </function>
@@ -12027,32 +11565,32 @@
         <glx handcode="true"/>
     </function>
 
-    <function name="VertexAttrib1sNV" exec="dynamic"
+    <function name="VertexAttrib1sNV" exec="vtxfmt"
               vectorequiv="VertexAttrib1svNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
     </function>
 
-    <function name="VertexAttrib1svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib1svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="1"/>
         <glx rop="4265"/>
     </function>
 
-    <function name="VertexAttrib2sNV" exec="dynamic"
+    <function name="VertexAttrib2sNV" exec="vtxfmt"
               vectorequiv="VertexAttrib2svNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
         <param name="y" type="GLshort"/>
     </function>
 
-    <function name="VertexAttrib2svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib2svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="2"/>
         <glx rop="4266"/>
     </function>
 
-    <function name="VertexAttrib3sNV" exec="dynamic"
+    <function name="VertexAttrib3sNV" exec="vtxfmt"
               vectorequiv="VertexAttrib3svNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
@@ -12060,13 +11598,13 @@
         <param name="z" type="GLshort"/>
     </function>
 
-    <function name="VertexAttrib3svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib3svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="3"/>
         <glx rop="4267"/>
     </function>
 
-    <function name="VertexAttrib4sNV" exec="dynamic"
+    <function name="VertexAttrib4sNV" exec="vtxfmt"
               vectorequiv="VertexAttrib4svNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLshort"/>
@@ -12075,53 +11613,53 @@
         <param name="w" type="GLshort"/>
     </function>
 
-    <function name="VertexAttrib4svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib4svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLshort *" count="4"/>
         <glx rop="4268"/>
     </function>
 
     <function name="VertexAttrib1fNV"
-              vectorequiv="VertexAttrib1fvNV" deprecated="3.1" exec="dynamic">
+              vectorequiv="VertexAttrib1fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib1fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib1fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="1"/>
         <glx rop="4269"/>
     </function>
 
     <function name="VertexAttrib2fNV"
-              vectorequiv="VertexAttrib2fvNV" deprecated="3.1" exec="dynamic">
+              vectorequiv="VertexAttrib2fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib2fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib2fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="2"/>
         <glx rop="4270"/>
     </function>
 
     <function name="VertexAttrib3fNV"
-              vectorequiv="VertexAttrib3fvNV" deprecated="3.1" exec="dynamic">
+              vectorequiv="VertexAttrib3fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="z" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib3fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib3fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="3"/>
         <glx rop="4271"/>
     </function>
 
     <function name="VertexAttrib4fNV"
-              vectorequiv="VertexAttrib4fvNV" deprecated="3.1" exec="dynamic">
+              vectorequiv="VertexAttrib4fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
@@ -12129,38 +11667,38 @@
         <param name="w" type="GLfloat"/>
     </function>
 
-    <function name="VertexAttrib4fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib4fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *" count="4"/>
         <glx rop="4272"/>
     </function>
 
-    <function name="VertexAttrib1dNV" exec="dynamic"
+    <function name="VertexAttrib1dNV" exec="vtxfmt"
               vectorequiv="VertexAttrib1dvNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttrib1dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib1dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="1"/>
         <glx rop="4273" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttrib2dNV" exec="dynamic"
+    <function name="VertexAttrib2dNV" exec="vtxfmt"
               vectorequiv="VertexAttrib2dvNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttrib2dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib2dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="2"/>
         <glx rop="4274" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttrib3dNV" exec="dynamic"
+    <function name="VertexAttrib3dNV" exec="vtxfmt"
               vectorequiv="VertexAttrib3dvNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
@@ -12168,13 +11706,13 @@
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttrib3dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib3dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="3"/>
         <glx rop="4275" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttrib4dNV" exec="dynamic"
+    <function name="VertexAttrib4dNV" exec="vtxfmt"
               vectorequiv="VertexAttrib4dvNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
@@ -12183,13 +11721,13 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttrib4dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib4dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLdouble *" count="4"/>
         <glx rop="4276" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttrib4ubNV" exec="dynamic"
+    <function name="VertexAttrib4ubNV" exec="vtxfmt"
               vectorequiv="VertexAttrib4ubvNV" deprecated="3.1">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLubyte"/>
@@ -12198,97 +11736,97 @@
         <param name="w" type="GLubyte"/>
     </function>
 
-    <function name="VertexAttrib4ubvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttrib4ubvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLubyte *" count="4"/>
         <glx rop="4277"/>
     </function>
 
-    <function name="VertexAttribs1svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs1svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLshort *" count="n"/>
         <glx rop="4202"/>
     </function>
 
-    <function name="VertexAttribs2svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs2svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLshort *" count="n" count_scale="2"/>
         <glx rop="4203"/>
     </function>
 
-    <function name="VertexAttribs3svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs3svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLshort *" count="n" count_scale="3"/>
         <glx rop="4204"/>
     </function>
 
-    <function name="VertexAttribs4svNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs4svNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLshort *" count="n" count_scale="4"/>
         <glx rop="4205"/>
     </function>
 
-    <function name="VertexAttribs1fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs1fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLfloat *" count="n"/>
         <glx rop="4206"/>
     </function>
 
-    <function name="VertexAttribs2fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs2fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLfloat *" count="n" count_scale="2"/>
         <glx rop="4207"/>
     </function>
 
-    <function name="VertexAttribs3fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs3fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLfloat *" count="n" count_scale="3"/>
         <glx rop="4208"/>
     </function>
 
-    <function name="VertexAttribs4fvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs4fvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLfloat *" count="n" count_scale="4"/>
         <glx rop="4209"/>
     </function>
 
-    <function name="VertexAttribs1dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs1dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLdouble *" count="n"/>
         <glx rop="4210" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttribs2dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs2dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLdouble *" count="n" count_scale="2"/>
         <glx rop="4211" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttribs3dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs3dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLdouble *" count="n" count_scale="3"/>
         <glx rop="4212" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttribs4dvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs4dvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLdouble *" count="n" count_scale="4"/>
         <glx rop="4213" doubles_in_order="true"/>
     </function>
 
-    <function name="VertexAttribs4ubvNV" deprecated="3.1" exec="dynamic">
+    <function name="VertexAttribs4ubvNV" deprecated="3.1" exec="vtxfmt">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLsizei" counter="true"/>
         <param name="v" type="const GLubyte *" count="n" count_scale="4"/>
@@ -12497,7 +12035,7 @@
       <glx ignore="true"/>
     </function>
     
-    <function name="BindFragmentShaderATI" deprecated="3.1">
+    <function name="BindFragmentShaderATI" deprecated="3.1" exec="dlist">
       <param name="id" type="GLuint"/>
       <glx ignore="true"/>
     </function>
@@ -12610,7 +12148,7 @@
       <glx ignore="true"/>
     </function>
 
-    <function name="SetFragmentShaderConstantATI" deprecated="3.1">
+    <function name="SetFragmentShaderConstantATI" deprecated="3.1" exec="dlist">
       <param name="dst" type="GLuint"/>
       <param name="value" type="const GLfloat *" count="4"/>
       <glx ignore="true"/>
@@ -12710,7 +12248,7 @@
         <size name="Get" mode="get"/>
     </enum>
 
-    <function name="ActiveStencilFaceEXT" deprecated="3.1">
+    <function name="ActiveStencilFaceEXT" deprecated="3.1" exec="dlist">
         <param name="face" type="GLenum"/>
         <glx rop="4220"/>
     </function>
@@ -12842,7 +12380,7 @@
         <size name="Get" mode="get"/>
     </enum>
 
-    <function name="DepthBoundsEXT">
+    <function name="DepthBoundsEXT" exec="dlist">
         <param name="zmin" type="GLclampd"/>
         <param name="zmax" type="GLclampd"/>
         <glx rop="4229" ignore="true"/>
@@ -13077,7 +12615,7 @@
     <enum name="MAX_SUBPIXEL_PRECISION_BIAS_BITS_NV" value="0x9349">
         <size name="Get" mode="get"/>
     </enum>
-    <function name="SubpixelPrecisionBiasNV" es1="1.0" es2="2.0" no_error="true">
+    <function name="SubpixelPrecisionBiasNV" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="xbits" type="GLuint"/>
         <param name="ybits" type="GLuint"/>
     </function>
@@ -13093,7 +12631,7 @@
     <enum name="CONSERVATIVE_RASTER_DILATE_GRANULARITY_NV" value="0x937B">
         <size name="Get" mode="get"/>
     </enum>
-    <function name="ConservativeRasterParameterfNV" es1="1.0" es2="2.0" no_error="true">
+    <function name="ConservativeRasterParameterfNV" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
     </function>
@@ -13105,7 +12643,7 @@
     </enum>
     <enum name="CONSERVATIVE_RASTER_MODE_POST_SNAP_NV"   value="0x954E"/>
     <enum name="CONSERVATIVE_RASTER_MODE_PRE_SNAP_TRIANGLES_NV"   value="0x954F"/>
-    <function name="ConservativeRasterParameteriNV" es1="1.0" es2="2.0" no_error="true">
+    <function name="ConservativeRasterParameteriNV" es1="1.0" es2="2.0" no_error="true" exec="dlist">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
     </function>
@@ -13119,7 +12657,7 @@
     <enum name="POLYGON_OFFSET_CLAMP_EXT"             value="0x8E1B">
         <size name="Get" mode="get"/>
     </enum>
-    <function name="PolygonOffsetClampEXT" es1="1.0" es2="2.0">
+    <function name="PolygonOffsetClampEXT" es1="1.0" es2="2.0" exec="dlist">
         <param name="factor" type="GLfloat"/>
         <param name="units"  type="GLfloat"/>
         <param name="clamp"  type="GLfloat"/>
@@ -13190,7 +12728,7 @@
         <param name="zfail" type="GLenum"/>
         <param name="zpass" type="GLenum"/>
     </function>
-    <function name="StencilFuncSeparateATI" deprecated="3.1">
+    <function name="StencilFuncSeparateATI" deprecated="3.1" exec="dlist">
         <param name="frontfunc" type="GLenum"/>
         <param name="backfunc" type="GLenum"/>
         <param name="ref" type="GLint"/>
@@ -13200,14 +12738,14 @@
 </category>
 
 <category name="GL_EXT_gpu_program_parameters">
-    <function name="ProgramEnvParameters4fvEXT" deprecated="3.1">
+    <function name="ProgramEnvParameters4fvEXT" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="params" type="const GLfloat *" count="4"/>
     </function>
 
-    <function name="ProgramLocalParameters4fvEXT" deprecated="3.1">
+    <function name="ProgramLocalParameters4fvEXT" deprecated="3.1" exec="dlist">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
         <param name="count" type="GLsizei"/>
@@ -13335,7 +12873,7 @@
     </function>
 
     <!-- Set a GL error. Used by glthread to set errors without syncing. -->
-    <function name="InternalSetError" es2="2.0">
+    <function name="InternalSetError" es1="1.0" es2="2.0">
         <param name="error" type="GLenum"/>
     </function>
 </category>

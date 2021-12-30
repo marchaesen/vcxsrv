@@ -178,12 +178,6 @@ cleanup_submit(struct fd_batch *batch)
       batch->tile_fini = NULL;
    }
 
-   if (batch->tessellation) {
-      fd_bo_del(batch->tessfactor_bo);
-      fd_bo_del(batch->tessparam_bo);
-      fd_ringbuffer_del(batch->tess_addrs_constobj);
-   }
-
    fd_submit_del(batch->submit);
    batch->submit = NULL;
 }

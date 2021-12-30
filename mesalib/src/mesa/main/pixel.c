@@ -36,6 +36,7 @@
 #include "pixel.h"
 #include "pbo.h"
 #include "mtypes.h"
+#include "api_exec_decl.h"
 
 
 /**********************************************************************/

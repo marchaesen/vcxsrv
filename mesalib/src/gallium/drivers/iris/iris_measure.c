@@ -30,6 +30,7 @@
 #include "util/crc32.h"
 #include "iris_context.h"
 #include "iris_defines.h"
+#include "compiler/shader_info.h"
 
 void
 iris_init_screen_measure(struct iris_screen *screen)

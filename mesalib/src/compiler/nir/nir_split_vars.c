@@ -136,6 +136,7 @@ init_field_for_type(struct field *field, struct field *parent,
       } else {
          field->var = nir_variable_create(state->shader, mode, var_type, name);
       }
+      field->var->data.ray_query = state->base_var->data.ray_query;
    }
 }
 
@@ -525,6 +526,7 @@ create_split_array_vars(struct array_var_info *var_info,
          split->var = nir_variable_create(shader, mode,
                                           var_info->split_var_type, name);
       }
+      split->var->data.ray_query = var_info->base_var->data.ray_query;
    } else {
       assert(var_info->levels[level].split);
       split->num_splits = var_info->levels[level].array_len;

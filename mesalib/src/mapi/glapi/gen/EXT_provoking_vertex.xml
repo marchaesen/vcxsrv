@@ -26,7 +26,7 @@
     <enum name="PROVOKING_VERTEX"                         value="0x8E4F"/>
     <enum name="QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION" value="0x8E4C"/>
 
-    <function name="ProvokingVertex">
+    <function name="ProvokingVertex" exec="dlist">
         <param name="mode" type="GLenum"/>
     </function>
 

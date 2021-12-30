@@ -48,6 +48,7 @@ fdl6_tex_type(enum fdl_view_type type, bool storage)
    STATIC_ASSERT((unsigned) FDL_VIEW_TYPE_2D == (unsigned) A6XX_TEX_2D);
    STATIC_ASSERT((unsigned) FDL_VIEW_TYPE_CUBE == (unsigned) A6XX_TEX_CUBE);
    STATIC_ASSERT((unsigned) FDL_VIEW_TYPE_3D == (unsigned) A6XX_TEX_3D);
+   STATIC_ASSERT((unsigned) FDL_VIEW_TYPE_BUFFER == (unsigned) A6XX_TEX_BUFFER);
 
    return (storage && type == FDL_VIEW_TYPE_CUBE) ?
       A6XX_TEX_2D : (enum a6xx_tex_type) type;
@@ -61,8 +62,8 @@ fdl6_texswiz(const struct fdl_view_args *args, bool has_z24uint_s8uint)
    switch (args->format) {
    case PIPE_FORMAT_R8G8_R8B8_UNORM:
    case PIPE_FORMAT_G8R8_B8R8_UNORM:
-   case PIPE_FORMAT_R8_G8B8_420_UNORM:
-   case PIPE_FORMAT_R8_G8_B8_420_UNORM:
+   case PIPE_FORMAT_G8_B8R8_420_UNORM:
+   case PIPE_FORMAT_G8_B8_R8_420_UNORM:
       format_swiz[0] = PIPE_SWIZZLE_Z;
       format_swiz[1] = PIPE_SWIZZLE_X;
       format_swiz[2] = PIPE_SWIZZLE_Y;
@@ -89,7 +90,33 @@ fdl6_texswiz(const struct fdl_view_args *args, bool has_z24uint_s8uint)
          format_swiz[1] = PIPE_SWIZZLE_0;
       }
       break;
+
    default:
+      /* Our I, L, A, and LA formats use R or RG HW formats. */
+      if (util_format_is_alpha(args->format)) {
+         format_swiz[0] = PIPE_SWIZZLE_0;
+         format_swiz[1] = PIPE_SWIZZLE_0;
+         format_swiz[2] = PIPE_SWIZZLE_0;
+         format_swiz[3] = PIPE_SWIZZLE_X;
+      } else if (util_format_is_luminance(args->format)) {
+         format_swiz[0] = PIPE_SWIZZLE_X;
+         format_swiz[1] = PIPE_SWIZZLE_X;
+         format_swiz[2] = PIPE_SWIZZLE_X;
+         format_swiz[3] = PIPE_SWIZZLE_1;
+      } else if (util_format_is_intensity(args->format)) {
+         format_swiz[0] = PIPE_SWIZZLE_X;
+         format_swiz[1] = PIPE_SWIZZLE_X;
+         format_swiz[2] = PIPE_SWIZZLE_X;
+         format_swiz[3] = PIPE_SWIZZLE_X;
+      } else if (util_format_is_luminance_alpha(args->format)) {
+         format_swiz[0] = PIPE_SWIZZLE_X;
+         format_swiz[1] = PIPE_SWIZZLE_X;
+         format_swiz[2] = PIPE_SWIZZLE_X;
+         format_swiz[3] = PIPE_SWIZZLE_Y;
+      } else if (!util_format_has_alpha(args->format)) {
+         /* for rgbx, force A to 1.  Harmless for R/RG, where we already get 1. */
+         format_swiz[3] = PIPE_SWIZZLE_1;
+      }
       break;
    }
 
@@ -182,7 +209,8 @@ fdl6_view_init(struct fdl6_view *view, const struct fdl_layout **layouts,
       view->descriptor[3] |= A6XX_TEX_CONST_3_TILE_ALL;
 
    if (args->format == PIPE_FORMAT_R8_G8B8_420_UNORM ||
-       args->format == PIPE_FORMAT_R8_G8_B8_420_UNORM) {
+       args->format == PIPE_FORMAT_G8_B8R8_420_UNORM ||
+       args->format == PIPE_FORMAT_G8_B8_R8_420_UNORM) {
       /* chroma offset re-uses MIPLVLS bits */
       assert(args->level_count == 1);
       if (args->chroma_offsets[0] == FDL_CHROMA_LOCATION_MIDPOINT)
@@ -192,7 +220,6 @@ fdl6_view_init(struct fdl6_view *view, const struct fdl_layout **layouts,
 
       uint64_t base_addr[3];
 
-      view->descriptor[3] |= A6XX_TEX_CONST_3_TILE_ALL;
       if (ubwc_enabled) {
          view->descriptor[3] |= A6XX_TEX_CONST_3_FLAG;
          /* no separate ubwc base, image must have the expected layout */
@@ -343,4 +370,31 @@ fdl6_view_init(struct fdl6_view *view, const struct fdl_layout **layouts,
       A6XX_RB_BLIT_DST_INFO_COLOR_FORMAT(color_format) |
       A6XX_RB_BLIT_DST_INFO_COLOR_SWAP(color_swap) |
       COND(ubwc_enabled, A6XX_RB_BLIT_DST_INFO_FLAGS);
+}
+
+void
+fdl6_buffer_view_init(uint32_t *descriptor, enum pipe_format format,
+                      const uint8_t *swiz, uint64_t iova, uint32_t size)
+{
+   unsigned elements = size / util_format_get_blocksize(format);
+
+   struct fdl_view_args args = {
+      .format = format,
+      .swiz = {swiz[0], swiz[1], swiz[2], swiz[3]},
+   };
+
+   memset(descriptor, 0, 4 * FDL6_TEX_CONST_DWORDS);
+
+   descriptor[0] =
+      A6XX_TEX_CONST_0_TILE_MODE(TILE6_LINEAR) |
+      A6XX_TEX_CONST_0_SWAP(fd6_texture_swap(format, TILE6_LINEAR)) |
+      A6XX_TEX_CONST_0_FMT(fd6_texture_format(format, TILE6_LINEAR)) |
+      A6XX_TEX_CONST_0_MIPLVLS(0) | fdl6_texswiz(&args, false) |
+      COND(util_format_is_srgb(format), A6XX_TEX_CONST_0_SRGB);
+   descriptor[1] = A6XX_TEX_CONST_1_WIDTH(elements & ((1 << 15) - 1)) |
+                   A6XX_TEX_CONST_1_HEIGHT(elements >> 15);
+   descriptor[2] = A6XX_TEX_CONST_2_BUFFER |
+                   A6XX_TEX_CONST_2_TYPE(A6XX_TEX_BUFFER);
+   descriptor[4] = iova;
+   descriptor[5] = iova >> 32;
 }

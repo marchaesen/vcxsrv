@@ -124,6 +124,13 @@ resource_dimension(enum glsl_sampler_dim dim)
    }
 }
 
+static bool
+can_remove_dead_sampler(nir_variable *var, void *data)
+{
+   const struct glsl_type *base_type = glsl_without_array(var->type);
+   return glsl_type_is_sampler(base_type) && !glsl_type_is_bare_sampler(base_type);
+}
+
 static struct d3d12_shader *
 compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
             struct d3d12_shader_key *key, struct nir_shader *nir)
@@ -135,7 +142,12 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    sel->current = shader;
 
    NIR_PASS_V(nir, nir_lower_samplers);
-   NIR_PASS_V(nir, dxil_nir_create_bare_samplers);
+   NIR_PASS_V(nir, dxil_nir_split_typed_samplers);
+
+   NIR_PASS_V(nir, nir_opt_dce);
+   struct nir_remove_dead_variables_options dead_var_opts = {};
+   dead_var_opts.can_remove_var = can_remove_dead_sampler;
+   NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_uniform, &dead_var_opts);
 
    if (key->samples_int_textures)
       NIR_PASS_V(nir, dxil_lower_sample_to_txf_for_integer_tex,
@@ -161,6 +173,7 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    NIR_PASS_V(nir, d3d12_lower_load_first_vertex);
    NIR_PASS_V(nir, d3d12_lower_state_vars, shader);
    NIR_PASS_V(nir, dxil_nir_lower_bool_input);
+   NIR_PASS_V(nir, dxil_nir_lower_loads_stores_to_dxil);
 
    struct nir_to_dxil_options opts = {};
    opts.interpolate_at_vertex = screen->have_load_at_vertex;
@@ -178,7 +191,7 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    shader->begin_srv_binding = (UINT_MAX);
    nir_foreach_variable_with_modes(var, nir, nir_var_uniform) {
       auto type = glsl_without_array(var->type);
-      if (glsl_type_is_sampler(type) && glsl_get_sampler_result_type(type) != GLSL_TYPE_VOID) {
+      if (glsl_type_is_texture(type)) {
          unsigned count = glsl_type_is_array(var->type) ? glsl_get_aoa_size(var->type) : 1;
          for (unsigned i = 0; i < count; ++i) {
             shader->srv_bindings[var->data.binding + i].binding = var->data.binding;

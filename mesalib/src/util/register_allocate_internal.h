@@ -92,8 +92,6 @@ struct ra_node {
     * List of which nodes this node interferes with.  This should be
     * symmetric with the other node.
     */
-   BITSET_WORD *adjacency;
-
    struct util_dynarray adjacency_list;
    /** @} */
 
@@ -132,6 +130,7 @@ struct ra_graph {
     * the variables that need register allocation.
     */
    struct ra_node *nodes;
+   BITSET_WORD *adjacency;
    unsigned int count; /**< count of nodes. */
 
    unsigned int alloc; /**< count of nodes allocated. */

@@ -37,9 +37,6 @@ typedef enum {
 	RC_OPCODE_NOP = 0,
 	RC_OPCODE_ILLEGAL_OPCODE,
 
-	/** vec4 instruction: dst.c = abs(src0.c); */
-	RC_OPCODE_ABS,
-
 	/** vec4 instruction: dst.c = src0.c + src1.c; */
 	RC_OPCODE_ADD,
 
@@ -53,9 +50,6 @@ typedef enum {
 
 	/** vec4 instruction: dst.c = ceil(src0.c) */
 	RC_OPCODE_CEIL,
-
-	/** vec4 instruction: dst.c = clamp(src0.c, src1.c, src2.c) */
-	RC_OPCODE_CLAMP,
 
 	/** vec4 instruction: dst.c = src0.c < 0.0 ? src1.c : src2.c */
 	RC_OPCODE_CMP,
@@ -82,9 +76,6 @@ typedef enum {
 
 	/** scalar instruction: dst = src0.x*src1.x + src0.y*src1.y + src0.z*src1.z + src0.w*src1.w */
 	RC_OPCODE_DP4,
-
-	/** scalar instruction: dst = src0.x*src1.x + src0.y*src1.y + src0.z*src1.z + src1.w */
-	RC_OPCODE_DPH,
 
 	/** special instruction, see ARB_fragment_program */
 	RC_OPCODE_DST,
@@ -143,14 +134,8 @@ typedef enum {
 	/** scalar instruction: dst = 1 / sqrt(src0.x) */
 	RC_OPCODE_RSQ,
 
-	/** special instruction, see ARB_fragment_program */
-	RC_OPCODE_SCS,
-
 	/** vec4 instruction: dst.c = (src0.c == src1.c) ? 1.0 : 0.0 */
 	RC_OPCODE_SEQ,
-
-	/** vec4 instruction: dst.c = 0.0 */
-	RC_OPCODE_SFL,
 
 	/** vec4 instruction: dst.c = (src0.c >= src1.c) ? 1.0 : 0.0 */
 	RC_OPCODE_SGE,
@@ -176,14 +161,8 @@ typedef enum {
 	/** vec4 instruction: dst.c = src0.c - src1.c */
 	RC_OPCODE_SUB,
 
-	/** vec4 instruction: dst.c = src0.c */
-	RC_OPCODE_SWZ,
-
 	/** vec4 instruction: dst.c = (abs(src0.c) - fract(abs(src0.c))) * sgn(src0.c) */
 	RC_OPCODE_TRUNC,
-
-	/** special instruction, see ARB_fragment_program */
-	RC_OPCODE_XPD,
 
 	RC_OPCODE_TEX,
 	RC_OPCODE_TXB,

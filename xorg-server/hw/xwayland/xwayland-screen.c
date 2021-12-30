@@ -149,6 +149,24 @@ xwl_property_callback(CallbackListPtr *pcbl, void *closure,
         xwl_window_update_property(xwl_window, rec);
 }
 
+static void
+xwl_root_window_finalized_callback(CallbackListPtr *pcbl,
+                                   void *closure,
+                                   void *calldata)
+{
+    ScreenPtr screen = closure;
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    struct xwl_queued_drm_lease_device *queued_device, *next;
+
+    xorg_list_for_each_entry_safe(queued_device, next,
+                                  &xwl_screen->queued_drm_lease_devices, link) {
+        xwl_screen_add_drm_lease_device(xwl_screen, queued_device->id);
+        xorg_list_del(&queued_device->link);
+        free(queued_device);
+    }
+    DeleteCallback(&RootWindowFinalizeCallback, xwl_root_window_finalized_callback, screen);
+}
+
 Bool
 xwl_close_screen(ScreenPtr screen)
 {
@@ -167,6 +185,12 @@ xwl_close_screen(ScreenPtr screen)
         xwl_seat_destroy(xwl_seat);
 
     xwl_screen_release_tablet_manager(xwl_screen);
+
+    struct xwl_drm_lease_device *device_data, *next;
+    xorg_list_for_each_entry_safe(device_data, next,
+                                  &xwl_screen->drm_lease_devices, link)
+        xwl_screen_destroy_drm_lease_device(xwl_screen,
+                                            device_data->drm_lease_device);
 
     RemoveNotifyFd(xwl_screen->wayland_fd);
 
@@ -392,6 +416,15 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
             wl_registry_bind(registry, id, &zxdg_output_manager_v1_interface, version);
         xwl_screen_init_xdg_output(xwl_screen);
     }
+    else if (strcmp(interface, "wp_drm_lease_device_v1") == 0) {
+        if (xwl_screen->screen->root == NULL) {
+            struct xwl_queued_drm_lease_device *queued = malloc(sizeof(struct xwl_queued_drm_lease_device));
+            queued->id = id;
+            xorg_list_append(&queued->link, &xwl_screen->queued_drm_lease_devices);
+        } else {
+            xwl_screen_add_drm_lease_device(xwl_screen, id);
+        }
+    }
     else if (strcmp(interface, "wp_viewporter") == 0) {
         xwl_screen->viewporter = wl_registry_bind(registry, id, &wp_viewporter_interface, 1);
     }
@@ -408,11 +441,20 @@ global_remove(void *data, struct wl_registry *registry, uint32_t name)
 {
     struct xwl_screen *xwl_screen = data;
     struct xwl_output *xwl_output, *tmp_xwl_output;
+    struct xwl_drm_lease_device *lease_device, *tmp_lease_device;
 
     xorg_list_for_each_entry_safe(xwl_output, tmp_xwl_output,
                                   &xwl_screen->output_list, link) {
         if (xwl_output->server_output_id == name) {
             xwl_output_remove(xwl_output);
+            break;
+        }
+    }
+
+    xorg_list_for_each_entry_safe(lease_device, tmp_lease_device,
+                                  &xwl_screen->drm_lease_devices, link) {
+        if (lease_device->id == name) {
+            wp_drm_lease_device_v1_release(lease_device->drm_lease_device);
             break;
         }
     }
@@ -475,13 +517,13 @@ xwl_dispatch_events (struct xwl_screen *xwl_screen)
 pollout:
     ready = xwl_display_pollout(xwl_screen, 5);
     if (ready == -1 && errno != EINTR)
-        xwl_give_up("error polling on XWayland fd: %s\n", strerror(errno));
+        xwl_give_up("error polling on Xwayland fd: %s\n", strerror(errno));
 
     if (ready > 0)
         ret = wl_display_flush(xwl_screen->display);
 
     if (ret == -1 && errno != EAGAIN)
-        xwl_give_up("failed to write to XWayland fd: %s\n", strerror(errno));
+        xwl_give_up("failed to write to Xwayland fd: %s\n", strerror(errno));
 
     xwl_screen->wait_flush = (ready == 0 || ready == -1 || ret == -1);
 }
@@ -619,6 +661,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xorg_list_init(&xwl_screen->seat_list);
     xorg_list_init(&xwl_screen->damage_window_list);
     xorg_list_init(&xwl_screen->window_list);
+    xorg_list_init(&xwl_screen->drm_lease_devices);
+    xorg_list_init(&xwl_screen->queued_drm_lease_devices);
+    xorg_list_init(&xwl_screen->drm_leases);
     xwl_screen->depth = 24;
 
     if (!monitorResolution)
@@ -744,6 +789,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
 
     AddCallback(&PropertyStateCallback, xwl_property_callback, pScreen);
+    AddCallback(&RootWindowFinalizeCallback, xwl_root_window_finalized_callback, pScreen);
 
     xwl_screen_roundtrip(xwl_screen);
 

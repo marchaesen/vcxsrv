@@ -136,6 +136,9 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
    if (res->b.b.flags & SI_RESOURCE_FLAG_DRIVER_INTERNAL)
       res->flags |= RADEON_FLAG_DRIVER_INTERNAL;
 
+   if (res->b.b.flags & PIPE_RESOURCE_FLAG_SPARSE)
+      res->flags |= RADEON_FLAG_SPARSE;
+
    /* For higher throughput and lower latency over PCIe assuming sequential access.
     * Only CP DMA and optimized compute benefit from this.
     * GFX8 and older don't support RADEON_FLAG_UNCACHED.
@@ -588,9 +591,6 @@ static struct pipe_resource *si_buffer_create(struct pipe_screen *screen,
 
    si_init_resource_fields(sscreen, buf, templ->width0, alignment);
 
-   if (templ->flags & PIPE_RESOURCE_FLAG_SPARSE)
-      buf->flags |= RADEON_FLAG_SPARSE;
-
    buf->b.buffer_id_unique = util_idalloc_mt_alloc(&sscreen->buffer_ids);
 
    if (!si_alloc_resource(sscreen, buf)) {
@@ -694,6 +694,12 @@ static struct pipe_resource *si_resource_create(struct pipe_screen *screen,
    }
 }
 
+static bool si_buffer_commit(struct si_context *ctx, struct si_resource *res,
+                             struct pipe_box *box, bool commit)
+{
+   return ctx->ws->buffer_commit(ctx->ws, res->buf, box->x, box->width, commit);
+}
+
 static bool si_resource_commit(struct pipe_context *pctx, struct pipe_resource *resource,
                                unsigned level, struct pipe_box *box, bool commit)
 {
@@ -713,9 +719,10 @@ static bool si_resource_commit(struct pipe_context *pctx, struct pipe_resource *
    }
    ctx->ws->cs_sync_flush(&ctx->gfx_cs);
 
-   assert(resource->target == PIPE_BUFFER);
-
-   return ctx->ws->buffer_commit(ctx->ws, res->buf, box->x, box->width, commit);
+   if (resource->target == PIPE_BUFFER)
+      return si_buffer_commit(ctx, res, box, commit);
+   else
+      return si_texture_commit(ctx, res, level, box, commit);
 }
 
 void si_init_screen_buffer_functions(struct si_screen *sscreen)

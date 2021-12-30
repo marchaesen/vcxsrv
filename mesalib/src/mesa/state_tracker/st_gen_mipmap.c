@@ -45,10 +45,6 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_texture.h"
 
-
-/**
- * Called via ctx->Driver.GenerateMipmap().
- */
 void
 st_generate_mipmap(struct gl_context *ctx, GLenum target,
                    struct gl_texture_object *texObj)

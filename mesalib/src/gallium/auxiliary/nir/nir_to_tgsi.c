@@ -374,8 +374,21 @@ ntt_setup_inputs(struct ntt_compile *c)
 
       if (semantic_name == TGSI_SEMANTIC_FACE) {
          struct ureg_dst temp = ureg_DECL_temporary(c->ureg);
-         /* NIR is ~0 front and 0 back, while TGSI is +1 front */
-         ureg_SGE(c->ureg, temp, decl, ureg_imm1f(c->ureg, 0));
+         if (c->native_integers) {
+            /* NIR is ~0 front and 0 back, while TGSI is +1 front */
+            ureg_SGE(c->ureg, temp, decl, ureg_imm1f(c->ureg, 0));
+         } else {
+            /* tgsi docs say that floating point FACE will be positive for
+             * frontface and negative for backface, but realistically
+             * GLSL-to-TGSI had been doing MOV_SAT to turn it into 0.0 vs 1.0.
+             * Copy that behavior, since some drivers (r300) have been doing a
+             * 0.0 vs 1.0 backface (and I don't think anybody has a non-1.0
+             * front face).
+             */
+            temp.Saturate = true;
+            ureg_MOV(c->ureg, temp, decl);
+
+         }
          decl = ureg_src(temp);
       }
 
@@ -850,6 +863,8 @@ ntt_emit_alu(struct ntt_compile *c, nir_alu_instr *instr)
    int src_64 = nir_src_bit_size(instr->src[0].src) == 64;
    int num_srcs = nir_op_infos[instr->op].num_inputs;
 
+   ureg_set_precise(c->ureg, instr->exact);
+
    assert(num_srcs <= ARRAY_SIZE(src));
    for (i = 0; i < num_srcs; i++)
       src[i] = ntt_get_alu_src(c, instr, i);
@@ -1249,6 +1264,8 @@ ntt_emit_alu(struct ntt_compile *c, nir_alu_instr *instr)
       }
       ureg_release_temporary(c->ureg, dst);
    }
+
+   ureg_set_precise(c->ureg, false);
 }
 
 static struct ureg_src
@@ -2324,7 +2341,12 @@ static void
 ntt_emit_if(struct ntt_compile *c, nir_if *if_stmt)
 {
    unsigned label;
-   ureg_UIF(c->ureg, c->if_cond, &label);
+
+   if (c->native_integers)
+      ureg_UIF(c->ureg, c->if_cond, &label);
+   else
+      ureg_IF(c->ureg, c->if_cond, &label);
+
    ntt_emit_cf_list(c, &if_stmt->then_list);
 
    if (!nir_cf_list_is_empty_block(&if_stmt->else_list)) {
@@ -3061,7 +3083,6 @@ nir_to_tgsi(struct nir_shader *s,
 {
    struct ntt_compile *c;
    const void *tgsi_tokens;
-   bool debug = env_var_as_boolean("NIR_TO_TGSI_DEBUG", false);
    nir_variable_mode no_indirects_mask = ntt_no_indirects_mask(s, screen);
    bool native_integers = screen->get_shader_param(screen,
                                                    pipe_shader_type_from_mesa(s->info.stage),
@@ -3130,6 +3151,12 @@ nir_to_tgsi(struct nir_shader *s,
       NIR_PASS_V(s, nir_opt_dce);
    }
 
+   nir_move_options move_all =
+       nir_move_const_undef | nir_move_load_ubo | nir_move_load_input |
+       nir_move_comparisons | nir_move_copies | nir_move_load_ssbo;
+
+   NIR_PASS_V(s, nir_opt_move, move_all);
+
    /* Only lower 32-bit floats.  The only other modifier type officially
     * supported by TGSI is 32-bit integer negates, but even those are broken on
     * virglrenderer, so skip lowering all integer and f64 float mods.
@@ -3142,7 +3169,7 @@ nir_to_tgsi(struct nir_shader *s,
    NIR_PASS_V(s, nir_lower_locals_to_regs);
    NIR_PASS_V(s, nir_opt_dce);
 
-   if (debug) {
+   if (NIR_DEBUG(TGSI)) {
       fprintf(stderr, "NIR before translation to TGSI:\n");
       nir_print_shader(s, stderr);
    }
@@ -3192,7 +3219,7 @@ nir_to_tgsi(struct nir_shader *s,
 
    tgsi_tokens = ureg_get_tokens(c->ureg, NULL);
 
-   if (debug) {
+   if (NIR_DEBUG(TGSI)) {
       fprintf(stderr, "TGSI after translation from NIR:\n");
       tgsi_dump(tgsi_tokens, 0);
    }

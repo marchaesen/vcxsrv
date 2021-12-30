@@ -46,7 +46,7 @@
 
 #include "util/format/u_format.h"
 
-static void
+void
 st_BlitFramebuffer(struct gl_context *ctx,
                    struct gl_framebuffer *readFB,
                    struct gl_framebuffer *drawFB,
@@ -320,11 +320,4 @@ st_BlitFramebuffer(struct gl_context *ctx,
          }
       }
    }
-}
-
-
-void
-st_init_blit_functions(struct dd_function_table *functions)
-{
-   functions->BlitFramebuffer = st_BlitFramebuffer;
 }

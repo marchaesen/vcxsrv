@@ -134,7 +134,7 @@ xkb_symbols "zwnj2zwj3nb4" {
 
 // ZWNJ on level 2
 // NBSP on level 3
-// Used by ir(ku_ara), af(basic), af(ps), af(uz), af(olpc-fa), af(olpc-ps), af(olpc-uz)
+// Used by ir(ku_ara), af(basic), af(ps), af(uz), af(fa-olpc), af(ps-olpc), af(uz-olpc)
 partial
 xkb_symbols "zwnj2nb3" {
   key <SPCE> {

@@ -389,4 +389,16 @@ FreedrenoDriver::counter(std::string name, Counter::Units units,
    return counter;
 }
 
+uint32_t
+FreedrenoDriver::gpu_clock_id() const
+{
+   return perfetto::protos::pbzero::BUILTIN_CLOCK_BOOTTIME;
+}
+
+uint64_t
+FreedrenoDriver::gpu_timestamp() const
+{
+   return perfetto::base::GetBootTimeNs().count();
+}
+
 } // namespace pps

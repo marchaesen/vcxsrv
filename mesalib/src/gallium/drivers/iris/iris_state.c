@@ -939,6 +939,20 @@ iris_alloc_push_constants(struct iris_batch *batch)
          alloc.ConstantBufferSize = i == MESA_SHADER_FRAGMENT ? frag_size : stage_size;
       }
    }
+
+#if GFX_VERx10 == 125
+   /* Wa_22011440098
+    *
+    * In 3D mode, after programming push constant alloc command immediately
+    * program push constant command(ZERO length) without any commit between
+    * them.
+    */
+   if (intel_device_info_is_dg2(devinfo)) {
+      iris_emit_cmd(batch, GENX(3DSTATE_CONSTANT_ALL), c) {
+         c.MOCS = iris_mocs(NULL, &batch->screen->isl_dev, 0);
+      }
+   }
+#endif
 }
 
 #if GFX_VER >= 12
@@ -1011,7 +1025,7 @@ iris_init_render_context(struct iris_batch *batch)
       reg.PartialResolveDisableInVCMask = true;
    }
 
-   if (devinfo->is_geminilake)
+   if (devinfo->platform == INTEL_PLATFORM_GLK)
       init_glk_barrier_mode(batch, GLK_BARRIER_MODE_3D_HULL);
 #endif
 
@@ -1112,7 +1126,7 @@ iris_init_compute_context(struct iris_batch *batch)
 #endif
 
 #if GFX_VER == 9
-   if (devinfo->is_geminilake)
+   if (devinfo->platform == INTEL_PLATFORM_GLK)
       init_glk_barrier_mode(batch, GLK_BARRIER_MODE_GPGPU);
 #endif
 
@@ -4288,8 +4302,6 @@ iris_populate_fs_key(const struct iris_context *ice,
    key->force_dual_color_blend =
       screen->driconf.dual_color_blend_by_location &&
       (blend->blend_enables & 1) && blend->dual_color_blending;
-
-   /* TODO: Respect glHint for key->high_quality_derivatives */
 }
 
 static void
@@ -5375,6 +5387,17 @@ iris_update_surface_base_address(struct iris_batch *batch,
       emit_pipeline_select(batch, GPGPU);
 #endif
 
+   if (GFX_VERx10 >= 125) {
+      iris_emit_cmd(batch, GENX(3DSTATE_BINDING_TABLE_POOL_ALLOC), btpa) {
+         btpa.BindingTablePoolBaseAddress = ro_bo(binder->bo, 0);
+         btpa.BindingTablePoolBufferSize = IRIS_BINDER_SIZE / 4096;
+#if GFX_VERx10 < 125
+         btpa.BindingTablePoolEnable = true;
+#endif
+         btpa.MOCS = mocs;
+      }
+   }
+
    flush_after_state_base_change(batch);
    iris_batch_sync_region_end(batch);
 
@@ -6107,6 +6130,15 @@ iris_upload_dirty_render_state(struct iris_context *ice,
       }
 
       if ((dirty & IRIS_DIRTY_SO_DECL_LIST) && ice->state.streamout) {
+         /* Wa_16011773973:
+          * If SOL is enabled and SO_DECL state has to be programmed,
+          *    1. Send 3D State SOL state with SOL disabled
+          *    2. Send SO_DECL NP state
+          *    3. Send 3D State SOL with SOL Enabled
+          */
+         if (intel_device_info_is_dg2(&batch->screen->devinfo))
+            iris_emit_cmd(batch, GENX(3DSTATE_STREAMOUT), sol);
+
          uint32_t *decl_list =
             ice->state.streamout + GENX(3DSTATE_STREAMOUT_length);
          iris_batch_emit(batch, decl_list, 4 * ((decl_list[0] & 0xff) + 2));
@@ -6618,6 +6650,9 @@ iris_upload_dirty_render_state(struct iris_context *ice,
             ice->shaders.prog[MESA_SHADER_TESS_EVAL] != NULL ? RR_STRICT :
                                                                RR_FREE;
          vfg.DistributionGranularity = BatchLevelGranularity;
+         /* Wa_14014890652 */
+         if (intel_device_info_is_dg2(&batch->screen->devinfo))
+            vfg.GranularityThresholdDisable = 1;
          vfg.ListCutIndexEnable = draw->primitive_restart;
          /* 192 vertices for TRILIST_ADJ */
          vfg.ListNBatchSizeScale = 0;
@@ -6929,18 +6964,14 @@ iris_load_indirect_location(struct iris_context *ice,
 
    struct iris_state_ref *grid_size = &ice->state.grid_size;
    struct iris_bo *bo = iris_resource_bo(grid_size->res);
-   iris_emit_cmd(batch, GENX(MI_LOAD_REGISTER_MEM), lrm) {
-      lrm.RegisterAddress = GPGPU_DISPATCHDIMX;
-      lrm.MemoryAddress = ro_bo(bo, grid_size->offset + 0);
-   }
-   iris_emit_cmd(batch, GENX(MI_LOAD_REGISTER_MEM), lrm) {
-      lrm.RegisterAddress = GPGPU_DISPATCHDIMY;
-      lrm.MemoryAddress = ro_bo(bo, grid_size->offset + 4);
-   }
-   iris_emit_cmd(batch, GENX(MI_LOAD_REGISTER_MEM), lrm) {
-      lrm.RegisterAddress = GPGPU_DISPATCHDIMZ;
-      lrm.MemoryAddress = ro_bo(bo, grid_size->offset + 8);
-   }
+   struct mi_builder b;
+   mi_builder_init(&b, &batch->screen->devinfo, batch);
+   struct mi_value size_x = mi_mem32(ro_bo(bo, grid_size->offset + 0));
+   struct mi_value size_y = mi_mem32(ro_bo(bo, grid_size->offset + 4));
+   struct mi_value size_z = mi_mem32(ro_bo(bo, grid_size->offset + 8));
+   mi_store(&b, mi_reg32(GPGPU_DISPATCHDIMX), size_x);
+   mi_store(&b, mi_reg32(GPGPU_DISPATCHDIMY), size_y);
+   mi_store(&b, mi_reg32(GPGPU_DISPATCHDIMZ), size_z);
 }
 
 #if GFX_VERx10 >= 125
@@ -6986,6 +7017,7 @@ iris_upload_compute_walker(struct iris_context *ice,
       cw.ThreadGroupIDYDimension        = grid->grid[1];
       cw.ThreadGroupIDZDimension        = grid->grid[2];
       cw.ExecutionMask                  = dispatch.right_mask;
+      cw.PostSync.MOCS                  = iris_mocs(NULL, &screen->isl_dev, 0);
 
       cw.InterfaceDescriptor = (struct GENX(INTERFACE_DESCRIPTOR_DATA)) {
          .KernelStartPointer = KSP(shader),

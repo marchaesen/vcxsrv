@@ -214,9 +214,10 @@ void r300_translate_vertex_shader(struct r300_context *r300,
     rc_init(&compiler.Base, NULL);
 
     DBG_ON(r300, DBG_VP) ? compiler.Base.Debug |= RC_DBG_LOG : 0;
-    DBG_ON(r300, DBG_P_STAT) ? compiler.Base.Debug |= RC_DBG_STATS : 0;
     compiler.code = &vs->code;
     compiler.UserData = vs;
+    if (!vs->dummy)
+        compiler.Base.debug = &r300->debug;
     compiler.Base.is_r500 = r300->screen->caps.is_r500;
     compiler.Base.disable_optimizations = DBG_ON(r300, DBG_NO_OPT);
     compiler.Base.has_half_swizzles = FALSE;

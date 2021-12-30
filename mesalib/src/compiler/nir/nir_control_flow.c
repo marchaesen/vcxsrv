@@ -413,7 +413,8 @@ insert_non_block(nir_block *before, nir_cf_node *node, nir_block *after)
 {
    node->parent = before->cf_node.parent;
    exec_node_insert_after(&before->cf_node.node, &node->node);
-   link_block_to_non_block(before, node);
+   if (!nir_block_ends_in_jump(before))
+      link_block_to_non_block(before, node);
    link_non_block_to_block(node, after);
 }
 

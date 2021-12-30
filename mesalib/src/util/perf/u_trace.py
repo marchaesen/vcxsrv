@@ -23,7 +23,7 @@
 
 from mako.template import Template
 from collections import namedtuple
-from enum import Flag, auto
+from enum import IntEnum
 import os
 
 TRACEPOINTS = {}
@@ -31,7 +31,9 @@ TRACEPOINTS = {}
 class Tracepoint(object):
     """Class that represents all the information about a tracepoint
     """
-    def __init__(self, name, args=[], tp_struct=None, tp_print=None, tp_perfetto=None):
+    def __init__(self, name, args=[],
+                 tp_struct=None, tp_print=None, tp_perfetto=None,
+                 end_of_pipe=False):
         """Parameters:
 
         - name: the tracepoint name, a tracepoint function with the given
@@ -54,6 +56,7 @@ class Tracepoint(object):
         self.tp_struct = tp_struct
         self.tp_print = tp_print
         self.tp_perfetto = tp_perfetto
+        self.end_of_pipe = end_of_pipe
 
         TRACEPOINTS[name] = self
 
@@ -101,9 +104,9 @@ class TracepointArg(object):
 
 HEADERS = []
 
-class HeaderScope(Flag):
-   HEADER = auto()
-   SOURCE = auto()
+class HeaderScope(IntEnum):
+   HEADER = (1 << 0)
+   SOURCE = (1 << 1)
 
 class Header(object):
     """Class that represents a header file dependency of generated tracepoints
@@ -209,9 +212,9 @@ static inline void trace_${trace_name}(struct u_trace *ut, void *cs
 %    endfor
 ) {
 %    if trace.tp_perfetto is not None:
-   if (!unlikely(ut->enabled || ut_perfetto_enabled))
+   if (!unlikely(ut->enabled || ut_trace_instrument || ut_perfetto_enabled))
 %    else:
-   if (!unlikely(ut->enabled))
+   if (!unlikely(ut->enabled || ut_trace_instrument))
 %    endif
       return;
    __trace_${trace_name}(ut, cs
@@ -296,6 +299,7 @@ static void __print_${trace_name}(FILE *out, const void *arg) {
 static const struct u_tracepoint __tp_${trace_name} = {
     ALIGN_POT(sizeof(struct trace_${trace_name}), 8),   /* keep size 64b aligned */
     "${trace_name}",
+    ${"true" if trace.end_of_pipe else "false"},
     __print_${trace_name},
 %    if trace.tp_perfetto is not None:
 #ifdef HAVE_PERFETTO

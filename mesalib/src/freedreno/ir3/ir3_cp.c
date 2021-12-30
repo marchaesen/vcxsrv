@@ -397,6 +397,11 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
              conflicts(instr->address, reg->def->instr->address))
             return false;
 
+         /* These macros expand to a mov in an if statement */
+         if ((src_reg->flags & IR3_REG_RELATIV) &&
+             is_subgroup_cond_mov_macro(instr))
+            return false;
+
          /* This seems to be a hw bug, or something where the timings
           * just somehow don't work out.  This restriction may only
           * apply if the first src is also CONST.

@@ -31,14 +31,13 @@
 #include "st_texture.h"
 #include "st_util.h"
 #include "st_cb_bitmap.h"
-#include "st_cb_bufferobjects.h"
 #include "st_cb_semaphoreobjects.h"
 
 #include "frontend/drm_driver.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
 
-static struct gl_semaphore_object *
+struct gl_semaphore_object *
 st_semaphoreobj_alloc(struct gl_context *ctx, GLuint name)
 {
    struct st_semaphore_object *st_obj = ST_CALLOC_STRUCT(st_semaphore_object);
@@ -49,7 +48,7 @@ st_semaphoreobj_alloc(struct gl_context *ctx, GLuint name)
    return &st_obj->Base;
 }
 
-static void
+void
 st_semaphoreobj_free(struct gl_context *ctx,
                      struct gl_semaphore_object *semObj)
 {
@@ -57,10 +56,10 @@ st_semaphoreobj_free(struct gl_context *ctx,
 }
 
 
-static void
+void
 st_import_semaphoreobj_fd(struct gl_context *ctx,
-                       struct gl_semaphore_object *semObj,
-                       int fd)
+                          struct gl_semaphore_object *semObj,
+                          int fd)
 {
    struct st_semaphore_object *st_obj = st_semaphore_object(semObj);
    struct st_context *st = st_context(ctx);
@@ -74,7 +73,7 @@ st_import_semaphoreobj_fd(struct gl_context *ctx,
 #endif
 }
 
-static void
+void
 st_server_wait_semaphore(struct gl_context *ctx,
                          struct gl_semaphore_object *semObj,
                          GLuint numBufferBarriers,
@@ -86,7 +85,7 @@ st_server_wait_semaphore(struct gl_context *ctx,
    struct st_semaphore_object *st_obj = st_semaphore_object(semObj);
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_buffer_object *bufObj;
+   struct gl_buffer_object *bufObj;
    struct st_texture_object *texObj;
 
    /* The driver is allowed to flush during fence_server_sync, be prepared */
@@ -108,7 +107,7 @@ st_server_wait_semaphore(struct gl_context *ctx,
       if (!bufObjs[i])
          continue;
 
-      bufObj = st_buffer_object(bufObjs[i]);
+      bufObj = bufObjs[i];
       if (bufObj->buffer)
          pipe->flush_resource(pipe, bufObj->buffer);
    }
@@ -123,7 +122,7 @@ st_server_wait_semaphore(struct gl_context *ctx,
    }
 }
 
-static void
+void
 st_server_signal_semaphore(struct gl_context *ctx,
                            struct gl_semaphore_object *semObj,
                            GLuint numBufferBarriers,
@@ -135,14 +134,14 @@ st_server_signal_semaphore(struct gl_context *ctx,
    struct st_semaphore_object *st_obj = st_semaphore_object(semObj);
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_buffer_object *bufObj;
+   struct gl_buffer_object *bufObj;
    struct st_texture_object *texObj;
 
    for (unsigned i = 0; i < numBufferBarriers; i++) {
       if (!bufObjs[i])
          continue;
 
-      bufObj = st_buffer_object(bufObjs[i]);
+      bufObj = bufObjs[i];
       if (bufObj->buffer)
          pipe->flush_resource(pipe, bufObj->buffer);
    }
@@ -161,12 +160,3 @@ st_server_signal_semaphore(struct gl_context *ctx,
    pipe->fence_server_signal(pipe, st_obj->fence);
 }
 
-void
-st_init_semaphoreobject_functions(struct dd_function_table *functions)
-{
-   functions->NewSemaphoreObject = st_semaphoreobj_alloc;
-   functions->DeleteSemaphoreObject = st_semaphoreobj_free;
-   functions->ImportSemaphoreFd = st_import_semaphoreobj_fd;
-   functions->ServerWaitSemaphoreObject = st_server_wait_semaphore;
-   functions->ServerSignalSemaphoreObject = st_server_signal_semaphore;
-}

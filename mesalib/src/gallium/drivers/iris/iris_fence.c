@@ -147,7 +147,7 @@ clear_stale_syncobjs(struct iris_batch *batch)
                                           struct drm_i915_gem_exec_fence));
 
    /* Skip the first syncobj, as it's the signalling one. */
-   for (int i = n - 1; i > 1; i--) {
+   for (int i = n - 1; i > 0; i--) {
       struct iris_syncobj **syncobj =
          util_dynarray_element(&batch->syncobjs, struct iris_syncobj *, i);
       struct drm_i915_gem_exec_fence *fence =

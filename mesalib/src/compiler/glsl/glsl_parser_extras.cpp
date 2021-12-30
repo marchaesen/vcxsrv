@@ -458,7 +458,8 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
          } else if (strcmp(ident, "compatibility") == 0) {
             compat_token_present = true;
 
-            if (this->ctx->API != API_OPENGL_COMPAT) {
+            if (this->ctx->API != API_OPENGL_COMPAT &&
+                !this->ctx->Const.AllowGLSLCompatShaders) {
                _mesa_glsl_error(locp, this,
                                 "the compatibility profile is not supported");
             }
@@ -494,6 +495,7 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
       this->language_version = version;
 
    this->compat_shader = compat_token_present ||
+                         this->ctx->Const.ForceCompatShaders ||
                          (this->ctx->API == API_OPENGL_COMPAT &&
                           this->language_version == 140) ||
                          (!this->es_shader && this->language_version < 140);
@@ -874,7 +876,10 @@ _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
       }
    } else {
       const _mesa_glsl_extension *extension = find_extension(name);
-      if (extension && extension->compatible_with_state(state, api, gl_version)) {
+      if (extension &&
+          (extension->compatible_with_state(state, api, gl_version) ||
+           (state->ctx->Const.AllowGLSLCompatShaders &&
+            extension->compatible_with_state(state, API_OPENGL_COMPAT, gl_version)))) {
          extension->set_flags(state, behavior);
          if (extension->available_pred == has_ANDROID_extension_pack_es31a) {
             for (unsigned i = 0;
@@ -2142,18 +2147,19 @@ opt_shader_and_create_symbol_table(struct gl_context *ctx,
 
 static bool
 can_skip_compile(struct gl_context *ctx, struct gl_shader *shader,
-                 const char *source, bool force_recompile,
-                 bool source_has_shader_include)
+                 const char *source,
+                 const uint8_t source_sha1[SHA1_DIGEST_LENGTH],
+                 bool force_recompile, bool source_has_shader_include)
 {
    if (!force_recompile) {
       if (ctx->Cache) {
          char buf[41];
          disk_cache_compute_key(ctx->Cache, source, strlen(source),
-                                shader->sha1);
-         if (disk_cache_has_key(ctx->Cache, shader->sha1)) {
+                                shader->disk_cache_sha1);
+         if (disk_cache_has_key(ctx->Cache, shader->disk_cache_sha1)) {
             /* We've seen this shader before and know it compiles */
             if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
-               _mesa_sha1_format(buf, shader->sha1);
+               _mesa_sha1_format(buf, shader->disk_cache_sha1);
                fprintf(stderr, "deferring compile of shader: %s\n", buf);
             }
             shader->CompileStatus = COMPILE_SKIPPED;
@@ -2164,8 +2170,15 @@ can_skip_compile(struct gl_context *ctx, struct gl_shader *shader,
              * we have no guarantee the shader include source tree has not
              * changed.
              */
-            shader->FallbackSource = source_has_shader_include ?
-               strdup(source) : NULL;
+            if (source_has_shader_include) {
+               shader->FallbackSource = strdup(source);
+               memcpy(shader->fallback_source_sha1, source_sha1,
+                      SHA1_DIGEST_LENGTH);
+            } else {
+               shader->FallbackSource = NULL;
+            }
+            memcpy(shader->compiled_source_sha1, source_sha1,
+                   SHA1_DIGEST_LENGTH);
             return true;
          }
       }
@@ -2185,8 +2198,16 @@ void
 _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
                           bool dump_ast, bool dump_hir, bool force_recompile)
 {
-   const char *source = force_recompile && shader->FallbackSource ?
-      shader->FallbackSource : shader->Source;
+   const char *source;
+   const uint8_t *source_sha1;
+
+   if (force_recompile && shader->FallbackSource) {
+      source = shader->FallbackSource;
+      source_sha1 = shader->fallback_source_sha1;
+   } else {
+      source = shader->Source;
+      source_sha1 = shader->source_sha1;
+   }
 
    /* Note this will be true for shaders the have #include inside comments
     * however that should be rare enough not to worry about.
@@ -2200,7 +2221,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
     * keep duplicate copies of the shader include source tree and paths.
     */
    if (!source_has_shader_include &&
-       can_skip_compile(ctx, shader, source, force_recompile, false))
+       can_skip_compile(ctx, shader, source, source_sha1, force_recompile,
+                        false))
       return;
 
     struct _mesa_glsl_parse_state *state =
@@ -2220,7 +2242,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
     * include.
     */
    if (source_has_shader_include &&
-       can_skip_compile(ctx, shader, source, force_recompile, true))
+       can_skip_compile(ctx, shader, source, source_sha1, force_recompile,
+                        true))
       return;
 
    if (!state->error) {
@@ -2282,18 +2305,25 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       /* Copy pre-processed shader include to fallback source otherwise we
        * have no guarantee the shader include source tree has not changed.
        */
-      shader->FallbackSource = source_has_shader_include ?
-         strdup(source) : NULL;
+      if (source_has_shader_include) {
+         shader->FallbackSource = strdup(source);
+         memcpy(shader->fallback_source_sha1, source_sha1, SHA1_DIGEST_LENGTH);
+      } else {
+         shader->FallbackSource = NULL;
+      }
    }
 
    delete state->symbols;
    ralloc_free(state);
 
+   if (shader->CompileStatus == COMPILE_SUCCESS)
+      memcpy(shader->compiled_source_sha1, source_sha1, SHA1_DIGEST_LENGTH);
+
    if (ctx->Cache && shader->CompileStatus == COMPILE_SUCCESS) {
       char sha1_buf[41];
-      disk_cache_put_key(ctx->Cache, shader->sha1);
+      disk_cache_put_key(ctx->Cache, shader->disk_cache_sha1);
       if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
-         _mesa_sha1_format(sha1_buf, shader->sha1);
+         _mesa_sha1_format(sha1_buf, shader->disk_cache_sha1);
          fprintf(stderr, "marking shader: %s\n", sha1_buf);
       }
    }
@@ -2358,10 +2388,6 @@ do_common_optimization(exec_list *ir, bool linked,
    if (options->OptimizeForAOS && !linked)
       OPT(opt_flip_matrices, ir);
 
-   if (linked && options->OptimizeForAOS) {
-      OPT(do_vectorize, ir);
-   }
-
    if (linked)
       OPT(do_dead_code, ir, uniform_locations_assigned);
    else
@@ -2396,8 +2422,6 @@ do_common_optimization(exec_list *ir, bool linked,
    if (array_split)
       do_constant_propagation(ir);
    progress |= array_split;
-
-   OPT(optimize_redundant_jumps, ir);
 
    if (options->MaxUnrollIterations) {
       loop_state *ls = analyze_loop_variables(ir);

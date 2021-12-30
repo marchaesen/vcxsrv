@@ -45,10 +45,7 @@
 #include "st_cb_bitmap.h"
 
 
-/**
- * Called via ctx->Driver.BeginConditionalRender()
- */
-static void
+void
 st_BeginConditionalRender(struct gl_context *ctx, struct gl_query_object *q,
                           GLenum mode)
 {
@@ -97,11 +94,7 @@ st_BeginConditionalRender(struct gl_context *ctx, struct gl_query_object *q,
    cso_set_render_condition(st->cso_context, stq->pq, inverted, m);
 }
 
-
-/**
- * Called via ctx->Driver.EndConditionalRender()
- */
-static void
+void
 st_EndConditionalRender(struct gl_context *ctx, struct gl_query_object *q)
 {
    struct st_context *st = st_context(ctx);
@@ -110,12 +103,4 @@ st_EndConditionalRender(struct gl_context *ctx, struct gl_query_object *q)
    st_flush_bitmap_cache(st);
 
    cso_set_render_condition(st->cso_context, NULL, FALSE, 0);
-}
-
-
-
-void st_init_cond_render_functions(struct dd_function_table *functions)
-{
-   functions->BeginConditionalRender = st_BeginConditionalRender;
-   functions->EndConditionalRender = st_EndConditionalRender;
 }

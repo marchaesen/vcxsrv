@@ -217,16 +217,16 @@ void showeventlog(eventlog_stuff *estuff, void *parentwin);
 void logevent_dlg(eventlog_stuff *estuff, const char *string);
 int gtkdlg_askappend(Seat *seat, Filename *filename,
                      void (*callback)(void *ctx, int result), void *ctx);
-int gtk_seat_confirm_ssh_host_key(
+SeatPromptResult gtk_seat_confirm_ssh_host_key(
     Seat *seat, const char *host, int port, const char *keytype,
     char *keystr, const char *keydisp, char **fingerprints, bool mismatch,
-    void (*callback)(void *ctx, int result), void *ctx);
-int gtk_seat_confirm_weak_crypto_primitive(
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
+SeatPromptResult gtk_seat_confirm_weak_crypto_primitive(
     Seat *seat, const char *algtype, const char *algname,
-    void (*callback)(void *ctx, int result), void *ctx);
-int gtk_seat_confirm_weak_cached_hostkey(
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
+SeatPromptResult gtk_seat_confirm_weak_cached_hostkey(
     Seat *seat, const char *algname, const char *betteralgs,
-    void (*callback)(void *ctx, int result), void *ctx);
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
 #ifdef MAY_REFER_TO_GTK_IN_HEADERS
 struct message_box_button {
     const char *title;
@@ -382,6 +382,9 @@ bool so_peercred(int fd, int *pid, int *uid, int *gid);
  */
 Socket *make_fd_socket(int infd, int outfd, int inerrfd,
                        SockAddr *addr, int port, Plug *plug);
+Socket *make_deferred_fd_socket(DeferredSocketOpener *opener,
+                                SockAddr *addr, int port, Plug *plug);
+void setup_fd_socket(Socket *s, int infd, int outfd, int inerrfd);
 
 /*
  * Default font setting, which can vary depending on NOT_X_WINDOWS.
@@ -457,5 +460,10 @@ void cli_main_loop(cliloop_pw_setup_t pw_setup,
 bool cliloop_no_pw_setup(void *ctx, pollwrapper *pw);
 void cliloop_no_pw_check(void *ctx, pollwrapper *pw);
 bool cliloop_always_continue(void *ctx, bool, bool);
+
+/* network.c: network error reporting helper taking an OS error code */
+void plug_closing_errno(Plug *plug, int error);
+
+SeatPromptResult make_spr_sw_abort_errno(const char *prefix, int errno_value);
 
 #endif /* PUTTY_UNIX_PLATFORM_H */

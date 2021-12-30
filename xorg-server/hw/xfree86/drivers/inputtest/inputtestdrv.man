@@ -1,6 +1,6 @@
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH INPUTTEST __drivermansuffix__ __vendorversion__
+.TH INPUTTEST @drivermansuffix@ @vendorversion@
 .SH NAME
 inputtest \- An X.Org input driver for testing
 .SH SYNOPSIS
@@ -21,7 +21,7 @@ exposed by Xorg. The primary use cases of this input driver are various
 integration tests that need to interface with the input subsystem.
 
 .SH CONFIGURATION DETAILS
-Please refer to __xconfigfile__(__filemansuffix__) for general configuration
+Please refer to @xconfigfile@(@filemansuffix@) for general configuration
 details and for options that can be used with all input drivers.  This
 section only covers configuration details specific to this driver.
 .PP
@@ -109,4 +109,4 @@ processed all input events sent to it so far.
 .SH AUTHORS
 Povilas Kanapickas <povilas@radix.lt>
 .SH "SEE ALSO"
-__xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), Xserver(__appmansuffix__), X(__miscmansuffix__)
+@xservername@(@appmansuffix@), @xconfigfile@(@filemansuffix@), Xserver(@appmansuffix@), X(@miscmansuffix@)

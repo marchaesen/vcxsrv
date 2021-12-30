@@ -15,3 +15,6 @@ wgl@.*
 # These are sensitive to CPU timing, and would need to be run in isolation
 # on the system rather than in parallel with other tests.
 glx@glx_arb_sync_control@timing.*
+
+# This test is not built with waffle, while we do build tests with waffle
+spec@!opengl 1.1@windowoverlap

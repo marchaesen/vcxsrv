@@ -975,23 +975,6 @@ static const union tgsi_exec_channel M128Vec = {
    {-128.0f, -128.0f, -128.0f, -128.0f}
 };
 
-
-/**
- * Assert that none of the float values in 'chan' are infinite or NaN.
- * NaN and Inf may occur normally during program execution and should
- * not lead to crashes, etc.  But when debugging, it's helpful to catch
- * them.
- */
-static inline void
-check_inf_or_nan(const union tgsi_exec_channel *chan)
-{
-   assert(!util_is_inf_or_nan((chan)->f[0]));
-   assert(!util_is_inf_or_nan((chan)->f[1]));
-   assert(!util_is_inf_or_nan((chan)->f[2]));
-   assert(!util_is_inf_or_nan((chan)->f[3]));
-}
-
-
 #ifdef DEBUG
 static void
 print_chan(const char *msg, const union tgsi_exec_channel *chan)

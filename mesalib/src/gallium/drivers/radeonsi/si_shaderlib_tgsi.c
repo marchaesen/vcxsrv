@@ -134,7 +134,9 @@ void *si_create_dma_compute_shader(struct pipe_context *ctx, unsigned num_dwords
    if (!ureg)
       return NULL;
 
-   ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_WIDTH, sscreen->compute_wave_size);
+   unsigned default_wave_size = si_determine_wave_size(sscreen, NULL);
+
+   ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_WIDTH, default_wave_size);
    ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_HEIGHT, 1);
    ureg_property(ureg, TGSI_PROPERTY_CS_FIXED_BLOCK_DEPTH, 1);
 
@@ -160,7 +162,7 @@ void *si_create_dma_compute_shader(struct pipe_context *ctx, unsigned num_dwords
    /* If there are multiple stores, the first store writes into 0*wavesize+tid,
     * the 2nd store writes into 1*wavesize+tid, the 3rd store writes into 2*wavesize+tid, etc.
     */
-   ureg_UMAD(ureg, store_addr, blk, ureg_imm1u(ureg, sscreen->compute_wave_size * num_mem_ops),
+   ureg_UMAD(ureg, store_addr, blk, ureg_imm1u(ureg, default_wave_size * num_mem_ops),
              tid);
    /* Convert from a "store size unit" into bytes. */
    ureg_UMUL(ureg, store_addr, ureg_src(store_addr), ureg_imm1u(ureg, 4 * inst_dwords[0]));
@@ -175,7 +177,7 @@ void *si_create_dma_compute_shader(struct pipe_context *ctx, unsigned num_dwords
       if (is_copy && i < num_mem_ops) {
          if (i) {
             ureg_UADD(ureg, load_addr, ureg_src(load_addr),
-                      ureg_imm1u(ureg, 4 * inst_dwords[i] * sscreen->compute_wave_size));
+                      ureg_imm1u(ureg, 4 * inst_dwords[i] * default_wave_size));
          }
 
          values[i] = ureg_src(ureg_DECL_temporary(ureg));
@@ -189,7 +191,7 @@ void *si_create_dma_compute_shader(struct pipe_context *ctx, unsigned num_dwords
       if (d >= 0) {
          if (d) {
             ureg_UADD(ureg, store_addr, ureg_src(store_addr),
-                      ureg_imm1u(ureg, 4 * inst_dwords[d] * sscreen->compute_wave_size));
+                      ureg_imm1u(ureg, 4 * inst_dwords[d] * default_wave_size));
          }
 
          struct ureg_dst dst = ureg_writemask(dstbuf, u_bit_consecutive(0, inst_dwords[d]));

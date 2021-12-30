@@ -42,6 +42,7 @@
 struct u_tracepoint {
    unsigned payload_sz;
    const char *name;
+   bool end_of_pipe;
    void (*print)(FILE *out, const void *payload);
 #ifdef HAVE_PERFETTO
    /**

@@ -195,4 +195,7 @@ panfrost_batch_union_scissor(struct panfrost_batch *batch,
                              unsigned minx, unsigned miny,
                              unsigned maxx, unsigned maxy);
 
+bool
+panfrost_batch_skip_rasterization(struct panfrost_batch *batch);
+
 #endif

@@ -61,6 +61,7 @@ fdl5_layout(struct fdl_layout *layout, enum pipe_format format,
       fdl_set_pitchalign(layout, fdl_cpp_shift(layout) + 6);
 
    for (uint32_t level = 0; level < mip_levels; level++) {
+      uint32_t depth = u_minify(depth0, level);
       struct fdl_slice *slice = &layout->slices[level];
       uint32_t tile_mode = fdl_tile_mode(layout, level);
       uint32_t pitch = fdl_pitch(layout, level);
@@ -83,22 +84,27 @@ fdl5_layout(struct fdl_layout *layout, enum pipe_format format,
 
       slice->offset = layout->size;
 
-      const int alignment = is_3d ? 4096 : 1;
-
       /* 1d array and 2d array textures must all have the same layer size
        * for each miplevel on a3xx. 3d textures can have different layer
        * sizes for high levels, but the hw auto-sizer is buggy (or at least
        * different than what this code does), so as soon as the layer size
        * range gets into range, we stop reducing it.
        */
-      if (is_3d && (level == 1 ||
-                    (level > 1 && layout->slices[level - 1].size0 > 0xf000)))
-         slice->size0 = align(nblocksy * pitch, alignment);
-      else if (level == 0 || layout->layer_first || alignment == 1)
-         slice->size0 = align(nblocksy * pitch, alignment);
-      else
-         slice->size0 = layout->slices[level - 1].size0;
+      if (is_3d) {
+         if (level <= 1 || layout->slices[level - 1].size0 > 0xf000) {
+            slice->size0 = align(nblocksy * pitch, 4096);
+         } else {
+            slice->size0 = layout->slices[level - 1].size0;
+         }
+      } else {
+         slice->size0 = nblocksy * pitch;
+      }
 
-      layout->size += slice->size0 * u_minify(depth0, level) * layers_in_level;
+      layout->size += slice->size0 * depth * layers_in_level;
+   }
+
+   if (layout->layer_first) {
+      layout->layer_size = align(layout->size, 4096);
+      layout->size = layout->layer_size * array_size;
    }
 }

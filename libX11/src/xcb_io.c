@@ -704,18 +704,14 @@ Status _XReply(Display *dpy, xReply *rep, int extra, Bool discard)
 		if(dpy->xcb->event_owner == XlibOwnsEventQueue)
 		{
 			xcb_generic_reply_t *event;
-			/* If some thread is already waiting for events,
-			 * it will get the first one. That thread must
-			 * process that event before we can continue. */
-			/* FIXME: That event might be after this reply,
-			 * and might never even come--or there might be
-			 * multiple threads trying to get events. */
-			while(dpy->xcb->event_waiter)
-			{ /* need braces around ConditionWait */
-				ConditionWait(dpy, dpy->xcb->event_notify);
-			}
-			while((event = poll_for_event(dpy, True)))
-				handle_response(dpy, event, True);
+
+			/* Assume event queue is empty if another thread is blocking
+			 * waiting for event. */
+			if(!dpy->xcb->event_waiter)
+			{
+				while((event = poll_for_response(dpy)))
+					handle_response(dpy, event, True);
+                        }
 		}
 
 		req->reply_waiter = 0;

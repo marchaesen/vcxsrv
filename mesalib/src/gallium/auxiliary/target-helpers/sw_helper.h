@@ -10,7 +10,7 @@
 
 
 /* Helper function to choose and instantiate one of the software rasterizers:
- * llvmpipe, softpipe, swr.
+ * llvmpipe, softpipe.
  */
 
 #ifdef GALLIUM_ZINK
@@ -31,10 +31,6 @@
 
 #ifdef GALLIUM_LLVMPIPE
 #include "llvmpipe/lp_public.h"
-#endif
-
-#ifdef GALLIUM_SWR
-#include "swr/swr_public.h"
 #endif
 
 #ifdef GALLIUM_VIRGL
@@ -63,11 +59,6 @@ sw_screen_create_named(struct sw_winsys *winsys, const char *driver)
 #if defined(GALLIUM_SOFTPIPE)
    if (screen == NULL && strcmp(driver, "softpipe") == 0)
       screen = softpipe_create_screen(winsys);
-#endif
-
-#if defined(GALLIUM_SWR)
-   if (screen == NULL && strcmp(driver, "swr") == 0)
-      screen = swr_create_screen(winsys);
 #endif
 
 #if defined(GALLIUM_ZINK)
@@ -105,9 +96,6 @@ sw_screen_create_vk(struct sw_winsys *winsys, bool sw_vk)
 #endif
 #if defined(GALLIUM_SOFTPIPE)
       sw_vk ? "" : "softpipe",
-#endif
-#if defined(GALLIUM_SWR)
-      sw_vk ? "" : "swr",
 #endif
 #if defined(GALLIUM_ZINK)
       (sw_vk || only_sw) ? "" : "zink",

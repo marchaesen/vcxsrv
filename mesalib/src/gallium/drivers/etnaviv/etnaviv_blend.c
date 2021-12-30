@@ -108,7 +108,9 @@ etna_blend_state_create(struct pipe_context *pctx,
     * dither pattern,
     * for now, set the same values as the blob.
     */
-   if (so->dither) {
+   if (so->dither &&
+       (!alpha_enable ||
+        VIV_FEATURE(ctx->screen, chipMinorFeatures3, PE_DITHER_FIX))) {
       co->PE_DITHER[0] = 0x6e4ca280;
       co->PE_DITHER[1] = 0x5d7f91b3;
    } else {

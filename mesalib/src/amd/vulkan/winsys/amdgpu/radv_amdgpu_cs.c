@@ -24,6 +24,7 @@
 
 #include <amdgpu.h>
 #include <assert.h>
+#include <libsync.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include "drm-uapi/amdgpu_drm.h"
@@ -78,6 +79,9 @@ struct radv_amdgpu_cs {
    unsigned num_old_cs_buffers;
 };
 
+static uint32_t radv_amdgpu_ctx_queue_syncobj(struct radv_amdgpu_ctx *ctx, unsigned ip,
+                                              unsigned ring);
+
 static inline struct radv_amdgpu_cs *
 radv_amdgpu_cs(struct radeon_cmdbuf *base)
 {
@@ -96,6 +100,21 @@ ring_to_hw_ip(enum ring_type ring)
       return AMDGPU_HW_IP_COMPUTE;
    default:
       unreachable("unsupported ring");
+   }
+}
+
+static enum ring_type
+hw_ip_to_ring(int hw_ip)
+{
+   switch (hw_ip) {
+   case AMDGPU_HW_IP_GFX:
+      return RING_GFX;
+   case AMDGPU_HW_IP_DMA:
+      return RING_DMA;
+   case AMDGPU_HW_IP_COMPUTE:
+      return RING_COMPUTE;
+   default:
+      unreachable("unsupported hw ip");
    }
 }
 
@@ -308,7 +327,9 @@ radv_amdgpu_cs_grow(struct radeon_cmdbuf *_cs, size_t min_size)
    /* max that fits in the chain size field. */
    ib_size = MIN2(ib_size, 0xfffff);
 
-   while (!cs->base.cdw || (cs->base.cdw & 7) != 4)
+   enum ring_type ring_type = hw_ip_to_ring(cs->hw_ip);
+   uint32_t ib_pad_dw_mask = cs->ws->info.ib_pad_dw_mask[ring_type];
+   while (!cs->base.cdw || (cs->base.cdw & ib_pad_dw_mask) != ib_pad_dw_mask - 3)
       radeon_emit(&cs->base, PKT3_NOP_PAD);
 
    *cs->ib_size_ptr |= cs->base.cdw + 4;
@@ -370,7 +391,10 @@ radv_amdgpu_cs_finalize(struct radeon_cmdbuf *_cs)
    struct radv_amdgpu_cs *cs = radv_amdgpu_cs(_cs);
 
    if (cs->ws->use_ib_bos) {
-      while (!cs->base.cdw || (cs->base.cdw & 7) != 0)
+      enum ring_type ring_type = hw_ip_to_ring(cs->hw_ip);
+      uint32_t ib_pad_dw_mask = cs->ws->info.ib_pad_dw_mask[ring_type];
+
+      while (!cs->base.cdw || (cs->base.cdw & ib_pad_dw_mask) != 0)
          radeon_emit(&cs->base, PKT3_NOP_PAD);
 
       *cs->ib_size_ptr |= cs->base.cdw;
@@ -967,6 +991,8 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx, int queue_id
    struct radv_amdgpu_winsys *aws = cs0->ws;
    struct radv_amdgpu_cs_request request;
    uint32_t pad_word = PKT3_NOP_PAD;
+   enum ring_type ring_type = hw_ip_to_ring(cs0->hw_ip);
+   uint32_t ib_pad_dw_mask = cs0->ws->info.ib_pad_dw_mask[ring_type];
    bool emit_signal_sem = sem_info->cs_emit_signal;
    VkResult result;
 
@@ -1026,7 +1052,7 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx, int queue_id
 
             assert(size < GFX6_MAX_CS_SIZE);
 
-            while (!size || (size & 7)) {
+            while (!size || (size & ib_pad_dw_mask)) {
                size++;
                pad_words++;
             }
@@ -1068,7 +1094,7 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx, int queue_id
             ++cnt;
          }
 
-         while (!size || (size & 7)) {
+         while (!size || (size & ib_pad_dw_mask)) {
             size++;
             pad_words++;
          }
@@ -1144,17 +1170,102 @@ radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx, int queue_id
 }
 
 static VkResult
-radv_amdgpu_winsys_cs_submit(struct radeon_winsys_ctx *_ctx, int queue_idx,
-                             struct radeon_cmdbuf **cs_array, unsigned cs_count,
+radv_amdgpu_cs_submit_zero(struct radv_amdgpu_ctx *ctx, enum ring_type ring_type, int queue_idx,
+                           struct radv_winsys_sem_info *sem_info)
+{
+   unsigned hw_ip = ring_to_hw_ip(ring_type);
+   unsigned queue_syncobj = radv_amdgpu_ctx_queue_syncobj(ctx, hw_ip, queue_idx);
+   int ret;
+
+   if (!queue_syncobj)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   if (sem_info->wait.syncobj_count || sem_info->wait.timeline_syncobj_count) {
+      int fd;
+      ret = amdgpu_cs_syncobj_export_sync_file(ctx->ws->dev, queue_syncobj, &fd);
+      if (ret < 0)
+         return VK_ERROR_DEVICE_LOST;
+
+      for (unsigned i = 0; i < sem_info->wait.syncobj_count; ++i) {
+         int fd2;
+         ret = amdgpu_cs_syncobj_export_sync_file(ctx->ws->dev, sem_info->wait.syncobj[i], &fd2);
+         if (ret < 0) {
+            close(fd);
+            return VK_ERROR_DEVICE_LOST;
+         }
+
+         sync_accumulate("radv", &fd, fd2);
+         close(fd2);
+      }
+      for (unsigned i = 0; i < sem_info->wait.timeline_syncobj_count; ++i) {
+         int fd2;
+         ret = amdgpu_cs_syncobj_export_sync_file2(
+            ctx->ws->dev, sem_info->wait.syncobj[i + sem_info->wait.syncobj_count],
+            sem_info->wait.points[i], 0, &fd2);
+         if (ret < 0) {
+            /* This works around a kernel bug where the fence isn't copied if it is already
+             * signalled. Since it is already signalled it is totally fine to not wait on it.
+             *
+             * kernel patch: https://patchwork.freedesktop.org/patch/465583/ */
+            uint64_t point;
+            ret = amdgpu_cs_syncobj_query2(
+               ctx->ws->dev, &sem_info->wait.syncobj[i + sem_info->wait.syncobj_count], &point, 1,
+               0);
+            if (!ret && point >= sem_info->wait.points[i])
+               continue;
+
+            close(fd);
+            return VK_ERROR_DEVICE_LOST;
+         }
+
+         sync_accumulate("radv", &fd, fd2);
+         close(fd2);
+      }
+      ret = amdgpu_cs_syncobj_import_sync_file(ctx->ws->dev, queue_syncobj, fd);
+      close(fd);
+      if (ret < 0)
+         return VK_ERROR_DEVICE_LOST;
+
+      ctx->queue_syncobj_wait[hw_ip][queue_idx] = true;
+   }
+
+   if (sem_info->wait.syncobj_reset_count) {
+      ret = amdgpu_cs_syncobj_reset(ctx->ws->dev, sem_info->wait.syncobj,
+                                    sem_info->wait.syncobj_reset_count);
+      if (ret < 0)
+         return VK_ERROR_DEVICE_LOST;
+   }
+
+   for (unsigned i = 0; i < sem_info->signal.syncobj_count; ++i) {
+      ret = amdgpu_cs_syncobj_transfer(ctx->ws->dev, sem_info->signal.syncobj[i], 0, queue_syncobj,
+                                       0, 0);
+      if (ret < 0)
+         return VK_ERROR_DEVICE_LOST;
+   }
+   for (unsigned i = 0; i < sem_info->signal.timeline_syncobj_count; ++i) {
+      ret = amdgpu_cs_syncobj_transfer(ctx->ws->dev,
+                                       sem_info->signal.syncobj[i + sem_info->signal.syncobj_count],
+                                       sem_info->signal.points[i], queue_syncobj, 0, 0);
+      if (ret < 0)
+         return VK_ERROR_DEVICE_LOST;
+   }
+   return VK_SUCCESS;
+}
+
+static VkResult
+radv_amdgpu_winsys_cs_submit(struct radeon_winsys_ctx *_ctx, enum ring_type ring_type,
+                             int queue_idx, struct radeon_cmdbuf **cs_array, unsigned cs_count,
                              struct radeon_cmdbuf *initial_preamble_cs,
                              struct radeon_cmdbuf *continue_preamble_cs,
                              struct radv_winsys_sem_info *sem_info, bool can_patch)
 {
-   struct radv_amdgpu_cs *cs = radv_amdgpu_cs(cs_array[0]);
+   struct radv_amdgpu_ctx *ctx = radv_amdgpu_ctx(_ctx);
    VkResult result;
 
    assert(sem_info);
-   if (!cs->ws->use_ib_bos) {
+   if (!cs_count) {
+      result = radv_amdgpu_cs_submit_zero(ctx, ring_type, queue_idx, sem_info);
+   } else if (!ctx->ws->use_ib_bos) {
       result = radv_amdgpu_winsys_cs_submit_sysmem(_ctx, queue_idx, sem_info, cs_array, cs_count,
                                                    initial_preamble_cs, continue_preamble_cs);
    } else if (can_patch) {
@@ -1281,9 +1392,27 @@ static void
 radv_amdgpu_ctx_destroy(struct radeon_winsys_ctx *rwctx)
 {
    struct radv_amdgpu_ctx *ctx = (struct radv_amdgpu_ctx *)rwctx;
+
+   for (unsigned ip = 0; ip <= AMDGPU_HW_IP_DMA; ++ip) {
+      for (unsigned ring = 0; ring < MAX_RINGS_PER_TYPE; ++ring) {
+         if (ctx->queue_syncobj[ip][ring])
+            amdgpu_cs_destroy_syncobj(ctx->ws->dev, ctx->queue_syncobj[ip][ring]);
+      }
+   }
+
    ctx->ws->base.buffer_destroy(&ctx->ws->base, ctx->fence_bo);
    amdgpu_cs_ctx_free(ctx->ctx);
    FREE(ctx);
+}
+
+static uint32_t
+radv_amdgpu_ctx_queue_syncobj(struct radv_amdgpu_ctx *ctx, unsigned ip, unsigned ring)
+{
+   uint32_t *syncobj = &ctx->queue_syncobj[ip][ring];
+   if (!*syncobj) {
+      amdgpu_cs_create_syncobj2(ctx->ws->dev, DRM_SYNCOBJ_CREATE_SIGNALED, syncobj);
+   }
+   return *syncobj;
 }
 
 static bool
@@ -1306,12 +1435,13 @@ radv_amdgpu_ctx_wait_idle(struct radeon_winsys_ctx *rwctx, enum ring_type ring_t
 
 static void *
 radv_amdgpu_cs_alloc_syncobj_chunk(struct radv_winsys_sem_counts *counts,
-                                   const uint32_t *syncobj_override,
+                                   const uint32_t *syncobj_override, uint32_t queue_syncobj,
                                    struct drm_amdgpu_cs_chunk *chunk, int chunk_id)
 {
    const uint32_t *src = syncobj_override ? syncobj_override : counts->syncobj;
+   unsigned count = counts->syncobj_count + (queue_syncobj ? 1 : 0);
    struct drm_amdgpu_cs_chunk_sem *syncobj =
-      malloc(sizeof(struct drm_amdgpu_cs_chunk_sem) * counts->syncobj_count);
+      malloc(sizeof(struct drm_amdgpu_cs_chunk_sem) * count);
    if (!syncobj)
       return NULL;
 
@@ -1320,8 +1450,11 @@ radv_amdgpu_cs_alloc_syncobj_chunk(struct radv_winsys_sem_counts *counts,
       sem->handle = src[i];
    }
 
+   if (queue_syncobj)
+      syncobj[counts->syncobj_count].handle = queue_syncobj;
+
    chunk->chunk_id = chunk_id;
-   chunk->length_dw = sizeof(struct drm_amdgpu_cs_chunk_sem) / 4 * counts->syncobj_count;
+   chunk->length_dw = sizeof(struct drm_amdgpu_cs_chunk_sem) / 4 * count;
    chunk->chunk_data = (uint64_t)(uintptr_t)syncobj;
    return syncobj;
 }
@@ -1329,12 +1462,14 @@ radv_amdgpu_cs_alloc_syncobj_chunk(struct radv_winsys_sem_counts *counts,
 static void *
 radv_amdgpu_cs_alloc_timeline_syncobj_chunk(struct radv_winsys_sem_counts *counts,
                                             const uint32_t *syncobj_override,
+                                            uint32_t queue_syncobj,
                                             struct drm_amdgpu_cs_chunk *chunk, int chunk_id)
 {
    const uint32_t *src = syncobj_override ? syncobj_override : counts->syncobj;
+   uint32_t count =
+      counts->syncobj_count + counts->timeline_syncobj_count + (queue_syncobj ? 1 : 0);
    struct drm_amdgpu_cs_chunk_syncobj *syncobj =
-      malloc(sizeof(struct drm_amdgpu_cs_chunk_syncobj) *
-             (counts->syncobj_count + counts->timeline_syncobj_count));
+      malloc(sizeof(struct drm_amdgpu_cs_chunk_syncobj) * count);
    if (!syncobj)
       return NULL;
 
@@ -1352,9 +1487,14 @@ radv_amdgpu_cs_alloc_timeline_syncobj_chunk(struct radv_winsys_sem_counts *count
       sem->point = counts->points[i];
    }
 
+   if (queue_syncobj) {
+      syncobj[count - 1].handle = queue_syncobj;
+      syncobj[count - 1].flags = 0;
+      syncobj[count - 1].point = 0;
+   }
+
    chunk->chunk_id = chunk_id;
-   chunk->length_dw = sizeof(struct drm_amdgpu_cs_chunk_syncobj) / 4 *
-                      (counts->syncobj_count + counts->timeline_syncobj_count);
+   chunk->length_dw = sizeof(struct drm_amdgpu_cs_chunk_syncobj) / 4 * count;
    chunk->chunk_data = (uint64_t)(uintptr_t)syncobj;
    return syncobj;
 }
@@ -1472,6 +1612,11 @@ radv_amdgpu_cs_submit(struct radv_amdgpu_ctx *ctx, struct radv_amdgpu_cs_request
    int i;
    uint32_t bo_list = 0;
    VkResult result = VK_SUCCESS;
+   uint32_t queue_syncobj = radv_amdgpu_ctx_queue_syncobj(ctx, request->ip_type, request->ring);
+   bool *queue_syncobj_wait = &ctx->queue_syncobj_wait[request->ip_type][request->ring];
+
+   if (!queue_syncobj)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    size = request->number_of_ibs + 2 /* user fence */ + (!use_bo_list_create ? 1 : 0) + 3;
 
@@ -1515,19 +1660,22 @@ radv_amdgpu_cs_submit(struct radv_amdgpu_ctx *ctx, struct radv_amdgpu_cs_request
    fence_info.offset = (request->ip_type * MAX_RINGS_PER_TYPE + request->ring) * sizeof(uint64_t);
    amdgpu_cs_chunk_fence_info_to_data(&fence_info, &chunk_data[i]);
 
-   if ((sem_info->wait.syncobj_count || sem_info->wait.timeline_syncobj_count) &&
-       sem_info->cs_emit_wait) {
+   if (sem_info->cs_emit_wait && (sem_info->wait.timeline_syncobj_count ||
+                                  sem_info->wait.syncobj_count || *queue_syncobj_wait)) {
+      uint32_t queue_wait_syncobj = *queue_syncobj_wait ? queue_syncobj : 0;
+
       r = radv_amdgpu_cs_prepare_syncobjs(ctx->ws, &sem_info->wait, &in_syncobjs);
       if (r)
          goto error_out;
 
       if (ctx->ws->info.has_timeline_syncobj) {
          wait_syncobj = radv_amdgpu_cs_alloc_timeline_syncobj_chunk(
-            &sem_info->wait, in_syncobjs, &chunks[num_chunks],
+            &sem_info->wait, in_syncobjs, queue_wait_syncobj, &chunks[num_chunks],
             AMDGPU_CHUNK_ID_SYNCOBJ_TIMELINE_WAIT);
       } else {
-         wait_syncobj = radv_amdgpu_cs_alloc_syncobj_chunk(
-            &sem_info->wait, in_syncobjs, &chunks[num_chunks], AMDGPU_CHUNK_ID_SYNCOBJ_IN);
+         wait_syncobj =
+            radv_amdgpu_cs_alloc_syncobj_chunk(&sem_info->wait, in_syncobjs, queue_wait_syncobj,
+                                               &chunks[num_chunks], AMDGPU_CHUNK_ID_SYNCOBJ_IN);
       }
       if (!wait_syncobj) {
          result = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -1536,16 +1684,18 @@ radv_amdgpu_cs_submit(struct radv_amdgpu_ctx *ctx, struct radv_amdgpu_cs_request
       num_chunks++;
 
       sem_info->cs_emit_wait = false;
+      *queue_syncobj_wait = false;
    }
 
-   if ((sem_info->signal.syncobj_count || sem_info->signal.timeline_syncobj_count) &&
-       sem_info->cs_emit_signal) {
+   if (sem_info->cs_emit_signal) {
       if (ctx->ws->info.has_timeline_syncobj) {
          signal_syncobj = radv_amdgpu_cs_alloc_timeline_syncobj_chunk(
-            &sem_info->signal, NULL, &chunks[num_chunks], AMDGPU_CHUNK_ID_SYNCOBJ_TIMELINE_SIGNAL);
+            &sem_info->signal, NULL, queue_syncobj, &chunks[num_chunks],
+            AMDGPU_CHUNK_ID_SYNCOBJ_TIMELINE_SIGNAL);
       } else {
-         signal_syncobj = radv_amdgpu_cs_alloc_syncobj_chunk(
-            &sem_info->signal, NULL, &chunks[num_chunks], AMDGPU_CHUNK_ID_SYNCOBJ_OUT);
+         signal_syncobj =
+            radv_amdgpu_cs_alloc_syncobj_chunk(&sem_info->signal, NULL, queue_syncobj,
+                                               &chunks[num_chunks], AMDGPU_CHUNK_ID_SYNCOBJ_OUT);
       }
       if (!signal_syncobj) {
          result = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -1694,7 +1844,7 @@ radv_amdgpu_wait_syncobj(struct radeon_winsys *_ws, const uint32_t *handles, uin
    }
 }
 
-static bool
+static VkResult
 radv_amdgpu_wait_timeline_syncobj(struct radeon_winsys *_ws, const uint32_t *handles,
                                   const uint64_t *points, uint32_t handle_count, bool wait_all,
                                   bool available, uint64_t timeout)
@@ -1710,12 +1860,12 @@ radv_amdgpu_wait_timeline_syncobj(struct radeon_winsys *_ws, const uint32_t *han
          (available ? DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE : 0),
       NULL);
    if (ret == 0) {
-      return true;
+      return VK_SUCCESS;
    } else if (ret == -ETIME) {
-      return false;
+      return VK_TIMEOUT;
    } else {
       fprintf(stderr, "amdgpu: radv_amdgpu_wait_timeline_syncobj failed! (%d)\n", ret);
-      return false;
+      return VK_ERROR_UNKNOWN;
    }
 }
 

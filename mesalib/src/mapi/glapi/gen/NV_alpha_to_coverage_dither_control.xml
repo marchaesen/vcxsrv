@@ -11,7 +11,7 @@
 
     <enum name="ALPHA_TO_COVERAGE_DITHER_MODE_NV"                  value="0x92BF"/>
 
-    <function name="AlphaToCoverageDitherControlNV">
+    <function name="AlphaToCoverageDitherControlNV" no_error="true">
         <param name="mode" type="GLenum"/>
     </function>
 

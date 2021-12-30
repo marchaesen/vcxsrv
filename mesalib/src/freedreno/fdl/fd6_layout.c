@@ -188,20 +188,15 @@ fdl6_layout(struct fdl_layout *layout, enum pipe_format format,
    ubwc_height0 = align(DIV_ROUND_UP(ubwc_height0, ubwc_blockheight),
                         ubwc_tile_height_alignment);
 
+   uint32_t min_3d_layer_size = 0;
+
    for (uint32_t level = 0; level < mip_levels; level++) {
       uint32_t depth = u_minify(depth0, level);
       struct fdl_slice *slice = &layout->slices[level];
       struct fdl_slice *ubwc_slice = &layout->ubwc_slices[level];
       uint32_t tile_mode = fdl_tile_mode(layout, level);
       uint32_t pitch = fdl_pitch(layout, level);
-      uint32_t height;
-
-      /* tiled levels of 3D textures are rounded up to PoT dimensions: */
-      if (is_3d && tile_mode) {
-         height = u_minify(util_next_power_of_two(height0), level);
-      } else {
-         height = u_minify(height0, level);
-      }
+      uint32_t height = u_minify(height0, level);
 
       uint32_t nblocksy = util_format_get_nblocksy(format, height);
       if (tile_mode)
@@ -219,17 +214,36 @@ fdl6_layout(struct fdl_layout *layout, enum pipe_format format,
 
       slice->offset = offset + layout->size;
 
-      /* 1d array and 2d array textures must all have the same layer size
-       * for each miplevel on a6xx. 3d textures can have different layer
-       * sizes for high levels, but the hw auto-sizer is buggy (or at least
-       * different than what this code does), so as soon as the layer size
-       * range gets into range, we stop reducing it.
+      /* 1d array and 2d array textures must all have the same layer size for
+       * each miplevel on a6xx.  For 3D, the layer size automatically reduces
+       * until the value we specify in TEX_CONST_3_MIN_LAYERSZ, which is used to
+       * make sure that we follow alignment requirements after minification.
        */
       if (is_3d) {
-         if (level < 1 || layout->slices[level - 1].size0 > 0xf000) {
+         if (level == 0) {
             slice->size0 = align(nblocksy * pitch, 4096);
+         } else if (min_3d_layer_size) {
+            slice->size0 = min_3d_layer_size;
          } else {
-            slice->size0 = layout->slices[level - 1].size0;
+            /* Note: level * 2 for minifying in both X and Y. */
+            slice->size0 = u_minify(layout->slices[0].size0, level * 2);
+
+            /* If this level didn't reduce the pitch by half, then fix it up,
+             * and this is the end of layer size reduction.
+             */
+            uint32_t pitch = fdl_pitch(layout, level);
+            if (pitch != fdl_pitch(layout, level - 1) / 2)
+               min_3d_layer_size = slice->size0 = nblocksy * pitch;
+
+            /* If the height is now less than the alignment requirement, then
+             * scale it up and let this be the minimum layer size.
+             */
+            if (tile_mode && util_format_get_nblocksy(format, height) < heightalign)
+               min_3d_layer_size = slice->size0 = nblocksy * pitch;
+
+            /* If the size would become un-page-aligned, stay aligned instead. */
+            if (align(slice->size0, 4096) != slice->size0)
+               min_3d_layer_size = slice->size0 = align(slice->size0, 4096);
          }
       } else {
          slice->size0 = nblocksy * pitch;

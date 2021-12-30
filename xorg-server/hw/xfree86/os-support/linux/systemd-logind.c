@@ -38,6 +38,7 @@
 #include "xf86.h"
 #include "xf86platformBus.h"
 #include "xf86Xinput.h"
+#include "xf86Priv.h"
 #include "globals.h"
 
 #include "systemd-logind.h"
@@ -302,6 +303,37 @@ cleanup:
     dbus_error_free(&error);
 }
 
+/*
+ * Send a message to logind, to pause the drm device
+ * and ensure the drm_drop_master is done before
+ * VT_RELDISP when switching VT
+ */
+void systemd_logind_drop_master(void)
+{
+    int i;
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        if (xf86_platform_devices[i].flags & XF86_PDEV_SERVER_FD) {
+            dbus_int32_t major, minor;
+            struct systemd_logind_info *info = &logind_info;
+
+            xf86_platform_devices[i].flags |= XF86_PDEV_PAUSED;
+            major = xf86_platform_odev_attributes(i)->major;
+            minor = xf86_platform_odev_attributes(i)->minor;
+            systemd_logind_ack_pause(info, minor, major);
+        }
+    }
+}
+
+static Bool are_platform_devices_resumed(void) {
+    int i;
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        if (xf86_platform_devices[i].flags & XF86_PDEV_PAUSED) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
 static DBusHandlerResult
 message_filter(DBusConnection * connection, DBusMessage * message, void *data)
 {
@@ -393,14 +425,14 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
         /* info->vt_active gets set by systemd_logind_vtenter() */
         info->active = TRUE;
 
-        if (pdev)
+        if (pdev) {
             pdev->flags &= ~XF86_PDEV_PAUSED;
-        else
+        } else
             systemd_logind_set_input_fd_for_all_devs(major, minor, fd,
                                                      info->vt_active);
-
-        /* Always call vtenter(), in case there are only legacy video devs */
-        systemd_logind_vtenter();
+        /* Call vtenter if all platform devices are resumed, or if there are no platform device */
+        if (are_platform_devices_resumed())
+            systemd_logind_vtenter();
     }
     return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -583,7 +615,7 @@ static struct dbus_core_hook core_hook = {
 int
 systemd_logind_init(void)
 {
-    if (!ServerIsNotSeat0() && linux_parse_vt_settings(TRUE) && !linux_get_keeptty()) {
+    if (!ServerIsNotSeat0() && xf86HasTTYs() && linux_parse_vt_settings(TRUE) && !linux_get_keeptty()) {
         LogMessage(X_INFO,
             "systemd-logind: logind integration requires -keeptty and "
             "-keeptty was not provided, disabling logind integration\n");

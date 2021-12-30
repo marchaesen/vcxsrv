@@ -88,6 +88,7 @@ static void
 v3d_nir_lower_image_store(nir_builder *b, nir_intrinsic_instr *instr)
 {
         enum pipe_format format = nir_intrinsic_format(instr);
+        assert(format != PIPE_FORMAT_NONE);
         const struct util_format_description *desc =
                 util_format_description(format);
         const struct util_format_channel_description *r_chan = &desc->channel[0];
@@ -132,11 +133,13 @@ v3d_nir_lower_image_store(nir_builder *b, nir_intrinsic_instr *instr)
                 bool pack_mask = false;
                 if (r_chan->pure_integer &&
                     r_chan->type == UTIL_FORMAT_TYPE_SIGNED) {
-                        formatted = nir_format_clamp_sint(b, color, bits);
+                        /* We don't need to do any conversion or clamping in this case */
+                        formatted = color;
                         pack_mask = true;
                 } else if (r_chan->pure_integer &&
                            r_chan->type == UTIL_FORMAT_TYPE_UNSIGNED) {
-                        formatted = nir_format_clamp_uint(b, color, bits);
+                        /* We don't need to do any conversion or clamping in this case */
+                        formatted = color;
                 } else if (r_chan->normalized &&
                            r_chan->type == UTIL_FORMAT_TYPE_SIGNED) {
                         formatted = nir_format_float_to_snorm(b, color, bits);

@@ -36,7 +36,6 @@
 #include "util/format/u_format.h"
 #include "util/u_debug.h"
 #include "frontend/drm_driver.h"
-#include "state_tracker/st_cb_bufferobjects.h"
 #include "state_tracker/st_cb_fbo.h"
 #include "state_tracker/st_cb_texture.h"
 #include "state_tracker/st_texture.h"
@@ -870,6 +869,8 @@ dri2_create_image_from_winsys(__DRIscreen *_screen,
    templ.last_level = 0;
    templ.depth0 = 1;
    templ.array_size = 1;
+   templ.width0 = width;
+   templ.height0 = height;
 
    for (i = num_handles - 1; i >= format_planes; i--) {
       struct pipe_resource *tex;
@@ -1919,7 +1920,7 @@ dri2_interop_export_object(__DRIcontext *_ctx,
          return MESA_GLINTEROP_INVALID_OBJECT;
       }
 
-      res = st_buffer_object(buf)->buffer;
+      res = buf->buffer;
       if (!res) {
          /* this shouldn't happen */
          simple_mtx_unlock(&ctx->Shared->Mutex);
@@ -1997,8 +1998,8 @@ dri2_interop_export_object(__DRIcontext *_ctx,
       }
 
       if (target == GL_TEXTURE_BUFFER) {
-         struct st_buffer_object *stBuf =
-            st_buffer_object(obj->BufferObject);
+         struct gl_buffer_object *stBuf =
+            obj->BufferObject;
 
          if (!stBuf || !stBuf->buffer) {
             /* this shouldn't happen */

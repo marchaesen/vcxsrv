@@ -45,7 +45,7 @@ fd2_rasterizer_state_create(struct pipe_context *pctx,
 
    if (cso->point_size_per_vertex) {
       psize_min = util_get_min_point_size(cso);
-      psize_max = 8192.0 - 0.0625;
+      psize_max = 8192.0f - 0.0625f;
    } else {
       /* Force the point size to be as if the vertex output was disabled. */
       psize_min = cso->point_size;

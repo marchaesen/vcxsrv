@@ -38,6 +38,7 @@
 #include "v3d_context.h"
 #include "v3d_resource.h"
 #include "broadcom/compiler/v3d_compiler.h"
+#include "broadcom/common/v3d_util.h"
 
 void
 v3d_flush(struct pipe_context *pctx)
@@ -194,6 +195,20 @@ v3d_get_real_line_width(struct v3d_context *v3d)
 }
 
 void
+v3d_ensure_prim_counts_allocated(struct v3d_context *ctx)
+{
+        if (ctx->prim_counts)
+                return;
+
+        /* Init all 7 counters and 1 padding to 0 */
+        uint32_t zeroes[8] = { 0 };
+        u_upload_data(ctx->uploader,
+                      0, sizeof(zeroes), 32, zeroes,
+                      &ctx->prim_counts_offset,
+                      &ctx->prim_counts);
+}
+
+void
 v3d_flag_dirty_sampler_state(struct v3d_context *v3d,
                              enum pipe_shader_type shader)
 {
@@ -234,27 +249,13 @@ v3d_get_tile_buffer_size(bool is_msaa,
                          uint32_t *tile_height,
                          uint32_t *max_bpp)
 {
-        static const uint8_t tile_sizes[] = {
-                64, 64,
-                64, 32,
-                32, 32,
-                32, 16,
-                16, 16,
-        };
-        int tile_size_index = 0;
-        if (is_msaa)
-                tile_size_index += 2;
-
-        if (cbufs[3] || cbufs[2])
-                tile_size_index += 2;
-        else if (cbufs[1])
-                tile_size_index++;
-
+        uint32_t max_cbuf_idx = 0;
         *max_bpp = 0;
         for (int i = 0; i < nr_cbufs; i++) {
                 if (cbufs[i]) {
                         struct v3d_surface *surf = v3d_surface(cbufs[i]);
                         *max_bpp = MAX2(*max_bpp, surf->internal_bpp);
+                        max_cbuf_idx = MAX2(i, max_cbuf_idx);
                 }
         }
 
@@ -264,11 +265,8 @@ v3d_get_tile_buffer_size(bool is_msaa,
                 *max_bpp = MAX2(*max_bpp, bsurf->internal_bpp);
         }
 
-        tile_size_index += *max_bpp;
-
-        assert(tile_size_index < ARRAY_SIZE(tile_sizes));
-        *tile_width = tile_sizes[tile_size_index * 2 + 0];
-        *tile_height = tile_sizes[tile_size_index * 2 + 1];
+        v3d_choose_tile_size(max_cbuf_idx + 1, *max_bpp, is_msaa,
+                             tile_width, tile_height);
 }
 
 static void

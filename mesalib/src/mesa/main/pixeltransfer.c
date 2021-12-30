@@ -221,29 +221,6 @@ _mesa_shift_and_offset_ci(const struct gl_context *ctx,
 
 
 /**
- * Apply color index shift, offset and table lookup to an array
- * of color indexes;
- */
-void
-_mesa_apply_ci_transfer_ops(const struct gl_context *ctx,
-                            GLbitfield transferOps,
-                            GLuint n, GLuint indexes[])
-{
-   if (transferOps & IMAGE_SHIFT_OFFSET_BIT) {
-      _mesa_shift_and_offset_ci(ctx, n, indexes);
-   }
-   if (transferOps & IMAGE_MAP_COLOR_BIT) {
-      const GLuint mask = ctx->PixelMaps.ItoI.Size - 1;
-      GLuint i;
-      for (i = 0; i < n; i++) {
-         const GLuint j = indexes[i] & mask;
-         indexes[i] = _mesa_lroundevenf(ctx->PixelMaps.ItoI.Map[j]);
-      }
-   }
-}
-
-
-/**
  * Apply stencil index shift, offset and table lookup to an array
  * of stencil values.
  */

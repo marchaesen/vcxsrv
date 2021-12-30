@@ -193,6 +193,9 @@ struct ac_pc_block *ac_lookup_counter(const struct ac_perfcounters *pc,
 struct ac_pc_block *ac_lookup_group(const struct ac_perfcounters *pc,
                                     unsigned *index);
 
+struct ac_pc_block *ac_pc_get_block(const struct ac_perfcounters *pc,
+                                    enum ac_pc_gpu_block gpu_block);
+
 bool ac_init_block_names(const struct radeon_info *info,
                          const struct ac_perfcounters *pc,
                          struct ac_pc_block *block);

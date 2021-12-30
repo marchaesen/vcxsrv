@@ -47,6 +47,7 @@ struct trace_query
 {
    struct threaded_query base;
    unsigned type;
+   unsigned index;
 
    struct pipe_query *query;
 };
@@ -201,6 +202,7 @@ trace_context_create_query(struct pipe_context *_pipe,
       if (tr_query) {
          tr_query->type = query_type;
          tr_query->query = query;
+         tr_query->index = index;
          query = (struct pipe_query *)tr_query;
       } else {
          pipe->destroy_query(pipe, query);
@@ -305,7 +307,7 @@ trace_context_get_query_result(struct pipe_context *_pipe,
 
    trace_dump_arg_begin("result");
    if (ret) {
-      trace_dump_query_result(tr_query->type, result);
+      trace_dump_query_result(tr_query->type, tr_query->index, result);
    } else {
       trace_dump_null();
    }
@@ -316,6 +318,38 @@ trace_context_get_query_result(struct pipe_context *_pipe,
    trace_dump_call_end();
 
    return ret;
+}
+
+static void
+trace_context_get_query_result_resource(struct pipe_context *_pipe,
+                                        struct pipe_query *_query,
+                                        bool wait,
+                                        enum pipe_query_value_type result_type,
+                                        int index,
+                                        struct pipe_resource *resource,
+                                        unsigned offset)
+{
+   struct trace_context *tr_ctx = trace_context(_pipe);
+   struct pipe_context *pipe = tr_ctx->pipe;
+   struct trace_query *tr_query = trace_query(_query);
+   struct pipe_query *query = tr_query->query;
+
+   trace_dump_call_begin("pipe_context", "get_query_result_resource");
+
+   trace_dump_arg(ptr, pipe);
+   trace_dump_arg(ptr, query);
+   trace_dump_arg(bool, wait);
+   trace_dump_arg(uint, result_type);
+   trace_dump_arg(uint, index);
+   trace_dump_arg(ptr, resource);
+   trace_dump_arg(uint, offset);
+
+   if (tr_ctx->threaded)
+      threaded_query(query)->flushed = tr_query->base.flushed;
+
+   trace_dump_call_end();
+
+   pipe->get_query_result_resource(pipe, query, wait, result_type, index, resource, offset);
 }
 
 
@@ -1924,6 +1958,27 @@ trace_context_render_condition(struct pipe_context *_context,
    context->render_condition(context, query, condition, mode);
 }
 
+static void
+trace_context_render_condition_mem(struct pipe_context *_context,
+                                    struct pipe_resource *buffer,
+                                    uint32_t offset,
+                                    bool condition)
+{
+   struct trace_context *tr_context = trace_context(_context);
+   struct pipe_context *context = tr_context->pipe;
+
+   trace_dump_call_begin("pipe_context", "render_condition_mem");
+
+   trace_dump_arg(ptr, context);
+   trace_dump_arg(ptr, buffer);
+   trace_dump_arg(uint, offset);
+   trace_dump_arg(bool, condition);
+
+   trace_dump_call_end();
+
+   context->render_condition_mem(context, buffer, offset, condition);
+}
+
 
 static void
 trace_context_texture_barrier(struct pipe_context *_context, unsigned flags)
@@ -2212,11 +2267,13 @@ trace_context_create(struct trace_screen *tr_scr,
    TR_CTX_INIT(draw_vbo);
    TR_CTX_INIT(draw_vertex_state);
    TR_CTX_INIT(render_condition);
+   TR_CTX_INIT(render_condition_mem);
    TR_CTX_INIT(create_query);
    TR_CTX_INIT(destroy_query);
    TR_CTX_INIT(begin_query);
    TR_CTX_INIT(end_query);
    TR_CTX_INIT(get_query_result);
+   TR_CTX_INIT(get_query_result_resource);
    TR_CTX_INIT(set_active_query_state);
    TR_CTX_INIT(create_blend_state);
    TR_CTX_INIT(bind_blend_state);

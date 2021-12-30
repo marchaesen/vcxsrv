@@ -25,10 +25,9 @@
 #include "v3dv_meta_common.h"
 
 #include "broadcom/common/v3d_macros.h"
+#include "broadcom/common/v3d_tfu.h"
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/compiler/v3d_compiler.h"
-
-#include "vk_format_info.h"
 
 struct rcl_clear_info {
    const union v3dv_clear_value *clear_value;
@@ -840,19 +839,19 @@ v3dX(meta_emit_tfu_job)(struct v3dv_cmd_buffer *cmd_buffer,
    tfu.iia |= src_offset;
 
    if (src_tiling == V3D_TILING_RASTER) {
-      tfu.icfg = V3D_TFU_ICFG_FORMAT_RASTER << V3D_TFU_ICFG_FORMAT_SHIFT;
+      tfu.icfg = V3D33_TFU_ICFG_FORMAT_RASTER << V3D33_TFU_ICFG_FORMAT_SHIFT;
    } else {
-      tfu.icfg = (V3D_TFU_ICFG_FORMAT_LINEARTILE +
+      tfu.icfg = (V3D33_TFU_ICFG_FORMAT_LINEARTILE +
                   (src_tiling - V3D_TILING_LINEARTILE)) <<
-                   V3D_TFU_ICFG_FORMAT_SHIFT;
+                   V3D33_TFU_ICFG_FORMAT_SHIFT;
    }
-   tfu.icfg |= format->tex_type << V3D_TFU_ICFG_TTYPE_SHIFT;
+   tfu.icfg |= format->tex_type << V3D33_TFU_ICFG_TTYPE_SHIFT;
 
    tfu.ioa = dst_offset;
 
-   tfu.ioa |= (V3D_TFU_IOA_FORMAT_LINEARTILE +
+   tfu.ioa |= (V3D33_TFU_IOA_FORMAT_LINEARTILE +
                (dst_tiling - V3D_TILING_LINEARTILE)) <<
-                V3D_TFU_IOA_FORMAT_SHIFT;
+                V3D33_TFU_IOA_FORMAT_SHIFT;
 
    switch (src_tiling) {
    case V3D_TILING_UIF_NO_XOR:
@@ -875,7 +874,7 @@ v3dX(meta_emit_tfu_job)(struct v3dv_cmd_buffer *cmd_buffer,
       uint32_t implicit_padded_height = align(height, uif_block_h);
       uint32_t icfg = (dst_padded_height_or_stride - implicit_padded_height) /
                       uif_block_h;
-      tfu.icfg |= icfg << V3D_TFU_ICFG_OPAD_SHIFT;
+      tfu.icfg |= icfg << V3D33_TFU_ICFG_OPAD_SHIFT;
    }
 
    v3dv_cmd_buffer_add_tfu_job(cmd_buffer, &tfu);

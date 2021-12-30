@@ -37,7 +37,6 @@
 #include "util/ralloc.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
-#include "util/u_pstipple.h"
 #include "draw/draw_context.h"
 #include "draw/draw_vs.h"
 #include "draw/draw_gs.h"
@@ -65,20 +64,7 @@ create_fs_variant(struct softpipe_context *softpipe,
    if (var) {
       var->key = *key;
 
-#if DO_PSTIPPLE_IN_HELPER_MODULE
-      if (key->polygon_stipple) {
-         /* get new shader that implements polygon stippling */
-         var->tokens = 
-            util_pstipple_create_fragment_shader(curfs->tokens,
-                                                 &var->stipple_sampler_unit, 0,
-                                                 TGSI_FILE_INPUT);
-      }
-      else
-#endif
-      {
-         var->tokens = tgsi_dup_tokens(curfs->tokens);
-         var->stipple_sampler_unit = 0;
-      }
+      var->tokens = tgsi_dup_tokens(curfs->tokens);
 
       tgsi_scan_shader(var->tokens, &var->info);
 

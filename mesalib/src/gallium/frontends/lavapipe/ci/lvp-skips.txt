@@ -7,7 +7,6 @@ dEQP-VK.texture.filtering.3d.sizes.3x7x5.linear_mipmap_linear
 
 # Timeouts (VK-GL-CTS 1.2.7.0)
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
-dEQP-VK.graphicsfuzz.spv-stable-maze-flatten-copy-composite
 dEQP-VK.graphicsfuzz.spv-stable-pillars-O-op-select-to-op-phi
 dEQP-VK.graphicsfuzz.spv-stable-pillars-volatile-nontemporal-store
 dEQP-VK.graphicsfuzz.spv-composites

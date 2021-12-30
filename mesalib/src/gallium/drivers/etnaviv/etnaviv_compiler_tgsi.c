@@ -2324,7 +2324,7 @@ copy_uniform_state_to_shader(struct etna_compile *c, struct etna_shader_variant 
 bool
 etna_compile_shader(struct etna_shader_variant *v)
 {
-   if (DBG_ENABLED(ETNA_DBG_NIR))
+   if (!DBG_ENABLED(ETNA_DBG_TGSI))
       return etna_compile_shader_nir(v);
 
    /* Create scratch space that may be too large to fit on stack

@@ -171,6 +171,38 @@ SOFTWARE.
 	<pattern low="55" high="58">0000</pattern> <!-- OPC -->
 </bitset>
 
+<bitset name="getlast" extends="#instruction-cat0">
+	<doc>
+		Perform a jump for all fibers in the first cluster with any active
+		fibers, except for the last fiber in the cluster.
+		While there is a separate field for CLUSTER_SIZE its value does
+		not change the behaviour in any observable way, it behaves as if
+		CLUSTER_SIZE is always 8.
+	</doc>
+
+	<gen min="600"/>
+
+	<display>
+		{SY}{SS}{JP}{NAME}.w{CLUSTER_SIZE} #{IMMED}
+	</display>
+	<derived name="CLUSTER_SIZE" type="uint">
+		<expr>
+			2ULL &lt;&lt; {W}
+		</expr>
+	</derived>
+	<pattern low="32" high="36">xxxxx</pattern> <!-- INDEX -->
+	<pattern low="37" high="39">xxx</pattern>  <!-- BRTYPE -->
+	<pattern low="45" high="47">xxx</pattern>  <!-- src1 -->
+	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
+	<pattern low="55" high="58">0100</pattern> <!-- OPC -->
+
+	<field name="W" low="52" high="54" type="uint"/>
+
+	<encode>
+		<map name="W">util_logbase2(8) - 1</map>
+	</encode>
+</bitset>
+
 <bitset name="getone" extends="#instruction-cat0-immed">
 	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
 	<pattern low="55" high="58">0101</pattern> <!-- OPC -->

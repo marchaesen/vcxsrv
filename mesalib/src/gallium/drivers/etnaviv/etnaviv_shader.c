@@ -132,7 +132,7 @@ etna_link_shaders(struct etna_context *ctx, struct compiled_shader_state *cs,
    }
 #endif
 
-   if (DBG_ENABLED(ETNA_DBG_NIR))
+   if (!DBG_ENABLED(ETNA_DBG_TGSI))
       failed = etna_link_shader_nir(&link, vs, fs);
    else
       failed = etna_link_shader(&link, vs, fs);
@@ -468,7 +468,7 @@ etna_create_shader_state(struct pipe_context *pctx,
    shader->specs = &screen->specs;
    shader->compiler = screen->compiler;
 
-   if (DBG_ENABLED(ETNA_DBG_NIR))
+   if (!DBG_ENABLED(ETNA_DBG_TGSI))
       shader->nir = (pss->type == PIPE_SHADER_IR_NIR) ? pss->ir.nir :
                      tgsi_to_nir(pss->tokens, pctx->screen, false);
    else

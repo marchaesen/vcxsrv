@@ -118,6 +118,7 @@ struct blitter_context
    bool skip_viewport_restore;
    bool is_sample_mask_saved;
    unsigned saved_sample_mask;
+   unsigned saved_min_samples;
 
    unsigned saved_num_sampler_states;
    void *saved_sampler_states[PIPE_MAX_SAMPLERS];
@@ -565,10 +566,11 @@ util_blitter_save_so_targets(struct blitter_context *blitter,
 
 static inline void
 util_blitter_save_sample_mask(struct blitter_context *blitter,
-                              unsigned sample_mask)
+                              unsigned sample_mask, unsigned min_samples)
 {
    blitter->is_sample_mask_saved = true;
    blitter->saved_sample_mask = sample_mask;
+   blitter->saved_min_samples = min_samples;
 }
 
 static inline void

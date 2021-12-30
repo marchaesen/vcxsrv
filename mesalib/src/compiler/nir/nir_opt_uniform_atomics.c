@@ -194,7 +194,8 @@ reduce_data(nir_builder *b, nir_op op, nir_ssa_def *data,
 static nir_ssa_def *
 optimize_atomic(nir_builder *b, nir_intrinsic_instr *intrin, bool return_prev)
 {
-   unsigned offset_src, data_src;
+   unsigned offset_src = 0;
+   unsigned data_src = 0;
    nir_op op = parse_atomic_op(intrin->intrinsic, &offset_src, &data_src);
    nir_ssa_def *data = intrin->src[data_src].ssa;
 

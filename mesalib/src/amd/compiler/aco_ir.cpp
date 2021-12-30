@@ -318,6 +318,8 @@ can_use_DPP(const aco_ptr<Instruction>& instr, bool pre_ra)
          return false;
       if (instr->format == Format::VOP3)
          return false;
+      if (instr->operands.size() > 1 && !instr->operands[1].isOfType(RegType::vgpr))
+         return false;
    }
 
    /* there are more cases but those all take 64-bit inputs */
@@ -525,12 +527,18 @@ get_reduction_identity(ReduceOp op, unsigned idx)
 bool
 needs_exec_mask(const Instruction* instr)
 {
-   if (instr->isSALU() || instr->isBranch())
+   if (instr->isVALU()) {
+      return instr->opcode != aco_opcode::v_readlane_b32 &&
+             instr->opcode != aco_opcode::v_readlane_b32_e64 &&
+             instr->opcode != aco_opcode::v_writelane_b32 &&
+             instr->opcode != aco_opcode::v_writelane_b32_e64;
+   }
+
+   if (instr->isVMEM() || instr->isFlatLike())
+      return true;
+
+   if (instr->isSALU() || instr->isBranch() || instr->isSMEM() || instr->isBarrier())
       return instr->reads_exec();
-   if (instr->isSMEM())
-      return false;
-   if (instr->isBarrier())
-      return false;
 
    if (instr->isPseudo()) {
       switch (instr->opcode) {
@@ -543,21 +551,15 @@ needs_exec_mask(const Instruction* instr)
             if (def.getTemp().type() == RegType::vgpr)
                return true;
          }
-         return false;
+         return instr->reads_exec();
       case aco_opcode::p_spill:
       case aco_opcode::p_reload:
       case aco_opcode::p_logical_start:
       case aco_opcode::p_logical_end:
-      case aco_opcode::p_startpgm: return false;
+      case aco_opcode::p_startpgm: return instr->reads_exec();
       default: break;
       }
    }
-
-   if (instr->opcode == aco_opcode::v_readlane_b32 ||
-       instr->opcode == aco_opcode::v_readlane_b32_e64 ||
-       instr->opcode == aco_opcode::v_writelane_b32 ||
-       instr->opcode == aco_opcode::v_writelane_b32_e64)
-      return false;
 
    return true;
 }

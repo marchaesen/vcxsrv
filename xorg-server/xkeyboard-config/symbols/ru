@@ -578,7 +578,7 @@ xkb_symbols "phonetic_azerty" {
      key <AE12>	{ [     equal,       plus,   braceright,  dead_ogonek ]	};
 
      key <AB07> { [     comma,   question,        acute,  doubleacute ] };
-     key <AB08>	{ [ semicolon,     period, horizconnector,   multiply ]	};
+     key <AB08>	{ [ semicolon,     period,        U2022,     multiply ]	}; // bullet
      key <AB09>	{ [     colon,      slash, periodcentered,   division ]	};
      key <AB10>	{ [    exclam,    section, dead_belowdot, dead_abovedot ] };
 

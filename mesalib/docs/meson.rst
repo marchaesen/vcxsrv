@@ -12,7 +12,7 @@ production.**
 
 .. note::
 
-   Mesa requires Meson >= 0.52.0 to build.
+   Mesa requires Meson >= 0.53.0 to build.
 
    If your distribution doesn't have something recent enough in its
    repositories, you can `try the methods suggested here
@@ -296,7 +296,6 @@ The wrap file must define the following:
 It may also define:
 
 -  ``irbuilder_h``: a ``files()`` object pointing to llvm/IR/IRBuilder.h
-   (this is required for SWR)
 -  ``has_rtti``: a ``bool`` that declares whether LLVM was built with
    RTTI. Defaults to true
 

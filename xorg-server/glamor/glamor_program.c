@@ -260,8 +260,8 @@ glamor_build_program(ScreenPtr          screen,
     char                        *fs_vars = NULL;
     char                        *vs_vars = NULL;
 
-    char                        *vs_prog_string;
-    char                        *fs_prog_string;
+    char                        *vs_prog_string = NULL;
+    char                        *fs_prog_string = NULL;
 
     GLint                       fs_prog, vs_prog;
     Bool                        gpu_shader4 = FALSE;

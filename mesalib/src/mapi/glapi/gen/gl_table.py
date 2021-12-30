@@ -164,16 +164,13 @@ class PrintRemapTable(gl_XML.gl_print_base):
             arg_string = gl_XML.create_parameter_string(f.parameters, 0)
 
             print('typedef %s (GLAPIENTRYP _glptr_%s)(%s);' % (f.return_type, f.name, arg_string))
-            print('#define CALL_%s(disp, parameters) \\' % (f.name))
-            print('    (* GET_%s(disp)) parameters' % (f.name))
-            print('static inline _glptr_%s GET_%s(struct _glapi_table *disp) {' % (f.name, f.name))
-            print('   return (_glptr_%s) (GET_by_offset(disp, _gloffset_%s));' % (f.name, f.name))
-            print('}')
-            print()
-            print('static inline void SET_%s(struct _glapi_table *disp, %s (GLAPIENTRYP fn)(%s)) {' % (f.name, f.return_type, arg_string))
-            print('   SET_by_offset(disp, _gloffset_%s, fn);' % (f.name))
-            print('}')
-            print()
+            print('#define CALL_{0}(disp, parameters) (* GET_{0}(disp)) parameters'.format(f.name))
+            print('#define GET_{0}(disp) ((_glptr_{0})(GET_by_offset((disp), _gloffset_{0})))'.format(f.name))
+            print("""#define SET_{0}(disp, func) do {{ \\
+   {1} (GLAPIENTRYP fn)({2}) = func; \\
+   SET_by_offset(disp, _gloffset_{0}, fn); \\
+}} while (0)
+""".format(f.name, f.return_type, arg_string))
 
         return
 

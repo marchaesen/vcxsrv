@@ -26,7 +26,7 @@ variables:
 
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2021-10-26.1'
+  FDO_DISTRIBUTION_TAG: '2021-12-17.1'
 
 
 stages:
@@ -44,9 +44,9 @@ container-prep:
   variables:
     GIT_STRATEGY: none
     # minimal set of packages required to build xkeyboard-config.
-    BASE_PACKAGES: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python meson ninja git'
+    BASE_PACKAGES: 'xorg-util-macros gettext pkg-config gcc grep m4 python meson ninja git diffutils'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq libxkbcommon'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq libxkbcommon libxslt'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 
@@ -54,18 +54,6 @@ container-prep:
   extends:
     - .fdo.distribution-image@arch
 
-
-.default_build:
-  extends: .default_setup
-  script:
-   - rm -rf "$BUILDDIR"
-   - mkdir -p "$BUILDDIR"
-   - mkdir -p "$INSTDIR"
-   - autoreconf -ivf
-   - pushd "$BUILDDIR"
-   - ../configure --prefix="$INSTDIR" --disable-silent-rules --disable-runtime-deps "$CONFIGURE_ARGS"
-   - make
-   - if test x"$MAKE_EXTRA_COMMAND" != "x"; then make $MAKE_EXTRA_COMMAND; fi
 
 
 .meson_build:
@@ -98,38 +86,7 @@ check-merge-request:
   allow_failure: true
   dependencies: []
 
-make_install:
-  extends: .default_build
-  stage: build
-  variables:
-      MAKE_EXTRA_COMMAND: "install"
-  after_script:
-    - tree $INSTDIR
-  artifacts:
-    name: installed files
-    expire_in: 2 weeks
-    paths:
-      - $INSTDIR/
-
-make_check:
-  extends: .default_build
-  stage: build
-  variables:
-      MAKE_EXTRA_COMMAND: "check"
-
-make_distcheck:
-  extends: .default_build
-  stage: build
-  variables:
-      # pass VERSION to make so our tarball has a fixed name.
-      MAKE_EXTRA_COMMAND: "VERSION=master distcheck"
-  artifacts:
-    name: tarball
-    expire_in: 2 weeks
-    paths:
-      - $BUILDDIR/xkeyboard-config-master.tar.bz2
-
-meson_build:
+meson_install:
   extends: .meson_build
   stage: build
   variables:
@@ -153,15 +110,11 @@ meston_dist:
   stage: build
   variables:
       NINJA_EXTRA_COMMAND: "dist"
-
-meson_from_tarball:
-  extends: .meson_build
-  stage: dist
-  dependencies:
-    - make_distcheck
-  variables:
-    TARBALL: "xkeyboard-config-master.tar.bz2"
-    GIT_STRATEGY: none
+  artifacts:
+    name: tarball
+    expire_in: 2 weeks
+    paths:
+      - $BUILDDIR/meson-dist/xkeyboard-config-*.tar.xz
 
 # Checks for new evdev keycodes to be added to keycodes/evdev
 evdev keycode check:
@@ -203,11 +156,20 @@ evdev keysym check (xorgproto master):
 xmllint:
   extends:
     - .default_setup
-  dependencies: ['make_install']
-  needs: ['make_install']
+  dependencies: ['meson_install']
+  needs: ['meson_install']
   stage: test
   script:
     - xmllint --dtdvalid "$INSTDIR/share/X11/xkb/rules/xkb.dtd" $INSTDIR/share/X11/xkb/rules/*.xml > /dev/null
+
+
+match group names to registry:
+  extends:
+    - .default_setup
+  needs: ['container-prep']
+  stage: test
+  script:
+    - "./tests/genLists4Comparison.sh"
 
 
 # libxkbcommon's xkbcli list prints out YAML-like format, if yq cannot parse it, our
@@ -215,8 +177,8 @@ xmllint:
 xkbcli list check:
   extends:
     - .default_setup
-  dependencies: ['make_install']
-  needs: ['make_install']
+  dependencies: ['meson_install']
+  needs: ['meson_install']
   stage: test
   script:
     - xkbcli list --skip-default-paths --load-exotic "$INSTDIR/share/X11/xkb" > rmlvo.yaml
@@ -236,7 +198,7 @@ xkbcli list check:
 layout_tests:
   extends: .default_setup
   stage: test
-  needs: ["make_install"]
+  needs: ["meson_install"]
   script:
     # make sure the custom layout resolves to something
     - ln -s "$INSTDIR/share/X11/xkb/symbols/us" "$INSTDIR/share/X11/xkb/symbols/custom"
@@ -280,7 +242,7 @@ keymap_tests:
   artifacts:
     reports:
       junit: results.xml
-  # use the installed tree from the make_install job
+  # use the installed tree from the meson_install job
   needs:
-    - job: make_install
+    - job: meson_install
       artifacts: true

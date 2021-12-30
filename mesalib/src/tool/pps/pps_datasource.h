@@ -53,12 +53,18 @@ class GpuDataSource : public perfetto::DataSource<GpuDataSource, GpuDataSourceTr
    /// Used to check whether the datasource is quick enough
    std::chrono::nanoseconds time_to_trace;
 
+   /// Last CPU timestamp at which we correlated CPU/GPU timestamps
+   uint64_t last_correlation_timestamp = 0;
+
    /// A data source supports one driver at a time, but if you need more
    /// than one gpu datasource you can just run another producer
    Driver *driver = nullptr;
 
-   /// Timestamp of packet sent with counter descriptors
+   /// CPU timestamp of packet sent with counter descriptors
    uint64_t descriptor_timestamp = 0;
+
+   /// GPU timestamp of packet sent with counter descriptors
+   uint64_t descriptor_gpu_timestamp = 0;
 };
 
 } // namespace pps

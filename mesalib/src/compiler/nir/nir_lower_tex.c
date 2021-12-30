@@ -1255,6 +1255,38 @@ nir_lower_samples_identical_to_fragment_fetch(nir_builder *b, nir_tex_instr *tex
    nir_instr_remove_v(&tex->instr);
 }
 
+static void
+nir_lower_lod_zero_width(nir_builder *b, nir_tex_instr *tex)
+{
+   int coord_index = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+   assert(coord_index >= 0);
+
+   b->cursor = nir_after_instr(&tex->instr);
+
+   nir_ssa_def *is_zero = nir_imm_bool(b, true);
+   for (unsigned i = 0; i < tex->coord_components; i++) {
+      nir_ssa_def *coord = nir_channel(b, tex->src[coord_index].src.ssa, i);
+
+      /* Compute the sum of the absolute values of derivatives. */
+      nir_ssa_def *dfdx = nir_fddx(b, coord);
+      nir_ssa_def *dfdy = nir_fddy(b, coord);
+      nir_ssa_def *fwidth = nir_fadd(b, nir_fabs(b, dfdx), nir_fabs(b, dfdy));
+
+      /* Check if the sum is 0. */
+      is_zero = nir_iand(b, is_zero, nir_feq(b, fwidth, nir_imm_float(b, 0.0)));
+   }
+
+   /* Replace the raw LOD by -FLT_MAX if the sum is 0 for all coordinates. */
+   nir_ssa_def *adjusted_lod =
+      nir_bcsel(b, is_zero, nir_imm_float(b, -FLT_MAX),
+                   nir_channel(b, &tex->dest.ssa, 1));
+
+   nir_ssa_def *def =
+      nir_vec2(b, nir_channel(b, &tex->dest.ssa, 0), adjusted_lod);
+
+   nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, def, def->parent_instr);
+}
+
 static bool
 nir_lower_tex_block(nir_block *block, nir_builder *b,
                     const nir_lower_tex_options *options,
@@ -1289,7 +1321,9 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       if ((tex->op == nir_texop_txf && options->lower_txf_offset) ||
           (sat_mask && nir_tex_instr_src_index(tex, nir_tex_src_coord) >= 0) ||
           (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT &&
-           options->lower_rect_offset)) {
+           options->lower_rect_offset) ||
+          (options->lower_offset_filter &&
+           options->lower_offset_filter(instr, options->callback_data))) {
          progress = lower_offset(b, tex) || progress;
       }
 
@@ -1311,7 +1345,7 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          nir_deref_instr *deref = nir_src_as_deref(tex->src[tex_index].src);
          nir_variable *var = nir_deref_instr_get_variable(deref);
          texture_index = var ? var->data.binding : 0;
-         texture_mask = var ? (1u << texture_index) : 0u;
+         texture_mask = var && texture_index < 32 ? (1u << texture_index) : 0u;
       }
 
       if (texture_mask & options->lower_y_uv_external) {
@@ -1473,6 +1507,12 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
 
       if (options->lower_to_fragment_fetch_amd && tex->op == nir_texop_samples_identical) {
          nir_lower_samples_identical_to_fragment_fetch(b, tex);
+         progress = true;
+         continue;
+      }
+
+      if (options->lower_lod_zero_width && tex->op == nir_texop_lod) {
+         nir_lower_lod_zero_width(b, tex);
          progress = true;
          continue;
       }

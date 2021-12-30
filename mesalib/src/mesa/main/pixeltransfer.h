@@ -65,12 +65,6 @@ _mesa_shift_and_offset_ci(const struct gl_context *ctx,
                           GLuint n, GLuint indexes[]);
 
 extern void
-_mesa_apply_ci_transfer_ops(const struct gl_context *ctx,
-                            GLbitfield transferOps,
-                            GLuint n, GLuint indexes[]);
-
-
-extern void
 _mesa_apply_stencil_transfer_ops(const struct gl_context *ctx, GLuint n,
                                  GLubyte stencil[]);
 

@@ -49,7 +49,7 @@ panfrost_blitter_save(
         util_blitter_save_depth_stencil_alpha(blitter, ctx->depth_stencil);
         util_blitter_save_stencil_ref(blitter, &ctx->stencil_ref);
         util_blitter_save_so_targets(blitter, 0, NULL);
-        util_blitter_save_sample_mask(blitter, ctx->sample_mask);
+        util_blitter_save_sample_mask(blitter, ctx->sample_mask, ctx->min_samples);
 
         util_blitter_save_framebuffer(blitter, &ctx->pipe_framebuffer);
         util_blitter_save_fragment_sampler_states(blitter,

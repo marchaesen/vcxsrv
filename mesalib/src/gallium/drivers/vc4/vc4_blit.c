@@ -177,7 +177,7 @@ vc4_blitter_save(struct vc4_context *vc4)
         util_blitter_save_blend(vc4->blitter, vc4->blend);
         util_blitter_save_depth_stencil_alpha(vc4->blitter, vc4->zsa);
         util_blitter_save_stencil_ref(vc4->blitter, &vc4->stencil_ref);
-        util_blitter_save_sample_mask(vc4->blitter, vc4->sample_mask);
+        util_blitter_save_sample_mask(vc4->blitter, vc4->sample_mask, 0);
         util_blitter_save_framebuffer(vc4->blitter, &vc4->framebuffer);
         util_blitter_save_fragment_sampler_states(vc4->blitter,
                         vc4->fragtex.num_samplers,
@@ -402,7 +402,7 @@ fallback:
         /* Do an immediate SW fallback, since the render blit path
          * would just recurse.
          */
-        ok = util_try_blit_via_copy_region(pctx, info);
+        ok = util_try_blit_via_copy_region(pctx, info, false);
         assert(ok); (void)ok;
 
         return true;
@@ -450,7 +450,7 @@ vc4_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
                 return;
 
         if (info.mask & PIPE_MASK_S) {
-                if (util_try_blit_via_copy_region(pctx, &info))
+                if (util_try_blit_via_copy_region(pctx, &info, false))
                         return;
 
                 info.mask &= ~PIPE_MASK_S;

@@ -2291,7 +2291,7 @@ fail:
    return result;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 radv_CreateRayTracingPipelinesKHR(VkDevice _device, VkDeferredOperationKHR deferredOperation,
                                   VkPipelineCache pipelineCache, uint32_t count,
                                   const VkRayTracingPipelineCreateInfoKHR *pCreateInfos,
@@ -2319,7 +2319,7 @@ radv_CreateRayTracingPipelinesKHR(VkDevice _device, VkDeferredOperationKHR defer
    return result;
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 radv_GetRayTracingShaderGroupHandlesKHR(VkDevice device, VkPipeline _pipeline, uint32_t firstGroup,
                                         uint32_t groupCount, size_t dataSize, void *pData)
 {
@@ -2338,7 +2338,7 @@ radv_GetRayTracingShaderGroupHandlesKHR(VkDevice device, VkPipeline _pipeline, u
    return VK_SUCCESS;
 }
 
-VkDeviceSize
+VKAPI_ATTR VkDeviceSize VKAPI_CALL
 radv_GetRayTracingShaderGroupStackSizeKHR(VkDevice device, VkPipeline _pipeline, uint32_t group,
                                           VkShaderGroupShaderKHR groupShader)
 {

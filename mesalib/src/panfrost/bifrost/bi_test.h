@@ -31,11 +31,6 @@
 #include <inttypes.h>
 #include "compiler.h"
 
-/* Helpers for unit testing */
-#define TEST_END(nr_pass, nr_fail) \
-   printf("Passed %u/%u tests.\n", nr_pass, nr_pass + nr_fail); \
-   return nr_fail ? 1 : 0;
-
 /* Helper to generate a bi_builder suitable for creating test instructions */
 static inline bi_builder *
 bit_builder(void *memctx)
@@ -97,30 +92,5 @@ bit_shader_equal(bi_context *A, bi_context *B)
 
    return true;
 }
-
-#define INSTRUCTION_CASE(instr, expected, CB) do { \
-   bi_instr *left = instr; \
-   bi_instr *right = expected; \
-   CB(b, left); \
-   if (bit_instr_equal(left, right)) { \
-      nr_pass++; \
-   } else { \
-      fprintf(stderr, "Incorrect optimization\n"); \
-      bi_print_instr(instr, stderr); \
-      bi_print_instr(left, stderr); \
-      bi_print_instr(right, stderr); \
-      fprintf(stderr, "\n"); \
-      nr_fail++; \
-   } \
-} while(0)
-
-#define BIT_ASSERT(condition) do { \
-   if (condition) { \
-      nr_pass++; \
-   } else { \
-      fprintf(stderr, "Assertion failed: %s\n", #condition); \
-      nr_fail++; \
-   } \
-} while(0)
 
 #endif

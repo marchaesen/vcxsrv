@@ -60,12 +60,15 @@
 #include "program/prog_parameter.h"
 #include "util/ralloc.h"
 #include "util/hash_table.h"
-#include "util/mesa-sha1.h"
 #include "util/crc32.h"
 #include "util/os_file.h"
 #include "util/simple_list.h"
 #include "util/u_process.h"
 #include "util/u_string.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_program.h"
+#include "state_tracker/st_context.h"
 
 #ifdef ENABLE_SHADER_CACHE
 #if CUSTOM_SHADER_REPLACEMENT
@@ -88,6 +91,10 @@
 
    char* load_shader_replacement(struct _shader_replacement *repl);
 
+   And a method to replace the shader without sha1 matching:
+
+   char *try_direct_replace(const char *app, const char *source)
+
    shader_replacement.h can be generated at build time, or copied
    from an external folder, or any other method.
 */
@@ -98,6 +105,12 @@ struct _shader_replacement {
    gl_shader_stage stage;
 };
 struct _shader_replacement shader_replacements[0];
+
+static char *try_direct_replace(const char *app, const char *source)
+{
+   return NULL;
+}
+
 static char* load_shader_replacement(struct _shader_replacement *repl)
 {
    return NULL;
@@ -742,10 +755,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       *params = shProg->DeletePending;
       return;
    case GL_COMPLETION_STATUS_ARB:
-      if (ctx->Driver.GetShaderProgramCompletionStatus)
-         *params = ctx->Driver.GetShaderProgramCompletionStatus(ctx, shProg);
-      else
-         *params = GL_TRUE;
+      *params = st_get_shader_program_completion_status(ctx, shProg);
       return;
    case GL_LINK_STATUS:
       *params = shProg->data->LinkStatus ? GL_TRUE : GL_FALSE;
@@ -1172,7 +1182,8 @@ get_shader_source(struct gl_context *ctx, GLuint shader, GLsizei maxLength,
  * glShaderSource[ARB].
  */
 static void
-set_shader_source(struct gl_shader *sh, const GLchar *source)
+set_shader_source(struct gl_shader *sh, const GLchar *source,
+                  const uint8_t original_sha1[SHA1_DIGEST_LENGTH])
 {
    assert(sh);
 
@@ -1191,6 +1202,7 @@ set_shader_source(struct gl_shader *sh, const GLchar *source)
        * fallback.
        */
       sh->FallbackSource = sh->Source;
+      memcpy(sh->fallback_source_sha1, sh->source_sha1, SHA1_DIGEST_LENGTH);
       sh->Source = source;
    } else {
       /* free old shader source string and install new one */
@@ -1198,9 +1210,7 @@ set_shader_source(struct gl_shader *sh, const GLchar *source)
       sh->Source = source;
    }
 
-#ifdef DEBUG
-   sh->SourceChecksum = util_hash_crc32(sh->Source, strlen(sh->Source));
-#endif
+   memcpy(sh->source_sha1, original_sha1, SHA1_DIGEST_LENGTH);
 }
 
 static void
@@ -1489,16 +1499,9 @@ print_shader_info(const struct gl_shader_program *shProg)
 
    printf("Mesa: glUseProgram(%u)\n", shProg->Name);
    for (i = 0; i < shProg->NumShaders; i++) {
-#ifdef DEBUG
-      printf("  %s shader %u, checksum %u\n",
-             _mesa_shader_stage_to_string(shProg->Shaders[i]->Stage),
-	     shProg->Shaders[i]->Name,
-	     shProg->Shaders[i]->SourceChecksum);
-#else
       printf("  %s shader %u\n",
              _mesa_shader_stage_to_string(shProg->Shaders[i]->Stage),
              shProg->Shaders[i]->Name);
-#endif
    }
    if (shProg->_LinkedShaders[MESA_SHADER_VERTEX])
       printf("  vert prog %u\n",
@@ -1958,17 +1961,6 @@ _mesa_LinkProgram(GLuint programObj)
 }
 
 #ifdef ENABLE_SHADER_CACHE
-/**
- * Generate a SHA-1 hash value string for given source string.
- */
-static char *
-generate_sha1(const char *source, char sha_str[64])
-{
-   unsigned char sha[20];
-   _mesa_sha1_compute(source, strlen(source), sha);
-   _mesa_sha1_format(sha_str, sha);
-   return sha_str;
-}
 
 /**
  * Construct a full path for shader replacement functionality using
@@ -1994,7 +1986,8 @@ construct_name(const gl_shader_stage stage, const char *sha,
  * Write given shader source to a file in MESA_SHADER_DUMP_PATH.
  */
 void
-_mesa_dump_shader_source(const gl_shader_stage stage, const char *source)
+_mesa_dump_shader_source(const gl_shader_stage stage, const char *source,
+                         const uint8_t sha1[SHA1_DIGEST_LENGTH])
 {
 #ifndef CUSTOM_SHADER_REPLACEMENT
    static bool path_exists = true;
@@ -2011,8 +2004,8 @@ _mesa_dump_shader_source(const gl_shader_stage stage, const char *source)
       return;
    }
 
-   char *name = construct_name(stage, generate_sha1(source, sha),
-                               source, dump_path);
+   _mesa_sha1_format(sha, sha1);
+   char *name = construct_name(stage, sha, source, dump_path);
 
    f = fopen(name, "w");
    if (f) {
@@ -2032,7 +2025,8 @@ _mesa_dump_shader_source(const gl_shader_stage stage, const char *source)
  * Useful for debugging to override an app's shader.
  */
 GLcharARB *
-_mesa_read_shader_source(const gl_shader_stage stage, const char *source)
+_mesa_read_shader_source(const gl_shader_stage stage, const char *source,
+                         const uint8_t sha1[SHA1_DIGEST_LENGTH])
 {
    char *read_path;
    static bool path_exists = true;
@@ -2041,11 +2035,15 @@ _mesa_read_shader_source(const gl_shader_stage stage, const char *source)
    FILE *f;
    char sha[64];
 
-   generate_sha1(source, sha);
+   _mesa_sha1_format(sha, sha1);
 
    if (!debug_get_bool_option("MESA_NO_SHADER_REPLACEMENT", false)) {
-      const char *process_name =
-         ARRAY_SIZE(shader_replacements) ? util_get_process_name() : NULL;
+      const char *process_name = util_get_process_name();
+
+      char *new_source = try_direct_replace(process_name, source);
+      if (new_source)
+         return new_source;
+
       for (size_t i = 0; i < ARRAY_SIZE(shader_replacements); i++) {
          if (stage != shader_replacements[i].stage)
             continue;
@@ -2175,22 +2173,26 @@ shader_source(struct gl_context *ctx, GLuint shaderObj, GLsizei count,
    source[totalLength - 1] = '\0';
    source[totalLength - 2] = '\0';
 
+   /* Compute the original source sha1 before shader replacement. */
+   uint8_t original_sha1[SHA1_DIGEST_LENGTH];
+   _mesa_sha1_compute(source, strlen(source), original_sha1);
+
 #ifdef ENABLE_SHADER_CACHE
    GLcharARB *replacement;
 
    /* Dump original shader source to MESA_SHADER_DUMP_PATH and replace
     * if corresponding entry found from MESA_SHADER_READ_PATH.
     */
-   _mesa_dump_shader_source(sh->Stage, source);
+   _mesa_dump_shader_source(sh->Stage, source, original_sha1);
 
-   replacement = _mesa_read_shader_source(sh->Stage, source);
+   replacement = _mesa_read_shader_source(sh->Stage, source, original_sha1);
    if (replacement) {
       free(source);
       source = replacement;
    }
 #endif /* ENABLE_SHADER_CACHE */
 
-   set_shader_source(sh, source);
+   set_shader_source(sh, source, original_sha1);
 
    free(offsets);
 }
@@ -2767,7 +2769,7 @@ set_patch_vertices(struct gl_context *ctx, GLint value)
 {
    if (ctx->TessCtrlProgram.patch_vertices != value) {
       FLUSH_VERTICES(ctx, 0, GL_CURRENT_BIT);
-      ctx->NewDriverState |= ctx->DriverFlags.NewTessState;
+      ctx->NewDriverState |= ST_NEW_TESS_STATE;
       ctx->TessCtrlProgram.patch_vertices = value;
    }
 }
@@ -2823,13 +2825,13 @@ _mesa_PatchParameterfv(GLenum pname, const GLfloat *values)
       FLUSH_VERTICES(ctx, 0, 0);
       memcpy(ctx->TessCtrlProgram.patch_default_outer_level, values,
              4 * sizeof(GLfloat));
-      ctx->NewDriverState |= ctx->DriverFlags.NewTessState;
+      ctx->NewDriverState |= ST_NEW_TESS_STATE;
       return;
    case GL_PATCH_DEFAULT_INNER_LEVEL:
       FLUSH_VERTICES(ctx, 0, 0);
       memcpy(ctx->TessCtrlProgram.patch_default_inner_level, values,
              2 * sizeof(GLfloat));
-      ctx->NewDriverState |= ctx->DriverFlags.NewTessState;
+      ctx->NewDriverState |= ST_NEW_TESS_STATE;
       return;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glPatchParameterfv");

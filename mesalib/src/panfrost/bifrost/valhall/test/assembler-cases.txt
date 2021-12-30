@@ -53,11 +53,12 @@ c0 00 00 00 00 f6 10 01    IADD_IMM.i32 r54, 0x0, #0x0
 3c d0 ea 00 02 bc 7d 68    ATEST.td @r60, r60, 0x3F800000, atest_datum
 40 db 05 04 00 c1 a1 00    MKVEC.v2i16 r1, `r0.h00, 0x3C000000.h10
 f0 00 3c 33 04 40 7f 78    BLEND.slot0.v4.f16.return @r0:r1, @r60, blend_descriptor_0_x, target:0x0
-7b 0d 00 40 04 84 5e 08    LEA_ATTR.slot1.wait0 @r4:r5, `r59, unk:0xD
+7b 0d 00 40 04 84 5e 08    LEA_VARY.slot1.wait0 @r4:r5, `r59, unk:0xD
 00 dd c0 08 14 c2 b2 00    FMA.f32 r2, r0, 0x44000000.neg.h1, 0x0.neg
 41 88 c0 00 04 c1 b2 00    FMA.f32 r1, `r1, u8, 0x0.neg
 40 88 c0 00 04 c0 b2 10    FMA.f32.wait1 r0, `r0, u8, 0x0.neg
 44 00 00 32 06 40 61 78    STORE.i96.vary.slot0.return @r0:r1:r2, `r4, offset:0
+44 00 00 39 08 48 61 78    STORE.i128.pos.slot0.return @r8:r9:r10:r11, `r4, offset:0
 00 00 00 c0 01 c0 45 48    BARRIER.slot7.barrier 
 80 00 00 00 82 82 60 00    LOAD.i8.unsigned.slot0 @r2, u0, offset:0
 80 00 00 08 82 82 60 00    LOAD.i16.unsigned.slot0 @r2, u0, offset:0
@@ -106,3 +107,33 @@ c0 01 00 00 00 c4 10 51    IADD_IMM.i32.reconverge r4, 0x0, #0x1
 04 00 00 00 00 c7 91 08    MOV.i32.wait0 r7, r4
 42 00 00 38 08 44 61 00    STORE.i128.slot0 @r4:r5:r6:r7, `r2, offset:0
 41 f8 ff ff 07 c0 1f 50    BRANCHZ.reconverge `r1, offset:-8
+7d c0 00 08 10 bc a1 00    IADD.v2u16 r60.h1, `r61.h10, 0x0
+44 00 46 32 28 40 71 78    ST_CVT.v4.f32.slot0.return @r0:r1:r2:r3, `r4, r0, `r6, unk:0x2
+44 00 46 34 28 40 71 78    ST_CVT.v4.s32.slot0.return @r0:r1:r2:r3, `r4, r0, `r6, unk:0x2
+44 00 46 36 28 40 71 78    ST_CVT.v4.u32.slot0.return @r0:r1:r2:r3, `r4, r0, `r6, unk:0x2
+7c c0 12 00 26 84 67 00    LEA_IMAGE_IMM.slot0 @r4:r5:r6, `r60, 0x0, unk:0x2, index:0x1, unk2:0x2
+7c c0 02 00 26 84 67 00    LEA_IMAGE_IMM.slot0 @r4:r5:r6, `r60, 0x0, unk:0x2, index:0x0, unk2:0x2
+82 81 00 28 f4 82 6a 00    LD_BUFFER.i64.unsigned.slot0 @r2:r3, u2, u1
+80 81 00 68 f4 80 6a 00    LD_BUFFER.i64.unsigned.slot1 @r0:r1, u0, u1
+84 81 00 a8 f4 a6 6a 00    LD_BUFFER.i64.unsigned.slot2 @r38:r39, u4, u1
+83 81 00 a8 f4 a4 6a 00    LD_BUFFER.i64.unsigned.slot2 @r36:r37, u3, u1
+83 84 00 28 f4 82 6a 00    LD_BUFFER.i64.unsigned.slot0 @r2:r3, u3, u4
+41 82 00 30 e6 82 6a 00    LD_BUFFER.i96.unsigned.slot0 @r2:r3:r4, `r1, u2
+40 83 00 30 e6 86 6a 08    LD_BUFFER.i96.unsigned.slot0.wait0 @r6:r7:r8, `r0, u3
+40 00 00 00 c0 c0 9c 40    FRCP.f32.wait0126 r0, `r0.neg.abs
+40 44 80 00 00 c0 b8 00    MUX.i32.neg r0, `r0, `r4, u0
+40 44 80 00 01 c0 b8 00    MUX.i32 r0, `r0, `r4, u0
+40 44 80 00 02 c0 b8 00    MUX.i32.fp_zero r0, `r0, `r4, u0
+40 44 80 00 03 c0 b8 00    MUX.i32.bit r0, `r0, `r4, u0
+00 00 00 01 00 c1 99 68    FREXPM.f32.sqrt.td r1, r0
+01 00 02 00 00 c2 9c 00    FRSQ.f32 r2, r1
+40 00 02 01 00 c0 99 00    FREXPE.f32.sqrt r0, `r0
+41 42 c0 40 04 c0 62 41    FMA_RSCALE_LEFT.f32.wait0126 r0, `r1, `r2, 0x0.neg, `r0
+42 43 84 85 00 c1 50 01    CSEL.u32.eq r1, `r2, `r3, u4, u5
+42 43 84 85 04 c1 50 01    CSEL.u32.lt r1, `r2, `r3, u4, u5
+42 43 84 85 04 c1 58 01    CSEL.s32.lt r1, `r2, `r3, u4, u5
+3d 00 00 12 b4 82 56 08    LD_VAR_SPECIAL.v2.f32.sample.clobber.slot0.wait0 @r2:r3, r61, index:0x0
+3d 00 00 33 14 82 5d 08    LD_VAR_IMM_F16.v4.half.smooth.center.retrieve.slot0.wait0 @r2:r3, r61, index:0x0
+3d 00 00 33 84 80 5d 08    LD_VAR_IMM_F16.v4.half.smooth.sample.store.slot0.wait0 @r0:r1, r61, index:0x0
+3d 00 08 33 44 80 5d 08    LD_VAR_IMM_F16.v4.half.smooth.centroid.store.slot0.wait0 @r0:r1, r61, index:0x8
+7c 7d 11 33 04 80 66 00    LD_ATTR_IMM.v4.f16.slot0 @r0:r1, `r60, `r61, index:0x1, table:0x1

@@ -1510,6 +1510,31 @@ st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
                                               0, 0, PIPE_BIND_SAMPLER_REDUCTION_MINMAX);
       break;
    }
+   case GL_NUM_VIRTUAL_PAGE_SIZES_ARB:
+   case GL_VIRTUAL_PAGE_SIZE_X_ARB:
+   case GL_VIRTUAL_PAGE_SIZE_Y_ARB:
+   case GL_VIRTUAL_PAGE_SIZE_Z_ARB: {
+      mesa_format format = st_ChooseTextureFormat(ctx, target, internalFormat, GL_NONE, GL_NONE);
+      enum pipe_format pformat = st_mesa_format_to_pipe_format(st, format);
+
+      if (pformat != PIPE_FORMAT_NONE) {
+         struct pipe_screen *screen = st->screen;
+         enum pipe_texture_target ptarget = gl_target_to_pipe(target);
+
+         if (pname == GL_NUM_VIRTUAL_PAGE_SIZES_ARB)
+            params[0] = screen->get_sparse_texture_virtual_page_size(
+               screen, ptarget, pformat, 0, 0, NULL, NULL, NULL);
+         else {
+            int *args[3] = {0};
+            args[pname - GL_VIRTUAL_PAGE_SIZE_X_ARB] = params;
+
+            /* 16 comes from the caller _mesa_GetInternalformativ() */
+            screen->get_sparse_texture_virtual_page_size(
+               screen, ptarget, pformat, 0, 16, args[0], args[1], args[2]);
+         }
+      }
+      break;
+   }
    default:
       /* For the rest of the pnames, we call back the Mesa's default
        * function for drivers that don't implement ARB_internalformat_query2.

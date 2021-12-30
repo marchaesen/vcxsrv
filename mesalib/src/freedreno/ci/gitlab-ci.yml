@@ -1,14 +1,12 @@
 .freedreno-test:
   extends:
-    - .baremetal-test
+    - .baremetal-test-arm64
     - .use-debian/arm_test
     - .freedreno-rules
   variables:
-    MINIO_ARTIFACT_NAME: mesa-arm64
-    BM_ROOTFS: /rootfs-arm64
     FLAKES_CHANNEL: "#freedreno-ci"
     PIGLIT_PLATFORM: mixed_glx_egl
-    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init $BM_KERNELARGS"
+    BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 $BM_KERNEL_EXTRA_ARGS root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init $BM_KERNELARGS"
   script:
     - ./install/bare-metal/fastboot.sh
   needs:
@@ -24,7 +22,6 @@
   variables:
     DEQP_VER: vk
     VK_DRIVER: freedreno
-    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
 
 .freedreno-test-traces:
   extends:
@@ -51,7 +48,33 @@ a306_gl:
     - .a306-test
   variables:
     DEQP_SUITE: freedreno-a307
+    FDO_CI_CONCURRENT: 6
   parallel: 5
+
+# New jobs. Leave it as manual for now.
+.a306_piglit:
+  extends:
+    - .piglit-test
+    - .a306-test
+    - .test-manual-mr
+  variables:
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
+    HWCI_START_XORG: 1
+
+a306_piglit_gl:
+  extends:
+    - .a306_piglit
+  variables:
+    PIGLIT_PROFILES: quick_gl
+    BM_KERNEL_EXTRA_ARGS: "msm.num_hw_submissions=1"
+    FDO_CI_CONCURRENT: 3
+
+a306_piglit_shader:
+  extends:
+    - .a306_piglit
+  variables:
+    PIGLIT_PROFILES: quick_shader
+    FDO_CI_CONCURRENT: 6
 
 a306-traces:
   extends:
@@ -67,6 +90,7 @@ a306-traces:
     - .test-manual-mr
   variables:
     BM_KERNEL: /baremetal-files/Image.gz
+    BM_KERNEL_EXTRA_ARGS: maxcpus=2
     BM_DTB: /baremetal-files/apq8096-db820c.dtb
     GPU_VERSION: freedreno-a530
   tags:
@@ -111,6 +135,31 @@ a530-traces:
   variables:
     PIGLIT_REPLAY_DEVICE_NAME: "freedreno-a530"
     PIGLIT_RESULTS: "freedreno-a530-replay"
+
+a618_vk:
+  extends:
+    - .lava-test:arm64
+    - .freedreno-rules
+  parallel: 7
+  variables:
+    VK_DRIVER: freedreno
+    DEQP_SUITE: freedreno-a618-vk
+    GPU_VERSION: freedreno-a618
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+    DEVICE_TYPE: sc7180-trogdor-lazor-limozeen
+    DTB: sc7180-trogdor-lazor-limozeen-nots
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
+  tags:
+    - mesa-ci-x86-64-lava-sc7180-trogdor-lazor-limozeen
+
+a618_vk_full:
+  extends:
+    - a618_vk
+    - .test-manual-mr
+  parallel: 2
+  variables:
+    DEQP_SUITE: freedreno-a618-vk-full
 
 .a630-test:
   extends:
@@ -217,7 +266,7 @@ a630-traces-restricted:
     - .freedreno-rules-restricted
   variables:
     PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/restricted-traces-freedreno.yml"
-    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_host=minio-packet.freedesktop.org --minio_bucket=mesa-tracie-private --role-session-name=${CI_PROJECT_PATH}:${CI_JOB_ID} --jwt=${CI_JOB_JWT}
+    PIGLIT_REPLAY_EXTRA_ARGS:  --keep-image --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_host=minio-packet.freedesktop.org --minio_bucket=mesa-tracie-private --role-session-name=${CI_PROJECT_PATH}:${CI_JOB_ID} --jwt-file=${CI_JOB_JWT_FILE}
   allow_failure: true
 
 a630-traces-performance:

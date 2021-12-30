@@ -71,7 +71,7 @@ static size_t tempseat_output(Seat *seat, SeatOutputType type,
             ts->outchunk_head = new_chunk;
         ts->outchunk_tail = new_chunk;
     }
-    ts->outchunk_tail->type += len;
+    ts->outchunk_tail->size += len;
 
     return bufchain_size(&ts->output);
 }
@@ -198,6 +198,12 @@ static bool tempseat_can_set_trust_status(Seat *seat)
     return seat_can_set_trust_status(ts->realseat);
 }
 
+static bool tempseat_has_mixed_input_stream(Seat *seat)
+{
+    TempSeat *ts = container_of(seat, TempSeat, seat);
+    return seat_has_mixed_input_stream(ts->realseat);
+}
+
 /* ----------------------------------------------------------------------
  * Methods that should never be called on a TempSeat, so we can put an
  * unreachable() in them.
@@ -212,7 +218,7 @@ static bool tempseat_can_set_trust_status(Seat *seat)
  * for the network connection.
  */
 
-static int tempseat_get_userpass_input(Seat *seat, prompts_t *p)
+static SeatPromptResult tempseat_get_userpass_input(Seat *seat, prompts_t *p)
 {
     /*
      * Interactive prompts of this nature are a thing that a backend
@@ -224,25 +230,30 @@ static int tempseat_get_userpass_input(Seat *seat, prompts_t *p)
     unreachable("get_userpass_input should never be called on TempSeat");
 }
 
-static int tempseat_confirm_ssh_host_key(
+static size_t tempseat_banner(Seat *seat, const void *data, size_t len)
+{
+    unreachable("banner should never be called on TempSeat");
+}
+
+static SeatPromptResult tempseat_confirm_ssh_host_key(
     Seat *seat, const char *host, int port, const char *keytype,
     char *keystr, const char *keydisp, char **key_fingerprints, bool mismatch,
-    void (*callback)(void *ctx, int result), void *ctx)
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
     unreachable("confirm_ssh_host_key should never be called on TempSeat");
 }
 
-static int tempseat_confirm_weak_crypto_primitive(
+static SeatPromptResult tempseat_confirm_weak_crypto_primitive(
     Seat *seat, const char *algtype, const char *algname,
-    void (*callback)(void *ctx, int result), void *ctx)
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
     unreachable("confirm_weak_crypto_primitive "
                 "should never be called on TempSeat");
 }
 
-static int tempseat_confirm_weak_cached_hostkey(
+static SeatPromptResult tempseat_confirm_weak_cached_hostkey(
     Seat *seat, const char *algname, const char *betteralgs,
-    void (*callback)(void *ctx, int result), void *ctx)
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
     unreachable("confirm_weak_cached_hostkey "
                 "should never be called on TempSeat");
@@ -299,6 +310,7 @@ static const struct SeatVtable tempseat_vt = {
     .output = tempseat_output,
     .eof = tempseat_eof,
     .sent = nullseat_sent,
+    .banner = tempseat_banner,
     .get_userpass_input = tempseat_get_userpass_input,
     .notify_session_started = tempseat_notify_session_started,
     .notify_remote_exit = tempseat_notify_remote_exit,
@@ -318,6 +330,7 @@ static const struct SeatVtable tempseat_vt = {
     .stripctrl_new = tempseat_stripctrl_new,
     .set_trust_status = tempseat_set_trust_status,
     .can_set_trust_status = tempseat_can_set_trust_status,
+    .has_mixed_input_stream = tempseat_has_mixed_input_stream,
     .verbose = tempseat_verbose,
     .interactive = tempseat_interactive,
     .get_cursor_position = tempseat_get_cursor_position,

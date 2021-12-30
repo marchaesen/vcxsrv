@@ -46,10 +46,22 @@ foreach ver : ['4', '5', '6', '7']
       'pan_blend.c',
       'pan_blitter.c',
       'pan_cs.c',
-      'pan_indirect_dispatch.c',
-      'pan_indirect_draw.c',
       'pan_shader.c',
       'pan_texture.c',
+    ],
+    include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw],
+    c_args : ['-DPAN_ARCH=' + ver],
+    gnu_symbol_visibility : 'hidden',
+    dependencies : [dep_libdrm, idep_pan_packers, idep_nir],
+  )
+endforeach
+
+foreach ver : ['7']
+  libpanfrost_per_arch += static_library(
+    'pan-arch-indirect-v' + ver,
+    [
+      'pan_indirect_dispatch.c',
+      'pan_indirect_draw.c',
     ],
     include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw],
     c_args : ['-DPAN_ARCH=' + ver],

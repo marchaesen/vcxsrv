@@ -2511,14 +2511,13 @@ _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
         }
     }
 
-    if ((req->present & XkbKeyTypesMask) &&
-        (!CheckKeyTypes(client, xkb, req, (xkbKeyTypeWireDesc **) &values,
-                        &nTypes, mapWidths, doswap))) {
-        client->errorValue = nTypes;
-        return BadValue;
-    }
-    else {
+    if (!(req->present & XkbKeyTypesMask)) {
         nTypes = xkb->map->num_types;
+    }
+    else if (!CheckKeyTypes(client, xkb, req, (xkbKeyTypeWireDesc **) &values,
+			       &nTypes, mapWidths, doswap)) {
+	    client->errorValue = nTypes;
+	    return BadValue;
     }
 
     /* symsPerKey/mapWidths must be filled regardless of client-side flags */

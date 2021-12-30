@@ -605,20 +605,15 @@ static void evergreen_emit_dispatch(struct r600_context *rctx,
 	unsigned num_pipes = rctx->screen->b.info.r600_max_quad_pipes;
 	unsigned wave_divisor = (16 * num_pipes);
 	int group_size = 1;
-	int grid_size = 1;
 	unsigned lds_size = shader->local_size / 4;
 
 	if (shader->ir_type != PIPE_SHADER_IR_TGSI &&
 	    shader->ir_type != PIPE_SHADER_IR_NIR)
 		lds_size += shader->bc.nlds_dw;
 	
-	/* Calculate group_size/grid_size */
+	/* Calculate group_size */
 	for (i = 0; i < 3; i++) {
 		group_size *= info->block[i];
-	}
-
-	for (i = 0; i < 3; i++)	{
-		grid_size *= info->grid[i];
 	}
 
 	/* num_waves = ceil((tg_size.x * tg_size.y, tg_size.z) / (16 * num_pipes)) */

@@ -155,6 +155,7 @@ vir_opt_constant_alu(struct v3d_compile *c)
 {
         bool progress = false;
         vir_for_each_block(block, c) {
+                c->cur_block = block;
                 vir_for_each_inst_safe(inst, block) {
                         progress = try_opt_constant_alu(c, inst) || progress;
                 }

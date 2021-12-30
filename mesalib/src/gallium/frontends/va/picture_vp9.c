@@ -25,7 +25,7 @@
  *
  **************************************************************************/
 
-#include "vl/vl_vlc.h"
+#include "util/vl_vlc.h"
 #include "va_private.h"
 
 #define NUM_VP9_REFS 8

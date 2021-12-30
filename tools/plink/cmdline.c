@@ -81,7 +81,7 @@ void cmdline_cleanup(void)
  * -1 return means that we aren't capable of processing the prompt and
  * someone else should do it.
  */
-int cmdline_get_passwd_input(prompts_t *p)
+SeatPromptResult cmdline_get_passwd_input(prompts_t *p)
 {
     static bool tried_once = false;
 
@@ -90,8 +90,8 @@ int cmdline_get_passwd_input(prompts_t *p)
      * passwords), and (currently) we only cope with a password prompt
      * that comes in a prompt-set on its own.
      */
-    if (!cmdline_password || p->n_prompts != 1 || p->prompts[0]->echo) {
-        return -1;
+    if (p->n_prompts != 1 || p->prompts[0]->echo) {
+        return SPR_INCOMPLETE;
     }
 
     /*
@@ -99,14 +99,23 @@ int cmdline_get_passwd_input(prompts_t *p)
      * to try).
      */
     if (tried_once)
-        return 0;
+        return SPR_SW_ABORT("Configured password was not accepted");
+
+    /*
+     * If we never had a password available in the first place, we
+     * can't do anything in any case. (But we delay this test until
+     * after tried_once, so that after we free cmdline_password below,
+     * we'll still remember that we _used_ to have one.)
+     */
+    if (!cmdline_password)
+        return SPR_INCOMPLETE;
 
     prompt_set_result(p->prompts[0], cmdline_password);
     smemclr(cmdline_password, strlen(cmdline_password));
     sfree(cmdline_password);
     cmdline_password = NULL;
     tried_once = true;
-    return 1;
+    return SPR_OK;
 }
 
 static bool cmdline_check_unavailable(int flag, const char *p)

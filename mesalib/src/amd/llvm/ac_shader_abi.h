@@ -170,6 +170,11 @@ struct ac_shader_abi {
     * some GFX10.3 chips.
     */
    bool adjust_frag_coord_z;
+
+   /* Whether anisotropic filtering should be disabled for single level
+    * images.
+    */
+   bool disable_aniso_single_level;
 };
 
 #endif /* AC_SHADER_ABI_H */

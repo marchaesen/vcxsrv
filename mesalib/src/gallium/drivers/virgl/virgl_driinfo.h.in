@@ -7,6 +7,7 @@
 //   4. Add the code to send the tweak to the host in virgl_send_tweaks
 //   5. Implement the tweak in virglrenderer
 DRI_CONF_SECTION_MISCELLANEOUS
+    DRI_CONF_FORMAT_L8_SRGB_ENABLE_READBACK(false)
     DRI_CONF_GLES_EMULATE_BGRA(true)
     DRI_CONF_GLES_APPLY_BGRA_DEST_SWIZZLE(true)
     DRI_CONF_GLES_SAMPLES_PASSED_VALUE(1024, 1, 400000000)

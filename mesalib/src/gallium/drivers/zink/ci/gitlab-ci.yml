@@ -30,12 +30,6 @@ zink-piglit-no_timelines:
   script:
     - xvfb-run --server-args='-noreset' sh -c "ZINK_NO_TIMELINES=1 GALLIUM_DRIVER=zink VK_DRIVER=lvp install/piglit/piglit-runner.sh"
 
-zink-piglit-lazy:
-  extends:
-    - .zink-piglit-quick_gl
-  script:
-    - xvfb-run --server-args='-noreset' sh -c "ZINK_DESCRIPTORS=lazy GALLIUM_DRIVER=zink VK_DRIVER=lvp install/piglit/piglit-runner.sh"
-
 zink-lvp-deqp:
   extends:
     - .test-gl
@@ -45,4 +39,4 @@ zink-lvp-deqp:
     GALLIUM_DRIVER: "zink" # move here due to bad xvfb-run interactions
     VK_DRIVER: lvp # Don't move to the top level, piglit runs do funny stuff with VK_DRIVER set
     DEQP_SUITE: zink-lvp
-  parallel: 2
+  parallel: 4

@@ -26,9 +26,11 @@ import gl_XML
 import license
 import marshal_XML
 import sys
+import collections
+import apiexec
 
 header = """
-#include "api_exec.h"
+#include "context.h"
 #include "glthread_marshal.h"
 #include "bufferobj.h"
 #include "dispatch.h"
@@ -377,30 +379,48 @@ class PrintCode(gl_XML.gl_print_base):
         out('#if defined(__GNUC__) && !defined(__clang__)')
         out('__attribute__((optimize("O1")))')
         out('#endif')
-        out('struct _glapi_table *')
-        out('_mesa_create_marshal_table(const struct gl_context *ctx)')
+        out('bool')
+        out('_mesa_create_marshal_tables(struct gl_context *ctx)')
         out('{')
         with indent():
-            out('struct _glapi_table *table;')
-            out('')
-            out('table = _mesa_alloc_dispatch_table();')
-            out('if (table == NULL)')
+            out('ctx->MarshalExec = _mesa_alloc_dispatch_table(true);')
+            out('if (!ctx->MarshalExec)')
             with indent():
-                out('return NULL;')
+                out('return false;')
             out('')
+
+            # Collect SET_* calls by the condition under which they should
+            # be called.
+            settings_by_condition = collections.defaultdict(lambda: [])
+
             for func in api.functionIterateAll():
                 if func.marshal_flavor() == 'skip':
                     continue
+
+                condition = apiexec.get_api_condition(func)
+                if not condition:
+                    continue
+
                 # Don't use the SET_* functions, because they increase compile time
                 # by 20 seconds (on Ryzen 1700X).
-                out('if (_gloffset_{0} >= 0)'.format(func.name))
-                out('   ((_glapi_proc *)(table))[_gloffset_{0}] = (_glapi_proc)_mesa_marshal_{0};'
-                    .format(func.name))
-            out('')
-            out('return table;')
+                settings_by_condition[condition].append(
+                    ('if (_gloffset_{0} >= 0)\n' +
+                     '   ((_glapi_proc *)(ctx->MarshalExec))[_gloffset_{0}] =' +
+                     ' (_glapi_proc)_mesa_marshal_{0};').format(func.name))
+
+            # Print out an if statement for each unique condition, with
+            # the SET_* calls nested inside it.
+            for condition in sorted(settings_by_condition.keys()):
+                out('if ({0}) {{'.format(condition))
+                with indent():
+                    for setting in sorted(settings_by_condition[condition]):
+                        for line in setting.split('\n'):
+                            out(line)
+                out('}')
+
+        out('')
+        out('   return true;')
         out('}')
-        out('')
-        out('')
 
     def printBody(self, api):
         # The first file only contains the dispatch tables

@@ -41,6 +41,8 @@ class PanfrostDriver : public Driver
    void disable_perfcnt() override;
    bool dump_perfcnt() override;
    uint64_t next() override;
+   uint32_t gpu_clock_id() const override;
+   uint64_t gpu_timestamp() const override;
 
    uint64_t last_dump_ts = 0;
 

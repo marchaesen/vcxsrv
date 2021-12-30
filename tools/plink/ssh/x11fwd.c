@@ -267,12 +267,12 @@ static void x11_log(Plug *p, PlugLogType type, SockAddr *addr, int port,
 static void x11_send_init_error(struct X11Connection *conn,
                                 const char *err_message);
 
-static void x11_closing(Plug *plug, const char *error_msg, int error_code)
+static void x11_closing(Plug *plug, PlugCloseType type, const char *error_msg)
 {
     struct X11Connection *xconn = container_of(
         plug, struct X11Connection, plug);
 
-    if (error_msg) {
+    if (type != PLUGCLOSE_NORMAL) {
         /*
          * Socket error. If we're still at the connection setup stage,
          * construct an X11 error packet passing on the problem.
@@ -563,7 +563,7 @@ static size_t x11_send(
         xconn->s = new_connection(sk_addr_dup(xconn->disp->addr),
                                   xconn->disp->realhost, xconn->disp->port,
                                   false, true, false, false, &xconn->plug,
-                                  sshfwd_get_conf(xconn->c), NULL, NULL);
+                                  sshfwd_get_conf(xconn->c), NULL);
         if ((err = sk_socket_error(xconn->s)) != NULL) {
             char *err_message = dupprintf("unable to connect to"
                                           " forwarded X server: %s", err);

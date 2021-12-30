@@ -41,9 +41,7 @@ extern void
 st_destroy_clear(struct st_context *st);
 
 
-extern void
-st_init_clear_functions(struct dd_function_table *functions);
-
+void st_Clear(struct gl_context *ctx, GLbitfield mask);
 
 #endif /* ST_CB_CLEAR_H */
 

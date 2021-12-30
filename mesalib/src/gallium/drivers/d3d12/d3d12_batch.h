@@ -25,6 +25,7 @@
 #define D3D12_BATCH_H
 
 #include "util/u_dynarray.h"
+#include "util/hash_table.h"
 #include <stdint.h>
 
 #ifndef _WIN32
@@ -41,7 +42,7 @@ struct d3d12_fence;
 struct d3d12_batch {
    struct d3d12_fence *fence;
 
-   struct set *bos;
+   struct hash_table *bos;
    struct set *sampler_views;
    struct set *surfaces;
    struct set *objects;
@@ -71,11 +72,13 @@ d3d12_reset_batch(struct d3d12_context *ctx, struct d3d12_batch *batch, uint64_t
 
 bool
 d3d12_batch_has_references(struct d3d12_batch *batch,
-                           struct d3d12_bo *bo);
+                           struct d3d12_bo *bo,
+                           bool want_to_write);
 
 void
 d3d12_batch_reference_resource(struct d3d12_batch *batch,
-                               struct d3d12_resource *res);
+                               struct d3d12_resource *res,
+                               bool write);
 
 void
 d3d12_batch_reference_sampler_view(struct d3d12_batch *batch,

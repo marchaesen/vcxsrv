@@ -619,7 +619,7 @@ cleanup_culling_shader_after_dce(nir_shader *shader,
             break;
          case nir_intrinsic_load_input:
             if (state->instance_rate_inputs &
-                (1 << (nir_intrinsic_base(intrin) - VERT_ATTRIB_GENERIC0)))
+                (1u << (nir_intrinsic_base(intrin) - VERT_ATTRIB_GENERIC0)))
                uses_vs_instance_id = true;
             else
                uses_vs_vertex_id = true;
@@ -1132,7 +1132,7 @@ add_deferred_attribute_culling(nir_builder *b, nir_cf_list *original_extracted_c
                             .memory_semantics=NIR_MEMORY_ACQ_REL, .memory_modes=nir_var_mem_shared);
 
       nir_store_var(b, gs_accepted_var, nir_imm_bool(b, false), 0x1u);
-      nir_store_var(b, prim_exp_arg_var, nir_imm_int(b, 1 << 31), 0x1u);
+      nir_store_var(b, prim_exp_arg_var, nir_imm_int(b, 1u << 31), 0x1u);
 
       /* GS invocations load the vertex data and perform the culling. */
       nir_if *if_gs_thread = nir_push_if(b, nir_build_has_input_primitive_amd(b));

@@ -936,7 +936,7 @@ void trace_dump_blit_info(const struct pipe_blit_info *info)
 }
 
 void
-trace_dump_query_result(unsigned query_type,
+trace_dump_query_result(unsigned query_type, unsigned index,
                         const union pipe_query_result *result)
 {
    if (!trace_dumping_enabled_locked())
@@ -991,6 +991,46 @@ trace_dump_query_result(unsigned query_type,
       trace_dump_member(uint, &result->pipeline_statistics, hs_invocations);
       trace_dump_member(uint, &result->pipeline_statistics, ds_invocations);
       trace_dump_member(uint, &result->pipeline_statistics, cs_invocations);
+      trace_dump_struct_end();
+      break;
+
+   case PIPE_QUERY_PIPELINE_STATISTICS_SINGLE:
+      trace_dump_struct_begin("pipe_query_data_pipeline_statistics");
+      switch (index) {
+      case PIPE_STAT_QUERY_IA_VERTICES:
+         trace_dump_member(uint, &result->pipeline_statistics, ia_vertices);
+         break;
+      case PIPE_STAT_QUERY_IA_PRIMITIVES:
+         trace_dump_member(uint, &result->pipeline_statistics, ia_primitives);
+         break;
+      case PIPE_STAT_QUERY_VS_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, vs_invocations);
+         break;
+      case PIPE_STAT_QUERY_GS_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, gs_invocations);
+         break;
+      case PIPE_STAT_QUERY_GS_PRIMITIVES:
+         trace_dump_member(uint, &result->pipeline_statistics, gs_primitives);
+         break;
+      case PIPE_STAT_QUERY_C_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, c_invocations);
+         break;
+      case PIPE_STAT_QUERY_C_PRIMITIVES:
+         trace_dump_member(uint, &result->pipeline_statistics, c_primitives);
+         break;
+      case PIPE_STAT_QUERY_PS_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, ps_invocations);
+         break;
+      case PIPE_STAT_QUERY_HS_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, hs_invocations);
+         break;
+      case PIPE_STAT_QUERY_DS_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, ds_invocations);
+         break;
+      case PIPE_STAT_QUERY_CS_INVOCATIONS:
+         trace_dump_member(uint, &result->pipeline_statistics, cs_invocations);
+         break;
+      }
       trace_dump_struct_end();
       break;
 

@@ -45,7 +45,6 @@
 #include "drm-uapi/i915_drm.h"
 
 #include "intel/common/intel_gem.h"
-#include "main/macros.h"
 #include "util/hash_table.h"
 #include "util/set.h"
 #include "util/u_upload_mgr.h"
@@ -67,7 +66,7 @@
  * or 12 bytes for MI_BATCH_BUFFER_START (when chaining).  Plus, we may
  * need an extra 4 bytes to pad out to the nearest QWord.  So reserve 16.
  */
-#define BATCH_RESERVED(devinfo) ((devinfo)->is_haswell ? 32 : 16)
+#define BATCH_RESERVED(devinfo) ((devinfo)->platform == INTEL_PLATFORM_HSW ? 32 : 16)
 
 static void crocus_batch_reset(struct crocus_batch *batch);
 

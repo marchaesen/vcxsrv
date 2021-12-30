@@ -28,10 +28,6 @@
 #ifndef ST_CB_RASTERPOS_H
 #define ST_CB_RASTERPOS_H
 
-
-struct dd_function_table;
-
-extern void st_init_rasterpos_functions(struct dd_function_table *functions);
-
+void st_RasterPos(struct gl_context *ctx, const GLfloat v[4]);
 
 #endif /* ST_CB_RASTERPOS_H */

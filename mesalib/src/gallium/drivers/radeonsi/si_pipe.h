@@ -197,6 +197,7 @@ enum
    DBG_GISEL,
    DBG_W32_GE,
    DBG_W32_PS,
+   DBG_W32_PS_DISCARD,
    DBG_W32_CS,
    DBG_W64_GE,
    DBG_W64_PS,
@@ -387,8 +388,8 @@ struct si_texture {
    float depth_clear_value[RADEON_SURF_MAX_LEVELS];
    uint8_t stencil_clear_value[RADEON_SURF_MAX_LEVELS];
    uint16_t depth_cleared_level_mask_once; /* if it was cleared at least once */
-   uint16_t depth_cleared_level_mask;     /* track if it was cleared (not 100% accurate) */
-   uint16_t stencil_cleared_level_mask; /* if it was cleared at least once */
+   uint16_t depth_cleared_level_mask;     /* track if it's cleared (can be false negative) */
+   uint16_t stencil_cleared_level_mask_once; /* if it was cleared at least once */
    uint16_t dirty_level_mask;         /* each bit says if that mipmap is compressed */
    uint16_t stencil_dirty_level_mask; /* each bit says if that mipmap is compressed */
    enum pipe_format db_render_format : 16;
@@ -401,6 +402,7 @@ struct si_texture {
    bool db_compatible : 1;
    bool can_sample_z : 1;
    bool can_sample_s : 1;
+   bool need_flush_after_depth_decompression: 1;
 
    /* We need to track DCC dirtiness, because st/dri usually calls
     * flush_resource twice per frame (not a bug) and we don't wanna
@@ -686,9 +688,6 @@ struct si_screen {
     * We want to minimize the impact on multithreaded Mesa. */
    struct ac_llvm_compiler compiler_lowp[10];
 
-   unsigned compute_wave_size;
-   unsigned ps_wave_size;
-   unsigned ge_wave_size;
    unsigned ngg_subgroup_size;
 
    struct util_idalloc_mt buffer_ids;
@@ -899,6 +898,10 @@ struct si_saved_cs {
 
 struct si_small_prim_cull_info {
    float scale[2], translate[2];
+   float scale_no_aa[2], translate_no_aa[2];
+   float clip_half_line_width[2];      /* line_width * 0.5 in clip space in X and Y directions */
+   float small_prim_precision_no_aa;   /* same as the small prim precision, but ignores MSAA */
+   /* The above fields are uploaded to memory. The below fields are passed via user SGPRs. */
    float small_prim_precision;
 };
 
@@ -984,6 +987,7 @@ struct si_context {
    uint16_t prefetch_L2_mask;
 
    bool blitter_running;
+   bool in_update_ps_colorbuf0_slot;
    bool is_noop:1;
    bool has_graphics:1;
    bool gfx_flush_in_progress : 1;
@@ -1129,7 +1133,7 @@ struct si_context {
 
    /* Emitted draw state. */
    bool ngg : 1;
-   uint8_t ngg_culling;
+   uint16_t ngg_culling;
    unsigned last_index_size;
    int last_base_vertex;
    unsigned last_start_instance;
@@ -1179,6 +1183,8 @@ struct si_context {
    bool need_check_render_feedback;
    bool decompression_enabled;
    bool dpbb_force_off;
+   bool dpbb_force_off_profile_vs;
+   bool dpbb_force_off_profile_ps;
    bool vs_writes_viewport_index;
    bool vs_disables_clipping_viewport;
 
@@ -1548,7 +1554,6 @@ struct pipe_video_buffer *si_video_buffer_create_with_modifiers(struct pipe_cont
                                                                 unsigned int modifiers_count);
 
 /* si_viewport.c */
-void si_get_small_prim_cull_info(struct si_context *sctx, struct si_small_prim_cull_info *out);
 void si_update_vs_viewport_state(struct si_context *ctx);
 void si_init_viewport_functions(struct si_context *ctx);
 
@@ -1561,6 +1566,8 @@ void si_print_texture_info(struct si_screen *sscreen, struct si_texture *tex,
                            struct u_log_context *log);
 struct pipe_resource *si_texture_create(struct pipe_screen *screen,
                                         const struct pipe_resource *templ);
+bool si_texture_commit(struct si_context *ctx, struct si_resource *res, unsigned level,
+                       struct pipe_box *box, bool commit);
 bool vi_dcc_formats_compatible(struct si_screen *sscreen, enum pipe_format format1,
                                enum pipe_format format2);
 bool vi_dcc_formats_are_incompatible(struct pipe_resource *tex, unsigned level,
@@ -1974,33 +1981,6 @@ static inline void radeon_add_to_gfx_buffer_list_check_mem(struct si_context *sc
       si_flush_gfx_cs(sctx, RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
 
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, bo, usage);
-}
-
-static inline unsigned si_get_wave_size(struct si_screen *sscreen,
-                                        gl_shader_stage stage, bool ngg, bool es)
-{
-   if (stage == MESA_SHADER_COMPUTE)
-      return sscreen->compute_wave_size;
-   else if (stage == MESA_SHADER_FRAGMENT)
-      return sscreen->ps_wave_size;
-   else if ((stage == MESA_SHADER_VERTEX && es && !ngg) ||
-            (stage == MESA_SHADER_TESS_EVAL && es && !ngg) ||
-            (stage == MESA_SHADER_GEOMETRY && !ngg)) /* legacy GS only supports Wave64 */
-      return 64;
-   else
-      return sscreen->ge_wave_size;
-}
-
-static inline unsigned si_get_shader_wave_size(struct si_shader *shader)
-{
-   if (shader->selector->info.stage <= MESA_SHADER_GEOMETRY) {
-      return si_get_wave_size(shader->selector->screen, shader->selector->info.stage,
-                              shader->key.ge.as_ngg,
-                              shader->key.ge.as_es);
-   }
-
-   return si_get_wave_size(shader->selector->screen, shader->selector->info.stage,
-                           false, false);
 }
 
 static inline void si_select_draw_vbo(struct si_context *sctx)

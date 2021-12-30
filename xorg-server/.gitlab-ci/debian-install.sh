@@ -131,8 +131,8 @@ ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
 cd ..
 rm -rf wayland
 
-# Xwayland requires wayland-protocols >= 1.18, but Debian buster has 1.17 only
-git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.18
+# Xwayland requires wayland-protocols >= 1.22, but Debian buster has 1.17 only
+git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.22
 cd wayland-protocols
 ./autogen.sh
 make -j${FDO_CI_CONCURRENT:-4} install

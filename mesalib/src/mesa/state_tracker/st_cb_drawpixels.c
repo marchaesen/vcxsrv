@@ -43,7 +43,6 @@
 #include "main/pbo.h"
 #include "main/readpix.h"
 #include "main/state.h"
-#include "main/texformat.h"
 #include "main/teximage.h"
 #include "main/texstore.h"
 #include "main/glformats.h"
@@ -474,7 +473,7 @@ alloc_texture(struct st_context *st, GLsizei width, GLsizei height,
    struct pipe_resource *pt;
 
    pt = st_texture_create(st, st->internal_target, texFormat, 0,
-                          width, height, 1, 1, 0, bind);
+                          width, height, 1, 1, 0, bind, false);
 
    return pt;
 }
@@ -785,10 +784,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
                                         ctx->Color._ClampFragmentColor;
       rasterizer.half_pixel_center = 1;
       rasterizer.bottom_edge_rule = 1;
-      rasterizer.depth_clip_near = st->clamp_frag_depth_in_shader ||
-                                   !ctx->Transform.DepthClampNear;
-      rasterizer.depth_clip_far = st->clamp_frag_depth_in_shader ||
-                                  !ctx->Transform.DepthClampFar;
+      rasterizer.depth_clip_near = !ctx->Transform.DepthClampNear;
+      rasterizer.depth_clip_far = !ctx->Transform.DepthClampFar;
       rasterizer.depth_clamp = !rasterizer.depth_clip_far;
       rasterizer.scissor = ctx->Scissor.EnableFlags;
       cso_set_rasterizer(cso, &rasterizer);
@@ -949,6 +946,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEWS);
    st->state.num_sampler_views[PIPE_SHADER_FRAGMENT] = 0;
 
+   ctx->Array.NewVertexElements = true;
    st->dirty |= ST_NEW_VERTEX_ARRAYS |
                 ST_NEW_FS_SAMPLER_VIEWS;
 }
@@ -1273,39 +1271,7 @@ setup_sampler_swizzle(struct pipe_sampler_view *sv, GLenum format, GLenum type)
    }
 }
 
-
-/**
- * Compute the effective raster z position. This performs depth-clamping
- * if needed.
- */
-static float
-get_effective_raster_z(struct gl_context *ctx)
-{
-   float z = ctx->Current.RasterPos[2];
-   if (st_context(ctx)->clamp_frag_depth_in_shader) {
-      GLfloat depth_near;
-      GLfloat depth_far;
-      if (ctx->ViewportArray[0].Near < ctx->ViewportArray[0].Far) {
-         depth_near = ctx->ViewportArray[0].Near;
-         depth_far = ctx->ViewportArray[0].Far;
-      } else {
-         depth_near = ctx->ViewportArray[0].Far;
-         depth_far = ctx->ViewportArray[0].Near;
-      }
-
-      if (ctx->Transform.DepthClampNear)
-         z = MAX2(z, depth_near);
-      if (ctx->Transform.DepthClampFar)
-         z = MIN2(z, depth_far);
-   }
-   return z;
-}
-
-
-/**
- * Called via ctx->Driver.DrawPixels()
- */
-static void
+void
 st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
               GLsizei width, GLsizei height,
               GLenum format, GLenum type,
@@ -1352,7 +1318,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       write_depth = GL_TRUE;
 
    if (write_stencil &&
-       !st->screen->get_param(st->screen, PIPE_CAP_SHADER_STENCIL_EXPORT)) {
+       !st->has_stencil_export) {
       /* software fallback */
       draw_stencil_pixels(ctx, x, y, width, height, format, type,
                           unpack, pixels);
@@ -1428,7 +1394,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       num_sampler_view++;
    }
 
-   draw_textured_quad(ctx, x, y, get_effective_raster_z(ctx),
+   draw_textured_quad(ctx, x, y, ctx->Current.RasterPos[2],
                       width, height,
                       ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
                       sv,
@@ -1704,8 +1670,7 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    return GL_FALSE;
 }
 
-
-static void
+void
 st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
               GLsizei width, GLsizei height,
               GLint dstx, GLint dsty, GLenum type)
@@ -1739,7 +1704,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
    /* fallback if the driver can't do stencil exports */
    if (type == GL_DEPTH_STENCIL &&
-      !st->screen->get_param(st->screen, PIPE_CAP_SHADER_STENCIL_EXPORT)) {
+       !st->has_stencil_export) {
       st_CopyPixels(ctx, srcx, srcy, width, height, dstx, dsty, GL_STENCIL);
       st_CopyPixels(ctx, srcx, srcy, width, height, dstx, dsty, GL_DEPTH);
       return;
@@ -1747,7 +1712,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
    /* fallback if the driver can't do stencil exports */
    if (type == GL_STENCIL &&
-       !st->screen->get_param(st->screen, PIPE_CAP_SHADER_STENCIL_EXPORT)) {
+       !st->has_stencil_export) {
       copy_stencil_pixels(ctx, srcx, srcy, width, height, dstx, dsty);
       return;
    }
@@ -1964,7 +1929,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
     * textured quad with that texture.
     */
 
-   draw_textured_quad(ctx, dstx, dsty, get_effective_raster_z(ctx),
+   draw_textured_quad(ctx, dstx, dsty, ctx->Current.RasterPos[2],
                       width, height, ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
                       sv,
                       num_sampler_view,
@@ -1975,15 +1940,6 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
    pipe_resource_reference(&pt, NULL);
 }
-
-
-
-void st_init_drawpixels_functions(struct dd_function_table *functions)
-{
-   functions->DrawPixels = st_DrawPixels;
-   functions->CopyPixels = st_CopyPixels;
-}
-
 
 void
 st_destroy_drawpix(struct st_context *st)

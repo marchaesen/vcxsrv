@@ -7,3 +7,7 @@ dEQP-VK.wsi.*
 
 # Exclude this test which timeout most of the time.
 dEQP-VK.memory.pipeline_barrier.transfer_src_transfer_dst.1048576
+
+# Exclude this test because it fails with VK_KHR_maintenance4 and the CTS fix
+# hasn't landed yet.
+dEQP-VK.api.buffer.basic.size_max_uint64

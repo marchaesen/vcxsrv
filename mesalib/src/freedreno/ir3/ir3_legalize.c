@@ -273,19 +273,18 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
          else
             regmask_set(&state->needs_sy, n->dsts[0]);
       } else if (is_atomic(n->opc)) {
-         if (n->flags & IR3_INSTR_G) {
-            if (ctx->compiler->gen >= 6) {
-               /* New encoding, returns  result via second src: */
-               regmask_set(&state->needs_sy, n->srcs[2]);
-            } else {
-               regmask_set(&state->needs_sy, n->dsts[0]);
-            }
+         if (is_bindless_atomic(n->opc)) {
+            regmask_set(&state->needs_sy, n->srcs[2]);
+         } else if (is_global_a3xx_atomic(n->opc) ||
+                    is_global_a6xx_atomic(n->opc)) {
+            regmask_set(&state->needs_sy, n->dsts[0]);
          } else {
             regmask_set(&state->needs_ss, n->dsts[0]);
          }
       }
 
-      if (is_ssbo(n->opc) || (is_atomic(n->opc) && (n->flags & IR3_INSTR_G)))
+      if (is_ssbo(n->opc) || is_global_a3xx_atomic(n->opc) ||
+          is_bindless_atomic(n->opc))
          ctx->so->has_ssbo = true;
 
       /* both tex/sfu appear to not always immediately consume
@@ -804,7 +803,7 @@ nop_sched(struct ir3 *ir, struct ir3_shader_variant *so)
       list_inithead(&block->instr_list);
 
       foreach_instr_safe (instr, &instr_list) {
-         unsigned delay = ir3_delay_calc_exact(block, instr, so->mergedregs);
+         unsigned delay = ir3_delay_calc(block, instr, so->mergedregs);
 
          /* NOTE: I think the nopN encoding works for a5xx and
           * probably a4xx, but not a3xx.  So far only tested on
@@ -861,8 +860,6 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 
       block->data = bd;
    }
-
-   ir3_remove_nops(ir);
 
    /* We may have failed to pull all input loads into the first block.
     * In such case at the moment we aren't able to find a better place

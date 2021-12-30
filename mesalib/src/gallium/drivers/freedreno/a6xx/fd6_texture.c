@@ -32,6 +32,7 @@
 #include "util/u_memory.h"
 #include "util/u_string.h"
 
+#include "freedreno_dev_info.h"
 #include "fd6_emit.h"
 #include "fd6_format.h"
 #include "fd6_resource.h"
@@ -212,8 +213,6 @@ fd6_sampler_view_update(struct fd_context *ctx,
    struct pipe_resource *prsc = cso->texture;
    struct fd_resource *rsc = fd_resource(prsc);
    enum pipe_format format = cso->format;
-   bool ubwc_enabled = false;
-   unsigned lvl, layers = 0;
 
    fd6_validate_format(ctx, rsc, cso->format);
 
@@ -227,111 +226,58 @@ fd6_sampler_view_update(struct fd_context *ctx,
    so->rsc_seqno = rsc->seqno;
 
    if (cso->target == PIPE_BUFFER) {
-      unsigned elements = cso->u.buf.size / util_format_get_blocksize(format);
+      uint8_t swiz[4] = {cso->swizzle_r, cso->swizzle_g, cso->swizzle_b,
+                         cso->swizzle_a};
 
-      lvl = 0;
-      so->texconst1 = A6XX_TEX_CONST_1_WIDTH(elements & MASK(15)) |
-                      A6XX_TEX_CONST_1_HEIGHT(elements >> 15);
-      so->texconst2 = A6XX_TEX_CONST_2_UNK4 | A6XX_TEX_CONST_2_UNK31;
-      so->offset1 = cso->u.buf.offset;
+      /* Using relocs for addresses still */
+      uint64_t iova = cso->u.buf.offset;
+
+      fdl6_buffer_view_init(so->descriptor, cso->format, swiz, iova,
+                            cso->u.buf.size);
    } else {
-      unsigned miplevels;
+      struct fdl_view_args args = {
+         /* Using relocs for addresses still */
+         .iova = 0,
 
-      lvl = fd_sampler_first_level(cso);
-      miplevels = fd_sampler_last_level(cso) - lvl;
-      layers = cso->u.tex.last_layer - cso->u.tex.first_layer + 1;
+         .base_miplevel = fd_sampler_first_level(cso),
+         .level_count =
+            fd_sampler_last_level(cso) - fd_sampler_first_level(cso) + 1,
 
-      so->texconst0 |= A6XX_TEX_CONST_0_MIPLVLS(miplevels);
-      so->texconst1 = A6XX_TEX_CONST_1_WIDTH(u_minify(prsc->width0, lvl)) |
-                      A6XX_TEX_CONST_1_HEIGHT(u_minify(prsc->height0, lvl));
-      so->texconst2 = A6XX_TEX_CONST_2_PITCHALIGN(rsc->layout.pitchalign - 6) |
-                      A6XX_TEX_CONST_2_PITCH(fd_resource_pitch(rsc, lvl));
+         .base_array_layer = cso->u.tex.first_layer,
+         .layer_count = cso->u.tex.last_layer - cso->u.tex.first_layer + 1,
 
-      ubwc_enabled = fd_resource_ubwc_enabled(rsc, lvl);
+         .format = format,
+         .swiz = {cso->swizzle_r, cso->swizzle_g, cso->swizzle_b,
+                  cso->swizzle_a},
+
+         .type = fdl_type_from_pipe_target(cso->target),
+         .chroma_offsets = {FDL_CHROMA_LOCATION_COSITED_EVEN,
+                            FDL_CHROMA_LOCATION_COSITED_EVEN},
+      };
+      struct fd_resource *plane1 = fd_resource(rsc->b.b.next);
+      struct fd_resource *plane2 =
+         plane1 ? fd_resource(plane1->b.b.next) : NULL;
+      static const struct fdl_layout dummy_layout = {0};
+      const struct fdl_layout *layouts[3] = {
+         &rsc->layout,
+         plane1 ? &plane1->layout : &dummy_layout,
+         plane2 ? &plane2->layout : &dummy_layout,
+      };
+      struct fdl6_view view;
+      fdl6_view_init(&view, layouts, &args,
+                     ctx->screen->info->a6xx.has_z24uint_s8uint);
+      memcpy(so->descriptor, view.descriptor, sizeof(so->descriptor));
 
       if (rsc->b.b.format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
-         struct fd_resource *next = fd_resource(rsc->b.b.next);
-
          /* In case of biplanar R8_G8B8, the UBWC metadata address in
           * dwords 7 and 8, is instead the pointer to the second plane.
           */
-         so->ptr2 = next;
-         so->texconst6 =
-            A6XX_TEX_CONST_6_PLANE_PITCH(fd_resource_pitch(next, lvl));
-
-         if (ubwc_enabled) {
-            /* Further, if using UBWC with R8_G8B8, we only point to the
-             * UBWC header and the color data is expected to follow immediately.
-             */
-            so->offset1 =
-               fd_resource_ubwc_offset(rsc, lvl, cso->u.tex.first_layer);
-            so->offset2 =
-               fd_resource_ubwc_offset(next, lvl, cso->u.tex.first_layer);
-         } else {
-            so->offset1 = fd_resource_offset(rsc, lvl, cso->u.tex.first_layer);
-            so->offset2 = fd_resource_offset(next, lvl, cso->u.tex.first_layer);
-         }
+         so->ptr2 = plane1;
       } else {
-         so->offset1 = fd_resource_offset(rsc, lvl, cso->u.tex.first_layer);
-         if (ubwc_enabled) {
+         if (fd_resource_ubwc_enabled(rsc, fd_sampler_first_level(cso))) {
             so->ptr2 = rsc;
-            so->offset2 =
-               fd_resource_ubwc_offset(rsc, lvl, cso->u.tex.first_layer);
          }
       }
-   }
-
-   so->texconst0 |=
-      fd6_tex_const_0(prsc, lvl, cso->format, cso->swizzle_r, cso->swizzle_g,
-                      cso->swizzle_b, cso->swizzle_a);
-
-   so->texconst2 |= A6XX_TEX_CONST_2_TYPE(fd6_tex_type(cso->target));
-
-   switch (cso->target) {
-   case PIPE_TEXTURE_RECT:
-   case PIPE_TEXTURE_1D:
-   case PIPE_TEXTURE_2D:
-      so->texconst3 = A6XX_TEX_CONST_3_ARRAY_PITCH(rsc->layout.layer_size);
-      so->texconst5 = A6XX_TEX_CONST_5_DEPTH(1);
-      break;
-   case PIPE_TEXTURE_1D_ARRAY:
-   case PIPE_TEXTURE_2D_ARRAY:
-      so->texconst3 = A6XX_TEX_CONST_3_ARRAY_PITCH(rsc->layout.layer_size);
-      so->texconst5 = A6XX_TEX_CONST_5_DEPTH(layers);
-      break;
-   case PIPE_TEXTURE_CUBE:
-   case PIPE_TEXTURE_CUBE_ARRAY:
-      so->texconst3 = A6XX_TEX_CONST_3_ARRAY_PITCH(rsc->layout.layer_size);
-      so->texconst5 = A6XX_TEX_CONST_5_DEPTH(layers / 6);
-      break;
-   case PIPE_TEXTURE_3D:
-      so->texconst3 =
-         A6XX_TEX_CONST_3_MIN_LAYERSZ(
-            fd_resource_slice(rsc, prsc->last_level)->size0) |
-         A6XX_TEX_CONST_3_ARRAY_PITCH(fd_resource_slice(rsc, lvl)->size0);
-      so->texconst5 = A6XX_TEX_CONST_5_DEPTH(u_minify(prsc->depth0, lvl));
-      break;
-   default:
-      break;
-   }
-
-   if (rsc->layout.tile_all)
-      so->texconst3 |= A6XX_TEX_CONST_3_TILE_ALL;
-
-   if (ubwc_enabled) {
-      uint32_t block_width, block_height;
-      fdl6_get_ubwc_blockwidth(&rsc->layout, &block_width, &block_height);
-
-      so->texconst3 |= A6XX_TEX_CONST_3_FLAG;
-      so->texconst9 |= A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH(
-         rsc->layout.ubwc_layer_size >> 2);
-      so->texconst10 |=
-         A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH(
-            fdl_ubwc_pitch(&rsc->layout, lvl)) |
-         A6XX_TEX_CONST_10_FLAG_BUFFER_LOGW(util_logbase2_ceil(
-            DIV_ROUND_UP(u_minify(prsc->width0, lvl), block_width))) |
-         A6XX_TEX_CONST_10_FLAG_BUFFER_LOGH(util_logbase2_ceil(
-            DIV_ROUND_UP(u_minify(prsc->height0, lvl), block_height)));
    }
 }
 

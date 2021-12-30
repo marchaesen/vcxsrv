@@ -43,14 +43,14 @@ xkb_symbols "basic" {
     key <TLDE>	{ [     grave, asciitilde,      notsign,      notsign ]	};
 
     key <BKSL>	{ [ backslash,        bar,   dead_grave,   dead_breve ]	};
-    key <AB01>	{ [         z,          Z, guillemotleft,       U2039 ]	};
-    key <AB02>	{ [         x,          X, guillemotright,      U203A ]	};
+    key <AB01>	{ [         z,          Z, guillemotleft,        less ]	};
+    key <AB02>	{ [         x,          X, guillemotright,    greater ]	};
     key <AB03>	{ [         c,          C,         cent,    copyright ]	};
     key <AB04>	{ [         v,          V,   doublelowquotemark, singlelowquotemark ]	};
     key <AB05>	{ [         b,          B,  leftdoublequotemark, leftsinglequotemark ] };
     key <AB06>	{ [         n,          N, rightdoublequotemark, rightsinglequotemark ]	};
     key <AB07>	{ [         m,          M,           mu,    masculine ]	};
-    key <AB08>	{ [     comma,       less, horizconnector,   multiply ]	};
+    key <AB08>	{ [     comma,       less,        U2022,     multiply ]	}; // bullet
     key <AB09>	{ [    period,    greater, periodcentered,   division ]	};
     key <AB10>	{ [     slash,   question, dead_belowdot, dead_abovedot ] };
 };
@@ -104,7 +104,7 @@ xkb_symbols "type3" {
     key <AC05>	{ [         g,          G, bracketright,          ENG ]	};
     key <AC08>	{ [         k,          K,      lstroke,    ampersand ]	};
 
-    key <AB01>	{ [         y,          Y, guillemotleft,       U2039 ]	};
+    key <AB01>	{ [         y,          Y, guillemotleft,        less ]	};
     key <AB04>	{ [         v,          V,           at,        grave ]	};
     key <AB05>	{ [         b,          B,    braceleft,   apostrophe ]	};
     key <AB06>	{ [         n,          N,   braceright,   braceright ]	};
@@ -130,7 +130,7 @@ xkb_symbols "type4" {
 
     key <AD03>	{ [         e,          E,     EuroSign,         cent ]	};
 
-    key <AB08>	{ [   comma,  semicolon, horizconnector,     multiply ]	};
+    key <AB08>	{ [   comma,  semicolon,          U2022,     multiply ]	}; // bullet
     key <AB09>	{ [  period,      colon, periodcentered,     division ]	};
     key <AB10>	{ [   minus, underscore, dead_belowdot, dead_abovedot ]	};
 };

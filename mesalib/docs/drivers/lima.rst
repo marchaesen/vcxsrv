@@ -110,8 +110,6 @@ Here are some known caveats in OpenGL support:
 
 - ``glPolygonMode()`` with ``GL_LINE`` is not supported. This is not part of
   OpenGL ES 2.0 and so it is not possible to reverse engineer.
-- Texture wrapping with ``GL_CLAMP_TO_BORDER`` is not supported. This is not
-  part of OpenGL ES 2.0 and so it is not possible to reverse engineer.
 
 - Precision limitations in fragment shaders:
 

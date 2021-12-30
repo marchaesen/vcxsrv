@@ -26,12 +26,21 @@
 
 #include "vk_object.h"
 
+#include "c11/threads.h"
+
 #include "util/list.h"
 #include "util/u_dynarray.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct vk_command_buffer;
+struct vk_queue_submit;
+struct vk_sync;
+struct vk_sync_wait;
+struct vk_sync_signal;
+struct vk_sync_timeline_point;
 
 struct vk_queue {
    struct vk_object_base base;
@@ -47,6 +56,40 @@ struct vk_queue {
 
    /* Which queue this is within the queue family */
    uint32_t index_in_family;
+
+   /** Driver queue submit hook
+    *
+    * When using the common implementation of vkQueueSubmit(), this function
+    * is called to do the final submit to the kernel driver after all
+    * semaphore dependencies have been resolved.  Depending on the timeline
+    * mode and application usage, this function may be called directly from
+    * the client thread on which vkQueueSubmit was called or from a runtime-
+    * managed submit thread.  We do, however, guarantee that as long as the
+    * client follows the Vulkan threading rules, this function will never be
+    * called by the runtime concurrently on the same queue.
+    */
+   VkResult (*driver_submit)(struct vk_queue *queue,
+                             struct vk_queue_submit *submit);
+
+   struct {
+      mtx_t mutex;
+      cnd_t push;
+      cnd_t pop;
+
+      struct list_head submits;
+
+      bool thread_run;
+      bool has_thread;
+      thrd_t thread;
+   } submit;
+
+   struct {
+      /* Only set once atomically by the queue */
+      int lost;
+      int error_line;
+      const char *error_file;
+      char error_msg[80];
+   } _lost;
 
    /**
     * VK_EXT_debug_utils
@@ -99,11 +142,56 @@ vk_queue_init(struct vk_queue *queue, struct vk_device *device,
 void
 vk_queue_finish(struct vk_queue *queue);
 
+static inline bool
+vk_queue_is_empty(struct vk_queue *queue)
+{
+   return list_is_empty(&queue->submit.submits);
+}
+
+VkResult vk_queue_flush(struct vk_queue *queue, uint32_t *submit_count_out);
+
+VkResult vk_queue_wait_before_present(struct vk_queue *queue,
+                                      const VkPresentInfoKHR *pPresentInfo);
+
+VkResult PRINTFLIKE(4, 5)
+_vk_queue_set_lost(struct vk_queue *queue,
+                   const char *file, int line,
+                   const char *msg, ...);
+
+#define vk_queue_set_lost(queue, ...) \
+   _vk_queue_set_lost(queue, __FILE__, __LINE__, __VA_ARGS__)
+
+static inline bool
+vk_queue_is_lost(struct vk_queue *queue)
+{
+   return queue->_lost.lost;
+}
+
 #define vk_foreach_queue(queue, device) \
    list_for_each_entry(struct vk_queue, queue, &(device)->queues, link)
 
 #define vk_foreach_queue_safe(queue, device) \
    list_for_each_entry_safe(struct vk_queue, queue, &(device)->queues, link)
+
+struct vk_queue_submit {
+   struct list_head link;
+
+   uint32_t wait_count;
+   uint32_t command_buffer_count;
+   uint32_t signal_count;
+
+   struct vk_sync_wait *waits;
+   struct vk_command_buffer **command_buffers;
+   struct vk_sync_signal *signals;
+
+   uint32_t perf_pass_index;
+
+   /* Used internally; should be ignored by drivers */
+   struct vk_sync **_wait_temps;
+   struct vk_sync *_mem_signal_temp;
+   struct vk_sync_timeline_point **_wait_points;
+   struct vk_sync_timeline_point **_signal_points;
+};
 
 #ifdef __cplusplus
 }

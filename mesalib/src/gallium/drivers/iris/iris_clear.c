@@ -82,8 +82,8 @@ can_fast_clear_color(struct iris_context *ice,
 
    /* Check for partial clear */
    if (box->x > 0 || box->y > 0 ||
-       box->width < minify(p_res->width0, level) ||
-       box->height < minify(p_res->height0, level)) {
+       box->width < u_minify(p_res->width0, level) ||
+       box->height < u_minify(p_res->height0, level)) {
       return false;
    }
 
@@ -145,66 +145,19 @@ static union isl_color_value
 convert_clear_color(enum pipe_format format,
                     const union pipe_color_union *color)
 {
-   /* pipe_color_union and isl_color_value are interchangeable */
-   union isl_color_value override_color = *(union isl_color_value *)color;
+   uint32_t pixel[4];
+   util_format_pack_rgba(format, pixel, color, 1);
 
-   const struct util_format_description *desc =
-      util_format_description(format);
-   unsigned colormask = util_format_colormask(desc);
+   union isl_color_value converted_color;
+   util_format_unpack_rgba(format, &converted_color, pixel, 1);
 
-   if (util_format_is_intensity(format) ||
-       util_format_is_luminance(format)) {
-      override_color.u32[1] = override_color.u32[0];
-      override_color.u32[2] = override_color.u32[0];
-      if (util_format_is_intensity(format))
-         override_color.u32[3] = override_color.u32[0];
-   } else {
-      for (int chan = 0; chan < 3; chan++) {
-         if (!(colormask & (1 << chan)))
-            override_color.u32[chan] = 0;
-      }
-   }
-
-   if (util_format_is_unorm(format)) {
-      for (int i = 0; i < 4; i++)
-         override_color.f32[i] = SATURATE(override_color.f32[i]);
-   } else if (util_format_is_snorm(format)) {
-      for (int i = 0; i < 4; i++)
-         override_color.f32[i] = CLAMP(override_color.f32[i], -1.0f, 1.0f);
-   } else if (util_format_is_pure_uint(format)) {
-      for (int i = 0; i < 4; i++) {
-         unsigned bits = util_format_get_component_bits(
-            format, UTIL_FORMAT_COLORSPACE_RGB, i);
-         if (bits < 32) {
-            uint32_t max = (1u << bits) - 1;
-            override_color.u32[i] = MIN2(override_color.u32[i], max);
-         }
-      }
-   } else if (util_format_is_pure_sint(format)) {
-      for (int i = 0; i < 4; i++) {
-         unsigned bits = util_format_get_component_bits(
-            format, UTIL_FORMAT_COLORSPACE_RGB, i);
-         if (bits > 0 && bits < 32) {
-            int32_t max = u_intN_max(bits);
-            int32_t min = u_intN_min(bits);
-            override_color.i32[i] = CLAMP(override_color.i32[i], min, max);
-         }
-      }
-   } else if (format == PIPE_FORMAT_R11G11B10_FLOAT ||
-              format == PIPE_FORMAT_R9G9B9E5_FLOAT) {
-      /* these packed float formats only store unsigned values */
-      for (int i = 0; i < 4; i++)
-         override_color.f32[i] = MAX2(override_color.f32[i], 0.0f);
-   }
-
-   if (!(colormask & 1 << 3)) {
-      if (util_format_is_pure_integer(format))
-         override_color.u32[3] = 1;
-      else
-         override_color.f32[3] = 1.0f;
-   }
-
-   return override_color;
+   /* The converted clear color has channels that are:
+    *   - clamped
+    *   - quantized
+    *   - filled with 0/1 if missing from the format
+    *   - swizzled for luminance and intensity formats
+    */
+   return converted_color;
 }
 
 static void

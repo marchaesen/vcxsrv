@@ -25,6 +25,8 @@
 #include "iris_context.h"
 #include "iris_perf.h"
 
+#include "main/mtypes.h"
+
 struct iris_perf_query {
    struct gl_perf_query_object base;
    struct intel_perf_query_object *query;
@@ -76,7 +78,7 @@ iris_init_perf_query_info(struct pipe_context *pipe)
                          ice,
                          screen->bufmgr,
                          &screen->devinfo,
-                         ice->batches[IRIS_BATCH_RENDER].hw_ctx_id,
+                         ice->batches[IRIS_BATCH_RENDER].ctx_id,
                          screen->fd);
 
    return perf_cfg->n_queries;

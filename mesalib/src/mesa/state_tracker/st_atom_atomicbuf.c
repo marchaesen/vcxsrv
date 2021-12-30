@@ -35,7 +35,6 @@
 #include "util/u_surface.h"
 
 #include "st_debug.h"
-#include "st_cb_bufferobjects.h"
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_program.h"
@@ -44,8 +43,7 @@ static void
 st_binding_to_sb(struct gl_buffer_binding *binding,
                  struct pipe_shader_buffer *sb)
 {
-   struct st_buffer_object *st_obj =
-      st_buffer_object(binding->BufferObject);
+   struct gl_buffer_object *st_obj = binding->BufferObject;
 
    if (st_obj && st_obj->buffer) {
      sb->buffer = st_obj->buffer;

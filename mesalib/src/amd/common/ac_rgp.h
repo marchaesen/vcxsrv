@@ -34,6 +34,7 @@
 struct radeon_info;
 struct ac_thread_trace;
 struct ac_thread_trace_data;
+struct ac_spm_trace_data;
 
 enum rgp_hardware_stages {
    RGP_HW_STAGE_VS = 0,
@@ -62,7 +63,7 @@ struct rgp_shader_data {
 
 struct rgp_code_object_record {
    uint32_t shader_stages_mask;
-   struct rgp_shader_data shader_data[MESA_SHADER_STAGES];
+   struct rgp_shader_data shader_data[MESA_VULKAN_SHADER_STAGES];
    uint32_t num_shaders_combined; /* count combined shaders as one count */
    uint64_t pipeline_hash[2];
    struct list_head list;
@@ -108,9 +109,89 @@ struct rgp_pso_correlation {
    simple_mtx_t lock;
 };
 
+enum sqtt_queue_type {
+   SQTT_QUEUE_TYPE_UNKNOWN   = 0x0,
+   SQTT_QUEUE_TYPE_UNIVERSAL = 0x1,
+   SQTT_QUEUE_TYPE_COMPUTE   = 0x2,
+   SQTT_QUEUE_TYPE_DMA       = 0x3,
+};
+
+enum sqtt_engine_type {
+   SQTT_ENGINE_TYPE_UNKNOWN                 = 0x0,
+   SQTT_ENGINE_TYPE_UNIVERSAL               = 0x1,
+   SQTT_ENGINE_TYPE_COMPUTE                 = 0x2,
+   SQTT_ENGINE_TYPE_EXCLUSIVE_COMPUTE       = 0x3,
+   SQTT_ENGINE_TYPE_DMA                     = 0x4,
+   SQTT_ENGINE_TYPE_HIGH_PRIORITY_UNIVERSAL = 0x7,
+   SQTT_ENGINE_TYPE_HIGH_PRIORITY_GRAPHICS  = 0x8,
+};
+
+struct sqtt_queue_hardware_info {
+   union {
+      struct {
+         enum sqtt_queue_type queue_type : 8;
+         enum sqtt_engine_type engine_type : 8;
+         uint32_t reserved : 16;
+      };
+      uint32_t value;
+   };
+};
+
+struct rgp_queue_info_record {
+   uint64_t queue_id;
+   uint64_t queue_context;
+   struct sqtt_queue_hardware_info hardware_info;
+   uint32_t reserved;
+   struct list_head list;
+};
+
+struct rgp_queue_info {
+   uint32_t record_count;
+   struct list_head record;
+   simple_mtx_t lock;
+};
+
+enum sqtt_queue_event_type {
+   SQTT_QUEUE_TIMING_EVENT_CMDBUF_SUBMIT,
+   SQTT_QUEUE_TIMING_EVENT_SIGNAL_SEMAPHORE,
+   SQTT_QUEUE_TIMING_EVENT_WAIT_SEMAPHORE,
+   SQTT_QUEUE_TIMING_EVENT_PRESENT
+};
+
+struct rgp_queue_event_record {
+   enum sqtt_queue_event_type event_type;
+   uint32_t sqtt_cb_id;
+   uint64_t frame_index;
+   uint32_t queue_info_index;
+   uint32_t submit_sub_index;
+   uint64_t api_id;
+   uint64_t cpu_timestamp;
+   uint64_t gpu_timestamps[2];
+   struct list_head list;
+};
+
+struct rgp_queue_event {
+   uint32_t record_count;
+   struct list_head record;
+   simple_mtx_t lock;
+};
+
+struct rgp_clock_calibration_record {
+   uint64_t cpu_timestamp;
+   uint64_t gpu_timestamp;
+   struct list_head list;
+};
+
+struct rgp_clock_calibration {
+   uint32_t record_count;
+   struct list_head record;
+   simple_mtx_t lock;
+};
+
 int
 ac_dump_rgp_capture(struct radeon_info *info,
-                    struct ac_thread_trace *thread_trace);
+                    struct ac_thread_trace *thread_trace,
+                    const struct ac_spm_trace_data *spm_trace);
 
 void
 ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,

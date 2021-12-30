@@ -28,9 +28,6 @@
 #ifndef ST_CB_VIEWPORT_H
 #define ST_CB_VIEWPORT_H
 
-struct dd_function_table;
-
-extern void
-st_init_viewport_functions(struct dd_function_table *functions);
+void st_viewport(struct gl_context *ctx);
 
 #endif /* ST_CB_VIEW_PORT_H */

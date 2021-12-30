@@ -167,6 +167,10 @@ void
 wsi_display_finish_wsi(struct wsi_device *wsi_device,
                        const VkAllocationCallbacks *alloc);
 
+void
+wsi_display_setup_syncobj_fd(struct wsi_device *wsi_device,
+                             int fd);
+
 VK_DEFINE_NONDISP_HANDLE_CASTS(wsi_swapchain, base, VkSwapchainKHR,
                                VK_OBJECT_TYPE_SWAPCHAIN_KHR)
 

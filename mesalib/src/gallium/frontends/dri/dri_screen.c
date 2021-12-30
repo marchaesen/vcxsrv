@@ -510,6 +510,7 @@ dri_destroy_screen(__DRIscreen * sPriv)
 
    free(screen->options.force_gl_vendor);
    free(screen->options.force_gl_renderer);
+   free(screen->options.mesa_extension_override);
 
    /* The caller in dri_util preserves the fd ownership */
    free(screen);

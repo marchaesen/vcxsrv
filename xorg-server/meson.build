@@ -3,7 +3,7 @@ project('xserver', 'c',
             'buildtype=debugoptimized',
             'c_std=gnu99',
         ],
-        version: '21.0.99.1',
+        version: '21.1.99.1',
         meson_version: '>= 0.47.0',
 )
 release_date = '2021-07-05'
@@ -11,10 +11,10 @@ release_date = '2021-07-05'
 add_project_arguments('-DHAVE_DIX_CONFIG_H', language: ['c', 'objc'])
 cc = meson.get_compiler('c')
 
-add_global_arguments('-fno-strict-aliasing', language : 'c')
-add_global_arguments('-fvisibility=hidden', language : 'c')
+add_project_arguments('-fno-strict-aliasing', language : 'c')
+add_project_arguments('-fvisibility=hidden', language : 'c')
 
-add_global_link_arguments('-fvisibility=hidden', language : 'c')
+add_project_link_arguments('-fvisibility=hidden', language : 'c')
 
 if cc.get_id() == 'gcc' or cc.get_id() == 'clang'
     test_wflags = [
@@ -58,13 +58,13 @@ foreach wflag: test_wflags
     endif
 endforeach
 
-add_global_arguments(common_wflags, language : ['c', 'objc'])
+add_project_arguments(common_wflags, language : ['c', 'objc'])
 
 libdrm_req = '>= 2.4.89'
 libselinux_req = '>= 2.0.86'
 xext_req = '>= 1.0.99.4'
 wayland_req = '>= 1.5.0'
-wayland_protocols_req = '>= 1.18'
+wayland_protocols_req = '>= 1.22'
 gbm_req = '>= 10.2'
 xf86dgaproto_req = '>= 2.0.99.1'
 
@@ -194,7 +194,7 @@ if (host_machine.system() != 'darwin' and
     endif
 endif
 xorgsdkdir = join_paths(get_option('prefix'), get_option('includedir'), 'xorg')
-libxcvt_dep = dependency('libxcvt', required: build_xorg)
+libxcvt_dep = dependency('libxcvt', fallback: ['libxcvt', 'libxcvt_dep'], required: build_xorg)
 
 build_xwayland = false
 if (host_machine.system() != 'darwin' and
@@ -211,7 +211,7 @@ if (host_machine.system() != 'darwin' and
         xwayland_dep = [
             dependency('wayland-client', version: wayland_req, required: xwayland_required),
             dependency('wayland-protocols', version: wayland_protocols_req, required: xwayland_required),
-            dependency('libxcvt', required: xwayland_required),
+            dependency('libxcvt', fallback: ['libxcvt', 'libxcvt_dep'], required: xwayland_required),
         ]
 
         if build_glamor
@@ -859,6 +859,13 @@ if build_xorg
     sdkconfig.set('SDK_REQUIRED_MODULES', ' '.join(sdk_required_modules))
     sdkconfig.set('symbol_visibility', '-fvisibility=hidden')
     sdkconfig.set('XORG_DRIVER_LIBS', '')
+
+    # On Windows, modules built with the SDK will need to link with server and
+    # module implibs to resolve symbols
+    if (host_machine.system() == 'cygwin' or
+        host_machine.system() == 'windows')
+        sdkconfig.set('XORG_DRIVER_LIBS', '-lXorg.exe -L\${moduledir} -lshadow -no-undefined')
+    endif
 
     configure_file(
         input: 'xorg-server.pc.in',

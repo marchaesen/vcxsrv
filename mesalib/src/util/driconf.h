@@ -196,6 +196,10 @@
    DRI_CONF_OPT_B(allow_higher_compat_version, def, \
                   "Allow a higher compat profile (version 3.1+) for apps that request it")
 
+#define DRI_CONF_ALLOW_GLSL_COMPAT_SHADERS(def) \
+   DRI_CONF_OPT_B(allow_glsl_compat_shaders, def, \
+                  "Allow in GLSL: #version xxx compatibility")
+
 #define DRI_CONF_FORCE_GLSL_ABS_SQRT(def) \
    DRI_CONF_OPT_B(force_glsl_abs_sqrt, def,                             \
                   "Force computing the absolute value for sqrt() and inversesqrt()")
@@ -234,6 +238,18 @@
    DRI_CONF_OPT_B(force_compat_profile, def, \
                   "Force an OpenGL compatibility context")
 
+#define DRI_CONF_FORCE_COMPAT_SHADERS(def) \
+   DRI_CONF_OPT_B(force_compat_shaders, def, \
+                  "Force OpenGL compatibility shaders")
+
+#define DRI_CONF_FORCE_DIRECT_GLX_CONTEXT(def) \
+   DRI_CONF_OPT_B(force_direct_glx_context, def, \
+                  "Force direct GLX context (even if indirect is requested)")
+
+#define DRI_CONF_ALLOW_INVALID_GLX_DESTROY_WINDOW(def) \
+   DRI_CONF_OPT_B(allow_invalid_glx_destroy_window, def, \
+                  "Allow passing an invalid window into glXDestroyWindow")
+
 #define DRI_CONF_OVERRIDE_VRAM_SIZE() \
    DRI_CONF_OPT_I(override_vram_size, -1, -1, 2147483647, \
                   "Override the VRAM size advertised to the application in MiB (-1 = default)")
@@ -246,6 +262,10 @@
 
 #define DRI_CONF_TRANSCODE_ASTC(def) \
    DRI_CONF_OPT_B(transcode_astc, def, "Transcode ASTC formats to DXTC if unsupported")
+
+#define DRI_CONF_MESA_EXTENSION_OVERRIDE() \
+   DRI_CONF_OPT_S_NODEF(mesa_extension_override, \
+                  "Allow enabling/disabling a list of extensions")
 
 #define DRI_CONF_GLX_EXTENSION_OVERRIDE() \
    DRI_CONF_OPT_S_NODEF(glx_extension_override, \
@@ -480,6 +500,10 @@
    DRI_CONF_OPT_I(gles_samples_passed_value, def, minimum, maximum, \
                   "GL_SAMPLES_PASSED value when emulated by GL_ANY_SAMPLES_PASSED")
 
+#define DRI_CONF_FORMAT_L8_SRGB_ENABLE_READBACK(def) \
+   DRI_CONF_OPT_B(format_l8_srgb_enable_readback, def, \
+                  "Force-enable reading back L8_SRGB textures")
+
 /**
  * \brief RADV specific configuration options
  */
@@ -531,5 +555,9 @@
 #define DRI_CONF_RADV_REPORT_APU_AS_DGPU(def) \
    DRI_CONF_OPT_B(radv_report_apu_as_dgpu, def, \
                   "Report APUs as discrete GPUs instead of integrated GPUs")
+
+#define DRI_CONF_RADV_REQUIRE_ETC2(def)                                        \
+  DRI_CONF_OPT_B(radv_require_etc2, def,                                       \
+                 "Implement emulated ETC2 on HW that does not support it")
 
 #endif

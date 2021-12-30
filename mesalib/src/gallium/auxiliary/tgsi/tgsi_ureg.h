@@ -137,6 +137,7 @@ void ureg_free_tokens( const struct tgsi_token *tokens );
 void 
 ureg_destroy( struct ureg_program * );
 
+void ureg_set_precise( struct ureg_program *ureg, bool precise );
 
 /***********************************************************************
  * Convenience routine:

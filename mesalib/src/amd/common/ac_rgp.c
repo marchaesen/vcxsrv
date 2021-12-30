@@ -29,6 +29,7 @@
 #include "util/u_process.h"
 #include "util/u_math.h"
 
+#include "ac_spm.h"
 #include "ac_sqtt.h"
 #include "ac_gpu_info.h"
 #ifdef _WIN32
@@ -780,6 +781,91 @@ static void ac_sqtt_fill_sqtt_data(struct sqtt_file_chunk_sqtt_data *chunk, int3
    chunk->size = size;
 }
 
+/**
+ * SQTT queue event timings info.
+ */
+struct sqtt_file_chunk_queue_event_timings {
+   struct sqtt_file_chunk_header header;
+   uint32_t queue_info_table_record_count;
+   uint32_t queue_info_table_size;
+   uint32_t queue_event_table_record_count;
+   uint32_t queue_event_table_size;
+};
+
+static_assert(sizeof(struct sqtt_file_chunk_queue_event_timings) == 32,
+	      "sqtt_file_chunk_queue_event_timings doesn't match RGP spec");
+
+struct sqtt_queue_info_record {
+   uint64_t queue_id;
+   uint64_t queue_context;
+   struct sqtt_queue_hardware_info hardware_info;
+   uint32_t reserved;
+};
+
+static_assert(sizeof(struct sqtt_queue_info_record) == 24,
+	      "sqtt_queue_info_record doesn't match RGP spec");
+
+struct sqtt_queue_event_record {
+   enum sqtt_queue_event_type event_type;
+   uint32_t sqtt_cb_id;
+   uint64_t frame_index;
+   uint32_t queue_info_index;
+   uint32_t submit_sub_index;
+   uint64_t api_id;
+   uint64_t cpu_timestamp;
+   uint64_t gpu_timestamps[2];
+};
+
+static_assert(sizeof(struct sqtt_queue_event_record) == 56,
+	      "sqtt_queue_event_record doesn't match RGP spec");
+
+static void
+ac_sqtt_fill_queue_event_timings(struct rgp_queue_info *rgp_queue_info,
+                                 struct rgp_queue_event *rgp_queue_event,
+                                 struct sqtt_file_chunk_queue_event_timings *chunk)
+{
+   unsigned queue_info_size =
+      rgp_queue_info->record_count * sizeof(struct sqtt_queue_info_record);
+   unsigned queue_event_size =
+      rgp_queue_event->record_count * sizeof(struct sqtt_queue_event_record);
+
+   chunk->header.chunk_id.type = SQTT_FILE_CHUNK_TYPE_QUEUE_EVENT_TIMINGS;
+   chunk->header.chunk_id.index = 0;
+   chunk->header.major_version = 1;
+   chunk->header.minor_version = 1;
+   chunk->header.size_in_bytes = queue_info_size + queue_event_size +
+                                 sizeof(*chunk);
+
+   chunk->queue_info_table_record_count = rgp_queue_info->record_count;
+   chunk->queue_info_table_size = queue_info_size;
+   chunk->queue_event_table_record_count = rgp_queue_event->record_count;
+   chunk->queue_event_table_size = queue_event_size;
+}
+
+/**
+ * SQTT clock calibration info.
+ */
+struct sqtt_file_chunk_clock_calibration {
+   struct sqtt_file_chunk_header header;
+   uint64_t cpu_timestamp;
+   uint64_t gpu_timestamp;
+   uint64_t reserved;
+};
+
+static_assert(sizeof(struct sqtt_file_chunk_clock_calibration) == 40,
+	      "sqtt_file_chunk_clock_calibration doesn't match RGP spec");
+
+static void
+ac_sqtt_fill_clock_calibration(struct sqtt_file_chunk_clock_calibration *chunk,
+                               int32_t chunk_index)
+{
+   chunk->header.chunk_id.type = SQTT_FILE_CHUNK_TYPE_CLOCK_CALIBRATION;
+   chunk->header.chunk_id.index = chunk_index;
+   chunk->header.major_version = 0;
+   chunk->header.minor_version = 0;
+   chunk->header.size_in_bytes = sizeof(*chunk);
+}
+
 /* Below values are from from llvm project
  * llvm/include/llvm/BinaryFormat/ELF.h
  */
@@ -807,8 +893,118 @@ static enum elf_gfxip_level ac_chip_class_to_elf_gfxip_level(enum chip_class chi
    }
 }
 
+/**
+ * SQTT SPM DB info.
+ */
+struct sqtt_spm_counter_info {
+   enum ac_pc_gpu_block block;
+   uint32_t instance;
+   uint32_t data_offset; /* offset of counter from the beginning of the chunk */
+   uint32_t event_index; /* index of counter within the block */
+};
+
+struct sqtt_file_chunk_spm_db {
+   struct sqtt_file_chunk_header header;
+   uint32_t flags;
+   uint32_t num_timestamps;
+   uint32_t num_spm_counter_info;
+   uint32_t sample_interval;
+};
+
+static_assert(sizeof(struct sqtt_file_chunk_spm_db) == 32,
+              "sqtt_file_chunk_spm_db doesn't match RGP spec");
+
+static void ac_sqtt_fill_spm_db(const struct ac_spm_trace_data *spm_trace,
+                                struct sqtt_file_chunk_spm_db *chunk,
+                                uint32_t num_samples,
+                                uint32_t chunk_size)
+{
+   chunk->header.chunk_id.type = SQTT_FILE_CHUNK_TYPE_SPM_DB;
+   chunk->header.chunk_id.index = 0;
+   chunk->header.major_version = 1;
+   chunk->header.minor_version = 3;
+   chunk->header.size_in_bytes = chunk_size;
+
+   chunk->flags = 0;
+   chunk->num_timestamps = num_samples;
+   chunk->num_spm_counter_info = spm_trace->num_counters;
+   chunk->sample_interval = spm_trace->sample_interval;
+}
+
+static void ac_sqtt_dump_spm(const struct ac_spm_trace_data *spm_trace,
+                             size_t file_offset,
+                             FILE *output)
+{
+   uint32_t sample_size_in_bytes = ac_spm_get_sample_size(spm_trace);
+   uint32_t num_samples = ac_spm_get_num_samples(spm_trace);
+   uint8_t *spm_data_ptr = (uint8_t *)spm_trace->ptr;
+   struct sqtt_file_chunk_spm_db spm_db;
+   size_t file_spm_db_offset = file_offset;
+
+   fseek(output, sizeof(struct sqtt_file_chunk_spm_db), SEEK_CUR);
+   file_offset += sizeof(struct sqtt_file_chunk_spm_db);
+
+   /* Skip the reserved 32 bytes of data at beginning. */
+   spm_data_ptr += 32;
+
+   /* SPM timestamps. */
+   uint32_t sample_size_in_qwords = sample_size_in_bytes / sizeof(uint64_t);
+   uint64_t *timestamp_ptr = (uint64_t *)spm_data_ptr;
+
+   for (uint32_t s = 0; s < num_samples; s++) {
+      uint64_t index = s * sample_size_in_qwords;
+      uint64_t timestamp = timestamp_ptr[index];
+
+      file_offset += sizeof(timestamp);
+      fwrite(&timestamp, sizeof(timestamp), 1, output);
+   }
+
+   /* SPM counter info. */
+   uint64_t counter_values_size = num_samples * sizeof(uint16_t);
+   uint64_t counter_values_offset = num_samples * sizeof(uint64_t) +
+                                    spm_trace->num_counters * sizeof(struct sqtt_spm_counter_info);
+
+   for (uint32_t c = 0; c < spm_trace->num_counters; c++) {
+      struct sqtt_spm_counter_info cntr_info = {
+         .block = spm_trace->counters[c].gpu_block,
+         .instance = spm_trace->counters[c].instance,
+         .data_offset = counter_values_offset,
+         .event_index = spm_trace->counters[c].event_id,
+      };
+
+      file_offset += sizeof(cntr_info);
+      fwrite(&cntr_info, sizeof(cntr_info), 1, output);
+
+      counter_values_offset += counter_values_size;
+   }
+
+   /* SPM counter values. */
+   uint32_t sample_size_in_hwords = sample_size_in_bytes / sizeof(uint16_t);
+   uint16_t *counter_values_ptr = (uint16_t *)spm_data_ptr;
+
+   for (uint32_t c = 0; c < spm_trace->num_counters; c++) {
+      uint64_t offset = spm_trace->counters[c].offset;
+
+      for (uint32_t s = 0; s < num_samples; s++) {
+         uint64_t index = offset + (s * sample_size_in_hwords);
+         uint16_t value = counter_values_ptr[index];
+
+         file_offset += sizeof(value);
+         fwrite(&value, sizeof(value), 1, output);
+      }
+   }
+
+   /* SQTT SPM DB chunk. */
+   ac_sqtt_fill_spm_db(spm_trace, &spm_db, num_samples,
+                       file_offset - file_spm_db_offset);
+   fseek(output, file_spm_db_offset, SEEK_SET);
+   fwrite(&spm_db, sizeof(struct sqtt_file_chunk_spm_db), 1, output);
+   fseek(output, file_offset, SEEK_SET);
+}
+
 static void ac_sqtt_dump_data(struct radeon_info *rad_info,
                               struct ac_thread_trace *thread_trace,
+                              const struct ac_spm_trace_data *spm_trace,
                               FILE *output)
 {
    struct ac_thread_trace_data *thread_trace_data = thread_trace->data;
@@ -823,6 +1019,9 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
                                         &thread_trace_data->rgp_loader_events;
    struct rgp_pso_correlation *rgp_pso_correlation =
                                       &thread_trace_data->rgp_pso_correlation;
+   struct rgp_queue_info *rgp_queue_info = &thread_trace_data->rgp_queue_info;
+   struct rgp_queue_event *rgp_queue_event = &thread_trace_data->rgp_queue_event;
+   struct rgp_clock_calibration *rgp_clock_calibration = &thread_trace_data->rgp_clock_calibration;
 
    /* SQTT header file. */
    ac_sqtt_fill_header(&header);
@@ -860,12 +1059,13 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
          ac_rgp_file_write_elf_object(output, file_offset +
                                       sizeof(struct sqtt_code_object_database_record),
                                       record, &elf_size_calc, flags);
-         code_object_record.size = elf_size_calc;
+         /* Align to 4 bytes per the RGP file spec. */
+         code_object_record.size = ALIGN(elf_size_calc, 4);
          fseek(output, file_offset, SEEK_SET);
          fwrite(&code_object_record, sizeof(struct sqtt_code_object_database_record),
                 1, output);
          file_offset += (sizeof(struct sqtt_code_object_database_record) +
-                         elf_size_calc);
+                         code_object_record.size);
          fseek(output, file_offset, SEEK_SET);
       }
       ac_sqtt_fill_code_object(rgp_code_object, &code_object,
@@ -911,6 +1111,55 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
                       sizeof(struct sqtt_pso_correlation_record));
    }
 
+   /* SQTT queue event timings. */
+   if (rgp_queue_info->record_count || rgp_queue_event->record_count) {
+      struct sqtt_file_chunk_queue_event_timings queue_event_timings;
+
+      ac_sqtt_fill_queue_event_timings(rgp_queue_info, rgp_queue_event,
+                                       &queue_event_timings);
+      fwrite(&queue_event_timings, sizeof(struct sqtt_file_chunk_queue_event_timings), 1,
+             output);
+      file_offset += sizeof(struct sqtt_file_chunk_queue_event_timings);
+
+      /* Queue info. */
+      list_for_each_entry_safe(struct rgp_queue_info_record, record,
+                               &rgp_queue_info->record, list) {
+         fwrite(record, sizeof(struct sqtt_queue_info_record), 1, output);
+      }
+      file_offset += (rgp_queue_info->record_count *
+                      sizeof(struct sqtt_queue_info_record));
+
+      /* Queue event. */
+      list_for_each_entry_safe(struct rgp_queue_event_record, record,
+                               &rgp_queue_event->record, list) {
+         fwrite(record, sizeof(struct sqtt_queue_event_record), 1, output);
+      }
+      file_offset += (rgp_queue_event->record_count *
+                      sizeof(struct sqtt_queue_event_record));
+   }
+
+   /* SQTT clock calibration. */
+   if (rgp_clock_calibration->record_count) {
+      uint32_t num_records = 0;
+
+      list_for_each_entry_safe(struct rgp_clock_calibration_record, record,
+                               &rgp_clock_calibration->record, list) {
+         struct sqtt_file_chunk_clock_calibration clock_calibration;
+         memset(&clock_calibration, 0, sizeof(clock_calibration));
+
+         ac_sqtt_fill_clock_calibration(&clock_calibration, num_records);
+
+         clock_calibration.cpu_timestamp = record->cpu_timestamp;
+         clock_calibration.gpu_timestamp = record->gpu_timestamp;
+
+         fwrite(&clock_calibration, sizeof(struct sqtt_file_chunk_clock_calibration), 1,
+             output);
+         file_offset += sizeof(struct sqtt_file_chunk_clock_calibration);
+
+         num_records++;
+      }
+   }
+
    if (thread_trace) {
       for (unsigned i = 0; i < thread_trace->num_traces; i++) {
          const struct ac_thread_trace_se *se = &thread_trace->traces[i];
@@ -934,10 +1183,15 @@ static void ac_sqtt_dump_data(struct radeon_info *rad_info,
          fwrite(se->data_ptr, size, 1, output);
       }
    }
+
+   if (spm_trace) {
+      ac_sqtt_dump_spm(spm_trace, file_offset, output);
+   }
 }
 
 int ac_dump_rgp_capture(struct radeon_info *info,
-                        struct ac_thread_trace *thread_trace)
+                        struct ac_thread_trace *thread_trace,
+                        const struct ac_spm_trace_data *spm_trace)
 {
    char filename[2048];
    struct tm now;
@@ -955,7 +1209,7 @@ int ac_dump_rgp_capture(struct radeon_info *info,
    if (!f)
       return -1;
 
-   ac_sqtt_dump_data(info, thread_trace, f);
+   ac_sqtt_dump_data(info, thread_trace, spm_trace, f);
 
    fprintf(stderr, "RGP capture saved to '%s'\n", filename);
 

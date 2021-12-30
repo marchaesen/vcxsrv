@@ -29,11 +29,11 @@
  * called __builtin_foo with the same number of parameters that takes uvec2
  * sources and produces uvec2 results.  An operation like
  *
- *     uint64_t(x) * uint64_t(y)
+ *     uint64_t(x) / uint64_t(y)
  *
  * becomes
  *
- *     packUint2x32(__builtin_umul64(unpackUint2x32(x), unpackUint2x32(y)));
+ *     packUint2x32(__builtin_udiv64(unpackUint2x32(x), unpackUint2x32(y)));
  */
 
 #include "main/macros.h"
@@ -353,12 +353,6 @@ lower_64bit_visitor::handle_rvalue(ir_rvalue **rvalue)
    assert(ir != NULL);
 
    switch (ir->operation) {
-   case ir_unop_sign:
-      if (lowering(SIGN64)) {
-         *rvalue = handle_op(ir, "__builtin_sign64", generate_ir::sign64);
-      }
-      break;
-
    case ir_binop_div:
       if (lowering(DIV64)) {
          if (ir->type->base_type == GLSL_TYPE_UINT64) {
@@ -376,12 +370,6 @@ lower_64bit_visitor::handle_rvalue(ir_rvalue **rvalue)
          } else {
             *rvalue = handle_op(ir, "__builtin_imod64", generate_ir::imod64);
          }
-      }
-      break;
-
-   case ir_binop_mul:
-      if (lowering(MUL64)) {
-         *rvalue = handle_op(ir, "__builtin_umul64", generate_ir::umul64);
       }
       break;
 

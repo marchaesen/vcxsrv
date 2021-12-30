@@ -835,7 +835,7 @@ xwl_glamor_gbm_has_wl_interfaces(struct xwl_screen *xwl_screen)
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
 
     if (xwl_gbm->drm == NULL) {
-        ErrorF("glamor: 'wl_drm' not supported\n");
+        LogMessageVerb(X_INFO, 3, "glamor: 'wl_drm' not supported\n");
         return FALSE;
     }
 

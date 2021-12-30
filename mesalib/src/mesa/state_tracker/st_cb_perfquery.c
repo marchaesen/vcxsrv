@@ -49,7 +49,7 @@ st_have_perfquery(struct st_context *st)
           pipe->get_intel_perf_query_data;
 }
 
-static unsigned
+unsigned
 st_InitPerfQueryInfo(struct gl_context *ctx)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -57,7 +57,7 @@ st_InitPerfQueryInfo(struct gl_context *ctx)
    return pipe->init_intel_perf_query_info(pipe);
 }
 
-static void
+void
 st_GetPerfQueryInfo(struct gl_context *ctx,
                     unsigned query_index,
                     const char **name,
@@ -100,7 +100,7 @@ pipe_counter_data_type_to_gl_type(enum pipe_perf_counter_data_type type)
    }
 }
 
-static void
+void
 st_GetPerfCounterInfo(struct gl_context *ctx,
                       unsigned query_index,
                       unsigned counter_index,
@@ -123,7 +123,7 @@ st_GetPerfCounterInfo(struct gl_context *ctx,
    *data_type_enum = pipe_counter_data_type_to_gl_type(pipe_data_type_enum);
 }
 
-static void
+void
 st_DeletePerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -138,7 +138,7 @@ st_DeletePerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
    pipe->delete_intel_perf_query(pipe, (struct pipe_query *)o);
 }
 
-static bool
+bool
 st_BeginPerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -155,7 +155,7 @@ st_BeginPerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
    return pipe->begin_intel_perf_query(pipe, (struct pipe_query *)o);
 }
 
-static void
+void
 st_EndPerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -163,7 +163,7 @@ st_EndPerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
    pipe->end_intel_perf_query(pipe, (struct pipe_query *)o);
 }
 
-static void
+void
 st_WaitPerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -173,7 +173,7 @@ st_WaitPerfQuery(struct gl_context *ctx, struct gl_perf_query_object *o)
    pipe->wait_intel_perf_query(pipe, (struct pipe_query *)o);
 }
 
-static bool
+bool
 st_IsPerfQueryReady(struct gl_context *ctx, struct gl_perf_query_object *o)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -184,7 +184,7 @@ st_IsPerfQueryReady(struct gl_context *ctx, struct gl_perf_query_object *o)
    return pipe->is_intel_perf_query_ready(pipe, (struct pipe_query *)o);
 }
 
-static bool
+bool
 st_GetPerfQueryData(struct gl_context *ctx,
                     struct gl_perf_query_object *o,
                     GLsizei data_size,
@@ -204,7 +204,7 @@ st_GetPerfQueryData(struct gl_context *ctx,
                                           data_size, data, bytes_written);
 }
 
-static struct gl_perf_query_object *
+struct gl_perf_query_object *
 st_NewPerfQueryObject(struct gl_context *ctx, unsigned query_index)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -213,18 +213,4 @@ st_NewPerfQueryObject(struct gl_context *ctx, unsigned query_index)
    q = pipe->new_intel_perf_query_obj(pipe, query_index);
 
    return (struct gl_perf_query_object *)q;
-}
-
-void st_init_perfquery_functions(struct dd_function_table *functions)
-{
-   functions->InitPerfQueryInfo = st_InitPerfQueryInfo;
-   functions->GetPerfQueryInfo = st_GetPerfQueryInfo;
-   functions->GetPerfCounterInfo = st_GetPerfCounterInfo;
-   functions->NewPerfQueryObject = st_NewPerfQueryObject;
-   functions->DeletePerfQuery = st_DeletePerfQuery;
-   functions->BeginPerfQuery = st_BeginPerfQuery;
-   functions->EndPerfQuery = st_EndPerfQuery;
-   functions->WaitPerfQuery = st_WaitPerfQuery;
-   functions->IsPerfQueryReady = st_IsPerfQueryReady;
-   functions->GetPerfQueryData = st_GetPerfQueryData;
 }

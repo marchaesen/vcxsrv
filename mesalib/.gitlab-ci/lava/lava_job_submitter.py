@@ -25,16 +25,16 @@
 """Send a job to LAVA, track it and collect log back"""
 
 import argparse
-import lavacli
-import os
+import pathlib
 import sys
 import time
 import traceback
 import urllib.parse
 import xmlrpc
-import yaml
-
 from datetime import datetime, timedelta
+
+import lavacli
+import yaml
 from lavacli.utils import loader
 
 # Timeout in minutes to decide if the device from the dispatched LAVA job has
@@ -59,6 +59,18 @@ def fatal_err(msg):
     print_log(msg)
     sys.exit(1)
 
+
+def hide_sensitive_data(yaml_data, hide_tag="HIDEME"):
+    out_data = ""
+
+    for line in yaml_data.splitlines(True):
+        if hide_tag in line:
+            continue
+        out_data += line
+
+    return out_data
+
+
 def generate_lava_yaml(args):
     # General metadata and permissions, plus also inexplicably kernel arguments
     values = {
@@ -71,7 +83,7 @@ def generate_lava_yaml(args):
         },
         'timeouts': {
             'job': {
-                'minutes': 30
+                'minutes': args.job_timeout
             }
         },
     }
@@ -111,7 +123,7 @@ def generate_lava_yaml(args):
     # skeleton test definition: only declaring each job as a single 'test'
     # since LAVA's test parsing is not useful to us
     test = {
-      'timeout': { 'minutes': 30 },
+      'timeout': { 'minutes': args.job_timeout },
       'failure_retry': 1,
       'definitions': [ {
         'name': 'mesa',
@@ -140,15 +152,22 @@ def generate_lava_yaml(args):
     #   - fetch and unpack per-job environment from lava-submit.sh
     #   - exec .gitlab-ci/common/init-stage2.sh 
     init_lines = []
+
     with open(args.first_stage_init, 'r') as init_sh:
       init_lines += [ x.rstrip() for x in init_sh if not x.startswith('#') and x.rstrip() ]
+
+    with open(args.jwt_file) as jwt_file:
+        init_lines += [
+            "set +x",
+            f'echo -n "{jwt_file.read()}" > "{args.jwt_file}"  # HIDEME',
+            "set -x",
+        ]
+
     init_lines += [
       'mkdir -p {}'.format(args.ci_project_dir),
       'wget -S --progress=dot:giga -O- {} | tar -xz -C {}'.format(args.mesa_build_url, args.ci_project_dir),
       'wget -S --progress=dot:giga -O- {} | tar -xz -C /'.format(args.job_rootfs_overlay_url),
-      'set +x',
-      'export CI_JOB_JWT="{}"'.format(args.jwt),
-      'set -x',
+      f'echo "export CI_JOB_JWT_FILE={args.jwt_file}" >> /set-job-env-vars.sh',
       'exec /init-stage2.sh',
     ]
     test['definitions'][0]['repository']['run']['steps'] = init_lines
@@ -285,9 +304,7 @@ def main(args):
     yaml_file = generate_lava_yaml(args)
 
     if args.dump_yaml:
-        censored_args = args
-        censored_args.jwt = "jwt-hidden"
-        print(generate_lava_yaml(censored_args))
+        print(hide_sensitive_data(generate_lava_yaml(args)))
 
     if args.validate_only:
         ret = validate_job(proxy, yaml_file)
@@ -318,13 +335,7 @@ def main(args):
         if get_job_results(proxy,  job_id, "0_mesa", "mesa") == True:
              break
 
-
-if __name__ == '__main__':
-    # given that we proxy from DUT -> LAVA dispatcher -> LAVA primary -> us ->
-    # GitLab runner -> GitLab primary -> user, safe to say we don't need any
-    # more buffering
-    sys.stdout.reconfigure(line_buffering=True)
-    sys.stderr.reconfigure(line_buffering=True)
+def create_parser():
     parser = argparse.ArgumentParser("LAVA job submitter")
 
     parser.add_argument("--pipeline-info")
@@ -332,6 +343,7 @@ if __name__ == '__main__':
     parser.add_argument("--mesa-build-url")
     parser.add_argument("--job-rootfs-overlay-url")
     parser.add_argument("--job-artifacts-base")
+    parser.add_argument("--job-timeout", type=int)
     parser.add_argument("--first-stage-init")
     parser.add_argument("--ci-project-dir")
     parser.add_argument("--device-type")
@@ -340,10 +352,21 @@ if __name__ == '__main__':
     parser.add_argument("--kernel-image-type", nargs='?', default="")
     parser.add_argument("--boot-method")
     parser.add_argument("--lava-tags", nargs='?', default="")
-    parser.add_argument("--jwt")
+    parser.add_argument("--jwt-file", type=pathlib.Path)
     parser.add_argument("--validate-only", action='store_true')
     parser.add_argument("--dump-yaml", action='store_true')
     parser.add_argument("--visibility-group")
+
+    return parser
+
+if __name__ == "__main__":
+    # given that we proxy from DUT -> LAVA dispatcher -> LAVA primary -> us ->
+    # GitLab runner -> GitLab primary -> user, safe to say we don't need any
+    # more buffering
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
+    parser = create_parser()
 
     parser.set_defaults(func=main)
     args = parser.parse_args()

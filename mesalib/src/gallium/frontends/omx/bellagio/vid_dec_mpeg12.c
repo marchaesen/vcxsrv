@@ -32,7 +32,7 @@
  */
 
 #include "pipe/p_video_codec.h"
-#include "vl/vl_vlc.h"
+#include "util/vl_vlc.h"
 #include "vl/vl_zscan.h"
 
 #include "vid_dec.h"

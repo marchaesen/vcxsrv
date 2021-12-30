@@ -24,19 +24,9 @@
 #include "util/set.h"
 #include "util/dag.h"
 
-/**
- * Adds a directed edge from the parent node to the child.
- *
- * Both nodes should have been initialized with dag_init_node().  The edge
- * list may contain multiple edges to the same child with different data.
- */
-void
-dag_add_edge(struct dag_node *parent, struct dag_node *child, void *data)
+static void
+append_edge(struct dag_node *parent, struct dag_node *child, uintptr_t data)
 {
-   util_dynarray_foreach(&parent->edges, struct dag_edge, edge) {
-      if (edge->child == child && edge->data == data)
-         return;
-   }
    /* Remove the child as a DAG head. */
    list_delinit(&child->link);
 
@@ -47,6 +37,45 @@ dag_add_edge(struct dag_node *parent, struct dag_node *child, void *data)
 
    util_dynarray_append(&parent->edges, struct dag_edge, edge);
    child->parent_count++;
+}
+
+/**
+ * Adds a directed edge from the parent node to the child.
+ *
+ * Both nodes should have been initialized with dag_init_node().  The edge
+ * list may contain multiple edges to the same child with different data.
+ */
+void
+dag_add_edge(struct dag_node *parent, struct dag_node *child, uintptr_t data)
+{
+   util_dynarray_foreach(&parent->edges, struct dag_edge, edge) {
+      if (edge->child == child && edge->data == data)
+         return;
+   }
+
+   append_edge(parent, child, data);
+}
+
+/**
+ * Adds a directed edge from the parent node to the child.
+ *
+ * Both nodes should have been initialized with dag_init_node(). If there is
+ * already an existing edge, the data is updated to the maximum of the
+ * previous data and the new data. This is useful if the data represents a
+ * delay.
+ */
+void
+dag_add_edge_max_data(struct dag_node *parent, struct dag_node *child,
+                      uintptr_t data)
+{
+   util_dynarray_foreach(&parent->edges, struct dag_edge, edge) {
+      if (edge->child == child) {
+         edge->data = MAX2(edge->data, data);
+         return;
+      }
+   }
+
+   append_edge(parent, child, data);
 }
 
 /* Removes a single edge from the graph, promoting the child to a DAG head.
@@ -67,7 +96,7 @@ dag_remove_edge(struct dag *dag, struct dag_edge *edge)
       list_addtail(&child->link, &dag->heads);
 
    edge->child = NULL;
-   edge->data = NULL;
+   edge->data = 0;
 }
 
 /**

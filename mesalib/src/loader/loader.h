@@ -28,6 +28,7 @@
 #define LOADER_H
 
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +43,9 @@ loader_open_device(const char *);
 
 int
 loader_open_render_node(const char *name);
+
+char *
+loader_get_render_node(dev_t device);
 
 bool
 loader_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id);

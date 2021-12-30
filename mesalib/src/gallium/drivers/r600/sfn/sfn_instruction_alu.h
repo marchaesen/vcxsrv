@@ -133,8 +133,6 @@ private:
    PValue m_dest;
    std::vector<PValue> m_src;
    AluOpFlags m_flags;
-   AluDstModifiers m_omod;
-   AluPredSel m_pred_sel;
    AluBankSwizzle m_bank_swizzle;
    ECFAluOpCode m_cf_type;
 };

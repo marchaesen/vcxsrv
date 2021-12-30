@@ -27,6 +27,7 @@
 #include "ac_shader_args.h"
 #include "amd_family.h"
 #include "radv_constants.h"
+#include "radv_shader.h"
 
 struct radv_shader_args {
    struct ac_shader_args ac;
@@ -46,6 +47,9 @@ struct radv_shader_args {
    struct ac_arg prolog_inputs;
    struct ac_arg vs_inputs[MAX_VERTEX_ATTRIBS];
 
+   struct radv_userdata_locations user_sgprs_locs;
+   unsigned num_user_sgprs;
+
    bool is_gs_copy_shader;
    bool is_trap_handler_shader;
 };
@@ -60,6 +64,6 @@ struct radv_nir_compiler_options;
 struct radv_shader_info;
 
 void radv_declare_shader_args(const struct radv_nir_compiler_options *options,
-                              struct radv_shader_info *info, gl_shader_stage stage,
+                              const struct radv_shader_info *info, gl_shader_stage stage,
                               bool has_previous_stage, gl_shader_stage previous_stage,
                               struct radv_shader_args *args);

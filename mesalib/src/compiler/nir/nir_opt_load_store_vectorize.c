@@ -926,6 +926,19 @@ bindings_different_restrict(nir_shader *shader, struct entry *a, struct entry *b
       a_var = a->key->var;
       b_var = b->key->var;
       different_bindings = a_var != b_var;
+   } else if (!!a->key->resource != !!b->key->resource) {
+      /* comparing global and ssbo access */
+      different_bindings = true;
+
+      if (a->key->resource) {
+         nir_binding a_res = nir_chase_binding(nir_src_for_ssa(a->key->resource));
+         a_var = nir_get_binding_variable(shader, a_res);
+      }
+
+      if (b->key->resource) {
+         nir_binding b_res = nir_chase_binding(nir_src_for_ssa(b->key->resource));
+         b_var = nir_get_binding_variable(shader, b_res);
+      }
    } else {
       return false;
    }

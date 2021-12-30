@@ -154,7 +154,7 @@ emit_image_tex(struct fd_ringbuffer *ring, unsigned slot, struct fd5_image *img,
    OUT_RING(ring, A5XX_TEX_CONST_1_WIDTH(img->width) |
                      A5XX_TEX_CONST_1_HEIGHT(img->height));
    OUT_RING(ring,
-            COND(img->buffer, A5XX_TEX_CONST_2_UNK4 | A5XX_TEX_CONST_2_UNK31) |
+            COND(img->buffer, A5XX_TEX_CONST_2_BUFFER) |
                A5XX_TEX_CONST_2_TYPE(img->type) |
                A5XX_TEX_CONST_2_PITCH(img->pitch));
    OUT_RING(ring, A5XX_TEX_CONST_3_ARRAY_PITCH(img->array_pitch));

@@ -1068,6 +1068,7 @@ xkb_symbols "altgr-weur" {
 // classmate - us(basic)
 partial alphanumeric_keys
 xkb_symbols "classmate" {
+    // #HW-SPECIFIC
     include "us(basic)"
     name[Group1]= "English (US)";
 
@@ -1084,8 +1085,9 @@ xkb_symbols "classmate" {
 // generate the same symbol as the original key.
 partial alphanumeric_keys
 xkb_symbols "classmate-intl" {
+    // #HW-SPECIFIC
     include "us(intl)"
-    name[Group1]= "USA - ClassmatePC (International)";
+    name[Group1]= "English (US)";
     key.type[Group1]="FOUR_LEVEL";
 
     key <LSGT> { [ backslash,   bar,         backslash,            bar            ] };
@@ -1118,8 +1120,9 @@ xkb_symbols "classmate-intl" {
 // generate the same symbol as the original key.
 partial alphanumeric_keys
 xkb_symbols "classmate-alt-intl" {
+    // #HW-SPECIFIC
     include "us(alt-intl)"
-    name[Group1]= "USA - ClassmatePC (Alternative international)";
+    name[Group1]= "English (US)";
     key.type[Group1]="FOUR_LEVEL";
 
     key <LSGT> { [ backslash,   bar,         backslash,            bar            ] };
@@ -1144,8 +1147,9 @@ xkb_symbols "classmate-alt-intl" {
 // generate the same symbol as the original key.
 partial alphanumeric_keys
 xkb_symbols "classmate-altgr-intl" {
+    // #HW-SPECIFIC
     include "us(altgr-intl)"
-    name[Group1]= "USA - ClassmatePC (International Fn+Alt dead-keys)";
+    name[Group1]= "English (US)";
     key.type[Group1]="FOUR_LEVEL";
 
     key <LSGT> { [ backslash,   bar,         backslash,            bar            ] };
@@ -1174,6 +1178,8 @@ xkb_symbols "classmate-altgr-intl" {
 
 partial alphanumeric_keys
 xkb_symbols "olpc" {
+
+   // #HW-SPECIFIC
 
    include "us(basic)"
    name[Group1]= "English (US)";
@@ -1239,6 +1245,8 @@ xkb_symbols "olpc2" {
 };
 
 xkb_symbols "olpcm" {
+
+   // #HW-SPECIFIC
 
    include "us(basic)"
    name[Group1]= "English (US)";

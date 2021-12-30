@@ -161,8 +161,7 @@ bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_texture *sdst
       uint64_t linear_address = linear == ssrc ? src_address : dst_address;
       struct radeon_cmdbuf *cs = sctx->sdma_cs;
       /* Only SDMA 5 supports DCC with SDMA */
-      bool dcc = vi_dcc_enabled(tiled, 0);
-      assert(!dcc || is_v5);
+      bool dcc = vi_dcc_enabled(tiled, 0) && is_v5;
       assert(tiled->buffer.b.b.depth0 == 1);
 
       linear_address += linear->surface.u.gfx9.offset[0];

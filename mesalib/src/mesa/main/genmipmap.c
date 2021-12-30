@@ -37,6 +37,9 @@
 #include "teximage.h"
 #include "texobj.h"
 #include "hash.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_gen_mipmap.h"
 
 bool
 _mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,
@@ -55,7 +58,7 @@ _mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,
       error = ctx->API == API_OPENGLES;
       break;
    case GL_TEXTURE_CUBE_MAP:
-      error = !ctx->Extensions.ARB_texture_cube_map;
+      error = false;
       break;
    case GL_TEXTURE_1D_ARRAY:
       error = _mesa_is_gles(ctx) || !ctx->Extensions.EXT_texture_array;
@@ -174,12 +177,12 @@ generate_texture_mipmap(struct gl_context *ctx,
    if (target == GL_TEXTURE_CUBE_MAP) {
       GLuint face;
       for (face = 0; face < 6; face++) {
-         ctx->Driver.GenerateMipmap(ctx,
-                      GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, texObj);
+         st_generate_mipmap(ctx,
+                            GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, texObj);
       }
    }
    else {
-      ctx->Driver.GenerateMipmap(ctx, target, texObj);
+      st_generate_mipmap(ctx, target, texObj);
    }
    _mesa_unlock_texture(ctx, texObj);
 }

@@ -41,7 +41,9 @@
 #include "state.h"
 #include "util/bitscan.h"
 #include "util/bitset.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_texture.h"
 
 /**
  * Default texture combine environment state.  This is used to initialize
@@ -1005,10 +1007,10 @@ alloc_proxy_textures( struct gl_context *ctx )
 
    for (tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++) {
       if (!(ctx->Texture.ProxyTex[tgt]
-            = ctx->Driver.NewTextureObject(ctx, 0, targets[tgt]))) {
+            = st_NewTextureObject(ctx, 0, targets[tgt]))) {
          /* out of memory, free what we did allocate */
          while (--tgt >= 0) {
-            ctx->Driver.DeleteTexture(ctx, ctx->Texture.ProxyTex[tgt]);
+            st_DeleteTextureObject(ctx, ctx->Texture.ProxyTex[tgt]);
          }
          return GL_FALSE;
       }
@@ -1132,7 +1134,7 @@ _mesa_free_texture_data(struct gl_context *ctx)
 
    /* Free proxy texture objects */
    for (tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++)
-      ctx->Driver.DeleteTexture(ctx, ctx->Texture.ProxyTex[tgt]);
+      st_DeleteTextureObject(ctx, ctx->Texture.ProxyTex[tgt]);
 
    /* GL_ARB_texture_buffer_object */
    _mesa_reference_buffer_object(ctx, &ctx->Texture.BufferObject, NULL);

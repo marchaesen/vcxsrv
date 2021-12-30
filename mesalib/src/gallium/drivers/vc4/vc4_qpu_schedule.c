@@ -99,7 +99,7 @@ add_dep(struct schedule_state *state,
         bool write)
 {
         bool write_after_read = !write && state->dir == R;
-        void *edge_data = (void *)(uintptr_t)write_after_read;
+        uintptr_t edge_data = write_after_read;
 
         if (!before || !after)
                 return;

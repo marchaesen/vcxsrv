@@ -280,6 +280,15 @@ typedef int (*RRCreateLeaseProcPtr)(ScreenPtr screen,
 typedef void (*RRTerminateLeaseProcPtr)(ScreenPtr screen,
                                         RRLeasePtr lease);
 
+typedef int (*RRRequestLeaseProcPtr)(ClientPtr client,
+                                     ScreenPtr screen,
+                                     RRLeasePtr lease);
+
+typedef void (*RRGetLeaseProcPtr)(ClientPtr client,
+                                 ScreenPtr screen,
+                                 RRLeasePtr *lease,
+                                 int *fd);
+
 /* These are for 1.0 compatibility */
 
 typedef struct _rrRefresh {
@@ -408,6 +417,9 @@ typedef struct _rrScrPriv {
     RRMonitorPtr *monitors;
 
     struct xorg_list leases;
+
+    RRRequestLeaseProcPtr rrRequestLease;
+    RRGetLeaseProcPtr rrGetLease;
 } rrScrPrivRec, *rrScrPrivPtr;
 
 extern _X_EXPORT DevPrivateKeyRec rrPrivKeyRec;

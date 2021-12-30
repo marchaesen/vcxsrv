@@ -158,6 +158,7 @@ struct panfrost_compile_inputs {
         } blend;
         unsigned sysval_ubo;
         bool shaderdb;
+        bool no_idvs;
         bool no_ubo_to_push;
 
         enum pipe_format rt_formats[8];
@@ -204,6 +205,9 @@ struct pan_shader_info {
         unsigned tls_size;
         unsigned wls_size;
 
+        /* Bit mask of preloaded registers */
+        uint64_t preload;
+
         union {
                 struct {
                         bool reads_frag_coord;
@@ -215,10 +219,6 @@ struct pan_shader_info {
                         bool writes_stencil;
                         bool writes_coverage;
                         bool sidefx;
-                        bool reads_sample_id;
-                        bool reads_sample_pos;
-                        bool reads_sample_mask_in;
-                        bool reads_helper_invocation;
                         bool sample_shading;
                         bool early_fragment_tests;
                         bool can_early_z, can_fpk;
@@ -228,6 +228,27 @@ struct pan_shader_info {
 
                 struct {
                         bool writes_point_size;
+
+                        /* Set if Index-Driven Vertex Shading is in use */
+                        bool idvs;
+
+                        /* If IDVS is used, whether a varying shader is used */
+                        bool secondary_enable;
+
+                        /* If a varying shader is used, the varying shader's
+                         * offset in the program binary
+                         */
+                        unsigned secondary_offset;
+
+                        /* If IDVS is in use, number of work registers used by
+                         * the varying shader
+                         */
+                        unsigned secondary_work_reg_count;
+
+                        /* If IDVS is in use, bit mask of preloaded registers
+                         * used by the varying shader
+                         */
+                        uint64_t secondary_preload;
                 } vs;
         };
 

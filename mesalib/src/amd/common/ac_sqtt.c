@@ -148,3 +148,25 @@ ac_sqtt_add_code_object_loader_event(struct ac_thread_trace_data *thread_trace_d
 
    return true;
 }
+
+/* See https://gitlab.freedesktop.org/mesa/mesa/-/issues/5260
+ * On some HW SQTT can hang if we're not in one of the profiling pstates. */
+bool
+ac_check_profile_state(const struct radeon_info *info)
+{
+   char path[128];
+   char data[128];
+   int n;
+
+   snprintf(path, sizeof(path),
+            "/sys/bus/pci/devices/%04x:%02x:%02x.%x/power_dpm_force_performance_level",
+            info->pci_domain, info->pci_bus, info->pci_dev, info->pci_func);
+
+   FILE *f = fopen(path, "r");
+   if (!f)
+      return false; /* Unknown but optimistic. */
+   n = fread(data, 1, sizeof(data) - 1, f);
+   fclose(f);
+   data[n] = 0;
+   return strstr(data, "profile") == NULL;
+}

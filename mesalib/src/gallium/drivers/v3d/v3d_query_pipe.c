@@ -69,6 +69,7 @@ v3d_begin_query_pipe(struct v3d_context *v3d, struct v3d_query *query)
                 if (v3d->prog.gs)
                         v3d_update_primitive_counters(v3d);
                 pquery->start = v3d->prims_generated;
+                v3d->n_primitives_generated_queries_in_flight++;
                 break;
         case PIPE_QUERY_PRIMITIVES_EMITTED:
                 /* If we are inside transform feedback we need to update the
@@ -109,6 +110,7 @@ v3d_end_query_pipe(struct v3d_context *v3d, struct v3d_query *query)
                 if (v3d->prog.gs)
                         v3d_update_primitive_counters(v3d);
                 pquery->end = v3d->prims_generated;
+                v3d->n_primitives_generated_queries_in_flight--;
                 break;
         case PIPE_QUERY_PRIMITIVES_EMITTED:
                 /* If transform feedback has ended, then we have already

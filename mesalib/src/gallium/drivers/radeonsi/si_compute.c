@@ -68,7 +68,7 @@ static const amd_kernel_code_t *si_compute_get_code_object(const struct si_compu
    if (!ac_rtld_open(&rtld,
                      (struct ac_rtld_open_info){.info = &sel->screen->info,
                                                 .shader_type = MESA_SHADER_COMPUTE,
-                                                .wave_size = sel->screen->compute_wave_size,
+                                                .wave_size = program->shader.wave_size,
                                                 .num_parts = 1,
                                                 .elf_ptrs = &program->shader.binary.elf_buffer,
                                                 .elf_sizes = &program->shader.binary.elf_size}))
@@ -169,7 +169,7 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
    assert(user_sgprs <= 16);
 
    unsigned char ir_sha1_cache_key[20];
-   si_get_ir_cache_key(sel, false, false, ir_sha1_cache_key);
+   si_get_ir_cache_key(sel, false, false, shader->wave_size, ir_sha1_cache_key);
 
    /* Try to load the shader from the shader cache. */
    simple_mtx_lock(&sscreen->shader_cache_mutex);
@@ -193,7 +193,7 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
       bool scratch_enabled = shader->config.scratch_bytes_per_wave > 0;
 
       shader->config.rsrc1 = S_00B848_VGPRS((shader->config.num_vgprs - 1) /
-                                            ((sscreen->compute_wave_size == 32 ||
+                                            ((shader->wave_size == 32 ||
                                               sscreen->info.wave64_vgpr_alloc_granularity == 8) ? 8 : 4)) |
                              S_00B848_DX10_CLAMP(1) |
                              S_00B848_MEM_ORDERED(si_shader_mem_ordered(shader)) |
@@ -239,6 +239,7 @@ static void *si_create_compute_state(struct pipe_context *ctx, const struct pipe
       si_sampler_and_image_descriptors_idx(PIPE_SHADER_COMPUTE);
    sel->info.base.shared_size = cso->req_local_mem;
    program->shader.selector = &program->sel;
+   program->shader.wave_size = si_determine_wave_size(sscreen, &program->shader);
    program->ir_type = cso->ir_type;
    program->private_size = cso->req_private_mem;
    program->input_size = cso->req_input_mem;
@@ -769,7 +770,7 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
    bool render_cond_bit = sctx->render_cond_enabled;
    unsigned threads_per_threadgroup = info->block[0] * info->block[1] * info->block[2];
    unsigned waves_per_threadgroup =
-      DIV_ROUND_UP(threads_per_threadgroup, sscreen->compute_wave_size);
+      DIV_ROUND_UP(threads_per_threadgroup, sctx->cs_shader_state.program->shader.wave_size);
    unsigned threadgroups_per_cu = 1;
 
    if (sctx->chip_class >= GFX10 && waves_per_threadgroup == 1)
@@ -791,7 +792,7 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
                                  /* If the KMD allows it (there is a KMD hw register for it),
                                   * allow launching waves out-of-order. (same as Vulkan) */
                                  S_00B800_ORDER_MODE(sctx->chip_class >= GFX7) |
-                                 S_00B800_CS_W32_EN(sscreen->compute_wave_size == 32);
+                                 S_00B800_CS_W32_EN(sctx->cs_shader_state.program->shader.wave_size == 32);
 
    const uint *last_block = info->last_block;
    bool partial_block_en = last_block[0] || last_block[1] || last_block[2];

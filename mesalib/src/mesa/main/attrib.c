@@ -31,7 +31,6 @@
 #include "blend.h"
 #include "buffers.h"
 #include "bufferobj.h"
-#include "clear.h"
 #include "context.h"
 #include "depth.h"
 #include "enable.h"
@@ -49,8 +48,6 @@
 #include "shared.h"
 #include "scissor.h"
 #include "stencil.h"
-#include "texenv.h"
-#include "texgen.h"
 #include "texobj.h"
 #include "texparam.h"
 #include "texstate.h"
@@ -61,7 +58,11 @@
 #include "hash.h"
 #include <stdbool.h>
 #include "util/u_memory.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_texture.h"
+#include "state_tracker/st_cb_viewport.h"
+#include "state_tracker/st_context.h"
 
 static inline bool
 copy_texture_attribs(struct gl_texture_object *dst,
@@ -510,10 +511,8 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib_node *ena
             TEST_AND_UPDATE_BIT(old_enabled, enabled, TEXTURE_RECT_INDEX,
                                 GL_TEXTURE_RECTANGLE);
          }
-         if (ctx->Extensions.ARB_texture_cube_map) {
-            TEST_AND_UPDATE_BIT(old_enabled, enabled, TEXTURE_CUBE_INDEX,
-                                GL_TEXTURE_CUBE_MAP);
-         }
+         TEST_AND_UPDATE_BIT(old_enabled, enabled, TEXTURE_CUBE_INDEX,
+                             GL_TEXTURE_CUBE_MAP);
       }
 
       if (old_gen_enabled != gen_enabled) {
@@ -547,80 +546,11 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
 
       ctx->Texture.CurrentUnit = u;
 
-      if (ctx->Driver.TexEnv || ctx->Driver.TexGen) {
-         /* Slow path for legacy classic drivers. */
-         _mesa_set_enable(ctx, GL_TEXTURE_1D, !!(unit->Enabled & TEXTURE_1D_BIT));
-         _mesa_set_enable(ctx, GL_TEXTURE_2D, !!(unit->Enabled & TEXTURE_2D_BIT));
-         _mesa_set_enable(ctx, GL_TEXTURE_3D, !!(unit->Enabled & TEXTURE_3D_BIT));
-         if (ctx->Extensions.ARB_texture_cube_map) {
-            _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP,
-                             !!(unit->Enabled & TEXTURE_CUBE_BIT));
-         }
-         if (ctx->Extensions.NV_texture_rectangle) {
-            _mesa_set_enable(ctx, GL_TEXTURE_RECTANGLE_NV,
-                             !!(unit->Enabled & TEXTURE_RECT_BIT));
-         }
-
-         _mesa_TexGeni(GL_S, GL_TEXTURE_GEN_MODE, unit->GenS.Mode);
-         _mesa_TexGeni(GL_T, GL_TEXTURE_GEN_MODE, unit->GenT.Mode);
-         _mesa_TexGeni(GL_R, GL_TEXTURE_GEN_MODE, unit->GenR.Mode);
-         _mesa_TexGeni(GL_Q, GL_TEXTURE_GEN_MODE, unit->GenQ.Mode);
-         _mesa_TexGenfv(GL_S, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_S]);
-         _mesa_TexGenfv(GL_T, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_T]);
-         _mesa_TexGenfv(GL_R, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_R]);
-         _mesa_TexGenfv(GL_Q, GL_OBJECT_PLANE, unit->ObjectPlane[GEN_Q]);
-         /* Eye plane done differently to avoid re-transformation */
-         {
-
-            COPY_4FV(destUnit->EyePlane[GEN_S], unit->EyePlane[GEN_S]);
-            COPY_4FV(destUnit->EyePlane[GEN_T], unit->EyePlane[GEN_T]);
-            COPY_4FV(destUnit->EyePlane[GEN_R], unit->EyePlane[GEN_R]);
-            COPY_4FV(destUnit->EyePlane[GEN_Q], unit->EyePlane[GEN_Q]);
-            if (ctx->Driver.TexGen) {
-               ctx->Driver.TexGen(ctx, GL_S, GL_EYE_PLANE, unit->EyePlane[GEN_S]);
-               ctx->Driver.TexGen(ctx, GL_T, GL_EYE_PLANE, unit->EyePlane[GEN_T]);
-               ctx->Driver.TexGen(ctx, GL_R, GL_EYE_PLANE, unit->EyePlane[GEN_R]);
-               ctx->Driver.TexGen(ctx, GL_Q, GL_EYE_PLANE, unit->EyePlane[GEN_Q]);
-            }
-         }
-         _mesa_set_enable(ctx, GL_TEXTURE_GEN_S, !!(unit->TexGenEnabled & S_BIT));
-         _mesa_set_enable(ctx, GL_TEXTURE_GEN_T, !!(unit->TexGenEnabled & T_BIT));
-         _mesa_set_enable(ctx, GL_TEXTURE_GEN_R, !!(unit->TexGenEnabled & R_BIT));
-         _mesa_set_enable(ctx, GL_TEXTURE_GEN_Q, !!(unit->TexGenEnabled & Q_BIT));
-
-         _mesa_TexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, unit->EnvMode);
-         _mesa_TexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, unit->EnvColor);
-         _mesa_TexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS,
-                       texstate->LodBias[u]);
-         _mesa_TexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB,
-                       unit->Combine.ModeRGB);
-         _mesa_TexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA,
-                       unit->Combine.ModeA);
-         {
-            const GLuint n = ctx->Extensions.NV_texture_env_combine4 ? 4 : 3;
-            GLuint i;
-            for (i = 0; i < n; i++) {
-               _mesa_TexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB + i,
-                             unit->Combine.SourceRGB[i]);
-               _mesa_TexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA + i,
-                             unit->Combine.SourceA[i]);
-               _mesa_TexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB + i,
-                             unit->Combine.OperandRGB[i]);
-               _mesa_TexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA + i,
-                             unit->Combine.OperandA[i]);
-            }
-         }
-         _mesa_TexEnvi(GL_TEXTURE_ENV, GL_RGB_SCALE,
-                       1 << unit->Combine.ScaleShiftRGB);
-         _mesa_TexEnvi(GL_TEXTURE_ENV, GL_ALPHA_SCALE,
-                       1 << unit->Combine.ScaleShiftA);
-      } else {
-         /* Fast path for other drivers. */
-         memcpy(destUnit, unit, sizeof(*unit));
-         destUnit->_CurrentCombine = NULL;
-         ctx->Texture.Unit[u].LodBias = texstate->LodBias[u];
-         ctx->Texture.Unit[u].LodBiasQuantized = texstate->LodBiasQuantized[u];
-      }
+      /* Fast path for other drivers. */
+      memcpy(destUnit, unit, sizeof(*unit));
+      destUnit->_CurrentCombine = NULL;
+      ctx->Texture.Unit[u].LodBias = texstate->LodBias[u];
+      ctx->Texture.Unit[u].LodBiasQuantized = texstate->LodBiasQuantized[u];
    }
 
    /* Restore saved textures. */
@@ -666,8 +596,7 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
             continue;
 
          /* GL_ALL_ATTRIB_BITS means all pnames. (internal) */
-         if (ctx->Driver.TexParameter)
-            ctx->Driver.TexParameter(ctx, texObj, GL_ALL_ATTRIB_BITS);
+         st_TexParameter(ctx, texObj, GL_ALL_ATTRIB_BITS);
       }
    }
 
@@ -955,69 +884,20 @@ _mesa_PopAttrib(void)
       if (_math_matrix_is_dirty(ctx->ModelviewMatrixStack.Top))
          _math_matrix_analyse(ctx->ModelviewMatrixStack.Top);
 
-      if (ctx->Driver.Lightfv) {
-         /* Legacy slow path for some classic drivers. */
-         for (i = 0; i < ctx->Const.MaxLights; i++) {
-            const struct gl_light_uniforms *lu = &attr->Light.LightSource[i];
-            const struct gl_light *l = &attr->Light.Light[i];
-            TEST_AND_UPDATE(ctx->Light.Light[i].Enabled, l->Enabled,
-                            GL_LIGHT0 + i);
-            _mesa_light(ctx, i, GL_AMBIENT, lu->Ambient);
-            _mesa_light(ctx, i, GL_DIFFUSE, lu->Diffuse);
-            _mesa_light(ctx, i, GL_SPECULAR, lu->Specular);
-            _mesa_light(ctx, i, GL_POSITION, lu->EyePosition);
-            _mesa_light(ctx, i, GL_SPOT_DIRECTION, lu->SpotDirection);
-            {
-               GLfloat p[4] = { 0 };
-               p[0] = lu->SpotExponent;
-               _mesa_light(ctx, i, GL_SPOT_EXPONENT, p);
-            }
-            {
-               GLfloat p[4] = { 0 };
-               p[0] = lu->SpotCutoff;
-               _mesa_light(ctx, i, GL_SPOT_CUTOFF, p);
-            }
-            {
-               GLfloat p[4] = { 0 };
-               p[0] = lu->ConstantAttenuation;
-               _mesa_light(ctx, i, GL_CONSTANT_ATTENUATION, p);
-            }
-            {
-               GLfloat p[4] = { 0 };
-               p[0] = lu->LinearAttenuation;
-               _mesa_light(ctx, i, GL_LINEAR_ATTENUATION, p);
-            }
-            {
-               GLfloat p[4] = { 0 };
-               p[0] = lu->QuadraticAttenuation;
-               _mesa_light(ctx, i, GL_QUADRATIC_ATTENUATION, p);
-            }
-         }
-         /* light model */
-         _mesa_LightModelfv(GL_LIGHT_MODEL_AMBIENT,
-                            attr->Light.Model.Ambient);
-         _mesa_LightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER,
-                           (GLfloat) attr->Light.Model.LocalViewer);
-         _mesa_LightModelf(GL_LIGHT_MODEL_TWO_SIDE,
-                           (GLfloat) attr->Light.Model.TwoSide);
-         _mesa_LightModelf(GL_LIGHT_MODEL_COLOR_CONTROL,
-                           (GLfloat) attr->Light.Model.ColorControl);
-      } else {
-         /* Fast path for other drivers. */
-         ctx->NewState |= _NEW_LIGHT_CONSTANTS | _NEW_FF_VERT_PROGRAM;
+      /* Fast path for other drivers. */
+      ctx->NewState |= _NEW_LIGHT_CONSTANTS | _NEW_FF_VERT_PROGRAM;
 
-         memcpy(ctx->Light.LightSource, attr->Light.LightSource,
-                sizeof(attr->Light.LightSource));
-         memcpy(&ctx->Light.Model, &attr->Light.Model,
-                sizeof(attr->Light.Model));
+      memcpy(ctx->Light.LightSource, attr->Light.LightSource,
+             sizeof(attr->Light.LightSource));
+      memcpy(&ctx->Light.Model, &attr->Light.Model,
+             sizeof(attr->Light.Model));
 
-         for (i = 0; i < ctx->Const.MaxLights; i++) {
-            TEST_AND_UPDATE(ctx->Light.Light[i].Enabled,
-                            attr->Light.Light[i].Enabled,
-                            GL_LIGHT0 + i);
-            memcpy(&ctx->Light.Light[i], &attr->Light.Light[i],
-                   sizeof(struct gl_light));
-         }
+      for (i = 0; i < ctx->Const.MaxLights; i++) {
+         TEST_AND_UPDATE(ctx->Light.Light[i].Enabled,
+                         attr->Light.Light[i].Enabled,
+                         GL_LIGHT0 + i);
+         memcpy(&ctx->Light.Light[i], &attr->Light.Light[i],
+                sizeof(struct gl_light));
       }
       /* shade model */
       TEST_AND_CALL1(Light.ShadeModel, ShadeModel);
@@ -1066,18 +946,6 @@ _mesa_PopAttrib(void)
          if (ctx->Point.CoordReplace != attr->Point.CoordReplace) {
             ctx->NewState |= _NEW_POINT | _NEW_FF_VERT_PROGRAM;
             ctx->Point.CoordReplace = attr->Point.CoordReplace;
-
-            if (ctx->Driver.TexEnv) {
-               unsigned active_texture = ctx->Texture.CurrentUnit;
-
-               for (unsigned i = 0; i < ctx->Const.MaxTextureUnits; i++) {
-                  float param = !!(ctx->Point.CoordReplace & (1 << i));
-                  ctx->Texture.CurrentUnit = i;
-                  ctx->Driver.TexEnv(ctx, GL_POINT_SPRITE, GL_COORD_REPLACE,
-                                     &param);
-               }
-               ctx->Texture.CurrentUnit = active_texture;
-            }
          }
          TEST_AND_UPDATE(ctx->Point.PointSprite, attr->Point.PointSprite,
                          GL_POINT_SPRITE);
@@ -1111,13 +979,7 @@ _mesa_PopAttrib(void)
    if (mask & GL_POLYGON_STIPPLE_BIT) {
       memcpy(ctx->PolygonStipple, attr->PolygonStipple, 32*sizeof(GLuint));
 
-      if (ctx->DriverFlags.NewPolygonStipple)
-         ctx->NewDriverState |= ctx->DriverFlags.NewPolygonStipple;
-      else
-         ctx->NewState |= _NEW_POLYGONSTIPPLE;
-
-      if (ctx->Driver.PolygonStipple)
-         ctx->Driver.PolygonStipple(ctx, (const GLubyte *) attr->PolygonStipple);
+      ctx->NewDriverState |= ST_NEW_POLY_STIPPLE;
    }
 
    if (mask & GL_SCISSOR_BIT) {
@@ -1178,7 +1040,7 @@ _mesa_PopAttrib(void)
          _math_matrix_analyse(ctx->ProjectionMatrixStack.Top);
 
       ctx->NewState |= _NEW_TRANSFORM;
-      ctx->NewDriverState |= ctx->DriverFlags.NewClipPlane;
+      ctx->NewDriverState |= ST_NEW_CLIP_STATE;
 
       /* restore clip planes */
       for (i = 0; i < ctx->Const.MaxClipPlanes; i++) {
@@ -1187,8 +1049,6 @@ _mesa_PopAttrib(void)
          TEST_AND_UPDATE_BIT(ctx->Transform.ClipPlanesEnabled,
                              attr->Transform.ClipPlanesEnabled, i,
                              GL_CLIP_PLANE0 + i);
-         if (ctx->Driver.ClipPlane)
-            ctx->Driver.ClipPlane(ctx, GL_CLIP_PLANE0 + i, eyePlane);
       }
 
       /* normalize/rescale */
@@ -1231,14 +1091,11 @@ _mesa_PopAttrib(void)
 
          if (memcmp(&ctx->ViewportArray[i].X, &vp->X, sizeof(float) * 6)) {
             ctx->NewState |= _NEW_VIEWPORT;
-            ctx->NewDriverState |= ctx->DriverFlags.NewViewport;
+            ctx->NewDriverState |= ST_NEW_VIEWPORT;
 
             memcpy(&ctx->ViewportArray[i].X, &vp->X, sizeof(float) * 6);
 
-            if (ctx->Driver.Viewport)
-               ctx->Driver.Viewport(ctx);
-            if (ctx->Driver.DepthRange)
-               ctx->Driver.DepthRange(ctx);
+            st_viewport(ctx);
          }
       }
 
@@ -1360,7 +1217,8 @@ copy_array_object(struct gl_context *ctx,
    dest->VertexAttribBufferMask = src->VertexAttribBufferMask;
    dest->NonZeroDivisorMask = src->NonZeroDivisorMask;
    dest->_AttributeMapMode = src->_AttributeMapMode;
-   dest->NewArrays = src->NewArrays;
+   dest->NewVertexBuffers = src->NewVertexBuffers;
+   dest->NewVertexElements = src->NewVertexElements;
    /* skip NumUpdates and IsDynamic because they can only increase, not decrease */
 }
 

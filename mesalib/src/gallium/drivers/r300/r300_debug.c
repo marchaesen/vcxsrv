@@ -30,7 +30,6 @@ static const struct debug_named_value r300_debug_options[] = {
     { "info", DBG_INFO, "Print hardware info (printed by default on debug builds"},
     { "fp", DBG_FP, "Log fragment program compilation" },
     { "vp", DBG_VP, "Log vertex program compilation" },
-    { "pstat", DBG_P_STAT, "Log vertex/fragment program stats" },
     { "draw", DBG_DRAW, "Log draw calls" },
     { "swtcl", DBG_SWTCL, "Log SWTCL-specific info" },
     { "rsblock", DBG_RS_BLOCK, "Log rasterizer registers" },
@@ -51,6 +50,8 @@ static const struct debug_named_value r300_debug_options[] = {
     { "nozmask", DBG_NO_ZMASK, "Disable zbuffer compression" },
     { "nohiz", DBG_NO_HIZ, "Disable hierarchical zbuffer" },
     { "nocmask", DBG_NO_CMASK, "Disable AA compression and fast AA clear" },
+    { "use_tgsi", DBG_USE_TGSI, "Request TGSI shaders from the state tracker" },
+    { "notcl", DBG_NO_TCL, "Disable hardware accelerated Transform/Clip/Lighting" },
 
     /* must be last */
     DEBUG_NAMED_VALUE_END

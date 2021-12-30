@@ -22,7 +22,7 @@ cp artifacts/ci-common/init-*.sh results/job-rootfs-overlay/
 artifacts/ci-common/generate-env.sh > results/job-rootfs-overlay/set-job-env-vars.sh
 
 tar zcf job-rootfs-overlay.tar.gz -C results/job-rootfs-overlay/ .
-ci-fairy minio login "${CI_JOB_JWT}"
+ci-fairy minio login --token-file "${CI_JOB_JWT_FILE}"
 ci-fairy minio cp job-rootfs-overlay.tar.gz "minio://${JOB_ROOTFS_OVERLAY_PATH}"
 
 touch results/lava.log
@@ -34,11 +34,12 @@ artifacts/lava/lava_job_submitter.py \
 	--mesa-build-url "${FDO_HTTP_CACHE_URI:-}https://${MESA_BUILD_PATH}" \
 	--job-rootfs-overlay-url "${FDO_HTTP_CACHE_URI:-}https://${JOB_ROOTFS_OVERLAY_PATH}" \
 	--job-artifacts-base ${JOB_ARTIFACTS_BASE} \
+	--job-timeout ${JOB_TIMEOUT:-30} \
 	--first-stage-init artifacts/ci-common/init-stage1.sh \
 	--ci-project-dir ${CI_PROJECT_DIR} \
 	--device-type ${DEVICE_TYPE} \
 	--dtb ${DTB} \
-	--jwt "${CI_JOB_JWT}" \
+	--jwt-file "${CI_JOB_JWT_FILE}" \
 	--kernel-image-name ${KERNEL_IMAGE_NAME} \
 	--kernel-image-type "${KERNEL_IMAGE_TYPE}" \
 	--boot-method ${BOOT_METHOD} \

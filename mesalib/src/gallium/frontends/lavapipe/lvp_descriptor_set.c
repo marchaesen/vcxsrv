@@ -449,6 +449,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
             };
 
          }
+         break;
 
       default:
          break;

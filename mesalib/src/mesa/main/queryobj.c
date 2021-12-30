@@ -33,120 +33,8 @@
 #include "mtypes.h"
 #include "util/u_memory.h"
 
-
-/**
- * Allocate a new query object.  This is a fallback routine called via
- * ctx->Driver.NewQueryObject().
- * \param ctx - rendering context
- * \param id - the new object's ID
- * \return pointer to new query_object object or NULL if out of memory.
- */
-static struct gl_query_object *
-_mesa_new_query_object(struct gl_context *ctx, GLuint id)
-{
-   struct gl_query_object *q = CALLOC_STRUCT(gl_query_object);
-   (void) ctx;
-   if (q) {
-      q->Id = id;
-      q->Result = 0;
-      q->Active = GL_FALSE;
-
-      /* This is to satisfy the language of the specification: "In the initial
-       * state of a query object, the result is available" (OpenGL 3.1 §
-       * 2.13).
-       */
-      q->Ready = GL_TRUE;
-
-      /* OpenGL 3.1 § 2.13 says about GenQueries, "These names are marked as
-       * used, but no object is associated with them until the first time they
-       * are used by BeginQuery." Since our implementation actually does
-       * allocate an object at this point, use a flag to indicate that this
-       * object has not yet been bound so should not be considered a query.
-       */
-      q->EverBound = GL_FALSE;
-   }
-   return q;
-}
-
-
-/**
- * Begin a query.  Software driver fallback.
- * Called via ctx->Driver.BeginQuery().
- */
-static void
-_mesa_begin_query(struct gl_context *ctx, struct gl_query_object *q)
-{
-   ctx->NewState |= _NEW_DEPTH; /* for swrast */
-}
-
-
-/**
- * End a query.  Software driver fallback.
- * Called via ctx->Driver.EndQuery().
- */
-static void
-_mesa_end_query(struct gl_context *ctx, struct gl_query_object *q)
-{
-   ctx->NewState |= _NEW_DEPTH; /* for swrast */
-   q->Ready = GL_TRUE;
-}
-
-
-/**
- * Wait for query to complete.  Software driver fallback.
- * Called via ctx->Driver.WaitQuery().
- */
-static void
-_mesa_wait_query(struct gl_context *ctx, struct gl_query_object *q)
-{
-   /* For software drivers, _mesa_end_query() should have completed the query.
-    * For real hardware, implement a proper WaitQuery() driver function,
-    * which may require issuing a flush.
-    */
-   assert(q->Ready);
-}
-
-
-/**
- * Check if a query results are ready.  Software driver fallback.
- * Called via ctx->Driver.CheckQuery().
- */
-static void
-_mesa_check_query(struct gl_context *ctx, struct gl_query_object *q)
-{
-   /* No-op for sw rendering.
-    * HW drivers may need to flush at this time.
-    */
-}
-
-
-/**
- * Delete a query object.  Called via ctx->Driver.DeleteQuery(), if not
- * overwritten by driver.  In the latter case, called from the driver
- * after all driver-specific clean-up has been done.
- * Not removed from hash table here.
- *
- * \param ctx GL context to wich query object belongs.
- * \param q query object due to be deleted.
- */
-void
-_mesa_delete_query(struct gl_context *ctx, struct gl_query_object *q)
-{
-   free(q->Label);
-   free(q);
-}
-
-
-void
-_mesa_init_query_object_functions(struct dd_function_table *driver)
-{
-   driver->NewQueryObject = _mesa_new_query_object;
-   driver->DeleteQuery = _mesa_delete_query;
-   driver->BeginQuery = _mesa_begin_query;
-   driver->EndQuery = _mesa_end_query;
-   driver->WaitQuery = _mesa_wait_query;
-   driver->CheckQuery = _mesa_check_query;
-}
+#include "state_tracker/st_cb_queryobj.h"
+#include "api_exec_decl.h"
 
 static struct gl_query_object **
 get_pipe_stats_binding_point(struct gl_context *ctx,
@@ -275,7 +163,7 @@ create_queries(struct gl_context *ctx, GLenum target, GLsizei n, GLuint *ids,
       GLsizei i;
       for (i = 0; i < n; i++) {
          struct gl_query_object *q
-            = ctx->Driver.NewQueryObject(ctx, ids[i]);
+            = st_NewQueryObject(ctx, ids[i]);
          if (!q) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
             return;
@@ -349,10 +237,10 @@ _mesa_DeleteQueries(GLsizei n, const GLuint *ids)
                   *bindpt = NULL;
                }
                q->Active = GL_FALSE;
-               ctx->Driver.EndQuery(ctx, q);
+               st_EndQuery(ctx, q);
             }
             _mesa_HashRemoveLocked(ctx->Query.QueryObjects, ids[i]);
-            ctx->Driver.DeleteQuery(ctx, q);
+            st_DeleteQuery(ctx, q);
          }
       }
    }
@@ -449,7 +337,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
          return;
       } else {
          /* create new object */
-         q = ctx->Driver.NewQueryObject(ctx, id);
+         q = st_NewQueryObject(ctx, id);
          if (!q) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBeginQuery{Indexed}");
             return;
@@ -504,7 +392,7 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
    /* XXX should probably refcount query objects */
    *bindpt = q;
 
-   ctx->Driver.BeginQuery(ctx, q);
+   st_BeginQuery(ctx, q);
 }
 
 
@@ -550,7 +438,7 @@ _mesa_EndQueryIndexed(GLenum target, GLuint index)
    }
 
    q->Active = GL_FALSE;
-   ctx->Driver.EndQuery(ctx, q);
+   st_EndQuery(ctx, q);
 }
 
 void GLAPIENTRY
@@ -591,7 +479,7 @@ _mesa_QueryCounter(GLuint id, GLenum target)
       /* XXX the Core profile should throw INVALID_OPERATION here */
 
       /* create new object */
-      q = ctx->Driver.NewQueryObject(ctx, id);
+      q = st_NewQueryObject(ctx, id);
       if (!q) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glQueryCounter");
          return;
@@ -628,14 +516,10 @@ _mesa_QueryCounter(GLuint id, GLenum target)
    q->Ready = GL_FALSE;
    q->EverBound = GL_TRUE;
 
-   if (ctx->Driver.QueryCounter) {
-      ctx->Driver.QueryCounter(ctx, q);
-   } else {
-      /* QueryCounter is implemented using EndQuery without BeginQuery
-       * in drivers. This is actually Direct3D and Gallium convention.
-       */
-      ctx->Driver.EndQuery(ctx, q);
-   }
+   /* QueryCounter is implemented using EndQuery without BeginQuery
+    * in drivers. This is actually Direct3D and Gallium convention.
+    */
+   st_EndQuery(ctx, q);
 }
 
 
@@ -845,7 +729,7 @@ get_query_object(struct gl_context *ctx, const char *func,
       case GL_QUERY_RESULT_NO_WAIT:
       case GL_QUERY_RESULT_AVAILABLE:
       case GL_QUERY_TARGET:
-         ctx->Driver.StoreQueryResult(ctx, q, buf, offset, pname, ptype);
+         st_StoreQueryResult(ctx, q, buf, offset, pname, ptype);
          return;
       }
 
@@ -855,20 +739,20 @@ get_query_object(struct gl_context *ctx, const char *func,
    switch (pname) {
    case GL_QUERY_RESULT:
       if (!q->Ready)
-         ctx->Driver.WaitQuery(ctx, q);
+         st_WaitQuery(ctx, q);
       value = q->Result;
       break;
    case GL_QUERY_RESULT_NO_WAIT:
       if (!_mesa_has_ARB_query_buffer_object(ctx))
          goto invalid_enum;
-      ctx->Driver.CheckQuery(ctx, q);
+      st_CheckQuery(ctx, q);
       if (!q->Ready)
          return;
       value = q->Result;
       break;
    case GL_QUERY_RESULT_AVAILABLE:
       if (!q->Ready)
-         ctx->Driver.CheckQuery(ctx, q);
+         st_CheckQuery(ctx, q);
       value = q->Ready;
       break;
    case GL_QUERY_TARGET:
@@ -1061,7 +945,7 @@ delete_queryobj_cb(void *data, void *userData)
 {
    struct gl_query_object *q= (struct gl_query_object *) data;
    struct gl_context *ctx = (struct gl_context *)userData;
-   ctx->Driver.DeleteQuery(ctx, q);
+   st_DeleteQuery(ctx, q);
 }
 
 

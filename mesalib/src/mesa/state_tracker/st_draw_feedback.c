@@ -36,7 +36,6 @@
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_cb_bitmap.h"
-#include "st_cb_bufferobjects.h"
 #include "st_draw.h"
 #include "st_program.h"
 #include "st_util.h"
@@ -196,10 +195,8 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          goto out_unref_vertex;
 
       if (bufobj && bufobj->Name) {
-         struct st_buffer_object *stobj = st_buffer_object(bufobj);
-
          start = pointer_to_offset(ib->ptr) >> ib->index_size_shift;
-         mapped_indices = pipe_buffer_map(pipe, stobj->buffer,
+         mapped_indices = pipe_buffer_map(pipe, bufobj->buffer,
                                           PIPE_MAP_READ, &ib_transfer);
       }
       else {
@@ -249,7 +246,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    for (unsigned i = 0; i < prog->sh.NumUniformBlocks; i++) {
       struct gl_buffer_binding *binding =
          &st->ctx->UniformBufferBindings[prog->sh.UniformBlocks[i]->Binding];
-      struct st_buffer_object *st_obj = st_buffer_object(binding->BufferObject);
+      struct gl_buffer_object *st_obj = binding->BufferObject;
       struct pipe_resource *buf = st_obj->buffer;
 
       if (!buf)
@@ -279,7 +276,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       struct gl_buffer_binding *binding =
          &st->ctx->ShaderStorageBufferBindings[
             prog->sh.ShaderStorageBlocks[i]->Binding];
-      struct st_buffer_object *st_obj = st_buffer_object(binding->BufferObject);
+      struct gl_buffer_object *st_obj = binding->BufferObject;
       struct pipe_resource *buf = st_obj->buffer;
 
       if (!buf)

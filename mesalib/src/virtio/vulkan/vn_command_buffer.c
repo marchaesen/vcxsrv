@@ -560,7 +560,8 @@ vn_AllocateCommandBuffers(VkDevice device,
       list_addtail(&cmd->head, &pool->command_buffers);
 
       cmd->state = VN_COMMAND_BUFFER_STATE_INITIAL;
-      vn_cs_encoder_init_indirect(&cmd->cs, dev->instance, 16 * 1024);
+      vn_cs_encoder_init(&cmd->cs, dev->instance,
+                         VN_CS_ENCODER_STORAGE_SHMEM_POOL, 16 * 1024);
 
       VkCommandBuffer cmd_handle = vn_command_buffer_to_handle(cmd);
       pCommandBuffers[i] = cmd_handle;
@@ -622,6 +623,7 @@ VkResult
 vn_BeginCommandBuffer(VkCommandBuffer commandBuffer,
                       const VkCommandBufferBeginInfo *pBeginInfo)
 {
+   VN_TRACE_FUNC();
    struct vn_command_buffer *cmd =
       vn_command_buffer_from_handle(commandBuffer);
    struct vn_instance *instance = cmd->device->instance;
@@ -629,12 +631,24 @@ vn_BeginCommandBuffer(VkCommandBuffer commandBuffer,
 
    vn_cs_encoder_reset(&cmd->cs);
 
+   /* TODO: add support for VK_KHR_dynamic_rendering */
    VkCommandBufferBeginInfo local_begin_info;
-   if (pBeginInfo->pInheritanceInfo &&
-       cmd->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
-      local_begin_info = *pBeginInfo;
-      local_begin_info.pInheritanceInfo = NULL;
-      pBeginInfo = &local_begin_info;
+   VkCommandBufferInheritanceInfo local_inheritance_info;
+   if (pBeginInfo->pInheritanceInfo) {
+      if (cmd->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
+         local_begin_info = *pBeginInfo;
+         local_begin_info.pInheritanceInfo = NULL;
+         pBeginInfo = &local_begin_info;
+      } else if (!(pBeginInfo->flags &
+                   VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)) {
+         local_inheritance_info = *pBeginInfo->pInheritanceInfo;
+         local_inheritance_info.framebuffer = VK_NULL_HANDLE;
+         local_inheritance_info.renderPass = VK_NULL_HANDLE;
+         local_inheritance_info.subpass = 0;
+         local_begin_info = *pBeginInfo;
+         local_begin_info.pInheritanceInfo = &local_inheritance_info;
+         pBeginInfo = &local_begin_info;
+      }
    }
 
    cmd_size = vn_sizeof_vkBeginCommandBuffer(commandBuffer, pBeginInfo);
@@ -690,6 +704,7 @@ vn_cmd_submit(struct vn_command_buffer *cmd)
 VkResult
 vn_EndCommandBuffer(VkCommandBuffer commandBuffer)
 {
+   VN_TRACE_FUNC();
    struct vn_command_buffer *cmd =
       vn_command_buffer_from_handle(commandBuffer);
    struct vn_instance *instance = cmd->device->instance;

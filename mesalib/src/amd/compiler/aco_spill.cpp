@@ -1614,7 +1614,7 @@ assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr)
                continue;
 
             bool can_destroy = true;
-            for (std::pair<Temp, uint32_t> pair : ctx.spills_exit[block.linear_preds[0]]) {
+            for (std::pair<Temp, uint32_t> pair : ctx.spills_entry[block.index]) {
 
                if (ctx.interferences[pair.second].first.type() == RegType::sgpr &&
                    slots[pair.second] / ctx.wave_size == i) {

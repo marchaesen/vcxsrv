@@ -37,6 +37,7 @@
 #include <vk_enum_to_str.h>
 
 #include "vk_device.h"
+#include "vk_format.h"
 #include "vk_instance.h"
 #include "vk_image.h"
 #include "vk_log.h"
@@ -274,7 +275,7 @@ struct v3dv_pipeline_key {
    uint8_t cbufs;
    struct {
       enum pipe_format format;
-      const uint8_t *swizzle;
+      uint8_t swizzle[4];
    } color_fmt[V3D_MAX_DRAW_BUFFERS];
    uint8_t f32_color_rb;
    uint32_t va_swap_rb_mask;
@@ -470,6 +471,15 @@ struct v3dv_device {
     */
    struct v3dv_bo *default_attribute_float;
    VkPhysicalDeviceFeatures features;
+
+#ifdef ANDROID
+   const void *gralloc;
+   enum {
+      V3DV_GRALLOC_UNKNOWN,
+      V3DV_GRALLOC_CROS,
+      V3DV_GRALLOC_OTHER,
+   } gralloc_type;
+#endif
 };
 
 struct v3dv_device_memory {
@@ -535,6 +545,11 @@ struct v3dv_image {
    struct v3dv_device_memory *mem;
    VkDeviceSize mem_offset;
    uint32_t alignment;
+
+#ifdef ANDROID
+   /* Image is backed by VK_ANDROID_native_buffer, */
+   bool is_native_buffer_memory;
+#endif
 };
 
 VkImageViewType v3dv_image_type_to_view_type(VkImageType type);
@@ -637,7 +652,7 @@ struct v3dv_subpass {
 };
 
 struct v3dv_render_pass_attachment {
-   VkAttachmentDescription desc;
+   VkAttachmentDescription2 desc;
 
    uint32_t first_subpass;
    uint32_t last_subpass;
@@ -842,8 +857,6 @@ struct v3dv_dynamic_state {
 
    uint32_t color_write_enable;
 };
-
-extern const struct v3dv_dynamic_state default_dynamic_state;
 
 void v3dv_viewport_compute_xform(const VkViewport *viewport,
                                  float scale[3],
@@ -1811,6 +1824,9 @@ struct v3dv_pipeline {
 
    struct v3dv_pipeline_shared_data *shared_data;
 
+   /* It is the combined stages sha1, plus the pipeline key sha1. */
+   unsigned char sha1[20];
+
    /* In general we can reuse v3dv_device->default_attribute_float, so note
     * that the following can be NULL.
     *
@@ -2154,5 +2170,21 @@ u64_compare(const void *key1, const void *key2)
 #  include "v3dvx_private.h"
 #  undef v3dX
 #endif
+
+#ifdef ANDROID
+VkResult
+v3dv_gralloc_info(struct v3dv_device *device,
+                  const VkNativeBufferANDROID *gralloc_info,
+                  int *out_dmabuf,
+                  int *out_stride,
+                  int *out_size,
+                  uint64_t *out_modifier);
+
+VkResult
+v3dv_import_native_buffer_fd(VkDevice device_h,
+                             int dma_buf,
+                             const VkAllocationCallbacks *alloc,
+                             VkImage image_h);
+#endif /* ANDROID */
 
 #endif /* V3DV_PRIVATE_H */

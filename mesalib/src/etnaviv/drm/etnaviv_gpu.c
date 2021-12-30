@@ -63,7 +63,7 @@ struct etna_gpu *etna_gpu_new(struct etna_device *dev, unsigned int core)
 	if (!gpu->model)
 		goto fail;
 
-	INFO_MSG(" GPU model:          0x%x (rev %x)", gpu->model, gpu->revision);
+	DEBUG_MSG(" GPU model:          0x%x (rev %x)", gpu->model, gpu->revision);
 
 	return gpu;
 fail:

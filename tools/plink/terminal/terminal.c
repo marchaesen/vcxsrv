@@ -98,8 +98,9 @@ static void deselect(Terminal *);
 static void term_print_finish(Terminal *);
 static void scroll(Terminal *, int, int, int, bool);
 static void parse_optionalrgb(optionalrgb *out, unsigned *values);
-static void term_added_data(Terminal *term);
+static void term_added_data(Terminal *term, bool);
 static void term_update_raw_mouse_mode(Terminal *term);
+static void term_out_cb(void *);
 
 static termline *newtermline(Terminal *term, int cols, bool bce)
 {
@@ -1219,6 +1220,12 @@ static void term_timer(void *ctx, unsigned long now)
 
     if (term->window_update_pending)
         term_update_callback(term);
+
+    if (term->win_resize_pending == WIN_RESIZE_AWAIT_REPLY &&
+        now == term->win_resize_timeout) {
+        term->win_resize_pending = WIN_RESIZE_NO;
+        queue_toplevel_callback(term_out_cb, term);
+    }
 }
 
 static void term_update_callback(void *ctx)
@@ -1415,10 +1422,12 @@ void term_update(Terminal *term)
                  term->win_move_pending_y);
         term->win_move_pending = false;
     }
-    if (term->win_resize_pending) {
+    if (term->win_resize_pending == WIN_RESIZE_NEED_SEND) {
+        term->win_resize_pending = WIN_RESIZE_AWAIT_REPLY;
         win_request_resize(term->win, term->win_resize_pending_w,
                            term->win_resize_pending_h);
-        term->win_resize_pending = false;
+        term->win_resize_timeout = schedule_timer(
+            WIN_RESIZE_TIMEOUT, term_timer, term);
     }
     if (term->win_zorder_pending) {
         win_set_zorder(term->win, term->win_zorder_top);
@@ -2043,7 +2052,7 @@ Terminal *term_init(Conf *myconf, struct unicode_data *ucsdata, TermWin *win)
     term->winpixsize_x = term->winpixsize_y = 0;
 
     term->win_move_pending = false;
-    term->win_resize_pending = false;
+    term->win_resize_pending = WIN_RESIZE_NO;
     term->win_zorder_pending = false;
     term->win_minimise_pending = false;
     term->win_maximise_pending = false;
@@ -2141,6 +2150,14 @@ void term_size(Terminal *term, int newrows, int newcols, int newsavelines)
     int i, j, oldrows = term->rows;
     int sblen;
     int save_alt_which = term->alt_which;
+
+    /* If we were holding buffered terminal data because we were
+     * waiting for confirmation of a resize, queue a callback to start
+     * processing it again. */
+    if (term->win_resize_pending == WIN_RESIZE_AWAIT_REPLY) {
+        term->win_resize_pending = WIN_RESIZE_NO;
+        queue_toplevel_callback(term_out_cb, term);
+    }
 
     if (newrows == term->rows && newcols == term->cols &&
         newsavelines == term->savelines)
@@ -2618,7 +2635,7 @@ static void scroll(Terminal *term, int topline, int botline,
             }
             resizeline(term, line, term->cols);
             clear_line(term, line);
-            check_trust_status(term, line);
+            line->trusted = false;
             addpos234(term->screen, line, botline);
 
             /*
@@ -2972,6 +2989,17 @@ static void term_update_raw_mouse_mode(Terminal *term)
     term_schedule_update(term);
 }
 
+static void term_request_resize(Terminal *term, int cols, int rows)
+{
+    if (term->cols == cols && term->rows == rows)
+        return;                        /* don't need to do anything */
+
+    term->win_resize_pending = WIN_RESIZE_NEED_SEND;
+    term->win_resize_pending_w = cols;
+    term->win_resize_pending_h = rows;
+    term_schedule_update(term);
+}
+
 /*
  * Toggle terminal mode `mode' to state `state'. (`query' indicates
  * whether the mode is a DEC private one or a normal one.)
@@ -2995,12 +3023,8 @@ static void toggle_mode(Terminal *term, int mode, int query, bool state)
             break;
           case 3:                      /* DECCOLM: 80/132 columns */
             deselect(term);
-            if (!term->no_remote_resize) {
-                term->win_resize_pending = true;
-                term->win_resize_pending_w = state ? 132 : 80;
-                term->win_resize_pending_h = term->rows;
-                term_schedule_update(term);
-            }
+            if (!term->no_remote_resize)
+                term_request_resize(term, state ? 132 : 80, term->rows);
             term->reset_132 = state;
             term->alt_t = term->marg_t = 0;
             term->alt_b = term->marg_b = term->rows - 1;
@@ -3467,7 +3491,7 @@ static inline void term_keyinput_internal(
         int true_len = len >= 0 ? len : strlen(buf);
 
         bufchain_add(&term->inbuf, buf, true_len);
-        term_added_data(term);
+        term_added_data(term, false);
     }
     if (interactive)
         term_bracketed_paste_stop(term);
@@ -3615,31 +3639,76 @@ unsigned long term_translate(
  * in-memory display. There's a big state machine in here to
  * process escape sequences...
  */
-static void term_out(Terminal *term)
+static void term_out(Terminal *term, bool called_from_term_data)
 {
     unsigned long c;
     int unget;
-    unsigned char localbuf[256], *chars;
-    size_t nchars = 0;
+    const unsigned char *chars;
+    size_t nchars_got = 0, nchars_used = 0;
+
+    /*
+     * During drag-selects, we do not process terminal input, because
+     * the user will want the screen to hold still to be selected.
+     */
+    if (term->selstate == DRAGGING)
+        return;
 
     unget = -1;
 
     chars = NULL;                      /* placate compiler warnings */
-    while (nchars > 0 || unget != -1 || bufchain_size(&term->inbuf) > 0) {
-        if (unget == -1) {
-            if (nchars == 0) {
+    while (nchars_got < nchars_used ||
+           unget != -1 ||
+           bufchain_size(&term->inbuf) > 0) {
+        if (unget != -1) {
+            /*
+             * Handle a character we left in 'unget' the last time
+             * round this loop. This happens if a UTF-8 sequence is
+             * aborted early, by containing fewer continuation bytes
+             * than its introducer expected: the non-continuation byte
+             * that interrupted the sequence must now be processed
+             * as a fresh piece of input in its own right.
+             */
+            c = unget;
+            unget = -1;
+        } else {
+            /*
+             * If we're waiting for a terminal resize triggered by an
+             * escape sequence, we defer processing the terminal
+             * output until we receive acknowledgment from the front
+             * end that the resize has happened, so that further
+             * output will be processed in the context of the new
+             * size.
+             *
+             * This test goes inside the main while-loop, so that we
+             * exit early if we encounter a resize escape sequence
+             * part way through term->inbuf.
+             *
+             * It's also in the branch of this if statement that
+             * doesn't deal with a character left in 'unget' by the
+             * previous loop iteration, because if we break out of
+             * this loop with an ungot character still pending, we'll
+             * lose it. (And in any case, if the previous thing that
+             * happened was a truncated UTF-8 sequence, then it won't
+             * have scheduled a pending resize.)
+             */
+            if (term->win_resize_pending != WIN_RESIZE_NO)
+                break;
+
+            if (nchars_got == nchars_used) {
+                /* Delete the previous chunk from the bufchain */
+                bufchain_consume(&term->inbuf, nchars_used);
+                nchars_used = 0;
+
+                if (bufchain_size(&term->inbuf) == 0)
+                    break;             /* no more data */
+
                 ptrlen data = bufchain_prefix(&term->inbuf);
-                if (data.len > sizeof(localbuf))
-                    data.len = sizeof(localbuf);
-                memcpy(localbuf, data.ptr, data.len);
-                bufchain_consume(&term->inbuf, data.len);
-                nchars = data.len;
-                chars = localbuf;
+                chars = data.ptr;
+                nchars_got = data.len;
                 assert(chars != NULL);
-                assert(nchars > 0);
+                assert(nchars_used < nchars_got);
             }
-            c = *chars++;
-            nchars--;
+            c = chars[nchars_used++];
 
             /*
              * Optionally log the session traffic to a file. Useful for
@@ -3647,9 +3716,6 @@ static void term_out(Terminal *term)
              */
             if (term->logtype == LGTYP_DEBUG && term->logctx)
                 logtraffic(term->logctx, (unsigned char) c, LGTYP_DEBUG);
-        } else {
-            c = unget;
-            unget = -1;
         }
 
         /* Note only VT220+ are 8-bit VT102 is seven bit, it shouldn't even
@@ -4008,12 +4074,8 @@ static void term_out(Terminal *term)
                     if (term->ldisc)   /* cause ldisc to notice changes */
                         ldisc_echoedit_update(term->ldisc);
                     if (term->reset_132) {
-                        if (!term->no_remote_resize) {
-                            term->win_resize_pending = true;
-                            term->win_resize_pending_w = 80;
-                            term->win_resize_pending_h = term->rows;
-                            term_schedule_update(term);
-                        }
+                        if (!term->no_remote_resize)
+                            term_request_resize(term, 80, term->rows);
                         term->reset_132 = false;
                     }
                     if (term->scroll_on_disp)
@@ -4648,13 +4710,8 @@ static void term_out(Terminal *term)
                             && (term->esc_args[0] < 1 ||
                                 term->esc_args[0] >= 24)) {
                             compatibility(VT340TEXT);
-                            if (!term->no_remote_resize) {
-                                term->win_resize_pending = true;
-                                term->win_resize_pending_w = term->cols;
-                                term->win_resize_pending_h =
-                                    def(term->esc_args[0], 24);
-                                term_schedule_update(term);
-                            }
+                            if (!term->no_remote_resize)
+                                term_request_resize(term, term->cols, 24);
                             deselect(term);
                         } else if (term->esc_nargs >= 1 &&
                                    term->esc_args[0] >= 1 &&
@@ -4712,14 +4769,12 @@ static void term_out(Terminal *term)
                               case 8:
                                 if (term->esc_nargs >= 3 &&
                                     !term->no_remote_resize) {
-                                    term->win_resize_pending = true;
-                                    term->win_resize_pending_w =
+                                    term_request_resize(
+                                        term,
                                         def(term->esc_args[2],
-                                            term->conf_width);
-                                    term->win_resize_pending_h =
+                                            term->conf_width),
                                         def(term->esc_args[1],
-                                            term->conf_height);
-                                    term_schedule_update(term);
+                                            term->conf_height));
                                 }
                                 break;
                               case 9:
@@ -4834,13 +4889,11 @@ static void term_out(Terminal *term)
                          */
                         compatibility(VT420);
                         if (term->esc_nargs == 1 && term->esc_args[0] > 0) {
-                            if (!term->no_remote_resize) {
-                                term->win_resize_pending = true;
-                                term->win_resize_pending_w = term->cols;
-                                term->win_resize_pending_h =
-                                    def(term->esc_args[0], term->conf_height);
-                                term_schedule_update(term);
-                            }
+                            if (!term->no_remote_resize)
+                                term_request_resize(
+                                    term,
+                                    term->cols,
+                                    def(term->esc_args[0], term->conf_height));
                             deselect(term);
                         }
                         break;
@@ -4852,13 +4905,11 @@ static void term_out(Terminal *term)
                          */
                         compatibility(VT340TEXT);
                         if (term->esc_nargs <= 1) {
-                            if (!term->no_remote_resize) {
-                                term->win_resize_pending = true;
-                                term->win_resize_pending_w =
-                                    def(term->esc_args[0], term->conf_width);
-                                term->win_resize_pending_h = term->rows;
-                                term_schedule_update(term);
-                            }
+                            if (!term->no_remote_resize)
+                                term_request_resize(
+                                    term,
+                                    def(term->esc_args[0], term->conf_width),
+                                    term->rows);
                             deselect(term);
                         }
                         break;
@@ -5063,13 +5114,10 @@ static void term_out(Terminal *term)
                          * Well we should do a soft reset at this point ...
                          */
                         if (!has_compat(VT420) && has_compat(VT100)) {
-                            if (!term->no_remote_resize) {
-                                term->win_resize_pending = true;
-                                term->win_resize_pending_w =
-                                    term->reset_132 ? 132 : 80;
-                                term->win_resize_pending_h = 24;
-                                term_schedule_update(term);
-                            }
+                            if (!term->no_remote_resize)
+                                term_request_resize(term,
+                                                    term->reset_132 ? 132 : 80,
+                                                    24);
                         }
 #endif
                         break;
@@ -5539,9 +5587,20 @@ static void term_out(Terminal *term)
         }
     }
 
+    bufchain_consume(&term->inbuf, nchars_used);
+
+    if (!called_from_term_data)
+        win_unthrottle(term->win, bufchain_size(&term->inbuf));
+
     term_print_flush(term);
     if (term->logflush && term->logctx)
         logflush(term->logctx);
+}
+
+/* Wrapper on term_out with the right prototype to be a toplevel callback */
+void term_out_cb(void *ctx)
+{
+    term_out((Terminal *)ctx, false);
 }
 
 /*
@@ -7236,8 +7295,7 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
      * should make sure to write any pending output if one has just
      * finished.
      */
-    if (term->selstate != DRAGGING)
-        term_out(term);
+    term_out(term, false);
     term_schedule_update(term);
 }
 
@@ -7550,22 +7608,15 @@ void term_lost_clipboard_ownership(Terminal *term, int clipboard)
      * should make sure to write any pending output if one has just
      * finished.
      */
-    if (term->selstate != DRAGGING)
-        term_out(term);
+    term_out(term, false);
 }
 
-static void term_added_data(Terminal *term)
+static void term_added_data(Terminal *term, bool called_from_term_data)
 {
     if (!term->in_term_out) {
         term->in_term_out = true;
         term_reset_cblink(term);
-        /*
-         * During drag-selects, we do not process terminal input,
-         * because the user will want the screen to hold still to
-         * be selected.
-         */
-        if (term->selstate != DRAGGING)
-            term_out(term);
+        term_out(term, called_from_term_data);
         term->in_term_out = false;
     }
 }
@@ -7573,28 +7624,8 @@ static void term_added_data(Terminal *term)
 size_t term_data(Terminal *term, const void *data, size_t len)
 {
     bufchain_add(&term->inbuf, data, len);
-    term_added_data(term);
-
-    /*
-     * term_out() always completely empties inbuf. Therefore,
-     * there's no reason at all to return anything other than zero
-     * from this function, because there _can't_ be a question of
-     * the remote side needing to wait until term_out() has cleared
-     * a backlog.
-     *
-     * This is a slightly suboptimal way to deal with SSH-2 - in
-     * principle, the window mechanism would allow us to continue
-     * to accept data on forwarded ports and X connections even
-     * while the terminal processing was going slowly - but we
-     * can't do the 100% right thing without moving the terminal
-     * processing into a separate thread, and that might hurt
-     * portability. So we manage stdout buffering the old SSH-1 way:
-     * if the terminal processing goes slowly, the whole SSH
-     * connection stops accepting data until it's ready.
-     *
-     * In practice, I can't imagine this causing serious trouble.
-     */
-    return 0;
+    term_added_data(term, true);
+    return bufchain_size(&term->inbuf);
 }
 
 void term_provide_logctx(Terminal *term, LogContext *logctx)
@@ -7641,30 +7672,32 @@ static inline void term_write(Terminal *term, ptrlen data)
  * notification to the caller, and also turning off our own callback
  * that listens for more data arriving in the ldisc's input queue.
  */
-static inline int signal_prompts_t(Terminal *term, prompts_t *p, int result)
+static inline SeatPromptResult signal_prompts_t(Terminal *term, prompts_t *p,
+                                                SeatPromptResult spr)
 {
     assert(p->callback && "Asynchronous userpass input requires a callback");
     queue_toplevel_callback(p->callback, p->callback_ctx);
     ldisc_enable_prompt_callback(term->ldisc, NULL);
-    p->idata = result;
-    return result;
+    p->spr = spr;
+    return spr;
 }
 
 /*
  * Process some terminal data in the course of username/password
  * input.
  */
-int term_get_userpass_input(Terminal *term, prompts_t *p)
+SeatPromptResult term_get_userpass_input(Terminal *term, prompts_t *p)
 {
     if (!term->ldisc) {
         /* Can't handle interactive prompts without an ldisc */
-        return signal_prompts_t(term, p, 0);
+        return signal_prompts_t(term, p, SPR_SW_ABORT(
+            "Terminal not prepared for interactive prompts"));
     }
 
-    if (p->idata >= 0) {
+    if (p->spr.kind != SPRK_INCOMPLETE) {
         /* We've already finished these prompts, so return the same
          * result again */
-        return p->idata;
+        return p->spr;
     }
 
     struct term_userpass_state *s = (struct term_userpass_state *)p->data;
@@ -7674,7 +7707,7 @@ int term_get_userpass_input(Terminal *term, prompts_t *p)
          * First call. Set some stuff up.
          */
         p->data = s = snew(struct term_userpass_state);
-        p->idata = -1;
+        p->spr = SPR_INCOMPLETE;
         s->curr_prompt = 0;
         s->done_prompt = false;
         /* We only print the `name' caption if we have to... */
@@ -7764,7 +7797,7 @@ int term_get_userpass_input(Terminal *term, prompts_t *p)
                 term_write(term, PTRLEN_LITERAL("\r\n"));
                 sfree(s);
                 p->data = NULL;
-                return signal_prompts_t(term, p, 0); /* user abort */
+                return signal_prompts_t(term, p, SPR_USER_ABORT);
               default:
                 /*
                  * This simplistic check for printability is disabled
@@ -7785,11 +7818,11 @@ int term_get_userpass_input(Terminal *term, prompts_t *p)
 
     if (s->curr_prompt < p->n_prompts) {
         ldisc_enable_prompt_callback(term->ldisc, p);
-        return -1; /* more data required */
+        return SPR_INCOMPLETE;
     } else {
         sfree(s);
         p->data = NULL;
-        return signal_prompts_t(term, p, +1); /* all done */
+        return signal_prompts_t(term, p, SPR_OK);
     }
 }
 

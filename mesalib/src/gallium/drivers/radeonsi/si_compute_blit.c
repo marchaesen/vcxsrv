@@ -220,14 +220,14 @@ void si_compute_clear_buffer_rmw(struct si_context *sctx, struct pipe_resource *
 
    /* Use buffer_load_dwordx4 and buffer_store_dwordx4 per thread. */
    unsigned dwords_per_instruction = 4;
-   unsigned wave_size = sctx->screen->compute_wave_size;
-   unsigned dwords_per_wave = dwords_per_instruction * wave_size;
+   unsigned block_size = 64; /* it's always 64x1x1 */
+   unsigned dwords_per_wave = dwords_per_instruction * block_size;
 
    unsigned num_dwords = size / 4;
    unsigned num_instructions = DIV_ROUND_UP(num_dwords, dwords_per_instruction);
 
    struct pipe_grid_info info = {};
-   info.block[0] = MIN2(wave_size, num_instructions);
+   info.block[0] = MIN2(block_size, num_instructions);
    info.block[1] = 1;
    info.block[2] = 1;
    info.grid[0] = DIV_ROUND_UP(num_dwords, dwords_per_wave);
@@ -305,14 +305,15 @@ static void si_compute_do_clear_or_copy(struct si_context *sctx, struct pipe_res
       src ? SI_COMPUTE_COPY_DW_PER_THREAD : SI_COMPUTE_CLEAR_DW_PER_THREAD;
    unsigned instructions_per_thread = MAX2(1, dwords_per_thread / 4);
    unsigned dwords_per_instruction = dwords_per_thread / instructions_per_thread;
-   unsigned wave_size = sctx->screen->compute_wave_size;
-   unsigned dwords_per_wave = dwords_per_thread * wave_size;
+   /* The shader declares the block size like this: */
+   unsigned block_size = si_determine_wave_size(sctx->screen, NULL);
+   unsigned dwords_per_wave = dwords_per_thread * block_size;
 
    unsigned num_dwords = size / 4;
    unsigned num_instructions = DIV_ROUND_UP(num_dwords, dwords_per_instruction);
 
    struct pipe_grid_info info = {};
-   info.block[0] = MIN2(wave_size, num_instructions);
+   info.block[0] = MIN2(block_size, num_instructions);
    info.block[1] = 1;
    info.block[2] = 1;
    info.grid[0] = DIV_ROUND_UP(num_dwords, dwords_per_wave);
@@ -598,9 +599,10 @@ void si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
       info.block[1] = ssrc->surface.u.gfx9.color.dcc_block_height;
       info.block[2] = ssrc->surface.u.gfx9.color.dcc_block_depth;
 
+      unsigned default_wave_size = si_determine_wave_size(sctx->screen, NULL);;
+
       /* Make sure the block size is at least the same as wave size. */
-      while (info.block[0] * info.block[1] * info.block[2] <
-             sctx->screen->compute_wave_size) {
+      while (info.block[0] * info.block[1] * info.block[2] < default_wave_size) {
          info.block[0] *= 2;
       }
 

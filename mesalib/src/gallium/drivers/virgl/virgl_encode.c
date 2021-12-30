@@ -1281,6 +1281,18 @@ int virgl_encoder_destroy_sub_ctx(struct virgl_context *ctx, uint32_t sub_ctx_id
    return 0;
 }
 
+int virgl_encode_link_shader(struct virgl_context *ctx, uint32_t *handles)
+{
+   virgl_encoder_write_cmd_dword(ctx, VIRGL_CMD0(VIRGL_CCMD_LINK_SHADER, 0, VIRGL_LINK_SHADER_SIZE));
+   virgl_encoder_write_dword(ctx->cbuf, handles[PIPE_SHADER_VERTEX]);
+   virgl_encoder_write_dword(ctx->cbuf, handles[PIPE_SHADER_FRAGMENT]);
+   virgl_encoder_write_dword(ctx->cbuf, handles[PIPE_SHADER_GEOMETRY]);
+   virgl_encoder_write_dword(ctx->cbuf, handles[PIPE_SHADER_TESS_CTRL]);
+   virgl_encoder_write_dword(ctx->cbuf, handles[PIPE_SHADER_TESS_EVAL]);
+   virgl_encoder_write_dword(ctx->cbuf, handles[PIPE_SHADER_COMPUTE]);
+   return 0;
+}
+
 int virgl_encode_bind_shader(struct virgl_context *ctx,
                              uint32_t handle, uint32_t type)
 {
@@ -1503,10 +1515,22 @@ void virgl_encode_copy_transfer(struct virgl_context *ctx,
 {
    uint32_t command;
    struct virgl_screen *vs = virgl_screen(ctx->base.screen);
+   // set always synchronized to 1, second bit is used for direction
+   uint32_t direction_and_synchronized = 1;
 
+   if (vs->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_COPY_TRANSFER_BOTH_DIRECTIONS) {
+      if (trans->direction == VIRGL_TRANSFER_TO_HOST) {
+         // do nothing, as 0 means transfer to host
+      } else if (trans->direction == VIRGL_TRANSFER_FROM_HOST) {
+         direction_and_synchronized |= 1 << 1;
+      } else {
+         // something wrong happened here
+         assert(0);
+      }
+   }
    assert(trans->copy_src_hw_res);
-
    command = VIRGL_CMD0(VIRGL_CCMD_COPY_TRANSFER3D, 0, VIRGL_COPY_TRANSFER3D_SIZE);
+   
    virgl_encoder_write_cmd_dword(ctx, command);
    /* Copy transfers need to explicitly specify the stride, since it may differ
     * from the image stride.
@@ -1514,8 +1538,7 @@ void virgl_encode_copy_transfer(struct virgl_context *ctx,
    virgl_encoder_transfer3d_common(vs, ctx->cbuf, trans, virgl_transfer3d_explicit_stride);
    vs->vws->emit_res(vs->vws, ctx->cbuf, trans->copy_src_hw_res, TRUE);
    virgl_encoder_write_dword(ctx->cbuf, trans->copy_src_offset);
-   /* At the moment all copy transfers are synchronized. */
-   virgl_encoder_write_dword(ctx->cbuf, 1);
+   virgl_encoder_write_dword(ctx->cbuf, direction_and_synchronized);
 }
 
 void virgl_encode_end_transfers(struct virgl_cmd_buf *buf)

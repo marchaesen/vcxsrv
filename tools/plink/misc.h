@@ -56,8 +56,6 @@ void *strbuf_append(strbuf *buf, size_t len);
 void strbuf_shrink_to(strbuf *buf, size_t new_len);
 void strbuf_shrink_by(strbuf *buf, size_t amount_to_remove);
 char *strbuf_to_str(strbuf *buf); /* does free buf, but you must free result */
-void strbuf_catf(strbuf *buf, const char *fmt, ...) PRINTF_LIKE(2, 3);
-void strbuf_catfv(strbuf *buf, const char *fmt, va_list ap);
 static inline void strbuf_clear(strbuf *buf) { strbuf_shrink_to(buf, 0); }
 bool strbuf_chomp(strbuf *buf, char char_to_remove);
 
@@ -123,6 +121,8 @@ ptrlen bufchain_prefix(bufchain *ch);
 void bufchain_consume(bufchain *ch, size_t len);
 void bufchain_fetch(bufchain *ch, void *data, size_t len);
 void bufchain_fetch_consume(bufchain *ch, void *data, size_t len);
+bool bufchain_try_consume(bufchain *ch, size_t len);
+bool bufchain_try_fetch(bufchain *ch, void *data, size_t len);
 bool bufchain_try_fetch_consume(bufchain *ch, void *data, size_t len);
 size_t bufchain_fetch_consume_up_to(bufchain *ch, void *data, size_t len);
 void bufchain_set_callback_inner(

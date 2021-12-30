@@ -4,6 +4,8 @@ srcs = [
     'xwayland-input.h',
     'xwayland-cursor.c',
     'xwayland-cursor.h',
+    'xwayland-drm-lease.h',
+    'xwayland-drm-lease.c',
     'xwayland-glamor.h',
     'xwayland-glx.h',
     'xwayland-pixmap.c',
@@ -36,12 +38,14 @@ protodir = protocols_dep.get_pkgconfig_variable('pkgdatadir')
 
 pointer_xml = join_paths(protodir, 'unstable', 'pointer-constraints', 'pointer-constraints-unstable-v1.xml')
 relative_xml = join_paths(protodir, 'unstable', 'relative-pointer', 'relative-pointer-unstable-v1.xml')
+gestures_xml = join_paths(protodir, 'unstable', 'pointer-gestures', 'pointer-gestures-unstable-v1.xml')
 tablet_xml = join_paths(protodir, 'unstable', 'tablet', 'tablet-unstable-v2.xml')
 kbgrab_xml = join_paths(protodir, 'unstable', 'xwayland-keyboard-grab', 'xwayland-keyboard-grab-unstable-v1.xml')
 xdg_output_xml = join_paths(protodir, 'unstable', 'xdg-output', 'xdg-output-unstable-v1.xml')
 dmabuf_xml = join_paths(protodir, 'unstable', 'linux-dmabuf', 'linux-dmabuf-unstable-v1.xml')
 viewporter_xml = join_paths(protodir, 'stable', 'viewporter', 'viewporter.xml')
 xdg_shell_xml = join_paths(protodir, 'stable', 'xdg-shell', 'xdg-shell.xml')
+drm_lease_xml = join_paths(protodir, 'staging', 'drm-lease', 'drm-lease-v1.xml')
 
 client_header = generator(scanner,
     output : '@BASENAME@-client-protocol.h',
@@ -60,20 +64,24 @@ code = generator(scanner,
 )
 srcs += client_header.process(relative_xml)
 srcs += client_header.process(pointer_xml)
+srcs += client_header.process(gestures_xml)
 srcs += client_header.process(tablet_xml)
 srcs += client_header.process(kbgrab_xml)
 srcs += client_header.process(xdg_output_xml)
 srcs += client_header.process(dmabuf_xml)
 srcs += client_header.process(viewporter_xml)
 srcs += client_header.process(xdg_shell_xml)
+srcs += client_header.process(drm_lease_xml)
 srcs += code.process(relative_xml)
 srcs += code.process(pointer_xml)
+srcs += code.process(gestures_xml)
 srcs += code.process(tablet_xml)
 srcs += code.process(kbgrab_xml)
 srcs += code.process(xdg_output_xml)
 srcs += code.process(dmabuf_xml)
 srcs += code.process(viewporter_xml)
 srcs += code.process(xdg_shell_xml)
+srcs += code.process(drm_lease_xml)
 
 xwayland_glamor = []
 eglstream_srcs = []
@@ -111,6 +119,10 @@ endif
 wayland_inc = [ inc, ]
 if build_glx
     wayland_inc += glx_inc
+endif
+
+if libdrm_dep.found()
+    xwayland_dep += libdrm_dep
 endif
 
 xwayland_server = executable(

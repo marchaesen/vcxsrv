@@ -41,6 +41,10 @@
 #include "macros.h"
 #include "transformfeedback.h"
 #include "pipe/p_state.h"
+#include "api_exec_decl.h"
+
+#include "state_tracker/st_context.h"
+#include "state_tracker/st_draw.h"
 
 typedef struct {
    GLuint count;
@@ -104,18 +108,20 @@ _mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
                    GLbitfield filter)
 {
    struct gl_vertex_array_object **ptr = &ctx->Array._DrawVAO;
-   bool new_array = false;
+   bool new_vertex_buffers = false, new_vertex_elements = false;
+
    if (*ptr != vao) {
       _mesa_reference_vao_(ctx, ptr, vao);
-
-      new_array = true;
+      new_vertex_buffers = true;
+      new_vertex_elements = true;
    }
 
-   if (vao->NewArrays) {
+   if (vao->NewVertexBuffers || vao->NewVertexElements) {
       _mesa_update_vao_derived_arrays(ctx, vao);
-      vao->NewArrays = 0;
-
-      new_array = true;
+      new_vertex_buffers |= vao->NewVertexBuffers;
+      new_vertex_elements |= vao->NewVertexElements;
+      vao->NewVertexBuffers = false;
+      vao->NewVertexElements = false;
    }
 
    assert(vao->_EnabledWithMapMode ==
@@ -125,11 +131,14 @@ _mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
    const GLbitfield enabled = filter & vao->_EnabledWithMapMode;
    if (ctx->Array._DrawVAOEnabledAttribs != enabled) {
       ctx->Array._DrawVAOEnabledAttribs = enabled;
-      new_array = true;
+      new_vertex_buffers = true;
+      new_vertex_elements = true;
    }
 
-   if (new_array)
-      ctx->NewDriverState |= ctx->DriverFlags.NewArray;
+   if (new_vertex_buffers || new_vertex_elements) {
+      ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
+      ctx->Array.NewVertexElements |= new_vertex_elements;
+   }
 
    _mesa_set_varying_vp_inputs(ctx, enabled);
 }
@@ -973,48 +982,40 @@ _mesa_draw_gallium_fallback(struct gl_context *ctx,
    ib.index_size_shift = util_logbase2(index_size);
 
    /* Single draw or a fallback for user indices. */
-   if (num_draws == 1 ||
-       (info->index_size && info->has_user_indices &&
-        !ctx->Const.MultiDrawWithUserIndices)) {
-      for (unsigned i = 0; i < num_draws; i++) {
-         if (!draws[i].count)
-            continue;
+   if (num_draws == 1) {
+      if (!draws[0].count)
+         return;
 
-         if (index_size) {
-            ib.count = draws[i].count;
+      if (index_size) {
+         ib.count = draws[0].count;
 
-            if (info->has_user_indices) {
-               ib.obj = NULL;
-               /* User indices require start to be added here if
-                * Const.MultiDrawWithUserIndices is false.
-                */
-               ib.ptr = (const char*)info->index.user +
-                        draws[i].start * index_size;
-            } else {
-               ib.obj = info->index.gl_bo;
-               ib.ptr = NULL;
-            }
+         if (info->has_user_indices) {
+            ib.obj = NULL;
+            ib.ptr = (const char*)info->index.user;
+         } else {
+            ib.obj = info->index.gl_bo;
+            ib.ptr = NULL;
          }
-
-         struct _mesa_prim prim;
-         prim.mode = info->mode;
-         prim.begin = 1;
-         prim.end = 1;
-         prim.start = index_size && info->has_user_indices ? 0 : draws[i].start;
-         prim.count = draws[i].count;
-         prim.basevertex = index_size ? draws[i].index_bias : 0;
-         prim.draw_id = drawid_offset + (info->increment_draw_id ? i : 0);
-
-         if (!index_size) {
-            min_index = draws[i].start;
-            max_index = draws[i].start + draws[i].count - 1;
-         }
-
-         ctx->Driver.Draw(ctx, &prim, 1, index_size ? &ib : NULL,
-                          index_bounds_valid, info->primitive_restart,
-                          info->restart_index, min_index, max_index,
-                          info->instance_count, info->start_instance);
       }
+
+      struct _mesa_prim prim;
+      prim.mode = info->mode;
+      prim.begin = 1;
+      prim.end = 1;
+      prim.start = draws[0].start;
+      prim.count = draws[0].count;
+      prim.basevertex = index_size ? draws[0].index_bias : 0;
+      prim.draw_id = drawid_offset;
+
+      if (!index_size) {
+         min_index = draws[0].start;
+         max_index = draws[0].start + draws[0].count - 1;
+      }
+
+      st_feedback_draw_vbo(ctx, &prim, 1, index_size ? &ib : NULL,
+                           index_bounds_valid, info->primitive_restart,
+                           info->restart_index, min_index, max_index,
+                           info->instance_count, info->start_instance);
       return;
    }
 
@@ -1062,10 +1063,10 @@ _mesa_draw_gallium_fallback(struct gl_context *ctx,
    }
 
    if (num_prims)
-      ctx->Driver.Draw(ctx, prim, num_prims, index_size ? &ib : NULL,
-                       index_bounds_valid, info->primitive_restart,
-                       info->restart_index, min_index, max_index,
-                       info->instance_count, info->start_instance);
+      st_feedback_draw_vbo(ctx, prim, num_prims, index_size ? &ib : NULL,
+                           index_bounds_valid, info->primitive_restart,
+                           info->restart_index, min_index, max_index,
+                           info->instance_count, info->start_instance);
    FREE_PRIMS(prim, num_draws);
 }
 
@@ -2290,20 +2291,11 @@ _mesa_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
                                              numInstances))
       return;
 
-   if (ctx->Driver.GetTransformFeedbackVertexCount &&
-       (ctx->Const.AlwaysUseGetTransformFeedbackVertexCount ||
-        !_mesa_all_varyings_in_vbos(ctx->Array.VAO))) {
-      GLsizei n =
-         ctx->Driver.GetTransformFeedbackVertexCount(ctx, obj, stream);
-      _mesa_draw_arrays(ctx, mode, 0, n, numInstances, 0);
-      return;
-   }
-
    /* Maybe we should do some primitive splitting for primitive restart
     * (like in DrawArrays), but we have no way to know how many vertices
     * will be rendered. */
 
-   ctx->Driver.DrawTransformFeedback(ctx, mode, numInstances, stream, obj);
+   st_draw_transform_feedback(ctx, mode, numInstances, stream, obj);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH) {
       _mesa_flush(ctx);
@@ -2377,9 +2369,9 @@ _mesa_validated_multidrawarraysindirect(struct gl_context *ctx, GLenum mode,
    if (drawcount == 0)
       return;
 
-   ctx->Driver.DrawIndirect(ctx, mode, ctx->DrawIndirectBuffer, indirect,
-                            drawcount, stride, drawcount_buffer,
-                            drawcount_offset, NULL, false, 0);
+   st_indirect_draw_vbo(ctx, mode, ctx->DrawIndirectBuffer, indirect,
+                        drawcount, stride, drawcount_buffer,
+                        drawcount_offset, NULL, false, 0);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
       _mesa_flush(ctx);
@@ -2405,11 +2397,11 @@ _mesa_validated_multidrawelementsindirect(struct gl_context *ctx,
    ib.ptr = NULL;
    ib.index_size_shift = get_index_size_shift(type);
 
-   ctx->Driver.DrawIndirect(ctx, mode, ctx->DrawIndirectBuffer, indirect,
-                            drawcount, stride, drawcount_buffer,
-                            drawcount_offset, &ib,
-                            ctx->Array._PrimitiveRestart[ib.index_size_shift],
-                            ctx->Array._RestartIndex[ib.index_size_shift]);
+   st_indirect_draw_vbo(ctx, mode, ctx->DrawIndirectBuffer, indirect,
+                        drawcount, stride, drawcount_buffer,
+                        drawcount_offset, &ib,
+                        ctx->Array._PrimitiveRestart[ib.index_size_shift],
+                        ctx->Array._RestartIndex[ib.index_size_shift]);
 
    if (MESA_DEBUG_FLAGS & DEBUG_ALWAYS_FLUSH)
       _mesa_flush(ctx);

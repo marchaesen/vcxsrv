@@ -37,7 +37,10 @@
 #include "pixelstore.h"
 #include "readpix.h"
 #include "texobj.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_texture.h"
+#include "state_tracker/st_cb_readpixels.h"
 
 static const char *
 tex_target_name(GLenum tgt)
@@ -278,9 +281,9 @@ write_texture_image(struct gl_texture_object *texObj,
       store = ctx->Pack; /* save */
       ctx->Pack = ctx->DefaultPacking;
 
-      ctx->Driver.GetTexSubImage(ctx,
-                                 0, 0, 0, img->Width, img->Height, img->Depth,
-                                 GL_RGBA, GL_UNSIGNED_BYTE, buffer, img);
+      st_GetTexSubImage(ctx,
+                        0, 0, 0, img->Width, img->Height, img->Depth,
+                        GL_RGBA, GL_UNSIGNED_BYTE, buffer, img);
 
       /* make filename */
       snprintf(s, sizeof(s), "/tmp/tex%u.l%u.f%u.ppm", texObj->Name, level, face);
@@ -325,8 +328,8 @@ _mesa_write_renderbuffer_image(const struct gl_renderbuffer *rb)
 
    buffer = malloc(rb->Width * rb->Height * 4);
 
-   ctx->Driver.ReadPixels(ctx, 0, 0, rb->Width, rb->Height,
-                          format, type, &ctx->DefaultPacking, buffer);
+   st_ReadPixels(ctx, 0, 0, rb->Width, rb->Height,
+                 format, type, &ctx->DefaultPacking, buffer);
 
    /* make filename */
    snprintf(s, sizeof(s), "/tmp/renderbuffer%u.ppm", rb->Name);
@@ -607,9 +610,9 @@ _mesa_print_texture(struct gl_context *ctx, struct gl_texture_image *img)
    GLuint i, j, c;
    GLubyte *data;
 
-   ctx->Driver.MapTextureImage(ctx, img, slice,
-                               0, 0, img->Width, img->Height, GL_MAP_READ_BIT,
-                               &data, &srcRowStride);
+   st_MapTextureImage(ctx, img, slice,
+                      0, 0, img->Width, img->Height, GL_MAP_READ_BIT,
+                      &data, &srcRowStride);
 
    if (!data) {
       printf("No texture data\n");
@@ -656,5 +659,5 @@ _mesa_print_texture(struct gl_context *ctx, struct gl_texture_image *img)
       }
    }
 
-   ctx->Driver.UnmapTextureImage(ctx, img, slice);
+   st_UnmapTextureImage(ctx, img, slice);
 }

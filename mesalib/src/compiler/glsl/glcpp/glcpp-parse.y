@@ -2489,8 +2489,6 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
        * those functions so that they can be tested.
        */
       if (parser->extension_list->MESA_shader_integer_functions) {
-         add_builtin_define(parser, "__have_builtin_builtin_sign64", 1);
-         add_builtin_define(parser, "__have_builtin_builtin_umul64", 1);
          add_builtin_define(parser, "__have_builtin_builtin_udiv64", 1);
          add_builtin_define(parser, "__have_builtin_builtin_umod64", 1);
          add_builtin_define(parser, "__have_builtin_builtin_idiv64", 1);

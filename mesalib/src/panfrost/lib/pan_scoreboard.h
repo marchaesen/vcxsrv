@@ -124,6 +124,21 @@ struct pan_scoreboard {
  *
  */
 
+/**
+ * Does this job use the tiler? Beyond tiler jobs, index-driven vertex shading
+ * jobs also do.
+ */
+static bool
+panfrost_job_uses_tiling(enum mali_job_type type)
+{
+#if PAN_ARCH >= 6
+        if (type == MALI_JOB_TYPE_INDEXED_VERTEX)
+                return true;
+#endif
+
+        return (type == MALI_JOB_TYPE_TILER);
+}
+
 /* Generates, uploads, and queues a a new job. All fields are written in order
  * except for next_job accounting (TODO: Should we be clever and defer the
  * upload of the header here until next job to keep the access pattern totally
@@ -142,7 +157,7 @@ panfrost_add_job(struct pan_pool *pool,
                  const struct panfrost_ptr *job,
                  bool inject)
 {
-        if (type == MALI_JOB_TYPE_TILER) {
+        if (panfrost_job_uses_tiling(type)) {
                 /* Tiler jobs must be chained, and on Midgard, the first tiler
                  * job must depend on the write value job, whose index we
                  * reserve now */
@@ -189,7 +204,7 @@ panfrost_add_job(struct pan_pool *pool,
         }
 
         /* Form a chain */
-        if (type == MALI_JOB_TYPE_TILER) {
+        if (panfrost_job_uses_tiling(type)) {
                 if (!scoreboard->first_tiler) {
                         scoreboard->first_tiler = (void *)job->cpu;
                         scoreboard->first_tiler_dep1 = local_dep;

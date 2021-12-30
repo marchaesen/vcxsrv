@@ -30,8 +30,6 @@
 #include "vulkan/util/vk_format.h"
 #include "util/u_pack_color.h"
 
-#include "vk_format_info.h"
-
 void
 v3dX(job_emit_binning_flush)(struct v3dv_job *job)
 {
@@ -1431,7 +1429,8 @@ job_update_ez_state(struct v3dv_job *job,
    /* If the FS writes Z, then it may update against the chosen EZ direction */
    struct v3dv_shader_variant *fs_variant =
       pipeline->shared_data->variants[BROADCOM_SHADER_FRAGMENT];
-   if (fs_variant->prog_data.fs->writes_z) {
+   if (fs_variant->prog_data.fs->writes_z &&
+       !fs_variant->prog_data.fs->writes_z_from_fep) {
       job->ez_state = V3D_EZ_DISABLED;
       return;
    }

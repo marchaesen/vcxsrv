@@ -28,6 +28,7 @@ timeout = 180.0
 deqp = "/deqp/external/openglcts/modules/glcts"
 caselists = [
     "/deqp/mustpass/gl32-master.txt",
+    "/deqp/mustpass/gl46-master.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256",

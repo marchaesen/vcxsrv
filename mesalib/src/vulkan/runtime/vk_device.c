@@ -28,9 +28,52 @@
 #include "vk_log.h"
 #include "vk_physical_device.h"
 #include "vk_queue.h"
+#include "vk_sync.h"
+#include "vk_sync_timeline.h"
 #include "vk_util.h"
+#include "util/debug.h"
 #include "util/hash_table.h"
 #include "util/ralloc.h"
+
+static enum vk_device_timeline_mode
+get_timeline_mode(struct vk_physical_device *physical_device)
+{
+   if (physical_device->supported_sync_types == NULL)
+      return VK_DEVICE_TIMELINE_MODE_NONE;
+
+   const struct vk_sync_type *timeline_type = NULL;
+   for (const struct vk_sync_type *const *t =
+        physical_device->supported_sync_types; *t; t++) {
+      if ((*t)->features & VK_SYNC_FEATURE_TIMELINE) {
+         /* We can only have one timeline mode */
+         assert(timeline_type == NULL);
+         timeline_type = *t;
+      }
+   }
+
+   if (timeline_type == NULL)
+      return VK_DEVICE_TIMELINE_MODE_NONE;
+
+   if (vk_sync_type_is_vk_sync_timeline(timeline_type))
+      return VK_DEVICE_TIMELINE_MODE_EMULATED;
+
+   if (timeline_type->features & VK_SYNC_FEATURE_WAIT_BEFORE_SIGNAL)
+      return VK_DEVICE_TIMELINE_MODE_NATIVE;
+
+   /* For assisted mode, we require a few additional things of all sync types
+    * which may be used as semaphores.
+    */
+   for (const struct vk_sync_type *const *t =
+        physical_device->supported_sync_types; *t; t++) {
+      if ((*t)->features & VK_SYNC_FEATURE_GPU_WAIT) {
+         assert((*t)->features & VK_SYNC_FEATURE_WAIT_PENDING);
+         if ((*t)->features & VK_SYNC_FEATURE_BINARY)
+            assert((*t)->features & VK_SYNC_FEATURE_CPU_RESET);
+      }
+   }
+
+   return VK_DEVICE_TIMELINE_MODE_ASSISTED;
+}
 
 VkResult
 vk_device_init(struct vk_device *device,
@@ -92,6 +135,10 @@ vk_device_init(struct vk_device *device,
 
    list_inithead(&device->queues);
 
+   device->drm_fd = -1;
+
+   device->timeline_mode = get_timeline_mode(physical_device);
+
 #ifdef ANDROID
    mtx_init(&device->swapchain_private_mtx, mtx_plain);
    device->swapchain_private = NULL;
@@ -115,6 +162,89 @@ vk_device_finish(UNUSED struct vk_device *device)
 #endif /* ANDROID */
 
    vk_object_base_finish(&device->base);
+}
+
+VkResult
+vk_device_flush(struct vk_device *device)
+{
+   if (device->timeline_mode != VK_DEVICE_TIMELINE_MODE_EMULATED)
+      return VK_SUCCESS;
+
+   bool progress;
+   do {
+      progress = false;
+
+      vk_foreach_queue(queue, device) {
+         uint32_t queue_submit_count;
+         VkResult result = vk_queue_flush(queue, &queue_submit_count);
+         if (unlikely(result != VK_SUCCESS))
+            return result;
+
+         if (queue_submit_count)
+            progress = true;
+      }
+   } while (progress);
+
+   return VK_SUCCESS;
+}
+
+static const char *
+timeline_mode_str(struct vk_device *device)
+{
+   switch (device->timeline_mode) {
+#define CASE(X) case VK_DEVICE_TIMELINE_MODE_##X: return #X;
+   CASE(NONE)
+   CASE(EMULATED)
+   CASE(ASSISTED)
+   CASE(NATIVE)
+#undef CASE
+   default: return "UNKNOWN";
+   }
+}
+
+void
+_vk_device_report_lost(struct vk_device *device)
+{
+   assert(p_atomic_read(&device->_lost.lost) > 0);
+
+   device->_lost.reported = true;
+
+   vk_foreach_queue(queue, device) {
+      if (queue->_lost.lost) {
+         __vk_errorf(queue, VK_ERROR_DEVICE_LOST,
+                     queue->_lost.error_file, queue->_lost.error_line,
+                     "%s", queue->_lost.error_msg);
+      }
+   }
+
+   vk_logd(VK_LOG_OBJS(device), "Timeline mode is %s.",
+           timeline_mode_str(device));
+}
+
+VkResult
+_vk_device_set_lost(struct vk_device *device,
+                    const char *file, int line,
+                    const char *msg, ...)
+{
+   /* This flushes out any per-queue device lost messages */
+   if (vk_device_is_lost(device))
+      return VK_ERROR_DEVICE_LOST;
+
+   p_atomic_inc(&device->_lost.lost);
+   device->_lost.reported = true;
+
+   va_list ap;
+   va_start(ap, msg);
+   __vk_errorv(device, VK_ERROR_DEVICE_LOST, file, line, msg, ap);
+   va_end(ap);
+
+   vk_logd(VK_LOG_OBJS(device), "Timeline mode is %s.",
+           timeline_mode_str(device));
+
+   if (env_var_as_boolean("MESA_VK_ABORT_ON_DEVICE_LOSS", false))
+      abort();
+
+   return VK_ERROR_DEVICE_LOST;
 }
 
 PFN_vkVoidFunction

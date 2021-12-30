@@ -42,7 +42,7 @@ xkb_symbols "basic" {
     key <AC11> {	[ adiaeresis,	Adiaeresis,  dead_circumflex		]	};
 
     key <LSGT> {	[      less,	greater,        bar			]	};
-    key <AB01> {	[	  y,	Y,  guillemotleft,U2039		]	};
+    key <AB01> {	[	  y,	Y,  guillemotleft, less		]	};
     key <AB04> {    [         v,    V, doublelowquotemark, leftsinglequotemark ]    };
     key <AB05> {    [         b,    B, rightdoublequotemark, leftdoublequotemark ]  };
     key <AB06> {	[         n,    N, asciitilde			]	};

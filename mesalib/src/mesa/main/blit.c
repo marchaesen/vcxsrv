@@ -39,7 +39,9 @@
 #include "mtypes.h"
 #include "macros.h"
 #include "state.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_cb_blit.h"
 
 /** Set this to 1 to debug/log glBlitFramebuffer() calls */
 #define DEBUG_BLIT 0
@@ -572,11 +574,10 @@ blit_framebuffer(struct gl_context *ctx,
       return;
    }
 
-   assert(ctx->Driver.BlitFramebuffer);
-   ctx->Driver.BlitFramebuffer(ctx, readFb, drawFb,
-                               srcX0, srcY0, srcX1, srcY1,
-                               dstX0, dstY0, dstX1, dstY1,
-                               mask, filter);
+   st_BlitFramebuffer(ctx, readFb, drawFb,
+                      srcX0, srcY0, srcX1, srcY1,
+                      dstX0, dstY0, dstX1, dstY1,
+                      mask, filter);
 }
 
 

@@ -499,22 +499,6 @@ void rc_transform_loops(struct radeon_compiler *c, void *user)
 	}
 }
 
-void rc_unroll_loops(struct radeon_compiler *c, void *user)
-{
-	struct rc_instruction * inst;
-	struct loop_info loop;
-
-	for(inst = c->Program.Instructions.Next;
-			inst != &c->Program.Instructions; inst = inst->Next) {
-
-		if (inst->U.I.Opcode == RC_OPCODE_BGNLOOP) {
-			if (build_loop_info(c, &loop, inst)) {
-				try_unroll_loop(c, &loop);
-			}
-		}
-	}
-}
-
 void rc_emulate_loops(struct radeon_compiler *c, void *user)
 {
 	struct emulate_loop_state * s = &c->loop_state;

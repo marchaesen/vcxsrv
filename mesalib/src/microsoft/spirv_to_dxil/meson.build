@@ -38,6 +38,8 @@ spirv_to_dxil = executable(
   'spirv2dxil',
   files(
     'spirv2dxil.c',
+    'dxil_validation.h',
+    'dxil_validation.cpp',
   ),
   dependencies : [idep_nir, idep_libdxil_compiler, idep_getopt],
   include_directories : [inc_include, inc_src, inc_compiler, inc_gallium],

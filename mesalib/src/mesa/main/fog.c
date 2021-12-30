@@ -28,7 +28,7 @@
 #include "fog.h"
 #include "macros.h"
 #include "mtypes.h"
-
+#include "api_exec_decl.h"
 
 
 void GLAPIENTRY
@@ -182,10 +182,6 @@ _mesa_Fogfv( GLenum pname, const GLfloat *params )
       }
       default:
          goto invalid_pname;
-   }
-
-   if (ctx->Driver.Fogfv) {
-      ctx->Driver.Fogfv( ctx, pname, params );
    }
 
    return;

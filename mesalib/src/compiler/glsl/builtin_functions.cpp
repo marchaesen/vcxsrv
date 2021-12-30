@@ -4441,20 +4441,12 @@ builtin_builder::create_builtins()
                 generate_ir::imod64(mem_ctx, integer_functions_supported),
                 NULL);
 
-   add_function("__builtin_sign64",
-                generate_ir::sign64(mem_ctx, integer_functions_supported),
-                NULL);
-
    add_function("__builtin_udiv64",
                 generate_ir::udiv64(mem_ctx, integer_functions_supported),
                 NULL);
 
    add_function("__builtin_umod64",
                 generate_ir::umod64(mem_ctx, integer_functions_supported),
-                NULL);
-
-   add_function("__builtin_umul64",
-                generate_ir::umul64(mem_ctx, integer_functions_supported),
                 NULL);
 
    add_function("countLeadingZeros",

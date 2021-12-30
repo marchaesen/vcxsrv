@@ -1,16 +1,1 @@
 dEQP-VK.api.driver_properties.conformance_version,Fail
-dEQP-VK.pipeline.sampler.exact_sampling.r16g16b16a16_sfloat.solid_color.normalized_coords.edge_right,Fail
-dEQP-VK.pipeline.sampler.exact_sampling.r32g32_sfloat.solid_color.normalized_coords.centered,Fail
-dEQP-VK.pipeline.sampler.exact_sampling.r32g32_sfloat.solid_color.normalized_coords.edge_left,Fail
-dEQP-VK.pipeline.sampler.exact_sampling.r32g32_sfloat.solid_color.normalized_coords.edge_right,Fail
-dEQP-VK.rasterization.primitives.static_stipple.rectangular_line_strip_wide,Fail
-dEQP-VK.rasterization.primitives.dynamic_stipple.line_strip_wide,Fail
-dEQP-VK.rasterization.primitives.dynamic_stipple.rectangular_line_strip_wide,Fail
-dEQP-VK.rasterization.primitives.dynamic_stipple.smooth_line_strip_wide,Fail
-dEQP-VK.rasterization.primitives_multisample_4_bit.dynamic_stipple.line_strip_wide,Fail
-dEQP-VK.rasterization.primitives_multisample_4_bit.dynamic_stipple.rectangular_line_strip_wide,Fail
-dEQP-VK.rasterization.primitives_multisample_4_bit.static_stipple.line_strip_wide,Fail
-dEQP-VK.rasterization.primitives_multisample_4_bit.static_stipple.rectangular_line_strip_wide,Fail
-dEQP-VK.rasterization.primitives.static_stipple.line_strip_wide,Fail
-dEQP-VK.rasterization.primitives.static_stipple.smooth_line_strip_wide,Fail
-dEQP-VK.spirv_assembly.instruction.spirv1p4.entrypoint.comp_workgroup_entry_point,Fail

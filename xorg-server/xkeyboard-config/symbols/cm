@@ -135,7 +135,7 @@ xkb_symbols "french"
 	key <BKSL> { [ asterisk, mu, dead_grave, dead_breve ] };
 	key <AB01> { [ w, W, lstroke, Lstroke ] };
 	key <AB07> { [ comma, U003F, dead_acute, dead_doubleacute ] };
-	key <AB08> { [ semicolon, period, horizconnector, multiply ] };
+	key <AB08> { [ semicolon, period, U2022, multiply ] }; // bullet
 	key <AB09> { [ colon, slash, periodcentered, division ] };
 	key <AB10> { [ exclam, section, dead_belowdot, dead_abovedot ] };
 

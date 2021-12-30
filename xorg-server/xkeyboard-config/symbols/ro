@@ -174,7 +174,7 @@ xkb_symbols "crh_dobruja" {
     // Reşat SABIQ <tilde.birlik @ gmail . com>, 2009, 2011
     // Özgür Qarahan <qarahan @ gmail . com>, 2009
 
-    include "tr(crh)"
+    include "ua(crh)"
 
     name[Group1]="Crimean Tatar (Dobruja Q)";
 

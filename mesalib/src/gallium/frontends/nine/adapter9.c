@@ -828,7 +828,6 @@ NineAdapter9_GetDeviceCaps( struct NineAdapter9 *This,
                            D3DTEXOPCAPS_LERP;
 
     pCaps->MaxTextureBlendStages = 8; /* XXX wine */
-        (DWORD)screen->get_param(screen, PIPE_CAP_BLEND_EQUATION_SEPARATE);
     pCaps->MaxSimultaneousTextures = 8;
 
     pCaps->VertexProcessingCaps = D3DVTXPCAPS_TEXGEN |
@@ -845,7 +844,7 @@ NineAdapter9_GetDeviceCaps( struct NineAdapter9 *This,
     pCaps->MaxVertexBlendMatrices = 4; /* 1 vec4 BLENDWEIGHT/INDICES input */
     pCaps->MaxVertexBlendMatrixIndex = 8; /* D3DTS_WORLDMATRIX(0..8) */
 
-    pCaps->MaxPointSize = screen->get_paramf(screen, PIPE_CAPF_MAX_POINT_WIDTH);
+    pCaps->MaxPointSize = screen->get_paramf(screen, PIPE_CAPF_MAX_POINT_SIZE);
 
     pCaps->MaxPrimitiveCount = 0x555555; /* <- wine, really 0xFFFFFFFF; */
     pCaps->MaxVertexIndex = 0xFFFFFF; /* <- wine, really 0xFFFFFFFF */

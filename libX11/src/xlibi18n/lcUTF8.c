@@ -2358,6 +2358,7 @@ _XlcAddUtf8LocaleConverters(
     /* Register converters for XlcNFontCharSet */
     _XlcSetConverter(lcd, XlcNMultiByte, lcd, XlcNFontCharSet, open_utf8tofcs);
     _XlcSetConverter(lcd, XlcNWideChar, lcd, XlcNFontCharSet, open_wcstofcs);
+    _XlcSetConverter(lcd, XlcNUtf8String, lcd, XlcNFontCharSet, open_utf8tofcs);
 }
 
 void

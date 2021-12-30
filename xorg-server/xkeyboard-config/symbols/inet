@@ -331,6 +331,7 @@ xkb_symbols "evdev" {
    key <I590>   {       [ XF86VoiceCommand               ]      }; // KEY_VOICECOMMAND
    key <I591>   {       [ XF86Assistant                  ]      }; // KEY_ASSISTANT
    key <I592>   {       [ ISO_Next_Group                 ]      }; // KEY_KBD_LAYOUT_NEXT
+   key <I593>   {       [ XF86EmojiPicker                ]      }; // KEY_EMOJI_PICKER
    key <I600>   {       [ XF86BrightnessMin              ]      }; // KEY_BRIGHTNESS_MIN
    key <I601>   {       [ XF86BrightnessMax              ]      }; // KEY_BRIGHTNESS_MAX
    key <I616>   {       [ XF86KbdInputAssistPrev         ]      }; // KEY_KBDINPUTASSIST_PREV

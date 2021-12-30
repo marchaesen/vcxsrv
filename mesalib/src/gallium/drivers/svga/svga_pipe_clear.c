@@ -57,7 +57,7 @@ begin_blit(struct svga_context *svga)
    util_blitter_save_depth_stencil_alpha(svga->blitter,
                                          (void*)svga->curr.depth);
    util_blitter_save_stencil_ref(svga->blitter, &svga->curr.stencil_ref);
-   util_blitter_save_sample_mask(svga->blitter, svga->curr.sample_mask);
+   util_blitter_save_sample_mask(svga->blitter, svga->curr.sample_mask, 0);
 }
 
 

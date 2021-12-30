@@ -1,5 +1,0 @@
-dEQP-VK.api.external.fence.opaque_fd.reset_permanent
-dEQP-VK.api.external.fence.opaque_fd.reset_temporary
-dEQP-VK.api.external.fence.opaque_fd.signal_export_import_wait_permanent
-dEQP-VK.ssbo.layout.instance_array_basic_type.std430.uvec4
-dEQP-VK.wsi.display.get_display_plane_capabilities

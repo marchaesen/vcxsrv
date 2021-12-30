@@ -139,6 +139,7 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
         case PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL:
         case PIPE_CAP_TGSI_TEXCOORD:
         case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
+        case PIPE_CAP_SAMPLER_VIEW_TARGET:
                 return 1;
 
         case PIPE_CAP_TEXTURE_QUERY_LOD:
@@ -155,7 +156,7 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
         case PIPE_CAP_NIR_IMAGES_AS_DEREF:
                 return 0;
 
-        case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
+        case PIPE_CAP_TEXTURE_TRANSFER_MODES:
                 /* XXX perf: we don't want to emit these extra blits for
                  * glReadPixels(), since we still have to do an uncached read
                  * from the GPU of the result after waiting for the TFU blit
@@ -164,7 +165,7 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
                  * dEQP-GLES31.functional.image_load_store.early_fragment_tests.*
                  * and corruption in chromium's rendering.
                  */
-                return 1;
+                return PIPE_TEXTURE_TRANSFER_BLIT;
 
         case PIPE_CAP_COMPUTE:
                 return screen->has_csd && screen->devinfo.ver >= 41;
@@ -282,6 +283,15 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
         case PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART:
                 return screen->prim_types;
 
+        case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
+                return true;
+
+        case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
+                return 256;
+
+        case PIPE_CAP_IMAGE_STORE_FORMATTED:
+                return false;
+
         default:
                 return u_pipe_screen_get_param_defaults(pscreen, param);
         }
@@ -291,12 +301,22 @@ static float
 v3d_screen_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
 {
         switch (param) {
+        case PIPE_CAPF_MIN_LINE_WIDTH:
+        case PIPE_CAPF_MIN_LINE_WIDTH_AA:
+        case PIPE_CAPF_MIN_POINT_SIZE:
+        case PIPE_CAPF_MIN_POINT_SIZE_AA:
+           return 1;
+
+        case PIPE_CAPF_POINT_SIZE_GRANULARITY:
+        case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
+           return 0.1;
+
         case PIPE_CAPF_MAX_LINE_WIDTH:
         case PIPE_CAPF_MAX_LINE_WIDTH_AA:
                 return V3D_MAX_LINE_WIDTH;
 
-        case PIPE_CAPF_MAX_POINT_WIDTH:
-        case PIPE_CAPF_MAX_POINT_WIDTH_AA:
+        case PIPE_CAPF_MAX_POINT_SIZE:
+        case PIPE_CAPF_MAX_POINT_SIZE_AA:
                 return V3D_MAX_POINT_SIZE;
 
         case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
@@ -640,6 +660,23 @@ v3d_screen_is_format_supported(struct pipe_screen *pscreen,
               format == PIPE_FORMAT_R16_UINT ||
               format == PIPE_FORMAT_R32_UINT)) {
                 return false;
+        }
+
+        if (usage & PIPE_BIND_SHADER_IMAGE) {
+                switch (format) {
+                /* FIXME: maybe we can implement a swizzle-on-writes to add
+                 * support for BGRA-alike formats.
+                 */
+                case PIPE_FORMAT_A4B4G4R4_UNORM:
+                case PIPE_FORMAT_A1B5G5R5_UNORM:
+                case PIPE_FORMAT_B5G6R5_UNORM:
+                case PIPE_FORMAT_B8G8R8A8_UNORM:
+                case PIPE_FORMAT_X8Z24_UNORM:
+                case PIPE_FORMAT_Z16_UNORM:
+                        return false;
+                default:
+                        return true;
+                }
         }
 
         return true;

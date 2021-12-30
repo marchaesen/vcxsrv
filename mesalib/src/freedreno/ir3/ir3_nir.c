@@ -528,20 +528,23 @@ ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s)
    }
 
    if ((s->info.stage == MESA_SHADER_COMPUTE) ||
+       (s->info.stage == MESA_SHADER_KERNEL) ||
+       compiler->has_getfiberid) {
+      OPT(s, nir_lower_subgroups,
+          &(nir_lower_subgroups_options){
+             .subgroup_size = 128,
+             .ballot_bit_size = 32,
+             .ballot_components = 4,
+             .lower_to_scalar = true,
+             .lower_vote_eq = true,
+             .lower_subgroup_masks = true,
+             .lower_read_invocation_to_cond = true,
+          });
+   }
+
+   if ((s->info.stage == MESA_SHADER_COMPUTE) ||
        (s->info.stage == MESA_SHADER_KERNEL)) {
       bool progress = false;
-      NIR_PASS(progress, s, nir_lower_subgroups,
-               &(nir_lower_subgroups_options){
-                  .subgroup_size = 128,
-                  .ballot_bit_size = 32,
-                  .ballot_components = 4,
-                  .lower_to_scalar = true,
-                  .lower_vote_eq = true,
-                  .lower_subgroup_masks = true,
-                  .lower_read_invocation_to_cond = true,
-               });
-
-      progress = false;
       NIR_PASS(progress, s, ir3_nir_lower_subgroup_id_cs);
 
       /* ir3_nir_lower_subgroup_id_cs creates extra compute intrinsics which
@@ -668,7 +671,7 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
    if (s->info.stage == MESA_SHADER_VERTEX) {
       if (so->key.ucp_enables)
          progress |=
-            OPT(s, nir_lower_clip_vs, so->key.ucp_enables, false, false, NULL);
+            OPT(s, nir_lower_clip_vs, so->key.ucp_enables, false, true, NULL);
    } else if (s->info.stage == MESA_SHADER_FRAGMENT) {
       bool layer_zero =
          so->key.layer_zero && (s->info.inputs_read & VARYING_BIT_LAYER);
@@ -676,7 +679,7 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
          so->key.view_zero && (s->info.inputs_read & VARYING_BIT_VIEWPORT);
 
       if (so->key.ucp_enables && !so->shader->compiler->has_clip_cull)
-         progress |= OPT(s, nir_lower_clip_fs, so->key.ucp_enables, false);
+         progress |= OPT(s, nir_lower_clip_fs, so->key.ucp_enables, true);
       if (layer_zero || view_zero)
          progress |= OPT(s, ir3_nir_lower_view_layer_id, layer_zero, view_zero);
    }

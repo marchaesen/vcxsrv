@@ -45,11 +45,6 @@ subdir('winsys/sw/wrapper')
 if with_platform_haiku
   subdir('winsys/sw/hgl')
 endif
-if with_gallium_swr
-  subdir('drivers/swr')
-else
-  driver_swr = declare_dependency()
-endif
 if with_gallium_softpipe
   subdir('drivers/softpipe')
   if draw_with_llvm
@@ -195,7 +190,7 @@ if with_osmesa
   subdir('frontends/osmesa')
   subdir('targets/osmesa')
 endif
-if with_glx == 'gallium-xlib'
+if with_glx == 'xlib'
   subdir('winsys/sw/xlib')
   subdir('frontends/glx/xlib')
   subdir('targets/libgl-xlib')

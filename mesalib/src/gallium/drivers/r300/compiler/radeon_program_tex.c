@@ -127,8 +127,7 @@ int radeonTransformTEX(
 	struct r300_fragment_program_compiler *compiler =
 		(struct r300_fragment_program_compiler*)data;
 	rc_wrap_mode wrapmode = compiler->state.unit[inst->U.I.TexSrcUnit].wrap_mode;
-	int is_rect = inst->U.I.TexSrcTarget == RC_TEXTURE_RECT ||
-		      compiler->state.unit[inst->U.I.TexSrcUnit].non_normalized_coords;
+	int is_rect = inst->U.I.TexSrcTarget == RC_TEXTURE_RECT;
 
 	if (inst->U.I.Opcode != RC_OPCODE_TEX &&
 		inst->U.I.Opcode != RC_OPCODE_TXB &&

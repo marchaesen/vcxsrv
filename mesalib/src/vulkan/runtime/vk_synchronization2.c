@@ -27,6 +27,7 @@
 #include "vk_device.h"
 #include "vk_queue.h"
 #include "vk_util.h"
+#include "../wsi/wsi_common.h"
 
 VKAPI_ATTR void VKAPI_CALL
 vk_common_CmdWriteTimestamp(
@@ -291,6 +292,7 @@ vk_common_QueueSubmit(
 
    STACK_ARRAY(VkSubmitInfo2KHR, submit_info_2, submitCount);
    STACK_ARRAY(VkPerformanceQuerySubmitInfoKHR, perf_query_submit_info, submitCount);
+   STACK_ARRAY(struct wsi_memory_signal_submit_info, wsi_mem_submit_info, submitCount);
 
    uint32_t n_wait_semaphores = 0;
    uint32_t n_command_buffers = 0;
@@ -373,6 +375,15 @@ vk_common_QueueSubmit(
          __vk_append_struct(&submit_info_2[s], &perf_query_submit_info[s]);
       }
 
+      const struct wsi_memory_signal_submit_info *mem_signal_info =
+         vk_find_struct_const(pSubmits[s].pNext,
+                              WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA);
+      if (mem_signal_info) {
+         wsi_mem_submit_info[s] = *mem_signal_info;
+         wsi_mem_submit_info[s].pNext = NULL;
+         __vk_append_struct(&submit_info_2[s], &wsi_mem_submit_info[s]);
+      }
+
       n_wait_semaphores += pSubmits[s].waitSemaphoreCount;
       n_command_buffers += pSubmits[s].commandBufferCount;
       n_signal_semaphores += pSubmits[s].signalSemaphoreCount;
@@ -388,6 +399,7 @@ vk_common_QueueSubmit(
    STACK_ARRAY_FINISH(signal_semaphores);
    STACK_ARRAY_FINISH(submit_info_2);
    STACK_ARRAY_FINISH(perf_query_submit_info);
+   STACK_ARRAY_FINISH(wsi_mem_submit_info);
 
    return result;
 }

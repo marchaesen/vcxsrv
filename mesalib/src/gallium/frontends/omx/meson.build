@@ -53,7 +53,6 @@ elif with_gallium_omx == 'tizonia'
   )
   inc_st_omx = [
     inc_st_omx,
-    inc_dri_common,
     inc_loader,
     inc_gbm,
     inc_st_dri,

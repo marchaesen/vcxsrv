@@ -709,6 +709,8 @@ fd_gmem_render_tiles(struct fd_batch *batch)
       if (psurf->u.tex.first_layer < psurf->u.tex.last_layer)
          sysmem = true;
    }
+   if (pfb->zsbuf && pfb->zsbuf->u.tex.first_layer < pfb->zsbuf->u.tex.last_layer)
+      sysmem = true;
 
    /* Tessellation doesn't seem to support tiled rendering so fall back to
     * bypass.

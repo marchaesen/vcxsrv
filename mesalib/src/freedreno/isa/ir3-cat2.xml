@@ -157,6 +157,32 @@ SOFTWARE.
 </bitset>
 
 
+<bitset name="#instruction-cat2-2src-input" extends="#instruction-cat2">
+	<display>
+		{SY}{SS}{JP}{SAT}{REPEAT}{UL}{NAME} {EI}{DST_HALF}{DST}, {SRC1}, {SRC2}
+	</display>
+
+	<field name="SRC1" low="0" high="15" type="#multisrc">
+		<param name="SRC1_R" as="SRC_R"/>
+		<param name="FULL"/>
+	</field>
+	<field name="SRC2" low="16" high="31" type="#multisrc">
+		<param name="SRC2_R" as="SRC_R"/>
+		<param name="FULL"/>
+	</field>
+	<pattern low="48" high="49">xx</pattern>  <!-- COND -->
+	<pattern low="53" high="58">111001</pattern>
+</bitset>
+
+<bitset name="bary.f" extends="#instruction-cat2-2src-input">
+	<pattern pos="50">0</pattern>
+</bitset>
+
+<bitset name="flat.b" extends="#instruction-cat2-2src-input">
+	<pattern pos="50">1</pattern>
+	<gen min="600"/>
+</bitset>
+
 <bitset name="add.f" extends="#instruction-cat2-2src">
 	<pattern low="53" high="58">000000</pattern>
 </bitset>
@@ -311,10 +337,6 @@ SOFTWARE.
 
 <bitset name="ashr.b" extends="#instruction-cat2-2src">
 	<pattern low="53" high="58">111000</pattern>
-</bitset>
-
-<bitset name="bary.f" extends="#instruction-cat2-2src">
-	<pattern low="53" high="58">111001</pattern>
 </bitset>
 
 <bitset name="mgen.b" extends="#instruction-cat2-2src">

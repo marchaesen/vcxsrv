@@ -26,8 +26,6 @@
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/compiler/v3d_compiler.h"
 
-#include "vk_format_info.h"
-
 static uint8_t
 blend_factor(VkBlendFactor factor, bool dst_alpha_one, bool *needs_constants)
 {
@@ -108,7 +106,7 @@ pack_blend(struct v3dv_pipeline *pipeline,
       if (!b_state->blendEnable)
          continue;
 
-      VkAttachmentDescription *desc =
+      VkAttachmentDescription2 *desc =
          &pipeline->pass->attachments[attachment_idx].desc;
       const struct v3dv_format *format = v3dX(get_format)(desc->format);
       bool dst_alpha_one = (format->swizzle[3] == PIPE_SWIZZLE_1);
@@ -390,6 +388,7 @@ pack_shader_state_record(struct v3dv_pipeline *pipeline)
        * shader needs to write the Z value (even just discards).
        */
       shader.fragment_shader_does_z_writes = prog_data_fs->writes_z;
+
       /* Set if the EZ test must be disabled (due to shader side
        * effects and the early_z flag not being present in the
        * shader).

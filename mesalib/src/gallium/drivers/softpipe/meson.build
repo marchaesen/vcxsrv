@@ -46,7 +46,6 @@ files_softpipe = files(
   'sp_quad.h',
   'sp_quad_pipe.c',
   'sp_quad_pipe.h',
-  'sp_quad_stipple.c',
   'sp_query.c',
   'sp_query.h',
   'sp_screen.c',

@@ -28,6 +28,7 @@
 #include "mtypes.h"
 #include "macros.h"
 #include "main/dispatch.h" /* for _gloffset_COUNT */
+#include "api_exec_decl.h"
 
 static void GLAPIENTRY
 _context_lost_GetSynciv(GLsync sync, GLenum pname, GLsizei bufSize,

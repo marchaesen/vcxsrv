@@ -62,7 +62,7 @@ static int amdgpu_surface_sanity(const struct pipe_resource *tex)
 
 static int amdgpu_surface_init(struct radeon_winsys *rws,
                                const struct pipe_resource *tex,
-                               unsigned flags, unsigned bpe,
+                               uint64_t flags, unsigned bpe,
                                enum radeon_surf_mode mode,
                                struct radeon_surf *surf)
 {

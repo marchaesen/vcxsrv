@@ -710,10 +710,10 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
       fd_wfi(ctx->batch, ring);
       OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
       OUT_RING(ring,
-               A3XX_GRAS_CL_VPORT_XOFFSET(ctx->viewport.translate[0] - 0.5));
+               A3XX_GRAS_CL_VPORT_XOFFSET(ctx->viewport.translate[0] - 0.5f));
       OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE(ctx->viewport.scale[0]));
       OUT_RING(ring,
-               A3XX_GRAS_CL_VPORT_YOFFSET(ctx->viewport.translate[1] - 0.5));
+               A3XX_GRAS_CL_VPORT_YOFFSET(ctx->viewport.translate[1] - 0.5f));
       OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(ctx->viewport.scale[1]));
       OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(ctx->viewport.translate[2]));
       OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(ctx->viewport.scale[2]));
@@ -816,13 +816,13 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
    if (dirty & FD_DIRTY_BLEND_COLOR) {
       struct pipe_blend_color *bcolor = &ctx->blend_color;
       OUT_PKT0(ring, REG_A3XX_RB_BLEND_RED, 4);
-      OUT_RING(ring, A3XX_RB_BLEND_RED_UINT(bcolor->color[0] * 255.0) |
+      OUT_RING(ring, A3XX_RB_BLEND_RED_UINT(CLAMP(bcolor->color[0], 0.f, 1.f) * 0xff) |
                         A3XX_RB_BLEND_RED_FLOAT(bcolor->color[0]));
-      OUT_RING(ring, A3XX_RB_BLEND_GREEN_UINT(bcolor->color[1] * 255.0) |
+      OUT_RING(ring, A3XX_RB_BLEND_GREEN_UINT(CLAMP(bcolor->color[1], 0.f, 1.f) * 0xff) |
                         A3XX_RB_BLEND_GREEN_FLOAT(bcolor->color[1]));
-      OUT_RING(ring, A3XX_RB_BLEND_BLUE_UINT(bcolor->color[2] * 255.0) |
+      OUT_RING(ring, A3XX_RB_BLEND_BLUE_UINT(CLAMP(bcolor->color[2], 0.f, 1.f) * 0xff) |
                         A3XX_RB_BLEND_BLUE_FLOAT(bcolor->color[2]));
-      OUT_RING(ring, A3XX_RB_BLEND_ALPHA_UINT(bcolor->color[3] * 255.0) |
+      OUT_RING(ring, A3XX_RB_BLEND_ALPHA_UINT(CLAMP(bcolor->color[3], 0.f, 1.f) * 0xff) |
                         A3XX_RB_BLEND_ALPHA_FLOAT(bcolor->color[3]));
    }
 
@@ -941,11 +941,11 @@ fd3_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    OUT_RING(ring, A3XX_RB_WINDOW_OFFSET_X(0) | A3XX_RB_WINDOW_OFFSET_Y(0));
 
    OUT_PKT0(ring, REG_A3XX_RB_BLEND_RED, 4);
-   OUT_RING(ring, A3XX_RB_BLEND_RED_UINT(0) | A3XX_RB_BLEND_RED_FLOAT(0.0));
-   OUT_RING(ring, A3XX_RB_BLEND_GREEN_UINT(0) | A3XX_RB_BLEND_GREEN_FLOAT(0.0));
-   OUT_RING(ring, A3XX_RB_BLEND_BLUE_UINT(0) | A3XX_RB_BLEND_BLUE_FLOAT(0.0));
+   OUT_RING(ring, A3XX_RB_BLEND_RED_UINT(0) | A3XX_RB_BLEND_RED_FLOAT(0.0f));
+   OUT_RING(ring, A3XX_RB_BLEND_GREEN_UINT(0) | A3XX_RB_BLEND_GREEN_FLOAT(0.0f));
+   OUT_RING(ring, A3XX_RB_BLEND_BLUE_UINT(0) | A3XX_RB_BLEND_BLUE_FLOAT(0.0f));
    OUT_RING(ring,
-            A3XX_RB_BLEND_ALPHA_UINT(0xff) | A3XX_RB_BLEND_ALPHA_FLOAT(1.0));
+            A3XX_RB_BLEND_ALPHA_UINT(0xff) | A3XX_RB_BLEND_ALPHA_FLOAT(1.0f));
 
    for (i = 0; i < 6; i++) {
       OUT_PKT0(ring, REG_A3XX_GRAS_CL_USER_PLANE(i), 4);

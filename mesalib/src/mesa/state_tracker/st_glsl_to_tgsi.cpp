@@ -31,10 +31,13 @@
  */
 
 #include "st_glsl_to_tgsi.h"
+#include "st_cb_program.h"
 
 #include "compiler/glsl/glsl_parser_extras.h"
 #include "compiler/glsl/ir_optimization.h"
+#include "compiler/glsl/linker.h"
 #include "compiler/glsl/program.h"
+#include "compiler/glsl/string_to_uint_map.h"
 
 #include "main/errors.h"
 #include "main/shaderobj.h"
@@ -104,6 +107,141 @@ static inline bool print_stats_enabled ()
 #define PRINT_STATS(X)
 #endif
 
+
+namespace {
+
+class add_uniform_to_shader : public program_resource_visitor {
+public:
+   add_uniform_to_shader(struct gl_context *ctx,
+                         struct gl_shader_program *shader_program,
+			 struct gl_program_parameter_list *params)
+      : ctx(ctx), shader_program(shader_program), params(params), idx(-1),
+        var(NULL)
+   {
+      /* empty */
+   }
+
+   void process(ir_variable *var)
+   {
+      this->idx = -1;
+      this->var = var;
+      this->program_resource_visitor::process(var,
+                                         ctx->Const.UseSTD430AsDefaultPacking);
+      var->data.param_index = this->idx;
+   }
+
+private:
+   virtual void visit_field(const glsl_type *type, const char *name,
+                            bool row_major, const glsl_type *record_type,
+                            const enum glsl_interface_packing packing,
+                            bool last_field);
+
+   struct gl_context *ctx;
+   struct gl_shader_program *shader_program;
+   struct gl_program_parameter_list *params;
+   int idx;
+   ir_variable *var;
+};
+
+} /* anonymous namespace */
+
+void
+add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
+                                   bool /* row_major */,
+                                   const glsl_type * /* record_type */,
+                                   const enum glsl_interface_packing,
+                                   bool /* last_field */)
+{
+   /* opaque types don't use storage in the param list unless they are
+    * bindless samplers or images.
+    */
+   if (type->contains_opaque() && !var->data.bindless)
+      return;
+
+   /* Add the uniform to the param list */
+   assert(_mesa_lookup_parameter_index(params, name) < 0);
+   int index = _mesa_lookup_parameter_index(params, name);
+
+   unsigned num_params = type->arrays_of_arrays_size();
+   num_params = MAX2(num_params, 1);
+   num_params *= type->without_array()->matrix_columns;
+
+   bool is_dual_slot = type->without_array()->is_dual_slot();
+   if (is_dual_slot)
+      num_params *= 2;
+
+   _mesa_reserve_parameter_storage(params, num_params, num_params);
+   index = params->NumParameters;
+
+   if (ctx->Const.PackedDriverUniformStorage) {
+      for (unsigned i = 0; i < num_params; i++) {
+         unsigned dmul = type->without_array()->is_64bit() ? 2 : 1;
+         unsigned comps = type->without_array()->vector_elements * dmul;
+         if (is_dual_slot) {
+            if (i & 0x1)
+               comps -= 4;
+            else
+               comps = 4;
+         }
+
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, name, comps,
+                             type->gl_type, NULL, NULL, false);
+      }
+   } else {
+      for (unsigned i = 0; i < num_params; i++) {
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, name, 4,
+                             type->gl_type, NULL, NULL, true);
+      }
+   }
+
+   /* The first part of the uniform that's processed determines the base
+    * location of the whole uniform (for structures).
+    */
+   if (this->idx < 0)
+      this->idx = index;
+
+   /* Each Parameter will hold the index to the backing uniform storage.
+    * This avoids relying on names to match parameters and uniform
+    * storages later when associating uniform storage.
+    */
+   unsigned location = -1;
+   ASSERTED const bool found =
+      shader_program->UniformHash->get(location, params->Parameters[index].Name);
+   assert(found);
+
+   for (unsigned i = 0; i < num_params; i++) {
+      struct gl_program_parameter *param = &params->Parameters[index + i];
+      param->UniformStorageIndex = location;
+      param->MainUniformStorageIndex = params->Parameters[this->idx].UniformStorageIndex;
+   }
+}
+
+/**
+ * Generate the program parameters list for the user uniforms in a shader
+ *
+ * \param shader_program Linked shader program.  This is only used to
+ *                       emit possible link errors to the info log.
+ * \param sh             Shader whose uniforms are to be processed.
+ * \param params         Parameter list to be filled in.
+ */
+static void
+generate_parameters_list_for_uniforms(struct gl_context *ctx,
+                                      struct gl_shader_program *shader_program,
+                                      struct gl_linked_shader *sh,
+                                      struct gl_program_parameter_list *params)
+{
+   add_uniform_to_shader add(ctx, shader_program, params);
+
+   foreach_in_list(ir_instruction, node, sh->ir) {
+      ir_variable *var = node->as_variable();
+
+      if ((var == NULL) || (var->data.mode != ir_var_uniform)
+	  || var->is_in_buffer_block() || (strncmp(var->name, "gl_", 3) == 0))
+	 continue;
+
+      add.process(var);
+   }
+}
 
 static unsigned is_precise(const ir_variable *ir)
 {
@@ -4941,7 +5079,7 @@ get_src_arg_mask(st_dst_reg dst, st_src_reg src)
  * instruction is the first instruction to write to register T0.  There are
  * several lowering passes done in GLSL IR (e.g. branches and
  * relative addressing) that create a large number of conditional assignments
- * that ir_to_mesa converts to CMP instructions like the one mentioned above.
+ * that glsl_to_tgsi converts to CMP instructions like the one mentioned above.
  *
  * Here is why this conversion is safe:
  * CMP T0, T1 T2 T0 can be expanded to:
@@ -7137,8 +7275,8 @@ get_mesa_program_tgsi(struct gl_context *ctx,
       pscreen->get_shader_param(pscreen, ptarget,
                                 PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS);
 
-   _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
-                                               prog->Parameters);
+   generate_parameters_list_for_uniforms(ctx, shader_program, shader,
+                                         prog->Parameters);
 
    /* Remove reads from output registers. */
    if (!pscreen->get_param(pscreen, PIPE_CAP_TGSI_CAN_READ_OUTPUTS))
@@ -7382,9 +7520,9 @@ st_link_tgsi(struct gl_context *ctx, struct gl_shader_program *prog)
             (linked_prog->sh.LinkedTransformFeedback &&
              linked_prog->sh.LinkedTransformFeedback->NumVarying);
 
-         if (!ctx->Driver.ProgramStringNotify(ctx,
-                                              _mesa_shader_stage_to_program(i),
-                                              linked_prog)) {
+         if (!st_program_string_notify(ctx,
+                                       _mesa_shader_stage_to_program(i),
+                                       linked_prog)) {
             _mesa_reference_program(ctx, &shader->Program, NULL);
             return GL_FALSE;
          }

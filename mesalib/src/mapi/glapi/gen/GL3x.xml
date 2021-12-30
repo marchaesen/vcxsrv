@@ -117,25 +117,25 @@
 
   <!-- These functions are unique to GL3 -->
 
-  <function name="ClearBufferiv" es2="3.0" no_error="true">
+  <function name="ClearBufferiv" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="value" type="const GLint *" count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
-  <function name="ClearBufferuiv" es2="3.0" no_error="true">
+  <function name="ClearBufferuiv" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="value" type="const GLuint *" count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
-  <function name="ClearBufferfv" es2="3.0" no_error="true">
+  <function name="ClearBufferfv" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="value" type="const GLfloat *" count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
-  <function name="ClearBufferfi" es2="3.0" no_error="true">
+  <function name="ClearBufferfi" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="depth" type="GLfloat"/>
@@ -148,7 +148,7 @@
       <return type="const GLubyte *"/>
   </function>
 
-  <function name="ClampColor">
+  <function name="ClampColor" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="clamp" type="GLenum"/>
     <glx rop="234"/>
@@ -156,7 +156,7 @@
 
   <!-- These functions alias ones form GL_ARB_draw_buffers2 -->
 
-  <function name="ColorMaski" es2="3.2">
+  <function name="ColorMaski" es2="3.2" exec="dlist">
     <param name="buf" type="GLuint"/>
     <param name="r" type="GLboolean"/>
     <param name="g" type="GLboolean"/>
@@ -176,12 +176,12 @@
     <param name="data" type="GLint *"/>
   </function>
 
-  <function name="Enablei" es2="3.2">
+  <function name="Enablei" es2="3.2" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
   </function>
 
-  <function name="Disablei" es2="3.2">
+  <function name="Disablei" es2="3.2" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
   </function>
@@ -206,11 +206,11 @@
     <param name="name" type="const GLchar *" count="(strlen(name) + 1)"/>
   </function>
 
-  <function name="BeginTransformFeedback" es2="3.0" no_error="true">
+  <function name="BeginTransformFeedback" es2="3.0" no_error="true" exec="dlist">
     <param name="mode" type="GLenum"/>
   </function>
 
-  <function name="EndTransformFeedback" es2="3.0" no_error="true">
+  <function name="EndTransformFeedback" es2="3.0" no_error="true" exec="dlist">
   </function>
 
   <function name="BindBufferRange" es2="3.0" no_error="true">
@@ -246,12 +246,12 @@
 
   <!-- These functions alias ones from GL_NV_conditional_render -->
 
-  <function name="BeginConditionalRender" no_error="true">
+  <function name="BeginConditionalRender" no_error="true" exec="dlist">
     <param name="query" type="GLuint"/>
     <param name="mode" type="GLenum"/>
   </function>
 
-  <function name="EndConditionalRender" no_error="true">
+  <function name="EndConditionalRender" no_error="true" exec="dlist">
   </function>
 
   <!-- These functions alias ones from GL_EXT_gpu_shader4 -->
@@ -330,7 +330,7 @@
     <param name="w" type="GLuint"/>
   </function>
 
-  <function name="VertexAttribI1iv" exec="dynamic">
+  <function name="VertexAttribI1iv" exec="vtxfmt">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLint *" count="1"/>
   </function>
@@ -350,7 +350,7 @@
     <param name="v" type="const GLint *"/>
   </function>
 
-  <function name="VertexAttribI1uiv" exec="dynamic">
+  <function name="VertexAttribI1uiv" exec="vtxfmt">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLuint *" count="1"/>
   </function>
@@ -370,22 +370,22 @@
     <param name="v" type="const GLuint *"/>
   </function>
 
-  <function name="VertexAttribI4bv" exec="dynamic">
+  <function name="VertexAttribI4bv" exec="vtxfmt">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLbyte *" count="4"/>
   </function>
 
-  <function name="VertexAttribI4sv" exec="dynamic">
+  <function name="VertexAttribI4sv" exec="vtxfmt">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLshort *" count="4"/>
   </function>
 
-  <function name="VertexAttribI4ubv" exec="dynamic">
+  <function name="VertexAttribI4ubv" exec="vtxfmt">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLubyte *" count="4"/>
   </function>
 
-  <function name="VertexAttribI4usv" exec="dynamic">
+  <function name="VertexAttribI4usv" exec="vtxfmt">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLushort *" count="4"/>
   </function>
@@ -396,25 +396,25 @@
     <param name="params" type="GLuint *"/>
   </function>
 
-  <function name="Uniform1ui" es2="3.0">
+  <function name="Uniform1ui" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="x" type="GLuint"/>
   </function>
 
-  <function name="Uniform2ui" es2="3.0">
+  <function name="Uniform2ui" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="x" type="GLuint"/>
     <param name="y" type="GLuint"/>
   </function>
 
-  <function name="Uniform3ui" es2="3.0">
+  <function name="Uniform3ui" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="x" type="GLuint"/>
     <param name="y" type="GLuint"/>
     <param name="z" type="GLuint"/>
   </function>
 
-  <function name="Uniform4ui" es2="3.0">
+  <function name="Uniform4ui" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="x" type="GLuint"/>
     <param name="y" type="GLuint"/>
@@ -422,25 +422,25 @@
     <param name="w" type="GLuint"/>
   </function>
 
-  <function name="Uniform1uiv" es2="3.0">
+  <function name="Uniform1uiv" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="count" type="GLsizei" counter="true"/>
     <param name="value" type="const GLuint *" count="count"/>
   </function>
 
-  <function name="Uniform2uiv" es2="3.0">
+  <function name="Uniform2uiv" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="count" type="GLsizei" counter="true"/>
     <param name="value" type="const GLuint *" count="count" count_scale="2"/>
   </function>
 
-  <function name="Uniform3uiv" es2="3.0">
+  <function name="Uniform3uiv" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="count" type="GLsizei" counter="true"/>
     <param name="value" type="const GLuint *" count="count" count_scale="3"/>
   </function>
 
-  <function name="Uniform4uiv" es2="3.0">
+  <function name="Uniform4uiv" es2="3.0" exec="dlist">
     <param name="location" type="GLint"/>
     <param name="count" type="GLsizei" counter="true"/>
     <param name="value" type="const GLuint *" count="count" count_scale="4"/>
@@ -448,13 +448,13 @@
 
   <!-- These functions alias ones from GL_EXT_texture_integer -->
 
-  <function name="TexParameterIiv" es2="3.2">
+  <function name="TexParameterIiv" es2="3.2" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
     <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
   </function>
 
-  <function name="TexParameterIuiv" es2="3.2">
+  <function name="TexParameterIuiv" es2="3.2" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
     <param name="params" type="const GLuint *" count="_mesa_tex_param_enum_to_count(pname)"/>
@@ -626,7 +626,7 @@
   <enum name="TEXTURE_SWIZZLE_A"                value="0x8E45"/>
   <enum name="TEXTURE_SWIZZLE_RGBA"             value="0x8E46"/>
 
-  <function name="VertexAttribDivisor" es2="3.0" no_error="true"
+  <function name="VertexAttribDivisor" es2="3.0" no_error="true" exec="dlist"
             marshal_call_after="if (COMPAT) _mesa_glthread_AttribDivisor(ctx, NULL, VERT_ATTRIB_GENERIC(index), divisor);">
     <param name="index" type="GLuint"/>
     <param name="divisor" type="GLuint"/>

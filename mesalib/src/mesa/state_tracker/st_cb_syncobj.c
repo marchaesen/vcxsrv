@@ -46,7 +46,7 @@ struct st_sync_object {
 };
 
 
-static struct gl_sync_object *st_new_sync_object(struct gl_context *ctx)
+struct gl_sync_object *st_new_sync_object(struct gl_context *ctx)
 {
    struct st_sync_object *so = CALLOC_STRUCT(st_sync_object);
 
@@ -54,8 +54,8 @@ static struct gl_sync_object *st_new_sync_object(struct gl_context *ctx)
    return &so->b;
 }
 
-static void st_delete_sync_object(struct gl_context *ctx,
-                                  struct gl_sync_object *obj)
+void st_delete_sync_object(struct gl_context *ctx,
+                           struct gl_sync_object *obj)
 {
    struct pipe_screen *screen = st_context(ctx)->screen;
    struct st_sync_object *so = (struct st_sync_object*)obj;
@@ -66,8 +66,8 @@ static void st_delete_sync_object(struct gl_context *ctx,
    free(so);
 }
 
-static void st_fence_sync(struct gl_context *ctx, struct gl_sync_object *obj,
-                          GLenum condition, GLbitfield flags)
+void st_fence_sync(struct gl_context *ctx, struct gl_sync_object *obj,
+                   GLenum condition, GLbitfield flags)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
    struct st_sync_object *so = (struct st_sync_object*)obj;
@@ -79,9 +79,9 @@ static void st_fence_sync(struct gl_context *ctx, struct gl_sync_object *obj,
    pipe->flush(pipe, &so->fence, ctx->Shared->RefCount == 1 ? PIPE_FLUSH_DEFERRED : 0);
 }
 
-static void st_client_wait_sync(struct gl_context *ctx,
-                                struct gl_sync_object *obj,
-                                GLbitfield flags, GLuint64 timeout)
+void st_client_wait_sync(struct gl_context *ctx,
+                         struct gl_sync_object *obj,
+                         GLbitfield flags, GLuint64 timeout)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
    struct pipe_screen *screen = st_context(ctx)->screen;
@@ -123,14 +123,14 @@ static void st_client_wait_sync(struct gl_context *ctx,
    screen->fence_reference(screen, &fence, NULL);
 }
 
-static void st_check_sync(struct gl_context *ctx, struct gl_sync_object *obj)
+void st_check_sync(struct gl_context *ctx, struct gl_sync_object *obj)
 {
    st_client_wait_sync(ctx, obj, 0, 0);
 }
 
-static void st_server_wait_sync(struct gl_context *ctx,
-                                struct gl_sync_object *obj,
-                                GLbitfield flags, GLuint64 timeout)
+void st_server_wait_sync(struct gl_context *ctx,
+                         struct gl_sync_object *obj,
+                         GLbitfield flags, GLuint64 timeout)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
    struct pipe_screen *screen = st_context(ctx)->screen;
@@ -158,12 +158,3 @@ static void st_server_wait_sync(struct gl_context *ctx,
    screen->fence_reference(screen, &fence, NULL);
 }
 
-void st_init_syncobj_functions(struct dd_function_table *functions)
-{
-   functions->NewSyncObject = st_new_sync_object;
-   functions->FenceSync = st_fence_sync;
-   functions->DeleteSyncObject = st_delete_sync_object;
-   functions->CheckSync = st_check_sync;
-   functions->ClientWaitSync = st_client_wait_sync;
-   functions->ServerWaitSync = st_server_wait_sync;
-}

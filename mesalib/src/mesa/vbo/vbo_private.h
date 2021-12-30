@@ -255,7 +255,12 @@ _vbo_set_attrib_format(struct gl_context *ctx,
       size /= 2;
    _mesa_update_array_format(ctx, vao, attr, size, type, GL_RGBA,
                              GL_FALSE, integer, doubles, offset);
-   vao->NewArrays |= vao->Enabled & VERT_BIT(attr);
+
+   if (vao->Enabled & VERT_BIT(attr)) {
+      vao->NewVertexBuffers = true;
+      vao->NewVertexElements = true;
+   }
+
    vao->VertexAttrib[attr].Ptr = ADD_POINTERS(buffer_offset, offset);
 }
 

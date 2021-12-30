@@ -42,8 +42,6 @@ Software drivers include:
 -  :doc:`LLVMpipe <drivers/llvmpipe>` - uses LLVM for x86 JIT code generation
    and is multi-threaded
 -  Softpipe - a reference Gallium driver
--  :doc:`OpenSWR <drivers/openswr>` - x86-optimized software renderer
-   for visualization workloads
 
 Additional driver information:
 

@@ -442,6 +442,9 @@ When setting this on the current config this causes changing current config
 @DESC@
 Initialize 'iter' with the first iterator in the config file information list.
     </para><para>
+The config file information list is stored in numerical order for filenames
+i.e. how fontconfig actually read them.
+    </para><para>
 This function isn't MT-safe. <function>FcConfigReference</function> must be called
 before using this and then <function>FcConfigDestroy</function> when the relevant
 values are no longer referenced.

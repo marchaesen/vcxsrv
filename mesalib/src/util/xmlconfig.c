@@ -320,7 +320,7 @@ driParseOptionInfo(driOptionCache *info,
    /* Make the hash table big enough to fit more than the maximum number of
     * config options we've ever seen in a driver.
     */
-   info->tableSize = 6;
+   info->tableSize = 7;
    info->info = calloc((size_t)1 << info->tableSize, sizeof(driOptionInfo));
    info->values = calloc((size_t)1 << info->tableSize, sizeof(driOptionValue));
    if (info->info == NULL || info->values == NULL) {
@@ -681,6 +681,7 @@ parseAppAttr(struct OptConfData *data, const char **attr)
    uint32_t i;
    const char *exec = NULL;
    const char *sha1 = NULL;
+   const char *exec_regexp = NULL;
    const char *application_name_match = NULL;
    const char *application_versions = NULL;
    driOptionInfo version_range = {
@@ -690,6 +691,7 @@ parseAppAttr(struct OptConfData *data, const char **attr)
    for (i = 0; attr[i]; i += 2) {
       if (!strcmp(attr[i], "name")) /* not needed here */;
       else if (!strcmp(attr[i], "executable")) exec = attr[i+1];
+      else if (!strcmp(attr[i], "executable_regexp")) exec_regexp = attr[i+1];
       else if (!strcmp(attr[i], "sha1")) sha1 = attr[i+1];
       else if (!strcmp(attr[i], "application_name_match"))
          application_name_match = attr[i+1];
@@ -699,6 +701,15 @@ parseAppAttr(struct OptConfData *data, const char **attr)
    }
    if (exec && strcmp(exec, data->execName)) {
       data->ignoringApp = data->inApp;
+   } else if (exec_regexp) {
+      regex_t re;
+
+      if (regcomp(&re, exec_regexp, REG_EXTENDED|REG_NOSUB) == 0) {
+         if (regexec(&re, data->execName, 0, NULL, 0) == REG_NOMATCH)
+            data->ignoringApp = data->inApp;
+         regfree(&re);
+      } else
+         XML_WARNING("Invalid executable_regexp=\"%s\".", exec_regexp);
    } else if (sha1) {
       /* SHA1_DIGEST_STRING_LENGTH includes terminating null byte */
       if (strlen(sha1) != (SHA1_DIGEST_STRING_LENGTH - 1)) {
@@ -998,7 +1009,10 @@ scandir_filter(const struct dirent *ent)
        (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode)))
       return 0;
 #else
-   if (ent->d_type != DT_REG && ent->d_type != DT_LNK)
+   /* Allow through unknown file types for filesystems that don't support d_type
+    * The full filepath isn't available here to stat the file
+    */
+   if (ent->d_type != DT_REG && ent->d_type != DT_LNK && ent->d_type != DT_UNKNOWN)
       return 0;
 #endif
 
@@ -1022,9 +1036,25 @@ parseConfigDir(struct OptConfData *data, const char *dirname)
 
    for (i = 0; i < count; i++) {
       char filename[PATH_MAX];
+#ifdef DT_REG
+      unsigned char d_type = entries[i]->d_type;
+#endif
 
       snprintf(filename, PATH_MAX, "%s/%s", dirname, entries[i]->d_name);
       free(entries[i]);
+
+#ifdef DT_REG
+      /* In the case of unknown d_type, ensure it is a regular file
+       * This can be accomplished with stat on the full filepath
+       */
+      if (d_type == DT_UNKNOWN) {
+         struct stat st;
+         if (stat(filename, &st) != 0 ||
+             !S_ISREG(st.st_mode)) {
+            continue;
+         }
+      }
+#endif
 
       parseOneConfigFile(data, filename);
    }

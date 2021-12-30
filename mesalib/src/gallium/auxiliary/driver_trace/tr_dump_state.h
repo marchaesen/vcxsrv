@@ -94,7 +94,7 @@ void trace_dump_draw_indirect_info(const struct pipe_draw_indirect_info *state);
 
 void trace_dump_blit_info(const struct pipe_blit_info *);
 
-void trace_dump_query_result(unsigned query_type,
+void trace_dump_query_result(unsigned query_type, unsigned index,
                              const union pipe_query_result *result);
 
 void trace_dump_grid_info(const struct pipe_grid_info *state);

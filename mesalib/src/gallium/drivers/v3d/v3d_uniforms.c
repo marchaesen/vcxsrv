@@ -23,7 +23,6 @@
 
 #include "util/u_pack_color.h"
 #include "util/u_upload_mgr.h"
-#include "util/format_srgb.h"
 
 #include "v3d_context.h"
 #include "compiler/v3d_compiler.h"
@@ -55,20 +54,27 @@ get_texture_size(struct v3d_texture_stateobj *texstate,
                  uint32_t data)
 {
         struct pipe_sampler_view *texture = texstate->textures[data];
-
         switch (contents) {
         case QUNIFORM_TEXTURE_WIDTH:
-                return u_minify(texture->texture->width0,
-                                texture->u.tex.first_level);
+                if (texture->target == PIPE_BUFFER) {
+                        return texture->u.buf.size /
+                                util_format_get_blocksize(texture->format);
+                } else {
+                        return u_minify(texture->texture->width0,
+                                        texture->u.tex.first_level);
+                }
         case QUNIFORM_TEXTURE_HEIGHT:
                 return u_minify(texture->texture->height0,
                                 texture->u.tex.first_level);
         case QUNIFORM_TEXTURE_DEPTH:
+                assert(texture->target != PIPE_BUFFER);
                 return u_minify(texture->texture->depth0,
                                 texture->u.tex.first_level);
         case QUNIFORM_TEXTURE_ARRAY_SIZE:
+                assert(texture->target != PIPE_BUFFER);
                 return texture->texture->array_size;
         case QUNIFORM_TEXTURE_LEVELS:
+                assert(texture->target != PIPE_BUFFER);
                 return (texture->u.tex.last_level -
                         texture->u.tex.first_level) + 1;
         default:
@@ -85,15 +91,23 @@ get_image_size(struct v3d_shaderimg_stateobj *shaderimg,
 
         switch (contents) {
         case QUNIFORM_IMAGE_WIDTH:
-                return u_minify(image->base.resource->width0,
-                                image->base.u.tex.level);
+                if (image->base.resource->target == PIPE_BUFFER) {
+                        return image->base.u.buf.size /
+                                util_format_get_blocksize(image->base.format);
+                } else {
+                        return u_minify(image->base.resource->width0,
+                                        image->base.u.tex.level);
+                }
         case QUNIFORM_IMAGE_HEIGHT:
+                assert(image->base.resource->target != PIPE_BUFFER);
                 return u_minify(image->base.resource->height0,
                                 image->base.u.tex.level);
         case QUNIFORM_IMAGE_DEPTH:
+                assert(image->base.resource->target != PIPE_BUFFER);
                 return u_minify(image->base.resource->depth0,
                                 image->base.u.tex.level);
         case QUNIFORM_IMAGE_ARRAY_SIZE:
+                assert(image->base.resource->target != PIPE_BUFFER);
                 return image->base.resource->array_size;
         default:
                 unreachable("Bad texture size field");
@@ -158,6 +172,20 @@ write_tmu_p0(struct v3d_job *job,
         int unit = v3d_unit_data_get_unit(data);
         struct pipe_sampler_view *psview = texstate->textures[unit];
         struct v3d_sampler_view *sview = v3d_sampler_view(psview);
+        /* GL_OES_texture_buffer spec:
+         *     "If no buffer object is bound to the buffer texture, the
+         *      results of the texel access are undefined."
+         *
+         * This can be interpreted as allowing any result to come back, but
+         * not terminate the program (and some tests interpret that).
+         *
+         * FIXME: just return is not a full valid solution, as it could still
+         * try to get a wrong address for the shader state address. Perhaps we
+         * would need to set up a BO with a "default texture state"
+         */
+        if (sview == NULL)
+                return;
+
         struct v3d_resource *rsc = v3d_resource(sview->texture);
 
         cl_aligned_reloc(&job->indirect, uniforms, sview->bo,
@@ -199,6 +227,15 @@ write_tmu_p1(struct v3d_job *job,
         struct pipe_sampler_view *psview = texstate->textures[unit];
         struct v3d_sampler_view *sview = v3d_sampler_view(psview);
         int variant = 0;
+
+        /* If we are being asked by the compiler to write parameter 1, then we
+         * need that. So if we are at this point, we should expect to have a
+         * sampler and psampler. As an additional assert, we can check that we
+         * are not on a texel buffer case, as these don't have a sampler.
+         */
+        assert(psview->target != PIPE_BUFFER);
+        assert(sampler);
+        assert(psampler);
 
         if (sampler->border_color_variants)
                 variant = sview->sampler_variant;

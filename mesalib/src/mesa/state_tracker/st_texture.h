@@ -287,7 +287,8 @@ st_texture_create(struct st_context *st,
                   GLuint depth0,
                   GLuint layers,
                   GLuint nr_samples,
-                  GLuint tex_usage );
+                  GLuint tex_usage,
+                  bool sparse);
 
 
 extern void

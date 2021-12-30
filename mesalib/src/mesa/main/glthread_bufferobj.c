@@ -34,27 +34,28 @@ new_upload_buffer(struct gl_context *ctx, GLsizeiptr size, uint8_t **ptr)
 {
    assert(ctx->GLThread.SupportsBufferUploads);
 
-   struct gl_buffer_object *obj = ctx->Driver.NewBufferObject(ctx, -1);
+   struct gl_buffer_object *obj =
+      _mesa_bufferobj_alloc(ctx, -1);
    if (!obj)
       return NULL;
 
    obj->Immutable = true;
 
-   if (!ctx->Driver.BufferData(ctx, GL_ARRAY_BUFFER, size, NULL,
-                               GL_WRITE_ONLY,
-                               GL_CLIENT_STORAGE_BIT | GL_MAP_WRITE_BIT,
-                               obj)) {
-      ctx->Driver.DeleteBuffer(ctx, obj);
+   if (!_mesa_bufferobj_data(ctx, GL_ARRAY_BUFFER, size, NULL,
+                          GL_WRITE_ONLY,
+                          GL_CLIENT_STORAGE_BIT | GL_MAP_WRITE_BIT,
+                          obj)) {
+      _mesa_delete_buffer_object(ctx, obj);
       return NULL;
    }
 
-   *ptr = ctx->Driver.MapBufferRange(ctx, 0, size,
-                                     GL_MAP_WRITE_BIT |
-                                     GL_MAP_UNSYNCHRONIZED_BIT |
-                                     MESA_MAP_THREAD_SAFE_BIT,
-                                     obj, MAP_GLTHREAD);
+   *ptr = _mesa_bufferobj_map_range(ctx, 0, size,
+                                 GL_MAP_WRITE_BIT |
+                                 GL_MAP_UNSYNCHRONIZED_BIT |
+                                 MESA_MAP_THREAD_SAFE_BIT,
+                                 obj, MAP_GLTHREAD);
    if (!*ptr) {
-      ctx->Driver.DeleteBuffer(ctx, obj);
+      _mesa_delete_buffer_object(ctx, obj);
       return NULL;
    }
 
@@ -194,6 +195,9 @@ _mesa_glthread_BindBuffer(struct gl_context *ctx, GLenum target, GLuint buffer)
       break;
    case GL_PIXEL_UNPACK_BUFFER:
       glthread->CurrentPixelUnpackBufferName = buffer;
+      break;
+   case GL_QUERY_BUFFER:
+      glthread->CurrentQueryBufferName = buffer;
       break;
    }
 }

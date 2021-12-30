@@ -27,13 +27,15 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+struct vk_sync;
+
 /* VK_EXT_display_control */
 VkResult
 wsi_register_device_event(VkDevice                      device,
                           struct wsi_device             *wsi_device,
                           const VkDeviceEventInfoEXT    *device_event_info,
                           const VkAllocationCallbacks   *allocator,
-                          struct wsi_fence              **fence,
+                          struct vk_sync                **sync,
                           int sync_fd);
 
 VkResult
@@ -42,7 +44,7 @@ wsi_register_display_event(VkDevice                     device,
                            VkDisplayKHR                 display,
                            const VkDisplayEventInfoEXT  *display_event_info,
                            const VkAllocationCallbacks  *allocator,
-                           struct wsi_fence             **fence,
+                           struct vk_sync               **sync,
                            int sync_fd);
 
 #endif

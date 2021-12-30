@@ -48,6 +48,8 @@ if __name__ == '__main__':
                         help='Path to installed library')
     parser.add_argument('--out', required=False,
                         help='Output json file.')
+    parser.add_argument('--use-backslash', action='store_true',
+                        help='Use backslash (Windows).')
     args = parser.parse_args()
 
     version = args.api_version
@@ -57,10 +59,14 @@ if __name__ == '__main__':
     else:
         re.match(r'\d+\.\d+\.\d+', version)
 
+    lib_path = args.lib_path
+    if args.use_backslash:
+        lib_path = lib_path.replace('/', '\\')
+
     json_data = {
         'file_format_version': '1.0.0',
         'ICD': {
-            'library_path': args.lib_path,
+            'library_path': lib_path,
             'api_version': version,
         },
     }

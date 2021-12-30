@@ -37,7 +37,7 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
 
    h264 = buf->data;
    context->desc.h264enc.frame_num = h264->frame_num;
-   context->desc.h264enc.not_referenced = false;
+   context->desc.h264enc.not_referenced = !h264->pic_fields.bits.reference_pic_flag;
    context->desc.h264enc.pic_order_cnt = h264->CurrPic.TopFieldOrderCnt;
    if (context->desc.h264enc.gop_cnt == 0)
       context->desc.h264enc.i_remain = context->gop_coeff;

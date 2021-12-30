@@ -29,6 +29,7 @@
  */
 
 #include "nir_to_dxil.h"
+#include "dxil_validation.h"
 #include "spirv/nir_spirv.h"
 #include "spirv_to_dxil.h"
 
@@ -68,16 +69,20 @@ main(int argc, char **argv)
    char *entry_point = "main";
    char *output_file = "";
    int ch;
-
+   bool validate = false;
+   
    static struct option long_options[] = {
       {"stage", required_argument, 0, 's'},
       {"entry", required_argument, 0, 'e'},
       {"output", required_argument, 0, 'o'},
+      {"validate", no_argument, 0, 'v'},
       {0, 0, 0, 0}};
 
-   while ((ch = getopt_long(argc, argv, "s:e:o:", long_options, NULL)) !=
+
+   while ((ch = getopt_long(argc, argv, "s:e:o:v", long_options, NULL)) !=
           -1) {
-      switch (ch) {
+      switch(ch)
+      {
       case 's':
          shader_stage = stage_to_enum(optarg);
          if (shader_stage == MESA_SHADER_NONE) {
@@ -90,6 +95,9 @@ main(int argc, char **argv)
          break;
       case 'o':
          output_file = optarg;
+         break;
+      case 'v':
+         validate = true;
          break;
       default:
          fprintf(stderr, "Unrecognized option.\n");
@@ -132,6 +140,14 @@ main(int argc, char **argv)
    if (spirv_to_dxil((uint32_t *)file_contents, word_count, NULL, 0,
                      (dxil_spirv_shader_stage)shader_stage, entry_point,
                      &conf, &obj)) {
+
+      if (validate && !validate_dxil(&obj)) {
+         fprintf(stderr, "Failed to validate DXIL\n");
+         spirv_to_dxil_free(&obj);
+         free(file_contents);
+         return 1;
+      }
+
       FILE *file = fopen(output_file, "wb");
       if (!file) {
          fprintf(stderr, "Failed to open %s, %s\n", output_file,

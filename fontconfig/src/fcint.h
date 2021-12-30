@@ -438,8 +438,6 @@ struct _FcCache {
  * Used while constructing a directory cache object
  */
 
-#define FC_SERIALIZE_HASH_SIZE	8191
-
 typedef union _FcAlign {
     double	d;
     int		i;
@@ -449,9 +447,9 @@ typedef union _FcAlign {
 } FcAlign;
 
 typedef struct _FcSerializeBucket {
-    struct _FcSerializeBucket *next;
-    const void	*object;
-    intptr_t	offset;
+    const void	*object; /* key */
+    uintptr_t	hash;    /* hash of key */
+    intptr_t	offset;  /* value */
 } FcSerializeBucket;
 
 typedef struct _FcCharSetFreezer FcCharSetFreezer;
@@ -460,7 +458,10 @@ typedef struct _FcSerialize {
     intptr_t		size;
     FcCharSetFreezer	*cs_freezer;
     void		*linear;
-    FcSerializeBucket	*buckets[FC_SERIALIZE_HASH_SIZE];
+    FcSerializeBucket	*buckets;
+    size_t		buckets_count;
+    size_t		buckets_used;
+    size_t		buckets_used_max;
 } FcSerialize;
 
 /*

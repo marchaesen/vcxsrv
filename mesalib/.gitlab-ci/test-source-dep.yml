@@ -30,10 +30,6 @@
       - src/loader/**/*
       - src/mapi/**/*
       - src/mesa/*
-      - src/mesa/drivers/*
-      - src/mesa/drivers/common/**/*
-      - src/mesa/drivers/dri/*
-      - src/mesa/drivers/dri/common/**/*
       - src/mesa/main/**/*
       - src/mesa/math/**/*
       - src/mesa/program/**/*
@@ -41,8 +37,6 @@
       - src/mesa/state_tracker/**/*
       - src/mesa/swrast/**/*
       - src/mesa/swrast_setup/**/*
-      - src/mesa/tnl/**/*
-      - src/mesa/tnl_dd/**/*
       - src/mesa/vbo/**/*
       - src/mesa/x86/**/*
       - src/mesa/x86-64/**/*
@@ -434,6 +428,23 @@
       when: on_success
     - when: never
 
+.crocus-rules:
+  stage: intel
+  rules:
+    - *ignore_scheduled_pipelines
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/crocus/**/*
+      - src/gallium/winsys/crocus/**/*
+      - src/intel/**/*
+      when: on_success
+    - when: never
+
 .iris-rules:
   stage: intel
   rules:
@@ -514,6 +525,9 @@
       when: on_success
     - changes:
         *gallium_core_file_list
+      when: on_success
+    - changes:
+        *softpipe_file_list
       when: on_success
     - changes:
         *lavapipe_file_list

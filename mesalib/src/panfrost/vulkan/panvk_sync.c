@@ -238,6 +238,9 @@ panvk_DestroyFence(VkDevice _device, VkFence _fence,
    VK_FROM_HANDLE(panvk_device, device, _device);
    VK_FROM_HANDLE(panvk_fence, fence, _fence);
 
+   if (!fence)
+      return;
+
    sync_destroy(device, &fence->syncobj);
    vk_object_free(&device->vk, pAllocator, fence);
 }

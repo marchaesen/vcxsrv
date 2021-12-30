@@ -49,7 +49,7 @@ void crocus_blitter_begin(struct crocus_context *ice, enum crocus_blitter_op op,
       util_blitter_save_depth_stencil_alpha(ice->blitter, ice->state.cso_zsa);
       util_blitter_save_stencil_ref(ice->blitter, &ice->state.stencil_ref);
       util_blitter_save_fragment_shader(ice->blitter, ice->shaders.uncompiled[MESA_SHADER_FRAGMENT]);
-      util_blitter_save_sample_mask(ice->blitter, ice->state.sample_mask);
+      util_blitter_save_sample_mask(ice->blitter, ice->state.sample_mask, 0);
       util_blitter_save_rasterizer(ice->blitter, ice->state.cso_rast);
       util_blitter_save_scissor(ice->blitter, &ice->state.scissors[0]);
       util_blitter_save_viewport(ice->blitter, &ice->state.viewports[0]);

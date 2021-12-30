@@ -14,8 +14,6 @@
 #include "ssh.h"
 #include "ssh/sftp.h"
 
-const char *const appname = "PSFTP";
-
 /*
  * Since SFTP is a request-response oriented protocol, it requires
  * no buffer management: when we send data, we stop and wait for an
@@ -48,6 +46,7 @@ static const SeatVtable psftp_seat_vt = {
     .output = psftp_output,
     .eof = psftp_eof,
     .sent = nullseat_sent,
+    .banner = nullseat_banner_to_stderr,
     .get_userpass_input = filexfer_get_userpass_input,
     .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
@@ -67,6 +66,7 @@ static const SeatVtable psftp_seat_vt = {
     .stripctrl_new = console_stripctrl_new,
     .set_trust_status = nullseat_set_trust_status,
     .can_set_trust_status = nullseat_can_set_trust_status_yes,
+    .has_mixed_input_stream = nullseat_has_mixed_input_stream_no,
     .verbose = cmdline_seat_verbose,
     .interactive = nullseat_interactive_yes,
     .get_cursor_position = nullseat_get_cursor_position,

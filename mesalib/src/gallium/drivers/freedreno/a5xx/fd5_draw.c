@@ -74,7 +74,6 @@ fd5_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
              const struct pipe_draw_start_count_bias *draw,
              unsigned index_offset) in_dt
 {
-   struct fd5_context *fd5_ctx = fd5_context(ctx);
    struct fd5_emit emit = {
       .debug = &ctx->debug,
       .vtx = &ctx->vtx,
@@ -87,9 +86,6 @@ fd5_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
          .fs = ctx->prog.fs,
          .key = {
             .rasterflat = ctx->rasterizer->flatshade,
-            .has_per_samp = fd5_ctx->fastc_srgb || fd5_ctx->vastc_srgb,
-            .vastc_srgb = fd5_ctx->vastc_srgb,
-            .fastc_srgb = fd5_ctx->fastc_srgb,
          },
       },
       .rasterflat = ctx->rasterizer->flatshade,
@@ -183,7 +179,7 @@ fd5_clear_lrz(struct fd_batch *batch, struct fd_resource *zsbuf, double depth)
 
    OUT_PKT4(ring, REG_A5XX_GRAS_SU_CNTL, 1);
    OUT_RING(ring,
-            A5XX_GRAS_SU_CNTL_LINEHALFWIDTH(0.0) |
+            A5XX_GRAS_SU_CNTL_LINEHALFWIDTH(0.0f) |
                A5XX_GRAS_SU_CNTL_LINE_MODE(zsbuf->b.b.nr_samples  > 1 ?
                                            RECTANGULAR : BRESENHAM));
 

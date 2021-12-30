@@ -32,7 +32,7 @@
 #include "util/u_video.h"
 #include "util/u_memory.h"
 
-#include "vl/vl_vlc.h"
+#include "util/vl_vlc.h"
 #include "vl/vl_winsys.h"
 
 #include "va_private.h"
@@ -278,7 +278,7 @@ handleVAProtectedSliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
 	context->desc.base.protected_playback = true;
 }
 
-static void
+static VAStatus
 handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
 {
    enum pipe_video_format format = u_reduce_video_profile(context->templat.profile);
@@ -289,6 +289,9 @@ handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
    static const uint8_t start_code_h265[] = { 0x00, 0x00, 0x01 };
    static const uint8_t start_code_vc1[] = { 0x00, 0x00, 0x01, 0x0d };
    static const uint8_t eoi_jpeg[] = { 0xff, 0xd9 };
+
+   if (!context->decoder)
+      return VA_STATUS_ERROR_INVALID_CONTEXT;
 
    format = u_reduce_video_profile(context->templat.profile);
    if (!context->desc.base.protected_playback) {
@@ -358,6 +361,7 @@ handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
    }
    context->decoder->decode_bitstream(context->decoder, context->target, &context->desc.base,
       num_buffers, (const void * const*)buffers, sizes);
+   return VA_STATUS_SUCCESS;
 }
 
 static VAStatus
@@ -607,7 +611,7 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
          break;
 
       case VASliceDataBufferType:
-         handleVASliceDataBufferType(context, buf);
+         vaStatus = handleVASliceDataBufferType(context, buf);
          break;
 
       case VAProcPipelineParameterBufferType:

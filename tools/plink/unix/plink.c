@@ -371,13 +371,13 @@ static bool plink_eof(Seat *seat)
     return false;   /* do not respond to incoming EOF with outgoing */
 }
 
-static int plink_get_userpass_input(Seat *seat, prompts_t *p)
+static SeatPromptResult plink_get_userpass_input(Seat *seat, prompts_t *p)
 {
-    int ret;
-    ret = cmdline_get_passwd_input(p);
-    if (ret == -1)
-        ret = console_get_userpass_input(p);
-    return ret;
+    SeatPromptResult spr;
+    spr = cmdline_get_passwd_input(p);
+    if (spr.kind == SPRK_INCOMPLETE)
+        spr = console_get_userpass_input(p);
+    return spr;
 }
 
 static bool plink_seat_interactive(Seat *seat)
@@ -391,6 +391,7 @@ static const SeatVtable plink_seat_vt = {
     .output = plink_output,
     .eof = plink_eof,
     .sent = nullseat_sent,
+    .banner = nullseat_banner_to_stderr,
     .get_userpass_input = plink_get_userpass_input,
     .notify_session_started = nullseat_notify_session_started,
     .notify_remote_exit = nullseat_notify_remote_exit,
@@ -410,6 +411,7 @@ static const SeatVtable plink_seat_vt = {
     .stripctrl_new = console_stripctrl_new,
     .set_trust_status = console_set_trust_status,
     .can_set_trust_status = console_can_set_trust_status,
+    .has_mixed_input_stream = console_has_mixed_input_stream,
     .verbose = cmdline_seat_verbose,
     .interactive = plink_seat_interactive,
     .get_cursor_position = nullseat_get_cursor_position,
@@ -772,7 +774,7 @@ int main(int argc, char **argv)
             while (argc > 0) {
                 if (cmdbuf->len > 0)
                     put_byte(cmdbuf, ' '); /* add space separator */
-                put_datapl(cmdbuf, ptrlen_from_asciz(p));
+                put_dataz(cmdbuf, p);
                 if (--argc > 0)
                     p = *++argv;
             }

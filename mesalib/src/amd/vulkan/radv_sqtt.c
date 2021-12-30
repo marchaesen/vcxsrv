@@ -32,7 +32,7 @@
 bool
 radv_is_instruction_timing_enabled(void)
 {
-   return getenv("RADV_THREAD_TRACE_PIPELINE");
+   return debug_get_bool_option("RADV_THREAD_TRACE_INSTRUCTION_TIMING", true);
 }
 
 static bool
@@ -177,8 +177,7 @@ radv_emit_thread_trace_start(struct radv_device *device, struct radeon_cmdbuf *c
                              S_030800_INSTANCE_BROADCAST_WRITES(1));
 
    /* Start the thread trace with a different event based on the queue. */
-   if (queue_family_index == RADV_QUEUE_COMPUTE &&
-       device->physical_device->rad_info.chip_class >= GFX7) {
+   if (queue_family_index == RADV_QUEUE_COMPUTE) {
       radeon_set_sh_reg(cs, R_00B878_COMPUTE_THREAD_TRACE_ENABLE, S_00B878_THREAD_TRACE_ENABLE(1));
    } else {
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
@@ -242,8 +241,7 @@ radv_emit_thread_trace_stop(struct radv_device *device, struct radeon_cmdbuf *cs
    unsigned max_se = device->physical_device->rad_info.max_se;
 
    /* Stop the thread trace with a different event based on the queue. */
-   if (queue_family_index == RADV_QUEUE_COMPUTE &&
-       device->physical_device->rad_info.chip_class >= GFX7) {
+   if (queue_family_index == RADV_QUEUE_COMPUTE) {
       radeon_set_sh_reg(cs, R_00B878_COMPUTE_THREAD_TRACE_ENABLE, S_00B878_THREAD_TRACE_ENABLE(0));
    } else {
       radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
@@ -271,7 +269,7 @@ radv_emit_thread_trace_stop(struct radv_device *device, struct radeon_cmdbuf *cs
          radeon_emit(cs, R_008D20_SQ_THREAD_TRACE_STATUS >> 2); /* register */
          radeon_emit(cs, 0);
          radeon_emit(cs, 0);                       /* reference value */
-         radeon_emit(cs, S_008D20_FINISH_DONE(1)); /* mask */
+         radeon_emit(cs, ~C_008D20_FINISH_DONE);
          radeon_emit(cs, 4);                       /* poll interval */
 
          /* Disable the thread trace mode. */
@@ -285,7 +283,7 @@ radv_emit_thread_trace_stop(struct radv_device *device, struct radeon_cmdbuf *cs
          radeon_emit(cs, R_008D20_SQ_THREAD_TRACE_STATUS >> 2); /* register */
          radeon_emit(cs, 0);
          radeon_emit(cs, 0);                /* reference value */
-         radeon_emit(cs, S_008D20_BUSY(1)); /* mask */
+         radeon_emit(cs, ~C_008D20_BUSY); /* mask */
          radeon_emit(cs, 4);                /* poll interval */
       } else {
          /* Disable the thread trace mode. */
@@ -298,7 +296,7 @@ radv_emit_thread_trace_stop(struct radv_device *device, struct radeon_cmdbuf *cs
          radeon_emit(cs, R_030CE8_SQ_THREAD_TRACE_STATUS >> 2); /* register */
          radeon_emit(cs, 0);
          radeon_emit(cs, 0);                /* reference value */
-         radeon_emit(cs, S_030CE8_BUSY(1)); /* mask */
+         radeon_emit(cs, ~C_030CE8_BUSY); /* mask */
          radeon_emit(cs, 4);                /* poll interval */
       }
 
@@ -466,6 +464,8 @@ radv_thread_trace_finish(struct radv_device *device)
    struct ac_thread_trace_data *thread_trace_data = &device->thread_trace;
    struct radeon_winsys *ws = device->ws;
 
+   free(device->thread_trace.trigger_file);
+
    radv_thread_trace_finish_bo(device);
 
    for (unsigned i = 0; i < 2; i++) {
@@ -534,8 +534,6 @@ radv_begin_thread_trace(struct radv_queue *queue)
       break;
    }
 
-   radv_cs_add_buffer(ws, cs, device->thread_trace.bo);
-
    /* Make sure to wait-for-idle before starting SQTT. */
    radv_emit_wait_for_idle(device, cs, family);
 
@@ -545,8 +543,20 @@ radv_begin_thread_trace(struct radv_queue *queue)
    /* Enable SQG events that collects thread trace data. */
    radv_emit_spi_config_cntl(device, cs, true);
 
+   radv_perfcounter_emit_reset(cs);
+
+   if (device->spm_trace.bo) {
+      /* Enable all shader stages by default. */
+      radv_perfcounter_emit_shaders(cs, 0x7f);
+
+      radv_emit_spm_setup(device, cs);
+   }
+
    /* Start SQTT. */
    radv_emit_thread_trace_start(device, cs, family);
+
+   if (device->spm_trace.bo)
+      radv_perfcounter_emit_start(device, cs, family);
 
    result = ws->cs_finalize(cs);
    if (result != VK_SUCCESS) {
@@ -590,13 +600,16 @@ radv_end_thread_trace(struct radv_queue *queue)
       break;
    }
 
-   radv_cs_add_buffer(ws, cs, device->thread_trace.bo);
-
    /* Make sure to wait-for-idle before stopping SQTT. */
    radv_emit_wait_for_idle(device, cs, family);
 
+   if (device->spm_trace.bo)
+      radv_perfcounter_emit_stop(device, cs, family);
+
    /* Stop SQTT. */
    radv_emit_thread_trace_stop(device, cs, family);
+
+   radv_perfcounter_emit_reset(cs);
 
    /* Restore previous state by disabling SQG events. */
    radv_emit_spi_config_cntl(device, cs, false);

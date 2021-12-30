@@ -35,9 +35,9 @@ static uint32_t
 color_depth_for_cpp(int cpp)
 {
    switch (cpp) {
-   case 4: return COLOR_DEPTH__32bit;
-   case 2: return COLOR_DEPTH__565;
-   case 1: return COLOR_DEPTH__8bit;
+   case 4: return COLOR_DEPTH_32bit;
+   case 2: return COLOR_DEPTH_565;
+   case 1: return COLOR_DEPTH_8bit;
    default:
       unreachable("not reached");
    }

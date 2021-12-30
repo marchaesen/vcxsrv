@@ -169,7 +169,7 @@ get_image_format_properties(struct panvk_physical_device *physical_device,
          goto unsupported;
 
       assert(format_props.optimalTilingFeatures == format_props.linearTilingFeatures);
-      /* fallthrough */
+      FALLTHROUGH;
    case VK_IMAGE_TILING_OPTIMAL:
       format_feature_flags = format_props.optimalTilingFeatures;
       break;

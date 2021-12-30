@@ -3785,6 +3785,7 @@ to upconvert to 32b float internally?
 		<value name="A6XX_TEX_2D" value="1"/>
 		<value name="A6XX_TEX_CUBE" value="2"/>
 		<value name="A6XX_TEX_3D" value="3"/>
+		<value name="A6XX_TEX_BUFFER" value="4"/>
 	</enum>
 	<reg32 offset="0" name="0">
 		<bitfield name="TILE_MODE" low="0" high="1" type="a6xx_tile_mode"/>
@@ -3813,13 +3814,12 @@ to upconvert to 32b float internally?
 		b31 is probably the 'BUFFER' bit.. it is the one that changes
 		behavior of texture in dEQP-GLES31.functional.texture.texture_buffer.render.as_fragment_texture.buffer_size_131071
 		 -->
-		<bitfield name="UNK4" pos="4" type="boolean"/>
+		<bitfield name="BUFFER" pos="4" type="boolean"/>
                 <!-- minimum pitch (for mipmap levels): log2(pitchalign / 64) -->
 		<bitfield name="PITCHALIGN" low="0" high="3" type="uint"/>
 		<doc>Pitch in bytes (so actually stride)</doc>
 		<bitfield name="PITCH" low="7" high="28" type="uint"/>
-		<bitfield name="TYPE" low="29" high="30" type="a6xx_tex_type"/>
-		<bitfield name="UNK31" pos="31" type="boolean"/>
+		<bitfield name="TYPE" low="29" high="31" type="a6xx_tex_type"/>
 	</reg32>
 	<reg32 offset="3" name="3">
 		<!--

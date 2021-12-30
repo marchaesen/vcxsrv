@@ -449,7 +449,8 @@ void si_emit_dpbb_state(struct si_context *sctx)
 
    assert(sctx->chip_class >= GFX9);
 
-   if (!sscreen->dpbb_allowed || sctx->dpbb_force_off) {
+   if (!sscreen->dpbb_allowed || sctx->dpbb_force_off ||
+       sctx->dpbb_force_off_profile_vs || sctx->dpbb_force_off_profile_ps) {
       si_emit_dpbb_disable(sctx);
       return;
    }

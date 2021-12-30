@@ -1,0 +1,178 @@
+traces-db:
+  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+
+traces:
+  - path: 0ad/0ad.trace
+    expectations:
+      - device: crocus-g41
+        checksum: f4f723a73fde41b8a00a2a6518190adf
+      - device: crocus-hsw
+        checksum: 6567807570543c2875fc6912f00687e5
+  - path: behdad-glyphy/glyphy.trace
+    expectations:
+      # glyphs unintelligible on g41
+      - device: crocus-g41
+        checksum: 9d1db810d33f1ab30570bd710476429c
+      - device: crocus-hsw
+        checksum: 49c62d99a21de18a3e184a57bf655849
+  - path: glxgears/glxgears-2.trace
+    expectations:
+      - device: crocus-g41
+        checksum: 18455018dcfa97f69c967f118551ae30
+      - device: crocus-hsw
+        checksum: f53ac20e17da91c0359c31f2fa3f401e
+  - path: gputest/furmark.trace
+    expectations:
+      # Slightly different blurriness from freedreno, neither is obviously wrong.
+      - device: crocus-g41
+        checksum: c7c3df989f88852e88bef101b5c1dc22
+      - device: crocus-hsw
+        checksum: bb84373a69751942956d2320cff6dd1d
+  #- path: gputest/gimark.trace
+  #  expectations:
+      # Needs GL3.3.
+      # - device: crocus-g41
+      #    checksum: dd8fb768033d09f6edc98b4cfff02c6f
+      # lighting comes in from a different direction than on freedreno?
+      # Inconsistent checksums, disabled
+      # - device: crocus-hsw
+      #   checksum: 96d35bcf6b05593754e20823982457f8
+  - path: gputest/pixmark-julia-fp32.trace
+    expectations:
+      - device: crocus-g41
+        checksum: 03776a063ee7049256acd414239a7f13
+      - device: crocus-hsw
+        checksum: dea71222007af1669cff54ce5e0b8c8d
+  - path: gputest/pixmark-julia-fp64.trace
+    expectations:
+      # Requires GL4, not for G41.
+      - device: crocus-hsw
+        checksum: 7e4948c361528a7873dad9712f629770
+  - path: gputest/pixmark-piano.trace
+    expectations:
+      # Looks like it probably triggers hangcheck on g41
+      # - device: crocus-g41
+      #   checksum: 346bae885d95f419b750a601e028378b
+      - device: crocus-hsw
+        checksum: 898b89c720f9bddd714633f46553e7a7
+  - path: gputest/pixmark-volplosion.trace
+    expectations:
+      # Different geometry in the explosion from freedreno, neither is obviously wrong.
+      - device: crocus-g41
+        checksum: 6fc94a69b9e1f38693ea3ed4f530c7da
+      - device: crocus-hsw
+        checksum: b96cddb97eb0cde8a388dad76d8dfef6
+  - path: humus/AmbientAperture.trace
+    expectations:
+      # Needs GLSL 130
+      # - device: crocus-g41
+      #   checksum: 13732b80b207dbf8c69a418e3b1f6c35
+      - device: crocus-hsw
+        checksum: 5686175a74f9ef6a3b13d30f1bd32b16
+  - path: humus/CelShading.trace
+    expectations:
+      - device: crocus-g41
+        checksum: 9b6e185ac8e8e67fc13d84f0ad6c3e3b
+      - device: crocus-hsw
+        checksum: 0f03835fd89b615542ece4bbb4712e48
+  - path: humus/DynamicBranching3.trace
+    expectations:
+      # Needs GLSL 130
+      # - device: crocus-g41
+      #   checksum: 8a06b8d08a8a01f02f4f0e9c37d4f6ff
+      - device: crocus-hsw
+        checksum: 16e3458485d1ba75fe80f61f59d124be
+  - path: humus/HDR.trace
+    expectations:
+      # Needs GLSL 130
+      # - device: crocus-g41
+      #   checksum: f3a0ed7fe057f3010d2129d33203d656
+      - device: crocus-hsw
+        checksum: 0dfbc65adca38721831ffddf0ede2af6
+  - path: humus/Portals.trace
+    expectations:
+      - device: crocus-g41
+        checksum: b090e734ed332e259664851576925d7b
+      - device: crocus-hsw
+        checksum: 61ea77324581e86cf8d313fe3fb27270
+  - path: humus/RaytracedShadows.trace
+    expectations:
+      - device: crocus-g41
+        checksum: dbef340424f4f85eb8dc053ad3a56ae1
+      - device: crocus-hsw
+        checksum: bac350df35b9262efca6722faf5c4eaa
+  - path: humus/VolumetricFogging2.trace
+    expectations:
+      # Needs GLSL 130
+      # - device: crocus-g41
+      #   checksum: 05cd8687f80642137986fe9b2e677e39
+      - device: crocus-hsw
+        checksum: a4f444b6ca337901ae080d8f2af812b4
+  - path: neverball/neverball.trace
+    expectations:
+      - device: crocus-g41
+        checksum: 0f14a88f511cd886c920238c80017e5d
+      - device: crocus-hsw
+        checksum: ec6b2615ab12db73126e06e6b20663ec
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: crocus-hsw
+        checksum: 21bccd42f2deb6416cf6591cd6a99258
+  - path: pathfinder/canvas_text_v2.trace
+    expectations:
+      - device: crocus-hsw
+        checksum: 448886e3b24f6408e013ea13f7c96d28
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: crocus-hsw
+        checksum: d9b33f0a2efe17c21b7933242afd9ec7
+  # Fails to run / times out.
+  # - path: pioneer/pioneer.trace
+  #   expectations:
+  #- path: thedarkmod/thedarkmod.trace
+  #  expectations:
+  # context create fail
+  #    - device: crocus-g41
+  #      checksum: a0000000000000000000000000000000
+  # Reasonable looking rendering, but inconsistent checksums
+  #    - device: crocus-hsw
+  #      checksum: 26bab35cd52c38010b617eb115e6713c
+  - path: supertuxkart/supertuxkart-mansion-egl-gles.trace
+    expectations:
+      # Different lighting from freedreno
+      - device: crocus-hsw
+        checksum: 8f1224abf2fab07f7dc31ae26312c948
+  - path: valve/counterstrike-v2.trace
+    expectations:
+    # very aliased palm fronds compared to freedreno?
+      - device: crocus-g41
+        checksum: 90c01e73b3544cb477ac6109bc61bef1
+      - device: crocus-hsw
+        checksum: 0e1e52aaccd94a261cf9d8675039c41c
+  - path: valve/counterstrike-source-v2.trace
+    expectations:
+      - device: crocus-g41
+        checksum: c51e21aada8e79fada36048e7d8de74a
+      - device: crocus-hsw
+        checksum: a78be6d590dd6c48bc6ad6090d88d9b3
+  - path: valve/half-life-2-v2.trace
+    expectations:
+      - device: crocus-g41
+        checksum: c67b47eeefb2b7a3b6667844758d4a95
+      - device: crocus-hsw
+        checksum: 96dcdfa2fc7e64b8bd2da0ea7b854f6c
+  - path: valve/portal-2-v2.trace
+    expectations:
+      # A bunch of stuff incorrectly rendered white.
+      - device: crocus-g41
+        checksum: d1e3bb943aa32a3fc9d2681106c4a087
+      - device: crocus-hsw
+        checksum: 98eeb4c504b0f03b136d5fd89edd6d5c
+  #- path: xonotic/xonotic-keybench-high.trace
+  #  expectations:
+    # Requires GLSL 140
+    #  - device: crocus-g41
+    #    checksum: 0efd30250af93d0b5f03eeabd079e8ee
+    # good rendering, but intermittent timeouts
+    #  - device: crocus-hsw
+    #    checksum: 008556add75ea5bb022eb99e0b52099b

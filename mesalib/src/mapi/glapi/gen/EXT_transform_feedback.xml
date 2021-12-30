@@ -82,7 +82,7 @@
   <enum name="TRANSFORM_FEEDBACK_BUFFER_ACTIVE"    value="0x8E24"/>
   <enum name="TRANSFORM_FEEDBACK_BINDING"          value="0x8E25"/>
 
-  <function name="BindTransformFeedback" es2="3.0" no_error="true">
+  <function name="BindTransformFeedback" es2="3.0" no_error="true" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="id" type="GLuint"/>
   </function>
@@ -102,13 +102,13 @@
     <return type="GLboolean"/>
   </function>
 
-  <function name="PauseTransformFeedback" es2="3.0" no_error="true">
+  <function name="PauseTransformFeedback" es2="3.0" no_error="true" exec="dlist">
   </function>
 
-  <function name="ResumeTransformFeedback" es2="3.0" no_error="true">
+  <function name="ResumeTransformFeedback" es2="3.0" no_error="true" exec="dlist">
   </function>
 
-  <function name="DrawTransformFeedback">
+  <function name="DrawTransformFeedback" exec="dlist">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
   </function>

@@ -31,6 +31,10 @@ files_libdri = files(
   'dri_query_renderer.h',
   'dri_screen.c',
   'dri_screen.h',
+  'dri_util.c',
+  'dri_util.h',
+  'utils.c',
+  'utils.h',
 )
 
 if with_dri
@@ -51,7 +55,7 @@ libdri = static_library(
   files_libdri,
   include_directories : [
     inc_include, inc_util, inc_mesa, inc_mapi, inc_src, inc_gallium,
-    inc_gallium_aux, inc_dri_common,
+    inc_gallium_aux, inc_util,
   ],
   c_args : [libdri_c_args],
   gnu_symbol_visibility : 'hidden',
@@ -60,3 +64,19 @@ libdri = static_library(
     idep_mesautil,
   ],
 )
+
+if with_dri
+  dri_req_private = []
+  if dep_libdrm.found()
+    dir_req_private = ['libdrm >= @0@'.format(_drm_ver)]
+  endif
+
+  pkg.generate(
+    name : 'dri',
+    filebase : 'dri',
+    description : 'Direct Rendering Infastructure',
+    version : meson.project_version(),
+    variables : ['dridriverdir=@0@'.format(dri_drivers_path)],
+    requires_private : dri_req_private,
+  )
+endif

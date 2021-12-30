@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 struct wsi_device;
+struct vk_sync_type;
 
 struct vk_physical_device {
    struct vk_object_base base;
@@ -42,6 +43,17 @@ struct vk_physical_device {
    struct vk_physical_device_dispatch_table dispatch_table;
 
    struct wsi_device *wsi_device;
+
+   /** A null-terminated array of supported sync types, in priority order
+    *
+    * The common implementations of VkFence and VkSemaphore use this list to
+    * determine what vk_sync_type to use for each scenario.  The list is
+    * walked and the first vk_sync_type matching their criterion is taken.
+    * For instance, VkFence requires that it not be a timeline and support
+    * reset and CPU wait.  If an external handle type is requested, that is
+    * considered just one more criterion.
+    */
+   const struct vk_sync_type *const *supported_sync_types;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_physical_device, base, VkPhysicalDevice,

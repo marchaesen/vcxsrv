@@ -25,6 +25,7 @@
 #include "util/u_draw.h"
 #include "util/u_prim.h"
 #include "util/format/u_format.h"
+#include "util/u_helpers.h"
 #include "util/u_pack_color.h"
 #include "util/u_prim_restart.h"
 #include "util/u_upload_mgr.h"
@@ -37,8 +38,8 @@
 #include "broadcom/common/v3d_util.h"
 #include "broadcom/cle/v3dx_pack.h"
 
-static void
-v3d_start_binning(struct v3d_context *v3d, struct v3d_job *job)
+void
+v3dX(start_binning)(struct v3d_context *v3d, struct v3d_job *job)
 {
         assert(job->needs_flush);
 
@@ -159,7 +160,7 @@ v3d_start_draw(struct v3d_context *v3d)
         job->draw_height = v3d->framebuffer.height;
         job->num_layers = util_framebuffer_get_num_layers(&v3d->framebuffer);
 
-        v3d_start_binning(v3d, job);
+        v3dX(start_binning)(v3d, job);
 }
 
 static void
@@ -605,6 +606,7 @@ v3d_emit_gl_shader_state(struct v3d_context *v3d,
                  */
                 shader.fragment_shader_does_z_writes =
                         v3d->prog.fs->prog_data.fs->writes_z;
+
                 /* Set if the EZ test must be disabled (due to shader side
                  * effects and the early_z flag not being present in the
                  * shader).
@@ -879,7 +881,8 @@ v3d_update_job_ez(struct v3d_context *v3d, struct v3d_job *job)
          * the chosen EZ direction (though we could use
          * ARB_conservative_depth's hints to avoid this)
          */
-        if (v3d->prog.fs->prog_data.fs->writes_z) {
+        if (v3d->prog.fs->prog_data.fs->writes_z &&
+            !v3d->prog.fs->prog_data.fs->writes_z_from_fep) {
                 job->ez_state = V3D_EZ_DISABLED;
         }
 
@@ -1562,6 +1565,17 @@ v3d_tlb_clear(struct v3d_job *job, unsigned buffers,
                         color = &swapped_color;
                 }
 
+                /*  While hardware supports clamping, this is not applied on
+                 *  the clear values, so we need to do it manually.
+                 *
+                 *  "Clamping is performed on color values immediately as they
+                 *   enter the TLB and after blending. Clamping is not
+                 *   performed on the clear color."
+                 */
+                union pipe_color_union clamped_color =
+                        util_clamp_color(psurf->format, color);
+                color = &clamped_color;
+
                 switch (surf->internal_type) {
                 case V3D_INTERNAL_TYPE_8:
                         util_pack_color(color->f, PIPE_FORMAT_R8G8B8A8_UNORM,
@@ -1652,12 +1666,6 @@ v3d_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *ps,
                         bool render_condition_enabled)
 {
         fprintf(stderr, "unimpl: clear DS\n");
-}
-
-void
-v3dX(start_binning)(struct v3d_context *v3d, struct v3d_job *job)
-{
-        v3d_start_binning(v3d, job);
 }
 
 void

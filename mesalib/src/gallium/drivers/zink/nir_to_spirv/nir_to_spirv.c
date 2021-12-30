@@ -1226,10 +1226,18 @@ store_dest(struct ntv_context *ctx, nir_dest *dest, SpvId result, nir_alu_type t
          break;
 
       case nir_type_uint:
+      case nir_type_uint8:
+      case nir_type_uint16:
+      case nir_type_uint64:
          break; /* nothing to do! */
 
       case nir_type_int:
+      case nir_type_int8:
+      case nir_type_int16:
+      case nir_type_int64:
       case nir_type_float:
+      case nir_type_float16:
+      case nir_type_float64:
          result = bitcast_to_uvec(ctx, result, bit_size, num_components);
          break;
 
@@ -1548,11 +1556,11 @@ get_alu_src(struct ntv_context *ctx, nir_alu_instr *alu, unsigned src)
 }
 
 static SpvId
-store_alu_result(struct ntv_context *ctx, nir_alu_instr *alu, SpvId result)
+store_alu_result(struct ntv_context *ctx, nir_alu_instr *alu, SpvId result, bool force_float)
 {
    assert(!alu->dest.saturate);
    return store_dest(ctx, &alu->dest.dest, result,
-                     nir_op_infos[alu->op].output_type);
+                     force_float ? nir_type_float : nir_op_infos[alu->op].output_type);
 }
 
 static SpvId
@@ -1569,12 +1577,20 @@ get_dest_type(struct ntv_context *ctx, nir_dest *dest, nir_alu_type type)
       unreachable("bool should have bit-size 1");
 
    case nir_type_int:
+   case nir_type_int8:
+   case nir_type_int16:
+   case nir_type_int64:
       return get_ivec_type(ctx, bit_size, num_components);
 
    case nir_type_uint:
+   case nir_type_uint8:
+   case nir_type_uint16:
+   case nir_type_uint64:
       return get_uvec_type(ctx, bit_size, num_components);
 
    case nir_type_float:
+   case nir_type_float16:
+   case nir_type_float64:
       return get_fvec_type(ctx, bit_size, num_components);
 
    default:
@@ -1606,6 +1622,7 @@ emit_alu(struct ntv_context *ctx, nir_alu_instr *alu)
 
    SpvId dest_type = get_dest_type(ctx, &alu->dest.dest,
                                    nir_op_infos[alu->op].output_type);
+   bool force_float = false;
    unsigned bit_size = nir_dest_bit_size(alu->dest.dest);
    unsigned num_components = nir_dest_num_components(alu->dest.dest);
 
@@ -1690,6 +1707,13 @@ emit_alu(struct ntv_context *ctx, nir_alu_instr *alu)
       result = emit_builtin_unop(ctx, spirv_op, dest_type, src[0]); \
       break;
 
+#define BUILTIN_UNOPF(nir_op, spirv_op) \
+   case nir_op: \
+      assert(nir_op_infos[alu->op].num_inputs == 1); \
+      result = emit_builtin_unop(ctx, spirv_op, get_dest_type(ctx, &alu->dest.dest, nir_type_float), src[0]); \
+      force_float = true; \
+      break;
+
    BUILTIN_UNOP(nir_op_iabs, GLSLstd450SAbs)
    BUILTIN_UNOP(nir_op_fabs, GLSLstd450FAbs)
    BUILTIN_UNOP(nir_op_fsqrt, GLSLstd450Sqrt)
@@ -1708,10 +1732,11 @@ emit_alu(struct ntv_context *ctx, nir_alu_instr *alu)
    BUILTIN_UNOP(nir_op_ufind_msb, GLSLstd450FindUMsb)
    BUILTIN_UNOP(nir_op_find_lsb, GLSLstd450FindILsb)
    BUILTIN_UNOP(nir_op_ifind_msb, GLSLstd450FindSMsb)
-   BUILTIN_UNOP(nir_op_pack_half_2x16, GLSLstd450PackHalf2x16)
-   BUILTIN_UNOP(nir_op_unpack_half_2x16, GLSLstd450UnpackHalf2x16)
-   BUILTIN_UNOP(nir_op_pack_64_2x32, GLSLstd450PackDouble2x32)
+   BUILTIN_UNOPF(nir_op_pack_half_2x16, GLSLstd450PackHalf2x16)
+   BUILTIN_UNOPF(nir_op_unpack_half_2x16, GLSLstd450UnpackHalf2x16)
+   BUILTIN_UNOPF(nir_op_pack_64_2x32, GLSLstd450PackDouble2x32)
 #undef BUILTIN_UNOP
+#undef BUILTIN_UNOPF
 
    case nir_op_frcp:
       assert(nir_op_infos[alu->op].num_inputs == 1);
@@ -1863,7 +1888,7 @@ emit_alu(struct ntv_context *ctx, nir_alu_instr *alu)
    if (alu->exact)
       spirv_builder_emit_decoration(&ctx->builder, result, SpvDecorationNoContraction);
 
-   store_alu_result(ctx, alu, result);
+   store_alu_result(ctx, alu, result, force_float);
 }
 
 static void
@@ -3620,18 +3645,6 @@ nir_to_spirv(struct nir_shader *s, const struct zink_so_info *so_info, uint32_t 
       spirv_builder_emit_cap(&ctx.builder, SpvCapabilityImage1D);
       spirv_builder_emit_cap(&ctx.builder, SpvCapabilityImageQuery);
    }
-
-   if (s->info.bit_sizes_int & 8)
-      spirv_builder_emit_cap(&ctx.builder, SpvCapabilityInt8);
-   if (s->info.bit_sizes_int & 16)
-      spirv_builder_emit_cap(&ctx.builder, SpvCapabilityInt16);
-   if (s->info.bit_sizes_int & 64)
-      spirv_builder_emit_cap(&ctx.builder, SpvCapabilityInt64);
-
-   if (s->info.bit_sizes_float & 16)
-      spirv_builder_emit_cap(&ctx.builder, SpvCapabilityFloat16);
-   if (s->info.bit_sizes_float & 64)
-      spirv_builder_emit_cap(&ctx.builder, SpvCapabilityFloat64);
 
    ctx.stage = s->info.stage;
    ctx.so_info = so_info;

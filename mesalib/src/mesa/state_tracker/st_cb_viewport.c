@@ -34,8 +34,7 @@
 #include "pipe/p_defines.h"
 #include "util/u_atomic.h"
 
-
-static void st_viewport(struct gl_context *ctx)
+void st_viewport(struct gl_context *ctx)
 {
    struct st_context *st = ctx->st;
    struct st_framebuffer *stdraw;
@@ -58,9 +57,4 @@ static void st_viewport(struct gl_context *ctx)
       stdraw->iface_stamp = p_atomic_read(&stdraw->iface->stamp) - 1;
    if (stread && stread != stdraw)
       stread->iface_stamp = p_atomic_read(&stread->iface->stamp) - 1;
-}
-
-void st_init_viewport_functions(struct dd_function_table *functions)
-{
-   functions->Viewport = st_viewport;
 }

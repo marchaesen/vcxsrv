@@ -35,267 +35,115 @@
 #include "fd6_resource.h"
 #include "fd6_texture.h"
 
-struct fd6_image {
-   struct pipe_resource *prsc;
-   enum pipe_format pfmt;
-   enum a6xx_tex_type type;
-   bool srgb;
-   uint32_t cpp;
-   uint32_t level;
-   uint32_t width;
-   uint32_t height;
-   uint32_t depth;
-   uint32_t pitch;
-   uint32_t array_pitch;
-   struct fd_bo *bo;
-   uint32_t ubwc_offset;
-   uint32_t offset;
-   bool buffer;
-};
+static const uint8_t swiz_identity[4] = {PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y,
+                                         PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W};
 
 static void
-translate_image(struct fd6_image *img, const struct pipe_image_view *pimg)
+fd6_emit_single_plane_descriptor(struct fd_ringbuffer *ring,
+                                 struct pipe_resource *prsc,
+                                 uint32_t *descriptor)
 {
-   enum pipe_format format = pimg->format;
-   struct pipe_resource *prsc = pimg->resource;
-   struct fd_resource *rsc = fd_resource(prsc);
-
+   /* If the resource isn't present (holes are allowed), zero-fill the slot. */
    if (!prsc) {
-      memset(img, 0, sizeof(*img));
-      return;
-   }
-
-   img->prsc = prsc;
-   img->pfmt = format;
-   img->type = fd6_tex_type(prsc->target);
-   img->srgb = util_format_is_srgb(format);
-   img->cpp = rsc->layout.cpp;
-   img->bo = rsc->bo;
-
-   /* Treat cube textures as 2d-array: */
-   if (img->type == A6XX_TEX_CUBE)
-      img->type = A6XX_TEX_2D;
-
-   if (prsc->target == PIPE_BUFFER) {
-      img->buffer = true;
-      img->ubwc_offset = 0; /* not valid for buffers */
-      img->offset = pimg->u.buf.offset;
-      img->pitch = 0;
-      img->array_pitch = 0;
-
-      /* size is encoded with low 15b in WIDTH and high bits in
-       * HEIGHT, in units of elements:
-       */
-      unsigned sz = pimg->u.buf.size / util_format_get_blocksize(format);
-      img->width = sz & MASK(15);
-      img->height = sz >> 15;
-      img->depth = 0;
-      img->level = 0;
-   } else {
-      img->buffer = false;
-
-      unsigned lvl = pimg->u.tex.level;
-      unsigned layers = pimg->u.tex.last_layer - pimg->u.tex.first_layer + 1;
-
-      img->ubwc_offset =
-         fd_resource_ubwc_offset(rsc, lvl, pimg->u.tex.first_layer);
-      img->offset = fd_resource_offset(rsc, lvl, pimg->u.tex.first_layer);
-      img->pitch = fd_resource_pitch(rsc, lvl);
-
-      switch (prsc->target) {
-      case PIPE_TEXTURE_RECT:
-      case PIPE_TEXTURE_1D:
-      case PIPE_TEXTURE_2D:
-         img->array_pitch = rsc->layout.layer_size;
-         img->depth = 1;
-         break;
-      case PIPE_TEXTURE_1D_ARRAY:
-      case PIPE_TEXTURE_2D_ARRAY:
-      case PIPE_TEXTURE_CUBE:
-      case PIPE_TEXTURE_CUBE_ARRAY:
-         img->array_pitch = rsc->layout.layer_size;
-         // TODO the CUBE/CUBE_ARRAY might need to be layers/6 for tex state,
-         // but empirically for ibo state it shouldn't be divided.
-         img->depth = layers;
-         break;
-      case PIPE_TEXTURE_3D:
-         img->array_pitch = fd_resource_slice(rsc, lvl)->size0;
-         img->depth = u_minify(prsc->depth0, lvl);
-         break;
-      default:
-         break;
-      }
-
-      img->level = lvl;
-      img->width = u_minify(prsc->width0, lvl);
-      img->height = u_minify(prsc->height0, lvl);
-   }
-}
-
-static void
-translate_buf(struct fd6_image *img, const struct pipe_shader_buffer *pimg)
-{
-   struct pipe_resource *prsc = pimg->buffer;
-   struct fd_resource *rsc = fd_resource(prsc);
-
-   if (!prsc) {
-      memset(img, 0, sizeof(*img));
-      return;
-   }
-
-   const struct fd_dev_info *dev_info = fd_screen(prsc->screen)->info;
-   enum pipe_format format = dev_info->a6xx.storage_16bit
-                                ? PIPE_FORMAT_R16_UINT
-                                : PIPE_FORMAT_R32_UINT;
-
-   img->prsc = prsc;
-   img->pfmt = format;
-   img->type = fd6_tex_type(prsc->target);
-   img->srgb = util_format_is_srgb(format);
-   img->cpp = rsc->layout.cpp;
-   img->bo = rsc->bo;
-   img->buffer = true;
-
-   img->ubwc_offset = 0; /* not valid for buffers */
-   img->offset = pimg->buffer_offset;
-   img->pitch = 0;
-   img->array_pitch = 0;
-   img->level = 0;
-
-   /* size is encoded with low 15b in WIDTH and high bits in HEIGHT,
-    * in units of elements:
-    */
-   unsigned sz = pimg->buffer_size / (dev_info->a6xx.storage_16bit ? 2 : 4);
-   img->width = sz & MASK(15);
-   img->height = sz >> 15;
-   img->depth = 0;
-}
-
-static void
-emit_image_tex(struct fd_ringbuffer *ring, struct fd6_image *img)
-{
-   struct fd_resource *rsc = fd_resource(img->prsc);
-   bool ubwc_enabled = fd_resource_ubwc_enabled(rsc, img->level);
-
-   OUT_RING(ring,
-            fd6_tex_const_0(img->prsc, img->level, img->pfmt, PIPE_SWIZZLE_X,
-                            PIPE_SWIZZLE_Y, PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W));
-   OUT_RING(ring, A6XX_TEX_CONST_1_WIDTH(img->width) |
-                     A6XX_TEX_CONST_1_HEIGHT(img->height));
-   OUT_RING(ring,
-            COND(img->buffer, A6XX_TEX_CONST_2_UNK4 | A6XX_TEX_CONST_2_UNK31) |
-               A6XX_TEX_CONST_2_TYPE(img->type) |
-               A6XX_TEX_CONST_2_PITCH(img->pitch));
-   OUT_RING(ring, A6XX_TEX_CONST_3_ARRAY_PITCH(img->array_pitch) |
-                     COND(ubwc_enabled, A6XX_TEX_CONST_3_FLAG) |
-                     COND(rsc->layout.tile_all, A6XX_TEX_CONST_3_TILE_ALL));
-   if (img->bo) {
-      OUT_RELOC(ring, img->bo, img->offset,
-                (uint64_t)A6XX_TEX_CONST_5_DEPTH(img->depth) << 32, 0);
-   } else {
-      OUT_RING(ring, 0x00000000);
-      OUT_RING(ring, A6XX_TEX_CONST_5_DEPTH(img->depth));
-   }
-
-   OUT_RING(ring, 0x00000000); /* texconst6 */
-
-   if (ubwc_enabled) {
-      uint32_t block_width, block_height;
-      fdl6_get_ubwc_blockwidth(&rsc->layout, &block_width, &block_height);
-
-      OUT_RELOC(ring, rsc->bo, img->ubwc_offset, 0, 0);
-      OUT_RING(ring, A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH(
-                        rsc->layout.ubwc_layer_size >> 2));
-      OUT_RING(ring, A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH(
-                        fdl_ubwc_pitch(&rsc->layout, img->level)) |
-                        A6XX_TEX_CONST_10_FLAG_BUFFER_LOGW(util_logbase2_ceil(
-                           DIV_ROUND_UP(img->width, block_width))) |
-                        A6XX_TEX_CONST_10_FLAG_BUFFER_LOGH(util_logbase2_ceil(
-                           DIV_ROUND_UP(img->height, block_height))));
-   } else {
-      OUT_RING(ring, 0x00000000); /* texconst7 */
-      OUT_RING(ring, 0x00000000); /* texconst8 */
-      OUT_RING(ring, 0x00000000); /* texconst9 */
-      OUT_RING(ring, 0x00000000); /* texconst10 */
-   }
-
-   OUT_RING(ring, 0x00000000); /* texconst11 */
-   OUT_RING(ring, 0x00000000); /* texconst12 */
-   OUT_RING(ring, 0x00000000); /* texconst13 */
-   OUT_RING(ring, 0x00000000); /* texconst14 */
-   OUT_RING(ring, 0x00000000); /* texconst15 */
-}
-
-void
-fd6_emit_image_tex(struct fd_ringbuffer *ring,
-                   const struct pipe_image_view *pimg)
-{
-   struct fd6_image img;
-   translate_image(&img, pimg);
-   emit_image_tex(ring, &img);
-}
-
-void
-fd6_emit_ssbo_tex(struct fd_ringbuffer *ring,
-                  const struct pipe_shader_buffer *pbuf)
-{
-   struct fd6_image img;
-   translate_buf(&img, pbuf);
-   emit_image_tex(ring, &img);
-}
-
-static void
-emit_image_ssbo(struct fd_ringbuffer *ring, struct fd6_image *img)
-{
-   /* If the SSBO isn't present (becasue gallium doesn't pack atomic
-    * counters), zero-fill the slot.
-    */
-   if (!img->prsc) {
       for (int i = 0; i < 16; i++)
          OUT_RING(ring, 0);
       return;
    }
 
-   struct fd_resource *rsc = fd_resource(img->prsc);
-   enum a6xx_tile_mode tile_mode = fd_resource_tile_mode(img->prsc, img->level);
-   bool ubwc_enabled = fd_resource_ubwc_enabled(rsc, img->level);
+   struct fd_resource *rsc = fd_resource(prsc);
+   for (int i = 0; i < 4; i++)
+      OUT_RING(ring, descriptor[i]);
 
-   OUT_RING(ring, A6XX_IBO_0_FMT(fd6_texture_format(img->pfmt, rsc->layout.tile_mode)) |
-                     A6XX_IBO_0_TILE_MODE(tile_mode));
-   OUT_RING(ring,
-            A6XX_IBO_1_WIDTH(img->width) | A6XX_IBO_1_HEIGHT(img->height));
-   OUT_RING(ring, A6XX_IBO_2_PITCH(img->pitch) |
-                     COND(img->buffer, A6XX_IBO_2_UNK4 | A6XX_IBO_2_UNK31) |
-                     A6XX_IBO_2_TYPE(img->type));
-   OUT_RING(ring, A6XX_IBO_3_ARRAY_PITCH(img->array_pitch) |
-                     COND(ubwc_enabled, A6XX_IBO_3_FLAG | A6XX_IBO_3_UNK27));
-   if (img->bo) {
-      OUT_RELOC(ring, img->bo, img->offset,
-                (uint64_t)A6XX_IBO_5_DEPTH(img->depth) << 32, 0);
-   } else {
-      OUT_RING(ring, 0x00000000);
-      OUT_RING(ring, A6XX_IBO_5_DEPTH(img->depth));
+   OUT_RELOC(ring, rsc->bo, descriptor[4], (uint64_t)descriptor[5] << 32, 0);
+
+   OUT_RING(ring, descriptor[6]);
+
+   OUT_RELOC(ring, rsc->bo, descriptor[7], (uint64_t)descriptor[8] << 32, 0);
+
+   for (int i = 9; i < FDL6_TEX_CONST_DWORDS; i++)
+      OUT_RING(ring, descriptor[i]);
+}
+
+static void
+fd6_ssbo_descriptor(struct fd_context *ctx,
+                    const struct pipe_shader_buffer *buf, uint32_t *descriptor)
+{
+   fdl6_buffer_view_init(
+      descriptor,
+      ctx->screen->info->a6xx.storage_16bit ? PIPE_FORMAT_R16_UINT
+                                            : PIPE_FORMAT_R32_UINT,
+      swiz_identity, buf->buffer_offset, /* Using relocs for addresses */
+      buf->buffer_size);
+}
+
+static void
+fd6_emit_image_descriptor(struct fd_context *ctx, struct fd_ringbuffer *ring, const struct pipe_image_view *buf, bool ibo)
+{
+   struct fd_resource *rsc = fd_resource(buf->resource);
+   if (!rsc) {
+      for (int i = 0; i < FDL6_TEX_CONST_DWORDS; i++)
+         OUT_RING(ring, 0);
+      return;
    }
-   OUT_RING(ring, 0x00000000);
 
-   if (ubwc_enabled) {
-      OUT_RELOC(ring, rsc->bo, img->ubwc_offset, 0, 0);
-      OUT_RING(ring, A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH(
-                        rsc->layout.ubwc_layer_size >> 2));
-      OUT_RING(ring, A6XX_IBO_10_FLAG_BUFFER_PITCH(
-                        fdl_ubwc_pitch(&rsc->layout, img->level)));
+   if (buf->resource->target == PIPE_BUFFER) {
+   uint32_t descriptor[FDL6_TEX_CONST_DWORDS];
+      fdl6_buffer_view_init(descriptor, buf->format, swiz_identity,
+                           buf->u.buf.offset, /* Using relocs for addresses */
+                           buf->u.buf.size);
+   fd6_emit_single_plane_descriptor(ring, buf->resource, descriptor);
    } else {
-      OUT_RING(ring, 0x00000000);
-      OUT_RING(ring, 0x00000000);
-      OUT_RING(ring, 0x00000000);
-      OUT_RING(ring, 0x00000000);
-   }
+      struct fdl_view_args args = {
+         /* Using relocs for addresses */
+         .iova = 0,
 
-   OUT_RING(ring, 0x00000000);
-   OUT_RING(ring, 0x00000000);
-   OUT_RING(ring, 0x00000000);
-   OUT_RING(ring, 0x00000000);
-   OUT_RING(ring, 0x00000000);
+         .base_miplevel = buf->u.tex.level,
+         .level_count = 1,
+
+         .base_array_layer = buf->u.tex.first_layer,
+         .layer_count = buf->u.tex.last_layer - buf->u.tex.first_layer + 1,
+
+         .format = buf->format,
+         .swiz = {PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y, PIPE_SWIZZLE_Z,
+                  PIPE_SWIZZLE_W},
+
+         .type = fdl_type_from_pipe_target(buf->resource->target),
+         .chroma_offsets = {FDL_CHROMA_LOCATION_COSITED_EVEN,
+                            FDL_CHROMA_LOCATION_COSITED_EVEN},
+      };
+
+      /* fdl6_view makes the storage descriptor treat cubes like a 2D array (so
+       * you can reference a specific layer), but we need to do that for the
+       * texture descriptor as well to get our layer.
+       */
+      if (args.type == FDL_VIEW_TYPE_CUBE)
+         args.type = FDL_VIEW_TYPE_2D;
+
+      struct fdl6_view view;
+      const struct fdl_layout *layouts[3] = {&rsc->layout, NULL, NULL};
+      fdl6_view_init(&view, layouts, &args,
+                     ctx->screen->info->a6xx.has_z24uint_s8uint);
+      if (ibo)
+         fd6_emit_single_plane_descriptor(ring, buf->resource, view.storage_descriptor);
+      else
+         fd6_emit_single_plane_descriptor(ring, buf->resource, view.descriptor);
+   }
+}
+
+void
+fd6_emit_image_tex(struct fd_context *ctx, struct fd_ringbuffer *ring,
+                   const struct pipe_image_view *pimg)
+{
+   fd6_emit_image_descriptor(ctx, ring, pimg, false);
+}
+
+void
+fd6_emit_ssbo_tex(struct fd_context *ctx, struct fd_ringbuffer *ring,
+                  const struct pipe_shader_buffer *pbuf)
+{
+   uint32_t descriptor[FDL6_TEX_CONST_DWORDS];
+   fd6_ssbo_descriptor(ctx, pbuf, descriptor);
+   fd6_emit_single_plane_descriptor(ring, pbuf->buffer, descriptor);
 }
 
 /* Build combined image/SSBO "IBO" state, returns ownership of state reference */
@@ -314,16 +162,14 @@ fd6_build_ibo_state(struct fd_context *ctx, const struct ir3_shader_variant *v,
 
    assert(shader == PIPE_SHADER_COMPUTE || shader == PIPE_SHADER_FRAGMENT);
 
+   uint32_t descriptor[FDL6_TEX_CONST_DWORDS];
    for (unsigned i = 0; i < v->shader->nir->info.num_ssbos; i++) {
-      struct fd6_image img;
-      translate_buf(&img, &bufso->sb[i]);
-      emit_image_ssbo(state, &img);
+      fd6_ssbo_descriptor(ctx, &bufso->sb[i], descriptor);
+      fd6_emit_single_plane_descriptor(state, bufso->sb[i].buffer, descriptor);
    }
 
    for (unsigned i = 0; i < v->shader->nir->info.num_images; i++) {
-      struct fd6_image img;
-      translate_image(&img, &imgso->si[i]);
-      emit_image_ssbo(state, &img);
+      fd6_emit_image_descriptor(ctx, state, &imgso->si[i], true);
    }
 
    return state;

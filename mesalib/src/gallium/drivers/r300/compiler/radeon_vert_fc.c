@@ -257,10 +257,10 @@ void rc_vert_fc(struct radeon_compiler *c, void *user)
 			if (fc_state.BranchDepth != 0
 					|| fc_state.LoopDepth != 1) {
 				lower_endloop(inst, &fc_state);
+				/* Skip the new PRED_RESTORE */
+				inst = inst->Next;
 			}
 			fc_state.LoopDepth--;
-			/* Skip PRED_RESTORE */
-			inst = inst->Next;
 			break;
 		case RC_OPCODE_IF:
 			lower_if(inst, &fc_state);

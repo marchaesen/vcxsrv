@@ -16,7 +16,7 @@
 #include "tree234.h"
 #include "putty.h"
 #include "network.h"
-#include "proxy.h"
+#include "proxy/proxy.h"
 #include "ssh.h"
 
 #define CONNSHARE_SOCKETDIR_PREFIX "/tmp/putty-connshare"
@@ -297,7 +297,7 @@ int platform_ssh_share(const char *pi_name, Conf *conf,
     if (can_downstream) {
         retsock = new_connection(unix_sock_addr(sockname),
                                  "", 0, false, true, false, false,
-                                 downplug, conf, NULL, NULL);
+                                 downplug, conf, NULL);
         if (sk_socket_error(retsock) == NULL) {
             sfree(*logtext);
             *logtext = sockname;

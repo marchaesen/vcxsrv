@@ -49,7 +49,6 @@
 #include "util/hash_table.h"
 #include "util/set.h"
 #include "util/u_upload_mgr.h"
-#include "main/macros.h"
 
 #include <errno.h>
 #include <xf86drm.h>
@@ -108,13 +107,13 @@ dump_bo_list(struct iris_batch *batch)
       bool exported = iris_bo_is_exported(bo);
       bool imported = iris_bo_is_imported(bo);
 
-      fprintf(stderr, "[%2d]: %3d (%3d) %-14s @ 0x%016"PRIx64" (%-6s %8"PRIu64"B) %2d refs %s%s%s\n",
+      fprintf(stderr, "[%2d]: %3d (%3d) %-14s @ 0x%016"PRIx64" (%-15s %8"PRIu64"B) %2d refs %s%s%s\n",
               i,
               bo->gem_handle,
               backing->gem_handle,
               bo->name,
               bo->address,
-              backing->real.local ? "local" : "system",
+              iris_heap_to_string[backing->real.heap],
               bo->size,
               bo->refcount,
               written ? " write" : "",
@@ -173,13 +172,18 @@ decode_batch(struct iris_batch *batch)
                      batch->exec_bos[0]->address, false);
 }
 
-void
+static void
 iris_init_batch(struct iris_context *ice,
-                enum iris_batch_name name,
-                int priority)
+                enum iris_batch_name name)
 {
    struct iris_batch *batch = &ice->batches[name];
    struct iris_screen *screen = (void *) ice->ctx.screen;
+
+   /* Note: ctx_id, exec_flags and has_engines_context fields are initialized
+    * at an earlier phase when contexts are created.
+    *
+    * Ref: iris_init_engines_context(), iris_init_non_engine_contexts()
+    */
 
    batch->screen = screen;
    batch->dbg = &ice->dbg;
@@ -193,11 +197,6 @@ iris_init_batch(struct iris_context *ice,
       u_upload_create(&ice->ctx, 4096, PIPE_BIND_CUSTOM,
                       PIPE_USAGE_STAGING, 0);
    iris_fine_fence_init(batch);
-
-   batch->hw_ctx_id = iris_create_hw_context(screen->bufmgr);
-   assert(batch->hw_ctx_id);
-
-   iris_hw_context_set_priority(screen->bufmgr, batch->hw_ctx_id, priority);
 
    util_dynarray_init(&batch->exec_fences, ralloc_context(NULL));
    util_dynarray_init(&batch->syncobjs, ralloc_context(NULL));
@@ -238,6 +237,88 @@ iris_init_batch(struct iris_context *ice,
    iris_init_batch_measure(ice, batch);
 
    iris_batch_reset(batch);
+}
+
+static void
+iris_init_non_engine_contexts(struct iris_context *ice, int priority)
+{
+   struct iris_screen *screen = (void *) ice->ctx.screen;
+
+   for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
+      struct iris_batch *batch = &ice->batches[i];
+      batch->ctx_id = iris_create_hw_context(screen->bufmgr);
+      batch->exec_flags = I915_EXEC_RENDER;
+      batch->has_engines_context = false;
+      assert(batch->ctx_id);
+      iris_hw_context_set_priority(screen->bufmgr, batch->ctx_id, priority);
+   }
+}
+
+static int
+iris_create_engines_context(struct iris_context *ice, int priority)
+{
+   struct iris_screen *screen = (void *) ice->ctx.screen;
+   int fd = iris_bufmgr_get_fd(screen->bufmgr);
+
+   struct drm_i915_query_engine_info *engines_info =
+      intel_i915_query_alloc(fd, DRM_I915_QUERY_ENGINE_INFO);
+
+   if (!engines_info)
+      return -1;
+
+   if (intel_gem_count_engines(engines_info, I915_ENGINE_CLASS_RENDER) < 1) {
+      free(engines_info);
+      return -1;
+   }
+
+   STATIC_ASSERT(IRIS_BATCH_COUNT == 2);
+   uint16_t engine_classes[IRIS_BATCH_COUNT] = {
+      [IRIS_BATCH_RENDER] = I915_ENGINE_CLASS_RENDER,
+      [IRIS_BATCH_COMPUTE] = I915_ENGINE_CLASS_RENDER,
+   };
+
+   int engines_ctx =
+      intel_gem_create_context_engines(fd, engines_info, IRIS_BATCH_COUNT,
+                                       engine_classes);
+
+   if (engines_ctx < 0) {
+      free(engines_info);
+      return -1;
+   }
+
+   iris_hw_context_set_unrecoverable(screen->bufmgr, engines_ctx);
+
+   free(engines_info);
+   return engines_ctx;
+}
+
+static bool
+iris_init_engines_context(struct iris_context *ice, int priority)
+{
+   int engines_ctx = iris_create_engines_context(ice, priority);
+   if (engines_ctx < 0)
+      return false;
+
+   struct iris_screen *screen = (void *) ice->ctx.screen;
+   iris_hw_context_set_priority(screen->bufmgr, engines_ctx, priority);
+
+   for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
+      struct iris_batch *batch = &ice->batches[i];
+      batch->ctx_id = engines_ctx;
+      batch->exec_flags = i;
+      batch->has_engines_context = true;
+   }
+
+   return true;
+}
+
+void
+iris_init_batches(struct iris_context *ice, int priority)
+{
+   if (!iris_init_engines_context(ice, priority))
+      iris_init_non_engine_contexts(ice, priority);
+   for (int i = 0; i < IRIS_BATCH_COUNT; i++)
+      iris_init_batch(ice, (enum iris_batch_name) i);
 }
 
 static int
@@ -294,6 +375,42 @@ add_bo_to_batch(struct iris_batch *batch, struct iris_bo *bo, bool writable)
       MAX2(batch->max_gem_handle, iris_get_backing_bo(bo)->gem_handle);
 }
 
+static void
+flush_for_cross_batch_dependencies(struct iris_batch *batch,
+                                   struct iris_bo *bo,
+                                   bool writable)
+{
+   if (batch->measure && bo == batch->measure->bo)
+      return;
+
+   /* When a batch uses a buffer for the first time, or newly writes a buffer
+    * it had already referenced, we may need to flush other batches in order
+    * to correctly synchronize them.
+    */
+   for (int b = 0; b < ARRAY_SIZE(batch->other_batches); b++) {
+      struct iris_batch *other_batch = batch->other_batches[b];
+      int other_index = find_exec_index(other_batch, bo);
+
+      /* If the buffer is referenced by another batch, and either batch
+       * intends to write it, then flush the other batch and synchronize.
+       *
+       * Consider these cases:
+       *
+       * 1. They read, we read   =>  No synchronization required.
+       * 2. They read, we write  =>  Synchronize (they need the old value)
+       * 3. They write, we read  =>  Synchronize (we need their new value)
+       * 4. They write, we write =>  Synchronize (order writes)
+       *
+       * The read/read case is very common, as multiple batches usually
+       * share a streaming state buffer or shader assembly buffer, and
+       * we want to avoid synchronizing in this case.
+       */
+      if (other_index != -1 &&
+          (writable || BITSET_TEST(other_batch->bos_written, other_index)))
+         iris_batch_flush(other_batch);
+   }
+}
+
 /**
  * Add a buffer to the current batch's validation list.
  *
@@ -324,44 +441,17 @@ iris_use_pinned_bo(struct iris_batch *batch,
 
    int existing_index = find_exec_index(batch, bo);
 
-   if (existing_index != -1) {
+   if (existing_index == -1) {
+      flush_for_cross_batch_dependencies(batch, bo, writable);
+
+      ensure_exec_obj_space(batch, 1);
+      add_bo_to_batch(batch, bo, writable);
+   } else if (writable && !BITSET_TEST(batch->bos_written, existing_index)) {
+      flush_for_cross_batch_dependencies(batch, bo, writable);
+
       /* The BO is already in the list; mark it writable */
-      if (writable)
-         BITSET_SET(batch->bos_written, existing_index);
-
-      return;
+      BITSET_SET(batch->bos_written, existing_index);
    }
-
-   if (!batch->measure || bo != batch->measure->bo) {
-      /* This is the first time our batch has seen this BO.  Before we use it,
-       * we may need to flush and synchronize with other batches.
-       */
-      for (int b = 0; b < ARRAY_SIZE(batch->other_batches); b++) {
-         struct iris_batch *other_batch = batch->other_batches[b];
-         int other_index = find_exec_index(other_batch, bo);
-
-         /* If the buffer is referenced by another batch, and either batch
-          * intends to write it, then flush the other batch and synchronize.
-          *
-          * Consider these cases:
-          *
-          * 1. They read, we read   =>  No synchronization required.
-          * 2. They read, we write  =>  Synchronize (they need the old value)
-          * 3. They write, we read  =>  Synchronize (we need their new value)
-          * 4. They write, we write =>  Synchronize (order writes)
-          *
-          * The read/read case is very common, as multiple batches usually
-          * share a streaming state buffer or shader assembly buffer, and
-          * we want to avoid synchronizing in this case.
-          */
-         if (other_index != -1 &&
-             (writable || BITSET_TEST(other_batch->bos_written, other_index)))
-            iris_batch_flush(other_batch);
-      }
-   }
-
-   ensure_exec_obj_space(batch, 1);
-   add_bo_to_batch(batch, bo, writable);
 }
 
 static void
@@ -435,7 +525,7 @@ iris_batch_reset(struct iris_batch *batch)
    iris_batch_maybe_noop(batch);
 }
 
-void
+static void
 iris_batch_free(struct iris_batch *batch)
 {
    struct iris_screen *screen = batch->screen;
@@ -463,7 +553,9 @@ iris_batch_free(struct iris_batch *batch)
    batch->map = NULL;
    batch->map_next = NULL;
 
-   iris_destroy_hw_context(bufmgr, batch->hw_ctx_id);
+   /* iris_destroy_batches() will destroy engines contexts. */
+   if (!batch->has_engines_context)
+      iris_destroy_kernel_context(bufmgr, batch->ctx_id);
 
    iris_destroy_batch_measure(batch->measure);
    batch->measure = NULL;
@@ -472,6 +564,22 @@ iris_batch_free(struct iris_batch *batch)
 
    if (INTEL_DEBUG(DEBUG_ANY))
       intel_batch_decode_ctx_finish(&batch->decoder);
+}
+
+void
+iris_destroy_batches(struct iris_context *ice)
+{
+   /* If we are using an engines context, then a single kernel context is
+    * created, with multiple hardware contexts. So, we only need to destroy
+    * the context on the first batch.
+    */
+   if (ice->batches[0].has_engines_context) {
+      iris_destroy_kernel_context(ice->batches[0].screen->bufmgr,
+                                  ice->batches[0].ctx_id);
+   }
+
+   for (int i = 0; i < IRIS_BATCH_COUNT; i++)
+      iris_batch_free(&ice->batches[i]);
 }
 
 /**
@@ -584,20 +692,35 @@ iris_finish_batch(struct iris_batch *batch)
  * Replace our current GEM context with a new one (in case it got banned).
  */
 static bool
-replace_hw_ctx(struct iris_batch *batch)
+replace_kernel_ctx(struct iris_batch *batch)
 {
    struct iris_screen *screen = batch->screen;
    struct iris_bufmgr *bufmgr = screen->bufmgr;
 
-   uint32_t new_ctx = iris_clone_hw_context(bufmgr, batch->hw_ctx_id);
-   if (!new_ctx)
-      return false;
+   if (batch->has_engines_context) {
+      struct iris_context *ice = batch->ice;
+      int priority = iris_kernel_context_get_priority(bufmgr, batch->ctx_id);
+      uint32_t old_ctx = batch->ctx_id;
+      int new_ctx = iris_create_engines_context(ice, priority);
+      if (new_ctx < 0)
+         return false;
+      for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
+         ice->batches[i].ctx_id = new_ctx;
+         /* Notify the context that state must be re-initialized. */
+         iris_lost_context_state(&ice->batches[i]);
+      }
+      iris_destroy_kernel_context(bufmgr, old_ctx);
+   } else {
+      uint32_t new_ctx = iris_clone_hw_context(bufmgr, batch->ctx_id);
+      if (!new_ctx)
+         return false;
 
-   iris_destroy_hw_context(bufmgr, batch->hw_ctx_id);
-   batch->hw_ctx_id = new_ctx;
+      iris_destroy_kernel_context(bufmgr, batch->ctx_id);
+      batch->ctx_id = new_ctx;
 
-   /* Notify the context that state must be re-initialized. */
-   iris_lost_context_state(batch);
+      /* Notify the context that state must be re-initialized. */
+      iris_lost_context_state(batch);
+   }
 
    return true;
 }
@@ -607,7 +730,7 @@ iris_batch_check_for_reset(struct iris_batch *batch)
 {
    struct iris_screen *screen = batch->screen;
    enum pipe_reset_status status = PIPE_NO_RESET;
-   struct drm_i915_reset_stats stats = { .ctx_id = batch->hw_ctx_id };
+   struct drm_i915_reset_stats stats = { .ctx_id = batch->ctx_id };
 
    if (intel_ioctl(screen->fd, DRM_IOCTL_I915_GET_RESET_STATS, &stats))
       DBG("DRM_IOCTL_I915_GET_RESET_STATS failed: %s\n", strerror(errno));
@@ -630,7 +753,7 @@ iris_batch_check_for_reset(struct iris_batch *batch)
        * Throw it away and start with a fresh context.  Ideally this may
        * catch the problem before our next execbuf fails with -EIO.
        */
-      replace_hw_ctx(batch);
+      replace_kernel_ctx(batch);
    }
 
    return status;
@@ -818,11 +941,11 @@ submit_batch(struct iris_batch *batch)
       .batch_start_offset = 0,
       /* This must be QWord aligned. */
       .batch_len = ALIGN(batch->primary_batch_size, 8),
-      .flags = I915_EXEC_RENDER |
+      .flags = batch->exec_flags |
                I915_EXEC_NO_RELOC |
                I915_EXEC_BATCH_FIRST |
                I915_EXEC_HANDLE_LUT,
-      .rsvd1 = batch->hw_ctx_id, /* rsvd1 is actually the context ID */
+      .rsvd1 = batch->ctx_id, /* rsvd1 is actually the context ID */
    };
 
    if (num_fences(batch)) {
@@ -889,7 +1012,7 @@ _iris_batch_flush(struct iris_batch *batch, const char *file, int line)
 
       fprintf(stderr, "%19s:%-3d: %s batch [%u] flush with %5db (%0.1f%%) "
               "(cmds), %4d BOs (%0.1fMb aperture)\n",
-              file, line, batch_name_to_string(batch->name), batch->hw_ctx_id,
+              file, line, batch_name_to_string(batch->name), batch->ctx_id,
               batch->total_chained_batch_size,
               100.0f * batch->total_chained_batch_size / BATCH_SZ,
               batch->exec_count,
@@ -938,7 +1061,7 @@ _iris_batch_flush(struct iris_batch *batch, const char *file, int line)
     * dubiously claim success...
     * Also handle ENOMEM here.
     */
-   if ((ret == -EIO || ret == -ENOMEM) && replace_hw_ctx(batch)) {
+   if ((ret == -EIO || ret == -ENOMEM) && replace_kernel_ctx(batch)) {
       if (batch->reset->reset) {
          /* Tell gallium frontends the device is lost and it was our fault. */
          batch->reset->reset(batch->reset->data, PIPE_GUILTY_CONTEXT_RESET);

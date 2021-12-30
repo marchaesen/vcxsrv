@@ -331,4 +331,6 @@ xkb_symbols "biblicalSIL" {
 	key <AB10> { [ slash,		question,	U05F3 ] };					//slash		question		geresh P
 
 	key <SPCE> { [ space, 		space,		thinspace,	nobreakspace ] };//space		space			thin space,		nbsp
+
+    include "level3(ralt_switch)" 
 };

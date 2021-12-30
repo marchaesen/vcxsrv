@@ -41,11 +41,6 @@
 
 struct gl_context;
 
-extern void GLAPIENTRY
-_mesa_ClearAccum( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha );
-void GLAPIENTRY
-_mesa_Accum( GLenum op, GLfloat value );
-
 extern void
 _mesa_clear_accum_buffer(struct gl_context *ctx);
 

@@ -34,7 +34,7 @@
 #include "pipe/p_video_codec.h"
 #include "util/u_memory.h"
 #include "util/u_video.h"
-#include "vl/vl_rbsp.h"
+#include "util/vl_rbsp.h"
 #include "vl/vl_zscan.h"
 
 #include "entrypoint.h"

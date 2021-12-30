@@ -74,7 +74,7 @@ fd4_rasterizer_state_create(struct pipe_context *pctx,
       A4XX_GRAS_SU_POLY_OFFSET_CLAMP(cso->offset_clamp);
 
    so->gras_su_mode_control =
-      A4XX_GRAS_SU_MODE_CONTROL_LINEHALFWIDTH(cso->line_width / 2.0);
+      A4XX_GRAS_SU_MODE_CONTROL_LINEHALFWIDTH(cso->line_width / 2.0f);
    so->pc_prim_vtx_cntl2 = A4XX_PC_PRIM_VTX_CNTL2_POLYMODE_FRONT_PTYPE(
                               fd_polygon_mode(cso->fill_front)) |
                            A4XX_PC_PRIM_VTX_CNTL2_POLYMODE_BACK_PTYPE(

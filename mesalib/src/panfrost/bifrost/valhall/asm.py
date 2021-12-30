@@ -33,8 +33,9 @@ class ParseError(Exception):
         self.error = error
 
 class FAUState:
-    def __init__(self, mode):
+    def __init__(self, mode, single_uniform_slot = True):
         self.mode = mode
+        self.single_uniform_slot = single_uniform_slot
         self.uniform_slot = None
         self.special = None
         self.buffer = set()
@@ -60,7 +61,10 @@ class FAUState:
                 'Expected uniform with default immediate mode')
         die_if(self.uniform_slot is not None and self.uniform_slot != slot,
                 'Overflowed uniform slots')
-        self.uniform_slot = slot
+
+        if self.single_uniform_slot:
+            self.uniform_slot = slot
+
         self.push(f'uniform{v}')
 
     def id(self, s):
@@ -221,6 +225,8 @@ def parse_asm(line):
         base = regs[0]
         die_if(any([reg != (base + i) for i, reg in enumerate(regs)]),
                 'Expected consecutive staging registers, got {op}')
+        die_if(sr_count > 1 and (base % 2) != 0,
+                'Consecutive staging registers must be aligned to a register pair')
 
         if sr.count == 0:
             modifier_map["staging_register_count"] = sr_count
@@ -238,7 +244,10 @@ def parse_asm(line):
         # Set a placeholder writemask to prevent encoding faults
         encoded |= (0xC0 << 40)
 
-    fau = FAUState(immediate_mode)
+    # TODO: Determine which instructions can only have address a single uniform
+    single_uniform_slot = not ins.name.startswith('LD_BUFFER')
+
+    fau = FAUState(immediate_mode, single_uniform_slot = single_uniform_slot)
 
     for i, (op, src) in enumerate(zip(operands, ins.srcs)):
         parts = op.split('.')

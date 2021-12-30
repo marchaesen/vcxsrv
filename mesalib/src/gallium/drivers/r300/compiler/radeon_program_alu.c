@@ -226,16 +226,6 @@ static struct rc_dst_register try_to_reuse_dst(struct radeon_compiler *c,
 	return dstregtmpmask(tmp, inst->U.I.DstReg.WriteMask);
 }
 
-static void transform_ABS(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_src_register src = inst->U.I.SrcReg[0];
-	src.Abs = 1;
-	src.Negate = RC_MASK_NONE;
-	emit1(c, inst->Prev, RC_OPCODE_MOV, &inst->U.I, inst->U.I.DstReg, src);
-	rc_remove_instruction(inst);
-}
-
 static void transform_CEIL(struct radeon_compiler* c,
 	struct rc_instruction* inst)
 {
@@ -256,22 +246,6 @@ static void transform_CEIL(struct radeon_compiler* c,
 	rc_remove_instruction(inst);
 }
 
-static void transform_CLAMP(struct radeon_compiler *c,
-	struct rc_instruction *inst)
-{
-	/* CLAMP dst, src, min, max
-	 *    into:
-	 * MIN tmp, src, max
-	 * MAX dst, tmp, min
-	 */
-	struct rc_dst_register dst = try_to_reuse_dst(c, inst);
-	emit2(c, inst->Prev, RC_OPCODE_MIN, 0, dst,
-		inst->U.I.SrcReg[0], inst->U.I.SrcReg[2]);
-	emit2(c, inst->Prev, RC_OPCODE_MAX, &inst->U.I, inst->U.I.DstReg,
-		srcreg(RC_FILE_TEMPORARY, dst.Index), inst->U.I.SrcReg[1]);
-	rc_remove_instruction(inst);
-}
-
 static void transform_DP2(struct radeon_compiler* c,
 	struct rc_instruction* inst)
 {
@@ -284,17 +258,6 @@ static void transform_DP2(struct radeon_compiler* c,
 	src1.Swizzle &= ~(63 << (3 * 2));
 	src1.Swizzle |= (RC_SWIZZLE_ZERO << (3 * 2)) | (RC_SWIZZLE_ZERO << (3 * 3));
 	emit2(c, inst->Prev, RC_OPCODE_DP3, &inst->U.I, inst->U.I.DstReg, src0, src1);
-	rc_remove_instruction(inst);
-}
-
-static void transform_DPH(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_src_register src0 = inst->U.I.SrcReg[0];
-	src0.Negate &= ~RC_MASK_W;
-	src0.Swizzle &= ~(7 << (3 * 3));
-	src0.Swizzle |= RC_SWIZZLE_ONE << (3 * 3);
-	emit2(c, inst->Prev, RC_OPCODE_DP4, &inst->U.I, inst->U.I.DstReg, src0, inst->U.I.SrcReg[1]);
 	rc_remove_instruction(inst);
 }
 
@@ -507,13 +470,6 @@ static void transform_SEQ(struct radeon_compiler* c,
 	rc_remove_instruction(inst);
 }
 
-static void transform_SFL(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	emit1(c, inst->Prev, RC_OPCODE_MOV, &inst->U.I, inst->U.I.DstReg, builtin_zero);
-	rc_remove_instruction(inst);
-}
-
 static void transform_SGE(struct radeon_compiler* c,
 	struct rc_instruction* inst)
 {
@@ -619,35 +575,12 @@ static void transform_SUB(struct radeon_compiler* c,
 	inst->U.I.SrcReg[1] = negate(inst->U.I.SrcReg[1]);
 }
 
-static void transform_SWZ(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	inst->U.I.Opcode = RC_OPCODE_MOV;
-}
-
-static void transform_XPD(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = try_to_reuse_dst(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_MUL, 0, dst,
-		swizzle(inst->U.I.SrcReg[0], RC_SWIZZLE_Z, RC_SWIZZLE_X, RC_SWIZZLE_Y, RC_SWIZZLE_W),
-		swizzle(inst->U.I.SrcReg[1], RC_SWIZZLE_Y, RC_SWIZZLE_Z, RC_SWIZZLE_X, RC_SWIZZLE_W));
-	emit3(c, inst->Prev, RC_OPCODE_MAD, &inst->U.I, inst->U.I.DstReg,
-		swizzle(inst->U.I.SrcReg[0], RC_SWIZZLE_Y, RC_SWIZZLE_Z, RC_SWIZZLE_X, RC_SWIZZLE_W),
-		swizzle(inst->U.I.SrcReg[1], RC_SWIZZLE_Z, RC_SWIZZLE_X, RC_SWIZZLE_Y, RC_SWIZZLE_W),
-		negate(srcreg(RC_FILE_TEMPORARY, dst.Index)));
-
-	rc_remove_instruction(inst);
-}
-
-
 /**
  * Can be used as a transformation for @ref radeonClauseLocalTransform,
  * no userData necessary.
  *
  * Eliminates the following ALU instructions:
- *  ABS, CEIL, DPH, DST, FLR, LIT, LRP, POW, SEQ, SFL, SGE, SGT, SLE, SLT, SNE, SUB, SWZ, XPD
+ *  CEIL, DST, FLR, LIT, LRP, POW, SEQ, SGE, SGT, SLE, SLT, SNE, SUB
  * using:
  *  MOV, ADD, MUL, MAD, FRC, DP3, LG2, EX2, CMP
  *
@@ -662,11 +595,8 @@ int radeonTransformALU(
 	void* unused)
 {
 	switch(inst->U.I.Opcode) {
-	case RC_OPCODE_ABS: transform_ABS(c, inst); return 1;
 	case RC_OPCODE_CEIL: transform_CEIL(c, inst); return 1;
-	case RC_OPCODE_CLAMP: transform_CLAMP(c, inst); return 1;
 	case RC_OPCODE_DP2: transform_DP2(c, inst); return 1;
-	case RC_OPCODE_DPH: transform_DPH(c, inst); return 1;
 	case RC_OPCODE_DST: transform_DST(c, inst); return 1;
 	case RC_OPCODE_FLR: transform_FLR(c, inst); return 1;
 	case RC_OPCODE_LIT: transform_LIT(c, inst); return 1;
@@ -675,7 +605,6 @@ int radeonTransformALU(
 	case RC_OPCODE_ROUND: transform_ROUND(c, inst); return 1;
 	case RC_OPCODE_RSQ: transform_RSQ(c, inst); return 1;
 	case RC_OPCODE_SEQ: transform_SEQ(c, inst); return 1;
-	case RC_OPCODE_SFL: transform_SFL(c, inst); return 1;
 	case RC_OPCODE_SGE: transform_SGE(c, inst); return 1;
 	case RC_OPCODE_SGT: transform_SGT(c, inst); return 1;
 	case RC_OPCODE_SLE: transform_SLE(c, inst); return 1;
@@ -683,22 +612,10 @@ int radeonTransformALU(
 	case RC_OPCODE_SNE: transform_SNE(c, inst); return 1;
 	case RC_OPCODE_SSG: transform_SSG(c, inst); return 1;
 	case RC_OPCODE_SUB: transform_SUB(c, inst); return 1;
-	case RC_OPCODE_SWZ: transform_SWZ(c, inst); return 1;
 	case RC_OPCODE_TRUNC: transform_TRUNC(c, inst); return 1;
-	case RC_OPCODE_XPD: transform_XPD(c, inst); return 1;
 	default:
 		return 0;
 	}
-}
-
-
-static void transform_r300_vertex_ABS(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	/* Note: r500 can take absolute values, but r300 cannot. */
-	inst->U.I.Opcode = RC_OPCODE_MAX;
-	inst->U.I.SrcReg[1] = inst->U.I.SrcReg[0];
-	inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
 }
 
 static void transform_r300_vertex_CMP(struct radeon_compiler* c,
@@ -906,13 +823,10 @@ int r300_transform_vertex_alu(
 	void* unused)
 {
 	switch(inst->U.I.Opcode) {
-	case RC_OPCODE_ABS: transform_r300_vertex_ABS(c, inst); return 1;
 	case RC_OPCODE_CEIL: transform_CEIL(c, inst); return 1;
-	case RC_OPCODE_CLAMP: transform_CLAMP(c, inst); return 1;
 	case RC_OPCODE_CMP: transform_r300_vertex_CMP(c, inst); return 1;
 	case RC_OPCODE_DP2: transform_r300_vertex_DP2(c, inst); return 1;
 	case RC_OPCODE_DP3: transform_r300_vertex_DP3(c, inst); return 1;
-	case RC_OPCODE_DPH: transform_DPH(c, inst); return 1;
 	case RC_OPCODE_FLR: transform_FLR(c, inst); return 1;
 	case RC_OPCODE_LIT: transform_r300_vertex_fix_LIT(c, inst); return 1;
 	case RC_OPCODE_LRP: transform_LRP(c, inst); return 1;
@@ -922,7 +836,6 @@ int r300_transform_vertex_alu(
 			return 1;
 		}
 		return 0;
-	case RC_OPCODE_SFL: transform_SFL(c, inst); return 1;
 	case RC_OPCODE_SGT: transform_r300_vertex_SGT(c, inst); return 1;
 	case RC_OPCODE_SLE: transform_r300_vertex_SLE(c, inst); return 1;
 	case RC_OPCODE_SNE:
@@ -933,9 +846,7 @@ int r300_transform_vertex_alu(
 		return 0;
 	case RC_OPCODE_SSG: transform_r300_vertex_SSG(c, inst); return 1;
 	case RC_OPCODE_SUB: transform_SUB(c, inst); return 1;
-	case RC_OPCODE_SWZ: transform_SWZ(c, inst); return 1;
 	case RC_OPCODE_TRUNC: transform_vertex_TRUNC(c, inst); return 1;
-	case RC_OPCODE_XPD: transform_XPD(c, inst); return 1;
 	default:
 		return 0;
 	}
@@ -995,7 +906,7 @@ static void sin_approx(
 }
 
 /**
- * Translate the trigonometric functions COS, SIN, and SCS
+ * Translate the trigonometric functions COS and SIN
  * using only the basic instructions
  *  MOV, ADD, MUL, MAD, FRC
  */
@@ -1007,8 +918,7 @@ int r300_transform_trig_simple(struct radeon_compiler* c,
 	unsigned int tempreg;
 
 	if (inst->U.I.Opcode != RC_OPCODE_COS &&
-	    inst->U.I.Opcode != RC_OPCODE_SIN &&
-	    inst->U.I.Opcode != RC_OPCODE_SCS)
+	    inst->U.I.Opcode != RC_OPCODE_SIN)
 		return 0;
 
 	tempreg = rc_find_free_temporary(c);
@@ -1080,7 +990,7 @@ int r300_transform_trig_simple(struct radeon_compiler* c,
 	return 1;
 }
 
-static void r300_transform_SIN_COS_SCS(struct radeon_compiler *c,
+static void r300_transform_SIN_COS(struct radeon_compiler *c,
 	struct rc_instruction *inst,
 	unsigned srctmp)
 {
@@ -1090,19 +1000,6 @@ static void r300_transform_SIN_COS_SCS(struct radeon_compiler *c,
 	} else if (inst->U.I.Opcode == RC_OPCODE_SIN) {
 		emit1(c, inst->Prev, RC_OPCODE_SIN, &inst->U.I,
 			inst->U.I.DstReg, srcregswz(RC_FILE_TEMPORARY, srctmp, RC_SWIZZLE_WWWW));
-	} else if (inst->U.I.Opcode == RC_OPCODE_SCS) {
-		struct rc_dst_register moddst = inst->U.I.DstReg;
-
-		if (inst->U.I.DstReg.WriteMask & RC_MASK_X) {
-			moddst.WriteMask = RC_MASK_X;
-			emit1(c, inst->Prev, RC_OPCODE_COS, &inst->U.I, moddst,
-				srcregswz(RC_FILE_TEMPORARY, srctmp, RC_SWIZZLE_WWWW));
-		}
-		if (inst->U.I.DstReg.WriteMask & RC_MASK_Y) {
-			moddst.WriteMask = RC_MASK_Y;
-			emit1(c, inst->Prev, RC_OPCODE_SIN, &inst->U.I, moddst,
-				srcregswz(RC_FILE_TEMPORARY, srctmp, RC_SWIZZLE_WWWW));
-		}
 	}
 
 	rc_remove_instruction(inst);
@@ -1110,10 +1007,9 @@ static void r300_transform_SIN_COS_SCS(struct radeon_compiler *c,
 
 
 /**
- * Transform the trigonometric functions COS, SIN, and SCS
+ * Transform the trigonometric functions COS and SIN
  * to include pre-scaling by 1/(2*PI) and taking the fractional
  * part, so that the input to COS and SIN is always in the range [0,1).
- * SCS is replaced by one COS and one SIN instruction.
  *
  * @warning This transformation implicitly changes the semantics of SIN and COS!
  */
@@ -1127,8 +1023,7 @@ int radeonTransformTrigScale(struct radeon_compiler* c,
 	unsigned int constant_swizzle;
 
 	if (inst->U.I.Opcode != RC_OPCODE_COS &&
-	    inst->U.I.Opcode != RC_OPCODE_SIN &&
-	    inst->U.I.Opcode != RC_OPCODE_SCS)
+	    inst->U.I.Opcode != RC_OPCODE_SIN)
 		return 0;
 
 	temp = rc_find_free_temporary(c);
@@ -1140,14 +1035,13 @@ int radeonTransformTrigScale(struct radeon_compiler* c,
 	emit1(c, inst->Prev, RC_OPCODE_FRC, 0, dstregtmpmask(temp, RC_MASK_W),
 		srcreg(RC_FILE_TEMPORARY, temp));
 
-	r300_transform_SIN_COS_SCS(c, inst, temp);
+	r300_transform_SIN_COS(c, inst, temp);
 	return 1;
 }
 
 /**
- * Transform the trigonometric functions COS, SIN, and SCS
+ * Transform the trigonometric functions COS and SIN
  * so that the input to COS and SIN is always in the range [-PI, PI].
- * SCS is replaced by one COS and one SIN instruction.
  */
 int r300_transform_trig_scale_vertex(struct radeon_compiler *c,
 	struct rc_instruction *inst,
@@ -1158,8 +1052,7 @@ int r300_transform_trig_scale_vertex(struct radeon_compiler *c,
 	unsigned int constant;
 
 	if (inst->U.I.Opcode != RC_OPCODE_COS &&
-	    inst->U.I.Opcode != RC_OPCODE_SIN &&
-	    inst->U.I.Opcode != RC_OPCODE_SCS)
+	    inst->U.I.Opcode != RC_OPCODE_SIN)
 		return 0;
 
 	/* Repeat x in the range [-PI, PI]:
@@ -1181,7 +1074,26 @@ int r300_transform_trig_scale_vertex(struct radeon_compiler *c,
 		srcregswz(RC_FILE_CONSTANT, constant, RC_SWIZZLE_ZZZZ),
 		srcregswz(RC_FILE_CONSTANT, constant, RC_SWIZZLE_WWWW));
 
-	r300_transform_SIN_COS_SCS(c, inst, temp);
+	r300_transform_SIN_COS(c, inst, temp);
+	return 1;
+}
+
+/**
+ * Replaces DDX/DDY instructions with MOV 0 to avoid using dummy shaders on r300/r400.
+ *
+ * @warning This explicitly changes the form of DDX and DDY!
+ */
+
+int radeonStubDeriv(struct radeon_compiler* c,
+	struct rc_instruction* inst,
+	void* unused)
+{
+	if (inst->U.I.Opcode != RC_OPCODE_DDX && inst->U.I.Opcode != RC_OPCODE_DDY)
+		return 0;
+
+	inst->U.I.Opcode = RC_OPCODE_MOV;
+	inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_0000;
+
 	return 1;
 }
 

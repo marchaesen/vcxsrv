@@ -425,7 +425,7 @@ build_nir_vertex_shader(void)
 {
    const struct glsl_type *vec4 = glsl_vec4_type();
    const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, NULL, "meta_blit2d_vs");
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_VERTEX, "meta_blit2d_vs");
 
    nir_variable *pos_out = nir_variable_create(b.shader, nir_var_shader_out, vec4, "gl_Position");
    pos_out->data.location = VARYING_SLOT_POS;
@@ -562,7 +562,7 @@ build_nir_copy_fragment_shader(struct radv_device *device, texel_fetch_build_fun
 {
    const struct glsl_type *vec4 = glsl_vec4_type();
    const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "%s", name);
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_FRAGMENT, "%s", name);
 
    nir_variable *tex_pos_in = nir_variable_create(b.shader, nir_var_shader_in, vec2, "v_tex_pos");
    tex_pos_in->data.location = VARYING_SLOT_VAR0;
@@ -585,7 +585,7 @@ build_nir_copy_fragment_shader_depth(struct radv_device *device, texel_fetch_bui
 {
    const struct glsl_type *vec4 = glsl_vec4_type();
    const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "%s", name);
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_FRAGMENT, "%s", name);
 
    nir_variable *tex_pos_in = nir_variable_create(b.shader, nir_var_shader_in, vec2, "v_tex_pos");
    tex_pos_in->data.location = VARYING_SLOT_VAR0;
@@ -608,7 +608,7 @@ build_nir_copy_fragment_shader_stencil(struct radv_device *device, texel_fetch_b
 {
    const struct glsl_type *vec4 = glsl_vec4_type();
    const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, NULL, "%s", name);
+   nir_builder b = radv_meta_init_shader(MESA_SHADER_FRAGMENT, "%s", name);
 
    nir_variable *tex_pos_in = nir_variable_create(b.shader, nir_var_shader_in, vec2, "v_tex_pos");
    tex_pos_in->data.location = VARYING_SLOT_VAR0;

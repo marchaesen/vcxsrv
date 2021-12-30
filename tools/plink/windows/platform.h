@@ -121,8 +121,6 @@ static inline uintmax_t strtoumax(const char *nptr, char **endptr, int base)
 #define strnicmp strncasecmp
 #endif
 
-#define BROKEN_PIPE_ERROR_CODE ERROR_BROKEN_PIPE   /* used in ssh/sharing.c */
-
 /*
  * Dynamically linked functions. These come in two flavours:
  *
@@ -146,8 +144,6 @@ static inline uintmax_t strtoumax(const char *nptr, char **endptr, int base)
 /* If you DECL_WINDOWS_FUNCTION as extern in a header file, use this to
  * define the function pointer in a source file */
 #define DEF_WINDOWS_FUNCTION(name) t_##name p_##name
-#define STR1(x) #x
-#define STR(x) STR1(x)
 #define GET_WINDOWS_FUNCTION_PP(module, name)                           \
     TYPECHECK((t_##name)NULL == name,                                   \
               (p_##name = module ?                                      \
@@ -220,16 +216,16 @@ int has_embedded_chm(void);            /* 1 = yes, 0 = no, -1 = N/A */
  * GUI seat methods in windlg.c, so that the vtable definition in
  * window.c can refer to them.
  */
-int win_seat_confirm_ssh_host_key(
+SeatPromptResult win_seat_confirm_ssh_host_key(
     Seat *seat, const char *host, int port, const char *keytype,
     char *keystr, const char *keydisp, char **key_fingerprints, bool mismatch,
-    void (*callback)(void *ctx, int result), void *ctx);
-int win_seat_confirm_weak_crypto_primitive(
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
+SeatPromptResult win_seat_confirm_weak_crypto_primitive(
     Seat *seat, const char *algtype, const char *algname,
-    void (*callback)(void *ctx, int result), void *ctx);
-int win_seat_confirm_weak_cached_hostkey(
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
+SeatPromptResult win_seat_confirm_weak_cached_hostkey(
     Seat *seat, const char *algname, const char *betteralgs,
-    void (*callback)(void *ctx, int result), void *ctx);
+    void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
 
 /*
  * Windows-specific clipboard helper function shared with windlg.c,
@@ -343,6 +339,10 @@ extern HANDLE winselcli_event;
 Socket *make_handle_socket(HANDLE send_H, HANDLE recv_H, HANDLE stderr_H,
                            SockAddr *addr, int port, Plug *plug,
                            bool overlapped); /* winhsock */
+Socket *make_deferred_handle_socket(DeferredSocketOpener *opener,
+                                    SockAddr *addr, int port, Plug *plug);
+void setup_handle_socket(Socket *s, HANDLE send_H, HANDLE recv_H,
+                         HANDLE stderr_H, bool overlapped);
 Socket *new_named_pipe_client(const char *pipename, Plug *plug); /* winnpc */
 Socket *new_named_pipe_listener(const char *pipename, Plug *plug); /* winnps */
 
@@ -729,5 +729,11 @@ const wchar_t *get_app_user_model_id(void);
 char *handle_restrict_acl_cmdline_prefix(char *cmdline);
 bool handle_special_sessionname_cmdline(char *cmdline, Conf *conf);
 bool handle_special_filemapping_cmdline(char *cmdline, Conf *conf);
+
+/* network.c: network error reporting helpers taking OS error code */
+void plug_closing_system_error(Plug *plug, DWORD error);
+void plug_closing_winsock_error(Plug *plug, DWORD error);
+
+SeatPromptResult make_spr_sw_abort_winerror(const char *prefix, DWORD error);
 
 #endif /* PUTTY_WINDOWS_PLATFORM_H */

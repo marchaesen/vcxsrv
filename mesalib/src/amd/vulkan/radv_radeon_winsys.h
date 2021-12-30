@@ -273,7 +273,7 @@ struct radeon_winsys {
 
    void (*cs_grow)(struct radeon_cmdbuf *cs, size_t min_size);
 
-   VkResult (*cs_submit)(struct radeon_winsys_ctx *ctx, int queue_index,
+   VkResult (*cs_submit)(struct radeon_winsys_ctx *ctx, enum ring_type ring_type, int queue_index,
                          struct radeon_cmdbuf **cs_array, unsigned cs_count,
                          struct radeon_cmdbuf *initial_preamble_cs,
                          struct radeon_cmdbuf *continue_preamble_cs,
@@ -301,9 +301,9 @@ struct radeon_winsys {
    VkResult (*query_syncobj)(struct radeon_winsys *ws, uint32_t handle, uint64_t *point);
    bool (*wait_syncobj)(struct radeon_winsys *ws, const uint32_t *handles, uint32_t handle_count,
                         bool wait_all, uint64_t timeout);
-   bool (*wait_timeline_syncobj)(struct radeon_winsys *ws, const uint32_t *handles,
-                                 const uint64_t *points, uint32_t handle_count, bool wait_all,
-                                 bool available, uint64_t timeout);
+   VkResult (*wait_timeline_syncobj)(struct radeon_winsys *ws, const uint32_t *handles,
+                                     const uint64_t *points, uint32_t handle_count, bool wait_all,
+                                     bool available, uint64_t timeout);
 
    int (*export_syncobj)(struct radeon_winsys *ws, uint32_t syncobj, int *fd);
    int (*import_syncobj)(struct radeon_winsys *ws, int fd, uint32_t *syncobj);

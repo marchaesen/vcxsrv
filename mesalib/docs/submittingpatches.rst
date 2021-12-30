@@ -280,7 +280,7 @@ branch and release. In order or preference:
   a specific commit.
 - By adding the ``Cc: mesa-stable`` tag in the commit message as described above.
 - By submitting a merge request against the ``staging/year.quarter``
-  branch on GitLab.
+  branch on GitLab. Refer to the :ref:`instructions below <backports>`.
 
 Please **DO NOT** send patches to mesa-stable@lists.freedesktop.org, it
 is not monitored actively and is a historical artifact.
@@ -356,9 +356,15 @@ For patches that either need to be nominated after they've landed in
 main, or that are known ahead of time to not not apply cleanly to a
 stable branch (such as due to a rename), using a GitLab MR is most
 appropriate. The MR should be based on and target the
-staging/year.quarter branch, not on the year.quarter branch, per the
-stable branch policy. Assigning the MR to release maintainer for said
-branch or mentioning them is helpful, but not required.
+``staging/**year.quarter**`` branch, not on the ``year.quarter`` branch,
+per the stable branch policy. Assigning the MR to release maintainer for
+said branch or mentioning them is helpful, but not required.
+
+Make sure to use ``git cherry-pick -x`` when cherry-picking the commits
+from the main branch. This adds the "cherry picked from commit ..." line
+to the commit message, to allow the release maintainters to mark those
+as backported, which in turn allows the tools to correctly report any
+future ``Fixes:`` affecting the commits you backported.
 
 Documentation patches
 ---------------------

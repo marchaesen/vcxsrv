@@ -37,55 +37,6 @@
 
 struct gl_context;
 
-extern void GLAPIENTRY
-_mesa_ClearStencil( GLint s );
-
-
-void GLAPIENTRY
-_mesa_StencilFunc_no_error(GLenum func, GLint ref, GLuint mask);
-
-extern void GLAPIENTRY
-_mesa_StencilFunc(GLenum func, GLint ref, GLuint mask);
-
-
-extern void GLAPIENTRY
-_mesa_StencilMask( GLuint mask );
-
-void GLAPIENTRY
-_mesa_StencilOp_no_error(GLenum fail, GLenum zfail, GLenum zpass);
-
-extern void GLAPIENTRY
-_mesa_StencilOp(GLenum fail, GLenum zfail, GLenum zpass);
-
-
-extern void GLAPIENTRY
-_mesa_ActiveStencilFaceEXT(GLenum face);
-
-void GLAPIENTRY
-_mesa_StencilOpSeparate_no_error(GLenum face, GLenum fail, GLenum zfail,
-                                 GLenum zpass);
-
-extern void GLAPIENTRY
-_mesa_StencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
-
-
-void GLAPIENTRY
-_mesa_StencilFuncSeparate_no_error(GLenum face, GLenum func, GLint ref,
-                                   GLuint mask);
-
-extern void GLAPIENTRY
-_mesa_StencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask);
-
-
-extern void GLAPIENTRY
-_mesa_StencilFuncSeparateATI(GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask);
-
-void GLAPIENTRY
-_mesa_StencilMaskSeparate_no_error(GLenum face, GLuint mask);
-
-extern void GLAPIENTRY
-_mesa_StencilMaskSeparate(GLenum face, GLuint mask);
-
 extern void 
 _mesa_init_stencil( struct gl_context * ctx );
 

@@ -25,6 +25,7 @@
  *
  **************************************************************************/
 
+#include "util/format/format_utils.h"
 #include "util/u_cpu_detect.h"
 #include "util/u_helpers.h"
 #include "util/u_inlines.h"
@@ -517,4 +518,30 @@ util_init_pipe_vertex_state(struct pipe_screen *screen,
    for (unsigned i = 0; i < num_elements; i++)
       state->input.elements[i] = elements[i];
    state->input.full_velem_mask = full_velem_mask;
+}
+
+/**
+ * Clamp color value to format range.
+ */
+union pipe_color_union
+util_clamp_color(enum pipe_format format,
+                 const union pipe_color_union *color)
+{
+   union pipe_color_union clamp_color = *color;
+   int i;
+
+   for (i = 0; i < util_format_get_nr_components(format); i++) {
+      uint8_t bits = util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_RGB, i);
+
+      if (util_format_is_unorm(format))
+         clamp_color.ui[i] = _mesa_unorm_to_unorm(clamp_color.ui[i], bits, bits);
+      else if (util_format_is_snorm(format))
+         clamp_color.i[i] = _mesa_snorm_to_snorm(clamp_color.i[i], bits, bits);
+      else if (util_format_is_pure_uint(format))
+         clamp_color.ui[i] = _mesa_unsigned_to_unsigned(clamp_color.ui[i], bits);
+      else if (util_format_is_pure_sint(format))
+         clamp_color.i[i] = _mesa_signed_to_signed(clamp_color.i[i], bits);
+   }
+
+   return clamp_color;
 }

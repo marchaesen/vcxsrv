@@ -28,7 +28,9 @@
 #include "lines.h"
 #include "macros.h"
 #include "mtypes.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_context.h"
 
 /**
  * Set the line width.
@@ -67,12 +69,9 @@ line_width(struct gl_context *ctx, GLfloat width, bool no_error)
       return;
    }
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLineState ? 0 : _NEW_LINE, GL_LINE_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewLineState;
+   FLUSH_VERTICES(ctx, 0, GL_LINE_BIT);
+   ctx->NewDriverState |= ST_NEW_RASTERIZER;
    ctx->Line.Width = width;
-
-   if (ctx->Driver.LineWidth)
-      ctx->Driver.LineWidth(ctx, width);
 }
 
 
@@ -122,13 +121,10 @@ _mesa_LineStipple( GLint factor, GLushort pattern )
        ctx->Line.StipplePattern == pattern)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewLineState ? 0 : _NEW_LINE, GL_LINE_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewLineState;
+   FLUSH_VERTICES(ctx, 0, GL_LINE_BIT);
+   ctx->NewDriverState |= ST_NEW_RASTERIZER;
    ctx->Line.StippleFactor = factor;
    ctx->Line.StipplePattern = pattern;
-
-   if (ctx->Driver.LineStipple)
-      ctx->Driver.LineStipple( ctx, factor, pattern );
 }
 
 

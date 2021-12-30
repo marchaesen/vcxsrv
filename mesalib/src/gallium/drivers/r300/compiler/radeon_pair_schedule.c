@@ -802,7 +802,6 @@ static int can_convert_opcode_to_alpha(unsigned int opcode)
 	case RC_OPCODE_DP2:
 	case RC_OPCODE_DP3:
 	case RC_OPCODE_DP4:
-	case RC_OPCODE_DPH:
 		return 0;
 	default:
 		return 1;

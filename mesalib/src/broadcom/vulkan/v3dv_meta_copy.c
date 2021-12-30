@@ -25,7 +25,6 @@
 #include "v3dv_meta_common.h"
 
 #include "compiler/nir/nir_builder.h"
-#include "vk_format_info.h"
 #include "util/u_pack_color.h"
 #include "vulkan/runtime/vk_common_entrypoints.h"
 
@@ -2176,7 +2175,12 @@ texel_buffer_shader_copy(struct v3dv_cmd_buffer *cmd_buffer,
          .clearValueCount = 0,
       };
 
-      v3dv_CmdBeginRenderPass(_cmd_buffer, &rp_info, VK_SUBPASS_CONTENTS_INLINE);
+      VkSubpassBeginInfo sp_info = {
+         .sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
+         .contents = VK_SUBPASS_CONTENTS_INLINE,
+      };
+
+      v3dv_CmdBeginRenderPass2(_cmd_buffer, &rp_info, &sp_info);
       struct v3dv_job *job = cmd_buffer->state.job;
       if (!job)
          goto fail;
@@ -2243,7 +2247,11 @@ texel_buffer_shader_copy(struct v3dv_cmd_buffer *cmd_buffer,
          v3dv_CmdDraw(_cmd_buffer, 4, 1, 0, 0);
       } /* For each region */
 
-      v3dv_CmdEndRenderPass(_cmd_buffer);
+      VkSubpassEndInfo sp_end_info = {
+         .sType = VK_STRUCTURE_TYPE_SUBPASS_END_INFO,
+      };
+
+      v3dv_CmdEndRenderPass2(_cmd_buffer, &sp_end_info);
    } /* For each layer */
 
 fail:
@@ -2964,7 +2972,8 @@ create_blit_render_pass(struct v3dv_device *device,
    const bool is_color_blit = vk_format_is_color(dst_format);
 
    /* Attachment load operation is specified below */
-   VkAttachmentDescription att = {
+   VkAttachmentDescription2 att = {
+      .sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
       .format = dst_format,
       .samples = VK_SAMPLE_COUNT_1_BIT,
       .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -2972,12 +2981,14 @@ create_blit_render_pass(struct v3dv_device *device,
       .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
    };
 
-   VkAttachmentReference att_ref = {
+   VkAttachmentReference2 att_ref = {
+      .sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
       .attachment = 0,
       .layout = VK_IMAGE_LAYOUT_GENERAL,
    };
 
-   VkSubpassDescription subpass = {
+   VkSubpassDescription2 subpass = {
+      .sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
       .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
       .inputAttachmentCount = 0,
       .colorAttachmentCount = is_color_blit ? 1 : 0,
@@ -2988,8 +2999,8 @@ create_blit_render_pass(struct v3dv_device *device,
       .pPreserveAttachments = NULL,
    };
 
-   VkRenderPassCreateInfo info = {
-      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+   VkRenderPassCreateInfo2 info = {
+      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
       .attachmentCount = 1,
       .pAttachments = &att,
       .subpassCount = 1,
@@ -3000,14 +3011,14 @@ create_blit_render_pass(struct v3dv_device *device,
 
    VkResult result;
    att.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-   result = v3dv_CreateRenderPass(v3dv_device_to_handle(device),
-                                  &info, &device->vk.alloc, pass_load);
+   result = v3dv_CreateRenderPass2(v3dv_device_to_handle(device),
+                                   &info, &device->vk.alloc, pass_load);
    if (result != VK_SUCCESS)
       return false;
 
    att.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-   result = v3dv_CreateRenderPass(v3dv_device_to_handle(device),
-                                  &info, &device->vk.alloc, pass_no_load);
+   result = v3dv_CreateRenderPass2(v3dv_device_to_handle(device),
+                                   &info, &device->vk.alloc, pass_no_load);
    return result == VK_SUCCESS;
 }
 
@@ -4169,7 +4180,12 @@ blit_shader(struct v3dv_cmd_buffer *cmd_buffer,
          .clearValueCount = 0,
       };
 
-      v3dv_CmdBeginRenderPass(_cmd_buffer, &rp_info, VK_SUBPASS_CONTENTS_INLINE);
+      VkSubpassBeginInfo sp_info = {
+         .sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
+         .contents = VK_SUBPASS_CONTENTS_INLINE,
+      };
+
+      v3dv_CmdBeginRenderPass2(_cmd_buffer, &rp_info, &sp_info);
       struct v3dv_job *job = cmd_buffer->state.job;
       if (!job)
          goto fail;
@@ -4193,7 +4209,11 @@ blit_shader(struct v3dv_cmd_buffer *cmd_buffer,
 
       v3dv_CmdDraw(_cmd_buffer, 4, 1, 0, 0);
 
-      v3dv_CmdEndRenderPass(_cmd_buffer);
+      VkSubpassEndInfo sp_end_info = {
+         .sType = VK_STRUCTURE_TYPE_SUBPASS_END_INFO,
+      };
+
+      v3dv_CmdEndRenderPass2(_cmd_buffer, &sp_end_info);
       dirty_dynamic_state = V3DV_CMD_DIRTY_VIEWPORT | V3DV_CMD_DIRTY_SCISSOR;
    }
 

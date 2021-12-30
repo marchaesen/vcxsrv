@@ -39,7 +39,6 @@
 #include "main/transformfeedback.h"
 #include "util/u_memory.h"
 
-#include "st_cb_bufferobjects.h"
 #include "st_cb_xformfb.h"
 #include "st_context.h"
 
@@ -66,7 +65,7 @@ st_transform_feedback_object(struct gl_transform_feedback_object *obj)
    return (struct st_transform_feedback_object *) obj;
 }
 
-static struct gl_transform_feedback_object *
+struct gl_transform_feedback_object *
 st_new_transform_feedback(struct gl_context *ctx, GLuint name)
 {
    struct st_transform_feedback_object *obj;
@@ -81,7 +80,7 @@ st_new_transform_feedback(struct gl_context *ctx, GLuint name)
 }
 
 
-static void
+void
 st_delete_transform_feedback(struct gl_context *ctx,
                              struct gl_transform_feedback_object *obj)
 {
@@ -102,7 +101,7 @@ st_delete_transform_feedback(struct gl_context *ctx,
 
 
 /* XXX Do we really need the mode? */
-static void
+void
 st_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
                             struct gl_transform_feedback_object *obj)
 {
@@ -118,7 +117,7 @@ st_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
 
    /* Convert the transform feedback state into the gallium representation. */
    for (i = 0; i < max_num_targets; i++) {
-      struct st_buffer_object *bo = st_buffer_object(sobj->base.Buffers[i]);
+      struct gl_buffer_object *bo = sobj->base.Buffers[i];
 
       if (bo && bo->buffer) {
          unsigned stream = obj->program->sh.LinkedTransformFeedback->
@@ -152,16 +151,16 @@ st_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
 }
 
 
-static void
+void
 st_pause_transform_feedback(struct gl_context *ctx,
-                           struct gl_transform_feedback_object *obj)
+                            struct gl_transform_feedback_object *obj)
 {
    struct st_context *st = st_context(ctx);
    cso_set_stream_outputs(st->cso_context, 0, NULL, NULL);
 }
 
 
-static void
+void
 st_resume_transform_feedback(struct gl_context *ctx,
                              struct gl_transform_feedback_object *obj)
 {
@@ -178,8 +177,7 @@ st_resume_transform_feedback(struct gl_context *ctx,
                           sobj->targets, offsets);
 }
 
-
-static void
+void
 st_end_transform_feedback(struct gl_context *ctx,
                           struct gl_transform_feedback_object *obj)
 {
@@ -222,16 +220,4 @@ st_transform_feedback_draw_init(struct gl_transform_feedback_object *obj,
 
    out->count_from_stream_output = sobj->draw_count[stream];
    return out->count_from_stream_output != NULL;
-}
-
-
-void
-st_init_xformfb_functions(struct dd_function_table *functions)
-{
-   functions->NewTransformFeedback = st_new_transform_feedback;
-   functions->DeleteTransformFeedback = st_delete_transform_feedback;
-   functions->BeginTransformFeedback = st_begin_transform_feedback;
-   functions->EndTransformFeedback = st_end_transform_feedback;
-   functions->PauseTransformFeedback = st_pause_transform_feedback;
-   functions->ResumeTransformFeedback = st_resume_transform_feedback;
 }

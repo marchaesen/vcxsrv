@@ -1,0 +1,2 @@
+# We aren't running an X server.
+glx.*

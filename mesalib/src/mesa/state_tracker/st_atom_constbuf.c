@@ -41,12 +41,12 @@
 #include "util/u_upload_mgr.h"
 #include "cso_cache/cso_context.h"
 
+#include "main/bufferobj.h"
 #include "st_debug.h"
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_atom_constbuf.h"
 #include "st_program.h"
-#include "st_cb_bufferobjects.h"
 
 /* Unbinds the CB0 if it's not used by the current program to avoid leaving
  * dangling pointers to old (potentially deleted) shaders in the driver.
@@ -272,7 +272,7 @@ st_bind_ubos(struct st_context *st, struct gl_program *prog,
       binding =
          &st->ctx->UniformBufferBindings[prog->sh.UniformBlocks[i]->Binding];
 
-      cb.buffer = st_get_buffer_reference(st->ctx, binding->BufferObject);
+      cb.buffer = _mesa_get_bufferobj_reference(st->ctx, binding->BufferObject);
 
       if (cb.buffer) {
          cb.buffer_offset = binding->Offset;

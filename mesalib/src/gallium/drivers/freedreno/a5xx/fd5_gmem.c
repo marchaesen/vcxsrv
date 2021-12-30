@@ -54,7 +54,6 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
       enum a3xx_color_swap swap = WZYX;
       bool srgb = false, sint = false, uint = false;
       struct fd_resource *rsc = NULL;
-      struct fdl_slice *slice = NULL;
       uint32_t stride = 0;
       uint32_t size = 0;
       uint32_t base = 0;
@@ -72,7 +71,6 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
 
          rsc = fd_resource(psurf->texture);
 
-         slice = fd_resource_slice(rsc, psurf->u.tex.level);
          format = fd5_pipe2color(pformat);
          swap = fd5_pipe2swap(pformat);
          srgb = util_format_is_srgb(pformat);
@@ -90,7 +88,7 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
             base = gmem->cbuf_base[i];
          } else {
             stride = fd_resource_pitch(rsc, psurf->u.tex.level);
-            size = slice->size0;
+            size = fd_resource_layer_stride(rsc, psurf->u.tex.level);
 
             tile_mode =
                fd_resource_tile_mode(psurf->texture, psurf->u.tex.level);
@@ -112,7 +110,6 @@ emit_mrt(struct fd_ringbuffer *ring, unsigned nr_bufs,
          OUT_RING(ring, base);       /* RB_MRT[i].BASE_LO */
          OUT_RING(ring, 0x00000000); /* RB_MRT[i].BASE_HI */
       } else {
-         debug_assert((offset + size) <= fd_bo_size(rsc->bo));
          OUT_RELOC(ring, rsc->bo, offset, 0, 0); /* BASE_LO/HI */
       }
 
@@ -148,8 +145,8 @@ emit_zs(struct fd_ringbuffer *ring, struct pipe_surface *zsbuf,
          stride = cpp * gmem->bin_w;
          size = stride * gmem->bin_h;
       } else {
-         stride = fd_resource_pitch(rsc, 0);
-         size = fd_resource_slice(rsc, 0)->size0;
+         stride = fd_resource_pitch(rsc, zsbuf->u.tex.level);
+         size = fd_resource_layer_stride(rsc, zsbuf->u.tex.level);
       }
 
       OUT_PKT4(ring, REG_A5XX_RB_DEPTH_BUFFER_INFO, 5);
@@ -158,7 +155,9 @@ emit_zs(struct fd_ringbuffer *ring, struct pipe_surface *zsbuf,
          OUT_RING(ring, gmem->zsbuf_base[0]); /* RB_DEPTH_BUFFER_BASE_LO */
          OUT_RING(ring, 0x00000000);          /* RB_DEPTH_BUFFER_BASE_HI */
       } else {
-         OUT_RELOC(ring, rsc->bo, 0, 0, 0); /* RB_DEPTH_BUFFER_BASE_LO/HI */
+         OUT_RELOC(ring, rsc->bo,
+            fd_resource_offset(rsc, zsbuf->u.tex.level, zsbuf->u.tex.first_layer),
+            0, 0); /* RB_DEPTH_BUFFER_BASE_LO/HI */
       }
       OUT_RING(ring, A5XX_RB_DEPTH_BUFFER_PITCH(stride));
       OUT_RING(ring, A5XX_RB_DEPTH_BUFFER_ARRAY_PITCH(size));
@@ -194,8 +193,8 @@ emit_zs(struct fd_ringbuffer *ring, struct pipe_surface *zsbuf,
             stride = 1 * gmem->bin_w;
             size = stride * gmem->bin_h;
          } else {
-            stride = fd_resource_pitch(rsc->stencil, 0);
-            size = fd_resource_slice(rsc->stencil, 0)->size0;
+            stride = fd_resource_pitch(rsc->stencil, zsbuf->u.tex.level);
+            size = fd_resource_layer_stride(rsc, zsbuf->u.tex.level);
          }
 
          OUT_PKT4(ring, REG_A5XX_RB_STENCIL_INFO, 5);
@@ -204,8 +203,9 @@ emit_zs(struct fd_ringbuffer *ring, struct pipe_surface *zsbuf,
             OUT_RING(ring, gmem->zsbuf_base[1]); /* RB_STENCIL_BASE_LO */
             OUT_RING(ring, 0x00000000);          /* RB_STENCIL_BASE_HI */
          } else {
-            OUT_RELOC(ring, rsc->stencil->bo, 0, 0,
-                      0); /* RB_STENCIL_BASE_LO/HI */
+            OUT_RELOC(ring, rsc->stencil->bo,
+               fd_resource_offset(rsc->stencil, zsbuf->u.tex.level, zsbuf->u.tex.first_layer),
+                      0, 0); /* RB_STENCIL_BASE_LO/HI */
          }
          OUT_RING(ring, A5XX_RB_STENCIL_PITCH(stride));
          OUT_RING(ring, A5XX_RB_STENCIL_ARRAY_PITCH(size));
@@ -232,6 +232,30 @@ emit_zs(struct fd_ringbuffer *ring, struct pipe_surface *zsbuf,
       OUT_PKT4(ring, REG_A5XX_RB_STENCIL_INFO, 1);
       OUT_RING(ring, 0x00000000); /* RB_STENCIL_INFO */
    }
+}
+
+static void
+emit_msaa(struct fd_ringbuffer *ring, uint32_t nr_samples)
+{
+   enum a3xx_msaa_samples samples = fd_msaa_samples(nr_samples);
+
+   OUT_PKT4(ring, REG_A5XX_TPL1_TP_RAS_MSAA_CNTL, 2);
+   OUT_RING(ring, A5XX_TPL1_TP_RAS_MSAA_CNTL_SAMPLES(samples));
+   OUT_RING(ring, A5XX_TPL1_TP_DEST_MSAA_CNTL_SAMPLES(samples) |
+                     COND(samples == MSAA_ONE,
+                          A5XX_TPL1_TP_DEST_MSAA_CNTL_MSAA_DISABLE));
+
+   OUT_PKT4(ring, REG_A5XX_RB_RAS_MSAA_CNTL, 2);
+   OUT_RING(ring, A5XX_RB_RAS_MSAA_CNTL_SAMPLES(samples));
+   OUT_RING(ring,
+            A5XX_RB_DEST_MSAA_CNTL_SAMPLES(samples) |
+               COND(samples == MSAA_ONE, A5XX_RB_DEST_MSAA_CNTL_MSAA_DISABLE));
+
+   OUT_PKT4(ring, REG_A5XX_GRAS_SC_RAS_MSAA_CNTL, 2);
+   OUT_RING(ring, A5XX_GRAS_SC_RAS_MSAA_CNTL_SAMPLES(samples));
+   OUT_RING(ring, A5XX_GRAS_SC_DEST_MSAA_CNTL_SAMPLES(samples) |
+                     COND(samples == MSAA_ONE,
+                          A5XX_GRAS_SC_DEST_MSAA_CNTL_MSAA_DISABLE));
 }
 
 static bool
@@ -490,7 +514,6 @@ emit_mem2gmem_surf(struct fd_batch *batch, uint32_t base,
       // possibly we want to flip this around gmem2mem and keep depth
       // tiled in sysmem (and fixup sampler state to assume tiled).. this
       // might be required for doing depth/stencil in bypass mode?
-      struct fdl_slice *slice = fd_resource_slice(rsc, 0);
       enum a5xx_color_fmt format =
          fd5_pipe2color(fd_gmem_restore_format(rsc->b.b.format));
 
@@ -499,9 +522,11 @@ emit_mem2gmem_surf(struct fd_batch *batch, uint32_t base,
                A5XX_RB_MRT_BUF_INFO_COLOR_FORMAT(format) |
                   A5XX_RB_MRT_BUF_INFO_COLOR_TILE_MODE(rsc->layout.tile_mode) |
                   A5XX_RB_MRT_BUF_INFO_COLOR_SWAP(WZYX));
-      OUT_RING(ring, A5XX_RB_MRT_PITCH(fd_resource_pitch(rsc, 0)));
-      OUT_RING(ring, A5XX_RB_MRT_ARRAY_PITCH(slice->size0));
-      OUT_RELOC(ring, rsc->bo, 0, 0, 0); /* BASE_LO/HI */
+      OUT_RING(ring, A5XX_RB_MRT_PITCH(fd_resource_pitch(rsc, psurf->u.tex.level)));
+      OUT_RING(ring, A5XX_RB_MRT_ARRAY_PITCH(fd_resource_layer_stride(rsc, psurf->u.tex.level)));
+      OUT_RELOC(ring, rsc->bo,
+         fd_resource_offset(rsc, psurf->u.tex.level, psurf->u.tex.first_layer),
+         0, 0); /* BASE_LO/HI */
 
       buf = BLIT_MRT0;
    }
@@ -583,26 +608,7 @@ fd5_emit_tile_renderprep(struct fd_batch *batch, const struct fd_tile *tile)
 
    emit_zs(ring, pfb->zsbuf, gmem);
    emit_mrt(ring, pfb->nr_cbufs, pfb->cbufs, gmem);
-
-   enum a3xx_msaa_samples samples = fd_msaa_samples(pfb->samples);
-
-   OUT_PKT4(ring, REG_A5XX_TPL1_TP_RAS_MSAA_CNTL, 2);
-   OUT_RING(ring, A5XX_TPL1_TP_RAS_MSAA_CNTL_SAMPLES(samples));
-   OUT_RING(ring, A5XX_TPL1_TP_DEST_MSAA_CNTL_SAMPLES(samples) |
-                     COND(samples == MSAA_ONE,
-                          A5XX_TPL1_TP_DEST_MSAA_CNTL_MSAA_DISABLE));
-
-   OUT_PKT4(ring, REG_A5XX_RB_RAS_MSAA_CNTL, 2);
-   OUT_RING(ring, A5XX_RB_RAS_MSAA_CNTL_SAMPLES(samples));
-   OUT_RING(ring,
-            A5XX_RB_DEST_MSAA_CNTL_SAMPLES(samples) |
-               COND(samples == MSAA_ONE, A5XX_RB_DEST_MSAA_CNTL_MSAA_DISABLE));
-
-   OUT_PKT4(ring, REG_A5XX_GRAS_SC_RAS_MSAA_CNTL, 2);
-   OUT_RING(ring, A5XX_GRAS_SC_RAS_MSAA_CNTL_SAMPLES(samples));
-   OUT_RING(ring, A5XX_GRAS_SC_DEST_MSAA_CNTL_SAMPLES(samples) |
-                     COND(samples == MSAA_ONE,
-                          A5XX_GRAS_SC_DEST_MSAA_CNTL_MSAA_DISABLE));
+   emit_msaa(ring, pfb->samples);
 }
 
 /*
@@ -615,7 +621,6 @@ emit_gmem2mem_surf(struct fd_batch *batch, uint32_t base,
 {
    struct fd_ringbuffer *ring = batch->gmem;
    struct fd_resource *rsc = fd_resource(psurf->texture);
-   struct fdl_slice *slice;
    bool tiled;
    uint32_t offset, pitch;
 
@@ -625,7 +630,6 @@ emit_gmem2mem_surf(struct fd_batch *batch, uint32_t base,
    if (buf == BLIT_S)
       rsc = rsc->stencil;
 
-   slice = fd_resource_slice(rsc, psurf->u.tex.level);
    offset =
       fd_resource_offset(rsc, psurf->u.tex.level, psurf->u.tex.first_layer);
    pitch = fd_resource_pitch(rsc, psurf->u.tex.level);
@@ -645,7 +649,7 @@ emit_gmem2mem_surf(struct fd_batch *batch, uint32_t base,
                      COND(tiled, A5XX_RB_RESOLVE_CNTL_3_TILED));
    OUT_RELOC(ring, rsc->bo, offset, 0, 0); /* RB_BLIT_DST_LO/HI */
    OUT_RING(ring, A5XX_RB_BLIT_DST_PITCH(pitch));
-   OUT_RING(ring, A5XX_RB_BLIT_DST_ARRAY_PITCH(slice->size0));
+   OUT_RING(ring, A5XX_RB_BLIT_DST_ARRAY_PITCH(fd_resource_layer_stride(rsc, psurf->u.tex.level)));
 
    OUT_PKT4(ring, REG_A5XX_RB_BLIT_CNTL, 1);
    OUT_RING(ring, A5XX_RB_BLIT_CNTL_BUF(buf));
@@ -763,21 +767,7 @@ fd5_emit_sysmem_prep(struct fd_batch *batch) assert_dt
 
    emit_zs(ring, pfb->zsbuf, NULL);
    emit_mrt(ring, pfb->nr_cbufs, pfb->cbufs, NULL);
-
-   OUT_PKT4(ring, REG_A5XX_TPL1_TP_RAS_MSAA_CNTL, 2);
-   OUT_RING(ring, A5XX_TPL1_TP_RAS_MSAA_CNTL_SAMPLES(MSAA_ONE));
-   OUT_RING(ring, A5XX_TPL1_TP_DEST_MSAA_CNTL_SAMPLES(MSAA_ONE) |
-                     A5XX_TPL1_TP_DEST_MSAA_CNTL_MSAA_DISABLE);
-
-   OUT_PKT4(ring, REG_A5XX_RB_RAS_MSAA_CNTL, 2);
-   OUT_RING(ring, A5XX_RB_RAS_MSAA_CNTL_SAMPLES(MSAA_ONE));
-   OUT_RING(ring, A5XX_RB_DEST_MSAA_CNTL_SAMPLES(MSAA_ONE) |
-                     A5XX_RB_DEST_MSAA_CNTL_MSAA_DISABLE);
-
-   OUT_PKT4(ring, REG_A5XX_GRAS_SC_RAS_MSAA_CNTL, 2);
-   OUT_RING(ring, A5XX_GRAS_SC_RAS_MSAA_CNTL_SAMPLES(MSAA_ONE));
-   OUT_RING(ring, A5XX_GRAS_SC_DEST_MSAA_CNTL_SAMPLES(MSAA_ONE) |
-                     A5XX_GRAS_SC_DEST_MSAA_CNTL_MSAA_DISABLE);
+   emit_msaa(ring, pfb->samples);
 }
 
 static void

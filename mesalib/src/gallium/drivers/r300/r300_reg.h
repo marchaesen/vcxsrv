@@ -1900,7 +1900,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  *  - CMPH: If ARG2 > 0.5, return ARG0, else return ARG1
  *  - CMP: If ARG2 < 0, return ARG1, else return ARG0
  *  - FLR: use FRC+MAD
- *  - XPD: use MAD+MAD
  *  - SGE, SLT: use MAD+CMP
  *  - RSQ: use ABS modifier for argument
  *  - Use OUTC_REPL_ALPHA to write results of an alpha-only operation

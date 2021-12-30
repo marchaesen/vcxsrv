@@ -51,7 +51,7 @@ void ir3_assert_handler(const char *expr, const char *file, int line,
       }                                                                        \
    } while (0)
 /* size of largest OPC field of all the instruction categories: */
-#define NOPC_BITS 6
+#define NOPC_BITS 7
 
 #define _OPC(cat, opc) (((cat) << NOPC_BITS) | opc)
 
@@ -80,6 +80,7 @@ typedef enum {
    OPC_DBG             = _OPC(0, 22),
    OPC_SHPS            = _OPC(0, 23),   /* shader prologue start */
    OPC_SHPE            = _OPC(0, 24),   /* shader prologue end */
+   OPC_GETLAST         = _OPC(0, 25),
 
    OPC_PREDT           = _OPC(0, 29),   /* predicated true */
    OPC_PREDF           = _OPC(0, 30),   /* predicated false */
@@ -178,6 +179,7 @@ typedef enum {
    OPC_CBITS_B         = _OPC(2, 61),
    OPC_SHB             = _OPC(2, 62),
    OPC_MSAD            = _OPC(2, 63),
+   OPC_FLAT_B          = _OPC(2, 64),
 
    /* category 3: */
    OPC_MAD_U16         = _OPC(3, 0),
@@ -244,9 +246,14 @@ typedef enum {
    OPC_DSYPP_1         = _OPC(5, 25),
    OPC_RGETPOS         = _OPC(5, 26),
    OPC_RGETINFO        = _OPC(5, 27),
+   OPC_BRCST_ACTIVE    = _OPC(5, 28),
+   OPC_QUAD_SHUFFLE_BRCST  = _OPC(5, 29),
+   OPC_QUAD_SHUFFLE_HORIZ  = _OPC(5, 30),
+   OPC_QUAD_SHUFFLE_VERT   = _OPC(5, 31),
+   OPC_QUAD_SHUFFLE_DIAG   = _OPC(5, 32),
    /* cat5 meta instructions, placed above the cat5 opc field's size */
-   OPC_DSXPP_MACRO     = _OPC(5, 32),
-   OPC_DSYPP_MACRO     = _OPC(5, 33),
+   OPC_DSXPP_MACRO     = _OPC(5, 35),
+   OPC_DSYPP_MACRO     = _OPC(5, 36),
 
    /* category 6: */
    OPC_LDG             = _OPC(6, 0),        /* load-global */
@@ -285,6 +292,7 @@ typedef enum {
    OPC_ENDLS           = _OPC(6, 35), /* ??? */
    OPC_GETSPID         = _OPC(6, 36), /* SP ID */
    OPC_GETWID          = _OPC(6, 37), /* wavefront ID */
+   OPC_GETFIBERID      = _OPC(6, 38), /* fiber ID */
 
    /* Logical opcodes for things that differ in a6xx+ */
    OPC_STC             = _OPC(6, 40),
@@ -305,11 +313,35 @@ typedef enum {
    OPC_ATOMIC_B_OR       = _OPC(6, 53),
    OPC_ATOMIC_B_XOR      = _OPC(6, 54),
 
-   OPC_LDG_A           = _OPC(6, 55),
-   OPC_STG_A           = _OPC(6, 56),
+   OPC_ATOMIC_S_ADD      = _OPC(6, 55),
+   OPC_ATOMIC_S_SUB      = _OPC(6, 56),
+   OPC_ATOMIC_S_XCHG     = _OPC(6, 57),
+   OPC_ATOMIC_S_INC      = _OPC(6, 58),
+   OPC_ATOMIC_S_DEC      = _OPC(6, 59),
+   OPC_ATOMIC_S_CMPXCHG  = _OPC(6, 60),
+   OPC_ATOMIC_S_MIN      = _OPC(6, 61),
+   OPC_ATOMIC_S_MAX      = _OPC(6, 62),
+   OPC_ATOMIC_S_AND      = _OPC(6, 63),
+   OPC_ATOMIC_S_OR       = _OPC(6, 64),
+   OPC_ATOMIC_S_XOR      = _OPC(6, 65),
 
-   OPC_SPILL_MACRO     = _OPC(6, 57),
-   OPC_RELOAD_MACRO    = _OPC(6, 58),
+   OPC_ATOMIC_G_ADD      = _OPC(6, 66),
+   OPC_ATOMIC_G_SUB      = _OPC(6, 67),
+   OPC_ATOMIC_G_XCHG     = _OPC(6, 68),
+   OPC_ATOMIC_G_INC      = _OPC(6, 69),
+   OPC_ATOMIC_G_DEC      = _OPC(6, 70),
+   OPC_ATOMIC_G_CMPXCHG  = _OPC(6, 71),
+   OPC_ATOMIC_G_MIN      = _OPC(6, 72),
+   OPC_ATOMIC_G_MAX      = _OPC(6, 73),
+   OPC_ATOMIC_G_AND      = _OPC(6, 74),
+   OPC_ATOMIC_G_OR       = _OPC(6, 75),
+   OPC_ATOMIC_G_XOR      = _OPC(6, 76),
+
+   OPC_LDG_A           = _OPC(6, 77),
+   OPC_STG_A           = _OPC(6, 78),
+
+   OPC_SPILL_MACRO     = _OPC(6, 79),
+   OPC_RELOAD_MACRO    = _OPC(6, 80),
 
    /* category 7: */
    OPC_BAR             = _OPC(7, 0),
@@ -469,12 +501,11 @@ typedef enum {
  * for the texture.
  */
 typedef enum {
-   /* Use traditional GL binding model, get texture and sampler index
-    * from src3 which is not presumed to be uniform. This is
-    * backwards-compatible with earlier generations, where this field was
-    * always 0 and nonuniform-indexed sampling always worked.
+   /* Use traditional GL binding model, get texture and sampler index from src3
+    * which is presumed to be uniform on a4xx+ (a3xx doesn't have the other
+    * modes, but does handle non-uniform indexing).
     */
-   CAT5_NONUNIFORM = 0,
+   CAT5_UNIFORM = 0,
 
    /* The sampler base comes from the low 3 bits of a1.x, and the sampler
     * and texture index come from src3 which is presumed to be uniform.
@@ -493,9 +524,9 @@ typedef enum {
    CAT5_BINDLESS_A1_NONUNIFORM = 3,
 
    /* Use traditional GL binding model, get texture and sampler index
-    * from src3 which is presumed to be uniform.
+    * from src3 which is *not* presumed to be uniform.
     */
-   CAT5_UNIFORM = 4,
+   CAT5_NONUNIFORM = 4,
 
    /* The texture and sampler share the same base, and the sampler and
     * texture index come from src3 which is presumed to be uniform.
@@ -592,7 +623,7 @@ is_madsh(opc_t opc)
 }
 
 static inline bool
-is_atomic(opc_t opc)
+is_local_atomic(opc_t opc)
 {
    switch (opc) {
    case OPC_ATOMIC_ADD:
@@ -610,6 +641,76 @@ is_atomic(opc_t opc)
    default:
       return false;
    }
+}
+
+static inline bool
+is_global_a3xx_atomic(opc_t opc)
+{
+   switch (opc) {
+   case OPC_ATOMIC_S_ADD:
+   case OPC_ATOMIC_S_SUB:
+   case OPC_ATOMIC_S_XCHG:
+   case OPC_ATOMIC_S_INC:
+   case OPC_ATOMIC_S_DEC:
+   case OPC_ATOMIC_S_CMPXCHG:
+   case OPC_ATOMIC_S_MIN:
+   case OPC_ATOMIC_S_MAX:
+   case OPC_ATOMIC_S_AND:
+   case OPC_ATOMIC_S_OR:
+   case OPC_ATOMIC_S_XOR:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static inline bool
+is_global_a6xx_atomic(opc_t opc)
+{
+   switch (opc) {
+   case OPC_ATOMIC_G_ADD:
+   case OPC_ATOMIC_G_SUB:
+   case OPC_ATOMIC_G_XCHG:
+   case OPC_ATOMIC_G_INC:
+   case OPC_ATOMIC_G_DEC:
+   case OPC_ATOMIC_G_CMPXCHG:
+   case OPC_ATOMIC_G_MIN:
+   case OPC_ATOMIC_G_MAX:
+   case OPC_ATOMIC_G_AND:
+   case OPC_ATOMIC_G_OR:
+   case OPC_ATOMIC_G_XOR:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static inline bool
+is_bindless_atomic(opc_t opc)
+{
+   switch (opc) {
+   case OPC_ATOMIC_B_ADD:
+   case OPC_ATOMIC_B_SUB:
+   case OPC_ATOMIC_B_XCHG:
+   case OPC_ATOMIC_B_INC:
+   case OPC_ATOMIC_B_DEC:
+   case OPC_ATOMIC_B_CMPXCHG:
+   case OPC_ATOMIC_B_MIN:
+   case OPC_ATOMIC_B_MAX:
+   case OPC_ATOMIC_B_AND:
+   case OPC_ATOMIC_B_OR:
+   case OPC_ATOMIC_B_XOR:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static inline bool
+is_atomic(opc_t opc)
+{
+   return is_local_atomic(opc) || is_global_a3xx_atomic(opc) ||
+          is_global_a6xx_atomic(opc) || is_bindless_atomic(opc);
 }
 
 static inline bool

@@ -84,12 +84,10 @@ static void
 softpipe_set_polygon_stipple(struct pipe_context *pipe,
                              const struct pipe_poly_stipple *stipple)
 {
+   /* Actual stippling handled by draw module. */
    struct softpipe_context *softpipe = softpipe_context(pipe);
 
    draw_flush(softpipe->draw);
-
-   softpipe->poly_stipple = *stipple; /* struct copy */
-   softpipe->dirty |= SP_NEW_STIPPLE;
 }
 
 

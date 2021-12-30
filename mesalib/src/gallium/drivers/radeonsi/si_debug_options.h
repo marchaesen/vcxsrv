@@ -15,6 +15,8 @@ OPT_BOOL(enable_sam, false, "Enable Smart Access Memory with Above 4G Decoding f
 OPT_BOOL(disable_sam, false, "Disable Smart Access Memory.")
 OPT_BOOL(fp16, false, "Enable FP16 for mediump.")
 OPT_INT(tc_max_cpu_storage_size, 0, "Enable the CPU storage for pipelined buffer uploads in TC.")
+OPT_BOOL(force_use_fma32, false, "Force use fma32 instruction for GPU family newer than gfx9")
+OPT_BOOL(dcc_msaa, false, "Enable DCC for MSAA")
 
 #undef OPT_BOOL
 #undef OPT_INT

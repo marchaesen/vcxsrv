@@ -13,6 +13,7 @@ STABLE_EPHEMERAL=" \
       g++-mingw-w64-i686-posix \
       g++-mingw-w64-x86-64-posix \
       glslang-tools \
+      libexpat1-dev \
       libgbm-dev \
       libgles2-mesa-dev \
       liblz4-dev \
@@ -20,7 +21,6 @@ STABLE_EPHEMERAL=" \
       libudev-dev \
       libvulkan-dev \
       libwaffle-dev \
-      libwayland-dev \
       libx11-xcb-dev \
       libxcb-ewmh-dev \
       libxcb-keysyms1-dev \
@@ -123,6 +123,10 @@ wine \
 ############### Build libdrm
 
 . .gitlab-ci/container/build-libdrm.sh
+
+############### Build Wayland
+
+. .gitlab-ci/container/build-wayland.sh
 
 ############### Build parallel-deqp-runner's hang-detection tool
 

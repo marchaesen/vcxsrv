@@ -105,13 +105,15 @@ util_clear_depth_stencil(struct pipe_context *pipe,
                          unsigned dstx, unsigned dsty,
                          unsigned width, unsigned height);
 
-boolean
+bool
 util_can_blit_via_copy_region(const struct pipe_blit_info *blit,
-                              boolean tight_format_check);
+                              bool tight_format_check,
+                              bool render_condition_bound);
 
-extern boolean
+extern bool
 util_try_blit_via_copy_region(struct pipe_context *ctx,
-                              const struct pipe_blit_info *blit);
+                              const struct pipe_blit_info *blit,
+                              bool render_condition_bound);
 
 
 #ifdef __cplusplus

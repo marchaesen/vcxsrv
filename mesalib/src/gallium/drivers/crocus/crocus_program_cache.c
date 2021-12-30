@@ -224,10 +224,8 @@ crocus_upload_shader(struct crocus_context *ice,
    shader->bt = *bt;
 
    ralloc_steal(shader, shader->prog_data);
-   if (prog_data_size > 16) {
+   if (prog_data_size > 16)
       ralloc_steal(shader->prog_data, prog_data->param);
-      ralloc_steal(shader->prog_data, prog_data->pull_param);
-   }
    ralloc_steal(shader, shader->streamout);
    ralloc_steal(shader, shader->system_values);
 

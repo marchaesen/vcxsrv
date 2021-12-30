@@ -29,9 +29,9 @@
 #define VID_DEC_COMMON_H
 
 #include "util/list.h"
+#include "util/vl_rbsp.h"
 
 #include "vl/vl_compositor.h"
-#include "vl/vl_rbsp.h"
 #include "vl/vl_zscan.h"
 
 #include "bellagio/vid_dec_av1.h"

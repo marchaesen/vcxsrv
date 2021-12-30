@@ -39,10 +39,10 @@ libgallium_wgl = shared_library(
   ],
   link_whole : [libwgl],
   link_with : [
-    libgallium, libglsl, libmesa_gallium, libwsgdi, libglapi_static, libglapi
+    libgallium, libglsl, libmesa, libwsgdi, libglapi_static, libglapi
   ],
   dependencies : [
-    dep_ws2_32, idep_nir, idep_mesautil, driver_swrast, driver_swr,
+    dep_ws2_32, idep_nir, idep_mesautil, driver_swrast,
     driver_d3d12, driver_zink, winsys_d3d12_wgl
   ],
   link_args : gallium_wgl_link_args,

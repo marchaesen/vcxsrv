@@ -34,6 +34,7 @@
 extern "C" {
 #endif
 
+struct gl_context;
 struct gl_shader_program;
 
 nir_shader *glsl_to_nir(struct gl_context *ctx,

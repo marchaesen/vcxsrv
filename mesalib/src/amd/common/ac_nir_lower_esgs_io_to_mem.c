@@ -192,7 +192,7 @@ gs_per_vertex_input_offset(nir_builder *b,
                            lower_esgs_io_state *st,
                            nir_intrinsic_instr *instr)
 {
-   nir_src *vertex_src = nir_get_io_vertex_index_src(instr);
+   nir_src *vertex_src = nir_get_io_arrayed_index_src(instr);
    nir_ssa_def *vertex_offset = st->chip_class >= GFX9
                                 ? gs_per_vertex_input_vertex_offset_gfx9(b, vertex_src)
                                 : gs_per_vertex_input_vertex_offset_gfx6(b, vertex_src);

@@ -28,7 +28,9 @@
 #include "main/enums.h"
 #include "main/mtypes.h"
 #include "main/scissor.h"
+#include "api_exec_decl.h"
 
+#include "state_tracker/st_context.h"
 
 /**
  * Set scissor rectangle data directly in ScissorArray
@@ -48,9 +50,8 @@ set_scissor_no_notify(struct gl_context *ctx, unsigned idx,
        height == ctx->Scissor.ScissorArray[idx].Height)
       return;
 
-   FLUSH_VERTICES(ctx, ctx->DriverFlags.NewScissorRect ? 0 : _NEW_SCISSOR,
-                  GL_SCISSOR_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewScissorRect;
+   FLUSH_VERTICES(ctx, 0, GL_SCISSOR_BIT);
+   ctx->NewDriverState |= ST_NEW_SCISSOR;
 
    ctx->Scissor.ScissorArray[idx].X = x;
    ctx->Scissor.ScissorArray[idx].Y = y;
@@ -77,9 +78,6 @@ scissor(struct gl_context *ctx, GLint x, GLint y, GLsizei width, GLsizei height)
     */
    for (i = 0; i < ctx->Const.MaxViewports; i++)
       set_scissor_no_notify(ctx, i, x, y, width, height);
-
-   if (ctx->Driver.Scissor)
-      ctx->Driver.Scissor(ctx);
 }
 
 /**
@@ -127,9 +125,6 @@ _mesa_set_scissor(struct gl_context *ctx, unsigned idx,
                   GLint x, GLint y, GLsizei width, GLsizei height)
 {
    set_scissor_no_notify(ctx, idx, x, y, width, height);
-
-   if (ctx->Driver.Scissor)
-      ctx->Driver.Scissor(ctx);
 }
 
 static void
@@ -140,9 +135,6 @@ scissor_array(struct gl_context *ctx, GLuint first, GLsizei count,
       set_scissor_no_notify(ctx, i + first, rect[i].X, rect[i].Y,
                             rect[i].Width, rect[i].Height);
    }
-
-   if (ctx->Driver.Scissor)
-      ctx->Driver.Scissor(ctx);
 }
 
 /**
@@ -303,7 +295,7 @@ _mesa_WindowRectanglesEXT(GLenum mode, GLsizei count, const GLint *box)
    }
 
    FLUSH_VERTICES(ctx, 0, GL_SCISSOR_BIT);
-   ctx->NewDriverState |= ctx->DriverFlags.NewWindowRectangles;
+   ctx->NewDriverState |= ST_NEW_WINDOW_RECTANGLES;
 
    memcpy(ctx->Scissor.WindowRects, newval,
           sizeof(struct gl_scissor_rect) * count);

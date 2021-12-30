@@ -935,9 +935,10 @@ nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only)
 
 static void
 place_phi_read(nir_builder *b, nir_register *reg,
-               nir_ssa_def *def, nir_block *block, unsigned depth)
+               nir_ssa_def *def, nir_block *block, struct set *visited_blocks)
 {
-   if (block != def->parent_instr->block) {
+  /* Search already visited blocks to avoid back edges in tree */
+  if (_mesa_set_search(visited_blocks, block) == NULL) {
       /* Try to go up the single-successor tree */
       bool all_single_successors = true;
       set_foreach(block->predecessors, entry) {
@@ -948,22 +949,16 @@ place_phi_read(nir_builder *b, nir_register *reg,
          }
       }
 
-      if (all_single_successors && depth < 32) {
+      if (all_single_successors) {
          /* All predecessors of this block have exactly one successor and it
           * is this block so they must eventually lead here without
           * intersecting each other.  Place the reads in the predecessors
           * instead of this block.
-          *
-          * We only let this function recurse 32 times because it can recurse
-          * indefinitely in the presence of infinite loops.  Because we're
-          * crawling a single-successor chain, it doesn't matter where we
-          * place it so it's ok to stop at an arbitrary distance.
-          *
-          * TODO: One day, we could detect back edges and avoid the recursion
-          * that way.
           */
+         _mesa_set_add(visited_blocks, block);
+
          set_foreach(block->predecessors, entry) {
-            place_phi_read(b, reg, def, (nir_block *)entry->key, depth + 1);
+            place_phi_read(b, reg, def, (nir_block *)entry->key, visited_blocks);
          }
          return;
       }
@@ -992,6 +987,8 @@ nir_lower_phis_to_regs_block(nir_block *block)
 {
    nir_builder b;
    nir_builder_init(&b, nir_cf_node_get_function(&block->cf_node));
+   struct set *visited_blocks = _mesa_set_create(NULL, _mesa_hash_pointer,
+                                                 _mesa_key_pointer_equal);
 
    bool progress = false;
    nir_foreach_instr_safe(instr, block) {
@@ -1010,13 +1007,17 @@ nir_lower_phis_to_regs_block(nir_block *block)
 
       nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
-         place_phi_read(&b, reg, src->src.ssa, src->pred, 0);
+         _mesa_set_add(visited_blocks, src->src.ssa->parent_instr->block);
+         place_phi_read(&b, reg, src->src.ssa, src->pred, visited_blocks);
+         _mesa_set_clear(visited_blocks, NULL);
       }
 
       nir_instr_remove(&phi->instr);
 
       progress = true;
    }
+
+   _mesa_set_destroy(visited_blocks, NULL);
 
    return progress;
 }

@@ -47,7 +47,7 @@ static void sp_blit(struct pipe_context *pipe,
       return;
    }
 
-   if (util_try_blit_via_copy_region(pipe, info)) {
+   if (util_try_blit_via_copy_region(pipe, info, sp->render_cond_query != NULL)) {
       return; /* done */
    }
 

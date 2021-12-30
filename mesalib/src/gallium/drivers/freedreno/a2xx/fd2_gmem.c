@@ -194,10 +194,10 @@ prepare_tile_fini_ib(struct fd_batch *batch) assert_dt
 
    OUT_PKT3(ring, CP_SET_CONSTANT, 5);
    OUT_RING(ring, CP_REG(REG_A2XX_PA_CL_VPORT_XSCALE));
-   OUT_RING(ring, fui((float)gmem->bin_w / 2.0)); /* XSCALE */
-   OUT_RING(ring, fui((float)gmem->bin_w / 2.0)); /* XOFFSET */
-   OUT_RING(ring, fui((float)gmem->bin_h / 2.0)); /* YSCALE */
-   OUT_RING(ring, fui((float)gmem->bin_h / 2.0)); /* YOFFSET */
+   OUT_RING(ring, fui((float)gmem->bin_w / 2.0f)); /* XSCALE */
+   OUT_RING(ring, fui((float)gmem->bin_w / 2.0f)); /* XOFFSET */
+   OUT_RING(ring, fui((float)gmem->bin_h / 2.0f)); /* YSCALE */
+   OUT_RING(ring, fui((float)gmem->bin_h / 2.0f)); /* YOFFSET */
 
    OUT_PKT3(ring, CP_SET_CONSTANT, 2);
    OUT_RING(ring, CP_REG(REG_A2XX_RB_MODECONTROL));
@@ -359,10 +359,10 @@ fd2_emit_tile_mem2gmem(struct fd_batch *batch,
 
    OUT_PKT3(ring, CP_SET_CONSTANT, 5);
    OUT_RING(ring, CP_REG(REG_A2XX_PA_CL_VPORT_XSCALE));
-   OUT_RING(ring, fui((float)bin_w / 2.0));  /* PA_CL_VPORT_XSCALE */
-   OUT_RING(ring, fui((float)bin_w / 2.0));  /* PA_CL_VPORT_XOFFSET */
-   OUT_RING(ring, fui(-(float)bin_h / 2.0)); /* PA_CL_VPORT_YSCALE */
-   OUT_RING(ring, fui((float)bin_h / 2.0));  /* PA_CL_VPORT_YOFFSET */
+   OUT_RING(ring, fui((float)bin_w / 2.0f));  /* PA_CL_VPORT_XSCALE */
+   OUT_RING(ring, fui((float)bin_w / 2.0f));  /* PA_CL_VPORT_XOFFSET */
+   OUT_RING(ring, fui(-(float)bin_h / 2.0f)); /* PA_CL_VPORT_YSCALE */
+   OUT_RING(ring, fui((float)bin_h / 2.0f));  /* PA_CL_VPORT_YOFFSET */
 
    OUT_PKT3(ring, CP_SET_CONSTANT, 2);
    OUT_RING(ring, CP_REG(REG_A2XX_PA_CL_VTE_CNTL));
@@ -635,8 +635,8 @@ fd2_emit_tile_init(struct fd_batch *batch) assert_dt
 
          mul_x = 1.0f / (float)(gmem->bin_w * 8);
          mul_y = 1.0f / (float)(gmem->bin_h * 8);
-         off_x = -pipe->x * (1.0 / 8.0f) + 0.125f - mul_x * gmem->minx;
-         off_y = -pipe->y * (1.0 / 8.0f) + 0.125f - mul_y * gmem->miny;
+         off_x = -pipe->x * (1.0f / 8.0f) + 0.125f - mul_x * gmem->minx;
+         off_y = -pipe->y * (1.0f / 8.0f) + 0.125f - mul_y * gmem->miny;
 
          OUT_RING(ring, fui(off_x * (256.0f / 255.0f)));
          OUT_RING(ring, fui(off_y * (256.0f / 255.0f)));

@@ -95,6 +95,17 @@ pb_slabs_reclaim_locked(struct pb_slabs *slabs)
    }
 }
 
+static void
+pb_slabs_reclaim_all_locked(struct pb_slabs *slabs)
+{
+   struct pb_slab_entry *entry, *next;
+   LIST_FOR_EACH_ENTRY_SAFE(entry, next, &slabs->reclaim, head) {
+      if (slabs->can_reclaim(slabs->priv, entry)) {
+         pb_slab_reclaim(slabs, entry);
+      }
+   }
+}
+
 /* Allocate a slab entry of the given size from the given heap.
  *
  * This will try to re-use entries that have previously been freed. However,
@@ -105,7 +116,7 @@ pb_slabs_reclaim_locked(struct pb_slabs *slabs)
  * Note that slab_free can also be called by this function.
  */
 struct pb_slab_entry *
-pb_slab_alloc(struct pb_slabs *slabs, unsigned size, unsigned heap)
+pb_slab_alloc_reclaimed(struct pb_slabs *slabs, unsigned size, unsigned heap, bool reclaim_all)
 {
    unsigned order = MAX2(slabs->min_order, util_logbase2_ceil(size));
    unsigned group_index;
@@ -136,8 +147,12 @@ pb_slab_alloc(struct pb_slabs *slabs, unsigned size, unsigned heap)
     * entries, try reclaiming entries.
     */
    if (list_is_empty(&group->slabs) ||
-       list_is_empty(&LIST_ENTRY(struct pb_slab, group->slabs.next, head)->free))
-      pb_slabs_reclaim_locked(slabs);
+       list_is_empty(&LIST_ENTRY(struct pb_slab, group->slabs.next, head)->free)) {
+      if (reclaim_all)
+         pb_slabs_reclaim_all_locked(slabs);
+      else
+         pb_slabs_reclaim_locked(slabs);
+   }
 
    /* Remove slabs without free entries. */
    while (!list_is_empty(&group->slabs)) {
@@ -172,6 +187,12 @@ pb_slab_alloc(struct pb_slabs *slabs, unsigned size, unsigned heap)
    simple_mtx_unlock(&slabs->mutex);
 
    return entry;
+}
+
+struct pb_slab_entry *
+pb_slab_alloc(struct pb_slabs *slabs, unsigned size, unsigned heap)
+{
+   return pb_slab_alloc_reclaimed(slabs, size, heap, false);
 }
 
 /* Free the given slab entry.

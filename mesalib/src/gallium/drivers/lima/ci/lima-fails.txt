@@ -1,5 +1,3 @@
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_two.clip_neg_x_neg_y_pos_z_and_pos_x_pos_y_neg_z,Fail
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_two.clip_neg_x_pos_y_pos_z_and_pos_x_neg_y_neg_z,Fail
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_two.clip_pos_x_neg_y_pos_z_and_neg_x_pos_y_neg_z,Fail
@@ -43,6 +41,7 @@ dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_dyn
 dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_static_loop_read,Fail
 dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_static_read,Fail
 dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2d_bias,Fail
+dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2dproj_vec3_bias,Fail
 dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2dproj_vec4_bias,Fail
 dEQP-GLES2.functional.texture.filtering.2d.linear_mipmap_linear_linear_clamp_rgba8888,Fail
 dEQP-GLES2.functional.texture.filtering.2d.linear_mipmap_linear_linear_mirror_rgba8888,Fail

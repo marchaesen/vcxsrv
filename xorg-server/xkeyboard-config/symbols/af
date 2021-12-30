@@ -1,18 +1,14 @@
+// Keyboard layouts for Dari, Pashto, and Southern Uzbek.
+// Created by M. Emal Alekozai <memala@gmx.net> in February 2006.
 //
-// Keymap for the Afghan dari keybord layout
-// Based on the specification "Computer Locale Requirements for 
-// Afghanstan" [1] from the "United Nations Development Programme
-// Afghanistan" and the "Afghan Transitional Islamic 
-// Administration Ministry of Communications". 
-// [1] http://www.evertype.com/standards/af/
-// For a MINI HOWTO see [2].
-// [2] http://www.afghanischerKulturverein.de/en/afghanComputer_en.php
-//
-// 2006-02-15 file created by M. Emal Alekozai <memala@gmx.net>
+// Based on the "Computer Locale Requirements for Afghanistan" [1]
+// from the "United Nations Development Programme for Afghanistan" and the
+// "Afghan Transitional Islamic Administration Ministry of Communications".
+// [1] https://www.evertype.com/standards/af/
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
-   name[Group1]= "Afghani";
+   name[Group1]= "Dari";
 
    key <TLDE> { [ 0x100200d, 0x10000f7, dead_tilde ] };
    key <AE01> { [ 0x10006f1, exclam, 0x1000060 ] };
@@ -69,17 +65,6 @@ xkb_symbols "basic" {
    include "nbsp(zwnj2nb3)"
    include "level3(ralt_switch)"
 };
-
-// Keymap for the Afghan pashto keybord layout
-// Based on the specification "Computer Locale Requirements for 
-// Afghanstan" [1] from the "United Nations Development Programme
-// Afghanistan"" and the "Afghan Transitional Islamic 
-// Administration Ministry of Communications". 
-// [1] http://www.evertype.com/standards/af/
-// For a MINI HOWTO see [2].
-// [2] http://www.afghanischerKulturverein.de/en/afghanComputer_en.php
-// 
-// 2006-02-15 file created by M. Emal Alekozai <memala@gmx.net>
 
 partial alphanumeric_keys
 xkb_symbols "ps" {
@@ -140,17 +125,6 @@ xkb_symbols "ps" {
    include "nbsp(zwnj2nb3)"
    include "level3(ralt_switch)"
 };
-
-// Keymap for the Afghan southern uzbek keybord layout
-// Based on the specification "Computer Locale Requirements for 
-// Afghanstan" [1] from the "United Nations Development Programme
-// Afghanistan"" and the "Afghan Transitional Islamic 
-// Administration Ministry of Communications". 
-// [1] http://www.evertype.com/standards/af/
-// For a MINI HOWTO see [2].
-// [2] http://www.afghanischerKulturverein.de/en/afghanComputer_en.php
-// 
-// 2006-02-15 file created by M. Emal Alekozai <memala@gmx.net>
 
 partial alphanumeric_keys
 xkb_symbols "uz" {
@@ -213,7 +187,7 @@ xkb_symbols "uz" {
 };
 
 partial alphanumeric_keys
-xkb_symbols "olpc-ps" {
+xkb_symbols "ps-olpc" {
 
    name[Group1]= "Pashto (Afghanistan, OLPC)";
 
@@ -228,7 +202,7 @@ xkb_symbols "olpc-ps" {
    key <AE08> { [ 0x10006F8, guillemotleft, 0x100066D ] }; // Arabic eight, Arabic five-pointed star
    key <AE09> { [ 0x10006F9, parenright, enfilledcircbullet ] }; // Arabic nine
    key <AE10> { [ 0x10006F0, parenleft, degree ] }; // Arabic zero
-   key <AE11> { [ minus, 0x1000640, underscore ] }; // Arabic_tatweel
+   key <AE11> { [ minus, 0x1000640, underscore ] }; // Arabic tatweel
    key <AE12> { [ equal, plus, division ] };
 
    key <AD01> { [ 0x1000636, 0x1000652, EuroSign ] }; // Arabic dad, Arabic sukun
@@ -239,7 +213,7 @@ xkb_symbols "olpc-ps" {
    key <AD06> { [ 0x100063A, 0x1000650, 0x100e653 ] }; // Arabic ghain, Arabic kasra, Arabic alef with madda above
    key <AD07> { [ 0x1000639, 0x100064E, 0x100e659 ] }; // Arabic ain, Arabic fatha, Arabic zwarakay
    key <AD08> { [ 0x1000647, 0x1000651, 0x1000670 ] }; // Arabic heh, Arabic shadda, Arabic superscript alef
-   key <AD09> { [ 0x100062E, 0x1000681, apostrophe ] }; // Arabic khah, Arabic hah with hamza above, 
+   key <AD09> { [ 0x100062E, 0x1000681, apostrophe ] }; // Arabic khah, Arabic hah with hamza above
    key <AD10> { [ 0x100062D, 0x1000685, quotedbl ] }; // Arabic hah, Arabic hah with three dots above
    key <AD11> { [ 0x100062C, bracketright, braceleft ] }; // Arabic jeem
    key <AD12> { [ 0x1000686, bracketleft, braceright ] }; // Arabic tcheh
@@ -261,11 +235,11 @@ xkb_symbols "olpc-ps" {
    key <AB01> { [ 0x1000638, 0x1000626, question] }; // Arabic zah, Arabic yeh with hamza above
    key <AB02> { [ 0x10006D0, 0x1000637, semicolon ] }; // Arabic tah, Arabic E
    key <AB03> { [ 0x1000632, 0x1000698 ] }; // Arabic zain, Arabic jeh
-   key <AB04> { [ 0x1000631, 0x1000621 ] }; // Arabic_ra (reh?), Arabic hamza
-   key <AB05> { [ 0x1000630, 0x100200C ] }; // Arabic_thal, zero width non-joiner
-   key <AB06> { [ 0x100062F, 0x1000689, 0x1000688 ] }; // Arabic_dal, Arabic dal with ring, Arabic ddal
+   key <AB04> { [ 0x1000631, 0x1000621 ] }; // Arabic reh, Arabic hamza
+   key <AB05> { [ 0x1000630, 0x100200C ] }; // Arabic thal, zero width non-joiner
+   key <AB06> { [ 0x100062F, 0x1000689, 0x1000688 ] }; // Arabic dal, Arabic dal with ring, Arabic ddal
    key <AB07> { [ 0x1000693, 0x1000624, 0x1000691 ] }; // Arabic reh with ring, Arabic waw with hamza above, Arabic rreh
-   key <AB08> { [ 0x1000648, period, comma ] }; // Arabic_waw, Arabic comma
+   key <AB08> { [ 0x1000648, period, comma ] }; // Arabic waw, Arabic comma
    key <AB09> { [ 0x1000696, 0x100002E, 0x10006C7 ] }; // Arabic reh with dot below and dot above, full stop, Arabic letter U
    key <AB10> { [ slash, 0x100061F, 0x10006C9 ] }; // Arabic question mark, Arabic kirghiz yu
 
@@ -276,7 +250,7 @@ xkb_symbols "olpc-ps" {
 partial alphanumeric_keys
 xkb_symbols "fa-olpc" {
 
-   name[Group1]= "Persian (Afghanistan, Dari OLPC)";
+   name[Group1]= "Dari (Afghanistan, OLPC)";
 
    key <TLDE> { [ 0x100200D, division, asciitilde ] }; // zero width joiner
    key <AE01> { [ 0x10006F1, exclam, grave ] }; // Arabic one
@@ -286,10 +260,10 @@ xkb_symbols "fa-olpc" {
    key <AE05> { [ 0x10006F5, 0x100066A, percent ] }; // Arabic five, Arabic percent sign
    key <AE06> { [ 0x10006F6, multiply, asciicircum ] }; // Arabic six
    key <AE07> { [ 0x10006F7, 0x100060C, ampersand ] }; // Arabic seven, Arabic comma
-   key <AE08> { [ 0x10006F8, asterisk, enfilledcircbullet ] }; // Arabic eight, 
+   key <AE08> { [ 0x10006F8, asterisk, enfilledcircbullet ] }; // Arabic eight
    key <AE09> { [ 0x10006F9, parenright, 0x100200E ] }; // Arabic nine, left-to-right mark
    key <AE10> { [ 0x10006F0, parenleft, 0x100200F ] }; // Arabic zero, right-to-left mark
-   key <AE11> { [ minus, 0x1000640, underscore ] }; // Arabic_tatweel
+   key <AE11> { [ minus, 0x1000640, underscore ] }; // Arabic tatweel
    key <AE12> { [ equal, plus ] };
 
    key <AD01> { [ 0x1000636, 0x1000652, degree ] }; // Arabic dad, Arabic sukun
@@ -314,7 +288,7 @@ xkb_symbols "fa-olpc" {
    key <AC07> { [ 0x100062A, 0x1000629, 0x100067C ] }; // Arabic teh, Arabic teh marbuta, Arabic tteh
    key <AC08> { [ 0x1000646, guillemotright, 0x10006BC ] }; // Arabic noon, Arabic noon with ring
    key <AC09> { [ 0x1000645, guillemotleft, 0x10006BA ] }; // Arabic meem, Arabic noon ghunna
-   key <AC10> { [ 0x10006A9, colon, semicolon ] }; // Arabic keheh, 
+   key <AC10> { [ 0x10006A9, colon, semicolon ] }; // Arabic keheh
    key <AC11> { [ 0x10006AF, 0x100061B, 0x10006AB ] }; // Arabic gaf, Arabic semicolon, Arabic kaf with ring
 
    key <BKSL> { [ backslash, bar, question ] };
@@ -322,11 +296,11 @@ xkb_symbols "fa-olpc" {
    key <AB01> { [ 0x1000638, 0x1000643, 0x10006D2 ] }; // Arabic zah, Arabic kaf, Arabic yeh barree
    key <AB02> { [ 0x1000637, 0x1000653, 0x1000691 ] }; // Arabic tah, Arabic maddah above, Arabic rreh
    key <AB03> { [ 0x1000632, 0x1000698, 0x1000696 ] }; // Arabic zain, Arabic jeh,  Arabic reh with dot below and dot above
-   key <AB04> { [ 0x1000631, 0x1000670, 0x1000693 ] }; // Arabic_ra (reh?), Arabic superscript alef, Arabic reh with ring
-   key <AB05> { [ 0x1000630, 0x100200C, 0x1000688 ] }; // Arabic_thal, zero width non-joiner, Arabic ddal
+   key <AB04> { [ 0x1000631, 0x1000670, 0x1000693 ] }; // Arabic reh, Arabic superscript alef, Arabic reh with ring
+   key <AB05> { [ 0x1000630, 0x100200C, 0x1000688 ] }; // Arabic thal, zero width non-joiner, Arabic ddal
    key <AB06> { [ 0x100062F, 0x1000654, 0x1000689 ] }; // Arabic dal, Arabic hamza above, Arabic dal with ring
    key <AB07> { [ 0x100067E, 0x1000621, 0x1000679 ] }; // Arabic peh, Arabic hamza, Arabic tteh
-   key <AB08> { [ 0x1000648, greater, comma ] }; // Arabic_waw
+   key <AB08> { [ 0x1000648, greater, comma ] }; // Arabic waw
    key <AB09> { [ period, less, 0x10006C7 ] }; // Arabic u
    key <AB10> { [ slash, 0x100061F, 0x10006C9 ] }; // Arabic question mark, Arabic kirghiz yu
 
@@ -347,10 +321,10 @@ xkb_symbols "uz-olpc" {
    key <AE05> { [ 0x10006F5, 0x100066A, percent ] }; // Arabic five, Arabic percent sign
    key <AE06> { [ 0x10006F6, multiply, asciicircum ] }; // Arabic six
    key <AE07> { [ 0x10006F7, 0x100060C, ampersand ] }; // Arabic seven, Arabic comma
-   key <AE08> { [ 0x10006F8, asterisk, enfilledcircbullet ] }; // Arabic eight, 
+   key <AE08> { [ 0x10006F8, asterisk, enfilledcircbullet ] }; // Arabic eight
    key <AE09> { [ 0x10006F9, parenright, 0x100200E ] }; // Arabic nine, left-to-right mark
    key <AE10> { [ 0x10006F0, parenleft, 0x100200F ] }; // Arabic zero, right-to-left mark
-   key <AE11> { [ minus, 0x1000640, underscore ] }; // Arabic_tatweel
+   key <AE11> { [ minus, 0x1000640, underscore ] }; // Arabic tatweel
    key <AE12> { [ equal, plus ] };
 
    key <AD01> { [ 0x1000636, 0x1000652, degree ] }; // Arabic dad, Arabic sukun
@@ -375,7 +349,7 @@ xkb_symbols "uz-olpc" {
    key <AC07> { [ 0x100062A, 0x1000629, 0x100067C ] }; // Arabic teh, Arabic teh marbuta, Arabic tteh
    key <AC08> { [ 0x1000646, guillemotright, 0x10006BC ] }; // Arabic noon, Arabic noon with ring
    key <AC09> { [ 0x1000645, guillemotleft, 0x10006BA ] }; // Arabic meem, Arabic noon ghunna
-   key <AC10> { [ 0x10006A9, colon, semicolon ] }; // Arabic keheh, 
+   key <AC10> { [ 0x10006A9, colon, semicolon ] }; // Arabic keheh
    key <AC11> { [ 0x10006AF, 0x100061B, 0x10006AB ] }; // Arabic gaf, Arabic semicolon, Arabic kaf with ring
 
    key <BKSL> { [ backslash, bar, question ] };
@@ -383,11 +357,11 @@ xkb_symbols "uz-olpc" {
    key <AB01> { [ 0x1000638, 0x10006C9, 0x10006D2 ] }; // Arabic zah, Arabic kirghiz yu, Arabic yeh barree
    key <AB02> { [ 0x1000637, 0x10006C7, 0x1000691 ] }; // Arabic tah, Arabic u, Arabic rreh
    key <AB03> { [ 0x1000632, 0x1000698, 0x1000696 ] }; // Arabic zain, Arabic jeh,  Arabic reh with dot below and dot above
-   key <AB04> { [ 0x1000631, 0x1000625, 0x1000693 ] }; // Arabic_ra (reh?), Arabic alef with hamza below, Arabic reh with ring
-   key <AB05> { [ 0x1000630, 0x100200C, 0x1000688 ] }; // Arabic_thal, zero width non-joiner, Arabic ddal
+   key <AB04> { [ 0x1000631, 0x1000625, 0x1000693 ] }; // Arabic reh, Arabic alef with hamza below, Arabic reh with ring
+   key <AB05> { [ 0x1000630, 0x100200C, 0x1000688 ] }; // Arabic thal, zero width non-joiner, Arabic ddal
    key <AB06> { [ 0x100062F, 0x1000654, 0x1000689 ] }; // Arabic dal, Arabic hamza above, Arabic dal with ring
    key <AB07> { [ 0x100067E, 0x1000621, 0x1000679 ] }; // Arabic peh, Arabic hamza, Arabic tteh
-   key <AB08> { [ 0x1000648, greater, comma ] }; // Arabic_waw
+   key <AB08> { [ 0x1000648, greater, comma ] }; // Arabic waw
    key <AB09> { [ period, less ] };
    key <AB10> { [ slash, 0x100061F, 0x1000655 ] }; // Arabic question mark, Arabic hamza below
 

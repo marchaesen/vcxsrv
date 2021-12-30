@@ -1382,6 +1382,7 @@ fd_resource_from_handle(struct pipe_screen *pscreen,
    fd_resource_set_bo(rsc, bo);
 
    rsc->internal_format = tmpl->format;
+   rsc->layout.layer_first = true;
    rsc->layout.pitch0 = handle->stride;
    slice->offset = handle->offset;
    slice->size0 = handle->stride * prsc->height0;

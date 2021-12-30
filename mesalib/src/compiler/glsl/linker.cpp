@@ -2554,7 +2554,7 @@ link_intrastage_shaders(void *mem_ctx,
     */
    if (main_sig != NULL) {
       exec_node *insertion_point =
-         move_non_declarations(linked->ir, (exec_node *) &main_sig->body, false,
+         move_non_declarations(linked->ir, &main_sig->body.head_sentinel, false,
                                linked);
 
       for (unsigned i = 0; i < num_shaders; i++) {
@@ -2654,15 +2654,23 @@ link_intrastage_shaders(void *mem_ctx,
    if (ctx->Const.LowerCsDerivedVariables)
       lower_cs_derived(linked);
 
-#ifdef DEBUG
-   /* Compute the source checksum. */
-   linked->SourceChecksum = 0;
-   for (unsigned i = 0; i < num_shaders; i++) {
-      if (shader_list[i] == NULL)
-         continue;
-      linked->SourceChecksum ^= shader_list[i]->SourceChecksum;
+   /* Set the linked source SHA1. */
+   if (num_shaders == 1) {
+      memcpy(linked->linked_source_sha1, shader_list[0]->compiled_source_sha1,
+             SHA1_DIGEST_LENGTH);
+   } else {
+      struct mesa_sha1 sha1_ctx;
+      _mesa_sha1_init(&sha1_ctx);
+
+      for (unsigned i = 0; i < num_shaders; i++) {
+         if (shader_list[i] == NULL)
+            continue;
+
+         _mesa_sha1_update(&sha1_ctx, shader_list[i]->compiled_source_sha1,
+                           SHA1_DIGEST_LENGTH);
+      }
+      _mesa_sha1_final(&sha1_ctx, linked->linked_source_sha1);
    }
-#endif
 
    return linked;
 }

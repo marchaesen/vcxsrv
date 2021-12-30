@@ -23,40 +23,7 @@
 
 #include "v3dv_private.h"
 #include "util/u_pack_color.h"
-#include "vk_format_info.h"
 #include "vk_util.h"
-
-const struct v3dv_dynamic_state default_dynamic_state = {
-   .viewport = {
-      .count = 0,
-   },
-   .scissor = {
-      .count = 0,
-   },
-   .stencil_compare_mask =
-   {
-     .front = ~0u,
-     .back = ~0u,
-   },
-   .stencil_write_mask =
-   {
-     .front = ~0u,
-     .back = ~0u,
-   },
-   .stencil_reference =
-   {
-     .front = 0u,
-     .back = 0u,
-   },
-   .blend_constants = { 0.0f, 0.0f, 0.0f, 0.0f },
-   .depth_bias = {
-      .constant_factor = 0.0f,
-      .depth_bias_clamp = 0.0f,
-      .slope_factor = 0.0f,
-   },
-   .line_width = 1.0f,
-   .color_write_enable = (1ull << (4 * V3D_MAX_DRAW_BUFFERS)) - 1,
-};
 
 void
 v3dv_job_add_bo(struct v3dv_job *job, struct v3dv_bo *bo)
@@ -464,16 +431,6 @@ job_compute_frame_tiling(struct v3dv_job *job,
                          uint8_t max_internal_bpp,
                          bool msaa)
 {
-   static const uint8_t tile_sizes[] = {
-      64, 64,
-      64, 32,
-      32, 32,
-      32, 16,
-      16, 16,
-      16,  8,
-       8,  8
-   };
-
    assert(job);
    struct v3dv_frame_tiling *tiling = &job->frame_tiling;
 
@@ -482,23 +439,10 @@ job_compute_frame_tiling(struct v3dv_job *job,
    tiling->layers = layers;
    tiling->render_target_count = render_target_count;
    tiling->msaa = msaa;
-
-   uint32_t tile_size_index = 0;
-
-   if (render_target_count > 2)
-      tile_size_index += 2;
-   else if (render_target_count > 1)
-      tile_size_index += 1;
-
-   if (msaa)
-      tile_size_index += 2;
-
    tiling->internal_bpp = max_internal_bpp;
-   tile_size_index += tiling->internal_bpp;
-   assert(tile_size_index < ARRAY_SIZE(tile_sizes) / 2);
 
-   tiling->tile_width = tile_sizes[tile_size_index * 2];
-   tiling->tile_height = tile_sizes[tile_size_index * 2 + 1];
+   v3d_choose_tile_size(render_target_count, max_internal_bpp, msaa,
+                         &tiling->tile_width, &tiling->tile_height);
 
    tiling->draw_tiles_x = DIV_ROUND_UP(width, tiling->tile_width);
    tiling->draw_tiles_y = DIV_ROUND_UP(height, tiling->tile_height);
@@ -1319,9 +1263,9 @@ cmd_buffer_ensure_render_pass_attachment_state(struct v3dv_cmd_buffer *cmd_buffe
 }
 
 VKAPI_ATTR void VKAPI_CALL
-v3dv_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
-                        const VkRenderPassBeginInfo *pRenderPassBegin,
-                        VkSubpassContents contents)
+v3dv_CmdBeginRenderPass2(VkCommandBuffer commandBuffer,
+                         const VkRenderPassBeginInfo *pRenderPassBegin,
+                         const VkSubpassBeginInfo *pSubpassBeginInfo)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
    V3DV_FROM_HANDLE(v3dv_render_pass, pass, pRenderPassBegin->renderPass);
@@ -1359,7 +1303,9 @@ v3dv_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-v3dv_CmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassContents contents)
+v3dv_CmdNextSubpass2(VkCommandBuffer commandBuffer,
+                     const VkSubpassBeginInfo *pSubpassBeginInfo,
+                     const VkSubpassEndInfo *pSubpassEndInfo)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
 
@@ -1622,7 +1568,8 @@ v3dv_cmd_buffer_subpass_finish(struct v3dv_cmd_buffer *cmd_buffer)
 }
 
 VKAPI_ATTR void VKAPI_CALL
-v3dv_CmdEndRenderPass(VkCommandBuffer commandBuffer)
+v3dv_CmdEndRenderPass2(VkCommandBuffer commandBuffer,
+                       const VkSubpassEndInfo *pSubpassEndInfo)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
 

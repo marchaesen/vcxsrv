@@ -116,8 +116,6 @@ meson.build @dbaker @eric
 /src/gallium/winsys/iris/ @kwg @llandwerlin @jekstrand @idr
 /src/gallium/drivers/iris/ @kwg @llandwerlin @jekstrand @idr
 /src/gallium/drivers/i915/ @anholt
-/src/mesa/drivers/dri/i965/ @kwg @llandwerlin @jekstrand @idr
-/doxygen/i965.doxy @kwg @llandwerlin @jekstrand @idr
 
 # Microsoft
 /src/microsoft/ @jenatali
@@ -127,11 +125,6 @@ meson.build @dbaker @eric
 /src/panfrost/ @alyssa
 /src/panfrost/vulkan/ @bbrezillon
 /src/gallium/drivers/panfrost/ @alyssa
-
-# SWR
-/src/gallium/drivers/swr/ @jzielins @krzysztof.raszkowski
-/docs/gallium/drivers/openswr.rst @jzielins @krzysztof.raszkowski
-/docs/gallium/drivers/openswr/ @jzielins @krzysztof.raszkowski
 
 # VMware
 /src/gallium/drivers/svga/ @brianp @charmainel

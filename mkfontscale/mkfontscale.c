@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -435,33 +436,37 @@ t1Weight(const char *weight)
 {
     if(!weight)
         return NULL;
-    if(strcmp(weight, "Thin") == 0)
+    if(strcasecmp(weight, "Thin") == 0)
         return "thin";
-    if(strcmp(weight, "ExtraLight") == 0) /* FontForge uses this for 200*/
+    if(strcasecmp(weight, "ExtraLight") == 0) /* FontForge uses this for 200*/
         return "extralight";
-    if(strcmp(weight, "Light") == 0)
+    if(strcasecmp(weight, "Light") == 0)
         return "light";
-    if(strcmp(weight, "Regular") == 0)
+    if(strcasecmp(weight, "Regular") == 0)
         return "medium";
-    if(strcmp(weight, "Normal") == 0)
+    if(strcasecmp(weight, "Normal") == 0)
         return "medium";
-    if(strcmp(weight, "Medium") == 0)
+    if(strcasecmp(weight, "Plain") == 0)
         return "medium";
-    if(strcmp(weight, "Book") == 0)
+    if(strcasecmp(weight, "Medium") == 0)
         return "medium";
-    if(strcmp(weight, "Roman") == 0) /* Some URW++ fonts do that! */
+    if(strcasecmp(weight, "Book") == 0)
         return "medium";
-    if(strcmp(weight, "Demi") == 0)
+    if(strcasecmp(weight, "Roman") == 0) /* Some URW++ fonts do that! */
+        return "medium";
+    if(strcasecmp(weight, "Demi") == 0)
         return "semibold";
-    if(strcmp(weight, "DemiBold") == 0)
+    if(strcasecmp(weight, "DemiBold") == 0)
         return "semibold";
-    if(strcmp(weight, "SemiBold") == 0) /* some TeX fonts apparently do that */
+    if(strcasecmp(weight, "SemiBold") == 0) /* some TeX fonts apparently do that */
         return "semibold";
-    else if(strcmp(weight, "Bold") == 0)
+    else if(strcasecmp(weight, "Bold") == 0)
         return "bold";
-    else if(strcmp(weight, "Heavy") == 0) /* FontForge uses this for 800*/
+    else if(strcasecmp(weight, "ExtraBold") == 0) /* freefonts uses this */
         return "extrabold";
-    else if(strcmp(weight, "Black") == 0)
+    else if(strcasecmp(weight, "Heavy") == 0) /* FontForge uses this for 800*/
+        return "extrabold";
+    else if(strcasecmp(weight, "Black") == 0)
         return "black";
     else {
         fprintf(stderr, "Unknown Type 1 weight \"%s\"\n", weight);

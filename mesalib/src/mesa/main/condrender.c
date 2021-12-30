@@ -36,6 +36,9 @@
 #include "mtypes.h"
 #include "queryobj.h"
 
+#include "state_tracker/st_cb_queryobj.h"
+#include "state_tracker/st_cb_condrender.h"
+#include "api_exec_decl.h"
 
 static ALWAYS_INLINE void
 begin_conditional_render(struct gl_context *ctx, GLuint queryId, GLenum mode,
@@ -99,8 +102,7 @@ begin_conditional_render(struct gl_context *ctx, GLuint queryId, GLenum mode,
    ctx->Query.CondRenderQuery = q;
    ctx->Query.CondRenderMode = mode;
 
-   if (ctx->Driver.BeginConditionalRender)
-      ctx->Driver.BeginConditionalRender(ctx, q, mode);
+   st_BeginConditionalRender(ctx, q, mode);
 }
 
 
@@ -138,8 +140,7 @@ end_conditional_render(struct gl_context *ctx)
 {
    FLUSH_VERTICES(ctx, 0, 0);
 
-   if (ctx->Driver.EndConditionalRender)
-      ctx->Driver.EndConditionalRender(ctx, ctx->Query.CondRenderQuery);
+   st_EndConditionalRender(ctx, ctx->Query.CondRenderQuery);
 
    ctx->Query.CondRenderQuery = NULL;
    ctx->Query.CondRenderMode = GL_NONE;
@@ -195,27 +196,27 @@ _mesa_check_conditional_render(struct gl_context *ctx)
       FALLTHROUGH;
    case GL_QUERY_WAIT:
       if (!q->Ready) {
-         ctx->Driver.WaitQuery(ctx, q);
+         st_WaitQuery(ctx, q);
       }
       return q->Result > 0;
    case GL_QUERY_BY_REGION_WAIT_INVERTED:
       FALLTHROUGH;
    case GL_QUERY_WAIT_INVERTED:
       if (!q->Ready) {
-         ctx->Driver.WaitQuery(ctx, q);
+         st_WaitQuery(ctx, q);
       }
       return q->Result == 0;
    case GL_QUERY_BY_REGION_NO_WAIT:
       FALLTHROUGH;
    case GL_QUERY_NO_WAIT:
       if (!q->Ready)
-         ctx->Driver.CheckQuery(ctx, q);
+         st_CheckQuery(ctx, q);
       return q->Ready ? (q->Result > 0) : GL_TRUE;
    case GL_QUERY_BY_REGION_NO_WAIT_INVERTED:
       FALLTHROUGH;
    case GL_QUERY_NO_WAIT_INVERTED:
       if (!q->Ready)
-         ctx->Driver.CheckQuery(ctx, q);
+         st_CheckQuery(ctx, q);
       return q->Ready ? (q->Result == 0) : GL_TRUE;
    default:
       _mesa_problem(ctx, "Bad cond render mode %s in "

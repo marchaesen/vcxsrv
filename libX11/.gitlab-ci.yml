@@ -4,7 +4,7 @@
 # Please see the ci-templates documentation for details:
 # https://freedesktop.pages.freedesktop.org/ci-templates/
 
-.templates_sha: &template_sha c7702b1ae8507c5d5f34edcbf280f287ab541e8e # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+.templates_sha: &template_sha 34f4ade99434043f88e164933f570301fd18b125 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
 
 
 include:
@@ -12,6 +12,9 @@ include:
   - project: 'freedesktop/ci-templates'
     ref: *template_sha
     file: '/templates/arch.yml'
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/ci-fairy.yml'
 
 
 stages:
@@ -30,20 +33,11 @@ variables:
 
 
 #
-# Template for an image with ci-fairy installed
-#
-.ci_fairy_image:
-  image: python:alpine
-  before_script:
-    - apk add git
-    - pip install git+http://gitlab.freedesktop.org/freedesktop/ci-templates
-
-#
 # Verify that commit messages are as expected, signed-off, etc.
 #
 check-commits:
   extends:
-    - .ci_fairy_image
+    - .fdo.ci-fairy
   stage: prep
   script:
     - ci-fairy check-commits --signed-off-by --junit-xml=results.xml
@@ -60,7 +54,7 @@ check-commits:
 #
 check-merge-request:
   extends:
-    - .ci_fairy_image
+    - .fdo.ci-fairy
   stage: deploy
   script:
     - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml

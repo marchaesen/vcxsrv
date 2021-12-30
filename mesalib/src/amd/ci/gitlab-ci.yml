@@ -84,20 +84,20 @@ radv-fossils:
     - .test-radv
   script:
     # Pitcairn (GFX6)
-    - export RADV_FORCE_FAMILY="pitcairn"
+    - export RADV_FORCE_FAMILY="PITCAIRN"
     - ./install/fossilize-runner.sh
     # Bonaire (GFX7)
-    - export RADV_FORCE_FAMILY="bonaire"
+    - export RADV_FORCE_FAMILY="BONAIRE"
     - ./install/fossilize-runner.sh
     # Polaris10 (GFX8)
-    - export RADV_FORCE_FAMILY="polaris10"
+    - export RADV_FORCE_FAMILY="POLARIS10"
     - ./install/fossilize-runner.sh
     # Vega10 (GFX9)
-    - export RADV_FORCE_FAMILY="vega10"
+    - export RADV_FORCE_FAMILY="VEGA10"
     - ./install/fossilize-runner.sh
     # Navi10 (GFX10)
-    - export RADV_FORCE_FAMILY="navi10"
+    - export RADV_FORCE_FAMILY="NAVI10"
     - ./install/fossilize-runner.sh
     # Sienna Cichlid (GFX10)
-    - export RADV_FORCE_FAMILY="sienna_cichlid"
+    - export RADV_FORCE_FAMILY="SIENNA_CICHLID"
     - ./install/fossilize-runner.sh

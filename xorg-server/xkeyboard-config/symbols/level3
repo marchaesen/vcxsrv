@@ -30,13 +30,7 @@ partial modifier_keys
 xkb_symbols "ralt_alt" {
   key <RALT> {
     type[Group1]="TWO_LEVEL",
-    type[Group2]="TWO_LEVEL",
-    type[Group3]="TWO_LEVEL",
-    type[Group4]="TWO_LEVEL",
-    symbols[Group1] = [ Alt_R, Meta_R ],
-    symbols[Group2] = [ Alt_R, Meta_R ],
-    symbols[Group3] = [ Alt_R, Meta_R ],
-    symbols[Group4] = [ Alt_R, Meta_R ]
+    symbols[Group1] = [ Alt_R, Meta_R ]
   };
   modifier_map Mod1 { <RALT> };
 };
