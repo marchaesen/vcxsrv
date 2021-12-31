@@ -133,37 +133,19 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 1;
 
    case PIPE_CAP_MAX_RENDER_TARGETS:
-      if (screen->max_feature_level >= D3D_FEATURE_LEVEL_10_0)
-         return 8;
-      else if (screen->max_feature_level == D3D_FEATURE_LEVEL_9_3)
-         return 4;
-      return 1;
+      return D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
 
    case PIPE_CAP_TEXTURE_SWIZZLE:
       return 1;
 
    case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      if (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_0)
-         return 16384;
-      else if (screen->max_feature_level >= D3D_FEATURE_LEVEL_10_0)
-         return 8192;
-      else if (screen->max_feature_level >= D3D_FEATURE_LEVEL_9_3)
-         return 4096;
-      return 2048;
+      return D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 
    case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
-      if (screen->max_feature_level >= D3D_FEATURE_LEVEL_10_0)
-         return 11;
-      return 9;
+      return 11; // D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION == 2^10
 
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      if (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_0)
-         return 14;
-      else if (screen->max_feature_level >= D3D_FEATURE_LEVEL_10_0)
-         return 13;
-      else if (screen->max_feature_level == D3D_FEATURE_LEVEL_9_3)
-         return 12;
-      return 9;
+      return D3D12_REQ_MIP_LEVELS;
 
    case PIPE_CAP_PRIMITIVE_RESTART:
    case PIPE_CAP_INDEP_BLEND_ENABLE:
@@ -182,11 +164,7 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 1;
 
    case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
-      if (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_0)
-         return 1 << 14;
-      else if (screen->max_feature_level >= D3D_FEATURE_LEVEL_10_0)
-         return 1 << 13;
-      return 0;
+      return D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
 
    case PIPE_CAP_DEPTH_CLIP_DISABLE:
       return 1;
@@ -213,10 +191,8 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_MULTISAMPLE:
       return 1;
 
-#if 0 /* TODO: Enable me */
    case PIPE_CAP_CUBE_MAP_ARRAY:
-      return screen->max_feature_level >= D3D_FEATURE_LEVEL_10_1;
-#endif
+      return 1;
 
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return 1;
@@ -228,15 +204,13 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return PIPE_ENDIAN_NATIVE; /* unsure */
 
    case PIPE_CAP_MAX_VIEWPORTS:
-      return 1; /* probably wrong */
+      return D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
 
    case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
       return 1;
 
-#if 0 /* TODO: Enable me. Enables ARB_texture_gather */
    case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
       return 4;
-#endif
 
    case PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
    case PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT:
@@ -265,7 +239,7 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
 
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
-      return 256;
+      return D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 
    case PIPE_CAP_PCI_GROUP:
    case PIPE_CAP_PCI_BUS:
@@ -301,20 +275,20 @@ d3d12_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 1;
 
    case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
-      return 4;
+      return D3D12_SO_BUFFER_SLOT_COUNT;
 
    case PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS:
    case PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS:
-      return 16 * 4;
+      return D3D12_SO_OUTPUT_COMPONENT_COUNT;
 
    /* Geometry shader output. */
    case PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES:
-      return 256;
+      return D3D12_GS_MAX_OUTPUT_VERTEX_COUNT_ACROSS_INSTANCES;
    case PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS:
-      return 256 * 4;
+      return D3D12_REQ_GS_INVOCATION_32BIT_OUTPUT_COMPONENT_LIMIT;
 
    case PIPE_CAP_MAX_VARYINGS:
-      return 32;
+      return D3D12_PS_INPUT_REGISTER_COUNT;
 
    case PIPE_CAP_NIR_COMPACT_ARRAYS:
       return 1;

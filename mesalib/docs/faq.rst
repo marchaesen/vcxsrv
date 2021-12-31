@@ -131,7 +131,7 @@ has Mesa packages (like RPM or DEB) which you can easily install.
 2.2 I get undefined symbols such as bgnpolygon, v3f, etc...
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You're application is written in IRIS GL, not OpenGL. IRIS GL was the
+Your application is written in IRIS GL, not OpenGL. IRIS GL was the
 predecessor to OpenGL and is a different thing (almost) entirely. Mesa's
 not the solution.
 

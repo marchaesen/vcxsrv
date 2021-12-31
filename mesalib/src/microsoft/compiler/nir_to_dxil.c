@@ -235,6 +235,7 @@ enum dxil_intr {
    DXIL_INTR_BUFFER_STORE = 69,
 
    DXIL_INTR_TEXTURE_SIZE = 72,
+   DXIL_INTR_TEXTURE_GATHER = 73,
 
    DXIL_INTR_ATOMIC_BINOP = 78,
    DXIL_INTR_ATOMIC_CMPXCHG = 79,
@@ -3853,7 +3854,7 @@ emit_texel_fetch(struct ntd_context *ctx, struct texop_parameters *params)
 }
 
 static const struct dxil_value *
-emit_texture_lod(struct ntd_context *ctx, struct texop_parameters *params)
+emit_texture_lod(struct ntd_context *ctx, struct texop_parameters *params, bool clamped)
 {
    const struct dxil_func *func = dxil_get_function(&ctx->mod, "dx.op.calculateLOD", DXIL_F32);
    if (!func)
@@ -3866,7 +3867,30 @@ emit_texture_lod(struct ntd_context *ctx, struct texop_parameters *params)
       params->coord[0],
       params->coord[1],
       params->coord[2],
-      dxil_module_get_int1_const(&ctx->mod, 1)
+      dxil_module_get_int1_const(&ctx->mod, clamped ? 1 : 0)
+   };
+
+   return dxil_emit_call(&ctx->mod, func, args, ARRAY_SIZE(args));
+}
+
+static const struct dxil_value *
+emit_texture_gather(struct ntd_context *ctx, struct texop_parameters *params, unsigned component)
+{
+   const struct dxil_func *func = dxil_get_function(&ctx->mod, "dx.op.textureGather", params->overload);
+   if (!func)
+      return false;
+
+   const struct dxil_value *args[] = {
+      dxil_module_get_int32_const(&ctx->mod, DXIL_INTR_TEXTURE_GATHER),
+      params->tex,
+      params->sampler,
+      params->coord[0],
+      params->coord[1],
+      params->coord[2],
+      params->coord[3],
+      params->offset[0],
+      params->offset[1],
+      dxil_module_get_int32_const(&ctx->mod, component)
    };
 
    return dxil_emit_call(&ctx->mod, func, args, ARRAY_SIZE(args));
@@ -4031,9 +4055,15 @@ emit_tex(struct ntd_context *ctx, nir_tex_instr *instr)
       sample = emit_texture_size(ctx, &params);
       break;
 
+   case nir_texop_tg4:
+      sample = emit_texture_gather(ctx, &params, instr->component);
+      break;
+
    case nir_texop_lod:
-      sample = emit_texture_lod(ctx, &params);
+      sample = emit_texture_lod(ctx, &params, true);
       store_dest(ctx, &instr->dest, 0, sample, nir_alu_type_get_base_type(instr->dest_type));
+      sample = emit_texture_lod(ctx, &params, false);
+      store_dest(ctx, &instr->dest, 1, sample, nir_alu_type_get_base_type(instr->dest_type));
       return true;
 
    case nir_texop_query_levels:
