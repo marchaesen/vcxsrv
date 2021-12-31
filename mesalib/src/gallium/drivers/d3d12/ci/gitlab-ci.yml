@@ -38,3 +38,5 @@ test-d3d12-quick_shader:
   variables:
     PIGLIT_PROFILE: quick_shader
     PIGLIT_RESULTS: "d3d12-quick_shader"
+    # These tests crash WARP causing the test suite to timeout
+    PIGLIT_TESTS: -x amd_texture_texture4 -x arb_texture_gather

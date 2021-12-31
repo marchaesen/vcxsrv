@@ -58,6 +58,8 @@ static uint8_t
 get_interpolation(nir_variable *var)
 {
    if (unlikely(var->data.centroid)) {
+      if (var->data.location == VARYING_SLOT_POS)
+         return DXIL_INTERP_LINEAR_NOPERSPECTIVE_CENTROID;
       switch (var->data.interpolation) {
       case INTERP_MODE_NONE: return DXIL_INTERP_LINEAR_CENTROID;
       case INTERP_MODE_FLAT: return DXIL_INTERP_CONSTANT;
@@ -66,6 +68,8 @@ get_interpolation(nir_variable *var)
 
       }
    } else {
+      if (var->data.location == VARYING_SLOT_POS)
+         return DXIL_INTERP_LINEAR_NOPERSPECTIVE;
       switch (var->data.interpolation) {
       case INTERP_MODE_NONE: return DXIL_INTERP_LINEAR;
       case INTERP_MODE_FLAT: return DXIL_INTERP_CONSTANT;

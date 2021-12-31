@@ -71,7 +71,6 @@ spec/amd_shader_trinary_minmax/execution/built-in-functions/tcs-min3-uvec4-uvec4
 spec/amd_shader_trinary_minmax/execution/built-in-functions/tcs-min3-vec2-vec2-vec2: skip
 spec/amd_shader_trinary_minmax/execution/built-in-functions/tcs-min3-vec3-vec3-vec3: skip
 spec/amd_shader_trinary_minmax/execution/built-in-functions/tcs-min3-vec4-vec4-vec4: skip
-spec/amd_texture_texture4/execution/texture4: skip
 spec/arb_arrays_of_arrays/execution/image_store/basic-imagestore-const-uniform-index: skip
 spec/arb_arrays_of_arrays/execution/image_store/basic-imagestore-mixed-const-non-const-uniform-index: skip
 spec/arb_arrays_of_arrays/execution/image_store/basic-imagestore-mixed-const-non-const-uniform-index2: skip
@@ -5755,11 +5754,6 @@ spec/arb_tessellation_shader/linker/no-vs: skip
 spec/arb_tessellation_shader/linker/tcs-no-vs: skip
 spec/arb_tessellation_shader/linker/tcs-output-size-declared-in-other-shader: skip
 spec/arb_tessellation_shader/linker/tes-no-vs: skip
-spec/arb_texture_gather/execution/miplevels: skip
-spec/arb_texture_query_lod/execution/fs-texturequerylod-linear: crash
-spec/arb_texture_query_lod/execution/fs-texturequerylod-nearest: crash
-spec/arb_texture_query_lod/execution/fs-texturequerylod-nearest-biased: crash
-spec/arb_texture_query_lod/execution/fs-texturequerylod-no-mipmap: crash
 spec/arb_uniform_buffer_object/2-buffers-bug: fail
 spec/arb_uniform_buffer_object/execution/fs-array-of-structs-std140-indirect: fail
 spec/arb_vertex_attrib_64bit/execution/vs-fp64-input-trunc: skip
@@ -13043,10 +13037,10 @@ spec/oes_viewport_array/viewport-gs-writes-out-of-range: skip
 summary:
        name:  results
        ----  --------
-       pass:     7204
+       pass:     7208
        fail:       58
-      crash:       27
-       skip:    12932
+      crash:       23
+       skip:    12930
     timeout:        0
        warn:       25
  incomplete:        0
@@ -13055,4 +13049,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    20246
+      total:    20244

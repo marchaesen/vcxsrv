@@ -883,6 +883,14 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
       desc.TextureCube.MipLevels = sampler_view->mip_levels;
       desc.TextureCube.ResourceMinLODClamp = 0.0f;
       break;
+   case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+      assert(array_size % 6 == 0);
+      desc.TextureCubeArray.MostDetailedMip = state->u.tex.first_level;
+      desc.TextureCubeArray.MipLevels = sampler_view->mip_levels;
+      desc.TextureCubeArray.First2DArrayFace = state->u.tex.first_layer;
+      desc.TextureCubeArray.NumCubes = array_size / 6;
+      desc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
+      break;
    case D3D12_SRV_DIMENSION_BUFFER:
       desc.Buffer.FirstElement = 0;
       desc.Buffer.StructureByteStride = 0;

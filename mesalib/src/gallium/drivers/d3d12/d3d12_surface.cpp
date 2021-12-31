@@ -45,6 +45,7 @@ view_dsv_dimension(enum pipe_texture_target target, unsigned samples)
 
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_CUBE:
+   case PIPE_TEXTURE_CUBE_ARRAY:
       return samples > 1 ? D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY :
                            D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 
@@ -68,6 +69,7 @@ view_rtv_dimension(enum pipe_texture_target target, unsigned samples)
 
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_CUBE:
+   case PIPE_TEXTURE_CUBE_ARRAY:
       return samples > 1 ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY :
                            D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 
