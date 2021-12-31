@@ -376,7 +376,7 @@
 #undef XORG_RELEASE
 
 /* Current Xorg version */
-#define XORG_VERSION_CURRENT (((1) * 10000000) + ((20) * 100000) + ((9) * 1000) + 0)
+#define XORG_VERSION_CURRENT (((1) * 10000000) + ((20) * 100000) + ((14) * 1000) + 0)
 
 /* Xorg release date */
 #define XORG_DATE "7 April 2020"
