@@ -44,7 +44,7 @@ which nasm > /dev/null 2>&1
 check-error 'Please install nasm'
 
 which MSBuild.exe > /dev/null 2>&1
-check-error 'Please install/set environment for visual studio 2017'
+check-error 'Please install/set environment for visual studio 2022'
 which python.exe > /dev/null 2>&1
 check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2.7.exe /usr/bin/python.exe)'
 
