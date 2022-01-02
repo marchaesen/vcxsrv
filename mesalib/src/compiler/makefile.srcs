@@ -22,7 +22,7 @@ glsl/glsl_parser.cpp glsl/glsl_parser.hpp: glsl/glsl_parser.yy
 glsl/glsl_lexer.cpp: glsl/glsl_lexer.ll
 	$(LEX_GEN) -o $@ $(srcdir)/glsl/glsl_lexer.ll
 
-glsl/glcpp/glcpp-parse.c glsl/glcpp/glcpp-parse.hpp: glsl/glcpp/glcpp-parse.y
+glsl/glcpp/glcpp-parse.c glsl/glcpp/glcpp-parse.h: glsl/glcpp/glcpp-parse.y
 	$(YACC_GEN) -o glsl/glcpp/glcpp-parse.c -p "glcpp_parser_" $(srcdir)/glsl/glcpp/glcpp-parse.y
 
 glsl/glcpp/glcpp-lex.c: glsl/glcpp/glcpp-lex.l
