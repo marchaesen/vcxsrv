@@ -89,7 +89,7 @@ get_absolute_timeout(uint64_t timeout)
 static VkResult
 queue_submit_job(struct v3dv_queue *queue,
                  struct v3dv_job *job,
-                 bool do_sem_wait,
+                 struct v3dv_submit_info_semaphores *sems_info,
                  pthread_t *wait_thread);
 
 /* Waits for active CPU wait threads spawned before the current thread to
@@ -133,15 +133,26 @@ static VkResult
 gpu_queue_wait_idle(struct v3dv_queue *queue)
 {
    struct v3dv_device *device = queue->device;
+   int render_fd = device->pdevice->render_fd;
+   struct v3dv_last_job_sync last_job_syncs;
 
    mtx_lock(&device->mutex);
-   uint32_t last_job_sync = device->last_job_sync;
+   memcpy(&last_job_syncs, &device->last_job_syncs, sizeof(last_job_syncs));
    mtx_unlock(&device->mutex);
 
-   int ret = drmSyncobjWait(device->pdevice->render_fd,
-                            &last_job_sync, 1, INT64_MAX, 0, NULL);
-   if (ret)
-      return VK_ERROR_DEVICE_LOST;
+   if (device->pdevice->caps.multisync) {
+      int ret = drmSyncobjWait(render_fd, (uint32_t *) &last_job_syncs.syncs,
+                               3, INT64_MAX,
+                               DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL, NULL);
+      if (ret)
+         return VK_ERROR_DEVICE_LOST;
+   } else {
+      int ret =
+         drmSyncobjWait(render_fd, &last_job_syncs.syncs[V3DV_QUEUE_ANY], 1,
+                        INT64_MAX, 0, NULL);
+      if (ret)
+         return VK_ERROR_DEVICE_LOST;
+   }
 
    return VK_SUCCESS;
 }
@@ -226,7 +237,7 @@ handle_copy_query_results_cpu_job(struct v3dv_job *job)
 }
 
 static VkResult
-handle_set_event_cpu_job(struct v3dv_job *job, bool is_wait_thread)
+handle_set_event_cpu_job(struct v3dv_job *job)
 {
    /* From the Vulkan 1.0 spec:
     *
@@ -259,6 +270,99 @@ handle_set_event_cpu_job(struct v3dv_job *job, bool is_wait_thread)
    p_atomic_set(&info->event->state, info->state);
 
    return VK_SUCCESS;
+}
+
+static VkResult
+copy_semaphores(struct v3dv_device *device,
+                VkSemaphore *sems_src, uint32_t sems_src_count,
+                VkSemaphore **sems_dst, uint32_t *sems_dst_count)
+{
+   *sems_dst_count = sems_src_count;
+
+   if (*sems_dst_count == 0) {
+      *sems_dst = NULL;
+      return VK_SUCCESS;
+   }
+
+   *sems_dst = vk_alloc(&device->vk.alloc,
+                        *sems_dst_count * sizeof(VkSemaphore), 8,
+		        VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   if (!sems_dst) {
+      *sems_dst_count = 0;
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   }
+
+   memcpy(*sems_dst, sems_src, *sems_dst_count * sizeof(VkSemaphore));
+
+   return VK_SUCCESS;
+}
+
+static struct v3dv_submit_info_semaphores *
+copy_semaphores_info(struct v3dv_device *device,
+                     struct v3dv_submit_info_semaphores *info)
+{
+   VkResult result;
+   struct v3dv_submit_info_semaphores *info_copy =
+      vk_zalloc(&device->vk.alloc, sizeof(struct v3dv_submit_info_semaphores),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   if (!info_copy)
+      return NULL;
+
+   result = copy_semaphores(device, info->wait_sems, info->wait_sem_count,
+                            &info_copy->wait_sems, &info_copy->wait_sem_count);
+   if (result != VK_SUCCESS)
+      goto fail;
+
+   result = copy_semaphores(device, info->signal_sems, info->signal_sem_count,
+                            &info_copy->signal_sems,
+                            &info_copy->signal_sem_count);
+   if (result != VK_SUCCESS)
+      goto fail;
+
+   return info_copy;
+
+fail:
+   if (info_copy->wait_sem_count > 0)
+      vk_free(&device->vk.alloc, info_copy->wait_sems);
+   vk_free(&device->vk.alloc, info_copy);
+
+   return NULL;
+}
+
+static struct v3dv_wait_thread_info *
+create_wait_thread_info(struct v3dv_job *job,
+                        struct v3dv_submit_info_semaphores *sems_info)
+{
+   struct v3dv_wait_thread_info *info =
+      vk_alloc(&job->device->vk.alloc, sizeof(*info), 8,
+               VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   if (!info)
+      return NULL;
+
+   info->job = job;
+   info->sems_info = copy_semaphores_info(job->device, sems_info);
+   if (!info->sems_info) {
+      vk_free(&job->device->vk.alloc, info);
+      return NULL;
+   }
+
+   return info;
+}
+
+static void
+free_wait_thread_info(struct v3dv_device *device,
+                      struct v3dv_wait_thread_info *info)
+{
+   assert(info != NULL);
+
+   if (info->sems_info->wait_sem_count > 0)
+      vk_free(&device->vk.alloc, info->sems_info->wait_sems);
+
+   if (info->sems_info->signal_sem_count > 0)
+      vk_free(&device->vk.alloc, info->sems_info->signal_sems);
+
+   vk_free(&device->vk.alloc, info->sems_info);
+   vk_free(&device->vk.alloc, info);
 }
 
 static bool
@@ -295,11 +399,11 @@ done:
 }
 
 static void *
-event_wait_thread_func(void *_job)
+event_wait_thread_func(void *_info)
 {
-   struct v3dv_job *job = (struct v3dv_job *) _job;
+   struct v3dv_wait_thread_info *info = (struct v3dv_wait_thread_info *) _info;
+   struct v3dv_job *job = info->job;
    assert(job->type == V3DV_JOB_TYPE_CPU_WAIT_EVENTS);
-   struct v3dv_event_wait_cpu_job_info *info = &job->cpu.event_wait;
 
    /* Wait for events to be signaled */
    const useconds_t wait_interval_ms = 1;
@@ -315,7 +419,7 @@ event_wait_thread_func(void *_job)
       /* We don't want to spawn more than one wait thread per command buffer.
        * If this job also requires a wait for events, we will do the wait here.
        */
-      VkResult result = queue_submit_job(queue, pjob, info->sem_wait, NULL);
+      VkResult result = queue_submit_job(queue, pjob, info->sems_info, NULL);
       if (result == VK_NOT_READY) {
          while (!check_wait_events_complete(pjob)) {
             usleep(wait_interval_ms * 1000);
@@ -331,30 +435,30 @@ event_wait_thread_func(void *_job)
 
 done:
    wait_thread_finish(queue, pthread_self());
+   free_wait_thread_info(job->device, info);
    return NULL;
 }
 
 static VkResult
-spawn_event_wait_thread(struct v3dv_job *job, pthread_t *wait_thread)
+spawn_event_wait_thread(struct v3dv_wait_thread_info *info, pthread_t *wait_thread)
 
 {
-   assert(job->type == V3DV_JOB_TYPE_CPU_WAIT_EVENTS);
-   assert(job->cmd_buffer);
+   assert(info->job->type == V3DV_JOB_TYPE_CPU_WAIT_EVENTS);
+   assert(info->job->cmd_buffer);
    assert(wait_thread != NULL);
 
-   if (pthread_create(wait_thread, NULL, event_wait_thread_func, job))
-      return vk_error(job->device, VK_ERROR_DEVICE_LOST);
+   if (pthread_create(wait_thread, NULL, event_wait_thread_func, info))
+      return vk_error(info->job->device, VK_ERROR_DEVICE_LOST);
 
    return VK_NOT_READY;
 }
 
 static VkResult
 handle_wait_events_cpu_job(struct v3dv_job *job,
-                           bool sem_wait,
+                           struct v3dv_submit_info_semaphores *sems_info,
                            pthread_t *wait_thread)
 {
    assert(job->type == V3DV_JOB_TYPE_CPU_WAIT_EVENTS);
-   struct v3dv_event_wait_cpu_job_info *info = &job->cpu.event_wait;
 
    /* If all events are signaled then we are done and can continue submitting
     * the rest of the command buffer normally.
@@ -373,11 +477,20 @@ handle_wait_events_cpu_job(struct v3dv_job *job,
     * any jobs in the same command buffer after the wait job. The wait thread
     * will attempt to submit them after the wait completes.
     */
-   info->sem_wait = sem_wait;
-   if (wait_thread)
-      return spawn_event_wait_thread(job, wait_thread);
-   else
+   if (!wait_thread)
       return VK_NOT_READY;
+
+   /* As events can be signaled by the host, jobs after the event wait must
+    * still wait for semaphores, if any. So, whenever we spawn a wait thread,
+    * we keep a copy of the semaphores (info->sems_info) to be used when
+    * submitting pending jobs in the wait thread context.
+    */
+   struct v3dv_wait_thread_info *info =
+      create_wait_thread_info(job, sems_info);
+   if (!info)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   return spawn_event_wait_thread(info, wait_thread);
 }
 
 static VkResult
@@ -456,12 +569,12 @@ handle_timestamp_query_cpu_job(struct v3dv_job *job)
 static VkResult
 handle_csd_job(struct v3dv_queue *queue,
                struct v3dv_job *job,
-               bool do_sem_wait);
+               struct v3dv_submit_info_semaphores *sems_info);
 
 static VkResult
 handle_csd_indirect_cpu_job(struct v3dv_queue *queue,
                             struct v3dv_job *job,
-                            bool do_sem_wait)
+                            struct v3dv_submit_info_semaphores *sems_info)
 {
    assert(job->type == V3DV_JOB_TYPE_CPU_CSD_INDIRECT);
    struct v3dv_csd_indirect_cpu_job_info *info = &job->cpu.csd_indirect;
@@ -488,7 +601,7 @@ handle_csd_indirect_cpu_job(struct v3dv_queue *queue,
       v3dv_cmd_buffer_rewrite_indirect_csd_job(info, group_counts);
    }
 
-   handle_csd_job(queue, info->csd_job, do_sem_wait);
+   handle_csd_job(queue, info->csd_job, sems_info);
 
    return VK_SUCCESS;
 }
@@ -500,11 +613,20 @@ process_semaphores_to_signal(struct v3dv_device *device,
    if (count == 0)
       return VK_SUCCESS;
 
+   /* If multisync is supported, we are signalling semaphores in the last job
+    * of the last command buffer and, therefore, we do not need to process any
+    * semaphores here.
+    */
+   if (device->pdevice->caps.multisync)
+      return VK_SUCCESS;
+
    int render_fd = device->pdevice->render_fd;
 
    int fd;
    mtx_lock(&device->mutex);
-   drmSyncobjExportSyncFile(render_fd, device->last_job_sync, &fd);
+   drmSyncobjExportSyncFile(render_fd,
+                            device->last_job_syncs.syncs[V3DV_QUEUE_ANY],
+                            &fd);
    mtx_unlock(&device->mutex);
    if (fd == -1)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -532,6 +654,11 @@ process_semaphores_to_signal(struct v3dv_device *device,
 }
 
 static VkResult
+queue_submit_noop_job(struct v3dv_queue *queue,
+                      struct v3dv_submit_info_semaphores *sems_info,
+                      bool do_sem_signal, bool serialize);
+
+static VkResult
 process_fence_to_signal(struct v3dv_device *device, VkFence _fence)
 {
    if (_fence == VK_NULL_HANDLE)
@@ -541,9 +668,31 @@ process_fence_to_signal(struct v3dv_device *device, VkFence _fence)
 
    int render_fd = device->pdevice->render_fd;
 
+   if (device->pdevice->caps.multisync) {
+      struct v3dv_queue *queue = &device->queue;
+      /* We signal the fence once all submitted command buffers have completed
+       * execution. For this, we emit a noop job that waits on the completion
+       * of all submitted jobs and signal the fence for this submission.
+       * FIXME: In simpler cases (for instance, when all jobs were submitted to
+       * the same queue), we can just import the last out sync produced into
+       * the fence.
+       */
+      struct v3dv_submit_info_semaphores sems_info = {
+         .wait_sem_count = 0,
+         .wait_sems = NULL,
+         .signal_sem_count = 0,
+         .signal_sems = NULL,
+         .fence = _fence,
+      };
+
+      return queue_submit_noop_job(queue, &sems_info, false, true);
+   }
+
    int fd;
    mtx_lock(&device->mutex);
-   drmSyncobjExportSyncFile(render_fd, device->last_job_sync, &fd);
+   drmSyncobjExportSyncFile(render_fd,
+                            device->last_job_syncs.syncs[V3DV_QUEUE_ANY],
+                            &fd);
    mtx_unlock(&device->mutex);
    if (fd == -1)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -560,10 +709,166 @@ process_fence_to_signal(struct v3dv_device *device, VkFence _fence)
    return ret ? VK_ERROR_OUT_OF_HOST_MEMORY : VK_SUCCESS;
 }
 
+static void
+multisync_free(struct v3dv_device *device,
+               struct drm_v3d_sem *out_syncs,
+               struct drm_v3d_sem *in_syncs)
+{
+   vk_free(&device->vk.alloc, out_syncs);
+   vk_free(&device->vk.alloc, in_syncs);
+}
+
+static struct drm_v3d_sem *
+set_in_syncs(struct v3dv_device *device,
+             struct v3dv_job *job,
+             enum v3dv_queue_type queue,
+             uint32_t *count,
+             struct v3dv_submit_info_semaphores *sems_info)
+{
+   uint32_t n_sems = 0;
+
+   /* If this is the first job submitted to a given GPU queue in this cmd buf
+    * batch, it has to wait on wait semaphores (if any) before running.
+    */
+   if (device->last_job_syncs.first[queue])
+      n_sems = sems_info->wait_sem_count;
+
+   /* If we don't need to wait on wait semaphores but the serialize flag is
+    * set, this job waits for completion of all GPU jobs submitted in any
+    * queue V3DV_QUEUE_(CL/TFU/CSD) before running.
+    */
+   *count = n_sems == 0 && job->serialize ? 3 : n_sems;
+
+   if (!*count)
+      return NULL;
+
+   struct drm_v3d_sem *syncs =
+      vk_zalloc(&device->vk.alloc, *count * sizeof(struct drm_v3d_sem),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+
+   if (!syncs)
+      return NULL;
+
+   if (n_sems) {
+      for (int i = 0; i < *count; i++) {
+         struct v3dv_semaphore *sem =
+            v3dv_semaphore_from_handle(sems_info->wait_sems[i]);
+         syncs[i].handle = sem->sync;
+      }
+   } else {
+      for (int i = 0; i < *count; i++)
+         syncs[i].handle = device->last_job_syncs.syncs[i];
+   }
+
+   return syncs;
+}
+
+static struct drm_v3d_sem *
+set_out_syncs(struct v3dv_device *device,
+              struct v3dv_job *job,
+              enum v3dv_queue_type queue,
+              uint32_t *count,
+              struct v3dv_submit_info_semaphores *sems_info)
+{
+   uint32_t n_sems = job->do_sem_signal ? sems_info->signal_sem_count : 0;
+
+   /* We always signal the syncobj from `device->last_job_syncs` related to
+    * this v3dv_queue_type to track the last job submitted to this queue.
+    */
+   (*count) = n_sems + 1;
+
+   if (sems_info->fence)
+      (*count)++;
+
+   struct drm_v3d_sem *syncs =
+      vk_zalloc(&device->vk.alloc, *count * sizeof(struct drm_v3d_sem),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+
+   if (!syncs)
+      return NULL;
+
+   if (n_sems) {
+      for (unsigned i = 0; i < n_sems; i++) {
+         struct v3dv_semaphore *sem =
+            v3dv_semaphore_from_handle(sems_info->signal_sems[i]);
+         syncs[i].handle = sem->sync;
+      }
+   }
+
+   syncs[n_sems].handle = device->last_job_syncs.syncs[queue];
+
+   if (sems_info->fence) {
+      struct v3dv_fence *fence = v3dv_fence_from_handle(sems_info->fence);
+      syncs[++n_sems].handle = fence->sync;
+   }
+
+   return syncs;
+}
+
+static void
+set_ext(struct drm_v3d_extension *ext,
+	struct drm_v3d_extension *next,
+	uint32_t id,
+	uintptr_t flags)
+{
+   ext->next = (uintptr_t)(void *)next;
+   ext->id = id;
+   ext->flags = flags;
+}
+
+/* This function sets the extension for multiple in/out syncobjs. When it is
+ * successful, it sets the extension id to DRM_V3D_EXT_ID_MULTI_SYNC.
+ * Otherwise, the extension id is 0, which means an out-of-memory error.
+ */
+static void
+set_multisync(struct drm_v3d_multi_sync *ms,
+              struct v3dv_submit_info_semaphores *sems_info,
+              struct drm_v3d_extension *next,
+              struct v3dv_device *device,
+              struct v3dv_job *job,
+              struct drm_v3d_sem *out_syncs,
+              struct drm_v3d_sem *in_syncs,
+              enum v3dv_queue_type queue_sync,
+              enum v3d_queue wait_stage)
+{
+   uint32_t out_sync_count = 0, in_sync_count = 0;
+
+   in_syncs = set_in_syncs(device, job, queue_sync,
+                           &in_sync_count, sems_info);
+   if (!in_syncs && in_sync_count)
+      goto fail;
+
+   out_syncs = set_out_syncs(device, job, queue_sync,
+                             &out_sync_count, sems_info);
+
+   assert(out_sync_count > 0);
+
+   if (!out_syncs)
+      goto fail;
+
+   set_ext(&ms->base, next, DRM_V3D_EXT_ID_MULTI_SYNC, 0);
+   ms->wait_stage = wait_stage;
+   ms->out_sync_count = out_sync_count;
+   ms->out_syncs = (uintptr_t)(void *)out_syncs;
+   ms->in_sync_count = in_sync_count;
+   ms->in_syncs = (uintptr_t)(void *)in_syncs;
+
+   device->last_job_syncs.first[queue_sync] = false;
+
+   return;
+
+fail:
+   if (in_syncs)
+      vk_free(&device->vk.alloc, in_syncs);
+   assert(!out_syncs);
+
+   return;
+}
+
 static VkResult
 handle_cl_job(struct v3dv_queue *queue,
               struct v3dv_job *job,
-              bool do_sem_wait)
+              struct v3dv_submit_info_semaphores *sems_info)
 {
    struct v3dv_device *device = queue->device;
 
@@ -605,8 +910,8 @@ handle_cl_job(struct v3dv_queue *queue,
    assert(bo_idx == submit.bo_handle_count);
    submit.bo_handles = (uintptr_t)(void *)bo_handles;
 
-   /* We need a binning sync if we are waiting on a sempahore (do_sem_wait) or
-    * if the job comes after a pipeline barrier than involves geometry stages
+   /* We need a binning sync if we are waiting on a semaphore or if the job
+    * comes after a pipeline barrier that involves geometry stages
     * (needs_bcl_sync).
     *
     * We need a render sync if the job doesn't need a binning sync but has
@@ -615,20 +920,43 @@ handle_cl_job(struct v3dv_queue *queue,
     * need to add a fence for those, however, we might need to wait on a CSD or
     * TFU job, which are not automatically serialized with CL jobs.
     *
-    * FIXME: for now, if we are asked to wait on any semaphores, we just wait
-    * on the last job we submitted. In the future we might want to pass the
-    * actual syncobj of the wait semaphores so we don't block on the last RCL
-    * if we only need to wait for a previous CSD or TFU, for example, but
-    * we would have to extend our kernel interface to support the case where
-    * we have more than one semaphore to wait on.
+    * FIXME: see if we can do better and avoid bcl syncs for any jobs in the
+    * command buffer after the first job where we should be able to track bcl
+    * dependencies strictly through barriers.
     */
-   const bool needs_bcl_sync = do_sem_wait || job->needs_bcl_sync;
+   const bool needs_bcl_sync =
+      sems_info->wait_sem_count > 0 || job->needs_bcl_sync;
    const bool needs_rcl_sync = job->serialize && !needs_bcl_sync;
+   struct drm_v3d_sem *out_syncs = NULL, *in_syncs = NULL;
 
    mtx_lock(&queue->device->mutex);
-   submit.in_sync_bcl = needs_bcl_sync ? device->last_job_sync : 0;
-   submit.in_sync_rcl = needs_rcl_sync ? device->last_job_sync : 0;
-   submit.out_sync = device->last_job_sync;
+
+   /* Replace single semaphore settings whenever our kernel-driver supports
+    * multiple semaphores extension.
+    */
+   if (device->pdevice->caps.multisync) {
+      struct drm_v3d_multi_sync ms = { 0 };
+      enum v3d_queue wait_stage = needs_rcl_sync ? V3D_RENDER : V3D_BIN;
+      set_multisync(&ms, sems_info, NULL, device, job, out_syncs, in_syncs,
+                    V3DV_QUEUE_CL, wait_stage);
+      if (!ms.base.id) {
+         mtx_unlock(&queue->device->mutex);
+         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      }
+
+      submit.flags |= DRM_V3D_SUBMIT_EXTENSION;
+      submit.extensions = (uintptr_t)(void *)&ms;
+      /* Disable legacy sync interface when multisync extension is used */
+      submit.in_sync_rcl = 0;
+      submit.in_sync_bcl = 0;
+      submit.out_sync = 0;
+   } else {
+      uint32_t last_job_sync = device->last_job_syncs.syncs[V3DV_QUEUE_ANY];
+      submit.in_sync_bcl = needs_bcl_sync ? last_job_sync : 0;
+      submit.in_sync_rcl = needs_rcl_sync ? last_job_sync : 0;
+      submit.out_sync = last_job_sync;
+   }
+
    v3dv_clif_dump(device, job, &submit);
    int ret = v3dv_ioctl(device->pdevice->render_fd,
                         DRM_IOCTL_V3D_SUBMIT_CL, &submit);
@@ -642,6 +970,8 @@ handle_cl_job(struct v3dv_queue *queue,
    }
 
    free(bo_handles);
+   if (device->pdevice->caps.multisync)
+      multisync_free(device, out_syncs, in_syncs);
 
    if (ret)
       return vk_error(device, VK_ERROR_DEVICE_LOST);
@@ -652,18 +982,43 @@ handle_cl_job(struct v3dv_queue *queue,
 static VkResult
 handle_tfu_job(struct v3dv_queue *queue,
                struct v3dv_job *job,
-               bool do_sem_wait)
+               struct v3dv_submit_info_semaphores *sems_info)
 {
    struct v3dv_device *device = queue->device;
 
-   const bool needs_sync = do_sem_wait || job->serialize;
+   const bool needs_sync = sems_info->wait_sem_count || job->serialize;
+   struct drm_v3d_sem *out_syncs = NULL, *in_syncs = NULL;
 
    mtx_lock(&device->mutex);
-   job->tfu.in_sync = needs_sync ? device->last_job_sync : 0;
-   job->tfu.out_sync = device->last_job_sync;
+
+   /* Replace single semaphore settings whenever our kernel-driver supports
+    * multiple semaphore extension.
+    */
+   if (device->pdevice->caps.multisync) {
+      struct drm_v3d_multi_sync ms = { 0 };
+      set_multisync(&ms, sems_info, NULL, device, job, out_syncs, in_syncs,
+                    V3DV_QUEUE_TFU, V3D_TFU);
+      if (!ms.base.id) {
+         mtx_unlock(&device->mutex);
+         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      }
+
+      job->tfu.flags |= DRM_V3D_SUBMIT_EXTENSION;
+      job->tfu.extensions = (uintptr_t)(void *)&ms;
+      /* Disable legacy sync interface when multisync extension is used */
+      job->tfu.in_sync = 0;
+      job->tfu.out_sync = 0;
+   } else {
+      uint32_t last_job_sync = device->last_job_syncs.syncs[V3DV_QUEUE_ANY];
+      job->tfu.in_sync = needs_sync ? last_job_sync : 0;
+      job->tfu.out_sync = last_job_sync;
+   }
    int ret = v3dv_ioctl(device->pdevice->render_fd,
                         DRM_IOCTL_V3D_SUBMIT_TFU, &job->tfu);
    mtx_unlock(&device->mutex);
+
+   if (device->pdevice->caps.multisync)
+      multisync_free(device, out_syncs, in_syncs);
 
    if (ret != 0) {
       fprintf(stderr, "Failed to submit TFU job: %d\n", ret);
@@ -676,7 +1031,7 @@ handle_tfu_job(struct v3dv_queue *queue,
 static VkResult
 handle_csd_job(struct v3dv_queue *queue,
                struct v3dv_job *job,
-               bool do_sem_wait)
+               struct v3dv_submit_info_semaphores *sems_info)
 {
    struct v3dv_device *device = queue->device;
 
@@ -693,11 +1048,32 @@ handle_csd_job(struct v3dv_queue *queue,
    assert(bo_idx == submit->bo_handle_count);
    submit->bo_handles = (uintptr_t)(void *)bo_handles;
 
-   const bool needs_sync = do_sem_wait || job->serialize;
+   const bool needs_sync = sems_info->wait_sem_count || job->serialize;
+   struct drm_v3d_sem *out_syncs = NULL, *in_syncs = NULL;
 
    mtx_lock(&queue->device->mutex);
-   submit->in_sync = needs_sync ? device->last_job_sync : 0;
-   submit->out_sync = device->last_job_sync;
+   /* Replace single semaphore settings whenever our kernel-driver supports
+    * multiple semaphore extension.
+    */
+   if (device->pdevice->caps.multisync) {
+      struct drm_v3d_multi_sync ms = { 0 };
+      set_multisync(&ms, sems_info, NULL, device, job, out_syncs, in_syncs,
+                    V3DV_QUEUE_CSD, V3D_CSD);
+      if (!ms.base.id) {
+         mtx_unlock(&queue->device->mutex);
+         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+      }
+
+      submit->flags |= DRM_V3D_SUBMIT_EXTENSION;
+      submit->extensions = (uintptr_t)(void *)&ms;
+      /* Disable legacy sync interface when multisync extension is used */
+      submit->in_sync = 0;
+      submit->out_sync = 0;
+   } else {
+      uint32_t last_job_sync = device->last_job_syncs.syncs[V3DV_QUEUE_ANY];
+      submit->in_sync = needs_sync ? last_job_sync : 0;
+      submit->out_sync = last_job_sync;
+   }
    int ret = v3dv_ioctl(device->pdevice->render_fd,
                         DRM_IOCTL_V3D_SUBMIT_CSD, submit);
    mtx_unlock(&queue->device->mutex);
@@ -711,6 +1087,9 @@ handle_csd_job(struct v3dv_queue *queue,
 
    free(bo_handles);
 
+   if (device->pdevice->caps.multisync)
+      multisync_free(device, out_syncs, in_syncs);
+
    if (ret)
       return vk_error(device, VK_ERROR_DEVICE_LOST);
 
@@ -720,18 +1099,42 @@ handle_csd_job(struct v3dv_queue *queue,
 static VkResult
 queue_submit_job(struct v3dv_queue *queue,
                  struct v3dv_job *job,
-                 bool do_sem_wait,
+                 struct v3dv_submit_info_semaphores *sems_info,
                  pthread_t *wait_thread)
 {
    assert(job);
 
+   /* CPU jobs typically execute explicit waits before they are processed. For
+    * example, a query reset CPU job will explicitly wait for the queries
+    * being unused before proceeding, etc. However, if we have any wait
+    * semaphores, we need to honour that too for the first CPU job we process
+    * in the command buffer batch. We do that by waiting for idle to ensure
+    * that any previous work has been completed, at which point any wait
+    * semaphores must be signalled, and we never need to do this again for the
+    * same batch.
+    */
+   if (!v3dv_job_type_is_gpu(job) && sems_info->wait_sem_count) {
+      v3dv_QueueWaitIdle(v3dv_queue_to_handle(&job->device->queue));
+#ifdef DEBUG
+      /* Loop through wait sems and check they are all signalled */
+      for (int i = 0; i < sems_info->wait_sem_count; i++) {
+         int render_fd = queue->device->pdevice->render_fd;
+         struct v3dv_semaphore *sem =
+            v3dv_semaphore_from_handle(sems_info->wait_sems[i]);
+	 int ret = drmSyncobjWait(render_fd, &sem->sync, 1, 0, 0, NULL);
+	 assert(ret == 0);
+      }
+#endif
+      sems_info->wait_sem_count = 0;
+   }
+
    switch (job->type) {
    case V3DV_JOB_TYPE_GPU_CL:
-      return handle_cl_job(queue, job, do_sem_wait);
+      return handle_cl_job(queue, job, sems_info);
    case V3DV_JOB_TYPE_GPU_TFU:
-      return handle_tfu_job(queue, job, do_sem_wait);
+      return handle_tfu_job(queue, job, sems_info);
    case V3DV_JOB_TYPE_GPU_CSD:
-      return handle_csd_job(queue, job, do_sem_wait);
+      return handle_csd_job(queue, job, sems_info);
    case V3DV_JOB_TYPE_CPU_RESET_QUERIES:
       return handle_reset_query_cpu_job(job);
    case V3DV_JOB_TYPE_CPU_END_QUERY:
@@ -739,13 +1142,13 @@ queue_submit_job(struct v3dv_queue *queue,
    case V3DV_JOB_TYPE_CPU_COPY_QUERY_RESULTS:
       return handle_copy_query_results_cpu_job(job);
    case V3DV_JOB_TYPE_CPU_SET_EVENT:
-      return handle_set_event_cpu_job(job, wait_thread != NULL);
+      return handle_set_event_cpu_job(job);
    case V3DV_JOB_TYPE_CPU_WAIT_EVENTS:
-      return handle_wait_events_cpu_job(job, do_sem_wait, wait_thread);
+      return handle_wait_events_cpu_job(job, sems_info, wait_thread);
    case V3DV_JOB_TYPE_CPU_COPY_BUFFER_TO_IMAGE:
       return handle_copy_buffer_to_image_cpu_job(job);
    case V3DV_JOB_TYPE_CPU_CSD_INDIRECT:
-      return handle_csd_indirect_cpu_job(queue, job, do_sem_wait);
+      return handle_csd_indirect_cpu_job(queue, job, sems_info);
    case V3DV_JOB_TYPE_CPU_TIMESTAMP_QUERY:
       return handle_timestamp_query_cpu_job(job);
    default:
@@ -769,8 +1172,13 @@ queue_create_noop_job(struct v3dv_queue *queue)
 }
 
 static VkResult
-queue_submit_noop_job(struct v3dv_queue *queue, const VkSubmitInfo *pSubmit)
+queue_submit_noop_job(struct v3dv_queue *queue,
+                      struct v3dv_submit_info_semaphores *sems_info,
+                      bool do_sem_signal, bool serialize)
 {
+   if (!do_sem_signal && !serialize && !sems_info->wait_sem_count)
+      return VK_SUCCESS;
+
    /* VkQueue host access is externally synchronized so we don't need to lock
     * here for the static variable.
     */
@@ -779,31 +1187,98 @@ queue_submit_noop_job(struct v3dv_queue *queue, const VkSubmitInfo *pSubmit)
       if (result != VK_SUCCESS)
          return result;
    }
+   queue->noop_job->do_sem_signal = do_sem_signal;
+   queue->noop_job->serialize = serialize;
 
-   return queue_submit_job(queue, queue->noop_job,
-                           pSubmit->waitSemaphoreCount > 0, NULL);
+   return queue_submit_job(queue, queue->noop_job, sems_info, NULL);
+}
+
+/* This function takes a job type and returns True if we have
+ * previously submitted any jobs for the same command buffer batch
+ * to a queue different to the one for this job type.
+ */
+static bool
+cmd_buffer_batch_is_multi_queue(struct v3dv_device *device,
+                                enum v3dv_job_type job_type)
+{
+   enum v3dv_queue_type queue_type = V3DV_QUEUE_ANY;
+   struct v3dv_last_job_sync last_job_syncs;
+
+   mtx_lock(&device->mutex);
+   memcpy(&last_job_syncs, &device->last_job_syncs, sizeof(last_job_syncs));
+   mtx_unlock(&device->mutex);
+
+   switch (job_type) {
+   case V3DV_JOB_TYPE_GPU_CL:
+   case V3DV_JOB_TYPE_GPU_CL_SECONDARY:
+      queue_type = V3DV_QUEUE_CL;
+      break;
+   case V3DV_JOB_TYPE_GPU_TFU:
+      queue_type = V3DV_QUEUE_TFU;
+      break;
+   case V3DV_JOB_TYPE_GPU_CSD:
+      queue_type = V3DV_QUEUE_CSD;
+      break;
+   default:
+      unreachable("Queue type is undefined");
+      break;
+   }
+
+   for (int i = 0; i < V3DV_QUEUE_ANY; i++) {
+      if (i != queue_type && !last_job_syncs.first[i]) {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 static VkResult
 queue_submit_cmd_buffer(struct v3dv_queue *queue,
                         struct v3dv_cmd_buffer *cmd_buffer,
-                        const VkSubmitInfo *pSubmit,
+                        struct v3dv_submit_info_semaphores *sems_info,
+                        bool is_last_cmd_buffer,
                         pthread_t *wait_thread)
 {
+   struct v3dv_job *last;
+   bool do_sem_signal = is_last_cmd_buffer && sems_info->signal_sem_count > 0;
+
    assert(cmd_buffer);
    assert(cmd_buffer->status == V3DV_CMD_BUFFER_STATUS_EXECUTABLE);
 
    if (list_is_empty(&cmd_buffer->jobs))
-      return queue_submit_noop_job(queue, pSubmit);
+      return queue_submit_noop_job(queue, sems_info, do_sem_signal, false);
+
+   /* When we are in the last cmd buffer and there are semaphores to signal,
+    * we process semaphores in the last job, following these conditions:
+    * - CPU-job: we can't signal until all GPU work has completed, so we
+    *   submit a serialized noop GPU job to handle signaling when all on-going
+    *   GPU work on all queues has completed.
+    * - GPU-job: can signal semaphores only if we have not submitted jobs to
+    *   a queue other than the queue of this job. Otherwise, we submit a
+    *   serialized noop job to handle signaling.
+    */
+   if (do_sem_signal) {
+      last = list_last_entry(&cmd_buffer->jobs, struct v3dv_job, list_link);
+      if (v3dv_job_type_is_gpu(last))
+         last->do_sem_signal = true;
+   }
 
    list_for_each_entry_safe(struct v3dv_job, job,
                             &cmd_buffer->jobs, list_link) {
-      VkResult result = queue_submit_job(queue, job,
-                                         pSubmit->waitSemaphoreCount > 0,
-                                         wait_thread);
+      if (job->do_sem_signal &&
+          cmd_buffer_batch_is_multi_queue(queue->device, job->type))
+         job->do_sem_signal = false;
+      VkResult result = queue_submit_job(queue, job, sems_info, wait_thread);
       if (result != VK_SUCCESS)
          return result;
    }
+
+   /* If we are in the last cmd buffer batch, but the last job cannot handle
+    * signal semaphores, we emit a serialized noop_job for signalling.
+    */
+   if (do_sem_signal && !(last && last->do_sem_signal))
+      return queue_submit_noop_job(queue, sems_info, true, true);
 
    return VK_SUCCESS;
 }
@@ -843,13 +1318,16 @@ add_signal_semaphores_to_wait_list(struct v3dv_device *device,
    if (pSubmit->signalSemaphoreCount == 0)
       return;
 
-   /* FIXME: We put all the semaphores in a list and we signal all of them
+   /* If multisync is supported, we just signal semaphores in the last job of
+    * the last command buffer and, therefore, we do not need to add any
+    * semaphores here.
+    */
+   if (device->pdevice->caps.multisync)
+      return;
+
+   /* Otherwise, we put all the semaphores in a list and we signal all of them
     * together from the submit master thread when the last wait thread in the
-    * submit completes. We could do better though: group the semaphores per
-    * submit and signal them as soon as all wait threads for a particular
-    * submit completes. Not sure if the extra work would be worth it though,
-    * since we only spawn waith threads for event waits and only when the
-    * event if set from the host after the queue submission.
+    * submit completes.
     */
 
    /* Check the size of the current semaphore list */
@@ -884,19 +1362,39 @@ queue_submit_cmd_buffer_batch(struct v3dv_queue *queue,
    VkResult result = VK_SUCCESS;
    bool has_wait_threads = false;
 
+   /* Wrap wait semaphores info from VkSubmitInfo to use it whenever we need
+    * the data to submit all jobs in the same command buffer batch.
+    */
+   struct v3dv_submit_info_semaphores sems_info = {
+      .wait_sem_count = pSubmit->waitSemaphoreCount,
+      .wait_sems = (VkSemaphore *) pSubmit->pWaitSemaphores,
+      .signal_sem_count = pSubmit->signalSemaphoreCount,
+      .signal_sems = (VkSemaphore *) pSubmit->pSignalSemaphores,
+      .fence = 0,
+   };
+
+   /* In the beginning of a cmd buffer batch, we set all last_job_syncs as
+    * first. It helps to determine wait semaphores conditions.
+    */
+   for (unsigned i = 0; i < V3DV_QUEUE_COUNT; i++)
+      queue->device->last_job_syncs.first[i] = true;
+
    /* Even if we don't have any actual work to submit we still need to wait
     * on the wait semaphores and signal the signal semaphores and fence, so
     * in this scenario we just submit a trivial no-op job so we don't have
     * to do anything special, it should not be a common case anyway.
     */
    if (pSubmit->commandBufferCount == 0) {
-      result = queue_submit_noop_job(queue, pSubmit);
+      result = queue_submit_noop_job(queue, &sems_info,
+                                     sems_info.signal_sem_count > 0, false);
    } else {
+      const uint32_t last_cmd_buffer_idx = pSubmit->commandBufferCount - 1;
       for (uint32_t i = 0; i < pSubmit->commandBufferCount; i++) {
          pthread_t wait_thread;
          struct v3dv_cmd_buffer *cmd_buffer =
             v3dv_cmd_buffer_from_handle(pSubmit->pCommandBuffers[i]);
-         result = queue_submit_cmd_buffer(queue, cmd_buffer, pSubmit,
+         result = queue_submit_cmd_buffer(queue, cmd_buffer, &sems_info,
+                                          (i == last_cmd_buffer_idx),
                                           &wait_thread);
 
          /* We get VK_NOT_READY if we had to spawn a wait thread for the

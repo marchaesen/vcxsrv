@@ -341,7 +341,7 @@ svga_delete_sampler_state(struct pipe_context *pipe, void *sampler)
 
    if (svga_have_vgpu10(svga)) {
       unsigned i;
-      for (i = 0; i < 2; i++) {
+      for (i = 0; i < ARRAY_SIZE(ss->id); i++) {
          if (ss->id[i] != SVGA3D_INVALID_ID) {
             svga_hwtnl_flush_retry(svga);
 
@@ -537,7 +537,7 @@ svga_cleanup_sampler_state(struct svga_context *svga)
 {
    enum pipe_shader_type shader;
 
-   for (shader = 0; shader <= PIPE_SHADER_TESS_EVAL; shader++) {
+   for (shader = 0; shader <= PIPE_SHADER_COMPUTE; shader++) {
       unsigned i;
 
       for (i = 0; i < svga->state.hw_draw.num_sampler_views[shader]; i++) {

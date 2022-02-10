@@ -133,6 +133,7 @@ uint32_t etna_bo_gpu_va(struct etna_bo *bo);
 void * etna_bo_map(struct etna_bo *bo);
 int etna_bo_cpu_prep(struct etna_bo *bo, uint32_t op);
 void etna_bo_cpu_fini(struct etna_bo *bo);
+int etna_bo_is_idle(struct etna_bo *bo);
 
 
 /* cmd stream functions:
@@ -150,7 +151,7 @@ struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe, uint32_t siz
 void etna_cmd_stream_del(struct etna_cmd_stream *stream);
 uint32_t etna_cmd_stream_timestamp(struct etna_cmd_stream *stream);
 void etna_cmd_stream_flush(struct etna_cmd_stream *stream, int in_fence_fd,
-			    int *out_fence_fd);
+			    int *out_fence_fd, bool is_noop);
 void etna_cmd_stream_force_flush(struct etna_cmd_stream *stream);
 
 static inline uint32_t etna_cmd_stream_avail(struct etna_cmd_stream *stream)

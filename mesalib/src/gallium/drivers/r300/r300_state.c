@@ -1053,12 +1053,19 @@ static void* r300_create_fs_state(struct pipe_context* pipe,
 
     /* Precompile the fragment shader at creation time to avoid jank at runtime.
      * In most cases we won't have anything in the key at draw time.
-     *
-     * TODO: precompile state for shadow samplers (but this needs a decision for
-     * the default shadow compare and texture swizzle values).
      */
     struct r300_fragment_program_external_state precompile_state;
     memset(&precompile_state, 0, sizeof(precompile_state));
+
+    struct tgsi_shader_info info;
+    tgsi_scan_shader(fs->state.tokens, &info);
+    for (int i = 0; i < PIPE_MAX_SHADER_SAMPLER_VIEWS; i++) {
+        if (info.sampler_targets[i] == TGSI_TEXTURE_SHADOW1D ||
+            info.sampler_targets[i] == TGSI_TEXTURE_SHADOW2D) {
+            precompile_state.unit[i].compare_mode_enabled = true;
+            precompile_state.unit[i].texture_compare_func = PIPE_FUNC_LESS;
+        }
+    }
     r300_pick_fragment_shader(r300, fs, &precompile_state);
 
     return (void *)fs;
@@ -1162,6 +1169,7 @@ static void* r300_create_rs_state(struct pipe_context* pipe,
 
     rs->rs.sprite_coord_enable = state->point_quad_rasterization *
                                  state->sprite_coord_enable;
+    r300_context(pipe)->is_point = false;
 
     /* Override some states for Draw. */
     rs->rs_draw.sprite_coord_enable = 0; /* We can do this in HW. */
@@ -1935,7 +1943,25 @@ static void* r300_create_vs_state(struct pipe_context* pipe,
     vs->state = *shader;
 
     if (vs->state.type == PIPE_SHADER_IR_NIR) {
-       vs->state.tokens = nir_to_tgsi(shader->ir.nir, pipe->screen);
+       static const struct nir_to_tgsi_options swtcl_options = {0};
+       static const struct nir_to_tgsi_options hwtcl_r300_options = {
+           .lower_cmp = true,
+           .lower_fabs = true,
+       };
+       static const struct nir_to_tgsi_options hwtcl_r500_options = {
+           .lower_cmp = true,
+       };
+       const struct nir_to_tgsi_options *ntt_options;
+       if (r300->screen->caps.has_tcl) {
+           if (r300->screen->caps.is_r500)
+               ntt_options = &hwtcl_r500_options;
+            else
+               ntt_options = &hwtcl_r300_options;
+       } else {
+           ntt_options = &swtcl_options;
+       }
+       vs->state.tokens = nir_to_tgsi_options(shader->ir.nir, pipe->screen,
+                                              ntt_options);
     } else {
        assert(vs->state.type == PIPE_SHADER_IR_TGSI);
        /* we need to keep a local copy of the tokens */

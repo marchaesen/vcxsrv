@@ -84,8 +84,6 @@ glsl_texture_type_to_sampler(const struct glsl_type *type, bool is_shadow);
 const struct glsl_type *
 glsl_sampler_type_to_texture(const struct glsl_type *type);
 
-GLenum glsl_get_gl_type(const struct glsl_type *type);
-
 enum glsl_base_type glsl_get_base_type(const struct glsl_type *type);
 
 unsigned glsl_get_vector_elements(const struct glsl_type *type);

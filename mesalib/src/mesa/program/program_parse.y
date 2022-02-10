@@ -1279,11 +1279,6 @@ stateLightProperty: ambDiffSpecPropertyLight
 	}
 	| ATTENUATION
 	{
-	   if (!state->ctx->Extensions.EXT_point_parameters) {
-	      yyerror(& @1, state, "GL_ARB_point_parameters not supported");
-	      YYERROR;
-	   }
-
 	   $$ = STATE_ATTENUATION;
 	}
 	| SPOT stateSpotProperty
@@ -2121,7 +2116,7 @@ asm_instruction_ctor(enum prog_opcode op,
 		     const struct asm_src_register *src1,
 		     const struct asm_src_register *src2)
 {
-   struct asm_instruction *inst = CALLOC_STRUCT(asm_instruction);
+   struct asm_instruction *inst = calloc(1, sizeof(struct asm_instruction));
 
    if (inst) {
       _mesa_init_instructions(& inst->Base, 1);

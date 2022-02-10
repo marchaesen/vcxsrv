@@ -312,15 +312,17 @@ void r300_draw_init_vertex_shader(struct r300_context *r300,
                                   struct r300_vertex_shader *vs)
 {
     struct draw_context *draw = r300->draw;
-    struct pipe_shader_state new_vs;
     struct tgsi_shader_info info;
     struct vs_transform_context transform;
     const uint newLen = tgsi_num_tokens(vs->state.tokens) + 100 /* XXX */;
+    struct pipe_shader_state new_vs = {
+        .type = PIPE_SHADER_IR_TGSI,
+        .tokens = tgsi_alloc_tokens(newLen)
+    };
     unsigned i;
 
     tgsi_scan_shader(vs->state.tokens, &info);
 
-    new_vs.tokens = tgsi_alloc_tokens(newLen);
     if (new_vs.tokens == NULL)
         return;
 

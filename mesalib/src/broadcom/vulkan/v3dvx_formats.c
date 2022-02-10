@@ -26,6 +26,7 @@
 #include "broadcom/cle/v3dx_pack.h"
 
 #include "util/format/u_format.h"
+#include "vulkan/util/vk_util.h"
 
 #define SWIZ(x,y,z,w) {   \
    PIPE_SWIZZLE_##x,      \
@@ -35,7 +36,7 @@
 }
 
 #define FORMAT(vk, rt, tex, swiz, return_size, supports_filtering)  \
-   [VK_FORMAT_##vk] = {                                             \
+   [VK_ENUM_OFFSET(VK_FORMAT_##vk)] = {                             \
       true,                                                         \
       V3D_OUTPUT_IMAGE_FORMAT_##rt,                                 \
       TEXTURE_DATA_FORMAT_##tex,                                    \
@@ -57,6 +58,7 @@
 #define SWIZ_XXXX SWIZ(X, X, X, X)
 #define SWIZ_000X SWIZ(0, 0, 0, X)
 #define SWIZ_WXYZ SWIZ(W, X, Y, Z)
+#define SWIZ_WZYX SWIZ(W, Z, Y, X)
 
 /* FIXME: expand format table to describe whether the format is supported
  * for buffer surfaces (texel buffers, vertex buffers, etc).
@@ -196,13 +198,44 @@ static const struct v3dv_format format_table[] = {
    FORMAT(ASTC_12x12_SRGB_BLOCK,      NO,  ASTC_12X12,               SWIZ_XYZW, 16, true),
 };
 
+/**
+ * Vulkan layout for 4444 formats is defined like this:
+ *
+ * Vulkan ABGR4: (LSB) R | G | B | A (MSB)
+ * Vulkan ARGB4: (LSB) B | G | R | A (MSB)
+ *
+ * We map this to the V3D RGB4 texture format, which really, is ABGR4 with
+ * R in the MSB, so:
+ *
+ * V3D ABGR4   : (LSB) A | B | G | R (MSB)
+ *
+ * Which is reversed from Vulkan's ABGR4 layout. So in order to match Vulkan
+ * semantics we need to apply the following swizzles:
+ *
+ * ABGR4: WZYX (reverse)
+ * ARGB4: YZWX (reverse + swap R/B)
+ */
+static const struct v3dv_format format_table_4444[] = {
+   FORMAT(A4B4G4R4_UNORM_PACK16_EXT, ABGR4444, RGBA4, SWIZ_WZYX, 16, true), /* Reverse */
+   FORMAT(A4R4G4B4_UNORM_PACK16_EXT, ABGR4444, RGBA4, SWIZ_YZWX, 16, true), /* Reverse + RB swap */
+};
+
 const struct v3dv_format *
 v3dX(get_format)(VkFormat format)
 {
+   /* Core formats */
    if (format < ARRAY_SIZE(format_table) && format_table[format].supported)
       return &format_table[format];
-   else
+
+   switch (format) {
+   /* VK_EXT_4444_formats */
+   case VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT:
+   case VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT:
+      return &format_table_4444[VK_ENUM_OFFSET(format)];
+
+   default:
       return NULL;
+   }
 }
 
 void

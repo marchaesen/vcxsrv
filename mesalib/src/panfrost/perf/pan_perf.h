@@ -74,6 +74,8 @@ struct panfrost_perf_category {
 };
 
 struct panfrost_perf_config {
+   const char *name;
+
    struct panfrost_perf_category categories[PAN_PERF_MAX_CATEGORIES];
    uint32_t n_categories;
 };

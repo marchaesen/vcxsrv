@@ -254,8 +254,10 @@ TAG(lp_rast_triangle)(struct lp_rasterizer_task *task,
           * (in which case the tri will not get binned), or trivial accept for
           * the whole tile (in which case plane_mask will not include it).
           */
+#if 0
          assert((c[j] >> (int64_t)FIXED_ORDER) > (int32_t)0xb0000000 &&
                 (c[j] >> (int64_t)FIXED_ORDER) < (int32_t)0x3fffffff);
+#endif
          /*
           * Note the fixup part is constant throughout the tile - thus could
           * just calculate this and avoid _all_ 64bit math in rasterization

@@ -59,6 +59,8 @@ _mesa_glthread_allocate_command(struct gl_context *ctx,
    struct glthread_state *glthread = &ctx->GLThread;
    const unsigned num_elements = align(size, 8) / 8;
 
+   assert (num_elements <= MARSHAL_MAX_CMD_SIZE / 8);
+
    if (unlikely(glthread->used + num_elements > MARSHAL_MAX_CMD_SIZE / 8))
       _mesa_glthread_flush_batch(ctx);
 

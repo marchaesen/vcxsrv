@@ -2,9 +2,6 @@
 # non-zero-length and not starting with '#', will regex match to
 # delete lines from the test list.  Be careful.
 
-# Times out
-dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36
-
 # Intermittent timeouts in CI (~1/month)
 dEQP-GLES3.functional.shaders.builtin_functions.precision.cosh.mediump_fragment.vec3
 dEQP-GLES3.functional.shaders.builtin_functions.precision.faceforward.lowp_fragment.vec4

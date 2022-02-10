@@ -57,9 +57,24 @@ tgsi_util_set_src_register_swizzle(struct tgsi_src_register *reg,
                                    unsigned swizzle,
                                    unsigned component);
 
+/* returns the channels of the src_idx src register used by the full instruction. */
 unsigned
 tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
                               unsigned src_idx);
+
+/* Returns the channels of the src_idx src register used by an instruction with
+ * these parameters.
+ */
+unsigned
+tgsi_util_get_src_usage_mask(enum tgsi_opcode opcode,
+                             unsigned src_idx,
+                             uint8_t write_mask,
+                             uint8_t swizzle_x,
+                             uint8_t swizzle_y,
+                             uint8_t swizzle_z,
+                             uint8_t swizzle_w,
+                             enum tgsi_texture_type tex_target,
+                             enum tgsi_texture_type mem_target);
 
 struct tgsi_src_register
 tgsi_util_get_src_from_ind(const struct tgsi_ind_register *reg);

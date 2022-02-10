@@ -27,7 +27,6 @@
 #include "d3d12_batch.h"
 #include "d3d12_descriptor_pool.h"
 #include "d3d12_pipeline_state.h"
-#include "d3d12_nir_lower_texcmp.h"
 
 #include "dxil_nir_lower_int_samplers.h"
 
@@ -62,6 +61,8 @@ enum d3d12_dirty_flags
    D3D12_DIRTY_ROOT_SIGNATURE   = (1 << 14),
    D3D12_DIRTY_STREAM_OUTPUT    = (1 << 15),
    D3D12_DIRTY_STRIP_CUT_VALUE  = (1 << 16),
+   D3D12_DIRTY_COMPUTE_SHADER   = (1 << 17),
+   D3D12_DIRTY_COMPUTE_ROOT_SIGNATURE = (1 << 18),
 };
 
 enum d3d12_shader_dirty_flags
@@ -69,23 +70,32 @@ enum d3d12_shader_dirty_flags
    D3D12_SHADER_DIRTY_CONSTBUF      = (1 << 0),
    D3D12_SHADER_DIRTY_SAMPLER_VIEWS = (1 << 1),
    D3D12_SHADER_DIRTY_SAMPLERS      = (1 << 2),
-   D3D12_SHADER_DIRTY_UAVS          = (1 << 3),
+   D3D12_SHADER_DIRTY_SSBO          = (1 << 3),
+   D3D12_SHADER_DIRTY_IMAGE         = (1 << 4),
 };
 
-#define D3D12_DIRTY_PSO (D3D12_DIRTY_BLEND | D3D12_DIRTY_RASTERIZER | D3D12_DIRTY_ZSA | \
-                         D3D12_DIRTY_FRAMEBUFFER | D3D12_DIRTY_SAMPLE_MASK | \
-                         D3D12_DIRTY_VERTEX_ELEMENTS | D3D12_DIRTY_PRIM_MODE | \
-                         D3D12_DIRTY_SHADER | D3D12_DIRTY_ROOT_SIGNATURE | \
-                         D3D12_DIRTY_STRIP_CUT_VALUE)
+#define D3D12_DIRTY_GFX_PSO (D3D12_DIRTY_BLEND | D3D12_DIRTY_RASTERIZER | D3D12_DIRTY_ZSA | \
+                             D3D12_DIRTY_FRAMEBUFFER | D3D12_DIRTY_SAMPLE_MASK | \
+                             D3D12_DIRTY_VERTEX_ELEMENTS | D3D12_DIRTY_PRIM_MODE | \
+                             D3D12_DIRTY_SHADER | D3D12_DIRTY_ROOT_SIGNATURE | \
+                             D3D12_DIRTY_STRIP_CUT_VALUE | D3D12_DIRTY_STREAM_OUTPUT)
+#define D3D12_DIRTY_COMPUTE_PSO (D3D12_DIRTY_COMPUTE_SHADER | D3D12_DIRTY_COMPUTE_ROOT_SIGNATURE)
+
+#define D3D12_DIRTY_COMPUTE_MASK (D3D12_DIRTY_COMPUTE_SHADER | D3D12_DIRTY_COMPUTE_ROOT_SIGNATURE)
+#define D3D12_DIRTY_GFX_MASK ~D3D12_DIRTY_COMPUTE_MASK
+
 
 #define D3D12_SHADER_DIRTY_ALL (D3D12_SHADER_DIRTY_CONSTBUF | D3D12_SHADER_DIRTY_SAMPLER_VIEWS | \
-                                D3D12_SHADER_DIRTY_SAMPLERS | D3D12_SHADER_DIRTY_UAVS)
+                                D3D12_SHADER_DIRTY_SAMPLERS | D3D12_SHADER_DIRTY_SSBO | \
+                                D3D12_SHADER_DIRTY_IMAGE)
 
 enum d3d12_binding_type {
    D3D12_BINDING_CONSTANT_BUFFER,
    D3D12_BINDING_SHADER_RESOURCE_VIEW,
    D3D12_BINDING_SAMPLER,
    D3D12_BINDING_STATE_VARS,
+   D3D12_BINDING_SSBO,
+   D3D12_BINDING_IMAGE,
    D3D12_NUM_BINDING_TYPES
 };
 
@@ -132,7 +142,6 @@ struct d3d12_stream_output_target {
    struct pipe_stream_output_target base;
    struct pipe_resource *fill_buffer;
    unsigned fill_buffer_offset;
-   uint64_t cached_filled_size;
 };
 
 struct d3d12_shader_state {
@@ -158,8 +167,12 @@ struct d3d12_context {
    struct u_suballocator query_allocator;
    struct u_suballocator so_allocator;
    struct hash_table *pso_cache;
+   struct hash_table *compute_pso_cache;
    struct hash_table *root_signature_cache;
+   struct hash_table *cmd_signature_cache;
    struct hash_table *gs_variant_cache;
+   struct hash_table *tcs_variant_cache;
+   struct hash_table *compute_transform_cache;
 
    struct d3d12_batch batches[4];
    unsigned current_batch_idx;
@@ -184,6 +197,9 @@ struct d3d12_context {
    unsigned has_int_samplers;
    struct pipe_shader_buffer ssbo_views[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];
    unsigned num_ssbo_views[PIPE_SHADER_TYPES];
+   struct pipe_image_view image_views[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_IMAGES];
+   enum pipe_format image_view_emulation_formats[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_IMAGES];
+   unsigned num_image_views[PIPE_SHADER_TYPES];
    struct d3d12_sampler_state *samplers[PIPE_SHADER_TYPES][PIPE_MAX_SAMPLERS];
    unsigned num_samplers[PIPE_SHADER_TYPES];
    D3D12_INDEX_BUFFER_VIEW ibv;
@@ -204,15 +220,21 @@ struct d3d12_context {
    struct pipe_stream_output_target *fake_so_targets[PIPE_MAX_SO_BUFFERS];
    D3D12_STREAM_OUTPUT_BUFFER_VIEW fake_so_buffer_views[PIPE_MAX_SO_BUFFERS];
    unsigned fake_so_buffer_factor;
+   uint8_t patch_vertices;
+   float default_outer_tess_factor[4];
+   float default_inner_tess_factor[2];
 
    struct d3d12_shader_selector *gfx_stages[D3D12_GFX_SHADER_STAGES];
+   struct d3d12_shader_selector *compute_state;
 
    struct d3d12_gfx_pipeline_state gfx_pipeline_state;
-   unsigned shader_dirty[D3D12_GFX_SHADER_STAGES];
+   struct d3d12_compute_pipeline_state compute_pipeline_state;
+   unsigned shader_dirty[PIPE_SHADER_TYPES];
    unsigned state_dirty;
    unsigned cmdlist_dirty;
-   ID3D12PipelineState *current_pso;
-   bool reverse_depth_range;
+   ID3D12PipelineState *current_gfx_pso;
+   ID3D12PipelineState *current_compute_pso;
+   uint16_t reverse_depth_range;
 
    ID3D12Fence *cmdqueue_fence;
    uint64_t fence_value;
@@ -228,6 +250,9 @@ struct d3d12_context {
    struct d3d12_validation_tools *validation_tools;
 
    struct d3d12_resource *current_predication;
+   bool predication_condition;
+
+   uint32_t transform_state_vars[4];
 
 #ifdef __cplusplus
    ResourceStateManager *resource_state_manager;
@@ -299,7 +324,7 @@ d3d12_transition_subresources_state(struct d3d12_context *ctx,
                                     d3d12_bind_invalidate_option bind_invalidate);
 
 void
-d3d12_apply_resource_states(struct d3d12_context* ctx);
+d3d12_apply_resource_states(struct d3d12_context* ctx, bool is_implicit_dispatch);
 
 void
 d3d12_draw_vbo(struct pipe_context *pctx,
@@ -308,6 +333,10 @@ d3d12_draw_vbo(struct pipe_context *pctx,
                const struct pipe_draw_indirect_info *indirect,
                const struct pipe_draw_start_count_bias *draws,
                unsigned num_draws);
+
+void
+d3d12_launch_grid(struct pipe_context *pctx,
+                  const struct pipe_grid_info *info);
 
 void
 d3d12_blit(struct pipe_context *pctx,

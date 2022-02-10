@@ -107,7 +107,7 @@ compile_shader(char **argv)
    util_dynarray_init(&binary, NULL);
 
    for (unsigned i = 0; i < 2; ++i) {
-      nir[i] = glsl_to_nir(&local_ctx, prog, shader_types[i], &agx_nir_options);
+      nir[i] = glsl_to_nir(&local_ctx.Const, prog, shader_types[i], &agx_nir_options);
 
       if (i == 0) {
          nir_assign_var_locations(nir[i], nir_var_shader_in, &nir[i]->num_inputs,

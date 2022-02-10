@@ -1,15 +1,19 @@
+.softpipe-test:
+  variables:
+    GPU_VERSION: softpipe
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    FLAKES_CHANNEL: "#mesa-swrast-ci"
+    GALLIUM_DRIVER: "softpipe"
+
 .softpipe-deqp-test:
   extends:
     - .test-gl
     - .deqp-test
+    - .softpipe-test
     # this must be last to avoid breaking dependency rules
     - .softpipe-rules
   variables:
-    GPU_VERSION: softpipe
-    LIBGL_ALWAYS_SOFTWARE: "true"
-    GALLIUM_DRIVER: "softpipe"
     DEQP_EXPECTED_RENDERER: softpipe
-    FLAKES_CHANNEL: "#mesa-swrast-ci"
 
 softpipe-deqp:
   variables:
@@ -28,44 +32,15 @@ softpipe-asan-gles31:
     - debian/x86_test-gl
     - debian-testing-asan
 
-softpipe-piglit-quick:
+# We use "gpu" to skip running glslparser tests, with the assumption that
+# they're covered by the llvmpipe run.
+softpipe-piglit:
   extends:
     - .test-gl
     - .piglit-test
+    - .softpipe-test
     - .softpipe-rules
   variables:
-    GALLIUM_DRIVER: softpipe
-    # rasterpos skipped until we uprev piglit (commit ff2a7650be7349)
-    # triangle-rasterization skipped due to flakes thanks to it using a time-based random seed.
-    # glx-multithread-texture is flaky, undiagnosed
-    PIGLIT_TESTS: >
-      -x rasterpos
-      -x triangle-rasterization
-      -x glx-multithread-texture
-      -x egl_ext_device_
-      -x egl_ext_platform_device
-      -x ext_timer_query@time-elapsed
-      -x glx-multithread-clearbuffer
-      -x glx-multithread-shader-compile
-      -x max-texture-size
-      -x maxsize
-      -x fs-execution-ordering
-      -x local-id-explosion
-      -x arb_pipeline_statistics_query-comp
-      -x streaming-texture-leak
-      -x longprim
-      -x shader-mem-barrier
-      -x arb_gpu_shader_fp64
-      -x arb_gpu_shader_int64
-      -x arb_tessellation_shader
-      -x glsl-4.00
-      -x glsl-4.10
-      -x glsl-4.20
-      -x glsl-4.30
-      -x glsl-4.40
-      -x glsl-4.50
-      -x gpu_shader4
-      -x gpu_shader5
-      -x glsl-uniform-interstage-limits
-    PIGLIT_PROFILES: quick_gl quick_shader
-    PIGLIT_RESULTS: softpipe-quick
+    PIGLIT_PROFILES: gpu
+  script:
+    - LD_LIBRARY_PATH=`pwd`/install/lib xvfb-run --server-args='-noreset' install/piglit/piglit-runner.sh

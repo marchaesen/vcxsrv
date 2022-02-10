@@ -43,6 +43,7 @@ struct semantic_info {
    uint8_t start_col;
    uint8_t cols;
    uint8_t interpolation;
+   uint8_t stream;
    const char *sysvalue_name;
 };
 
@@ -57,7 +58,22 @@ is_depth_output(enum dxil_semantic_kind kind)
 static uint8_t
 get_interpolation(nir_variable *var)
 {
-   if (unlikely(var->data.centroid)) {
+   if (var->data.patch)
+      return DXIL_INTERP_UNDEFINED;
+
+   if (glsl_type_is_integer(glsl_without_array_or_matrix(var->type)))
+      return DXIL_INTERP_CONSTANT;
+
+   if (var->data.sample) {
+      if (var->data.location == VARYING_SLOT_POS)
+         return DXIL_INTERP_LINEAR_NOPERSPECTIVE_SAMPLE;
+      switch (var->data.interpolation) {
+      case INTERP_MODE_NONE: return DXIL_INTERP_LINEAR_SAMPLE;
+      case INTERP_MODE_FLAT: return DXIL_INTERP_CONSTANT;
+      case INTERP_MODE_NOPERSPECTIVE: return DXIL_INTERP_LINEAR_NOPERSPECTIVE_SAMPLE;
+      case INTERP_MODE_SMOOTH: return DXIL_INTERP_LINEAR_SAMPLE;
+      }
+   } else if (unlikely(var->data.centroid)) {
       if (var->data.location == VARYING_SLOT_POS)
          return DXIL_INTERP_LINEAR_NOPERSPECTIVE_CENTROID;
       switch (var->data.interpolation) {
@@ -65,7 +81,6 @@ get_interpolation(nir_variable *var)
       case INTERP_MODE_FLAT: return DXIL_INTERP_CONSTANT;
       case INTERP_MODE_NOPERSPECTIVE: return DXIL_INTERP_LINEAR_NOPERSPECTIVE_CENTROID;
       case INTERP_MODE_SMOOTH: return DXIL_INTERP_LINEAR_CENTROID;
-
       }
    } else {
       if (var->data.location == VARYING_SLOT_POS)
@@ -102,25 +117,40 @@ in_sysvalue_name(nir_variable *var)
  */
 static unsigned
 get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_info *info,
-                             unsigned next_row, bool is_gs_shader)
+                             unsigned next_row, unsigned clip_size)
 {
    const struct glsl_type *type = var->type;
+   if (nir_is_arrayed_io(var, s->info.stage))
+      type = glsl_get_array_element(type);
 
    info->comp_type =
-      dxil_get_prog_sig_comp_type(var->type);
+      dxil_get_prog_sig_comp_type(type);
 
    bool is_depth = is_depth_output(info->kind);
-   info->sig_comp_type = dxil_get_comp_type(var->type);
+   info->sig_comp_type = glsl_type_is_struct(type) ?
+      DXIL_COMP_TYPE_U32 : dxil_get_comp_type(type);
+   bool is_gs_input = s->info.stage == MESA_SHADER_GEOMETRY &&
+      (var->data.mode & (nir_var_shader_in | nir_var_system_value));
 
+   info->stream = var->data.stream;
    info->rows = 1;
    if (info->kind == DXIL_SEM_TARGET) {
       info->start_row = info->index;
+      info->cols = (uint8_t)glsl_get_components(type);
    } else if (is_depth ||
-              (info->kind == DXIL_SEM_PRIMITIVE_ID && is_gs_shader) ||
+              (info->kind == DXIL_SEM_PRIMITIVE_ID && is_gs_input) ||
               info->kind == DXIL_SEM_COVERAGE ||
               info->kind == DXIL_SEM_SAMPLE_INDEX) {
       // This turns into a 'N/A' mask in the disassembly
       info->start_row = -1;
+      info->cols = 1;
+   } else if (info->kind == DXIL_SEM_TESS_FACTOR ||
+              info->kind == DXIL_SEM_INSIDE_TESS_FACTOR) {
+      assert(var->data.compact);
+      info->start_row = next_row;
+      info->rows = glsl_get_aoa_size(type);
+      info->cols = 1;
+      next_row += info->rows;
    } else if (var->data.compact) {
       if (var->data.location_frac) {
          info->start_row = next_row - 1;
@@ -134,37 +164,29 @@ get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_i
       unsigned start_offset = (var->data.location - VARYING_SLOT_CLIP_DIST0) * 4 +
          var->data.location_frac;
 
-      if (start_offset >= s->info.clip_distance_array_size) {
+      if (start_offset >= clip_size) {
          info->kind = DXIL_SEM_CULL_DISTANCE;
          snprintf(info->name, 64, "SV_CullDistance");
       }
       info->cols = num_floats;
+      info->start_col = (uint8_t)var->data.location_frac;
    } else {
       info->start_row = next_row;
-      if (glsl_type_is_array(type) && is_gs_shader)
-         type = glsl_without_array(type);
-
-      if (glsl_type_is_array(type)) {
-         info->rows = glsl_get_aoa_size(type);
-         type = glsl_get_array_element(type);
-         assert(info->rows);
-      }
-      next_row += info->rows;
-   }
-   info->start_col = (uint8_t)var->data.location_frac;
-   if (!info->cols) {
+      info->rows = glsl_count_vec4_slots(type, false, false);
       if (glsl_type_is_array(type))
          type = glsl_get_array_element(type);
-      info->cols = (uint8_t)glsl_get_components(type);
+      next_row += info->rows;
+      info->start_col = (uint8_t)var->data.location_frac;
+      info->cols = MIN2(glsl_get_component_slots(type), 4);
    }
 
    return next_row;
 }
 
-typedef void (*semantic_info_proc)(nir_variable *var, struct semantic_info *info, bool vulkan);
+typedef void (*semantic_info_proc)(nir_variable *var, struct semantic_info *info, gl_shader_stage stage, bool vulkan);
 
 static void
-get_semantic_vs_in_name(nir_variable *var, struct semantic_info *info, bool vulkan)
+get_semantic_vs_in_name(nir_variable *var, struct semantic_info *info, gl_shader_stage stage, bool vulkan)
 {
    strcpy(info->name, "TEXCOORD");
    if (vulkan) {
@@ -178,7 +200,7 @@ get_semantic_vs_in_name(nir_variable *var, struct semantic_info *info, bool vulk
 }
 
 static void
-get_semantic_sv_name(nir_variable *var, struct semantic_info *info, bool _vulkan)
+get_semantic_sv_name(nir_variable *var, struct semantic_info *info, gl_shader_stage stage, bool _vulkan)
 {
    switch (var->data.location) {
    case SYSTEM_VALUE_VERTEX_ID_ZERO_BASE:
@@ -281,9 +303,28 @@ get_semantic_name(nir_variable *var, struct semantic_info *info,
       info->kind = DXIL_SEM_CLIP_DISTANCE;
       break;
 
+   case VARYING_SLOT_TESS_LEVEL_INNER:
+      assert(glsl_get_components(var->type) <= 2);
+      snprintf(info->name, 64, "%s", "SV_InsideTessFactor");
+      info->kind = DXIL_SEM_INSIDE_TESS_FACTOR;
+      break;
+
+   case VARYING_SLOT_TESS_LEVEL_OUTER:
+      assert(glsl_get_components(var->type) <= 4);
+      snprintf(info->name, 64, "%s", "SV_TessFactor");
+      info->kind = DXIL_SEM_TESS_FACTOR;
+      break;
+
+   case VARYING_SLOT_VIEWPORT:
+      assert(glsl_get_components(var->type) == 1);
+      snprintf(info->name, 64, "%s", "SV_ViewportArrayIndex");
+      info->kind = DXIL_SEM_VIEWPORT_ARRAY_INDEX;
+      break;
+
    default: {
-         info->index = var->data.location -
-            (vulkan ? VARYING_SLOT_VAR0 : VARYING_SLOT_POS);
+         info->index =  vulkan ?
+            var->data.location - VARYING_SLOT_VAR0 :
+            var->data.driver_location;
          strcpy(info->name, "TEXCOORD");
          info->kind = DXIL_SEM_ARBITRARY;
       }
@@ -291,19 +332,12 @@ get_semantic_name(nir_variable *var, struct semantic_info *info,
 }
 
 static void
-get_semantic_in_name(nir_variable *var, struct semantic_info *info, bool vulkan)
+get_semantic_in_name(nir_variable *var, struct semantic_info *info, gl_shader_stage stage, bool vulkan)
 {
-   get_semantic_name(var, info, var->type, vulkan);
-   info->sysvalue_name = in_sysvalue_name(var);
-}
-
-static void
-get_semantic_gs_in_name(nir_variable *var, struct semantic_info *info, bool vulkan)
-{
-   /* geometry shader input varyings come as arrays, but we want to use
-    * the element type */
-   const struct glsl_type *type =
-         glsl_type_is_array(var->type) ? glsl_without_array(var->type) : var->type;
+   const struct glsl_type *type = var->type;
+   if (nir_is_arrayed_io(var, stage) &&
+       glsl_type_is_array(type))
+      type = glsl_get_array_element(type);
 
    get_semantic_name(var, info, type, vulkan);
    info->sysvalue_name = in_sysvalue_name(var);
@@ -311,7 +345,7 @@ get_semantic_gs_in_name(nir_variable *var, struct semantic_info *info, bool vulk
 
 
 static enum dxil_prog_sig_semantic
-prog_semantic_from_kind(enum dxil_semantic_kind kind)
+prog_semantic_from_kind(enum dxil_semantic_kind kind, unsigned num_vals, unsigned start_val)
 {
    switch (kind) {
    case DXIL_SEM_ARBITRARY: return DXIL_PROG_SEM_UNDEFINED;
@@ -335,6 +369,23 @@ prog_semantic_from_kind(enum dxil_semantic_kind kind)
    case DXIL_SEM_DEPTH_LE: return DXIL_PROG_SEM_DEPTH_LE;
    case DXIL_SEM_DEPTH_GE: return DXIL_PROG_SEM_DEPTH_GE;
    case DXIL_SEM_STENCIL_REF: return DXIL_PROG_SEM_STENCIL_REF;
+   case DXIL_SEM_TESS_FACTOR:
+      switch (num_vals) {
+      case 4: return DXIL_PROG_SEM_FINAL_QUAD_EDGE_TESSFACTOR;
+      case 3: return DXIL_PROG_SEM_FINAL_TRI_EDGE_TESSFACTOR;
+      case 2: return start_val == 0 ?
+         DXIL_PROG_SEM_FINAL_LINE_DENSITY_TESSFACTOR :
+         DXIL_PROG_SEM_FINAL_LINE_DETAIL_TESSFACTOR;
+      default:
+         unreachable("Invalid row count for tess factor");
+      }
+   case DXIL_SEM_INSIDE_TESS_FACTOR:
+      switch (num_vals) {
+      case 2: return DXIL_PROG_SEM_FINAL_QUAD_INSIDE_EDGE_TESSFACTOR;
+      case 1: return DXIL_PROG_SEM_FINAL_TRI_INSIDE_EDGE_TESSFACTOR;
+      default:
+         unreachable("Invalid row count for inner tess factor");
+      }
    default:
        return DXIL_PROG_SEM_UNDEFINED;
    }
@@ -356,11 +407,15 @@ uint32_t
 append_semantic_index_to_table(struct dxil_psv_sem_index_table *table, uint32_t index,
                                uint32_t num_rows)
 {
-   if (num_rows == 1) {
-      for (unsigned i = 0; i < table->size; ++i) {
-         if (table->data[i] == index)
-            return i;
-      }
+   for (unsigned i = 0; i < table->size; ++i) {
+      unsigned j = 0;
+      for (; j < num_rows && i + j < table->size; ++j)
+         if (table->data[i + j] != index + j)
+            break;
+      if (j == num_rows)
+         return i;
+      else if (j > 0)
+         i += j - 1;
    }
    uint32_t retval = table->size;
    assert(table->size + num_rows <= 80);
@@ -392,7 +447,15 @@ fill_SV_param_nodes(struct dxil_module *mod, unsigned record_id,
    SV_params_nodes[7] = dxil_get_metadata_int8(mod, semantic->cols); // Number of columns
    SV_params_nodes[8] = dxil_get_metadata_int32(mod, semantic->start_row); // Element packing start row
    SV_params_nodes[9] = dxil_get_metadata_int8(mod, semantic->start_col); // Element packing start column
-   SV_params_nodes[10] = 0; // optional Metadata
+
+   const struct dxil_mdnode *SV_metadata[2];
+   unsigned num_metadata_nodes = 0;
+   if (semantic->stream != 0) {
+      SV_metadata[num_metadata_nodes++] = dxil_get_metadata_int32(mod, DXIL_SIGNATURE_ELEMENT_OUTPUT_STREAM);
+      SV_metadata[num_metadata_nodes++] = dxil_get_metadata_int32(mod, semantic->stream);
+   }
+
+   SV_params_nodes[10] = num_metadata_nodes ? dxil_get_metadata_node(mod, SV_metadata, num_metadata_nodes) : NULL;
 
    return dxil_get_metadata_node(mod, SV_params_nodes, ARRAY_SIZE(SV_params_nodes));
 }
@@ -403,10 +466,10 @@ fill_signature_element(struct dxil_signature_element *elm,
                        unsigned row)
 {
    memset(elm, 0, sizeof(struct dxil_signature_element));
-   // elm->stream = 0;
+   elm->stream = semantic->stream;
    // elm->semantic_name_offset = 0;  // Offset needs to be filled out when writing
    elm->semantic_index = semantic->index + row;
-   elm->system_value = (uint32_t) prog_semantic_from_kind(semantic->kind);
+   elm->system_value = (uint32_t) prog_semantic_from_kind(semantic->kind, semantic->rows, row);
    elm->comp_type = (uint32_t) semantic->comp_type;
    elm->reg = semantic->start_row + row;
 
@@ -439,9 +502,7 @@ fill_psv_signature_element(struct dxil_psv_signature_element *psv_elm,
    psv_elm->semantic_kind = (uint8_t)semantic->kind;
    psv_elm->component_type = semantic->comp_type; //`??
    psv_elm->interpolation_mode = semantic->interpolation;
-   /* to be filled later
-     psv_elm->dynamic_mask_and_stream = 0;
-   */
+   psv_elm->dynamic_mask_and_stream = (semantic->stream) << 4;
    if (semantic->kind == DXIL_SEM_ARBITRARY && strlen(semantic->name)) {
       psv_elm->semantic_name_offset =
             copy_semantic_name_to_string(mod->sem_string_table, semantic->name);
@@ -475,14 +536,22 @@ static unsigned
 get_input_signature_group(struct dxil_module *mod, const struct dxil_mdnode **inputs,
                           unsigned num_inputs,
                           nir_shader *s, nir_variable_mode modes,
-                          semantic_info_proc get_semantics, unsigned *row_iter,
-                          bool is_gs_shader, bool vulkan)
+                          semantic_info_proc get_semantics, unsigned *row_iter, bool vulkan,
+                          unsigned input_clip_size)
 {
    nir_foreach_variable_with_modes(var, s, modes) {
+      if (var->data.patch)
+         continue;
+
       struct semantic_info semantic = {0};
-      get_semantics(var, &semantic, vulkan);
+      get_semantics(var, &semantic, s->info.stage, vulkan);
       mod->inputs[num_inputs].sysvalue = semantic.sysvalue_name;
-      *row_iter = get_additional_semantic_info(s, var, &semantic, *row_iter, is_gs_shader);
+      *row_iter = get_additional_semantic_info(s, var, &semantic, *row_iter, input_clip_size);
+
+      if (semantic.start_row >= 0) {
+         for (unsigned i = 0; i < semantic.rows; ++i)
+            mod->input_mappings[semantic.start_row + i] = num_inputs;
+      }
 
       mod->inputs[num_inputs].name = ralloc_strdup(mod->ralloc_ctx,
                                                    semantic.name);
@@ -497,11 +566,6 @@ get_input_signature_group(struct dxil_module *mod, const struct dxil_mdnode **in
       mod->num_psv_inputs = MAX2(mod->num_psv_inputs,
                                  semantic.start_row + semantic.rows);
 
-      mod->info.has_per_sample_input |=
-         semantic.kind == DXIL_SEM_SAMPLE_INDEX ||
-         semantic.interpolation == DXIL_INTERP_LINEAR_SAMPLE ||
-         semantic.interpolation == DXIL_INTERP_LINEAR_NOPERSPECTIVE_SAMPLE;
-
       ++num_inputs;
       assert(num_inputs < VARYING_SLOT_MAX);
    }
@@ -509,29 +573,24 @@ get_input_signature_group(struct dxil_module *mod, const struct dxil_mdnode **in
 }
 
 static const struct dxil_mdnode *
-get_input_signature(struct dxil_module *mod, nir_shader *s, bool vulkan)
+get_input_signature(struct dxil_module *mod, nir_shader *s, bool vulkan, unsigned input_clip_size)
 {
    if (s->info.stage == MESA_SHADER_KERNEL)
       return NULL;
 
    const struct dxil_mdnode *inputs[VARYING_SLOT_MAX];
    unsigned next_row = 0;
-   bool is_gs_shader = s->info.stage == MESA_SHADER_GEOMETRY;
 
    mod->num_sig_inputs = get_input_signature_group(mod, inputs, 0,
                                                    s, nir_var_shader_in,
                                                    s->info.stage == MESA_SHADER_VERTEX ?
-                                                      get_semantic_vs_in_name :
-                                                      (s->info.stage == MESA_SHADER_GEOMETRY ?
-                                                         get_semantic_gs_in_name : get_semantic_in_name),
-                                                   &next_row, is_gs_shader,
-                                                   vulkan);
+                                                      get_semantic_vs_in_name : get_semantic_in_name,
+                                                   &next_row, vulkan, input_clip_size);
 
    mod->num_sig_inputs = get_input_signature_group(mod, inputs, mod->num_sig_inputs,
                                                    s, nir_var_system_value,
                                                    get_semantic_sv_name,
-                                                   &next_row, is_gs_shader,
-                                                   vulkan);
+                                                   &next_row, vulkan, input_clip_size);
 
    if (!mod->num_sig_inputs && !mod->num_sig_inputs)
       return NULL;
@@ -567,15 +626,20 @@ get_output_signature(struct dxil_module *mod, nir_shader *s, bool vulkan)
    unsigned next_row = 0;
    nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
       struct semantic_info semantic = {0};
+      if (var->data.patch)
+         continue;
 
       if (s->info.stage == MESA_SHADER_FRAGMENT) {
          get_semantic_ps_outname(var, &semantic);
          mod->outputs[num_outputs].sysvalue = "TARGET";
       } else {
-         get_semantic_name(var, &semantic, var->type, vulkan);
+         const struct glsl_type *type = var->type;
+         if (nir_is_arrayed_io(var, s->info.stage))
+            type = glsl_get_array_element(type);
+         get_semantic_name(var, &semantic, type, vulkan);
          mod->outputs[num_outputs].sysvalue = out_sysvalue_name(var);
       }
-      next_row = get_additional_semantic_info(s, var, &semantic, next_row, false);
+      next_row = get_additional_semantic_info(s, var, &semantic, next_row, s->info.clip_distance_array_size);
 
       mod->info.has_out_position |= semantic.kind== DXIL_SEM_POSITION;
       mod->info.has_out_depth |= semantic.kind == DXIL_SEM_DEPTH;
@@ -593,12 +657,13 @@ get_output_signature(struct dxil_module *mod, nir_shader *s, bool vulkan)
 
       /* This is fishy, logic suggests that the LHS should be 0xf, but from the
        * validation it needs to be 0xff */
-      elm->never_writes_mask = 0xff & ~elm->mask;
+      for (unsigned i = 0; i < mod->outputs[num_outputs].num_elements; ++i)
+         elm[i].never_writes_mask = 0xff & ~elm[i].mask;
 
       ++num_outputs;
 
-      mod->num_psv_outputs = MAX2(mod->num_psv_outputs,
-                                  semantic.start_row + semantic.rows);
+      mod->num_psv_outputs[semantic.stream] = MAX2(mod->num_psv_outputs[semantic.stream],
+                                                   semantic.start_row + semantic.rows);
 
       assert(num_outputs < ARRAY_SIZE(outputs));
    }
@@ -611,22 +676,111 @@ get_output_signature(struct dxil_module *mod, nir_shader *s, bool vulkan)
    return retval;
 }
 
+static const char *
+patch_sysvalue_name(nir_variable *var)
+{
+   switch (var->data.location) {
+   case VARYING_SLOT_TESS_LEVEL_OUTER:
+      switch (glsl_get_aoa_size(var->type)) {
+      case 4:
+         return "QUADEDGE";
+      case 3:
+         return "TRIEDGE";
+      case 2:
+         return var->data.location_frac == 0 ?
+            "LINEDET" : "LINEDEN";
+      default:
+         unreachable("Unexpected outer tess factor array size");
+      }
+      break;
+   case VARYING_SLOT_TESS_LEVEL_INNER:
+      switch (glsl_get_aoa_size(var->type)) {
+      case 2:
+         return "QUADINT";
+      case 1:
+         return "TRIINT";
+      default:
+         unreachable("Unexpected inner tess factory array size");
+      }
+      break;
+   default:
+      return "NO";
+   }
+}
+
+static const struct dxil_mdnode *
+get_patch_const_signature(struct dxil_module *mod, nir_shader *s, bool vulkan)
+{
+   if (s->info.stage != MESA_SHADER_TESS_CTRL &&
+       s->info.stage != MESA_SHADER_TESS_EVAL)
+      return NULL;
+
+   const struct dxil_mdnode *patch_consts[VARYING_SLOT_MAX];
+   nir_variable_mode mode = s->info.stage == MESA_SHADER_TESS_CTRL ?
+      nir_var_shader_out : nir_var_shader_in;
+   unsigned num_consts = 0;
+   unsigned next_row = 0;
+   nir_foreach_variable_with_modes(var, s, mode) {
+      struct semantic_info semantic = {0};
+      if (!var->data.patch)
+         continue;
+
+      const struct glsl_type *type = var->type;
+      get_semantic_name(var, &semantic, type, vulkan);
+
+      mod->patch_consts[num_consts].sysvalue = patch_sysvalue_name(var);
+      next_row = get_additional_semantic_info(s, var, &semantic, next_row, 0);
+
+      mod->patch_consts[num_consts].name = ralloc_strdup(mod->ralloc_ctx,
+                                                         semantic.name);
+      mod->patch_consts[num_consts].num_elements = semantic.rows;
+      struct dxil_signature_element *elm = mod->patch_consts[num_consts].elements;
+
+      struct dxil_psv_signature_element *psv_elm = &mod->psv_patch_consts[num_consts];
+
+      if (!fill_io_signature(mod, num_consts, &semantic,
+                             &patch_consts[num_consts], elm, psv_elm))
+         return NULL;
+
+      /* This is fishy, logic suggests that the LHS should be 0xf, but from the
+       * validation it needs to be 0xff */
+      if (mode == nir_var_shader_out)
+         for (unsigned i = 0; i < mod->patch_consts[num_consts].num_elements; ++i)
+            elm[i].never_writes_mask = 0xff & ~elm[i].mask;
+
+      ++num_consts;
+
+      mod->num_psv_patch_consts = MAX2(mod->num_psv_patch_consts,
+                                       semantic.start_row + semantic.rows);
+
+      assert(num_consts < ARRAY_SIZE(patch_consts));
+   }
+
+   if (!num_consts)
+      return NULL;
+
+   const struct dxil_mdnode *retval = dxil_get_metadata_node(mod, patch_consts, num_consts);
+   mod->num_sig_patch_consts = num_consts;
+   return retval;
+}
+
 const struct dxil_mdnode *
-get_signatures(struct dxil_module *mod, nir_shader *s, bool vulkan)
+get_signatures(struct dxil_module *mod, nir_shader *s, bool vulkan, unsigned input_clip_size)
 {
    /* DXC does the same: Add an empty string before everything else */
    mod->sem_string_table = _mesa_string_buffer_create(mod->ralloc_ctx, 1024);
    copy_semantic_name_to_string(mod->sem_string_table, "");
 
-   const struct dxil_mdnode *input_signature = get_input_signature(mod, s, vulkan);
+   const struct dxil_mdnode *input_signature = get_input_signature(mod, s, vulkan, input_clip_size);
    const struct dxil_mdnode *output_signature = get_output_signature(mod, s, vulkan);
+   const struct dxil_mdnode *patch_const_signature = get_patch_const_signature(mod, s, vulkan);
 
    const struct dxil_mdnode *SV_nodes[3] = {
       input_signature,
       output_signature,
-      NULL
+      patch_const_signature
    };
-   if (output_signature || input_signature)
+   if (output_signature || input_signature || patch_const_signature)
       return dxil_get_metadata_node(mod, SV_nodes, ARRAY_SIZE(SV_nodes));
    else
       return NULL;

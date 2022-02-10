@@ -30,7 +30,7 @@
 #include "gl_nir.h"
 #include "ir_uniform.h"
 #include "main/config.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 #include <assert.h>
 
 /*

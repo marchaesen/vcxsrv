@@ -38,6 +38,5 @@ gc2000_piglit:
     - .etnaviv-armhf-gc2000
     - .test-manual-mr
   variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     PIGLIT_PLATFORM: gbm
     PIGLIT_PROFILES: gpu

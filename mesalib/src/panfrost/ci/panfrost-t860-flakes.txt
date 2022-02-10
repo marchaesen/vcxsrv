@@ -1,1 +1,4 @@
 dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgba4_depth_component16
+
+# Marked as xfail but sometimes passes.
+dEQP-GLES31.functional.draw_buffers_indexed.random.max_implementation_draw_buffers.7

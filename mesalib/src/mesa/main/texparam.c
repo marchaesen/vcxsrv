@@ -49,6 +49,7 @@
 #include "api_exec_decl.h"
 
 #include "state_tracker/st_cb_texture.h"
+#include "state_tracker/st_sampler_view.h"
 
 /**
  * Use macro to resolve undefined clamping behaviour when using lroundf
@@ -517,7 +518,7 @@ set_tex_parameteri(struct gl_context *ctx,
       /* GL_DEPTH_TEXTURE_MODE_ARB is removed in core-profile and it has never
        * existed in OpenGL ES.
        */
-      if (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_depth_texture) {
+      if (ctx->API == API_OPENGL_COMPAT) {
          if (texObj->Attrib.DepthMode == params[0])
             return GL_FALSE;
          if (params[0] == GL_LUMINANCE ||
@@ -681,6 +682,9 @@ set_tex_parameteri(struct gl_context *ctx,
           *   is TRUE and <target> is not one of TEXTURE_2D, TEXTURE_2D_ARRAY,
           *   TEXTURE_CUBE_MAP, TEXTURE_CUBE_MAP_ARRAY, TEXTURE_3D, or
           *   TEXTURE_RECTANGLE.
+          *
+          * ARB_sparse_texture2 also allow TEXTURE_2D_MULTISAMPLE and
+          * TEXTURE_2D_MULTISAMPLE_ARRAY.
           */
          if (params[0] &&
              texObj->Target != GL_TEXTURE_2D &&
@@ -688,7 +692,10 @@ set_tex_parameteri(struct gl_context *ctx,
              texObj->Target != GL_TEXTURE_CUBE_MAP &&
              texObj->Target != GL_TEXTURE_CUBE_MAP_ARRAY &&
              texObj->Target != GL_TEXTURE_3D &&
-             texObj->Target != GL_TEXTURE_RECTANGLE) {
+             texObj->Target != GL_TEXTURE_RECTANGLE &&
+             (!_mesa_has_ARB_sparse_texture2(ctx) ||
+              (texObj->Target != GL_TEXTURE_2D_MULTISAMPLE &&
+               texObj->Target != GL_TEXTURE_2D_MULTISAMPLE_ARRAY))) {
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "glTex%sParameter(target=%d)", suffix, texObj->Target);
             return GL_FALSE;
@@ -888,6 +895,41 @@ invalid_enum:
    return GL_FALSE;
 }
 
+static bool
+texparam_invalidates_sampler_views(GLenum pname)
+{
+   switch (pname) {
+      /*
+       * Changing any of these texture parameters means we must create
+       * new sampler views.
+       */
+   case GL_ALL_ATTRIB_BITS: /* meaning is all pnames, internal */
+   case GL_TEXTURE_BASE_LEVEL:
+   case GL_TEXTURE_MAX_LEVEL:
+   case GL_DEPTH_TEXTURE_MODE:
+   case GL_DEPTH_STENCIL_TEXTURE_MODE:
+   case GL_TEXTURE_SRGB_DECODE_EXT:
+   case GL_TEXTURE_SWIZZLE_R:
+   case GL_TEXTURE_SWIZZLE_G:
+   case GL_TEXTURE_SWIZZLE_B:
+   case GL_TEXTURE_SWIZZLE_A:
+   case GL_TEXTURE_SWIZZLE_RGBA:
+   case GL_TEXTURE_BUFFER_SIZE:
+   case GL_TEXTURE_BUFFER_OFFSET:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static void
+_mesa_texture_parameter_invalidate(struct gl_context *ctx,
+                                   struct gl_texture_object *texObj,
+                                   GLenum pname)
+{
+   if (texparam_invalidates_sampler_views(pname))
+      st_texture_release_all_sampler_views(st_context(ctx), texObj);
+}
 
 void
 _mesa_texture_parameterf(struct gl_context *ctx,
@@ -944,7 +986,7 @@ _mesa_texture_parameterf(struct gl_context *ctx,
    }
 
    if (need_update) {
-      st_TexParameter(ctx, texObj, pname);
+      _mesa_texture_parameter_invalidate(ctx, texObj, pname);
    }
 }
 
@@ -1014,7 +1056,7 @@ _mesa_texture_parameterfv(struct gl_context *ctx,
    }
 
    if (need_update) {
-      st_TexParameter(ctx, texObj, pname);
+      _mesa_texture_parameter_invalidate(ctx, texObj, pname);
    }
 }
 
@@ -1058,7 +1100,7 @@ _mesa_texture_parameteri(struct gl_context *ctx,
    }
 
    if (need_update) {
-      st_TexParameter(ctx, texObj, pname);
+      _mesa_texture_parameter_invalidate(ctx, texObj, pname);
    }
 }
 
@@ -1101,7 +1143,7 @@ _mesa_texture_parameteriv(struct gl_context *ctx,
    }
 
    if (need_update) {
-      st_TexParameter(ctx, texObj, pname);
+      _mesa_texture_parameter_invalidate(ctx, texObj, pname);
    }
 }
 
@@ -1770,8 +1812,6 @@ get_tex_level_parameter_image(struct gl_context *ctx,
          }
          break;
       case GL_TEXTURE_DEPTH_SIZE_ARB:
-         if (!ctx->Extensions.ARB_depth_texture)
-            goto invalid_pname;
          *params = _mesa_get_format_bits(texFormat, pname);
          break;
       case GL_TEXTURE_STENCIL_SIZE:
@@ -2338,7 +2378,7 @@ get_tex_parameterfv(struct gl_context *ctx,
          /* GL_DEPTH_TEXTURE_MODE_ARB is removed in core-profile and it has
           * never existed in OpenGL ES.
           */
-         if (ctx->API != API_OPENGL_COMPAT || !ctx->Extensions.ARB_depth_texture)
+         if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_pname;
          *params = (GLfloat) obj->Attrib.DepthMode;
          break;
@@ -2451,7 +2491,8 @@ get_tex_parameterfv(struct gl_context *ctx,
          break;
 
       case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
-         if (!ctx->Extensions.ARB_shader_image_load_store)
+         if (!ctx->Extensions.ARB_shader_image_load_store &&
+             !_mesa_is_gles31(ctx))
             goto invalid_pname;
          *params = (GLfloat) obj->Attrib.ImageFormatCompatibilityType;
          break;
@@ -2624,7 +2665,7 @@ get_tex_parameteriv(struct gl_context *ctx,
          *params = (GLint) obj->Sampler.Attrib.CompareFunc;
          break;
       case GL_DEPTH_TEXTURE_MODE_ARB:
-         if (ctx->API != API_OPENGL_COMPAT || !ctx->Extensions.ARB_depth_texture)
+         if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_pname;
          *params = (GLint) obj->Attrib.DepthMode;
          break;
@@ -2741,7 +2782,8 @@ get_tex_parameteriv(struct gl_context *ctx,
          break;
 
       case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
-         if (!ctx->Extensions.ARB_shader_image_load_store)
+         if (!ctx->Extensions.ARB_shader_image_load_store &&
+             !_mesa_is_gles31(ctx))
             goto invalid_pname;
          *params = obj->Attrib.ImageFormatCompatibilityType;
          break;

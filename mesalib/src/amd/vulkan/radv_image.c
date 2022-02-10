@@ -365,6 +365,9 @@ radv_use_htile_for_image(const struct radv_device *device, const struct radv_ima
        !device->attachment_vrs_enabled)
       return false;
 
+   if (device->instance->disable_htile_layers && image->info.array_size > 1)
+      return false;
+
    return (image->info.levels == 1 || use_htile_for_mips) && !image->shareable;
 }
 
@@ -527,6 +530,11 @@ radv_patch_image_from_extra_info(struct radv_device *device, struct radv_image *
             image->planes[plane].surface.flags |= RADEON_SURF_DISABLE_DCC;
 
          image->info.surf_index = NULL;
+      }
+
+      if (create_info->prime_blit_src && device->physical_device->rad_info.chip_class == GFX9) {
+         /* Older SDMA hw can't handle DCC */
+         image->planes[plane].surface.flags |= RADEON_SURF_DISABLE_DCC;
       }
    }
    return VK_SUCCESS;
@@ -1175,6 +1183,18 @@ si_make_texture_descriptor(struct radv_device *device, struct radv_image *image,
    if (!(image->planes[0].surface.flags & RADEON_SURF_Z_OR_SBUFFER) &&
        image->planes[0].surface.meta_offset) {
       state[6] = S_008F28_ALPHA_IS_ON_MSB(vi_alpha_is_on_msb(device, vk_format));
+   } else {
+      if (device->instance->disable_aniso_single_level) {
+         /* The last dword is unused by hw. The shader uses it to clear
+          * bits in the first dword of sampler state.
+          */
+         if (device->physical_device->rad_info.chip_class <= GFX7 && image->info.samples <= 1) {
+            if (first_level == last_level)
+               state[7] = C_008F30_MAX_ANISO_RATIO;
+            else
+               state[7] = 0xffffffff;
+         }
+      }
    }
 
    /* Initialize the sampler view for FMASK. */
@@ -2307,11 +2327,13 @@ radv_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
    const struct wsi_image_create_info *wsi_info =
       vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
    bool scanout = wsi_info && wsi_info->scanout;
+   bool prime_blit_src = wsi_info && wsi_info->prime_blit_src;
 
    return radv_image_create(device,
                             &(struct radv_image_create_info){
                                .vk_info = pCreateInfo,
                                .scanout = scanout,
+                               .prime_blit_src = prime_blit_src,
                             },
                             pAllocator, pImage);
 }
@@ -2353,7 +2375,7 @@ radv_GetImageSubresourceLayout(VkDevice _device, VkImage _image,
       pLayout->offset = ac_surface_get_plane_offset(device->physical_device->rad_info.chip_class,
                                                     surface, mem_plane_id, 0);
       pLayout->rowPitch = ac_surface_get_plane_stride(device->physical_device->rad_info.chip_class,
-                                                      surface, mem_plane_id);
+                                                      surface, mem_plane_id, level);
       pLayout->arrayPitch = 0;
       pLayout->depthPitch = 0;
       pLayout->size = ac_surface_get_plane_size(surface, mem_plane_id);

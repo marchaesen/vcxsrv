@@ -26,6 +26,8 @@
  *
  */
 
+#include "util/u_math.h"
+
 #include "radeon_dataflow.h"
 
 #include "radeon_compiler.h"
@@ -837,8 +839,15 @@ static int peephole_mul_omod(
 		return 0;
 	}
 
-	/* Rewrite the instructions */
 	writemask_sum = rc_variable_writemask_sum(writer_list->Item);
+
+	/* rc_normal_rewrite_writemask can't expand a previous writemask to store
+	 * more channels replicated.
+	 */
+	if (util_bitcount(writemask_sum) < util_bitcount(inst_mul->U.I.DstReg.WriteMask))
+		return 0;
+
+	/* Rewrite the instructions */
 	for (var = writer_list->Item; var; var = var->Friend) {
 		struct rc_variable * writer = var;
 		unsigned conversion_swizzle = rc_make_conversion_swizzle(

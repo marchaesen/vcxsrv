@@ -47,6 +47,7 @@ translate_cull_face(unsigned cull_face, unsigned front_ccw)
 {
    switch (cull_face) {
    case PIPE_FACE_NONE:
+   case PIPE_FACE_FRONT_AND_BACK: /* handled in draw_vbo */
       return VIVS_PA_CONFIG_CULL_FACE_MODE_OFF;
    case PIPE_FACE_BACK:
       return front_ccw ? VIVS_PA_CONFIG_CULL_FACE_MODE_CW

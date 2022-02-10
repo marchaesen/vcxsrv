@@ -44,6 +44,15 @@ xkb_symbols "escape_shifted_capslock" {
 };
 
 hidden partial modifier_keys
+xkb_symbols "escape_shifted_compose" {
+    key <CAPS> {
+        type[Group1] = "TWO_LEVEL",
+        symbols[Group1] = [ Escape, Multi_key ],
+        actions[Group1] = [ NoAction(), NoAction() ]
+    };
+};
+
+hidden partial modifier_keys
 xkb_symbols "backspace" {
     key <CAPS> { [ BackSpace ] };
 };

@@ -537,7 +537,7 @@ static void si_nir_store_output_tcs(struct ac_shader_abi *abi,
       values[chan] = value;
 
       if (writemask != 0xF && !is_tess_factor) {
-         ac_build_buffer_store_dword(&ctx->ac, buffer, value, 1, addr, base,
+         ac_build_buffer_store_dword(&ctx->ac, buffer, value, NULL, addr, base,
                                      4 * chan, ac_glc);
       }
 
@@ -555,7 +555,7 @@ static void si_nir_store_output_tcs(struct ac_shader_abi *abi,
 
    if (writemask == 0xF && !is_tess_factor) {
       LLVMValueRef value = ac_build_gather_values(&ctx->ac, values, 4);
-      ac_build_buffer_store_dword(&ctx->ac, buffer, value, 4, addr, base, 0, ac_glc);
+      ac_build_buffer_store_dword(&ctx->ac, buffer, value, NULL, addr, base, 0, ac_glc);
    }
 }
 
@@ -662,7 +662,7 @@ static void si_copy_tcs_inputs(struct si_shader_context *ctx)
 
       LLVMValueRef value = lshs_lds_load(ctx, ctx->ac.i32, ~0, lds_ptr);
 
-      ac_build_buffer_store_dword(&ctx->ac, buffer, value, 4, buffer_addr, buffer_offset, 0,
+      ac_build_buffer_store_dword(&ctx->ac, buffer, value, NULL, buffer_addr, buffer_offset, 0,
                                   ac_glc);
    }
 }
@@ -693,17 +693,17 @@ static void si_write_tess_factors(struct si_shader_context *ctx, LLVMValueRef re
 
    /* Determine the layout of one tess factor element in the buffer. */
    switch (shader->key.ge.part.tcs.epilog.prim_mode) {
-   case GL_LINES:
+   case TESS_PRIMITIVE_ISOLINES:
       stride = 2; /* 2 dwords, 1 vec2 store */
       outer_comps = 2;
       inner_comps = 0;
       break;
-   case GL_TRIANGLES:
+   case TESS_PRIMITIVE_TRIANGLES:
       stride = 4; /* 4 dwords, 1 vec4 store */
       outer_comps = 3;
       inner_comps = 1;
       break;
-   case GL_QUADS:
+   case TESS_PRIMITIVE_QUADS:
       stride = 6; /* 6 dwords, 2 stores (vec4 + vec2) */
       outer_comps = 4;
       inner_comps = 2;
@@ -745,7 +745,7 @@ static void si_write_tess_factors(struct si_shader_context *ctx, LLVMValueRef re
       }
    }
 
-   if (shader->key.ge.part.tcs.epilog.prim_mode == GL_LINES) {
+   if (shader->key.ge.part.tcs.epilog.prim_mode == TESS_PRIMITIVE_ISOLINES) {
       /* For isolines, the hardware expects tess factors in the
        * reverse order from what NIR specifies.
        */
@@ -774,19 +774,19 @@ static void si_write_tess_factors(struct si_shader_context *ctx, LLVMValueRef re
    if (ctx->screen->info.chip_class <= GFX8) {
       ac_build_ifcc(&ctx->ac,
                     LLVMBuildICmp(ctx->ac.builder, LLVMIntEQ, rel_patch_id, ctx->ac.i32_0, ""), 6504);
-      ac_build_buffer_store_dword(&ctx->ac, buffer, LLVMConstInt(ctx->ac.i32, 0x80000000, 0), 1,
-                                  ctx->ac.i32_0, tf_base, offset, ac_glc);
+      ac_build_buffer_store_dword(&ctx->ac, buffer, LLVMConstInt(ctx->ac.i32, 0x80000000, 0),
+                                  NULL, ctx->ac.i32_0, tf_base, offset, ac_glc);
       ac_build_endif(&ctx->ac, 6504);
       offset += 4;
    }
 
    /* Store the tessellation factors. */
-   ac_build_buffer_store_dword(&ctx->ac, buffer, vec0, MIN2(stride, 4), byteoffset, tf_base, offset,
-                               ac_glc);
+   ac_build_buffer_store_dword(&ctx->ac, buffer, vec0, NULL, byteoffset,
+                               tf_base, offset, ac_glc);
    offset += 16;
    if (vec1)
-      ac_build_buffer_store_dword(&ctx->ac, buffer, vec1, stride - 4, byteoffset, tf_base, offset,
-                                  ac_glc);
+      ac_build_buffer_store_dword(&ctx->ac, buffer, vec1, NULL, byteoffset,
+                                  tf_base, offset, ac_glc);
 
    /* Store the tess factors into the offchip buffer if TES reads them. */
    if (shader->key.ge.part.tcs.epilog.tes_reads_tess_factors) {
@@ -801,22 +801,18 @@ static void si_write_tess_factors(struct si_shader_context *ctx, LLVMValueRef re
       tf_outer_offset = get_tcs_tes_buffer_address(ctx, rel_patch_id, NULL,
                                                    LLVMConstInt(ctx->ac.i32, param_outer, 0));
 
-      unsigned outer_vec_size = ac_has_vec3_support(ctx->screen->info.chip_class, false)
-                                   ? outer_comps
-                                   : util_next_power_of_two(outer_comps);
-      outer_vec = ac_build_gather_values(&ctx->ac, outer, outer_vec_size);
+      outer_vec = ac_build_gather_values(&ctx->ac, outer, outer_comps);
 
-      ac_build_buffer_store_dword(&ctx->ac, buf, outer_vec, outer_comps, tf_outer_offset, base, 0,
-                                  ac_glc);
+      ac_build_buffer_store_dword(&ctx->ac, buf, outer_vec, NULL, tf_outer_offset,
+                                  base, 0, ac_glc);
       if (inner_comps) {
          param_inner = si_shader_io_get_unique_index_patch(VARYING_SLOT_TESS_LEVEL_INNER);
          tf_inner_offset = get_tcs_tes_buffer_address(ctx, rel_patch_id, NULL,
                                                       LLVMConstInt(ctx->ac.i32, param_inner, 0));
 
-         inner_vec =
-            inner_comps == 1 ? inner[0] : ac_build_gather_values(&ctx->ac, inner, inner_comps);
-         ac_build_buffer_store_dword(&ctx->ac, buf, inner_vec, inner_comps, tf_inner_offset, base,
-                                     0, ac_glc);
+         inner_vec = ac_build_gather_values(&ctx->ac, inner, inner_comps);
+         ac_build_buffer_store_dword(&ctx->ac, buf, inner_vec, NULL,
+                                     tf_inner_offset, base, 0, ac_glc);
       }
    }
 

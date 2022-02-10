@@ -369,6 +369,9 @@ make_fs_key(const struct svga_context *svga,
       key->fs.write_color0_to_n_cbufs = svga->curr.framebuffer.nr_cbufs;
    }
 
+   if (svga_have_gl43(svga))
+      key->image_size_used = fs->base.info.opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
+
    return PIPE_OK;
 }
 
@@ -498,7 +501,8 @@ struct svga_tracked_state svga_hw_fs =
     SVGA_NEW_SAMPLER |
     SVGA_NEW_FRAME_BUFFER |
     SVGA_NEW_DEPTH_STENCIL_ALPHA |
-    SVGA_NEW_BLEND),
+    SVGA_NEW_BLEND |
+    SVGA_NEW_FS_RAW_BUFFER),
    emit_hw_fs
 };
 

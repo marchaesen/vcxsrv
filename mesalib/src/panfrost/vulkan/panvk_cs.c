@@ -24,7 +24,6 @@
 #include "util/macros.h"
 #include "compiler/shader_enums.h"
 
-#include "panfrost-quirks.h"
 #include "pan_cs.h"
 #include "pan_pool.h"
 

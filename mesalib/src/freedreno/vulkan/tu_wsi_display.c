@@ -33,6 +33,7 @@
 #include "vk_format.h"
 #include "util/debug.h"
 #include "wsi_common_display.h"
+#include "vulkan/runtime/vk_common_entrypoints.h"
 
 /* VK_EXT_display_control */
 
@@ -46,13 +47,13 @@ tu_RegisterDeviceEventEXT(VkDevice                    _device,
    VkResult ret;
 
    VkFence _fence;
-   ret = tu_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, &_fence);
+   ret = vk_common_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, &_fence);
    if (ret != VK_SUCCESS)
       return ret;
 
-   TU_FROM_HANDLE(tu_syncobj, fence, _fence);
+   VK_FROM_HANDLE(vk_fence, fence, _fence);
 
-   int sync_fd = tu_syncobj_to_fd(device, fence);
+   int sync_fd = tu_syncobj_to_fd(device, vk_fence_get_active_sync(fence));
    if (sync_fd >= 0) {
       ret = wsi_register_device_event(_device,
                                       &device->physical_device->wsi_device,
@@ -67,7 +68,7 @@ tu_RegisterDeviceEventEXT(VkDevice                    _device,
    }
 
    if (ret != VK_SUCCESS)
-      tu_DestroyFence(_device, _fence, allocator);
+      vk_common_DestroyFence(_device, _fence, allocator);
    else
       *out_fence = _fence;
 
@@ -84,13 +85,14 @@ tu_RegisterDisplayEventEXT(VkDevice                           _device,
    TU_FROM_HANDLE(tu_device, device, _device);
    VkResult ret;
 
-   ret = tu_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, _fence);
+   ret = vk_common_CreateFence(_device, &(VkFenceCreateInfo) {}, allocator, _fence);
    if (ret != VK_SUCCESS)
       return ret;
 
-   TU_FROM_HANDLE(tu_syncobj, fence, *_fence);
+   VK_FROM_HANDLE(vk_fence, fence, *_fence);
 
-   int sync_fd = tu_syncobj_to_fd(device, fence);
+   int sync_fd = tu_syncobj_to_fd(device, vk_fence_get_active_sync(fence));
+
    if (sync_fd >= 0) {
       ret = wsi_register_display_event(_device,
                                        &device->physical_device->wsi_device,
@@ -106,7 +108,7 @@ tu_RegisterDisplayEventEXT(VkDevice                           _device,
    }
 
    if (ret != VK_SUCCESS)
-      tu_DestroyFence(_device, *_fence, allocator);
+      vk_common_DestroyFence(_device, *_fence, allocator);
 
    return ret;
 }

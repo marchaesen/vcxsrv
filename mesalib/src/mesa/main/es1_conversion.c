@@ -17,7 +17,6 @@
 #include "polygon.h"
 #include "readpix.h"
 #include "texparam.h"
-#include "mtypes.h"
 #include "viewport.h"
 #include "vbo/vbo.h"
 #include "api_exec_decl.h"

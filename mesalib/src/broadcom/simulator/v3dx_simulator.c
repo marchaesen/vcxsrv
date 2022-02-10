@@ -269,6 +269,9 @@ v3dX(simulator_get_param_ioctl)(struct v3d_hw *v3d,
         case DRM_V3D_PARAM_SUPPORTS_PERFMON:
                 args->value = V3D_VERSION >= 41;
                 return 0;
+        case DRM_V3D_PARAM_SUPPORTS_MULTISYNC_EXT:
+                args->value = 1;
+                return 0;
         }
 
         if (args->param < ARRAY_SIZE(reg_map) && reg_map[args->param]) {

@@ -78,6 +78,8 @@ struct ir3_info {
 
    /* estimate of number of cycles stalled on (ss) */
    uint16_t sstall;
+   /* estimate of number of cycles stalled on (sy) */
+   uint16_t systall;
 
    uint16_t last_baryf; /* instruction # of last varying fetch */
 
@@ -327,6 +329,16 @@ struct ir3_instruction {
             IR3_COND_NE = 5,
          } condition;
       } cat2;
+      struct {
+         enum {
+            IR3_SRC_UNSIGNED = 0,
+            IR3_SRC_MIXED = 1,
+         } signedness;
+         enum {
+            IR3_SRC_PACKED_LOW = 0,
+            IR3_SRC_PACKED_HIGH = 1,
+         } packed;
+      } cat3;
       struct {
          unsigned samp, tex;
          unsigned tex_base : 3;
@@ -1381,7 +1393,13 @@ ir3_cat3_absneg(opc_t opc)
    case OPC_SEL_B16:
    case OPC_SEL_B32:
 
-   case OPC_SHLG_B16:
+   case OPC_SHRM:
+   case OPC_SHLM:
+   case OPC_SHRG:
+   case OPC_SHLG:
+   case OPC_ANDG:
+   case OPC_WMM:
+   case OPC_WMM_ACCU:
 
    default:
       return 0;
@@ -1405,6 +1423,8 @@ ir3_output_conv_type(struct ir3_instruction *instr, bool *can_fold)
    case OPC_BARY_F:
    case OPC_MAD_F32:
    case OPC_MAD_F16:
+   case OPC_WMM:
+   case OPC_WMM_ACCU:
       return TYPE_F32;
 
    case OPC_ADD_U:
@@ -1421,6 +1441,11 @@ ir3_output_conv_type(struct ir3_instruction *instr, bool *can_fold)
    case OPC_SHR_B:
    case OPC_ASHR_B:
    case OPC_MAD_U24:
+   case OPC_SHRM:
+   case OPC_SHLM:
+   case OPC_SHRG:
+   case OPC_SHLG:
+   case OPC_ANDG:
    /* Comparison ops zero-extend/truncate their results, so consider them as
     * unsigned here.
     */
@@ -1654,6 +1679,112 @@ unsigned ir3_delayslots_with_repeat(struct ir3_instruction *assigner,
                                     unsigned assigner_n, unsigned consumer_n);
 unsigned ir3_delay_calc(struct ir3_block *block,
                         struct ir3_instruction *instr, bool mergedregs);
+
+/* estimated (ss)/(sy) delay calculation */
+
+static inline bool
+is_local_mem_load(struct ir3_instruction *instr)
+{
+   return instr->opc == OPC_LDL || instr->opc == OPC_LDLV ||
+      instr->opc == OPC_LDLW;
+}
+
+/* Does this instruction need (ss) to wait for its result? */
+static inline bool
+is_ss_producer(struct ir3_instruction *instr)
+{
+   foreach_dst (dst, instr) {
+      if (dst->flags & IR3_REG_SHARED)
+         return true;
+   }
+   return is_sfu(instr) || is_local_mem_load(instr);
+}
+
+/* The soft delay for approximating the cost of (ss). */
+static inline unsigned
+soft_ss_delay(struct ir3_instruction *instr)
+{
+   /* On a6xx, it takes the number of delay slots to get a SFU result back (ie.
+    * using nop's instead of (ss) is:
+    *
+    *     8 - single warp
+    *     9 - two warps
+    *    10 - four warps
+    *
+    * and so on. Not quite sure where it tapers out (ie. how many warps share an
+    * SFU unit). But 10 seems like a reasonable # to choose:
+    */
+   if (is_sfu(instr) || is_local_mem_load(instr))
+      return 10;
+
+   /* The blob adds 6 nops between shared producers and consumers, and before we
+    * used (ss) this was sufficient in most cases.
+    */
+   return 6;
+}
+
+static inline bool
+is_sy_producer(struct ir3_instruction *instr)
+{
+   return is_tex_or_prefetch(instr) ||
+      (is_load(instr) && !is_local_mem_load(instr)) ||
+      is_atomic(instr->opc);
+}
+
+static inline unsigned
+soft_sy_delay(struct ir3_instruction *instr, struct ir3 *shader)
+{
+   /* TODO: this is just an optimistic guess, we can do better post-RA.
+    */
+   bool double_wavesize =
+      shader->type == MESA_SHADER_FRAGMENT ||
+      shader->type == MESA_SHADER_COMPUTE;
+
+   unsigned components = reg_elems(instr->dsts[0]);
+
+   /* These numbers come from counting the number of delay slots to get
+    * cat5/cat6 results back using nops instead of (sy). Note that these numbers
+    * are with the result preloaded to cache by loading it before in the same
+    * shader - uncached results are much larger.
+    *
+    * Note: most ALU instructions can't complete at the full doubled rate, so
+    * they take 2 cycles. The only exception is fp16 instructions with no
+    * built-in conversions. Therefore divide the latency by 2.
+    *
+    * TODO: Handle this properly in the scheduler and remove this.
+    */
+   if (instr->opc == OPC_LDC) {
+      if (double_wavesize)
+         return (21 + 8 * components) / 2;
+      else
+         return 18 + 4 * components;
+   } else if (is_tex_or_prefetch(instr)) {
+      if (double_wavesize) {
+         switch (components) {
+         case 1: return 58 / 2;
+         case 2: return 60 / 2;
+         case 3: return 77 / 2;
+         case 4: return 79 / 2;
+         default: unreachable("bad number of components");
+         }
+      } else {
+         switch (components) {
+         case 1: return 51;
+         case 2: return 53;
+         case 3: return 62;
+         case 4: return 64;
+         default: unreachable("bad number of components");
+         }
+      }
+   } else {
+      /* TODO: measure other cat6 opcodes like ldg */
+      if (double_wavesize)
+         return (172 + components) / 2;
+      else
+         return 109 + components;
+   }
+}
+
 
 /* unreachable block elimination: */
 bool ir3_remove_unreachable(struct ir3 *ir);
@@ -2105,6 +2236,8 @@ INSTR3(MAD_U24)
 INSTR3(MAD_S24)
 INSTR3(MAD_F16)
 INSTR3(MAD_F32)
+INSTR3(DP2ACC)
+INSTR3(DP4ACC)
 /* NOTE: SEL_B32 checks for zero vs nonzero */
 INSTR3(SEL_B16)
 INSTR3(SEL_B32)

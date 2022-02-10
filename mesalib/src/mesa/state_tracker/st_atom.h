@@ -41,7 +41,7 @@ extern "C" {
 #endif
 
 struct st_context;
-struct st_vertex_program;
+struct gl_vertex_program;
 struct st_common_variant;
 struct pipe_vertex_buffer;
 struct pipe_vertex_element;
@@ -66,7 +66,7 @@ void st_update_edgeflags(struct st_context *st, bool per_vertex_edgeflags);
 
 void
 st_setup_arrays(struct st_context *st,
-                const struct st_vertex_program *vp,
+                const struct gl_vertex_program *vp,
                 const struct st_common_variant *vp_variant,
                 struct cso_velems_state *velements,
                 struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers,
@@ -74,7 +74,7 @@ st_setup_arrays(struct st_context *st,
 
 void
 st_setup_current_user(struct st_context *st,
-                      const struct st_vertex_program *vp,
+                      const struct gl_vertex_program *vp,
                       const struct st_common_variant *vp_variant,
                       struct cso_velems_state *velements,
                       struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);

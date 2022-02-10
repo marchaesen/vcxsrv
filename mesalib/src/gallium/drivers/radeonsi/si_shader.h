@@ -413,8 +413,8 @@ struct si_shader_info {
    bool uses_indirect_descriptor;
    bool has_divergent_loop;
 
-   bool uses_vmem_return_type_sampler_or_bvh;
-   bool uses_vmem_return_type_other; /* all other VMEM loads and atomics with return */
+   bool uses_vmem_sampler_or_bvh;
+   bool uses_vmem_load_other; /* all other VMEM loads and atomics with return */
 
    /** Whether all codepaths write tess factors in all invocations. */
    bool tessfactors_are_def_in_all_invocs;
@@ -453,8 +453,6 @@ struct si_shader_selector {
    struct si_shader *main_shader_part_es;     /* as_es is set in the key */
    struct si_shader *main_shader_part_ngg;    /* as_ngg is set in the key */
    struct si_shader *main_shader_part_ngg_es; /* for Wave32 TES before legacy GS */
-
-   struct si_shader *gs_copy_shader;
 
    struct nir_shader *nir;
    void *nir_binary;
@@ -578,7 +576,6 @@ struct si_ps_epilog_bits {
    unsigned last_cbuf : 3;
    unsigned alpha_func : 3;
    unsigned alpha_to_one : 1;
-   unsigned poly_line_smoothing : 1;
    unsigned clamp_color : 1;
 };
 
@@ -611,6 +608,7 @@ union si_shader_part_key {
       unsigned num_interp_inputs : 5; /* BCOLOR is at this location */
       unsigned face_vgpr_index : 5;
       unsigned ancillary_vgpr_index : 5;
+      unsigned sample_coverage_vgpr_index : 5;
       unsigned wqm : 1;
       char color_attr_index[2];
       signed char color_interp_vgpr_index[2]; /* -1 == constant */
@@ -707,6 +705,7 @@ struct si_shader_key_ps {
 
    /* Flags for monolithic compilation only. */
    struct {
+      unsigned poly_line_smoothing : 1;
       unsigned interpolate_at_sample_force_center : 1;
       unsigned fbfetch_msaa : 1;
       unsigned fbfetch_is_1D : 1;
@@ -745,8 +744,11 @@ struct si_shader_binary_info {
    uint32_t vs_output_ps_input_cntl[NUM_TOTAL_VARYING_SLOTS];
    ubyte num_input_sgprs;
    ubyte num_input_vgprs;
+   bool uses_vmem_load_other; /* all other VMEM loads and atomics with return */
+   bool uses_vmem_sampler_or_bvh;
    signed char face_vgpr_index;
    signed char ancillary_vgpr_index;
+   signed char sample_coverage_vgpr_index;
    bool uses_instanceid;
    ubyte nr_pos_exports;
    ubyte nr_param_exports;
@@ -813,8 +815,8 @@ struct si_shader {
 
    struct si_shader_part *prolog;
    struct si_shader *previous_stage; /* for GFX9 */
-   struct si_shader_part *prolog2;
    struct si_shader_part *epilog;
+   struct si_shader *gs_copy_shader;
 
    struct si_resource *bo;
    struct si_resource *scratch_bo;
@@ -931,6 +933,7 @@ struct si_shader_part {
 };
 
 /* si_shader.c */
+void si_update_shader_binary_info(struct si_shader *shader, nir_shader *nir);
 bool si_compile_shader(struct si_screen *sscreen, struct ac_llvm_compiler *compiler,
                        struct si_shader *shader, struct pipe_debug_callback *debug);
 bool si_create_shader_variant(struct si_screen *sscreen, struct ac_llvm_compiler *compiler,
@@ -948,6 +951,9 @@ void si_multiwave_lds_size_workaround(struct si_screen *sscreen, unsigned *lds_s
 const char *si_get_shader_name(const struct si_shader *shader);
 void si_shader_binary_clean(struct si_shader_binary *binary);
 
+/* si_shader_info.c */
+void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *info);
+
 /* si_shader_llvm_gs.c */
 struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
                                              struct ac_llvm_compiler *compiler,
@@ -955,7 +961,6 @@ struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
                                              struct pipe_debug_callback *debug);
 
 /* si_shader_nir.c */
-void si_nir_scan_shader(const struct nir_shader *nir, struct si_shader_info *info);
 void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first);
 void si_nir_late_opts(nir_shader *nir);
 char *si_finalize_nir(struct pipe_screen *screen, void *nirptr);

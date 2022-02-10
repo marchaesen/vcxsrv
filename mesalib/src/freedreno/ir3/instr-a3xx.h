@@ -198,7 +198,15 @@ typedef enum {
    OPC_SEL_F32         = _OPC(3, 13),
    OPC_SAD_S16         = _OPC(3, 14),
    OPC_SAD_S32         = _OPC(3, 15),
-   OPC_SHLG_B16        = _OPC(3, 16),
+   OPC_SHRM            = _OPC(3, 16),
+   OPC_SHLM            = _OPC(3, 17),
+   OPC_SHRG            = _OPC(3, 18),
+   OPC_SHLG            = _OPC(3, 19),
+   OPC_ANDG            = _OPC(3, 20),
+   OPC_DP2ACC          = _OPC(3, 21),
+   OPC_DP4ACC          = _OPC(3, 22),
+   OPC_WMM             = _OPC(3, 23),
+   OPC_WMM_ACCU        = _OPC(3, 24),
 
    /* category 4: */
    OPC_RCP             = _OPC(4, 0),

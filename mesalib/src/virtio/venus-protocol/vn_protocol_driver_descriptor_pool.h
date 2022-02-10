@@ -29,12 +29,82 @@ vn_encode_VkDescriptorPoolSize(struct vn_cs_encoder *enc, const VkDescriptorPool
     vn_encode_uint32_t(enc, &val->descriptorCount);
 }
 
+/* struct VkDescriptorPoolInlineUniformBlockCreateInfo chain */
+
+static inline size_t
+vn_sizeof_VkDescriptorPoolInlineUniformBlockCreateInfo_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkDescriptorPoolInlineUniformBlockCreateInfo_self(const VkDescriptorPoolInlineUniformBlockCreateInfo *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_uint32_t(&val->maxInlineUniformBlockBindings);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkDescriptorPoolInlineUniformBlockCreateInfo(const VkDescriptorPoolInlineUniformBlockCreateInfo *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkDescriptorPoolInlineUniformBlockCreateInfo_pnext(val->pNext);
+    size += vn_sizeof_VkDescriptorPoolInlineUniformBlockCreateInfo_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkDescriptorPoolInlineUniformBlockCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkDescriptorPoolInlineUniformBlockCreateInfo_self(struct vn_cs_encoder *enc, const VkDescriptorPoolInlineUniformBlockCreateInfo *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_uint32_t(enc, &val->maxInlineUniformBlockBindings);
+}
+
+static inline void
+vn_encode_VkDescriptorPoolInlineUniformBlockCreateInfo(struct vn_cs_encoder *enc, const VkDescriptorPoolInlineUniformBlockCreateInfo *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO });
+    vn_encode_VkDescriptorPoolInlineUniformBlockCreateInfo_pnext(enc, val->pNext);
+    vn_encode_VkDescriptorPoolInlineUniformBlockCreateInfo_self(enc, val);
+}
+
 /* struct VkDescriptorPoolCreateInfo chain */
 
 static inline size_t
 vn_sizeof_VkDescriptorPoolCreateInfo_pnext(const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO:
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkDescriptorPoolCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkDescriptorPoolInlineUniformBlockCreateInfo_self((const VkDescriptorPoolInlineUniformBlockCreateInfo *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     return vn_sizeof_simple_pointer(NULL);
 }
 
@@ -71,7 +141,23 @@ vn_sizeof_VkDescriptorPoolCreateInfo(const VkDescriptorPoolCreateInfo *val)
 static inline void
 vn_encode_VkDescriptorPoolCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO:
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkDescriptorPoolCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkDescriptorPoolInlineUniformBlockCreateInfo_self(enc, (const VkDescriptorPoolInlineUniformBlockCreateInfo *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     vn_encode_simple_pointer(enc, NULL);
 }
 

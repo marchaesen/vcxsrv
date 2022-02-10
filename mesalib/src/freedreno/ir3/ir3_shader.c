@@ -371,7 +371,7 @@ create_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
       return v;
 
    if (!shader->nir_finalized) {
-      ir3_nir_post_finalize(shader->compiler, shader->nir);
+      ir3_nir_post_finalize(shader);
 
       if (ir3_shader_debug & IR3_DBG_DISASM) {
          mesa_logi("dump nir%d: type=%d", shader->id, shader->type);
@@ -583,7 +583,7 @@ ir3_trim_constlen(struct ir3_shader_variant **variants,
 
 struct ir3_shader *
 ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir,
-                    unsigned reserved_user_consts,
+                    const struct ir3_shader_options *options,
                     struct ir3_stream_output_info *stream_output)
 {
    struct ir3_shader *shader = rzalloc_size(NULL, sizeof(*shader));
@@ -595,7 +595,9 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir,
    if (stream_output)
       memcpy(&shader->stream_output, stream_output,
              sizeof(shader->stream_output));
-   shader->num_reserved_user_consts = reserved_user_consts;
+   shader->num_reserved_user_consts = options->reserved_user_consts;
+   shader->api_wavesize = options->api_wavesize;
+   shader->real_wavesize = options->real_wavesize;
    shader->nir = nir;
 
    ir3_disk_cache_init_shader_key(compiler, shader);
@@ -790,9 +792,9 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 
    fprintf(
       out,
-      "; %s prog %d/%d: %u sstall, %u (ss), %u (sy), %d max_sun, %d loops\n",
-      type, so->shader->id, so->id, so->info.sstall, so->info.ss, so->info.sy,
-      so->max_sun, so->loops);
+      "; %s prog %d/%d: %u sstall, %u (ss), %u systall, %u (sy), %d loops\n",
+      type, so->shader->id, so->id, so->info.sstall, so->info.ss,
+      so->info.systall, so->info.sy, so->loops);
 
    /* print shader type specific info: */
    switch (so->type) {

@@ -147,9 +147,6 @@ client_state(struct gl_context *ctx, struct gl_vertex_array_object* vao,
       default:
          goto invalid_enum_error;
    }
-
-   st_Enable( ctx, cap );
-
    return;
 
 invalid_enum_error:
@@ -361,8 +358,6 @@ _mesa_set_multisample(struct gl_context *ctx, GLboolean state)
 
    ctx->NewDriverState |= ctx->DriverFlags.NewMultisampleEnable;
    ctx->Multisample.Enabled = state;
-
-   st_Enable(ctx, GL_MULTISAMPLE);
 }
 
 /**
@@ -380,8 +375,6 @@ _mesa_set_framebuffer_srgb(struct gl_context *ctx, GLboolean state)
                   GL_COLOR_BUFFER_BIT | GL_ENABLE_BIT);
    ctx->NewDriverState |= ST_NEW_FB_STATE;
    ctx->Color.sRGBEnabled = state;
-
-   st_Enable(ctx, GL_FRAMEBUFFER_SRGB);
 }
 
 /**
@@ -518,6 +511,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_DEBUG_OUTPUT:
       case GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB:
          _mesa_set_debug_state_int(ctx, cap, state);
+         _mesa_update_debug_callback(ctx);
          break;
       case GL_DITHER:
          if (ctx->Color.DitherFlag == state)
@@ -1314,14 +1308,12 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             return;
          FLUSH_VERTICES(ctx, 0, 0);
          ctx->IntelBlackholeRender = state;
+         ctx->pipe->set_frontend_noop(ctx->pipe, state);
          break;
 
       default:
          goto invalid_enum_error;
    }
-
-   st_Enable( ctx, cap );
-
    return;
 
 invalid_enum_error:

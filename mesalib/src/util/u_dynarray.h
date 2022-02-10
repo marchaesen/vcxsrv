@@ -91,7 +91,7 @@ util_dynarray_ensure_cap(struct util_dynarray *buf, unsigned newcap)
          data = realloc(buf->data, capacity);
       }
       if (!data)
-         return 0;
+         return NULL;
 
       buf->data = data;
       buf->capacity = capacity;
@@ -105,12 +105,12 @@ MUST_CHECK static inline void *
 util_dynarray_resize_bytes(struct util_dynarray *buf, unsigned nelts, size_t eltsize)
 {
    if (unlikely(nelts > UINT_MAX / eltsize))
-      return 0;
+      return NULL;
 
    unsigned newsize = nelts * eltsize;
    void *p = util_dynarray_ensure_cap(buf, newsize);
    if (!p)
-      return 0;
+      return NULL;
 
    buf->size = newsize;
 
@@ -133,12 +133,12 @@ util_dynarray_grow_bytes(struct util_dynarray *buf, unsigned ngrow, size_t eltsi
 
    if (unlikely(ngrow > (UINT_MAX / eltsize) ||
                 growbytes > UINT_MAX - buf->size))
-      return 0;
+      return NULL;
 
    unsigned newsize = buf->size + growbytes;
    void *p = util_dynarray_ensure_cap(buf, newsize);
    if (!p)
-      return 0;
+      return NULL;
 
    buf->size = newsize;
 

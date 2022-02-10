@@ -32,7 +32,7 @@ xkb_symbols "basic" {
 	key <AB08> { [       NoSymbol,       NoSymbol,  guillemotleft                 ] };
 	key <AB09> { [       NoSymbol,       NoSymbol, guillemotright, periodcentered ] };
 	key <AC03> { [       NoSymbol,       NoSymbol,      downarrow,        uparrow ] };
-	key <AC04> { [       NoSymbol,       NoSymbol,          U03D5                 ] };
+	key <AC04> { [       NoSymbol,       NoSymbol,          U03D5,      Greek_PHI ] };
 	key <AC05> { [       NoSymbol,       NoSymbol,          U03DD,          U03DC ] };
 	key <AC07> { [       NoSymbol,       NoSymbol,          U037C,          U03FE ] };
 	key <AC08> { [       NoSymbol,       NoSymbol,          U03DF,          U03DE ] };

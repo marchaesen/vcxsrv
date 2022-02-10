@@ -53,11 +53,13 @@ v3dX(job_emit_binning_prolog)(struct v3dv_job *job,
       config.number_of_layers = layers;
    }
 
+   assert(!tiling->double_buffer || !tiling->msaa);
    cl_emit(&job->bcl, TILE_BINNING_MODE_CFG, config) {
       config.width_in_pixels = tiling->width;
       config.height_in_pixels = tiling->height;
       config.number_of_render_targets = MAX2(tiling->render_target_count, 1);
       config.multisample_mode_4x = tiling->msaa;
+      config.double_buffer_in_non_ms_mode = tiling->double_buffer;
       config.maximum_bpp_of_all_render_targets = tiling->internal_bpp;
    }
 
@@ -115,7 +117,22 @@ cmd_buffer_render_pass_emit_load(struct v3dv_cmd_buffer *cmd_buffer,
       load.address = v3dv_cl_address(image->mem->bo, layer_offset);
 
       load.input_image_format = iview->format->rt_type;
+
+      /* If we create an image view with only the stencil format, we
+       * re-interpret the format as RGBA8_UINT, as it is want we want in
+       * general (see CreateImageView).
+       *
+       * However, when we are loading/storing tiles from the ZSTENCIL tile
+       * buffer, we need to use the underlying DS format.
+       */
+      if (buffer == ZSTENCIL &&
+          iview->format->rt_type == V3D_OUTPUT_IMAGE_FORMAT_RGBA8UI) {
+         assert(image->format->rt_type == V3D_OUTPUT_IMAGE_FORMAT_D24S8);
+         load.input_image_format = image->format->rt_type;
+      }
+
       load.r_b_swap = iview->swap_rb;
+      load.channel_reverse = iview->channel_reverse;
       load.memory_format = slice->tiling;
 
       if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
@@ -183,7 +200,6 @@ cmd_buffer_render_pass_emit_loads(struct v3dv_cmd_buffer *cmd_buffer,
                                   uint32_t layer)
 {
    const struct v3dv_cmd_buffer_state *state = &cmd_buffer->state;
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
    const struct v3dv_render_pass *pass = state->pass;
    const struct v3dv_subpass *subpass = &pass->subpasses[state->subpass_idx];
 
@@ -225,7 +241,8 @@ cmd_buffer_render_pass_emit_loads(struct v3dv_cmd_buffer *cmd_buffer,
                                          first_subpass,
                                          attachment->desc.loadOp);
       if (needs_load) {
-         struct v3dv_image_view *iview = framebuffer->attachments[attachment_idx];
+         struct v3dv_image_view *iview =
+            state->attachments[attachment_idx].image_view;
          cmd_buffer_render_pass_emit_load(cmd_buffer, cl, iview,
                                           layer, RENDER_TARGET_0 + i);
       }
@@ -257,7 +274,7 @@ cmd_buffer_render_pass_emit_loads(struct v3dv_cmd_buffer *cmd_buffer,
 
       if (needs_depth_load || needs_stencil_load) {
          struct v3dv_image_view *iview =
-            framebuffer->attachments[ds_attachment_idx];
+            state->attachments[ds_attachment_idx].image_view;
          /* From the Vulkan spec:
           *
           *   "When an image view of a depth/stencil image is used as a
@@ -288,7 +305,7 @@ cmd_buffer_render_pass_emit_store(struct v3dv_cmd_buffer *cmd_buffer,
                                   bool is_multisample_resolve)
 {
    const struct v3dv_image_view *iview =
-      cmd_buffer->state.framebuffer->attachments[attachment_idx];
+      cmd_buffer->state.attachments[attachment_idx].image_view;
    const struct v3dv_image *image = (struct v3dv_image *) iview->vk.image;
    const struct v3d_resource_slice *slice =
       &image->slices[iview->vk.base_mip_level];
@@ -302,7 +319,22 @@ cmd_buffer_render_pass_emit_store(struct v3dv_cmd_buffer *cmd_buffer,
       store.clear_buffer_being_stored = clear;
 
       store.output_image_format = iview->format->rt_type;
+
+      /* If we create an image view with only the stencil format, we
+       * re-interpret the format as RGBA8_UINT, as it is want we want in
+       * general (see CreateImageView).
+       *
+       * However, when we are loading/storing tiles from the ZSTENCIL tile
+       * buffer, we need to use the underlying DS format.
+       */
+      if (buffer == ZSTENCIL &&
+          iview->format->rt_type == V3D_OUTPUT_IMAGE_FORMAT_RGBA8UI) {
+         assert(image->format->rt_type == V3D_OUTPUT_IMAGE_FORMAT_D24S8);
+         store.output_image_format = image->format->rt_type;
+      }
+
       store.r_b_swap = iview->swap_rb;
+      store.channel_reverse = iview->channel_reverse;
       store.memory_format = slice->tiling;
 
       if (slice->tiling == V3D_TILING_UIF_NO_XOR ||
@@ -469,6 +501,31 @@ cmd_buffer_render_pass_emit_stores(struct v3dv_cmd_buffer *cmd_buffer,
                            ds_last_subpass,
                            ds_attachment->desc.stencilStoreOp);
 
+      /* If we have a resolve, handle it before storing the tile */
+      const struct v3dv_cmd_buffer_attachment_state *ds_att_state =
+         &state->attachments[ds_attachment_idx];
+      if (ds_att_state->use_tlb_resolve) {
+         assert(ds_att_state->has_resolve);
+         assert(subpass->resolve_depth || subpass->resolve_stencil);
+         const uint32_t resolve_attachment_idx =
+            subpass->ds_resolve_attachment.attachment;
+         assert(resolve_attachment_idx != VK_ATTACHMENT_UNUSED);
+
+         const uint32_t zs_buffer =
+            v3dv_zs_buffer(subpass->resolve_depth, subpass->resolve_stencil);
+         cmd_buffer_render_pass_emit_store(cmd_buffer, cl,
+                                           resolve_attachment_idx, layer,
+                                           zs_buffer,
+                                           false, false);
+         has_stores = true;
+      } else if (ds_att_state->has_resolve) {
+         /* If we can't use the TLB to implement the resolve we will need to
+          * store the attachment so we can implement it later using a blit.
+          */
+         needs_depth_store = subpass->resolve_depth;
+         needs_stencil_store = subpass->resolve_stencil;
+      }
+
       /* GFXH-1689: The per-buffer store command's clear buffer bit is broken
        * for depth/stencil.
        *
@@ -545,15 +602,16 @@ cmd_buffer_render_pass_emit_stores(struct v3dv_cmd_buffer *cmd_buffer,
        * color attachment store below, since the clear happens after the
        * store is completed.
        *
-       * If the attachment doesn't support TLB resolves then we will have to
-       * fallback to doing the resolve in a shader separately after this
-       * job, so we will need to store the multisampled sttachment even if that
-       * wansn't requested by the client.
+       * If the attachment doesn't support TLB resolves (or the render area
+       * is not aligned to tile boundaries) then we will have to fallback to
+       * doing the resolve in a shader separately after this job, so we will
+       * need to store the multisampled attachment even if that wasn't
+       * requested by the client.
        */
-      const bool needs_resolve =
-         subpass->resolve_attachments &&
-         subpass->resolve_attachments[i].attachment != VK_ATTACHMENT_UNUSED;
-      if (needs_resolve && attachment->use_tlb_resolve) {
+      const struct v3dv_cmd_buffer_attachment_state *att_state =
+         &state->attachments[attachment_idx];
+      if (att_state->use_tlb_resolve) {
+         assert(att_state->has_resolve);
          const uint32_t resolve_attachment_idx =
             subpass->resolve_attachments[i].attachment;
          cmd_buffer_render_pass_emit_store(cmd_buffer, cl,
@@ -561,7 +619,7 @@ cmd_buffer_render_pass_emit_stores(struct v3dv_cmd_buffer *cmd_buffer,
                                            RENDER_TARGET_0 + i,
                                            false, true);
          has_stores = true;
-      } else if (needs_resolve) {
+      } else if (att_state->has_resolve) {
          needs_store = true;
       }
 
@@ -760,16 +818,18 @@ v3dX(cmd_buffer_emit_render_pass_rcl)(struct v3dv_cmd_buffer *cmd_buffer)
     */
    bool do_early_zs_clear = false;
    const uint32_t ds_attachment_idx = subpass->ds_attachment.attachment;
+   assert(!tiling->msaa || !tiling->double_buffer);
    cl_emit(rcl, TILE_RENDERING_MODE_CFG_COMMON, config) {
       config.image_width_pixels = framebuffer->width;
       config.image_height_pixels = framebuffer->height;
       config.number_of_render_targets = MAX2(subpass->color_count, 1);
       config.multisample_mode_4x = tiling->msaa;
+      config.double_buffer_in_non_ms_mode = tiling->double_buffer;
       config.maximum_bpp_of_all_render_targets = tiling->internal_bpp;
 
       if (ds_attachment_idx != VK_ATTACHMENT_UNUSED) {
          const struct v3dv_image_view *iview =
-            framebuffer->attachments[ds_attachment_idx];
+            state->attachments[ds_attachment_idx].image_view;
          config.internal_depth_type = iview->internal_type;
 
          set_rcl_early_z_config(job,
@@ -803,7 +863,8 @@ v3dX(cmd_buffer_emit_render_pass_rcl)(struct v3dv_cmd_buffer *cmd_buffer)
             check_needs_store(state,
                               ds_aspects & VK_IMAGE_ASPECT_DEPTH_BIT,
                               ds_attachment->last_subpass,
-                              ds_attachment->desc.storeOp);
+                              ds_attachment->desc.storeOp) ||
+                              subpass->resolve_depth;
 
          do_early_zs_clear = needs_depth_clear && !needs_depth_store;
          if (do_early_zs_clear &&
@@ -818,7 +879,8 @@ v3dX(cmd_buffer_emit_render_pass_rcl)(struct v3dv_cmd_buffer *cmd_buffer)
                check_needs_store(state,
                                  ds_aspects & VK_IMAGE_ASPECT_STENCIL_BIT,
                                  ds_attachment->last_subpass,
-                                 ds_attachment->desc.stencilStoreOp);
+                                 ds_attachment->desc.stencilStoreOp) ||
+                                 subpass->resolve_stencil;
 
             do_early_zs_clear = !needs_stencil_load && !needs_stencil_store;
          }
@@ -841,7 +903,7 @@ v3dX(cmd_buffer_emit_render_pass_rcl)(struct v3dv_cmd_buffer *cmd_buffer)
          continue;
 
       struct v3dv_image_view *iview =
-         state->framebuffer->attachments[attachment_idx];
+         state->attachments[attachment_idx].image_view;
 
       const struct v3dv_image *image = (struct v3dv_image *) iview->vk.image;
       const struct v3d_resource_slice *slice =
@@ -942,12 +1004,6 @@ v3dX(cmd_buffer_emit_render_pass_rcl)(struct v3dv_cmd_buffer *cmd_buffer)
          tiling->frame_height_in_supertiles;
    }
 
-   /* Start by clearing the tile buffer. */
-   cl_emit(rcl, TILE_COORDINATES, coords) {
-      coords.tile_column_number = 0;
-      coords.tile_row_number = 0;
-   }
-
    /* Emit an initial clear of the tile buffers. This is necessary
     * for any buffers that should be cleared (since clearing
     * normally happens at the *end* of the generic tile list), but
@@ -962,13 +1018,13 @@ v3dX(cmd_buffer_emit_render_pass_rcl)(struct v3dv_cmd_buffer *cmd_buffer)
     * changes on V3D 3.x, and 2 dummy stores on 4.x.
     */
    for (int i = 0; i < 2; i++) {
-      if (i > 0)
-         cl_emit(rcl, TILE_COORDINATES, coords);
+      cl_emit(rcl, TILE_COORDINATES, coords);
       cl_emit(rcl, END_OF_LOADS, end);
       cl_emit(rcl, STORE_TILE_BUFFER_GENERAL, store) {
          store.buffer_to_store = NONE;
       }
-      if (i == 0 && cmd_buffer->state.tile_aligned_render_area) {
+      if (cmd_buffer->state.tile_aligned_render_area &&
+          (i == 0 || v3dv_do_double_initial_tile_clear(tiling))) {
          cl_emit(rcl, CLEAR_TILE_BUFFERS, clear) {
             clear.clear_z_stencil_buffer = !job->early_zs_clear;
             clear.clear_all_render_targets = true;
@@ -1714,14 +1770,14 @@ emit_gs_shader_state_record(struct v3dv_job *job,
 }
 
 static uint8_t
-v3d_gs_output_primitive(uint32_t prim_type)
+v3d_gs_output_primitive(enum shader_prim prim_type)
 {
     switch (prim_type) {
-    case GL_POINTS:
+    case SHADER_PRIM_POINTS:
         return GEOMETRY_SHADER_POINTS;
-    case GL_LINE_STRIP:
+    case SHADER_PRIM_LINE_STRIP:
         return GEOMETRY_SHADER_LINE_STRIP;
-    case GL_TRIANGLE_STRIP:
+    case SHADER_PRIM_TRIANGLE_STRIP:
         return GEOMETRY_SHADER_TRI_STRIP;
     default:
         unreachable("Unsupported primitive type");
@@ -2264,9 +2320,9 @@ v3dX(cmd_buffer_render_pass_setup_render_target)(struct v3dv_cmd_buffer *cmd_buf
    if (attachment_idx == VK_ATTACHMENT_UNUSED)
       return;
 
-   const struct v3dv_framebuffer *framebuffer = state->framebuffer;
-   assert(attachment_idx < framebuffer->attachment_count);
-   struct v3dv_image_view *iview = framebuffer->attachments[attachment_idx];
+   assert(attachment_idx < state->framebuffer->attachment_count &&
+          attachment_idx < state->attachment_alloc_count);
+   struct v3dv_image_view *iview = state->attachments[attachment_idx].image_view;
    assert(iview->vk.aspects & VK_IMAGE_ASPECT_COLOR_BIT);
 
    *rt_bpp = iview->internal_bpp;

@@ -43,9 +43,18 @@ extern "C" {
 enum d3d12_state_var {
    D3D12_STATE_VAR_Y_FLIP = 0,
    D3D12_STATE_VAR_PT_SPRITE,
-   D3D12_STATE_VAR_FIRST_VERTEX,
+   D3D12_STATE_VAR_DRAW_PARAMS,
    D3D12_STATE_VAR_DEPTH_TRANSFORM,
-   D3D12_MAX_STATE_VARS
+   D3D12_STATE_VAR_DEFAULT_INNER_TESS_LEVEL,
+   D3D12_STATE_VAR_DEFAULT_OUTER_TESS_LEVEL,
+   D3D12_STATE_VAR_PATCH_VERTICES_IN,
+   D3D12_MAX_GRAPHICS_STATE_VARS,
+
+   D3D12_STATE_VAR_NUM_WORKGROUPS = 0,
+   D3D12_STATE_VAR_TRANSFORM_GENERIC0,
+   D3D12_MAX_COMPUTE_STATE_VARS,
+
+   D3D12_MAX_STATE_VARS = MAX2(D3D12_MAX_GRAPHICS_STATE_VARS, D3D12_MAX_COMPUTE_STATE_VARS)
 };
 
 #define D3D12_MAX_POINT_SIZE 255.0f
@@ -61,11 +70,20 @@ d3d12_get_compiler_options(struct pipe_screen *screen,
 
 struct d3d12_varying_info {
    struct {
-      const struct glsl_type *type;
-      unsigned interpolation:3;   // INTERP_MODE_COUNT = 5
-      unsigned driver_location:6; // VARYING_SLOT_MAX = 64
-   } vars[VARYING_SLOT_MAX];
+      const struct glsl_type *types[4];
+      uint8_t location_frac_mask:2;
+      uint8_t patch:1;
+      struct {
+         unsigned interpolation:3;   // INTERP_MODE_COUNT = 5
+         unsigned driver_location:6; // VARYING_SLOT_MAX = 64
+         unsigned compact:1;
+      } vars[4];
+   } slots[VARYING_SLOT_MAX];
    uint64_t mask;
+};
+
+struct d3d12_image_format_conversion_info {
+   enum pipe_format view_format, emulated_format;
 };
 
 struct d3d12_shader_key {
@@ -76,8 +94,9 @@ struct d3d12_shader_key {
    uint64_t next_varying_inputs;
    uint64_t prev_varying_outputs;
    unsigned last_vertex_processing_stage : 1;
-   unsigned invert_depth : 1;
+   unsigned invert_depth : 16;
    unsigned samples_int_textures : 1;
+   unsigned input_clip_size : 4;
    unsigned tex_saturate_s : PIPE_MAX_SAMPLERS;
    unsigned tex_saturate_r : PIPE_MAX_SAMPLERS;
    unsigned tex_saturate_t : PIPE_MAX_SAMPLERS;
@@ -100,6 +119,21 @@ struct d3d12_shader_key {
    } gs;
 
    struct {
+      unsigned primitive_mode:2;
+      unsigned ccw:1;
+      unsigned point_mode:1;
+      unsigned spacing:2;
+      struct d3d12_varying_info required_patch_outputs;
+      uint32_t next_patch_inputs;
+   } hs;
+
+   struct {
+      unsigned tcs_vertices_out;
+      struct d3d12_varying_info required_patch_inputs;
+      uint32_t prev_patch_outputs;
+   } ds;
+
+   struct {
       unsigned missing_dual_src_outputs : 2;
       unsigned frag_result_color_lowering : 4;
       unsigned cast_to_uint : 1;
@@ -108,12 +142,20 @@ struct d3d12_shader_key {
       unsigned manual_depth_range : 1;
       unsigned polygon_stipple : 1;
       unsigned remap_front_facing : 1;
+      unsigned multisample_disabled : 1;
    } fs;
+
+   struct {
+      unsigned workgroup_size[3];
+   } cs;
 
    int n_texture_states;
    dxil_wrap_sampler_state tex_wrap_states[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    dxil_texture_swizzle_state swizzle_state[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    enum compare_func sampler_compare_funcs[PIPE_MAX_SHADER_SAMPLER_VIEWS];
+
+   int n_images;
+   struct d3d12_image_format_conversion_info image_format_conversion[PIPE_MAX_SHADER_IMAGES];
 };
 
 struct d3d12_shader {
@@ -136,11 +178,15 @@ struct d3d12_shader {
    bool state_vars_used;
 
    struct {
-      int binding;
       uint32_t dimension;
    } srv_bindings[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    size_t begin_srv_binding;
    size_t end_srv_binding;
+
+   struct {
+      enum pipe_format format;
+      uint32_t dimension;
+   } uav_bindings[PIPE_MAX_SHADER_IMAGES];
 
    bool has_default_ubo0;
    unsigned pstipple_binding;
@@ -164,6 +210,12 @@ struct d3d12_gs_variant_key
    struct d3d12_varying_info varyings;
 };
 
+struct d3d12_tcs_variant_key
+{
+   unsigned vertices_out;
+   struct d3d12_varying_info varyings;
+};
+
 struct d3d12_shader_selector {
    enum pipe_shader_type stage;
    nir_shader *initial;
@@ -174,9 +226,13 @@ struct d3d12_shader_selector {
 
    unsigned samples_int_textures:1;
    unsigned compare_with_lod_bias_grad:1;
+   unsigned workgroup_size_variable:1;
 
-   bool is_gs_variant;
-   struct d3d12_gs_variant_key gs_key;
+   bool is_variant;
+   union {
+      struct d3d12_gs_variant_key gs_key;
+      struct d3d12_tcs_variant_key tcs_key;
+   };
 };
 
 struct d3d12_context;
@@ -186,12 +242,20 @@ d3d12_create_shader(struct d3d12_context *ctx,
                     enum pipe_shader_type stage,
                     const struct pipe_shader_state *shader);
 
+struct d3d12_shader_selector *
+d3d12_create_compute_shader(struct d3d12_context *ctx,
+                            const struct pipe_compute_state *shader);
+
 void
 d3d12_shader_free(struct d3d12_shader_selector *shader);
 
 void
 d3d12_select_shader_variants(struct d3d12_context *ctx,
                              const struct pipe_draw_info *dinfo);
+
+void
+d3d12_select_compute_shader_variants(struct d3d12_context *ctx,
+                                     const struct pipe_grid_info *info);
 
 void
 d3d12_gs_variant_cache_init(struct d3d12_context *ctx);
@@ -201,6 +265,15 @@ d3d12_gs_variant_cache_destroy(struct d3d12_context *ctx);
 
 struct d3d12_shader_selector *
 d3d12_get_gs_variant(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key);
+
+void
+d3d12_tcs_variant_cache_init(struct d3d12_context *ctx);
+
+void
+d3d12_tcs_variant_cache_destroy(struct d3d12_context *ctx);
+
+struct d3d12_shader_selector *
+d3d12_get_tcs_variant(struct d3d12_context *ctx, struct d3d12_tcs_variant_key *key);
 
 #ifdef __cplusplus
 }

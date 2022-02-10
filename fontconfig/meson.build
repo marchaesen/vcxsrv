@@ -1,5 +1,5 @@
 project('fontconfig', 'c',
-  version: '2.13.94',
+  version: '2.13.96',
   meson_version : '>= 0.56.0',
   default_options: [ 'buildtype=debugoptimized'],
 )
@@ -208,7 +208,7 @@ prefix = get_option('prefix')
 fonts_conf = configuration_data()
 
 if host_machine.system() == 'windows'
-  fc_fonts_path = ['WINDOWSFONTDIR']
+  fc_fonts_path = ['WINDOWSFONTDIR', 'WINDOWSUSERFONTDIR']
   fc_cachedir = 'LOCAL_APPDATA_FONTCONFIG_CACHE'
 else
   if host_machine.system() == 'darwin'
@@ -381,13 +381,11 @@ fc_headers = [
 install_headers(fc_headers, subdir: meson.project_name())
 
 # Summary
-if meson.version().version_compare('>= 0.53')
-  doc_targets = get_variable('doc_targets', [])
+doc_targets = get_variable('doc_targets', [])
 
-  summary({
-         'Documentation': (doc_targets.length() > 0 ? doc_targets : false),
-         'NLS': not get_option('nls').disabled(),
-         'Tests': not get_option('tests').disabled(),
-         'Tools': not get_option('tools').disabled(),
-         }, section: 'General', bool_yn: true, list_sep: ', ')
-endif
+summary({
+       'Documentation': (doc_targets.length() > 0 ? doc_targets : false),
+       'NLS': not get_option('nls').disabled(),
+       'Tests': not get_option('tests').disabled(),
+       'Tools': not get_option('tools').disabled(),
+       }, section: 'General', bool_yn: true, list_sep: ', ')

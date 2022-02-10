@@ -450,6 +450,7 @@ emit_store(struct lower_io_state *state, nir_ssa_def *data,
       var->data.precision == GLSL_PRECISION_MEDIUM ||
       var->data.precision == GLSL_PRECISION_LOW;
    semantics.per_view = var->data.per_view;
+   semantics.invariant = var->data.invariant;
 
    /* NV_mesh_shader: prevent assigning several slots to primitive indices. */
    if (b->shader->info.stage == MESA_SHADER_MESH &&

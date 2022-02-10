@@ -165,10 +165,10 @@ fast_clear_color(struct iris_context *ice,
                  struct iris_resource *res,
                  unsigned level,
                  const struct pipe_box *box,
-                 enum isl_format format,
                  union isl_color_value color)
 {
    struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
+   const struct intel_device_info *devinfo = &batch->screen->devinfo;
    struct pipe_resource *p_res = (void *) res;
 
    bool color_changed = res->aux.clear_color_unknown ||
@@ -257,7 +257,12 @@ fast_clear_color(struct iris_context *ice,
    iris_emit_end_of_pipe_sync(batch,
                               "fast clear: pre-flush",
                               PIPE_CONTROL_RENDER_TARGET_FLUSH |
-                              PIPE_CONTROL_TILE_CACHE_FLUSH);
+                              PIPE_CONTROL_TILE_CACHE_FLUSH |
+                              (devinfo->verx10 == 120 ?
+                                 PIPE_CONTROL_DEPTH_STALL : 0) |
+                              (devinfo->verx10 == 125 ?
+                                 PIPE_CONTROL_FLUSH_HDC : 0) |
+                              PIPE_CONTROL_PSS_STALL_SYNC);
 
    iris_batch_sync_region_start(batch);
 
@@ -274,14 +279,19 @@ fast_clear_color(struct iris_context *ice,
    iris_blorp_surf_for_resource(&batch->screen->isl_dev, &surf,
                                 p_res, res->aux.usage, level, true);
 
-   blorp_fast_clear(&blorp_batch, &surf, format, ISL_SWIZZLE_IDENTITY,
+   blorp_fast_clear(&blorp_batch, &surf, res->surf.format,
+                    ISL_SWIZZLE_IDENTITY,
                     level, box->z, box->depth,
                     box->x, box->y, box->x + box->width,
                     box->y + box->height);
    blorp_batch_finish(&blorp_batch);
    iris_emit_end_of_pipe_sync(batch,
                               "fast clear: post flush",
-                              PIPE_CONTROL_RENDER_TARGET_FLUSH);
+                              PIPE_CONTROL_RENDER_TARGET_FLUSH |
+                              (devinfo->verx10 == 120 ?
+                                 PIPE_CONTROL_TILE_CACHE_FLUSH |
+                                 PIPE_CONTROL_DEPTH_STALL : 0) |
+                              PIPE_CONTROL_PSS_STALL_SYNC);
    iris_batch_sync_region_end(batch);
 
    iris_resource_set_aux_state(ice, res, level, box->z,
@@ -305,7 +315,7 @@ clear_color(struct iris_context *ice,
 
    struct iris_batch *batch = &ice->batches[IRIS_BATCH_RENDER];
    const struct intel_device_info *devinfo = &batch->screen->devinfo;
-   enum blorp_batch_flags blorp_flags = 0;
+   enum blorp_batch_flags blorp_flags = iris_blorp_flags_for_batch(batch);
 
    if (render_condition_enabled) {
       if (ice->state.predicate == IRIS_PREDICATE_STATE_DONT_RENDER)
@@ -324,7 +334,7 @@ clear_color(struct iris_context *ice,
                                               render_condition_enabled,
                                               format, color);
    if (can_fast_clear) {
-      fast_clear_color(ice, res, level, box, format, color);
+      fast_clear_color(ice, res, level, box, color);
       return;
    }
 

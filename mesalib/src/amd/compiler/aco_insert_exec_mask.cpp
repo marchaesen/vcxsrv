@@ -56,6 +56,7 @@ struct wqm_ctx {
    std::vector<uint16_t> defined_in;
    std::vector<bool> needs_wqm;
    std::vector<bool> branch_wqm; /* true if the branch condition in this block should be in wqm */
+   bool ever_again_needs_wqm = false;
    wqm_ctx(Program* program_)
        : program(program_), defined_in(program->peekAllocationId(), 0xFFFF),
          needs_wqm(program->peekAllocationId()), branch_wqm(program->blocks.size())
@@ -180,7 +181,9 @@ get_block_needs(wqm_ctx& ctx, exec_ctx& exec_ctx, Block* block)
                set_needs_wqm(ctx, op.getTemp());
             }
          }
-      } else if (preserve_wqm && info.block_needs & WQM) {
+         ctx.ever_again_needs_wqm = true;
+      } else if (preserve_wqm & ctx.ever_again_needs_wqm) {
+         /* Preserve WQM if WQM is needed later */
          needs = Preserve_WQM;
       }
 
@@ -316,14 +319,8 @@ calculate_wqm_needs(exec_ctx& exec_ctx)
       if (block.kind & block_kind_needs_lowering)
          exec_ctx.info[i].block_needs |= Exact;
 
-      /* if discard is used somewhere in nested CF, we need to preserve the WQM mask */
-      if ((block.kind & block_kind_discard || block.kind & block_kind_uses_discard_if) &&
-          ever_again_needs & WQM)
-         exec_ctx.info[i].block_needs |= Preserve_WQM;
-
       ever_again_needs |= exec_ctx.info[i].block_needs & ~Exact_Branch;
-      if (block.kind & block_kind_discard || block.kind & block_kind_uses_discard_if ||
-          block.kind & block_kind_uses_demote)
+      if (block.kind & block_kind_uses_discard)
          ever_again_needs |= Exact;
 
       /* don't propagate WQM preservation further than the next top_level block */
@@ -694,8 +691,7 @@ process_instructions(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instructio
    /* if the block doesn't need both, WQM and Exact, we can skip processing the instructions */
    bool process = (ctx.handle_wqm && (ctx.info[block->index].block_needs & state) !=
                                         (ctx.info[block->index].block_needs & (WQM | Exact))) ||
-                  block->kind & block_kind_uses_discard_if ||
-                  block->kind & block_kind_uses_demote || block->kind & block_kind_needs_lowering;
+                  block->kind & block_kind_uses_discard || block->kind & block_kind_needs_lowering;
    if (!process) {
       std::vector<aco_ptr<Instruction>>::iterator it = std::next(block->instructions.begin(), idx);
       instructions.insert(instructions.end(),
@@ -712,24 +708,51 @@ process_instructions(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instructio
 
       WQMState needs = ctx.handle_wqm ? ctx.info[block->index].instr_needs[idx] : Unspecified;
 
-      if (instr->opcode == aco_opcode::p_discard_if) {
-         if (ctx.info[block->index].block_needs & Preserve_WQM) {
-            assert(block->kind & block_kind_top_level);
-            transition_to_WQM(ctx, bld, block->index);
-            ctx.info[block->index].exec.back().second &= ~mask_type_global;
-         }
-         int num = ctx.info[block->index].exec.size();
-         assert(num);
+      if (needs == WQM && state != WQM) {
+         transition_to_WQM(ctx, bld, block->index);
+         state = WQM;
+      } else if (needs == Exact && state != Exact) {
+         transition_to_Exact(ctx, bld, block->index);
+         state = Exact;
+      }
 
-         /* discard from current exec */
-         const Operand cond = instr->operands[0];
-         Temp exit_cond = bld.sop2(Builder::s_andn2, Definition(exec, bld.lm), bld.def(s1, scc),
-                                   Operand(exec, bld.lm), cond)
-                             .def(1)
-                             .getTemp();
+      if (instr->opcode == aco_opcode::p_discard_if) {
+         Operand current_exec = Operand(exec, bld.lm);
+
+         if (block->kind & block_kind_top_level) {
+            if (needs == Preserve_WQM) {
+               /* Preserve the WQM mask */
+               transition_to_WQM(ctx, bld, block->index);
+               ctx.info[block->index].exec.back().second &= ~mask_type_global;
+            } else if (ctx.info[block->index].exec.size() == 2) {
+               assert(state == WQM);
+               /* Transition to Exact without extra instruction */
+               ctx.info[block->index].exec.pop_back();
+               current_exec = get_exec_op(ctx.info[block->index].exec.back().first);
+               ctx.info[block->index].exec[0].first = Operand(bld.lm);
+            }
+         }
+
+         Temp cond, exit_cond;
+         if (instr->operands[0].isConstant()) {
+            assert(instr->operands[0].constantValue() == -1u);
+            /* save condition and set exec to zero */
+            exit_cond = bld.tmp(s1);
+            cond =
+               bld.sop1(Builder::s_and_saveexec, bld.def(bld.lm), bld.scc(Definition(exit_cond)),
+                        Definition(exec, bld.lm), Operand::zero(), Operand(exec, bld.lm));
+         } else {
+            cond = instr->operands[0].getTemp();
+            /* discard from current exec */
+            exit_cond = bld.sop2(Builder::s_andn2, Definition(exec, bld.lm), bld.def(s1, scc),
+                                 current_exec, cond)
+                           .def(1)
+                           .getTemp();
+         }
 
          /* discard from inner to outer exec mask on stack */
-         for (int i = num - 2; i >= 0; i--) {
+         int num = ctx.info[block->index].exec.size() - 2;
+         for (int i = num; i >= 0; i--) {
             Instruction* andn2 = bld.sop2(Builder::s_andn2, bld.def(bld.lm), bld.def(s1, scc),
                                           ctx.info[block->index].exec[i].first, cond);
             ctx.info[block->index].exec[i].first = Operand(andn2->definitions[0].getTemp());
@@ -740,15 +763,7 @@ process_instructions(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instructio
          instr->operands[0] = bld.scc(exit_cond);
          assert(!ctx.handle_wqm || (ctx.info[block->index].exec[0].second & mask_type_wqm) == 0);
 
-      } else if (needs == WQM && state != WQM) {
-         transition_to_WQM(ctx, bld, block->index);
-         state = WQM;
-      } else if (needs == Exact && state != Exact) {
-         transition_to_Exact(ctx, bld, block->index);
-         state = Exact;
-      }
-
-      if (instr->opcode == aco_opcode::p_is_helper) {
+      } else if (instr->opcode == aco_opcode::p_is_helper) {
          Definition dst = instr->definitions[0];
          assert(dst.size() == bld.lm.size());
          if (state == Exact) {
@@ -881,8 +896,7 @@ add_branch_code(exec_ctx& ctx, Block* block)
          Block& loop_block = ctx.program->blocks[i];
          needs |= ctx.info[i].block_needs;
 
-         if (loop_block.kind & block_kind_uses_discard_if || loop_block.kind & block_kind_discard ||
-             loop_block.kind & block_kind_uses_demote)
+         if (loop_block.kind & block_kind_uses_discard)
             has_discard = true;
          if (loop_block.loop_nest_depth != loop_nest_depth)
             continue;
@@ -921,40 +935,6 @@ add_branch_code(exec_ctx& ctx, Block* block)
     * old exec mask before it was zero'd.
     */
    Operand break_cond = Operand(exec, bld.lm);
-
-   if (block->kind & block_kind_discard) {
-
-      assert(block->instructions.back()->isBranch());
-      aco_ptr<Instruction> branch = std::move(block->instructions.back());
-      block->instructions.pop_back();
-
-      /* create a discard_if() instruction with the exec mask as condition */
-      unsigned num = 0;
-      if (ctx.loop.size()) {
-         /* if we're in a loop, only discard from the outer exec masks */
-         num = ctx.loop.back().num_exec_masks;
-      } else {
-         num = ctx.info[idx].exec.size() - 1;
-      }
-
-      Temp cond = bld.sop1(Builder::s_and_saveexec, bld.def(bld.lm), bld.def(s1, scc),
-                           Definition(exec, bld.lm), Operand::zero(), Operand(exec, bld.lm));
-
-      for (int i = num - 1; i >= 0; i--) {
-         Instruction* andn2 = bld.sop2(Builder::s_andn2, bld.def(bld.lm), bld.def(s1, scc),
-                                       get_exec_op(ctx.info[block->index].exec[i].first), cond);
-         if (i == (int)ctx.info[idx].exec.size() - 1)
-            andn2->definitions[0] = Definition(exec, bld.lm);
-         if (i == 0)
-            bld.pseudo(aco_opcode::p_exit_early_if, bld.scc(andn2->definitions[1].getTemp()));
-         ctx.info[block->index].exec[i].first = Operand(andn2->definitions[0].getTemp());
-      }
-      assert(!ctx.handle_wqm || (ctx.info[block->index].exec[0].second & mask_type_wqm) == 0);
-
-      break_cond = Operand(cond);
-      bld.insert(std::move(branch));
-      /* no return here as it can be followed by a divergent break */
-   }
 
    if (block->kind & block_kind_continue_or_break) {
       assert(ctx.program->blocks[ctx.program->blocks[block->linear_succs[1]].linear_succs[0]].kind &

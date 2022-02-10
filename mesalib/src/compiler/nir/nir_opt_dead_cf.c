@@ -174,7 +174,7 @@ def_only_used_in_cf_node(nir_ssa_def *def, void *_node)
 }
 
 /*
- * Test if a loop node is dead. Such nodes are dead if:
+ * Test if a loop or if node is dead. Such nodes are dead if:
  *
  * 1) It has no side effects (i.e. intrinsics which could possibly affect the
  * state of the program aside from producing an SSA value, indicated by a lack
@@ -192,7 +192,7 @@ def_only_used_in_cf_node(nir_ssa_def *def, void *_node)
 static bool
 node_is_dead(nir_cf_node *node)
 {
-   assert(node->type == nir_cf_node_loop);
+   assert(node->type == nir_cf_node_loop || node->type == nir_cf_node_if);
 
    nir_block *after = nir_cf_node_as_block(nir_cf_node_next(node));
 
@@ -286,11 +286,15 @@ dead_cf_block(nir_block *block)
 {
    nir_if *following_if = nir_block_get_following_if(block);
    if (following_if) {
-      if (!nir_src_is_const(following_if->condition))
-         return false;
+      if (nir_src_is_const(following_if->condition)) {
+         opt_constant_if(following_if, nir_src_as_bool(following_if->condition));
+         return true;
+      }
 
-      opt_constant_if(following_if, nir_src_as_bool(following_if->condition));
-      return true;
+      if (node_is_dead(&following_if->cf_node)) {
+         nir_cf_node_remove(&following_if->cf_node);
+         return true;
+      }
    }
 
    nir_loop *following_loop = nir_block_get_following_loop(block);

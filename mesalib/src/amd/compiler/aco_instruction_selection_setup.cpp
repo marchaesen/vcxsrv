@@ -24,7 +24,7 @@
 
 #include "aco_instruction_selection.h"
 
-#include "common/ac_exp_param.h"
+#include "common/ac_nir.h"
 #include "common/sid.h"
 #include "vulkan/radv_descriptor_set.h"
 
@@ -329,13 +329,24 @@ setup_tes_variables(isel_context* ctx, nir_shader* nir)
 }
 
 void
+setup_ms_variables(isel_context* ctx, nir_shader* nir)
+{
+   setup_vs_output_info(ctx, nir, &ctx->program->info->ms.outinfo);
+
+   ctx->program->config->lds_size =
+      DIV_ROUND_UP(nir->info.shared_size, ctx->program->dev.lds_encoding_granule);
+   assert((ctx->program->config->lds_size * ctx->program->dev.lds_encoding_granule) < (32 * 1024));
+}
+
+void
 setup_variables(isel_context* ctx, nir_shader* nir)
 {
    switch (nir->info.stage) {
    case MESA_SHADER_FRAGMENT: {
       break;
    }
-   case MESA_SHADER_COMPUTE: {
+   case MESA_SHADER_COMPUTE:
+   case MESA_SHADER_TASK: {
       ctx->program->config->lds_size =
          DIV_ROUND_UP(nir->info.shared_size, ctx->program->dev.lds_encoding_granule);
       break;
@@ -353,6 +364,10 @@ setup_variables(isel_context* ctx, nir_shader* nir)
    }
    case MESA_SHADER_TESS_EVAL: {
       setup_tes_variables(ctx, nir);
+      break;
+   }
+   case MESA_SHADER_MESH: {
+      setup_ms_variables(ctx, nir);
       break;
    }
    default: unreachable("Unhandled shader stage.");
@@ -465,9 +480,11 @@ init_context(isel_context* ctx, nir_shader* shader)
                   nir_dest_is_divergent(alu_instr->dest.dest) ? RegType::vgpr : RegType::sgpr;
                switch (alu_instr->op) {
                case nir_op_fmul:
+               case nir_op_fmulz:
                case nir_op_fadd:
                case nir_op_fsub:
                case nir_op_ffma:
+               case nir_op_ffmaz:
                case nir_op_fmax:
                case nir_op_fmin:
                case nir_op_fneg:
@@ -835,6 +852,8 @@ setup_isel_context(Program* program, unsigned shader_count, struct nir_shader* c
          break;
       case MESA_SHADER_FRAGMENT: sw_stage = sw_stage | SWStage::FS; break;
       case MESA_SHADER_COMPUTE: sw_stage = sw_stage | SWStage::CS; break;
+      case MESA_SHADER_TASK: sw_stage = sw_stage | SWStage::TS; break;
+      case MESA_SHADER_MESH: sw_stage = sw_stage | SWStage::MS; break;
       default: unreachable("Shader stage not implemented");
       }
    }
@@ -855,6 +874,10 @@ setup_isel_context(Program* program, unsigned shader_count, struct nir_shader* c
       hw_stage = HWStage::CS;
    else if (sw_stage == SWStage::GSCopy)
       hw_stage = HWStage::VS;
+   else if (sw_stage == SWStage::TS)
+      hw_stage = HWStage::CS; /* Task shaders are implemented with compute shaders. */
+   else if (sw_stage == SWStage::MS)
+      hw_stage = HWStage::NGG; /* Mesh shaders only work on NGG and on GFX10.3+. */
    else if (sw_stage == SWStage::VS_GS && gfx9_plus && !ngg)
       hw_stage = HWStage::GS; /* GFX6-9: VS+GS merged into a GS (and GFX10/legacy) */
    else if (sw_stage == SWStage::VS_GS && ngg)
@@ -889,6 +912,10 @@ setup_isel_context(Program* program, unsigned shader_count, struct nir_shader* c
 
    program->workgroup_size = program->info->workgroup_size;
    assert(program->workgroup_size);
+
+   /* Mesh shading only works on GFX10.3+. */
+   ASSERTED bool mesh_shading = ctx.stage.has(SWStage::TS) || ctx.stage.has(SWStage::MS);
+   assert(!mesh_shading || ctx.program->chip_class >= GFX10_3);
 
    if (ctx.stage == tess_control_hs)
       setup_tcs_info(&ctx, shaders[0], NULL);

@@ -78,6 +78,7 @@ files_mesa_util = files(
   'os_misc.h',
   'os_socket.c',
   'os_socket.h',
+  'ptralloc.h',
   'perf/u_trace.h',
   'perf/u_trace.c',
   'perf/u_trace_priv.h',

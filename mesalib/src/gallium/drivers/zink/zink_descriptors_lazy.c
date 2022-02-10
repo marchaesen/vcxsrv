@@ -161,19 +161,19 @@ zink_descriptor_program_init_lazy(struct zink_context *ctx, struct zink_program 
    struct zink_shader **stages;
    if (pg->is_compute)
       stages = &((struct zink_compute_program*)pg)->shader;
-   else {
+   else
       stages = ((struct zink_gfx_program*)pg)->shaders;
-      if (stages[PIPE_SHADER_FRAGMENT]->nir->info.fs.uses_fbfetch_output) {
-         zink_descriptor_util_init_fbfetch(ctx);
-         push_count = 1;
-         pg->dd->fbfetch = true;
-      }
-   }
 
    if (!pg->dd)
       pg->dd = (void*)rzalloc(pg, struct zink_program_descriptor_data);
    if (!pg->dd)
       return false;
+
+   if (!pg->is_compute && stages[PIPE_SHADER_FRAGMENT]->nir->info.fs.uses_fbfetch_output) {
+      zink_descriptor_util_init_fbfetch(ctx);
+      push_count = 1;
+      pg->dd->fbfetch = true;
+   }
 
    unsigned entry_idx[ZINK_DESCRIPTOR_TYPES] = {0};
 

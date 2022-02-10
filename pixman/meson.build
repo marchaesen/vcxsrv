@@ -23,7 +23,7 @@ project(
   ['c'],
   version : '0.40.1',
   license : 'MIT',
-  meson_version : '>= 0.50.0',
+  meson_version : '>= 0.52.0',
   default_options : ['buildtype=debugoptimized'],
 )
 
@@ -412,7 +412,7 @@ else
   dep_openmp = null_dep
 endif
 
-dep_gtk = dependency('gtk+-2.0', version : '>= 2.16', required : get_option('gtk'))
+dep_gtk = dependency('gtk+-3.0', required : get_option('gtk'))
 dep_glib = dependency('glib-2.0', required : get_option('gtk'))
 
 dep_png = null_dep
@@ -555,11 +555,10 @@ if not get_option('tests').disabled()
 endif
 
 pkg = import('pkgconfig')
-pkg.generate(
+pkg.generate(libpixman,
   name : 'Pixman',
   filebase : 'pixman-1',
   description : 'The pixman library (version 1)',
-  libraries : libpixman,
   subdirs: 'pixman-1',
   version : meson.project_version(),
 )

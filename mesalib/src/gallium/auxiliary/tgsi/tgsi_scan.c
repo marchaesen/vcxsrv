@@ -663,6 +663,10 @@ scan_declaration(struct tgsi_shader_info *info,
          info->shader_buffers_declared |= 1u << reg;
          break;
 
+      case TGSI_FILE_HW_ATOMIC:
+         info->hw_atomic_declared |= 1u << reg;
+         break;
+
       case TGSI_FILE_INPUT:
          info->input_semantic_name[reg] = (ubyte) semName;
          info->input_semantic_index[reg] = (ubyte) semIndex;

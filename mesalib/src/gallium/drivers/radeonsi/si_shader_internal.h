@@ -30,14 +30,9 @@
 
 struct pipe_debug_callback;
 
-/* Ideally pass the sample mask input to the PS epilog as v14, which
- * is its usual location, so that the shader doesn't have to add v_mov.
- */
-#define PS_EPILOG_SAMPLEMASK_MIN_LOC 14
-
 struct si_shader_output_values {
    LLVMValueRef values[4];
-   ubyte vertex_stream[4];
+   ubyte vertex_streams;
    ubyte semantic;
 };
 
@@ -185,6 +180,7 @@ void si_get_ps_epilog_key(struct si_shader *shader, union si_shader_part_key *ke
 void si_fix_resource_usage(struct si_screen *sscreen, struct si_shader *shader);
 
 /* gfx10_shader_ngg.c */
+LLVMValueRef gfx10_get_thread_id_in_tg(struct si_shader_context *ctx);
 bool gfx10_ngg_export_prim_early(struct si_shader *shader);
 void gfx10_ngg_build_sendmsg_gs_alloc_req(struct si_shader_context *ctx);
 void gfx10_ngg_build_export_prim(struct si_shader_context *ctx, LLVMValueRef user_edgeflags[3],

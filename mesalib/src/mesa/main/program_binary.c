@@ -39,6 +39,8 @@
 #include "program_binary.h"
 #include "program/prog_parameter.h"
 
+#include "state_tracker/st_shader_cache.h"
+
 /**
  * Mesa supports one binary format, but it must differentiate between formats
  * produced by different drivers and different Mesa versions.
@@ -237,7 +239,7 @@ _mesa_get_program_binary(struct gl_context *ctx,
    uint8_t driver_sha1[20];
    unsigned header_size = get_program_binary_header_size();
 
-   ctx->Driver.GetProgramBinaryDriverSHA1(ctx, driver_sha1);
+   st_get_program_binary_driver_sha1(ctx, driver_sha1);
 
    blob_init(&blob);
 
@@ -274,7 +276,7 @@ _mesa_program_binary(struct gl_context *ctx, struct gl_shader_program *sh_prog,
    uint8_t driver_sha1[20];
    unsigned header_size = get_program_binary_header_size();
 
-   ctx->Driver.GetProgramBinaryDriverSHA1(ctx, driver_sha1);
+   st_get_program_binary_driver_sha1(ctx, driver_sha1);
 
    const void *payload = get_program_binary_payload(binary_format, driver_sha1,
                                                     binary, length);

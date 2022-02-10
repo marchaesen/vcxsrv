@@ -57,10 +57,11 @@ to 1.7:
    to recover from I/O error conditions instead of being forced to
    exit. Thanks to Carlos Garnacho for this.
 
-This release includes a bunch of bug fixes, some which have been pending for over three years:
+This release includes a bunch of bug fixes, some of which have been
+pending for over three years:
 
  * A bunch of nls cleanups to remove obsolete entries and clean up
-   formatting of the ist. Thanks to Benno Schulenberg for these.
+   formatting of the list. Thanks to Benno Schulenberg for these.
 
  * Warning fixes and other cleanups across a huge swath of the
    library. Thanks to Alan Coopersmith for these.
@@ -83,7 +84,7 @@ Version 1.7.0 includes a couple of new locales:
 There are also numerous compose entries added, including:
 
  * |^ or ^| for ↑, |v or v| for ↓, ~~ for ≈. Thanks to Antti
-    Savolainen for this.
+   Savolainen for this.
 
  * Allowing use of 'v' for caron, in addition to 'c', so things like
    vC for Č, vc for č. Thanks to Benno Schulenberg for this.

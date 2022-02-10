@@ -978,6 +978,7 @@ _mesa_initialize_dispatch_tables(struct gl_context *ctx)
 GLboolean
 _mesa_initialize_context(struct gl_context *ctx,
                          gl_api api,
+                         bool no_error,
                          const struct gl_config *visual,
                          struct gl_context *share_list,
                          const struct dd_function_table *driverFunctions)
@@ -1031,15 +1032,8 @@ _mesa_initialize_context(struct gl_context *ctx,
    if (!init_attrib_groups( ctx ))
       goto fail;
 
-   /* KHR_no_error is likely to crash, overflow memory, etc if an application
-    * has errors so don't enable it for setuid processes.
-    */
-   if (env_var_as_boolean("MESA_NO_ERROR", false)) {
-#if !defined(_WIN32)
-      if (geteuid() == getuid())
-#endif
-         ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
-   }
+   if (no_error)
+      ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
 
    /* setup the API dispatch tables with all nop functions */
    ctx->OutsideBeginEnd = _mesa_alloc_dispatch_table(false);
@@ -1156,6 +1150,7 @@ _mesa_free_context_data(struct gl_context *ctx, bool destroy_debug_output)
    _mesa_free_transform_feedback(ctx);
    _mesa_free_performance_monitors(ctx);
    _mesa_free_performance_queries(ctx);
+   _mesa_free_perfomance_monitor_groups(ctx);
    _mesa_free_resident_handles(ctx);
 
    _mesa_reference_buffer_object(ctx, &ctx->Pack.BufferObj, NULL);

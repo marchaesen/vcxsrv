@@ -27,7 +27,6 @@
 
 #include "util/macros.h"
 
-#include "panfrost-quirks.h"
 
 #include "pan_cs.h"
 #include "pan_encoder.h"
@@ -498,7 +497,7 @@ pan_emit_midgard_tiler(const struct panfrost_device *dev,
                        const struct pan_tiler_context *tiler_ctx,
                        void *out)
 {
-        bool hierarchy = !(dev->quirks & MIDGARD_NO_HIER_TILING);
+        bool hierarchy = !dev->model->quirks.no_hierarchical_tiling;
 
         assert(tiler_ctx->midgard.polygon_list->ptr.gpu);
 

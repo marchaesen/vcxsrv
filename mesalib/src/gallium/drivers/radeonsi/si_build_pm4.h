@@ -279,6 +279,15 @@
    radeon_emit_32bit_pointer(sctx->screen, (desc)->gpu_address); \
 } while (0)
 
+/* Wrappers that are only used when they are passed as function pointers. */
+static inline void radeon_set_sh_reg_func(struct radeon_cmdbuf *cs, unsigned reg_offset,
+                                          uint32_t value)
+{
+   radeon_begin(cs);
+   radeon_set_sh_reg(reg_offset, value);
+   radeon_end();
+}
+
 /* This should be evaluated at compile time if all parameters are constants. */
 static ALWAYS_INLINE unsigned
 si_get_user_data_base(enum chip_class chip_class, enum si_has_tess has_tess,

@@ -2,50 +2,10 @@ traces-db:
   download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
 
 traces:
-  - path: glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: fa54af7770699dfe78c3e33061312739
-  - path: glmark2/jellyfish.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: 0bba174c99746be068c4960cb6a9dabb
-  - path: glxgears/glxgears-2.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
   - path: 0ad/0ad.trace
     expectations:
       - device: gl-vmware-llvmpipe
         checksum: b29c740db174350d9be0beaaccd40453
-  - path: pathfinder/demo.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: a053c56658bc830249bc94317a3b3ea8
-  - path: pathfinder/canvas_moire.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: 2cb5be6a6f62e417f1a89c89180e5728
-  - path: pathfinder/canvas_text_v2.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: a1446d0c42a78771240fca6f3b1e10d8
-  - path: gputest/furmark.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: e2fea90560ce0f65efba5d38610dc7ef
-  - path: gputest/pixmark-piano.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: 4262587e893cf98c61a8467a15677181
-  - path: gputest/triangle.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: 7812de00011a3a059892e36cea19c696
-  - path: humus/Portals.trace
-    expectations:
-      - device: gl-vmware-llvmpipe
-        checksum: a55dd3d87a86b3b47121ff67861028c3
   - path: bgfx/01-cubes.rdc
     expectations:
       - device: gl-vmware-llvmpipe
@@ -169,9 +129,64 @@ traces:
   - path: bgfx/39-assao.rdc
     expectations:
       - device: gl-vmware-llvmpipe
-        checksum: bc6f44e63010db07e7ba588b216e38b1
+        checksum: 5d9c6dd6399db34ac81951cd7152ec1c
   - path: bgfx/40-svt.rdc
     expectations:
       - device: gl-vmware-llvmpipe
         checksum: 83bf05971404700b874c4e9d9edd1379
-
+  - path: glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: fa54af7770699dfe78c3e33061312739
+  - path: glmark2/jellyfish.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 0bba174c99746be068c4960cb6a9dabb
+  - path: glxgears/glxgears-2.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
+  - path: gputest/furmark.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: e2fea90560ce0f65efba5d38610dc7ef
+  - path: gputest/pixmark-piano.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: b580ae01560380461a103975cab77393
+  - path: gputest/triangle.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 7812de00011a3a059892e36cea19c696
+  - path: humus/Portals.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a55dd3d87a86b3b47121ff67861028c3
+  - path: jvgs/jvgs-d27fb67.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: b8c21bf76e667735d1640b215f456531
+  - path: pathfinder/demo.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a053c56658bc830249bc94317a3b3ea8
+  - path: paraview/pv-manyspheres.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: b740377ea4bbb3becd304d1696a55247
+  - path: paraview/pv-waveletcontour.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: db43c733f3f3d5253e263838e58d9111
+  - path: paraview/pv-waveletvolume.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: f4af4067b37c00861fa5911e4c0a6629
+  - path: pathfinder/canvas_moire.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: 2cb5be6a6f62e417f1a89c89180e5728
+  - path: pathfinder/canvas_text_v2.trace
+    expectations:
+      - device: gl-vmware-llvmpipe
+        checksum: a1446d0c42a78771240fca6f3b1e10d8

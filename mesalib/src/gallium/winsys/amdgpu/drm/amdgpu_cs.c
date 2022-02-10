@@ -1665,7 +1665,7 @@ static int amdgpu_cs_flush(struct radeon_cmdbuf *rcs,
             radeon_emit(rcs, 0xf0000000); /* NOP packet */
       } else {
          while (rcs->current.cdw & ib_pad_dw_mask)
-            radeon_emit(rcs, 0x00000000); /* NOP packet */
+            radeon_emit(rcs, SDMA_NOP_PAD);
       }
       break;
    case RING_GFX:

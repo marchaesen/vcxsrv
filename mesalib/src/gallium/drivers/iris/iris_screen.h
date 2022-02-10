@@ -45,6 +45,8 @@ struct iris_fs_prog_key;
 struct iris_cs_prog_key;
 enum iris_program_cache_id;
 
+struct u_trace;
+
 #define READ_ONCE(x) (*(volatile __typeof__(x) *)&(x))
 #define WRITE_ONCE(x, v) *(volatile __typeof__(x) *)&(x) = (v)
 

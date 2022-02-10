@@ -24,14 +24,13 @@
 .iris-glk-test:
   extends:
     - .iris-test
-    - .test-manual-mr
   variables:
     DEVICE_TYPE: hp-x360-12b-ca0010nr-n4020-octopus
     GPU_VERSION: iris-glk
   tags:
     - mesa-ci-x86-64-lava-hp-x360-12b-ca0010nr-n4020-octopus
 
-# 5 boards
+# 5 boards, manual for now due to the GPU being occasionally stuck
 .iris-amly-test:
   extends:
     - .iris-test
@@ -42,33 +41,30 @@
   tags:
     - mesa-ci-x86-64-lava-asus-C433TA-AJ0005-rammus
 
-# 6 boards
+# 7 boards
 .iris-kbl-test:
   extends:
     - .iris-test
-    - .test-manual-mr
   variables:
     DEVICE_TYPE: hp-x360-14-G1-sona
     GPU_VERSION: iris-kbl
   tags:
     - mesa-ci-x86-64-lava-hp-x360-14-G1-sona
 
-# 1 board
+# 5 boards
 .iris-whl-test:
   extends:
     - .iris-test
-    - .test-manual-mr
   variables:
-    DEVICE_TYPE: dell-latitude-5400-4305U-sarien
+    DEVICE_TYPE: dell-latitude-5400-8665U-sarien
     GPU_VERSION: iris-whl
   tags:
-    - mesa-ci-x86-64-lava-dell-latitude-5400-4305U-sarien
+    - mesa-ci-x86-64-lava-dell-latitude-5400-8665U-sarien
 
-# 4 boards
+# 5 boards
 .iris-cml-test:
   extends:
     - .iris-test
-    - .test-manual-mr
   variables:
     DEVICE_TYPE: asus-C436FA-Flip-hatch
     GPU_VERSION: iris-cml
@@ -124,13 +120,14 @@ iris-whl-deqp:
     - .iris-whl-test
   variables:
     DEQP_SUITE: iris-whl
+  parallel: 4
 
 iris-cml-deqp:
   extends:
     - .iris-cml-test
   variables:
     DEQP_SUITE: iris-cml
-  parallel: 2
+  parallel: 4
 
 iris-amly-egl:
   extends:
@@ -140,9 +137,9 @@ iris-amly-egl:
     HWCI_START_XORG: 1
     DEQP_VER: egl
 
-iris-amly-piglit:
+iris-kbl-piglit:
   extends:
-    - .iris-amly-test
+    - .iris-kbl-test
     - .lava-piglit
   parallel: 3
   variables:
@@ -150,15 +147,12 @@ iris-amly-piglit:
     PIGLIT_NO_WINDOW: 0
     PIGLIT_PLATFORM: mixed_glx_egl
     PIGLIT_PROFILES: gpu
-    PIGLIT_JUNIT_RESULTS: 1
 
 .iris-traces:
   extends:
     - .lava-traces-base
   variables:
     EGL_PLATFORM: surfaceless
-    PIGLIT_PROFILES: replay
-    PIGLIT_JUNIT_RESULTS: 1
     PIGLIT_REPLAY_DEVICE_NAME: "gl-${GPU_VERSION}"
     PIGLIT_RESULTS: "${GPU_VERSION}-${PIGLIT_PROFILES}"
     PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-iris.yml"

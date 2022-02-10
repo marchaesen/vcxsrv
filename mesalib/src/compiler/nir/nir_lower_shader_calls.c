@@ -163,7 +163,7 @@ can_remat_instr(nir_instr *instr, struct brw_bitset *remat)
 
       case nir_intrinsic_load_scratch_base_ptr:
       case nir_intrinsic_load_ray_launch_id:
-      case nir_intrinsic_load_btd_dss_id_intel:
+      case nir_intrinsic_load_topology_id_intel:
       case nir_intrinsic_load_btd_global_arg_addr_intel:
       case nir_intrinsic_load_btd_resume_sbt_addr_intel:
       case nir_intrinsic_load_ray_base_mem_addr_intel:
@@ -176,7 +176,8 @@ can_remat_instr(nir_instr *instr, struct brw_bitset *remat)
       case nir_intrinsic_load_ray_miss_sbt_stride_intel:
       case nir_intrinsic_load_callable_sbt_addr_intel:
       case nir_intrinsic_load_callable_sbt_stride_intel:
-      case nir_intrinsic_load_mesh_global_arg_addr_intel:
+      case nir_intrinsic_load_reloc_const_intel:
+      case nir_intrinsic_load_ray_query_global_intel:
          /* Notably missing from the above list is btd_local_arg_addr_intel.
           * This is because the resume shader will have a different local
           * argument pointer because it has a different BSR.  Any access of
@@ -273,7 +274,8 @@ spill_fill(nir_builder *before, nir_builder *after, nir_ssa_def *def, unsigned o
    switch(address_format) {
    case nir_address_format_32bit_offset:
       nir_store_scratch(before, def, nir_imm_int(before, offset),
-                        .align_mul = MIN2(comp_size, stack_alignment), .write_mask = ~0);
+                        .align_mul = MIN2(comp_size, stack_alignment),
+                        .write_mask = BITFIELD_MASK(def->num_components));
       def = nir_load_scratch(after, def->num_components, def->bit_size,
                              nir_imm_int(after, offset), .align_mul = MIN2(comp_size, stack_alignment));
       break;

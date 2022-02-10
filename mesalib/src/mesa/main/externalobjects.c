@@ -33,9 +33,56 @@
 #include "texstorage.h"
 #include "util/u_memory.h"
 
-#include "state_tracker/st_cb_memoryobjects.h"
-#include "state_tracker/st_cb_semaphoreobjects.h"
+#include "pipe/p_context.h"
+#include "pipe/p_screen.h"
 #include "api_exec_decl.h"
+
+#include "state_tracker/st_cb_bitmap.h"
+#include "state_tracker/st_texture.h"
+
+struct st_context;
+
+#include "frontend/drm_driver.h"
+#ifdef HAVE_LIBDRM
+#include "drm-uapi/drm_fourcc.h"
+#endif
+
+static struct gl_memory_object *
+memoryobj_alloc(struct gl_context *ctx, GLuint name)
+{
+   struct gl_memory_object *obj = CALLOC_STRUCT(gl_memory_object);
+   if (!obj)
+      return NULL;
+
+   obj->Name = name;
+   obj->Dedicated = GL_FALSE;
+   return obj;
+}
+
+static void
+import_memoryobj_fd(struct gl_context *ctx,
+                    struct gl_memory_object *obj,
+                    GLuint64 size,
+                    int fd)
+{
+#if !defined(_WIN32)
+   struct pipe_screen *screen = ctx->pipe->screen;
+   struct winsys_handle whandle = {
+      .type = WINSYS_HANDLE_TYPE_FD,
+      .handle = fd,
+#ifdef HAVE_LIBDRM
+      .modifier = DRM_FORMAT_MOD_INVALID,
+#endif
+   };
+
+   obj->memory = screen->memobj_create_from_handle(screen,
+                                                   &whandle,
+                                                   obj->Dedicated);
+
+   /* We own fd, but we no longer need it. So get rid of it */
+   close(fd);
+#endif
+}
 
 /**
  * Delete a memory object.
@@ -45,21 +92,10 @@ void
 _mesa_delete_memory_object(struct gl_context *ctx,
                            struct gl_memory_object *memObj)
 {
-   free(memObj);
-}
-
-
-/**
- * Initialize a buffer object to default values.
- */
-void
-_mesa_initialize_memory_object(struct gl_context *ctx,
-                               struct gl_memory_object *obj,
-                               GLuint name)
-{
-   memset(obj, 0, sizeof(struct gl_memory_object));
-   obj->Name = name;
-   obj->Dedicated = GL_FALSE;
+   struct pipe_screen *screen = ctx->pipe->screen;
+   if (memObj->memory)
+      screen->memobj_destroy(screen, memObj->memory);
+   FREE(memObj);
 }
 
 void GLAPIENTRY
@@ -95,7 +131,7 @@ _mesa_DeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObjects)
          if (delObj) {
             _mesa_HashRemoveLocked(ctx->Shared->MemoryObjects,
                                    memoryObjects[i]);
-            st_memoryobj_free(ctx, delObj);
+            _mesa_delete_memory_object(ctx, delObj);
          }
       }
    }
@@ -148,7 +184,7 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
          struct gl_memory_object *memObj;
 
          /* allocate memory object */
-         memObj = st_memoryobj_alloc(ctx, memoryObjects[i]);
+         memObj = memoryobj_alloc(ctx, memoryObjects[i]);
          if (!memObj) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s()", func);
             _mesa_HashUnlockMutex(ctx->Shared->MemoryObjects);
@@ -554,6 +590,117 @@ _mesa_TextureStorageMem1DEXT(GLuint texture,
                          memory, offset, "glTextureStorageMem1DEXT");
 }
 
+static struct gl_semaphore_object *
+semaphoreobj_alloc(struct gl_context *ctx, GLuint name)
+{
+   struct gl_semaphore_object *obj = CALLOC_STRUCT(gl_semaphore_object);
+   if (!obj)
+      return NULL;
+
+   obj->Name = name;
+   return obj;
+}
+
+static void
+import_semaphoreobj_fd(struct gl_context *ctx,
+                          struct gl_semaphore_object *semObj,
+                          int fd)
+{
+   struct pipe_context *pipe = ctx->pipe;
+
+   pipe->create_fence_fd(pipe, &semObj->fence, fd, PIPE_FD_TYPE_SYNCOBJ);
+
+#if !defined(_WIN32)
+   /* We own fd, but we no longer need it. So get rid of it */
+   close(fd);
+#endif
+}
+
+static void
+server_wait_semaphore(struct gl_context *ctx,
+                      struct gl_semaphore_object *semObj,
+                      GLuint numBufferBarriers,
+                      struct gl_buffer_object **bufObjs,
+                      GLuint numTextureBarriers,
+                      struct gl_texture_object **texObjs,
+                      const GLenum *srcLayouts)
+{
+   struct st_context *st = ctx->st;
+   struct pipe_context *pipe = ctx->pipe;
+   struct gl_buffer_object *bufObj;
+   struct gl_texture_object *texObj;
+
+   /* The driver is allowed to flush during fence_server_sync, be prepared */
+   st_flush_bitmap_cache(st);
+   pipe->fence_server_sync(pipe, semObj->fence);
+
+   /**
+    * According to the EXT_external_objects spec, the memory operations must
+    * follow the wait. This is to make sure the flush is executed after the
+    * other party is done modifying the memory.
+    *
+    * Relevant excerpt from section "4.2.3 Waiting for Semaphores":
+    *
+    * Following completion of the semaphore wait operation, memory will also be
+    * made visible in the specified buffer and texture objects.
+    *
+    */
+   for (unsigned i = 0; i < numBufferBarriers; i++) {
+      if (!bufObjs[i])
+         continue;
+
+      bufObj = bufObjs[i];
+      if (bufObj->buffer)
+         pipe->flush_resource(pipe, bufObj->buffer);
+   }
+
+   for (unsigned i = 0; i < numTextureBarriers; i++) {
+      if (!texObjs[i])
+         continue;
+
+      texObj = texObjs[i];
+      if (texObj->pt)
+         pipe->flush_resource(pipe, texObj->pt);
+   }
+}
+
+static void
+server_signal_semaphore(struct gl_context *ctx,
+                        struct gl_semaphore_object *semObj,
+                        GLuint numBufferBarriers,
+                        struct gl_buffer_object **bufObjs,
+                        GLuint numTextureBarriers,
+                        struct gl_texture_object **texObjs,
+                        const GLenum *dstLayouts)
+{
+   struct st_context *st = ctx->st;
+   struct pipe_context *pipe = ctx->pipe;
+   struct gl_buffer_object *bufObj;
+   struct gl_texture_object *texObj;
+
+   for (unsigned i = 0; i < numBufferBarriers; i++) {
+      if (!bufObjs[i])
+         continue;
+
+      bufObj = bufObjs[i];
+      if (bufObj->buffer)
+         pipe->flush_resource(pipe, bufObj->buffer);
+   }
+
+   for (unsigned i = 0; i < numTextureBarriers; i++) {
+      if (!texObjs[i])
+         continue;
+
+      texObj = texObjs[i];
+      if (texObj->pt)
+         pipe->flush_resource(pipe, texObj->pt);
+   }
+
+   /* The driver is allowed to flush during fence_server_signal, be prepared */
+   st_flush_bitmap_cache(st);
+   pipe->fence_server_signal(pipe, semObj->fence);
+}
+
 /**
  * Used as a placeholder for semaphore objects between glGenSemaphoresEXT()
  * and glImportSemaphoreFdEXT(), so that glIsSemaphoreEXT() can work correctly.
@@ -569,19 +716,7 @@ _mesa_delete_semaphore_object(struct gl_context *ctx,
                               struct gl_semaphore_object *semObj)
 {
    if (semObj != &DummySemaphoreObject)
-      free(semObj);
-}
-
-/**
- * Initialize a semaphore object to default values.
- */
-void
-_mesa_initialize_semaphore_object(struct gl_context *ctx,
-                                  struct gl_semaphore_object *obj,
-                                  GLuint name)
-{
-   memset(obj, 0, sizeof(struct gl_semaphore_object));
-   obj->Name = name;
+      FREE(semObj);
 }
 
 void GLAPIENTRY
@@ -651,7 +786,7 @@ _mesa_DeleteSemaphoresEXT(GLsizei n, const GLuint *semaphores)
          if (delObj) {
             _mesa_HashRemoveLocked(ctx->Shared->SemaphoreObjects,
                                    semaphores[i]);
-            st_semaphoreobj_free(ctx, delObj);
+            _mesa_delete_semaphore_object(ctx, delObj);
          }
       }
    }
@@ -762,10 +897,10 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
       texObjs[i] = _mesa_lookup_texture(ctx, textures[i]);
    }
 
-   st_server_wait_semaphore(ctx, semObj,
-                            numBufferBarriers, bufObjs,
-                            numTextureBarriers, texObjs,
-                            srcLayouts);
+   server_wait_semaphore(ctx, semObj,
+                         numBufferBarriers, bufObjs,
+                         numTextureBarriers, texObjs,
+                         srcLayouts);
 
 end:
    free(bufObjs);
@@ -822,10 +957,10 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
       texObjs[i] = _mesa_lookup_texture(ctx, textures[i]);
    }
 
-   st_server_signal_semaphore(ctx, semObj,
-                              numBufferBarriers, bufObjs,
-                              numTextureBarriers, texObjs,
-                              dstLayouts);
+   server_signal_semaphore(ctx, semObj,
+                           numBufferBarriers, bufObjs,
+                           numTextureBarriers, texObjs,
+                           dstLayouts);
 
 end:
    free(bufObjs);
@@ -856,7 +991,7 @@ _mesa_ImportMemoryFdEXT(GLuint memory,
    if (!memObj)
       return;
 
-   st_import_memoryobj_fd(ctx, memObj, size, fd);
+   import_memoryobj_fd(ctx, memObj, size, fd);
    memObj->Immutable = GL_TRUE;
 }
 
@@ -885,7 +1020,7 @@ _mesa_ImportSemaphoreFdEXT(GLuint semaphore,
       return;
 
    if (semObj == &DummySemaphoreObject) {
-      semObj = st_semaphoreobj_alloc(ctx, semaphore);
+      semObj = semaphoreobj_alloc(ctx, semaphore);
       if (!semObj) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return;
@@ -893,5 +1028,5 @@ _mesa_ImportSemaphoreFdEXT(GLuint semaphore,
       _mesa_HashInsert(ctx->Shared->SemaphoreObjects, semaphore, semObj, true);
    }
 
-   st_import_semaphoreobj_fd(ctx, semObj, fd);
+   import_semaphoreobj_fd(ctx, semObj, fd);
 }

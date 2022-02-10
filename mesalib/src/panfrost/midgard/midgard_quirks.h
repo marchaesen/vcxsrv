@@ -28,7 +28,10 @@
  * may be errata requiring a workaround, or features. We're trying to be
  * quirk-positive here; quirky is the best! */
 
-/* bit 0 unused */
+/* Typed loads are broken on this Midgard GPU due to issue #10607 and #10632 and
+ * should use software unpacks instead.
+ */
+#define MIDGARD_BROKEN_BLEND_LOADS (1 << 0)
 
 /* Whether output texture registers (normally r28/r29) overlap with work
  * registers r0/r1 and input texture registers (also normally r28/r29) overlap
@@ -70,6 +73,7 @@ midgard_get_quirks(unsigned gpu_id)
         case 0x600:
         case 0x620:
                 return MIDGARD_OLD_BLEND |
+                        MIDGARD_BROKEN_BLEND_LOADS |
                         MIDGARD_BROKEN_LOD |
                         MIDGARD_NO_UPPER_ALU |
                         MIDGARD_NO_OOO;

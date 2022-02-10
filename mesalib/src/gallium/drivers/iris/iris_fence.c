@@ -263,13 +263,16 @@ iris_fence_flush(struct pipe_context *ctx,
    iris_flush_dirty_dmabufs(ice);
 
    if (!deferred) {
-      for (unsigned i = 0; i < IRIS_BATCH_COUNT; i++)
-         iris_batch_flush(&ice->batches[i]);
+      iris_foreach_batch(ice, batch)
+         iris_batch_flush(batch);
    }
 
    if (flags & PIPE_FLUSH_END_OF_FRAME) {
       iris_measure_frame_end(ice);
    }
+
+   u_trace_context_process(&ice->ds.trace_context,
+                           flags & PIPE_FLUSH_END_OF_FRAME);
 
    if (!out_fence)
       return;
@@ -283,8 +286,8 @@ iris_fence_flush(struct pipe_context *ctx,
    if (deferred)
       fence->unflushed_ctx = ctx;
 
-   for (unsigned b = 0; b < IRIS_BATCH_COUNT; b++) {
-      struct iris_batch *batch = &ice->batches[b];
+   iris_foreach_batch(ice, batch) {
+      unsigned b = batch->name;
 
       if (deferred && iris_batch_bytes_used(batch) > 0) {
          struct iris_fine_fence *fine =
@@ -336,9 +339,7 @@ iris_fence_await(struct pipe_context *ctx,
       if (iris_fine_fence_signaled(fine))
          continue;
 
-      for (unsigned b = 0; b < IRIS_BATCH_COUNT; b++) {
-         struct iris_batch *batch = &ice->batches[b];
-
+      iris_foreach_batch(ice, batch) {
          /* We're going to make any future work in this batch wait for our
           * fence to have gone by.  But any currently queued work doesn't
           * need to wait.  Flush the batch now, so it can happen sooner.
@@ -399,14 +400,14 @@ iris_fence_finish(struct pipe_screen *p_screen,
     * that it matches first.
     */
    if (ctx && ctx == fence->unflushed_ctx) {
-      for (unsigned i = 0; i < IRIS_BATCH_COUNT; i++) {
-         struct iris_fine_fence *fine = fence->fine[i];
+      iris_foreach_batch(ice, batch) {
+         struct iris_fine_fence *fine = fence->fine[batch->name];
 
          if (iris_fine_fence_signaled(fine))
             continue;
 
-         if (fine->syncobj == iris_batch_get_signal_syncobj(&ice->batches[i]))
-            iris_batch_flush(&ice->batches[i]);
+         if (fine->syncobj == iris_batch_get_signal_syncobj(batch))
+            iris_batch_flush(batch);
       }
 
       /* The fence is no longer deferred. */
@@ -592,7 +593,7 @@ iris_fence_signal(struct pipe_context *ctx,
    if (ctx == fence->unflushed_ctx)
       return;
 
-   for (unsigned b = 0; b < IRIS_BATCH_COUNT; b++) {
+   iris_foreach_batch(ice, batch) {
       for (unsigned i = 0; i < ARRAY_SIZE(fence->fine); i++) {
          struct iris_fine_fence *fine = fence->fine[i];
 
@@ -600,9 +601,8 @@ iris_fence_signal(struct pipe_context *ctx,
          if (iris_fine_fence_signaled(fine))
             continue;
 
-         ice->batches[b].contains_fence_signal = true;
-         iris_batch_add_syncobj(&ice->batches[b], fine->syncobj,
-                                I915_EXEC_FENCE_SIGNAL);
+         batch->contains_fence_signal = true;
+         iris_batch_add_syncobj(batch, fine->syncobj, I915_EXEC_FENCE_SIGNAL);
       }
    }
 }

@@ -162,6 +162,16 @@ struct dxil_shader_info {
    unsigned has_per_sample_input:1;
 };
 
+struct dxil_func_def {
+   struct list_head head;
+   const struct dxil_func *func;
+
+   struct list_head instr_list;
+   int *basic_block_ids; /* maps from "user" ids to LLVM ids */
+   size_t num_basic_block_ids;
+   unsigned curr_block;
+};
+
 struct dxil_module {
    void *ralloc_ctx;
    enum dxil_shader_kind shader_kind;
@@ -172,16 +182,26 @@ struct dxil_module {
 
    struct dxil_buffer buf;
 
+   /* The number of entries in the arrays below */
    unsigned num_sig_inputs;
    unsigned num_sig_outputs;
+   unsigned num_sig_patch_consts;
+
+   /* The number of "vectors" of elements. This is used to determine the sizes
+    * of the dependency tables.
+    */
    unsigned num_psv_inputs;
-   unsigned num_psv_outputs;
+   unsigned num_psv_outputs[4];
+   unsigned num_psv_patch_consts;
 
    struct dxil_signature_record inputs[DXIL_SHADER_MAX_IO_ROWS];
    struct dxil_signature_record outputs[DXIL_SHADER_MAX_IO_ROWS];
+   struct dxil_signature_record patch_consts[DXIL_SHADER_MAX_IO_ROWS];
+   unsigned input_mappings[DXIL_SHADER_MAX_IO_ROWS];
 
    struct dxil_psv_signature_element psv_inputs[DXIL_SHADER_MAX_IO_ROWS];
    struct dxil_psv_signature_element psv_outputs[DXIL_SHADER_MAX_IO_ROWS];
+   struct dxil_psv_signature_element psv_patch_consts[DXIL_SHADER_MAX_IO_ROWS];
 
    struct _mesa_string_buffer *sem_string_table;
    struct dxil_psv_sem_index_table sem_index_table;
@@ -195,8 +215,8 @@ struct dxil_module {
    struct list_head type_list;
    struct list_head gvar_list;
    struct list_head func_list;
+   struct list_head func_def_list;
    struct list_head attr_set_list;
-   struct list_head instr_list;
    struct list_head const_list;
    struct list_head mdnode_list;
    struct list_head md_named_node_list;
@@ -207,9 +227,7 @@ struct dxil_module {
 
    struct rb_tree *functions;
 
-   int *basic_block_ids; /* maps from "user" ids to LLVM ids */
-   size_t num_basic_block_ids;
-   unsigned curr_block;
+   struct dxil_func_def *cur_emitting_func;
 };
 
 struct dxil_instr;
@@ -233,9 +251,9 @@ dxil_add_global_ptr_var(struct dxil_module *m, const char *name,
                         enum dxil_address_space as, int align,
                         const struct dxil_value *value);
 
-const struct dxil_func *
+struct dxil_func_def *
 dxil_add_function_def(struct dxil_module *m, const char *name,
-                      const struct dxil_type *type);
+                      const struct dxil_type *type, unsigned num_blocks);
 
 const struct dxil_func *
 dxil_add_function_decl(struct dxil_module *m, const char *name,
@@ -276,6 +294,9 @@ dxil_module_get_resret_type(struct dxil_module *m, enum overload_type overload);
 
 const struct dxil_type *
 dxil_module_get_dimret_type(struct dxil_module *m);
+
+const struct dxil_type *
+dxil_module_get_samplepos_type(struct dxil_module *m);
 
 const struct dxil_type *
 dxil_module_get_struct_type(struct dxil_module *m,
@@ -368,6 +389,9 @@ dxil_get_metadata_int32(struct dxil_module *m, int32_t value);
 
 const struct dxil_mdnode *
 dxil_get_metadata_int64(struct dxil_module *m, int64_t value);
+
+const struct dxil_mdnode *
+dxil_get_metadata_float32(struct dxil_module *m, float value);
 
 const struct dxil_mdnode *
 dxil_get_metadata_node(struct dxil_module *m,

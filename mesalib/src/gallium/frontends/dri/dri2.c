@@ -36,7 +36,7 @@
 #include "util/format/u_format.h"
 #include "util/u_debug.h"
 #include "frontend/drm_driver.h"
-#include "state_tracker/st_cb_fbo.h"
+#include "state_tracker/st_format.h"
 #include "state_tracker/st_cb_texture.h"
 #include "state_tracker/st_texture.h"
 #include "state_tracker/st_context.h"
@@ -1099,6 +1099,8 @@ dri2_create_image_common(__DRIscreen *_screen,
    }
    if (use & __DRI_IMAGE_USE_PROTECTED)
       tex_usage |= PIPE_BIND_PROTECTED;
+   if (use & __DRI_IMAGE_USE_PRIME_BUFFER)
+      tex_usage |= PIPE_BIND_PRIME_BLIT_DST;
 
    img = CALLOC_STRUCT(__DRIimageRec);
    if (!img)
@@ -1528,7 +1530,7 @@ dri2_from_fds2(__DRIscreen *screen, int width, int height, int fourcc,
    if (flags & __DRI_IMAGE_PROTECTED_CONTENT_FLAG)
       bind |= PIPE_BIND_PROTECTED;
    if (flags & __DRI_IMAGE_PRIME_LINEAR_BUFFER)
-      bind |= PIPE_BIND_DRI_PRIME;
+      bind |= PIPE_BIND_PRIME_BLIT_DST;
 
    return dri2_create_image_from_fd(screen, width, height, fourcc,
                                    DRM_FORMAT_MOD_INVALID, fds, num_fds,
@@ -1961,7 +1963,7 @@ dri2_interop_export_object(__DRIcontext *_ctx,
        *   "CL_OUT_OF_RESOURCES if there is a failure to allocate resources
        *    required by the OpenCL implementation on the device."
        */
-      res = st_renderbuffer(rb)->texture;
+      res = rb->texture;
       if (!res) {
          simple_mtx_unlock(&ctx->Shared->Mutex);
          return MESA_GLINTEROP_OUT_OF_RESOURCES;
@@ -2257,7 +2259,6 @@ static const __DRIextension *dri_screen_extensions_base[] = {
    &dri2ThrottleExtension.base,
    &dri2FenceExtension.base,
    &dri2InteropExtension.base,
-   &dri2NoErrorExtension.base,
    &driBlobExtension.base,
    &driMutableRenderBufferExtension.base,
 };

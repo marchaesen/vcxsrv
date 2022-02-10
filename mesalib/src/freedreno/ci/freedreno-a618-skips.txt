@@ -3,6 +3,8 @@
 # delete lines from the test list.  Be careful.
 
 # Timeouts in CI even after 5 minutes
+dEQP-VK.tessellation.invariance.inner_triangle_set.quads_equal_spacing
+dEQP-VK.tessellation.invariance.inner_triangle_set.triangles_fractional_even_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
@@ -12,6 +14,9 @@ dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing
 dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_equal_spacing
 dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing
 dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing
+
+# timeout in pre-merge CI
+dEQP-VK.tessellation.invariance.outer_edge_symmetry.quads_fractional_even_spacing_cw
 
 # timeout, spending all its time in nir_compare_deref_paths()
 # https://gitlab.freedesktop.org/mesa/mesa/-/issues/5152

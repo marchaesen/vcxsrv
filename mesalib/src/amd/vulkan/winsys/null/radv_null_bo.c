@@ -65,6 +65,13 @@ radv_null_winsys_bo_unmap(struct radeon_winsys_bo *_bo)
 {
 }
 
+static VkResult
+radv_null_winsys_bo_make_resident(struct radeon_winsys *_ws, struct radeon_winsys_bo *_bo,
+                                  bool resident)
+{
+   return VK_SUCCESS;
+}
+
 static void
 radv_null_winsys_bo_destroy(struct radeon_winsys *_ws, struct radeon_winsys_bo *_bo)
 {
@@ -80,4 +87,5 @@ radv_null_bo_init_functions(struct radv_null_winsys *ws)
    ws->base.buffer_destroy = radv_null_winsys_bo_destroy;
    ws->base.buffer_map = radv_null_winsys_bo_map;
    ws->base.buffer_unmap = radv_null_winsys_bo_unmap;
+   ws->base.buffer_make_resident = radv_null_winsys_bo_make_resident;
 }

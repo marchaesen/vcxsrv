@@ -658,7 +658,7 @@ fd5_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
       OUT_RING(ring, A5XX_GRAS_CL_VPORT_ZSCALE_0(ctx->viewport.scale[2]));
    }
 
-   if (dirty & FD_DIRTY_PROG)
+   if (dirty & (FD_DIRTY_PROG | FD_DIRTY_RASTERIZER_CLIP_PLANE_ENABLE))
       fd5_program_emit(ctx, ring, emit);
 
    if (dirty & FD_DIRTY_RASTERIZER) {

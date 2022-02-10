@@ -29,9 +29,12 @@
 #include <string.h>
 
 #include "util/u_dynarray.h"
+#include "util/perf/u_trace.h"
 
 #include "drm-uapi/i915_drm.h"
 #include "common/intel_decoder.h"
+#include "ds/intel_driver_ds.h"
+#include "ds/intel_tracepoints.h"
 
 #include "iris_fence.h"
 #include "iris_fine_fence.h"
@@ -54,6 +57,7 @@ struct iris_context;
 enum iris_batch_name {
    IRIS_BATCH_RENDER,
    IRIS_BATCH_COMPUTE,
+   IRIS_BATCH_BLITTER,
 };
 
 struct iris_batch {
@@ -96,6 +100,10 @@ struct iris_batch {
     */
    bool noop_enabled;
 
+   /** Whether the first utrace point has been recorded.
+    */
+   bool begin_trace_recorded;
+
    /**
     * A list of iris_syncobjs associated with this batch.
     *
@@ -128,6 +136,7 @@ struct iris_batch {
 
    /** List of other batches which we might need to flush to use a BO */
    struct iris_batch *other_batches[IRIS_BATCH_COUNT - 1];
+   unsigned num_other_batches;
 
    struct {
       /**
@@ -176,6 +185,12 @@ struct iris_batch {
 
    uint32_t last_aux_map_state;
    struct iris_measure_batch *measure;
+
+   /** Where tracepoints are recorded */
+   struct u_trace trace;
+
+   /** Batch wrapper structure for perfetto */
+   struct intel_ds_queue *ds;
 };
 
 void iris_init_batches(struct iris_context *ice, int priority);
@@ -229,6 +244,10 @@ iris_require_command_space(struct iris_batch *batch, unsigned size)
 static inline void *
 iris_get_command_space(struct iris_batch *batch, unsigned bytes)
 {
+   if (!batch->begin_trace_recorded) {
+      batch->begin_trace_recorded = true;
+      trace_intel_begin_batch(&batch->trace, batch);
+   }
    iris_require_command_space(batch, bytes);
    void *map = batch->map_next;
    batch->map_next += bytes;
@@ -360,5 +379,13 @@ iris_batch_mark_reset_sync(struct iris_batch *batch)
       for (unsigned j = 0; j < NUM_IRIS_DOMAINS; j++)
          batch->coherent_seqnos[i][j] = batch->next_seqno - 1;
 }
+
+const char *
+iris_batch_name_to_string(enum iris_batch_name name);
+
+#define iris_foreach_batch(ice, batch)                \
+   for (struct iris_batch *batch = &ice->batches[0];  \
+        batch <= &ice->batches[((struct iris_screen *)ice->ctx.screen)->devinfo.ver >= 12 ? IRIS_BATCH_BLITTER : IRIS_BATCH_COMPUTE]; \
+        ++batch)
 
 #endif

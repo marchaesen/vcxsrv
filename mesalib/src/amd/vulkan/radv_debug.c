@@ -56,9 +56,10 @@
  * [2-3]: 64-bit GFX ring pipeline pointer
  * [4-5]: 64-bit COMPUTE ring pipeline pointer
  * [6-7]: Vertex descriptors pointer
- * [8-9]: 64-bit descriptor set #0 pointer
+ * [8-9]: 64-bit Vertex prolog pointer
+ * [10-11]: 64-bit descriptor set #0 pointer
  * ...
- * [68-69]: 64-bit descriptor set #31 pointer
+ * [72-73]: 64-bit descriptor set #31 pointer
  */
 
 bool
@@ -245,7 +246,7 @@ radv_dump_descriptors(struct radv_device *device, FILE *f)
 
    fprintf(f, "Descriptors:\n");
    for (i = 0; i < MAX_SETS; i++) {
-      struct radv_descriptor_set *set = *(struct radv_descriptor_set **)(ptr + i + 4);
+      struct radv_descriptor_set *set = *(struct radv_descriptor_set **)(ptr + i + 5);
 
       radv_dump_descriptor_set(device, set, i, f);
    }
@@ -487,6 +488,26 @@ radv_dump_vertex_descriptors(struct radv_pipeline *pipeline, FILE *f)
    }
 }
 
+static struct radv_shader_prolog *
+radv_get_saved_vs_prolog(struct radv_device *device)
+{
+   uint64_t *ptr = (uint64_t *)device->trace_id_ptr;
+   return *(struct radv_shader_prolog **)(ptr + 4);
+}
+
+static void
+radv_dump_vs_prolog(struct radv_pipeline *pipeline, FILE *f)
+{
+   struct radv_shader_prolog *vs_prolog = radv_get_saved_vs_prolog(pipeline->device);
+   struct radv_shader *vs_shader = radv_get_shader(pipeline, MESA_SHADER_VERTEX);
+
+   if (!vs_prolog || !vs_shader || !vs_shader->info.vs.has_prolog)
+      return;
+
+   fprintf(f, "Vertex prolog:\n\n");
+   fprintf(f, "DISASM:\n%s\n", vs_prolog->disasm_string);
+}
+
 static struct radv_pipeline *
 radv_get_saved_pipeline(struct radv_device *device, enum ring_type ring)
 {
@@ -506,6 +527,7 @@ radv_dump_queue_state(struct radv_queue *queue, const char *dump_dir, FILE *f)
 
    pipeline = radv_get_saved_pipeline(queue->device, ring);
    if (pipeline) {
+      radv_dump_vs_prolog(pipeline, f);
       radv_dump_shaders(pipeline, pipeline->active_stages, dump_dir, f);
       if (!(queue->device->instance->debug_flags & RADV_DEBUG_NO_UMR))
          radv_dump_annotated_shaders(pipeline, pipeline->active_stages, f);

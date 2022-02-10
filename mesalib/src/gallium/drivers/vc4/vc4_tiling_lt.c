@@ -42,12 +42,6 @@
 #define NEON_TAG(x) x ## _base
 #endif
 
-static inline uint32_t
-align_down(uint32_t val, uint32_t align)
-{
-        return val & ~(align - 1);
-}
-
 /** Returns the stride in bytes of a 64-byte microtile. */
 static uint32_t
 vc4_utile_stride(int cpp)

@@ -512,8 +512,8 @@ static void ac_sqtt_fill_asic_info(struct radeon_info *rad_info,
    chunk->memory_chip_type = ac_vram_type_to_sqtt_memory_type(rad_info->vram_type);
    chunk->lds_granularity = rad_info->lds_encode_granularity;
 
-   for (unsigned se = 0; se < 4; se++) {
-      for (unsigned sa = 0; sa < 2; sa++) {
+   for (unsigned se = 0; se < AMD_MAX_SE; se++) {
+      for (unsigned sa = 0; sa < AMD_MAX_SA_PER_SE; sa++) {
          chunk->cu_mask[se][sa] = rad_info->cu_mask[se][sa];
       }
    }

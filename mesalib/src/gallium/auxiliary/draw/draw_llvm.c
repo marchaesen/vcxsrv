@@ -3515,8 +3515,9 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
    LLVMValueRef counter = LLVMGetParam(variant_coro, 6);
    LLVMValueRef invocvec = LLVMGetUndef(LLVMVectorType(int32_type, vector_length));
    for (i = 0; i < vector_length; i++) {
-      LLVMValueRef idx = LLVMBuildAdd(builder, LLVMBuildMul(builder, counter, step, ""), lp_build_const_int32(gallivm, i), "");
-      invocvec = LLVMBuildInsertElement(builder, invocvec, idx, idx, "");
+      LLVMValueRef loop_iter = lp_build_const_int32(gallivm, i);
+      LLVMValueRef idx = LLVMBuildAdd(builder, LLVMBuildMul(builder, counter, step, ""), loop_iter, "");
+      invocvec = LLVMBuildInsertElement(builder, invocvec, idx, loop_iter, "");
    }
 
    system_values.invocation_id = invocvec;

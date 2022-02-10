@@ -428,6 +428,32 @@ v3d_simulator_perfmon_switch(int fd, uint32_t perfid)
 }
 
 static int
+v3d_simulator_signal_syncobjs(int fd, struct drm_v3d_multi_sync *ms)
+{
+        struct drm_v3d_sem *out_syncs = (void *)(uintptr_t)ms->out_syncs;
+        int n_syncobjs = ms->out_sync_count;
+        uint32_t syncobjs[n_syncobjs];
+
+        for (int i = 0; i < n_syncobjs; i++)
+                syncobjs[i] = out_syncs[i].handle;
+        return drmSyncobjSignal(fd, (uint32_t *) &syncobjs, n_syncobjs);
+}
+
+static int
+v3d_simulator_process_post_deps(int fd, struct drm_v3d_extension *ext)
+{
+        int ret = 0;
+        while (ext && ext->id != DRM_V3D_EXT_ID_MULTI_SYNC)
+                ext = (void *)(uintptr_t) ext->next;
+
+        if (ext) {
+                struct drm_v3d_multi_sync *ms = (struct drm_v3d_multi_sync *) ext;
+                ret = v3d_simulator_signal_syncobjs(fd, ms);
+        }
+        return ret;
+}
+
+static int
 v3d_simulator_submit_cl_ioctl(int fd, struct drm_v3d_submit_cl *submit)
 {
         struct v3d_simulator_file *file = v3d_get_simulator_file_for_fd(fd);
@@ -459,7 +485,12 @@ v3d_simulator_submit_cl_ioctl(int fd, struct drm_v3d_submit_cl *submit)
         if (ret)
                 return ret;
 
-        return 0;
+        if (submit->flags & DRM_V3D_SUBMIT_EXTENSION) {
+                struct drm_v3d_extension *ext = (void *)(uintptr_t)submit->extensions;
+                ret = v3d_simulator_process_post_deps(fd, ext);
+        }
+
+        return ret;
 }
 
 /**
@@ -590,6 +621,14 @@ v3d_simulator_submit_tfu_ioctl(int fd, struct drm_v3d_submit_tfu *args)
 
         v3d_simulator_copy_out_handle(file, args->bo_handles[0]);
 
+        if (ret)
+                return ret;
+
+        if (args->flags & DRM_V3D_SUBMIT_EXTENSION) {
+                struct drm_v3d_extension *ext = (void *)(uintptr_t)args->extensions;
+                ret = v3d_simulator_process_post_deps(fd, ext);
+        }
+
         return ret;
 }
 
@@ -613,6 +652,14 @@ v3d_simulator_submit_csd_ioctl(int fd, struct drm_v3d_submit_csd *args)
 
         for (int i = 0; i < args->bo_handle_count; i++)
                 v3d_simulator_copy_out_handle(file, bo_handles[i]);
+
+        if (ret < 0)
+                return ret;
+
+        if (args->flags & DRM_V3D_SUBMIT_EXTENSION) {
+                struct drm_v3d_extension *ext = (void *)(uintptr_t)args->extensions;
+                ret = v3d_simulator_process_post_deps(fd, ext);
+        }
 
         return ret;
 }

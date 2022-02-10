@@ -51,6 +51,11 @@ get_unwrapped_array_length(nir_shader *nir, nir_variable *var)
    if (nir_is_arrayed_io(var, nir->info.stage))
       type = glsl_get_array_element(type);
 
+   if (var->data.per_view) {
+      assert(glsl_type_is_array(type));
+      type = glsl_get_array_element(type);
+   }
+
    assert(glsl_type_is_array(type));
 
    return glsl_get_length(type);

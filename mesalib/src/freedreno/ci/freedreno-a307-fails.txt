@@ -434,7 +434,6 @@ spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_texture_compression_rgtc@rgtc-teximage-01,Fail
 spec@ext_texture_compression_rgtc@rgtc-teximage-02,Fail
 spec@ext_texture_integer@ext_texture_integer-texformats,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_transform_feedback2@draw-auto,Fail
 spec@ext_transform_feedback@change-size base-shrink,Fail
 spec@ext_transform_feedback@change-size offset-shrink,Fail

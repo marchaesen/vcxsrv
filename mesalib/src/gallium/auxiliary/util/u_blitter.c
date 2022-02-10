@@ -2369,7 +2369,7 @@ void util_blitter_clear_render_target(struct blitter_context *blitter,
    fb_state.height = dstsurf->height;
    fb_state.nr_cbufs = 1;
    fb_state.cbufs[0] = dstsurf;
-   fb_state.zsbuf = 0;
+   fb_state.zsbuf = NULL;
    pipe->set_framebuffer_state(pipe, &fb_state);
    pipe->set_sample_mask(pipe, ~0);
    if (pipe->set_min_samples)
@@ -2453,7 +2453,7 @@ void util_blitter_clear_depth_stencil(struct blitter_context *blitter,
    fb_state.width = dstsurf->width;
    fb_state.height = dstsurf->height;
    fb_state.nr_cbufs = 0;
-   fb_state.cbufs[0] = 0;
+   fb_state.cbufs[0] = NULL;
    fb_state.zsbuf = dstsurf;
    pipe->set_framebuffer_state(pipe, &fb_state);
    pipe->set_sample_mask(pipe, ~0);
@@ -2780,7 +2780,7 @@ void util_blitter_custom_color(struct blitter_context *blitter,
    fb_state.height = dstsurf->height;
    fb_state.nr_cbufs = 1;
    fb_state.cbufs[0] = dstsurf;
-   fb_state.zsbuf = 0;
+   fb_state.zsbuf = NULL;
    pipe->set_framebuffer_state(pipe, &fb_state);
    pipe->set_sample_mask(pipe, ~0);
    if (pipe->set_min_samples)

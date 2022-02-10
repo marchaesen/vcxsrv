@@ -121,13 +121,13 @@ primconvert_init_draw(struct primconvert_context *pc,
    unsigned total_index_count = draws->count;
    void *rewrite_buffer = NULL;
 
-   const struct pipe_draw_start_count_bias *draw = &draws[0];
+   struct pipe_draw_start_count_bias draw = draws[0];
 
    /* Filter out degenerate primitives, u_upload_alloc() will assert
     * on size==0 so just bail:
     */
    if (!info->primitive_restart &&
-       !u_trim_pipe_prim(info->mode, (unsigned*)&draw->count))
+       !u_trim_pipe_prim(info->mode, (unsigned*)&draw.count))
       return false;
 
    util_draw_init_info(new_info);
@@ -141,14 +141,21 @@ primconvert_init_draw(struct primconvert_context *pc,
    if (info->index_size) {
       enum pipe_prim_type mode = new_info->mode = u_index_prim_type_convert(pc->cfg.primtypes_mask, info->mode, true);
       unsigned index_size = info->index_size;
+      unsigned offset = draw.start * info->index_size;
+
       new_info->index_size = u_index_size_convert(info->index_size);
 
       src = info->has_user_indices ? info->index.user : NULL;
       if (!src) {
-         src = pipe_buffer_map(pc->pipe, info->index.resource,
-                               PIPE_MAP_READ, &src_transfer);
+         /* Map the index range we're interested in (not the whole buffer) */
+         src = pipe_buffer_map_range(pc->pipe, info->index.resource,
+                                     offset,
+                                     draw.count * info->index_size,
+                                     PIPE_MAP_READ, &src_transfer);
+         offset = 0;
+         draw.start = 0;
       }
-      src = (const uint8_t *)src;
+      const void *restart_src = (const uint8_t *)src  + offset;
 
       /* if the resulting primitive type is not supported by the driver for primitive restart,
        * or if the original primitive type was not supported by the driver,
@@ -160,7 +167,7 @@ primconvert_init_draw(struct primconvert_context *pc,
          /* step 1: rewrite draw to not use primitive primitive restart;
           *         this pre-filters degenerate primitives
           */
-         direct_draws = util_prim_restart_convert_to_direct(src, info, draw, &num_direct_draws,
+         direct_draws = util_prim_restart_convert_to_direct(restart_src, info, &draw, &num_direct_draws,
                                                             &new_info->min_index, &new_info->max_index, &total_index_count);
          new_info->primitive_restart = false;
          /* step 2: get a translator function which does nothing but handle any index size conversions
@@ -200,7 +207,7 @@ primconvert_init_draw(struct primconvert_context *pc,
       unsigned index_size;
 
       u_index_generator(pc->cfg.primtypes_mask,
-                        info->mode, draw->start, draw->count,
+                        info->mode, draw.start, draw.count,
                         pc->api_pv, pc->api_pv,
                         &mode, &index_size, &new_draw->count,
                         &gen_func);
@@ -212,7 +219,7 @@ primconvert_init_draw(struct primconvert_context *pc,
    u_upload_alloc(pc->pipe->stream_uploader, 0, new_info->index_size * new_draw->count, 4,
                   &ib_offset, &new_info->index.resource, &dst);
    new_draw->start = ib_offset / new_info->index_size;
-   new_draw->index_bias = info->index_size ? draw->index_bias : 0;
+   new_draw->index_bias = info->index_size ? draw.index_bias : 0;
 
    if (info->index_size) {
       if (num_direct_draws) {
@@ -238,7 +245,7 @@ primconvert_init_draw(struct primconvert_context *pc,
          /* step 7: set the final index count, which is the converted total index count from the original draw rewrite */
          new_draw->count = u_index_count_converted_indices(pc->cfg.primtypes_mask, true, info->mode, total_index_count);
       } else
-         trans_func(src, draw->start, draw->count, new_draw->count, info->restart_index, dst);
+         trans_func(src, draw.start, draw.count, new_draw->count, info->restart_index, dst);
 
       if (pc->cfg.fixed_prim_restart && new_info->primitive_restart) {
          new_info->restart_index = (1ull << (new_info->index_size * 8)) - 1;
@@ -249,7 +256,7 @@ primconvert_init_draw(struct primconvert_context *pc,
       }
    }
    else {
-      gen_func(draw->start, new_draw->count, dst);
+      gen_func(draw.start, new_draw->count, dst);
    }
 
    if (src_transfer)

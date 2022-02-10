@@ -46,6 +46,8 @@
 #define DEBUG_CACHE        0x8000
 #define DEBUG_STREAMOUT    0x10000
 #define DEBUG_SAMPLERS     0x20000
+#define DEBUG_IMAGE        0x40000
+#define DEBUG_UAV          0x80000
 #define DEBUG_RETRY        0x100000
 
 #ifdef DEBUG

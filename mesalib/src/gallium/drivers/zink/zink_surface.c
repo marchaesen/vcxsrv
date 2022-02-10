@@ -106,8 +106,9 @@ create_ivci(struct zink_screen *screen,
 static void
 init_surface_info(struct zink_surface *surface, struct zink_resource *res, VkImageViewCreateInfo *ivci)
 {
+   VkImageViewUsageCreateInfo *usage_info = (VkImageViewUsageCreateInfo *)ivci->pNext;
    surface->info.flags = res->obj->vkflags;
-   surface->info.usage = res->obj->vkusage;
+   surface->info.usage = usage_info ? usage_info->usage : res->obj->vkusage;
    surface->info.width = surface->base.width;
    surface->info.height = surface->base.height;
    surface->info.layerCount = ivci->subresourceRange.layerCount;
@@ -128,6 +129,19 @@ create_surface(struct pipe_context *pctx,
    struct zink_surface *surface = CALLOC_STRUCT(zink_surface);
    if (!surface)
       return NULL;
+
+   VkImageViewUsageCreateInfo usage_info;
+   usage_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO;
+   usage_info.pNext = NULL;
+   VkFormatFeatureFlags feats = res->optimal_tiling ?
+                                screen->format_props[templ->format].optimalTilingFeatures :
+                                screen->format_props[templ->format].linearTilingFeatures;
+   VkImageUsageFlags attachment = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+   usage_info.usage = res->obj->vkusage & ~attachment;
+   if ((res->obj->vkusage & attachment) &&
+       !(feats & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))) {
+      ivci->pNext = &usage_info;
+   }
 
    pipe_resource_reference(&surface->base.texture, pres);
    pipe_reference_init(&surface->base.reference, 1);

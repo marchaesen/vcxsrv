@@ -211,6 +211,7 @@ protected:
    struct list_head m_TransitionListHead;
 
    std::vector<D3D12_RESOURCE_BARRIER> m_vResourceBarriers;
+   bool m_IsImplicitDispatch;
 
 public:
    ResourceStateManager();
@@ -234,7 +235,7 @@ public:
                               D3D12_RESOURCE_STATES State);
 
    // Submit all barriers and queue sync.
-   void ApplyAllResourceTransitions(ID3D12GraphicsCommandList *pCommandList, UINT64 ExecutionId);
+   void ApplyAllResourceTransitions(ID3D12GraphicsCommandList *pCommandList, UINT64 ExecutionId, bool IsImplicitDispatch);
 
 private:
    // These methods set the destination state of the resource/subresources and ensure it's in the transition list.
@@ -245,7 +246,7 @@ private:
                               D3D12_RESOURCE_STATES State);
 
    // Clear out any state from previous iterations.
-   void ApplyResourceTransitionsPreamble();
+   void ApplyResourceTransitionsPreamble(bool IsImplicitDispatch);
 
    // What to do with the resource, in the context of the transition list, after processing it.
    enum class TransitionResult

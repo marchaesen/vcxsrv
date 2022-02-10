@@ -631,4 +631,27 @@ vn_decode_VkSamplerYcbcrConversion(struct vn_cs_decoder *dec, VkSamplerYcbcrConv
     vn_cs_handle_store_id((void **)val, id, VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION);
 }
 
+/* VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPrivateDataSlot) */
+
+static inline size_t
+vn_sizeof_VkPrivateDataSlot(const VkPrivateDataSlot *val)
+{
+    return sizeof(uint64_t);
+}
+
+static inline void
+vn_encode_VkPrivateDataSlot(struct vn_cs_encoder *enc, const VkPrivateDataSlot *val)
+{
+    const uint64_t id = vn_cs_handle_load_id((const void **)val, VK_OBJECT_TYPE_PRIVATE_DATA_SLOT);
+    vn_encode_uint64_t(enc, &id);
+}
+
+static inline void
+vn_decode_VkPrivateDataSlot(struct vn_cs_decoder *dec, VkPrivateDataSlot *val)
+{
+    uint64_t id;
+    vn_decode_uint64_t(dec, &id);
+    vn_cs_handle_store_id((void **)val, id, VK_OBJECT_TYPE_PRIVATE_DATA_SLOT);
+}
+
 #endif /* VN_PROTOCOL_DRIVER_HANDLES_H */

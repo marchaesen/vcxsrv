@@ -154,6 +154,15 @@ vn_physical_device_init_features(struct vn_physical_device *physical_dev)
          &physical_dev->transform_feedback_features;
    }
 
+   if (physical_dev->renderer_extensions.EXT_extended_dynamic_state) {
+      physical_dev->extended_dynamic_state_features.sType =
+         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+      physical_dev->extended_dynamic_state_features.pNext =
+         physical_dev->features.pNext;
+      physical_dev->features.pNext =
+         &physical_dev->extended_dynamic_state_features;
+   }
+
    vn_call_vkGetPhysicalDeviceFeatures2(
       instance, vn_physical_device_to_handle(physical_dev),
       &physical_dev->features);
@@ -679,15 +688,15 @@ vn_physical_device_init_properties(struct vn_physical_device *physical_dev)
    }
    memcpy(props->deviceName, device_name, device_name_len + 1);
 
-   vk12_props->driverID = 0;
+   vk12_props->driverID = VK_DRIVER_ID_MESA_VENUS;
    snprintf(vk12_props->driverName, sizeof(vk12_props->driverName), "venus");
    snprintf(vk12_props->driverInfo, sizeof(vk12_props->driverInfo),
             "Mesa " PACKAGE_VERSION MESA_GIT_SHA1);
    vk12_props->conformanceVersion = (VkConformanceVersionKHR){
-      .major = 0,
-      .minor = 0,
-      .subminor = 0,
-      .patch = 0,
+      .major = 1,
+      .minor = 2,
+      .subminor = 7,
+      .patch = 1,
    };
 
    vn_physical_device_init_uuids(physical_dev);
@@ -954,7 +963,9 @@ vn_physical_device_get_passthrough_extensions(
       .EXT_separate_stencil_usage = true,
       .EXT_shader_viewport_index_layer = true,
 
-      /* EXT */
+      /* promoted to VK_VERSION_1_3 */
+      .EXT_extended_dynamic_state = true,
+   /* EXT */
 #ifndef ANDROID
       .EXT_image_drm_format_modifier = true,
 #endif
@@ -1048,14 +1059,14 @@ vn_physical_device_init_renderer_extensions(
             continue;
 
          /* check encoder support */
-         const uint32_t spec_version =
-            vn_info_extension_spec_version(props->extensionName);
-         if (!spec_version)
+         const struct vn_info_extension *enc_ext =
+            vn_info_extension_get(props->extensionName);
+         if (!enc_ext)
             continue;
 
          physical_dev->renderer_extensions.extensions[i] = true;
          physical_dev->extension_spec_versions[i] =
-            MIN2(exts[j].specVersion, spec_version);
+            MIN2(exts[j].specVersion, enc_ext->spec_version);
 
          break;
       }
@@ -1629,6 +1640,7 @@ vn_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
       VkPhysicalDeviceVulkanMemoryModelFeatures *vulkan_memory_model;
 
       VkPhysicalDeviceTransformFeedbackFeaturesEXT *transform_feedback;
+      VkPhysicalDeviceExtendedDynamicStateFeaturesEXT *extended_dynamic_state;
    } u;
 
    u.pnext = (VkBaseOutStructure *)pFeatures;
@@ -1789,6 +1801,10 @@ vn_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          memcpy(u.transform_feedback,
                 &physical_dev->transform_feedback_features,
                 sizeof(physical_dev->transform_feedback_features));
+         break;
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT:
+         u.extended_dynamic_state->extendedDynamicState =
+            physical_dev->extended_dynamic_state_features.extendedDynamicState;
          break;
       default:
          break;
@@ -2196,8 +2212,25 @@ vn_GetPhysicalDeviceImageFormatProperties2(
    if (result != VK_SUCCESS || !external_info)
       return vn_result(physical_dev->instance, result);
 
+   if (external_info->handleType ==
+       VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID) {
+      VkAndroidHardwareBufferUsageANDROID *ahb_usage =
+         vk_find_struct(pImageFormatProperties->pNext,
+                        ANDROID_HARDWARE_BUFFER_USAGE_ANDROID);
+      if (ahb_usage) {
+         ahb_usage->androidHardwareBufferUsage = vn_android_get_ahb_usage(
+            pImageFormatInfo->usage, pImageFormatInfo->flags);
+      }
+
+      /* AHBs with mipmap usage will ignore this property */
+      pImageFormatProperties->imageFormatProperties.maxMipLevels = 1;
+   }
+
    VkExternalImageFormatProperties *img_props = vk_find_struct(
       pImageFormatProperties->pNext, EXTERNAL_IMAGE_FORMAT_PROPERTIES);
+   if (!img_props)
+      return VK_SUCCESS;
+
    VkExternalMemoryProperties *mem_props =
       &img_props->externalMemoryProperties;
 
@@ -2217,17 +2250,6 @@ vn_GetPhysicalDeviceImageFormatProperties2(
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
       mem_props->compatibleHandleTypes =
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
-
-      VkAndroidHardwareBufferUsageANDROID *ahb_usage =
-         vk_find_struct(pImageFormatProperties->pNext,
-                        ANDROID_HARDWARE_BUFFER_USAGE_ANDROID);
-      if (ahb_usage) {
-         ahb_usage->androidHardwareBufferUsage = vn_android_get_ahb_usage(
-            pImageFormatInfo->usage, pImageFormatInfo->flags);
-      }
-
-      /* AHBs with mipmap usage will ignore this property */
-      pImageFormatProperties->imageFormatProperties.maxMipLevels = 1;
    } else {
       mem_props->compatibleHandleTypes = supported_handle_types;
       mem_props->exportFromImportedHandleTypes =
@@ -2236,7 +2258,7 @@ vn_GetPhysicalDeviceImageFormatProperties2(
             : 0;
    }
 
-   return vn_result(physical_dev->instance, result);
+   return VK_SUCCESS;
 }
 
 void

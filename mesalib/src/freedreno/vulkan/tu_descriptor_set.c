@@ -149,7 +149,7 @@ tu_CreateDescriptorSetLayout(
       immutable_sampler_count * sizeof(struct tu_sampler) +
       ycbcr_sampler_count * sizeof(struct tu_sampler_ycbcr_conversion);
 
-   set_layout = vk_object_zalloc(&device->vk, pAllocator, size,
+   set_layout = vk_object_zalloc(&device->vk, NULL, size,
                                  VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT);
    if (!set_layout)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -169,6 +169,7 @@ tu_CreateDescriptorSetLayout(
       return vk_error(device, result);
    }
 
+   set_layout->ref_cnt = 1;
    set_layout->binding_count = num_bindings;
    set_layout->shader_stages = 0;
    set_layout->has_immutable_samplers = false;
@@ -277,7 +278,15 @@ tu_DestroyDescriptorSetLayout(VkDevice _device,
    if (!set_layout)
       return;
 
-   vk_object_free(&device->vk, pAllocator, set_layout);
+   tu_descriptor_set_layout_unref(device, set_layout);
+}
+
+void
+tu_descriptor_set_layout_destroy(struct tu_device *device,
+                                 struct tu_descriptor_set_layout *layout)
+{
+   assert(layout->ref_cnt == 0);
+   vk_object_free(&device->vk, NULL, layout);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -399,6 +408,8 @@ tu_CreatePipelineLayout(VkDevice _device,
       TU_FROM_HANDLE(tu_descriptor_set_layout, set_layout,
                      pCreateInfo->pSetLayouts[set]);
       layout->set[set].layout = set_layout;
+      tu_descriptor_set_layout_ref(set_layout);
+
       layout->set[set].dynamic_offset_start = dynamic_offset_count;
       dynamic_offset_count += set_layout->dynamic_offset_count;
    }
@@ -429,6 +440,9 @@ tu_DestroyPipelineLayout(VkDevice _device,
    if (!pipeline_layout)
       return;
 
+   for (uint32_t i = 0; i < pipeline_layout->num_sets; i++)
+      tu_descriptor_set_layout_unref(device, pipeline_layout->set[i].layout);
+
    vk_object_free(&device->vk, pAllocator, pipeline_layout);
 }
 
@@ -437,7 +451,7 @@ tu_DestroyPipelineLayout(VkDevice _device,
 static VkResult
 tu_descriptor_set_create(struct tu_device *device,
             struct tu_descriptor_pool *pool,
-            const struct tu_descriptor_set_layout *layout,
+            struct tu_descriptor_set_layout *layout,
             const uint32_t *variable_count,
             struct tu_descriptor_set **out_set)
 {
@@ -546,6 +560,9 @@ tu_descriptor_set_create(struct tu_device *device,
          }
       }
    }
+
+   tu_descriptor_set_layout_ref(layout);
+   list_addtail(&set->pool_link, &pool->desc_sets);
 
    *out_set = set;
    return VK_SUCCESS;
@@ -664,6 +681,8 @@ tu_CreateDescriptorPool(VkDevice _device,
    pool->size = bo_size;
    pool->max_entry_count = pCreateInfo->maxSets;
 
+   list_inithead(&pool->desc_sets);
+
    *pDescriptorPool = tu_descriptor_pool_to_handle(pool);
    return VK_SUCCESS;
 
@@ -684,6 +703,11 @@ tu_DestroyDescriptorPool(VkDevice _device,
 
    if (!pool)
       return;
+
+   list_for_each_entry_safe(struct tu_descriptor_set, set,
+                            &pool->desc_sets, pool_link) {
+      tu_descriptor_set_layout_unref(device, set->layout);
+   }
 
    if (!pool->host_memory_base) {
       for(int i = 0; i < pool->entry_count; ++i) {
@@ -708,6 +732,12 @@ tu_ResetDescriptorPool(VkDevice _device,
 {
    TU_FROM_HANDLE(tu_device, device, _device);
    TU_FROM_HANDLE(tu_descriptor_pool, pool, descriptorPool);
+
+   list_for_each_entry_safe(struct tu_descriptor_set, set,
+                            &pool->desc_sets, pool_link) {
+      tu_descriptor_set_layout_unref(device, set->layout);
+   }
+   list_inithead(&pool->desc_sets);
 
    if (!pool->host_memory_base) {
       for(int i = 0; i < pool->entry_count; ++i) {
@@ -782,6 +812,11 @@ tu_FreeDescriptorSets(VkDevice _device,
    for (uint32_t i = 0; i < count; i++) {
       TU_FROM_HANDLE(tu_descriptor_set, set, pDescriptorSets[i]);
 
+      if (set) {
+         tu_descriptor_set_layout_unref(device, set->layout);
+         list_del(&set->pool_link);
+      }
+
       if (set && !pool->host_memory_base)
          tu_descriptor_set_destroy(device, pool, set, true);
    }
@@ -823,7 +858,7 @@ write_buffer_descriptor(const struct tu_device *device,
    TU_FROM_HANDLE(tu_buffer, buffer, buffer_info->buffer);
 
    assert((buffer_info->offset & 63) == 0); /* minStorageBufferOffsetAlignment */
-   uint64_t va = tu_buffer_iova(buffer) + buffer_info->offset;
+   uint64_t va = buffer->iova + buffer_info->offset;
    uint32_t range = get_range(buffer, buffer_info->offset, buffer_info->range);
 
    /* newer a6xx allows using 16-bit descriptor for both 16-bit and 32-bit access */
@@ -856,7 +891,7 @@ write_ubo_descriptor(uint32_t *dst, const VkDescriptorBufferInfo *buffer_info)
    uint32_t range = get_range(buffer, buffer_info->offset, buffer_info->range);
    /* The HW range is in vec4 units */
    range = ALIGN_POT(range, 16) / 16;
-   uint64_t va = tu_buffer_iova(buffer) + buffer_info->offset;
+   uint64_t va = buffer->iova + buffer_info->offset;
 
    dst[0] = A6XX_UBO_0_BASE_LO(va);
    dst[1] = A6XX_UBO_1_BASE_HI(va >> 32) | A6XX_UBO_1_SIZE(range);

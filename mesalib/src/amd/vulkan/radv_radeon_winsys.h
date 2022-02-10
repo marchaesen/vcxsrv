@@ -42,6 +42,9 @@
 struct radeon_info;
 struct ac_surf_info;
 struct radeon_surf;
+struct vk_sync_type;
+struct vk_sync_wait;
+struct vk_sync_signal;
 
 enum radeon_bo_domain { /* bitfield */
                         RADEON_DOMAIN_GTT = 2,
@@ -169,20 +172,6 @@ struct radeon_winsys_bo {
    bool use_global_list;
    enum radeon_bo_domain initial_domain;
 };
-struct radv_winsys_sem_counts {
-   uint32_t syncobj_count;
-   uint32_t syncobj_reset_count; /* for wait only, whether to reset the syncobj */
-   uint32_t timeline_syncobj_count;
-   uint32_t *syncobj;
-   uint64_t *points;
-};
-
-struct radv_winsys_sem_info {
-   bool cs_emit_signal;
-   bool cs_emit_wait;
-   struct radv_winsys_sem_counts wait;
-   struct radv_winsys_sem_counts signal;
-};
 
 struct radv_winsys_bo_list {
    struct radeon_winsys_bo **bos;
@@ -276,8 +265,9 @@ struct radeon_winsys {
    VkResult (*cs_submit)(struct radeon_winsys_ctx *ctx, enum ring_type ring_type, int queue_index,
                          struct radeon_cmdbuf **cs_array, unsigned cs_count,
                          struct radeon_cmdbuf *initial_preamble_cs,
-                         struct radeon_cmdbuf *continue_preamble_cs,
-                         struct radv_winsys_sem_info *sem_info, bool can_patch);
+                         struct radeon_cmdbuf *continue_preamble_cs, uint32_t wait_count,
+                         const struct vk_sync_wait *waits, uint32_t signal_count,
+                         const struct vk_sync_signal *signals, bool can_patch);
 
    void (*cs_add_buffer)(struct radeon_cmdbuf *cs, struct radeon_winsys_bo *bo);
 
@@ -293,25 +283,9 @@ struct radeon_winsys {
    int (*surface_init)(struct radeon_winsys *ws, const struct ac_surf_info *surf_info,
                        struct radeon_surf *surf);
 
-   int (*create_syncobj)(struct radeon_winsys *ws, bool create_signaled, uint32_t *handle);
-   void (*destroy_syncobj)(struct radeon_winsys *ws, uint32_t handle);
+   int (*get_fd)(struct radeon_winsys *ws);
 
-   void (*reset_syncobj)(struct radeon_winsys *ws, uint32_t handle);
-   void (*signal_syncobj)(struct radeon_winsys *ws, uint32_t handle, uint64_t point);
-   VkResult (*query_syncobj)(struct radeon_winsys *ws, uint32_t handle, uint64_t *point);
-   bool (*wait_syncobj)(struct radeon_winsys *ws, const uint32_t *handles, uint32_t handle_count,
-                        bool wait_all, uint64_t timeout);
-   VkResult (*wait_timeline_syncobj)(struct radeon_winsys *ws, const uint32_t *handles,
-                                     const uint64_t *points, uint32_t handle_count, bool wait_all,
-                                     bool available, uint64_t timeout);
-
-   int (*export_syncobj)(struct radeon_winsys *ws, uint32_t syncobj, int *fd);
-   int (*import_syncobj)(struct radeon_winsys *ws, int fd, uint32_t *syncobj);
-
-   int (*export_syncobj_to_sync_file)(struct radeon_winsys *ws, uint32_t syncobj, int *fd);
-
-   /* Note that this, unlike the normal import, uses an existing syncobj. */
-   int (*import_syncobj_from_sync_file)(struct radeon_winsys *ws, uint32_t syncobj, int fd);
+   const struct vk_sync_type *const *(*get_sync_types)(struct radeon_winsys *ws);
 };
 
 static inline void

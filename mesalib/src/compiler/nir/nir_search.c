@@ -408,7 +408,7 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
       return false;
 
    state->inexact_match = expr->inexact || state->inexact_match;
-   state->has_exact_alu = instr->exact || state->has_exact_alu;
+   state->has_exact_alu = (instr->exact && !expr->ignore_exact) || state->has_exact_alu;
    if (state->inexact_match && state->has_exact_alu)
       return false;
 

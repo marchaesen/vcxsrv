@@ -327,34 +327,6 @@ void ac_llvm_set_target_features(LLVMValueRef F, struct ac_llvm_context *ctx)
    LLVMAddTargetDependentFunctionAttr(F, "target-features", features);
 }
 
-unsigned ac_count_scratch_private_memory(LLVMValueRef function)
-{
-   unsigned private_mem_vgprs = 0;
-
-   /* Process all LLVM instructions. */
-   LLVMBasicBlockRef bb = LLVMGetFirstBasicBlock(function);
-   while (bb) {
-      LLVMValueRef next = LLVMGetFirstInstruction(bb);
-
-      while (next) {
-         LLVMValueRef inst = next;
-         next = LLVMGetNextInstruction(next);
-
-         if (LLVMGetInstructionOpcode(inst) != LLVMAlloca)
-            continue;
-
-         LLVMTypeRef type = LLVMGetElementType(LLVMTypeOf(inst));
-         /* No idea why LLVM aligns allocas to 4 elements. */
-         unsigned alignment = LLVMGetAlignment(inst);
-         unsigned dw_size = align(ac_get_type_size(type) / 4, alignment);
-         private_mem_vgprs += dw_size;
-      }
-      bb = LLVMGetNextBasicBlock(bb);
-   }
-
-   return private_mem_vgprs;
-}
-
 bool ac_init_llvm_compiler(struct ac_llvm_compiler *compiler, enum radeon_family family,
                            enum ac_target_machine_options tm_options)
 {

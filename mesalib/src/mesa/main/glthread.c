@@ -205,7 +205,7 @@ _mesa_glthread_flush_batch(struct gl_context *ctx)
     */
    if (util_get_cpu_caps()->num_L3_caches > 1 &&
        /* driver support */
-       ctx->Driver.PinDriverToL3Cache &&
+       ctx->pipe->set_context_param &&
        ++glthread->pin_thread_counter % 128 == 0) {
       int cpu = util_get_current_cpu();
 
@@ -215,7 +215,9 @@ _mesa_glthread_flush_batch(struct gl_context *ctx)
             util_set_thread_affinity(glthread->queue.threads[0],
                                      util_get_cpu_caps()->L3_affinity_mask[L3_cache],
                                      NULL, util_get_cpu_caps()->num_cpu_mask_bits);
-            ctx->Driver.PinDriverToL3Cache(ctx, L3_cache);
+            ctx->pipe->set_context_param(ctx->pipe,
+                                         PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
+                                         L3_cache);
          }
       }
    }

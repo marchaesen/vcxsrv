@@ -805,7 +805,8 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_shader_image_load_store) {
+   if (!ctx->Extensions.ARB_shader_image_load_store &&
+       !_mesa_is_gles31(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glBindImageTextures()");
       return;
    }

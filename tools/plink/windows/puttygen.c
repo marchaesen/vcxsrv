@@ -629,11 +629,21 @@ static DWORD WINAPI generate_key_thread(void *param)
     return 0;
 }
 
+struct InitialParams {
+    int keybutton;
+    int primepolicybutton;
+    bool rsa_strong;
+    FingerprintType fptype;
+    int keybits;
+    int eccurve_index, edcurve_index;
+};
+
 struct MainDlgState {
-    bool collecting_entropy;
     bool generation_thread_exists;
     bool key_exists;
-    int entropy_got, entropy_required, entropy_size;
+    int entropy_got, entropy_required;
+    strbuf *entropy;
+    ULONG entropy_prev_msgtime;
     int key_bits, curve_bits;
     bool ssh2;
     keytype keytype;
@@ -642,7 +652,6 @@ struct MainDlgState {
     FingerprintType fptype;
     char **commentptr;                 /* points to key.comment or ssh2key.comment */
     ssh2_userkey ssh2key;
-    unsigned *entropy;
     union {
         RSAKey key;
         struct dsa_key dsakey;
@@ -651,6 +660,23 @@ struct MainDlgState {
     };
     HMENU filemenu, keymenu, cvtmenu;
 };
+
+/*
+ * Rate limit for incrementing the entropy_got counter.
+ *
+ * Some pointing devices (e.g. gaming mice) can be set to send
+ * mouse-movement events at an extremely high sample rate like 1kHz.
+ * In that situation, there's likely to be a strong correlation
+ * between the contents of successive movement events, so you have to
+ * regard the mouse movements as containing less entropy each.
+ *
+ * A reasonably simple approach to this is to continue to buffer all
+ * mouse data, but limit the rate at which we increment the counter
+ * for how much entropy we think we've collected. That way, the user
+ * still has to spend time wiggling the mouse back and forth in a way
+ * that varies with muscle motions and introduces randomness.
+ */
+#define ENTROPY_RATE_LIMIT 10 /* in units of GetMessageTime(), i.e. ms */
 
 static void hidemany(HWND hwnd, const int *ids, bool hideit)
 {
@@ -1200,7 +1226,6 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
 
         state = snew(struct MainDlgState);
         state->generation_thread_exists = false;
-        state->collecting_entropy = false;
         state->entropy = NULL;
         state->key_exists = false;
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) state);
@@ -1377,15 +1402,16 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
             cp.ypos = ymax;
             endbox(&cp);
         }
-        ui_set_key_type(hwnd, state, IDC_KEYSSH2RSA);
-        ui_set_primepolicy(hwnd, state, IDC_PRIMEGEN_PROB);
-        ui_set_rsa_strong(hwnd, state, false);
-        ui_set_fptype(hwnd, state, fptype_to_idc(SSH_FPTYPE_DEFAULT));
-        SetDlgItemInt(hwnd, IDC_BITS, DEFAULT_KEY_BITS, false);
+        struct InitialParams *params = (struct InitialParams *)lParam;
+        ui_set_key_type(hwnd, state, params->keybutton);
+        ui_set_primepolicy(hwnd, state, params->primepolicybutton);
+        ui_set_rsa_strong(hwnd, state, params->rsa_strong);
+        ui_set_fptype(hwnd, state, fptype_to_idc(params->fptype));
+        SetDlgItemInt(hwnd, IDC_BITS, params->keybits, false);
         SendDlgItemMessage(hwnd, IDC_ECCURVE, CB_SETCURSEL,
-                           DEFAULT_ECCURVE_INDEX, 0);
+                           params->eccurve_index, 0);
         SendDlgItemMessage(hwnd, IDC_EDCURVE, CB_SETCURSEL,
-                           DEFAULT_EDCURVE_INDEX, 0);
+                           params->edcurve_index, 0);
 
         /*
          * Initially, hide the progress bar and the key display,
@@ -1407,21 +1433,23 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
         return 1;
       case WM_MOUSEMOVE:
         state = (struct MainDlgState *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
-        if (state->collecting_entropy &&
-            state->entropy && state->entropy_got < state->entropy_required) {
-            state->entropy[state->entropy_got++] = lParam;
-            state->entropy[state->entropy_got++] = GetMessageTime();
+        if (state->entropy && state->entropy_got < state->entropy_required) {
+            ULONG msgtime = GetMessageTime();
+            put_uint32(state->entropy, lParam);
+            put_uint32(state->entropy, msgtime);
+            if (msgtime - state->entropy_prev_msgtime > ENTROPY_RATE_LIMIT) {
+                state->entropy_got += 2;
+                state->entropy_prev_msgtime = msgtime;
+            }
             SendDlgItemMessage(hwnd, IDC_PROGRESS, PBM_SETPOS,
                                state->entropy_got, 0);
             if (state->entropy_got >= state->entropy_required) {
                 /*
                  * Seed the entropy pool
                  */
-                random_reseed(
-                    make_ptrlen(state->entropy, state->entropy_size));
-                smemclr(state->entropy, state->entropy_size);
-                sfree(state->entropy);
-                state->collecting_entropy = false;
+                random_reseed(ptrlen_from_strbuf(state->entropy));
+                strbuf_free(state->entropy);
+                state->entropy = NULL;
 
                 start_generating_key(hwnd, state);
             }
@@ -1635,12 +1663,10 @@ static INT_PTR CALLBACK MainDlgProc(HWND hwnd, UINT msg,
                 ui_set_state(hwnd, state, 1);
                 SetDlgItemText(hwnd, IDC_GENERATING, entropy_msg);
                 state->key_exists = false;
-                state->collecting_entropy = true;
 
                 state->entropy_got = 0;
-                state->entropy_size = (state->entropy_required *
-                                       sizeof(unsigned));
-                state->entropy = snewn(state->entropy_required, unsigned);
+                state->entropy = strbuf_new_nm();
+                state->entropy_prev_msgtime = GetMessageTime();
 
                 SendDlgItemMessage(hwnd, IDC_PROGRESS, PBM_SETRANGE, 0,
                                    MAKELPARAM(0, state->entropy_required));
@@ -1980,11 +2006,24 @@ void cleanup_exit(int code)
 
 HINSTANCE hinst;
 
+static NORETURN void opt_error(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char *msg = dupvprintf(fmt, ap);
+    va_end(ap);
+
+    MessageBox(NULL, msg, "PuTTYgen command line error", MB_ICONERROR | MB_OK);
+
+    exit(1);
+}
+
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
-    int argc, i;
+    int argc;
     char **argv;
     int ret;
+    struct InitialParams params[1];
 
     dll_hijacking_protection();
 
@@ -1996,30 +2035,189 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      */
     init_help();
 
-    split_into_argv(cmdline, &argc, &argv, NULL);
-
-    for (i = 0; i < argc; i++) {
-        if (!strcmp(argv[i], "-pgpfp")) {
-            pgp_fingerprints_msgbox(NULL);
-            return 1;
-        } else if (!strcmp(argv[i], "-restrict-acl") ||
-                   !strcmp(argv[i], "-restrict_acl") ||
-                   !strcmp(argv[i], "-restrictacl")) {
-            restrict_process_acl();
-        } else {
-            /*
-             * Assume the first argument to be a private key file, and
-             * attempt to load it.
-             */
-            cmdline_keyfile = argv[i];
-            break;
-        }
-    }
+    params->keybutton = IDC_KEYSSH2RSA;
+    params->primepolicybutton = IDC_PRIMEGEN_PROB;
+    params->rsa_strong = false;
+    params->fptype = SSH_FPTYPE_DEFAULT;
+    params->keybits = DEFAULT_KEY_BITS;
+    params->eccurve_index = DEFAULT_ECCURVE_INDEX;
+    params->edcurve_index = DEFAULT_EDCURVE_INDEX;
 
     save_params = ppk_save_default_parameters;
 
+    split_into_argv(cmdline, &argc, &argv, NULL);
+
+    int argbits = -1;
+    AuxMatchOpt amo = aux_match_opt_init(argc, argv, 0, opt_error);
+    while (!aux_match_done(&amo)) {
+        char *val;
+        #define match_opt(...) aux_match_opt( \
+            &amo, NULL, __VA_ARGS__, (const char *)NULL)
+        #define match_optval(...) aux_match_opt( \
+            &amo, &val, __VA_ARGS__, (const char *)NULL)
+
+        if (aux_match_arg(&amo, &val)) {
+            if (!cmdline_keyfile) {
+                /*
+                 * Assume the first argument to be a private key file, and
+                 * attempt to load it.
+                 */
+                cmdline_keyfile = val;
+                continue;
+            } else {
+                opt_error("unexpected extra argument '%s'\n", val);
+            }
+        } else if (match_opt("-pgpfp")) {
+            pgp_fingerprints_msgbox(NULL);
+            return 1;
+        } else if (match_opt("-restrict-acl", "-restrict_acl",
+                             "-restrictacl")) {
+            restrict_process_acl();
+        } else if (match_optval("-t")) {
+            if (!strcmp(val, "rsa") || !strcmp(val, "rsa2")) {
+                params->keybutton = IDC_KEYSSH2RSA;
+            } else if (!strcmp(val, "rsa1")) {
+                params->keybutton = IDC_KEYSSH1;
+            } else if (!strcmp(val, "dsa") || !strcmp(val, "dss")) {
+                params->keybutton = IDC_KEYSSH2DSA;
+            } else if (!strcmp(val, "ecdsa")) {
+                params->keybutton = IDC_KEYSSH2ECDSA;
+            } else if (!strcmp(val, "eddsa")) {
+                params->keybutton = IDC_KEYSSH2EDDSA;
+            } else if (!strcmp(val, "ed25519")) {
+                params->keybutton = IDC_KEYSSH2EDDSA;
+                argbits = 255;
+            } else if (!strcmp(val, "ed448")) {
+                params->keybutton = IDC_KEYSSH2EDDSA;
+                argbits = 448;
+            } else {
+                opt_error("unknown key type '%s'\n", val);
+            }
+        } else if (match_optval("-b")) {
+            argbits = atoi(val);
+        } else if (match_optval("-E")) {
+            if (!strcmp(val, "md5"))
+                params->fptype = SSH_FPTYPE_MD5;
+            else if (!strcmp(val, "sha256"))
+                params->fptype = SSH_FPTYPE_SHA256;
+            else
+                opt_error("unknown fingerprint type '%s'\n", val);
+        } else if (match_optval("-primes")) {
+            if (!strcmp(val, "probable") ||
+                !strcmp(val, "probabilistic")) {
+                params->primepolicybutton = IDC_PRIMEGEN_PROB;
+            } else if (!strcmp(val, "provable") ||
+                       !strcmp(val, "proven") ||
+                       !strcmp(val, "simple") ||
+                       !strcmp(val, "maurer-simple")) {
+                params->primepolicybutton = IDC_PRIMEGEN_MAURER_SIMPLE;
+            } else if (!strcmp(val, "provable-even") ||
+                       !strcmp(val, "proven-even") ||
+                       !strcmp(val, "even") ||
+                       !strcmp(val, "complex") ||
+                       !strcmp(val, "maurer-complex")) {
+                params->primepolicybutton = IDC_PRIMEGEN_MAURER_COMPLEX;
+            } else {
+                opt_error("unrecognised prime-generation mode '%s'\n", val);
+            }
+        } else if (match_opt("-strong-rsa")) {
+            params->rsa_strong = true;
+        } else if (match_optval("-ppk-param", "-ppk-params")) {
+            char *nextval;
+            for (; val; val = nextval) {
+                nextval = strchr(val, ',');
+                if (nextval)
+                    *nextval++ = '\0';
+
+                char *optvalue = strchr(val, '=');
+                if (!optvalue)
+                    opt_error("PPK parameter '%s' expected a value\n", val);
+                *optvalue++ = '\0';
+
+                /* Non-numeric options */
+                if (!strcmp(val, "kdf")) {
+                    if (!strcmp(optvalue, "Argon2id") ||
+                        !strcmp(optvalue, "argon2id")) {
+                        save_params.argon2_flavour = Argon2id;
+                    } else if (!strcmp(optvalue, "Argon2i") ||
+                               !strcmp(optvalue, "argon2i")) {
+                        save_params.argon2_flavour = Argon2i;
+                    } else if (!strcmp(optvalue, "Argon2d") ||
+                               !strcmp(optvalue, "argon2d")) {
+                        save_params.argon2_flavour = Argon2d;
+                    } else {
+                        opt_error("unrecognised kdf '%s'\n", optvalue);
+                    }
+                    continue;
+                }
+
+                char *end;
+                unsigned long n = strtoul(optvalue, &end, 0);
+                if (!*optvalue || *end)
+                    opt_error("value '%s' for PPK parameter '%s': expected a "
+                              "number\n", optvalue, val);
+
+                if (!strcmp(val, "version")) {
+                    save_params.fmt_version = n;
+                } else if (!strcmp(val, "memory") ||
+                           !strcmp(val, "mem")) {
+                    save_params.argon2_mem = n;
+                } else if (!strcmp(val, "time")) {
+                    save_params.argon2_passes_auto = true;
+                    save_params.argon2_milliseconds = n;
+                } else if (!strcmp(val, "passes")) {
+                    save_params.argon2_passes_auto = false;
+                    save_params.argon2_passes = n;
+                } else if (!strcmp(val, "parallelism") ||
+                           !strcmp(val, "parallel")) {
+                    save_params.argon2_parallelism = n;
+                } else {
+                    opt_error("unrecognised PPK parameter '%s'\n", val);
+                }
+            }
+        } else {
+            opt_error("unrecognised option '%s'\n", amo.argv[amo.index]);
+        }
+    }
+
+    /* Translate argbits into eccurve_index and edcurve_index */
+    if (argbits > 0) {
+        switch (params->keybutton) {
+          case IDC_KEYSSH2RSA:
+          case IDC_KEYSSH1:
+          case IDC_KEYSSH2DSA:
+            params->keybits = argbits;
+            break;
+          case IDC_KEYSSH2ECDSA: {
+            bool found = false;
+            for (int j = 0; j < n_ec_nist_curve_lengths; j++)
+                if (argbits == ec_nist_curve_lengths[j]) {
+                    params->eccurve_index = j;
+                    found = true;
+                    break;
+                }
+            if (!found)
+                opt_error("unsupported ECDSA bit length %d", argbits);
+            break;
+          }
+          case IDC_KEYSSH2EDDSA: {
+            bool found = false;
+            for (int j = 0; j < n_ec_ed_curve_lengths; j++)
+                if (argbits == ec_ed_curve_lengths[j]) {
+                    params->edcurve_index = j;
+                    found = true;
+                    break;
+                }
+            if (!found)
+                opt_error("unsupported EDDSA bit length %d", argbits);
+            break;
+          }
+        }
+    }
+
     random_setup_special();
-    ret = DialogBox(hinst, MAKEINTRESOURCE(201), NULL, MainDlgProc) != IDOK;
+    ret = DialogBoxParam(hinst, MAKEINTRESOURCE(201), NULL, MainDlgProc,
+                         (LPARAM)params) != IDOK;
 
     cleanup_exit(ret);
     return ret;                        /* just in case optimiser complains */

@@ -226,11 +226,15 @@ bool vk_get_physical_device_core_1_1_feature_ext(struct VkBaseOutStructure *ext,
                                                  const VkPhysicalDeviceVulkan11Features *core);
 bool vk_get_physical_device_core_1_2_feature_ext(struct VkBaseOutStructure *ext,
                                                  const VkPhysicalDeviceVulkan12Features *core);
+bool vk_get_physical_device_core_1_3_feature_ext(struct VkBaseOutStructure *ext,
+                                                 const VkPhysicalDeviceVulkan13Features *core);
 
 bool vk_get_physical_device_core_1_1_property_ext(struct VkBaseOutStructure *ext,
                                                      const VkPhysicalDeviceVulkan11Properties *core);
 bool vk_get_physical_device_core_1_2_property_ext(struct VkBaseOutStructure *ext,
                                                      const VkPhysicalDeviceVulkan12Properties *core);
+bool vk_get_physical_device_core_1_3_property_ext(struct VkBaseOutStructure *ext,
+                                                     const VkPhysicalDeviceVulkan13Properties *core);
 
 #ifdef __cplusplus
 }

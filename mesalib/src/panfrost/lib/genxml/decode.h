@@ -27,6 +27,7 @@
 #define __PAN_DECODE_H__
 
 #include "genxml/gen_macros.h"
+#include "util/rb_tree.h"
 
 #include "wrap.h"
 
@@ -35,6 +36,7 @@ extern FILE *pandecode_dump_stream;
 void pandecode_dump_file_open(void);
 
 struct pandecode_mapped_memory {
+        struct rb_node node;
         size_t length;
         void *addr;
         uint64_t gpu_va;
@@ -47,6 +49,8 @@ char *pointer_as_memory_reference(uint64_t ptr);
 struct pandecode_mapped_memory *pandecode_find_mapped_gpu_mem_containing(uint64_t addr);
 
 void pandecode_map_read_write(void);
+
+void pandecode_dump_mappings(void);
 
 static inline void *
 __pandecode_fetch_gpu_mem(const struct pandecode_mapped_memory *mem,
@@ -87,5 +91,48 @@ __pandecode_fetch_gpu_mem(const struct pandecode_mapped_memory *mem,
 void GENX(pandecode_jc)(mali_ptr jc_gpu_va, unsigned gpu_id);
 void GENX(pandecode_abort_on_fault)(mali_ptr jc_gpu_va);
 #endif
+
+static inline void
+pan_hexdump(FILE *fp, const uint8_t *hex, size_t cnt, bool with_strings)
+{
+        for (unsigned i = 0; i < cnt; ++i) {
+                if ((i & 0xF) == 0)
+                        fprintf(fp, "%06X  ", i);
+
+                uint8_t v = hex[i];
+
+                if (v == 0 && (i & 0xF) == 0) {
+                        /* Check if we're starting an aligned run of zeroes */
+                        unsigned zero_count = 0;
+
+                        for (unsigned j = i; j < cnt; ++j) {
+                                if (hex[j] == 0)
+                                        zero_count++;
+                                else
+                                        break;
+                        }
+
+                        if (zero_count >= 32) {
+                                fprintf(fp, "*\n");
+                                i += (zero_count & ~0xF) - 1;
+                                continue;
+                        }
+                }
+
+                fprintf(fp, "%02X ", hex[i]);
+                if ((i & 0xF) == 0xF && with_strings) {
+                        fprintf(fp, " | ");
+                        for (unsigned j = i & ~0xF; j <= i; ++j) {
+                                uint8_t c = hex[j];
+                                fputc((c < 32 || c > 128) ? '.' : c, fp);
+                        }
+                }
+
+                if ((i & 0xF) == 0xF)
+                        fprintf(fp, "\n");
+        }
+
+        fprintf(fp, "\n");
+}
 
 #endif /* __MMAP_TRACE_H__ */

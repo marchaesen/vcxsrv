@@ -561,6 +561,23 @@ supertile_in_job_scissors(struct v3d_job *job,
    return false;
 }
 
+#if V3D_VERSION >= 40
+static inline bool
+do_double_initial_tile_clear(const struct v3d_job *job)
+{
+        /* Our rendering code emits an initial clear per layer, unlike the
+         * Vulkan driver, which only executes a single initial clear for all
+         * layers. This is because in GL we don't use the
+         * 'clear_buffer_being_stored' bit when storing tiles, so each layer
+         * needs the iniital clear. This is also why this helper, unlike the
+         * Vulkan version, doesn't check the layer count to decide if double
+         * clear for double buffer mode is required.
+         */
+        return job->double_buffer &&
+               (job->draw_tiles_x > 1 || job->draw_tiles_y > 1);
+}
+#endif
+
 static void
 emit_render_layer(struct v3d_job *job, uint32_t layer)
 {
@@ -638,7 +655,7 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
                 cl_emit(&job->rcl, STORE_TILE_BUFFER_GENERAL, store) {
                         store.buffer_to_store = NONE;
                 }
-                if (i == 0) {
+                if (i == 0 || do_double_initial_tile_clear(job)) {
                         cl_emit(&job->rcl, CLEAR_TILE_BUFFERS, clear) {
                                 clear.clear_z_stencil_buffer = true;
                                 clear.clear_all_render_targets = true;
@@ -732,7 +749,9 @@ v3dX(emit_rcl)(struct v3d_job *job)
 
                 config.number_of_render_targets = MAX2(job->nr_cbufs, 1);
 
+                assert(!job->msaa || !job->double_buffer);
                 config.multisample_mode_4x = job->msaa;
+                config.double_buffer_in_non_ms_mode = job->double_buffer;
 
                 config.maximum_bpp_of_all_render_targets = job->internal_bpp;
         }

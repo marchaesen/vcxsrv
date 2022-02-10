@@ -863,8 +863,8 @@ _get_min_dimensions(GLenum pname)
  * Similar to teximage.c:check_multisample_target, but independent of the
  * dimensions.
  */
-static bool
-_is_multisample_target(GLenum target)
+bool
+_mesa_is_multisample_target(GLenum target)
 {
    switch(target) {
    case GL_TEXTURE_2D_MULTISAMPLE:
@@ -1017,8 +1017,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
 
       switch (pname) {
       case GL_INTERNALFORMAT_DEPTH_SIZE:
-         if (ctx->API != API_OPENGL_CORE &&
-             !_mesa_has_ARB_depth_texture(ctx) &&
+         if (!_mesa_is_desktop_gl(ctx) &&
              target != GL_RENDERBUFFER &&
              target != GL_TEXTURE_BUFFER)
             goto end;
@@ -1104,7 +1103,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
        * returned as MAX_HEIGHT or MAX_DEPTH */
       for (i = 0; i < 4; i++) {
          if (max_dimensions_pnames[i] == GL_SAMPLES &&
-             !_is_multisample_target(target))
+             !_mesa_is_multisample_target(target))
             continue;
 
          _mesa_GetInternalformativ(target, internalformat,

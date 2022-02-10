@@ -155,6 +155,7 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
    case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
    case PIPE_CAP_STRING_MARKER:
+   case PIPE_CAP_FRONTEND_NOOP:
       return 1;
    case PIPE_CAP_NATIVE_FENCE_FD:
       return screen->drm_version >= ETNA_DRM_VERSION_FENCE_FD;
@@ -212,7 +213,7 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 
    /* Texturing. */
    case PIPE_CAP_TEXTURE_SHADOW_MAP:
-      return !DBG_ENABLED(ETNA_DBG_TGSI) && screen->specs.halti >= 2;
+      return !DBG_ENABLED(ETNA_DBG_TGSI);
    case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
    case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS: /* TODO: verify */
       return screen->specs.max_texture_size;

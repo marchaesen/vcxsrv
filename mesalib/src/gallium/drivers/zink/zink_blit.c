@@ -363,12 +363,18 @@ bool
 zink_blit_region_fills(struct u_rect region, unsigned width, unsigned height)
 {
    struct u_rect intersect = {0, width, 0, height};
+   struct u_rect r = {
+      MIN2(region.x0, region.x1),
+      MAX2(region.x0, region.x1),
+      MIN2(region.y0, region.y1),
+      MAX2(region.y0, region.y1),
+   };
 
-   if (!u_rect_test_intersection(&region, &intersect))
+   if (!u_rect_test_intersection(&r, &intersect))
       /* is this even a thing? */
       return false;
 
-   u_rect_find_intersection(&region, &intersect);
+   u_rect_find_intersection(&r, &intersect);
    if (intersect.x0 != 0 || intersect.y0 != 0 ||
        intersect.x1 != width || intersect.y1 != height)
       return false;
@@ -379,11 +385,23 @@ zink_blit_region_fills(struct u_rect region, unsigned width, unsigned height)
 bool
 zink_blit_region_covers(struct u_rect region, struct u_rect covers)
 {
+   struct u_rect r = {
+      MIN2(region.x0, region.x1),
+      MAX2(region.x0, region.x1),
+      MIN2(region.y0, region.y1),
+      MAX2(region.y0, region.y1),
+   };
+   struct u_rect c = {
+      MIN2(covers.x0, covers.x1),
+      MAX2(covers.x0, covers.x1),
+      MIN2(covers.y0, covers.y1),
+      MAX2(covers.y0, covers.y1),
+   };
    struct u_rect intersect;
-   if (!u_rect_test_intersection(&region, &covers))
+   if (!u_rect_test_intersection(&r, &c))
       return false;
 
-    u_rect_union(&intersect, &region, &covers);
-    return intersect.x0 == covers.x0 && intersect.y0 == covers.y0 &&
-           intersect.x1 == covers.x1 && intersect.y1 == covers.y1;
+    u_rect_union(&intersect, &r, &c);
+    return intersect.x0 == c.x0 && intersect.y0 == c.y0 &&
+           intersect.x1 == c.x1 && intersect.y1 == c.y1;
 }

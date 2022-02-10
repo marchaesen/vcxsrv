@@ -30,7 +30,6 @@
 #include "st_context.h"
 #include "st_format.h"
 #include "st_texture.h"
-#include "st_cb_fbo.h"
 #include "main/enums.h"
 
 #include "pipe/p_state.h"
@@ -252,14 +251,13 @@ st_texture_match_image(struct st_context *st,
  * \return address of mapping or NULL if any error
  */
 GLubyte *
-st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
+st_texture_image_map(struct st_context *st, struct gl_texture_image *stImage,
                      enum pipe_map_flags usage,
                      GLuint x, GLuint y, GLuint z,
                      GLuint w, GLuint h, GLuint d,
                      struct pipe_transfer **transfer)
 {
-   struct st_texture_object *stObj =
-      st_texture_object(stImage->base.TexObject);
+   struct gl_texture_object *stObj = stImage->TexObject;
    GLuint level;
    void *map;
 
@@ -271,16 +269,16 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
    if (stObj->pt != stImage->pt)
       level = 0;
    else
-      level = stImage->base.Level;
+      level = stImage->Level;
 
-   if (stObj->base.Immutable) {
-      level += stObj->base.Attrib.MinLevel;
-      z += stObj->base.Attrib.MinLayer;
+   if (stObj->Immutable) {
+      level += stObj->Attrib.MinLevel;
+      z += stObj->Attrib.MinLayer;
       if (stObj->pt->array_size > 1)
-         d = MIN2(d, stObj->base.Attrib.NumLayers);
+         d = MIN2(d, stObj->Attrib.NumLayers);
    }
 
-   z += stImage->base.Face;
+   z += stImage->Face;
 
    map = pipe_texture_map_3d(st->pipe, stImage->pt, level, usage,
                               x, y, z, w, h, d, transfer);
@@ -306,16 +304,15 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
 
 void
 st_texture_image_unmap(struct st_context *st,
-                       struct st_texture_image *stImage, unsigned slice)
+                       struct gl_texture_image *stImage, unsigned slice)
 {
    struct pipe_context *pipe = st->pipe;
-   struct st_texture_object *stObj =
-      st_texture_object(stImage->base.TexObject);
+   struct gl_texture_object *stObj = stImage->TexObject;
    struct pipe_transfer **transfer;
 
-   if (stObj->base.Immutable)
-      slice += stObj->base.Attrib.MinLayer;
-   transfer = &stImage->transfer[slice + stImage->base.Face].transfer;
+   if (stObj->Immutable)
+      slice += stObj->Attrib.MinLayer;
+   transfer = &stImage->transfer[slice + stImage->Face].transfer;
 
    DBG("%s\n", __func__);
 

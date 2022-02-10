@@ -65,8 +65,7 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b, bool dword_packed, bool 
           */
          assert(!dword_packed);
          load_result = nir_load_ubo_vec4(b, instr->num_components, instr->dest.ssa.bit_size,
-                                         ubo_idx,
-                                         nir_iadd_imm(b, uniform_offset, nir_intrinsic_base(instr)));
+                                         ubo_idx, uniform_offset, .base=nir_intrinsic_base(instr));
       } else {
          /* For PIPE_CAP_PACKED_UNIFORMS, the uniforms are packed with the
           * base/offset in dword units instead of vec4 units.

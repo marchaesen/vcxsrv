@@ -37,7 +37,6 @@ spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
 spec@arb_bindless_texture@compiler@images@arith-bound-image.frag,Crash
 spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag,Crash
-spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.frag,Fail
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.vert,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
@@ -118,7 +117,6 @@ spec@ext_framebuffer_multisample@turn-on-off 6,Fail
 spec@ext_framebuffer_multisample@turn-on-off 8,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail

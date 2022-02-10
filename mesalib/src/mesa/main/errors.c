@@ -414,6 +414,11 @@ _mesa_log(const char *fmtString, ...)
    output_if_debug(NULL, s, GL_FALSE);
 }
 
+void
+_mesa_log_direct(const char *string)
+{
+   output_if_debug(NULL, string, GL_TRUE);
+}
 
 /**
  * Report debug information from the shader compiler via GL_ARB_debug_output.

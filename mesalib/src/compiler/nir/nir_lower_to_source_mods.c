@@ -78,8 +78,10 @@ nir_lower_to_source_mods_block(nir_block *block,
          case nir_type_float:
             if (!(options & nir_lower_float_source_mods))
                continue;
-            if (parent->op != nir_op_fabs && parent->op != nir_op_fneg)
+            if (!(parent->op == nir_op_fabs && (options & nir_lower_fabs_source_mods)) &&
+                !(parent->op == nir_op_fneg && (options & nir_lower_fneg_source_mods))) {
                continue;
+            }
             break;
          case nir_type_int:
             if (!(options & nir_lower_int_source_mods))

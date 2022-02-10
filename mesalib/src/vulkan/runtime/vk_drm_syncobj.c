@@ -222,7 +222,7 @@ vk_drm_syncobj_import_opaque_fd(struct vk_device *device,
    int err = drmSyncobjFDToHandle(device->drm_fd, fd, &new_handle);
    if (err) {
       return vk_errorf(device, VK_ERROR_UNKNOWN,
-                       "DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD failed: %m");
+                       "DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE failed: %m");
    }
 
    err = drmSyncobjDestroy(device->drm_fd, sobj->syncobj);

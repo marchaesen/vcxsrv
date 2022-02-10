@@ -25,7 +25,12 @@
 
 #include <xwayland-config.h>
 
+#if !defined(SYSV) && !defined(WIN32)
+#include <sys/resource.h>
+#endif
+
 #include <stdio.h>
+#include <errno.h>
 
 #include <X11/Xatom.h>
 #include <selection.h>
@@ -34,6 +39,7 @@
 #include <compositeext.h>
 #include <compint.h>
 #include <glx_extinit.h>
+#include <opaque.h>
 #include <os.h>
 #include <xserver_poll.h>
 #include <propertyst.h>
@@ -112,6 +118,33 @@ xwl_show_version(void)
 #if defined(BUILDERSTRING)
     if (strlen(BUILDERSTRING))
         ErrorF("%s\n", BUILDERSTRING);
+#endif
+}
+
+static void
+try_raising_nofile_limit(void)
+{
+#ifdef RLIMIT_NOFILE
+    struct rlimit rlim;
+
+    /* Only fiddle with the limit if not set explicitly from the command line */
+    if (limitNoFile >= 0)
+        return;
+
+    if (getrlimit(RLIMIT_NOFILE, &rlim) < 0) {
+        ErrorF("Failed to get the current nofile limit: %s\n", strerror(errno));
+        return;
+    }
+
+    rlim.rlim_cur = rlim.rlim_max;
+
+    if (setrlimit(RLIMIT_NOFILE, &rlim) < 0) {
+        ErrorF("Failed to set the current nofile limit: %s\n", strerror(errno));
+        return;
+    }
+
+    LogMessageVerb(X_INFO, 3, "Raising the file descriptors limit to %li\n",
+                   rlim.rlim_max);
 #endif
 }
 
@@ -268,9 +301,11 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
     screen_info->bitmapBitOrder = BITMAP_BIT_ORDER;
     screen_info->numPixmapFormats = ARRAY_SIZE(depths);
 
-    if (serverGeneration == 1)
+    if (serverGeneration == 1) {
+        try_raising_nofile_limit();
         LoadExtensionList(xwayland_extensions,
                           ARRAY_SIZE(xwayland_extensions), FALSE);
+    }
 
     wl_log_set_handler_client(xwl_log_handler);
 

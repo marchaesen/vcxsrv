@@ -7373,7 +7373,7 @@ int format_function_key(char *buf, Terminal *term, int key_number,
     assert(key_number < lenof(key_number_to_tilde_code));
 
     int index = key_number;
-    if (term->funky_type != FUNKY_XTERM_216) {
+    if (term->funky_type != FUNKY_XTERM_216 && term->funky_type != FUNKY_SCO) {
         if (shift && index <= 10) {
             shift = false;
             index += 10;
@@ -7677,7 +7677,8 @@ static inline SeatPromptResult signal_prompts_t(Terminal *term, prompts_t *p,
 {
     assert(p->callback && "Asynchronous userpass input requires a callback");
     queue_toplevel_callback(p->callback, p->callback_ctx);
-    ldisc_enable_prompt_callback(term->ldisc, NULL);
+    if (term->ldisc)
+        ldisc_enable_prompt_callback(term->ldisc, NULL);
     p->spr = spr;
     return spr;
 }

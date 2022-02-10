@@ -103,48 +103,46 @@ rescale (GtkWidget *may_be_null, app_t *app)
 }
 
 static gboolean
-on_expose (GtkWidget *da, GdkEvent *event, gpointer data)
+on_draw (GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-    app_t *app = data;
-    GdkRectangle *area = &event->expose.area;
+    app_t *app = user_data;
+    GdkRectangle area;
     cairo_surface_t *surface;
     pixman_image_t *tmp, *final;
-    cairo_t *cr;
     uint32_t *pixels;
 
+    gdk_cairo_get_clip_rectangle(cr, &area);
+
     tmp = pixman_image_create_bits (
-	app->format, area->width, area->height, NULL, 0);
+	app->format, area.width, area.height, NULL, 0);
     pixman_image_set_dither (tmp, app->dither);
 
     pixman_image_composite (
 	PIXMAN_OP_SRC,
 	app->original, NULL, tmp,
-	area->x, area->y, 0, 0, 0, 0,
-	app->width - area->x,
-	app->height - area->y);
+	area.x, area.y, 0, 0, 0, 0,
+	app->width - area.x,
+	app->height - area.y);
 
-    pixels = calloc (1, area->width * area->height * 4);
+    pixels = calloc (1, area.width * area.height * 4);
     final = pixman_image_create_bits (
-	PIXMAN_a8r8g8b8, area->width, area->height, pixels, area->width * 4);
+	PIXMAN_a8r8g8b8, area.width, area.height, pixels, area.width * 4);
 
     pixman_image_composite (
 	PIXMAN_OP_SRC,
 	tmp, NULL, final,
-	area->x, area->y, 0, 0, 0, 0,
-	app->width - area->x,
-	app->height - area->y);
+	area.x, area.y, 0, 0, 0, 0,
+	app->width - area.x,
+	app->height - area.y);
 
     surface = cairo_image_surface_create_for_data (
 	(uint8_t *)pixels, CAIRO_FORMAT_ARGB32,
-	area->width, area->height, area->width * 4);
+	area.width, area.height, area.width * 4);
 
-    cr = gdk_cairo_create (da->window);
-
-    cairo_set_source_surface (cr, surface, area->x, area->y);
+    cairo_set_source_surface (cr, surface, area.x, area.y);
 
     cairo_paint (cr);
 
-    cairo_destroy (cr);
     cairo_surface_destroy (surface);
     free (pixels);
     pixman_image_unref (final);
@@ -211,7 +209,7 @@ app_new (pixman_image_t *original)
 	g_error ("Could not read file dither.ui: %s", err->message);
 
     widget = get_widget (app, "drawing_area");
-    g_signal_connect (widget, "expose_event", G_CALLBACK (on_expose), app);
+    g_signal_connect (widget, "draw", G_CALLBACK (on_draw), app);
 
     set_up_combo_box (app, "target_format_combo_box",
 		      G_N_ELEMENTS (formats), formats);

@@ -27,6 +27,7 @@
 
 #include "vk_util.h"
 #include "wsi_common.h"
+#include "wsi_common_drm.h"
 #include "drm-uapi/drm_fourcc.h"
 
 static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
@@ -34,6 +35,14 @@ tu_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
    TU_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
    return vk_instance_get_proc_addr_unchecked(&pdevice->instance->vk, pName);
+}
+
+static bool
+tu_wsi_can_present_on_device(VkPhysicalDevice physicalDevice, int fd)
+{
+   TU_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
+
+   return wsi_common_drm_devices_equal(fd, pdevice->local_fd);
 }
 
 VkResult
@@ -52,6 +61,9 @@ tu_wsi_init(struct tu_physical_device *physical_device)
       return result;
 
    physical_device->wsi_device.supports_modifiers = true;
+   physical_device->wsi_device.can_present_on_device =
+      tu_wsi_can_present_on_device;
+
    physical_device->vk.wsi_device = &physical_device->wsi_device;
 
    return VK_SUCCESS;
@@ -71,8 +83,8 @@ tu_AcquireNextImage2KHR(VkDevice _device,
                         uint32_t *pImageIndex)
 {
    TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_syncobj, fence, pAcquireInfo->fence);
-   TU_FROM_HANDLE(tu_syncobj, semaphore, pAcquireInfo->semaphore);
+   VK_FROM_HANDLE(vk_fence, fence, pAcquireInfo->fence);
+   VK_FROM_HANDLE(vk_semaphore, semaphore, pAcquireInfo->semaphore);
 
    struct tu_physical_device *pdevice = device->physical_device;
 
@@ -80,7 +92,9 @@ tu_AcquireNextImage2KHR(VkDevice _device,
       &pdevice->wsi_device, _device, pAcquireInfo, pImageIndex);
 
    /* signal fence/semaphore - image is available immediately */
-   tu_signal_fences(device, fence, semaphore);
+   tu_signal_syncs(device,
+                   fence ? vk_fence_get_active_sync(fence) : NULL,
+                   semaphore ? vk_semaphore_get_active_sync(semaphore) : NULL);
 
    return result;
 }
@@ -89,8 +103,6 @@ VKAPI_ATTR VkResult VKAPI_CALL
 tu_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
 {
    TU_FROM_HANDLE(tu_queue, queue, _queue);
-
-   u_trace_context_process(&queue->device->trace_context, true);
 
    return wsi_common_queue_present(
       &queue->device->physical_device->wsi_device,

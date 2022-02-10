@@ -23,6 +23,10 @@
 
 #include "vk_instance.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* __VK_ARG_N(...) returns the number of arguments provided to it  */
 #define __VK_ARG_SEQ(_1,_2,_3,_4,_5,_6,_7,_8,N,...) N
 #define __VK_ARG_N(...) __VK_ARG_SEQ(__VA_ARGS__,8,7,6,5,4,3,2,1,0)
@@ -87,3 +91,7 @@ VkResult PRINTFLIKE(5, 6)
 __vk_errorf(const void *_obj, VkResult error,
             const char *file, int line,
             const char *format, ...);
+
+#ifdef __cplusplus
+}
+#endif

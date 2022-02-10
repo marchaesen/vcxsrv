@@ -818,39 +818,6 @@ _mesa_set_vao_immutable(struct gl_context *ctx,
 }
 
 
-bool
-_mesa_all_varyings_in_vbos(const struct gl_vertex_array_object *vao)
-{
-   /* Walk those enabled arrays that have the default vbo attached */
-   GLbitfield mask = vao->Enabled & ~vao->VertexAttribBufferMask;
-
-   while (mask) {
-      /* Do not use u_bit_scan64 as we can walk multiple
-       * attrib arrays at once
-       */
-      const int i = ffs(mask) - 1;
-      const struct gl_array_attributes *attrib_array =
-         &vao->VertexAttrib[i];
-      const struct gl_vertex_buffer_binding *buffer_binding =
-         &vao->BufferBinding[attrib_array->BufferBindingIndex];
-
-      /* We have already masked out vao->VertexAttribBufferMask  */
-      assert(!buffer_binding->BufferObj);
-
-      /* Bail out once we find the first non vbo with a non zero stride */
-      if (buffer_binding->Stride != 0)
-         return false;
-
-      /* Note that we cannot use the xor variant since the _BoundArray mask
-       * may contain array attributes that are bound but not enabled.
-       */
-      mask &= ~buffer_binding->_BoundArrays;
-   }
-
-   return true;
-}
-
-
 /**
  * Map buffer objects used in attribute arrays.
  */

@@ -90,7 +90,7 @@ static int make_pipe_to_askpass(const char *msg)
         cloexec(pipefds[1]);
 
         /*
-         * See comment in fork_and_exec_self() in gtkmain.c.
+         * See comment in fork_and_exec_self() in main-gtk-simple.c.
          */
         execv("/proc/self/exe", (char **)args);
         execvp(progname, (char **)args);
@@ -206,7 +206,7 @@ static void usage(void)
     printf("  --public-openssh, -L   print public keys in OpenSSH format\n");
     printf("  -d           delete key(s) from the agent\n");
     printf("  -D           delete all keys from the agent\n");
-    printf("  -r           re-encrypt keys in the agent (forget cleartext\n");
+    printf("  -r           re-encrypt keys in the agent (forget cleartext)\n");
     printf("  -R           re-encrypt all possible keys in the agent\n");
     printf("Other options:\n");
     printf("  -v           verbose mode (in agent mode)\n");

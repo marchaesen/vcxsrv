@@ -522,6 +522,7 @@ DisableDevice(DeviceIntPtr dev, BOOL sendevent)
     }
 
     RecalculateMasterButtons(dev);
+    dev->master = NULL;
 
     return TRUE;
 }
@@ -2624,6 +2625,8 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
     if (IsFloating(dev) && !master && dev->enabled)
         return Success;
 
+    input_lock();
+
     /* free the existing sprite. */
     if (IsFloating(dev) && dev->spriteInfo->paired == dev) {
         screen = miPointerGetScreen(dev);
@@ -2664,6 +2667,7 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
         RecalculateMasterButtons(master);
     }
 
+    input_unlock();
     /* XXX: in theory, the MD should change back to its old, original
      * classes when the last SD is detached. Thanks to the XTEST devices,
      * we'll always have an SD attached until the MD is removed.

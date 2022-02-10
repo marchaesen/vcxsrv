@@ -398,8 +398,8 @@ bool pan_has_dest_mod(nir_dest **dest, nir_op op);
 #define PAN_WRITEOUT_C 1
 #define PAN_WRITEOUT_Z 2
 #define PAN_WRITEOUT_S 4
+#define PAN_WRITEOUT_2 8
 
-bool pan_nir_reorder_writeout(nir_shader *nir);
 bool pan_nir_lower_zs_store(nir_shader *nir);
 
 bool pan_nir_lower_64bit_intrin(nir_shader *shader);

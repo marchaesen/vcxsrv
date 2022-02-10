@@ -146,6 +146,7 @@ struct radeon_compiler_pass {
 };
 
 struct rc_program_stats {
+	unsigned num_consts;
 	unsigned num_insts;
 	unsigned num_fc_insts;
 	unsigned num_tex_insts;

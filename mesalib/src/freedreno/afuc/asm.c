@@ -248,6 +248,8 @@ emit_instructions(int outfd)
                opc = OPC_STORE6;
             } else if (ai->tok == T_OP_LOAD) {
                opc = OPC_LOAD6;
+            } else {
+               unreachable("");
             }
          } else {
             if (ai->tok == T_OP_CWRITE) {
@@ -257,6 +259,8 @@ emit_instructions(int outfd)
             } else if (ai->tok == T_OP_STORE || ai->tok == T_OP_LOAD) {
                fprintf(stderr, "load and store do not exist on a5xx\n");
                exit(1);
+            } else {
+               unreachable("");
             }
          }
          instr.control.src1 = ai->src1;

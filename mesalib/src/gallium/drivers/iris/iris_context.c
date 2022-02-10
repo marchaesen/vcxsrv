@@ -33,6 +33,7 @@
 #include "iris_context.h"
 #include "iris_resource.h"
 #include "iris_screen.h"
+#include "iris_utrace.h"
 #include "common/intel_defines.h"
 #include "common/intel_sample_positions.h"
 
@@ -70,6 +71,8 @@ iris_lost_context_state(struct iris_batch *batch)
       batch->screen->vtbl.init_render_context(batch);
    } else if (batch->name == IRIS_BATCH_COMPUTE) {
       batch->screen->vtbl.init_compute_context(batch);
+   } else if (batch->name == IRIS_BATCH_BLITTER) {
+      /* No state to set up */
    } else {
       unreachable("unhandled batch reset");
    }
@@ -95,12 +98,12 @@ iris_get_device_reset_status(struct pipe_context *ctx)
    /* Check the reset status of each batch's hardware context, and take the
     * worst status (if one was guilty, proclaim guilt).
     */
-   for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
+   iris_foreach_batch(ice, batch) {
       /* This will also recreate the hardware contexts as necessary, so any
        * future queries will show no resets.  We only want to report once.
        */
       enum pipe_reset_status batch_reset =
-         iris_batch_check_for_reset(&ice->batches[i]);
+         iris_batch_check_for_reset(batch);
 
       if (batch_reset == PIPE_NO_RESET)
          continue;
@@ -208,7 +211,6 @@ iris_flush_dirty_dmabufs(struct iris_context *ice)
    clear_dirty_dmabuf_set(ice);
 }
 
-
 /**
  * Destroy a context, freeing any associated memory.
  */
@@ -242,6 +244,8 @@ iris_destroy_context(struct pipe_context *ctx)
 
    iris_destroy_batches(ice);
    iris_destroy_binder(&ice->state.binder);
+
+   iris_utrace_fini(ice);
 
    slab_destroy_child(&ice->transfer_pool);
    slab_destroy_child(&ice->transfer_pool_unsync);
@@ -360,6 +364,9 @@ iris_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
    if (INTEL_DEBUG(DEBUG_BATCH))
       ice->state.sizes = _mesa_hash_table_u64_create(ice);
+
+   /* Do this before initializing the batches */
+   iris_utrace_init(ice);
 
    iris_init_batches(ice, priority);
 

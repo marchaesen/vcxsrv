@@ -1233,6 +1233,7 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
       struct u_rect src_rect, dst_rect;
 
       surf->templat.interlaced = false;
+      surf->obsolete_buf = surf->buffer;
 
       ret = vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0);
       if (ret != VA_STATUS_SUCCESS) {
@@ -1251,7 +1252,8 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
                                    VL_COMPOSITOR_WEAVE);
 
       interlaced->destroy(interlaced);
-   }
+   } else
+      surf->obsolete_buf = NULL;
 
    surfaces = surf->buffer->get_surfaces(surf->buffer);
 
@@ -1260,8 +1262,8 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
       usage |= PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE;
 
    desc->fourcc = PipeFormatToVaFourcc(surf->buffer->buffer_format);
-   desc->width  = surf->buffer->width;
-   desc->height = surf->buffer->height;
+   desc->width  = surf->templat.width;
+   desc->height = surf->templat.height;
 
    for (p = 0; p < VL_MAX_SURFACES; p++) {
       struct winsys_handle whandle;
@@ -1289,7 +1291,7 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
       }
 
       desc->objects[p].fd   = (int)whandle.handle;
-      desc->objects[p].size = 0;
+      desc->objects[p].size = surf->templat.width * surf->templat.height;
       desc->objects[p].drm_format_modifier = whandle.modifier;
 
       if (flags & VA_EXPORT_SURFACE_COMPOSED_LAYERS) {

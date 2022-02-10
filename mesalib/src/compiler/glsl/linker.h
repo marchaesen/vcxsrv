@@ -40,7 +40,7 @@ link_invalidate_variable_locations(exec_list *ir);
 
 extern void
 link_assign_uniform_locations(struct gl_shader_program *prog,
-                              struct gl_context *ctx);
+                              const struct gl_constants *consts);
 
 extern void
 link_set_uniform_initializers(struct gl_shader_program *prog,
@@ -54,7 +54,7 @@ link_cross_validate_uniform_block(void *mem_ctx,
 
 extern void
 link_uniform_blocks(void *mem_ctx,
-                    struct gl_context *ctx,
+                    const struct gl_constants *consts,
                     struct gl_shader_program *prog,
                     struct gl_linked_shader *shader,
                     struct gl_uniform_block **ubo_blocks,
@@ -83,11 +83,11 @@ validate_interstage_uniform_blocks(struct gl_shader_program *prog,
                                    gl_linked_shader **stages);
 
 extern void
-link_assign_atomic_counter_resources(struct gl_context *ctx,
+link_assign_atomic_counter_resources(const struct gl_constants *consts,
                                      struct gl_shader_program *prog);
 
 extern void
-link_check_atomic_counter_resources(struct gl_context *ctx,
+link_check_atomic_counter_resources(const struct gl_constants *consts,
                                     struct gl_shader_program *prog);
 
 

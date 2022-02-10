@@ -25,6 +25,7 @@
  **********************************************************/
 
 #include "util/format/u_format.h"
+#include "util/u_bitmask.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "pipe/p_defines.h"
@@ -40,6 +41,44 @@
 #include "svga_shader.h"
 
 #include "svga_hw_reg.h"
+
+
+static unsigned
+svga_get_image_size_constant(const struct svga_context *svga, float **dest,
+                             enum pipe_shader_type shader,
+                             unsigned num_image_views,
+                             const struct svga_image_view images[PIPE_SHADER_TYPES][SVGA3D_MAX_UAVIEWS])
+{
+   uint32_t *dest_u = (uint32_t *) *dest;
+
+   for (int i = 0; i < num_image_views; i++) {
+      if (images[shader][i].desc.resource) {
+         if (images[shader][i].desc.resource->target == PIPE_BUFFER) {
+            unsigned bytes_per_element = util_format_get_blocksize(images[shader][i].desc.format);
+            *dest_u++ = images[shader][i].desc.resource->width0 / bytes_per_element;
+         }
+         else
+            *dest_u++ = images[shader][i].desc.resource->width0;
+
+         if (images[shader][i].desc.resource->target == PIPE_TEXTURE_1D_ARRAY)
+            *dest_u++ = images[shader][i].desc.resource->array_size;
+         else
+            *dest_u++ = images[shader][i].desc.resource->height0;
+
+         if (images[shader][i].desc.resource->target == PIPE_TEXTURE_2D_ARRAY)
+            *dest_u++ = images[shader][i].desc.resource->array_size;
+         else if (images[shader][i].desc.resource->target == PIPE_TEXTURE_CUBE_ARRAY)
+            *dest_u++ = images[shader][i].desc.resource->array_size / 6;
+         else
+            *dest_u++ = images[shader][i].desc.resource->depth0;
+         *dest_u++ = 1; // Later this can be used for sample counts
+      }
+      else {
+         *dest_u += 4;
+      }
+   }
+   return num_image_views;
+}
 
 
 /*
@@ -103,6 +142,14 @@ svga_get_extra_constants_common(const struct svga_context *svga,
          }
       }
    }
+
+   /* image_size */
+   if (variant->key.image_size_used) {
+      count += svga_get_image_size_constant(svga, &dest, shader,
+                  svga->state.hw_draw.num_image_views[shader],
+                  svga->state.hw_draw.image_views);
+   }
+
 
    return count;
 }
@@ -572,6 +619,121 @@ emit_consts_vgpu9(struct svga_context *svga, enum pipe_shader_type shader)
 
 
 /**
+ * A helper function to destroy any pending unused srv.
+ */
+void
+svga_destroy_rawbuf_srv(struct svga_context *svga)
+{
+   unsigned index = 0;
+
+   while ((index = util_bitmask_get_next_index(
+                      svga->sampler_view_to_free_id_bm, index))
+           != UTIL_BITMASK_INVALID_INDEX) {
+
+      SVGA_RETRY(svga, SVGA3D_vgpu10_DestroyShaderResourceView(svga->swc,
+                                                               index));
+      util_bitmask_clear(svga->sampler_view_id_bm, index);
+      util_bitmask_clear(svga->sampler_view_to_free_id_bm, index);
+   }
+}
+
+/**
+ * A helper function to emit constant buffer as srv raw buffer.
+ */
+static enum pipe_error
+emit_rawbuf(struct svga_context *svga,
+            unsigned slot,
+            enum pipe_shader_type shader,
+            unsigned buffer_offset,
+            unsigned buffer_size,
+            void *buffer)
+{
+   enum pipe_error ret = PIPE_OK;
+   struct svga_raw_buffer *rawbuf = &svga->state.hw_draw.rawbufs[shader][slot];
+   struct svga_winsys_surface *buf_handle = NULL;
+   unsigned srvid = SVGA3D_INVALID_ID;
+   unsigned enabled_rawbufs = svga->state.hw_draw.enabled_rawbufs[shader];
+
+   SVGA_STATS_TIME_PUSH(svga_sws(svga), SVGA_STATS_TIME_EMITRAWBUFFER);
+
+   if (buffer == NULL) {
+      if ((svga->state.hw_draw.enabled_rawbufs[shader] & (1 << slot)) == 0) {
+         goto done;
+      }
+      enabled_rawbufs &= ~(1 << slot);
+   }
+   else {
+      if ((rawbuf->buffer_offset != buffer_offset) ||
+          (rawbuf->buffer_size != buffer_size) ||
+          (rawbuf->buffer != buffer)) {
+
+         /* Add the current srvid to the delete list */
+         if (rawbuf->srvid != SVGA3D_INVALID_ID) {
+            util_bitmask_set(svga->sampler_view_to_free_id_bm, rawbuf->srvid);
+            rawbuf->srvid = SVGA3D_INVALID_ID;
+         }
+
+         buf_handle = svga_buffer_handle(svga, buffer,
+                                        PIPE_BIND_SAMPLER_VIEW);
+         if (!buf_handle) {
+            ret = PIPE_ERROR_OUT_OF_MEMORY;
+            goto done;
+         }
+
+         /* Create a srv for the constant buffer */
+         srvid = util_bitmask_add(svga->sampler_view_id_bm);
+
+         SVGA3dShaderResourceViewDesc viewDesc;
+         viewDesc.bufferex.firstElement = buffer_offset / 4;
+         viewDesc.bufferex.numElements = buffer_size / 4;
+         viewDesc.bufferex.flags = SVGA3D_BUFFEREX_SRV_RAW;
+
+         ret = SVGA3D_vgpu10_DefineShaderResourceView(svga->swc,
+                  srvid, buf_handle, SVGA3D_R32_TYPELESS,
+                  SVGA3D_RESOURCE_BUFFEREX, &viewDesc);
+
+         if (ret != PIPE_OK) {
+            util_bitmask_clear(svga->sampler_view_id_bm, srvid);
+            goto done;
+         }
+
+         /* Save the current raw buffer attributes in the slot */
+         rawbuf->srvid = srvid;
+         rawbuf->buffer_size = buffer_size;
+         rawbuf->buffer = buffer;
+         rawbuf->handle = buf_handle;
+
+         SVGA_STATS_COUNT_INC(svga_sws(svga), SVGA_STATS_COUNT_RAWBUFFERSRVIEW);
+      }
+      else {
+         /* Same buffer attributes in the slot. Can use the same SRV. */
+         assert(rawbuf->srvid != SVGA3D_INVALID_ID);
+         srvid = rawbuf->srvid;
+         buf_handle = rawbuf->handle;
+      }
+      enabled_rawbufs |= (1 << slot);
+   }
+
+   ret = SVGA3D_vgpu10_SetShaderResources(svga->swc,
+                                          svga_shader_type(shader),
+                                          slot + PIPE_MAX_SAMPLERS,
+                                          1,
+                                          &srvid,
+                                          &buf_handle);
+   if (ret != PIPE_OK) {
+      goto done;
+   }
+
+   /* Save the enabled rawbuf state */
+   svga->state.hw_draw.enabled_rawbufs[shader] = enabled_rawbufs;
+
+done:
+   SVGA_STATS_TIME_POP(svga_sws(svga));
+   return ret;
+}
+
+
+/**
  * A helper function to emit a constant buffer binding at the
  * specified slot for the specified shader type
  */
@@ -677,6 +839,9 @@ emit_constbuf(struct svga_context *svga,
    }
 
    assert(new_buf_size % 16 == 0);
+
+   /* clamp the buf size before sending the command */
+   new_buf_size = MIN2(new_buf_size, SVGA3D_DX_MAX_CONSTBUF_BINDING_SIZE);
 
    const struct svga_screen *screen = svga_screen(svga->pipe.screen);
    const struct svga_winsys_screen *sws = screen->sws;
@@ -850,11 +1015,42 @@ emit_constbuf_vgpu10(struct svga_context *svga, enum pipe_shader_type shader)
 
       assert(size % 16 == 0);
 
-      ret = emit_constbuf(svga, index, shader, offset, size, buffer,
-                          0, 0, NULL);
-      if (ret != PIPE_OK)
-         return ret;
+      /**
+       * If the buffer has been bound as an uav buffer, it will
+       * need to be bound as a shader resource raw buffer.
+       */
+      if (svga->state.raw_constbufs[shader] & (1 << index)) {
+         ret = emit_rawbuf(svga, index, shader, offset, size, buffer);
+         if (ret != PIPE_OK) {
+            return ret;
+         }
 
+         ret = emit_constbuf(svga, index, shader, 0, 0, NULL,
+                             0, 0, NULL);
+         if (ret != PIPE_OK) {
+            return ret;
+         }
+
+         /* Remove the rawbuf from the to-be-enabled constbuf list
+          * so the buffer will not be referenced again as constant buffer
+          * at resource validation time.
+          */
+         enabled_constbufs &= ~(1 << index);
+      }
+      else {
+         if (svga->state.hw_draw.enabled_rawbufs[shader] & (1 << index)) {
+            ret = emit_rawbuf(svga, index, shader, offset, size, NULL);
+            if (ret != PIPE_OK) {
+               return ret;
+            }
+         }
+
+         ret = emit_constbuf(svga, index, shader, offset, size, buffer,
+                          0, 0, NULL);
+         if (ret != PIPE_OK) {
+            return ret;
+         }
+      }
       svga->hud.num_const_buf_updates++;
    }
 
@@ -909,7 +1105,8 @@ emit_fs_constbuf(struct svga_context *svga, uint64_t dirty)
 struct svga_tracked_state svga_hw_fs_constants =
 {
    "hw fs params",
-   (SVGA_NEW_FS_CONSTS |
+   (SVGA_NEW_IMAGE_VIEW |
+    SVGA_NEW_FS_CONSTS |
     SVGA_NEW_FS_VARIANT |
     SVGA_NEW_TEXTURE_CONSTS),
    emit_fs_consts
@@ -972,6 +1169,7 @@ struct svga_tracked_state svga_hw_vs_constants =
 {
    "hw vs params",
    (SVGA_NEW_PRESCALE |
+    SVGA_NEW_IMAGE_VIEW |
     SVGA_NEW_VS_CONSTS |
     SVGA_NEW_VS_VARIANT |
     SVGA_NEW_TEXTURE_CONSTS),
@@ -1040,6 +1238,7 @@ struct svga_tracked_state svga_hw_gs_constants =
 {
    "hw gs params",
    (SVGA_NEW_PRESCALE |
+    SVGA_NEW_IMAGE_VIEW |
     SVGA_NEW_GS_CONSTS |
     SVGA_NEW_RAST |
     SVGA_NEW_GS_VARIANT |
@@ -1102,7 +1301,8 @@ emit_tcs_constbuf(struct svga_context *svga, uint64_t dirty)
 struct svga_tracked_state svga_hw_tcs_constants =
 {
    "hw tcs params",
-   (SVGA_NEW_TCS_CONSTS |
+   (SVGA_NEW_IMAGE_VIEW |
+    SVGA_NEW_TCS_CONSTS |
     SVGA_NEW_TCS_VARIANT),
    emit_tcs_consts
 };
@@ -1161,6 +1361,7 @@ struct svga_tracked_state svga_hw_tes_constants =
 {
    "hw tes params",
    (SVGA_NEW_PRESCALE |
+    SVGA_NEW_IMAGE_VIEW |
     SVGA_NEW_TES_CONSTS |
     SVGA_NEW_TES_VARIANT),
    emit_tes_consts
@@ -1172,4 +1373,170 @@ struct svga_tracked_state svga_hw_tes_constbufs =
    "hw gs params",
    SVGA_NEW_TES_CONST_BUFFER,
    emit_tes_constbuf
+};
+
+
+/**
+ * Emit constant buffer for compute shader
+ */
+static enum pipe_error
+emit_cs_consts(struct svga_context *svga, uint64_t dirty)
+{
+   const struct svga_shader_variant *variant = svga->state.hw_draw.cs;
+   enum pipe_error ret = PIPE_OK;
+
+   assert(svga_have_sm5(svga));
+
+   /* SVGA_NEW_CS_VARIANT */
+   if (!variant)
+      return PIPE_OK;
+
+   /* SVGA_NEW_CS_CONST_BUFFER */
+   ret = emit_consts_vgpu10(svga, PIPE_SHADER_COMPUTE);
+
+   return ret;
+}
+
+
+static enum pipe_error
+emit_cs_constbuf(struct svga_context *svga, uint64_t dirty)
+{
+   const struct svga_shader_variant *variant = svga->state.hw_draw.cs;
+   enum pipe_error ret = PIPE_OK;
+
+   /* SVGA_NEW_CS_VARIANT
+    */
+   if (!variant)
+      return PIPE_OK;
+
+   /* SVGA_NEW_CS_CONSTBUF
+    */
+   assert(svga_have_vgpu10(svga));
+   ret = emit_constbuf_vgpu10(svga, PIPE_SHADER_COMPUTE);
+
+   return ret;
+}
+
+
+struct svga_tracked_state svga_hw_cs_constants =
+{
+   "hw cs params",
+   (SVGA_NEW_IMAGE_VIEW |
+    SVGA_NEW_CS_CONSTS |
+    SVGA_NEW_CS_VARIANT |
+    SVGA_NEW_TEXTURE_CONSTS),
+   emit_cs_consts
+};
+
+
+struct svga_tracked_state svga_hw_cs_constbufs =
+{
+   "hw cs params",
+   SVGA_NEW_CS_CONST_BUFFER,
+   emit_cs_constbuf
+};
+
+
+/**
+ * A helper function to update the rawbuf for constbuf mask
+ */
+static void
+update_rawbuf_mask(struct svga_context *svga, enum pipe_shader_type shader)
+{
+   unsigned dirty_constbufs;
+   unsigned enabled_constbufs;
+
+   enabled_constbufs = svga->state.hw_draw.enabled_constbufs[shader] | 1u;
+   dirty_constbufs = (svga->state.dirty_constbufs[shader]|enabled_constbufs) & ~1u;
+
+   while (dirty_constbufs) {
+      unsigned index = u_bit_scan(&dirty_constbufs);
+      struct svga_buffer *sbuf =
+         svga_buffer(svga->curr.constbufs[shader][index].buffer);
+
+      if (sbuf && sbuf->uav) {
+         svga->state.raw_constbufs[shader] |= (1 << index);
+      } else {
+         svga->state.raw_constbufs[shader] &= ~(1 << index);
+      }
+   }
+}
+
+
+/**
+ * update_rawbuf is called at hw state update time to determine
+ * if any of the bound constant buffers need to be bound as
+ * raw buffer srv. This function is called after uav state is
+ * updated and before shader variants are bound.
+ */
+static enum pipe_error
+update_rawbuf(struct svga_context *svga, uint64 dirty)
+{
+   uint64_t rawbuf_dirtybit[] = {
+      SVGA_NEW_VS_RAW_BUFFER,       /* PIPE_SHADER_VERTEX */
+      SVGA_NEW_FS_RAW_BUFFER,       /* PIPE_SHADER_FRAGMENT */
+      SVGA_NEW_GS_RAW_BUFFER,       /* PIPE_SHADER_GEOMETRY */
+      SVGA_NEW_TCS_RAW_BUFFER,      /* PIPE_SHADER_TESS_CTRL */
+      SVGA_NEW_TES_RAW_BUFFER,      /* PIPE_SHADER_TESS_EVAL */
+   };
+
+   for (enum pipe_shader_type shader = PIPE_SHADER_VERTEX;
+        shader <= PIPE_SHADER_TESS_EVAL; shader++) {
+      unsigned rawbuf_mask = svga->state.raw_constbufs[shader];
+
+      update_rawbuf_mask(svga, shader);
+
+      /* If the rawbuf state is different for the shader stage,
+       * send SVGA_NEW_XX_RAW_BUFFER to trigger a new shader
+       * variant that will use srv for ubo access.
+       */
+      if (svga->state.raw_constbufs[shader] != rawbuf_mask)
+         svga->dirty |= rawbuf_dirtybit[shader];
+   }
+
+   return PIPE_OK;
+}
+
+
+struct svga_tracked_state svga_need_rawbuf_srv =
+{
+   "raw buffer srv",
+   (SVGA_NEW_IMAGE_VIEW |
+    SVGA_NEW_SHADER_BUFFER |
+    SVGA_NEW_CONST_BUFFER),
+   update_rawbuf
+};
+
+
+/**
+ * update_cs_rawbuf is called at compute dispatch time to determine
+ * if any of the bound constant buffers need to be bound as
+ * raw buffer srv. This function is called after uav state is
+ * updated and before a compute shader variant is bound.
+ */
+static enum pipe_error
+update_cs_rawbuf(struct svga_context *svga, uint64 dirty)
+{
+   unsigned rawbuf_mask = svga->state.raw_constbufs[PIPE_SHADER_COMPUTE];
+
+   update_rawbuf_mask(svga, PIPE_SHADER_COMPUTE);
+
+   /* if the rawbuf state is different for the shader stage,
+    * send SVGA_NEW_RAW_BUFFER to trigger a new shader
+    * variant to use srv for ubo access.
+    */
+   if (svga->state.raw_constbufs[PIPE_SHADER_COMPUTE] != rawbuf_mask)
+      svga->dirty |= SVGA_NEW_CS_RAW_BUFFER;
+
+   return PIPE_OK;
+}
+
+
+struct svga_tracked_state svga_cs_need_rawbuf_srv =
+{
+   "raw buffer srv",
+   (SVGA_NEW_IMAGE_VIEW |
+    SVGA_NEW_SHADER_BUFFER |
+    SVGA_NEW_CONST_BUFFER),
+   update_cs_rawbuf
 };

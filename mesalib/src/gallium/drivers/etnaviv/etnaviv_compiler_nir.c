@@ -653,7 +653,7 @@ emit_if(struct etna_compile *c, nir_if * nif)
     */
    if (!nir_block_ends_in_jump(nir_if_last_then_block(nif)) &&
        !nir_cf_list_is_empty_block(&nif->else_list))
-      etna_emit_jump(c, nir_if_last_else_block(nif)->successors[0]->index, SRC_DISABLE);
+      etna_emit_jump(c, nir_if_last_then_block(nif)->successors[0]->index, SRC_DISABLE);
 
    emit_cf_list(c, &nif->else_list);
 }
@@ -1118,6 +1118,12 @@ etna_compile_shader_nir(struct etna_shader_variant *v)
    NIR_PASS_V(s, nir_lower_vars_to_ssa);
    NIR_PASS_V(s, nir_lower_indirect_derefs, nir_var_all, UINT32_MAX);
    NIR_PASS_V(s, nir_lower_tex, &(struct nir_lower_tex_options) { .lower_txp = ~0u });
+
+   if (v->key.has_sample_tex_compare)
+      NIR_PASS_V(s, nir_lower_tex_shadow, v->key.num_texture_states,
+                                          v->key.tex_compare_func,
+                                          v->key.tex_swizzle);
+
    NIR_PASS_V(s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, specs);
    nir_lower_idiv_options idiv_options = {
       .imprecise_32bit_lowering = true,

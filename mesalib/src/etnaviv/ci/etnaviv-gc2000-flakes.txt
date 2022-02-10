@@ -12,12 +12,6 @@ dEQP-GLES2.functional.fbo.render.color.mix_npot_tex2d_rgba_depth_component16
 dEQP-GLES2.functional.fbo.render.depth.npot_rbo_rgb565_depth_component16
 dEQP-GLES2.functional.fbo.render.depth.npot_tex2d_rgba_depth_component16
 dEQP-GLES2.functional.fbo.render.texsubimage.after_render_tex2d_rgb
-dEQP-GLES2.functional.rasterization.culling.both_triangle_fan
-dEQP-GLES2.functional.rasterization.culling.both_triangle_fan_reverse
-dEQP-GLES2.functional.rasterization.culling.both_triangle_strip
-dEQP-GLES2.functional.rasterization.culling.both_triangle_strip_reverse
-dEQP-GLES2.functional.rasterization.culling.both_triangles
-dEQP-GLES2.functional.rasterization.culling.both_triangles_reverse
 dEQP-GLES2.functional.shaders.random.all_features.fragment.*
 dEQP-GLES2.functional.shaders.random.texture.fragment.*
 dEQP-GLES2.functional.shaders.random.texture.vertex.*

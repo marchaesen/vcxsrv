@@ -42,7 +42,6 @@
 
 #include "panfrost/util/pan_lower_framebuffer.h"
 
-#include "panfrost-quirks.h"
 
 struct panvk_pipeline_builder
 {

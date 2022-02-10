@@ -1,11 +1,81 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.13.94 (2.14 RC4)
-                              2021-06-28
+                      Version 2.13.96 (2.14 RC6)
+                              2022-02-04
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.13.96 (2.14 RC6)
+
+Akira TAGOH (2):
+      Add a missing file 48-spacing.conf
+      Merge branch 'main' of ssh://gitlab.freedesktop.org/fontconfig/fontconfig
+
+2.13.95 (2.14 RC5)
+
+Akira TAGOH (18):
+      Do not set different score to non-string values
+      Enable 11-lcdfilter-default.conf by default
+      Bump the cache version to 8
+      Reflect matching results to binding in FcPattern
+      Fix a memory leak when trying to open a non-existing file
+      Fix score estimation for postscriptname
+      Resolves symlinks against <dir prefix="relative">
+      Add the option to not build fontconfig cache during installation
+      conf.d/60-latin.conf: Make Noto default.
+      Fix some testcase fails for 14c265a1
+      Fix the issue fail to obtain the style name
+      Apply the change made by 23e46d1 again
+      Initialize variable
+      Add more description for fc-conflist.1 and FcConfigFileInfoIterInit.3
+      Update CaseFolding.txt to Unicode 14
+      Add an user font directory for Win32 to the default font path
+      Add test/wrapper-script.sh to the archive
+      Fix possible memory leaks in FcPatternObjectAddWithBinding
+
+Alex Richardson (3):
+      fcint: add casts to allow building with stricter compilers
+      Add support for C11 stdatomic atomics
+      FcCharSetPutLeaf(): Fix missing move of new_leaves contents
+
+Behdad Esfahbod (1):
+      If a varfont has 'opsz' axis, set FC_SIZE on default instant pattern
+
+Ben Wagner (6):
+      Add memory order constraints to C11 atomics
+      Free local FcCache lock on contention
+      Extend test thread args lifetime
+      Fix warning about os2->achVendID cannot be NULL
+      Back FcSerialize with open addressing hash table.
+      Actually skip leading spaces in style name
+
+Francesco Pretto (1):
+      WIN32: Fix pGetSystemWindowsDirectory found initialized during FcConfigParseAndLoadFromMemory
+
+Mehdi Sabwat (1):
+      fcstat: add support for wasm-emscripten
+
+Nirbheek Chauhan (1):
+      meson: Remove summary() from version_compare() block
+
+Pierre Ducroquet (5):
+      Add a configuration to switch to monospace if spacing=100 is requested
+      Reference the new configuration file
+      Remove configuration file from POTFILES
+      It seems this qual doesn't work on integers
+      Always add the family name from spacing=100
+
+Ryan Gonzalez (1):
+      Ensure config.h is always included before stdlib headers
+
+Ryan Schmidt (5):
+      Avoid PCRE syntax when using grep
+      Remove Bugzilla references
+      Fix run-test.sh to work with BSD mktemp
+      Restore fcatomic compatibility with Mac OS X 10.4.
+      Fix FC_DEFAULT_FONTS on macOS and with BSD sed
 
 2.13.94 (2.14 RC4)
 

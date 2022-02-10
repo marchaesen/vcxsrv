@@ -374,6 +374,9 @@ The integer capabilities:
   and accesses to unbound resources.
 * ``PIPE_CAP_CULL_DISTANCE``: Whether the driver supports the arb_cull_distance
   extension and thus implements proper support for culling planes.
+* ``PIPE_CAP_CULL_DISTANCE_NOCOMBINE``: Whether the driver wants to skip
+  running the `nir_lower_clip_cull_distance_arrays` pass in order to get
+  VARYING_SLOT_CULL_DIST0 slot variables.
 * ``PIPE_CAP_PRIMITIVE_RESTART_FOR_PATCHES``: Whether primitive restart is
   supported for patch primitives.
 * ``PIPE_CAP_TGSI_VOTE``: Whether the ``VOTE_*`` ops can be used in shaders.
@@ -456,8 +459,6 @@ The integer capabilities:
 * ``PIPE_CAP_MEMOBJ``: Whether operations on memory objects are supported.
 * ``PIPE_CAP_LOAD_CONSTBUF``: True if the driver supports ``TGSI_OPCODE_LOAD`` use
   with constant buffers.
-* ``PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS``: Any TGSI register can be used as
-  an address for indirect register indexing.
 * ``PIPE_CAP_TILE_RASTER_ORDER``: Whether the driver supports
   GL_MESA_tile_raster_order, using the tile_raster_order_* fields in
   pipe_rasterizer_state.
@@ -636,6 +637,8 @@ The integer capabilities:
 * ``PIPE_CAP_MAX_SPARSE_3D_TEXTURE_SIZE``: Maximum 3D texture image dimension for a sparse texture.
 * ``PIPE_CAP_MAX_SPARSE_ARRAY_TEXTURE_LAYERS``: Maximum number of layers in a sparse array texture.
 * ``PIPE_CAP_SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS``: TRUE if there are no restrictions on the allocation of mipmaps in sparse textures and FALSE otherwise. See SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS_ARB description in ARB_sparse_texture extension spec.
+* ``PIPE_CAP_QUERY_SPARSE_TEXTURE_RESIDENCY``: TRUE if shader sparse texture sample instruction could also return the residency information.
+* ``PIPE_CAP_CLAMP_SPARSE_TEXTURE_LOD``: TRUE if shader sparse texture sample instruction support clamp the minimal lod to prevent read from un-committed pages.
 
 .. _pipe_capf:
 

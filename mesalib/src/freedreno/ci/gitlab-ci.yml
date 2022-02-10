@@ -27,7 +27,7 @@
   extends:
     - .piglit-traces-test
   variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/run.sh"
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-traces.sh"
     HWCI_START_XORG: 1
     PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-freedreno.yml"
   artifacts:
@@ -58,7 +58,6 @@ a306_gl:
     - .a306-test
     - .test-manual-mr
   variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     HWCI_START_XORG: 1
 
 a306_piglit_gl:
@@ -109,7 +108,6 @@ a530_gl:
     - .piglit-test
     - .a530-test
   variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     HWCI_START_XORG: 1
 
 # piglit_gl since it takes a bit under 20 minutes and has a lot of flakes, so
@@ -157,9 +155,15 @@ a618_vk_full:
   extends:
     - a618_vk
     - .test-manual-mr
+  # We use a longer timeout to keep the parallel down so that we don't lock up
+  # too many runners for a long time when a dev is trying out at full VK status.
+  timeout: 2h
   parallel: 2
   variables:
+    # ran into OOM with VK-GL-CTS 1.2.8.0 at 6
+    FDO_CI_CONCURRENT: 4
     DEQP_SUITE: freedreno-a618-vk-full
+    JOB_TIMEOUT: 120
 
 .a630-test:
   extends:
@@ -198,22 +202,33 @@ a630_gles_asan:
     - .baremetal-deqp-test
     - .a630-test
     - .baremetal-arm64-asan-test
-    - .test-manual
   variables:
     DEQP_VER: gles31
-    DEQP_FRACTION: 10
+    DEQP_FRACTION: 100
     DEQP_EXPECTED_RENDERER: FD630
+    FDO_CI_CONCURRENT: 2 # We get OOMkills if we go too wide with asan enabled
     GPU_VERSION: freedreno-a630-asan
+
+a630_skqp:
+  extends:
+    - .baremetal-skqp-test
+    - .a630-test
+  variables:
+    # Possible skqp backends: gl, gles, unitTest and vk
+    # Note: vk backend is not working yet.
+    SKQP_BACKENDS: gl gles unitTest  # space separated values
 
 a630_vk:
   extends:
     - .a630-test
     - .baremetal-deqp-test-freedreno-vk
-  parallel: 3
   variables:
     DEQP_SUITE: freedreno-a630-vk
 
 a630_vk_full:
+  # We use a longer timeout to keep the parallel down so that we don't lock up
+  # too many runners for a long time when a dev is trying out at full VK status.
+  timeout: 2h
   extends:
     - a630_vk
     - .test-manual-mr
@@ -221,30 +236,20 @@ a630_vk_full:
   variables:
     DEQP_SUITE: freedreno-a630-vk-full
 
-# Disabled by default until we can sort out what looks like timeouts before
-# getting to the first test (or is it at cleanup after tests completed?).
-# Clicking play can show you some useful areas for fixing turnip, though.
 a630_vk_asan:
   extends:
     - .a630-test
     - .baremetal-deqp-test-freedreno-vk
     - .baremetal-arm64-asan-test
-    - .test-manual
   variables:
-    DEQP_EXPECTED_RENDERER: "Turnip Adreno (TM) 630"
-    DEQP_FRACTION: 100
-    FDO_CI_CONCURRENT: 4 # We get OOMkills if we go too wide with asan enabled
-    TU_DEBUG: forcebin
-    # Disable the leak checks, since the library gets dlclose()d and thus get
-    # totally useless leak reports.  We can still catch buffer overflows.
-    ASAN_OPTIONS: "detect_leaks=0"
+    DEQP_SUITE: freedreno-a630-vk-asan
+    FDO_CI_CONCURRENT: 2 # We get OOMkills if we go too wide with asan enabled
 
 a630_piglit:
   extends:
     - .piglit-test
     - .a630-test
   variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
     HWCI_START_XORG: 1
     PIGLIT_PROFILES: gpu
 

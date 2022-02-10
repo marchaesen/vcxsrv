@@ -1,0 +1,21 @@
+variables:
+   DEBIAN_X86_BUILD_BASE_IMAGE: "debian/x86_build-base"
+   DEBIAN_BASE_TAG: "2022-02-06-deqp-runner"
+
+   DEBIAN_X86_BUILD_IMAGE_PATH: "debian/x86_build"
+   DEBIAN_BUILD_TAG: "2021-12-31-keep-cmake"
+
+   DEBIAN_X86_TEST_BASE_IMAGE: "debian/x86_test-base"
+
+   DEBIAN_X86_TEST_IMAGE_PATH: "debian/x86_test-gl"
+   DEBIAN_X86_TEST_GL_TAG: "2022-02-06-deqp"
+   DEBIAN_X86_TEST_VK_TAG: "2022-02-06-deqp"
+
+   FEDORA_X86_BUILD_TAG: "2021-12-31-refactor"
+   KERNEL_ROOTFS_TAG: "2022-02-06-deqp"
+
+   WINDOWS_X64_BUILD_PATH: "windows/x64_build"
+   WINDOWS_X64_BUILD_TAG: "2022-20-02-base_split"
+
+   WINDOWS_X64_TEST_PATH: "windows/x64_test"
+   WINDOWS_X64_TEST_TAG: "2022-20-02-base_split"

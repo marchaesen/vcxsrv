@@ -39,7 +39,6 @@
 #include "main/errors.h"
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
-#include "main/context.h"
 #include "util/u_math.h"
 
 /*
@@ -55,7 +54,7 @@ namespace {
 class nir_visitor : public ir_visitor
 {
 public:
-   nir_visitor(gl_context *ctx, nir_shader *shader);
+   nir_visitor(const struct gl_constants *consts, nir_shader *shader);
    ~nir_visitor();
 
    virtual void visit(ir_variable *);
@@ -117,6 +116,12 @@ private:
 
    /* map of ir_function_signature -> nir_function_overload */
    struct hash_table *overload_table;
+
+   /* set of nir_variable hold sparse result */
+   struct set *sparse_variable_set;
+
+   void adjust_sparse_variable(nir_deref_instr *var_deref, const glsl_type *type,
+                               nir_ssa_def *dest);
 };
 
 /*
@@ -190,7 +195,7 @@ has_unsupported_function_param(exec_list *ir)
 }
 
 nir_shader *
-glsl_to_nir(struct gl_context *ctx,
+glsl_to_nir(const struct gl_constants *consts,
             const struct gl_shader_program *shader_prog,
             gl_shader_stage stage,
             const nir_shader_compiler_options *options)
@@ -198,7 +203,7 @@ glsl_to_nir(struct gl_context *ctx,
    struct gl_linked_shader *sh = shader_prog->_LinkedShaders[stage];
 
    const struct gl_shader_compiler_options *gl_options =
-      &ctx->Const.ShaderCompilerOptions[stage];
+      &consts->ShaderCompilerOptions[stage];
 
    /* glsl_to_nir can only handle converting certain function paramaters
     * to NIR. If we find something we can't handle then we get the GLSL IR
@@ -208,13 +213,13 @@ glsl_to_nir(struct gl_context *ctx,
     */
    while (has_unsupported_function_param(sh->ir)) {
       do_common_optimization(sh->ir, true, true, gl_options,
-                             ctx->Const.NativeIntegers);
+                             consts->NativeIntegers);
    }
 
    nir_shader *shader = nir_shader_create(NULL, stage, options,
                                           &sh->Program->info);
 
-   nir_visitor v1(ctx, shader);
+   nir_visitor v1(consts, shader);
    nir_function_visitor v2(&v1);
    v2.run(sh->ir);
    visit_exec_list(sh->ir, &v1);
@@ -263,13 +268,14 @@ glsl_to_nir(struct gl_context *ctx,
    return shader;
 }
 
-nir_visitor::nir_visitor(gl_context *ctx, nir_shader *shader)
+nir_visitor::nir_visitor(const struct gl_constants *consts, nir_shader *shader)
 {
-   this->supports_std430 = ctx->Const.UseSTD430AsDefaultPacking;
+   this->supports_std430 = consts->UseSTD430AsDefaultPacking;
    this->shader = shader;
    this->is_global = true;
    this->var_table = _mesa_pointer_hash_table_create(NULL);
    this->overload_table = _mesa_pointer_hash_table_create(NULL);
+   this->sparse_variable_set = _mesa_pointer_set_create(NULL);
    this->result = NULL;
    this->impl = NULL;
    this->deref = NULL;
@@ -281,6 +287,7 @@ nir_visitor::~nir_visitor()
 {
    _mesa_hash_table_destroy(this->var_table, NULL);
    _mesa_hash_table_destroy(this->overload_table, NULL);
+   _mesa_set_destroy(this->sparse_variable_set, NULL);
 }
 
 nir_deref_instr *
@@ -431,6 +438,29 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
    }
 
    return ret;
+}
+
+void
+nir_visitor::adjust_sparse_variable(nir_deref_instr *var_deref, const glsl_type *type,
+                                    nir_ssa_def *dest)
+{
+   const glsl_type *texel_type = type->field_type("texel");
+   assert(texel_type);
+
+   assert(var_deref->deref_type == nir_deref_type_var);
+   nir_variable *var = var_deref->var;
+
+   /* Adjust nir_variable type to align with sparse nir instructions.
+    * Because the nir_variable is created with struct type from ir_variable,
+    * but sparse nir instructions output with vector dest.
+    */
+   var->type = glsl_type::get_instance(texel_type->get_base_type()->base_type,
+                                       dest->num_components, 1);
+
+   var_deref->type = var->type;
+
+   /* Record the adjusted variable. */
+   _mesa_set_add(this->sparse_variable_set, var);
 }
 
 static unsigned
@@ -1054,6 +1084,9 @@ nir_visitor::visit(ir_call *ir)
       case ir_intrinsic_image_samples:
          op = nir_intrinsic_image_deref_samples;
          break;
+      case ir_intrinsic_image_sparse_load:
+         op = nir_intrinsic_image_deref_sparse_load;
+         break;
       case ir_intrinsic_ssbo_store:
       case ir_intrinsic_ssbo_load:
       case ir_intrinsic_ssbo_atomic_add:
@@ -1168,6 +1201,9 @@ nir_visitor::visit(ir_call *ir)
          break;
       case ir_intrinsic_helper_invocation:
          op = nir_intrinsic_is_helper_invocation;
+         break;
+      case ir_intrinsic_is_sparse_texels_resident:
+         op = nir_intrinsic_is_sparse_texels_resident;
          break;
       default:
          unreachable("not reached");
@@ -1296,7 +1332,8 @@ nir_visitor::visit(ir_call *ir)
       case nir_intrinsic_image_deref_samples:
       case nir_intrinsic_image_deref_size:
       case nir_intrinsic_image_deref_atomic_inc_wrap:
-      case nir_intrinsic_image_deref_atomic_dec_wrap: {
+      case nir_intrinsic_image_deref_atomic_dec_wrap:
+      case nir_intrinsic_image_deref_sparse_load: {
          /* Set the image variable dereference. */
          exec_node *param = ir->actual_parameters.get_head();
          ir_dereference *image = (ir_dereference *)param;
@@ -1313,15 +1350,24 @@ nir_visitor::visit(ir_call *ir)
 
          /* Set the intrinsic destination. */
          if (ir->return_deref) {
-            unsigned num_components = ir->return_deref->type->vector_elements;
+            unsigned num_components;
+            if (op == nir_intrinsic_image_deref_sparse_load) {
+               const glsl_type *dest_type =
+                  ir->return_deref->type->field_type("texel");
+               /* One extra component to hold residency code. */
+               num_components = dest_type->vector_elements + 1;
+            } else
+               num_components = ir->return_deref->type->vector_elements;
+
             nir_ssa_dest_init(&instr->instr, &instr->dest,
                               num_components, 32, NULL);
          }
 
          if (op == nir_intrinsic_image_deref_size) {
             instr->num_components = instr->dest.ssa.num_components;
-         } else if (op == nir_intrinsic_image_deref_load) {
-            instr->num_components = 4;
+         } else if (op == nir_intrinsic_image_deref_load ||
+                    op == nir_intrinsic_image_deref_sparse_load) {
+            instr->num_components = instr->dest.ssa.num_components;
             nir_intrinsic_set_dest_type(instr,
                nir_get_nir_type_for_glsl_base_type(type->sampled_type));
          } else if (op == nir_intrinsic_image_deref_store) {
@@ -1374,7 +1420,8 @@ nir_visitor::visit(ir_call *ir)
             instr->src[3] =
                nir_src_for_ssa(evaluate_rvalue((ir_dereference *)param));
             param = param->get_next();
-         } else if (op == nir_intrinsic_image_deref_load) {
+         } else if (op == nir_intrinsic_image_deref_load ||
+                    op == nir_intrinsic_image_deref_sparse_load) {
             instr->src[3] = nir_src_for_ssa(nir_imm_int(&b, 0)); /* LOD */
          }
 
@@ -1588,12 +1635,27 @@ nir_visitor::visit(ir_call *ir)
          nir_builder_instr_insert(&b, &instr->instr);
          break;
       }
+      case nir_intrinsic_is_sparse_texels_resident: {
+         nir_ssa_dest_init(&instr->instr, &instr->dest, 1, 1, NULL);
+
+         ir_rvalue *value = (ir_rvalue *) ir->actual_parameters.get_head();
+         instr->src[0] = nir_src_for_ssa(evaluate_rvalue(value));
+
+         nir_builder_instr_insert(&b, &instr->instr);
+         break;
+      }
       default:
          unreachable("not reached");
       }
 
-      if (ir->return_deref)
-         nir_store_deref(&b, evaluate_deref(ir->return_deref), ret, ~0);
+      if (ir->return_deref) {
+         nir_deref_instr *ret_deref = evaluate_deref(ir->return_deref);
+
+         if (op == nir_intrinsic_image_deref_sparse_load)
+            adjust_sparse_variable(ret_deref, ir->return_deref->type, ret);
+
+         nir_store_deref(&b, ret_deref, ret, ~0);
+      }
 
       return;
    }
@@ -1645,12 +1707,13 @@ void
 nir_visitor::visit(ir_assignment *ir)
 {
    unsigned num_components = ir->lhs->type->vector_elements;
+   unsigned write_mask = ir->write_mask;
 
    b.exact = ir->lhs->variable_referenced()->data.invariant ||
              ir->lhs->variable_referenced()->data.precise;
 
    if ((ir->rhs->as_dereference() || ir->rhs->as_constant()) &&
-       (ir->write_mask == (1 << num_components) - 1 || ir->write_mask == 0)) {
+       (write_mask == BITFIELD_MASK(num_components) || write_mask == 0)) {
       nir_deref_instr *lhs = evaluate_deref(ir->lhs);
       nir_deref_instr *rhs = evaluate_deref(ir->rhs);
       enum gl_access_qualifier lhs_qualifiers = deref_get_qualifier(lhs);
@@ -1667,13 +1730,25 @@ nir_visitor::visit(ir_assignment *ir)
       return;
    }
 
-   assert(ir->rhs->type->is_scalar() || ir->rhs->type->is_vector());
+   ir_texture *tex = ir->rhs->as_texture();
+   bool is_sparse = tex && tex->is_sparse;
+
+   if (!is_sparse)
+      assert(ir->rhs->type->is_scalar() || ir->rhs->type->is_vector());
 
    ir->lhs->accept(this);
    nir_deref_instr *lhs_deref = this->deref;
    nir_ssa_def *src = evaluate_rvalue(ir->rhs);
 
-   if (ir->write_mask != (1 << num_components) - 1 && ir->write_mask != 0) {
+   if (is_sparse) {
+      adjust_sparse_variable(lhs_deref, tex->type, src);
+
+      /* correct component and mask because they are 0 for struct */
+      num_components = src->num_components;
+      write_mask = BITFIELD_MASK(num_components);
+   }
+
+   if (write_mask != BITFIELD_MASK(num_components) && write_mask != 0) {
       /* GLSL IR will give us the input to the write-masked assignment in a
        * single packed vector.  So, for example, if the writemask is xzw, then
        * we have to swizzle x -> x, y -> z, and z -> w and get the y component
@@ -1682,7 +1757,7 @@ nir_visitor::visit(ir_assignment *ir)
       unsigned swiz[4];
       unsigned component = 0;
       for (unsigned i = 0; i < 4; i++) {
-         swiz[i] = ir->write_mask & (1 << i) ? component++ : 0;
+         swiz[i] = write_mask & (1 << i) ? component++ : 0;
       }
       src = nir_swizzle(&b, src, swiz, num_components);
    }
@@ -1690,11 +1765,11 @@ nir_visitor::visit(ir_assignment *ir)
    enum gl_access_qualifier qualifiers = deref_get_qualifier(lhs_deref);
    if (ir->condition) {
       nir_push_if(&b, evaluate_rvalue(ir->condition));
-      nir_store_deref_with_access(&b, lhs_deref, src, ir->write_mask,
+      nir_store_deref_with_access(&b, lhs_deref, src, write_mask,
                                   qualifiers);
       nir_pop_if(&b, NULL);
    } else {
-      nir_store_deref_with_access(&b, lhs_deref, src, ir->write_mask,
+      nir_store_deref_with_access(&b, lhs_deref, src, write_mask,
                                   qualifiers);
    }
 }
@@ -2398,6 +2473,8 @@ nir_visitor::visit(ir_texture *ir)
    /* offsets are constants we store inside nir_tex_intrs.offsets */
    if (ir->offset != NULL && !ir->offset->type->is_array())
       num_srcs++;
+   if (ir->clamp != NULL)
+      num_srcs++;
 
    /* Add one for the texture deref */
    num_srcs += 2;
@@ -2411,7 +2488,12 @@ nir_visitor::visit(ir_texture *ir)
    instr->is_shadow = ir->sampler->type->sampler_shadow;
    if (instr->is_shadow)
       instr->is_new_style_shadow = (ir->type->vector_elements == 1);
-   instr->dest_type = nir_get_nir_type_for_glsl_type(ir->type);
+
+   const glsl_type *dest_type
+      = ir->is_sparse ? ir->type->field_type("texel") : ir->type;
+   assert(dest_type != glsl_type::error_type);
+   instr->dest_type = nir_get_nir_type_for_glsl_type(dest_type);
+   instr->is_sparse = ir->is_sparse;
 
    nir_deref_instr *sampler_deref = evaluate_deref(ir->sampler);
 
@@ -2476,6 +2558,13 @@ nir_visitor::visit(ir_texture *ir)
       }
    }
 
+   if (ir->clamp) {
+      instr->src[src_number].src =
+         nir_src_for_ssa(evaluate_rvalue(ir->clamp));
+      instr->src[src_number].src_type = nir_tex_src_min_lod;
+      src_number++;
+   }
+
    switch (ir->op) {
    case ir_txb:
       instr->src[src_number].src =
@@ -2523,7 +2612,7 @@ nir_visitor::visit(ir_texture *ir)
 
    assert(src_number == num_srcs);
 
-   unsigned bit_size = glsl_get_bit_size(ir->type);
+   unsigned bit_size = glsl_get_bit_size(dest_type);
    add_instr(&instr->instr, nir_tex_instr_dest_size(instr), bit_size);
 }
 
@@ -2580,7 +2669,33 @@ nir_visitor::visit(ir_dereference_record *ir)
    int field_index = ir->field_idx;
    assert(field_index >= 0);
 
-   this->deref = nir_build_deref_struct(&b, this->deref, field_index);
+   /* sparse texture variable is a struct for ir_variable, but it has been
+    * converted to a vector for nir_variable.
+    */
+   if (this->deref->deref_type == nir_deref_type_var &&
+       _mesa_set_search(this->sparse_variable_set, this->deref->var)) {
+      nir_ssa_def *load = nir_load_deref(&b, this->deref);
+      assert(load->num_components >= 2);
+
+      nir_ssa_def *ssa;
+      const glsl_type *type = ir->record->type;
+      if (field_index == type->field_index("code")) {
+         /* last channel holds residency code */
+         ssa = nir_channel(&b, load, load->num_components - 1);
+      } else {
+         assert(field_index == type->field_index("texel"));
+
+         unsigned mask = BITFIELD_MASK(load->num_components - 1);
+         ssa = nir_channels(&b, load, mask);
+      }
+
+      /* still need to create a deref for return */
+      nir_variable *tmp =
+         nir_local_variable_create(this->impl, ir->type, "deref_tmp");
+      this->deref = nir_build_deref_var(&b, tmp);
+      nir_store_deref(&b, this->deref, ssa, ~0);
+   } else
+      this->deref = nir_build_deref_struct(&b, this->deref, field_index);
 }
 
 void
@@ -2608,13 +2723,6 @@ nir_shader *
 glsl_float64_funcs_to_nir(struct gl_context *ctx,
                           const nir_shader_compiler_options *options)
 {
-   /* It's not possible to use float64 on GLSL ES, so don't bother trying to
-    * build the support code.  The support code depends on higher versions of
-    * desktop GLSL, so it will fail to compile (below) anyway.
-    */
-   if (!_mesa_is_desktop_gl(ctx) || ctx->Const.GLSLVersion < 400)
-      return NULL;
-
    /* We pretend it's a vertex shader.  Ultimately, the stage shouldn't
     * matter because we're not optimizing anything here.
     */
@@ -2634,7 +2742,7 @@ glsl_float64_funcs_to_nir(struct gl_context *ctx,
 
    nir_shader *nir = nir_shader_create(NULL, MESA_SHADER_VERTEX, options, NULL);
 
-   nir_visitor v1(ctx, nir);
+   nir_visitor v1(&ctx->Const, nir);
    nir_function_visitor v2(&v1);
    v2.run(sh->ir);
    visit_exec_list(sh->ir, &v1);

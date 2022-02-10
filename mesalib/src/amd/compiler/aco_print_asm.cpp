@@ -271,12 +271,6 @@ std::pair<bool, size_t>
 disasm_instr(chip_class chip, LLVMDisasmContextRef disasm, uint32_t* binary, unsigned exec_size,
              size_t pos, char* outline, unsigned outline_size)
 {
-   /* mask out src2 on v_writelane_b32 */
-   if (((chip == GFX8 || chip == GFX9) && (binary[pos] & 0xffff8000) == 0xd28a0000) ||
-       (chip >= GFX10 && (binary[pos] & 0xffff8000) == 0xd7610000)) {
-      binary[pos + 1] = binary[pos + 1] & 0xF803FFFF;
-   }
-
    size_t l =
       LLVMDisasmInstruction(disasm, (uint8_t*)&binary[pos], (exec_size - pos) * sizeof(uint32_t),
                             pos * 4, outline, outline_size);

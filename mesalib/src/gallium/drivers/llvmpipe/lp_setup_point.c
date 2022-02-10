@@ -509,7 +509,6 @@ try_setup_point( struct lp_setup_context *setup,
 
       point->inputs.disable = FALSE;
       point->inputs.is_blit = FALSE;
-      point->inputs.opaque = setup->fs.current.variant->opaque;
       point->inputs.layer = layer;
       point->inputs.viewport_index = viewport_index;
       point->inputs.view_index = setup->view_index;
@@ -545,7 +544,13 @@ try_setup_point( struct lp_setup_context *setup,
             plane[3].c++; /* bottom-left */
       }
 
-      return lp_setup_bin_triangle(setup, point, &bbox, &bbox, nr_planes, viewport_index);
+      int max_szorig = ((bbox.x1 - (bbox.x0 & ~3)) |
+                        (bbox.y1 - (bbox.y0 & ~3)));
+      boolean use_32bits = max_szorig <= MAX_FIXED_LENGTH32;
+
+      return lp_setup_bin_triangle(setup, point, use_32bits,
+                                   setup->fs.current.variant->opaque,
+                                   &bbox, nr_planes, viewport_index);
 
    } else {
       struct lp_rast_rectangle *point;
@@ -588,12 +593,11 @@ try_setup_point( struct lp_setup_context *setup,
 
       point->inputs.disable = FALSE;
       point->inputs.is_blit = FALSE;
-      point->inputs.opaque = setup->fs.current.variant->opaque;
       point->inputs.layer = layer;
       point->inputs.viewport_index = viewport_index;
       point->inputs.view_index = setup->view_index;
 
-      return lp_setup_bin_rectangle(setup, point);
+      return lp_setup_bin_rectangle(setup, point, setup->fs.current.variant->opaque);
    }
 }
 

@@ -25,6 +25,7 @@
 #include "d3d12_compiler.h"
 #include "d3d12_debug.h"
 #include "d3d12_format.h"
+#include "d3d12_query.h"
 #include "d3d12_resource.h"
 #include "d3d12_screen.h"
 
@@ -122,7 +123,7 @@ blit_resolve(struct d3d12_context *ctx, const struct pipe_blit_info *info)
                                    D3D12_RESOURCE_STATE_RESOLVE_DEST,
                                    D3D12_BIND_INVALIDATE_FULL);
 
-   d3d12_apply_resource_states(ctx);
+   d3d12_apply_resource_states(ctx, false);
 
    d3d12_batch_reference_resource(batch, src, false);
    d3d12_batch_reference_resource(batch, dst, true);
@@ -226,7 +227,7 @@ direct_copy_supported(struct d3d12_screen *screen,
         D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED &&
         (info->src.resource->bind & PIPE_BIND_DEPTH_STENCIL ||
          info->dst.resource->bind & PIPE_BIND_DEPTH_STENCIL)) ||
-        info->src.resource->nr_samples > 1) {
+        info->src.resource->nr_samples != info->dst.resource->nr_samples) {
 
       if (info->dst.box.x != 0 ||
           info->dst.box.y != 0 ||
@@ -335,8 +336,7 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
                 D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED ||
                 (!util_format_is_depth_or_stencil(dst->base.b.format) &&
                  !util_format_is_depth_or_stencil(src->base.b.format) &&
-                  dst->base.b.nr_samples <= 1 &&
-                  src->base.b.nr_samples <= 1));
+                  dst->base.b.nr_samples == src->base.b.nr_samples));
 
          ctx->cmdlist->CopyTextureRegion(&dst_loc, dstx, dsty, dstz,
                                          &src_loc, NULL);
@@ -354,8 +354,7 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
                  D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED ||
                  (!util_format_is_depth_or_stencil(dst->base.b.format) &&
                   !util_format_is_depth_or_stencil(src->base.b.format))) &&
-                dst->base.b.nr_samples <= 1 &&
-                src->base.b.nr_samples <= 1);
+                dst->base.b.nr_samples == src->base.b.nr_samples);
 
          ctx->cmdlist->CopyTextureRegion(&dst_loc, dstx, dsty, dstz,
                                          &src_loc, &src_box);
@@ -433,7 +432,7 @@ d3d12_direct_copy(struct d3d12_context *ctx,
                                        D3D12_RESOURCE_STATE_COPY_DEST,
                                        D3D12_BIND_INVALIDATE_FULL);
 
-   d3d12_apply_resource_states(ctx);
+   d3d12_apply_resource_states(ctx, false);
 
    d3d12_batch_reference_resource(batch, src, false);
    d3d12_batch_reference_resource(batch, dst, true);
@@ -485,8 +484,8 @@ create_staging_resource(struct d3d12_context *ctx,
    templ.height0 = copy_src.height;
    templ.depth0 = copy_src.depth;
    templ.array_size = 1;
-   templ.nr_samples = 1;
-   templ.nr_storage_samples = 1;
+   templ.nr_samples = src->base.b.nr_samples;
+   templ.nr_storage_samples = src->base.b.nr_storage_samples;
    templ.usage = PIPE_USAGE_STAGING;
    templ.bind = util_format_is_depth_or_stencil(templ.format) ? PIPE_BIND_DEPTH_STENCIL : PIPE_BIND_RENDER_TARGET;
    templ.target = src->base.b.target;
@@ -546,6 +545,8 @@ util_blit_save_state(struct d3d12_context *ctx)
    util_blitter_save_fragment_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_FRAGMENT]);
    util_blitter_save_vertex_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_VERTEX]);
    util_blitter_save_geometry_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_GEOMETRY]);
+   util_blitter_save_tessctrl_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_TESS_CTRL]);
+   util_blitter_save_tesseval_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_TESS_EVAL]);
 
    util_blitter_save_framebuffer(ctx->blitter, &ctx->fb);
    util_blitter_save_viewport(ctx->blitter, ctx->viewport_states);
@@ -619,7 +620,7 @@ get_stencil_resolve_vs(struct d3d12_context *ctx)
       return ctx->stencil_resolve_vs;
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX,
-                                                  dxil_get_nir_compiler_options(),
+                                                  &d3d12_screen(ctx->base.screen)->nir_options,
                                                   "linear_blit_vs");
 
    const struct glsl_type *vec4 = glsl_vec4_type();
@@ -650,7 +651,7 @@ get_stencil_resolve_fs(struct d3d12_context *ctx, bool no_flip)
       return ctx->stencil_resolve_fs_no_flip;
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT,
-                                                  dxil_get_nir_compiler_options(),
+                                                  &d3d12_screen(ctx->base.screen)->nir_options,
                                                   no_flip ? "stencil_resolve_fs_no_flip" : "stencil_resolve_fs");
 
    nir_variable *stencil_out = nir_variable_create(b.shader,
@@ -825,7 +826,7 @@ blit_resolve_stencil(struct d3d12_context *ctx,
                                        0, 1, 0, 1, 1, 1,
                                        D3D12_RESOURCE_STATE_COPY_DEST,
                                        D3D12_BIND_INVALIDATE_FULL);
-   d3d12_apply_resource_states(ctx);
+   d3d12_apply_resource_states(ctx, false);
 
    struct d3d12_batch *batch = d3d12_current_batch(ctx);
    d3d12_batch_reference_resource(batch, d3d12_resource(tmp), false);
@@ -956,8 +957,7 @@ d3d12_blit(struct pipe_context *pctx,
                  util_format_short_name(info->dst.resource->format));
 
    if (!info->render_condition_enable && ctx->current_predication) {
-      ctx->cmdlist->SetPredication(
-               d3d12_resource_resource(ctx->current_predication), 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
+      d3d12_enable_predication(ctx);
       if (D3D12_DEBUG_BLIT & d3d12_debug)
          debug_printf("D3D12 BLIT: Re-enable predication\n");
    }

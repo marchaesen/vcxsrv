@@ -29,6 +29,7 @@
 
 #include "nir_to_tgsi_info.h"
 #include "util/u_math.h"
+#include "util/u_prim.h"
 #include "nir.h"
 #include "nir_deref.h"
 #include "tgsi/tgsi_scan.h"
@@ -433,10 +434,7 @@ void nir_tgsi_scan_shader(const struct nir_shader *nir,
    }
 
    if (nir->info.stage == MESA_SHADER_TESS_EVAL) {
-      if (nir->info.tess.primitive_mode == GL_ISOLINES)
-         info->properties[TGSI_PROPERTY_TES_PRIM_MODE] = PIPE_PRIM_LINES;
-      else
-         info->properties[TGSI_PROPERTY_TES_PRIM_MODE] = nir->info.tess.primitive_mode;
+      info->properties[TGSI_PROPERTY_TES_PRIM_MODE] = u_tess_prim_from_shader(nir->info.tess._primitive_mode);
 
       STATIC_ASSERT((TESS_SPACING_EQUAL + 1) % 3 == PIPE_TESS_SPACING_EQUAL);
       STATIC_ASSERT((TESS_SPACING_FRACTIONAL_ODD + 1) % 3 ==

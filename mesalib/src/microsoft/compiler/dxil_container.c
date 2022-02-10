@@ -186,6 +186,12 @@ cleanup:
    return retval;
 }
 
+static uint32_t
+compute_input_output_table_dwords(unsigned input_vectors, unsigned output_vectors)
+{
+   return ((output_vectors + 7) >> 3) * input_vectors * 4;
+}
+
 bool
 dxil_container_add_state_validation(struct dxil_container *c,
                                     const struct dxil_module *m,
@@ -204,32 +210,41 @@ dxil_container_add_state_validation(struct dxil_container *c,
    uint32_t string_table_size = (m->sem_string_table->length + 3) & ~3u;
    size  += sizeof(uint32_t) + string_table_size;
 
-   // Semantic index table size, currently always 0
    size  += sizeof(uint32_t) + m->sem_index_table.size * sizeof(uint32_t);
 
-   if (m->num_sig_inputs || m->num_sig_outputs) {
+   if (m->num_sig_inputs || m->num_sig_outputs || m->num_sig_patch_consts) {
       size  += sizeof(uint32_t);
    }
 
    size += dxil_pvs_sig_size * m->num_sig_inputs;
    size += dxil_pvs_sig_size * m->num_sig_outputs;
-   // size += dxil_pvs_sig_size * m->num_sig_patch_const...;
+   size += dxil_pvs_sig_size * m->num_sig_patch_consts;
 
    state->state.sig_input_vectors = (uint8_t)m->num_psv_inputs;
 
-   // TODO: check proper stream
-   state->state.sig_output_vectors[0] = (uint8_t)m->num_psv_outputs;
+   for (unsigned i = 0; i < 4; ++i)
+      state->state.sig_output_vectors[i] = (uint8_t)m->num_psv_outputs[i];
 
    // TODO: Add viewID records size
 
-   // TODO: Add sig input output dependency table size
    uint32_t dependency_table_size = 0;
    if (state->state.sig_input_vectors > 0) {
       for (unsigned i = 0; i < 4; ++i) {
          if (state->state.sig_output_vectors[i] > 0)
-            dependency_table_size += sizeof(uint32_t) * ((state->state.sig_output_vectors[i] + 7) >> 3) *
-                    state->state.sig_input_vectors * 4;
+            dependency_table_size += sizeof(uint32_t) *
+            compute_input_output_table_dwords(state->state.sig_input_vectors,
+               state->state.sig_output_vectors[i]);
       }
+      if (state->state.shader_stage == DXIL_HULL_SHADER && state->state.sig_patch_const_or_prim_vectors) {
+         dependency_table_size += sizeof(uint32_t) * compute_input_output_table_dwords(state->state.sig_input_vectors,
+            state->state.sig_patch_const_or_prim_vectors);
+      }
+   }
+   if (state->state.shader_stage == DXIL_DOMAIN_SHADER &&
+       state->state.sig_patch_const_or_prim_vectors &&
+       state->state.sig_output_vectors[0]) {
+      dependency_table_size += sizeof(uint32_t) * compute_input_output_table_dwords(
+         state->state.sig_patch_const_or_prim_vectors, state->state.sig_output_vectors[0]);
    }
    size += dependency_table_size;
    // TODO: Domain shader table goes here
@@ -259,7 +274,6 @@ dxil_container_add_state_validation(struct dxil_container *c,
        !blob_write_bytes(&c->parts, &fill, string_table_size - m->sem_string_table->length))
       return false;
 
-   // TODO: write the correct semantic index table. Currently it is empty
    if (!blob_write_bytes(&c->parts, &m->sem_index_table.size, sizeof(uint32_t)))
       return false;
 
@@ -269,7 +283,7 @@ dxil_container_add_state_validation(struct dxil_container *c,
          return false;
    }
 
-   if (m->num_sig_inputs || m->num_sig_outputs) {
+   if (m->num_sig_inputs || m->num_sig_outputs || m->num_sig_patch_consts) {
       if (!blob_write_bytes(&c->parts, &dxil_pvs_sig_size, sizeof(dxil_pvs_sig_size)))
          return false;
 
@@ -278,9 +292,10 @@ dxil_container_add_state_validation(struct dxil_container *c,
 
       if (!blob_write_bytes(&c->parts, &m->psv_outputs, dxil_pvs_sig_size * m->num_sig_outputs))
          return false;
-   }
 
-   // TODO: Write PatchConst...
+      if (!blob_write_bytes(&c->parts, &m->psv_patch_consts, dxil_pvs_sig_size * m->num_sig_patch_consts))
+         return false;
+   }
 
    // TODO: Handle case when ViewID is used
 

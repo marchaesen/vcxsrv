@@ -335,15 +335,17 @@ VkResult
 vn_QueueSubmit(VkQueue _queue,
                uint32_t submitCount,
                const VkSubmitInfo *pSubmits,
-               VkFence fence)
+               VkFence _fence)
 {
    VN_TRACE_FUNC();
    struct vn_queue *queue = vn_queue_from_handle(_queue);
    struct vn_device *dev = queue->device;
+   struct vn_fence *fence = vn_fence_from_handle(_fence);
+   const bool is_fence_external = fence && fence->is_external;
 
    struct vn_queue_submission submit;
    VkResult result = vn_queue_submission_prepare_submit(
-      &submit, _queue, submitCount, pSubmits, fence);
+      &submit, _queue, submitCount, pSubmits, _fence);
    if (result != VK_SUCCESS)
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -355,6 +357,14 @@ vn_QueueSubmit(VkQueue _queue,
          wsi_mem = vn_device_memory_from_handle(info->memory);
          assert(!wsi_mem->base_memory && wsi_mem->base_bo);
       }
+   }
+
+   /* TODO defer roundtrip for external fence until the next sync operation */
+   if (!wsi_mem && !is_fence_external) {
+      vn_async_vkQueueSubmit(dev->instance, submit.queue, submit.batch_count,
+                             submit.submit_batches, submit.fence);
+      vn_queue_submission_cleanup(&submit);
+      return VK_SUCCESS;
    }
 
    result =
@@ -479,19 +489,23 @@ vn_CreateFence(VkDevice device,
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
 
-   VkFenceCreateInfo local_create_info;
-   if (vk_find_struct_const(pCreateInfo->pNext, EXPORT_FENCE_CREATE_INFO)) {
-      local_create_info = *pCreateInfo;
-      local_create_info.pNext = NULL;
-      pCreateInfo = &local_create_info;
-   }
-
    struct vn_fence *fence = vk_zalloc(alloc, sizeof(*fence), VN_DEFAULT_ALIGN,
                                       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!fence)
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vn_object_base_init(&fence->base, VK_OBJECT_TYPE_FENCE, &dev->base);
+
+   const struct VkExportFenceCreateInfo *export_info =
+      vk_find_struct_const(pCreateInfo->pNext, EXPORT_FENCE_CREATE_INFO);
+   VkFenceCreateInfo local_create_info;
+   if (export_info) {
+      local_create_info = *pCreateInfo;
+      local_create_info.pNext = NULL;
+      pCreateInfo = &local_create_info;
+
+      fence->is_external = !!export_info->handleTypes;
+   }
 
    VkResult result = vn_fence_init_payloads(
       dev, fence, pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT, alloc);
@@ -711,6 +725,7 @@ vn_ImportFenceFdKHR(VkDevice device,
                                    VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT;
    const int fd = pImportFenceFdInfo->fd;
 
+   /* TODO update fence->is_external after we support opaque fd import */
    assert(dev->instance->experimental.globalFencing);
    assert(sync_file);
    if (fd >= 0) {

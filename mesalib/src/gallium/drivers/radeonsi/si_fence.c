@@ -88,8 +88,23 @@ void si_cp_release_mem(struct si_context *ctx, struct radeon_cmdbuf *cs, unsigne
       if (ctx->chip_class == GFX9 && !compute_ib && query_type != PIPE_QUERY_OCCLUSION_COUNTER &&
           query_type != PIPE_QUERY_OCCLUSION_PREDICATE &&
           query_type != PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE) {
-         struct si_resource *scratch = unlikely(ctx->ws->cs_is_secure(&ctx->gfx_cs)) ?
-            ctx->eop_bug_scratch_tmz : ctx->eop_bug_scratch;
+         struct si_screen *sscreen = ctx->screen;
+         struct si_resource *scratch;
+
+         if (!ctx->ws->cs_is_secure(&ctx->gfx_cs)) {
+            scratch = ctx->eop_bug_scratch;
+         } else {
+            assert(ctx->screen->info.has_tmz_support);
+            if (!ctx->eop_bug_scratch_tmz)
+               ctx->eop_bug_scratch_tmz =
+                  si_aligned_buffer_create(&sscreen->b,
+                                           PIPE_RESOURCE_FLAG_ENCRYPTED |
+                                           SI_RESOURCE_FLAG_DRIVER_INTERNAL,
+                                           PIPE_USAGE_DEFAULT,
+                                           16 * sscreen->info.max_render_backends, 256);
+
+            scratch = ctx->eop_bug_scratch_tmz;
+         }
 
          assert(16 * ctx->screen->info.max_render_backends <= scratch->b.b.width0);
          radeon_emit(PKT3(PKT3_EVENT_WRITE, 2, 0));

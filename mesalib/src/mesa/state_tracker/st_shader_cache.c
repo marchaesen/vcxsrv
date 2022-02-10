@@ -75,12 +75,10 @@ write_tgsi_to_cache(struct blob *blob, const struct tgsi_token *tokens,
 static void
 write_nir_to_cache(struct blob *blob, struct gl_program *prog)
 {
-   struct st_program *stp = (struct st_program *)prog;
+   st_serialize_nir(prog);
 
-   st_serialize_nir(stp);
-
-   blob_write_intptr(blob, stp->serialized_nir_size);
-   blob_write_bytes(blob, stp->serialized_nir, stp->serialized_nir_size);
+   blob_write_intptr(blob, prog->serialized_nir_size);
+   blob_write_bytes(blob, prog->serialized_nir, prog->serialized_nir_size);
 
    copy_blob_to_driver_cache_blob(blob, prog);
 }
@@ -92,28 +90,27 @@ st_serialise_ir_program(struct gl_context *ctx, struct gl_program *prog,
    if (prog->driver_cache_blob)
       return;
 
-   struct st_program *stp = (struct st_program *)prog;
    struct blob blob;
    blob_init(&blob);
 
    if (prog->info.stage == MESA_SHADER_VERTEX) {
-      struct st_vertex_program *stvp = (struct st_vertex_program *)stp;
+      struct gl_vertex_program *vp = (struct gl_vertex_program *)prog;
 
-      blob_write_uint32(&blob, stvp->num_inputs);
-      blob_write_uint32(&blob, stvp->vert_attrib_mask);
-      blob_write_bytes(&blob, stvp->result_to_output,
-                       sizeof(stvp->result_to_output));
+      blob_write_uint32(&blob, vp->num_inputs);
+      blob_write_uint32(&blob, vp->vert_attrib_mask);
+      blob_write_bytes(&blob, vp->result_to_output,
+                       sizeof(vp->result_to_output));
    }
 
    if (prog->info.stage == MESA_SHADER_VERTEX ||
        prog->info.stage == MESA_SHADER_TESS_EVAL ||
        prog->info.stage == MESA_SHADER_GEOMETRY)
-      write_stream_out_to_cache(&blob, &stp->state);
+      write_stream_out_to_cache(&blob, &prog->state);
 
    if (nir)
       write_nir_to_cache(&blob, prog);
    else
-      write_tgsi_to_cache(&blob, stp->state.tokens, prog);
+      write_tgsi_to_cache(&blob, prog->state.tokens, prog);
 
    blob_finish(&blob);
 }
@@ -186,36 +183,35 @@ st_deserialise_ir_program(struct gl_context *ctx,
 
    assert(prog->driver_cache_blob && prog->driver_cache_blob_size > 0);
 
-   struct st_program *stp = st_program(prog);
    struct blob_reader blob_reader;
    blob_reader_init(&blob_reader, buffer, size);
 
-   st_release_variants(st, stp);
+   st_release_variants(st, prog);
 
    if (prog->info.stage == MESA_SHADER_VERTEX) {
-      struct st_vertex_program *stvp = (struct st_vertex_program *)stp;
-      stvp->num_inputs = blob_read_uint32(&blob_reader);
-      stvp->vert_attrib_mask = blob_read_uint32(&blob_reader);
-      blob_copy_bytes(&blob_reader, (uint8_t *) stvp->result_to_output,
-                      sizeof(stvp->result_to_output));
+      struct gl_vertex_program *vp = (struct gl_vertex_program *)prog;
+      vp->num_inputs = blob_read_uint32(&blob_reader);
+      vp->vert_attrib_mask = blob_read_uint32(&blob_reader);
+      blob_copy_bytes(&blob_reader, (uint8_t *) vp->result_to_output,
+                      sizeof(vp->result_to_output));
    }
 
    if (prog->info.stage == MESA_SHADER_VERTEX ||
        prog->info.stage == MESA_SHADER_TESS_EVAL ||
        prog->info.stage == MESA_SHADER_GEOMETRY)
-      read_stream_out_from_cache(&blob_reader, &stp->state);
+      read_stream_out_from_cache(&blob_reader, &prog->state);
 
    if (nir) {
       assert(prog->nir == NULL);
-      assert(stp->serialized_nir == NULL);
+      assert(prog->serialized_nir == NULL);
 
-      stp->state.type = PIPE_SHADER_IR_NIR;
-      stp->serialized_nir_size = blob_read_intptr(&blob_reader);
-      stp->serialized_nir = malloc(stp->serialized_nir_size);
-      blob_copy_bytes(&blob_reader, stp->serialized_nir, stp->serialized_nir_size);
-      stp->shader_program = shProg;
+      prog->state.type = PIPE_SHADER_IR_NIR;
+      prog->serialized_nir_size = blob_read_intptr(&blob_reader);
+      prog->serialized_nir = malloc(prog->serialized_nir_size);
+      blob_copy_bytes(&blob_reader, prog->serialized_nir, prog->serialized_nir_size);
+      prog->shader_program = shProg;
    } else {
-      read_tgsi_from_cache(&blob_reader, &stp->state.tokens);
+      read_tgsi_from_cache(&blob_reader, &prog->state.tokens);
    }
 
    /* Make sure we don't try to read more data than we wrote. This should

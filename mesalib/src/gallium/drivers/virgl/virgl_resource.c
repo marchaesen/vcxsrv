@@ -60,9 +60,11 @@ enum virgl_transfer_map_type {
 static bool virgl_can_copy_transfer_from_host(struct virgl_screen *vs,
                                              struct virgl_resource *res)
 {
+#if 0 /* TODO re-enable this */
    if (vs->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_COPY_TRANSFER_BOTH_DIRECTIONS &&
        res->b.target != PIPE_BUFFER)
       return true;
+#endif
    return false;
 }
 
@@ -202,10 +204,12 @@ virgl_resource_transfer_prepare(struct virgl_context *vctx,
                VIRGL_QUEUED_STAGING_RES_SIZE_LIMIT);
          }
 
+#if 0 /* TODO re-enable this */
          /* We can use staging buffer for texture uploads from guest to host */
          if (can_staging && res->b.target != PIPE_BUFFER) {
             map_type = VIRGL_TRANSFER_MAP_WRITE_TO_STAGING;
          }
+#endif
       }
    }
 

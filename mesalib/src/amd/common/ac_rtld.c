@@ -124,7 +124,7 @@ static const struct ac_rtld_symbol *find_symbol(const struct util_dynarray *symb
       if ((symbol->part_idx == ~0u || symbol->part_idx == part_idx) && !strcmp(name, symbol->name))
          return symbol;
    }
-   return 0;
+   return NULL;
 }
 
 static int compare_symbol_by_align(const void *lhsp, const void *rhsp)

@@ -44,7 +44,7 @@ struct instruction_state {
 };
 
 struct loopinfo {
-	struct updatemask_state * Breaks;
+	struct updatemask_state StoreEndloop;
 	unsigned int BreakCount;
 	unsigned int BreaksReserved;
 };
@@ -88,20 +88,12 @@ static void or_updatemasks(
 	dst->Address = a->Address | b->Address;
 }
 
-static void push_break(struct deadcode_state *s)
-{
-	struct loopinfo * loop = &s->LoopStack[s->LoopStackSize - 1];
-	memory_pool_array_reserve(&s->C->Pool, struct updatemask_state,
-		loop->Breaks, loop->BreakCount, loop->BreaksReserved, 1);
-
-	memcpy(&loop->Breaks[loop->BreakCount++], &s->R, sizeof(s->R));
-}
-
 static void push_loop(struct deadcode_state * s)
 {
 	memory_pool_array_reserve(&s->C->Pool, struct loopinfo, s->LoopStack,
 			s->LoopStackSize, s->LoopStackReserved, 1);
 	memset(&s->LoopStack[s->LoopStackSize++], 0, sizeof(struct loopinfo));
+	memcpy(&s->LoopStack[s->LoopStackSize - 1].StoreEndloop, &s->R, sizeof(s->R));
 }
 
 static void push_branch(struct deadcode_state * s)
@@ -121,7 +113,7 @@ static unsigned char * get_used_ptr(struct deadcode_state *s, rc_register_file f
 	if (file == RC_FILE_OUTPUT || file == RC_FILE_TEMPORARY) {
 		if (index >= RC_REGISTER_MAX_INDEX) {
 			rc_error(s->C, "%s: index %i is out of bounds for file %i\n", __FUNCTION__, index, file);
-			return 0;
+			return NULL;
 		}
 
 		if (file == RC_FILE_OUTPUT)
@@ -133,13 +125,13 @@ static unsigned char * get_used_ptr(struct deadcode_state *s, rc_register_file f
 	} else if (file == RC_FILE_SPECIAL) {
 		if (index >= RC_NUM_SPECIAL_REGISTERS) {
 			rc_error(s->C, "%s: special file index %i out of bounds\n", __FUNCTION__, index);
-			return 0;
+			return NULL;
 		}
 
 		return &s->R.Special[index];
 	}
 
-	return 0;
+	return NULL;
 }
 
 static void mark_used(struct deadcode_state * s, rc_register_file file, unsigned int index, unsigned int mask)
@@ -204,18 +196,10 @@ static void update_instruction(struct deadcode_state * s, struct rc_instruction 
 	}
 }
 
-static void mark_output_use(void * data, unsigned int index, unsigned int mask)
-{
-	struct deadcode_state * s = data;
-
-	mark_used(s, RC_FILE_OUTPUT, index, mask);
-}
-
 void rc_dataflow_deadcode(struct radeon_compiler * c, void *user)
 {
 	struct deadcode_state s;
 	unsigned int nr_instructions;
-	rc_dataflow_mark_outputs_fn dce = (rc_dataflow_mark_outputs_fn)user;
 	unsigned int ip;
 
 	memset(&s, 0, sizeof(s));
@@ -225,16 +209,22 @@ void rc_dataflow_deadcode(struct radeon_compiler * c, void *user)
 	s.Instructions = memory_pool_malloc(&c->Pool, sizeof(struct instruction_state)*nr_instructions);
 	memset(s.Instructions, 0, sizeof(struct instruction_state)*nr_instructions);
 
-	dce(c, &s, &mark_output_use);
-
 	for(struct rc_instruction * inst = c->Program.Instructions.Prev;
 	    inst != &c->Program.Instructions;
 	    inst = inst->Prev) {
 		const struct rc_opcode_info * opcode = rc_get_opcode_info(inst->U.I.Opcode);
 
+		/* Assume all output regs are live.  Anything else should have been
+		 * eliminated before it got to us.
+		 */
+		if (opcode->HasDstReg)
+			mark_used(&s, RC_FILE_OUTPUT, inst->U.I.DstReg.Index, inst->U.I.DstReg.WriteMask);
+
 		switch(opcode->Opcode){
 		/* Mark all sources in the loop body as used before doing
-		 * normal deadcode analysis.  This is probably not optimal.
+		 * normal deadcode analysis. This is probably not optimal.
+		 * Save this pessimistic deadcode state and restore it anytime
+		 * we see a break just to be extra sure.
 		 */
 		case RC_OPCODE_ENDLOOP:
 		{
@@ -272,17 +262,14 @@ void rc_dataflow_deadcode(struct radeon_compiler * c, void *user)
 			break;
 		}
 		case RC_OPCODE_BRK:
-			push_break(&s);
-			break;
-		case RC_OPCODE_BGNLOOP:
 		{
-			unsigned int i;
 			struct loopinfo * loop = &s.LoopStack[s.LoopStackSize-1];
-			for(i = 0; i < loop->BreakCount; i++) {
-				or_updatemasks(&s.R, &s.R, &loop->Breaks[i]);
-			}
+			memcpy(&s.R, &loop->StoreEndloop, sizeof(s.R));
 			break;
 		}
+		case RC_OPCODE_BGNLOOP:
+			s.LoopStackSize--;
+			break;
 		case RC_OPCODE_CONT:
 			break;
 		case RC_OPCODE_ENDIF:

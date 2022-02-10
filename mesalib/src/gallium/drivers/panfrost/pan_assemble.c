@@ -30,7 +30,6 @@
 #include "pan_context.h"
 #include "pan_shader.h"
 #include "pan_util.h"
-#include "panfrost-quirks.h"
 
 #include "compiler/nir/nir.h"
 #include "nir/tgsi_to_nir.h"

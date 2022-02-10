@@ -834,7 +834,7 @@ server and are always updated by the server whenever it returns the data for an
     </entry>
     <entry>
 <structfield>map-&gt;modmap[first_modmap_key]</structfield> ..
-<structfield>map-&gt;modmap[first_modmap_key + num_modmap_keys-1]</structfield>
+<structfield>map-&gt;modmap[first_modmap_key + num_modmap_keys - 1]</structfield>
     </entry>
   </row>
   <row>
@@ -1061,7 +1061,7 @@ typedef struct {
     KeyCode        first_key_behavior; /* first key whose <structfield>behaviors</structfield> changed */
     KeyCode        first_key_explicit; /* first key whose <structfield>explicit</structfield> entry changed */
     KeyCode        first_modmap_key;   /* first key whose <structfield>modmap</structfield> entry changed */
-    KeyCode        first_vmodmap_key;  /* # <structfield>modmap</structfield> entries changed */
+    KeyCode        first_vmodmap_key;  /* first key whose <structfield>vmodmap</structfield> entry changed */
     int            num_key_syms;       /* # <structfield>key_sym_map</structfield> entries changed */
     int            num_key_acts;       /* # <structfield>key_acts</structfield> entries changed */
     int            num_key_behaviors;  /* # <structfield>behaviors</structfield> entries changed */

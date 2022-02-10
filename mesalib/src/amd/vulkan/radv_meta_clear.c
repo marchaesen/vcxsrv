@@ -1076,8 +1076,7 @@ build_clear_htile_mask_shader()
    nir_ssa_def *data = nir_iand(&b, load, nir_channel(&b, constants, 1));
    data = nir_ior(&b, data, nir_channel(&b, constants, 0));
 
-   nir_store_ssbo(&b, data, buf, offset, .write_mask = 0xf, .access = ACCESS_NON_READABLE,
-                  .align_mul = 16);
+   nir_store_ssbo(&b, data, buf, offset, .access = ACCESS_NON_READABLE, .align_mul = 16);
 
    return b.shader;
 }

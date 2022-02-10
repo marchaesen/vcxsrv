@@ -2345,8 +2345,7 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
       }
    }
 
-   if (_mesa_has_ARB_depth_texture(ctx) || _mesa_has_OES_depth_texture(ctx) ||
-       ctx->API == API_OPENGL_CORE) {
+   if (ctx->API != API_OPENGLES) {
       switch (internalFormat) {
       case GL_DEPTH_COMPONENT:
       case GL_DEPTH_COMPONENT16:

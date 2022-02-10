@@ -105,6 +105,7 @@ static const struct debug_named_value radeonsi_debug_options[] = {
    {"notiling", DBG(NO_TILING), "Disable tiling"},
    {"nodisplaytiling", DBG(NO_DISPLAY_TILING), "Disable display tiling"},
    {"nodisplaydcc", DBG(NO_DISPLAY_DCC), "Disable display DCC"},
+   {"noexporteddcc", DBG(NO_EXPORTED_DCC), "Disable DCC for all exported buffers (via DMABUF, etc.)"},
    {"nodcc", DBG(NO_DCC), "Disable DCC."},
    {"nodccclear", DBG(NO_DCC_CLEAR), "Disable DCC fast clear."},
    {"nodccstore", DBG(NO_DCC_STORE), "Disable DCC stores"},
@@ -485,10 +486,6 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
       sctx->eop_bug_scratch = si_aligned_buffer_create(
          &sscreen->b, SI_RESOURCE_FLAG_DRIVER_INTERNAL,
          PIPE_USAGE_DEFAULT, 16 * sscreen->info.max_render_backends, 256);
-      if (sctx->screen->info.has_tmz_support)
-         sctx->eop_bug_scratch_tmz = si_aligned_buffer_create(
-            &sscreen->b, PIPE_RESOURCE_FLAG_ENCRYPTED | SI_RESOURCE_FLAG_DRIVER_INTERNAL,
-            PIPE_USAGE_DEFAULT, 16 * sscreen->info.max_render_backends, 256);
       if (!sctx->eop_bug_scratch)
          goto fail;
    }
@@ -657,17 +654,6 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
                                     sscreen->info.tcc_cache_line_size);
       if (!sctx->wait_mem_scratch)
          goto fail;
-
-      if (sscreen->info.has_tmz_support) {
-         sctx->wait_mem_scratch_tmz =
-              si_aligned_buffer_create(screen,
-                                       SI_RESOURCE_FLAG_UNMAPPABLE | SI_RESOURCE_FLAG_DRIVER_INTERNAL |
-                                       PIPE_RESOURCE_FLAG_ENCRYPTED,
-                                       PIPE_USAGE_DEFAULT, 8,
-                                       sscreen->info.tcc_cache_line_size);
-         if (!sctx->wait_mem_scratch_tmz)
-            goto fail;
-      }
    }
 
    /* GFX7 cannot unbind a constant buffer (S_BUFFER_LOAD doesn't skip loads

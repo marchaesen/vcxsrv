@@ -52,9 +52,10 @@
 #include "texobj.h"
 #include "api_exec_decl.h"
 
-#include "state_tracker/st_cb_fbo.h"
+#include "util/u_memory.h"
 #include "state_tracker/st_cb_eglimage.h"
 #include "state_tracker/st_context.h"
+#include "state_tracker/st_format.h"
 
 /**
  * Notes:
@@ -412,7 +413,65 @@ get_fb0_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
    }
 }
 
+/**
+ * Return the pipe_resource which stores a particular texture image.
+ */
+static struct pipe_resource *
+get_teximage_resource(struct gl_texture_object *texObj,
+                      unsigned face, unsigned level)
+{
+   struct gl_texture_image *stImg =
+      texObj->Image[face][level];
 
+   return stImg->pt;
+}
+
+static void
+render_texture(struct gl_context *ctx,
+               struct gl_framebuffer *fb,
+               struct gl_renderbuffer_attachment *att)
+{
+   struct st_context *st = st_context(ctx);
+   struct gl_renderbuffer *rb = att->Renderbuffer;
+   struct pipe_resource *pt;
+
+   pt = get_teximage_resource(att->Texture,
+                              att->CubeMapFace,
+                              att->TextureLevel);
+   assert(pt);
+
+   /* point renderbuffer at texobject */
+   rb->is_rtt = TRUE;
+   rb->rtt_face = att->CubeMapFace;
+   rb->rtt_slice = att->Zoffset;
+   rb->rtt_layered = att->Layered;
+   rb->rtt_nr_samples = att->NumSamples;
+   pipe_resource_reference(&rb->texture, pt);
+
+   _mesa_update_renderbuffer_surface(ctx, rb);
+
+   /* Invalidate buffer state so that the pipe's framebuffer state
+    * gets updated.
+    * That's where the new renderbuffer (which we just created) gets
+    * passed to the pipe as a (color/depth) render target.
+    */
+   st_invalidate_buffers(st);
+
+
+   /* Need to trigger a call to update_framebuffer() since we just
+    * attached a new renderbuffer.
+    */
+   ctx->NewState |= _NEW_BUFFERS;
+}
+
+static void
+finish_render_texture(struct gl_context *ctx, struct gl_renderbuffer *rb)
+{
+   rb->is_rtt = FALSE;
+
+   /* restore previous framebuffer state */
+   st_invalidate_buffers(st_context(ctx));
+}
 
 /**
  * Remove any texture or renderbuffer attached to the given attachment
@@ -426,7 +485,7 @@ remove_attachment(struct gl_context *ctx,
 
    /* tell driver that we're done rendering to this texture. */
    if (rb)
-      st_finish_render_texture(ctx, rb);
+      finish_render_texture(ctx, rb);
 
    if (att->Type == GL_TEXTURE) {
       assert(att->Texture);
@@ -465,6 +524,18 @@ driver_RenderTexture_is_safe(const struct gl_renderbuffer_attachment *att)
    return true;
 }
 
+static struct gl_renderbuffer *
+new_renderbuffer(struct gl_context *ctx, GLuint name)
+{
+   struct gl_renderbuffer *rb = CALLOC_STRUCT(gl_renderbuffer);
+   if (rb) {
+      assert(name != 0);
+      _mesa_init_renderbuffer(rb, name);
+      return rb;
+   }
+   return NULL;
+}
+
 /**
  * Create a renderbuffer which will be set up by the driver to wrap the
  * texture image slice.
@@ -489,7 +560,7 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
 
    rb = att->Renderbuffer;
    if (!rb) {
-      rb = st_new_renderbuffer(ctx, ~0);
+      rb = new_renderbuffer(ctx, ~0);
       if (!rb) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glFramebufferTexture()");
          return;
@@ -516,7 +587,7 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
    rb->TexImage = texImage;
 
    if (driver_RenderTexture_is_safe(att))
-      st_render_texture(ctx, fb, att);
+      render_texture(ctx, fb, att);
 }
 
 /**
@@ -534,7 +605,7 @@ set_texture_attachment(struct gl_context *ctx,
    struct gl_renderbuffer *rb = att->Renderbuffer;
 
    if (rb)
-      st_finish_render_texture(ctx, rb);
+      finish_render_texture(ctx, rb);
 
    if (att->Texture == texObj) {
       /* re-attaching same texture */
@@ -999,14 +1070,8 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
          }
       }
       else if (format == GL_DEPTH) {
-         if (baseFormat == GL_DEPTH_COMPONENT) {
-            /* OK */
-         }
-         else if (ctx->Extensions.ARB_depth_texture &&
-                  baseFormat == GL_DEPTH_STENCIL) {
-            /* OK */
-         }
-         else {
+         if (baseFormat != GL_DEPTH_COMPONENT &&
+             baseFormat != GL_DEPTH_STENCIL) {
             att->Complete = GL_FALSE;
             att_incomplete("bad depth format");
             return;
@@ -1014,8 +1079,7 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
       }
       else {
          assert(format == GL_STENCIL);
-         if (ctx->Extensions.ARB_depth_texture &&
-             baseFormat == GL_DEPTH_STENCIL) {
+         if (baseFormat == GL_DEPTH_STENCIL) {
             /* OK */
          } else if (ctx->Extensions.ARB_texture_stencil8 &&
                     baseFormat == GL_STENCIL_INDEX) {
@@ -1076,6 +1140,149 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
       assert(att->Type == GL_NONE);
       /* complete */
       return;
+   }
+}
+
+/** Debug helper */
+static void
+fbo_invalid(const char *reason)
+{
+   if (MESA_DEBUG_FLAGS & DEBUG_INCOMPLETE_FBO) {
+      _mesa_debug(NULL, "Invalid FBO: %s\n", reason);
+   }
+}
+
+
+/**
+ * Validate a renderbuffer attachment for a particular set of bindings.
+ */
+static GLboolean
+do_validate_attachment(struct gl_context *ctx,
+                       struct pipe_screen *screen,
+                       const struct gl_renderbuffer_attachment *att,
+                       unsigned bindings)
+{
+   const struct gl_texture_object *stObj = att->Texture;
+   enum pipe_format format;
+   mesa_format texFormat;
+   GLboolean valid;
+
+   /* Sanity check: we must be binding the surface as a (color) render target
+    * or depth/stencil target.
+    */
+   assert(bindings == PIPE_BIND_RENDER_TARGET ||
+          bindings == PIPE_BIND_DEPTH_STENCIL);
+
+   /* Only validate texture attachments for now, since
+    * st_renderbuffer_alloc_storage makes sure that
+    * the format is supported.
+    */
+   if (att->Type != GL_TEXTURE)
+      return GL_TRUE;
+
+   if (!stObj || !stObj->pt)
+      return GL_FALSE;
+
+   format = stObj->pt->format;
+   texFormat = att->Renderbuffer->TexImage->TexFormat;
+
+   /* If the encoding is sRGB and sRGB rendering cannot be enabled,
+    * check for linear format support instead.
+    * Later when we create a surface, we change the format to a linear one. */
+   if (!ctx->Extensions.EXT_sRGB && _mesa_is_format_srgb(texFormat)) {
+      const mesa_format linearFormat = _mesa_get_srgb_format_linear(texFormat);
+      format = st_mesa_format_to_pipe_format(st_context(ctx), linearFormat);
+   }
+
+   valid = screen->is_format_supported(screen, format,
+                                       PIPE_TEXTURE_2D,
+                                       stObj->pt->nr_samples,
+                                       stObj->pt->nr_storage_samples,
+                                       bindings);
+   if (!valid) {
+      fbo_invalid("Invalid format");
+   }
+
+   return valid;
+}
+
+
+/**
+ * Check that the framebuffer configuration is valid in terms of what
+ * the driver can support.
+ *
+ * For Gallium we only supports combined Z+stencil, not separate buffers.
+ */
+static void
+do_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
+{
+   struct pipe_screen *screen = ctx->screen;
+   const struct gl_renderbuffer_attachment *depth =
+         &fb->Attachment[BUFFER_DEPTH];
+   const struct gl_renderbuffer_attachment *stencil =
+         &fb->Attachment[BUFFER_STENCIL];
+   GLuint i;
+   enum pipe_format first_format = PIPE_FORMAT_NONE;
+   boolean mixed_formats =
+         screen->get_param(screen, PIPE_CAP_MIXED_COLORBUFFER_FORMATS) != 0;
+
+   if (depth->Type && stencil->Type && depth->Type != stencil->Type) {
+      fbo_invalid("Different Depth/Stencil buffer formats");
+      fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      return;
+   }
+   if (depth->Type == GL_RENDERBUFFER_EXT &&
+       stencil->Type == GL_RENDERBUFFER_EXT &&
+       depth->Renderbuffer != stencil->Renderbuffer) {
+      fbo_invalid("Separate Depth/Stencil buffers");
+      fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      return;
+   }
+   if (depth->Type == GL_TEXTURE &&
+       stencil->Type == GL_TEXTURE &&
+       depth->Texture != stencil->Texture) {
+      fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      fbo_invalid("Different Depth/Stencil textures");
+      return;
+   }
+
+   if (!do_validate_attachment(ctx, screen, depth, PIPE_BIND_DEPTH_STENCIL)) {
+      fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      fbo_invalid("Invalid depth attachment");
+      return;
+   }
+   if (!do_validate_attachment(ctx, screen, stencil, PIPE_BIND_DEPTH_STENCIL)) {
+      fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+      fbo_invalid("Invalid stencil attachment");
+      return;
+   }
+   for (i = 0; i < ctx->Const.MaxColorAttachments; i++) {
+      struct gl_renderbuffer_attachment *att =
+            &fb->Attachment[BUFFER_COLOR0 + i];
+      enum pipe_format format;
+
+      if (!do_validate_attachment(ctx, screen, att, PIPE_BIND_RENDER_TARGET)) {
+         fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+         fbo_invalid("Invalid color attachment");
+         return;
+      }
+
+      if (!mixed_formats) {
+         /* Disallow mixed formats. */
+         if (att->Type != GL_NONE) {
+            format = att->Renderbuffer->surface->format;
+         } else {
+            continue;
+         }
+
+         if (first_format == PIPE_FORMAT_NONE) {
+            first_format = format;
+         } else if (format != first_format) {
+            fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED_EXT;
+            fbo_invalid("Mixed color formats");
+            return;
+         }
+      }
    }
 }
 
@@ -1522,7 +1729,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
     * Drivers will most likely set the status to GL_FRAMEBUFFER_UNSUPPORTED
     * if anything.
     */
-   st_validate_framebuffer(ctx, fb);
+   do_validate_framebuffer(ctx, fb);
    if (fb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       fbo_incomplete(ctx, "driver marked FBO as incomplete", -1);
       return;
@@ -1565,7 +1772,7 @@ allocate_renderbuffer_locked(struct gl_context *ctx, GLuint renderbuffer,
    struct gl_renderbuffer *newRb;
 
    /* create new renderbuffer object */
-   newRb = st_new_renderbuffer(ctx, renderbuffer);
+   newRb = new_renderbuffer(ctx, renderbuffer);
    if (!newRb) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
       return NULL;
@@ -3024,7 +3231,7 @@ check_begin_texture_render(struct gl_context *ctx, struct gl_framebuffer *fb)
       struct gl_renderbuffer_attachment *att = fb->Attachment + i;
       if (att->Texture && att->Renderbuffer->TexImage
           && driver_RenderTexture_is_safe(att)) {
-         st_render_texture(ctx, fb, att);
+         render_texture(ctx, fb, att);
       }
    }
 }
@@ -3046,7 +3253,7 @@ check_end_texture_render(struct gl_context *ctx, struct gl_framebuffer *fb)
       struct gl_renderbuffer_attachment *att = fb->Attachment + i;
       struct gl_renderbuffer *rb = att->Renderbuffer;
       if (rb) {
-         st_finish_render_texture(ctx, rb);
+         finish_render_texture(ctx, rb);
       }
    }
 }
@@ -5154,6 +5361,25 @@ get_fb_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
 }
 
 static void
+do_discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                       struct gl_renderbuffer_attachment *att)
+{
+   struct pipe_resource *prsc;
+
+   if (!att->Renderbuffer || !att->Complete)
+      return;
+
+   prsc = att->Renderbuffer->surface->texture;
+
+   /* using invalidate_resource will only work for simple 2D resources */
+   if (prsc->depth0 != 1 || prsc->array_size != 1 || prsc->last_level != 0)
+      return;
+
+   if (ctx->pipe->invalidate_resource)
+      ctx->pipe->invalidate_resource(ctx->pipe, prsc);
+}
+
+static void
 discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
                     GLsizei numAttachments, const GLenum *attachments)
 {
@@ -5188,7 +5414,7 @@ discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
             continue;
       }
 
-      st_discard_framebuffer(ctx, fb, att);
+      do_discard_framebuffer(ctx, fb, att);
    }
 }
 
@@ -5530,5 +5756,7 @@ _mesa_EvaluateDepthValuesARB(void)
       return;
    }
 
-   st_EvaluateDepthValues(ctx);
+   st_validate_state(st_context(ctx), ST_PIPELINE_UPDATE_FRAMEBUFFER);
+
+   ctx->pipe->evaluate_depth_buffer(ctx->pipe);
 }

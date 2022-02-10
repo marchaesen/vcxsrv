@@ -90,13 +90,50 @@ struct dxil_spirv_compute_runtime_data {
    uint32_t group_count_z;
 };
 
+#define DXIL_SPIRV_Y_FLIP_MASK BITFIELD_MASK(DXIL_SPIRV_MAX_VIEWPORT)
+#define DXIL_SPIRV_Z_FLIP_SHIFT DXIL_SPIRV_MAX_VIEWPORT
+#define DXIL_SPIRV_Z_FLIP_MASK BITFIELD_RANGE(DXIL_SPIRV_Z_FLIP_SHIFT, DXIL_SPIRV_MAX_VIEWPORT)
+
 /* This struct describes the layout of data expected in the CB bound to
  * runtime_data_cbv during vertex stages */
 struct dxil_spirv_vertex_runtime_data {
    uint32_t first_vertex;
    uint32_t base_instance;
    bool is_indexed_draw;
+   // The lower 16bits of this mask encode Y-flips (one bit per viewport)
+   // The higher 16bits of this maks encode Z-flips (one bit per viewport)
+   union {
+      uint32_t yz_flip_mask;
+      struct {
+         uint16_t y_flip_mask;
+         uint16_t z_flip_mask;
+      };
+   };
 };
+
+enum dxil_spirv_yz_flip_mode {
+   DXIL_SPIRV_YZ_FLIP_NONE = 0,
+   // Y-flip is unconditional: pos.y = -pos.y
+   // Z-flip is unconditional: pos.z = -pos.z + 1.0f
+   DXIL_SPIRV_Y_FLIP_UNCONDITIONAL = 1 << 0,
+   DXIL_SPIRV_Z_FLIP_UNCONDITIONAL = 1 << 1,
+   DXIL_SPIRV_YZ_FLIP_UNCONDITIONAL = DXIL_SPIRV_Y_FLIP_UNCONDITIONAL | DXIL_SPIRV_Z_FLIP_UNCONDITIONAL,
+   // Y-flip/Z-flip info are passed through a sysval
+   DXIL_SPIRV_Y_FLIP_CONDITIONAL = 1 << 2,
+   DXIL_SPIRV_Z_FLIP_CONDITIONAL = 1 << 3,
+   DXIL_SPIRV_YZ_FLIP_CONDITIONAL = DXIL_SPIRV_Y_FLIP_CONDITIONAL | DXIL_SPIRV_Z_FLIP_CONDITIONAL,
+};
+
+struct dxil_spirv_vulkan_binding {
+   uint32_t base_register;
+};
+
+struct dxil_spirv_vulkan_descriptor_set {
+   uint32_t binding_count;
+   struct dxil_spirv_vulkan_binding *bindings;
+};
+
+#define DXIL_SPIRV_MAX_VIEWPORT 16
 
 struct dxil_spirv_runtime_conf {
    struct {
@@ -104,9 +141,34 @@ struct dxil_spirv_runtime_conf {
       uint32_t base_shader_register;
    } runtime_data_cbv;
 
+   struct {
+      uint32_t register_space;
+      uint32_t base_shader_register;
+   } push_constant_cbv;
+
+   uint32_t descriptor_set_count;
+   struct dxil_spirv_vulkan_descriptor_set *descriptor_sets;
+
    // Set true if vertex and instance ids have already been converted to
    // zero-based. Otherwise, runtime_data will be required to lower them.
    bool zero_based_vertex_instance_id;
+
+   struct {
+      // mode != DXIL_SPIRV_YZ_FLIP_NONE only valid on vertex/geometry stages.
+      enum dxil_spirv_yz_flip_mode mode;
+
+      // Y/Z flip masks (one bit per viewport)
+      uint16_t y_mask;
+      uint16_t z_mask;
+   } yz_flip;
+
+   // The caller supports read-only images to be turned into SRV accesses,
+   // which allows us to run the nir_opt_access() pass
+   bool read_only_images_as_srvs;
+};
+
+struct dxil_spirv_debug_options {
+   bool dump_nir;
 };
 
 /**
@@ -126,6 +188,7 @@ spirv_to_dxil(const uint32_t *words, size_t word_count,
               struct dxil_spirv_specialization *specializations,
               unsigned int num_specializations, dxil_spirv_shader_stage stage,
               const char *entry_point_name,
+              const struct dxil_spirv_debug_options *debug_options,
               const struct dxil_spirv_runtime_conf *conf,
               struct dxil_spirv_object *out_dxil);
 

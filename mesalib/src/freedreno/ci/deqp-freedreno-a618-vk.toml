@@ -5,22 +5,17 @@ caselists = ["/deqp/mustpass/vk-master.txt"]
 skips = ["install/freedreno-a618-premerge-skips.txt"]
 renderer_check = "Turnip Adreno .* 618"
 fraction = 2
-[deqp.env]
-# Force binning in the main run, which makes sure we render at
-# least 2 bins.  This is the path that impacts the most different
-# features.
-TU_DEBUG = "forcebin"
 
-# force-bypass testing
+# force-gmem testing
+# Autotuner forces sysmem on most CTS tests
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
 skips = ["install/freedreno-a618-premerge-skips.txt"]
-include = ["dEQP-VK.renderpass.*"]
-prefix = "bypass-"
+prefix = "gmem-"
 fraction = 15
 [deqp.env]
-TU_DEBUG = "sysmem"
+TU_DEBUG = "gmem,forcebin"
 
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"

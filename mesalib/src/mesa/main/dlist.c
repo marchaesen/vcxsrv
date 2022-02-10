@@ -41,6 +41,7 @@
 #include "pack.h"
 #include "pbo.h"
 #include "teximage.h"
+#include "texobj.h"
 #include "varray.h"
 #include "glthread_marshal.h"
 
@@ -757,6 +758,7 @@ vbo_destroy_vertex_list(struct gl_context *ctx, struct vbo_save_vertex_list *nod
    free(node->cold->current_data);
    node->cold->current_data = NULL;
 
+   free(node->cold->prims);
    free(node->cold);
 }
 
@@ -834,7 +836,7 @@ void
 _mesa_delete_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas)
 {
    if (atlas->texObj) {
-      st_DeleteTextureObject(ctx, atlas->texObj);
+      _mesa_delete_texture_object(ctx, atlas->texObj);
    }
    free(atlas->glyphs);
    free(atlas);
@@ -978,7 +980,7 @@ build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
    }
 
    /* Create atlas texture (texture ID is irrelevant) */
-   atlas->texObj = st_NewTextureObject(ctx, 999, GL_TEXTURE_RECTANGLE);
+   atlas->texObj = _mesa_new_texture_object(ctx, 999, GL_TEXTURE_RECTANGLE);
    if (!atlas->texObj) {
       goto out_of_memory;
    }
@@ -1057,7 +1059,7 @@ out_of_memory:
    _mesa_error(ctx, GL_OUT_OF_MEMORY, "Display list bitmap atlas");
 fail:
    if (atlas->texObj) {
-      st_DeleteTextureObject(ctx, atlas->texObj);
+      _mesa_delete_texture_object(ctx, atlas->texObj);
    }
    free(atlas->glyphs);
    atlas->glyphs = NULL;
@@ -1104,7 +1106,7 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
 
    if (!n) {
       free(dlist->Label);
-      free(dlist);
+      FREE(dlist);
       return;
    }
 
@@ -1504,8 +1506,7 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
 
    /* If this node needs to start on an 8-byte boundary, pad the last node. */
    if (sizeof(void *) == 8 && align8 &&
-       ctx->ListState.CurrentPos % 2 == 1 &&
-       ctx->ListState.CurrentPos + 1 + numNodes + contNodes <= BLOCK_SIZE) {
+       ctx->ListState.CurrentPos % 2 == 1) {
       Node *last = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos -
                    ctx->ListState.LastInstSize;
       last->InstSize++;

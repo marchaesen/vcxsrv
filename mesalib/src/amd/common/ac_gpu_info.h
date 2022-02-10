@@ -37,6 +37,9 @@
 extern "C" {
 #endif
 
+#define AMD_MAX_SE         8
+#define AMD_MAX_SA_PER_SE  2
+
 struct amdgpu_gpu_info;
 
 struct radeon_info {
@@ -190,7 +193,7 @@ struct radeon_info {
    bool kernel_has_modifiers;
 
    /* Shader cores. */
-   uint32_t cu_mask[4][2];
+   uint32_t cu_mask[AMD_MAX_SE][AMD_MAX_SA_PER_SE];
    uint32_t r600_max_quad_pipes; /* wave size / 16 */
    uint32_t max_shader_clock;
    uint32_t num_good_compute_units;
@@ -229,6 +232,10 @@ struct radeon_info {
    /* Tile modes. */
    uint32_t si_tile_mode_array[32];
    uint32_t cik_macrotile_mode_array[16];
+
+   /* AMD_CU_MASK environment variable or ~0. */
+   bool spi_cu_en_has_effect;
+   uint32_t spi_cu_en;
 };
 
 bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,

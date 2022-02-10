@@ -1,5 +1,6 @@
-/**********************************************************
- * Copyright 1998-2017 VMware, Inc.  All rights reserved.
+/* SPDX-License-Identifier: GPL-3.0 OR MIT */
+/*
+ * Copyright 1998-2022 VMware, Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -21,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- **********************************************************/
+ */
 
 /*
  * svga3d_devcaps.h --
@@ -424,24 +425,28 @@ typedef enum {
    SVGA3D_DEVCAP_DXFMT_B8G8R8X8_UNORM              = 241,
    SVGA3D_DEVCAP_DXFMT_BC4_UNORM                   = 242,
    SVGA3D_DEVCAP_DXFMT_BC5_UNORM                   = 243,
- 
+
    SVGA3D_DEVCAP_SM41                              = 244,
    SVGA3D_DEVCAP_MULTISAMPLE_2X                    = 245,
    SVGA3D_DEVCAP_MULTISAMPLE_4X                    = 246,
    SVGA3D_DEVCAP_MS_FULL_QUALITY                   = 247,
    SVGA3D_DEVCAP_LOGICOPS                          = 248,
    SVGA3D_DEVCAP_LOGIC_BLENDOPS                    = 249,
-   SVGA3D_DEVCAP_DXFMT_B4G4R4A4_UNORM              = 250,
+
+   SVGA3D_DEVCAP_DEAD12                            = 250,
+
+   SVGA3D_DEVCAP_DXFMT_BC6H_TYPELESS               = 251,
    SVGA3D_DEVCAP_DXFMT_BC6H_UF16                   = 252,
    SVGA3D_DEVCAP_DXFMT_BC6H_SF16                   = 253,
    SVGA3D_DEVCAP_DXFMT_BC7_TYPELESS                = 254,
    SVGA3D_DEVCAP_DXFMT_BC7_UNORM                   = 255,
    SVGA3D_DEVCAP_DXFMT_BC7_UNORM_SRGB              = 256,
-   SVGA3D_DEVCAP_DXFMT_AYUV                        = 257,
+   SVGA3D_DEVCAP_DEAD13                            = 257,
    SVGA3D_DEVCAP_SM5                               = 258,
    SVGA3D_DEVCAP_MULTISAMPLE_8X                    = 259,
-   SVGA3D_DEVCAP_FORCED_SAMPLE_COUNT_1             = 260,
-   SVGA3D_DEVCAP_MAX                               = 261,
+   SVGA3D_DEVCAP_MAX_FORCED_SAMPLE_COUNT           = 260,
+   SVGA3D_DEVCAP_GL43                              = 261,
+   SVGA3D_DEVCAP_MAX                               = 262,
 
 } SVGA3dDevCapIndex;
 

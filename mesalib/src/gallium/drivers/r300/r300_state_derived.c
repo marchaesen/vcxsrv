@@ -102,7 +102,7 @@ static void r300_draw_emit_all_attribs(struct r300_context* r300)
     gen_count = 0;
     for (i = 0; i < ATTR_GENERIC_COUNT && gen_count < 8; i++) {
         if (vs_outputs->generic[i] != ATTR_UNUSED &&
-            !(r300->sprite_coord_enable & (1U << i))) {
+            (!(r300->sprite_coord_enable & (1U << i)) || !r300->is_point)) {
             r300_draw_emit_attrib(r300, EMIT_4F, vs_outputs->generic[i]);
             gen_count++;
         }
@@ -441,7 +441,7 @@ static void r300_update_rs_block(struct r300_context *r300)
 	for (i = 0; i < ATTR_GENERIC_COUNT && col_count < 2; i++) {
 	    /* Cannot use color varyings for sprite coords. */
 	    if (fs_inputs->generic[i] != ATTR_UNUSED &&
-		(r300->sprite_coord_enable & (1U << i))) {
+		(r300->sprite_coord_enable & (1U << i)) && r300->is_point) {
 		break;
 	    }
 
@@ -486,7 +486,7 @@ static void r300_update_rs_block(struct r300_context *r300)
 	boolean sprite_coord = false;
 
 	if (fs_inputs->generic[i] != ATTR_UNUSED) {
-	    sprite_coord = !!(r300->sprite_coord_enable & (1 << i));
+	    sprite_coord = !!(r300->sprite_coord_enable & (1 << i)) && r300->is_point;
 	}
 
         if (vs_outputs->generic[i] != ATTR_UNUSED || sprite_coord) {
@@ -625,7 +625,7 @@ static void r300_update_rs_block(struct r300_context *r300)
     rs.inst_count = count - 1;
 
     /* set the GB enable flags */
-    if (r300->sprite_coord_enable)
+    if (r300->sprite_coord_enable && r300->is_point)
 	stuffing_enable |= R300_GB_POINT_STUFF_ENABLE;
 
     rs.gb_enable = stuffing_enable;
@@ -881,7 +881,7 @@ static void r300_merge_textures_and_samplers(struct r300_context* r300)
                                                   view->swizzle, FALSE);
                 } else {
                     texstate->format.format1 |=
-                        r300_get_swizzle_combined(depth_swizzle, 0, FALSE);
+                        r300_get_swizzle_combined(depth_swizzle, NULL, FALSE);
                 }
             }
 

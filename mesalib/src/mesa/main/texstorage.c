@@ -262,41 +262,6 @@ _mesa_is_legal_tex_storage_format(const struct gl_context *ctx,
 
 
 /**
- * Default ctx->Driver.AllocTextureStorage() handler.
- *
- * The driver can override this with a more specific implementation if it
- * desires, but this can be used to get the texture images allocated using the
- * usual texture image handling code.  The immutability of
- * GL_ARB_texture_storage texture layouts is handled by texObj->Immutable
- * checks at glTexImage* time.
- */
-GLboolean
-_mesa_AllocTextureStorage_sw(struct gl_context *ctx,
-                             struct gl_texture_object *texObj,
-                             GLsizei levels, GLsizei width,
-                             GLsizei height, GLsizei depth)
-{
-   const int numFaces = _mesa_num_tex_faces(texObj->Target);
-   int face;
-   int level;
-
-   (void) width;
-   (void) height;
-   (void) depth;
-
-   for (face = 0; face < numFaces; face++) {
-      for (level = 0; level < levels; level++) {
-         struct gl_texture_image *const texImage = texObj->Image[face][level];
-         if (!st_AllocTextureImageBuffer(ctx, texImage))
-            return GL_FALSE;
-      }
-   }
-
-   return GL_TRUE;
-}
-
-
-/**
  * Do error checking for calls to glTexStorage1/2/3D().
  * If an error is found, record it with _mesa_error(), unless the target
  * is a proxy texture.
@@ -384,21 +349,19 @@ tex_storage_error_check(struct gl_context *ctx,
    return GL_FALSE;
 }
 
-static GLboolean
-sparse_texture_error_check(struct gl_context *ctx, GLuint dims,
-                           struct gl_texture_object *texObj,
-                           mesa_format format, GLenum target, GLsizei levels,
-                           GLsizei width, GLsizei height, GLsizei depth,
-                           bool dsa)
+GLboolean
+_mesa_sparse_texture_error_check(struct gl_context *ctx, GLuint dims,
+                                 struct gl_texture_object *texObj,
+                                 mesa_format format, GLenum target, GLsizei levels,
+                                 GLsizei width, GLsizei height, GLsizei depth,
+                                 const char *func)
 {
-   const char* suffix = dsa ? "ture" : "";
-
    int px, py, pz;
    int index = texObj->VirtualPageSizeIndex;
    if (!st_GetSparseTextureVirtualPageSize(ctx, target, format, index,
                                            &px, &py, &pz)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(sparse index = %d)",
-                  suffix, dims, index);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(sparse index = %d)",
+                  func, index);
       return GL_TRUE;
    }
 
@@ -422,9 +385,10 @@ sparse_texture_error_check(struct gl_context *ctx, GLuint dims,
       }
    }
 
-   if (width % px || height % py || depth % pz) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glTex%sStorage%uD(sparse page size)",
-                  suffix, dims);
+   /* ARB_sparse_texture2 allow non-page-aligned base texture size. */
+   if (!_mesa_has_ARB_sparse_texture2(ctx) &&
+       (width % px || height % py || depth % pz)) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(sparse page size)", func);
       return GL_TRUE;
    }
 
@@ -453,16 +417,14 @@ sparse_texture_error_check(struct gl_context *ctx, GLuint dims,
         target == GL_TEXTURE_CUBE_MAP_ARRAY) &&
        (width % (px << (levels - 1)) ||
         height % (py << (levels - 1)))) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(sparse array align)",
-                  suffix, dims);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(sparse array align)", func);
       return GL_TRUE;
    }
 
    return GL_FALSE;
 
 exceed_max_size:
-   _mesa_error(ctx, GL_INVALID_VALUE, "glTex%sStorage%uD(exceed max sparse size)",
-               suffix, dims);
+   _mesa_error(ctx, GL_INVALID_VALUE, "%s(exceed max sparse size)", func);
    return GL_TRUE;
 }
 
@@ -530,10 +492,13 @@ texture_storage(struct gl_context *ctx, GLuint dims,
             return;
          }
 
-         if (texObj->IsSparse &&
-             sparse_texture_error_check(ctx, dims, texObj, texFormat, target, levels,
-                                        width, height, depth, dsa))
-            return; /* error was recorded */
+         if (texObj->IsSparse) {
+            char func[32];
+            snprintf(func, 32, "glTex%sStorage%uD", suffix, dims);
+            if (_mesa_sparse_texture_error_check(ctx, dims, texObj, texFormat, target,
+                                                 levels, width, height, depth, func))
+               return; /* error was recorded */
+         }
       }
 
       assert(levels > 0);

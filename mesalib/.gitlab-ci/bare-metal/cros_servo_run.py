@@ -156,6 +156,10 @@ class CrosServoRun:
                     "Detected spontaneous reboot, restarting run...")
                 return 2
 
+            if re.search("arm-smmu 5040000.iommu: TLB sync timed out -- SMMU may be deadlocked", line):
+                self.print_error("Detected cheza MMU fail, restarting run...")
+                return 2
+
             result = re.search("hwci: mesa: (\S*)", line)
             if result:
                 if result.group(1) == "pass":

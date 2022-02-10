@@ -43,14 +43,53 @@ enum dxil_sysvalue_type {
 enum dxil_sysvalue_type
 nir_var_to_dxil_sysvalue_type(nir_variable *var, uint64_t other_stage_mask);
 
+/* Controls how resource decls/accesses are handled. Common to all:
+ *   Images, textures, and samplers map to D3D UAV, SRV, and sampler types
+ *   Shared is lowered to explicit I/O and then to a DXIL-specific intrinsic for 4-byte indices instead of byte addressing
+ *   Input/output are lowered to dedicated intrinsics
+ */
+enum dxil_environment {
+   /* In the GL environment:
+    *   Samplers/textures are lowered, vars/intrinsics use binding to refer to them; dynamic array indexing not yet supported
+    *     The lowering done by mesa/st assigns bindings from 0 -> N
+    *   All other resource variables have driver_location set instead, assigned from 0 -> N
+    *   UBOs may or may not have interface variables, and are declared from ubo_binding_offset -> num_ubos; no dynamic indexing yet
+    *   SSBOs may or may not have interface variables, and are declared from from 0 -> num_ssbos; no dynamic indexing yet
+    *   Images are *not* lowered, so that dynamic indexing can deterministically get a base binding via the deref chain
+    *   No immediate constant buffer, or scratch
+    */
+   DXIL_ENVIRONMENT_GL,
+   /* In the CL environment:
+    *   Shader kind is always KERNEL
+    *   All resources use binding for identification
+    *   Samplers/textures/images are lowered; dynamic indexing not supported by spec
+    *   UBOs are arrays of uints in the NIR
+    *   SSBOs are implicitly declared via num_kernel_globals
+    *   Variables of shader_temp are used to declare an immediate constant buffer, with load_ptr_dxil intrinsics to access it
+    *   Scratch is supported and lowered to DXIL-specific intrinsics for scalar 32-bit access
+    */
+   DXIL_ENVIRONMENT_CL,
+   /* In the Vulkan environment:
+    *   All resources use binding / descriptor_set for identification
+    *   Samplers/textures/images are not lowered
+    *     Deref chains are walked to emit the DXIL handle to the resource; dynamic indexing supported
+    *   UBOs/SSBOs are struct variables in the NIR, accessed via vulkan_resource_index/load_vulkan_descriptor; dynamic indexing supported
+    *   Read-only SSBOs, as declared in the SPIR-V, are bound as raw buffer SRVs instead of UAVs
+    *   No immediate constant buffer or scratch
+    */
+   DXIL_ENVIRONMENT_VULKAN,
+};
+
 struct nir_to_dxil_options {
    bool interpolate_at_vertex;
    bool lower_int16;
    bool disable_math_refactoring;
-   unsigned ubo_binding_offset;
+   bool no_ubo0;
+   bool last_ubo_is_not_arrayed;
    unsigned provoking_vertex;
    unsigned num_kernel_globals;
-   bool vulkan_environment;
+   unsigned input_clip_size;
+   enum dxil_environment environment;
 };
 
 bool

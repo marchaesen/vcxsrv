@@ -24,12 +24,15 @@
  */
 
 #include "ac_gpu_info.h"
+#include "ac_shader_util.h"
 
 #include "addrlib/src/amdgpu_asic_addr.h"
 #include "sid.h"
 #include "util/macros.h"
 #include "util/u_cpu_detect.h"
 #include "util/u_math.h"
+#include "util/os_misc.h"
+#include "util/bitset.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -330,6 +333,151 @@ has_tmz_support(amdgpu_device_handle dev,
    return true;
 }
 
+static void set_custom_cu_en_mask(struct radeon_info *info)
+{
+   info->spi_cu_en = ~0;
+
+   const char *cu_env_var = os_get_option("AMD_CU_MASK");
+   if (!cu_env_var)
+      return;
+
+   int size = strlen(cu_env_var);
+   char *str = alloca(size + 1);
+   memset(str, 0, size + 1);
+
+   size = 0;
+
+   /* Strip whitespace. */
+   for (unsigned src = 0; cu_env_var[src]; src++) {
+      if (cu_env_var[src] != ' ' && cu_env_var[src] != '\t' &&
+          cu_env_var[src] != '\n' && cu_env_var[src] != '\r') {
+         str[size++] = cu_env_var[src];
+      }
+   }
+
+   /* The following syntax is used, all whitespace is ignored:
+    *   ID = [0-9][0-9]*                         ex. base 10 numbers
+    *   ID_list = (ID | ID-ID)[, (ID | ID-ID)]*  ex. 0,2-4,7
+    *   CU_list = 0x[0-F]* | ID_list             ex. 0x337F OR 0,2-4,7
+    *   AMD_CU_MASK = CU_list
+    *
+    * It's a CU mask within a shader array. It's applied to all shader arrays.
+    */
+   bool is_good_form = true;
+   uint32_t spi_cu_en = 0;
+
+   if (size > 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+      str += 2;
+      size -= 2;
+
+      for (unsigned i = 0; i < size; i++)
+         is_good_form &= isxdigit(str[i]) != 0;
+
+      if (!is_good_form) {
+         fprintf(stderr, "amd: invalid AMD_CU_MASK: ill-formed hex value\n");
+      } else {
+         spi_cu_en = strtol(str, NULL, 16);
+      }
+   } else {
+      /* Parse ID_list. */
+      long first = 0, last = -1;
+
+      if (!isdigit(*str)) {
+         is_good_form = false;
+      } else {
+         while (*str) {
+            bool comma = false;
+
+            if (isdigit(*str)) {
+               first = last = strtol(str, &str, 10);
+            } else if (*str == '-') {
+               str++;
+               /* Parse a digit after a dash. */
+               if (isdigit(*str)) {
+                  last = strtol(str, &str, 10);
+               } else {
+                  fprintf(stderr, "amd: invalid AMD_CU_MASK: expected a digit after -\n");
+                  is_good_form = false;
+                  break;
+               }
+            } else if (*str == ',') {
+               comma = true;
+               str++;
+               if (!isdigit(*str)) {
+                  fprintf(stderr, "amd: invalid AMD_CU_MASK: expected a digit after ,\n");
+                  is_good_form = false;
+                  break;
+               }
+            }
+
+            if (comma || !*str) {
+               if (first > last) {
+                  fprintf(stderr, "amd: invalid AMD_CU_MASK: range not increasing (%li, %li)\n", first, last);
+                  is_good_form = false;
+                  break;
+               }
+               if (last > 31) {
+                  fprintf(stderr, "amd: invalid AMD_CU_MASK: index too large (%li)\n", last);
+                  is_good_form = false;
+                  break;
+               }
+
+               spi_cu_en |= BITFIELD_RANGE(first, last - first + 1);
+               last = -1;
+            }
+         }
+      }
+   }
+
+   /* The mask is parsed. Now assign bits to CUs. */
+   if (is_good_form) {
+      bool error = false;
+
+      /* Clear bits that have no effect. */
+      spi_cu_en &= BITFIELD_MASK(info->max_good_cu_per_sa);
+
+      if (!spi_cu_en) {
+         fprintf(stderr, "amd: invalid AMD_CU_MASK: at least 1 CU in each SA must be enabled\n");
+         error = true;
+      }
+
+      if (info->has_graphics) {
+         uint32_t min_full_cu_mask = BITFIELD_MASK(info->min_good_cu_per_sa);
+
+         /* The hw ignores all non-compute CU masks if any of them is 0. Disallow that. */
+         if ((spi_cu_en & min_full_cu_mask) == 0) {
+            fprintf(stderr, "amd: invalid AMD_CU_MASK: at least 1 CU from 0x%x per SA must be "
+                            "enabled (SPI limitation)\n", min_full_cu_mask);
+            error = true;
+         }
+
+         /* We usually disable 1 or 2 CUs for VS and GS, which means at last 1 other CU
+          * must be enabled.
+          */
+         uint32_t cu_mask_ge, unused;
+         ac_compute_late_alloc(info, false, false, false, &unused, &cu_mask_ge);
+         cu_mask_ge &= min_full_cu_mask;
+
+         if ((spi_cu_en & cu_mask_ge) == 0) {
+            fprintf(stderr, "amd: invalid AMD_CU_MASK: at least 1 CU from 0x%x per SA must be "
+                            "enabled (late alloc constraint for GE)\n", cu_mask_ge);
+            error = true;
+         }
+
+         if ((min_full_cu_mask & spi_cu_en & ~cu_mask_ge) == 0) {
+            fprintf(stderr, "amd: invalid AMD_CU_MASK: at least 1 CU from 0x%x per SA must be "
+                            "enabled (late alloc constraint for PS)\n",
+                    min_full_cu_mask & ~cu_mask_ge);
+            error = true;
+         }
+      }
+
+      if (!error) {
+         info->spi_cu_en = spi_cu_en;
+         info->spi_cu_en_has_effect = spi_cu_en & BITFIELD_MASK(info->max_good_cu_per_sa);
+      }
+   }
+}
 
 bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
                        struct amdgpu_gpu_info *amdinfo)
@@ -932,19 +1080,23 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->num_good_compute_units = 0;
    for (i = 0; i < info->max_se; i++) {
       for (j = 0; j < info->max_sa_per_se; j++) {
-         /*
-          * The cu bitmap in amd gpu info structure is
-          * 4x4 size array, and it's usually suitable for Vega
-          * ASICs which has 4*2 SE/SH layout.
-          * But for Arcturus, SE/SH layout is changed to 8*1.
-          * To mostly reduce the impact, we make it compatible
-          * with current bitmap array as below:
-          *    SE4,SH0 --> cu_bitmap[0][1]
-          *    SE5,SH0 --> cu_bitmap[1][1]
-          *    SE6,SH0 --> cu_bitmap[2][1]
-          *    SE7,SH0 --> cu_bitmap[3][1]
-          */
-         info->cu_mask[i % 4][j + i / 4] = amdinfo->cu_bitmap[i % 4][j + i / 4];
+         if (info->family == CHIP_ARCTURUS) {
+            /* The CU bitmap in amd gpu info structure is
+             * 4x4 size array, and it's usually suitable for Vega
+             * ASICs which has 4*2 SE/SA layout.
+             * But for Arcturus, SE/SA layout is changed to 8*1.
+             * To mostly reduce the impact, we make it compatible
+             * with current bitmap array as below:
+             *    SE4 --> cu_bitmap[0][1]
+             *    SE5 --> cu_bitmap[1][1]
+             *    SE6 --> cu_bitmap[2][1]
+             *    SE7 --> cu_bitmap[3][1]
+             */
+            assert(info->max_sa_per_se == 1);
+            info->cu_mask[i][0] = amdinfo->cu_bitmap[i % 4][i / 4];
+         } else {
+            info->cu_mask[i][j] = amdinfo->cu_bitmap[i][j];
+         }
          info->num_good_compute_units += util_bitcount(info->cu_mask[i][j]);
       }
    }
@@ -1091,6 +1243,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->num_physical_wave64_vgprs_per_simd = info->chip_class >= GFX10 ? 512 : 256;
    info->num_simd_per_compute_unit = info->chip_class >= GFX10 ? 2 : 4;
 
+   set_custom_cu_en_mask(info);
    return true;
 }
 
@@ -1247,6 +1400,14 @@ void ac_print_gpu_info(struct radeon_info *info, FILE *f)
    fprintf(f, "    has_tmz_support = %u\n", info->has_tmz_support);
 
    fprintf(f, "Shader core info:\n");
+   for (unsigned i = 0; i < info->max_se; i++) {
+      for (unsigned j = 0; j < info->max_sa_per_se; j++) {
+         fprintf(f, "    cu_mask[SE%u][SA%u] = 0x%x \t(%u)\tCU_EN = 0x%x\n", i, j,
+                 info->cu_mask[i][j], util_bitcount(info->cu_mask[i][j]),
+                 info->spi_cu_en & BITFIELD_MASK(util_bitcount(info->cu_mask[i][j])));
+      }
+   }
+   fprintf(f, "    spi_cu_en_has_effect = %i\n", info->spi_cu_en_has_effect);
    fprintf(f, "    max_shader_clock = %i\n", info->max_shader_clock);
    fprintf(f, "    num_good_compute_units = %i\n", info->num_good_compute_units);
    fprintf(f, "    max_good_cu_per_sa = %i\n", info->max_good_cu_per_sa);

@@ -283,12 +283,7 @@ v3d_resource_transfer_map(struct pipe_context *pctx,
         *pptrans = ptrans;
 
         /* Our load/store routines work on entire compressed blocks. */
-        ptrans->box.x /= util_format_get_blockwidth(format);
-        ptrans->box.y /= util_format_get_blockheight(format);
-        ptrans->box.width = DIV_ROUND_UP(ptrans->box.width,
-                                         util_format_get_blockwidth(format));
-        ptrans->box.height = DIV_ROUND_UP(ptrans->box.height,
-                                          util_format_get_blockheight(format));
+        u_box_pixels_to_blocks(&ptrans->box, &ptrans->box, format);
 
         struct v3d_resource_slice *slice = &rsc->slices[level];
         if (rsc->tiled) {

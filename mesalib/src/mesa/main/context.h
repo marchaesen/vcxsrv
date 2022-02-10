@@ -73,6 +73,7 @@ _mesa_initialize(const char *extensions_override);
 extern GLboolean
 _mesa_initialize_context( struct gl_context *ctx,
                           gl_api api,
+                          bool no_error,
                           const struct gl_config *visual,
                           struct gl_context *share_list,
                           const struct dd_function_table *driverFunctions);

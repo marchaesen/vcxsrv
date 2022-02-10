@@ -26,6 +26,7 @@
  */
 
 #include "nir_types.h"
+#include "nir_gl_types.h"
 #include "compiler/glsl/ir.h"
 
 const char *

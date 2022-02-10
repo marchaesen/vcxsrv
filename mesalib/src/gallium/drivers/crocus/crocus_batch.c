@@ -263,21 +263,30 @@ crocus_init_batch(struct crocus_context *ice,
    crocus_batch_reset(batch);
 }
 
-static struct drm_i915_gem_exec_object2 *
-find_validation_entry(struct crocus_batch *batch, struct crocus_bo *bo)
+static int
+find_exec_index(struct crocus_batch *batch, struct crocus_bo *bo)
 {
    unsigned index = READ_ONCE(bo->index);
 
    if (index < batch->exec_count && batch->exec_bos[index] == bo)
-      return &batch->validation_list[index];
+      return index;
 
    /* May have been shared between multiple active batches */
    for (index = 0; index < batch->exec_count; index++) {
       if (batch->exec_bos[index] == bo)
-         return &batch->validation_list[index];
+	 return index;
    }
+   return -1;
+}
 
-   return NULL;
+static struct drm_i915_gem_exec_object2 *
+find_validation_entry(struct crocus_batch *batch, struct crocus_bo *bo)
+{
+   int index = find_exec_index(batch, bo);
+
+   if (index == -1)
+      return NULL;
+   return &batch->validation_list[index];
 }
 
 static void
@@ -409,7 +418,7 @@ emit_reloc(struct crocus_batch *batch,
       (struct drm_i915_gem_relocation_entry) {
          .offset = offset,
          .delta = target_offset,
-         .target_handle = target->index,
+         .target_handle = find_exec_index(batch, target),
          .presumed_offset = entry->offset,
       };
 

@@ -5,7 +5,7 @@ traces:
   - path: behdad-glyphy/glyphy.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: b6cd8d92987530edcfc36a933c9b07f6
+        checksum: 22bf5262745fd47c5c5eadb93d7cc420
   - path: glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true.trace
     expectations:
       - device: gl-panfrost-t860
@@ -158,7 +158,7 @@ traces:
   - path: glmark2/refract.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: e520a0071fd940be1401aea2bec97709
+        checksum: 6557deca1a47a7a77723658ea579ac63
   - path: glmark2/shading:shading=blinn-phong-inf.trace
     expectations:
       - device: gl-panfrost-t860
@@ -209,11 +209,11 @@ traces:
   - path: gputest/plot3d.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: e73715f3b6a4f1609eaf5432af03714e
+        checksum: a34223830866a42747db199b04c5e1be
   - path: humus/AmbientAperture.trace
     expectations:
       - device: gl-panfrost-t860
-        checksum: b0d4a64e0907f817161b2a0e85af7a9a
+        checksum: e4c0b930ef99f14305e1ade7f1779c09
   - path: humus/CelShading.trace
     expectations:
       - device: gl-panfrost-t860
@@ -235,6 +235,19 @@ traces:
       # Missing the coins and the texture on the "Nev" of the level.
       - device: gl-panfrost-t860
         checksum: 33235a5466d402348adbf3196cf3cf6b
+  - path: paraview/pv-manyspheres.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: 1747f5c7609548f1cf325a7e89ea02a9
+  # Aborts.
+  # - path: paraview/pv-waveletcontour.trace
+  #   expectations:
+  #     - device: gl-panfrost-t860
+  #       checksum: db43c733f3f3d5253e263838e58d9111
+  - path: paraview/pv-waveletvolume.trace
+    expectations:
+      - device: gl-panfrost-t860
+        checksum: e0b4fba1e77005892c06a4899933d71a
   # Definitely wedges the GPU
   # - path: valve/counterstrike-v2.trace
   #   expectations:

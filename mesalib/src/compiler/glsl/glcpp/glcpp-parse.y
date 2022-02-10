@@ -1057,6 +1057,7 @@ _token_create_str(glcpp_parser_t *parser, int type, char *str)
    token = linear_alloc_child(parser->linalloc, sizeof(token_t));
    token->type = type;
    token->value.str = str;
+   token->expanding = false;
 
    return token;
 }
@@ -1069,6 +1070,7 @@ _token_create_ival(glcpp_parser_t *parser, int type, int ival)
    token = linear_alloc_child(parser->linalloc, sizeof(token_t));
    token->type = type;
    token->value.ival = ival;
+   token->expanding = false;
 
    return token;
 }
@@ -1958,6 +1960,10 @@ _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
    struct hash_entry *entry;
    macro_t *macro;
 
+   /* If token is already being expanded return to avoid an infinite loop */
+   if (token->expanding)
+      return NULL;
+
    /* We only expand identifiers */
    if (token->type != IDENTIFIER) {
       return NULL;
@@ -1988,14 +1994,15 @@ _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
    /* Finally, don't expand this macro if we're already actively
     * expanding it, (to avoid infinite recursion). */
    if (_parser_active_list_contains (parser, identifier)) {
-      /* We change the token type here from IDENTIFIER to OTHER to prevent any
+      /* We change the `expanding` bool to true to prevent any
        * future expansion of this unexpanded token. */
       char *str;
       token_list_t *expansion;
       token_t *final;
 
       str = linear_strdup(parser->linalloc, token->value.str);
-      final = _token_create_str(parser, OTHER, str);
+      final = _token_create_str(parser, token->type, str);
+      final->expanding = true;
       expansion = _token_list_create(parser);
       _token_list_append(parser, expansion, final);
       return expansion;

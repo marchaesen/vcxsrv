@@ -305,6 +305,8 @@ __vk_errorv(const void *_obj, VkResult error,
                   VK_LOG_NO_OBJS(instance), file, line,
                   "%s (%s)", message, error_str);
       }
+
+      ralloc_free(message);
    } else {
       if (object) {
          __vk_log(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,

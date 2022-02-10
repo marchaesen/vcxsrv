@@ -386,6 +386,8 @@ vma_alloc(struct iris_bufmgr *bufmgr,
           uint64_t size,
           uint64_t alignment)
 {
+   simple_mtx_assert_locked(&bufmgr->lock);
+
    /* Force minimum alignment based on device requirements */
    assert((alignment & (alignment - 1)) == 0);
    alignment = MAX2(alignment, bufmgr->vma_min_align);
@@ -411,6 +413,8 @@ vma_free(struct iris_bufmgr *bufmgr,
          uint64_t address,
          uint64_t size)
 {
+   simple_mtx_assert_locked(&bufmgr->lock);
+
    if (address == IRIS_BORDER_COLOR_POOL_ADDRESS)
       return;
 
@@ -620,19 +624,26 @@ iris_slab_free(void *priv, struct pb_slab *pslab)
 
    assert(!slab->bo->aux_map_address);
 
-   if (aux_map_ctx) {
-      /* Since we're freeing the whole slab, all buffers allocated out of it
-       * must be reclaimable.  We require buffers to be idle to be reclaimed
-       * (see iris_can_reclaim_slab()), so we know all entries must be idle.
-       * Therefore, we can safely unmap their aux table entries.
-       */
-      for (unsigned i = 0; i < pslab->num_entries; i++) {
-         struct iris_bo *bo = &slab->entries[i];
-         if (bo->aux_map_address) {
-            intel_aux_map_unmap_range(aux_map_ctx, bo->address, bo->size);
-            bo->aux_map_address = 0;
+   /* Since we're freeing the whole slab, all buffers allocated out of it
+    * must be reclaimable.  We require buffers to be idle to be reclaimed
+    * (see iris_can_reclaim_slab()), so we know all entries must be idle.
+    * Therefore, we can safely unmap their aux table entries.
+    */
+   for (unsigned i = 0; i < pslab->num_entries; i++) {
+      struct iris_bo *bo = &slab->entries[i];
+      if (aux_map_ctx && bo->aux_map_address) {
+         intel_aux_map_unmap_range(aux_map_ctx, bo->address, bo->size);
+         bo->aux_map_address = 0;
+      }
+
+      /* Unref read/write dependency syncobjs and free the array. */
+      for (int d = 0; d < bo->deps_size; d++) {
+         for (int b = 0; b < IRIS_BATCH_COUNT; b++) {
+            iris_syncobj_reference(bufmgr, &bo->deps[d].write_syncobjs[b], NULL);
+            iris_syncobj_reference(bufmgr, &bo->deps[d].read_syncobjs[b], NULL);
          }
       }
+      free(bo->deps);
    }
 
    iris_bo_unreference(slab->bo);
@@ -865,6 +876,8 @@ alloc_bo_from_cache(struct iris_bufmgr *bufmgr,
       return NULL;
 
    struct iris_bo *bo = NULL;
+
+   simple_mtx_assert_locked(&bufmgr->lock);
 
    list_for_each_entry_safe(struct iris_bo, cur, &bucket->head, head) {
       assert(iris_bo_is_real(cur));
@@ -1138,7 +1151,9 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
    return bo;
 
 err_free:
+   simple_mtx_lock(&bufmgr->lock);
    bo_free(bo);
+   simple_mtx_unlock(&bufmgr->lock);
    return NULL;
 }
 
@@ -1243,8 +1258,11 @@ iris_bo_gem_create_from_name(struct iris_bufmgr *bufmgr,
       goto out;
 
    bo = bo_calloc();
-   if (!bo)
+   if (!bo) {
+      struct drm_gem_close close = { .handle = open_arg.handle, };
+      intel_ioctl(bufmgr->fd, DRM_IOCTL_GEM_CLOSE, &close);
       goto out;
+   }
 
    p_atomic_set(&bo->refcount, 1);
 
@@ -1258,6 +1276,12 @@ iris_bo_gem_create_from_name(struct iris_bufmgr *bufmgr,
    bo->real.mmap_mode = IRIS_MMAP_NONE;
    bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
    bo->address = vma_alloc(bufmgr, IRIS_MEMZONE_OTHER, bo->size, 1);
+
+   if (bo->address == 0ull) {
+      bo_free(bo);
+      bo = NULL;
+      goto out;
+   }
 
    _mesa_hash_table_insert(bufmgr->handle_table, &bo->gem_handle, bo);
    _mesa_hash_table_insert(bufmgr->name_table, &bo->real.global_name, bo);
@@ -1274,6 +1298,7 @@ bo_close(struct iris_bo *bo)
 {
    struct iris_bufmgr *bufmgr = bo->bufmgr;
 
+   simple_mtx_assert_locked(&bufmgr->lock);
    assert(iris_bo_is_real(bo));
 
    if (iris_bo_is_external(bo)) {
@@ -1331,6 +1356,7 @@ bo_free(struct iris_bo *bo)
 {
    struct iris_bufmgr *bufmgr = bo->bufmgr;
 
+   simple_mtx_assert_locked(&bufmgr->lock);
    assert(iris_bo_is_real(bo));
 
    if (!bo->real.userptr && bo->real.map)
@@ -1351,6 +1377,8 @@ static void
 cleanup_bo_cache(struct iris_bufmgr *bufmgr, time_t time)
 {
    int i;
+
+   simple_mtx_assert_locked(&bufmgr->lock);
 
    if (bufmgr->time == time)
       return;
@@ -1718,6 +1746,7 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
          pb_slabs_deinit(&bufmgr->bo_slabs[i]);
    }
 
+   simple_mtx_lock(&bufmgr->lock);
    /* Free any cached buffer objects we were going to reuse */
    for (int i = 0; i < bufmgr->num_buckets; i++) {
       struct bo_cache_bucket *bucket = &bufmgr->cache_bucket[i];
@@ -1764,6 +1793,8 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
    }
 
    close(bufmgr->fd);
+
+   simple_mtx_unlock(&bufmgr->lock);
 
    simple_mtx_destroy(&bufmgr->lock);
    simple_mtx_destroy(&bufmgr->bo_deps_lock);
@@ -1872,6 +1903,7 @@ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd)
    bo->real.imported = true;
    bo->real.mmap_mode = IRIS_MMAP_NONE;
    bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
+   bo->gem_handle = handle;
 
    /* From the Bspec, Memory Compression - Gfx12:
     *
@@ -1883,10 +1915,14 @@ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd)
     * in case. We always align to 64KB even on platforms where we don't need
     * to, because it's a fairly reasonable thing to do anyway.
     */
-   bo->address =
-      vma_alloc(bufmgr, IRIS_MEMZONE_OTHER, bo->size, 64 * 1024);
+   bo->address = vma_alloc(bufmgr, IRIS_MEMZONE_OTHER, bo->size, 64 * 1024);
 
-   bo->gem_handle = handle;
+   if (bo->address == 0ull) {
+      bo_free(bo);
+      bo = NULL;
+      goto out;
+   }
+
    _mesa_hash_table_insert(bufmgr->handle_table, &bo->gem_handle, bo);
 
 out:
@@ -1897,11 +1933,14 @@ out:
 static void
 iris_bo_mark_exported_locked(struct iris_bo *bo)
 {
+   struct iris_bufmgr *bufmgr = bo->bufmgr;
+
    /* We cannot export suballocated BOs. */
    assert(iris_bo_is_real(bo));
+   simple_mtx_assert_locked(&bufmgr->lock);
 
    if (!iris_bo_is_external(bo))
-      _mesa_hash_table_insert(bo->bufmgr->handle_table, &bo->gem_handle, bo);
+      _mesa_hash_table_insert(bufmgr->handle_table, &bo->gem_handle, bo);
 
    if (!bo->real.exported) {
       /* If a BO is going to be used externally, it could be sent to the
@@ -2216,10 +2255,21 @@ intel_aux_map_buffer_alloc(void *driver_ctx, uint32_t size)
    size = MAX2(ALIGN(size, page_size), page_size);
 
    struct iris_bo *bo = alloc_fresh_bo(bufmgr, size, 0);
+   if (!bo) {
+      free(buf);
+      return NULL;
+   }
 
    simple_mtx_lock(&bufmgr->lock);
+
    bo->address = vma_alloc(bufmgr, IRIS_MEMZONE_OTHER, bo->size, 64 * 1024);
-   assert(bo->address != 0ull);
+   if (bo->address == 0ull) {
+      free(buf);
+      bo_free(bo);
+      simple_mtx_unlock(&bufmgr->lock);
+      return NULL;
+   }
+
    simple_mtx_unlock(&bufmgr->lock);
 
    bo->name = "aux-map";
@@ -2265,7 +2315,7 @@ static bool
 iris_bufmgr_query_meminfo(struct iris_bufmgr *bufmgr)
 {
    struct drm_i915_query_memory_regions *meminfo =
-      intel_i915_query_alloc(bufmgr->fd, DRM_I915_QUERY_MEMORY_REGIONS);
+      intel_i915_query_alloc(bufmgr->fd, DRM_I915_QUERY_MEMORY_REGIONS, NULL);
    if (meminfo == NULL)
       return false;
 

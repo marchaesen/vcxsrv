@@ -28,7 +28,7 @@
 #include "aco_builder.h"
 #include "aco_ir.h"
 
-#include "common/ac_exp_param.h"
+#include "common/ac_nir.h"
 #include "common/sid.h"
 #include "vulkan/radv_descriptor_set.h"
 
@@ -243,7 +243,6 @@ emit_masked_swizzle(isel_context* ctx, Builder& bld, Temp src, unsigned mask)
 
       uint16_t dpp_ctrl = 0xffff;
 
-      // TODO: we could use DPP8 for some swizzles
       if (and_mask == 0x1f && or_mask < 4 && xor_mask < 4) {
          unsigned res[4] = {0, 1, 2, 3};
          for (unsigned i = 0; i < 4; i++)
@@ -255,6 +254,13 @@ emit_masked_swizzle(isel_context* ctx, Builder& bld, Temp src, unsigned mask)
          dpp_ctrl = dpp_row_mirror;
       } else if (and_mask == 0x1f && !or_mask && xor_mask == 0x7) {
          dpp_ctrl = dpp_row_half_mirror;
+      } else if (ctx->options->chip_class >= GFX10 && (and_mask & 0x18) == 0x18 && or_mask < 8 && xor_mask < 8) {
+         // DPP8 comes last, as it does not allow several modifiers like `abs` that are available with DPP16
+         Builder::Result ret = bld.vop1_dpp8(aco_opcode::v_mov_b32, bld.def(v1), src);
+         for (unsigned i = 0; i < 8; i++) {
+            ret.instr->dpp8().lane_sel[i] = (((i & and_mask) | or_mask) ^ xor_mask) & 0x7;
+         }
+         return ret;
       }
 
       if (dpp_ctrl != 0xffff)
@@ -403,14 +409,15 @@ emit_split_vector(isel_context* ctx, Temp vec_src, unsigned num_components)
 /* This vector expansion uses a mask to determine which elements in the new vector
  * come from the original vector. The other elements are undefined. */
 void
-expand_vector(isel_context* ctx, Temp vec_src, Temp dst, unsigned num_components, unsigned mask)
+expand_vector(isel_context* ctx, Temp vec_src, Temp dst, unsigned num_components, unsigned mask,
+              bool zero_padding = false)
 {
    assert(vec_src.type() == RegType::vgpr);
    Builder bld(ctx->program, ctx->block);
 
    if (dst.type() == RegType::sgpr && num_components > dst.size()) {
       Temp tmp_dst = bld.tmp(RegClass::get(RegType::vgpr, 2 * num_components));
-      expand_vector(ctx, vec_src, tmp_dst, num_components, mask);
+      expand_vector(ctx, vec_src, tmp_dst, num_components, mask, zero_padding);
       bld.pseudo(aco_opcode::p_as_uniform, Definition(dst), tmp_dst);
       ctx->allocated_vec[dst.id()] = ctx->allocated_vec[tmp_dst.id()];
       return;
@@ -430,9 +437,14 @@ expand_vector(isel_context* ctx, Temp vec_src, Temp dst, unsigned num_components
    }
 
    unsigned component_bytes = dst.bytes() / num_components;
-   RegClass rc = RegClass::get(RegType::vgpr, component_bytes);
-   assert(dst.type() == RegType::vgpr || !rc.is_subdword());
+   RegClass src_rc = RegClass::get(RegType::vgpr, component_bytes);
+   RegClass dst_rc = RegClass::get(dst.type(), component_bytes);
+   assert(dst.type() == RegType::vgpr || !src_rc.is_subdword());
    std::array<Temp, NIR_MAX_VEC_COMPONENTS> elems;
+
+   Temp padding = Temp(0, dst_rc);
+   if (zero_padding)
+      padding = bld.copy(bld.def(dst_rc), Operand::zero(component_bytes));
 
    aco_ptr<Pseudo_instruction> vec{create_instruction<Pseudo_instruction>(
       aco_opcode::p_create_vector, Format::PSEUDO, num_components, 1)};
@@ -440,14 +452,15 @@ expand_vector(isel_context* ctx, Temp vec_src, Temp dst, unsigned num_components
    unsigned k = 0;
    for (unsigned i = 0; i < num_components; i++) {
       if (mask & (1 << i)) {
-         Temp src = emit_extract_vector(ctx, vec_src, k++, rc);
+         Temp src = emit_extract_vector(ctx, vec_src, k++, src_rc);
          if (dst.type() == RegType::sgpr)
             src = bld.as_uniform(src);
          vec->operands[i] = Operand(src);
+         elems[i] = src;
       } else {
          vec->operands[i] = Operand::zero(component_bytes);
+         elems[i] = padding;
       }
-      elems[i] = vec->operands[i].getTemp();
    }
    ctx->block->instructions.emplace_back(std::move(vec));
    ctx->allocated_vec.emplace(dst.id(), elems);
@@ -773,7 +786,16 @@ get_alu_src_vop3p(struct isel_context* ctx, nir_alu_src src)
 
    /* extract a full dword if possible */
    if (tmp.bytes() >= (dword + 1) * 4) {
-      return emit_extract_vector(ctx, tmp, dword, RegClass(tmp.type(), 1));
+      /* if the source is splitted into components, use p_create_vector */
+      auto it = ctx->allocated_vec.find(tmp.id());
+      if (it != ctx->allocated_vec.end()) {
+         unsigned index = dword << 1;
+         Builder bld(ctx->program, ctx->block);
+         if (it->second[index].regClass() == v2b)
+            return bld.pseudo(aco_opcode::p_create_vector, bld.def(v1), it->second[index],
+                              it->second[index + 1]);
+      }
+      return emit_extract_vector(ctx, tmp, dword, v1);
    } else {
       /* This must be a swizzled access to %a.zz where %a is v6b */
       assert(((src.swizzle[0] | src.swizzle[1]) & 1) == 0);
@@ -952,7 +974,6 @@ emit_vop3p_instruction(isel_context* ctx, nir_alu_instr* instr, aco_opcode op, T
    Builder bld(ctx->program, ctx->block);
    bld.is_precise = instr->exact;
    Builder::Result res = bld.vop3p(op, Definition(dst), src0, src1, opsel_lo, opsel_hi);
-   emit_split_vector(ctx, dst, 2);
    return res;
 }
 
@@ -2048,6 +2069,14 @@ visit_alu_instr(isel_context* ctx, nir_alu_instr* instr)
       }
       break;
    }
+   case nir_op_fmulz: {
+      if (dst.regClass() == v1) {
+         emit_vop2_instruction(ctx, instr, aco_opcode::v_mul_legacy_f32, dst, true);
+      } else {
+         isel_err(&instr->instr, "Unimplemented NIR instr bit size");
+      }
+      break;
+   }
    case nir_op_fadd: {
       if (dst.regClass() == v2b) {
          emit_vop2_instruction(ctx, instr, aco_opcode::v_add_f16, dst, true);
@@ -2110,12 +2139,20 @@ visit_alu_instr(isel_context* ctx, nir_alu_instr* instr)
          }
 
          bld.vop3p(aco_opcode::v_pk_fma_f16, Definition(dst), src0, src1, src2, opsel_lo, opsel_hi);
-         emit_split_vector(ctx, dst, 2);
       } else if (dst.regClass() == v1) {
          emit_vop3a_instruction(ctx, instr, aco_opcode::v_fma_f32, dst,
                                 ctx->block->fp_mode.must_flush_denorms32, 3);
       } else if (dst.regClass() == v2) {
          emit_vop3a_instruction(ctx, instr, aco_opcode::v_fma_f64, dst, false, 3);
+      } else {
+         isel_err(&instr->instr, "Unimplemented NIR instr bit size");
+      }
+      break;
+   }
+   case nir_op_ffmaz: {
+      if (dst.regClass() == v1) {
+         emit_vop3a_instruction(ctx, instr, aco_opcode::v_fma_legacy_f32, dst,
+                                ctx->block->fp_mode.must_flush_denorms32, 3);
       } else {
          isel_err(&instr->instr, "Unimplemented NIR instr bit size");
       }
@@ -2235,7 +2272,6 @@ visit_alu_instr(isel_context* ctx, nir_alu_instr* instr)
                       instr->src[0].swizzle[0] & 1, instr->src[0].swizzle[1] & 1);
          vop3p->vop3p().neg_lo[0] = true;
          vop3p->vop3p().neg_hi[0] = true;
-         emit_split_vector(ctx, dst, 2);
          break;
       }
       Temp src = get_alu_src(ctx, instr->src[0]);
@@ -2289,7 +2325,6 @@ visit_alu_instr(isel_context* ctx, nir_alu_instr* instr)
             bld.vop3p(aco_opcode::v_pk_mul_f16, Definition(dst), src, Operand::c16(0x3C00),
                       instr->src[0].swizzle[0] & 1, instr->src[0].swizzle[1] & 1);
          vop3p->vop3p().clamp = true;
-         emit_split_vector(ctx, dst, 2);
          break;
       }
       Temp src = get_alu_src(ctx, instr->src[0]);
@@ -3232,12 +3267,8 @@ visit_alu_instr(isel_context* ctx, nir_alu_instr* instr)
    case nir_op_pack_32_4x8: bld.copy(Definition(dst), get_alu_src(ctx, instr->src[0], 4)); break;
    case nir_op_pack_half_2x16_split: {
       if (dst.regClass() == v1) {
-         nir_const_value* val = nir_src_as_const_value(instr->src[1].src);
-         if (val && val->u32 == 0 && ctx->program->chip_class <= GFX9) {
-            /* upper bits zero on GFX6-GFX9 */
-            bld.vop1(aco_opcode::v_cvt_f16_f32, Definition(dst), get_alu_src(ctx, instr->src[0]));
-         } else if (!ctx->block->fp_mode.care_about_round16_64 ||
-                    ctx->block->fp_mode.round16_64 == fp_round_tz) {
+         if (!ctx->block->fp_mode.care_about_round16_64 ||
+             ctx->block->fp_mode.round16_64 == fp_round_tz) {
             if (ctx->program->chip_class == GFX8 || ctx->program->chip_class == GFX9)
                emit_vop3a_instruction(ctx, instr, aco_opcode::v_cvt_pkrtz_f16_f32_e64, dst);
             else
@@ -3272,8 +3303,8 @@ visit_alu_instr(isel_context* ctx, nir_alu_instr* instr)
    case nir_op_unpack_half_2x16_split_y: {
       Temp src = get_alu_src(ctx, instr->src[0]);
       if (src.regClass() == s1)
-         src =
-            bld.sop2(aco_opcode::s_lshr_b32, bld.def(s1), bld.def(s1, scc), src, Operand::c32(16u));
+         src = bld.pseudo(aco_opcode::p_extract, bld.def(s1), bld.def(s1, scc), src,
+                          Operand::c32(1u), Operand::c32(16u), Operand::zero());
       else
          src =
             bld.pseudo(aco_opcode::p_split_vector, bld.def(v2b), bld.def(v2b), src).def(1).getTemp();
@@ -4761,7 +4792,7 @@ void
 visit_store_output(isel_context* ctx, nir_intrinsic_instr* instr)
 {
    if (ctx->stage == vertex_vs || ctx->stage == tess_eval_vs || ctx->stage == fragment_fs ||
-       ctx->stage == vertex_ngg || ctx->stage == tess_eval_ngg ||
+       ctx->stage == vertex_ngg || ctx->stage == tess_eval_ngg || ctx->stage == mesh_ngg ||
        (ctx->stage == vertex_tess_control_hs && ctx->shader->info.stage == MESA_SHADER_VERTEX) ||
        ctx->shader->info.stage == MESA_SHADER_GEOMETRY) {
       bool stored_to_temps = store_output_to_temps(ctx, instr);
@@ -5377,7 +5408,7 @@ visit_load_tess_coord(isel_context* ctx, nir_intrinsic_instr* instr)
    Operand tes_v(get_arg(ctx, ctx->args->ac.tes_v));
    Operand tes_w = Operand::zero();
 
-   if (ctx->shader->info.tess.primitive_mode == GL_TRIANGLES) {
+   if (ctx->shader->info.tess._primitive_mode == TESS_PRIMITIVE_TRIANGLES) {
       Temp tmp = bld.vop2(aco_opcode::v_add_f32, bld.def(v1), tes_u, tes_v);
       tmp = bld.vop2(aco_opcode::v_sub_f32, bld.def(v1), Operand::c32(0x3f800000u /* 1.0f */), tmp);
       tes_w = Operand(tmp);
@@ -5675,87 +5706,6 @@ visit_load_constant(isel_context* ctx, nir_intrinsic_instr* instr)
    unsigned size = instr->dest.ssa.bit_size / 8;
    // TODO: get alignment information for subdword constants
    load_buffer(ctx, instr->num_components, size, dst, rsrc, offset, size, 0);
-}
-
-void
-visit_discard_if(isel_context* ctx, nir_intrinsic_instr* instr)
-{
-   if (ctx->block->loop_nest_depth || ctx->cf_info.parent_if.is_divergent)
-      ctx->cf_info.exec_potentially_empty_discard = true;
-
-   ctx->program->needs_exact = true;
-
-   // TODO: optimize uniform conditions
-   Builder bld(ctx->program, ctx->block);
-   Temp src = get_ssa_temp(ctx, instr->src[0].ssa);
-   assert(src.regClass() == bld.lm);
-   src = bld.sop2(Builder::s_and, bld.def(bld.lm), bld.def(s1, scc), src, Operand(exec, bld.lm));
-   bld.pseudo(aco_opcode::p_discard_if, src);
-   ctx->block->kind |= block_kind_uses_discard_if;
-   return;
-}
-
-void
-visit_discard(isel_context* ctx, nir_intrinsic_instr* instr)
-{
-   Builder bld(ctx->program, ctx->block);
-
-   if (ctx->block->loop_nest_depth || ctx->cf_info.parent_if.is_divergent)
-      ctx->cf_info.exec_potentially_empty_discard = true;
-
-   bool divergent =
-      ctx->cf_info.parent_if.is_divergent || ctx->cf_info.parent_loop.has_divergent_continue;
-
-   if (ctx->block->loop_nest_depth && (nir_instr_is_last(&instr->instr) && !divergent)) {
-      /* we handle discards the same way as jump instructions */
-      append_logical_end(ctx->block);
-
-      /* in loops, discard behaves like break */
-      Block* linear_target = ctx->cf_info.parent_loop.exit;
-      ctx->block->kind |= block_kind_discard;
-
-      /* uniform discard - loop ends here */
-      assert(nir_instr_is_last(&instr->instr));
-      ctx->block->kind |= block_kind_uniform;
-      ctx->cf_info.has_branch = true;
-      bld.branch(aco_opcode::p_branch, bld.hint_vcc(bld.def(s2)));
-      add_linear_edge(ctx->block->index, linear_target);
-      return;
-   }
-
-   /* it can currently happen that NIR doesn't remove the unreachable code */
-   if (!nir_instr_is_last(&instr->instr)) {
-      ctx->program->needs_exact = true;
-      /* save exec somewhere temporarily so that it doesn't get
-       * overwritten before the discard from outer exec masks */
-      Temp cond = bld.sop2(Builder::s_and, bld.def(bld.lm), bld.def(s1, scc),
-                           Operand::c32(0xFFFFFFFF), Operand(exec, bld.lm));
-      bld.pseudo(aco_opcode::p_discard_if, cond);
-      ctx->block->kind |= block_kind_uses_discard_if;
-      return;
-   }
-
-   /* This condition is incorrect for uniformly branched discards in a loop
-    * predicated by a divergent condition, but the above code catches that case
-    * and the discard would end up turning into a discard_if.
-    * For example:
-    * if (divergent) {
-    *    while (...) {
-    *       if (uniform) {
-    *          discard;
-    *       }
-    *    }
-    * }
-    */
-   if (!ctx->cf_info.parent_if.is_divergent) {
-      /* program just ends here */
-      ctx->block->kind |= block_kind_uses_discard_if;
-      bld.pseudo(aco_opcode::p_discard_if, Operand::c32(0xFFFFFFFFu));
-      // TODO: it will potentially be followed by a branch which is dead code to sanitize NIR phis
-   } else {
-      ctx->block->kind |= block_kind_discard;
-      /* branch and linear edge is added by visit_if() */
-   }
 }
 
 enum aco_descriptor_type {
@@ -6245,7 +6195,8 @@ visit_image_load(isel_context* ctx, nir_intrinsic_instr* instr)
                        Operand::zero());
    }
 
-   expand_vector(ctx, tmp, dst, instr->dest.ssa.num_components, expand_mask);
+   expand_vector(ctx, tmp, dst, instr->dest.ssa.num_components, expand_mask,
+                 instr->dest.ssa.bit_size == 64);
 }
 
 void
@@ -7934,6 +7885,7 @@ emit_interp_center(isel_context* ctx, Temp dst, Temp bary, Temp pos1, Temp pos2)
 
 Temp merged_wave_info_to_mask(isel_context* ctx, unsigned i);
 void ngg_emit_sendmsg_gs_alloc_req(isel_context* ctx, Temp vtx_cnt, Temp prm_cnt);
+static void create_primitive_exports(isel_context *ctx, Temp prim_ch1);
 static void create_vs_exports(isel_context* ctx);
 
 Temp
@@ -8125,10 +8077,6 @@ visit_intrinsic(isel_context* ctx, nir_intrinsic_instr* instr)
    case nir_intrinsic_load_push_constant: visit_load_push_constant(ctx, instr); break;
    case nir_intrinsic_load_constant: visit_load_constant(ctx, instr); break;
    case nir_intrinsic_vulkan_resource_index: visit_load_resource(ctx, instr); break;
-   case nir_intrinsic_terminate:
-   case nir_intrinsic_discard: visit_discard(ctx, instr); break;
-   case nir_intrinsic_terminate_if:
-   case nir_intrinsic_discard_if: visit_discard_if(ctx, instr); break;
    case nir_intrinsic_load_shared: visit_load_shared(ctx, instr); break;
    case nir_intrinsic_store_shared: visit_store_shared(ctx, instr); break;
    case nir_intrinsic_shared_atomic_add:
@@ -8216,12 +8164,23 @@ visit_intrinsic(isel_context* ctx, nir_intrinsic_instr* instr)
    }
    case nir_intrinsic_load_workgroup_id: {
       Temp dst = get_ssa_temp(ctx, &instr->dest.ssa);
-      const struct ac_arg* args = ctx->args->ac.workgroup_ids;
-      bld.pseudo(aco_opcode::p_create_vector, Definition(dst),
-                 args[0].used ? Operand(get_arg(ctx, args[0])) : Operand::zero(),
-                 args[1].used ? Operand(get_arg(ctx, args[1])) : Operand::zero(),
-                 args[2].used ? Operand(get_arg(ctx, args[2])) : Operand::zero());
-      emit_split_vector(ctx, dst, 3);
+      if (ctx->stage.hw == HWStage::CS) {
+         const struct ac_arg* ids = ctx->args->ac.workgroup_ids;
+         bld.pseudo(aco_opcode::p_create_vector, Definition(dst),
+                    ids[0].used ? Operand(get_arg(ctx, ids[0])) : Operand::zero(),
+                    ids[1].used ? Operand(get_arg(ctx, ids[1])) : Operand::zero(),
+                    ids[2].used ? Operand(get_arg(ctx, ids[2])) : Operand::zero());
+         emit_split_vector(ctx, dst, 3);
+      } else if (ctx->stage == mesh_ngg) {
+         /* TODO: support 3 dimensional workgroup IDs properly. */
+         Temp idx_arg = get_arg(ctx, ctx->args->ac.vertex_id);
+         Temp base_arg = get_arg(ctx, ctx->args->ac.base_vertex);
+         Temp idx = bld.vop1(aco_opcode::v_readfirstlane_b32, bld.def(s1), idx_arg);
+         Temp workgroup_index = bld.sop2(aco_opcode::s_add_u32, bld.def(s1), bld.def(s1, scc), idx, base_arg);
+         Temp one = bld.copy(bld.def(s1), Operand::c32(1));
+         Temp workgroup_ids[3] = {workgroup_index, one, one};
+         create_vec_from_array(ctx, workgroup_ids, 3, RegType::sgpr, 4, 0, dst);
+      }
       break;
    }
    case nir_intrinsic_load_local_invocation_index: {
@@ -8711,7 +8670,7 @@ visit_intrinsic(isel_context* ctx, nir_intrinsic_instr* instr)
 
       if (ctx->block->loop_nest_depth || ctx->cf_info.parent_if.is_divergent)
          ctx->cf_info.exec_potentially_empty_discard = true;
-      ctx->block->kind |= block_kind_uses_demote;
+      ctx->block->kind |= block_kind_uses_discard;
       ctx->program->needs_exact = true;
       break;
    case nir_intrinsic_demote_if: {
@@ -8723,7 +8682,28 @@ visit_intrinsic(isel_context* ctx, nir_intrinsic_instr* instr)
 
       if (ctx->block->loop_nest_depth || ctx->cf_info.parent_if.is_divergent)
          ctx->cf_info.exec_potentially_empty_discard = true;
-      ctx->block->kind |= block_kind_uses_demote;
+      ctx->block->kind |= block_kind_uses_discard;
+      ctx->program->needs_exact = true;
+      break;
+   }
+   case nir_intrinsic_terminate:
+   case nir_intrinsic_terminate_if:
+   case nir_intrinsic_discard:
+   case nir_intrinsic_discard_if: {
+      Operand cond = Operand::c32(-1u);
+      if (instr->intrinsic == nir_intrinsic_discard_if ||
+          instr->intrinsic == nir_intrinsic_terminate_if) {
+         Temp src = get_ssa_temp(ctx, instr->src[0].ssa);
+         assert(src.regClass() == bld.lm);
+         cond =
+            bld.sop2(Builder::s_and, bld.def(bld.lm), bld.def(s1, scc), src, Operand(exec, bld.lm));
+      }
+
+      bld.pseudo(aco_opcode::p_discard_if, cond);
+
+      if (ctx->block->loop_nest_depth || ctx->cf_info.parent_if.is_divergent)
+         ctx->cf_info.exec_potentially_empty_discard = true;
+      ctx->block->kind |= block_kind_uses_discard;
       ctx->program->needs_exact = true;
       break;
    }
@@ -8944,11 +8924,8 @@ visit_intrinsic(isel_context* ctx, nir_intrinsic_instr* instr)
       break;
    }
    case nir_intrinsic_export_primitive_amd: {
-      assert(ctx->stage.hw == HWStage::NGG);
-      Temp prim_exp_arg = get_ssa_temp(ctx, instr->src[0].ssa);
-      bld.exp(aco_opcode::exp, prim_exp_arg, Operand(v1), Operand(v1), Operand(v1),
-              1 /* enabled mask */, V_008DFC_SQ_EXP_PRIM /* dest */, false /* compressed */,
-              true /* done */, false /* valid mask */);
+      Temp prim_ch1 = as_vgpr(ctx, get_ssa_temp(ctx, instr->src[0].ssa));
+      create_primitive_exports(ctx, prim_ch1);
       break;
    }
    case nir_intrinsic_alloc_vertices_and_primitives_amd: {
@@ -9100,6 +9077,28 @@ tex_fetch_ptrs(isel_context* ctx, nir_tex_instr* instr, Temp* res_ptr, Temp* sam
    }
    if (samp_ptr) {
       *samp_ptr = get_sampler_desc(ctx, sampler_deref_instr, ACO_DESC_SAMPLER, instr, false);
+
+      if (ctx->options->disable_aniso_single_level &&
+          instr->sampler_dim < GLSL_SAMPLER_DIM_RECT && ctx->options->chip_class < GFX8) {
+         /* fix sampler aniso on SI/CI: samp[0] = samp[0] & img[7] */
+         Builder bld(ctx->program, ctx->block);
+
+         /* to avoid unnecessary moves, we split and recombine sampler and image */
+         Temp img[8] = {bld.tmp(s1), bld.tmp(s1), bld.tmp(s1), bld.tmp(s1),
+                        bld.tmp(s1), bld.tmp(s1), bld.tmp(s1), bld.tmp(s1)};
+         Temp samp[4] = {bld.tmp(s1), bld.tmp(s1), bld.tmp(s1), bld.tmp(s1)};
+         bld.pseudo(aco_opcode::p_split_vector, Definition(img[0]), Definition(img[1]),
+                    Definition(img[2]), Definition(img[3]), Definition(img[4]), Definition(img[5]),
+                    Definition(img[6]), Definition(img[7]), *res_ptr);
+         bld.pseudo(aco_opcode::p_split_vector, Definition(samp[0]), Definition(samp[1]),
+                    Definition(samp[2]), Definition(samp[3]), *samp_ptr);
+
+         samp[0] = bld.sop2(aco_opcode::s_and_b32, bld.def(s1), bld.def(s1, scc), samp[0], img[7]);
+         *res_ptr = bld.pseudo(aco_opcode::p_create_vector, bld.def(s8), img[0], img[1], img[2],
+                               img[3], img[4], img[5], img[6], img[7]);
+         *samp_ptr = bld.pseudo(aco_opcode::p_create_vector, bld.def(s4), samp[0], samp[1], samp[2],
+                                samp[3]);
+      }
    }
 }
 
@@ -10675,9 +10674,15 @@ export_vs_varying(isel_context* ctx, int slot, bool is_pos, int* next_pos)
 {
    assert(ctx->stage.hw == HWStage::VS || ctx->stage.hw == HWStage::NGG);
 
-   int offset = (ctx->stage.has(SWStage::TES) && !ctx->stage.has(SWStage::GS))
-                   ? ctx->program->info->tes.outinfo.vs_output_param_offset[slot]
-                   : ctx->program->info->vs.outinfo.vs_output_param_offset[slot];
+   const uint8_t *vs_output_param_offset =
+      ctx->stage.has(SWStage::GS) ? ctx->program->info->vs.outinfo.vs_output_param_offset :
+      ctx->stage.has(SWStage::TES) ? ctx->program->info->tes.outinfo.vs_output_param_offset :
+      ctx->stage.has(SWStage::MS) ? ctx->program->info->ms.outinfo.vs_output_param_offset :
+      ctx->program->info->vs.outinfo.vs_output_param_offset;
+
+   assert(vs_output_param_offset);
+
+   int offset = vs_output_param_offset[slot];
    unsigned mask = ctx->outputs.mask[slot];
    if (!is_pos && !mask)
       return;
@@ -10706,7 +10711,8 @@ export_vs_varying(isel_context* ctx, int slot, bool is_pos, int* next_pos)
 }
 
 static void
-export_vs_psiz_layer_viewport_vrs(isel_context* ctx, int* next_pos)
+export_vs_psiz_layer_viewport_vrs(isel_context* ctx, int* next_pos,
+                                  const radv_vs_output_info* outinfo)
 {
    aco_ptr<Export_instruction> exp{
       create_instruction<Export_instruction>(aco_opcode::exp, Format::EXP, 4, 0)};
@@ -10717,11 +10723,11 @@ export_vs_psiz_layer_viewport_vrs(isel_context* ctx, int* next_pos)
       exp->operands[0] = Operand(ctx->outputs.temps[VARYING_SLOT_PSIZ * 4u]);
       exp->enabled_mask |= 0x1;
    }
-   if (ctx->outputs.mask[VARYING_SLOT_LAYER]) {
+   if (ctx->outputs.mask[VARYING_SLOT_LAYER] && !outinfo->writes_layer_per_primitive) {
       exp->operands[2] = Operand(ctx->outputs.temps[VARYING_SLOT_LAYER * 4u]);
       exp->enabled_mask |= 0x4;
    }
-   if (ctx->outputs.mask[VARYING_SLOT_VIEWPORT]) {
+   if (ctx->outputs.mask[VARYING_SLOT_VIEWPORT] && !outinfo->writes_viewport_index_per_primitive) {
       if (ctx->options->chip_class < GFX9) {
          exp->operands[3] = Operand(ctx->outputs.temps[VARYING_SLOT_VIEWPORT * 4u]);
          exp->enabled_mask |= 0x8;
@@ -10740,30 +10746,6 @@ export_vs_psiz_layer_viewport_vrs(isel_context* ctx, int* next_pos)
    if (ctx->outputs.mask[VARYING_SLOT_PRIMITIVE_SHADING_RATE]) {
       exp->operands[1] = Operand(ctx->outputs.temps[VARYING_SLOT_PRIMITIVE_SHADING_RATE * 4u]);
       exp->enabled_mask |= 0x2;
-   } else if (ctx->options->force_vrs_rates) {
-      /* Bits [2:3] = VRS rate X
-       * Bits [4:5] = VRS rate Y
-       *
-       * The range is [-2, 1]. Values:
-       *   1: 2x coarser shading rate in that direction.
-       *   0: normal shading rate
-       *  -1: 2x finer shading rate (sample shading, not directional)
-       *  -2: 4x finer shading rate (sample shading, not directional)
-       *
-       * Sample shading can't go above 8 samples, so both numbers can't be -2
-       * at the same time.
-       */
-      Builder bld(ctx->program, ctx->block);
-      Temp rates = bld.copy(bld.def(v1), Operand::c32((unsigned)ctx->options->force_vrs_rates));
-
-      /* If Pos.W != 1 (typical for non-GUI elements), use 2x2 coarse shading. */
-      Temp cond = bld.vopc(aco_opcode::v_cmp_neq_f32, bld.def(bld.lm), Operand::c32(0x3f800000u),
-                           Operand(ctx->outputs.temps[VARYING_SLOT_POS + 3]));
-      rates = bld.vop2(aco_opcode::v_cndmask_b32, bld.def(v1),
-                       bld.copy(bld.def(v1), Operand::zero()), rates, cond);
-
-      exp->operands[1] = Operand(rates);
-      exp->enabled_mask |= 0x2;
    }
 
    exp->valid_mask = ctx->options->chip_class == GFX10 && *next_pos == 0;
@@ -10777,11 +10759,13 @@ static void
 create_vs_exports(isel_context* ctx)
 {
    assert(ctx->stage.hw == HWStage::VS || ctx->stage.hw == HWStage::NGG);
+   const radv_vs_output_info* outinfo =
+      ctx->stage.has(SWStage::GS) ? &ctx->program->info->vs.outinfo :
+      ctx->stage.has(SWStage::TES) ? &ctx->program->info->tes.outinfo :
+      ctx->stage.has(SWStage::MS) ? &ctx->program->info->ms.outinfo :
+      &ctx->program->info->vs.outinfo;
 
-   const radv_vs_output_info* outinfo = (ctx->stage.has(SWStage::TES) && !ctx->stage.has(SWStage::GS))
-                                        ? &ctx->program->info->tes.outinfo
-                                        : &ctx->program->info->vs.outinfo;
-
+   assert(outinfo);
    ctx->block->kind |= block_kind_export_end;
 
    if (outinfo->export_prim_id && ctx->stage.hw != HWStage::NGG) {
@@ -10795,6 +10779,7 @@ create_vs_exports(isel_context* ctx)
    }
 
    if (ctx->options->key.has_multiview_view_index) {
+      assert(!outinfo->writes_layer_per_primitive);
       ctx->outputs.mask[VARYING_SLOT_LAYER] |= 0x1;
       ctx->outputs.temps[VARYING_SLOT_LAYER * 4u] =
          as_vgpr(ctx, get_arg(ctx, ctx->args->ac.view_index));
@@ -10809,11 +10794,9 @@ create_vs_exports(isel_context* ctx)
    int next_pos = 0;
    export_vs_varying(ctx, VARYING_SLOT_POS, true, &next_pos);
 
-   bool writes_primitive_shading_rate =
-      outinfo->writes_primitive_shading_rate || ctx->options->force_vrs_rates;
    if (outinfo->writes_pointsize || outinfo->writes_layer || outinfo->writes_viewport_index ||
-       writes_primitive_shading_rate) {
-      export_vs_psiz_layer_viewport_vrs(ctx, &next_pos);
+       outinfo->writes_primitive_shading_rate) {
+      export_vs_psiz_layer_viewport_vrs(ctx, &next_pos, outinfo);
    }
    if (ctx->num_clip_distances + ctx->num_cull_distances > 0)
       export_vs_varying(ctx, VARYING_SLOT_CLIP_DIST0, true, &next_pos);
@@ -10830,6 +10813,71 @@ create_vs_exports(isel_context* ctx)
    for (unsigned i = 0; i <= VARYING_SLOT_VAR31; ++i) {
       if (i < VARYING_SLOT_VAR0 && i != VARYING_SLOT_LAYER && i != VARYING_SLOT_PRIMITIVE_ID &&
           i != VARYING_SLOT_VIEWPORT)
+         continue;
+      if (ctx->shader && ctx->shader->info.per_primitive_outputs & BITFIELD64_BIT(i))
+         continue;
+
+      export_vs_varying(ctx, i, false, NULL);
+   }
+}
+
+static void
+create_primitive_exports(isel_context *ctx, Temp prim_ch1)
+{
+   assert(ctx->stage.hw == HWStage::NGG);
+   const radv_vs_output_info* outinfo =
+      ctx->stage.has(SWStage::GS) ? &ctx->program->info->vs.outinfo :
+      ctx->stage.has(SWStage::TES) ? &ctx->program->info->tes.outinfo :
+      ctx->stage.has(SWStage::MS) ? &ctx->program->info->ms.outinfo :
+      &ctx->program->info->vs.outinfo;
+
+   Builder bld(ctx->program, ctx->block);
+
+   /* Use zeroes if the shader doesn't write these but they are needed by eg. PS. */
+   if (outinfo->writes_layer_per_primitive && !ctx->outputs.mask[VARYING_SLOT_LAYER])
+      ctx->outputs.temps[VARYING_SLOT_LAYER * 4u] = bld.copy(bld.def(v1), Operand::c32(0));
+   if (outinfo->writes_viewport_index_per_primitive && !ctx->outputs.mask[VARYING_SLOT_VIEWPORT])
+      ctx->outputs.temps[VARYING_SLOT_VIEWPORT * 4u] = bld.copy(bld.def(v1), Operand::c32(0));
+   if (outinfo->export_prim_id_per_primitive && !ctx->outputs.mask[VARYING_SLOT_PRIMITIVE_ID])
+      ctx->outputs.temps[VARYING_SLOT_PRIMITIVE_ID * 4u] = bld.copy(bld.def(v1), Operand::c32(0));
+
+   /* When layer, viewport etc. are per-primitive, they need to be encoded in
+    * the primitive export instruction's second channel. The encoding is:
+    * bits 31..30: VRS rate Y
+    * bits 29..28: VRS rate X
+    * bits 23..20: viewport
+    * bits 19..17: layer
+    */
+   Temp ch2 = bld.copy(bld.def(v1), Operand::c32(0));
+   uint en_mask = 1;
+
+   if (outinfo->writes_layer_per_primitive) {
+      en_mask |= 2;
+      Temp tmp = ctx->outputs.temps[VARYING_SLOT_LAYER * 4u];
+      ch2 = bld.vop3(aco_opcode::v_lshl_or_b32, bld.def(v1), tmp, Operand::c32(17), ch2);
+   }
+   if (outinfo->writes_viewport_index_per_primitive) {
+      en_mask |= 2;
+      Temp tmp = ctx->outputs.temps[VARYING_SLOT_VIEWPORT * 4u];
+      ch2 = bld.vop3(aco_opcode::v_lshl_or_b32, bld.def(v1), tmp, Operand::c32(20), ch2);
+   }
+   if (outinfo->writes_primitive_shading_rate_per_primitive) {
+      en_mask |= 2;
+      Temp tmp = ctx->outputs.temps[VARYING_SLOT_PRIMITIVE_SHADING_RATE * 4u];
+      ch2 = bld.vop2(aco_opcode::v_or_b32, bld.def(v1), tmp, ch2);
+   }
+
+   Operand prim_ch2 = (en_mask & 2) ? Operand(ch2) : Operand(v1);
+
+   bld.exp(aco_opcode::exp, prim_ch1, prim_ch2, Operand(v1), Operand(v1),
+           en_mask /* enabled mask */, V_008DFC_SQ_EXP_PRIM /* dest */, false /* compressed */,
+           true /* done */, false /* valid mask */);
+
+   /* Export generic per-primitive attributes. */
+   for (unsigned i = 0; i <= VARYING_SLOT_VAR31; ++i) {
+      if (!(ctx->shader->info.per_primitive_outputs & BITFIELD64_BIT(i)))
+         continue;
+      if (i == VARYING_SLOT_PRIMITIVE_SHADING_RATE)
          continue;
 
       export_vs_varying(ctx, i, false, NULL);

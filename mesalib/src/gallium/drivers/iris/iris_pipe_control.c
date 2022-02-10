@@ -357,11 +357,10 @@ iris_memory_barrier(struct pipe_context *ctx, unsigned flags)
               PIPE_CONTROL_TILE_CACHE_FLUSH;
    }
 
-   for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
-      if (ice->batches[i].contains_draw) {
-         iris_batch_maybe_flush(&ice->batches[i], 24);
-         iris_emit_pipe_control_flush(&ice->batches[i], "API: memory barrier",
-                                      bits);
+   iris_foreach_batch(ice, batch) {
+      if (batch->contains_draw) {
+         iris_batch_maybe_flush(batch, 24);
+         iris_emit_pipe_control_flush(batch, "API: memory barrier", bits);
       }
    }
 }

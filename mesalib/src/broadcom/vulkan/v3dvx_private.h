@@ -138,6 +138,7 @@ v3dX(pack_sampler_state)(struct v3dv_sampler *sampler,
 
 void
 v3dX(framebuffer_compute_internal_bpp_msaa)(const struct v3dv_framebuffer *framebuffer,
+                                            const struct v3dv_cmd_buffer_attachment_state *attachments,
                                             const struct v3dv_subpass *subpass,
                                             uint8_t *max_bpp, bool *msaa);
 

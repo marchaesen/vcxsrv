@@ -38,7 +38,6 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_flush.h"
 #include "st_cb_clear.h"
-#include "st_cb_fbo.h"
 #include "st_context.h"
 #include "st_manager.h"
 #include "pipe/p_context.h"

@@ -88,6 +88,8 @@ static const struct debug_named_value debug_control[] = {
           "Force 16-bit precision on all TMU operations" },
         { "noloopunroll",  V3D_DEBUG_NO_LOOP_UNROLL,
           "Disable loop unrolling" },
+        { "db", V3D_DEBUG_DOUBLE_BUFFER,
+          "Enable double buffer for Tile Buffer when MSAA is disabled" },
         { NULL }
 };
 

@@ -1131,8 +1131,7 @@ _mesa_update_tnl_spaces( struct gl_context *ctx, GLuint new_state )
    (void) new_state;
    ctx->_NeedEyeCoords = GL_FALSE;
 
-   if (ctx->_ForceEyeCoords ||
-       (ctx->Texture._GenFlags & TEXGEN_NEED_EYE_COORD) ||
+   if ((ctx->Texture._GenFlags & TEXGEN_NEED_EYE_COORD) ||
        ctx->Point._Attenuated ||
        ctx->Light._NeedEyeCoords)
       ctx->_NeedEyeCoords = GL_TRUE;
@@ -1167,19 +1166,6 @@ _mesa_update_tnl_spaces( struct gl_context *ctx, GLuint new_state )
       return false;
    }
 }
-
-
-/**
- * Drivers may need this if the hardware tnl unit doesn't support the
- * light-in-modelspace optimization.  It's also useful for debugging.
- */
-void
-_mesa_allow_light_in_model( struct gl_context *ctx, GLboolean flag )
-{
-   ctx->_ForceEyeCoords = !flag;
-   ctx->NewState |= _NEW_TNL_SPACES;
-}
-
 
 
 /**********************************************************************/
@@ -1289,7 +1275,6 @@ _mesa_init_lighting( struct gl_context *ctx )
    /* Miscellaneous */
    ctx->Light._NeedEyeCoords = GL_FALSE;
    ctx->_NeedEyeCoords = GL_FALSE;
-   ctx->_ForceEyeCoords = GL_FALSE;
    ctx->_ModelViewInvScale = 1.0;
    ctx->_ModelViewInvScaleEyespace = 1.0;
 }

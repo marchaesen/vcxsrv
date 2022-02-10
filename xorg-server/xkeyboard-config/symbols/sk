@@ -48,7 +48,6 @@ xkb_symbols "basic" {
 
     key <AC10>  { [ocircumflex,   quotedbl,      dollar,     NoSymbol ] };
     key <AC11>  { [   section,     exclam,   apostrophe,       ssharp ] };
-    key <AC12>  { [  EuroSign, dead_diaeresis, NoSymbol,     NoSymbol ] };
     key <BKSL>  { [    ncaron, parenright,    backslash,          bar ] };
 
     key <LSGT>  { [ backslash,        bar,        slash,     NoSymbol ] };

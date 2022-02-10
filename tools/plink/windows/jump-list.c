@@ -1,5 +1,5 @@
 /*
- * winjump.c: support for Windows 7 jump lists.
+ * jump-list.c: support for Windows 7 jump lists.
  *
  * The Windows 7 jumplist is a customizable list defined by the
  * application. It is persistent across application restarts: the OS
@@ -12,7 +12,7 @@
  *
  * Since the jumplist is write-only: it can only be replaced and the
  * current list cannot be read, we must maintain the contents of the
- * list persistantly in the registry. The file winstore.h contains
+ * list persistently in the registry. The file winstore.h contains
  * functions to directly manipulate these registry entries. This file
  * contains higher level functions to manipulate the jumplist.
  */

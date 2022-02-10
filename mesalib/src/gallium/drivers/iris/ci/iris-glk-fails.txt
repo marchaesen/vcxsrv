@@ -20,17 +20,12 @@ dEQP-GLES3.functional.rasterization.interpolation.projected.lines_wide,Fail
 565-nozs-dEQP-GLES3.functional.rasterization.interpolation.projected.line_strip_wide,Fail
 565-nozs-dEQP-GLES3.functional.rasterization.interpolation.projected.lines_wide,Fail
 
-KHR-GL46.get_texture_sub_image.errors_test,Fail
-KHR-GL46.get_texture_sub_image.functional_test,Fail
-
 # "Result is different than expected at index: 33 Expected value: 664128 Result value: 658538 "
 KHR-GL46.texture_buffer.texture_buffer_atomic_functions,Fail
 
-KHR-GL46.transform_feedback.capture_vertex_interleaved_test,Fail
-KHR-GL46.transform_feedback.capture_vertex_separate_test,Fail
-KHR-GL46.transform_feedback.discard_vertex_test,Fail
-KHR-GL46.transform_feedback.draw_xfb_instanced_test,Crash
-KHR-GL46.transform_feedback.draw_xfb_stream_instanced_test,Crash
-KHR-GL46.transform_feedback.query_vertex_interleaved_test,Fail
-KHR-GL46.transform_feedback.query_vertex_separate_test,Fail
+# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463 (Fail)
+KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
+
 KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions,Fail
+
+dEQP-EGL.functional.sharing.gles2.multithread.random.images.copyteximage2d.12,Crash

@@ -62,12 +62,10 @@ bool ir3_nir_lower_64b_intrinsics(nir_shader *shader);
 bool ir3_nir_lower_64b_undef(nir_shader *shader);
 bool ir3_nir_lower_64b_global(nir_shader *shader);
 
-const nir_shader_compiler_options *
-ir3_get_compiler_options(struct ir3_compiler *compiler);
 void ir3_optimize_loop(struct ir3_compiler *compiler, nir_shader *s);
 void ir3_nir_lower_io_to_temporaries(nir_shader *s);
 void ir3_finalize_nir(struct ir3_compiler *compiler, nir_shader *s);
-void ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s);
+void ir3_nir_post_finalize(struct ir3_shader *shader);
 void ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s);
 
 void ir3_setup_const_state(nir_shader *nir, struct ir3_shader_variant *v,

@@ -35,6 +35,7 @@
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_format_convert.h"
 #include "compiler/glsl/gl_nir.h"
+#include "compiler/glsl/gl_nir_linker.h"
 #include "util/u_sampler.h"
 
 #define BGR_FORMAT(NAME) \
@@ -649,7 +650,7 @@ create_conversion_shader(struct st_context *st, enum pipe_texture_target target,
    nir_pop_if(&b, NULL);
 
    nir_validate_shader(b.shader, NULL);
-   st_nir_opts(b.shader);
+   gl_nir_opts(b.shader);
    return st_nir_finish_builtin_shader(st, b.shader);
 }
 
@@ -1025,7 +1026,7 @@ st_GetTexSubImage_shader(struct gl_context * ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_screen *screen = st->screen;
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct pipe_resource *src = stObj->pt;
    struct pipe_resource *dst = NULL;
    enum pipe_format dst_format, src_format;

@@ -41,10 +41,11 @@
 #include "linker.h"
 #include "glsl_parser_extras.h"
 #include "glsl_symbol_table.h"
-#include "main/mtypes.h"
+#include "main/consts_exts.h"
 #include "main/uniforms.h"
 #include "program/prog_statevars.h"
 #include "program/prog_instruction.h"
+#include "util/compiler.h"
 #include "builtin_functions.h"
 
 using namespace ir_builder;
@@ -757,12 +758,12 @@ builtin_variable_generator::generate_constants()
        */
       if (state->is_version(0, 300)) {
          add_const("gl_MaxVertexOutputVectors",
-                   state->ctx->Const.Program[MESA_SHADER_VERTEX].MaxOutputComponents / 4);
+                   state->consts->Program[MESA_SHADER_VERTEX].MaxOutputComponents / 4);
          add_const("gl_MaxFragmentInputVectors",
-                   state->ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxInputComponents / 4);
+                   state->consts->Program[MESA_SHADER_FRAGMENT].MaxInputComponents / 4);
       } else {
          add_const("gl_MaxVaryingVectors",
-                   state->ctx->Const.MaxVarying);
+                   state->consts->MaxVarying);
       }
 
       /* EXT_blend_func_extended brings a built in constant
@@ -778,7 +779,7 @@ builtin_variable_generator::generate_constants()
     * compat profile in GLSL 4.20. GLSL ES never supported this constant.
     */
    if (compatibility || !state->is_version(420, 100))  {
-      add_const("gl_MaxVaryingFloats", state->ctx->Const.MaxVarying * 4);
+      add_const("gl_MaxVaryingFloats", state->consts->MaxVarying * 4);
    }
 
    /* Texel offsets were introduced in ARB_shading_language_420pack (which
@@ -798,7 +799,7 @@ builtin_variable_generator::generate_constants()
       add_const("gl_MaxClipDistances", state->Const.MaxClipPlanes);
    }
    if (state->is_version(130, 0)) {
-      add_const("gl_MaxVaryingComponents", state->ctx->Const.MaxVarying * 4);
+      add_const("gl_MaxVaryingComponents", state->consts->MaxVarying * 4);
    }
    if (state->has_cull_distance()) {
       add_const("gl_MaxCullDistances", state->Const.MaxClipPlanes);
@@ -1188,7 +1189,7 @@ builtin_variable_generator::generate_tcs_special_vars()
    add_output(VARYING_SLOT_TESS_LEVEL_INNER, array(float_t, 2),
               GLSL_PRECISION_HIGH, "gl_TessLevelInner")->data.patch = 1;
    /* XXX What to do if multiple are flipped on? */
-   int bbox_slot = state->ctx->Const.NoPrimitiveBoundingBoxOutput ? -1 :
+   int bbox_slot = state->consts->NoPrimitiveBoundingBoxOutput ? -1 :
       VARYING_SLOT_BOUNDING_BOX0;
    if (state->EXT_primitive_bounding_box_enable)
       add_output(bbox_slot, array(vec4_t, 2), "gl_BoundingBoxEXT")
@@ -1229,7 +1230,7 @@ builtin_variable_generator::generate_tes_special_vars()
                     "gl_PatchVerticesIn");
    add_system_value(SYSTEM_VALUE_TESS_COORD, vec3_t, GLSL_PRECISION_HIGH,
                     "gl_TessCoord");
-   if (this->state->ctx->Const.GLSLTessLevelsAsInputs) {
+   if (this->state->consts->GLSLTessLevelsAsInputs) {
       add_input(VARYING_SLOT_TESS_LEVEL_OUTER, array(float_t, 4),
                 GLSL_PRECISION_HIGH, "gl_TessLevelOuter")->data.patch = 1;
       add_input(VARYING_SLOT_TESS_LEVEL_INNER, array(float_t, 2),
@@ -1313,14 +1314,14 @@ builtin_variable_generator::generate_fs_special_vars()
                                GLSL_PRECISION_HIGH :
                                GLSL_PRECISION_MEDIUM);
 
-   if (this->state->ctx->Const.GLSLFragCoordIsSysVal) {
+   if (this->state->consts->GLSLFragCoordIsSysVal) {
       add_system_value(SYSTEM_VALUE_FRAG_COORD, vec4_t, frag_coord_precision,
                        "gl_FragCoord");
    } else {
       add_input(VARYING_SLOT_POS, vec4_t, frag_coord_precision, "gl_FragCoord");
    }
 
-   if (this->state->ctx->Const.GLSLFrontFacingIsSysVal) {
+   if (this->state->consts->GLSLFrontFacingIsSysVal) {
       var = add_system_value(SYSTEM_VALUE_FRONT_FACE, bool_t, "gl_FrontFacing");
       var->data.interpolation = INTERP_MODE_FLAT;
    } else {
@@ -1329,7 +1330,7 @@ builtin_variable_generator::generate_fs_special_vars()
    }
 
    if (state->is_version(120, 100)) {
-      if (this->state->ctx->Const.GLSLPointCoordIsSysVal)
+      if (this->state->consts->GLSLPointCoordIsSysVal)
          add_system_value(SYSTEM_VALUE_POINT_COORD, vec2_t,
                           GLSL_PRECISION_MEDIUM, "gl_PointCoord");
       else
@@ -1505,8 +1506,8 @@ builtin_variable_generator::add_varying(int slot, const glsl_type *type,
 void
 builtin_variable_generator::generate_varyings()
 {
-   struct gl_shader_compiler_options *options =
-      &state->ctx->Const.ShaderCompilerOptions[state->stage];
+   const struct gl_shader_compiler_options *options =
+      &state->consts->ShaderCompilerOptions[state->stage];
 
    /* gl_Position and gl_PointSize are not visible from fragment shaders. */
    if (state->stage != MESA_SHADER_FRAGMENT) {

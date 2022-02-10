@@ -551,7 +551,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_CmdBindDescriptorSets(
 }
 
 
-VKAPI_ATTR void VKAPI_CALL lvp_CmdBeginRenderingKHR(VkCommandBuffer                             commandBuffer,
+VKAPI_ATTR void VKAPI_CALL lvp_CmdBeginRendering(VkCommandBuffer                             commandBuffer,
  const VkRenderingInfoKHR*                           pRenderingInfo
 )
 {
@@ -563,13 +563,13 @@ VKAPI_ATTR void VKAPI_CALL lvp_CmdBeginRenderingKHR(VkCommandBuffer             
    if (!cmd)
       return;
 
-   cmd->type = VK_CMD_BEGIN_RENDERING_KHR;
+   cmd->type = VK_CMD_BEGIN_RENDERING;
    list_addtail(&cmd->cmd_link, &queue->cmds);
 
    if (pRenderingInfo) {
-      cmd->u.begin_rendering_khr.rendering_info = vk_zalloc(queue->alloc, sizeof(VkRenderingInfoKHR), 8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
-      memcpy((void*)cmd->u.begin_rendering_khr.rendering_info, pRenderingInfo, sizeof(VkRenderingInfoKHR));
-   VkRenderingInfoKHR *tmp_dst1 = (void *) cmd->u.begin_rendering_khr.rendering_info; (void) tmp_dst1;
+      cmd->u.begin_rendering.rendering_info = vk_zalloc(queue->alloc, sizeof(VkRenderingInfoKHR), 8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+      memcpy((void*)cmd->u.begin_rendering.rendering_info, pRenderingInfo, sizeof(VkRenderingInfoKHR));
+   VkRenderingInfoKHR *tmp_dst1 = (void *) cmd->u.begin_rendering.rendering_info; (void) tmp_dst1;
    VkRenderingInfoKHR *tmp_src1 = (void *) pRenderingInfo; (void) tmp_src1;   
    
       const VkBaseInStructure *pnext = tmp_dst1->pNext;
@@ -635,6 +635,6 @@ VKAPI_ATTR void VKAPI_CALL lvp_CmdBeginRenderingKHR(VkCommandBuffer             
          memcpy((void*)tmp_dst1->pStencilAttachment, tmp_src1->pStencilAttachment, sizeof(VkRenderingAttachmentInfoKHR));
       }
    } else {
-      cmd->u.begin_rendering_khr.rendering_info = NULL;
+      cmd->u.begin_rendering.rendering_info = NULL;
    }
 }

@@ -442,7 +442,6 @@ struct lvp_pipeline_layout {
    struct vk_object_base base;
    struct {
       struct lvp_descriptor_set_layout *layout;
-      uint32_t dynamic_offset_start;
    } set[MAX_SETS];
 
    uint32_t num_sets;

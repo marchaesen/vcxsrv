@@ -73,6 +73,36 @@ validate(aco::Program* program)
    assert(is_valid);
 }
 
+static std::string
+get_disasm_string(aco::Program* program, std::vector<uint32_t>& code,
+                  unsigned exec_size)
+{
+   std::string disasm;
+
+   if (check_print_asm_support(program)) {
+      char* data = NULL;
+      size_t disasm_size = 0;
+      struct u_memstream mem;
+      if (u_memstream_open(&mem, &data, &disasm_size)) {
+         FILE* const memf = u_memstream_get(&mem);
+         aco::print_asm(program, code, exec_size / 4u, memf);
+         fputc(0, memf);
+         u_memstream_close(&mem);
+      }
+
+      disasm = std::string(data, data + disasm_size);
+      free(data);
+   } else {
+      disasm = "Shader disassembly is not supported in the current configuration"
+#ifndef LLVM_AVAILABLE
+               " (LLVM not available)"
+#endif
+               ".\n";
+   }
+
+   return disasm;
+}
+
 void
 aco_compile_shader(const struct radv_nir_compiler_options* options,
                    const struct radv_shader_info* info,
@@ -201,28 +231,8 @@ aco_compile_shader(const struct radv_nir_compiler_options* options,
 
    std::string disasm;
    if (get_disasm) {
-      if (check_print_asm_support(program.get())) {
-         char* data = NULL;
-         size_t disasm_size = 0;
-         struct u_memstream mem;
-         if (u_memstream_open(&mem, &data, &disasm_size)) {
-            FILE* const memf = u_memstream_get(&mem);
-            aco::print_asm(program.get(), code, exec_size / 4u, memf);
-            fputc(0, memf);
-            u_memstream_close(&mem);
-         }
-
-         disasm = std::string(data, data + disasm_size);
-         size += disasm_size;
-         free(data);
-      } else {
-         disasm = "Shader disassembly is not supported in the current configuration"
-#ifndef LLVM_AVAILABLE
-                  " (LLVM not available)"
-#endif
-                  ".\n";
-         size += disasm.length();
-      }
+      disasm = get_disasm_string(program.get(), code, exec_size);
+      size += disasm.size();
    }
 
    size_t stats_size = 0;
@@ -297,13 +307,17 @@ aco_compile_vs_prolog(const struct radv_nir_compiler_options* options,
    code.reserve(align(program->blocks[0].instructions.size() * 2, 16));
    unsigned exec_size = aco::emit_program(program.get(), code);
 
-   if (options->dump_shader) {
-      aco::print_asm(program.get(), code, exec_size / 4u, stderr);
-      fprintf(stderr, "\n");
-   }
-
    /* copy into binary */
    size_t size = code.size() * sizeof(uint32_t) + sizeof(radv_prolog_binary);
+
+   bool get_disasm = options->dump_shader || options->record_ir;
+
+   std::string disasm;
+   if (get_disasm) {
+      disasm = get_disasm_string(program.get(), code, exec_size);
+      size += disasm.size();
+   }
+
    radv_prolog_binary* prolog_binary = (radv_prolog_binary*)calloc(size, 1);
 
    prolog_binary->num_sgprs = config.num_sgprs;
@@ -311,6 +325,12 @@ aco_compile_vs_prolog(const struct radv_nir_compiler_options* options,
    prolog_binary->num_preserved_sgprs = num_preserved_sgprs;
    prolog_binary->code_size = code.size() * sizeof(uint32_t);
    memcpy(prolog_binary->data, code.data(), prolog_binary->code_size);
+
+   if (get_disasm) {
+      disasm.copy((char*)prolog_binary->data + prolog_binary->code_size,
+                  disasm.size());
+      prolog_binary->disasm_size = disasm.size();
+   }
 
    *binary = prolog_binary;
 }

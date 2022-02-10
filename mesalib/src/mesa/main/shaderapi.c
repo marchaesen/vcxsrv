@@ -67,8 +67,8 @@
 #include "util/u_string.h"
 #include "api_exec_decl.h"
 
-#include "state_tracker/st_cb_program.h"
 #include "state_tracker/st_context.h"
+#include "state_tracker/st_program.h"
 
 #ifdef ENABLE_SHADER_CACHE
 #if CUSTOM_SHADER_REPLACEMENT
@@ -705,12 +705,32 @@ check_tes_query(struct gl_context *ctx, const struct gl_shader_program *shProg)
    return false;
 }
 
-/**
- * Return the length of a string, or 0 if the pointer passed in is NULL
- */
-static size_t strlen_or_zero(const char *s)
+static bool
+get_shader_program_completion_status(struct gl_context *ctx,
+                                     struct gl_shader_program *shprog)
 {
-   return s ? strlen(s) : 0;
+   struct pipe_screen *screen = ctx->screen;
+
+   if (!screen->is_parallel_shader_compilation_finished)
+      return true;
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      struct gl_linked_shader *linked = shprog->_LinkedShaders[i];
+      void *sh = NULL;
+
+      if (!linked || !linked->Program)
+         continue;
+
+      if (linked->Program->variants)
+         sh = linked->Program->variants->driver_shader;
+
+      unsigned type = pipe_shader_type_from_mesa(i);
+
+      if (sh &&
+          !screen->is_parallel_shader_compilation_finished(screen, sh, type))
+         return false;
+   }
+   return true;
 }
 
 /**
@@ -755,7 +775,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       *params = shProg->DeletePending;
       return;
    case GL_COMPLETION_STATUS_ARB:
-      *params = st_get_shader_program_completion_status(ctx, shProg);
+      *params = get_shader_program_completion_status(ctx, shProg);
       return;
    case GL_LINK_STATUS:
       *params = shProg->data->LinkStatus ? GL_TRUE : GL_FALSE;
@@ -777,47 +797,13 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       *params = _mesa_longest_attribute_name_length(shProg);
       return;
    case GL_ACTIVE_UNIFORMS: {
-      unsigned i;
-      const unsigned num_uniforms =
-         shProg->data->NumUniformStorage - shProg->data->NumHiddenUniforms;
-      for (*params = 0, i = 0; i < num_uniforms; i++) {
-         if (!shProg->data->UniformStorage[i].is_shader_storage)
-            (*params)++;
-      }
+      _mesa_get_program_interfaceiv(shProg, GL_UNIFORM, GL_ACTIVE_RESOURCES,
+                                    params);
       return;
    }
    case GL_ACTIVE_UNIFORM_MAX_LENGTH: {
-      unsigned i;
-      GLint max_len = 0;
-      const unsigned num_uniforms =
-         shProg->data->NumUniformStorage - shProg->data->NumHiddenUniforms;
-
-      for (i = 0; i < num_uniforms; i++) {
-         if (shProg->data->UniformStorage[i].is_shader_storage)
-            continue;
-
-         /* From ARB_gl_spirv spec:
-          *
-          *   "If pname is ACTIVE_UNIFORM_MAX_LENGTH, the length of the
-          *    longest active uniform name, including a null terminator, is
-          *    returned. If no active uniforms exist, zero is returned. If no
-          *    name reflection information is available, one is returned."
-          *
-          * We are setting 0 here, as below it will add 1 for the NUL character.
-          */
-         const GLint base_len = shProg->data->UniformStorage[i].name.length;
-
-	 /* Add one for the terminating NUL character for a non-array, and
-	  * 4 for the "[0]" and the NUL for an array.
-	  */
-         const GLint len = base_len + 1 +
-            ((shProg->data->UniformStorage[i].array_elements != 0) ? 3 : 0);
-
-	 if (len > max_len)
-	    max_len = len;
-      }
-
-      *params = max_len;
+      _mesa_get_program_interfaceiv(shProg, GL_UNIFORM, GL_MAX_NAME_LENGTH,
+                                    params);
       return;
    }
    case GL_TRANSFORM_FEEDBACK_VARYINGS:
@@ -836,43 +822,11 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
          *params = shProg->TransformFeedback.NumVarying;
       return;
    case GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH: {
-      unsigned i;
-      GLint max_len = 0;
-      bool in_shader_varyings;
-      int num_varying;
-
       if (!has_xfb)
          break;
 
-      /* Check first if there are transform feedback varyings specified in the
-       * shader (ARB_enhanced_layouts). If there isn't any, use the ones
-       * specified using the API.
-       */
-      in_shader_varyings = shProg->last_vert_prog &&
-         shProg->last_vert_prog->sh.LinkedTransformFeedback->NumVarying > 0;
-
-      num_varying = in_shader_varyings ?
-         shProg->last_vert_prog->sh.LinkedTransformFeedback->NumVarying :
-         shProg->TransformFeedback.NumVarying;
-
-      for (i = 0; i < num_varying; i++) {
-         int len;
-
-         /* Add one for the terminating NUL character. We have to use
-          * strlen_or_zero, as for shaders constructed from SPIR-V binaries,
-          * it is possible that no name reflection information is available.
-          */
-         if (in_shader_varyings) {
-            len = shProg->last_vert_prog->sh.LinkedTransformFeedback->Varyings[i].name.length + 1;
-         } else {
-            len = strlen_or_zero(shProg->TransformFeedback.VaryingNames[i]) + 1;
-         }
-
-         if (len > max_len)
-            max_len = len;
-      }
-
-      *params = max_len;
+      _mesa_get_program_interfaceiv(shProg, GL_TRANSFORM_FEEDBACK_VARYING,
+                                    GL_MAX_NAME_LENGTH, params);
       return;
    }
    case GL_TRANSFORM_FEEDBACK_BUFFER_MODE:
@@ -915,28 +869,11 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       return;
    case GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH: {
-      unsigned i;
-      GLint max_len = 0;
-
       if (!has_ubo)
          break;
 
-      for (i = 0; i < shProg->data->NumUniformBlocks; i++) {
-	 /* Add one for the terminating NUL character. Name can be NULL, in
-          * that case, from ARB_gl_spirv:
-          *   "If pname is ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, the length of
-          *    the longest active uniform block name, including the null
-          *    terminator, is returned. If no active uniform blocks exist,
-          *    zero is returned. If no name reflection information is
-          *    available, one is returned."
-	  */
-         const GLint len = shProg->data->UniformBlocks[i].name.length + 1;
-
-	 if (len > max_len)
-	    max_len = len;
-      }
-
-      *params = max_len;
+      _mesa_get_program_interfaceiv(shProg, GL_UNIFORM_BLOCK,
+                                    GL_MAX_NAME_LENGTH, params);
       return;
    }
    case GL_ACTIVE_UNIFORM_BLOCKS:
@@ -1007,8 +944,22 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       if (!has_tess)
          break;
       if (check_tes_query(ctx, shProg)) {
-         *params = shProg->_LinkedShaders[MESA_SHADER_TESS_EVAL]->
-            Program->info.tess.primitive_mode;
+         const struct gl_linked_shader *tes =
+            shProg->_LinkedShaders[MESA_SHADER_TESS_EVAL];
+         switch (tes->Program->info.tess._primitive_mode) {
+         case TESS_PRIMITIVE_TRIANGLES:
+            *params = GL_TRIANGLES;
+            break;
+         case TESS_PRIMITIVE_QUADS:
+            *params = GL_QUADS;
+            break;
+         case TESS_PRIMITIVE_ISOLINES:
+            *params = GL_ISOLINES;
+            break;
+         case TESS_PRIMITIVE_UNSPECIFIED:
+            *params = 0;
+            break;
+         }
       }
       return;
    case GL_TESS_GEN_SPACING:
@@ -1252,7 +1203,7 @@ _mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh)
       if (ctx->_Shader->Flags & GLSL_DUMP) {
          _mesa_log("GLSL source for %s shader %d:\n",
                  _mesa_shader_stage_to_string(sh->Stage), sh->Name);
-         _mesa_log("%s\n", sh->Source);
+         _mesa_log_direct(sh->Source);
       }
 
       ensure_builtin_types(ctx);

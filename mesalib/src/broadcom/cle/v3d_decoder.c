@@ -267,51 +267,6 @@ get_register_offset(const char **atts, uint32_t *offset)
         return;
 }
 
-static void
-get_start_end_pos(int *start, int *end)
-{
-        /* start value has to be mod with 32 as we need the relative
-         * start position in the first DWord. For the end position, add
-         * the length of the field to the start position to get the
-         * relative postion in the 64 bit address.
-         */
-        if (*end - *start > 32) {
-                int len = *end - *start;
-                *start = *start % 32;
-                *end = *start + len;
-        } else {
-                *start = *start % 32;
-                *end = *end % 32;
-        }
-
-        return;
-}
-
-static inline uint64_t
-mask(int start, int end)
-{
-        uint64_t v;
-
-        v = ~0ULL >> (63 - end + start);
-
-        return v << start;
-}
-
-static inline uint64_t
-field(uint64_t value, int start, int end)
-{
-        get_start_end_pos(&start, &end);
-        return (value & mask(start, end)) >> (start);
-}
-
-static inline uint64_t
-field_address(uint64_t value, int start, int end)
-{
-        /* no need to right shift for address/offset */
-        get_start_end_pos(&start, &end);
-        return (value & mask(start, end));
-}
-
 static struct v3d_type
 string_to_type(struct parser_context *ctx, const char *s)
 {

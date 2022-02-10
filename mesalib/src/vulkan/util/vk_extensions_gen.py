@@ -120,7 +120,7 @@ const struct vk_instance_extension_table vk_android_allowed_instance_extensions 
 %endfor
 };
 
-extern const struct vk_device_extension_table vk_android_allowed_device_extensions = {
+const struct vk_device_extension_table vk_android_allowed_device_extensions = {
 %for ext in device_extensions:
    .${ext.name[3:]} = ${ext.c_android_condition()},
 %endfor

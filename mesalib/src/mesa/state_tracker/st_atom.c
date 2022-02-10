@@ -77,11 +77,11 @@ void st_destroy_atoms( struct st_context *st )
 static void check_program_state( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
-   struct st_program *old_vp = st->vp;
-   struct st_program *old_tcp = st->tcp;
-   struct st_program *old_tep = st->tep;
-   struct st_program *old_gp = st->gp;
-   struct st_program *old_fp = st->fp;
+   struct gl_program *old_vp = st->vp;
+   struct gl_program *old_tcp = st->tcp;
+   struct gl_program *old_tep = st->tep;
+   struct gl_program *old_gp = st->gp;
+   struct gl_program *old_fp = st->fp;
 
    struct gl_program *new_vp = ctx->VertexProgram._Current;
    struct gl_program *new_tcp = ctx->TessCtrlProgram._Current;
@@ -94,40 +94,40 @@ static void check_program_state( struct st_context *st )
    /* Flag states used by both new and old shaders to unbind shader resources
     * properly when transitioning to shaders that don't use them.
     */
-   if (unlikely(new_vp != (old_vp ? &old_vp->Base : NULL))) {
+   if (unlikely(new_vp != old_vp)) {
       ctx->Array.NewVertexElements = true;
       if (old_vp)
          dirty |= old_vp->affected_states;
       if (new_vp)
-         dirty |= ST_NEW_VERTEX_PROGRAM(st, st_program(new_vp));
+         dirty |= ST_NEW_VERTEX_PROGRAM(st, new_vp);
    }
 
-   if (unlikely(new_tcp != &old_tcp->Base)) {
+   if (unlikely(new_tcp != old_tcp)) {
       if (old_tcp)
          dirty |= old_tcp->affected_states;
       if (new_tcp)
-         dirty |= st_program(new_tcp)->affected_states;
+         dirty |= new_tcp->affected_states;
    }
 
-   if (unlikely(new_tep != &old_tep->Base)) {
+   if (unlikely(new_tep != old_tep)) {
       if (old_tep)
          dirty |= old_tep->affected_states;
       if (new_tep)
-         dirty |= st_program(new_tep)->affected_states;
+         dirty |= new_tep->affected_states;
    }
 
-   if (unlikely(new_gp != &old_gp->Base)) {
+   if (unlikely(new_gp != old_gp)) {
       if (old_gp)
          dirty |= old_gp->affected_states;
       if (new_gp)
-         dirty |= st_program(new_gp)->affected_states;
+         dirty |= new_gp->affected_states;
    }
 
-   if (unlikely(new_fp != &old_fp->Base)) {
+   if (unlikely(new_fp != old_fp)) {
       if (old_fp)
          dirty |= old_fp->affected_states;
       if (new_fp)
-         dirty |= st_program(new_fp)->affected_states;
+         dirty |= new_fp->affected_states;
    }
 
    /* Find out the number of viewports. This determines how many scissors
@@ -162,7 +162,7 @@ void st_update_edgeflags(struct st_context *st, bool per_vertex_edgeflags)
 
       struct gl_program *vp = st->ctx->VertexProgram._Current;
       if (vp)
-         st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_program(vp));
+         st->dirty |= ST_NEW_VERTEX_PROGRAM(st, vp);
    }
 
    bool edgeflag_culls_prims = edgeflags_enabled && !vertdata_edgeflags &&
@@ -237,14 +237,14 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
       break;
 
    case ST_PIPELINE_COMPUTE: {
-      struct st_program *old_cp = st->cp;
+      struct gl_program *old_cp = st->cp;
       struct gl_program *new_cp = ctx->ComputeProgram._Current;
 
-      if (new_cp != &old_cp->Base) {
+      if (new_cp != old_cp) {
          if (old_cp)
             st->dirty |= old_cp->affected_states;
          assert(new_cp);
-         st->dirty |= st_program(new_cp)->affected_states;
+         st->dirty |= new_cp->affected_states;
       }
 
       st->compute_shader_may_be_dirty = false;

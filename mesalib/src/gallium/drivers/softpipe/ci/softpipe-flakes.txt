@@ -1,3 +1,4 @@
-dEQP-GLES31.functional.draw_buffers_indexed.overwrite_indexed.common_color_mask_buffer_color_mask
-dEQP-GLES31.functional.shaders.opaque_type_indexing.sampler.const_literal.geometry.isampler2darray
-dEQP-GLES31.functional.shaders.opaque_type_indexing.sampler.const_literal.geometry.isampler3d
+# threading bugs
+glx@glx-multithread-clearbuffer
+glx@glx-multithread-shader-compile
+glx@glx-multithread-texture

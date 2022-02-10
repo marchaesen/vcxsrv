@@ -105,9 +105,8 @@ static void
 iris_get_device_uuid(struct pipe_screen *pscreen, char *uuid)
 {
    struct iris_screen *screen = (struct iris_screen *)pscreen;
-   const struct isl_device *isldev = &screen->isl_dev;
 
-   intel_uuid_compute_device_id((uint8_t *)uuid, isldev, PIPE_UUID_SIZE);
+   intel_uuid_compute_device_id((uint8_t *)uuid, &screen->devinfo, PIPE_UUID_SIZE);
 }
 
 static void
@@ -260,6 +259,8 @@ iris_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_FENCE_SIGNAL:
    case PIPE_CAP_IMAGE_STORE_FORMATTED:
       return true;
+   case PIPE_CAP_PREFER_BACK_BUFFER_REUSE:
+      return false;
    case PIPE_CAP_FBFETCH:
       return BRW_MAX_DRAW_BUFFERS;
    case PIPE_CAP_FBFETCH_COHERENT:
@@ -783,7 +784,7 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
 
    if (!intel_get_device_info_from_fd(fd, &screen->devinfo))
       return NULL;
-   screen->pci_id = screen->devinfo.chipset_id;
+   screen->pci_id = screen->devinfo.pci_device_id;
 
    p_atomic_set(&screen->refcount, 1);
 
@@ -882,6 +883,8 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    genX_call(&screen->devinfo, init_screen_state, screen);
 
    glsl_type_singleton_init_or_ref();
+
+   intel_driver_ds_init();
 
    /* FINISHME: Big core vs little core (for CPUs that have both kinds of
     * cores) and, possibly, thread vs core should be considered here too.

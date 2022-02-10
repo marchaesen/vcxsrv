@@ -125,7 +125,7 @@ static void
 pandecode_validate_buffer(mali_ptr addr, size_t sz)
 {
         if (!addr) {
-                pandecode_msg("XXX: null pointer deref");
+                pandecode_msg("XXX: null pointer deref\n");
                 return;
         }
 
@@ -585,7 +585,7 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
 #if PAN_ARCH >= 9
         disassemble_valhall(pandecode_dump_stream, (const uint64_t *) code, sz, true);
 #elif PAN_ARCH >= 6 && PAN_ARCH <= 7
-        disassemble_bifrost(pandecode_dump_stream, code, sz, true);
+        disassemble_bifrost(pandecode_dump_stream, code, sz, false);
 #else
 	stats = disassemble_midgard(pandecode_dump_stream,
                                     code, sz, gpu_id, true);
@@ -607,6 +607,7 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
         return stats;
 }
 
+#if PAN_ARCH <= 7
 static void
 pandecode_texture_payload(mali_ptr payload,
                           enum mali_texture_dimension dim,
@@ -664,6 +665,7 @@ pandecode_texture_payload(mali_ptr payload,
         pandecode_indent--;
         pandecode_log("},\n");
 }
+#endif
 
 #if PAN_ARCH <= 5
 static void
@@ -695,12 +697,20 @@ pandecode_bifrost_texture(
         pan_unpack(cl, TEXTURE, temp);
         DUMP_UNPACKED(TEXTURE, temp, "Texture:\n")
 
+        pandecode_indent++;
+
+#if PAN_ARCH >= 9
+        /* TODO: count */
+        for (unsigned i = 0; i < 4; ++i)
+                DUMP_ADDR(PLANE, temp.surfaces + i * pan_size(PLANE), "Plane %u:\n", i);
+#else
         struct pandecode_mapped_memory *tmem = pandecode_find_mapped_gpu_mem_containing(temp.surfaces);
         unsigned nr_samples = temp.dimension == MALI_TEXTURE_DIMENSION_3D ?
                               1 : temp.sample_count;
-        pandecode_indent++;
+
         pandecode_texture_payload(temp.surfaces, temp.dimension, temp.texel_ordering,
                                   true, temp.levels, nr_samples, temp.array_size, tmem);
+#endif
         pandecode_indent--;
 }
 #endif
@@ -849,9 +859,7 @@ pandecode_dcd(const struct MALI_DRAW *p,
                 uniform_count = state.properties.uniform_count;
 #endif
 
-#if PAN_ARCH >= 6
-                DUMP_UNPACKED(PRELOAD, state.preload, "Preload:\n");
-#elif PAN_ARCH == 4
+#if PAN_ARCH == 4
                 mali_ptr shader = state.blend_shader & ~0xF;
                 if (state.multisample_misc.blend_shader && shader)
                         pandecode_blend_shader_disassemble(shader, job_no, job_type, gpu_id);
@@ -983,15 +991,6 @@ pandecode_bifrost_tiler(mali_ptr gpu_va, int job_no)
                 pandecode_bifrost_tiler_heap(t.heap, job_no);
 
         DUMP_UNPACKED(TILER_CONTEXT, t, "Bifrost Tiler:\n");
-        pandecode_indent++;
-        if (t.hierarchy_mask != 0xa &&
-            t.hierarchy_mask != 0x14 &&
-            t.hierarchy_mask != 0x28 &&
-            t.hierarchy_mask != 0x50 &&
-            t.hierarchy_mask != 0xa0)
-                pandecode_msg("XXX: Unexpected hierarchy_mask (not 0xa, 0x14, 0x28, 0x50 or 0xa0)!");
-
-        pandecode_indent--;
 }
 
 #if PAN_ARCH <= 7
@@ -1288,21 +1287,21 @@ pandecode_dcd(const struct MALI_DRAW *p,
 }
 
 static void
-pandecode_idvs_helper_job(const struct pandecode_mapped_memory *mem,
+pandecode_malloc_vertex_job(const struct pandecode_mapped_memory *mem,
                           mali_ptr job, unsigned gpu_id)
 {
-        struct mali_idvs_helper_job_packed *PANDECODE_PTR_VAR(p, mem, job);
+        struct mali_malloc_vertex_job_packed *PANDECODE_PTR_VAR(p, mem, job);
 
-        DUMP_SECTION(IDVS_HELPER_JOB, PRIMITIVE, p, "Primitive:\n");
-        DUMP_SECTION(IDVS_HELPER_JOB, COUNTS, p, "Counts:\n");
-        DUMP_SECTION(IDVS_HELPER_JOB, TILER, p, "Tiler:\n");
-        DUMP_SECTION(IDVS_HELPER_JOB, SCISSOR, p, "Scissor:\n");
-        DUMP_SECTION(IDVS_HELPER_JOB, PRIMITIVE_SIZE, p, "Primitive Size:\n");
-        DUMP_SECTION(IDVS_HELPER_JOB, INDICES, p, "Indices:\n");
+        DUMP_SECTION(MALLOC_VERTEX_JOB, PRIMITIVE, p, "Primitive:\n");
+        DUMP_SECTION(MALLOC_VERTEX_JOB, COUNTS, p, "Counts:\n");
+        DUMP_SECTION(MALLOC_VERTEX_JOB, TILER, p, "Tiler:\n");
+        DUMP_SECTION(MALLOC_VERTEX_JOB, SCISSOR, p, "Scissor:\n");
+        DUMP_SECTION(MALLOC_VERTEX_JOB, PRIMITIVE_SIZE, p, "Primitive Size:\n");
+        DUMP_SECTION(MALLOC_VERTEX_JOB, INDICES, p, "Indices:\n");
 
-        pan_section_unpack(p, IDVS_HELPER_JOB, DRAW, dcd);
+        pan_section_unpack(p, MALLOC_VERTEX_JOB, DRAW, dcd);
 
-        pan_section_unpack(p, IDVS_HELPER_JOB, TILER, tiler_ptr);
+        pan_section_unpack(p, MALLOC_VERTEX_JOB, TILER, tiler_ptr);
         pandecode_log("Tiler Job Payload:\n");
         pandecode_indent++;
         if (tiler_ptr.address)
@@ -1356,7 +1355,7 @@ GENX(pandecode_jc)(mali_ptr jc_gpu_va, unsigned gpu_id)
 
                 int job_no = job_descriptor_number++;
 
-                DUMP_UNPACKED(JOB_HEADER, h, "Job Header:\n");
+                DUMP_UNPACKED(JOB_HEADER, h, "Job Header (%" PRIx64 "):\n", jc_gpu_va);
                 pandecode_log("\n");
 
                 switch (h.type) {
@@ -1392,8 +1391,8 @@ GENX(pandecode_jc)(mali_ptr jc_gpu_va, unsigned gpu_id)
 			pandecode_compute_job(mem, jc_gpu_va, gpu_id);
 			break;
 
-		case MALI_JOB_TYPE_IDVS_HELPER:
-			pandecode_idvs_helper_job(mem, jc_gpu_va, gpu_id);
+		case MALI_JOB_TYPE_MALLOC_VERTEX:
+			pandecode_malloc_vertex_job(mem, jc_gpu_va, gpu_id);
 			break;
 #endif
 
@@ -1425,7 +1424,7 @@ GENX(pandecode_abort_on_fault)(mali_ptr jc_gpu_va)
 
                 /* Ensure the job is marked COMPLETE */
                 if (h.exception_status != 0x1) {
-                        fprintf(stderr, "Incomplete job or timeout");
+                        fprintf(stderr, "Incomplete job or timeout\n");
                         abort();
                 }
         } while ((jc_gpu_va = next_job));

@@ -6,7 +6,7 @@ git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
 git clone \
     https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b vulkan-cts-1.2.7.2 \
+    -b vulkan-cts-1.3.1.0 \
     --depth 1 \
     /VK-GL-CTS
 pushd /VK-GL-CTS
@@ -68,7 +68,11 @@ cp /deqp/executor/testlog-to-* /deqp/executor.save
 rm -rf /deqp/executor
 mv /deqp/executor.save /deqp/executor
 
+# Remove other mustpass files, since we saved off the ones we wanted to conventient locations above.
 rm -rf /deqp/external/openglcts/modules/gl_cts/data/mustpass
+rm -rf /deqp/external/vulkancts/modules/vulkan/vk-master*
+rm -rf /deqp/external/vulkancts/modules/vulkan/vk-default
+
 rm -rf /deqp/external/openglcts/modules/cts-runner
 rm -rf /deqp/modules/internal
 rm -rf /deqp/execserver

@@ -278,6 +278,15 @@ agx_emit_fragment_out(agx_builder *b, nir_intrinsic_instr *instr)
 	   agx_writeout(b, 0x000C);
    }
 
+   if (b->shader->nir->info.fs.uses_discard) {
+      /* If the shader uses discard, the sample mask must be written by the
+       * shader on all exeuction paths. If we've reached the end of the shader,
+       * we are therefore still active and need to write a full sample mask.
+       * TODO: interactions with MSAA and gl_SampleMask writes
+       */
+      agx_sample_mask(b, agx_immediate(1));
+   }
+
    b->shader->did_writeout = true;
    return agx_st_tile(b, agx_src_index(&instr->src[0]),
              b->shader->key->fs.tib_formats[rt]);
@@ -326,17 +335,6 @@ agx_emit_load_ubo(agx_builder *b, nir_intrinsic_instr *instr)
    if (!kernel_input && !nir_src_is_const(instr->src[0]))
       unreachable("todo: indirect UBO access");
 
-   /* Constant offsets for device_load are 16-bit */
-   bool offset_is_const = nir_src_is_const(*offset);
-   assert(offset_is_const && "todo: indirect UBO access");
-   int32_t const_offset = offset_is_const ? nir_src_as_int(*offset) : 0;
-
-   /* Offsets are shifted by the type size, so divide that out */
-   unsigned bytes = nir_dest_bit_size(instr->dest) / 8;
-   assert((const_offset & (bytes - 1)) == 0);
-   const_offset = const_offset / bytes;
-   int16_t const_as_16 = const_offset;
-
    /* UBO blocks are specified (kernel inputs are always 0) */
    uint32_t block = kernel_input ? 0 : nir_src_as_uint(instr->src[0]);
 
@@ -354,9 +352,7 @@ agx_emit_load_ubo(agx_builder *b, nir_intrinsic_instr *instr)
    assert(instr->num_components <= 4);
 
    agx_device_load_to(b, agx_dest_index(&instr->dest),
-                      base,
-                      (offset_is_const && (const_offset == const_as_16)) ?
-                      agx_immediate(const_as_16) : agx_mov_imm(b, 32, const_offset),
+                      base, agx_src_index(offset),
                       agx_format_for_bits(nir_dest_bit_size(instr->dest)),
                       BITFIELD_MASK(instr->num_components), 0);
 
@@ -389,6 +385,25 @@ agx_blend_const(agx_builder *b, agx_index dst, unsigned comp)
            AGX_PUSH_BLEND_CONST, AGX_SIZE_32, comp * 2, 4 * 2);
 
      return agx_mov_to(b, dst, val);
+}
+
+/*
+ * Demoting a helper invocation is logically equivalent to zeroing the sample
+ * mask. Metal implement discard as such.
+ *
+ * XXX: Actually, Metal's "discard" is a demote, and what is implemented here
+ * is a demote. There might be a better way to implement this to get correct
+ * helper invocation semantics. For now, I'm kicking the can down the road.
+ */
+static agx_instr *
+agx_emit_discard(agx_builder *b, nir_intrinsic_instr *instr)
+{
+   agx_writeout(b, 0xC200);
+   agx_writeout(b, 0x0001);
+   b->shader->did_writeout = true;
+
+   b->shader->out->writes_sample_mask = true;
+   return agx_sample_mask(b, agx_immediate(0));
 }
 
 static agx_instr *
@@ -436,6 +451,9 @@ agx_emit_intrinsic(agx_builder *b, nir_intrinsic_instr *instr)
 
   case nir_intrinsic_load_frag_coord:
      return agx_emit_load_frag_coord(b, instr);
+
+  case nir_intrinsic_discard:
+     return agx_emit_discard(b, instr);
 
   case nir_intrinsic_load_back_face_agx:
      return agx_get_sr_to(b, dst, AGX_SR_BACKFACING);
@@ -766,19 +784,28 @@ agx_tex_dim(enum glsl_sampler_dim dim, bool array)
    }
 }
 
+static enum agx_lod_mode
+agx_lod_mode_for_nir(nir_texop op)
+{
+   switch (op) {
+   case nir_texop_tex: return AGX_LOD_MODE_AUTO_LOD;
+   case nir_texop_txb: return AGX_LOD_MODE_AUTO_LOD_BIAS;
+   case nir_texop_txl: return AGX_LOD_MODE_LOD_MIN;
+   default: unreachable("Unhandled texture op");
+   }
+}
+
 static void
 agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
 {
    switch (instr->op) {
    case nir_texop_tex:
    case nir_texop_txl:
+   case nir_texop_txb:
       break;
    default:
       unreachable("Unhandled texture op");
    }
-
-   enum agx_lod_mode lod_mode = (instr->op == nir_texop_tex) ?
-      AGX_LOD_MODE_AUTO_LOD : AGX_LOD_MODE_LOD_MIN;
 
    agx_index coords = agx_null(),
              texture = agx_immediate(instr->texture_index),
@@ -792,13 +819,34 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
       switch (instr->src[i].src_type) {
       case nir_tex_src_coord:
          coords = index;
+
+         /* Array textures are indexed by a floating-point in NIR, but by an
+          * integer in AGX. Convert the array index from float-to-int for array
+          * textures. The array index is the last source in NIR.
+          */
+         if (instr->is_array) {
+            unsigned nr = nir_src_num_components(instr->src[i].src);
+            agx_index channels[4] = {};
+
+            for (unsigned i = 0; i < nr; ++i)
+               channels[i] = agx_p_extract(b, index, i);
+
+            channels[nr - 1] = agx_convert(b,
+                  agx_immediate(AGX_CONVERT_F_TO_S32),
+                  channels[nr - 1], AGX_ROUND_RTZ);
+
+            coords = agx_p_combine(b, channels[0], channels[1], channels[2], channels[3]);
+         } else {
+            coords = index;
+         }
+
          break;
 
       case nir_tex_src_lod:
+      case nir_tex_src_bias:
          lod = index;
          break;
 
-      case nir_tex_src_bias:
       case nir_tex_src_ms_index:
       case nir_tex_src_offset:
       case nir_tex_src_comparator:
@@ -812,7 +860,7 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
    agx_texture_sample_to(b, agx_dest_index(&instr->dest),
          coords, lod, texture, sampler, offset,
          agx_tex_dim(instr->sampler_dim, instr->is_array),
-         lod_mode,
+         agx_lod_mode_for_nir(instr->op),
          0xF, /* TODO: wrmask */
          0);
 
@@ -1196,6 +1244,33 @@ agx_lower_point_coord(struct nir_builder *b,
    return true;
 }
 
+static bool
+agx_lower_aligned_offsets(struct nir_builder *b,
+                          nir_instr *instr, UNUSED void *data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_load_ubo)
+      return false;
+
+   b->cursor = nir_before_instr(&intr->instr);
+
+   unsigned bytes = nir_dest_bit_size(intr->dest) / 8;
+   assert(util_is_power_of_two_or_zero(bytes) && bytes != 0);
+
+   nir_src *offset = &intr->src[1];
+
+   unsigned shift = util_logbase2(bytes);
+
+   nir_ssa_def *old = nir_ssa_for_src(b, *offset, 1);
+   nir_ssa_def *new = nir_ishr_imm(b, old, shift);
+
+   nir_instr_rewrite_src_ssa(instr, offset, new);
+   return true;
+}
+
 static void
 agx_optimize_nir(nir_shader *nir)
 {
@@ -1411,6 +1486,10 @@ agx_compile_shader_nir(nir_shader *nir,
       NIR_PASS_V(nir, nir_lower_mediump_io,
             nir_var_shader_in | nir_var_shader_out, ~0, false);
    }
+   NIR_PASS_V(nir, nir_shader_instructions_pass,
+         agx_lower_aligned_offsets,
+         nir_metadata_block_index | nir_metadata_dominance, NULL);
+
    NIR_PASS_V(nir, nir_lower_ssbo);
 
    /* Varying output is scalar, other I/O is vector */
@@ -1424,13 +1503,17 @@ agx_compile_shader_nir(nir_shader *nir,
    };
 
    nir_tex_src_type_constraints tex_constraints = {
-      [nir_tex_src_lod] = { true, 16 }
+      [nir_tex_src_lod] = { true, 16 },
+      [nir_tex_src_bias] = { true, 16 },
    };
 
    NIR_PASS_V(nir, nir_lower_tex, &lower_tex_options);
    NIR_PASS_V(nir, nir_legalize_16bit_sampler_srcs, tex_constraints);
 
    agx_optimize_nir(nir);
+
+   /* Implement conditional discard with real control flow like Metal */
+   NIR_PASS_V(nir, nir_lower_discard_if);
 
    /* Must be last since NIR passes can remap driver_location freely */
    if (ctx->stage == MESA_SHADER_VERTEX) {

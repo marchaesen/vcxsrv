@@ -21,12 +21,13 @@
  * IN THE SOFTWARE.
  *
  */
-#include "main/mtypes.h"
 #include "glsl_types.h"
 #include "linker_util.h"
 #include "util/bitscan.h"
 #include "util/set.h"
 #include "ir_uniform.h" /* for gl_uniform_storage */
+#include "main/shader_types.h"
+#include "main/consts_exts.h"
 
 /* Utility methods shared between the GLSL IR and the NIR */
 
@@ -176,7 +177,7 @@ link_util_check_subroutine_resources(struct gl_shader_program *prog)
  * Validate uniform resources used by a program versus the implementation limits
  */
 void
-link_util_check_uniform_resources(struct gl_context *ctx,
+link_util_check_uniform_resources(const struct gl_constants *consts,
                                   struct gl_shader_program *prog)
 {
    unsigned total_uniform_blocks = 0;
@@ -189,8 +190,8 @@ link_util_check_uniform_resources(struct gl_context *ctx,
          continue;
 
       if (sh->num_uniform_components >
-          ctx->Const.Program[i].MaxUniformComponents) {
-         if (ctx->Const.GLSLSkipStrictMaxUniformLimitCheck) {
+          consts->Program[i].MaxUniformComponents) {
+         if (consts->GLSLSkipStrictMaxUniformLimitCheck) {
             linker_warning(prog, "Too many %s shader default uniform block "
                            "components, but the driver will try to optimize "
                            "them out; this is non-portable out-of-spec "
@@ -204,8 +205,8 @@ link_util_check_uniform_resources(struct gl_context *ctx,
       }
 
       if (sh->num_combined_uniform_components >
-          ctx->Const.Program[i].MaxCombinedUniformComponents) {
-         if (ctx->Const.GLSLSkipStrictMaxUniformLimitCheck) {
+          consts->Program[i].MaxCombinedUniformComponents) {
+         if (consts->GLSLSkipStrictMaxUniformLimitCheck) {
             linker_warning(prog, "Too many %s shader uniform components, "
                            "but the driver will try to optimize them out; "
                            "this is non-portable out-of-spec behavior\n",
@@ -220,34 +221,34 @@ link_util_check_uniform_resources(struct gl_context *ctx,
       total_uniform_blocks += sh->Program->info.num_ubos;
    }
 
-   if (total_uniform_blocks > ctx->Const.MaxCombinedUniformBlocks) {
+   if (total_uniform_blocks > consts->MaxCombinedUniformBlocks) {
       linker_error(prog, "Too many combined uniform blocks (%d/%d)\n",
-                   total_uniform_blocks, ctx->Const.MaxCombinedUniformBlocks);
+                   total_uniform_blocks, consts->MaxCombinedUniformBlocks);
    }
 
-   if (total_shader_storage_blocks > ctx->Const.MaxCombinedShaderStorageBlocks) {
+   if (total_shader_storage_blocks > consts->MaxCombinedShaderStorageBlocks) {
       linker_error(prog, "Too many combined shader storage blocks (%d/%d)\n",
                    total_shader_storage_blocks,
-                   ctx->Const.MaxCombinedShaderStorageBlocks);
+                   consts->MaxCombinedShaderStorageBlocks);
    }
 
    for (unsigned i = 0; i < prog->data->NumUniformBlocks; i++) {
       if (prog->data->UniformBlocks[i].UniformBufferSize >
-          ctx->Const.MaxUniformBlockSize) {
+          consts->MaxUniformBlockSize) {
          linker_error(prog, "Uniform block %s too big (%d/%d)\n",
                       prog->data->UniformBlocks[i].name.string,
                       prog->data->UniformBlocks[i].UniformBufferSize,
-                      ctx->Const.MaxUniformBlockSize);
+                      consts->MaxUniformBlockSize);
       }
    }
 
    for (unsigned i = 0; i < prog->data->NumShaderStorageBlocks; i++) {
       if (prog->data->ShaderStorageBlocks[i].UniformBufferSize >
-          ctx->Const.MaxShaderStorageBlockSize) {
+          consts->MaxShaderStorageBlockSize) {
          linker_error(prog, "Shader storage block %s too big (%d/%d)\n",
                       prog->data->ShaderStorageBlocks[i].name.string,
                       prog->data->ShaderStorageBlocks[i].UniformBufferSize,
-                      ctx->Const.MaxShaderStorageBlockSize);
+                      consts->MaxShaderStorageBlockSize);
       }
    }
 }

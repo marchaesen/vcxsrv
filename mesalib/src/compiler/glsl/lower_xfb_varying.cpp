@@ -27,7 +27,7 @@
  */
 
 #include "ir.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 #include "glsl_symbol_table.h"
 #include "util/strndup.h"
 

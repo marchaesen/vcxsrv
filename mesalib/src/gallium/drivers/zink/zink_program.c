@@ -771,9 +771,10 @@ zink_get_gfx_pipeline(struct zink_context *ctx,
          hash = XXH32(&vertex_buffers_enabled_mask, sizeof(uint32_t), hash);
 
          for (unsigned i = 0; i < state->element_state->num_bindings; i++) {
-            struct pipe_vertex_buffer *vb = ctx->vertex_buffers + ctx->element_state->binding_map[i];
-            state->vertex_strides[i] = vb->buffer.resource ? vb->stride : 0;
-            hash = XXH32(&state->vertex_strides[i], sizeof(uint32_t), hash);
+            const unsigned buffer_id = ctx->element_state->binding_map[i];
+            struct pipe_vertex_buffer *vb = ctx->vertex_buffers + buffer_id;
+            state->vertex_strides[buffer_id] = vb->buffer.resource ? vb->stride : 0;
+            hash = XXH32(&state->vertex_strides[buffer_id], sizeof(uint32_t), hash);
          }
          state->vertex_hash = hash ^ state->element_state->hash;
       } else
@@ -787,8 +788,9 @@ zink_get_gfx_pipeline(struct zink_context *ctx,
 
    if (!entry) {
       util_queue_fence_wait(&prog->base.cache_fence);
-      VkPipeline pipeline = zink_create_gfx_pipeline(screen, prog,
-                                                     state, vkmode);
+      VkPipeline pipeline = zink_create_gfx_pipeline(screen, prog, state,
+                                                     ctx->element_state->binding_map,
+                                                     vkmode);
       if (pipeline == VK_NULL_HANDLE)
          return VK_NULL_HANDLE;
 
@@ -919,6 +921,9 @@ bind_last_vertex_stage(struct zink_context *ctx)
       if (old != PIPE_SHADER_TYPES) {
          memset(&ctx->gfx_pipeline_state.shader_keys.key[old].key.vs_base, 0, sizeof(struct zink_vs_key_base));
          ctx->dirty_shader_stages |= BITFIELD_BIT(old);
+      } else {
+         /* always unset vertex shader values when changing to a non-vs last stage */
+         memset(&ctx->gfx_pipeline_state.shader_keys.key[PIPE_SHADER_VERTEX].key.vs_base, 0, sizeof(struct zink_vs_key_base));
       }
       ctx->last_vertex_stage_dirty = true;
    }
@@ -992,11 +997,11 @@ zink_bind_gs_state(struct pipe_context *pctx,
    struct zink_context *ctx = zink_context(pctx);
    if (!cso && !ctx->gfx_stages[PIPE_SHADER_GEOMETRY])
       return;
-   bool had_points = ctx->gfx_stages[PIPE_SHADER_GEOMETRY] ? ctx->gfx_stages[PIPE_SHADER_GEOMETRY]->nir->info.gs.output_primitive == GL_POINTS : false;
+   bool had_points = ctx->gfx_stages[PIPE_SHADER_GEOMETRY] ? ctx->gfx_stages[PIPE_SHADER_GEOMETRY]->nir->info.gs.output_primitive == SHADER_PRIM_POINTS : false;
    bind_stage(ctx, PIPE_SHADER_GEOMETRY, cso);
    bind_last_vertex_stage(ctx);
    if (cso) {
-      if (!had_points && ctx->last_vertex_stage->nir->info.gs.output_primitive == GL_POINTS)
+      if (!had_points && ctx->last_vertex_stage->nir->info.gs.output_primitive == SHADER_PRIM_POINTS)
          ctx->gfx_pipeline_state.has_points++;
    } else {
       if (had_points)

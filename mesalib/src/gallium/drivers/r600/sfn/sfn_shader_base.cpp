@@ -872,6 +872,7 @@ bool ShaderFromNirProcessor::emit_load_ubo_vec4(nir_intrinsic_instr* instr)
 {
    auto bufid = nir_src_as_const_value(instr->src[0]);
    auto buf_offset = nir_src_as_const_value(instr->src[1]);
+   auto base = nir_intrinsic_base(instr);
 
    if (!buf_offset) {
       /* TODO: if buf_offset is constant then this can also be solved by using the CF indes
@@ -892,11 +893,11 @@ bool ShaderFromNirProcessor::emit_load_ubo_vec4(nir_intrinsic_instr* instr)
 
       FetchInstruction *ir;
       if (bufid) {
-         ir = new FetchInstruction(vc_fetch, no_index_offset, trgt, addr, 0,
+         ir = new FetchInstruction(vc_fetch, no_index_offset, trgt, addr, base,
                                               1 + bufid->u32, nullptr, bim_none);
       } else {
          PValue bufid = from_nir(instr->src[0], 0, 0);
-         ir = new FetchInstruction(vc_fetch, no_index_offset, trgt, addr, 0,
+         ir = new FetchInstruction(vc_fetch, no_index_offset, trgt, addr, base,
                                               1, bufid, bim_zero);
       }
       ir->set_dest_swizzle(swz);
@@ -905,6 +906,7 @@ bool ShaderFromNirProcessor::emit_load_ubo_vec4(nir_intrinsic_instr* instr)
       return true;
    }
 
+   uint32_t offset = 512 + base + buf_offset->u32;
 
    if (bufid) {
       int buf_cmp = nir_intrinsic_component(instr);
@@ -912,7 +914,7 @@ bool ShaderFromNirProcessor::emit_load_ubo_vec4(nir_intrinsic_instr* instr)
       for (unsigned i = 0; i < nir_dest_num_components(instr->dest); ++i) {
          int cmp = buf_cmp + i;
          assert(cmp < 4);
-         auto u = PValue(new UniformValue(512 +  buf_offset->u32, cmp, bufid->u32 + 1));
+         auto u = PValue(new UniformValue(offset, cmp, bufid->u32 + 1));
          if (instr->dest.is_ssa)
             load_preloaded_value(instr->dest, i, u);
          else {
@@ -930,7 +932,7 @@ bool ShaderFromNirProcessor::emit_load_ubo_vec4(nir_intrinsic_instr* instr)
       auto kc_id = from_nir(instr->src[0], 0);
       for (unsigned i = 0; i < nir_dest_num_components(instr->dest); ++i) {
          int cmp = buf_cmp + i;
-         auto u = PValue(new UniformValue(512 +  buf_offset->u32, cmp, kc_id));
+         auto u = PValue(new UniformValue(offset, cmp, kc_id));
          if (instr->dest.is_ssa)
             load_preloaded_value(instr->dest, i, u);
          else {

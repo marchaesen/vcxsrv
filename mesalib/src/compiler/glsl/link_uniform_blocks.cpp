@@ -28,7 +28,8 @@
 #include "util/hash_table.h"
 #include "program.h"
 #include "main/errors.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
+#include "main/consts_exts.h"
 
 namespace {
 
@@ -224,7 +225,7 @@ static void process_block_array_leaf(const char *name, gl_uniform_block *blocks,
                                      unsigned *block_index,
                                      unsigned binding_offset,
                                      unsigned linearized_index,
-                                     struct gl_context *ctx,
+                                     const struct gl_constants *consts,
                                      struct gl_shader_program *prog);
 
 /**
@@ -238,7 +239,8 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
                     ubo_visitor *parcel, gl_uniform_buffer_variable *variables,
                     const struct link_uniform_block_active *const b,
                     unsigned *block_index, unsigned binding_offset,
-                    struct gl_context *ctx, struct gl_shader_program *prog,
+                    const struct gl_constants *consts,
+                    struct gl_shader_program *prog,
                     unsigned first_index)
 {
    for (unsigned j = 0; j < ub_array->num_array_elements; j++) {
@@ -253,12 +255,12 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
                                    ub_array->array->aoa_size);
          process_block_array(ub_array->array, name, new_length, blocks,
                              parcel, variables, b, block_index,
-                             binding_stride, ctx, prog, first_index);
+                             binding_stride, consts, prog, first_index);
       } else {
          process_block_array_leaf(*name, blocks,
                                   parcel, variables, b, block_index,
                                   binding_offset + element_idx,
-                                  *block_index - first_index, ctx, prog);
+                                  *block_index - first_index, consts, prog);
       }
    }
 }
@@ -270,7 +272,8 @@ process_block_array_leaf(const char *name,
                          const struct link_uniform_block_active *const b,
                          unsigned *block_index, unsigned binding_offset,
                          unsigned linearized_index,
-                         struct gl_context *ctx, struct gl_shader_program *prog)
+                         const struct gl_constants *consts,
+                         struct gl_shader_program *prog)
 {
    unsigned i = *block_index;
    const glsl_type *type =  b->type->without_array();
@@ -299,12 +302,12 @@ process_block_array_leaf(const char *name,
 
    /* Check SSBO size is lower than maximum supported size for SSBO */
    if (b->is_shader_storage &&
-       parcel->buffer_size > ctx->Const.MaxShaderStorageBlockSize) {
+       parcel->buffer_size > consts->MaxShaderStorageBlockSize) {
       linker_error(prog, "shader storage block `%s' has size %d, "
                    "which is larger than the maximum allowed (%d)",
                    b->type->name,
                    parcel->buffer_size,
-                   ctx->Const.MaxShaderStorageBlockSize);
+                   consts->MaxShaderStorageBlockSize);
    }
    blocks[i].NumUniforms =
       (unsigned)(ptrdiff_t)(&variables[parcel->index] - blocks[i].Uniforms);
@@ -336,7 +339,7 @@ resize_block_array(const glsl_type *type,
 }
 
 static void
-create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
+create_buffer_blocks(void *mem_ctx, const struct gl_constants *consts,
                      struct gl_shader_program *prog,
                      struct gl_uniform_block **out_blks, unsigned num_blocks,
                      struct hash_table *block_hash, unsigned num_variables,
@@ -361,7 +364,7 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
     * structures.
     */
    ubo_visitor parcel(blocks, variables, num_variables, prog,
-                      ctx->Const.UseSTD430AsDefaultPacking);
+                      consts->UseSTD430AsDefaultPacking);
 
    unsigned i = 0;
    hash_table_foreach (block_hash, entry) {
@@ -379,13 +382,13 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
 
             assert(b->has_instance_name);
             process_block_array(b->array, &name, name_length, blocks, &parcel,
-                                variables, b, &i, 0, ctx, prog,
+                                variables, b, &i, 0, consts, prog,
                                 i);
             ralloc_free(name);
          } else {
             process_block_array_leaf(block_type->name, blocks, &parcel,
                                      variables, b, &i, 0,
-                                     0, ctx, prog);
+                                     0, consts, prog);
          }
       }
    }
@@ -397,7 +400,7 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
 
 void
 link_uniform_blocks(void *mem_ctx,
-                    struct gl_context *ctx,
+                    const struct gl_constants *consts,
                     struct gl_shader_program *prog,
                     struct gl_linked_shader *shader,
                     struct gl_uniform_block **ubo_blocks,
@@ -446,7 +449,7 @@ link_uniform_blocks(void *mem_ctx,
 
       block_size.num_active_uniforms = 0;
       block_size.process(b->type->without_array(), "",
-                         ctx->Const.UseSTD430AsDefaultPacking);
+                         consts->UseSTD430AsDefaultPacking);
 
       if (b->array != NULL) {
          unsigned aoa_size = b->type->arrays_of_arrays_size();
@@ -469,9 +472,9 @@ link_uniform_blocks(void *mem_ctx,
 
    }
 
-   create_buffer_blocks(mem_ctx, ctx, prog, ubo_blocks, *num_ubo_blocks,
+   create_buffer_blocks(mem_ctx, consts, prog, ubo_blocks, *num_ubo_blocks,
                         block_hash, num_ubo_variables, true);
-   create_buffer_blocks(mem_ctx, ctx, prog, ssbo_blocks, *num_ssbo_blocks,
+   create_buffer_blocks(mem_ctx, consts, prog, ssbo_blocks, *num_ssbo_blocks,
                         block_hash, num_ssbo_variables, false);
 
    _mesa_hash_table_destroy(block_hash, NULL);

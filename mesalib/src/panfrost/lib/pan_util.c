@@ -23,7 +23,6 @@
 
 #include <stdio.h>
 #include "pan_texture.h"
-#include "panfrost-quirks.h"
  
 /* Translate a PIPE swizzle quad to a 12-bit Mali swizzle code. PIPE
  * swizzles line up with Mali swizzles for the XYZW01, but PIPE swizzles have

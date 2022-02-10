@@ -34,7 +34,6 @@
 #include "spirv/nir_spirv.h"
 #include "util/mesa-sha1.h"
 
-#include "panfrost-quirks.h"
 #include "pan_shader.h"
 #include "util/pan_lower_framebuffer.h"
 

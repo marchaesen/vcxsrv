@@ -1634,6 +1634,8 @@ spec@arb_internalformat_query2@all internalformat_<x>_type pname checks,Timeout
 spec@arb_internalformat_query2@max dimensions related pname checks,Fail
 spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_LAYERS,Fail
 spec@arb_occlusion_query@occlusion_query_conform,Fail
+spec@arb_occlusion_query@occlusion_query_conform@GetObjivAval_multi1,Fail
+spec@arb_occlusion_query@occlusion_query_conform@GetObjivAval_multi2,Fail
 spec@arb_occlusion_query@occlusion_query_meta_fragments,Fail
 spec@arb_occlusion_query@occlusion_query,Fail
 spec@arb_occlusion_query2@render,Fail
@@ -1769,4 +1771,3 @@ spec@khr_texture_compression_astc@basic-gles,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb,Fail
 spec@nv_copy_image@nv_copy_image-simple --tex-to-tex,Fail
-spec@nv_primitive_restart@primitive-restart-vbo_combined_vertex_and_index,Fail

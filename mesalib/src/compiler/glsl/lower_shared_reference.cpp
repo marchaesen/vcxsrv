@@ -36,8 +36,9 @@
 #include "linker.h"
 #include "main/macros.h"
 #include "util/list.h"
+#include "main/consts_exts.h"
+#include "main/shader_types.h"
 #include "glsl_parser_extras.h"
-#include "main/mtypes.h"
 
 using namespace ir_builder;
 
@@ -482,7 +483,7 @@ lower_shared_reference_visitor::visit_enter(ir_call *ir)
 } /* unnamed namespace */
 
 void
-lower_shared_reference(struct gl_context *ctx,
+lower_shared_reference(const struct gl_constants *consts,
                        struct gl_shader_program *prog,
                        struct gl_linked_shader *shader)
 {
@@ -511,9 +512,9 @@ lower_shared_reference(struct gl_context *ctx,
     *    basic machine units, may be queried as the value of
     *    MAX_COMPUTE_SHARED_MEMORY_SIZE."
     */
-   if (prog->Comp.SharedSize > ctx->Const.MaxComputeSharedMemorySize) {
+   if (prog->Comp.SharedSize > consts->MaxComputeSharedMemorySize) {
       linker_error(prog, "Too much shared memory used (%u/%u)\n",
                    prog->Comp.SharedSize,
-                   ctx->Const.MaxComputeSharedMemorySize);
+                   consts->MaxComputeSharedMemorySize);
    }
 }

@@ -44,7 +44,9 @@
 #include "util/ralloc.h"
 #include "util/u_atomic.h"
 
-#include "state_tracker/st_cb_program.h"
+#include "state_tracker/st_program.h"
+#include "state_tracker/st_glsl_to_tgsi.h"
+#include "state_tracker/st_context.h"
 
 /**
  * A pointer to this dummy program is put into the hash table when
@@ -217,6 +219,24 @@ _mesa_init_gl_program(struct gl_program *prog, gl_shader_stage stage,
    return prog;
 }
 
+struct gl_program *
+_mesa_new_program(struct gl_context *ctx, gl_shader_stage stage, GLuint id,
+                  bool is_arb_asm)
+{
+   struct gl_program *prog;
+
+   switch (stage) {
+   case MESA_SHADER_VERTEX:
+      prog = (struct gl_program*)rzalloc(NULL, struct gl_vertex_program);
+      break;
+   default:
+      prog = rzalloc(NULL, struct gl_program);
+      break;
+   }
+
+   return _mesa_init_gl_program(prog, stage, id, is_arb_asm);
+}
+
 /**
  * Delete a program and remove it from the hash table, ignoring the
  * reference count.
@@ -224,9 +244,16 @@ _mesa_init_gl_program(struct gl_program *prog, gl_shader_stage stage,
 void
 _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
 {
-   (void) ctx;
+   struct st_context *st = st_context(ctx);
    assert(prog);
    assert(prog->RefCount==0);
+
+   st_release_variants(st, prog);
+
+   if (prog->glsl_to_tgsi)
+      free_glsl_to_tgsi_visitor(prog->glsl_to_tgsi);
+
+   free(prog->serialized_nir);
 
    if (prog == &_mesa_DummyProgram)
       return;
@@ -301,8 +328,8 @@ _mesa_reference_program_(struct gl_context *ctx,
 
       if (p_atomic_dec_zero(&oldProg->RefCount)) {
          assert(ctx);
-         _mesa_reference_shader_program_data(ctx, &oldProg->sh.data, NULL);
-         st_delete_program(ctx, oldProg);
+         _mesa_reference_shader_program_data(&oldProg->sh.data, NULL);
+         _mesa_delete_program(ctx, oldProg);
       }
 
       *ptr = NULL;

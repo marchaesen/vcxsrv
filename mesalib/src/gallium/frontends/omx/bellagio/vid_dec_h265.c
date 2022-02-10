@@ -623,7 +623,7 @@ static void vid_dec_h265_BeginFrame(vid_dec_PrivateType *priv)
       templat.profile = priv->profile;
       templat.entrypoint = PIPE_VIDEO_ENTRYPOINT_BITSTREAM;
       templat.chroma_format = PIPE_VIDEO_CHROMA_FORMAT_420;
-      templat.expect_chunked_decode = true;
+      templat.expect_chunked_decode = false;
       templat.width = priv->codec_data.h265.pic_width_in_luma_samples;
       templat.height = priv->codec_data.h265.pic_height_in_luma_samples;
       templat.level =  priv->codec_data.h265.level_idc;

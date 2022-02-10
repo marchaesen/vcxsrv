@@ -108,16 +108,20 @@ tgsi_util_set_src_register_swizzle(struct tgsi_src_register *reg,
  * used by this instruction.
  */
 unsigned
-tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
-                              unsigned src_idx)
+tgsi_util_get_src_usage_mask(enum tgsi_opcode opcode,
+                             unsigned src_idx,
+                             uint8_t write_mask,
+                             uint8_t swizzle_x,
+                             uint8_t swizzle_y,
+                             uint8_t swizzle_z,
+                             uint8_t swizzle_w,
+                             enum tgsi_texture_type tex_target,
+                             enum tgsi_texture_type mem_target)
 {
-   const struct tgsi_full_src_register *src = &inst->Src[src_idx];
-   unsigned write_mask = inst->Dst[0].Register.WriteMask;
    unsigned read_mask;
    unsigned usage_mask;
-   unsigned chan;
 
-   switch (inst->Instruction.Opcode) {
+   switch (opcode) {
    case TGSI_OPCODE_IF:
    case TGSI_OPCODE_UIF:
    case TGSI_OPCODE_EMIT:
@@ -241,20 +245,20 @@ tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
    case TGSI_OPCODE_LODQ:
    case TGSI_OPCODE_TG4: {
       unsigned dim_layer =
-         tgsi_util_get_texture_coord_dim(inst->Texture.Texture);
+         tgsi_util_get_texture_coord_dim(tex_target);
       unsigned dim_layer_shadow, dim;
 
       /* Add shadow. */
-      if (tgsi_is_shadow_target(inst->Texture.Texture)) {
+      if (tgsi_is_shadow_target(tex_target)) {
          dim_layer_shadow = dim_layer + 1;
-         if (inst->Texture.Texture == TGSI_TEXTURE_SHADOW1D)
+         if (tex_target == TGSI_TEXTURE_SHADOW1D)
             dim_layer_shadow = 3;
       } else {
          dim_layer_shadow = dim_layer;
       }
 
       /* Remove layer. */
-      if (tgsi_is_array_sampler(inst->Texture.Texture))
+      if (tgsi_is_array_sampler(tex_target))
          dim = dim_layer - 1;
       else
          dim = dim_layer;
@@ -263,33 +267,33 @@ tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
 
       switch (src_idx) {
       case 0:
-         if (inst->Instruction.Opcode == TGSI_OPCODE_LODQ)
+         if (opcode == TGSI_OPCODE_LODQ)
             read_mask = u_bit_consecutive(0, dim);
          else
             read_mask = u_bit_consecutive(0, dim_layer_shadow) & 0xf;
 
-         if (inst->Texture.Texture == TGSI_TEXTURE_SHADOW1D)
+         if (tex_target == TGSI_TEXTURE_SHADOW1D)
             read_mask &= ~TGSI_WRITEMASK_Y;
 
-         if (inst->Instruction.Opcode == TGSI_OPCODE_TXF ||
-             inst->Instruction.Opcode == TGSI_OPCODE_TXB ||
-             inst->Instruction.Opcode == TGSI_OPCODE_TXL ||
-             inst->Instruction.Opcode == TGSI_OPCODE_TXP)
+         if (opcode == TGSI_OPCODE_TXF ||
+             opcode == TGSI_OPCODE_TXB ||
+             opcode == TGSI_OPCODE_TXL ||
+             opcode == TGSI_OPCODE_TXP)
             read_mask |= TGSI_WRITEMASK_W;
          break;
 
       case 1:
-         if (inst->Instruction.Opcode == TGSI_OPCODE_TXD)
+         if (opcode == TGSI_OPCODE_TXD)
             read_mask = u_bit_consecutive(0, dim);
-         else if (inst->Instruction.Opcode == TGSI_OPCODE_TEX2 ||
-                  inst->Instruction.Opcode == TGSI_OPCODE_TXB2 ||
-                  inst->Instruction.Opcode == TGSI_OPCODE_TXL2 ||
-                  inst->Instruction.Opcode == TGSI_OPCODE_TG4)
+         else if (opcode == TGSI_OPCODE_TEX2 ||
+                  opcode == TGSI_OPCODE_TXB2 ||
+                  opcode == TGSI_OPCODE_TXL2 ||
+                  opcode == TGSI_OPCODE_TG4)
             read_mask = TGSI_WRITEMASK_X;
          break;
 
       case 2:
-         if (inst->Instruction.Opcode == TGSI_OPCODE_TXD)
+         if (opcode == TGSI_OPCODE_TXD)
             read_mask = u_bit_consecutive(0, dim);
          break;
       }
@@ -300,14 +304,14 @@ tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
       if (src_idx == 0) {
          read_mask = TGSI_WRITEMASK_XY; /* bindless handle possible */
       } else {
-         unsigned dim = tgsi_util_get_texture_coord_dim(inst->Memory.Texture);
+         unsigned dim = tgsi_util_get_texture_coord_dim(mem_target);
          read_mask = u_bit_consecutive(0, dim);
       }
       break;
 
    case TGSI_OPCODE_STORE:
       if (src_idx == 0) {
-         unsigned dim = tgsi_util_get_texture_coord_dim(inst->Memory.Texture);
+         unsigned dim = tgsi_util_get_texture_coord_dim(mem_target);
          read_mask = u_bit_consecutive(0, dim);
       } else {
          read_mask = TGSI_WRITEMASK_XYZW;
@@ -328,7 +332,7 @@ tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
       if (src_idx == 0) {
          read_mask = TGSI_WRITEMASK_XY; /* bindless handle possible */
       } else if (src_idx == 1) {
-         unsigned dim = tgsi_util_get_texture_coord_dim(inst->Memory.Texture);
+         unsigned dim = tgsi_util_get_texture_coord_dim(mem_target);
          read_mask = u_bit_consecutive(0, dim);
       } else {
          read_mask = TGSI_WRITEMASK_XYZW;
@@ -340,14 +344,14 @@ tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
    case TGSI_OPCODE_INTERP_OFFSET:
       if (src_idx == 0)
          read_mask = write_mask;
-      else if (inst->Instruction.Opcode == TGSI_OPCODE_INTERP_OFFSET)
+      else if (opcode == TGSI_OPCODE_INTERP_OFFSET)
          read_mask = TGSI_WRITEMASK_XY; /* offset */
       else
          read_mask = TGSI_WRITEMASK_X; /* sample */
       break;
 
    default:
-      if (tgsi_get_opcode_info(inst->Instruction.Opcode)->output_mode ==
+      if (tgsi_get_opcode_info(opcode)->output_mode ==
           TGSI_OUTPUT_COMPONENTWISE)
          read_mask = write_mask;
       else
@@ -356,13 +360,30 @@ tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
    }
 
    usage_mask = 0;
-   for (chan = 0; chan < 4; ++chan) {
-      if (read_mask & (1 << chan)) {
-         usage_mask |= 1 << tgsi_util_get_full_src_register_swizzle(src, chan);
-      }
-   }
+   if (read_mask & TGSI_WRITEMASK_X)
+      usage_mask |= 1 << swizzle_x;
+   if (read_mask & TGSI_WRITEMASK_Y)
+      usage_mask |= 1 << swizzle_y;
+   if (read_mask & TGSI_WRITEMASK_Z)
+      usage_mask |= 1 << swizzle_z;
+   if (read_mask & TGSI_WRITEMASK_W)
+      usage_mask |= 1 << swizzle_w;
 
    return usage_mask;
+}
+
+unsigned
+tgsi_util_get_inst_usage_mask(const struct tgsi_full_instruction *inst,
+                              unsigned src_idx)
+{
+   return tgsi_util_get_src_usage_mask(inst->Instruction.Opcode, src_idx,
+                                       inst->Dst[0].Register.WriteMask,
+                                       inst->Src[src_idx].Register.SwizzleX,
+                                       inst->Src[src_idx].Register.SwizzleY,
+                                       inst->Src[src_idx].Register.SwizzleZ,
+                                       inst->Src[src_idx].Register.SwizzleW,
+                                       inst->Texture.Texture,
+                                       inst->Memory.Texture);
 }
 
 /**

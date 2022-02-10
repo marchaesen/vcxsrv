@@ -802,6 +802,48 @@ traces:
         checksum: 75acd3160d268de2c5f286ff4546258c
       - device: gl-intel-cml
         checksum: 75acd3160d268de2c5f286ff4546258c
+  - path: paraview/pv-manyspheres.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 73e5d34fb13268b0c7126297bfc34965
+      - device: gl-intel-glk
+        checksum: 73e5d34fb13268b0c7126297bfc34965
+      - device: gl-intel-amly
+        checksum: 73e5d34fb13268b0c7126297bfc34965
+      - device: gl-intel-kbl
+        checksum: 73e5d34fb13268b0c7126297bfc34965
+      - device: gl-intel-whl
+        checksum: 73e5d34fb13268b0c7126297bfc34965
+      - device: gl-intel-cml
+        checksum: 73e5d34fb13268b0c7126297bfc34965
+  - path: paraview/pv-waveletcontour.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: b384e3e81e4843fbd1d50e0c542e600a
+      - device: gl-intel-glk
+        checksum: b384e3e81e4843fbd1d50e0c542e600a
+      - device: gl-intel-amly
+        checksum: b384e3e81e4843fbd1d50e0c542e600a
+      - device: gl-intel-kbl
+        checksum: b384e3e81e4843fbd1d50e0c542e600a
+      - device: gl-intel-whl
+        checksum: b384e3e81e4843fbd1d50e0c542e600a
+      - device: gl-intel-cml
+        checksum: b384e3e81e4843fbd1d50e0c542e600a
+  - path: paraview/pv-waveletvolume.trace
+    expectations:
+      - device: gl-intel-apl
+        checksum: 0199b30fe719261436d6d48fe51353c8
+      - device: gl-intel-glk
+        checksum: 0199b30fe719261436d6d48fe51353c8
+      - device: gl-intel-amly
+        checksum: 0199b30fe719261436d6d48fe51353c8
+      - device: gl-intel-kbl
+        checksum: 0199b30fe719261436d6d48fe51353c8
+      - device: gl-intel-whl
+        checksum: 0199b30fe719261436d6d48fe51353c8
+      - device: gl-intel-cml
+        checksum: 0199b30fe719261436d6d48fe51353c8
   - path: supertuxkart/supertuxkart-antediluvian-abyss.rdc
     expectations:
       - device: gl-intel-apl

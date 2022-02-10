@@ -157,7 +157,7 @@ ir3_cache_lookup(struct ir3_cache *cache, const struct ir3_cache_key *key,
       cache->data, bs, variants[MESA_SHADER_VERTEX],
       variants[MESA_SHADER_TESS_CTRL], variants[MESA_SHADER_TESS_EVAL],
       variants[MESA_SHADER_GEOMETRY], variants[MESA_SHADER_FRAGMENT],
-      &key->key);
+      key);
    state->key = *key;
 
    /* NOTE: uses copy of key in state obj, because pointer passed by caller

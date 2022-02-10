@@ -96,7 +96,8 @@ enum ac_image_dim ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler
                                    bool is_array);
 
 unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
-                                  signed char *face_vgpr_index, signed char *ancillary_vgpr_index);
+                                  signed char *face_vgpr_index, signed char *ancillary_vgpr_index,
+                                  signed char *sample_coverage_vgpr_index_ptr);
 
 void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype,
                                  bool is_depth, bool use_rbplus,
@@ -117,6 +118,10 @@ unsigned ac_compute_esgs_workgroup_size(enum chip_class chip_class, unsigned wav
 
 unsigned ac_compute_ngg_workgroup_size(unsigned es_verts, unsigned gs_inst_prims,
                                        unsigned max_vtx_out, unsigned prim_amp_factor);
+
+void ac_set_reg_cu_en(void *cs, unsigned reg_offset, uint32_t value, uint32_t clear_mask,
+                      unsigned value_shift, const struct radeon_info *info,
+                      void set_sh_reg(void*, unsigned, uint32_t));
 
 #ifdef __cplusplus
 }

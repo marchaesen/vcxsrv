@@ -401,8 +401,6 @@ iris_resource_disable_aux(struct iris_resource *res)
    free(res->aux.state);
 
    res->aux.usage = ISL_AUX_USAGE_NONE;
-   res->aux.possible_usages = 1 << ISL_AUX_USAGE_NONE;
-   res->aux.sampler_usages = 1 << ISL_AUX_USAGE_NONE;
    res->aux.surf.size_B = 0;
    res->aux.bo = NULL;
    res->aux.extra_aux.surf.size_B = 0;
@@ -486,9 +484,6 @@ iris_alloc_resource(struct pipe_screen *pscreen,
    pipe_reference_init(&res->base.b.reference, 1);
    threaded_resource_init(&res->base.b, false, 0);
 
-   res->aux.possible_usages = 1 << ISL_AUX_USAGE_NONE;
-   res->aux.sampler_usages = 1 << ISL_AUX_USAGE_NONE;
-
    if (templ->target == PIPE_BUFFER)
       util_range_init(&res->valid_buffer_range);
 
@@ -554,7 +549,7 @@ iris_get_aux_clear_color_state_size(struct iris_screen *screen,
     * sampler via render surface state objects.
     */
    if (isl_surf_usage_is_depth(res->surf.usage) &&
-       res->aux.sampler_usages == 1 << ISL_AUX_USAGE_NONE)
+       !iris_sample_with_depth_aux(&screen->devinfo, res))
       return 0;
 
    return screen->isl_dev.ss.clear_color_state_size;
@@ -562,7 +557,7 @@ iris_get_aux_clear_color_state_size(struct iris_screen *screen,
 
 static void
 map_aux_addresses(struct iris_screen *screen, struct iris_resource *res,
-                  enum isl_format format, unsigned plane)
+                  enum pipe_format pfmt, unsigned plane)
 {
    void *aux_map_ctx = iris_bufmgr_get_aux_map_context(screen->bufmgr);
    if (!aux_map_ctx)
@@ -571,6 +566,8 @@ map_aux_addresses(struct iris_screen *screen, struct iris_resource *res,
    if (isl_aux_usage_has_ccs(res->aux.usage)) {
       const unsigned aux_offset = res->aux.extra_aux.surf.size_B > 0 ?
          res->aux.extra_aux.offset : res->aux.offset;
+      const enum isl_format format =
+         iris_format_for_usage(&screen->devinfo, pfmt, res->surf.usage).fmt;
       const uint64_t format_bits =
          intel_aux_map_format_bits(res->surf.tiling, format, plane);
       intel_aux_map_add_mapping(aux_map_ctx, res->bo->address + res->offset,
@@ -770,43 +767,38 @@ iris_resource_configure_aux(struct iris_screen *screen,
       assert(!res->mod_info);
       assert(!has_hiz);
       if (has_ccs) {
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_MCS_CCS;
+         res->aux.usage = ISL_AUX_USAGE_MCS_CCS;
       } else {
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_MCS;
+         res->aux.usage = ISL_AUX_USAGE_MCS;
       }
    } else if (has_hiz) {
       assert(!res->mod_info);
       assert(!has_mcs);
       if (!has_ccs) {
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_HIZ;
+         res->aux.usage = ISL_AUX_USAGE_HIZ;
       } else if (res->surf.samples == 1 &&
                  (res->surf.usage & ISL_SURF_USAGE_TEXTURE_BIT)) {
          /* If this resource is single-sampled and will be used as a texture,
           * put the HiZ surface in write-through mode so that we can sample
           * from it.
           */
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_HIZ_CCS_WT;
+         res->aux.usage = ISL_AUX_USAGE_HIZ_CCS_WT;
       } else {
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_HIZ_CCS;
+         res->aux.usage = ISL_AUX_USAGE_HIZ_CCS;
       }
    } else if (has_ccs) {
       if (res->mod_info) {
-         res->aux.possible_usages |= 1 << res->mod_info->aux_usage;
+         res->aux.usage = res->mod_info->aux_usage;
       } else if (isl_surf_usage_is_stencil(res->surf.usage)) {
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_STC_CCS;
+         res->aux.usage = ISL_AUX_USAGE_STC_CCS;
       } else if (want_ccs_e_for_format(devinfo, res->surf.format)) {
-         res->aux.possible_usages |= devinfo->ver < 12 ?
-            1 << ISL_AUX_USAGE_CCS_E : 1 << ISL_AUX_USAGE_GFX12_CCS_E;
+         res->aux.usage = devinfo->ver < 12 ?
+            ISL_AUX_USAGE_CCS_E : ISL_AUX_USAGE_GFX12_CCS_E;
       } else {
          assert(isl_format_supports_ccs_d(devinfo, res->surf.format));
-         res->aux.possible_usages |= 1 << ISL_AUX_USAGE_CCS_D;
+         res->aux.usage = ISL_AUX_USAGE_CCS_D;
       }
    }
-
-   res->aux.usage = util_last_bit(res->aux.possible_usages) - 1;
-
-   if (!has_hiz || iris_sample_with_depth_aux(devinfo, res))
-      res->aux.sampler_usages = res->aux.possible_usages;
 
    enum isl_aux_state initial_state;
    switch (res->aux.usage) {
@@ -915,7 +907,7 @@ iris_resource_init_aux_buf(struct iris_screen *screen,
    if (res->aux.surf.size_B > 0) {
       res->aux.bo = res->bo;
       iris_bo_reference(res->aux.bo);
-      map_aux_addresses(screen, res, res->surf.format, 0);
+      map_aux_addresses(screen, res, res->internal_format, 0);
    }
 
    if (iris_get_aux_clear_color_state_size(screen, res) > 0) {
@@ -957,23 +949,13 @@ iris_resource_finish_aux_import(struct pipe_screen *pscreen,
       num_main_planes += r[num_planes++]->bo != NULL;
    }
 
-   /* Get an ISL format to use with the aux-map. */
-   enum isl_format format;
-   switch (res->external_format) {
-   case PIPE_FORMAT_NV12: format = ISL_FORMAT_PLANAR_420_8; break;
-   case PIPE_FORMAT_P010: format = ISL_FORMAT_PLANAR_420_10; break;
-   case PIPE_FORMAT_P012: format = ISL_FORMAT_PLANAR_420_12; break;
-   case PIPE_FORMAT_P016: format = ISL_FORMAT_PLANAR_420_16; break;
-   default: format = res->surf.format; break;
-   }
-
    /* Combine main and aux plane information. */
    switch (res->mod_info->modifier) {
    case I915_FORMAT_MOD_Y_TILED_CCS:
    case I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS:
       assert(num_main_planes == 1 && num_planes == 2);
       import_aux_info(r[0], r[1]);
-      map_aux_addresses(screen, r[0], format, 0);
+      map_aux_addresses(screen, r[0], res->external_format, 0);
 
       /* Add on a clear color BO.
        *
@@ -991,7 +973,7 @@ iris_resource_finish_aux_import(struct pipe_screen *pscreen,
    case I915_FORMAT_MOD_Y_TILED_GEN12_RC_CCS_CC:
       assert(num_main_planes == 1 && num_planes == 3);
       import_aux_info(r[0], r[1]);
-      map_aux_addresses(screen, r[0], format, 0);
+      map_aux_addresses(screen, r[0], res->external_format, 0);
 
       /* Import the clear color BO. */
       iris_bo_reference(r[2]->aux.clear_color_bo);
@@ -1002,19 +984,13 @@ iris_resource_finish_aux_import(struct pipe_screen *pscreen,
    case I915_FORMAT_MOD_Y_TILED_GEN12_MC_CCS:
       if (num_main_planes == 1 && num_planes == 2) {
          import_aux_info(r[0], r[1]);
-         map_aux_addresses(screen, r[0], format, 0);
-      } else if (num_main_planes == 2 && num_planes == 4) {
+         map_aux_addresses(screen, r[0], res->external_format, 0);
+      } else {
+         assert(num_main_planes == 2 && num_planes == 4);
          import_aux_info(r[0], r[2]);
          import_aux_info(r[1], r[3]);
-         map_aux_addresses(screen, r[0], format, 0);
-         map_aux_addresses(screen, r[1], format, 1);
-      } else {
-         /* Gallium has lowered a single main plane into two. */
-         assert(num_main_planes == 2 && num_planes == 3);
-         assert(isl_format_is_yuv(format) && !isl_format_is_planar(format));
-         import_aux_info(r[0], r[2]);
-         import_aux_info(r[1], r[2]);
-         map_aux_addresses(screen, r[0], format, 0);
+         map_aux_addresses(screen, r[0], res->external_format, 0);
+         map_aux_addresses(screen, r[1], res->external_format, 1);
       }
       assert(!isl_aux_usage_has_fast_clears(res->mod_info->aux_usage));
       break;
@@ -1418,9 +1394,9 @@ iris_flush_resource(struct pipe_context *ctx, struct pipe_resource *resource)
        * sure to get rid of any compression that a consumer wouldn't know how
        * to handle.
        */
-      for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
-         if (iris_batch_references(&ice->batches[i], res->bo))
-            iris_batch_flush(&ice->batches[i]);
+      iris_foreach_batch(ice, batch) {
+         if (iris_batch_references(batch, res->bo))
+            iris_batch_flush(batch);
       }
 
       iris_resource_disable_aux(res);
@@ -1498,8 +1474,6 @@ iris_reallocate_resource_inplace(struct iris_context *ice,
    old_res->aux.clear_color_bo = new_res->aux.clear_color_bo;
    old_res->aux.clear_color_offset = new_res->aux.clear_color_offset;
    old_res->aux.usage = new_res->aux.usage;
-   old_res->aux.possible_usages = new_res->aux.possible_usages;
-   old_res->aux.sampler_usages = new_res->aux.sampler_usages;
 
    if (new_res->aux.state) {
       assert(old_res->aux.state);
@@ -1595,13 +1569,16 @@ iris_resource_get_param(struct pipe_screen *pscreen,
    bool mod_with_aux =
       res->mod_info && res->mod_info->aux_usage != ISL_AUX_USAGE_NONE;
    bool wants_aux = mod_with_aux && plane > 0;
+   bool wants_cc = mod_with_aux &&
+      mod_plane_is_clear_color(res->mod_info->modifier, plane);
    bool result;
    unsigned handle;
 
    iris_resource_disable_aux_on_first_query(resource, handle_usage);
    iris_resource_disable_suballoc_on_first_query(pscreen, ctx, res);
 
-   struct iris_bo *bo = wants_aux ? res->aux.bo : res->bo;
+   struct iris_bo *bo = wants_cc ? res->aux.clear_color_bo :
+                        wants_aux ? res->aux.bo : res->bo;
 
    assert(iris_bo_is_real(bo));
 
@@ -1616,12 +1593,19 @@ iris_resource_get_param(struct pipe_screen *pscreen,
       }
       return true;
    case PIPE_RESOURCE_PARAM_STRIDE:
-      *value = wants_aux ? res->aux.surf.row_pitch_B : res->surf.row_pitch_B;
+      *value = wants_cc ? 1 :
+               wants_aux ? res->aux.surf.row_pitch_B : res->surf.row_pitch_B;
+
+      /* Mesa's implementation of eglCreateImage rejects strides of zero (see
+       * dri2_check_dma_buf_attribs). Ensure we return a non-zero stride as
+       * this value may be queried from GBM and passed into EGL.
+       */
+      assert(*value);
+
       return true;
    case PIPE_RESOURCE_PARAM_OFFSET:
-      *value = wants_aux ?
-               mod_plane_is_clear_color(res->mod_info->modifier, plane) ?
-               res->aux.clear_color_offset : res->aux.offset : 0;
+      *value = wants_cc ? res->aux.clear_color_offset :
+               wants_aux ? res->aux.offset : 0;
       return true;
    case PIPE_RESOURCE_PARAM_MODIFIER:
       *value = res->mod_info ? res->mod_info->modifier :
@@ -1745,8 +1729,8 @@ resource_is_busy(struct iris_context *ice,
 {
    bool busy = iris_bo_busy(res->bo);
 
-   for (int i = 0; i < IRIS_BATCH_COUNT; i++)
-      busy |= iris_batch_references(&ice->batches[i], res->bo);
+   iris_foreach_batch(ice, batch)
+      busy |= iris_batch_references(batch, res->bo);
 
    return busy;
 }
@@ -2343,9 +2327,9 @@ iris_transfer_map(struct pipe_context *ctx,
       }
 
       if (!(usage & PIPE_MAP_UNSYNCHRONIZED)) {
-         for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
-            if (iris_batch_references(&ice->batches[i], res->bo))
-               iris_batch_flush(&ice->batches[i]);
+         iris_foreach_batch(ice, batch) {
+            if (iris_batch_references(batch, res->bo))
+               iris_batch_flush(batch);
          }
       }
 
@@ -2388,8 +2372,7 @@ iris_transfer_flush_region(struct pipe_context *ctx,
    }
 
    if (history_flush & ~PIPE_CONTROL_CS_STALL) {
-      for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
-         struct iris_batch *batch = &ice->batches[i];
+      iris_foreach_batch(ice, batch) {
          if (batch->contains_draw || batch->cache.render->entries) {
             iris_batch_maybe_flush(batch, 24);
             iris_emit_pipe_control_flush(batch,
@@ -2478,9 +2461,9 @@ iris_texture_subdata(struct pipe_context *ctx,
 
    iris_resource_access_raw(ice, res, level, box->z, box->depth, true);
 
-   for (int i = 0; i < IRIS_BATCH_COUNT; i++) {
-      if (iris_batch_references(&ice->batches[i], res->bo))
-         iris_batch_flush(&ice->batches[i]);
+   iris_foreach_batch(ice, batch) {
+      if (iris_batch_references(batch, res->bo))
+         iris_batch_flush(batch);
    }
 
    uint8_t *dst = iris_bo_map(&ice->dbg, res->bo, MAP_WRITE | MAP_RAW);

@@ -180,7 +180,7 @@ setup_arrays(struct st_context *st,
 /* Only used by the select/feedback mode. */
 void
 st_setup_arrays(struct st_context *st,
-                const struct st_vertex_program *vp,
+                const struct gl_vertex_program *vp,
                 const struct st_common_variant *vp_variant,
                 struct cso_velems_state *velements,
                 struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers,
@@ -189,7 +189,7 @@ st_setup_arrays(struct st_context *st,
    struct gl_context *ctx = st->ctx;
 
    setup_arrays<POPCNT_NO, UPDATE_ALL>
-      (st, ctx->Array._DrawVAO, vp->Base.Base.DualSlotInputs,
+      (st, ctx->Array._DrawVAO, vp->Base.DualSlotInputs,
        vp_variant->vert_attrib_mask, _mesa_draw_nonzero_divisor_bits(ctx),
        _mesa_draw_array_bits(ctx), _mesa_draw_user_array_bits(ctx),
        velements, vbuffer, num_vbuffers, has_user_vertex_buffers);
@@ -203,14 +203,14 @@ st_setup_arrays(struct st_context *st,
  */
 template<util_popcnt POPCNT, st_update_flag UPDATE> void ALWAYS_INLINE
 st_setup_current(struct st_context *st,
-                 const struct st_vertex_program *vp,
+                 const struct gl_vertex_program *vp,
                  const struct st_common_variant *vp_variant,
                  struct cso_velems_state *velements,
                  struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers)
 {
    struct gl_context *ctx = st->ctx;
    const GLbitfield inputs_read = vp_variant->vert_attrib_mask;
-   const GLbitfield dual_slot_inputs = vp->Base.Base.DualSlotInputs;
+   const GLbitfield dual_slot_inputs = vp->Base.DualSlotInputs;
 
    /* Process values that should have better been uniforms in the application */
    GLbitfield curmask = inputs_read & _mesa_draw_current_bits(ctx);
@@ -267,14 +267,14 @@ st_setup_current(struct st_context *st,
 /* Only used by the select/feedback mode. */
 void
 st_setup_current_user(struct st_context *st,
-                      const struct st_vertex_program *vp,
+                      const struct gl_vertex_program *vp,
                       const struct st_common_variant *vp_variant,
                       struct cso_velems_state *velements,
                       struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers)
 {
    struct gl_context *ctx = st->ctx;
    const GLbitfield inputs_read = vp_variant->vert_attrib_mask;
-   const GLbitfield dual_slot_inputs = vp->Base.Base.DualSlotInputs;
+   const GLbitfield dual_slot_inputs = vp->Base.DualSlotInputs;
 
    /* Process values that should have better been uniforms in the application */
    GLbitfield curmask = inputs_read & _mesa_draw_current_bits(ctx);
@@ -303,7 +303,7 @@ st_update_array_templ(struct st_context *st)
 
    /* vertex program validation must be done before this */
    /* _NEW_PROGRAM, ST_NEW_VS_STATE */
-   const struct st_vertex_program *vp = (struct st_vertex_program *)st->vp;
+   const struct gl_vertex_program *vp = (struct gl_vertex_program *)st->vp;
    const struct st_common_variant *vp_variant = st->vp_variant;
 
    struct pipe_vertex_buffer vbuffer[PIPE_MAX_ATTRIBS];
@@ -314,7 +314,7 @@ st_update_array_templ(struct st_context *st)
    /* ST_NEW_VERTEX_ARRAYS */
    /* Setup arrays */
    setup_arrays<POPCNT, UPDATE>
-      (st, ctx->Array._DrawVAO, vp->Base.Base.DualSlotInputs,
+      (st, ctx->Array._DrawVAO, vp->Base.DualSlotInputs,
        vp_variant->vert_attrib_mask, _mesa_draw_nonzero_divisor_bits(ctx),
        _mesa_draw_array_bits(ctx), _mesa_draw_user_array_bits(ctx),
        &velements, vbuffer, &num_vbuffers, &uses_user_vertex_buffers);

@@ -568,6 +568,18 @@ llvmpipe_get_compute_param(struct pipe_screen *_screen,
    return 0;
 }
 
+static void
+llvmpipe_get_driver_uuid(struct pipe_screen *pscreen, char *uuid)
+{
+   memset(uuid, 0, PIPE_UUID_SIZE);
+}
+
+static void
+llvmpipe_get_device_uuid(struct pipe_screen *pscreen, char *uuid)
+{
+   memset(uuid, 0, PIPE_UUID_SIZE);
+}
+
 static const struct nir_shader_compiler_options gallivm_nir_options = {
    .lower_scmp = true,
    .lower_flrp32 = true,
@@ -1048,6 +1060,9 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
    screen->base.fence_finish = llvmpipe_fence_finish;
 
    screen->base.get_timestamp = llvmpipe_get_timestamp;
+
+   screen->base.get_driver_uuid = llvmpipe_get_driver_uuid;
+   screen->base.get_device_uuid = llvmpipe_get_device_uuid;
 
    screen->base.finalize_nir = llvmpipe_finalize_nir;
 

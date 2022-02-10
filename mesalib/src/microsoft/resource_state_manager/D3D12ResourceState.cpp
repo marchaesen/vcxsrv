@@ -191,8 +191,9 @@ void ResourceStateManager::TransitionSubresource(TransitionableResourceState& Re
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-void ResourceStateManager::ApplyResourceTransitionsPreamble()
+void ResourceStateManager::ApplyResourceTransitionsPreamble(bool IsImplicitDispatch)
 {
+   m_IsImplicitDispatch = IsImplicitDispatch;
    m_vResourceBarriers.clear();
 }
 
@@ -274,6 +275,18 @@ void ResourceStateManager::ProcessTransitioningResource(ID3D12Resource* pTransit
             continue;
       }
 
+      // This is a transition into a state that is both write and non-write.
+      // This is invalid according to D3D12. We're venturing into undefined behavior
+      // land, but let's just pick the write state.
+      if (IsD3D12WriteState(after) &&
+         (after & ~RESOURCE_STATE_ALL_WRITE_BITS) != 0)
+      {
+         after &= RESOURCE_STATE_ALL_WRITE_BITS;
+
+         // For now, this is the only way I've seen where this can happen.
+         assert(after == D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+      }
+
       ProcessTransitioningSubresourceExplicit(
          CurrentState,
          i,
@@ -323,7 +336,15 @@ void ResourceStateManager::ProcessTransitioningSubresourceExplicit(
 
    if ( D3D12_RESOURCE_STATE_COMMON == StateIfPromoted )
    {
-      if (TransitionRequired(CurrentLogicalState.State, /*inout*/ after))
+      if (CurrentLogicalState.State == D3D12_RESOURCE_STATE_UNORDERED_ACCESS &&
+          after == D3D12_RESOURCE_STATE_UNORDERED_ACCESS &&
+          m_IsImplicitDispatch)
+      {
+         D3D12_RESOURCE_BARRIER UAVBarrier = { D3D12_RESOURCE_BARRIER_TYPE_UAV };
+         UAVBarrier.UAV.pResource = TransitionDesc.Transition.pResource;
+         m_vResourceBarriers.push_back(UAVBarrier);
+      }
+      else if (TransitionRequired(CurrentLogicalState.State, /*inout*/ after))
       {
          // Insert a single concrete barrier (for non-simultaneous access resources).
          TransitionDesc.Transition.StateBefore = D3D12_RESOURCE_STATES(CurrentLogicalState.State);
@@ -376,9 +397,9 @@ void ResourceStateManager::TransitionSubresource(TransitionableResourceState* pR
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-void ResourceStateManager::ApplyAllResourceTransitions(ID3D12GraphicsCommandList *pCommandList, UINT64 ExecutionId)
+void ResourceStateManager::ApplyAllResourceTransitions(ID3D12GraphicsCommandList *pCommandList, UINT64 ExecutionId, bool IsImplicitDispatch)
 {
-   ApplyResourceTransitionsPreamble();
+   ApplyResourceTransitionsPreamble(IsImplicitDispatch);
 
    ForEachTransitioningResource([=](TransitionableResourceState& ResourceBase)
    {

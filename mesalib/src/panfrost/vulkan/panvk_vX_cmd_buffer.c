@@ -30,7 +30,6 @@
 
 #include "panvk_cs.h"
 #include "panvk_private.h"
-#include "panfrost-quirks.h"
 
 #include "pan_blitter.h"
 #include "pan_cs.h"
@@ -72,7 +71,7 @@ panvk_per_arch(cmd_get_polygon_list)(struct panvk_cmd_buffer *cmdbuf,
    /* Create the BO as invisible if we can. In the non-hierarchical tiler case,
     * we need to write the polygon list manually because there's not WRITE_VALUE
     * job in the chain. */
-   bool init_polygon_list = !has_draws && (pdev->quirks & MIDGARD_NO_HIER_TILING);
+   bool init_polygon_list = !has_draws && pdev->model->quirks.no_hierarchical_tiling;
    batch->tiler.ctx.midgard.polygon_list =
       panfrost_bo_create(pdev, size,
                          init_polygon_list ? 0 : PAN_BO_INVISIBLE,

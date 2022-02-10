@@ -40,7 +40,6 @@
 #include "vk_format.h"
 #include "vk_util.h"
 
-#include "panfrost-quirks.h"
 
 VkResult
 panvk_CreateComputePipelines(VkDevice _device,

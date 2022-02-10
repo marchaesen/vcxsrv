@@ -29,7 +29,7 @@
 #include "program/prog_statevars.h"
 #include "util/bitscan.h"
 #include "builtin_functions.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 
 using namespace ir_builder;
 

@@ -69,6 +69,9 @@ _mesa_debug_is_message_enabled(const struct gl_debug_state *debug,
                                GLuint id,
                                enum mesa_debug_severity severity);
 
+void
+_mesa_update_debug_callback(struct gl_context *ctx);
+
 #ifdef __cplusplus
 }
 #endif

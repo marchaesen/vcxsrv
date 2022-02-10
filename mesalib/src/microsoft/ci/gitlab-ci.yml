@@ -1,13 +1,14 @@
 test-spirv2dxil-windows:
   extends:
     - .build-windows
-    - .use-windows_build_vs2019
+    - .use-windows_test_vs2019
     - .windows-test-rules
   stage: layered-backends
   dependencies:
     - windows-vs2019
   needs:
     - windows-vs2019
+    - windows_test_vs2019
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
   script:

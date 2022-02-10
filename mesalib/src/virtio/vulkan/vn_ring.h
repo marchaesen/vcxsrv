@@ -99,4 +99,7 @@ vn_ring_submit(struct vn_ring *ring,
 void
 vn_ring_wait(const struct vn_ring *ring, uint32_t seqno);
 
+void
+vn_ring_wait_all(const struct vn_ring *ring);
+
 #endif /* VN_RING_H */

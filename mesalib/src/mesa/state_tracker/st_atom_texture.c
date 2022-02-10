@@ -62,25 +62,23 @@ st_update_single_texture(struct st_context *st,
 {
    struct gl_context *ctx = st->ctx;
    struct gl_texture_object *texObj;
-   struct st_texture_object *stObj;
 
    texObj = ctx->Texture.Unit[texUnit]._Current;
    assert(texObj);
 
-   stObj = st_texture_object(texObj);
    GLenum target = texObj->Target;
 
    if (unlikely(target == GL_TEXTURE_BUFFER))
-      return st_get_buffer_sampler_view_from_stobj(st, stObj, get_reference);
+      return st_get_buffer_sampler_view_from_stobj(st, texObj, get_reference);
 
-   if (!st_finalize_texture(ctx, st->pipe, texObj, 0) || !stObj->pt)
+   if (!st_finalize_texture(ctx, st->pipe, texObj, 0) || !texObj->pt)
       return NULL; /* out of mem */
 
    if (target == GL_TEXTURE_EXTERNAL_OES &&
-       stObj->pt->screen->resource_changed)
-         stObj->pt->screen->resource_changed(stObj->pt->screen, stObj->pt);
+       texObj->pt->screen->resource_changed)
+         texObj->pt->screen->resource_changed(texObj->pt->screen, texObj->pt);
 
-   return st_get_texture_sampler_view_from_stobj(st, stObj,
+   return st_get_texture_sampler_view_from_stobj(st, texObj,
                                                  _mesa_get_samplerobj(ctx, texUnit),
                                                  glsl130_or_later,
                                                  ignore_srgb_decode, get_reference);
@@ -154,7 +152,7 @@ st_get_sampler_views(struct st_context *st,
    /* For any external samplers with multiplaner YUV, stuff the additional
     * sampler views we need at the end.
     *
-    * Trying to cache the sampler view in the stObj looks painful, so just
+    * Trying to cache the sampler view in the texObj looks painful, so just
     * re-create the sampler view for the extra planes each time.  Main use
     * case is video playback (ie. fps games wouldn't be using this) so I
     * guess no point to try to optimize this feature.
@@ -162,7 +160,7 @@ st_get_sampler_views(struct st_context *st,
    while (unlikely(external_samplers_used)) {
       GLuint unit = u_bit_scan(&external_samplers_used);
       GLuint extra = 0;
-      struct st_texture_object *stObj =
+      struct gl_texture_object *stObj =
             st_get_texture_object(st->ctx, prog, unit);
       struct pipe_sampler_view tmpl;
 

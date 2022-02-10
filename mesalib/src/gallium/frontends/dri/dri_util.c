@@ -376,6 +376,16 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
                     ~__DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR;
             }
             break;
+        case __DRI_CTX_ATTRIB_NO_ERROR:
+            if (attribs[i * 2 + 1] != 0) {
+               ctx_config.attribute_mask |=
+                  __DRIVER_CONTEXT_ATTRIB_NO_ERROR;
+               ctx_config.no_error = attribs[i * 2 + 1];
+            } else {
+               ctx_config.attribute_mask &=
+                  ~__DRIVER_CONTEXT_ATTRIB_NO_ERROR;
+            }
+            break;
 	default:
 	    /* We can't create a context that satisfies the requirements of an
 	     * attribute that we don't understand.  Return failure.
@@ -427,8 +437,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     if (mesa_api != API_OPENGL_COMPAT
         && mesa_api != API_OPENGL_CORE
         && (ctx_config.flags & ~(__DRI_CTX_FLAG_DEBUG |
-                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS |
-                                 __DRI_CTX_FLAG_NO_ERROR))) {
+                                 __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS))) {
 	*error = __DRI_CTX_ERROR_BAD_FLAG;
 	return NULL;
     }
@@ -451,7 +460,7 @@ driCreateContextAttribs(__DRIscreen *screen, int api,
     const uint32_t allowed_flags = (__DRI_CTX_FLAG_DEBUG
                                     | __DRI_CTX_FLAG_FORWARD_COMPATIBLE
                                     | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS
-                                    | __DRI_CTX_FLAG_NO_ERROR);
+                                    | __DRI_CTX_FLAG_RESET_ISOLATION);
     if (ctx_config.flags & ~allowed_flags) {
 	*error = __DRI_CTX_ERROR_UNKNOWN_FLAG;
 	return NULL;
@@ -1035,8 +1044,4 @@ const __DRIcopySubBufferExtension driCopySubBufferExtension = {
    .base = { __DRI_COPY_SUB_BUFFER, 1 },
 
    .copySubBuffer               = driCopySubBuffer,
-};
-
-const __DRInoErrorExtension dri2NoErrorExtension = {
-   .base = { __DRI2_NO_ERROR, 1 },
 };

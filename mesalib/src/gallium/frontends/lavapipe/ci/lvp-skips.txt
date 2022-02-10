@@ -20,3 +20,9 @@ dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing
 dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_equal_spacing
 dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing
 dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing
+
+# Timeouts (VK-GL-CTS 1.2.8.0)
+dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_i64vec4
+dEQP-VK.graphicsfuzz.cov-int-initialize-from-multiple-large-arrays
+dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_u8vec4
+dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_bvec4

@@ -681,7 +681,7 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
                 if (changes) {
                     changes->map.changed = _ExtendRange(changes->map.changed,
                                                 XkbVirtualModMapMask, minKC,
-                                                &changes->map.first_modmap_key,
+                                                &changes->map.first_vmodmap_key,
                                                 &changes->map.num_vmodmap_keys);
                 }
             }
@@ -766,7 +766,7 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
                 if (changes) {
                     changes->map.changed = _ExtendRange(changes->map.changed,
                                                 XkbVirtualModMapMask, maxKC,
-                                                &changes->map.first_modmap_key,
+                                                &changes->map.first_vmodmap_key,
                                                 &changes->map.num_vmodmap_keys);
                 }
             }

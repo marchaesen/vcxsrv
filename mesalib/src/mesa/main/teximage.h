@@ -250,6 +250,13 @@ _mesa_texture_storage_ms_memory(struct gl_context *ctx, GLuint dims,
 bool
 _mesa_is_cube_map_texture(GLenum target);
 
+GLboolean
+_mesa_sparse_texture_error_check(struct gl_context *ctx, GLuint dims,
+                                 struct gl_texture_object *texObj,
+                                 mesa_format format, GLenum target, GLsizei levels,
+                                 GLsizei width, GLsizei height, GLsizei depth,
+                                 const char *func);
+
 /*@}*/
 
 #ifdef __cplusplus

@@ -58,11 +58,14 @@
 #include "pbo.h"
 #include "api_exec_decl.h"
 
+#include "util/u_memory.h"
+
 #include "state_tracker/st_cb_texture.h"
 #include "state_tracker/st_context.h"
 #include "state_tracker/st_format.h"
 #include "state_tracker/st_gen_mipmap.h"
 #include "state_tracker/st_cb_eglimage.h"
+#include "state_tracker/st_sampler_view.h"
 
 /**
  * Returns a corresponding internal floating point format for a given base
@@ -219,7 +222,7 @@ _mesa_delete_texture_image(struct gl_context *ctx,
     * image storage.
     */
    st_FreeTextureImageBuffer( ctx, texImage );
-   free(texImage);
+   FREE(texImage);
 }
 
 
@@ -392,7 +395,7 @@ _mesa_get_tex_image(struct gl_context *ctx, struct gl_texture_object *texObj,
 
    texImage = _mesa_select_tex_image(texObj, target, level);
    if (!texImage) {
-      texImage = st_NewTextureImage(ctx);
+      texImage = CALLOC_STRUCT(gl_texture_image);
       if (!texImage) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "texture image allocation");
          return NULL;
@@ -459,7 +462,7 @@ get_proxy_tex_image(struct gl_context *ctx, GLenum target, GLint level)
 
    texImage = ctx->Texture.ProxyTex[texIndex]->Image[0][level];
    if (!texImage) {
-      texImage = st_NewTextureImage(ctx);
+      texImage = CALLOC_STRUCT(gl_texture_image);
       if (!texImage) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "proxy texture allocation");
          return NULL;
@@ -2932,7 +2935,7 @@ lookup_texture_ext_dsa(struct gl_context *ctx, GLenum target, GLuint texture,
       }
 
       if (!texObj) {
-         texObj = st_NewTextureObject(ctx, texture, boundTarget);
+         texObj = _mesa_new_texture_object(ctx, texture, boundTarget);
          if (!texObj) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
             return NULL;
@@ -6351,13 +6354,13 @@ texture_buffer_range(struct gl_context *ctx,
    _mesa_unlock_texture(ctx, texObj);
 
    if (old_format != format) {
-      st_TexParameter(ctx, texObj, GL_ALL_ATTRIB_BITS);
+      st_texture_release_all_sampler_views(st_context(ctx), texObj);
    } else {
       if (offset != oldOffset) {
-         st_TexParameter(ctx, texObj, GL_TEXTURE_BUFFER_OFFSET);
+         st_texture_release_all_sampler_views(st_context(ctx), texObj);
       }
       if (size != oldSize) {
-         st_TexParameter(ctx, texObj, GL_TEXTURE_BUFFER_SIZE);
+         st_texture_release_all_sampler_views(st_context(ctx), texObj);
       }
    }
 
@@ -6866,6 +6869,11 @@ texture_image_multisample(struct gl_context *ctx, GLuint dims,
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(immutable)", func);
          return;
       }
+
+      if (texObj->IsSparse &&
+          _mesa_sparse_texture_error_check(ctx, dims, texObj, texFormat, target, 0,
+                                           width, height, depth, func))
+         return; /* error was recorded */
 
       st_FreeTextureImageBuffer(ctx, texImage);
 

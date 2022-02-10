@@ -352,6 +352,19 @@ dd_screen_check_resource_capability(struct pipe_screen *_screen,
    return screen->check_resource_capability(screen, resource, bind);
 }
 
+static int
+dd_screen_get_sparse_texture_virtual_page_size(struct pipe_screen *_screen,
+                                               enum pipe_texture_target target,
+                                               bool multi_sample,
+                                               enum pipe_format format,
+                                               unsigned offset, unsigned size,
+                                               int *x, int *y, int *z)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+
+   return screen->get_sparse_texture_virtual_page_size(
+      _screen, target, multi_sample, format, offset, size, x, y, z);
+}
 
 /********************************************************************
  * fence
@@ -609,6 +622,7 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(get_driver_uuid);
    SCR_INIT(get_device_uuid);
    SCR_INIT(finalize_nir);
+   SCR_INIT(get_sparse_texture_virtual_page_size);
 
 #undef SCR_INIT
 

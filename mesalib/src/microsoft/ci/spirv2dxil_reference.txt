@@ -335,46 +335,11 @@ Test:SpvModuleScopeVarParserTest_Builtin_Input_OppositeSignednessAsWGSL.spvasm:m
 Test:SpvModuleScopeVarParserTest_Builtin_Input_SameSignednessAsWGSL.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_Builtin_Output_Initializer_OppositeSignednessAsWGSL.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_Builtin_Output_Initializer_SameSignednessAsWGSL.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_ReadReplaced_Vertex.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_Write1_IsErased.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_WriteViaCopyObjectPostAccessChainErased.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_WriteViaCopyObjectPriorAccess_Erased.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_BuiltinPointSize_ReadReplaced.spvasm:main|Vertex: Fail
-Assertion failed: glsl_get_components(type) == 4
-
-
+Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_ReadReplaced_Vertex.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_Write1_IsErased.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_WriteViaCopyObjectPostAccessChainErased.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Loose_WriteViaCopyObjectPriorAccess_Erased.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_BuiltinPointSize_ReadReplaced.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_BuiltinPointSize_Write1_IsErased.spvasm:main|Vertex: Fail
 Assertion failed: glsl_get_components(type) == 4
 
@@ -383,14 +348,8 @@ Test:SpvModuleScopeVarParserTest_BuiltinPointSize_WriteViaCopyObjectPostAccessCh
 Assertion failed: glsl_get_components(type) == 4
 
 
-Test:SpvModuleScopeVarParserTest_BuiltinPosition_BuiltIn_Position.spvasm:main|Vertex: Fail
-Assertion failed: glsl_get_components(type) == 4
-
-
-Test:SpvModuleScopeVarParserTest_BuiltinPosition_BuiltIn_Position_Initializer.spvasm:main|Vertex: Fail
-Assertion failed: glsl_get_components(type) == 4
-
-
+Test:SpvModuleScopeVarParserTest_BuiltinPosition_BuiltIn_Position.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_BuiltinPosition_BuiltIn_Position_Initializer.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_BuiltinPosition_StorePosition.spvasm:main|Vertex: Fail
 Assertion failed: glsl_get_components(type) == 4
 
@@ -407,213 +366,44 @@ Test:SpvModuleScopeVarParserTest_BuiltinPosition_StorePositionMember_TwoAccessCh
 Assertion failed: glsl_get_components(type) == 4
 
 
-Test:SpvModuleScopeVarParserTest_BuiltinVertexIndex.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_BuiltinVertexIndex.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_ColMajorDecoration_Dropped.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_DescriptorGroupDecoration_Valid.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_FragDepth_Out_Initializer.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_Input_OppositeSignedness.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_Input_SameSignedness.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_Input_OppositeSignedness.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_Input_SameSignedness.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_SampleMask_In_Signed.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_SampleMask_In_Unsigned.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_SampleMask_Out_Signed_Initializer.spvasm:main|Fragment: Fail
-DXIL: SV_Coverage must be uint
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_SampleMask_Out_Signed_Initializer.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_EntryPointWrapping_BuiltinVar_SampleMask_Out_Unsigned_Initializer.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Flatten_Interpolation_Flat_Fragment_In.spvasm:main|Fragment: Fail
-Assertion failed: !"unexpected glsl type"
-
-
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Flatten_Interpolation_Floating_Fragment_In.spvasm:main|Fragment: Fail
-Assertion failed: !"unexpected glsl type"
-
-
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Flatten_Interpolation_Floating_Fragment_Out.spvasm:main|Fragment: Fail
-Assertion failed: !"unexpected glsl type"
-
-
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Interpolation_Flat_Vertex_In.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Interpolation_Flat_Vertex_Output.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Flatten_Interpolation_Flat_Fragment_In.spvasm:main|Fragment: Pass
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Flatten_Interpolation_Floating_Fragment_In.spvasm:main|Fragment: Pass
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Flatten_Interpolation_Floating_Fragment_Out.spvasm:main|Fragment: Pass
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Interpolation_Flat_Vertex_In.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Interpolation_Flat_Vertex_Output.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Interpolation_Floating_Fragment_In.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_EntryPointWrapping_Interpolation_Floating_Fragment_Out.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_EntryPointWrapping_IOLocations.spvasm:main|Fragment: Fail
-DXIL: signature element TEXCOORD specifies invalid interpolation mode for integer component type.
-signature element TEXCOORD specifies invalid interpolation mode for integer component type.
-Semantic 'UNDEFINED' is invalid as ps Output
-Pixel Shader allows output semantics to be SV_Target, SV_Depth, SV_DepthGreaterEqual, SV_DepthLessEqual, SV_Coverage or SV_StencilRef, UNDEFINED found
-Not all elements of output UNDEFINED were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_FlattenStruct_LocOnMembers.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_Input_FlattenArray_OneLevel.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_Input_FlattenMatrix.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_Input_FlattenNested.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_Input_FlattenStruct_LocOnVariable.spvasm:main|Vertex: Fail
-Assertion failed: !"unexpected glsl type"
-
-
+Test:SpvModuleScopeVarParserTest_EntryPointWrapping_IOLocations.spvasm:main|Fragment: Pass
+Test:SpvModuleScopeVarParserTest_FlattenStruct_LocOnMembers.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_Input_FlattenArray_OneLevel.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_Input_FlattenMatrix.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_Input_FlattenNested.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_Input_FlattenStruct_LocOnVariable.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_InputVarsConvertedToPrivate.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_InstanceIndex_I32_Load_AccessChain.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_InstanceIndex_I32_Load_CopyObject.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_InstanceIndex_I32_Load_Direct.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_InstanceIndex_U32_Load_AccessChain.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_InstanceIndex_U32_Load_CopyObject.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_InstanceIndex_U32_Load_Direct.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_InstanceIndex_I32_Load_AccessChain.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_InstanceIndex_I32_Load_CopyObject.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_InstanceIndex_I32_Load_Direct.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_InstanceIndex_U32_Load_AccessChain.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_InstanceIndex_U32_Load_CopyObject.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_InstanceIndex_U32_Load_Direct.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_MatrixInitializer.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_MatrixNullInitializer.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_MatrixStrideDecoration_Dropped.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_NamedWorkgroupVar.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_NoVar.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_Output_FlattenArray_OneLevel.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_Output_FlattenMatrix.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_Output_FlattenStruct_LocOnVariable.spvasm:main|Vertex: Fail
-Assertion failed: !"unexpected glsl type"
-
-
+Test:SpvModuleScopeVarParserTest_Output_FlattenArray_OneLevel.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_Output_FlattenMatrix.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_Output_FlattenStruct_LocOnVariable.spvasm:main|Vertex: Pass
 Test:SpvModuleScopeVarParserTest_OutputVarsConvertedToPrivate.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_OutputVarsConvertedToPrivate_WithInitializer.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_PrivateVar.spvasm:main|Fragment: Pass
@@ -630,30 +420,9 @@ Test:SpvModuleScopeVarParserTest_SampleMask_In_U32_AccessChain.spvasm:main|Fragm
 Test:SpvModuleScopeVarParserTest_SampleMask_In_U32_CopyObject.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_SampleMask_In_U32_Direct.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_SampleMask_In_WithStride.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_SampleMask_Out_I32_AccessChain.spvasm:main|Fragment: Fail
-DXIL: SV_Coverage must be uint
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_SampleMask_Out_I32_CopyObject.spvasm:main|Fragment: Fail
-DXIL: SV_Coverage must be uint
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_SampleMask_Out_I32_Direct.spvasm:main|Fragment: Fail
-DXIL: SV_Coverage must be uint
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_SampleMask_Out_I32_AccessChain.spvasm:main|Fragment: Pass
+Test:SpvModuleScopeVarParserTest_SampleMask_Out_I32_CopyObject.spvasm:main|Fragment: Pass
+Test:SpvModuleScopeVarParserTest_SampleMask_Out_I32_Direct.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_SampleMask_Out_U32_AccessChain.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_SampleMask_Out_U32_CopyObject.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_SampleMask_Out_U32_Direct.spvasm:main|Fragment: Pass
@@ -679,60 +448,12 @@ Test:SpvModuleScopeVarParserTest_VectorFloatNullInitializer.spvasm:main|Fragment
 Test:SpvModuleScopeVarParserTest_VectorInitializer.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_VectorIntNullInitializer.spvasm:main|Fragment: Pass
 Test:SpvModuleScopeVarParserTest_VectorUintNullInitializer.spvasm:main|Fragment: Pass
-Test:SpvModuleScopeVarParserTest_VertexIndex_I32_Load_AccessChain.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_VertexIndex_I32_Load_CopyObject.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_VertexIndex_I32_Load_Direct.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_VertexIndex_U32_Load_AccessChain.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_VertexIndex_U32_Load_CopyObject.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
-Test:SpvModuleScopeVarParserTest_VertexIndex_U32_Load_Direct.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvModuleScopeVarParserTest_VertexIndex_I32_Load_AccessChain.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_VertexIndex_I32_Load_CopyObject.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_VertexIndex_I32_Load_Direct.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_VertexIndex_U32_Load_AccessChain.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_VertexIndex_U32_Load_CopyObject.spvasm:main|Vertex: Pass
+Test:SpvModuleScopeVarParserTest_VertexIndex_U32_Load_Direct.spvasm:main|Vertex: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_BackEdge_MultiBlockLoop_MultiBlockContinueConstruct_ContinueIsHeader.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_BackEdge_MultiBlockLoop_MultiBlockContinueConstruct_ContinueIsNotHeader.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_BackEdge_MultiBlockLoop_SingleBlockContinueConstruct.spvasm:main|Fragment: Pass
@@ -1200,15 +921,7 @@ Test:SpvParserTest_EmitFunctions_Function_EntryPoint_GLCompute.spvasm:main|GLCom
 Test:SpvParserTest_EmitFunctions_Function_EntryPoint_GLCompute_LocalSize_Only.spvasm:comp_main|GLCompute: Pass
 Test:SpvParserTest_EmitFunctions_Function_EntryPoint_LocalSize_And_WGSBuiltin_SpecConstant.spvasm:comp_main|GLCompute: Pass
 Test:SpvParserTest_EmitFunctions_Function_EntryPoint_MultipleEntryPoints.spvasm:first_shader|Fragment: Pass
-Test:SpvParserTest_EmitFunctions_Function_EntryPoint_Vertex.spvasm:main|Vertex: Fail
-DXIL: Not all elements of output SV_Position were written
-Not all elements of SV_Position were written
-
-Validation failed.
-
-Failed to validate DXIL
-
-
+Test:SpvParserTest_EmitFunctions_Function_EntryPoint_Vertex.spvasm:main|Vertex: Pass
 Test:SpvParserTest_EmitFunctions_Function_EntryPoint_WorkgroupSize_MixedConstantSpecConstant.spvasm:comp_main|GLCompute: Pass
 Test:SpvParserTest_EmitFunctions_Function_EntryPoint_WorkgroupSizeBuiltin_Constant_Only.spvasm:comp_main|GLCompute: Pass
 Test:SpvParserTest_EmitFunctions_Function_EntryPoint_WorkgroupSizeBuiltin_SpecConstant_Only.spvasm:comp_main|GLCompute: Pass

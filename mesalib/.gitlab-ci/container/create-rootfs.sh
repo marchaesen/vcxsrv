@@ -3,7 +3,11 @@
 set -ex
 
 if [ $DEBIAN_ARCH = arm64 ]; then
-    ARCH_PACKAGES="firmware-qcom-media"
+    ARCH_PACKAGES="firmware-qcom-media
+                   libfontconfig1
+                   libgl1
+                   libglu1-mesa
+    "
 elif [ $DEBIAN_ARCH = amd64 ]; then
     ARCH_PACKAGES="firmware-amd-graphics
                    libelf1
@@ -145,6 +149,8 @@ rm -rf usr/lib/*/gconv/
 rm -rf usr/sbin/update-usbids
 rm -rf var/lib/usbutils/usb.ids
 rm -rf usr/share/misc/usb.ids
+
+rm -rf /root/.pip
 
 #######################################################################
 # Crush into a minimal production image to be deployed via some type of image

@@ -37,7 +37,7 @@
 #include "ir.h"
 #include "ir_visitor.h"
 #include "compiler/glsl_types.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 
 namespace {
 

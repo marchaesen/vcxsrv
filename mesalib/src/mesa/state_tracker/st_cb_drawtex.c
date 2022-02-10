@@ -321,7 +321,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    /* viewport state: viewport matching window dims */
    {
       const struct gl_framebuffer *fb = ctx->DrawBuffer;
-      const GLboolean invert = (st_fb_orientation(fb) == Y_0_TOP);
+      const GLboolean invert = (_mesa_fb_orientation(fb) == Y_0_TOP);
       const GLfloat width = (GLfloat)_mesa_geometric_width(fb);
       const GLfloat height = (GLfloat)_mesa_geometric_height(fb);
       struct pipe_viewport_state vp;

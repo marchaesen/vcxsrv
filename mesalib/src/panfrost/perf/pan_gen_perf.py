@@ -77,7 +77,8 @@ class Product:
    def __init__(self, filename):
       self.filename = filename
       self.xml = et.parse(self.filename)
-      self.id = self.xml.getroot().get('id').lower()
+      self.name = self.xml.getroot().get('id')
+      self.id = self.name.lower()
       self.categories = []
 
       for xml_cat in self.xml.findall(".//category"):
@@ -146,9 +147,6 @@ def main():
       """))
 
    for prod in prods:
-      h.write("extern const struct panfrost_perf_config panfrost_perf_config_%s;\n" % prod.id)
-
-   for prod in prods:
       c.write(textwrap.dedent("""
       static void UNUSED
       static_asserts_%s(void)
@@ -171,7 +169,8 @@ def main():
       current_struct_name = "panfrost_perf_config_%s" % prod.id
       c.write("\nconst struct panfrost_perf_config %s = {" % current_struct_name)
       c.indent(tab_size)
-      
+
+      c.write(".name = \"%s\"," % prod.name)
       c.write(".n_categories = %u," % len(prod.categories))
 
       c.write(".categories = {")
@@ -219,6 +218,15 @@ def main():
 
       c.outdent(tab_size)
       c.write("}; // %s\n" % current_struct_name)
+
+   h.write("extern const struct panfrost_perf_config * panfrost_perf_configs[%u];\n" % len(prods))
+
+   c.write("\nconst struct panfrost_perf_config * panfrost_perf_configs[] = {")
+   c.indent(tab_size)
+   for prod in prods:
+       c.write("&panfrost_perf_config_%s," % prod.id)
+   c.outdent(tab_size)
+   c.write("};")
 
    h.write("\n#endif // PAN_PERF_METRICS_H")
 

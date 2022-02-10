@@ -27,6 +27,7 @@
 #ifndef IR3_COMPILER_H_
 #define IR3_COMPILER_H_
 
+#include "compiler/nir/nir.h"
 #include "util/disk_cache.h"
 #include "util/log.h"
 
@@ -44,6 +45,8 @@ struct ir3_compiler {
    uint32_t shader_count;
 
    struct disk_cache *disk_cache;
+
+   struct nir_shader_compiler_options nir_options;
 
    /* If true, UBO accesses are assumed to be bounds-checked as defined by
     * VK_EXT_robustness2 and optimizations may have to be more conservative.
@@ -166,6 +169,12 @@ struct ir3_compiler {
     */
    bool has_getfiberid;
 
+   /* MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB */
+   uint32_t max_variable_workgroup_size;
+
+   bool has_dp2acc;
+   bool has_dp4acc;
+
    /* Type to use for 1b nir bools: */
    type_t bool_type;
 };
@@ -182,6 +191,9 @@ bool ir3_disk_cache_retrieve(struct ir3_compiler *compiler,
                              struct ir3_shader_variant *v);
 void ir3_disk_cache_store(struct ir3_compiler *compiler,
                           struct ir3_shader_variant *v);
+
+const nir_shader_compiler_options *
+ir3_get_compiler_options(struct ir3_compiler *compiler);
 
 int ir3_compile_shader_nir(struct ir3_compiler *compiler,
                            struct ir3_shader_variant *so);

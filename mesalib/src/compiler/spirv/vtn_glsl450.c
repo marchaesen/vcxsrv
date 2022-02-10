@@ -332,9 +332,22 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       break;
 
    case GLSLstd450Modf: {
+      nir_ssa_def *inf = nir_imm_floatN_t(&b->nb, INFINITY, src[0]->bit_size);
+      nir_ssa_def *sign_bit =
+         nir_imm_intN_t(&b->nb, (uint64_t)1 << (src[0]->bit_size - 1),
+                        src[0]->bit_size);
       nir_ssa_def *sign = nir_fsign(nb, src[0]);
       nir_ssa_def *abs = nir_fabs(nb, src[0]);
-      dest->def = nir_fmul(nb, sign, nir_ffract(nb, abs));
+
+      /* NaN input should produce a NaN results, and ±Inf input should provide
+       * ±0 result.  The fmul(sign(x), ffract(x)) calculation will already
+       * produce the expected NaN.  To get ±0, directly compare for equality
+       * with Inf instead of using fisfinite (which is false for NaN).
+       */
+      dest->def = nir_bcsel(nb,
+                            nir_ieq(nb, abs, inf),
+                            nir_iand(nb, src[0], sign_bit),
+                            nir_fmul(nb, sign, nir_ffract(nb, abs)));
 
       struct vtn_pointer *i_ptr = vtn_value(b, w[6], vtn_value_type_pointer)->pointer;
       struct vtn_ssa_value *whole = vtn_create_ssa_value(b, i_ptr->type->type);
@@ -344,17 +357,45 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    }
 
    case GLSLstd450ModfStruct: {
+      nir_ssa_def *inf = nir_imm_floatN_t(&b->nb, INFINITY, src[0]->bit_size);
+      nir_ssa_def *sign_bit =
+         nir_imm_intN_t(&b->nb, (uint64_t)1 << (src[0]->bit_size - 1),
+                        src[0]->bit_size);
       nir_ssa_def *sign = nir_fsign(nb, src[0]);
       nir_ssa_def *abs = nir_fabs(nb, src[0]);
       vtn_assert(glsl_type_is_struct_or_ifc(dest_type));
-      dest->elems[0]->def = nir_fmul(nb, sign, nir_ffract(nb, abs));
+
+      /* See GLSLstd450Modf for explanation of the Inf and NaN handling. */
+      dest->elems[0]->def = nir_bcsel(nb,
+                                      nir_ieq(nb, abs, inf),
+                                      nir_iand(nb, src[0], sign_bit),
+                                      nir_fmul(nb, sign, nir_ffract(nb, abs)));
       dest->elems[1]->def = nir_fmul(nb, sign, nir_ffloor(nb, abs));
       break;
    }
 
-   case GLSLstd450Step:
-      dest->def = nir_sge(nb, src[1], src[0]);
+   case GLSLstd450Step: {
+      /* The SPIR-V Extended Instructions for GLSL spec says:
+       *
+       *    Result is 0.0 if x < edge; otherwise result is 1.0.
+       *
+       * Here src[1] is x, and src[0] is edge.  The direct implementation is
+       *
+       *    bcsel(src[1] < src[0], 0.0, 1.0)
+       *
+       * This is effectively b2f(!(src1 < src0)).  Previously this was
+       * implemented using sge(src1, src0), but that produces incorrect
+       * results for NaN.  Instead, we use the identity b2f(!x) = 1 - b2f(x).
+       */
+      const bool exact = nb->exact;
+      nb->exact = true;
+
+      nir_ssa_def *cmp = nir_slt(nb, src[1], src[0]);
+
+      nb->exact = exact;
+      dest->def = nir_fsub(nb, nir_imm_floatN_t(nb, 1.0f, cmp->bit_size), cmp);
       break;
+   }
 
    case GLSLstd450Length:
       dest->def = nir_fast_length(nb, src[0]);
@@ -479,11 +520,35 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       nir_ssa_def *x = nir_fclamp(nb, src[0],
                                   nir_imm_floatN_t(nb, -clamped_x, bit_size),
                                   nir_imm_floatN_t(nb, clamped_x, bit_size));
-      dest->def =
-         nir_fdiv(nb, nir_fsub(nb, nir_fexp(nb, x),
-                               nir_fexp(nb, nir_fneg(nb, x))),
-                  nir_fadd(nb, nir_fexp(nb, x),
-                           nir_fexp(nb, nir_fneg(nb, x))));
+
+      /* The clamping will filter out NaN values causing an incorrect result.
+       * The comparison is carefully structured to get NaN result for NaN and
+       * get -0 for -0.
+       *
+       *    result = abs(s) > 0.0 ? ... : s;
+       */
+      const bool exact = nb->exact;
+
+      nb->exact = true;
+      nir_ssa_def *is_regular = nir_flt(nb,
+                                        nir_imm_floatN_t(nb, 0, bit_size),
+                                        nir_fabs(nb, src[0]));
+
+      /* The extra 1.0*s ensures that subnormal inputs are flushed to zero
+       * when that is selected by the shader.
+       */
+      nir_ssa_def *flushed = nir_fmul(nb,
+                                      src[0],
+                                      nir_imm_floatN_t(nb, 1.0, bit_size));
+      nb->exact = exact;
+
+      dest->def = nir_bcsel(nb,
+                            is_regular,
+                            nir_fdiv(nb, nir_fsub(nb, nir_fexp(nb, x),
+                                                  nir_fexp(nb, nir_fneg(nb, x))),
+                                     nir_fadd(nb, nir_fexp(nb, x),
+                                              nir_fexp(nb, nir_fneg(nb, x)))),
+                            flushed);
       break;
    }
 

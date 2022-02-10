@@ -85,7 +85,7 @@
 
 .lava-traces-base:
   variables:
-    HWCI_TEST_SCRIPT: "/install/piglit/run.sh"
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-traces.sh"
   artifacts:
     reports:
       junit: results/junit.xml

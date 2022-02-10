@@ -131,13 +131,30 @@ static struct vk_queue_submit *
 vk_queue_submit_alloc(struct vk_queue *queue,
                       uint32_t wait_count,
                       uint32_t command_buffer_count,
-                      uint32_t signal_count)
+                      uint32_t buffer_bind_count,
+                      uint32_t image_opaque_bind_count,
+                      uint32_t image_bind_count,
+                      uint32_t bind_entry_count,
+                      uint32_t image_bind_entry_count,
+                      uint32_t signal_count,
+                      VkSparseMemoryBind **bind_entries,
+                      VkSparseImageMemoryBind **image_bind_entries)
 {
    VK_MULTIALLOC(ma);
    VK_MULTIALLOC_DECL(&ma, struct vk_queue_submit, submit, 1);
    VK_MULTIALLOC_DECL(&ma, struct vk_sync_wait, waits, wait_count);
    VK_MULTIALLOC_DECL(&ma, struct vk_command_buffer *, command_buffers,
                       command_buffer_count);
+   VK_MULTIALLOC_DECL(&ma, VkSparseBufferMemoryBindInfo, buffer_binds,
+                      buffer_bind_count);
+   VK_MULTIALLOC_DECL(&ma, VkSparseImageOpaqueMemoryBindInfo,
+                      image_opaque_binds, image_opaque_bind_count);
+   VK_MULTIALLOC_DECL(&ma, VkSparseImageMemoryBindInfo, image_binds,
+                      image_bind_count);
+   VK_MULTIALLOC_DECL(&ma, VkSparseMemoryBind,
+                      bind_entries_local, bind_entry_count);
+   VK_MULTIALLOC_DECL(&ma, VkSparseImageMemoryBind, image_bind_entries_local,
+                      image_bind_entry_count);
    VK_MULTIALLOC_DECL(&ma, struct vk_sync_signal, signals, signal_count);
    VK_MULTIALLOC_DECL(&ma, struct vk_sync *, wait_temps, wait_count);
 
@@ -156,13 +173,25 @@ vk_queue_submit_alloc(struct vk_queue *queue,
    submit->wait_count            = wait_count;
    submit->command_buffer_count  = command_buffer_count;
    submit->signal_count          = signal_count;
+   submit->buffer_bind_count     = buffer_bind_count;
+   submit->image_opaque_bind_count = image_opaque_bind_count;
+   submit->image_bind_count      = image_bind_count;
 
    submit->waits           = waits;
    submit->command_buffers = command_buffers;
    submit->signals         = signals;
+   submit->buffer_binds    = buffer_binds;
+   submit->image_opaque_binds = image_opaque_binds;
+   submit->image_binds     = image_binds;
    submit->_wait_temps     = wait_temps;
    submit->_wait_points    = wait_points;
    submit->_signal_points  = signal_points;
+
+   if (bind_entries)
+      *bind_entries = bind_entries_local;
+
+   if (image_bind_entries)
+      *image_bind_entries = image_bind_entries_local;
 
    return submit;
 }
@@ -506,12 +535,48 @@ vk_queue_disable_submit_thread(struct vk_queue *queue)
    queue->submit.has_thread = false;
 }
 
+struct vulkan_submit_info {
+   const void *pNext;
+
+   uint32_t command_buffer_count;
+   const VkCommandBufferSubmitInfoKHR *command_buffers;
+
+   uint32_t wait_count;
+   const VkSemaphoreSubmitInfoKHR *waits;
+
+   uint32_t signal_count;
+   const VkSemaphoreSubmitInfoKHR *signals;
+
+   uint32_t buffer_bind_count;
+   const VkSparseBufferMemoryBindInfo *buffer_binds;
+
+   uint32_t image_opaque_bind_count;
+   const VkSparseImageOpaqueMemoryBindInfo *image_opaque_binds;
+
+   uint32_t image_bind_count;
+   const VkSparseImageMemoryBindInfo *image_binds;
+
+   struct vk_fence *fence;
+};
+
 static VkResult
 vk_queue_submit(struct vk_queue *queue,
-                const VkSubmitInfo2KHR *info,
-                struct vk_fence *fence)
+                const struct vulkan_submit_info *info)
 {
    VkResult result;
+   uint32_t sparse_memory_bind_entry_count = 0;
+   uint32_t sparse_memory_image_bind_entry_count = 0;
+   VkSparseMemoryBind *sparse_memory_bind_entries = NULL;
+   VkSparseImageMemoryBind *sparse_memory_image_bind_entries = NULL;
+
+   for (uint32_t i = 0; i < info->buffer_bind_count; ++i)
+      sparse_memory_bind_entry_count += info->buffer_binds[i].bindCount;
+
+   for (uint32_t i = 0; i < info->image_opaque_bind_count; ++i)
+      sparse_memory_bind_entry_count += info->image_opaque_binds[i].bindCount;
+
+   for (uint32_t i = 0; i < info->image_bind_count; ++i)
+      sparse_memory_image_bind_entry_count += info->image_binds[i].bindCount;
 
    const struct wsi_memory_signal_submit_info *mem_signal =
       vk_find_struct_const(info->pNext, WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA);
@@ -520,10 +585,17 @@ vk_queue_submit(struct vk_queue *queue,
                           queue->base.device->create_sync_for_memory != NULL;
 
    struct vk_queue_submit *submit =
-      vk_queue_submit_alloc(queue, info->waitSemaphoreInfoCount,
-                            info->commandBufferInfoCount,
-                            info->signalSemaphoreInfoCount +
-                            signal_mem_sync + (fence != NULL));
+      vk_queue_submit_alloc(queue, info->wait_count,
+                            info->command_buffer_count,
+                            info->buffer_bind_count,
+                            info->image_opaque_bind_count,
+                            info->image_bind_count,
+                            sparse_memory_bind_entry_count,
+                            sparse_memory_image_bind_entry_count,
+                            info->signal_count +
+                            signal_mem_sync + (info->fence != NULL),
+                            &sparse_memory_bind_entries,
+                            &sparse_memory_image_bind_entries);
    if (unlikely(submit == NULL))
       return vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -537,9 +609,9 @@ vk_queue_submit(struct vk_queue *queue,
    submit->perf_pass_index = perf_info ? perf_info->counterPassIndex : 0;
 
    bool has_binary_permanent_semaphore_wait = false;
-   for (uint32_t i = 0; i < info->waitSemaphoreInfoCount; i++) {
+   for (uint32_t i = 0; i < info->wait_count; i++) {
       VK_FROM_HANDLE(vk_semaphore, semaphore,
-                     info->pWaitSemaphoreInfos[i].semaphore);
+                     info->waits[i].semaphore);
 
       /* From the Vulkan 1.2.194 spec:
        *
@@ -576,29 +648,72 @@ vk_queue_submit(struct vk_queue *queue,
       }
 
       uint32_t wait_value = semaphore->type == VK_SEMAPHORE_TYPE_TIMELINE ?
-                            info->pWaitSemaphoreInfos[i].value : 0;
+                            info->waits[i].value : 0;
 
       submit->waits[i] = (struct vk_sync_wait) {
          .sync = sync,
-         .stage_mask = info->pWaitSemaphoreInfos[i].stageMask,
+         .stage_mask = info->waits[i].stageMask,
          .wait_value = wait_value,
       };
    }
 
-   for (uint32_t i = 0; i < info->commandBufferInfoCount; i++) {
+   for (uint32_t i = 0; i < info->command_buffer_count; i++) {
       VK_FROM_HANDLE(vk_command_buffer, cmd_buffer,
-                     info->pCommandBufferInfos[i].commandBuffer);
-      assert(info->pCommandBufferInfos[i].deviceMask == 0 ||
-             info->pCommandBufferInfos[i].deviceMask == 1);
+                     info->command_buffers[i].commandBuffer);
+      assert(info->command_buffers[i].deviceMask == 0 ||
+             info->command_buffers[i].deviceMask == 1);
       submit->command_buffers[i] = cmd_buffer;
    }
 
-   for (uint32_t i = 0; i < info->signalSemaphoreInfoCount; i++) {
+   sparse_memory_bind_entry_count = 0;
+   sparse_memory_image_bind_entry_count = 0;
+
+   if (info->buffer_binds)
+      typed_memcpy(submit->buffer_binds, info->buffer_binds, info->buffer_bind_count);
+
+   for (uint32_t i = 0; i < info->buffer_bind_count; ++i) {
+      VkSparseMemoryBind *binds = sparse_memory_bind_entries +
+                                  sparse_memory_bind_entry_count;
+      submit->buffer_binds[i].pBinds = binds;
+      typed_memcpy(binds, info->buffer_binds[i].pBinds,
+                   info->buffer_binds[i].bindCount);
+
+      sparse_memory_bind_entry_count += info->buffer_binds[i].bindCount;
+   }
+
+   if (info->image_opaque_binds)
+      typed_memcpy(submit->image_opaque_binds, info->image_opaque_binds,
+                   info->image_opaque_bind_count);
+
+   for (uint32_t i = 0; i < info->image_opaque_bind_count; ++i) {
+      VkSparseMemoryBind *binds = sparse_memory_bind_entries +
+                                  sparse_memory_bind_entry_count;
+      submit->image_opaque_binds[i].pBinds = binds;
+      typed_memcpy(binds, info->image_opaque_binds[i].pBinds,
+                   info->image_opaque_binds[i].bindCount);
+
+      sparse_memory_bind_entry_count += info->image_opaque_binds[i].bindCount;
+   }
+
+   if (info->image_binds)
+      typed_memcpy(submit->image_binds, info->image_binds, info->image_bind_count);
+
+   for (uint32_t i = 0; i < info->image_bind_count; ++i) {
+      VkSparseImageMemoryBind *binds = sparse_memory_image_bind_entries +
+                                       sparse_memory_image_bind_entry_count;
+      submit->image_binds[i].pBinds = binds;
+      typed_memcpy(binds, info->image_binds[i].pBinds,
+                   info->image_binds[i].bindCount);
+
+      sparse_memory_image_bind_entry_count += info->image_binds[i].bindCount;
+   }
+
+   for (uint32_t i = 0; i < info->signal_count; i++) {
       VK_FROM_HANDLE(vk_semaphore, semaphore,
-                     info->pSignalSemaphoreInfos[i].semaphore);
+                     info->signals[i].semaphore);
 
       struct vk_sync *sync = vk_semaphore_get_active_sync(semaphore);
-      uint32_t signal_value = info->pSignalSemaphoreInfos[i].value;
+      uint32_t signal_value = info->signals[i].value;
       if (semaphore->type == VK_SEMAPHORE_TYPE_TIMELINE) {
          if (signal_value == 0) {
             result = vk_queue_set_lost(queue,
@@ -633,12 +748,12 @@ vk_queue_submit(struct vk_queue *queue,
 
       submit->signals[i] = (struct vk_sync_signal) {
          .sync = sync,
-         .stage_mask = info->pSignalSemaphoreInfos[i].stageMask,
+         .stage_mask = info->signals[i].stageMask,
          .signal_value = signal_value,
       };
    }
 
-   uint32_t signal_count = info->signalSemaphoreInfoCount;
+   uint32_t signal_count = info->signal_count;
    if (signal_mem_sync) {
       struct vk_sync *mem_sync;
       result = queue->base.device->create_sync_for_memory(queue->base.device,
@@ -656,10 +771,10 @@ vk_queue_submit(struct vk_queue *queue,
       };
    }
 
-   if (fence != NULL) {
+   if (info->fence != NULL) {
       assert(submit->signals[signal_count].sync == NULL);
       submit->signals[signal_count++] = (struct vk_sync_signal) {
-         .sync = vk_fence_get_active_sync(fence),
+         .sync = vk_fence_get_active_sync(info->fence),
          .stage_mask = ~(VkPipelineStageFlags2KHR)0,
       };
    }
@@ -693,9 +808,9 @@ vk_queue_submit(struct vk_queue *queue,
 
       if (vk_queue_has_submit_thread(queue)) {
          if (has_binary_permanent_semaphore_wait) {
-            for (uint32_t i = 0; i < info->waitSemaphoreInfoCount; i++) {
+            for (uint32_t i = 0; i < info->wait_count; i++) {
                VK_FROM_HANDLE(vk_semaphore, semaphore,
-                              info->pWaitSemaphoreInfos[i].semaphore);
+                              info->waits[i].semaphore);
 
                if (semaphore->type != VK_SEMAPHORE_TYPE_BINARY)
                   continue;
@@ -919,7 +1034,8 @@ vk_queue_signal_sync(struct vk_queue *queue,
                      struct vk_sync *sync,
                      uint32_t signal_value)
 {
-   struct vk_queue_submit *submit = vk_queue_submit_alloc(queue, 0, 0, 1);
+   struct vk_queue_submit *submit = vk_queue_submit_alloc(queue, 0, 0, 0, 0, 0,
+                                                          0, 0, 1, NULL, NULL);
    if (unlikely(submit == NULL))
       return vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -1001,8 +1117,123 @@ vk_common_QueueSubmit2KHR(VkQueue _queue,
    }
 
    for (uint32_t i = 0; i < submitCount; i++) {
-      VkResult result = vk_queue_submit(queue, &pSubmits[i],
-                                        i == submitCount - 1 ? fence : NULL);
+      struct vulkan_submit_info info = {
+         .pNext = pSubmits[i].pNext,
+         .command_buffer_count = pSubmits[i].commandBufferInfoCount,
+         .command_buffers = pSubmits[i].pCommandBufferInfos,
+         .wait_count = pSubmits[i].waitSemaphoreInfoCount,
+         .waits = pSubmits[i].pWaitSemaphoreInfos,
+         .signal_count = pSubmits[i].signalSemaphoreInfoCount,
+         .signals = pSubmits[i].pSignalSemaphoreInfos,
+         .fence = i == submitCount - 1 ? fence : NULL
+      };
+      VkResult result = vk_queue_submit(queue, &info);
+      if (unlikely(result != VK_SUCCESS))
+         return result;
+   }
+
+   return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_QueueBindSparse(VkQueue _queue,
+                          uint32_t bindInfoCount,
+                          const VkBindSparseInfo *pBindInfo,
+                          VkFence _fence)
+{
+   VK_FROM_HANDLE(vk_queue, queue, _queue);
+   VK_FROM_HANDLE(vk_fence, fence, _fence);
+
+   if (vk_device_is_lost(queue->base.device))
+      return VK_ERROR_DEVICE_LOST;
+
+   if (bindInfoCount == 0) {
+      if (fence == NULL) {
+         return VK_SUCCESS;
+      } else {
+         return vk_queue_signal_sync(queue, vk_fence_get_active_sync(fence), 0);
+      }
+   }
+
+   for (uint32_t i = 0; i < bindInfoCount; i++) {
+      const VkTimelineSemaphoreSubmitInfo *timeline_info =
+         vk_find_struct_const(pBindInfo[i].pNext, TIMELINE_SEMAPHORE_SUBMIT_INFO);
+      const uint64_t *wait_values = NULL;
+      const uint64_t *signal_values = NULL;
+
+      if (timeline_info && timeline_info->waitSemaphoreValueCount) {
+         /* From the Vulkan 1.3.204 spec:
+          *
+          *    VUID-VkBindSparseInfo-pNext-03248
+          *
+          *    "If the pNext chain of this structure includes a VkTimelineSemaphoreSubmitInfo structure
+          *    and any element of pSignalSemaphores was created with a VkSemaphoreType of
+          *    VK_SEMAPHORE_TYPE_TIMELINE, then its signalSemaphoreValueCount member must equal
+          *    signalSemaphoreCount"
+          */
+         assert(timeline_info->waitSemaphoreValueCount == pBindInfo[i].waitSemaphoreCount);
+         wait_values = timeline_info->pWaitSemaphoreValues;
+      }
+
+      if (timeline_info && timeline_info->signalSemaphoreValueCount) {
+         /* From the Vulkan 1.3.204 spec:
+          *
+          * VUID-VkBindSparseInfo-pNext-03247
+          *
+          *    "If the pNext chain of this structure includes a VkTimelineSemaphoreSubmitInfo structure
+          *    and any element of pWaitSemaphores was created with a VkSemaphoreType of
+          *    VK_SEMAPHORE_TYPE_TIMELINE, then its waitSemaphoreValueCount member must equal
+          *    waitSemaphoreCount"
+          */
+         assert(timeline_info->signalSemaphoreValueCount == pBindInfo[i].signalSemaphoreCount);
+         signal_values = timeline_info->pSignalSemaphoreValues;
+      }
+
+      STACK_ARRAY(VkSemaphoreSubmitInfoKHR, wait_semaphore_infos,
+                  pBindInfo[i].waitSemaphoreCount);
+      STACK_ARRAY(VkSemaphoreSubmitInfoKHR, signal_semaphore_infos,
+                  pBindInfo[i].signalSemaphoreCount);
+
+      if (!wait_semaphore_infos || !signal_semaphore_infos) {
+         STACK_ARRAY_FINISH(wait_semaphore_infos);
+         STACK_ARRAY_FINISH(signal_semaphore_infos);
+         return vk_error(queue, VK_ERROR_OUT_OF_HOST_MEMORY);
+      }
+
+      for (uint32_t j = 0; j < pBindInfo[i].waitSemaphoreCount; j++) {
+         wait_semaphore_infos[j] = (VkSemaphoreSubmitInfoKHR) {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+            .semaphore = pBindInfo[i].pWaitSemaphores[j],
+            .value = wait_values ? wait_values[j] : 0,
+         };
+      }
+
+      for (uint32_t j = 0; j < pBindInfo[i].signalSemaphoreCount; j++) {
+         signal_semaphore_infos[j] = (VkSemaphoreSubmitInfoKHR) {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+            .semaphore = pBindInfo[i].pSignalSemaphores[j],
+            .value = signal_values ? signal_values[j] : 0,
+         };
+      }
+      struct vulkan_submit_info info = {
+         .pNext = pBindInfo[i].pNext,
+         .wait_count = pBindInfo[i].waitSemaphoreCount,
+         .waits = wait_semaphore_infos,
+         .signal_count = pBindInfo[i].signalSemaphoreCount,
+         .signals = signal_semaphore_infos,
+         .buffer_bind_count = pBindInfo[i].bufferBindCount,
+         .buffer_binds = pBindInfo[i].pBufferBinds,
+         .image_opaque_bind_count = pBindInfo[i].imageOpaqueBindCount,
+         .image_opaque_binds = pBindInfo[i].pImageOpaqueBinds,
+         .image_bind_count = pBindInfo[i].imageBindCount,
+         .image_binds = pBindInfo[i].pImageBinds,
+         .fence = i == bindInfoCount - 1 ? fence : NULL
+      };
+      VkResult result = vk_queue_submit(queue, &info);
+
+      STACK_ARRAY_FINISH(wait_semaphore_infos);
+      STACK_ARRAY_FINISH(signal_semaphore_infos);
+
       if (unlikely(result != VK_SUCCESS))
          return result;
    }

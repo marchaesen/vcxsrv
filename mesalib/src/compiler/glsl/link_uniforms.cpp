@@ -29,7 +29,8 @@
 #include "string_to_uint_map.h"
 #include "ir_array_refcount.h"
 
-#include "main/mtypes.h"
+#include "main/shader_types.h"
+#include "main/consts_exts.h"
 #include "util/strndup.h"
 
 /**
@@ -1423,7 +1424,7 @@ assign_hidden_uniform_slot_id(const char *name, unsigned hidden_id,
 }
 
 static void
-link_setup_uniform_remap_tables(struct gl_context *ctx,
+link_setup_uniform_remap_tables(const struct gl_constants *consts,
                                 struct gl_shader_program *prog)
 {
    unsigned total_entries = prog->NumExplicitUniformLocations;
@@ -1512,10 +1513,10 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
     * is less than MAX_UNIFORM_LOCATIONS.
     */
 
-   if (total_entries > ctx->Const.MaxUserAssignableUniformLocations) {
+   if (total_entries > consts->MaxUserAssignableUniformLocations) {
       linker_error(prog, "count of uniform locations > MAX_UNIFORM_LOCATIONS"
                    "(%u > %u)", total_entries,
-                   ctx->Const.MaxUserAssignableUniformLocations);
+                   consts->MaxUserAssignableUniformLocations);
    }
 
    /* Reserve all the explicit locations of the active subroutine uniforms. */
@@ -1588,7 +1589,7 @@ link_setup_uniform_remap_tables(struct gl_context *ctx,
 }
 
 static void
-link_assign_uniform_storage(struct gl_context *ctx,
+link_assign_uniform_storage(const struct gl_constants *consts,
                             struct gl_shader_program *prog,
                             const unsigned num_data_slots)
 {
@@ -1597,7 +1598,7 @@ link_assign_uniform_storage(struct gl_context *ctx,
    if (prog->data->NumUniformStorage == 0)
       return;
 
-   unsigned int boolean_true = ctx->Const.UniformBooleanTrue;
+   unsigned int boolean_true = consts->UniformBooleanTrue;
 
    union gl_constant_value *data;
    if (prog->data->UniformStorage == NULL) {
@@ -1619,7 +1620,7 @@ link_assign_uniform_storage(struct gl_context *ctx,
 
    parcel_out_uniform_storage parcel(prog, prog->UniformHash,
                                      prog->data->UniformStorage, data,
-                                     ctx->Const.UseSTD430AsDefaultPacking);
+                                     consts->UseSTD430AsDefaultPacking);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
@@ -1683,7 +1684,7 @@ link_assign_uniform_storage(struct gl_context *ctx,
    assert(parcel.values == data_end);
 #endif
 
-   link_setup_uniform_remap_tables(ctx, prog);
+   link_setup_uniform_remap_tables(consts, prog);
 
    /* Set shader cache fields */
    prog->data->NumUniformDataSlots = num_data_slots;
@@ -1694,7 +1695,7 @@ link_assign_uniform_storage(struct gl_context *ctx,
 
 void
 link_assign_uniform_locations(struct gl_shader_program *prog,
-                              struct gl_context *ctx)
+                              const struct gl_constants *consts)
 {
    ralloc_free(prog->data->UniformStorage);
    prog->data->UniformStorage = NULL;
@@ -1715,7 +1716,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
     */
    struct string_to_uint_map *hiddenUniforms = new string_to_uint_map;
    count_uniform_size uniform_size(prog->UniformHash, hiddenUniforms,
-                                   ctx->Const.UseSTD430AsDefaultPacking);
+                                   consts->UseSTD430AsDefaultPacking);
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
 
@@ -1739,18 +1740,18 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       }
 
       if (uniform_size.num_shader_samplers >
-          ctx->Const.Program[i].MaxTextureImageUnits) {
+          consts->Program[i].MaxTextureImageUnits) {
          linker_error(prog, "Too many %s shader texture samplers\n",
                       _mesa_shader_stage_to_string(i));
          continue;
       }
 
       if (uniform_size.num_shader_images >
-          ctx->Const.Program[i].MaxImageUniforms) {
+          consts->Program[i].MaxImageUniforms) {
          linker_error(prog, "Too many %s shader image uniforms (%u > %u)\n",
                       _mesa_shader_stage_to_string(i),
                       sh->Program->info.num_images,
-                      ctx->Const.Program[i].MaxImageUniforms);
+                      consts->Program[i].MaxImageUniforms);
          continue;
       }
 
@@ -1777,5 +1778,5 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
    hiddenUniforms->iterate(assign_hidden_uniform_slot_id, &uniform_size);
    delete hiddenUniforms;
 
-   link_assign_uniform_storage(ctx, prog, uniform_size.num_values);
+   link_assign_uniform_storage(consts, prog, uniform_size.num_values);
 }

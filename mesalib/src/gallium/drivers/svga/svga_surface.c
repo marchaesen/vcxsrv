@@ -194,7 +194,7 @@ svga_texture_view_surface(struct svga_context *svga,
 {
    struct svga_screen *ss = svga_screen(svga->pipe.screen);
    struct svga_winsys_surface *handle = NULL;
-   boolean validated;
+   boolean invalidated;
    boolean needCopyResource;
 
    SVGA_DBG(DEBUG_PERF,
@@ -241,7 +241,7 @@ svga_texture_view_surface(struct svga_context *svga,
    } else {
       SVGA_DBG(DEBUG_DMA, "surface_create for texture view\n");
       handle = svga_screen_surface_create(ss, bind_flags, PIPE_USAGE_DEFAULT,
-                                          &validated, key);
+                                          &invalidated, key);
       needCopyResource = TRUE;
 
       if (cacheable && !tex->backed_handle) {
@@ -551,7 +551,7 @@ svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s)
     * associated resource. We will then use the cloned surface view for
     * render target.
     */
-   for (shader = PIPE_SHADER_VERTEX; shader <= PIPE_SHADER_TESS_EVAL; shader++) {
+   for (shader = PIPE_SHADER_VERTEX; shader <= PIPE_SHADER_COMPUTE; shader++) {
       if (svga_check_sampler_view_resource_collision(svga, s->handle, shader)) {
          SVGA_DBG(DEBUG_VIEWS,
                   "same resource used in shaderResource and renderTarget 0x%x\n",
@@ -582,7 +582,7 @@ svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s)
       SVGA3dRenderTargetViewDesc desc;
       struct svga_texture *stex = svga_texture(s->base.texture);
 
-      if (stex->validated == FALSE) {
+      if (stex->surface_state < SVGA_SURFACE_STATE_INVALIDATED) {
          assert(stex->handle);
 
          /* We are about to render into a surface that has not been validated.
@@ -591,7 +591,7 @@ svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s)
           * content when the associated mob is first bound to the surface.
           */
          SVGA_RETRY(svga, SVGA3D_InvalidateGBSurface(svga->swc, stex->handle));
-         stex->validated = TRUE;
+         stex->surface_state = SVGA_SURFACE_STATE_INVALIDATED;
       }
 
       desc.tex.mipSlice = s->real_level;
@@ -599,38 +599,48 @@ svga_validate_surface_view(struct svga_context *svga, struct svga_surface *s)
       desc.tex.arraySize =
          s->base.u.tex.last_layer - s->base.u.tex.first_layer + 1;
 
-      s->view_id = util_bitmask_add(svga->surface_view_id_bm);
-
       resType = svga_resource_type(s->base.texture->target);
 
       if (util_format_is_depth_or_stencil(s->base.format)) {
-         ret = SVGA3D_vgpu10_DefineDepthStencilView(svga->swc,
-                                                    s->view_id,
-                                                    s->handle,
-                                                    s->key.format,
-                                                    resType,
-                                                    &desc);
+
+         /* Create depth stencil view only if the resource is created
+          * with depth stencil bind flag.
+          */
+         if (stex->key.flags & SVGA3D_SURFACE_BIND_DEPTH_STENCIL) {
+            s->view_id = util_bitmask_add(svga->surface_view_id_bm);
+            ret = SVGA3D_vgpu10_DefineDepthStencilView(svga->swc,
+                                                       s->view_id,
+                                                       s->handle,
+                                                       s->key.format,
+                                                       resType,
+                                                       &desc);
+         }
       }
       else {
-         SVGA3dSurfaceFormat view_format = s->key.format;
-         const struct svga_texture *stex = svga_texture(s->base.texture);
-
-         /* Can't create RGBA render target view of a RGBX surface so adjust
-          * the view format.  We do something similar for texture samplers in
-          * svga_validate_pipe_sampler_view().
+         /* Create render target view only if the resource is created
+          * with render target bind flag.
           */
-         if (view_format == SVGA3D_B8G8R8A8_UNORM &&
-             (stex->key.format == SVGA3D_B8G8R8X8_UNORM ||
-              stex->key.format == SVGA3D_B8G8R8X8_TYPELESS)) {
-            view_format = SVGA3D_B8G8R8X8_UNORM;
-         }
+         if (stex->key.flags & SVGA3D_SURFACE_BIND_RENDER_TARGET) {
+            SVGA3dSurfaceFormat view_format = s->key.format;
 
-         ret = SVGA3D_vgpu10_DefineRenderTargetView(svga->swc,
-                                                    s->view_id,
-                                                    s->handle,
-                                                    view_format,
-                                                    resType,
-                                                    &desc);
+            /* Can't create RGBA render target view of a RGBX surface so adjust
+             * the view format.  We do something similar for texture samplers in
+             * svga_validate_pipe_sampler_view().
+             */
+            if (view_format == SVGA3D_B8G8R8A8_UNORM &&
+                (stex->key.format == SVGA3D_B8G8R8X8_UNORM ||
+                 stex->key.format == SVGA3D_B8G8R8X8_TYPELESS)) {
+               view_format = SVGA3D_B8G8R8X8_UNORM;
+            }
+
+            s->view_id = util_bitmask_add(svga->surface_view_id_bm);
+            ret = SVGA3D_vgpu10_DefineRenderTargetView(svga->swc,
+                                                       s->view_id,
+                                                       s->handle,
+                                                       view_format,
+                                                       resType,
+                                                       &desc);
+         }
       }
 
       if (ret != PIPE_OK) {
@@ -669,7 +679,9 @@ svga_surface_destroy(struct pipe_context *pipe,
     */
    if (s->handle != t->handle && s->handle != t->backed_handle) {
       SVGA_DBG(DEBUG_DMA, "unref sid %p (tex surface)\n", s->handle);
-      svga_screen_surface_destroy(ss, &s->key, &s->handle);
+      svga_screen_surface_destroy(ss, &s->key,
+                                  svga_was_texture_rendered_to(t),
+                                  &s->handle);
    }
 
    if (s->view_id != SVGA3D_INVALID_ID) {

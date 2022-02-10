@@ -39,6 +39,26 @@
    "type_ref": "SRBM_STATUS3"
   },
   {
+   "chips": ["gfx9"],
+   "map": {"at": 47252, "to": "mm"},
+   "name": "COMPUTE_STATIC_THREAD_MGMT_SE4"
+  },
+  {
+   "chips": ["gfx9"],
+   "map": {"at": 47256, "to": "mm"},
+   "name": "COMPUTE_STATIC_THREAD_MGMT_SE5"
+  },
+  {
+   "chips": ["gfx9"],
+   "map": {"at": 47260, "to": "mm"},
+   "name": "COMPUTE_STATIC_THREAD_MGMT_SE6"
+  },
+  {
+   "chips": ["gfx9"],
+   "map": {"at": 47264, "to": "mm"},
+   "name": "COMPUTE_STATIC_THREAD_MGMT_SE7"
+  },
+  {
    "chips": ["gfx103"],
    "map": {"at": 199052, "to": "mm"},
    "name": "GE_VRS_RATE",

@@ -322,6 +322,10 @@ struct pipe_h264_pps
    int8_t   second_chroma_qp_index_offset;
 };
 
+struct h264_private {
+   struct pipe_video_buffer *past_ref[16];
+};
+
 struct pipe_h264_picture_desc
 {
    struct pipe_picture_desc base;
@@ -347,6 +351,7 @@ struct pipe_h264_picture_desc
    uint32_t frame_num_list[16];
 
    struct pipe_video_buffer *ref[16];
+   void    *private;
 };
 
 struct pipe_h264_enc_rate_control

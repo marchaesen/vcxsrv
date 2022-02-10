@@ -73,19 +73,6 @@ extern struct gl_sampler_object *
 _mesa_lookup_samplerobj(struct gl_context *ctx, GLuint name);
 
 extern void
-_mesa_set_sampler_wrap(struct gl_context *ctx, struct gl_sampler_object *samp,
-                       GLenum s, GLenum t, GLenum r);
-
-extern void
-_mesa_set_sampler_filters(struct gl_context *ctx,
-                          struct gl_sampler_object *samp,
-                          GLenum min_filter, GLenum mag_filter);
-
-extern void
-_mesa_set_sampler_srgb_decode(struct gl_context *ctx,
-                              struct gl_sampler_object *samp, GLenum param);
-
-extern void
 _mesa_bind_sampler(struct gl_context *ctx, GLuint unit,
                    struct gl_sampler_object *sampObj);
 

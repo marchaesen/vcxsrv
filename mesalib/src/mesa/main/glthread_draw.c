@@ -459,7 +459,7 @@ _mesa_unmarshal_MultiDrawArrays(struct gl_context *ctx,
    return cmd->cmd_base.cmd_size;
 }
 
-static ALWAYS_INLINE void
+static ALWAYS_INLINE bool
 multi_draw_arrays_async(struct gl_context *ctx, GLenum mode,
                         const GLint *first, const GLsizei *count,
                         GLsizei draw_count, unsigned user_buffer_mask,
@@ -471,6 +471,11 @@ multi_draw_arrays_async(struct gl_context *ctx, GLenum mode,
    int cmd_size = sizeof(struct marshal_cmd_MultiDrawArrays) +
                   first_size + count_size + buffers_size;
    struct marshal_cmd_MultiDrawArrays *cmd;
+
+   /* Make sure cmd can fit the queue buffer */
+   if (cmd_size > MARSHAL_MAX_CMD_SIZE) {
+      return false;
+   }
 
    cmd = _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_MultiDrawArrays,
                                          cmd_size);
@@ -487,6 +492,8 @@ multi_draw_arrays_async(struct gl_context *ctx, GLenum mode,
       variable_data += count_size;
       memcpy(variable_data, buffers, buffers_size);
    }
+
+   return true;
 }
 
 void GLAPIENTRY
@@ -502,8 +509,8 @@ _mesa_marshal_MultiDrawArrays(GLenum mode, const GLint *first,
       goto sync;
 
    if (draw_count >= 0 &&
-       (ctx->API == API_OPENGL_CORE || !user_buffer_mask)) {
-      multi_draw_arrays_async(ctx, mode, first, count, draw_count, 0, NULL);
+       (ctx->API == API_OPENGL_CORE || !user_buffer_mask) &&
+       multi_draw_arrays_async(ctx, mode, first, count, draw_count, 0, NULL)) {
       return;
    }
 
@@ -938,7 +945,7 @@ _mesa_unmarshal_MultiDrawElementsBaseVertex(struct gl_context *ctx,
    return cmd->cmd_base.cmd_size;
 }
 
-static ALWAYS_INLINE void
+static ALWAYS_INLINE bool
 multi_draw_elements_async(struct gl_context *ctx, GLenum mode,
                           const GLsizei *count, GLenum type,
                           const GLvoid *const *indices, GLsizei draw_count,
@@ -954,6 +961,11 @@ multi_draw_elements_async(struct gl_context *ctx, GLenum mode,
    int cmd_size = sizeof(struct marshal_cmd_MultiDrawElementsBaseVertex) +
                   count_size + indices_size + basevertex_size + buffers_size;
    struct marshal_cmd_MultiDrawElementsBaseVertex *cmd;
+
+   /* Make sure cmd can fit the queue buffer */
+   if (cmd_size > MARSHAL_MAX_CMD_SIZE) {
+      return false;
+   }
 
    cmd = _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_MultiDrawElementsBaseVertex, cmd_size);
    cmd->mode = mode;
@@ -976,6 +988,8 @@ multi_draw_elements_async(struct gl_context *ctx, GLenum mode,
 
    if (user_buffer_mask)
       memcpy(variable_data, buffers, buffers_size);
+
+   return true;
 }
 
 void GLAPIENTRY
@@ -999,9 +1013,9 @@ _mesa_marshal_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
        (ctx->API == API_OPENGL_CORE ||
         !is_index_type_valid(type) ||
         (!user_buffer_mask && !has_user_indices))) {
-      multi_draw_elements_async(ctx, mode, count, type, indices, draw_count,
-                                basevertex, 0, 0, NULL);
-      return;
+      if (multi_draw_elements_async(ctx, mode, count, type, indices,
+                              draw_count, basevertex, NULL, 0, NULL))
+         return;
    }
 
    bool need_index_bounds = user_buffer_mask & ~vao->NonZeroDivisorMask;
@@ -1034,7 +1048,7 @@ _mesa_marshal_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
          if (vertex_count < 0) {
             /* Just call the driver to set the error. */
             multi_draw_elements_async(ctx, mode, count, type, indices, draw_count,
-                                      basevertex, 0, 0, NULL);
+                                      basevertex, NULL, 0, NULL);
             return;
          }
          if (vertex_count == 0)
@@ -1059,7 +1073,7 @@ _mesa_marshal_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
       if (total_count == 0 || num_vertices == 0) {
          /* Nothing to do, but call the driver to set possible GL errors. */
          multi_draw_elements_async(ctx, mode, count, type, indices, draw_count,
-                                   basevertex, 0, 0, NULL);
+                                   basevertex, NULL, 0, NULL);
          return;
       }
 
@@ -1075,7 +1089,7 @@ _mesa_marshal_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
          if (vertex_count < 0) {
             /* Just call the driver to set the error. */
             multi_draw_elements_async(ctx, mode, count, type, indices, draw_count,
-                                      basevertex, 0, 0, NULL);
+                                      basevertex, NULL, 0, NULL);
             return;
          }
          if (vertex_count == 0)
@@ -1087,7 +1101,7 @@ _mesa_marshal_MultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count,
       if (total_count == 0) {
          /* Nothing to do, but call the driver to set possible GL errors. */
          multi_draw_elements_async(ctx, mode, count, type, indices, draw_count,
-                                   basevertex, 0, 0, NULL);
+                                   basevertex, NULL, 0, NULL);
          return;
       }
    }

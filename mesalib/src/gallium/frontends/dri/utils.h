@@ -30,7 +30,8 @@
 
 #include <GL/gl.h>
 #include <GL/internal/dri_interface.h>
-#include "main/context.h"
+#include "main/glconfig.h"
+#include "main/formats.h"
 
 struct __DRIconfigRec {
     struct gl_config modes;

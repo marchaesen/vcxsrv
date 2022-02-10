@@ -70,10 +70,10 @@ cull_face(nir_builder *b, nir_ssa_def *pos[3][4], const position_w_info *w_info)
 
    nir_ssa_def *front_facing_cw = nir_flt(b, det, nir_imm_float(b, 0.0f));
    nir_ssa_def *front_facing_ccw = nir_flt(b, nir_imm_float(b, 0.0f), det);
-   nir_ssa_def *ccw = nir_build_load_cull_ccw_amd(b);
+   nir_ssa_def *ccw = nir_load_cull_ccw_amd(b);
    nir_ssa_def *front_facing = nir_bcsel(b, ccw, front_facing_ccw, front_facing_cw);
-   nir_ssa_def *cull_front = nir_build_load_cull_front_face_enabled_amd(b);
-   nir_ssa_def *cull_back = nir_build_load_cull_back_face_enabled_amd(b);
+   nir_ssa_def *cull_front = nir_load_cull_front_face_enabled_amd(b);
+   nir_ssa_def *cull_back = nir_load_cull_back_face_enabled_amd(b);
 
    nir_ssa_def *face_culled = nir_bcsel(b, front_facing, cull_front, cull_back);
 
@@ -100,8 +100,8 @@ cull_bbox(nir_builder *b, nir_ssa_def *pos[3][4], nir_ssa_def *accepted, const p
          bbox_max[chan] = nir_fmax(b, pos[0][chan], nir_fmax(b, pos[1][chan], pos[2][chan]));
       }
 
-      nir_ssa_def *vp_scale[2] = { nir_build_load_viewport_x_scale(b), nir_build_load_viewport_y_scale(b), };
-      nir_ssa_def *vp_translate[2] = { nir_build_load_viewport_x_offset(b), nir_build_load_viewport_y_offset(b), };
+      nir_ssa_def *vp_scale[2] = { nir_load_viewport_x_scale(b), nir_load_viewport_y_scale(b), };
+      nir_ssa_def *vp_translate[2] = { nir_load_viewport_x_offset(b), nir_load_viewport_y_offset(b), };
       nir_ssa_def *prim_outside_view = nir_imm_false(b);
 
       /* Frustrum culling - eliminate triangles that are fully outside the view. */
@@ -114,9 +114,9 @@ cull_bbox(nir_builder *b, nir_ssa_def *pos[3][4], nir_ssa_def *accepted, const p
       nir_ssa_def *prim_is_small_else = nir_imm_false(b);
 
       /* Small primitive filter - eliminate triangles that are too small to affect a sample. */
-      nir_if *if_cull_small_prims = nir_push_if(b, nir_build_load_cull_small_primitives_enabled_amd(b));
+      nir_if *if_cull_small_prims = nir_push_if(b, nir_load_cull_small_primitives_enabled_amd(b));
       {
-         nir_ssa_def *small_prim_precision = nir_build_load_cull_small_prim_precision_amd(b);
+         nir_ssa_def *small_prim_precision = nir_load_cull_small_prim_precision_amd(b);
          prim_is_small = nir_imm_false(b);
 
          for (unsigned chan = 0; chan < 2; ++chan) {

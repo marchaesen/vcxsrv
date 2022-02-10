@@ -47,6 +47,8 @@ struct vn_fence {
 
    struct vn_sync_payload permanent;
    struct vn_sync_payload temporary;
+
+   bool is_external;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_fence,
                                base.base,

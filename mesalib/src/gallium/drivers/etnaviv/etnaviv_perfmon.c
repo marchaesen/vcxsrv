@@ -42,6 +42,24 @@ static const char *group_names[] = {
 
 static const struct etna_perfmon_config query_config[] = {
    {
+      .name = "hi-total-read-bytes",
+      .type = ETNA_QUERY_HI_TOTAL_READ_BYTES8,
+      .group_id = ETNA_QUERY_HI_GROUP_ID,
+      .source = (const struct etna_perfmon_source[]) {
+         { "HI", "TOTAL_READ_BYTES8" }
+      },
+      .multiply_with_8 = true
+   },
+   {
+      .name = "hi-total-write-bytes",
+      .type = ETNA_QUERY_HI_TOTAL_WRITE_BYTES8,
+      .group_id = ETNA_QUERY_HI_GROUP_ID,
+      .source = (const struct etna_perfmon_source[]) {
+         { "HI", "TOTAL_WRITE_BYTES8" }
+      },
+      .multiply_with_8 = true
+   },
+   {
       .name = "hi-total-cycles",
       .type = ETNA_QUERY_HI_TOTAL_CYCLES,
       .group_id = ETNA_QUERY_HI_GROUP_ID,
@@ -346,12 +364,13 @@ static const struct etna_perfmon_config query_config[] = {
       }
    },
    {
-      .name = "tx-mem-read-in-8b-count",
+      .name = "tx-mem-read-bytes",
       .type = ETNA_QUERY_TX_MEM_READ_IN_8B_COUNT,
       .group_id = ETNA_QUERY_TX_GROUP_ID,
       .source = (const struct etna_perfmon_source[]) {
          { "TX", "MEM_READ_IN_8B_COUNT" }
-      }
+      },
+      .multiply_with_8 = true
    },
    {
       .name = "tx-cache-miss-count",

@@ -807,6 +807,12 @@ static void r300_draw_vbo(struct pipe_context* pipe,
         return;
     }
 
+    if (r300->sprite_coord_enable != 0)
+        if ((info.mode == PIPE_PRIM_POINTS) != r300->is_point) {
+            r300->is_point = !r300->is_point;
+            r300_mark_atom_dirty(r300, &r300->rs_block_state);
+        }
+
     r300_update_derived_state(r300);
 
     /* Draw. */
@@ -883,6 +889,12 @@ static void r300_swtcl_draw_vbo(struct pipe_context* pipe,
                              r300_resource(info->index.resource)->malloced_buffer,
                          info->index_size, ~0);
     }
+
+    if (r300->sprite_coord_enable != 0)
+        if ((info->mode == PIPE_PRIM_POINTS) != r300->is_point) {
+            r300->is_point = !r300->is_point;
+            r300_mark_atom_dirty(r300, &r300->rs_block_state);
+        }
 
     r300_update_derived_state(r300);
 
@@ -1150,6 +1162,7 @@ void r300_blitter_draw_rectangle(struct blitter_context *blitter,
 {
     struct r300_context *r300 = r300_context(util_blitter_get_pipe(blitter));
     unsigned last_sprite_coord_enable = r300->sprite_coord_enable;
+    unsigned last_is_point = r300->is_point;
     unsigned width = x2 - x1;
     unsigned height = y2 - y1;
     unsigned vertex_size =
@@ -1176,8 +1189,10 @@ void r300_blitter_draw_rectangle(struct blitter_context *blitter,
     r300->context.bind_vertex_elements_state(&r300->context, vertex_elements_cso);
     r300->context.bind_vs_state(&r300->context, get_vs(blitter));
 
-    if (type == UTIL_BLITTER_ATTRIB_TEXCOORD_XY)
+    if (type == UTIL_BLITTER_ATTRIB_TEXCOORD_XY) {
         r300->sprite_coord_enable = 1;
+        r300->is_point = true;
+    }
 
     r300_update_derived_state(r300);
 
@@ -1235,6 +1250,7 @@ done:
     r300_mark_atom_dirty(r300, &r300->viewport_state);
 
     r300->sprite_coord_enable = last_sprite_coord_enable;
+    r300->is_point = last_is_point;
 }
 
 void r300_init_render_functions(struct r300_context *r300)

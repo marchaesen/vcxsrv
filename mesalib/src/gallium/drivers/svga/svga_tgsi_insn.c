@@ -1344,11 +1344,12 @@ emit_ssg(struct svga_shader_emitter *emit,
 
 
 /**
- * Translate/emit KILL_IF instruction (kill if any of X,Y,Z,W are negative).
+ * Translate/emit the conditional discard instruction (discard if
+ * any of X,Y,Z,W are negative).
  */
 static boolean
-emit_kill_if(struct svga_shader_emitter *emit,
-             const struct tgsi_full_instruction *insn)
+emit_cond_discard(struct svga_shader_emitter *emit,
+                  const struct tgsi_full_instruction *insn)
 {
    const struct tgsi_full_src_register *reg = &insn->Src[0];
    struct src_register src0, srcIn;
@@ -1375,7 +1376,7 @@ emit_kill_if(struct svga_shader_emitter *emit,
       src0 = src( temp );
    }
 
-   /* Do the texkill by checking if any of the XYZW components are < 0.
+   /* Do the discard by checking if any of the XYZW components are < 0.
     * Note that ps_2_0 and later take XYZW in consideration, while ps_1_x
     * only used XYZ.  The MSDN documentation about this is incorrect.
     */
@@ -1387,12 +1388,12 @@ emit_kill_if(struct svga_shader_emitter *emit,
 
 
 /**
- * Translate/emit unconditional kill instruction (usually found inside
+ * Translate/emit the unconditional discard instruction (usually found inside
  * an IF/ELSE/ENDIF block).
  */
 static boolean
-emit_kill(struct svga_shader_emitter *emit,
-          const struct tgsi_full_instruction *insn)
+emit_discard(struct svga_shader_emitter *emit,
+             const struct tgsi_full_instruction *insn)
 {
    SVGA3dShaderDestToken temp;
    struct src_register one = get_one_immediate(emit);
@@ -2040,6 +2041,73 @@ emit_mov(struct svga_shader_emitter *emit,
    }
 
    return emit_simple_instruction(emit, SVGA3DOP_MOV, insn);
+}
+
+
+/**
+ * Translate TGSI SQRT instruction
+ * if src1 == 0
+ *    mov dst, src1
+ * else
+ *    rsq temp, src1
+ *    rcp dst, temp
+ * endif
+ */
+static boolean
+emit_sqrt(struct svga_shader_emitter *emit,
+         const struct tgsi_full_instruction *insn)
+{
+   const struct src_register src1 = translate_src_register(emit, &insn->Src[0]);
+   const struct src_register zero = get_zero_immediate(emit);
+   SVGA3dShaderDestToken dst = translate_dst_register(emit, insn, 0);
+   SVGA3dShaderDestToken temp = get_temp(emit);
+   SVGA3dShaderInstToken if_token = inst_token(SVGA3DOP_IFC);
+   boolean ret = TRUE;
+
+   if_token.control = SVGA3DOPCOMP_EQ;
+
+   if (!(emit_instruction(emit, if_token) &&
+         emit_src(emit, src1) &&
+         emit_src(emit, zero))) {
+      ret = FALSE;
+      goto cleanup;
+   }
+
+   if (!submit_op1(emit,
+              inst_token(SVGA3DOP_MOV),
+              dst, src1)) {
+      ret = FALSE;
+      goto cleanup;
+   }
+
+   if (!emit_instruction(emit, inst_token(SVGA3DOP_ELSE))) {
+      ret = FALSE;
+      goto cleanup;
+   }
+
+   if (!submit_op1(emit,
+              inst_token(SVGA3DOP_RSQ),
+              temp, src1)) {
+      ret = FALSE;
+      goto cleanup;
+   }
+
+   if (!submit_op1(emit,
+              inst_token(SVGA3DOP_RCP),
+              dst, src(temp))) {
+      ret = FALSE;
+      goto cleanup;
+   }
+
+   if (!emit_instruction(emit, inst_token(SVGA3DOP_ENDIF))) {
+      ret = FALSE;
+      goto cleanup;
+   }
+
+cleanup:
+   release_temp(emit, temp);
+
+   return ret;
 }
 
 
@@ -2820,7 +2888,7 @@ svga_emit_instruction(struct svga_shader_emitter *emit,
       return emit_end( emit );
 
    case TGSI_OPCODE_KILL_IF:
-      return emit_kill_if( emit, insn );
+      return emit_cond_discard( emit, insn );
 
       /* Selection opcodes.  The underlying language is fairly
        * non-orthogonal about these.
@@ -2902,7 +2970,7 @@ svga_emit_instruction(struct svga_shader_emitter *emit,
       return emit_brk( emit, insn );
 
    case TGSI_OPCODE_KILL:
-      return emit_kill( emit, insn );
+      return emit_discard( emit, insn );
 
    case TGSI_OPCODE_DST:
       return emit_dst_insn( emit, insn );
@@ -2918,6 +2986,9 @@ svga_emit_instruction(struct svga_shader_emitter *emit,
 
    case TGSI_OPCODE_MOV:
       return emit_mov( emit, insn );
+
+   case TGSI_OPCODE_SQRT:
+      return emit_sqrt( emit, insn );
 
    default:
       {
@@ -3517,7 +3588,8 @@ needs_to_create_common_immediate(const struct svga_shader_emitter *emit)
        emit->info.opcode_count[TGSI_OPCODE_SEQ] >= 1 ||
        emit->info.opcode_count[TGSI_OPCODE_EXP] >= 1 ||
        emit->info.opcode_count[TGSI_OPCODE_LOG] >= 1 ||
-       emit->info.opcode_count[TGSI_OPCODE_KILL] >= 1)
+       emit->info.opcode_count[TGSI_OPCODE_KILL] >= 1 ||
+       emit->info.opcode_count[TGSI_OPCODE_SQRT] >= 1)
       return TRUE;
 
    return FALSE;

@@ -50,7 +50,6 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
                    struct gl_texture_object *texObj)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texObj);
    struct pipe_resource *pt = st_get_texobj_resource(texObj);
    uint baseLevel = texObj->Attrib.BaseLevel;
    enum pipe_format format;
@@ -81,7 +80,7 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
    /* The texture isn't in a "complete" state yet so set the expected
     * lastLevel here, since it won't get done in st_finalize_texture().
     */
-   stObj->lastLevel = lastLevel;
+   texObj->lastLevel = lastLevel;
 
    if (!texObj->Immutable) {
       const GLboolean genSave = texObj->Attrib.GenerateMipmap;
@@ -106,7 +105,7 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
       st_finalize_texture(ctx, st->pipe, texObj, 0);
    }
 
-   pt = stObj->pt;
+   pt = texObj->pt;
    if (!pt) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "mipmap generation");
       return;
@@ -122,8 +121,8 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
       last_layer = util_max_layer(pt, baseLevel);
    }
 
-   if (stObj->surface_based)
-      format = stObj->surface_format;
+   if (texObj->surface_based)
+      format = texObj->surface_format;
    else
       format = pt->format;
 

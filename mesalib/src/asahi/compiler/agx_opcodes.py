@@ -207,6 +207,8 @@ op("wait", (0x38, 0xFF, 2, _), dests = 0,
 
 op("get_sr", (0x72, 0x7F | L, 4, _), dests = 1, imms = [SR])
 
+op("sample_mask", (0x7fc1, 0xffff, 6, _), dests = 0, srcs = 1, can_eliminate = False)
+
 # Essentially same encoding
 op("ld_tile", (0x49, 0x7F, 8, _), dests = 1, srcs = 0,
       can_eliminate = False, imms = [FORMAT])

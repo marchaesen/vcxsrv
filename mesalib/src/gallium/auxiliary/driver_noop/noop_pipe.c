@@ -666,6 +666,7 @@ static void noop_get_device_uuid(struct pipe_screen *screen, char *uuid)
 
 static int noop_get_sparse_texture_virtual_page_size(struct pipe_screen *screen,
                                                      enum pipe_texture_target target,
+                                                     bool multi_sample,
                                                      enum pipe_format format,
                                                      unsigned offset, unsigned size,
                                                      int *x, int *y, int *z)
@@ -673,8 +674,8 @@ static int noop_get_sparse_texture_virtual_page_size(struct pipe_screen *screen,
    struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)screen;
    struct pipe_screen *oscreen = noop_screen->oscreen;
 
-   return oscreen->get_sparse_texture_virtual_page_size(screen, target, format, offset,
-                                                        size, x, y, z);
+   return oscreen->get_sparse_texture_virtual_page_size(screen, target, multi_sample,
+                                                        format, offset, size, x, y, z);
 }
 
 static void noop_query_dmabuf_modifiers(struct pipe_screen *screen,

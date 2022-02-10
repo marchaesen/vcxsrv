@@ -35,6 +35,7 @@
 #include "macros.h"
 #include "multisample.h"
 #include "mtypes.h"
+#include "queryobj.h"
 #include "spirv_extensions.h"
 #include "state.h"
 #include "texcompress.h"
@@ -44,7 +45,6 @@
 #include "stencil.h"
 #include "version.h"
 
-#include "state_tracker/st_cb_queryobj.h"
 #include "state_tracker/st_context.h"
 #include "api_exec_decl.h"
 
@@ -1187,7 +1187,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    /* GL_ARB_timer_query */
    case GL_TIMESTAMP:
-      v->value_int64 = st_GetTimestamp(ctx);
+      v->value_int64 = _mesa_get_timestamp(ctx);
       break;
    /* GL_KHR_DEBUG */
    case GL_DEBUG_OUTPUT:
@@ -1247,9 +1247,11 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    case GL_GPU_MEMORY_INFO_EVICTION_COUNT_NVX:
    case GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX:
       {
-         struct gl_memory_info info;
+         struct pipe_memory_info info;
+         struct pipe_screen *screen = ctx->pipe->screen;
 
-         st_query_memory_info(ctx, &info);
+         assert(screen->query_memory_info);
+         screen->query_memory_info(screen, &info);
 
          if (d->pname == GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX)
             v->value_int = info.total_device_memory;
@@ -1487,8 +1489,9 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
          break;
       case EXTRA_EXT_SHADER_IMAGE_GS:
          api_check = GL_TRUE;
-         if (ctx->Extensions.ARB_shader_image_load_store &&
-            _mesa_has_geometry_shaders(ctx))
+         if ((ctx->Extensions.ARB_shader_image_load_store ||
+              _mesa_is_gles31(ctx)) &&
+             _mesa_has_geometry_shaders(ctx))
             api_found = GL_TRUE;
          break;
       case EXTRA_EXT_ATOMICS_TESS:

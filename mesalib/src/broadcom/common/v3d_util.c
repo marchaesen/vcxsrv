@@ -88,8 +88,8 @@ v3d_csd_choose_workgroups_per_supergroup(struct v3d_device_info *devinfo,
 }
 
 void
-v3d_choose_tile_size(uint32_t color_attachment_count,
-                     uint32_t max_color_bpp, bool msaa,
+v3d_choose_tile_size(uint32_t color_attachment_count, uint32_t max_color_bpp,
+                     bool msaa, bool double_buffer,
                      uint32_t *width, uint32_t *height)
 {
    static const uint8_t tile_sizes[] = {
@@ -108,8 +108,12 @@ v3d_choose_tile_size(uint32_t color_attachment_count,
    else if (color_attachment_count > 1)
       idx += 1;
 
+   /* MSAA and double-buffer are mutually exclusive */
+   assert(!msaa || !double_buffer);
    if (msaa)
       idx += 2;
+   else if (double_buffer)
+      idx += 1;
 
    idx += max_color_bpp;
 

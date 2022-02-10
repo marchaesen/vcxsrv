@@ -29,6 +29,7 @@
 #include "util/u_string.h"
 #include "radv_null_bo.h"
 #include "radv_null_cs.h"
+#include "vk_sync_dummy.h"
 
 /* Hardcode some GPU info that are needed for the driver or for some tools. */
 static const struct {
@@ -157,6 +158,18 @@ radv_null_winsys_destroy(struct radeon_winsys *rws)
    FREE(rws);
 }
 
+static int
+radv_null_winsys_get_fd(struct radeon_winsys *rws)
+{
+   return -1;
+}
+
+static const struct vk_sync_type *const *
+radv_null_winsys_get_sync_types(struct radeon_winsys *rws)
+{
+   return radv_null_winsys(rws)->sync_types;
+}
+
 struct radeon_winsys *
 radv_null_winsys_create()
 {
@@ -168,8 +181,12 @@ radv_null_winsys_create()
 
    ws->base.destroy = radv_null_winsys_destroy;
    ws->base.query_info = radv_null_winsys_query_info;
+   ws->base.get_fd = radv_null_winsys_get_fd;
+   ws->base.get_sync_types = radv_null_winsys_get_sync_types;
    radv_null_bo_init_functions(ws);
    radv_null_cs_init_functions(ws);
 
+   ws->sync_types[0] = &vk_sync_dummy_type;
+   ws->sync_types[1] = NULL;
    return &ws->base;
 }

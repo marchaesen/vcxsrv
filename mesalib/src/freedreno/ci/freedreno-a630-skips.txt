@@ -6,6 +6,8 @@
 # "it's slow but would pass/fail/crash within a couple of minutes" skips should go.
 
 # Timeouts in CI even after 5 minutes
+dEQP-VK.tessellation.invariance.inner_triangle_set.quads_equal_spacing
+dEQP-VK.tessellation.invariance.inner_triangle_set.triangles_fractional_even_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing

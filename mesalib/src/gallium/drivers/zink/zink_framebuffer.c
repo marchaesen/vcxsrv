@@ -143,6 +143,8 @@ zink_get_framebuffer_imageless(struct zink_context *ctx)
    assert(zink_screen(ctx->base.screen)->info.have_KHR_imageless_framebuffer);
 
    struct zink_framebuffer_state state;
+   state.num_attachments = ctx->fb_state.nr_cbufs;
+
    const unsigned cresolve_offset = ctx->fb_state.nr_cbufs + !!ctx->fb_state.zsbuf;
    unsigned num_resolves = 0;
    for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
@@ -160,7 +162,6 @@ zink_get_framebuffer_imageless(struct zink_context *ctx)
       }
    }
 
-   state.num_attachments = ctx->fb_state.nr_cbufs;
    const unsigned zsresolve_offset = cresolve_offset + num_resolves;
    if (ctx->fb_state.zsbuf) {
       struct pipe_surface *psurf = ctx->fb_state.zsbuf;

@@ -93,15 +93,14 @@ pixbuf_from_argb32 (uint32_t *bits,
 }
 
 static gboolean
-on_expose (GtkWidget *widget, GdkEventExpose *expose, gpointer data)
+on_draw (GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-    pixman_image_t *pimage = data;
+    pixman_image_t *pimage = user_data;
     int width = pixman_image_get_width (pimage);
     int height = pixman_image_get_height (pimage);
     int stride = pixman_image_get_stride (pimage);
     cairo_surface_t *cimage;
     cairo_format_t format;
-    cairo_t *cr;
 
     if (pixman_image_get_format (pimage) == PIXMAN_x8r8g8b8)
 	format = CAIRO_FORMAT_RGB24;
@@ -111,14 +110,11 @@ on_expose (GtkWidget *widget, GdkEventExpose *expose, gpointer data)
     cimage = cairo_image_surface_create_for_data (
 	(uint8_t *)pixman_image_get_data (pimage),
 	format, width, height, stride);
-    
-    cr = gdk_cairo_create (widget->window);
 
     cairo_rectangle (cr, 0, 0, width, height);
     cairo_set_source_surface (cr, cimage, 0, 0);
     cairo_fill (cr);
 
-    cairo_destroy (cr);
     cairo_surface_destroy (cimage);
     
     return TRUE;
@@ -170,7 +166,7 @@ show_image (pixman_image_t *image)
 	break;
     }
 
-    g_signal_connect (window, "expose_event", G_CALLBACK (on_expose), copy);
+    g_signal_connect (window, "draw", G_CALLBACK (on_draw), copy);
     g_signal_connect (window, "delete_event", G_CALLBACK (gtk_main_quit), NULL);
     
     gtk_widget_show (window);

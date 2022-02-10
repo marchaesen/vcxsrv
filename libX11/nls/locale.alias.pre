@@ -103,13 +103,13 @@ ar_TN:						ar_TN.ISO8859-6
 ar_TN.iso88596:					ar_TN.ISO8859-6
 ar_TN.ISO-8859-6:				ar_TN.ISO8859-6
 ar_TN.utf8:					ar_TN.UTF-8
-as:						as_IN.UTF-8
-as_IN:						as_IN.UTF-8
-as_IN.utf8:					as_IN.UTF-8
 ar_YE:						ar_YE.ISO8859-6
 ar_YE.iso88596:					ar_YE.ISO8859-6
 ar_YE.ISO-8859-6:				ar_YE.ISO8859-6
 ar_YE.utf8:					ar_YE.UTF-8
+as:						as_IN.UTF-8
+as_IN:						as_IN.UTF-8
+as_IN.utf8:					as_IN.UTF-8
 az:						az_AZ.ISO8859-9E
 az_AZ:						az_AZ.ISO8859-9E
 az_AZ.iso88599e:				az_AZ.ISO8859-9E
@@ -132,7 +132,7 @@ bg_BG.MICROSOFT-CP1251:				bg_BG.CP1251
 bg_BG.iso88595:					bg_BG.ISO8859-5
 bg_BG.ISO-8859-5:				bg_BG.ISO8859-5
 bg_BG.koi8r:					bg_BG.KOI8-R
-be_BG.utf8:					bg_BG.UTF-8
+bg_BG.utf8:					bg_BG.UTF-8
 bn_IN:						bn_IN.UTF-8
 bn_IN.utf8:					bn_IN.UTF-8
 bo_IN:						bo_IN.UTF-8
@@ -345,8 +345,8 @@ en_IE.UTF-8@euro:				en_IE.UTF-8
 en_IE.utf8:					en_IE.UTF-8
 en_IL:						en_IL.ISO8859-1
 en_IL.utf8:					en_IL.UTF-8
-en_IN.utf8:					en_IN.UTF-8
 en_IN:						en_IN.ISO8859-1
+en_IN.utf8:					en_IN.UTF-8
 en_NZ:						en_NZ.ISO8859-1
 en_NZ.iso88591:					en_NZ.ISO8859-1
 en_NZ.ISO-8859-1:				en_NZ.ISO8859-1
@@ -410,6 +410,10 @@ es_CR:						es_CR.ISO8859-1
 es_CR.iso88591:					es_CR.ISO8859-1
 es_CR.ISO-8859-1:				es_CR.ISO8859-1
 es_CR.utf8:					es_CR.UTF-8
+es_CU:						es_CU.ISO8859-1
+es_CU.iso88591:					es_CU.ISO8859-1
+es_CU.ISO-8859-1:				es_CU.ISO8859-1
+es_CU.utf8:					es_CU.UTF-8
 es_DO:						es_DO.ISO8859-1
 es_DO.iso88591:					es_DO.ISO8859-1
 es_DO.ISO-8859-1:				es_DO.ISO8859-1
@@ -862,17 +866,6 @@ nn_NO.ISO_8859-1:				nn_NO.ISO8859-1
 nn_NO.iso885915:				nn_NO.ISO8859-15
 nn_NO.ISO-8859-15:				nn_NO.ISO8859-15
 nn_NO.utf8:					nn_NO.UTF-8
-no:						no_NO.ISO8859-1
-no_NO:						no_NO.ISO8859-1
-no_NO.88591:					no_NO.ISO8859-1
-no_NO.88591.en:					no_NO.ISO8859-1
-no_NO.iso88591:					no_NO.ISO8859-1
-no_NO.ISO-8859-1:				no_NO.ISO8859-1
-no_NO.ISO8859-1@bokmal:				no_NO.ISO8859-1
-no_NO.ISO8859-1@nynorsk:			no_NO.ISO8859-1
-no_NO.iso885915:				no_NO.ISO8859-15
-no_NO.ISO-8859-15:				no_NO.ISO8859-15
-no_NO.utf8:					no_NO.UTF-8
 nr:						nr_ZA.ISO8859-1
 nr_ZA:						nr_ZA.ISO8859-1
 nr_ZA.iso88591:					nr_ZA.ISO8859-1
@@ -881,12 +874,6 @@ nso:						nso_ZA.ISO8859-15
 nso_ZA:						nso_ZA.ISO8859-15
 nso_ZA.iso885915:				nso_ZA.ISO8859-15
 nso_ZA.utf8:					nso_ZA.UTF-8
-ny:						ny_NO.ISO8859-1
-ny_NO:						ny_NO.ISO8859-1
-ny_NO.88591:					ny_NO.ISO8859-1
-ny_NO.ISO_8859-1:				ny_NO.ISO8859-1
-ny_NO.iso885915:				ny_NO.ISO8859-15
-no@nynorsk:					ny_NO.ISO8859-1
 nynorsk:					nn_NO.ISO8859-1
 oc:						oc_FR.ISO8859-1
 oc_FR:						oc_FR.ISO8859-1
@@ -972,6 +959,7 @@ ru_UA.cp1251:					ru_UA.CP1251
 ru_UA.microsoftcp1251:				ru_UA.CP1251
 ru_UA.microsoft-cp1251:				ru_UA.CP1251
 ru_UA.MICROSOFT-CP1251:				ru_UA.CP1251
+ru_UA.utf8:					ru_UA.UTF-8
 rw:						rw_RW.ISO8859-1
 rw_RW:						rw_RW.ISO8859-1
 rw_RW.iso8859-1:				rw_RW.ISO8859-1
@@ -1183,6 +1171,7 @@ french_france.8859:				fr_FR.ISO8859-1
 german_germany.8859:				de_DE.ISO8859-1
 portuguese_brazil.8859:				pt_BR.ISO8859-1
 spanish_spain.8859:				es_ES.ISO8859-1
+
 XCOMM The following locale names are used in HPUX 9.x
 american.iso88591:				en_US.ISO8859-1
 arabic.iso88596:				ar_AA.ISO8859-6
@@ -1217,8 +1206,8 @@ hebrew:						he_IL.ISO8859-8
 hebrew.iso88598:				he_IL.ISO8859-8
 hrvatski:					hr_HR.ISO8859-2
 hungarian:					hu_HU.ISO8859-2
-icelandic.iso88591:				is_IS.ISO8859-1
 icelandic:					is_IS.ISO8859-1
+icelandic.iso88591:				is_IS.ISO8859-1
 italian:					it_IT.ISO8859-1
 italian.iso88591:				it_IT.ISO8859-1
 japanese:					ja_JP.eucJP
@@ -1227,8 +1216,6 @@ japanese.sjis:					ja_JP.SJIS
 korean:						ko_KR.eucKR
 korean.euc:					ko_KR.eucKR
 lithuanian:					lt_LT.ISO8859-13
-norwegian:					no_NO.ISO8859-1
-norwegian.iso88591:				no_NO.ISO8859-1
 polish:						pl_PL.ISO8859-2
 portuguese:					pt_PT.ISO8859-1
 portuguese.iso88591:				pt_PT.ISO8859-1
@@ -1254,6 +1241,7 @@ XCOMM Solaris and SunOS have iso_8859_1 and iso_8859_15 LC_CTYPES
 XCOMM to augment LANG=C
 iso_8859_1:					en_US.ISO8859-1
 iso_8859_15:					en_US.ISO8859-15
+
 #ifdef WIN32
 XCOMM Microsoft Windows/NT 4.0 SP3
 XCOMM parser doesn't grok embedded spaces in locale name
@@ -1301,6 +1289,7 @@ Spanish_Bolivia.1252:				es_BO.ISO8859-1
 Spanish_Chile.1252:				es_CL.ISO8859-1
 Spanish_Colombia.1252:				es_CO.ISO8859-1
 Spanish_Costa Rica.1252:			es_CR.ISO8859-1
+Spanish_Cuba.1252:				es_CU.ISO8859-1
 Spanish_Dominican Republic.1252:		es_DO.ISO8859-1
 Spanish_Ecuador.1252:				es_EC.ISO8859-1
 Spanish - Modern Sort_Spain.1252:		es_ES.ISO8859-1
@@ -1338,8 +1327,8 @@ Lithuanian_Lithuania.1257:			lt_LT.ISO8859-13
 Latvian_Latvia.1257:				lv_LV.ISO8859-13
 Dutch_Belgium.1252:				nl_BE.ISO8859-1
 Dutch_Netherlands.1252:				nl_NL.ISO8859-1
-Norwegian (Nynorsk)_Norway.1252:		no_NO.ISO8859-1
-Norwegian (Bokmål)_Norway.1252:			no_NO.ISO8859-1
+Norwegian (Nynorsk)_Norway.1252:		nn_NO.ISO8859-1
+Norwegian (Bokmål)_Norway.1252:			nb_NO.ISO8859-1
 Polish_Poland.1250:				pl_PL.ISO8859-2
 Portuguese_Brazil.1252:				pt_BR.ISO8859-1
 Portuguese_Portugal.1252:			pt_PT.ISO8859-1
@@ -1358,6 +1347,7 @@ Chinese(PRC)_Hong Kong.950:			zh_HK.EUC
 Chinese(Singapore)_Signapore.936:		zh_SG.EUC
 Chinese(Taiwan)_Taiwan.950:			zh_TW.EUC
 #endif
+
 XCOMM Other miscellaneous locale names
 ISO8859-1:					en_US.ISO8859-1
 ISO-8859-1:					en_US.ISO8859-1

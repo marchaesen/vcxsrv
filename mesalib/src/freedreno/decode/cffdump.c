@@ -370,7 +370,21 @@ handle_file(const char *filename, int start, int end, int draw)
          break;
       case RD_GPU_ID:
          if (!got_gpu_id) {
-            options.gpu_id = *((unsigned int *)buf);
+            uint32_t gpu_id = *((unsigned int *)buf);
+            if (!gpu_id)
+               break;
+            options.gpu_id = gpu_id;
+            printl(2, "gpu_id: %d\n", options.gpu_id);
+            cffdec_init(&options);
+            got_gpu_id = 1;
+         }
+         break;
+      case RD_CHIP_ID:
+         if (!got_gpu_id) {
+            uint64_t chip_id = *((uint64_t *)buf);
+            options.gpu_id = 100 * ((chip_id >> 24) & 0xff) +
+                  10 * ((chip_id >> 16) & 0xff) +
+                  ((chip_id >> 8) & 0xff);
             printl(2, "gpu_id: %d\n", options.gpu_id);
             cffdec_init(&options);
             got_gpu_id = 1;

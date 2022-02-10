@@ -742,6 +742,15 @@ spirv_builder_emit_vote(struct spirv_builder *b, SpvOp op, SpvId src)
                                    spirv_builder_const_uint(b, 32, SpvScopeWorkgroup), src);
 }
 
+static SpvId
+sparse_wrap_result_type(struct spirv_builder *b, SpvId result_type)
+{
+   SpvId types[2];
+   types[0] = spirv_builder_type_uint(b, 32);
+   types[1] = result_type;
+   return spirv_builder_type_struct(b, types, 2);
+}
+
 SpvId
 spirv_builder_emit_image_sample(struct spirv_builder *b,
                                 SpvId result_type,
@@ -754,23 +763,39 @@ spirv_builder_emit_image_sample(struct spirv_builder *b,
                                 SpvId dx,
                                 SpvId dy,
                                 SpvId const_offset,
-                                SpvId offset)
+                                SpvId offset,
+                                SpvId min_lod,
+                                bool sparse)
 {
    SpvId result = spirv_builder_new_id(b);
 
-   int opcode = SpvOpImageSampleImplicitLod;
    int operands = 5;
-   if (proj)
-      opcode += SpvOpImageSampleProjImplicitLod - SpvOpImageSampleImplicitLod;
-   if (lod || (dx && dy))
-      opcode += SpvOpImageSampleExplicitLod - SpvOpImageSampleImplicitLod;
-   if (dref) {
-      opcode += SpvOpImageSampleDrefImplicitLod - SpvOpImageSampleImplicitLod;
-      operands++;
+   int opcode;
+   if (sparse) {
+      opcode = SpvOpImageSparseSampleImplicitLod;
+      if (proj)
+         opcode += SpvOpImageSparseSampleProjImplicitLod - SpvOpImageSparseSampleImplicitLod;
+      if (lod || (dx && dy))
+         opcode += SpvOpImageSparseSampleExplicitLod - SpvOpImageSparseSampleImplicitLod;
+      if (dref) {
+         opcode += SpvOpImageSparseSampleDrefImplicitLod - SpvOpImageSparseSampleImplicitLod;
+         operands++;
+      }
+      result_type = sparse_wrap_result_type(b, result_type);
+   } else {
+      opcode = SpvOpImageSampleImplicitLod;
+      if (proj)
+         opcode += SpvOpImageSampleProjImplicitLod - SpvOpImageSampleImplicitLod;
+      if (lod || (dx && dy))
+         opcode += SpvOpImageSampleExplicitLod - SpvOpImageSampleImplicitLod;
+      if (dref) {
+         opcode += SpvOpImageSampleDrefImplicitLod - SpvOpImageSampleImplicitLod;
+         operands++;
+      }
    }
 
    SpvImageOperandsMask operand_mask = SpvImageOperandsMaskNone;
-   SpvId extra_operands[5];
+   SpvId extra_operands[6];
    int num_extra_operands = 1;
    if (bias) {
       extra_operands[num_extra_operands++] = bias;
@@ -791,6 +816,10 @@ spirv_builder_emit_image_sample(struct spirv_builder *b,
    } else if (offset) {
       extra_operands[num_extra_operands++] = offset;
       operand_mask |= SpvImageOperandsOffsetMask;
+   }
+   if (min_lod) {
+      extra_operands[num_extra_operands++] = min_lod;
+      operand_mask |= SpvImageOperandsMinLodMask;
    }
 
    /* finalize num_extra_operands / extra_operands */
@@ -842,13 +871,16 @@ spirv_builder_emit_image_read(struct spirv_builder *b,
                               SpvId coordinate,
                               SpvId lod,
                               SpvId sample,
-                              SpvId offset)
+                              SpvId offset,
+                              bool sparse)
 {
    SpvId result = spirv_builder_new_id(b);
 
    SpvImageOperandsMask operand_mask = SpvImageOperandsMaskNone;
    SpvId extra_operands[5];
    int num_extra_operands = 1;
+   if (sparse)
+      result_type = sparse_wrap_result_type(b, result_type);
    if (lod) {
       extra_operands[num_extra_operands++] = lod;
       operand_mask |= SpvImageOperandsLodMask;
@@ -865,7 +897,7 @@ spirv_builder_emit_image_read(struct spirv_builder *b,
    extra_operands[0] = operand_mask;
 
    spirv_buffer_prepare(&b->instructions, b->mem_ctx, 5 + num_extra_operands);
-   spirv_buffer_emit_word(&b->instructions, SpvOpImageRead |
+   spirv_buffer_emit_word(&b->instructions, (sparse ? SpvOpImageSparseRead : SpvOpImageRead) |
                           ((5 + num_extra_operands) << 16));
    spirv_buffer_emit_word(&b->instructions, result_type);
    spirv_buffer_emit_word(&b->instructions, result);
@@ -923,10 +955,11 @@ spirv_builder_emit_image_gather(struct spirv_builder *b,
                                SpvId sample,
                                SpvId const_offset,
                                SpvId offset,
-                               SpvId dref)
+                               SpvId dref,
+                               bool sparse)
 {
    SpvId result = spirv_builder_new_id(b);
-   SpvId op = SpvOpImageGather;
+   SpvId op = sparse ? SpvOpImageSparseGather : SpvOpImageGather;
 
    SpvImageOperandsMask operand_mask = SpvImageOperandsMaskNone;
    SpvId extra_operands[4];
@@ -948,7 +981,9 @@ spirv_builder_emit_image_gather(struct spirv_builder *b,
       operand_mask |= SpvImageOperandsOffsetMask;
    }
    if (dref)
-      op = SpvOpImageDrefGather;
+      op = sparse ? SpvOpImageSparseDrefGather : SpvOpImageDrefGather;
+   if (sparse)
+      result_type = sparse_wrap_result_type(b, result_type);
    /* finalize num_extra_operands / extra_operands */
    extra_operands[0] = operand_mask;
 
@@ -976,7 +1011,8 @@ spirv_builder_emit_image_fetch(struct spirv_builder *b,
                                SpvId lod,
                                SpvId sample,
                                SpvId const_offset,
-                               SpvId offset)
+                               SpvId offset,
+                               bool sparse)
 {
    SpvId result = spirv_builder_new_id(b);
 
@@ -999,12 +1035,14 @@ spirv_builder_emit_image_fetch(struct spirv_builder *b,
       extra_operands[num_extra_operands++] = offset;
       operand_mask |= SpvImageOperandsOffsetMask;
    }
+   if (sparse)
+      result_type = sparse_wrap_result_type(b, result_type);
 
    /* finalize num_extra_operands / extra_operands */
    extra_operands[0] = operand_mask;
 
    spirv_buffer_prepare(&b->instructions, b->mem_ctx, 5 + num_extra_operands);
-   spirv_buffer_emit_word(&b->instructions, SpvOpImageFetch |
+   spirv_buffer_emit_word(&b->instructions, (sparse ? SpvOpImageSparseFetch : SpvOpImageFetch) |
                           ((5 + num_extra_operands) << 16));
    spirv_buffer_emit_word(&b->instructions, result_type);
    spirv_buffer_emit_word(&b->instructions, result);

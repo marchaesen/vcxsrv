@@ -45,17 +45,15 @@ dxil_module_init(struct dxil_module *m, void *ralloc_ctx)
 
    list_inithead(&m->type_list);
    list_inithead(&m->func_list);
+   list_inithead(&m->func_def_list);
    list_inithead(&m->attr_set_list);
    list_inithead(&m->gvar_list);
    list_inithead(&m->const_list);
-   list_inithead(&m->instr_list);
    list_inithead(&m->mdnode_list);
    list_inithead(&m->md_named_node_list);
 
    m->functions = rzalloc(ralloc_ctx, struct rb_tree);
    rb_tree_init(m->functions);
-
-   m->curr_block = 0;
 }
 
 void
@@ -734,7 +732,7 @@ dxil_module_get_split_double_ret_type(struct dxil_module *mod)
    const struct dxil_type *int32_type = dxil_module_get_int_type(mod, 32);
    const struct dxil_type *fields[2] = { int32_type, int32_type };
 
-   return dxil_module_get_struct_type(mod, "dx.types.splitDouble", fields, 2);
+   return dxil_module_get_struct_type(mod, "dx.types.splitdouble", fields, 2);
 }
 
 static const struct dxil_type *
@@ -876,6 +874,17 @@ dxil_module_get_dimret_type(struct dxil_module *m)
       { int32_type, int32_type, int32_type, int32_type };
 
    return dxil_module_get_struct_type(m, "dx.types.Dimensions", dimret, 4);
+}
+
+const struct dxil_type *
+dxil_module_get_samplepos_type(struct dxil_module *m)
+{
+   const struct dxil_type *float_type = dxil_module_get_float_type(m, 32);
+
+   const struct dxil_type *samplepos[] =
+      { float_type, float_type };
+
+   return dxil_module_get_struct_type(m, "dx.types.SamplePos", samplepos, 2);
 }
 
 const struct dxil_type *
@@ -1831,7 +1840,7 @@ dxil_add_global_ptr_var(struct dxil_module *m, const char *name,
                    as, align, value);
 }
 
-static struct dxil_func *
+static const struct dxil_func *
 add_function(struct dxil_module *m, const char *name,
              const struct dxil_type *type,
              bool decl, unsigned attr_set)
@@ -1858,11 +1867,33 @@ add_function(struct dxil_module *m, const char *name,
    return func;
 }
 
-const struct dxil_func *
+struct dxil_func_def *
 dxil_add_function_def(struct dxil_module *m, const char *name,
-                      const struct dxil_type *type)
+                      const struct dxil_type *type, unsigned num_blocks)
 {
-   return add_function(m, name, type, false, 0);
+   struct dxil_func_def *def = ralloc_size(m->ralloc_ctx, sizeof(struct dxil_func_def));
+
+   def->func = add_function(m, name, type, false, 0);
+   if (!def->func)
+      return NULL;
+
+   list_inithead(&def->instr_list);
+   def->curr_block = 0;
+
+   assert(num_blocks > 0);
+   def->basic_block_ids = rzalloc_array(m->ralloc_ctx, int,
+                                        num_blocks);
+   if (!def->basic_block_ids)
+      return NULL;
+
+   for (int i = 0; i < num_blocks; ++i)
+      def->basic_block_ids[i] = -1;
+   def->num_basic_block_ids = num_blocks;
+
+   list_addtail(&def->head, &m->func_def_list);
+   m->cur_emitting_func = def;
+
+   return def;
 }
 
 static unsigned
@@ -2395,6 +2426,20 @@ dxil_get_metadata_int64(struct dxil_module *m, int64_t value)
    return dxil_get_metadata_value(m, type, const_value);
 }
 
+const struct dxil_mdnode *
+dxil_get_metadata_float32(struct dxil_module *m, float value)
+{
+   const struct dxil_type *type = get_float32_type(m);
+   if (!type)
+      return NULL;
+
+   const struct dxil_value *const_value = dxil_module_get_float_const(m, value);
+   if (!const_value)
+      return NULL;
+
+   return dxil_get_metadata_value(m, type, const_value);
+}
+
 bool
 dxil_add_metadata_named_node(struct dxil_module *m, const char *name,
                              const struct dxil_mdnode *subnodes[],
@@ -2556,7 +2601,7 @@ create_instr(struct dxil_module *m, enum instr_type type,
       ret->value.id = -1;
       ret->value.type = ret_type;
       ret->has_value = false;
-      list_addtail(&ret->head, &m->instr_list);
+      list_addtail(&ret->head, &m->cur_emitting_func->instr_list);
    }
    return ret;
 }
@@ -2671,7 +2716,7 @@ dxil_emit_branch(struct dxil_module *m, const struct dxil_value *cond,
    instr->br.cond = cond;
    instr->br.succ[0] = true_block;
    instr->br.succ[1] = false_block;
-   m->curr_block++;
+   m->cur_emitting_func->curr_block++;
    return true;
 }
 
@@ -2776,7 +2821,7 @@ dxil_emit_ret_void(struct dxil_module *m)
       return false;
 
    instr->ret.value = NULL;
-   m->curr_block++;
+   m->cur_emitting_func->curr_block++;
    return true;
 }
 
@@ -3044,25 +3089,25 @@ emit_cast(struct dxil_module *m, struct dxil_instr *instr)
 }
 
 static bool
-emit_branch(struct dxil_module *m, struct dxil_instr *instr)
+emit_branch(struct dxil_module *m, struct dxil_func_def *func, struct dxil_instr *instr)
 {
    assert(instr->type == INSTR_BR);
-   assert(instr->br.succ[0] < m->num_basic_block_ids);
-   assert(m->basic_block_ids[instr->br.succ[0]] >= 0);
+   assert(instr->br.succ[0] < func->num_basic_block_ids);
+   assert(func->basic_block_ids[instr->br.succ[0]] >= 0);
 
    if (!instr->br.cond) {
       /* unconditional branch */
-      uint64_t succ = m->basic_block_ids[instr->br.succ[0]];
+      uint64_t succ = func->basic_block_ids[instr->br.succ[0]];
       return emit_record_no_abbrev(&m->buf, FUNC_CODE_INST_BR, &succ, 1);
    }
    /* conditional branch */
    assert(instr->value.id > instr->br.cond->id);
-   assert(instr->br.succ[1] < m->num_basic_block_ids);
-   assert(m->basic_block_ids[instr->br.succ[1]] >= 0);
+   assert(instr->br.succ[1] < func->num_basic_block_ids);
+   assert(func->basic_block_ids[instr->br.succ[1]] >= 0);
 
    uint64_t data[] = {
-      m->basic_block_ids[instr->br.succ[0]],
-      m->basic_block_ids[instr->br.succ[1]],
+      func->basic_block_ids[instr->br.succ[0]],
+      func->basic_block_ids[instr->br.succ[1]],
       instr->value.id - instr->br.cond->id
    };
    return emit_record_no_abbrev(&m->buf, FUNC_CODE_INST_BR,
@@ -3070,7 +3115,7 @@ emit_branch(struct dxil_module *m, struct dxil_instr *instr)
 }
 
 static bool
-emit_phi(struct dxil_module *m, struct dxil_instr *instr)
+emit_phi(struct dxil_module *m, struct dxil_func_def *func, struct dxil_instr *instr)
 {
    assert(instr->type == INSTR_PHI);
    uint64_t data[128];
@@ -3079,9 +3124,9 @@ emit_phi(struct dxil_module *m, struct dxil_instr *instr)
    for (int i = 0; i < instr->phi.num_incoming; ++i) {
       int64_t value_delta = instr->value.id - instr->phi.incoming[i].value->id;
       data[1 + i * 2] = encode_signed(value_delta);
-      assert(instr->phi.incoming[i].block < m->num_basic_block_ids);
-      assert(m->basic_block_ids[instr->phi.incoming[i].block] >= 0);
-      data[1 + i * 2 + 1] = m->basic_block_ids[instr->phi.incoming[i].block];
+      assert(instr->phi.incoming[i].block < func->num_basic_block_ids);
+      assert(func->basic_block_ids[instr->phi.incoming[i].block] >= 0);
+      data[1 + i * 2 + 1] = func->basic_block_ids[instr->phi.incoming[i].block];
    }
    return emit_record_no_abbrev(&m->buf, FUNC_CODE_INST_PHI,
                                 data, 1 + 2 * instr->phi.num_incoming);
@@ -3255,7 +3300,7 @@ emit_atomicrmw(struct dxil_module *m, struct dxil_instr *instr)
 }
 
 static bool
-emit_instr(struct dxil_module *m, struct dxil_instr *instr)
+emit_instr(struct dxil_module *m, struct dxil_func_def *func, struct dxil_instr *instr)
 {
    switch (instr->type) {
    case INSTR_BINOP:
@@ -3271,10 +3316,10 @@ emit_instr(struct dxil_module *m, struct dxil_instr *instr)
       return emit_cast(m, instr);
 
    case INSTR_BR:
-      return emit_branch(m, instr);
+      return emit_branch(m, func, instr);
 
    case INSTR_PHI:
-      return emit_phi(m, instr);
+      return emit_phi(m, func, instr);
 
    case INSTR_CALL:
       return emit_call(m, instr);
@@ -3309,14 +3354,14 @@ emit_instr(struct dxil_module *m, struct dxil_instr *instr)
 }
 
 static bool
-emit_function(struct dxil_module *m)
+emit_function(struct dxil_module *m, struct dxil_func_def *func)
 {
    if (!enter_subblock(m, DXIL_FUNCTION_BLOCK, 4) ||
-       !emit_record_int(m, FUNC_CODE_DECLAREBLOCKS, m->curr_block))
+       !emit_record_int(m, FUNC_CODE_DECLAREBLOCKS, func->curr_block))
       return false;
 
-   list_for_each_entry(struct dxil_instr, instr, &m->instr_list, head) {
-      if (!emit_instr(m, instr))
+   list_for_each_entry(struct dxil_instr, instr, &func->instr_list, head) {
+      if (!emit_instr(m, func, instr))
          return false;
    }
 
@@ -3343,11 +3388,18 @@ assign_values(struct dxil_module *m)
       c->value.id = next_value_id++;
    }
 
-   struct dxil_instr *instr;
-   LIST_FOR_EACH_ENTRY(instr, &m->instr_list, head) {
-      instr->value.id = next_value_id;
-      if (instr->has_value)
-         next_value_id++;
+   /* All functions start at this ID */
+   unsigned value_id_at_functions_start = next_value_id;
+
+   struct dxil_func_def *func_def;
+   LIST_FOR_EACH_ENTRY(func_def, &m->func_def_list, head) {
+      struct dxil_instr *instr;
+      next_value_id = value_id_at_functions_start;
+      LIST_FOR_EACH_ENTRY(instr, &func_def->instr_list, head) {
+         instr->value.id = next_value_id;
+         if (instr->has_value)
+            next_value_id++;
+      }
    }
 }
 
@@ -3355,20 +3407,27 @@ bool
 dxil_emit_module(struct dxil_module *m)
 {
    assign_values(m);
-   return dxil_buffer_emit_bits(&m->buf, 'B', 8) &&
-          dxil_buffer_emit_bits(&m->buf, 'C', 8) &&
-          dxil_buffer_emit_bits(&m->buf, 0xC0, 8) &&
-          dxil_buffer_emit_bits(&m->buf, 0xDE, 8) &&
-          enter_subblock(m, DXIL_MODULE, 3) &&
-          emit_record_int(m, DXIL_MODULE_CODE_VERSION, 1) &&
-          emit_blockinfo(m) &&
-          emit_attrib_group_table(m) &&
-          emit_attribute_table(m) &&
-          emit_type_table(m) &&
-          emit_module_info(m) &&
-          emit_module_consts(m) &&
-          emit_metadata(m) &&
-          emit_value_symbol_table(m) &&
-          emit_function(m) &&
-          exit_block(m);
+   if (!(dxil_buffer_emit_bits(&m->buf, 'B', 8) &&
+         dxil_buffer_emit_bits(&m->buf, 'C', 8) &&
+         dxil_buffer_emit_bits(&m->buf, 0xC0, 8) &&
+         dxil_buffer_emit_bits(&m->buf, 0xDE, 8) &&
+         enter_subblock(m, DXIL_MODULE, 3) &&
+         emit_record_int(m, DXIL_MODULE_CODE_VERSION, 1) &&
+         emit_blockinfo(m) &&
+         emit_attrib_group_table(m) &&
+         emit_attribute_table(m) &&
+         emit_type_table(m) &&
+         emit_module_info(m) &&
+         emit_module_consts(m) &&
+         emit_metadata(m) &&
+         emit_value_symbol_table(m)))
+      return false;
+
+   struct dxil_func_def *func;
+   LIST_FOR_EACH_ENTRY(func, &m->func_def_list, head) {
+      if (!emit_function(m, func))
+         return false;
+   }
+
+   return exit_block(m);
 }

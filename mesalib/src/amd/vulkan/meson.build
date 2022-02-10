@@ -77,6 +77,7 @@ libradv_files = files(
   'radv_pipeline_rt.c',
   'radv_private.h',
   'radv_radeon_winsys.h',
+  'radv_sdma_copy_image.c',
   'radv_shader.c',
   'radv_shader.h',
   'radv_shader_args.c',
@@ -124,10 +125,6 @@ if with_platform_wayland
   radv_deps += dep_wayland_client
 endif
 
-if system_has_kms_drm and not with_platform_android
-  libradv_files += files('radv_wsi_display.c')
-endif
-
 if with_xlib_lease
   radv_deps += [dep_xlib_xrandr]
 endif
@@ -163,6 +160,7 @@ libvulkan_radeon = shared_library(
     dep_valgrind, radv_deps, idep_aco,
     idep_mesautil, idep_nir, idep_vulkan_util, idep_vulkan_wsi,
     idep_vulkan_runtime, idep_amdgfxregs_h, idep_xmlconfig,
+    idep_vulkan_common_entrypoints_h
   ],
   c_args : [no_override_init_args, radv_flags, c_msvc_compat_args],
   cpp_args : [radv_flags, cpp_msvc_compat_args],
@@ -197,7 +195,7 @@ endif
 
 icd_command = [
   prog_python, '@INPUT0@',
-  '--api-version', '1.2', '--xml', '@INPUT1@',
+  '--api-version', '1.3', '--xml', '@INPUT1@',
   '--lib-path', join_paths(icd_lib_path, icd_file_name),
   '--out', '@OUTPUT@',
 ]
@@ -215,3 +213,20 @@ radeon_icd = custom_target(
   install : true,
 )
 
+if meson.version().version_compare('>= 0.58')
+  _dev_icdname = 'radeon_devenv_icd.@0@.json'.format(host_machine.cpu())
+  custom_target(
+    'radeon_devenv_icd',
+    input : [vk_icd_gen, vk_api_xml],
+    output : _dev_icdname,
+    command : [
+      prog_python, '@INPUT0@',
+      '--api-version', '1.3', '--xml', '@INPUT1@',
+      '--lib-path', meson.current_build_dir() / icd_file_name,
+      '--out', '@OUTPUT@',
+    ],
+    build_by_default : true,
+  )
+
+  devenv.append('VK_ICD_FILENAMES', meson.current_build_dir() / _dev_icdname)
+endif

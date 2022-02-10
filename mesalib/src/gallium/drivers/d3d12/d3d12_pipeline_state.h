@@ -81,6 +81,11 @@ struct d3d12_gfx_pipeline_state {
    enum pipe_prim_type prim_type;
 };
 
+struct d3d12_compute_pipeline_state {
+   ID3D12RootSignature *root_signature;
+   struct d3d12_shader *stage;
+};
+
 DXGI_FORMAT
 d3d12_rtv_format(struct d3d12_context *ctx, unsigned index);
 
@@ -100,5 +105,18 @@ void
 d3d12_gfx_pipeline_state_cache_invalidate_shader(struct d3d12_context *ctx,
                                                  enum pipe_shader_type stage,
                                                  struct d3d12_shader_selector *selector);
+
+void
+d3d12_compute_pipeline_state_cache_init(struct d3d12_context *ctx);
+
+void
+d3d12_compute_pipeline_state_cache_destroy(struct d3d12_context *ctx);
+
+ID3D12PipelineState *
+d3d12_get_compute_pipeline_state(struct d3d12_context *ctx);
+
+void
+d3d12_compute_pipeline_state_cache_invalidate_shader(struct d3d12_context *ctx,
+                                                     struct d3d12_shader_selector *selector);
 
 #endif

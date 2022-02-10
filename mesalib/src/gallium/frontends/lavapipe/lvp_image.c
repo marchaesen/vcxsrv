@@ -111,19 +111,8 @@ struct lvp_image *
 lvp_swapchain_get_image(VkSwapchainKHR swapchain,
                         uint32_t index)
 {
-   uint32_t n_images = index + 1;
-   VkImage *images = malloc(sizeof(*images) * n_images);
-   VkResult result = wsi_common_get_images(swapchain, &n_images, images);
-
-   if (result != VK_SUCCESS && result != VK_INCOMPLETE) {
-      free(images);
-      return NULL;
-   }
-
-   LVP_FROM_HANDLE(lvp_image, image, images[index]);
-   free(images);
-
-   return image;
+   VkImage image = wsi_common_get_image(swapchain, index);
+   return lvp_image_from_handle(image);
 }
 
 static VkResult

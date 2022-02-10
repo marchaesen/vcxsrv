@@ -20,6 +20,7 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
+#include "util/u_math.h"
 #include "radeon_program.h"
 
 #include <stdio.h>
@@ -115,13 +116,12 @@ static void rc_print_inline_float(FILE * f, int index)
 	unsigned r300_mantissa = index & 0x7;
 	unsigned float_exponent;
 	unsigned real_float;
-	float * print_float = (float*) &real_float;
 
 	r300_exponent -= 7;
 	float_exponent = r300_exponent + 127;
 	real_float = (r300_mantissa << 20) | (float_exponent << 23);
 
-	fprintf(f, "%f (0x%x)", *print_float, index);
+	fprintf(f, "%f (0x%x)", uif(real_float), index);
 
 }
 

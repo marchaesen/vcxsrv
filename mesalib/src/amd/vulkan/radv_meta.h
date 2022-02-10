@@ -51,7 +51,7 @@ struct radv_meta_saved_state {
    struct radv_scissor_state scissor;
    struct radv_sample_locations_state sample_location;
 
-   char push_constants[128];
+   char push_constants[MAX_PUSH_CONSTANTS_SIZE];
 
    struct radv_render_pass *pass;
    const struct radv_subpass *subpass;

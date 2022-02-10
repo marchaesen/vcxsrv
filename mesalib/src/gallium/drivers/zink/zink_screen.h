@@ -61,6 +61,7 @@ enum zink_descriptor_type;
 #define ZINK_DEBUG_VALIDATION 0x8
 
 #define NUM_SLAB_ALLOCATORS 3
+#define MIN_SLAB_ORDER 8
 
 enum zink_descriptor_mode {
    ZINK_DESCRIPTOR_MODE_AUTO,
@@ -130,6 +131,7 @@ struct zink_screen {
    bool have_D24_UNORM_S8_UINT;
    bool have_triangle_fans;
    bool need_2D_zs;
+   bool faked_e5sparse; //drivers may not expose R9G9B9E5 but cts requires it
 
    uint32_t gfx_queue;
    uint32_t max_queues;
@@ -225,6 +227,7 @@ zink_screen_handle_vkresult(struct zink_screen *screen, VkResult ret)
       break;
    case VK_ERROR_DEVICE_LOST:
       screen->device_lost = true;
+      mesa_loge("zink: DEVICE LOST!\n");
       FALLTHROUGH;
    default:
       success = false;

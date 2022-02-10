@@ -16,8 +16,8 @@
   </enum>
 
   <enum name="Depth Source">
-    <!-- TODO: check if min/max supported -->
-    <value name="None" value="0"/>
+    <value name="Minimum" value="0"/>
+    <value name="Maximum" value="1"/>
     <value name="Fixed function" value="2"/>
     <value name="Shader" value="3"/>
   </enum>
@@ -28,13 +28,10 @@
     <value name="Write value" value="2"/>
     <value name="Cache flush" value="3"/>
     <value name="Compute" value="4"/>
-    <!--- Traditional vertex jobs removed in Valhall, use compute job -->
-    <value name="Geometry" value="6"/>
     <value name="Tiler" value="7"/>
-    <value name="Fused" value="8"/>
     <value name="Fragment" value="9"/>
     <value name="Indexed vertex" value="10"/>
-    <value name="IDVS helper" value="11"/> 
+    <value name="Malloc vertex" value="11"/>
   </enum>
 
   <enum name="Shader stage">
@@ -50,7 +47,14 @@
     <value name="Depth/stencil" value="7"/>
     <value name="Shader" value="8"/>
     <value name="Buffer" value="9"/>
-    <value name="Surface" value="10"/>
+    <value name="Plane" value="10"/>
+  </enum>
+
+  <enum name="Buffer Type">
+    <value name="Simple" value="1"/>
+    <value name="Tiler heap" value="2"/>
+    <value name="Structure" value="3"/>
+    <value name="Vertex packet" value="4"/>
   </enum>
 
   <enum name="Draw Mode">
@@ -85,37 +89,6 @@
   </enum>
 
   <enum name="Format">
-    <value name="ETC2 RGB8" value="1"/>
-    <value name="ETC2 R11 UNORM" value="2"/>
-    <value name="ETC2 RGBA8" value="3"/>
-    <value name="ETC2 RG11 UNORM" value="4"/>
-    <value name="R4A4 UNORM" value="5"/>
-    <value name="A4R4 UNORM" value="6"/>
-    <value name="BC1 UNORM" value="7"/>
-    <value name="BC2 UNORM" value="8"/>
-    <value name="BC3 UNORM" value="9"/>
-    <value name="BC4 UNORM" value="10"/>
-    <value name="BC4 SNORM" value="11"/>
-    <value name="BC5 UNORM" value="12"/>
-    <value name="BC5 SNORM" value="13"/>
-    <value name="BC6H UF16" value="14"/>
-    <value name="BC6H SF16" value="15"/>
-    <value name="BC7 UNORM" value="16"/>
-    <value name="ETC2 R11 SNORM" value="17"/>
-    <value name="ETC2 RG11 SNORM" value="18"/>
-    <value name="ETC2 RGB8A1" value="19"/>
-    <value name="ASTC 3D LDR" value="20"/>
-    <value name="ASTC 3D HDR" value="21"/>
-    <value name="ASTC 2D LDR" value="22"/>
-    <value name="ASTC 2D HDR" value="23"/>
-    <value name="R8A8 UNORM" value="24"/>
-    <value name="A8R8 UNORM" value="25"/>
-    <value name="A8 UNORM" value="26"/>
-    <!--- 27 reserved -->
-    <value name="RAW10" value="28"/>
-    <value name="RAW12" value="29"/>
-    <value name="R8G8B8G8" value="30"/>
-    <value name="G8R8G8B8" value="31"/>
     <value name="YUV8" value="32"/>
     <value name="YUVA8" value="33"/>
     <value name="YUYV8" value="34"/>
@@ -127,7 +100,7 @@
     <value name="YUV10 A2" value="40"/>
     <value name="A2 YUV10" value="41"/>
     <value name="YUYAAYVYAA" value="42"/>
-    <!--- 43 reserved -->
+    <!--- TODO: revisit YUV -->
     <value name="YUYV10" value="44"/>
     <value name="VYUY10" value="45"/>
     <value name="Y10 UV10 422" value="46"/>
@@ -138,16 +111,7 @@
     <value name="VYUY16" value="51"/>
     <value name="Y10X6 U10X6V10X6 422" value="52"/>
     <value name="Y16 UV16 422" value="53"/>
-    <value name="Y10X6 U10X6V10X6 420" value="54"/>
     <value name="Y16 UV16 420" value="55"/>
-    <value name="Y8 UV8 BL 422" value="56"/>
-    <value name="Y8 UV8 BL 420" value="57"/>
-    <value name="CUSTOM YUV 2" value="58"/>
-    <value name="CUSTOM YUV 3" value="59"/>
-    <value name="CUSTOM YUV 4" value="60"/>
-    <value name="CUSTOM YUV 5" value="61"/>
-    <value name="ASTC 2D NARROW" value="62"/>
-    <value name="ASTC 3D NARROW" value="63"/>
     <value name="RGB565" value="64"/>
     <value name="RGB5 A1 UNORM" value="65"/>
     <value name="A1 BGR5 UNORM" value="66"/>
@@ -163,16 +127,10 @@
     <value name="Z32" value="76"/>
     <value name="Z24X8 UNORM" value="77"/>
     <value name="X8Z24" value="78"/>
-    <value name="X32 S8X24" value="79"/>
-    <value name="X24S8 X32" value="80"/>
     <value name="R32 FIXED" value="81"/>
     <value name="RG32 FIXED" value="82"/>
     <value name="RGB32 FIXED" value="83"/>
     <value name="RGBA32 FIXED" value="84"/>
-    <value name="X24S8" value="85"/>
-    <value name="S8X24" value="86"/>
-    <value name="Z32 X32" value="87"/>
-    <value name="X32 Z32" value="88"/>
     <value name="R11F G11F B10F" value="89"/>
     <value name="B10F G11F R11F" value="90"/>
     <value name="R9F G9F B9F E5F" value="91"/>
@@ -440,23 +398,6 @@
     <value name="3D" value="3"/>
   </enum>
 
-  <enum name="Texture Layout">
-    <value name="Linear" value="0"/>
-    <!-- TODO: confirm others -->
-    <!--- 16x16 block u-interleaved -->
-    <value name="Tiled" value="1"/>
-    <value name="AFBC" value="12"/>
-  </enum>
-
-  <enum name="AFBC Surface Flag">
-    <value name="YTR" value="1"/>
-    <value name="Split Block" value="2"/>
-    <value name="Wide Block" value="4"/>
-    <value name="Tiled Header" value="8"/>
-    <value name="Prefetch" value="16"/>
-    <value name="Check Payload Range" value="32"/>
-  </enum>
-
   <enum name="Wrap Mode">
     <value name="Repeat" value="8"/>
     <value name="Clamp to Edge" value="9"/>
@@ -487,9 +428,17 @@
 
   <struct name="Buffer" size="8" align="32">
     <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Buffer"/>
-    <field name="Unk 1" size="28" start="0:4" type="hex"/>
+    <field name="Buffer type" size="4" start="0:4" type="Buffer Type" default="Simple"/>
     <field name="Size" size="32" start="1:0" type="uint"/>
     <field name="Address" size="64" start="2:0" type="address"/>
+
+    <!-- Structured buffer only -->
+    <field name="Stride" size="32" start="4:0" type="uint"/>
+
+    <!-- Vertex packet buffer only -->
+    <field name="Packet stride" size="16" start="4:0" type="uint" modifier="shr(6)"/>
+    <field name="Attribute stride" size="16" start="4:16" type="uint"/>
+
   </struct>
 
   <enum name="Blend Operand A">
@@ -548,11 +497,10 @@
   </enum>
 
   <struct name="Blend Shader" size="2">
-    <field name="Return Value" size="29" start="0:3" type="uint" modifier="shr(3)"/>
     <field name="PC" size="28" start="1:4" type="uint" modifier="shr(4)"/>
   </struct>
 
-  <struct name="Internal Conversion" size="1">
+  <struct name="Internal Conversion" size="1" align="4">
     <field name="Memory Format" size="22" start="0" type="Pixel Format"/>
     <field name="Raw" size="1" start="22" type="bool"/>
     <field name="Register Format" size="3" start="24" type="Register File Format"/>
@@ -566,7 +514,7 @@
     <field name="Conversion" size="32" start="1:0" type="Internal Conversion"/>
   </struct>
 
-  <struct name="Internal Blend">
+  <struct name="Internal Blend" align="8">
     <field name="Mode" size="2" start="0:0" type="Blend Mode"/>
     <field name="Shader" size="64" start="0:0" type="Blend Shader"/>
     <field name="Fixed-Function" size="64" start="0:0" type="Blend Fixed-Function"/>
@@ -641,13 +589,163 @@
     <field name="Border Color A" size="32" start="7:0" type="uint/float" default="0.0"/>
   </struct>
 
-  <!-- Size unknown. Need to check what happens with mipmapping, cubemapping, 3D... -->
-  <struct name="Surface with Stride" size="32" align="32">
-    <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Surface"/>
-    <field name="Unk 1" size="28" start="0:4" type="hex" default="0x0200021"/> <!-- XXX: maybe counts -->
-    <field name="Surface stride" size="32" start="1:0" type="int"/>
+  <enum name="Plane Type">
+    <value name="Null" value="0"/>
+    <value name="Generic" value="1"/>
+    <value name="ASTC 2D" value="4"/>
+    <value name="ASTC 3D" value="5"/>
+    <value name="AFBC" value="6"/>
+    <value name="Chroma 2p" value="8"/>
+  </enum>
+
+  <enum name="Clump Ordering">
+    <value name="Tiled U-Interleaved" value="1"/>
+    <value name="Linear" value="2"/>
+  </enum>
+
+  <enum name="Clump Format">
+    <value name="RAW8" value="0"/>
+    <value name="RAW16" value="1"/>
+    <value name="RAW32" value="2"/>
+    <value name="RAW64" value="3"/>
+    <value name="RAW128" value="4"/>
+
+    <value name="RAW24" value="8"/>
+    <value name="RAW48" value="9"/>
+    <value name="RAW96" value="10"/>
+
+    <value name="D32X32" value="16"/>
+    <value name="X32D32" value="17"/>
+    <value name="X32S8X24" value="18"/>
+    <value name="X24S8X32" value="19"/>
+    <value name="X24S8" value="20"/>
+    <value name="S8X24" value="21"/>
+    <value name="S8" value="22"/>
+
+    <value name="L4A4" value="24"/>
+    <value name="L8A8" value="25"/>
+    <value name="A8" value="26"/>
+
+    <value name="ETC2 RGB8" value="32"/>
+    <value name="ETC2 R11 UNORM" value="33"/>
+    <value name="ETC2 R11 SNORM" value="34"/>
+    <value name="ETC2 RG11 UNORM" value="35"/>
+    <value name="ETC2 RG11 SNORM" value="36"/>
+    <value name="ETC2 RGBA8" value="37"/>
+    <value name="ETC2 RGB8A1" value="38"/>
+
+    <value name="BC1 UNORM" value="48"/>
+    <value name="BC2 UNORM" value="49"/>
+    <value name="BC3 UNORM" value="50"/>
+    <value name="BC4 UNORM" value="51"/>
+    <value name="BC4 SNORM" value="52"/>
+    <value name="BC5 UNORM" value="53"/>
+    <value name="BC5 SNORM" value="54"/>
+    <value name="BC6H UF16" value="55"/>
+    <value name="BC6H SF16" value="56"/>
+    <value name="BC7 UNORM" value="57"/>
+
+    <value name="Y8 UV8 422" value="64"/>
+    <value name="Y10 UV10 422" value="65"/>
+    <value name="Y16 UV16 422" value="67"/>
+
+    <value name="Y8 UV8 420" value="72"/>
+    <value name="Y10 UV10 420" value="73"/>
+    <value name="Y16 UV16 420" value="75"/>
+    <value name="YUV420 10x6" value="76"/>
+
+    <value name="RAW10" value="120"/>
+    <value name="RAW12" value="121"/>
+
+    <value name="R8G8B8G8" value="124"/>
+    <value name="G8R8G8B8" value="125"/>
+  </enum>
+
+  <enum name="AFBC Superblock Size">
+    <value name="16x16" value="0"/>
+    <value name="32x8" value="1"/>
+    <value name="64x4" value="2"/>
+  </enum>
+
+  <enum name="AFBC Compression Mode">
+    <value name="R8" value="0"/>
+    <value name="R8G8" value="3"/>
+    <value name="R5G6B5" value="4"/>
+    <value name="R4G4B4A4" value="5"/>
+    <value name="R5G5B5A1" value="6"/>
+    <value name="R8G8B8" value="9"/>
+    <value name="R8G8B8A8" value="10"/>
+    <value name="R10G10B10A2" value="11"/>
+    <value name="R11G11B10" value="12"/>
+    <value name="S8" value="14"/>
+    <value name="X24S8" value="15"/>
+
+    <value name="YUV420 6c8" value="32"/>
+    <value name="YUV420 2c8" value="34"/>
+    <value name="YUV420 1c8" value="35"/>
+
+    <value name="YUV422 4c8" value="37"/>
+    <value name="YUV422 2c8" value="38"/>
+    <value name="YUV422 1c8" value="39"/>
+
+    <value name="YUV420 6c10" value="40"/>
+    <value name="YUV420 2c10" value="42"/>
+    <value name="YUV420 1c10" value="43"/>
+
+    <value name="YUV422 4c10" value="45"/>
+    <value name="YUV422 2c10" value="46"/>
+    <value name="YUV422 1c10" value="47"/>
+  </enum>
+
+  <struct name="Plane AFBC Overlay" size="8">
+    <field name="Superblock size" size="3" start="0:8" type="AFBC Superblock Size"/>
+
+    <field name="YTR" size="1" start="0:16" type="bool"/>
+    <field name="Split block" size="1" start="0:17" type="bool"/>
+    <field name="Alpha hint" size="1" start="0:18" type="bool"/>
+    <field name="Tiled header" size="1" start="0:19" type="bool"/>
+    <field name="Prefetch" size="1" start="0:20" type="bool"/>
+    <field name="Compression mode" size="6" start="0:26" type="AFBC Compression Mode"/>
+
+    <field name="Header stride" size="32" start="5:0" type="uint"/>
+  </struct>
+
+  <struct name="Plane ASTC 2D Overlay" size="8">
+    <field name="Block width" size="3" start="26" type="ASTC 2D Dimension"/>
+    <field name="Block height" size="3" start="29" type="ASTC 2D Dimension"/>
+  </struct>
+
+  <struct name="Plane ASTC 3D Overlay" size="8">
+    <field name="Block width" size="2" start="26" type="ASTC 3D Dimension"/>
+    <field name="Block height" size="2" start="28" type="ASTC 3D Dimension"/>
+    <field name="Block depth" size="2" start="30" type="ASTC 3D Dimension"/>
+  </struct>
+
+  <struct name="Plane ASTC Overlay" size="8">
+    <field name="Decode Narrow" size="1" start="24" type="bool"/>
+    <field name="Decode HDR" size="1" start="25" type="bool"/>
+
+    <field name="2D" size="32" start="0" type="Plane ASTC 2D Overlay"/>
+    <field name="3D" size="32" start="0" type="Plane ASTC 3D Overlay"/>
+  </struct>
+
+  <struct name="Plane" size="8" align="32">
+    <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Plane"/>
+    <field name="Plane type" size="4" start="0:4" type="Plane Type"/>
+
+    <field name="AFBC" size="32" start="0:0" type="Plane AFBC Overlay"/>
+    <field name="ASTC" size="32" start="0:0" type="Plane ASTC Overlay"/>
+
+    <!-- Not AFBC -->
+    <field name="Clump ordering" size="4" start="0:8" type="Clump Ordering"/>
+
+    <!-- Generic, Chroma 2p -->
+    <field name="Clump format" size="8" start="24" type="Clump Format"/>
+
+    <field name="Size" size="32" start="1:0" type="uint"/>
     <field name="Pointer" size="64" start="2:0" type="address"/>
-    <field name="Row stride" size="32" start="4:0" type="int"/>
+    <field name="Row stride" size="32" start="4:0" type="uint"/>
+    <field name="Slice stride" size="32" start="6:0" type="int"/>
   </struct>
 
   <struct name="Texture" size="8" align="32">
@@ -659,7 +757,7 @@
     <field name="Width" size="16" start="1:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="1:16" type="uint" modifier="minus(1)"/>
     <field name="Swizzle" size="12" start="2:0" type="uint"/>
-    <field name="Texel ordering" size="4" start="2:12" type="Texture Layout"/>
+    <field name="Texel interleave" size="1" start="2:12" type="bool"/>
     <field name="Levels" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="Minimum level" size="5" start="2:24" type="uint"/>
     <field name="Minimum LOD" size="13" start="3:0" type="uint" default="0"/>
@@ -721,7 +819,7 @@
   <struct name="Shader Program" align="32">
     <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Shader"/>
     <field name="Stage" size="4" start="0:4" type="Shader stage"/>
-    <field name="Primary shader" size="8" start="0:8" type="uint"/>
+    <field name="Primary shader" size="1" start="0:8" type="bool"/>
     <!-- XXX DDK sets/clears these together, so I might have them backward -->
     <field name="Suppress Inf" size="1" start="0:16" type="bool"/>
     <field name="Suppress NaN" size="1" start="0:19" type="bool"/>
@@ -814,11 +912,7 @@
     <value name="D24" value="2"/>
     <value name="D24X8" value="4"/>
     <value name="D24S8" value="5"/>
-    <value name="X8D24" value="6"/>
-    <value name="S8D24" value="7"/>
-    <value name="D32_X8X24" value="13"/>
     <value name="D32" value="14"/>
-    <value name="D32_S8X24" value="15"/>
   </enum>
 
   <enum name="ZS Preload Format">
@@ -827,11 +921,7 @@
 
   <enum name="S Format">
     <value name="S8" value="1"/>
-    <value name="S8X8" value="2"/>
-    <value name="S8X24" value="3"/>
     <value name="X24S8" value="4"/>
-    <value name="X8S8" value="5"/>
-    <value name="X32_S8X24" value="6"/>
   </enum>
 
   <enum name="Tie-Break Rule">
@@ -878,7 +968,7 @@
     <value name="Early ZS always" value="3"/>
   </enum>
 
-  <struct name="Framebuffer Parameters">
+  <struct name="Framebuffer Parameters" align="64">
     <field name="Pre Frame 0" size="3" start="0:0" type="Pre Post Frame Shader Mode"/>
     <field name="Pre Frame 1" size="3" start="0:3" type="Pre Post Frame Shader Mode"/>
     <field name="Post Frame" size="3" start="0:6" type="Pre Post Frame Shader Mode"/>
@@ -917,36 +1007,32 @@
   </struct>
 
   <struct name="ZS CRC Extension" align="64" size="16">
-    <field name="Word 0" size="32" start="0:0" type="hex"/>
+    <field name="ZS Write Format" size="4" start="0:0" type="ZS Format"/>
+    <field name="ZS Block Format" size="4" start="0:4" type="Block Format"/>
+    <field name="ZS MSAA" size="2" start="0:8" default="Single" type="MSAA"/>
+    <field name="CRC Render Target" size="4" start="0:13" type="uint"/>
+    <field name="S Write Format" size="4" start="0:16" type="S Format"/>
+    <field name="S Block Format" size="4" start="0:20" type="Block Format"/>
+    <field name="S MSAA" size="2" start="0:24" default="Single" type="MSAA"/>
+
+    <field name="AFBC Reverse Issue Order" size="1" start="0:30" type="bool"/>
+    <!-- Note: Must be set if AFBC is enabled and effective_tile_size is not 16x16 -->
+    <field name="ZS Clean Pixel Write Enable" size="1" start="0:31" type="bool"/>
+
     <field name="CRC Row Stride" size="32" start="1:0" type="uint"/>
     <field name="CRC Clear Color" size="64" start="2:0" type="hex"/>
     <field name="CRC Base" size="64" start="4:0" type="address"/>
-    <field name="Word 6" size="64" start="6:0" type="hex"/>
-    <field name="Word 8" size="64" start="8:0" type="hex"/>
-    <field name="Word 10" size="64" start="10:0" type="hex"/>
-    <field name="Word 12" size="64" start="12:0" type="hex"/>
-    <field name="Word 14" size="64" start="14:0" type="hex"/>
 
-    <!-- TODO: everything below this, Arm shuffled this descriptor -->
-    <!--
-    <field name="ZS Write Format" size="4" start="3:0" type="ZS Format"/>
-    <field name="ZS Block Format" size="4" start="3:4" type="Block Format"/>
-    <field name="ZS MSAA" size="2" start="3:8" default="Single" type="MSAA"/>
-    <field name="ZS Clean Pixel Write Enable" size="1" start="3:10" type="bool"/>
-    <field name="CRC Render Target" size="4" start="3:11" type="uint"/>
-    <field name="S Write Format" size="4" start="3:16" type="S Format"/>
-    <field name="S Block Format" size="4" start="3:20" type="Block Format"/>
-    <field name="S MSAA" size="2" start="3:24" default="Single" type="MSAA"/>
-    <field name="ZS Writeback Base" size="64" start="4:0" type="address"/>
-    <field name="ZS Writeback Row Stride" size="32" start="6:0" type="uint"/>
-    <field name="ZS Writeback Surface Stride" size="32" start="7:0" type="uint"/>
-    <field name="S Writeback Base" size="64" start="8:0" type="address"/>
-    <field name="S Writeback Row Stride" size="32" start="10:0" type="uint"/>
-    <field name="S Writeback Surface Stride" size="32" start="11:0" type="uint"/>
-    <field name="ZS AFBC Header" size="64" start="4:0" type="address"/>
-    <field name="ZS AFBC Row Stride" size="13" start="6:0" type="uint"/>
-    <field name="ZS AFBC Body" size="64" start="8:0" type="address"/>
-    -->
+    <field name="ZS Writeback Base" size="64" start="8:0" type="address"/>
+    <!-- Header clumps per row (different than Bifrost's AFBC line stride) -->
+    <field name="ZS Writeback Row Stride" size="32" start="10:0" type="uint"/>
+    <field name="ZS Writeback Surface Stride" size="32" start="11:0" type="uint"/>
+    <field name="ZS AFBC Body Offset" size="32" start="11:0" type="uint"/>
+
+    <field name="S Writeback Base" size="64" start="12:0" type="address"/>
+    <field name="S Writeback Row Stride" size="32" start="14:0" type="uint"/>
+    <field name="S Writeback Surface Stride" size="32" start="15:0" type="uint"/>
+    <field name="S AFBC Body Offset" size="32" start="15:0" type="uint"/>
   </struct>
 
   <enum name="YUV Conv K6">
@@ -1021,8 +1107,26 @@
     <field name="Clear" size="128" start="12:0" type="RT Clear"/>
   </struct>
 
-  <struct name="Tiler Heap" align="64">
-    <field name="Unknown" size="32" start="0:0" type="hex" default="0x329"/>
+  <enum name="Chunk Size">
+    <value name="256 KiB" value="0"/>
+    <value name="512 KiB" value="1"/>
+    <value name="1 MiB" value="2"/>
+    <value name="2 MiB" value="3"/>
+  </enum>
+
+  <enum name="Chunk Partition">
+    <value name="Dynamic" value="0"/>
+    <value name="Static 25%" value="1"/>
+    <value name="Static 50%" value="2"/>
+    <value name="Static 75%" value="3"/>
+  </enum>
+
+  <!-- Actually a buffer descriptor, split out for backwards compatibility.-->
+  <struct name="Tiler Heap" align="32">
+    <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Buffer"/>
+    <field name="Buffer type" size="4" start="0:4" type="Buffer Type" default="Tiler heap"/>
+    <field name="Chunk size" size="2" start="0:8" type="Chunk Size" default="2 MiB"/>
+    <field name="Partitioning" size="2" start="0:10" type="Chunk Partition" default="Dynamic"/>
     <field name="Size" size="32" start="1:0" type="uint" modifier="align(4096)"/>
     <field name="Base" size="64" start="2:0" type="address"/>
     <field name="Bottom" size="64" start="4:0" type="address"/>
@@ -1079,7 +1183,7 @@
     <section name="Padding" offset="64" type="Framebuffer Padding"/>
   </aggregate>
 
-  <struct name="Job Header" align="64">
+  <struct name="Job Header" align="128">
     <field name="Exception Status" size="32" start="0:0" type="uint"/>
     <field name="First Incomplete Task" size="32" start="1:0" type="uint"/>
     <field name="Fault Pointer" size="64" start="2:0" type="address"/>
@@ -1107,7 +1211,7 @@
     <field name="Tile Enable Map Row Stride" size="8" start="6:0" type="uint"/>
   </struct>
 
-  <aggregate name="Fragment Job" align="64">
+  <aggregate name="Fragment Job" align="128">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Payload" offset="32" type="Fragment Job Payload"/>
   </aggregate>
@@ -1140,17 +1244,17 @@
     <field name="L2 Invalidate" size="1" start="1:1" type="bool"/>
   </struct>
 
-  <aggregate name="Write Value Job" align="64">
+  <aggregate name="Write Value Job" align="128">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Payload" offset="32" type="Write Value Job Payload"/>
   </aggregate>
 
-  <aggregate name="Cache Flush Job" align="64">
+  <aggregate name="Cache Flush Job" align="128">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Payload" offset="32" type="Cache Flush Job Payload"/>
   </aggregate>
 
-  <struct name="Shader" size="16">
+  <struct name="Shader" size="16" align="64">
     <field name="FAU count" start="1:0" size="32" type="uint"/>
     <field name="Resources" start="8:0" size="64" type="address"/>
     <field name="Shader" start="10:0" size="64" type="address"/>
@@ -1179,7 +1283,7 @@
   </struct>
 
   <!-- Compute job also covers vertex and geometry operations -->
-  <aggregate name="Compute Job" align="64">
+  <aggregate name="Compute Job" align="128">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Payload" offset="32" type="Compute Payload"/>
   </aggregate>
@@ -1200,6 +1304,7 @@
     <field name="Back stencil fail" size="3" start="0:19" type="Stencil Op"/>
     <field name="Back depth fail" size="3" start="0:22" type="Stencil Op"/>
     <field name="Back depth pass" size="3" start="0:25" type="Stencil Op"/>
+    <field name="Stencil from shader" size="1" start="0:30" type="bool"/>
     <field name="Stencil test enable" size="1" start="0:31" type="bool"/>
     <field name="Front write mask" size="8" start="1:0" type="hex"/>
     <field name="Back write mask" size="8" start="1:8" type="hex"/>
@@ -1213,7 +1318,6 @@
     <field name="Depth write enable" size="1" start="4:27" type="bool"/>
     <field name="Depth bias enable" size="1" start="4:28" type="bool"/>
     <field name="Depth function" size="3" start="4:29" type="Func"/>
-    <field name="Stencil from shader" size="1" start="4:30" type="bool"/>
     <field name="Depth units" size="32" start="5:0" type="float"/>
     <field name="Depth factor" size="32" start="6:0" type="float"/>
     <field name="Depth bias clamp" size="32" start="7:0" type="float"/>
@@ -1272,7 +1376,7 @@
     <field name="Address" size="64" start="0:0" type="address"/>
   </struct>
 
-  <aggregate name="IDVS Helper Job" size="384" align="64">
+  <aggregate name="Malloc Vertex Job" size="384" align="128">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Primitive" offset="32" type="Primitive"/>
     <section name="Counts" offset="48" type="IDVS Counts"/>

@@ -30,20 +30,11 @@
 #include "compiler/nir/nir.h"
 #include "util/format/u_format.h"
 
-/* NATIVE formats can use a typed load/store. PACK formats cannot but can use a
- * typed pack/unpack instruction. SOFTWARE formats are lowered */
-
-enum pan_format_class {
-        PAN_FORMAT_NATIVE,
-        PAN_FORMAT_PACK,
-        PAN_FORMAT_SOFTWARE
-};
-
 nir_alu_type pan_unpacked_type_for_format(const struct util_format_description *desc);
 
 bool pan_lower_framebuffer(nir_shader *shader,
                            const enum pipe_format *rt_fmts,
                            uint8_t raw_fmt_mask,
-                           bool is_blend, unsigned quirks);
+                           bool is_blend, bool broken_ld_special);
 
 #endif

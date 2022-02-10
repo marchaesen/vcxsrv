@@ -376,7 +376,10 @@ static unsigned try_rewrite_constant(struct radeon_compiler *c,
 			continue;
 		}
 
-		assert(new_swz <= RC_SWIZZLE_W);
+		if (new_swz > RC_SWIZZLE_W) {
+			rc_error(c, "Bad swizzle in try_rewrite_constant()");
+			new_swz = RC_SWIZZLE_X;
+		}
 
 		switch (old_swz) {
 		case RC_SWIZZLE_ZERO:

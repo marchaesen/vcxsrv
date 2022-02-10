@@ -38,7 +38,6 @@
 #include "util/u_framebuffer.h"
 #include "pan_util.h"
 #include "decode.h"
-#include "panfrost-quirks.h"
 
 #define foreach_batch(ctx, idx) \
         BITSET_FOREACH_SET(idx, ctx->batches.active, PAN_MAX_BATCHES)

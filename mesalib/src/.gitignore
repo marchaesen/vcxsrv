@@ -43,3 +43,5 @@ util/xmlpool/options.h
 util/driconf_static.h
 mesa/main/marshal_generated.h
 gallium/auxiliary/indices/u_indices_gen.c
+gallium/auxiliary/tr_util.h
+gallium/targets/dri/tr_util.c

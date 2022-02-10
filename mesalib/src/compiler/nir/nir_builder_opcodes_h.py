@@ -30,9 +30,13 @@ def src_decl_list(num_srcs):
 
 def src_list(num_srcs):
    return ', '.join('src' + str(i) for i in range(num_srcs))
+
+def needs_num_components(opcode):
+   return "replicated" in opcode.name
 %>
 
 % for name, opcode in sorted(opcodes.items()):
+% if not needs_num_components(opcode):
 static inline nir_ssa_def *
 nir_${name}(nir_builder *build, ${src_decl_list(opcode.num_inputs)})
 {
@@ -43,6 +47,7 @@ nir_${name}(nir_builder *build, ${src_decl_list(opcode.num_inputs)})
    return nir_build_alu_src_arr(build, nir_op_${name}, srcs);
 % endif
 }
+% endif
 % endfor
 
 % for name, opcode in sorted(INTR_OPCODES.items()):
@@ -118,6 +123,17 @@ _nir_build_${name}(nir_builder *build${intrinsic_decl_list(opcode)})
    % for i in range(opcode.num_srcs):
    intrin->src[${i}] = nir_src_for_ssa(src${i});
    % endfor
+   % if WRITE_MASK in opcode.indices and 0 in opcode.src_components:
+   if (!indices.write_mask)
+      indices.write_mask = BITFIELD_MASK(intrin->num_components);
+   % endif
+   % if ALIGN_MUL in opcode.indices and 0 in opcode.src_components:
+   if (!indices.align_mul)
+      indices.align_mul = src${opcode.src_components.index(0)}->bit_size / 8u;
+   % elif ALIGN_MUL in opcode.indices and opcode.dest_components == 0:
+   if (!indices.align_mul)
+      indices.align_mul = intrin->dest.ssa.bit_size / 8u;
+   % endif
    % for index in opcode.indices:
    nir_intrinsic_set_${index.name}(intrin, indices.${index.name});
    % endfor
@@ -149,7 +165,7 @@ _nir_build_${name}(build${intrinsic_macro_list(opcode)}, (struct _nir_${name}_in
 #endif /* _NIR_BUILDER_OPCODES_ */"""
 
 from nir_opcodes import opcodes
-from nir_intrinsics import INTR_OPCODES
+from nir_intrinsics import INTR_OPCODES, WRITE_MASK, ALIGN_MUL
 from mako.template import Template
 
-print(Template(template).render(opcodes=opcodes, INTR_OPCODES=INTR_OPCODES))
+print(Template(template).render(opcodes=opcodes, INTR_OPCODES=INTR_OPCODES, WRITE_MASK=WRITE_MASK, ALIGN_MUL=ALIGN_MUL))

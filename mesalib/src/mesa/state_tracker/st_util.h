@@ -64,35 +64,6 @@ st_invalidate_readpix_cache(struct st_context *st)
    }
 }
 
-
-#define Y_0_TOP 1
-#define Y_0_BOTTOM 2
-
-static inline GLuint
-st_fb_orientation(const struct gl_framebuffer *fb)
-{
-   if (fb && fb->FlipY) {
-      /* Drawing into a window (on-screen buffer).
-       *
-       * Negate Y scale to flip image vertically.
-       * The NDC Y coords prior to viewport transformation are in the range
-       * [y=-1=bottom, y=1=top]
-       * Hardware window coords are in the range [y=0=top, y=H-1=bottom] where
-       * H is the window height.
-       * Use the viewport transformation to invert Y.
-       */
-      return Y_0_TOP;
-   }
-   else {
-      /* Drawing into user-created FBO (very likely a texture).
-       *
-       * For textures, T=0=Bottom, so by extension Y=0=Bottom for rendering.
-       */
-      return Y_0_BOTTOM;
-   }
-}
-
-
 static inline bool
 st_user_clip_planes_enabled(struct gl_context *ctx)
 {
@@ -134,10 +105,6 @@ st_point_size_per_vertex(struct gl_context *ctx)
    }
    return false;
 }
-
-/** clear-alloc a struct-sized object, with casting */
-#define ST_CALLOC_STRUCT(T)   (struct T *) calloc(1, sizeof(struct T))
-
 
 #ifdef __cplusplus
 }

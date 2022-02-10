@@ -25,7 +25,6 @@
 #include "state_tracker/st_context.h"
 #include "state_tracker/st_cb_bitmap.h"
 #include "state_tracker/st_cb_copyimage.h"
-#include "state_tracker/st_cb_fbo.h"
 #include "state_tracker/st_cb_texture.h"
 #include "state_tracker/st_texture.h"
 #include "state_tracker/st_util.h"
@@ -645,8 +644,8 @@ st_CopyImageSubData(struct gl_context *ctx,
    st_invalidate_readpix_cache(st);
 
    if (src_image) {
-      struct st_texture_image *src = st_texture_image(src_image);
-      struct st_texture_object *stObj = st_texture_object(src_image->TexObject);
+      struct gl_texture_image *src = src_image;
+      struct gl_texture_object *stObj = src_image->TexObject;
       src_res = src->pt;
       src_level = stObj->pt != src_res ? 0 : src_image->Level;
       src_z += src_image->Face;
@@ -655,14 +654,13 @@ st_CopyImageSubData(struct gl_context *ctx,
          src_z += src_image->TexObject->Attrib.MinLayer;
       }
    } else {
-      struct st_renderbuffer *src = st_renderbuffer(src_renderbuffer);
-      src_res = src->texture;
+      src_res = src_renderbuffer->texture;
       src_level = 0;
    }
 
    if (dst_image) {
-      struct st_texture_image *dst = st_texture_image(dst_image);
-      struct st_texture_object *stObj = st_texture_object(dst_image->TexObject);
+      struct gl_texture_image *dst = dst_image;
+      struct gl_texture_object *stObj = dst_image->TexObject;
       dst_res = dst->pt;
       dst_level = stObj->pt != dst_res ? 0 : dst_image->Level;
       dst_z += dst_image->Face;
@@ -671,8 +669,7 @@ st_CopyImageSubData(struct gl_context *ctx,
          dst_z += dst_image->TexObject->Attrib.MinLayer;
       }
    } else {
-      struct st_renderbuffer *dst = st_renderbuffer(dst_renderbuffer);
-      dst_res = dst->texture;
+      dst_res = dst_renderbuffer->texture;
       dst_level = 0;
    }
 

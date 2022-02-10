@@ -290,6 +290,76 @@ resize_shift_amount(struct ir3_context *ctx, struct ir3_instruction *src,
 }
 
 static void
+emit_alu_dot_4x8_as_dp4acc(struct ir3_context *ctx, nir_alu_instr *alu,
+                           struct ir3_instruction **dst,
+                           struct ir3_instruction **src)
+{
+   struct ir3_instruction *accumulator = NULL;
+   if (alu->op == nir_op_udot_4x8_uadd_sat) {
+      accumulator = create_immed(ctx->block, 0);
+   } else {
+      accumulator = src[2];
+   }
+
+   dst[0] = ir3_DP4ACC(ctx->block, src[0], 0, src[1], 0, accumulator, 0);
+
+   if (alu->op == nir_op_udot_4x8_uadd ||
+       alu->op == nir_op_udot_4x8_uadd_sat) {
+      dst[0]->cat3.signedness = IR3_SRC_UNSIGNED;
+   } else {
+      dst[0]->cat3.signedness = IR3_SRC_MIXED;
+   }
+
+   /* For some reason (sat) doesn't work in unsigned case so
+    * we have to emulate it.
+    */
+   if (alu->op == nir_op_udot_4x8_uadd_sat) {
+      dst[0] = ir3_ADD_U(ctx->block, dst[0], 0, src[2], 0);
+      dst[0]->flags |= IR3_INSTR_SAT;
+   } else if (alu->op == nir_op_sudot_4x8_iadd_sat) {
+      dst[0]->flags |= IR3_INSTR_SAT;
+   }
+}
+
+static void
+emit_alu_dot_4x8_as_dp2acc(struct ir3_context *ctx, nir_alu_instr *alu,
+                           struct ir3_instruction **dst,
+                           struct ir3_instruction **src)
+{
+   int signedness;
+   if (alu->op == nir_op_udot_4x8_uadd ||
+       alu->op == nir_op_udot_4x8_uadd_sat) {
+      signedness = IR3_SRC_UNSIGNED;
+   } else {
+      signedness = IR3_SRC_MIXED;
+   }
+
+   struct ir3_instruction *accumulator = NULL;
+   if (alu->op == nir_op_udot_4x8_uadd_sat ||
+       alu->op == nir_op_sudot_4x8_iadd_sat) {
+      accumulator = create_immed(ctx->block, 0);
+   } else {
+      accumulator = src[2];
+   }
+
+   dst[0] = ir3_DP2ACC(ctx->block, src[0], 0, src[1], 0, accumulator, 0);
+   dst[0]->cat3.packed = IR3_SRC_PACKED_LOW;
+   dst[0]->cat3.signedness = signedness;
+
+   dst[0] = ir3_DP2ACC(ctx->block, src[0], 0, src[1], 0, dst[0], 0);
+   dst[0]->cat3.packed = IR3_SRC_PACKED_HIGH;
+   dst[0]->cat3.signedness = signedness;
+
+   if (alu->op == nir_op_udot_4x8_uadd_sat) {
+      dst[0] = ir3_ADD_U(ctx->block, dst[0], 0, src[2], 0);
+      dst[0]->flags |= IR3_INSTR_SAT;
+   } else if (alu->op == nir_op_sudot_4x8_iadd_sat) {
+      dst[0] = ir3_ADD_S(ctx->block, dst[0], 0, src[2], 0);
+      dst[0]->flags |= IR3_INSTR_SAT;
+   }
+}
+
+static void
 emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 {
    const nir_op_info *info = &nir_op_infos[alu->op];
@@ -744,6 +814,31 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       dst[0] = ir3_BFREV_B(b, src[0], 0);
       break;
 
+   case nir_op_uadd_sat:
+      dst[0] = ir3_ADD_U(b, src[0], 0, src[1], 0);
+      dst[0]->flags |= IR3_INSTR_SAT;
+      break;
+   case nir_op_iadd_sat:
+      dst[0] = ir3_ADD_S(b, src[0], 0, src[1], 0);
+      dst[0]->flags |= IR3_INSTR_SAT;
+      break;
+
+   case nir_op_udot_4x8_uadd:
+   case nir_op_udot_4x8_uadd_sat:
+   case nir_op_sudot_4x8_iadd:
+   case nir_op_sudot_4x8_iadd_sat: {
+      if (ctx->compiler->has_dp4acc) {
+         emit_alu_dot_4x8_as_dp4acc(ctx, alu, dst, src);
+      } else if (ctx->compiler->has_dp2acc) {
+         emit_alu_dot_4x8_as_dp2acc(ctx, alu, dst, src);
+      } else {
+         ir3_context_error(ctx, "ALU op should have been lowered: %s\n",
+                           nir_op_infos[alu->op].name);
+      }
+
+      break;
+   }
+
    default:
       ir3_context_error(ctx, "Unhandled ALU op: %s\n",
                         nir_op_infos[alu->op].name);
@@ -777,6 +872,11 @@ emit_intrinsic_load_ubo_ldc(struct ir3_context *ctx, nir_intrinsic_instr *intr,
                             struct ir3_instruction **dst)
 {
    struct ir3_block *b = ctx->block;
+
+   /* This is only generated for us by nir_lower_ubo_vec4, which leaves base =
+    * 0.
+    */
+   assert(nir_intrinsic_base(intr) == 0);
 
    unsigned ncomp = intr->num_components;
    struct ir3_instruction *offset = ir3_get_src(ctx, &intr->src[1])[0];
@@ -1400,6 +1500,8 @@ emit_control_barrier(struct ir3_context *ctx)
    barrier->flags = IR3_INSTR_SS | IR3_INSTR_SY;
    barrier->barrier_class = IR3_BARRIER_EVERYTHING;
    array_insert(b, b->keeps, barrier);
+
+   ctx->so->has_barrier = true;
 }
 
 static void
@@ -2101,9 +2203,14 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
          dst[i] = create_driver_param(ctx, IR3_DP_LOCAL_GROUP_SIZE_X + i);
       }
       break;
-   case nir_intrinsic_load_subgroup_size:
-      dst[0] = create_driver_param(ctx, IR3_DP_SUBGROUP_SIZE);
+   case nir_intrinsic_load_subgroup_size: {
+      assert(ctx->so->type == MESA_SHADER_COMPUTE ||
+             ctx->so->type == MESA_SHADER_FRAGMENT);
+      enum ir3_driver_param size = ctx->so->type == MESA_SHADER_COMPUTE ?
+         IR3_DP_CS_SUBGROUP_SIZE : IR3_DP_FS_SUBGROUP_SIZE;
+      dst[0] = create_driver_param(ctx, size);
       break;
+   }
    case nir_intrinsic_load_subgroup_id_shift_ir3:
       dst[0] = create_driver_param(ctx, IR3_DP_SUBGROUP_ID_SHIFT);
       break;
@@ -3968,6 +4075,7 @@ emit_instructions(struct ir3_context *ctx)
       barrier->flags = IR3_INSTR_SS | IR3_INSTR_SY;
       barrier->barrier_class = IR3_BARRIER_EVERYTHING;
       array_insert(ctx->block, ctx->block->keeps, barrier);
+      ctx->so->has_barrier = true;
    }
 
    /* And emit the body: */

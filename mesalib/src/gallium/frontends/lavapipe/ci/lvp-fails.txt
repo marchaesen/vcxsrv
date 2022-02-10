@@ -1,1 +1,10 @@
 dEQP-VK.api.driver_properties.conformance_version,Fail
+
+# Vertex 0: Expected red, got (-0.372549, -0.372549, -0.372549, -0.372549) (Fail)
+# Likely fixed by VK-GL-CTS a3ac66a77e14 ("Zero initialize XFB counter buffer")
+dEQP-VK.rasterization.provoking_vertex.transform_feedback.first.line_strip_with_adjacency,Fail
+dEQP-VK.rasterization.provoking_vertex.transform_feedback.per_pipeline.triangle_strip_with_adjacency,Fail
+
+# VK-GL-CTS 1.3.1.0 uprev:
+dEQP-VK.glsl.crash_test.divbyzero_comp,Crash
+dEQP-VK.glsl.texture_functions.query.texturequerylod.isamplercube_zero_uv_width_fragment,Fail

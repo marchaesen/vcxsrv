@@ -278,39 +278,37 @@ rescale (GtkWidget *may_be_null, app_t *app)
 }
 
 static gboolean
-on_expose (GtkWidget *da, GdkEvent *event, gpointer data)
+on_draw (GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-    app_t *app = data;
-    GdkRectangle *area = &event->expose.area;
+    app_t *app = user_data;
+    GdkRectangle area;
     cairo_surface_t *surface;
     pixman_image_t *tmp;
-    cairo_t *cr;
     uint32_t *pixels;
 
-    pixels = calloc (1, area->width * area->height * 4);
-    tmp = pixman_image_create_bits (
-        PIXMAN_a8r8g8b8, area->width, area->height, pixels, area->width * 4);
+    gdk_cairo_get_clip_rectangle(cr, &area);
 
-    if (area->x < app->scaled_width && area->y < app->scaled_height)
+    pixels = calloc (1, area.width * area.height * 4);
+    tmp = pixman_image_create_bits (
+        PIXMAN_a8r8g8b8, area.width, area.height, pixels, area.width * 4);
+
+    if (area.x < app->scaled_width && area.y < app->scaled_height)
     {
         pixman_image_composite (
             PIXMAN_OP_SRC,
             app->original, NULL, tmp,
-            area->x, area->y, 0, 0, 0, 0,
-            app->scaled_width - area->x, app->scaled_height - area->y);
+            area.x, area.y, 0, 0, 0, 0,
+            app->scaled_width - area.x, app->scaled_height - area.y);
     }
 
     surface = cairo_image_surface_create_for_data (
         (uint8_t *)pixels, CAIRO_FORMAT_ARGB32,
-        area->width, area->height, area->width * 4);
+        area.width, area.height, area.width * 4);
 
-    cr = gdk_cairo_create (da->window);
-
-    cairo_set_source_surface (cr, surface, area->x, area->y);
+    cairo_set_source_surface (cr, surface, area.x, area.y);
 
     cairo_paint (cr);
 
-    cairo_destroy (cr);
     cairo_surface_destroy (surface);
     free (pixels);
     pixman_image_unref (tmp);
@@ -400,7 +398,7 @@ app_new (pixman_image_t *original)
     gtk_scale_add_mark (GTK_SCALE (widget), 0.0, GTK_POS_LEFT, NULL);
 
     widget = get_widget (app, "drawing_area");
-    g_signal_connect (widget, "expose_event", G_CALLBACK (on_expose), app);
+    g_signal_connect (widget, "draw", G_CALLBACK (on_draw), app);
 
     set_up_filter_box (app, "reconstruct_x_combo_box");
     set_up_filter_box (app, "reconstruct_y_combo_box");

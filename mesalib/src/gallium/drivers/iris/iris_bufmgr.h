@@ -146,7 +146,7 @@ enum iris_heap {
 
 extern const char *iris_heap_to_string[];
 
-#define IRIS_BATCH_COUNT 2
+#define IRIS_BATCH_COUNT 3
 
 struct iris_bo_screen_deps {
    struct iris_syncobj *write_syncobjs[IRIS_BATCH_COUNT];
@@ -412,6 +412,23 @@ iris_bo_is_exported(const struct iris_bo *bo)
 {
    bo = iris_get_backing_bo((struct iris_bo *) bo);
    return bo->real.exported;
+}
+
+/**
+ * True if the BO prefers to reside in device-local memory.
+ *
+ * We don't consider eviction here; this is meant to be a performance hint.
+ * It will return true for BOs allocated from the LMEM or LMEM+SMEM heaps,
+ * even if the buffer has been temporarily evicted to system memory.
+ */
+static inline bool
+iris_bo_likely_local(const struct iris_bo *bo)
+{
+   if (!bo)
+      return false;
+
+   bo = iris_get_backing_bo((struct iris_bo *) bo);
+   return bo->real.heap != IRIS_HEAP_SYSTEM_MEMORY;
 }
 
 static inline enum iris_mmap_mode

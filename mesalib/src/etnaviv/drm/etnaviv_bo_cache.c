@@ -27,8 +27,6 @@
 #include "etnaviv_priv.h"
 #include "etnaviv_drmif.h"
 
-void _etna_bo_del(struct etna_bo *bo);
-
 static void add_bucket(struct etna_bo_cache *cache, int size)
 {
 	unsigned i = cache->num_buckets;
@@ -86,7 +84,7 @@ void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time)
 
 			VG_BO_OBTAIN(bo);
 			list_del(&bo->list);
-			_etna_bo_del(bo);
+			etna_bo_free(bo);
 		}
 	}
 
@@ -110,14 +108,6 @@ static struct etna_bo_bucket *get_bucket(struct etna_bo_cache *cache, uint32_t s
 	return NULL;
 }
 
-static int is_idle(struct etna_bo *bo)
-{
-	return etna_bo_cpu_prep(bo,
-			DRM_ETNA_PREP_READ |
-			DRM_ETNA_PREP_WRITE |
-			DRM_ETNA_PREP_NOSYNC) == 0;
-}
-
 static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t flags)
 {
 	struct etna_bo *bo = NULL, *tmp;
@@ -133,7 +123,7 @@ static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t fl
 			continue;
 
 		/* check if the first BO with matching flags is idle */
-		if (is_idle(bo)) {
+		if (etna_bo_is_idle(bo)) {
 			list_delinit(&bo->list);
 			goto out_unlock;
 		}

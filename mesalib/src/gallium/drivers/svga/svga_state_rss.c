@@ -321,10 +321,9 @@ emit_rss_vgpu9(struct svga_context *svga, uint64_t dirty)
 static struct svga_rasterizer_state *
 get_no_cull_rasterizer_state(struct svga_context *svga)
 {
-   const struct svga_rasterizer_state *r = svga->curr.rast;
-   unsigned int aa_point = r->templ.point_smooth;
+   struct svga_rasterizer_state *r = svga->curr.rast;
 
-   if (!svga->rasterizer_no_cull[aa_point]) {
+   if (!r->no_cull_rasterizer) {
       struct pipe_rasterizer_state rast;
 
       memset(&rast, 0, sizeof(rast));
@@ -341,10 +340,10 @@ get_no_cull_rasterizer_state(struct svga_context *svga)
       rast.bottom_edge_rule = r->templ.bottom_edge_rule;
       rast.clip_halfz = r->templ.clip_halfz;
 
-      svga->rasterizer_no_cull[aa_point] =
+      r->no_cull_rasterizer =
                svga->pipe.create_rasterizer_state(&svga->pipe, &rast);
    }
-   return svga->rasterizer_no_cull[aa_point];
+   return r->no_cull_rasterizer;
 }
 
 
@@ -359,6 +358,29 @@ get_no_depth_stencil_test_state(struct svga_context *svga)
          svga->pipe.create_depth_stencil_alpha_state(&svga->pipe, &ds);
    }
    return svga->depthstencil_disable;
+}
+
+
+/**
+ * A helper function to create an alternate svga rasterizer state object to use
+ * forcedSampleCount to support multisampled framebuffer without attachments.
+ */
+static SVGA3dRasterizerStateId
+get_alt_rasterizer_state_id(struct svga_context *svga,
+                            struct svga_rasterizer_state *rast,
+                            unsigned samples)
+{
+   assert(samples <= SVGA_MAX_FRAMEBUFFER_DEFAULT_SAMPLES);
+   assert(samples >= 0);
+
+   if (samples <= 1)
+      return rast->id;
+
+   if (rast->altRastIds[samples] == SVGA3D_INVALID_ID) {
+      rast->altRastIds[samples] = svga_define_rasterizer_object(svga, rast, samples);
+   }
+
+   return rast->altRastIds[samples];
 }
 
 
@@ -457,8 +479,9 @@ emit_rss_vgpu10(struct svga_context *svga, uint64_t dirty)
          }
       }
 
-      if (dirty & (SVGA_NEW_REDUCED_PRIMITIVE | SVGA_NEW_RAST)) {
-         const struct svga_rasterizer_state *rast;
+      if (dirty & (SVGA_NEW_REDUCED_PRIMITIVE | SVGA_NEW_RAST |
+                   SVGA_NEW_FRAME_BUFFER)) {
+         struct svga_rasterizer_state *rast = svga->curr.rast;
 
          if (svga->curr.reduced_prim == PIPE_PRIM_POINTS &&
              svga->curr.gs && svga->curr.gs->wide_point) {
@@ -468,16 +491,28 @@ emit_rss_vgpu10(struct svga_context *svga, uint64_t dirty)
              */
             rast = get_no_cull_rasterizer_state(svga);
          }
-         else {
-            rast = svga->curr.rast;
+
+         int rastId = rast->id;
+
+         /* In the case of no-attachment framebuffer, the sample count will be
+          * specified in forcedSampleCount in the RasterizerState_v2 object.
+          */
+         if ((svga->curr.framebuffer.nr_cbufs == 0) &&
+             (svga->curr.framebuffer.zsbuf == NULL)) {
+            rastId =
+               get_alt_rasterizer_state_id(svga, rast,
+                                           svga->curr.framebuffer.samples);
+
+            if (rastId == SVGA3D_INVALID_ID)
+               return PIPE_ERROR;
          }
 
-         if (svga->state.hw_draw.rasterizer_id != rast->id) {
+         if (svga->state.hw_draw.rasterizer_id != rastId) {
             /* Set/bind the rasterizer state object */
-            ret = SVGA3D_vgpu10_SetRasterizerState(svga->swc, rast->id);
+            ret = SVGA3D_vgpu10_SetRasterizerState(svga->swc, rastId);
             if (ret != PIPE_OK)
                return ret;
-            svga->state.hw_draw.rasterizer_id = rast->id;
+            svga->state.hw_draw.rasterizer_id = rastId;
          }
       }
       svga->state.hw_draw.rasterizer_discard = FALSE;

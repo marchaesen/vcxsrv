@@ -326,7 +326,9 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return enable_sparse ?
          si_get_param(pscreen, PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS) : 0;
    case PIPE_CAP_SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS:
-      return enable_sparse ? 1 : 0;
+   case PIPE_CAP_QUERY_SPARSE_TEXTURE_RESIDENCY:
+   case PIPE_CAP_CLAMP_SPARSE_TEXTURE_LOD:
+      return enable_sparse;
 
    /* Viewports and render targets. */
    case PIPE_CAP_MAX_VIEWPORTS:
@@ -1066,11 +1068,12 @@ void si_init_screen_get_functions(struct si_screen *sscreen)
       .lower_insert_word = true,
       .lower_rotate = true,
       .lower_to_scalar = true,
-      .has_dot_4x8 = sscreen->info.has_accelerated_dot_product,
+      .has_sdot_4x8 = sscreen->info.has_accelerated_dot_product,
+      .has_udot_4x8 = sscreen->info.has_accelerated_dot_product,
       .has_dot_2x16 = sscreen->info.has_accelerated_dot_product,
       .optimize_sample_mask_in = true,
-      .max_unroll_iterations = 128,
-      .max_unroll_iterations_aggressive = 128,
+      .max_unroll_iterations = LLVM_VERSION_MAJOR >= 13 ? 128 : 32,
+      .max_unroll_iterations_aggressive = LLVM_VERSION_MAJOR >= 13 ? 128 : 32,
       .use_interpolated_input_intrinsics = true,
       .lower_uniforms_to_ubo = true,
       .support_16bit_alu = sscreen->options.fp16,

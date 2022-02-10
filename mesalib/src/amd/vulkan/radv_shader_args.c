@@ -99,6 +99,10 @@ needs_view_index_sgpr(const struct radv_nir_compiler_options *options,
           (info->is_ngg && options->key.has_multiview_view_index))
          return true;
       break;
+   case MESA_SHADER_MESH:
+      if (info->uses_view_index || options->key.has_multiview_view_index)
+         return true;
+      break;
    default:
       break;
    }
@@ -115,6 +119,17 @@ count_vs_user_sgprs(const struct radv_shader_info *info)
    if (info->vs.needs_draw_id)
       count++;
    if (info->vs.needs_base_instance)
+      count++;
+
+   return count;
+}
+
+static uint8_t
+count_ms_user_sgprs(const struct radv_shader_info *info)
+{
+   uint8_t count = 1; /* vertex offset */
+
+   if (info->vs.needs_draw_id)
       count++;
 
    return count;
@@ -140,7 +155,7 @@ allocate_inline_push_consts(const struct radv_shader_info *info,
    uint8_t remaining_sgprs = user_sgpr_info->remaining_sgprs;
 
    /* Only supported if shaders use push constants. */
-   if (info->min_push_constant_used == UINT8_MAX)
+   if (info->min_push_constant_used == UINT16_MAX)
       return;
 
    /* Only supported if shaders don't have indirect push constants. */
@@ -221,6 +236,8 @@ allocate_user_sgprs(const struct radv_nir_compiler_options *options,
 
          if (previous_stage == MESA_SHADER_VERTEX) {
             user_sgpr_count += count_vs_user_sgprs(info);
+         } else if (previous_stage == MESA_SHADER_MESH) {
+            user_sgpr_count += count_ms_user_sgprs(info);
          }
       }
       break;
@@ -389,6 +406,24 @@ declare_tes_input_vgprs(struct radv_shader_args *args)
 }
 
 static void
+declare_ms_input_sgprs(const struct radv_shader_info *info, struct radv_shader_args *args)
+{
+   ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT, &args->ac.base_vertex);
+   if (info->vs.needs_draw_id) {
+      ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT, &args->ac.draw_id);
+   }
+}
+
+static void
+declare_ms_input_vgprs(struct radv_shader_args *args)
+{
+   ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.vertex_id);
+   ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, NULL); /* user vgpr */
+   ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, NULL); /* user vgpr */
+   ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, NULL); /* instance_id */
+}
+
+static void
 declare_ps_input_vgprs(const struct radv_shader_info *info, struct radv_shader_args *args,
                        bool remap_spi_ps_input)
 {
@@ -505,11 +540,11 @@ set_vs_specific_input_locs(struct radv_shader_args *args, gl_shader_stage stage,
    }
 }
 
-/* Returns whether the stage is a stage that can be directly before the GS */
-static bool
-is_pre_gs_stage(gl_shader_stage stage)
+static void
+set_ms_input_locs(struct radv_shader_args *args, uint8_t *user_sgpr_idx)
 {
-   return stage == MESA_SHADER_VERTEX || stage == MESA_SHADER_TESS_EVAL;
+   unsigned vs_num = args->ac.base_vertex.used + args->ac.draw_id.used;
+   set_loc_shader(args, AC_UD_VS_BASE_VERTEX_START_INSTANCE, user_sgpr_idx, vs_num);
 }
 
 void
@@ -522,13 +557,11 @@ radv_declare_shader_args(const struct radv_nir_compiler_options *options,
    bool needs_view_index = needs_view_index_sgpr(options, info, stage);
    bool has_api_gs = stage == MESA_SHADER_GEOMETRY;
 
-   if (options->chip_class >= GFX10) {
-      if (is_pre_gs_stage(stage) && info->is_ngg) {
-         /* On GFX10, VS is merged into GS for NGG. */
-         previous_stage = stage;
-         stage = MESA_SHADER_GEOMETRY;
-         has_previous_stage = true;
-      }
+   if (options->chip_class >= GFX10 && info->is_ngg && stage != MESA_SHADER_GEOMETRY) {
+      /* Handle all NGG shaders as GS to simplify the code here. */
+      previous_stage = stage;
+      stage = MESA_SHADER_GEOMETRY;
+      has_previous_stage = true;
    }
 
    for (int i = 0; i < MAX_SETS; i++)
@@ -682,8 +715,10 @@ radv_declare_shader_args(const struct radv_nir_compiler_options *options,
          ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT, NULL); // unknown
          ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT, NULL); // unknown
 
-         if (previous_stage != MESA_SHADER_TESS_EVAL) {
+         if (previous_stage == MESA_SHADER_VERTEX) {
             declare_vs_specific_input_sgprs(info, args, stage, has_previous_stage, previous_stage);
+         } else if (previous_stage == MESA_SHADER_MESH) {
+            declare_ms_input_sgprs(info, args);
          }
 
          declare_global_input_sgprs(info, &user_sgpr_info, args);
@@ -704,8 +739,10 @@ radv_declare_shader_args(const struct radv_nir_compiler_options *options,
 
          if (previous_stage == MESA_SHADER_VERTEX) {
             declare_vs_input_vgprs(options, info, args);
-         } else {
+         } else if (previous_stage == MESA_SHADER_TESS_EVAL) {
             declare_tes_input_vgprs(args);
+         } else if (previous_stage == MESA_SHADER_MESH) {
+            declare_ms_input_vgprs(args);
          }
       } else {
          declare_global_input_sgprs(info, &user_sgpr_info, args);
@@ -754,6 +791,8 @@ radv_declare_shader_args(const struct radv_nir_compiler_options *options,
 
    if (stage == MESA_SHADER_VERTEX || (has_previous_stage && previous_stage == MESA_SHADER_VERTEX))
       set_vs_specific_input_locs(args, stage, has_previous_stage, previous_stage, &user_sgpr_idx);
+   else if (has_previous_stage && previous_stage == MESA_SHADER_MESH)
+      set_ms_input_locs(args, &user_sgpr_idx);
 
    set_global_input_locs(args, &user_sgpr_info, &user_sgpr_idx);
 

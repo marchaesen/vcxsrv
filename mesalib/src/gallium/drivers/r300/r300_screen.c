@@ -253,6 +253,15 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
    boolean is_r400 = r300screen->caps.is_r400;
    boolean is_r500 = r300screen->caps.is_r500;
 
+   switch (param) {
+    case PIPE_SHADER_CAP_PREFERRED_IR:
+        return (r300screen->debug & DBG_USE_TGSI) ? PIPE_SHADER_IR_TGSI : PIPE_SHADER_IR_NIR;
+    case PIPE_SHADER_CAP_SUPPORTED_IRS:
+        return (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
+    default:
+        break;
+    }
+
    switch (shader) {
     case PIPE_SHADER_FRAGMENT:
         switch (param)
@@ -315,10 +324,8 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
             return 0;
         case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
             return 32;
-        case PIPE_SHADER_CAP_PREFERRED_IR:
-            return (r300screen->debug & DBG_USE_TGSI) ? PIPE_SHADER_IR_TGSI : PIPE_SHADER_IR_NIR;
-        case PIPE_SHADER_CAP_SUPPORTED_IRS:
-            return (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
+        default:
+            break;
         }
         break;
     case PIPE_SHADER_VERTEX:
@@ -335,6 +342,28 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
             switch (param) {
             case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
             case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
+                return 0;
+
+            /* mesa/st requires that this cap is the same across stages, and the FS
+             * can't do ints.
+             */
+            case PIPE_SHADER_CAP_INTEGERS:
+                return 0;
+
+            /* Even if gallivm NIR can do this, we call nir_to_tgsi manually and
+             * TGSI can't.
+             */
+            case PIPE_SHADER_CAP_INT16:
+            case PIPE_SHADER_CAP_FP16:
+            case PIPE_SHADER_CAP_FP16_DERIVATIVES:
+            case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
+                return 0;
+
+            /* While draw could normally handle this for the VS, the NIR lowering
+             * to regs can't handle our non-native-integers, so we have to lower to
+             * if ladders.
+             */
+            case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
                 return 0;
             default:
                 return draw_get_shader_param(shader, param);
@@ -391,10 +420,8 @@ static int r300_get_shader_param(struct pipe_screen *pscreen,
             return 0;
         case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
             return 32;
-        case PIPE_SHADER_CAP_PREFERRED_IR:
-            return (r300screen->debug & DBG_USE_TGSI) ? PIPE_SHADER_IR_TGSI : PIPE_SHADER_IR_NIR;
-        case PIPE_SHADER_CAP_SUPPORTED_IRS:
-            return (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
+        default:
+            break;
         }
         break;
     default:
@@ -474,6 +501,7 @@ static int r300_get_video_param(struct pipe_screen *screen,
 }
 
 static const nir_shader_compiler_options r500_vs_compiler_options = {
+   .fdot_replicates = true,
    .fuse_ffma32 = true,
    .fuse_ffma64 = true,
    .lower_bitops = true,
@@ -499,6 +527,7 @@ static const nir_shader_compiler_options r500_vs_compiler_options = {
 };
 
 static const nir_shader_compiler_options r500_fs_compiler_options = {
+   .fdot_replicates = true,
    .fuse_ffma32 = true,
    .fuse_ffma64 = true,
    .lower_bitops = true,
@@ -525,6 +554,7 @@ static const nir_shader_compiler_options r500_fs_compiler_options = {
 };
 
 static const nir_shader_compiler_options r300_vs_compiler_options = {
+   .fdot_replicates = true,
    .fuse_ffma32 = true,
    .fuse_ffma64 = true,
    .lower_bitops = true,
@@ -549,6 +579,7 @@ static const nir_shader_compiler_options r300_vs_compiler_options = {
 };
 
 static const nir_shader_compiler_options r300_fs_compiler_options = {
+   .fdot_replicates = true,
    .fuse_ffma32 = true,
    .fuse_ffma64 = true,
    .lower_bitops = true,

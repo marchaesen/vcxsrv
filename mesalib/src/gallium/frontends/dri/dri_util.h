@@ -101,11 +101,15 @@ struct __DriverContextConfig {
 
     /* Only valid if __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR is set */
     int release_behavior;
+
+    /* Only valid if __DRIVER_CONTEXT_ATTRIB_NO_ERROR is set */
+    int no_error;
 };
 
 #define __DRIVER_CONTEXT_ATTRIB_RESET_STRATEGY   (1 << 0)
 #define __DRIVER_CONTEXT_ATTRIB_PRIORITY         (1 << 1)
 #define __DRIVER_CONTEXT_ATTRIB_RELEASE_BEHAVIOR (1 << 2)
+#define __DRIVER_CONTEXT_ATTRIB_NO_ERROR         (1 << 3)
 
 /**
  * Driver callback functions.
@@ -330,7 +334,5 @@ extern void
 dri2InvalidateDrawable(__DRIdrawable *drawable);
 
 extern const __DRIimageDriverExtension driImageDriverExtension;
-
-extern const __DRInoErrorExtension dri2NoErrorExtension;
 
 #endif /* _DRI_UTIL_H_ */

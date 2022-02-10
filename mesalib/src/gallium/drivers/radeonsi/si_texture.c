@@ -123,7 +123,14 @@ static unsigned si_texture_get_offset(struct si_screen *sscreen, struct si_textu
                                       unsigned *layer_stride)
 {
    if (sscreen->info.chip_class >= GFX9) {
-      *stride = tex->surface.u.gfx9.surf_pitch * tex->surface.bpe;
+      unsigned pitch;
+      if (tex->surface.is_linear) {
+         pitch = tex->surface.u.gfx9.pitch[level];
+      } else {
+         pitch = tex->surface.u.gfx9.surf_pitch;
+      }
+
+      *stride = pitch * tex->surface.bpe;
       *layer_stride = tex->surface.u.gfx9.surf_slice_size;
 
       if (!box)
@@ -133,9 +140,8 @@ static unsigned si_texture_get_offset(struct si_screen *sscreen, struct si_textu
        * of mipmap levels. */
       return tex->surface.u.gfx9.surf_offset + box->z * tex->surface.u.gfx9.surf_slice_size +
              tex->surface.u.gfx9.offset[level] +
-             (box->y / tex->surface.blk_h * tex->surface.u.gfx9.surf_pitch +
-              box->x / tex->surface.blk_w) *
-                tex->surface.bpe;
+             (box->y / tex->surface.blk_h * pitch + box->x / tex->surface.blk_w) *
+             tex->surface.bpe;
    } else {
       *stride = tex->surface.u.legacy.level[level].nblk_x * tex->surface.bpe;
       assert((uint64_t)tex->surface.u.legacy.level[level].slice_size_dw * 4 <= UINT_MAX);
@@ -198,8 +204,8 @@ static int si_init_surface(struct si_screen *sscreen, struct radeon_surf *surfac
          flags |= RADEON_SURF_SBUFFER;
    }
 
-   /* Disable DCC? */
-   if (sscreen->info.chip_class >= GFX8) {
+   /* Disable DCC? (it can't be disabled if modifiers are used) */
+   if (sscreen->info.chip_class >= GFX8 && modifier == DRM_FORMAT_MOD_INVALID) {
       /* Global options that disable DCC. */
       if (ptex->flags & SI_RESOURCE_FLAG_DISABLE_DCC)
          flags |= RADEON_SURF_DISABLE_DCC;
@@ -587,15 +593,17 @@ static bool si_resource_get_param(struct pipe_screen *screen, struct pipe_contex
          *value = 0;
       else
          *value = ac_surface_get_plane_stride(sscreen->info.chip_class,
-                                              &tex->surface, plane);
+                                              &tex->surface, plane, level);
       return true;
 
    case PIPE_RESOURCE_PARAM_OFFSET:
-      if (resource->target == PIPE_BUFFER)
+      if (resource->target == PIPE_BUFFER) {
          *value = 0;
-      else
+      } else {
+         uint64_t level_offset = tex->surface.is_linear ? tex->surface.u.gfx9.offset[level] : 0;
          *value = ac_surface_get_plane_offset(sscreen->info.chip_class,
-                                              &tex->surface, plane, layer);
+                                              &tex->surface, plane, layer)  + level_offset;
+      }
       return true;
 
    case PIPE_RESOURCE_PARAM_MODIFIER:
@@ -679,7 +687,7 @@ static bool si_texture_get_handle(struct pipe_screen *screen, struct pipe_contex
          whandle->offset = ac_surface_get_plane_offset(sscreen->info.chip_class,
                                                        &tex->surface, plane, 0);
          whandle->stride = ac_surface_get_plane_stride(sscreen->info.chip_class,
-                                                       &tex->surface, plane);
+                                                       &tex->surface, plane, 0);
          whandle->modifier = tex->surface.modifier;
          return sscreen->ws->buffer_get_handle(sscreen->ws, res->buf, whandle);
       }
@@ -701,7 +709,8 @@ static bool si_texture_get_handle(struct pipe_screen *screen, struct pipe_contex
        * disable it for external clients that want write
        * access.
        */
-      if ((usage & PIPE_HANDLE_USAGE_SHADER_WRITE && !tex->is_depth && tex->surface.meta_offset) ||
+      if (sscreen->debug_flags & DBG(NO_EXPORTED_DCC) ||
+          (usage & PIPE_HANDLE_USAGE_SHADER_WRITE && !tex->is_depth && tex->surface.meta_offset) ||
           /* Displayable DCC requires an explicit flush. */
           (!(usage & PIPE_HANDLE_USAGE_EXPLICIT_FLUSH) &&
            si_displayable_dcc_needs_explicit_flush(tex))) {
@@ -1006,6 +1015,8 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
    } else if (!(surface->flags & RADEON_SURF_IMPORTED)) {
       if (base->flags & PIPE_RESOURCE_FLAG_SPARSE)
          resource->b.b.flags |= SI_RESOURCE_FLAG_UNMAPPABLE;
+      if (base->bind & PIPE_BIND_PRIME_BLIT_DST)
+         resource->b.b.flags |= SI_RESOURCE_FLAG_UNCACHED;
 
       /* Create the backing buffer. */
       si_init_resource_fields(sscreen, resource, alloc_size, alignment);
@@ -1322,11 +1333,12 @@ bool si_texture_commit(struct si_context *ctx, struct si_resource *res, unsigned
    struct radeon_surf *surface = &tex->surface;
    enum pipe_format format = res->b.b.format;
    unsigned blks = util_format_get_blocksize(format);
+   unsigned samples = MAX2(1, res->b.b.nr_samples);
 
    assert(ctx->chip_class >= GFX9);
 
    unsigned row_pitch = surface->u.gfx9.prt_level_pitch[level] *
-      surface->prt_tile_height * surface->prt_tile_depth * blks;
+      surface->prt_tile_height * surface->prt_tile_depth * blks * samples;
    unsigned depth_pitch = surface->u.gfx9.surf_slice_size * surface->prt_tile_depth;
 
    unsigned x = box->x / surface->prt_tile_width;
@@ -1579,7 +1591,7 @@ static struct pipe_resource *si_texture_from_winsys_buffer(struct si_screen *ssc
           ptex->offset != ac_surface_get_plane_offset(sscreen->info.chip_class,
                                                       &tex->surface, plane, 0) ||
           ptex->stride != ac_surface_get_plane_stride(sscreen->info.chip_class,
-                                                      &tex->surface, plane)) {
+                                                      &tex->surface, plane, 0)) {
          si_texture_reference(&tex, NULL);
          return NULL;
       }
@@ -1637,7 +1649,7 @@ static struct pipe_resource *si_texture_from_handle(struct pipe_screen *screen,
 
    buf = sscreen->ws->buffer_from_handle(sscreen->ws, whandle,
                                          sscreen->info.max_alignment,
-                                         templ->bind & PIPE_BIND_DRI_PRIME);
+                                         templ->bind & PIPE_BIND_PRIME_BLIT_DST);
    if (!buf)
       return NULL;
 
@@ -2257,10 +2269,13 @@ static bool si_check_resource_capability(struct pipe_screen *screen, struct pipe
 
 static int si_get_sparse_texture_virtual_page_size(struct pipe_screen *screen,
                                                    enum pipe_texture_target target,
+                                                   bool multi_sample,
                                                    enum pipe_format format,
                                                    unsigned offset, unsigned size,
                                                    int *x, int *y, int *z)
 {
+   struct si_screen *sscreen = (struct si_screen *)screen;
+
    /* Only support one type of page size. */
    if (offset != 0)
       return 0;
@@ -2283,7 +2298,6 @@ static int si_get_sparse_texture_virtual_page_size(struct pipe_screen *screen,
    const int (*page_sizes)[3];
 
    /* Supported targets. */
-   /* TODO: support multi sample targets. */
    switch (target) {
    case PIPE_TEXTURE_2D:
    case PIPE_TEXTURE_CUBE:
@@ -2298,6 +2312,18 @@ static int si_get_sparse_texture_virtual_page_size(struct pipe_screen *screen,
    default:
       return 0;
    }
+
+   /* ARB_sparse_texture2 need to query supported virtual page x/y/z without
+    * knowing the actual sample count. So we need to return a fixed virtual page
+    * x/y/z for all sample count which means the virtual page size can not be fixed
+    * to 64KB.
+    *
+    * Only enabled for GFX9. GFX10+ removed MS texture support. By specification
+    * ARB_sparse_texture2 need MS texture support, but we relax it by just return
+    * no page size for GFX10+ to keep shader query capbility.
+    */
+   if (multi_sample && sscreen->info.chip_class != GFX9)
+      return 0;
 
    /* Unsupport formats. */
    /* TODO: support these formats. */

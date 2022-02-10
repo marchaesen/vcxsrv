@@ -30,7 +30,6 @@
 
 #include "util/hash_table.h"
 #include "compiler/glsl/list.h"
-#include "GL/gl.h" /* GLenum */
 #include "util/list.h"
 #include "util/log.h"
 #include "util/ralloc.h"
@@ -1650,7 +1649,7 @@ typedef struct {
 
 #include "nir_intrinsics.h"
 
-#define NIR_INTRINSIC_MAX_CONST_INDEX 5
+#define NIR_INTRINSIC_MAX_CONST_INDEX 6
 
 /** Represents an intrinsic
  *
@@ -1765,7 +1764,8 @@ typedef struct nir_io_semantics {
    unsigned medium_precision:1; /* GLSL mediump qualifier */
    unsigned per_view:1;
    unsigned high_16bits:1; /* whether accessing low or high half of the slot */
-   unsigned _pad:6;
+   unsigned invariant:1; /* The variable has the invariant flag set */
+   unsigned _pad:5;
 } nir_io_semantics;
 
 #define NIR_INTRINSIC_MAX_INPUTS 11
@@ -3429,8 +3429,11 @@ typedef struct nir_shader_compiler_options {
     * for rect texture lowering. */
    bool has_txs;
 
-   /** Backend supports sdot_4x8 and udot_4x8 opcodes. */
-   bool has_dot_4x8;
+   /** Backend supports sdot_4x8 opcodes. */
+   bool has_sdot_4x8;
+
+   /** Backend supports udot_4x8 opcodes. */
+   bool has_udot_4x8;
 
    /** Backend supports sudot_4x8 opcodes. */
    bool has_sudot_4x8;
@@ -3442,6 +3445,9 @@ typedef struct nir_shader_compiler_options {
     * memory and control barrier intrinsics based on GLSL.
     */
    bool use_scoped_barrier;
+
+   /** Backend supports fmulz (and ffmaz if lower_ffma32=false) */
+   bool has_fmulz;
 
    /**
     * Is this the Intel vec4 backend?
@@ -3562,26 +3568,6 @@ nir_shader_get_entrypoint(nir_shader *shader)
    assert(func->impl);
    return func->impl;
 }
-
-typedef struct nir_liveness_bounds {
-   uint32_t start;
-   uint32_t end;
-} nir_liveness_bounds;
-
-typedef struct nir_instr_liveness {
-   /**
-    * nir_instr->index for the start and end of a single live interval for SSA
-    * defs.  ssa values last used by a nir_if condition will have an interval
-    * ending at the first instruction after the last one before the if
-    * condition.
-    *
-    * Indexed by def->index (impl->ssa_alloc elements).
-    */
-   struct nir_liveness_bounds *defs;
-} nir_instr_liveness;
-
-nir_instr_liveness *
-nir_live_ssa_defs_per_instr(nir_function_impl *impl);
 
 nir_shader *nir_shader_create(void *mem_ctx,
                               gl_shader_stage stage,
@@ -4673,9 +4659,10 @@ typedef struct nir_lower_subgroups_options {
    bool lower_vote_trivial:1;
    bool lower_vote_eq:1;
    bool lower_subgroup_masks:1;
-   bool lower_shuffle:1;
+   bool lower_relative_shuffle:1;
    bool lower_shuffle_to_32bit:1;
    bool lower_shuffle_to_swizzle_amd:1;
+   bool lower_shuffle:1;
    bool lower_quad:1;
    bool lower_quad_broadcast_dynamic:1;
    bool lower_quad_broadcast_dynamic_to_const:1;
@@ -4918,6 +4905,20 @@ typedef struct nir_lower_tex_options {
 bool nir_lower_tex(nir_shader *shader,
                    const nir_lower_tex_options *options);
 
+
+typedef struct nir_lower_tex_shadow_swizzle {
+   unsigned swizzle_r:3;
+   unsigned swizzle_g:3;
+   unsigned swizzle_b:3;
+   unsigned swizzle_a:3;
+} nir_lower_tex_shadow_swizzle;
+
+bool
+nir_lower_tex_shadow(nir_shader *s,
+                     unsigned n_states,
+                     enum compare_func *compare_func,
+                     nir_lower_tex_shadow_swizzle *tex_swizzles);
+
 typedef struct nir_lower_image_options {
    /**
     * If true, lower cube size operations.
@@ -5049,12 +5050,14 @@ bool nir_lower_atomics_to_ssbo(nir_shader *shader);
 
 typedef enum  {
    nir_lower_int_source_mods = 1 << 0,
-   nir_lower_float_source_mods = 1 << 1,
-   nir_lower_64bit_source_mods = 1 << 2,
-   nir_lower_triop_abs = 1 << 3,
-   nir_lower_all_source_mods = (1 << 4) - 1
+   nir_lower_fabs_source_mods = 1 << 1,
+   nir_lower_fneg_source_mods = 1 << 2,
+   nir_lower_64bit_source_mods = 1 << 3,
+   nir_lower_triop_abs = 1 << 4,
+   nir_lower_all_source_mods = (1 << 5) - 1
 } nir_lower_to_source_mods_flags;
 
+#define nir_lower_float_source_mods (nir_lower_fabs_source_mods | nir_lower_fneg_source_mods)
 
 bool nir_lower_to_source_mods(nir_shader *shader, nir_lower_to_source_mods_flags options);
 
@@ -5115,6 +5118,8 @@ typedef enum {
 
 bool nir_lower_interpolation(nir_shader *shader,
                              nir_lower_interpolation_options options);
+
+bool nir_lower_discard_if(nir_shader *shader);
 
 bool nir_lower_discard_or_demote(nir_shader *shader,
                                  bool force_correct_quad_ops_after_discard);
@@ -5250,7 +5255,21 @@ bool nir_opt_sink(nir_shader *shader, nir_move_options options);
 
 bool nir_opt_move(nir_shader *shader, nir_move_options options);
 
-bool nir_opt_offsets(nir_shader *shader);
+typedef struct {
+   /** nir_load_uniform max base offset */
+   uint32_t uniform_max;
+
+   /** nir_load_ubo_vec4 max base offset */
+   uint32_t ubo_vec4_max;
+
+   /** nir_var_mem_shared max base offset */
+   uint32_t shared_max;
+
+   /** nir_load/store_buffer_amd max base offset */
+   uint32_t buffer_max;
+} nir_opt_offsets_options;
+
+bool nir_opt_offsets(nir_shader *shader, const nir_opt_offsets_options *options);
 
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit,
                              bool indirect_load_ok, bool expensive_alu_ok);

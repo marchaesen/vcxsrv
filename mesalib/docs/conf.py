@@ -135,15 +135,6 @@ html_extra_path = [
 ]
 
 html_redirects = [
-  ('drivers/vmware-guest', 'drivers/svga3d.html'),
-  ('gallium/drivers/freedreno', 'drivers/freedreno.html'),
-  ('gallium/drivers/freedreno/ir3-notes', 'drivers/freedreno/ir3-notes.html'),
-  ('gallium/drivers/llvmpipe', 'drivers/llvmpipe.html'),
-  ('gallium/drivers/zink', 'drivers/zink.html'),
-  ('llvmpipe', 'drivers/llvmpipe.html'),
-  ('postprocess', 'gallium/postprocess.html'),
-  ('versions', 'relnotes.html'),
-  ('vmware-guest', 'drivers/vmware-guest.html'),
   ('webmaster', 'https://www.mesa3d.org/website/'),
 ]
 

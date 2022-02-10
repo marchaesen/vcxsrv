@@ -84,7 +84,7 @@ get_sampler_view_reference(struct st_sampler_view *sv,
  */
 static struct pipe_sampler_view *
 st_texture_set_sampler_view(struct st_context *st,
-                            struct st_texture_object *stObj,
+                            struct gl_texture_object *stObj,
                             struct pipe_sampler_view *view,
                             bool glsl130_or_later, bool srgb_skip_decode,
                             bool get_reference)
@@ -200,7 +200,7 @@ out:
  */
 struct st_sampler_view *
 st_texture_get_current_sampler_view(const struct st_context *st,
-                                    const struct st_texture_object *stObj)
+                                    const struct gl_texture_object *stObj)
 {
    struct st_sampler_views *views = p_atomic_read(&stObj->sampler_views);
 
@@ -221,7 +221,7 @@ st_texture_get_current_sampler_view(const struct st_context *st,
  */
 void
 st_texture_release_context_sampler_view(struct st_context *st,
-                                        struct st_texture_object *stObj)
+                                        struct gl_texture_object *stObj)
 {
    GLuint i;
 
@@ -247,7 +247,7 @@ st_texture_release_context_sampler_view(struct st_context *st,
  */
 void
 st_texture_release_all_sampler_views(struct st_context *st,
-                                     struct st_texture_object *stObj)
+                                     struct gl_texture_object *stObj)
 {
    /* TODO: This happens while a texture is deleted, because the Driver API
     * is asymmetric: the driver allocates the texture object memory, but
@@ -285,7 +285,7 @@ st_texture_release_all_sampler_views(struct st_context *st,
  */
 void
 st_delete_texture_sampler_views(struct st_context *st,
-                                struct st_texture_object *stObj)
+                                struct gl_texture_object *stObj)
 {
    st_texture_release_all_sampler_views(st, stObj);
 
@@ -428,12 +428,12 @@ compute_texture_format_swizzle(GLenum baseFormat, GLenum depthMode,
 
 static unsigned
 get_texture_format_swizzle(const struct st_context *st,
-                           const struct st_texture_object *stObj,
+                           const struct gl_texture_object *texObj,
                            bool glsl130_or_later)
 {
-   GLenum baseFormat = _mesa_base_tex_image(&stObj->base)->_BaseFormat;
+   GLenum baseFormat = _mesa_base_tex_image(texObj)->_BaseFormat;
    unsigned tex_swizzle;
-   GLenum depth_mode = stObj->base.Attrib.DepthMode;
+   GLenum depth_mode = texObj->Attrib.DepthMode;
 
    /* In ES 3.0, DEPTH_TEXTURE_MODE is expected to be GL_RED for textures
     * with depth component data specified with a sized internal format.
@@ -443,7 +443,7 @@ get_texture_format_swizzle(const struct st_context *st,
         baseFormat == GL_DEPTH_STENCIL ||
         baseFormat == GL_STENCIL_INDEX)) {
       const struct gl_texture_image *firstImage =
-         _mesa_base_tex_image(&stObj->base);
+         _mesa_base_tex_image(texObj);
       if (firstImage->InternalFormat != GL_DEPTH_COMPONENT &&
           firstImage->InternalFormat != GL_DEPTH_STENCIL &&
           firstImage->InternalFormat != GL_STENCIL_INDEX)
@@ -454,7 +454,7 @@ get_texture_format_swizzle(const struct st_context *st,
                                                 glsl130_or_later);
 
    /* Combine the texture format swizzle with user's swizzle */
-   return swizzle_swizzle(stObj->base.Attrib._Swizzle, tex_swizzle);
+   return swizzle_swizzle(texObj->Attrib._Swizzle, tex_swizzle);
 }
 
 
@@ -462,15 +462,15 @@ get_texture_format_swizzle(const struct st_context *st,
  * Return TRUE if the texture's sampler view swizzle is not equal to
  * the texture's swizzle.
  *
- * \param stObj  the st texture object,
+ * \param texObj  the st texture object,
  */
 ASSERTED static boolean
 check_sampler_swizzle(const struct st_context *st,
-                      const struct st_texture_object *stObj,
+                      const struct gl_texture_object *texObj,
                       const struct pipe_sampler_view *sv,
                       bool glsl130_or_later)
 {
-   unsigned swizzle = get_texture_format_swizzle(st, stObj, glsl130_or_later);
+   unsigned swizzle = get_texture_format_swizzle(st, texObj, glsl130_or_later);
 
    return ((sv->swizzle_r != GET_SWZ(swizzle, 0)) ||
            (sv->swizzle_g != GET_SWZ(swizzle, 1)) ||
@@ -480,25 +480,25 @@ check_sampler_swizzle(const struct st_context *st,
 
 
 static unsigned
-last_level(const struct st_texture_object *stObj)
+last_level(const struct gl_texture_object *texObj)
 {
-   unsigned ret = MIN2(stObj->base.Attrib.MinLevel + stObj->base._MaxLevel,
-                       stObj->pt->last_level);
-   if (stObj->base.Immutable)
-      ret = MIN2(ret, stObj->base.Attrib.MinLevel +
-                 stObj->base.Attrib.NumLevels - 1);
+   unsigned ret = MIN2(texObj->Attrib.MinLevel + texObj->_MaxLevel,
+                       texObj->pt->last_level);
+   if (texObj->Immutable)
+      ret = MIN2(ret, texObj->Attrib.MinLevel +
+                 texObj->Attrib.NumLevels - 1);
    return ret;
 }
 
 
 static unsigned
-last_layer(const struct st_texture_object *stObj)
+last_layer(const struct gl_texture_object *texObj)
 {
-   if (stObj->base.Immutable && stObj->pt->array_size > 1)
-      return MIN2(stObj->base.Attrib.MinLayer +
-                  stObj->base.Attrib.NumLayers - 1,
-                  stObj->pt->array_size - 1);
-   return stObj->pt->array_size - 1;
+   if (texObj->Immutable && texObj->pt->array_size > 1)
+      return MIN2(texObj->Attrib.MinLayer +
+                  texObj->Attrib.NumLayers - 1,
+                  texObj->pt->array_size - 1);
+   return texObj->pt->array_size - 1;
 }
 
 
@@ -507,18 +507,18 @@ last_layer(const struct st_texture_object *stObj)
  */
 static enum pipe_format
 get_sampler_view_format(struct st_context *st,
-                        const struct st_texture_object *stObj,
+                        const struct gl_texture_object *texObj,
                         bool srgb_skip_decode)
 {
    enum pipe_format format;
 
-   GLenum baseFormat = _mesa_base_tex_image(&stObj->base)->_BaseFormat;
-   format = stObj->surface_based ? stObj->surface_format : stObj->pt->format;
+   GLenum baseFormat = _mesa_base_tex_image(texObj)->_BaseFormat;
+   format = texObj->surface_based ? texObj->surface_format : texObj->pt->format;
 
    if (baseFormat == GL_DEPTH_COMPONENT ||
        baseFormat == GL_DEPTH_STENCIL ||
        baseFormat == GL_STENCIL_INDEX) {
-      if (stObj->base.StencilSampling || baseFormat == GL_STENCIL_INDEX)
+      if (texObj->StencilSampling || baseFormat == GL_STENCIL_INDEX)
          format = util_format_stencil_only(format);
 
       return format;
@@ -529,13 +529,13 @@ get_sampler_view_format(struct st_context *st,
       format = util_format_linear(format);
 
    /* if resource format matches then YUV wasn't lowered */
-   if (format == stObj->pt->format)
+   if (format == texObj->pt->format)
       return format;
 
    /* Use R8_UNORM for video formats */
    switch (format) {
    case PIPE_FORMAT_NV12:
-      if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
+      if (texObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
          format = PIPE_FORMAT_R8_G8B8_420_UNORM;
          break;
       }
@@ -562,9 +562,9 @@ get_sampler_view_format(struct st_context *st,
       break;
    case PIPE_FORMAT_YUYV:
    case PIPE_FORMAT_UYVY:
-      if (stObj->pt->format == PIPE_FORMAT_R8G8_R8B8_UNORM ||
-          stObj->pt->format == PIPE_FORMAT_G8R8_B8R8_UNORM) {
-         format = stObj->pt->format;
+      if (texObj->pt->format == PIPE_FORMAT_R8G8_R8B8_UNORM ||
+          texObj->pt->format == PIPE_FORMAT_G8R8_B8R8_UNORM) {
+         format = texObj->pt->format;
          break;
       }
       format = PIPE_FORMAT_R8G8_UNORM;
@@ -584,44 +584,44 @@ get_sampler_view_format(struct st_context *st,
 
 static struct pipe_sampler_view *
 st_create_texture_sampler_view_from_stobj(struct st_context *st,
-                                          struct st_texture_object *stObj,
+                                          struct gl_texture_object *texObj,
                                           enum pipe_format format,
                                           bool glsl130_or_later)
 {
    /* There is no need to clear this structure (consider CPU overhead). */
    struct pipe_sampler_view templ;
-   unsigned swizzle = get_texture_format_swizzle(st, stObj, glsl130_or_later);
+   unsigned swizzle = get_texture_format_swizzle(st, texObj, glsl130_or_later);
 
    templ.format = format;
 
-   if (stObj->level_override >= 0) {
-      templ.u.tex.first_level = templ.u.tex.last_level = stObj->level_override;
+   if (texObj->level_override >= 0) {
+      templ.u.tex.first_level = templ.u.tex.last_level = texObj->level_override;
    } else {
-      templ.u.tex.first_level = stObj->base.Attrib.MinLevel +
-                                stObj->base.Attrib.BaseLevel;
-      templ.u.tex.last_level = last_level(stObj);
+      templ.u.tex.first_level = texObj->Attrib.MinLevel +
+                                texObj->Attrib.BaseLevel;
+      templ.u.tex.last_level = last_level(texObj);
    }
-   if (stObj->layer_override >= 0) {
-      templ.u.tex.first_layer = templ.u.tex.last_layer = stObj->layer_override;
+   if (texObj->layer_override >= 0) {
+      templ.u.tex.first_layer = templ.u.tex.last_layer = texObj->layer_override;
    } else {
-      templ.u.tex.first_layer = stObj->base.Attrib.MinLayer;
-      templ.u.tex.last_layer = last_layer(stObj);
+      templ.u.tex.first_layer = texObj->Attrib.MinLayer;
+      templ.u.tex.last_layer = last_layer(texObj);
    }
    assert(templ.u.tex.first_layer <= templ.u.tex.last_layer);
    assert(templ.u.tex.first_level <= templ.u.tex.last_level);
-   templ.target = gl_target_to_pipe(stObj->base.Target);
+   templ.target = gl_target_to_pipe(texObj->Target);
 
    templ.swizzle_r = GET_SWZ(swizzle, 0);
    templ.swizzle_g = GET_SWZ(swizzle, 1);
    templ.swizzle_b = GET_SWZ(swizzle, 2);
    templ.swizzle_a = GET_SWZ(swizzle, 3);
 
-   return st->pipe->create_sampler_view(st->pipe, stObj->pt, &templ);
+   return st->pipe->create_sampler_view(st->pipe, texObj->pt, &templ);
 }
 
 struct pipe_sampler_view *
 st_get_texture_sampler_view_from_stobj(struct st_context *st,
-                                       struct st_texture_object *stObj,
+                                       struct gl_texture_object *texObj,
                                        const struct gl_sampler_object *samp,
                                        bool glsl130_or_later,
                                        bool ignore_srgb_decode,
@@ -633,7 +633,7 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
    if (!ignore_srgb_decode && samp->Attrib.sRGBDecode == GL_SKIP_DECODE_EXT)
       srgb_skip_decode = true;
 
-   sv = st_texture_get_current_sampler_view(st, stObj);
+   sv = st_texture_get_current_sampler_view(st, texObj);
 
    if (sv &&
        sv->glsl130_or_later == glsl130_or_later &&
@@ -642,33 +642,33 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
        * what they're supposed to be.
        */
       struct pipe_sampler_view *view = sv->view;
-      assert(stObj->pt == view->texture);
-      assert(!check_sampler_swizzle(st, stObj, view, glsl130_or_later));
-      assert(get_sampler_view_format(st, stObj, srgb_skip_decode) == view->format);
-      assert(gl_target_to_pipe(stObj->base.Target) == view->target);
-      assert(stObj->level_override >= 0 ||
-             stObj->base.Attrib.MinLevel +
-             stObj->base.Attrib.BaseLevel == view->u.tex.first_level);
-      assert(stObj->level_override >= 0 || last_level(stObj) == view->u.tex.last_level);
-      assert(stObj->layer_override >= 0 ||
-             stObj->base.Attrib.MinLayer == view->u.tex.first_layer);
-      assert(stObj->layer_override >= 0 || last_layer(stObj) == view->u.tex.last_layer);
-      assert(stObj->layer_override < 0 ||
-             (stObj->layer_override == view->u.tex.first_layer &&
-              stObj->layer_override == view->u.tex.last_layer));
+      assert(texObj->pt == view->texture);
+      assert(!check_sampler_swizzle(st, texObj, view, glsl130_or_later));
+      assert(get_sampler_view_format(st, texObj, srgb_skip_decode) == view->format);
+      assert(gl_target_to_pipe(texObj->Target) == view->target);
+      assert(texObj->level_override >= 0 ||
+             texObj->Attrib.MinLevel +
+             texObj->Attrib.BaseLevel == view->u.tex.first_level);
+      assert(texObj->level_override >= 0 || last_level(texObj) == view->u.tex.last_level);
+      assert(texObj->layer_override >= 0 ||
+             texObj->Attrib.MinLayer == view->u.tex.first_layer);
+      assert(texObj->layer_override >= 0 || last_layer(texObj) == view->u.tex.last_layer);
+      assert(texObj->layer_override < 0 ||
+             (texObj->layer_override == view->u.tex.first_layer &&
+              texObj->layer_override == view->u.tex.last_layer));
       if (get_reference)
          view = get_sampler_view_reference(sv, view);
       return view;
    }
 
    /* create new sampler view */
-   enum pipe_format format = get_sampler_view_format(st, stObj,
+   enum pipe_format format = get_sampler_view_format(st, texObj,
                                                      srgb_skip_decode);
    struct pipe_sampler_view *view =
-         st_create_texture_sampler_view_from_stobj(st, stObj, format,
+         st_create_texture_sampler_view_from_stobj(st, texObj, format,
                                                    glsl130_or_later);
 
-   view = st_texture_set_sampler_view(st, stObj, view,
+   view = st_texture_set_sampler_view(st, texObj, view,
                                       glsl130_or_later, srgb_skip_decode,
                                       get_reference);
    return view;
@@ -677,17 +677,17 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
 
 struct pipe_sampler_view *
 st_get_buffer_sampler_view_from_stobj(struct st_context *st,
-                                      struct st_texture_object *stObj,
+                                      struct gl_texture_object *texObj,
                                       bool get_reference)
 {
    struct st_sampler_view *sv;
    struct gl_buffer_object *stBuf =
-      stObj->base.BufferObject;
+      texObj->BufferObject;
 
    if (!stBuf || !stBuf->buffer)
       return NULL;
 
-   sv = st_texture_get_current_sampler_view(st, stObj);
+   sv = st_texture_get_current_sampler_view(st, texObj);
 
    struct pipe_resource *buf = stBuf->buffer;
 
@@ -699,12 +699,12 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
           * what they're supposed to be.
           */
          assert(st_mesa_format_to_pipe_format(st,
-                                              stObj->base._BufferObjectFormat)
+                                              texObj->_BufferObjectFormat)
              == view->format);
          assert(view->target == PIPE_BUFFER);
-         ASSERTED unsigned base = stObj->base.BufferOffset;
+         ASSERTED unsigned base = texObj->BufferOffset;
          ASSERTED unsigned size = MIN2(buf->width0 - base,
-                           (unsigned) stObj->base.BufferSize);
+                           (unsigned) texObj->BufferSize);
          assert(view->u.buf.offset == base);
          assert(view->u.buf.size == size);
          if (get_reference)
@@ -713,13 +713,13 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
       }
    }
 
-   unsigned base = stObj->base.BufferOffset;
+   unsigned base = texObj->BufferOffset;
 
    if (base >= buf->width0)
       return NULL;
 
    unsigned size = buf->width0 - base;
-   size = MIN2(size, (unsigned)stObj->base.BufferSize);
+   size = MIN2(size, (unsigned)texObj->BufferSize);
    if (!size)
       return NULL;
 
@@ -729,7 +729,7 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
    struct pipe_sampler_view templ;
 
    templ.format =
-      st_mesa_format_to_pipe_format(st, stObj->base._BufferObjectFormat);
+      st_mesa_format_to_pipe_format(st, texObj->_BufferObjectFormat);
    templ.target = PIPE_BUFFER;
    templ.swizzle_r = PIPE_SWIZZLE_X;
    templ.swizzle_g = PIPE_SWIZZLE_Y;
@@ -741,7 +741,7 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
    struct pipe_sampler_view *view =
       st->pipe->create_sampler_view(st->pipe, buf, &templ);
 
-   view = st_texture_set_sampler_view(st, stObj, view, false, false,
+   view = st_texture_set_sampler_view(st, texObj, view, false, false,
                                       get_reference);
 
    return view;

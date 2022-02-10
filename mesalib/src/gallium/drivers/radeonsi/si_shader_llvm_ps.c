@@ -69,6 +69,8 @@ static LLVMValueRef si_nir_emit_fbfetch(struct ac_shader_abi *abi)
 
    /* Load the image descriptor. */
    STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0 % 2 == 0);
+   STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0_FMASK % 2 == 0);
+
    ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
    ptr =
       LLVMBuildPointerCast(ctx->ac.builder, ptr, ac_array_in_const32_addr_space(ctx->ac.v8i32), "");
@@ -219,23 +221,17 @@ static void si_alpha_test(struct si_shader_context *ctx, LLVMValueRef alpha)
    }
 }
 
-static LLVMValueRef si_scale_alpha_by_sample_mask(struct si_shader_context *ctx, LLVMValueRef alpha,
-                                                  unsigned samplemask_param)
+static LLVMValueRef si_get_coverage_from_sample_mask(struct si_shader_context *ctx)
 {
    LLVMValueRef coverage;
 
    /* alpha = alpha * popcount(coverage) / SI_NUM_SMOOTH_AA_SAMPLES */
-   coverage = LLVMGetParam(ctx->main_fn, samplemask_param);
+   coverage = LLVMGetParam(ctx->main_fn, SI_PARAM_SAMPLE_COVERAGE);
    coverage = ac_build_bit_count(&ctx->ac, ac_to_integer(&ctx->ac, coverage));
    coverage = LLVMBuildUIToFP(ctx->ac.builder, coverage, ctx->ac.f32, "");
 
-   coverage = LLVMBuildFMul(ctx->ac.builder, coverage,
-                            LLVMConstReal(ctx->ac.f32, 1.0 / SI_NUM_SMOOTH_AA_SAMPLES), "");
-
-   if (LLVMTypeOf(alpha) == ctx->ac.f16)
-      coverage = LLVMBuildFPTrunc(ctx->ac.builder, coverage, ctx->ac.f16, "");
-
-   return LLVMBuildFMul(ctx->ac.builder, alpha, coverage, "");
+   return LLVMBuildFMul(ctx->ac.builder, coverage,
+                        LLVMConstReal(ctx->ac.f32, 1.0 / SI_NUM_SMOOTH_AA_SAMPLES), "");
 }
 
 struct si_ps_exports {
@@ -270,7 +266,7 @@ static LLVMValueRef get_color_32bit(struct si_shader_context *ctx, unsigned colo
 }
 
 /* Initialize arguments for the shader export intrinsic */
-static void si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValueRef *values,
+static bool si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValueRef *values,
                                         unsigned cbuf, unsigned compacted_mrt_index,
                                         unsigned color_type, struct ac_export_args *args)
 {
@@ -284,6 +280,9 @@ static void si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValue
    assert(cbuf < 8);
 
    spi_shader_col_format = (col_formats >> (cbuf * 4)) & 0xf;
+   if (spi_shader_col_format == V_028714_SPI_SHADER_ZERO)
+      return false;
+
    is_int8 = (key->ps.part.epilog.color_is_int8 >> cbuf) & 0x1;
    is_int10 = (key->ps.part.epilog.color_is_int10 >> cbuf) & 0x1;
 
@@ -310,11 +309,6 @@ static void si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValue
                          bool hi) = NULL;
 
    switch (spi_shader_col_format) {
-   case V_028714_SPI_SHADER_ZERO:
-      args->enabled_channels = 0; /* writemask */
-      args->target = V_008DFC_SQ_EXP_NULL;
-      break;
-
    case V_028714_SPI_SHADER_32_R:
       args->enabled_channels = 1; /* writemask */
       args->out[0] = get_color_32bit(ctx, color_type, values[0]);
@@ -402,11 +396,13 @@ static void si_llvm_init_ps_export_args(struct si_shader_context *ctx, LLVMValue
       }
       args->compr = 1; /* COMPR flag */
    }
+
+   return true;
 }
 
-static bool si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *color, unsigned index,
-                                unsigned compacted_mrt_index, unsigned samplemask_param,
-                                bool is_last, unsigned color_type, struct si_ps_exports *exp)
+static void si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *color, unsigned index,
+                                unsigned first_color_export, unsigned color_type,
+                                struct si_ps_exports *exp)
 {
    int i;
 
@@ -423,54 +419,26 @@ static bool si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *col
    if (index == 0 && ctx->shader->key.ps.part.epilog.alpha_func != PIPE_FUNC_ALWAYS)
       si_alpha_test(ctx, color[3]);
 
-   /* Line & polygon smoothing */
-   if (ctx->shader->key.ps.part.epilog.poly_line_smoothing)
-      color[3] = si_scale_alpha_by_sample_mask(ctx, color[3], samplemask_param);
-
    /* If last_cbuf > 0, FS_COLOR0_WRITES_ALL_CBUFS is true. */
    if (ctx->shader->key.ps.part.epilog.last_cbuf > 0) {
-      struct ac_export_args args[8];
-      int c, last = -1;
-
-      assert(compacted_mrt_index == 0);
+      assert(exp->num == first_color_export);
 
       /* Get the export arguments, also find out what the last one is. */
-      for (c = 0; c <= ctx->shader->key.ps.part.epilog.last_cbuf; c++) {
-         si_llvm_init_ps_export_args(ctx, color, c, compacted_mrt_index,
-                                     color_type, &args[c]);
-         if (args[c].enabled_channels) {
-            compacted_mrt_index++;
-            last = c;
+      for (int c = 0; c <= ctx->shader->key.ps.part.epilog.last_cbuf; c++) {
+         if (si_llvm_init_ps_export_args(ctx, color, c, exp->num - first_color_export,
+                                         color_type, &exp->args[exp->num])) {
+            assert(exp->args[exp->num].enabled_channels);
+            exp->num++;
          }
       }
-      if (last == -1)
-         return false;
-
-      /* Emit all exports. */
-      for (c = 0; c <= ctx->shader->key.ps.part.epilog.last_cbuf; c++) {
-         if (is_last && last == c) {
-            args[c].valid_mask = 1; /* whether the EXEC mask is valid */
-            args[c].done = 1;       /* DONE bit */
-         } else if (!args[c].enabled_channels)
-            continue; /* unnecessary NULL export */
-
-         memcpy(&exp->args[exp->num++], &args[c], sizeof(args[c]));
-      }
    } else {
-      struct ac_export_args args;
-
       /* Export */
-      si_llvm_init_ps_export_args(ctx, color, index, compacted_mrt_index,
-                                  color_type, &args);
-      if (is_last) {
-         args.valid_mask = 1; /* whether the EXEC mask is valid */
-         args.done = 1;       /* DONE bit */
-      } else if (!args.enabled_channels)
-         return false; /* unnecessary NULL export */
-
-      memcpy(&exp->args[exp->num++], &args, sizeof(args));
+      if (si_llvm_init_ps_export_args(ctx, color, index, exp->num - first_color_export,
+                                      color_type, &exp->args[exp->num])) {
+         assert(exp->args[exp->num].enabled_channels);
+         exp->num++;
+      }
    }
-   return true;
 }
 
 /**
@@ -492,7 +460,7 @@ static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi)
    struct si_shader *shader = ctx->shader;
    struct si_shader_info *info = &shader->selector->info;
    LLVMBuilderRef builder = ctx->ac.builder;
-   unsigned i, j, first_vgpr, vgpr;
+   unsigned i, j, vgpr;
    LLVMValueRef *addrs = abi->outputs;
 
    LLVMValueRef color[8][4] = {};
@@ -529,6 +497,10 @@ static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi)
       }
    }
 
+   LLVMValueRef smoothing_coverage = NULL;
+   if (ctx->shader->key.ps.mono.poly_line_smoothing)
+      smoothing_coverage = si_get_coverage_from_sample_mask(ctx);
+
    /* Fill the return structure. */
    ret = ctx->return_value;
 
@@ -538,12 +510,17 @@ static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi)
       SI_SGPR_ALPHA_REF, "");
 
    /* Set VGPRs */
-   first_vgpr = vgpr = SI_SGPR_ALPHA_REF + 1;
+   vgpr = SI_SGPR_ALPHA_REF + 1;
    for (i = 0; i < ARRAY_SIZE(color); i++) {
       if (!color[i][0])
          continue;
 
       if (LLVMTypeOf(color[i][0]) == ctx->ac.f16) {
+         if (smoothing_coverage) {
+            color[i][3] = LLVMBuildFMul(builder, color[i][3],
+                  LLVMBuildFPTrunc(builder, smoothing_coverage, ctx->ac.f16, ""), "");
+         }
+
          for (j = 0; j < 2; j++) {
             LLVMValueRef tmp = ac_build_gather_values(&ctx->ac, &color[i][j * 2], 2);
             tmp = LLVMBuildBitCast(builder, tmp, ctx->ac.f32, "");
@@ -551,6 +528,9 @@ static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi)
          }
          vgpr += 2;
       } else {
+         if (smoothing_coverage)
+            color[i][3] = LLVMBuildFMul(builder, color[i][3], smoothing_coverage, "");
+
          for (j = 0; j < 4; j++)
             ret = LLVMBuildInsertValue(builder, ret, color[i][j], vgpr++, "");
       }
@@ -561,12 +541,6 @@ static void si_llvm_return_fs_outputs(struct ac_shader_abi *abi)
       ret = LLVMBuildInsertValue(builder, ret, stencil, vgpr++, "");
    if (samplemask)
       ret = LLVMBuildInsertValue(builder, ret, samplemask, vgpr++, "");
-
-   /* Add the input sample mask for smoothing at the end. */
-   if (vgpr < first_vgpr + PS_EPILOG_SAMPLEMASK_MIN_LOC)
-      vgpr = first_vgpr + PS_EPILOG_SAMPLEMASK_MIN_LOC;
-   ret = LLVMBuildInsertValue(builder, ret, LLVMGetParam(ctx->main_fn, SI_PARAM_SAMPLE_COVERAGE),
-                              vgpr++, "");
 
    ctx->return_value = ret;
 }
@@ -633,7 +607,7 @@ void si_llvm_build_ps_prolog(struct si_shader_context *ctx, union si_shader_part
       struct ac_arg *arg = NULL;
       if (i == key->ps_prolog.ancillary_vgpr_index) {
          arg = &ancillary;
-      } else if (i == key->ps_prolog.ancillary_vgpr_index + 1) {
+      } else if (i == key->ps_prolog.sample_coverage_vgpr_index) {
          arg = &param_sample_mask;
       } else if (i == key->ps_prolog.num_input_vgprs - 1) {
          /* POS_FIXED_PT is always last. */
@@ -865,7 +839,6 @@ void si_llvm_build_ps_prolog(struct si_shader_context *ctx, union si_shader_part
  */
 void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part_key *key)
 {
-   LLVMValueRef depth = NULL, stencil = NULL, samplemask = NULL;
    int i;
    struct si_ps_exports exp = {};
 
@@ -883,9 +856,6 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
       ctx->args.num_sgprs_used + util_bitcount(key->ps_epilog.colors_written) * 4 +
       key->ps_epilog.writes_z + key->ps_epilog.writes_stencil + key->ps_epilog.writes_samplemask;
 
-   required_num_params =
-      MAX2(required_num_params, ctx->args.num_sgprs_used + PS_EPILOG_SAMPLEMASK_MIN_LOC + 1);
-
    while (ctx->args.arg_count < required_num_params)
       ac_add_arg(&ctx->args, AC_ARG_VGPR, 1, AC_ARG_FLOAT, NULL);
 
@@ -894,29 +864,29 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
    /* Disable elimination of unused inputs. */
    ac_llvm_add_target_dep_function_attr(ctx->main_fn, "InitialPSInputAddr", 0xffffff);
 
-   /* Process colors. */
-   unsigned vgpr = ctx->args.num_sgprs_used;
-   unsigned colors_written = key->ps_epilog.colors_written;
-   int last_color_export = -1;
+   /* Prepare the mrtz export. */
+   if (key->ps_epilog.writes_z ||
+       key->ps_epilog.writes_stencil ||
+       key->ps_epilog.writes_samplemask) {
+      LLVMValueRef depth = NULL, stencil = NULL, samplemask = NULL;
+      unsigned vgpr_index = ctx->args.num_sgprs_used +
+                            util_bitcount(key->ps_epilog.colors_written) * 4;
 
-   /* Find the last color export. */
-   if (!key->ps_epilog.writes_z && !key->ps_epilog.writes_stencil &&
-       !key->ps_epilog.writes_samplemask) {
-      unsigned spi_format = key->ps_epilog.states.spi_shader_col_format;
+      if (key->ps_epilog.writes_z)
+         depth = LLVMGetParam(ctx->main_fn, vgpr_index++);
+      if (key->ps_epilog.writes_stencil)
+         stencil = LLVMGetParam(ctx->main_fn, vgpr_index++);
+      if (key->ps_epilog.writes_samplemask)
+         samplemask = LLVMGetParam(ctx->main_fn, vgpr_index++);
 
-      /* If last_cbuf > 0, FS_COLOR0_WRITES_ALL_CBUFS is true. */
-      if (colors_written == 0x1 && key->ps_epilog.states.last_cbuf > 0) {
-         /* Just set this if any of the colorbuffers are enabled. */
-         if (spi_format & ((1ull << (4 * (key->ps_epilog.states.last_cbuf + 1))) - 1))
-            last_color_export = 0;
-      } else {
-         for (i = 0; i < 8; i++)
-            if (colors_written & (1 << i) && (spi_format >> (i * 4)) & 0xf)
-               last_color_export = i;
-      }
+      ac_export_mrt_z(&ctx->ac, depth, stencil, samplemask, false, &exp.args[exp.num++]);
    }
 
-   unsigned num_compacted_mrts = 0;
+   /* Prepare color exports. */
+   const unsigned first_color_export = exp.num;
+   unsigned vgpr = ctx->args.num_sgprs_used;
+   unsigned colors_written = key->ps_epilog.colors_written;
+
    while (colors_written) {
       LLVMValueRef color[4];
       int output_index = u_bit_scan(&colors_written);
@@ -934,28 +904,17 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
             color[i] = LLVMGetParam(ctx->main_fn, vgpr++);
       }
 
-      if (si_export_mrt_color(ctx, color, output_index, num_compacted_mrts,
-                              ctx->args.arg_count - 1,
-                              output_index == last_color_export, color_type, &exp))
-         num_compacted_mrts++;
+      si_export_mrt_color(ctx, color, output_index, first_color_export, color_type, &exp);
    }
 
-   /* Process depth, stencil, samplemask. */
-   if (key->ps_epilog.writes_z)
-      depth = LLVMGetParam(ctx->main_fn, vgpr++);
-   if (key->ps_epilog.writes_stencil)
-      stencil = LLVMGetParam(ctx->main_fn, vgpr++);
-   if (key->ps_epilog.writes_samplemask)
-      samplemask = LLVMGetParam(ctx->main_fn, vgpr++);
-
-   if (depth || stencil || samplemask)
-      ac_export_mrt_z(&ctx->ac, depth, stencil, samplemask, &exp.args[exp.num++]);
-   else if (last_color_export == -1)
-      ac_build_export_null(&ctx->ac);
-
    if (exp.num) {
+      exp.args[exp.num - 1].valid_mask = 1;  /* whether the EXEC mask is valid */
+      exp.args[exp.num - 1].done = 1;        /* DONE bit */
+
       for (unsigned i = 0; i < exp.num; i++)
          ac_build_export(&ctx->ac, &exp.args[i]);
+   } else {
+      ac_build_export_null(&ctx->ac);
    }
 
    /* Compile. */

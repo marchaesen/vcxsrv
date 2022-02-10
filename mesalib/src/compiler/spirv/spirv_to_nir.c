@@ -1105,6 +1105,7 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationPatch:
    case SpvDecorationPerPrimitiveNV:
    case SpvDecorationPerTaskNV:
+   case SpvDecorationPerViewNV:
       break;
 
    case SpvDecorationSpecId:
@@ -1147,11 +1148,6 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationUserSemantic:
    case SpvDecorationUserTypeGOOGLE:
       /* User semantic decorations can safely be ignored by the driver. */
-      break;
-
-   case SpvDecorationPerViewNV:
-      /* TODO(mesh): Handle multiview. */
-      vtn_warn("Mesh multiview not yet supported. Needed for decoration PerViewNV.");
       break;
 
    default:
@@ -4269,32 +4265,47 @@ vtn_handle_barrier(struct vtn_builder *b, SpvOp opcode,
    }
 }
 
-static unsigned
-gl_primitive_from_spv_execution_mode(struct vtn_builder *b,
-                                     SpvExecutionMode mode)
+static enum tess_primitive_mode
+tess_primitive_mode_from_spv_execution_mode(struct vtn_builder *b,
+                                            SpvExecutionMode mode)
+{
+   switch (mode) {
+   case SpvExecutionModeTriangles:
+      return TESS_PRIMITIVE_TRIANGLES;
+   case SpvExecutionModeQuads:
+      return TESS_PRIMITIVE_QUADS;
+   case SpvExecutionModeIsolines:
+      return TESS_PRIMITIVE_ISOLINES;
+   default:
+      vtn_fail("Invalid tess primitive type: %s (%u)",
+               spirv_executionmode_to_string(mode), mode);
+   }
+}
+
+static enum shader_prim
+primitive_from_spv_execution_mode(struct vtn_builder *b,
+                                  SpvExecutionMode mode)
 {
    switch (mode) {
    case SpvExecutionModeInputPoints:
    case SpvExecutionModeOutputPoints:
-      return 0; /* GL_POINTS */
+      return SHADER_PRIM_POINTS;
    case SpvExecutionModeInputLines:
    case SpvExecutionModeOutputLinesNV:
-      return 1; /* GL_LINES */
+      return SHADER_PRIM_LINES;
    case SpvExecutionModeInputLinesAdjacency:
-      return 0x000A; /* GL_LINE_STRIP_ADJACENCY_ARB */
+      return SHADER_PRIM_LINES_ADJACENCY;
    case SpvExecutionModeTriangles:
    case SpvExecutionModeOutputTrianglesNV:
-      return 4; /* GL_TRIANGLES */
+      return SHADER_PRIM_TRIANGLES;
    case SpvExecutionModeInputTrianglesAdjacency:
-      return 0x000C; /* GL_TRIANGLES_ADJACENCY_ARB */
+      return SHADER_PRIM_TRIANGLES_ADJACENCY;
    case SpvExecutionModeQuads:
-      return 7; /* GL_QUADS */
-   case SpvExecutionModeIsolines:
-      return 0x8E7A; /* GL_ISOLINES */
+      return SHADER_PRIM_QUADS;
    case SpvExecutionModeOutputLineStrip:
-      return 3; /* GL_LINE_STRIP */
+      return SHADER_PRIM_LINE_STRIP;
    case SpvExecutionModeOutputTriangleStrip:
-      return 5; /* GL_TRIANGLE_STRIP */
+      return SHADER_PRIM_TRIANGLE_STRIP;
    default:
       vtn_fail("Invalid primitive type: %s (%u)",
                spirv_executionmode_to_string(mode), mode);
@@ -4805,6 +4816,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(mesh_shading_nv, cap);
          break;
 
+      case SpvCapabilityPerViewAttributesNV:
+         spv_check_supported(per_view_attributes_nv, cap);
+         break;
+
+      case SpvCapabilityShaderViewportMaskNV:
+         spv_check_supported(shader_viewport_mask_nv, cap);
+         break;
+
       default:
          vtn_fail("Unhandled capability: %s (%u)",
                   spirv_capability_to_string(cap), cap);
@@ -5012,14 +5031,14 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeIsolines:
       if (b->shader->info.stage == MESA_SHADER_TESS_CTRL ||
           b->shader->info.stage == MESA_SHADER_TESS_EVAL) {
-         b->shader->info.tess.primitive_mode =
-            gl_primitive_from_spv_execution_mode(b, mode->exec_mode);
+         b->shader->info.tess._primitive_mode =
+            tess_primitive_mode_from_spv_execution_mode(b, mode->exec_mode);
       } else {
          vtn_assert(b->shader->info.stage == MESA_SHADER_GEOMETRY);
          b->shader->info.gs.vertices_in =
             vertices_in_from_spv_execution_mode(b, mode->exec_mode);
          b->shader->info.gs.input_primitive =
-            gl_primitive_from_spv_execution_mode(b, mode->exec_mode);
+            primitive_from_spv_execution_mode(b, mode->exec_mode);
       }
       break;
 
@@ -5032,12 +5051,12 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeOutputTrianglesNV:
       vtn_assert(b->shader->info.stage == MESA_SHADER_MESH);
       b->shader->info.mesh.primitive_type =
-         gl_primitive_from_spv_execution_mode(b, mode->exec_mode);
+         primitive_from_spv_execution_mode(b, mode->exec_mode);
       break;
 
    case SpvExecutionModeOutputPoints: {
       const unsigned primitive =
-         gl_primitive_from_spv_execution_mode(b, mode->exec_mode);
+         primitive_from_spv_execution_mode(b, mode->exec_mode);
 
       switch (b->shader->info.stage) {
       case MESA_SHADER_GEOMETRY:
@@ -5058,7 +5077,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeOutputTriangleStrip:
       vtn_assert(b->shader->info.stage == MESA_SHADER_GEOMETRY);
       b->shader->info.gs.output_primitive =
-         gl_primitive_from_spv_execution_mode(b, mode->exec_mode);
+         primitive_from_spv_execution_mode(b, mode->exec_mode);
       break;
 
    case SpvExecutionModeSpacingEqual:

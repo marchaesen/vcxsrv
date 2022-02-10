@@ -553,6 +553,7 @@ agx_flush(struct pipe_context *pctx,
                ctx->batch->scissor.bo->ptr.gpu,
                ctx->batch->width,
                ctx->batch->height,
+               util_format_get_blocksize(rt0->base.format),
                pipeline_null.gpu,
                pipeline_clear,
                pipeline_store,
@@ -760,6 +761,7 @@ agx_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
    case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
    case PIPE_CAP_TEXTURE_MULTISAMPLE:
    case PIPE_CAP_SURFACE_SAMPLE_COUNT:
+   case PIPE_CAP_SAMPLE_SHADING:
       return is_deqp;
 
    case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
@@ -781,9 +783,9 @@ agx_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
 
    case PIPE_CAP_GLSL_FEATURE_LEVEL:
    case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return 130;
+      return is_deqp ? 330 : 130;
    case PIPE_CAP_ESSL_FEATURE_LEVEL:
-      return 120;
+      return is_deqp ? 320 : 120;
 
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
       return 16;
@@ -1124,6 +1126,19 @@ agx_screen_create(struct sw_winsys *winsys)
    if (!agx_open_device(screen, &agx_screen->dev)) {
       ralloc_free(agx_screen);
       return NULL;
+   }
+
+   if (agx_screen->dev.debug & AGX_DBG_DEQP) {
+      /* You're on your own. */
+      static bool warned_about_hacks = false;
+
+      if (!warned_about_hacks) {
+         fprintf(stderr, "\n------------------\n"
+                         "Unsupported debug parameter set. Expect breakage.\n"
+                         "Do not report bugs.\n"
+                         "------------------\n\n");
+         warned_about_hacks = true;
+      }
    }
 
    screen->destroy = agx_destroy_screen;

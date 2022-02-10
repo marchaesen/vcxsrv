@@ -94,6 +94,9 @@ struct agx_shader_info {
 
    /* Does the shader write point size? */
    bool writes_psiz;
+
+   /* Does the shader control the sample mask? */
+   bool writes_sample_mask;
 };
 
 #define AGX_MAX_RTS (8)

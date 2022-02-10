@@ -50,12 +50,14 @@ emit_rcl_prologue(struct v3dv_job *job,
    if (job->cmd_buffer->state.oom)
       return NULL;
 
+   assert(!tiling->msaa || !tiling->double_buffer);
    cl_emit(rcl, TILE_RENDERING_MODE_CFG_COMMON, config) {
       config.early_z_disable = true;
       config.image_width_pixels = tiling->width;
       config.image_height_pixels = tiling->height;
       config.number_of_render_targets = 1;
       config.multisample_mode_4x = tiling->msaa;
+      config.double_buffer_in_non_ms_mode = tiling->double_buffer;
       config.maximum_bpp_of_all_render_targets = tiling->internal_bpp;
       config.internal_depth_type = fb->internal_depth_type;
    }
@@ -166,7 +168,11 @@ emit_frame_setup(struct v3dv_job *job,
       cl_emit(rcl, STORE_TILE_BUFFER_GENERAL, store) {
          store.buffer_to_store = NONE;
       }
-      if (clear_value && i == 0) {
+      /* When using double-buffering, we need to clear both buffers (unless
+       * we only have a single tile to render).
+       */
+      if (clear_value &&
+          (i == 0 || v3dv_do_double_initial_tile_clear(tiling))) {
          cl_emit(rcl, CLEAR_TILE_BUFFERS, clear) {
             clear.clear_z_stencil_buffer = true;
             clear.clear_all_render_targets = true;
@@ -307,7 +313,15 @@ format_needs_rb_swap(struct v3dv_device *device,
                      VkFormat format)
 {
    const uint8_t *swizzle = v3dv_get_format_swizzle(device, format);
-   return swizzle[0] == PIPE_SWIZZLE_Z;
+   return v3dv_format_swizzle_needs_rb_swap(swizzle);
+}
+
+static inline bool
+format_needs_reverse(struct v3dv_device *device,
+                     VkFormat format)
+{
+   const uint8_t *swizzle = v3dv_get_format_swizzle(device, format);
+   return v3dv_format_swizzle_needs_reverse(swizzle);
 }
 
 static void
@@ -373,6 +387,7 @@ emit_image_load(struct v3dv_device *device,
           * so we need to make sure we respect the format swizzle.
           */
          needs_rb_swap = format_needs_rb_swap(device, framebuffer->vk_format);
+         needs_chan_reverse = format_needs_reverse(device, framebuffer->vk_format);
       }
 
       load.r_b_swap = needs_rb_swap;
@@ -430,6 +445,7 @@ emit_image_store(struct v3dv_device *device,
       } else if (!is_copy_from_buffer && !is_copy_to_buffer &&
                  (aspect & VK_IMAGE_ASPECT_COLOR_BIT)) {
          needs_rb_swap = format_needs_rb_swap(device, framebuffer->vk_format);
+         needs_chan_reverse = format_needs_reverse(device, framebuffer->vk_format);
       }
 
       store.r_b_swap = needs_rb_swap;

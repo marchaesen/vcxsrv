@@ -688,7 +688,7 @@ fd_gmem_render_tiles(struct fd_batch *batch)
    }
 
    if (ctx->emit_sysmem_prep && !batch->nondraw) {
-      if (fd_autotune_use_bypass(&ctx->autotune, batch) && !FD_DBG(NOBYPASS)) {
+      if (fd_autotune_use_bypass(&ctx->autotune, batch) && !FD_DBG(GMEM)) {
          sysmem = true;
       }
 
@@ -698,7 +698,7 @@ fd_gmem_render_tiles(struct fd_batch *batch)
       }
    }
 
-   if (FD_DBG(NOGMEM))
+   if (FD_DBG(SYSMEM))
       sysmem = true;
 
    /* Layered rendering always needs bypass. */

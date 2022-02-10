@@ -31,6 +31,10 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_icd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef WSI_ENTRYPOINTS_H
 extern const struct vk_instance_entrypoint_table wsi_instance_entrypoints;
 extern const struct vk_physical_device_entrypoint_table wsi_physical_device_entrypoints;
@@ -170,6 +174,12 @@ struct wsi_device {
     */
    bool (*can_present_on_device)(VkPhysicalDevice pdevice, int fd);
 
+   /*
+    * A driver can implement this callback to return a special queue to execute
+    * prime blits.
+    */
+   VkQueue (*get_prime_blit_queue)(VkDevice device);
+
 #define WSI_CB(cb) PFN_vk##cb cb
    WSI_CB(AllocateMemory);
    WSI_CB(AllocateCommandBuffers);
@@ -181,10 +191,12 @@ struct wsi_device {
    WSI_CB(CreateCommandPool);
    WSI_CB(CreateFence);
    WSI_CB(CreateImage);
+   WSI_CB(CreateSemaphore);
    WSI_CB(DestroyBuffer);
    WSI_CB(DestroyCommandPool);
    WSI_CB(DestroyFence);
    WSI_CB(DestroyImage);
+   WSI_CB(DestroySemaphore);
    WSI_CB(EndCommandBuffer);
    WSI_CB(FreeMemory);
    WSI_CB(FreeCommandBuffers);
@@ -250,6 +262,9 @@ wsi_common_get_images(VkSwapchainKHR _swapchain,
                       uint32_t *pSwapchainImageCount,
                       VkImage *pSwapchainImages);
 
+VkImage
+wsi_common_get_image(VkSwapchainKHR _swapchain, uint32_t index);
+
 VkResult
 wsi_common_acquire_next_image2(const struct wsi_device *wsi,
                                VkDevice device,
@@ -262,5 +277,20 @@ wsi_common_queue_present(const struct wsi_device *wsi,
                          VkQueue queue_h,
                          int queue_family_index,
                          const VkPresentInfoKHR *pPresentInfo);
+
+VkResult
+wsi_common_create_swapchain_image(const struct wsi_device *wsi,
+                                  const VkImageCreateInfo *pCreateInfo,
+                                  VkSwapchainKHR _swapchain,
+                                  VkImage *pImage);
+VkResult
+wsi_common_bind_swapchain_image(const struct wsi_device *wsi,
+                                VkImage vk_image,
+                                VkSwapchainKHR _swapchain,
+                                uint32_t image_idx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

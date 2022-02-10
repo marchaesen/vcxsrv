@@ -161,7 +161,7 @@ bi_opt_cse(bi_context *ctx)
                         /* Rewrite before trying to CSE anything so we converge
                          * locally in one iteration */
                         bi_foreach_src(instr, s) {
-                                if (s == 0 && bi_opcode_props[instr->op].sr_read)
+                                if (bi_is_staging_src(instr, s))
                                         continue;
 
                                 if (!bi_is_ssa(instr->src[s]))

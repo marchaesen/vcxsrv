@@ -138,6 +138,28 @@ fdl6_view_init(struct fdl6_view *view, const struct fdl_layout **layouts,
    const struct fdl_layout *layout = layouts[0];
    uint32_t width = u_minify(layout->width0, args->base_miplevel);
    uint32_t height = u_minify(layout->height0, args->base_miplevel);
+
+   /* If reinterpreting a compressed format as a size-compatible uncompressed
+    * format, we need width/height in blocks, and vice-versa. In vulkan this
+    * includes single-plane 422 formats which util/format doesn't consider
+    * "compressed" (get_compressed() returns false).
+    */
+   if (util_format_get_blockwidth(layout->format) > 1 &&
+       util_format_get_blockwidth(args->format) == 1) {
+      width = util_format_get_nblocksx(layout->format, width);
+   } else if (util_format_get_blockwidth(layout->format) == 1 &&
+              util_format_get_blockwidth(args->format) > 1) {
+      width *= util_format_get_blockwidth(args->format);
+   }
+
+   if (util_format_get_blockheight(layout->format) > 1 &&
+       util_format_get_blockheight(args->format) == 1) {
+      height = util_format_get_nblocksy(layout->format, height);
+   } else if (util_format_get_blockheight(layout->format) == 1 &&
+              util_format_get_blockheight(args->format) > 1) {
+      height *= util_format_get_blockheight(args->format);
+   }
+
    uint32_t storage_depth = args->layer_count;
    if (args->type == FDL_VIEW_TYPE_3D) {
       storage_depth = u_minify(layout->depth0, args->base_miplevel);

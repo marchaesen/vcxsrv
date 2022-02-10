@@ -22,7 +22,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "ac_exp_param.h"
+#include "ac_nir.h"
 #include "ac_sqtt.h"
 #include "si_build_pm4.h"
 #include "util/u_cpu_detect.h"
@@ -177,7 +177,7 @@ static bool si_update_shaders(struct si_context *sctx)
          return false;
       si_pm4_bind_state(sctx, gs, sctx->shader.gs.current);
       if (!NGG) {
-         si_pm4_bind_state(sctx, vs, sctx->shader.gs.cso->gs_copy_shader);
+         si_pm4_bind_state(sctx, vs, sctx->shader.gs.current->gs_copy_shader);
 
          if (!si_update_gs_ring_buffers(sctx))
             return false;
@@ -241,7 +241,7 @@ static bool si_update_shaders(struct si_context *sctx)
    } else if (GFX_VERSION >= GFX10) {
       if (HAS_GS) {
          key.u.gs_wave32 = sctx->shader.gs.current->wave_size == 32;
-         key.u.vs_wave32 = sctx->shader.gs.cso->gs_copy_shader->wave_size == 32;
+         key.u.vs_wave32 = sctx->shader.gs.current->gs_copy_shader->wave_size == 32;
       } else {
          key.u.vs_wave32 = si_get_vs_inline(sctx, HAS_TESS, HAS_GS)->current->wave_size == 32;
       }
@@ -275,8 +275,8 @@ static bool si_update_shaders(struct si_context *sctx)
       si_mark_atom_dirty(sctx, &sctx->atoms.s.cb_render_state);
 
    if (sctx->smoothing_enabled !=
-       sctx->shader.ps.current->key.ps.part.epilog.poly_line_smoothing) {
-      sctx->smoothing_enabled = sctx->shader.ps.current->key.ps.part.epilog.poly_line_smoothing;
+       sctx->shader.ps.current->key.ps.mono.poly_line_smoothing) {
+      sctx->smoothing_enabled = sctx->shader.ps.current->key.ps.mono.poly_line_smoothing;
       si_mark_atom_dirty(sctx, &sctx->atoms.s.msaa_config);
 
       /* NGG cull state uses smoothing_enabled. */
@@ -1186,7 +1186,9 @@ static void si_emit_ia_multi_vgt_param(struct si_context *sctx,
           min_vertex_count);
 
    /* Draw state. */
-   if (ia_multi_vgt_param != sctx->last_multi_vgt_param) {
+   if (ia_multi_vgt_param != sctx->last_multi_vgt_param ||
+       /* Workaround for SpecviewPerf13 Catia hang on GFX9. */
+       (GFX_VERSION == GFX9 && prim != sctx->last_prim)) {
       radeon_begin(cs);
 
       if (GFX_VERSION == GFX9)

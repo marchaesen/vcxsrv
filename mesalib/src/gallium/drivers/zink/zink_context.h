@@ -50,6 +50,8 @@
 
 #include <vulkan/vulkan.h>
 
+#define pipe_buffer_write "use tc_buffer_write to avoid breaking threaded context"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -259,8 +261,6 @@ struct zink_context {
    uint16_t rp_clears_enabled;
    uint16_t fbfetch_outputs;
 
-   VkBuffer vbufs[PIPE_MAX_ATTRIBS];
-   unsigned vbuf_offsets[PIPE_MAX_ATTRIBS];
    struct pipe_vertex_buffer vertex_buffers[PIPE_MAX_ATTRIBS];
    bool vertex_buffers_dirty;
 
@@ -397,8 +397,6 @@ zink_resource_access_is_write(VkAccessFlags flags);
 
 void
 zink_resource_buffer_barrier(struct zink_context *ctx, struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
-void
-zink_fake_buffer_barrier(struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
 bool
 zink_resource_image_needs_barrier(struct zink_resource *res, VkImageLayout new_layout, VkAccessFlags flags, VkPipelineStageFlags pipeline);
 bool

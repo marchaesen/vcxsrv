@@ -24,8 +24,11 @@
  */
 
 #include "util/macros.h"
+#include "radv_debug.h"
 #include "radv_meta.h"
 #include "radv_private.h"
+#include "vk_fence.h"
+#include "vk_semaphore.h"
 #include "vk_util.h"
 #include "wsi_common.h"
 
@@ -47,6 +50,39 @@ radv_wsi_set_memory_ownership(VkDevice _device, VkDeviceMemory _mem, VkBool32 ow
    }
 }
 
+static VkQueue
+radv_wsi_get_prime_blit_queue(VkDevice _device)
+{
+   RADV_FROM_HANDLE(radv_device, device, _device);
+
+   if (device->private_sdma_queue != VK_NULL_HANDLE)
+      return vk_queue_to_handle(&device->private_sdma_queue->vk);
+
+   if (device->physical_device->rad_info.chip_class >= GFX9 &&
+       !(device->physical_device->instance->debug_flags & RADV_DEBUG_NO_DMA_BLIT)) {
+      const VkDeviceQueueCreateInfo queue_create = {
+         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+         .queueFamilyIndex = RADV_QUEUE_TRANSFER,
+         .queueCount = 1,
+      };
+      device->private_sdma_queue = vk_zalloc(&device->vk.alloc, sizeof(struct radv_queue), 8,
+                                             VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+
+      VkResult result = radv_queue_init(device, device->private_sdma_queue, 0, &queue_create, NULL);
+      if (result == VK_SUCCESS) {
+         /* Remove the queue from our queue list because it'll be cleared manually
+          * in radv_DestroyDevice.
+          */
+         list_delinit(&device->private_sdma_queue->vk.link);
+         return vk_queue_to_handle(&device->private_sdma_queue->vk);
+      } else {
+         vk_free(&device->vk.alloc, device->private_sdma_queue);
+         device->private_sdma_queue = VK_NULL_HANDLE;
+      }
+   }
+   return VK_NULL_HANDLE;
+}
+
 VkResult
 radv_init_wsi(struct radv_physical_device *physical_device)
 {
@@ -59,6 +95,9 @@ radv_init_wsi(struct radv_physical_device *physical_device)
 
    physical_device->wsi_device.supports_modifiers = physical_device->rad_info.chip_class >= GFX9;
    physical_device->wsi_device.set_memory_ownership = radv_wsi_set_memory_ownership;
+   physical_device->wsi_device.get_prime_blit_queue = radv_wsi_get_prime_blit_queue;
+   physical_device->wsi_device.signal_semaphore_with_memory = true;
+   physical_device->wsi_device.signal_fence_with_memory = true;
 
    wsi_device_setup_syncobj_fd(&physical_device->wsi_device, physical_device->local_fd);
 
@@ -72,46 +111,6 @@ radv_finish_wsi(struct radv_physical_device *physical_device)
 {
    physical_device->vk.wsi_device = NULL;
    wsi_device_finish(&physical_device->wsi_device, &physical_device->instance->vk.alloc);
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-radv_AcquireNextImage2KHR(VkDevice _device, const VkAcquireNextImageInfoKHR *pAcquireInfo,
-                          uint32_t *pImageIndex)
-{
-   RADV_FROM_HANDLE(radv_device, device, _device);
-   struct radv_physical_device *pdevice = device->physical_device;
-   RADV_FROM_HANDLE(radv_fence, fence, pAcquireInfo->fence);
-   RADV_FROM_HANDLE(radv_semaphore, semaphore, pAcquireInfo->semaphore);
-
-   VkResult result =
-      wsi_common_acquire_next_image2(&pdevice->wsi_device, _device, pAcquireInfo, pImageIndex);
-
-   if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
-      if (fence) {
-         struct radv_fence_part *part =
-            fence->temporary.kind != RADV_FENCE_NONE ? &fence->temporary : &fence->permanent;
-
-         device->ws->signal_syncobj(device->ws, part->syncobj, 0);
-      }
-      if (semaphore) {
-         struct radv_semaphore_part *part = semaphore->temporary.kind != RADV_SEMAPHORE_NONE
-                                               ? &semaphore->temporary
-                                               : &semaphore->permanent;
-
-         switch (part->kind) {
-         case RADV_SEMAPHORE_NONE:
-            /* Do not need to do anything. */
-            break;
-         case RADV_SEMAPHORE_TIMELINE:
-         case RADV_SEMAPHORE_TIMELINE_SYNCOBJ:
-            unreachable("WSI only allows binary semaphores.");
-         case RADV_SEMAPHORE_SYNCOBJ:
-            device->ws->signal_syncobj(device->ws, part->syncobj, 0);
-            break;
-         }
-      }
-   }
-   return result;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

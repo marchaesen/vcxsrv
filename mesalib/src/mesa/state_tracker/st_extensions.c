@@ -583,7 +583,8 @@ void st_init_limits(struct pipe_screen *screen,
          c->Program[MESA_SHADER_COMPUTE].MaxImageUniforms;
    c->MaxCombinedShaderOutputResources += c->MaxCombinedImageUniforms;
    c->MaxImageUnits = MAX_IMAGE_UNITS;
-   if (c->Program[MESA_SHADER_FRAGMENT].MaxImageUniforms) {
+   if (c->Program[MESA_SHADER_FRAGMENT].MaxImageUniforms &&
+       screen->get_param(screen, PIPE_CAP_IMAGE_STORE_FORMATTED)) {
       extensions->ARB_shader_image_load_store = GL_TRUE;
       extensions->ARB_shader_image_size = GL_TRUE;
    }
@@ -798,7 +799,6 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_gl_spirv),                     PIPE_CAP_GL_SPIRV                         },
       { o(ARB_indirect_parameters),          PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS       },
       { o(ARB_instanced_arrays),             PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR  },
-      { o(ARB_occlusion_query),              PIPE_CAP_OCCLUSION_QUERY                  },
       { o(ARB_occlusion_query2),             PIPE_CAP_OCCLUSION_QUERY                  },
       { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS        },
       { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE },
@@ -822,6 +822,8 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_shadow),                       PIPE_CAP_TEXTURE_SHADOW_MAP               },
       { o(ARB_sparse_buffer),                PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE          },
       { o(ARB_sparse_texture),               PIPE_CAP_MAX_SPARSE_TEXTURE_SIZE          },
+      { o(ARB_sparse_texture2),              PIPE_CAP_QUERY_SPARSE_TEXTURE_RESIDENCY   },
+      { o(ARB_sparse_texture_clamp),         PIPE_CAP_CLAMP_SPARSE_TEXTURE_LOD         },
       { o(ARB_spirv_extensions),             PIPE_CAP_GL_SPIRV                         },
       { o(ARB_texture_buffer_object),        PIPE_CAP_TEXTURE_BUFFER_OBJECTS           },
       { o(ARB_texture_cube_map_array),       PIPE_CAP_CUBE_MAP_ARRAY                   },
@@ -1197,7 +1199,8 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->EXT_gpu_shader4 = GL_TRUE;
       extensions->EXT_texture_buffer_object = GL_TRUE;
 
-      if (screen->get_param(screen, PIPE_CAP_TGSI_ARRAY_COMPONENTS))
+      if (consts->MaxTransformFeedbackBuffers &&
+          screen->get_param(screen, PIPE_CAP_TGSI_ARRAY_COMPONENTS))
          extensions->ARB_enhanced_layouts = GL_TRUE;
    }
 
@@ -1485,10 +1488,10 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    extensions->OES_texture_buffer =
+      consts->Program[MESA_SHADER_COMPUTE].MaxImageUniforms &&
       extensions->ARB_texture_buffer_object &&
       extensions->ARB_texture_buffer_range &&
-      extensions->ARB_texture_buffer_object_rgb32 &&
-      extensions->ARB_shader_image_load_store;
+      extensions->ARB_texture_buffer_object_rgb32;
 
    extensions->EXT_framebuffer_sRGB =
          screen->get_param(screen, PIPE_CAP_DEST_SURFACE_SRGB_CONTROL) &&
@@ -1684,6 +1687,7 @@ void st_init_extensions(struct pipe_screen *screen,
     * these are redunant, but simpler to just have a (near-)exact copy here.
     */
    extensions->ARB_ES3_1_compatibility =
+      consts->Program[MESA_SHADER_FRAGMENT].MaxImageUniforms &&
       extensions->ARB_ES3_compatibility &&
       extensions->ARB_arrays_of_arrays &&
       extensions->ARB_compute_shader &&
@@ -1716,10 +1720,10 @@ void st_init_extensions(struct pipe_screen *screen,
    consts->NoPrimitiveBoundingBoxOutput = true;
 
    extensions->ANDROID_extension_pack_es31a =
+      consts->Program[MESA_SHADER_FRAGMENT].MaxImageUniforms &&
       extensions->KHR_texture_compression_astc_ldr &&
       extensions->KHR_blend_equation_advanced &&
       extensions->OES_sample_variables &&
-      extensions->ARB_shader_image_load_store &&
       extensions->ARB_texture_stencil8 &&
       extensions->ARB_texture_multisample &&
       extensions->OES_copy_image &&

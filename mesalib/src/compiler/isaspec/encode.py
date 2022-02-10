@@ -647,7 +647,6 @@ isa = s.isa
       {}  /* in case no unconditional field to close out last '} else' */
     ${case_post(root, case.expr)}
 %endfor
-      return val;
 """
 
 xml = sys.argv[1]

@@ -130,6 +130,9 @@ struct fd_dev_info {
 
          bool has_getfiberid;
 
+         bool has_dp2acc;
+         bool has_dp4acc;
+
          struct {
             uint32_t RB_UNKNOWN_8E04_blit;
             uint32_t PC_POWER_CNTL;

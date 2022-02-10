@@ -541,7 +541,7 @@ tu_GetQueryPoolResults(VkDevice _device,
    TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(firstQuery + queryCount <= pool->size);
 
-   if (tu_device_is_lost(device))
+   if (vk_device_is_lost(&device->vk))
       return VK_ERROR_DEVICE_LOST;
 
    switch (pool->type) {
@@ -603,7 +603,7 @@ emit_copy_query_pool_results(struct tu_cmd_buffer *cmdbuf,
    for (uint32_t i = 0; i < queryCount; i++) {
       uint32_t query = firstQuery + i;
       uint64_t available_iova = query_available_iova(pool, query);
-      uint64_t buffer_iova = tu_buffer_iova(buffer) + dstOffset + i * stride;
+      uint64_t buffer_iova = buffer->iova + dstOffset + i * stride;
       uint32_t result_count = get_result_count(pool);
       uint32_t statistics = pool->pipeline_statistics;
 

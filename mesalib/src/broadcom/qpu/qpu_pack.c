@@ -256,13 +256,6 @@ v3d_qpu_sig_pack(const struct v3d_device_info *devinfo,
 
         return false;
 }
-static inline unsigned
-fui( float f )
-{
-        union {float f; unsigned ui;} fi;
-   fi.f = f;
-   return fi.ui;
-}
 
 static const uint32_t small_immediates[] = {
         0, 1, 2, 3,

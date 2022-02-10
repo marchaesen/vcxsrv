@@ -46,8 +46,6 @@ extern int ST_DEBUG;
 
 void st_debug_init( void );
 
-void st_update_debug_callback(struct st_context *st);
-
 static inline void
 ST_DBG( unsigned flag, const char *fmt, ... )
 {

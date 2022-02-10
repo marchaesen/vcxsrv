@@ -55,7 +55,7 @@ svga_buffer_recreate_host_surface(struct svga_context *svga,
                                   struct svga_buffer *sbuf,
                                   unsigned bind_flags);
 
-enum pipe_error
+struct svga_buffer_surface *
 svga_buffer_add_host_surface(struct svga_buffer *sbuf,
                              struct svga_winsys_surface *handle,
                              struct svga_host_surface_cache_key *key,

@@ -28,16 +28,10 @@
  * may be errata requiring a workaround, or features. We're trying to be
  * quirk-positive here; quirky is the best! */
 
-/* Whether this GPU lacks support for the preload mechanism. New GPUs can have
- * varyings and textures preloaded into the fragment shader to amortize the I/O
- * cost; early Bifrost models lacked this feature. */
-
-#define BIFROST_NO_PRELOAD (1 << 0)
-
 /* Whether this GPU lacks support for fp32 transcendentals, requiring backend
  * lowering to low-precision lookup tables and polynomial approximation */
 
-#define BIFROST_NO_FP32_TRANSCENDENTALS (1 << 1)
+#define BIFROST_NO_FP32_TRANSCENDENTALS (1 << 0)
 
 /* Whether this GPU lacks support for the full form of the CLPER instruction.
  * These GPUs use a simple encoding of CLPER that does not support
@@ -45,33 +39,19 @@
  * lowering to additional ALU instructions. The encoding forces inactive_result
  * = zero, subgroup_size = subgroup4, and lane_op = none. */
 
-#define BIFROST_LIMITED_CLPER (1 << 2)
+#define BIFROST_LIMITED_CLPER (1 << 1)
 
 static inline unsigned
 bifrost_get_quirks(unsigned product_id)
 {
         switch (product_id >> 8) {
-        case 0x60:
-                return BIFROST_NO_PRELOAD | BIFROST_NO_FP32_TRANSCENDENTALS |
-                       BIFROST_LIMITED_CLPER;
-        case 0x62:
-                return BIFROST_NO_PRELOAD | BIFROST_LIMITED_CLPER;
+        case 0x60: /* G71 */
+                return BIFROST_NO_FP32_TRANSCENDENTALS | BIFROST_LIMITED_CLPER;
+        case 0x62: /* G72 */
         case 0x70: /* G31 */
                 return BIFROST_LIMITED_CLPER;
-        case 0x71:
-        case 0x72:
-        case 0x73:
-        case 0x74:
-                return 0;
-        case 0x90:
-        case 0x91:
-        case 0x92:
-        case 0x93:
-        case 0x94:
-        case 0x95:
-                return BIFROST_NO_PRELOAD;
         default:
-                unreachable("Unknown Bifrost/Valhall GPU ID");
+                return 0;
         }
 }
 
@@ -84,8 +64,7 @@ bifrost_lanes_per_warp(unsigned product_id)
         switch (product_id >> 12) {
         case 6: return 4;
         case 7: return 8;
-        case 9: return 16;
-        default: unreachable("Invalid Bifrost/Valhall GPU major");
+        default: return 16;
         }
 }
 

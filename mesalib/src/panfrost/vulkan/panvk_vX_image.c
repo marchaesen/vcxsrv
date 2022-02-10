@@ -28,7 +28,6 @@
 
 #include "genxml/gen_macros.h"
 #include "panvk_private.h"
-#include "panfrost-quirks.h"
 
 #include "util/debug.h"
 #include "util/u_atomic.h"

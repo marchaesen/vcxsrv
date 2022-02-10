@@ -354,21 +354,10 @@ struct si_tracked_regs {
 /* Private read-write buffer slots. */
 enum
 {
-   SI_ES_RING_ESGS,
-   SI_GS_RING_ESGS,
-
-   SI_RING_GSVS,
-
    SI_VS_STREAMOUT_BUF0,
    SI_VS_STREAMOUT_BUF1,
    SI_VS_STREAMOUT_BUF2,
    SI_VS_STREAMOUT_BUF3,
-
-   SI_HS_CONST_DEFAULT_TESS_LEVELS,
-   SI_VS_CONST_INSTANCE_DIVISORS,
-   SI_VS_CONST_CLIP_PLANES,
-   SI_PS_CONST_POLY_STIPPLE,
-   SI_PS_CONST_SAMPLE_POSITIONS,
 
    /* Image descriptor of color buffer 0 for KHR_blend_equation_advanced. */
    SI_PS_IMAGE_COLORBUF0,
@@ -376,9 +365,20 @@ enum
    SI_PS_IMAGE_COLORBUF0_FMASK,
    SI_PS_IMAGE_COLORBUF0_FMASK_HI,
 
-   GFX10_GS_QUERY_BUF,
+   /* Internal constant buffers. */
+   SI_HS_CONST_DEFAULT_TESS_LEVELS,
+   SI_VS_CONST_INSTANCE_DIVISORS,
+   SI_VS_CONST_CLIP_PLANES,
+   SI_PS_CONST_POLY_STIPPLE,
+   SI_PS_CONST_SAMPLE_POSITIONS,
+
+   SI_RING_ESGS,                       /* gfx6-8 */
+   SI_RING_GSVS,
 
    SI_NUM_INTERNAL_BINDINGS,
+
+   /* Aliases to reuse slots that are unused on other generations. */
+   SI_GS_QUERY_BUF = SI_RING_ESGS,     /* gfx10+ */
 };
 
 /* Indices into sctx->descriptors, laid out so that gfx and compute pipelines

@@ -148,12 +148,13 @@ svga_screen_cache_init(struct svga_screen *svgascreen);
 struct svga_winsys_surface *
 svga_screen_surface_create(struct svga_screen *svgascreen,
                            unsigned bind_flags, enum pipe_resource_usage usage,
-                           boolean *validated,
+                           boolean *invalidated,
                            struct svga_host_surface_cache_key *key);
 
 void
 svga_screen_surface_destroy(struct svga_screen *svgascreen,
                             const struct svga_host_surface_cache_key *key,
+                            boolean to_invalidate,
                             struct svga_winsys_surface **handle);
 
 void

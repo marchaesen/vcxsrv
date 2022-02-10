@@ -367,6 +367,8 @@ static void si_set_global_binding(struct pipe_context *ctx, unsigned first, unsi
 
 void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf *cs)
 {
+   const struct radeon_info *info = &sctx->screen->info;
+
    radeon_begin(cs);
    radeon_set_sh_reg(R_00B834_COMPUTE_PGM_HI,
                      S_00B834_DATA(sctx->screen->info.address32_hi >> 8));
@@ -374,8 +376,8 @@ void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf 
    radeon_set_sh_reg_seq(R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0, 2);
    /* R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 / SE1,
     * renamed COMPUTE_DESTINATION_EN_SEn on gfx10. */
-   radeon_emit(S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
-   radeon_emit(S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
+   radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
+   radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
 
    if (sctx->chip_class == GFX6) {
       /* This register has been moved to R_00CD20_COMPUTE_MAX_WAVE_ID
@@ -397,8 +399,8 @@ void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf 
    if (sctx->chip_class >= GFX7) {
       /* Also set R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE2 / SE3 */
       radeon_set_sh_reg_seq(R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2, 2);
-      radeon_emit(S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
-      radeon_emit(S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
+      radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
+      radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
 
       /* Disable profiling on compute queues. */
       if (cs != &sctx->gfx_cs || !sctx->screen->info.has_graphics) {
@@ -424,6 +426,14 @@ void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf 
        (cs != &sctx->gfx_cs || !sctx->screen->info.has_graphics)) {
       radeon_set_uconfig_reg(R_0301EC_CP_COHER_START_DELAY,
                              sctx->chip_class >= GFX10 ? 0x20 : 0);
+
+      if (!info->has_graphics && info->family >= CHIP_ARCTURUS) {
+         radeon_set_sh_reg_seq(R_00B894_COMPUTE_STATIC_THREAD_MGMT_SE4, 4);
+         radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
+         radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
+         radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
+         radeon_emit(S_00B858_SH0_CU_EN(info->spi_cu_en) | S_00B858_SH1_CU_EN(info->spi_cu_en));
+      }
    }
 
    if (sctx->chip_class >= GFX10) {

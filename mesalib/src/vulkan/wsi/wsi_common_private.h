@@ -26,6 +26,38 @@
 #include "wsi_common.h"
 #include "vulkan/runtime/vk_object.h"
 
+struct wsi_image;
+struct wsi_swapchain;
+
+struct wsi_image_info {
+   VkImageCreateInfo create;
+   struct wsi_image_create_info wsi;
+   VkExternalMemoryImageCreateInfo ext_mem;
+   VkImageFormatListCreateInfoKHR format_list;
+   VkImageDrmFormatModifierListCreateInfoEXT drm_mod_list;
+
+   bool prime_use_linear_modifier;
+
+   /* Not really part of VkImageCreateInfo but needed to figure out the
+    * number of planes we need to bind.
+    */
+   uint32_t modifier_prop_count;
+   struct VkDrmFormatModifierPropertiesEXT *modifier_props;
+
+   /* For prime blit images, the linear stride in bytes */
+   uint32_t linear_stride;
+
+   uint8_t *(*alloc_shm)(struct wsi_image *image, unsigned size);
+
+   VkResult (*create_mem)(const struct wsi_swapchain *chain,
+                          const struct wsi_image_info *info,
+                          struct wsi_image *image);
+
+   VkResult (*finish_create)(const struct wsi_swapchain *chain,
+                             const struct wsi_image_info *info,
+                             struct wsi_image *image);
+};
+
 struct wsi_image {
    VkImage image;
    VkDeviceMemory memory;
@@ -52,10 +84,20 @@ struct wsi_swapchain {
    VkDevice device;
    VkAllocationCallbacks alloc;
    VkFence* fences;
+   VkSemaphore* prime_blit_semaphores;
    VkPresentModeKHR present_mode;
+
+   struct wsi_image_info image_info;
    uint32_t image_count;
 
    bool use_prime_blit;
+
+   /* If the driver wants to use a special queue to execute the prime blit,
+    * it'll implement the wsi_device::get_prime_blit_queue callback.
+    * The created queue will be stored here and will be used to execute the
+    * prime blit instead of using the present queue.
+    */
+   VkQueue prime_blit_queue;
 
    /* Command pools, one per queue family */
    VkCommandPool *cmd_pools;
@@ -80,7 +122,8 @@ wsi_swapchain_init(const struct wsi_device *wsi,
                    struct wsi_swapchain *chain,
                    VkDevice device,
                    const VkSwapchainCreateInfoKHR *pCreateInfo,
-                   const VkAllocationCallbacks *pAllocator);
+                   const VkAllocationCallbacks *pAllocator,
+                   bool use_prime_blit);
 
 enum VkPresentModeKHR
 wsi_swapchain_get_present_mode(struct wsi_device *wsi,
@@ -89,20 +132,33 @@ wsi_swapchain_get_present_mode(struct wsi_device *wsi,
 void wsi_swapchain_finish(struct wsi_swapchain *chain);
 
 VkResult
-wsi_create_native_image(const struct wsi_swapchain *chain,
-                        const VkSwapchainCreateInfoKHR *pCreateInfo,
-                        uint32_t num_modifier_lists,
-                        const uint32_t *num_modifiers,
-                        const uint64_t *const *modifiers,
-                        uint8_t *(alloc_shm)(struct wsi_image *image, unsigned size),
-                        struct wsi_image *image);
+wsi_configure_native_image(const struct wsi_swapchain *chain,
+                           const VkSwapchainCreateInfoKHR *pCreateInfo,
+                           uint32_t num_modifier_lists,
+                           const uint32_t *num_modifiers,
+                           const uint64_t *const *modifiers,
+                           uint8_t *(alloc_shm)(struct wsi_image *image,
+                                                unsigned size),
+                           struct wsi_image_info *info);
 
 VkResult
-wsi_create_prime_image(const struct wsi_swapchain *chain,
-                       const VkSwapchainCreateInfoKHR *pCreateInfo,
-                       bool use_modifier,
-                       struct wsi_image *image);
+wsi_configure_prime_image(UNUSED const struct wsi_swapchain *chain,
+                          const VkSwapchainCreateInfoKHR *pCreateInfo,
+                          bool use_modifier,
+                          struct wsi_image_info *info);
 
+VkResult
+wsi_configure_image(const struct wsi_swapchain *chain,
+                    const VkSwapchainCreateInfoKHR *pCreateInfo,
+                    VkExternalMemoryHandleTypeFlags handle_types,
+                    struct wsi_image_info *info);
+void
+wsi_destroy_image_info(const struct wsi_swapchain *chain,
+                       struct wsi_image_info *info);
+VkResult
+wsi_create_image(const struct wsi_swapchain *chain,
+                 const struct wsi_image_info *info,
+                 struct wsi_image *image);
 void
 wsi_destroy_image(const struct wsi_swapchain *chain,
                   struct wsi_image *image);

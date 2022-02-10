@@ -34,14 +34,30 @@
 #ifndef ST_VDPAU_H
 #define ST_VDPAU_H
 
-struct dd_function_table;
-
 #ifdef HAVE_ST_VDPAU
-extern void
-st_init_vdpau_functions(struct dd_function_table *functions);
+
+void
+st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
+                     GLboolean output, struct gl_texture_object *texObj,
+                     struct gl_texture_image *texImage,
+                     const void *vdpSurface, GLuint index);
+void
+st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
+                       GLboolean output, struct gl_texture_object *texObj,
+                       struct gl_texture_image *texImage,
+                       const void *vdpSurface, GLuint index);
 #else
+
 static inline void
-st_init_vdpau_functions(struct dd_function_table *functions) {}
+st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
+                     GLboolean output, struct gl_texture_object *texObj,
+                     struct gl_texture_image *texImage,
+                     const void *vdpSurface, GLuint index) {}
+static inline void
+st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
+                       GLboolean output, struct gl_texture_object *texObj,
+                       struct gl_texture_image *texImage,
+                       const void *vdpSurface, GLuint index) {}
 #endif
 
 #endif /* ST_VDPAU_H */

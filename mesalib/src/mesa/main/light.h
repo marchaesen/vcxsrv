@@ -52,6 +52,4 @@ extern void _mesa_update_color_material( struct gl_context *ctx,
 
 extern void _mesa_init_lighting( struct gl_context *ctx );
 
-extern void _mesa_allow_light_in_model( struct gl_context *ctx, GLboolean flag );
-
 #endif

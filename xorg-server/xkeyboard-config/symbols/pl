@@ -112,15 +112,12 @@ xkb_symbols "qwertz" {
     key <AE11>	{ [      plus,   question, dead_diaeresis, questiondown ] };
     key <AE12>	{ [apostrophe,   asterisk, dead_cedilla,  dead_ogonek ]	};
 
-    key <AD01>  { [         q,          Q ] };
-    key <AD02>  { [         w,          W ] };
     key <AD03>	{ [         e,          E,     EuroSign,         cent ]	};
     key <AD11>	{ [ zabovedot,     nacute,     division, dead_abovering ] };
     key <AD12>	{ [    sacute,     cacute,     multiply,  dead_macron ]	};
 
     key <AC02>	{ [         s,          S,      dstroke,      section ]	};
     key <AC03>	{ [         d,          D,      Dstroke,          ETH ]	};
-    key <AC04>  { [         f,          F ] };
     key <AC08>	{ [         k,          K,          kra,    ampersand ]	};
     key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]	};
     key <AC10>	{ [   lstroke,    Lstroke,       dollar, dead_doubleacute ] };
@@ -258,11 +255,9 @@ xkb_symbols "dvp" {
     include "level3(ralt_switch)"
 };
 
-// Silesian keyboard layout by Grzegorz Kulik <poslunsku@gmail.com>
-// and Przemysław Buczkowski <przemub@yahoo.pl>.
-// See http://poslunsku.eu/2012/07/slonsko-slabikorzowo-klawiatura-na-windows-i-ubuntu/
-// for a description.
-
+// Silesian letters on the third and fourth level,
+// by Grzegorz Kulik <poslunsku@gmail.com> and Przemysław Buczkowski <przemub@yahoo.pl>.
+//
 partial alphanumeric_keys
 xkb_symbols "szl" {
 
@@ -270,21 +265,18 @@ xkb_symbols "szl" {
 
     name[Group1]="Silesian";
 
-    key <AD01>  { [         q,          Q ] };
-    key <AD02>  { [         w,          W ] };
-    key <AD03>	{ [         e,          E,      atilde,      Atilde ]	};
-    key <AD09>	{ [         o,          O,       ocircumflex,       Ocircumflex ]	};
-    key <AD07>  { [         u,          U,       omacron,       Omacron ]        };
+    key <AD03>	{ [         e,          E,       atilde,       Atilde ]	};
+    key <AD09>	{ [         o,          O,  ocircumflex,  Ocircumflex ]	};
+    key <AD07>	{ [         u,          U,      omacron,      Omacron ]	};
     key <AD10>	{ [         p,          P,       otilde,       Otilde ]	};
 
-    key <AC01>	{ [         a,          A,      U014F,      U014E ]	};
+    key <AC01>	{ [         a,          A,        U014F,        U014E ]	};  // ŏ Ŏ
     key <AC02>	{ [         s,          S,       sacute,       Sacute ]	};
-    key <AC04>  { [         f,          F ] };
 
     key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
     key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
     key <AB03>	{ [         c,          C,       cacute,       Cacute ]	};
-    key <AB04>	{ [         v,          V, doublelowquotemark, leftsinglequotemark ] };
+    key <AB04>	{ [         v,          V,   doublelowquotemark, leftsinglequotemark ] };
     key <AB05>	{ [         b,          B, rightdoublequotemark, leftdoublequotemark ] };
     key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
 
@@ -293,6 +285,8 @@ xkb_symbols "szl" {
     include "level3(ralt_switch)"
 };
 
+// Kashubian letters on the third and fourth level.
+//
 partial alphanumeric_keys
 xkb_symbols "csb" {
 
@@ -300,23 +294,20 @@ xkb_symbols "csb" {
 
     name[Group1]="Kashubian";
 
-    key <AD01>  { [         q,          Q ] };
-    key <AD02>  { [         w,          W ] };
-    key <AD03>	{ [         e,          E,      eacute,      Eacute ]	};
-    key <AD04>	{ [         r,           R,      ediaeresis,      Ediaeresis ]	};
-    key <AD06>      { [         y,          Y,      EuroSign,         cent ]        };
-    key <AD07>	{ [          u,          U,       ugrave,       Ugrave ]	};
-    key <AD08>	{ [         i,            I,       ograve,       Ograve ]	};
+    key <AD03>	{ [         e,          E,       eacute,       Eacute ]	};
+    key <AD04>	{ [         r,          R,   ediaeresis,   Ediaeresis ]	};
+    key <AD06>	{ [         y,          Y,     EuroSign,         cent ]	};
+    key <AD07>	{ [         u,          U,       ugrave,       Ugrave ]	};
+    key <AD08>	{ [         i,          I,       ograve,       Ograve ]	};
     key <AD09>	{ [         o,          O,       oacute,       Oacute ]	};
-    key <AD10>	{ [         p,          P,       ocircumflex,       Ocircumflex ]	};
+    key <AD10>	{ [         p,          P,  ocircumflex,  Ocircumflex ]	};
 
     key <AC01>	{ [         a,          A,      aogonek,      Aogonek ]	};
-    key <AC02>	{ [         s,          S,      atilde,      Atilde ]	      };
-    key <AC04>  { [         f,          F ] };
-    key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]      };
+    key <AC02>	{ [         s,          S,       atilde,       Atilde ]	};
+    key <AC09>	{ [         l,          L,      lstroke,      Lstroke ]	};
 
     key <AB01>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
-    key <AB04>	{ [         v,          V, doublelowquotemark, leftsinglequotemark ] };
+    key <AB04>	{ [         v,          V,   doublelowquotemark, leftsinglequotemark ] };
     key <AB05>	{ [         b,          B, rightdoublequotemark, leftdoublequotemark ] };
     key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
 
@@ -513,17 +504,15 @@ xkb_symbols "colemak" {
     include "level3(ralt_switch)"
 };
 
-// Colemak-DH (ISO), Polish variant, https://colemakmods.github.io/mod-dh/
-//
+// Colemak-DH (ANSI), Polish variant, https://colemakmods.github.io/mod-dh/
 partial alphanumeric_keys
-xkb_symbols "colemak_dh" {
+xkb_symbols "colemak_dh_ansi" {
     include "us(colemak_dh)"
     name[Group1]= "Polish (Colemak-DH)";
 
-    key <LSGT> { [            z,            Z,       zabovedot,        Zabovedot ] };
     key <AB01> { [            x,            X, 	        zacute,           Zacute ] };
     key <AB02> { [            c,            C,          cacute,           Cacute ] };
-    key <AB05> { [    backslash,          bar,             bar,        brokenbar ] };
+    key <AB05> { [            z,            Z,       zabovedot,        Zabovedot ] };
     key <AC01> { [            a,            A,         aogonek,          Aogonek ] };
     key <AC03> { [            s,            S,          sacute,           Sacute ] };
     key <AC07> { [            n,            N,          nacute,           Nacute ] };
@@ -533,6 +522,18 @@ xkb_symbols "colemak_dh" {
     key <AD02> { [            w,            W, dead_circumflex,       asciitilde ] };
     key <AD03> { [            f,            F,          ssharp,        0x1001e9e ] };
     key <AD07> { [            l,            L,         lstroke,          Lstroke ] };
+
+    include "level3(ralt_switch)"
+};
+
+// Colemak-DH (ISO), Polish variant, https://colemakmods.github.io/mod-dh/
+partial alphanumeric_keys
+xkb_symbols "colemak_dh" {
+    include "pl(colemak_dh_ansi)"
+    name[Group1]= "Polish (Colemak-DH ISO)";
+
+    key <LSGT> { [            z,            Z,       zabovedot,        Zabovedot ] };
+    key <AB05> { [ backslash, bar, asciitilde, brokenbar] };
 
     include "level3(ralt_switch)"
 };

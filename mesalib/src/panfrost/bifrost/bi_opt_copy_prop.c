@@ -70,7 +70,7 @@ bi_opt_copy_prop(bi_context *ctx)
                         bi_index use = ins->src[s];
 
                         if (use.type != BI_INDEX_NORMAL || use.reg) continue;
-                        if (s == 0 && bi_opcode_props[ins->op].sr_read) continue;
+                        if (bi_is_staging_src(ins, s)) continue;
 
                         bi_index repl = replacement[bi_word_node(use)];
 

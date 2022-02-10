@@ -73,6 +73,13 @@ gl_shader_stage_is_compute(gl_shader_stage stage)
 }
 
 static inline bool
+gl_shader_stage_is_mesh(gl_shader_stage stage)
+{
+   return stage == MESA_SHADER_TASK ||
+          stage == MESA_SHADER_MESH;
+}
+
+static inline bool
 gl_shader_stage_uses_workgroup(gl_shader_stage stage)
 {
    return stage == MESA_SHADER_COMPUTE ||
@@ -89,6 +96,19 @@ gl_shader_stage_is_callable(gl_shader_stage stage)
           stage == MESA_SHADER_MISS ||
           stage == MESA_SHADER_INTERSECTION ||
           stage == MESA_SHADER_CALLABLE;
+}
+
+static inline bool
+gl_shader_stage_can_set_fragment_shading_rate(gl_shader_stage stage)
+{
+   /* According to EXT_fragment_shading_rate :
+    *
+    *    "This extension adds support for setting the fragment shading rate
+    *     for a primitive in vertex, geometry, and mesh shading stages"
+    */
+   return stage == MESA_SHADER_VERTEX ||
+          stage == MESA_SHADER_GEOMETRY ||
+          stage == MESA_SHADER_MESH;
 }
 
 /**
@@ -477,6 +497,7 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
 #define VARYING_BIT_LAYER BITFIELD64_BIT(VARYING_SLOT_LAYER)
 #define VARYING_BIT_VIEWPORT BITFIELD64_BIT(VARYING_SLOT_VIEWPORT)
 #define VARYING_BIT_FACE BITFIELD64_BIT(VARYING_SLOT_FACE)
+#define VARYING_BIT_PRIMITIVE_SHADING_RATE BITFIELD64_BIT(VARYING_SLOT_PRIMITIVE_SHADING_RATE)
 #define VARYING_BIT_PNTC BITFIELD64_BIT(VARYING_SLOT_PNTC)
 #define VARYING_BIT_TESS_LEVEL_OUTER BITFIELD64_BIT(VARYING_SLOT_TESS_LEVEL_OUTER)
 #define VARYING_BIT_TESS_LEVEL_INNER BITFIELD64_BIT(VARYING_SLOT_TESS_LEVEL_INNER)
@@ -801,6 +822,14 @@ typedef enum
    /*@}*/
 
    /**
+    * \name Task/Mesh shader system values
+    */
+   /*@{*/
+   SYSTEM_VALUE_MESH_VIEW_COUNT,
+   SYSTEM_VALUE_MESH_VIEW_INDICES,
+   /*@}*/
+
+   /**
     * IR3 specific geometry shader and tesselation control shader system
     * values that packs invocation id, thread id and vertex id.  Having this
     * as a nir level system value lets us do the unpacking in nir.
@@ -986,6 +1015,36 @@ enum gl_tess_spacing
    TESS_SPACING_FRACTIONAL_EVEN,
 };
 
+enum tess_primitive_mode
+{
+   TESS_PRIMITIVE_UNSPECIFIED,
+   TESS_PRIMITIVE_TRIANGLES,
+   TESS_PRIMITIVE_QUADS,
+   TESS_PRIMITIVE_ISOLINES,
+};
+
+/* these also map directly to GL and gallium prim types. */
+enum shader_prim
+{
+   SHADER_PRIM_POINTS,
+   SHADER_PRIM_LINES,
+   SHADER_PRIM_LINE_LOOP,
+   SHADER_PRIM_LINE_STRIP,
+   SHADER_PRIM_TRIANGLES,
+   SHADER_PRIM_TRIANGLE_STRIP,
+   SHADER_PRIM_TRIANGLE_FAN,
+   SHADER_PRIM_QUADS,
+   SHADER_PRIM_QUAD_STRIP,
+   SHADER_PRIM_POLYGON,
+   SHADER_PRIM_LINES_ADJACENCY,
+   SHADER_PRIM_LINE_STRIP_ADJACENCY,
+   SHADER_PRIM_TRIANGLES_ADJACENCY,
+   SHADER_PRIM_TRIANGLE_STRIP_ADJACENCY,
+   SHADER_PRIM_PATCHES,
+   SHADER_PRIM_MAX = SHADER_PRIM_PATCHES,
+   SHADER_PRIM_UNKNOWN = (SHADER_PRIM_MAX * 2),
+};
+
 /**
  * A compare function enum for use in compiler lowering passes.  This is in
  * the same order as GL's compare functions (shifted down by GL_NEVER), and is
@@ -1080,6 +1139,44 @@ enum cl_sampler_filter_mode {
    SAMPLER_FILTER_MODE_NEAREST = 0,
    SAMPLER_FILTER_MODE_LINEAR = 1,
 };
+
+/**
+ * \name Bit flags used for updating material values.
+ */
+/*@{*/
+#define MAT_ATTRIB_FRONT_AMBIENT           0
+#define MAT_ATTRIB_BACK_AMBIENT            1
+#define MAT_ATTRIB_FRONT_DIFFUSE           2
+#define MAT_ATTRIB_BACK_DIFFUSE            3
+#define MAT_ATTRIB_FRONT_SPECULAR          4
+#define MAT_ATTRIB_BACK_SPECULAR           5
+#define MAT_ATTRIB_FRONT_EMISSION          6
+#define MAT_ATTRIB_BACK_EMISSION           7
+#define MAT_ATTRIB_FRONT_SHININESS         8
+#define MAT_ATTRIB_BACK_SHININESS          9
+#define MAT_ATTRIB_FRONT_INDEXES           10
+#define MAT_ATTRIB_BACK_INDEXES            11
+#define MAT_ATTRIB_MAX                     12
+
+#define MAT_ATTRIB_AMBIENT(f)  (MAT_ATTRIB_FRONT_AMBIENT+(f))
+#define MAT_ATTRIB_DIFFUSE(f)  (MAT_ATTRIB_FRONT_DIFFUSE+(f))
+#define MAT_ATTRIB_SPECULAR(f) (MAT_ATTRIB_FRONT_SPECULAR+(f))
+#define MAT_ATTRIB_EMISSION(f) (MAT_ATTRIB_FRONT_EMISSION+(f))
+#define MAT_ATTRIB_SHININESS(f)(MAT_ATTRIB_FRONT_SHININESS+(f))
+#define MAT_ATTRIB_INDEXES(f)  (MAT_ATTRIB_FRONT_INDEXES+(f))
+
+#define MAT_BIT_FRONT_AMBIENT         (1<<MAT_ATTRIB_FRONT_AMBIENT)
+#define MAT_BIT_BACK_AMBIENT          (1<<MAT_ATTRIB_BACK_AMBIENT)
+#define MAT_BIT_FRONT_DIFFUSE         (1<<MAT_ATTRIB_FRONT_DIFFUSE)
+#define MAT_BIT_BACK_DIFFUSE          (1<<MAT_ATTRIB_BACK_DIFFUSE)
+#define MAT_BIT_FRONT_SPECULAR        (1<<MAT_ATTRIB_FRONT_SPECULAR)
+#define MAT_BIT_BACK_SPECULAR         (1<<MAT_ATTRIB_BACK_SPECULAR)
+#define MAT_BIT_FRONT_EMISSION        (1<<MAT_ATTRIB_FRONT_EMISSION)
+#define MAT_BIT_BACK_EMISSION         (1<<MAT_ATTRIB_BACK_EMISSION)
+#define MAT_BIT_FRONT_SHININESS       (1<<MAT_ATTRIB_FRONT_SHININESS)
+#define MAT_BIT_BACK_SHININESS        (1<<MAT_ATTRIB_BACK_SHININESS)
+#define MAT_BIT_FRONT_INDEXES         (1<<MAT_ATTRIB_FRONT_INDEXES)
+#define MAT_BIT_BACK_INDEXES          (1<<MAT_ATTRIB_BACK_INDEXES)
 
 #ifdef __cplusplus
 } /* extern "C" */

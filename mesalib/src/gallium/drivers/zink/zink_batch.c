@@ -96,6 +96,9 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
    pipe_resource_reference(&bs->flush_res, NULL);
 
    bs->resource_size = 0;
+   bs->signal_semaphore = VK_NULL_HANDLE;
+   util_dynarray_clear(&bs->wait_semaphores);
+   util_dynarray_clear(&bs->wait_semaphore_stages);
 
    /* only reset submitted here so that tc fence desync can pick up the 'completed' flag
     * before the state is reused
@@ -222,6 +225,8 @@ create_batch_state(struct zink_context *ctx)
    SET_CREATE_OR_FAIL(bs->bufferviews);
    SET_CREATE_OR_FAIL(bs->programs);
    SET_CREATE_OR_FAIL(bs->active_queries);
+   util_dynarray_init(&bs->wait_semaphores, NULL);
+   util_dynarray_init(&bs->wait_semaphore_stages, NULL);
    util_dynarray_init(&bs->zombie_samplers, NULL);
    util_dynarray_init(&bs->dead_framebuffers, NULL);
    util_dynarray_init(&bs->persistent_resources, NULL);
@@ -369,11 +374,9 @@ submit_queue(void *data, void *gdata, int thread_index)
 
    uint64_t batch_id = bs->fence.batch_id;
    si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-   si.waitSemaphoreCount = 0;
-   si.pWaitSemaphores = NULL;
-   si.signalSemaphoreCount = 0;
-   si.pSignalSemaphores = NULL;
-   si.pWaitDstStageMask = NULL;
+   si.waitSemaphoreCount = util_dynarray_num_elements(&bs->wait_semaphores, VkSemaphore);
+   si.pWaitSemaphores = bs->wait_semaphores.data;
+   si.pWaitDstStageMask = bs->wait_semaphore_stages.data;
    si.commandBufferCount = bs->has_barriers ? 2 : 1;
    VkCommandBuffer cmdbufs[2] = {
       bs->barrier_cmdbuf,
@@ -381,14 +384,19 @@ submit_queue(void *data, void *gdata, int thread_index)
    };
    si.pCommandBuffers = bs->has_barriers ? cmdbufs : &cmdbufs[1];
 
+   VkSemaphore signals[2];
+   si.signalSemaphoreCount = !!bs->signal_semaphore;
+   signals[0] = bs->signal_semaphore;
+   si.pSignalSemaphores = signals;
    VkTimelineSemaphoreSubmitInfo tsi = {0};
+   uint64_t signal_values[2] = {0};
    if (bs->have_timelines) {
       tsi.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
       si.pNext = &tsi;
-      tsi.signalSemaphoreValueCount = 1;
-      tsi.pSignalSemaphoreValues = &batch_id;
-      si.signalSemaphoreCount = 1;
-      si.pSignalSemaphores = &screen->sem;
+      tsi.pSignalSemaphoreValues = signal_values;
+      signal_values[si.signalSemaphoreCount] = batch_id;
+      signals[si.signalSemaphoreCount++] = screen->sem;
+      tsi.signalSemaphoreValueCount = si.signalSemaphoreCount;
    }
 
    struct wsi_memory_signal_submit_info mem_signal = {

@@ -27,7 +27,6 @@
  */
 
 #include "pan_context.h"
-#include "panfrost-quirks.h"
 #include "pan_bo.h"
 #include "pan_shader.h"
 #include "util/u_memory.h"

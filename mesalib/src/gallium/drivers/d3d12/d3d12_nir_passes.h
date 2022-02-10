@@ -25,12 +25,29 @@
 #define D3D12_NIR_PASSES_H
 
 #include "nir.h"
+#include "nir_builder.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct d3d12_shader;
+struct d3d12_image_format_conversion_info;
+enum d3d12_state_var;
+
+nir_ssa_def *
+d3d12_get_state_var(nir_builder *b,
+                    enum d3d12_state_var var_enum,
+                    const char *var_name,
+                    const struct glsl_type *var_type,
+                    nir_variable **out_var);
+
+nir_ssa_def *
+d3d12_get_state_var(nir_builder *b,
+                    enum d3d12_state_var var_enum,
+                    const char *var_name,
+                    const struct glsl_type *var_type,
+                    nir_variable **out_var);
 
 bool
 d3d12_lower_point_sprite(nir_shader *shader,
@@ -52,7 +69,13 @@ void
 d3d12_lower_depth_range(nir_shader *nir);
 
 bool
-d3d12_lower_load_first_vertex(nir_shader *nir);
+d3d12_lower_load_draw_params(nir_shader *nir);
+
+bool
+d3d12_lower_load_patch_vertices_in(nir_shader *nir);
+
+bool
+d3d12_lower_compute_state_vars(nir_shader *nir);
 
 void
 d3d12_lower_uint_cast(nir_shader *nir, bool is_signed);
@@ -65,7 +88,7 @@ bool
 d3d12_fix_io_uint_type(struct nir_shader *s, uint64_t in_mask, uint64_t out_mask);
 
 void
-d3d12_nir_invert_depth(nir_shader *s);
+d3d12_nir_invert_depth(nir_shader *s, unsigned viewport_mask);
 
 bool
 d3d12_lower_int_cubmap_to_array(nir_shader *s);
@@ -81,6 +104,21 @@ d3d12_lower_primitive_id(nir_shader *shader);
 
 void
 d3d12_lower_triangle_strip(nir_shader *shader);
+
+bool
+d3d12_lower_image_casts(nir_shader *s, struct d3d12_image_format_conversion_info *info);
+
+bool
+d3d12_lower_sample_pos(nir_shader *s);
+
+bool
+d3d12_disable_multisampling(nir_shader *s);
+
+bool
+d3d12_split_multistream_varyings(nir_shader *s);
+
+void
+d3d12_write_0_to_new_varying(nir_shader *s, nir_variable *var);
 
 #ifdef __cplusplus
 }

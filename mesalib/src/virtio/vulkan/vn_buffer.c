@@ -88,7 +88,7 @@ vn_buffer_cache_entries_create(struct vn_device *dev,
 
       buf = vn_buffer_from_handle(buf_handle);
 
-      /* XXX remove the check after guaranteed by the spec */
+      /* TODO remove below after VK_KHR_maintenance4 is available */
       if (buf->requirements.memory.memoryRequirements.alignment <
           buf->requirements.memory.memoryRequirements.size) {
          vk_free(alloc, entries);
@@ -123,7 +123,7 @@ static VkResult
 vn_buffer_get_max_buffer_size(struct vn_device *dev,
                               uint64_t *out_max_buffer_size)
 {
-   /* XXX use VK_KHR_maintenance4 when available */
+   /* TODO use VK_KHR_maintenance4 when available */
    const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
    VkDevice dev_handle = vn_device_to_handle(dev);
    VkBuffer buf_handle;
@@ -223,11 +223,11 @@ vn_buffer_cache_get_memory_requirements(
            create_info->usage)) {
          *out = entry->requirements;
 
-         /* XXX This is based on below implementation defined behavior:
+         /* TODO remove the comment after VK_KHR_maintenance4 is available
+          *
+          * This is based on below implementation defined behavior:
           *
           *    req.size <= align64(info.size, req.alignment)
-          *
-          * TODO Fix the spec to guarantee above.
           */
          out->memory.memoryRequirements.size = align64(
             create_info->size, out->memory.memoryRequirements.alignment);

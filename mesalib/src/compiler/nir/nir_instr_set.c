@@ -272,6 +272,7 @@ hash_tex(uint32_t hash, const nir_tex_instr *instr)
    hash = HASH(hash, instr->is_array);
    hash = HASH(hash, instr->is_shadow);
    hash = HASH(hash, instr->is_new_style_shadow);
+   hash = HASH(hash, instr->is_sparse);
    unsigned component = instr->component;
    hash = HASH(hash, component);
    for (unsigned i = 0; i < 4; ++i)
@@ -431,7 +432,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
              nir_alu_instr_channel_used(alu2, src2, i));
    }
 
-   if (nir_op_infos[alu1->op].input_types[src1] == nir_type_float) {
+   if (nir_alu_type_get_base_type(nir_op_infos[alu1->op].input_types[src1]) == nir_type_float) {
       assert(nir_op_infos[alu1->op].input_types[src1] ==
              nir_op_infos[alu2->op].input_types[src2]);
    } else {

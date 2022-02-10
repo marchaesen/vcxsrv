@@ -264,6 +264,16 @@ vn_CreateImage(VkDevice device,
       external_info->handleTypes ==
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
 
+#ifdef ANDROID
+   /* VkImageSwapchainCreateInfoKHR is not useful at all */
+   const VkImageSwapchainCreateInfoKHR *swapchain_info = NULL;
+#else
+   const VkImageSwapchainCreateInfoKHR *swapchain_info = vk_find_struct_const(
+      pCreateInfo->pNext, IMAGE_SWAPCHAIN_CREATE_INFO_KHR);
+   if (swapchain_info && !swapchain_info->swapchain)
+      swapchain_info = NULL;
+#endif
+
    if (wsi_info) {
       result = vn_wsi_create_image(dev, pCreateInfo, wsi_info, alloc, &img);
    } else if (anb_info) {
@@ -271,6 +281,9 @@ vn_CreateImage(VkDevice device,
          vn_android_image_from_anb(dev, pCreateInfo, anb_info, alloc, &img);
    } else if (ahb_info) {
       result = vn_android_image_from_ahb(dev, pCreateInfo, alloc, &img);
+   } else if (swapchain_info) {
+      result = vn_wsi_create_image_from_swapchain(
+         dev, pCreateInfo, swapchain_info, alloc, &img);
    } else {
       result = vn_image_create(dev, pCreateInfo, alloc, &img);
    }
@@ -295,8 +308,10 @@ vn_DestroyImage(VkDevice device,
    if (!img)
       return;
 
-   if (img->private_memory != VK_NULL_HANDLE)
-      vn_FreeMemory(device, img->private_memory, pAllocator);
+   if (img->wsi.memory && img->wsi.memory_owned) {
+      VkDeviceMemory mem_handle = vn_device_memory_to_handle(img->wsi.memory);
+      vn_FreeMemory(device, mem_handle, pAllocator);
+   }
 
    vn_async_vkDestroyImage(dev->instance, device, image, NULL);
 
@@ -396,6 +411,13 @@ vn_GetImageSparseMemoryRequirements2(
                                                pSparseMemoryRequirements);
 }
 
+static void
+vn_image_bind_wsi_memory(struct vn_image *img, struct vn_device_memory *mem)
+{
+   assert(img->wsi.is_wsi && !img->wsi.memory);
+   img->wsi.memory = mem;
+}
+
 VkResult
 vn_BindImageMemory(VkDevice device,
                    VkImage image,
@@ -403,7 +425,11 @@ vn_BindImageMemory(VkDevice device,
                    VkDeviceSize memoryOffset)
 {
    struct vn_device *dev = vn_device_from_handle(device);
+   struct vn_image *img = vn_image_from_handle(image);
    struct vn_device_memory *mem = vn_device_memory_from_handle(memory);
+
+   if (img->wsi.is_wsi)
+      vn_image_bind_wsi_memory(img, mem);
 
    if (mem->base_memory) {
       memory = vn_device_memory_to_handle(mem->base_memory);
@@ -427,11 +453,38 @@ vn_BindImageMemory2(VkDevice device,
    VkBindImageMemoryInfo *local_infos = NULL;
    for (uint32_t i = 0; i < bindInfoCount; i++) {
       const VkBindImageMemoryInfo *info = &pBindInfos[i];
+      struct vn_image *img = vn_image_from_handle(info->image);
       struct vn_device_memory *mem =
          vn_device_memory_from_handle(info->memory);
-      /* TODO handle VkBindImageMemorySwapchainInfoKHR */
-      if (!mem || !mem->base_memory)
+
+      /* no bind info fixup needed */
+      if (mem && !mem->base_memory) {
+         if (img->wsi.is_wsi)
+            vn_image_bind_wsi_memory(img, mem);
          continue;
+      }
+
+      if (!mem) {
+#ifdef ANDROID
+         /* TODO handle VkNativeBufferANDROID when we bump up
+          * VN_ANDROID_NATIVE_BUFFER_SPEC_VERSION
+          */
+         unreachable("VkBindImageMemoryInfo with no memory");
+#else
+         const VkBindImageMemorySwapchainInfoKHR *swapchain_info =
+            vk_find_struct_const(info->pNext,
+                                 BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR);
+         assert(img->wsi.is_wsi && swapchain_info);
+
+         struct vn_image *swapchain_img =
+            vn_image_from_handle(wsi_common_get_image(
+               swapchain_info->swapchain, swapchain_info->imageIndex));
+         mem = swapchain_img->wsi.memory;
+#endif
+      }
+
+      if (img->wsi.is_wsi)
+         vn_image_bind_wsi_memory(img, mem);
 
       if (!local_infos) {
          const size_t size = sizeof(*local_infos) * bindInfoCount;
@@ -443,7 +496,12 @@ vn_BindImageMemory2(VkDevice device,
          memcpy(local_infos, pBindInfos, size);
       }
 
-      local_infos[i].memory = vn_device_memory_to_handle(mem->base_memory);
+      /* If mem is suballocated, mem->base_memory is non-NULL and we must
+       * patch it in.  If VkBindImageMemorySwapchainInfoKHR is given, we've
+       * looked mem up above and also need to patch it in.
+       */
+      local_infos[i].memory = vn_device_memory_to_handle(
+         mem->base_memory ? mem->base_memory : mem);
       local_infos[i].memoryOffset += mem->base_offset;
    }
    if (local_infos)

@@ -70,8 +70,8 @@ struct ir3_postsched_ctx {
 
    unsigned ip;
 
-   int sfu_delay;
-   int tex_delay;
+   int ss_delay;
+   int sy_delay;
 };
 
 struct ir3_postsched_node {
@@ -81,7 +81,7 @@ struct ir3_postsched_node {
 
    unsigned earliest_ip;
 
-   bool has_tex_src, has_sfu_src;
+   bool has_sy_src, has_ss_src;
 
    unsigned delay;
    unsigned max_delay;
@@ -91,17 +91,17 @@ struct ir3_postsched_node {
    list_for_each_entry (struct ir3_postsched_node, __n, __list, dag.link)
 
 static bool
-has_tex_src(struct ir3_instruction *instr)
+has_sy_src(struct ir3_instruction *instr)
 {
    struct ir3_postsched_node *node = instr->data;
-   return node->has_tex_src;
+   return node->has_sy_src;
 }
 
 static bool
-has_sfu_src(struct ir3_instruction *instr)
+has_ss_src(struct ir3_instruction *instr)
 {
    struct ir3_postsched_node *node = instr->data;
-   return node->has_sfu_src;
+   return node->has_ss_src;
 }
 
 static void
@@ -140,20 +140,20 @@ schedule(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
    if (is_meta(instr) && (instr->opc != OPC_META_TEX_PREFETCH))
       return;
 
-   if (is_sfu(instr)) {
-      ctx->sfu_delay = 8;
-   } else if (has_sfu_src(instr)) {
-      ctx->sfu_delay = 0;
-   } else if (ctx->sfu_delay > 0) {
-      ctx->sfu_delay--;
+   if (is_ss_producer(instr)) {
+      ctx->ss_delay = soft_ss_delay(instr);
+   } else if (has_ss_src(instr)) {
+      ctx->ss_delay = 0;
+   } else if (ctx->ss_delay > 0) {
+      ctx->ss_delay--;
    }
 
-   if (is_tex_or_prefetch(instr)) {
-      ctx->tex_delay = 10;
-   } else if (has_tex_src(instr)) {
-      ctx->tex_delay = 0;
-   } else if (ctx->tex_delay > 0) {
-      ctx->tex_delay--;
+   if (is_sy_producer(instr)) {
+      ctx->sy_delay = soft_sy_delay(instr, ctx->block->shader);
+   } else if (has_sy_src(instr)) {
+      ctx->sy_delay = 0;
+   } else if (ctx->sy_delay > 0) {
+      ctx->sy_delay--;
    }
 }
 
@@ -189,10 +189,10 @@ node_delay_soft(struct ir3_postsched_ctx *ctx, struct ir3_postsched_node *n)
    /* This takes into account that as when we schedule multiple tex or sfu, the
     * first user has to wait for all of them to complete.
     */
-   if (n->has_sfu_src)
-      delay = MAX2(delay, ctx->sfu_delay);
-   if (n->has_tex_src)
-      delay = MAX2(delay, ctx->tex_delay);
+   if (n->has_ss_src)
+      delay = MAX2(delay, ctx->ss_delay);
+   if (n->has_sy_src)
+      delay = MAX2(delay, ctx->sy_delay);
 
    return delay;
 }
@@ -261,7 +261,7 @@ choose_instr(struct ir3_postsched_ctx *ctx)
       if (d > 0)
          continue;
 
-      if (!(is_sfu(n->instr) || is_tex(n->instr)))
+      if (!(is_ss_producer(n->instr) || is_sy_producer(n->instr)))
          continue;
 
       if (!chosen || (chosen->max_delay < n->max_delay))
@@ -403,10 +403,10 @@ add_single_reg_dep(struct ir3_postsched_deps_state *state,
       unsigned d_soft = ir3_delayslots(dep->instr, node->instr, src_n, true);
       d = ir3_delayslots_with_repeat(dep->instr, node->instr, dst_n, src_n);
       node->delay = MAX2(node->delay, d_soft);
-      if (is_tex_or_prefetch(dep->instr))
-         node->has_tex_src = true;
-      if (is_sfu(dep->instr))
-         node->has_sfu_src = true;
+      if (is_sy_producer(dep->instr))
+         node->has_sy_src = true;
+      if (is_ss_producer(dep->instr))
+         node->has_ss_src = true;
    }
 
    add_dep(state, dep, node, d);
@@ -637,8 +637,8 @@ static void
 sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
 {
    ctx->block = block;
-   ctx->tex_delay = 0;
-   ctx->sfu_delay = 0;
+   ctx->sy_delay = 0;
+   ctx->ss_delay = 0;
 
    /* move all instructions to the unscheduled list, and
     * empty the block's instruction list (to which we will

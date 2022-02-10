@@ -318,8 +318,12 @@ foz_prepare(struct foz_db *foz_db, char *cache_path)
       free(filename);
       free(idx_filename);
 
-      if (!check_files_opened_successfully(foz_db->file[file_idx], db_idx))
+      if (!check_files_opened_successfully(foz_db->file[file_idx], db_idx)) {
+         /* Prevent foz_destroy from destroying it a second time. */
+         foz_db->file[file_idx] = NULL;
+
          continue; /* Ignore invalid user provided filename and continue */
+      }
 
       if (!load_foz_dbs(foz_db, db_idx, file_idx, true)) {
          fclose(db_idx);
