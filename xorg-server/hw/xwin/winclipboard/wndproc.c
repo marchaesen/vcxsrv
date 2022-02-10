@@ -77,6 +77,7 @@ winProcessXEventsTimeout(HWND hwnd, xcb_window_t iWindow, xcb_connection_t *conn
     int iConnNumber;
     struct timeval tv;
     int iReturn;
+    long endTime;
 
     winDebug("winProcessXEventsTimeout () - pumping X events, timeout %d seconds\n",
              iTimeoutSec);
@@ -84,10 +85,11 @@ winProcessXEventsTimeout(HWND hwnd, xcb_window_t iWindow, xcb_connection_t *conn
     /* Get our connection number */
     iConnNumber = xcb_get_file_descriptor(conn);
 
+    endTime = GetTimeInMillis() + iTimeoutSec * 1000;
     /* Loop for X events */
     while (1) {
-        fd_set fdsRead;
         long remainingTime;
+        fd_set fdsRead;
 
         /* Process X events */
         iReturn = winClipboardFlushXEvents(hwnd, iWindow, conn, data, atoms);
@@ -107,14 +109,14 @@ winProcessXEventsTimeout(HWND hwnd, xcb_window_t iWindow, xcb_connection_t *conn
         FD_SET(iConnNumber, &fdsRead);
 
         /* Adjust timeout */
-        remainingTime = iTimeoutSec * 1000;
-        tv.tv_sec = remainingTime / 1000;
-        tv.tv_usec = (remainingTime % 1000) * 1000;
+        remainingTime = endTime - GetTimeInMillis();
 
         /* Break out if no time left */
         if (remainingTime <= 0)
-            return WIN_XEVENTS_SUCCESS;
+            break;
 
+        tv.tv_sec = remainingTime / 1000;
+        tv.tv_usec = (remainingTime % 1000) * 1000;
         /* Wait for an X event */
         iReturn = select(iConnNumber + 1,       /* Highest fds number */
                          &fdsRead,      /* Read mask */
@@ -126,10 +128,8 @@ winProcessXEventsTimeout(HWND hwnd, xcb_window_t iWindow, xcb_connection_t *conn
                    "Bailing.\n", iReturn, WSAGetLastError());
             break;
         }
-
-        if (!FD_ISSET(iConnNumber, &fdsRead)) {
-            winDebug("winProcessXEventsTimeout - Spurious wake, select() returned %d\n", iReturn);
-        }
+        else if (iReturn == 0)
+            break;
     }
 
     return WIN_XEVENTS_SUCCESS;
