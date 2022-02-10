@@ -24,7 +24,6 @@
 #ifndef PROG_TO_NIR_H
 #define PROG_TO_NIR_H
 
-#include "main/mtypes.h"
 #include "compiler/nir/nir.h"
 
 #ifdef __cplusplus

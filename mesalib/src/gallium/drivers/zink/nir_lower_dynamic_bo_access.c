@@ -51,11 +51,7 @@ recursive_generate_bo_ssa_def(nir_builder *b, nir_intrinsic_instr *instr, nir_ss
          if (i)
             nir_src_copy(&new_instr->src[i], &instr->src[i]);
       }
-      if (instr->intrinsic != nir_intrinsic_load_ubo_vec4) {
-         nir_intrinsic_set_align(new_instr, nir_intrinsic_align_mul(instr), nir_intrinsic_align_offset(instr));
-         if (instr->intrinsic != nir_intrinsic_load_ssbo)
-            nir_intrinsic_set_range(new_instr, nir_intrinsic_range(instr));
-      }
+      nir_intrinsic_copy_const_indices(new_instr, instr);
       new_instr->num_components = instr->num_components;
       nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,
                         nir_dest_num_components(instr->dest),

@@ -542,14 +542,14 @@
   <enum name="PRIMITIVE_RESTART"              value="0x8F9D"/>
   <enum name="PRIMITIVE_RESTART_INDEX"        value="0x8F9E"/>
 
-  <function name="DrawArraysInstanced" alias="DrawArraysInstancedARB" es2="3.0">
+  <function name="DrawArraysInstanced" alias="DrawArraysInstancedARB" es2="2.0">
     <param name="mode" type="GLenum"/>
     <param name="first" type="GLint"/>
     <param name="count" type="GLsizei"/>
     <param name="primcount" type="GLsizei"/>
   </function>
 
-  <function name="DrawElementsInstanced" alias="DrawElementsInstancedARB" es2="3.0">
+  <function name="DrawElementsInstanced" alias="DrawElementsInstancedARB" es2="2.0">
     <param name="mode" type="GLenum"/>
     <param name="count" type="GLsizei"/>
     <param name="type" type="GLenum"/>

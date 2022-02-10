@@ -65,7 +65,6 @@ gfx10_format_table_c = custom_target(
 amd_common_files = files(
   'ac_binary.c',
   'ac_binary.h',
-  'ac_exp_param.h',
   'ac_shader_args.c',
   'ac_shader_args.h',
   'ac_shader_util.c',

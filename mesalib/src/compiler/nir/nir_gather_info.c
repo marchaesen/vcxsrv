@@ -179,12 +179,6 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
    }
 
    if (var->data.per_view) {
-      /* TODO: Per view and Per Vertex are not currently used together.  When
-       * they start to be used (e.g. when adding Primitive Replication for GS
-       * on Intel), verify that "peeling" the type twice is correct.  This
-       * assert ensures we remember it.
-       */
-      assert(!nir_is_arrayed_io(var, shader->info.stage));
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }

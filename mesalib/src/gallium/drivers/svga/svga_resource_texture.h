@@ -33,6 +33,7 @@
 #include "util/u_memory.h"
 #include "util/u_transfer.h"
 #include "svga_screen_cache.h"
+#include "svga_context.h"
 
 struct pipe_context;
 struct pipe_screen;
@@ -74,13 +75,6 @@ struct svga_texture
    struct svga_winsys_surface *handle;
 
    /**
-    * Whether the host side surface is validated, either through the
-    * InvalidateGBSurface command or after the surface is updated
-    * or rendered to.
-    */
-   boolean validated;
-
-   /**
     * Whether the host side surface is imported and not created by this
     * driver.
     */
@@ -100,6 +94,8 @@ struct svga_texture
     *  Set if the level is marked as dirty.
     */
    ushort *dirty;
+
+   enum svga_surface_state surface_state;
 
    /**
     * A cached backing host side surface to be used if this texture is being
@@ -209,7 +205,6 @@ svga_define_texture_level(struct svga_texture *tex,
 {
    check_face_level(tex, face, level);
    tex->defined[face] |= 1 << level;
-   tex->validated = TRUE;
 }
 
 
@@ -223,30 +218,22 @@ svga_is_texture_level_defined(const struct svga_texture *tex,
 
 
 static inline void
-svga_set_texture_rendered_to(struct svga_texture *tex,
-                             unsigned face, unsigned level)
+svga_set_texture_rendered_to(struct svga_texture *tex)
 {
-   check_face_level(tex, face, level);
-   tex->rendered_to[face] |= 1 << level;
-   tex->validated = TRUE;
+   tex->surface_state = SVGA_SURFACE_STATE_RENDERED;
 }
 
 
 static inline void
-svga_clear_texture_rendered_to(struct svga_texture *tex,
-                               unsigned face, unsigned level)
+svga_clear_texture_rendered_to(struct svga_texture *tex)
 {
-   check_face_level(tex, face, level);
-   tex->rendered_to[face] &= ~(1 << level);
+   tex->surface_state = SVGA_SURFACE_STATE_UPDATED;
 }
 
-
 static inline boolean
-svga_was_texture_rendered_to(const struct svga_texture *tex,
-                             unsigned face, unsigned level)
+svga_was_texture_rendered_to(const struct svga_texture *tex)
 {
-   check_face_level(tex, face, level);
-   return !!(tex->rendered_to[face] & (1 << level));
+   return (tex->surface_state == SVGA_SURFACE_STATE_RENDERED);
 }
 
 static inline void

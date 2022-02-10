@@ -5383,10 +5383,18 @@ void si_init_cs_preamble_state(struct si_context *sctx, bool uses_reg_shadowing)
    struct si_screen *sscreen = sctx->screen;
    uint64_t border_color_va = sctx->border_color_buffer->gpu_address;
    bool has_clear_state = sscreen->info.has_clear_state;
-   struct si_pm4_state *pm4 = CALLOC_STRUCT(si_pm4_state);
+
+   struct si_cs_preamble {
+      struct si_pm4_state pm4;
+      uint32_t more_pm4[150]; /* Add more space because the preamble is large. */
+   };
+   struct si_pm4_state *pm4 = (struct si_pm4_state *)CALLOC_STRUCT(si_cs_preamble);
 
    if (!pm4)
       return;
+
+   /* Add all the space that we allocated. */
+   pm4->max_dw = sizeof(struct si_cs_preamble) - offsetof(struct si_cs_preamble, pm4.pm4);
 
    if (!uses_reg_shadowing) {
       si_pm4_cmd_add(pm4, PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
@@ -5467,8 +5475,9 @@ void si_init_cs_preamble_state(struct si_context *sctx, bool uses_reg_shadowing)
       cu_mask_ps = u_bit_consecutive(0, sscreen->info.min_good_cu_per_sa);
 
    if (sctx->chip_class >= GFX7) {
-      si_pm4_set_reg(pm4, R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
-                     S_00B01C_CU_EN(cu_mask_ps) | S_00B01C_WAVE_LIMIT(0x3F));
+      ac_set_reg_cu_en(pm4, R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
+                       S_00B01C_CU_EN(cu_mask_ps) | S_00B01C_WAVE_LIMIT(0x3F),
+                       C_00B01C_CU_EN, 0, &sscreen->info, (void*)si_pm4_set_reg);
    }
 
    if (sctx->chip_class <= GFX8) {
@@ -5503,11 +5512,13 @@ void si_init_cs_preamble_state(struct si_context *sctx, bool uses_reg_shadowing)
    }
 
    if (sctx->chip_class >= GFX7 && sctx->chip_class <= GFX8) {
-      si_pm4_set_reg(pm4, R_00B51C_SPI_SHADER_PGM_RSRC3_LS,
-                     S_00B51C_CU_EN(0xffff) | S_00B51C_WAVE_LIMIT(0x3F));
+      ac_set_reg_cu_en(pm4, R_00B51C_SPI_SHADER_PGM_RSRC3_LS,
+                       S_00B51C_CU_EN(0xffff) | S_00B51C_WAVE_LIMIT(0x3F),
+                       C_00B51C_CU_EN, 0, &sscreen->info, (void*)si_pm4_set_reg);
       si_pm4_set_reg(pm4, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, S_00B41C_WAVE_LIMIT(0x3F));
-      si_pm4_set_reg(pm4, R_00B31C_SPI_SHADER_PGM_RSRC3_ES,
-                     S_00B31C_CU_EN(0xffff) | S_00B31C_WAVE_LIMIT(0x3F));
+      ac_set_reg_cu_en(pm4, R_00B31C_SPI_SHADER_PGM_RSRC3_ES,
+                       S_00B31C_CU_EN(0xffff) | S_00B31C_WAVE_LIMIT(0x3F),
+                       C_00B31C_CU_EN, 0, &sscreen->info, (void*)si_pm4_set_reg);
 
       /* If this is 0, Bonaire can hang even if GS isn't being used.
        * Other chips are unaffected. These are suboptimal values,
@@ -5547,8 +5558,9 @@ void si_init_cs_preamble_state(struct si_context *sctx, bool uses_reg_shadowing)
    }
 
    if (sctx->chip_class >= GFX9) {
-      si_pm4_set_reg(pm4, R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
-                     S_00B41C_CU_EN(0xffff) | S_00B41C_WAVE_LIMIT(0x3F));
+      ac_set_reg_cu_en(pm4, R_00B41C_SPI_SHADER_PGM_RSRC3_HS,
+                       S_00B41C_CU_EN(0xffff) | S_00B41C_WAVE_LIMIT(0x3F), C_00B41C_CU_EN,
+                       0, &sscreen->info, (void*)si_pm4_set_reg);
 
       si_pm4_set_reg(pm4, R_028B50_VGT_TESS_DISTRIBUTION,
                      S_028B50_ACCUM_ISOLINE(40) | S_028B50_ACCUM_TRI(30) | S_028B50_ACCUM_QUAD(24) |
@@ -5566,9 +5578,12 @@ void si_init_cs_preamble_state(struct si_context *sctx, bool uses_reg_shadowing)
 
    if (sctx->chip_class >= GFX10) {
       /* Logical CUs 16 - 31 */
-      si_pm4_set_reg(pm4, R_00B004_SPI_SHADER_PGM_RSRC4_PS, S_00B004_CU_EN(cu_mask_ps >> 16));
-      si_pm4_set_reg(pm4, R_00B104_SPI_SHADER_PGM_RSRC4_VS, S_00B104_CU_EN(0xffff));
-      si_pm4_set_reg(pm4, R_00B404_SPI_SHADER_PGM_RSRC4_HS, S_00B404_CU_EN(0xffff));
+      ac_set_reg_cu_en(pm4, R_00B004_SPI_SHADER_PGM_RSRC4_PS, S_00B004_CU_EN(cu_mask_ps >> 16),
+                       C_00B004_CU_EN, 16, &sscreen->info, (void*)si_pm4_set_reg);
+      ac_set_reg_cu_en(pm4, R_00B104_SPI_SHADER_PGM_RSRC4_VS, S_00B104_CU_EN(0xffff),
+                       C_00B104_CU_EN, 16, &sscreen->info, (void*)si_pm4_set_reg);
+      ac_set_reg_cu_en(pm4, R_00B404_SPI_SHADER_PGM_RSRC4_HS, S_00B404_CU_EN(0xffff),
+                       C_00B404_CU_EN, 16, &sscreen->info, (void*)si_pm4_set_reg);
 
       si_pm4_set_reg(pm4, R_00B0C8_SPI_SHADER_USER_ACCUM_PS_0, 0);
       si_pm4_set_reg(pm4, R_00B0CC_SPI_SHADER_USER_ACCUM_PS_1, 0);

@@ -29,6 +29,8 @@
 #include "util/slab.h"
 #include "d3d12_descriptor_pool.h"
 
+#include "nir.h"
+
 #ifndef _WIN32
 #include <wsl/winadapter.h>
 #endif
@@ -73,21 +75,27 @@ struct d3d12_screen {
    struct d3d12_descriptor_pool *view_pool;
 
    struct d3d12_descriptor_handle null_srvs[RESOURCE_DIMENSION_COUNT];
+   struct d3d12_descriptor_handle null_uavs[RESOURCE_DIMENSION_COUNT];
    struct d3d12_descriptor_handle null_rtv;
 
    /* capabilities */
    D3D_FEATURE_LEVEL max_feature_level;
    D3D12_FEATURE_DATA_ARCHITECTURE architecture;
    D3D12_FEATURE_DATA_D3D12_OPTIONS opts;
+   D3D12_FEATURE_DATA_D3D12_OPTIONS1 opts1;
    D3D12_FEATURE_DATA_D3D12_OPTIONS2 opts2;
    D3D12_FEATURE_DATA_D3D12_OPTIONS3 opts3;
    D3D12_FEATURE_DATA_D3D12_OPTIONS4 opts4;
 
+   nir_shader_compiler_options nir_options;
+
    /* description */
    uint32_t vendor_id;
+   uint64_t driver_version;
    uint64_t memory_size_megabytes;
    double timestamp_multiplier;
    bool have_load_at_vertex;
+   bool support_shader_images;
 };
 
 static inline struct d3d12_screen *

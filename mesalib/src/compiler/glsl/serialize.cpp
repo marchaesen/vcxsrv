@@ -1244,7 +1244,7 @@ create_linked_shader_and_program(struct gl_context *ctx,
    blob_copy_bytes(metadata, ((uint8_t *) &glprog->info) + s_info_ptrs,
                    s_info_size - s_info_ptrs);
 
-   _mesa_reference_shader_program_data(ctx, &glprog->sh.data, prog->data);
+   _mesa_reference_shader_program_data(&glprog->sh.data, prog->data);
    _mesa_reference_program(ctx, &linked->Program, glprog);
    prog->_LinkedShaders[stage] = linked;
 }

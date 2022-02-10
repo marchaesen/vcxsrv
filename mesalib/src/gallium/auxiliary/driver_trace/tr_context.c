@@ -41,6 +41,7 @@
 #include "tr_screen.h"
 #include "tr_texture.h"
 #include "tr_context.h"
+#include "tr_util.h"
 
 
 struct trace_query
@@ -490,7 +491,7 @@ trace_context_bind_sampler_states(struct pipe_context *_pipe,
    trace_dump_call_begin("pipe_context", "bind_sampler_states");
 
    trace_dump_arg(ptr, pipe);
-   trace_dump_arg(uint, shader);
+   trace_dump_arg_enum(shader, tr_util_pipe_shader_type_name(shader));
    trace_dump_arg(uint, start);
    trace_dump_arg(uint, num_states);
    trace_dump_arg_array(ptr, states, num_states);
@@ -922,7 +923,7 @@ trace_context_set_constant_buffer(struct pipe_context *_pipe,
    trace_dump_call_begin("pipe_context", "set_constant_buffer");
 
    trace_dump_arg(ptr, pipe);
-   trace_dump_arg(uint, shader);
+   trace_dump_arg_enum(shader, tr_util_pipe_shader_type_name(shader));
    trace_dump_arg(uint, index);
    trace_dump_arg(bool, take_ownership);
    trace_dump_arg(constant_buffer, constant_buffer);
@@ -965,7 +966,7 @@ trace_context_set_inlinable_constants(struct pipe_context *_pipe, enum pipe_shad
    trace_dump_call_begin("pipe_context", "set_inlinable_constants");
 
    trace_dump_arg(ptr, pipe);
-   trace_dump_arg(uint, shader);
+   trace_dump_arg_enum(shader, tr_util_pipe_shader_type_name(shader));
    trace_dump_arg(uint, num_values);
    trace_dump_arg_array(uint, values, num_values);
 
@@ -1210,7 +1211,7 @@ trace_context_set_sampler_views(struct pipe_context *_pipe,
    trace_dump_call_begin("pipe_context", "set_sampler_views");
 
    trace_dump_arg(ptr, pipe);
-   trace_dump_arg(uint, shader);
+   trace_dump_arg_enum(shader, tr_util_pipe_shader_type_name(shader));
    trace_dump_arg(uint, start);
    trace_dump_arg(uint, num);
    trace_dump_arg(uint, unbind_num_trailing_slots);
@@ -1581,7 +1582,7 @@ trace_context_create_fence_fd(struct pipe_context *_pipe,
    trace_dump_call_begin("pipe_context", "create_fence_fd");
 
    trace_dump_arg(ptr, pipe);
-   trace_dump_arg(int, fd);
+   trace_dump_arg_enum(fd, tr_util_pipe_fd_type_name(fd));
    trace_dump_arg(uint, type);
 
    pipe->create_fence_fd(pipe, fence, fd, type);
@@ -1606,6 +1607,24 @@ trace_context_fence_server_sync(struct pipe_context *_pipe,
    trace_dump_arg(ptr, fence);
 
    pipe->fence_server_sync(pipe, fence);
+
+   trace_dump_call_end();
+}
+
+
+static void
+trace_context_fence_server_signal(struct pipe_context *_pipe,
+                                struct pipe_fence_handle *fence)
+{
+   struct trace_context *tr_ctx = trace_context(_pipe);
+   struct pipe_context *pipe = tr_ctx->pipe;
+
+   trace_dump_call_begin("pipe_context", "fence_server_signal");
+
+   trace_dump_arg(ptr, pipe);
+   trace_dump_arg(ptr, fence);
+
+   pipe->fence_server_signal(pipe, fence);
 
    trace_dump_call_end();
 }
@@ -2328,6 +2347,8 @@ trace_context_create(struct trace_screen *tr_scr,
    TR_CTX_INIT(create_stream_output_target);
    TR_CTX_INIT(stream_output_target_destroy);
    TR_CTX_INIT(set_stream_output_targets);
+   /* this is lavapipe-only and can't be traced */
+   tr_ctx->base.stream_output_target_offset = pipe->stream_output_target_offset;
    TR_CTX_INIT(resource_copy_region);
    TR_CTX_INIT(blit);
    TR_CTX_INIT(flush_resource);
@@ -2339,6 +2360,7 @@ trace_context_create(struct trace_screen *tr_scr,
    TR_CTX_INIT(flush);
    TR_CTX_INIT(create_fence_fd);
    TR_CTX_INIT(fence_server_sync);
+   TR_CTX_INIT(fence_server_signal);
    TR_CTX_INIT(generate_mipmap);
    TR_CTX_INIT(texture_barrier);
    TR_CTX_INIT(memory_barrier);

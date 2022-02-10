@@ -29,7 +29,6 @@
 
 
 #include "glheader.h"
-#include "main/mtypes.h"
 #include "compiler/shader_enums.h"
 #include "util/mesa-sha1.h"
 
@@ -46,6 +45,9 @@ struct gl_program;
 struct gl_program_resource;
 struct gl_shader;
 struct gl_shader_program;
+struct gl_resource_name;
+struct gl_shared_state;
+struct gl_uniform_block;
 
 extern GLbitfield
 _mesa_get_shader_flags(void);
@@ -157,6 +159,11 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
                              GLsizei propCount, const GLenum *props,
                              GLsizei bufSize, GLsizei *length,
                              GLint *params);
+
+extern void
+_mesa_get_program_interfaceiv(struct gl_shader_program *shProg,
+                              GLenum programInterface, GLenum pname,
+                              GLint *params);
 
 extern void
 _mesa_program_resource_hash_destroy(struct gl_shader_program *shProg);

@@ -28,7 +28,7 @@
 #include "util/set.h"
 #include "util/hash_table.h"
 #include "linker.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 
 static ir_function_signature *
 find_matching_signature(const char *name, const exec_list *actual_parameters,

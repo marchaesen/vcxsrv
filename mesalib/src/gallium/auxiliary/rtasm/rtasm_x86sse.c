@@ -89,7 +89,7 @@ void x86_print_reg( struct x86_reg reg )
       foo++;                                    \
    if  (*foo)                                   \
       foo++;                                    \
-   debug_printf( "\n%4x %14s ", p->csr - p->store, foo );             \
+   debug_printf( "\n%4tx %14s ", p->csr - p->store, foo );             \
 } while (0)
 
 #define DUMP_I( I ) do {                        \
@@ -1506,6 +1506,15 @@ void sse2_rcpss( struct x86_function *p,
    DUMP_RR( dst, src );
    emit_3ub(p, 0xF3, X86_TWOB, 0x53);
    emit_modrm( p, dst, src );
+}
+
+void sse2_pcmpgtd(struct x86_function *p,
+                  struct x86_reg dst,
+                  struct x86_reg src)
+{
+   DUMP_RR(dst, src);
+   emit_3ub(p, 0x66, X86_TWOB, 0x66);
+   emit_modrm(p, dst, src);
 }
 
 /***********************************************************************

@@ -96,12 +96,6 @@ _mesa_expand_bitmap(GLsizei width, GLsizei height,
                     GLubyte onValue);
 
 
-extern void
-_mesa_convert_colors(GLenum srcType, const GLvoid *src,
-                     GLenum dstType, GLvoid *dst,
-                     GLuint count, const GLubyte mask[]);
-
-
 extern GLboolean
 _mesa_clip_drawpixels(const struct gl_context *ctx,
                       GLint *destX, GLint *destY,

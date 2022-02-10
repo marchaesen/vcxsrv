@@ -31,129 +31,6 @@
 #include "ir3_nir.h"
 #include "ir3_shader.h"
 
-static const nir_shader_compiler_options options = {
-   .lower_fpow = true,
-   .lower_scmp = true,
-   .lower_flrp16 = true,
-   .lower_flrp32 = true,
-   .lower_flrp64 = true,
-   .lower_ffract = true,
-   .lower_fmod = true,
-   .lower_fdiv = true,
-   .lower_isign = true,
-   .lower_ldexp = true,
-   .lower_uadd_carry = true,
-   .lower_usub_borrow = true,
-   .lower_mul_high = true,
-   .lower_mul_2x32_64 = true,
-   .fuse_ffma16 = true,
-   .fuse_ffma32 = true,
-   .fuse_ffma64 = true,
-   .vertex_id_zero_based = true,
-   .lower_extract_byte = true,
-   .lower_extract_word = true,
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_helper_invocation = true,
-   .lower_bitfield_insert_to_shifts = true,
-   .lower_bitfield_extract_to_shifts = true,
-   .lower_pack_half_2x16 = true,
-   .lower_pack_snorm_4x8 = true,
-   .lower_pack_snorm_2x16 = true,
-   .lower_pack_unorm_4x8 = true,
-   .lower_pack_unorm_2x16 = true,
-   .lower_unpack_half_2x16 = true,
-   .lower_unpack_snorm_4x8 = true,
-   .lower_unpack_snorm_2x16 = true,
-   .lower_unpack_unorm_4x8 = true,
-   .lower_unpack_unorm_2x16 = true,
-   .lower_pack_split = true,
-   .use_interpolated_input_intrinsics = true,
-   .lower_rotate = true,
-   .lower_to_scalar = true,
-   .has_imul24 = true,
-   .has_fsub = true,
-   .has_isub = true,
-   .lower_wpos_pntc = true,
-   .lower_cs_local_index_from_id = true,
-
-   /* Only needed for the spirv_to_nir() pass done in ir3_cmdline.c
-    * but that should be harmless for GL since 64b is not
-    * supported there.
-    */
-   .lower_int64_options = (nir_lower_int64_options)~0,
-   .lower_uniforms_to_ubo = true,
-   .use_scoped_barrier = true,
-};
-
-/* we don't want to lower vertex_id to _zero_based on newer gpus: */
-static const nir_shader_compiler_options options_a6xx = {
-   .lower_fpow = true,
-   .lower_scmp = true,
-   .lower_flrp16 = true,
-   .lower_flrp32 = true,
-   .lower_flrp64 = true,
-   .lower_ffract = true,
-   .lower_fmod = true,
-   .lower_fdiv = true,
-   .lower_isign = true,
-   .lower_ldexp = true,
-   .lower_uadd_carry = true,
-   .lower_usub_borrow = true,
-   .lower_mul_high = true,
-   .lower_mul_2x32_64 = true,
-   .fuse_ffma16 = true,
-   .fuse_ffma32 = true,
-   .fuse_ffma64 = true,
-   .vertex_id_zero_based = false,
-   .lower_extract_byte = true,
-   .lower_extract_word = true,
-   .lower_insert_byte = true,
-   .lower_insert_word = true,
-   .lower_helper_invocation = true,
-   .lower_bitfield_insert_to_shifts = true,
-   .lower_bitfield_extract_to_shifts = true,
-   .lower_pack_half_2x16 = true,
-   .lower_pack_snorm_4x8 = true,
-   .lower_pack_snorm_2x16 = true,
-   .lower_pack_unorm_4x8 = true,
-   .lower_pack_unorm_2x16 = true,
-   .lower_unpack_half_2x16 = true,
-   .lower_unpack_snorm_4x8 = true,
-   .lower_unpack_snorm_2x16 = true,
-   .lower_unpack_unorm_4x8 = true,
-   .lower_unpack_unorm_2x16 = true,
-   .lower_pack_split = true,
-   .use_interpolated_input_intrinsics = true,
-   .lower_rotate = true,
-   .vectorize_io = true,
-   .lower_to_scalar = true,
-   .has_imul24 = true,
-   .has_fsub = true,
-   .has_isub = true,
-   .max_unroll_iterations = 32,
-   .force_indirect_unrolling = nir_var_all,
-   .lower_wpos_pntc = true,
-   .lower_cs_local_index_from_id = true,
-
-   /* Only needed for the spirv_to_nir() pass done in ir3_cmdline.c
-    * but that should be harmless for GL since 64b is not
-    * supported there.
-    */
-   .lower_int64_options = (nir_lower_int64_options)~0,
-   .lower_uniforms_to_ubo = true,
-   .lower_device_index_to_zero = true,
-   .use_scoped_barrier = true,
-};
-
-const nir_shader_compiler_options *
-ir3_get_compiler_options(struct ir3_compiler *compiler)
-{
-   if (compiler->gen >= 6)
-      return &options_a6xx;
-   return &options;
-}
-
 static bool
 ir3_nir_should_vectorize_mem(unsigned align_mul, unsigned align_offset,
                              unsigned bit_size, unsigned num_components,
@@ -210,6 +87,7 @@ ir3_optimize_loop(struct ir3_compiler *compiler, nir_shader *s)
       progress |= OPT(s, nir_lower_phis_to_scalar, false);
 
       progress |= OPT(s, nir_copy_prop);
+      progress |= OPT(s, nir_opt_deref);
       progress |= OPT(s, nir_opt_dce);
       progress |= OPT(s, nir_opt_cse);
       static int gcm = -1;
@@ -240,6 +118,17 @@ ir3_optimize_loop(struct ir3_compiler *compiler, nir_shader *s)
       progress |= OPT(s, nir_lower_alu);
       progress |= OPT(s, nir_lower_pack);
       progress |= OPT(s, nir_opt_constant_folding);
+
+      static const nir_opt_offsets_options offset_options = {
+         /* How large an offset we can encode in the instr's immediate field.
+          */
+         .uniform_max = (1 << 9) - 1,
+
+         .shared_max = ~0,
+
+         .buffer_max = ~0,
+      };
+      progress |= OPT(s, nir_opt_offsets, &offset_options);
 
       nir_load_store_vectorize_options vectorize_opts = {
          .modes = nir_var_mem_ubo,
@@ -507,8 +396,11 @@ ir3_nir_lower_subgroup_id_cs(nir_shader *shader)
  * Late passes that need to be done after pscreen->finalize_nir()
  */
 void
-ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s)
+ir3_nir_post_finalize(struct ir3_shader *shader)
 {
+   struct nir_shader *s = shader->nir;
+   struct ir3_compiler *compiler = shader->compiler;
+
    NIR_PASS_V(s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
               ir3_glsl_type_size, (nir_lower_io_options)0);
 
@@ -530,15 +422,45 @@ ir3_nir_post_finalize(struct ir3_compiler *compiler, nir_shader *s)
    if ((s->info.stage == MESA_SHADER_COMPUTE) ||
        (s->info.stage == MESA_SHADER_KERNEL) ||
        compiler->has_getfiberid) {
+      /* If the API-facing subgroup size is forced to a particular value, lower
+       * it here. Beyond this point nir_intrinsic_load_subgroup_size will return
+       * the "real" subgroup size.
+       */
+      unsigned subgroup_size = 0, max_subgroup_size = 0;
+      switch (shader->api_wavesize) {
+      case IR3_SINGLE_ONLY:
+         subgroup_size = max_subgroup_size = compiler->threadsize_base;
+         break;
+      case IR3_DOUBLE_ONLY:
+         subgroup_size = max_subgroup_size = compiler->threadsize_base * 2;
+         break;
+      case IR3_SINGLE_OR_DOUBLE:
+         /* For vertex stages, we know the wavesize will never be doubled.
+          * Lower subgroup_size here, to avoid having to deal with it when
+          * translating from NIR. Otherwise use the "real" wavesize obtained as
+          * a driver param.
+          */
+         if (s->info.stage != MESA_SHADER_COMPUTE &&
+             s->info.stage != MESA_SHADER_FRAGMENT) {
+            subgroup_size = max_subgroup_size = compiler->threadsize_base;
+         } else {
+            subgroup_size = 0;
+            max_subgroup_size = compiler->threadsize_base * 2;
+         }
+         break;
+      }
+
       OPT(s, nir_lower_subgroups,
           &(nir_lower_subgroups_options){
-             .subgroup_size = 128,
+             .subgroup_size = subgroup_size,
              .ballot_bit_size = 32,
-             .ballot_components = 4,
+             .ballot_components = max_subgroup_size / 32,
              .lower_to_scalar = true,
              .lower_vote_eq = true,
              .lower_subgroup_masks = true,
              .lower_read_invocation_to_cond = true,
+             .lower_shuffle = true,
+             .lower_relative_shuffle = true,
           });
    }
 
@@ -839,10 +761,15 @@ ir3_nir_scan_driver_consts(struct ir3_compiler *compiler, nir_shader *shader, st
                layout->num_driver_params =
                   MAX2(layout->num_driver_params, IR3_DP_BASE_GROUP_Z + 1);
                break;
-            case nir_intrinsic_load_subgroup_size:
+            case nir_intrinsic_load_subgroup_size: {
+               assert(shader->info.stage == MESA_SHADER_COMPUTE ||
+                      shader->info.stage == MESA_SHADER_FRAGMENT);
+               enum ir3_driver_param size = shader->info.stage == MESA_SHADER_COMPUTE ?
+                  IR3_DP_CS_SUBGROUP_SIZE : IR3_DP_FS_SUBGROUP_SIZE;
                layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_SUBGROUP_SIZE + 1);
+                  MAX2(layout->num_driver_params, size + 1);
                break;
+            }
             case nir_intrinsic_load_subgroup_id_shift_ir3:
                layout->num_driver_params =
                   MAX2(layout->num_driver_params, IR3_DP_SUBGROUP_ID_SHIFT + 1);

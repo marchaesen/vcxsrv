@@ -101,9 +101,10 @@ translate_cull_mode(unsigned cull)
 }
 
 
-static void
-define_rasterizer_object(struct svga_context *svga,
-                         struct svga_rasterizer_state *rast)
+int
+svga_define_rasterizer_object(struct svga_context *svga,
+                              struct svga_rasterizer_state *rast,
+                              unsigned samples)
 {
    struct svga_screen *svgascreen = svga_screen(svga->pipe.screen);
    unsigned fill_mode = translate_fill_mode(rast->templ.fill_front);
@@ -120,8 +121,10 @@ define_rasterizer_object(struct svga_context *svga,
       rast->templ.line_stipple_pattern : 0;
    const uint8 pv_last = !rast->templ.flatshade_first &&
       svgascreen->haveProvokingVertex;
+   int rastId;
+   enum pipe_error ret;
 
-   rast->id = util_bitmask_add(svga->rast_object_id_bm);
+   rastId = util_bitmask_add(svga->rast_object_id_bm);
 
    if (rast->templ.fill_front != rast->templ.fill_back) {
       /* The VGPU10 device can't handle different front/back fill modes.
@@ -131,24 +134,53 @@ define_rasterizer_object(struct svga_context *svga,
       fill_mode = SVGA3D_FILLMODE_FILL;
    }
 
-   SVGA_RETRY(svga, SVGA3D_vgpu10_DefineRasterizerState
-              (svga->swc,
-               rast->id,
-               fill_mode,
-               cull_mode,
-               rast->templ.front_ccw,
-               depth_bias,
-               depth_bias_clamp,
-               slope_scaled_depth_bias,
-               rast->templ.depth_clip_near,
-               rast->templ.scissor,
-               rast->templ.multisample,
-               rast->templ.line_smooth,
-               line_width,
-               rast->templ.line_stipple_enable,
-               line_factor,
-               line_pattern,
-               pv_last));
+   if (samples > 1 && svga_have_gl43(svga) &&
+       svgascreen->sws->have_rasterizer_state_v2_cmd) {
+
+      ret = SVGA3D_sm5_DefineRasterizerState_v2(svga->swc,
+                  rastId,
+                  fill_mode,
+                  cull_mode,
+                  rast->templ.front_ccw,
+                  depth_bias,
+                  depth_bias_clamp,
+                  slope_scaled_depth_bias,
+                  rast->templ.depth_clip_near,
+                  rast->templ.scissor,
+                  rast->templ.multisample,
+                  rast->templ.line_smooth,
+                  line_width,
+                  rast->templ.line_stipple_enable,
+                  line_factor,
+                  line_pattern,
+                  pv_last,
+                  samples);
+   } else {
+      ret = SVGA3D_vgpu10_DefineRasterizerState(svga->swc,
+                  rastId,
+                  fill_mode,
+                  cull_mode,
+                  rast->templ.front_ccw,
+                  depth_bias,
+                  depth_bias_clamp,
+                  slope_scaled_depth_bias,
+                  rast->templ.depth_clip_near,
+                  rast->templ.scissor,
+                  rast->templ.multisample,
+                  rast->templ.line_smooth,
+                  line_width,
+                  rast->templ.line_stipple_enable,
+                  line_factor,
+                  line_pattern,
+                  pv_last);
+   }
+
+   if (ret != PIPE_OK) {
+      util_bitmask_clear(svga->rast_object_id_bm, rastId);
+      return SVGA3D_INVALID_ID;
+   }
+
+   return rastId;
 }
 
 
@@ -180,7 +212,7 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
        * though.  Our smooth point implementation involves drawing a square,
        * computing fragment distance from point center, then attenuating
        * the fragment alpha value.  We should not attenuate alpha if msaa
-       * is enabled.  We should kill fragments entirely outside the circle
+       * is enabled.  We should discard fragments entirely outside the circle
        * and let the GPU compute per-fragment coverage.
        * But as-is, our implementation gives acceptable results and passes
        * Piglit's MSAA point smooth test.
@@ -191,7 +223,7 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
    if (rast->templ.point_smooth &&
        rast->templ.point_size_per_vertex == 0 &&
        rast->templ.point_size <= screen->pointSmoothThreshold) {
-      /* If the point size is less than the threshold, disable smoothing.
+      /* If the point size is less than the threshold, deactivate smoothing.
        * Note that this only effects point rendering when we use the
        * pipe_rasterizer_state::point_size value, not when the point size
        * is set in the VS.
@@ -359,7 +391,23 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
    }
 
    if (svga_have_vgpu10(svga)) {
-      define_rasterizer_object(svga, rast);
+      rast->id = svga_define_rasterizer_object(svga, rast, 0);
+      if (rast->id == SVGA3D_INVALID_ID) {
+         svga_context_flush(svga, NULL);
+         rast->id = svga_define_rasterizer_object(svga, rast, 0);
+         assert(rast->id != SVGA3D_INVALID_ID);
+      }
+   }
+
+   if (svga_have_gl43(svga)) {
+      /* initialize the alternate rasterizer state ids.
+       * For 0 and 1 sample count, we can use the same rasterizer object.
+       */
+      rast->altRastIds[0] = rast->altRastIds[1] = rast->id;
+
+      for (unsigned i = 2; i < ARRAY_SIZE(rast->altRastIds); i++) {
+         rast->altRastIds[i] = SVGA3D_INVALID_ID;
+      }
    }
 
    if (templ->poly_smooth) {
@@ -407,6 +455,10 @@ svga_delete_rasterizer_state(struct pipe_context *pipe, void *state)
    struct svga_context *svga = svga_context(pipe);
    struct svga_rasterizer_state *raster =
       (struct svga_rasterizer_state *) state;
+
+   /* free any alternate rasterizer state used for point sprite */
+   if (raster->no_cull_rasterizer)
+      svga_delete_rasterizer_state(pipe, (void *)(raster->no_cull_rasterizer));
 
    if (svga_have_vgpu10(svga)) {
       SVGA_RETRY(svga, SVGA3D_vgpu10_DestroyRasterizerState(svga->swc,

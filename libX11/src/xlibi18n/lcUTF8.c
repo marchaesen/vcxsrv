@@ -742,20 +742,14 @@ utf8tocs1(
 	    continue;
 	}
 
+	last_charset = _XlcGetCharSetWithSide(chosen_charset->name, chosen_side);
+
 	if (last_charset == NULL) {
-	    last_charset =
-	        _XlcGetCharSetWithSide(chosen_charset->name, chosen_side);
-	    if (last_charset == NULL) {
-		src += consumed;
-		unconv_num++;
-		continue;
-	    }
-	} else {
-	    if (!(last_charset->xrm_encoding_name == chosen_charset->xrm_name
-	          && (last_charset->side == XlcGLGR
-	              || last_charset->side == chosen_side)))
-		break;
+	    src += consumed;
+	    unconv_num++;
+	    continue;
 	}
+
 	src += consumed;
 	dst += count;
 	break;
@@ -1615,20 +1609,14 @@ wcstocs1(
 	    continue;
 	}
 
+	last_charset = _XlcGetCharSetWithSide(chosen_charset->name, chosen_side);
+
 	if (last_charset == NULL) {
-	    last_charset =
-	        _XlcGetCharSetWithSide(chosen_charset->name, chosen_side);
-	    if (last_charset == NULL) {
-		src++;
-		unconv_num++;
-		continue;
-	    }
-	} else {
-	    if (!(last_charset->xrm_encoding_name == chosen_charset->xrm_name
-	          && (last_charset->side == XlcGLGR
-	              || last_charset->side == chosen_side)))
-		break;
+	    src++;
+	    unconv_num++;
+	    continue;
 	}
+
 	src++;
 	dst += count;
 	break;

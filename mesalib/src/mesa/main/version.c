@@ -251,13 +251,7 @@ compute_version(const struct gl_extensions *extensions,
 {
    GLuint major, minor, version;
 
-   const bool ver_1_4 = (extensions->ARB_depth_texture &&
-                         extensions->ARB_shadow &&
-                         extensions->ARB_texture_env_crossbar &&
-                         extensions->EXT_blend_color &&
-                         extensions->EXT_blend_func_separate &&
-                         extensions->EXT_blend_minmax &&
-                         extensions->EXT_point_parameters);
+   const bool ver_1_4 = (extensions->ARB_shadow);
    const bool ver_1_5 = (ver_1_4 &&
                          extensions->ARB_occlusion_query);
    const bool ver_2_0 = (ver_1_5 &&
@@ -484,25 +478,11 @@ compute_version(const struct gl_extensions *extensions,
 }
 
 static GLuint
-compute_version_es1(const struct gl_extensions *extensions)
-{
-   /* OpenGL ES 1.0 is derived from OpenGL 1.3, which is always supported.
-    * OpenGL ES 1.1 is derived from OpenGL 1.5.
-    */
-   const bool ver_1_1 = (extensions->EXT_point_parameters);
-
-   return ver_1_1 ? 11 : 10;
-}
-
-static GLuint
 compute_version_es2(const struct gl_extensions *extensions,
                     const struct gl_constants *consts)
 {
    /* OpenGL ES 2.0 is derived from OpenGL 2.0 */
-   const bool ver_2_0 = (extensions->EXT_blend_color &&
-                         extensions->EXT_blend_func_separate &&
-                         extensions->EXT_blend_minmax &&
-                         extensions->ARB_vertex_shader &&
+   const bool ver_2_0 = (extensions->ARB_vertex_shader &&
                          extensions->ARB_fragment_shader &&
                          extensions->ARB_texture_non_power_of_two &&
                          extensions->EXT_blend_equation_separate);
@@ -601,7 +581,7 @@ _mesa_get_version(const struct gl_extensions *extensions,
    case API_OPENGL_CORE:
       return compute_version(extensions, consts, api);
    case API_OPENGLES:
-      return compute_version_es1(extensions);
+      return 11;
    case API_OPENGLES2:
       return compute_version_es2(extensions, consts);
    }
@@ -709,13 +689,19 @@ done:
 void
 _mesa_get_driver_uuid(struct gl_context *ctx, GLint *uuid)
 {
-   st_get_driver_uuid(ctx, (char*) uuid);
+   struct pipe_screen *screen = ctx->pipe->screen;
+   assert(GL_UUID_SIZE_EXT >= PIPE_UUID_SIZE);
+   memset(uuid, 0, GL_UUID_SIZE_EXT);
+   screen->get_driver_uuid(screen, (char *)uuid);
 }
 
 void
 _mesa_get_device_uuid(struct gl_context *ctx, GLint *uuid)
 {
-   st_get_device_uuid(ctx, (char*) uuid);
+   struct pipe_screen *screen = ctx->pipe->screen;
+   assert(GL_UUID_SIZE_EXT >= PIPE_UUID_SIZE);
+   memset(uuid, 0, GL_UUID_SIZE_EXT);
+   screen->get_device_uuid(screen, (char *)uuid);
 }
 
 /**

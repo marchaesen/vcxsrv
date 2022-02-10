@@ -100,7 +100,7 @@ emit_split_buffer_store(nir_builder *b, nir_ssa_def *d, nir_ssa_def *desc, nir_s
 
          nir_ssa_def *store_val = nir_extract_bits(b, &d, 1, start_byte * 8u, 1, store_bytes * 8u);
          nir_build_store_buffer_amd(b, store_val, desc, v_off, s_off, .is_swizzled = swizzled, .slc_amd = slc,
-                                    .base = start_byte, .write_mask = 1u, .memory_modes = nir_var_shader_out);
+                                    .base = start_byte, .memory_modes = nir_var_shader_out);
 
          start_byte += store_bytes;
          bytes -= store_bytes;

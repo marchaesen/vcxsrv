@@ -102,174 +102,44 @@ struct st_compressed_data
    GLubyte *ptr;
 };
 
-
-/**
- * Subclass of gl_texure_image.
- */
-struct st_texture_image
-{
-   struct gl_texture_image base;
-
-   /* If stImage->pt != NULL, image data is stored here.
-    * Else there is no image data.
-    */
-   struct pipe_resource *pt;
-
-   /* List of transfers, allocated on demand.
-    * transfer[layer] is a mapping for that layer.
-    */
-   struct st_texture_image_transfer *transfer;
-   unsigned num_transfers;
-
-   /* For compressed images unsupported by the driver. Keep track of
-    * the original data. This is necessary for mapping/unmapping,
-    * as well as image copies.
-    */
-   struct st_compressed_data* compressed_data;
-};
-
-
-/**
- * Subclass of gl_texure_object.
- */
-struct st_texture_object
-{
-   struct gl_texture_object base;       /* The "parent" object */
-
-   /* The texture must include at levels [0..lastLevel] once validated:
-    */
-   GLuint lastLevel;
-
-   unsigned int validated_first_level;
-   unsigned int validated_last_level;
-
-   /* On validation any active images held in main memory or in other
-    * textures will be copied to this texture and the old storage freed.
-    */
-   struct pipe_resource *pt;
-
-   /* Protect modifications of the sampler_views array */
-   simple_mtx_t validate_mutex;
-
-   /* Container of sampler views (one per context) attached to this texture
-    * object. Created lazily on first binding in context.
-    *
-    * Purely read-only accesses to the current context's own sampler view
-    * require no locking. Another thread may simultaneously replace the
-    * container object in order to grow the array, but the old container will
-    * be kept alive.
-    *
-    * Writing to the container (even for modifying the current context's own
-    * sampler view) always requires taking the validate_mutex to protect against
-    * concurrent container switches.
-    *
-    * NULL'ing another context's sampler view is allowed only while
-    * implementing an API call that modifies the texture: an application which
-    * calls those while simultaneously reading the texture in another context
-    * invokes undefined behavior. (TODO: a dubious violation of this rule is
-    * st_finalize_texture, which is a lazy operation that corresponds to a
-    * texture modification.)
-    */
-   struct st_sampler_views *sampler_views;
-
-   /* Old sampler views container objects that have not been freed yet because
-    * other threads/contexts may still be reading from them.
-    */
-   struct st_sampler_views *sampler_views_old;
-
-   /* True if this texture comes from the window system. Such a texture
-    * cannot be reallocated and the format can only be changed with a sampler
-    * view or a surface.
-    */
-   GLboolean surface_based;
-
-   /* If surface_based is true, this format should be used for all sampler
-    * views and surfaces instead of pt->format.
-    */
-   enum pipe_format surface_format;
-
-   /* When non-negative, samplers should use this level instead of the level
-    * range specified by the GL state.
-    *
-    * This is used for EGL images, which may correspond to a single level out
-    * of an imported pipe_resources with multiple mip levels.
-    */
-   int level_override;
-
-   /* When non-negative, samplers should use this layer instead of the one
-    * specified by the GL state.
-    *
-    * This is used for EGL images and VDPAU interop, where imported
-    * pipe_resources may be cube, 3D, or array textures (containing layers
-    * with different fields in the case of VDPAU) even though the GL state
-    * describes one non-array texture per field.
-    */
-   int layer_override;
-
-    /**
-     * Set when the texture images of this texture object might not all be in
-     * the pipe_resource *pt above.
-     */
-    bool needs_validation;
-};
-
-
-static inline struct st_texture_image *
-st_texture_image(struct gl_texture_image *img)
-{
-   return (struct st_texture_image *) img;
-}
-
-static inline const struct st_texture_image *
+static inline const struct gl_texture_image *
 st_texture_image_const(const struct gl_texture_image *img)
 {
-   return (const struct st_texture_image *) img;
+   return (const struct gl_texture_image *) img;
 }
 
-static inline struct st_texture_object *
-st_texture_object(struct gl_texture_object *obj)
-{
-   return (struct st_texture_object *) obj;
-}
-
-static inline const struct st_texture_object *
+static inline const struct gl_texture_object *
 st_texture_object_const(const struct gl_texture_object *obj)
 {
-   return (const struct st_texture_object *) obj;
+   return (const struct gl_texture_object *) obj;
 }
 
 
 static inline struct pipe_resource *
 st_get_texobj_resource(struct gl_texture_object *texObj)
 {
-   struct st_texture_object *stObj = st_texture_object(texObj);
-   return stObj ? stObj->pt : NULL;
+   return texObj ? texObj->pt : NULL;
 }
 
 
 static inline struct pipe_resource *
-st_get_stobj_resource(struct st_texture_object *stObj)
+st_get_stobj_resource(struct gl_texture_object *stObj)
 {
    return stObj ? stObj->pt : NULL;
 }
 
 
-static inline struct st_texture_object *
+static inline struct gl_texture_object *
 st_get_texture_object(struct gl_context *ctx,
                       const struct gl_program *prog,
                       unsigned unit)
 {
    const GLuint texUnit = prog->SamplerUnits[unit];
-   struct gl_texture_object *texObj = ctx->Texture.Unit[texUnit]._Current;
-
-   if (!texObj)
-      return NULL;
-
-   return st_texture_object(texObj);
+   return ctx->Texture.Unit[texUnit]._Current;
 }
 
 static inline enum pipe_format
-st_get_view_format(struct st_texture_object *stObj)
+st_get_view_format(struct gl_texture_object *stObj)
 {
    if (!stObj)
       return PIPE_FORMAT_NONE;
@@ -312,7 +182,7 @@ st_texture_match_image(struct st_context *st,
  * well.
  */
 extern GLubyte *
-st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
+st_texture_image_map(struct st_context *st, struct gl_texture_image *stImage,
                      enum pipe_map_flags usage,
                      GLuint x, GLuint y, GLuint z,
                      GLuint w, GLuint h, GLuint d,
@@ -320,7 +190,7 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
 
 extern void
 st_texture_image_unmap(struct st_context *st,
-                       struct st_texture_image *stImage, unsigned slice);
+                       struct gl_texture_image *stImage, unsigned slice);
 
 
 /* Return pointers to each 2d slice within an image.  Indexed by depth

@@ -81,12 +81,16 @@ struct etna_device {
 	void *handle_table, *name_table;
 
 	struct etna_bo_cache bo_cache;
+	struct list_head zombie_list;
 
 	int use_softpin;
 	struct util_vma_heap address_space;
 
 	int closefd;        /* call close(fd) upon destruction */
 };
+
+void etna_bo_free(struct etna_bo *bo);
+void etna_bo_kill_zombies(struct etna_device *dev);
 
 void etna_bo_cache_init(struct etna_bo_cache *cache);
 void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time);

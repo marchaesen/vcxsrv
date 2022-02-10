@@ -154,6 +154,21 @@ Another option to enable access wide data without root permissions would be runn
 
 Alternatively using the ``CAP_PERFMON`` permission on the binary should work too.
 
+A particular metric set can also be selected to capture a different
+set of HW counters :
+
+.. code-block:: console
+
+   INTEL_PERFETTO_METRIC_SET=RasterizerAndPixelBackend ./build/src/tool/pps/pps-producer
+
+Vulkan applications can also be instrumented to be Perfetto producers.
+To enable this for given application, set the environment variable as
+follow :
+
+.. code-block:: console
+
+   PERFETTO_TRACE=1 my_vulkan_app
+
 Panfrost
 ^^^^^^^^
 

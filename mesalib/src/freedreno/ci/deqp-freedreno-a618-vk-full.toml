@@ -4,13 +4,19 @@ deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
 timeout = 300
 renderer_check = "Turnip Adreno .* 618"
-[deqp.env]
-# Force binning in the main run, which makes sure we render at
-# least 2 bins.  This is the path that impacts the most different
-# features.
-TU_DEBUG = "forcebin"
 
-# force-bypass testing
+# force-gmem testing
+# Autotuner forces sysmem on most CTS tests
+[[deqp]]
+deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp/mustpass/vk-master.txt"]
+timeout = 300
+prefix = "gmem-"
+fraction = 10
+[deqp.env]
+TU_DEBUG = "gmem,forcebin"
+
+# force-sysmem testing
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
@@ -19,15 +25,3 @@ include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"
 [deqp.env]
 TU_DEBUG = "sysmem"
-
-# Partial test with neither force-bin nor force-sysmem.  We don't expect trouble
-# here if both of those work, but it is the default so we should do at least a
-# bit of it. Left disabled for now until we shorten our list of known fails a
-# bit more (otherwise, it's a lot of bother to track as uprevs change the
-# fraction that gets run).
-#[[deqp]]
-#deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-#caselists = ["/deqp/mustpass/vk-master.txt"]
-#timeout = 300
-#fraction = 10
-#prefix = "defaults-"

@@ -1018,7 +1018,24 @@ vn_encode_VkSubpassDescription2(struct vn_cs_encoder *enc, const VkSubpassDescri
 static inline size_t
 vn_sizeof_VkSubpassDependency2_pnext(const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_MEMORY_BARRIER_2:
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkSubpassDependency2_pnext(pnext->pNext);
+            size += vn_sizeof_VkMemoryBarrier2_self((const VkMemoryBarrier2 *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     return vn_sizeof_simple_pointer(NULL);
 }
 
@@ -1053,7 +1070,23 @@ vn_sizeof_VkSubpassDependency2(const VkSubpassDependency2 *val)
 static inline void
 vn_encode_VkSubpassDependency2_pnext(struct vn_cs_encoder *enc, const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_MEMORY_BARRIER_2:
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkSubpassDependency2_pnext(enc, pnext->pNext);
+            vn_encode_VkMemoryBarrier2_self(enc, (const VkMemoryBarrier2 *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     vn_encode_simple_pointer(enc, NULL);
 }
 

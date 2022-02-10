@@ -66,6 +66,9 @@ KHR-GLES31.core.internalformat.copy_tex_image.alpha,Fail
 KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls1,Fail
 KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2,Fail
 
+# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463 (Fail)
+KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
+
 # "../src/gallium/drivers/freedreno/a5xx/fd5_emit.c:82: fd5_emit_const_bo: Assertion `dst_off % 4 == 0' failed."
 KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-arrays,Fail
 KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-elements,Fail
@@ -74,6 +77,9 @@ KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-elements,Fail
 KHR-GLES31.core.layout_binding.sampler2DArray_layout_binding_texture_ComputeShader,Fail
 KHR-GLES31.core.layout_binding.sampler2D_layout_binding_texture_ComputeShader,Fail
 KHR-GLES31.core.layout_binding.sampler3D_layout_binding_texture_ComputeShader,Fail
+
+# Several "Byte at index <n> is 0x00 should be 0x<ab>"
+KHR-GLES31.core.shader_storage_buffer_object.basic-stdLayout_UBO_SSBO-case2-cs,Fail
 
 # msm 900000.mdss: [drm:a5xx_irq] *ERROR* gpu fault ring 0 fence 2c54ef status E40801C1 rb 0162/0162 ib1 000000000104B000/0000 ib2 000000000104C000/0000
 KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions,Fail
@@ -230,7 +236,6 @@ spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-blit,Fail
 spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-copypixels,Fail
 spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-blit,Fail
 spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-copypixels,Fail
-spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_draw_indirect@gl_vertexid used with gldrawarraysindirect,Fail
 spec@arb_draw_indirect@gl_vertexid used with gldrawelementsindirect,Fail
 spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth24_stencil8,Fail
@@ -303,7 +308,6 @@ spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_render_snorm@render@format 0x8f94 read fail,Fail
 spec@ext_render_snorm@render@format 0x8f95 read fail,Fail
 spec@ext_render_snorm@render@format 0x8f97 read fail,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_transform_feedback2@draw-auto,Fail
 spec@ext_transform_feedback@generatemipmap prims_generated,Fail
 spec@ext_transform_feedback@immediate-reuse,Fail

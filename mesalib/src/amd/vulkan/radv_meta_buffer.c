@@ -20,8 +20,8 @@ build_buffer_fill_shader(struct radv_device *dev)
    nir_ssa_def *load = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 0), .range = 4);
    nir_ssa_def *swizzled_load = nir_swizzle(&b, load, (unsigned[]){0, 0, 0, 0}, 4);
 
-   nir_store_ssbo(&b, swizzled_load, dst_buf, offset, .write_mask = 0xf,
-                  .access = ACCESS_NON_READABLE, .align_mul = 16);
+   nir_store_ssbo(&b, swizzled_load, dst_buf, offset, .access = ACCESS_NON_READABLE,
+                  .align_mul = 16);
 
    return b.shader;
 }
@@ -41,8 +41,7 @@ build_buffer_copy_shader(struct radv_device *dev)
    nir_ssa_def *src_buf = radv_meta_load_descriptor(&b, 0, 1);
 
    nir_ssa_def *load = nir_load_ssbo(&b, 4, 32, src_buf, offset, .align_mul = 16);
-   nir_store_ssbo(&b, load, dst_buf, offset, .write_mask = 0xf, .access = ACCESS_NON_READABLE,
-                  .align_mul = 16);
+   nir_store_ssbo(&b, load, dst_buf, offset, .access = ACCESS_NON_READABLE, .align_mul = 16);
 
    return b.shader;
 }

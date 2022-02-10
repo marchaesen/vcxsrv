@@ -67,8 +67,11 @@
 
 #if __has_attribute(cleanup) && __has_attribute(unused)
 
+#define VN_TRACE_SCOPE_VAR_CONCAT(name, suffix) name##suffix
+#define VN_TRACE_SCOPE_VAR(suffix)                                           \
+   VN_TRACE_SCOPE_VAR_CONCAT(_vn_trace_scope_, suffix)
 #define VN_TRACE_SCOPE(name)                                                 \
-   int _vn_trace_scope_##__LINE__                                            \
+   int VN_TRACE_SCOPE_VAR(__LINE__)                                          \
       __attribute__((cleanup(vn_trace_scope_end), unused)) =                 \
          vn_trace_scope_begin(name)
 

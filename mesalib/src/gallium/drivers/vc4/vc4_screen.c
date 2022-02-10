@@ -158,7 +158,6 @@ vc4_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
                                        DRM_VC4_PARAM_SUPPORTS_FIXED_RCL_ORDER);
 
                 /* lying for GL 2.0 */
-        case PIPE_CAP_OCCLUSION_QUERY:
         case PIPE_CAP_POINT_SPRITE:
                 return 1;
 

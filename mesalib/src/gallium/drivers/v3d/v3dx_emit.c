@@ -77,6 +77,7 @@ v3d_factor(enum pipe_blendfactor factor, bool dst_alpha_one)
         }
 }
 
+#if V3D_VERSION < 40
 static inline uint16_t
 swizzled_border_color(const struct v3d_device_info *devinfo,
                       struct pipe_sampler_state *sampler,
@@ -109,7 +110,6 @@ swizzled_border_color(const struct v3d_device_info *devinfo,
         }
 }
 
-#if V3D_VERSION < 40
 static uint32_t
 translate_swizzle(unsigned char pipe_swizzle)
 {

@@ -499,6 +499,7 @@ default xkb_keycodes "evdev" {
 	<I590> = 590;		// #define KEY_VOICECOMMAND        582
 	<I591> = 591;		// #define KEY_ASSISTANT           583
 	<I592> = 592;		// #define KEY_KBD_LAYOUT_NEXT     584
+	<I593> = 593;		// #define KEY_EMOJI_PICKER        585
 	<I600> = 600;		// #define KEY_BRIGHTNESS_MIN      592
 	<I601> = 601;		// #define KEY_BRIGHTNESS_MAX      593
 	<I616> = 616;		// #define KEY_KBDINPUTASSIST_PREV 608

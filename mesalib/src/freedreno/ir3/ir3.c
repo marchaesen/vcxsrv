@@ -115,6 +115,12 @@ ir3_should_double_threadsize(struct ir3_shader_variant *v, unsigned regs_count)
 {
    const struct ir3_compiler *compiler = v->shader->compiler;
 
+   /* If the user forced a particular wavesize respect that. */
+   if (v->shader->real_wavesize == IR3_SINGLE_ONLY)
+      return false;
+   if (v->shader->real_wavesize == IR3_DOUBLE_ONLY)
+      return true;
+
    /* We can't support more than compiler->branchstack_size diverging threads
     * in a wave. Thus, doubling the threadsize is only possible if we don't
     * exceed the branchstack size limit.
@@ -177,30 +183,48 @@ ir3_get_reg_independent_max_waves(struct ir3_shader_variant *v,
    const struct ir3_compiler *compiler = v->shader->compiler;
    unsigned max_waves = compiler->max_waves;
 
-   /* If this is a compute shader, compute the limit based on shared size */
-   if ((v->type == MESA_SHADER_COMPUTE) ||
-       (v->type == MESA_SHADER_KERNEL)) {
-      /* Shared is allocated in chunks of 1k */
-      unsigned shared_per_wg = ALIGN_POT(v->shared_size, 1024);
-      if (shared_per_wg > 0 && !v->local_size_variable) {
-         unsigned wgs_per_core = compiler->local_mem_size / shared_per_wg;
-         unsigned threads_per_wg =
-            v->local_size[0] * v->local_size[1] * v->local_size[2];
-         unsigned waves_per_wg =
-            DIV_ROUND_UP(threads_per_wg, compiler->threadsize_base *
-                                            (double_threadsize ? 2 : 1) *
-                                            compiler->wave_granularity);
-         max_waves = MIN2(max_waves, waves_per_wg * wgs_per_core *
-                                        compiler->wave_granularity);
-      }
-   }
-
    /* Compute the limit based on branchstack */
    if (v->branchstack > 0) {
       unsigned branchstack_max_waves = compiler->branchstack_size /
                                        v->branchstack *
                                        compiler->wave_granularity;
       max_waves = MIN2(max_waves, branchstack_max_waves);
+   }
+
+   /* If this is a compute shader, compute the limit based on shared size */
+   if ((v->type == MESA_SHADER_COMPUTE) ||
+       (v->type == MESA_SHADER_KERNEL)) {
+      unsigned threads_per_wg =
+         v->local_size[0] * v->local_size[1] * v->local_size[2];
+      unsigned waves_per_wg =
+         DIV_ROUND_UP(threads_per_wg, compiler->threadsize_base *
+                                         (double_threadsize ? 2 : 1) *
+                                         compiler->wave_granularity);
+
+      /* Shared is allocated in chunks of 1k */
+      unsigned shared_per_wg = ALIGN_POT(v->shared_size, 1024);
+      if (shared_per_wg > 0 && !v->local_size_variable) {
+         unsigned wgs_per_core = compiler->local_mem_size / shared_per_wg;
+
+         max_waves = MIN2(max_waves, waves_per_wg * wgs_per_core *
+                                        compiler->wave_granularity);
+      }
+
+      /* If we have a compute shader that has a big workgroup, a barrier, and
+       * a branchstack which limits max_waves - this may result in a situation
+       * when we cannot run concurrently all waves of the workgroup, which
+       * would lead to a hang.
+       *
+       * TODO: Could we spill branchstack or is there other way around?
+       * Blob just explodes in such case.
+       */
+      if (v->has_barrier && (max_waves < waves_per_wg)) {
+         mesa_loge(
+            "Compute shader (%s:%s) which has workgroup barrier cannot be used "
+            "because it's impossible to have enough concurrent waves.",
+            v->shader->nir->info.name, v->shader->nir->info.label);
+         exit(1);
+      }
    }
 
    return max_waves;
@@ -249,7 +273,7 @@ ir3_collect_info(struct ir3_shader_variant *v)
    info->sizedwords = info->size / 4;
 
    foreach_block (block, &shader->block_list) {
-      int sfu_delay = 0;
+      int sfu_delay = 0, mem_delay = 0;
 
       foreach_instr (instr, &block->instr_list) {
 
@@ -307,14 +331,24 @@ ir3_collect_info(struct ir3_shader_variant *v)
             sfu_delay = 0;
          }
 
-         if (instr->flags & IR3_INSTR_SY)
+         if (instr->flags & IR3_INSTR_SY) {
             info->sy++;
+            info->systall += mem_delay;
+            mem_delay = 0;
+         }
 
-         if (is_sfu(instr)) {
-            sfu_delay = 10;
+         if (is_ss_producer(instr)) {
+            sfu_delay = soft_ss_delay(instr);
          } else {
             int n = MIN2(sfu_delay, 1 + instr->repeat + instr->nop);
             sfu_delay -= n;
+         }
+
+         if (is_sy_producer(instr)) {
+            mem_delay = soft_sy_delay(instr, shader);
+         } else {
+            int n = MIN2(mem_delay, 1 + instr->repeat + instr->nop);
+            mem_delay -= n;
          }
       }
    }
@@ -405,9 +439,9 @@ ir3_block_remove_physical_predecessor(struct ir3_block *block, struct ir3_block 
 {
    for (unsigned i = 0; i < block->physical_predecessors_count; i++) {
       if (block->physical_predecessors[i] == pred) {
-         if (i < block->predecessors_count - 1) {
+         if (i < block->physical_predecessors_count - 1) {
             block->physical_predecessors[i] =
-               block->physical_predecessors[block->predecessors_count - 1];
+               block->physical_predecessors[block->physical_predecessors_count - 1];
          }
 
          block->physical_predecessors_count--;
@@ -888,12 +922,29 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
       valid_flags =
          ir3_cat3_absneg(instr->opc) | IR3_REG_RELATIV | IR3_REG_SHARED;
 
-      if (instr->opc == OPC_SHLG_B16) {
+      switch (instr->opc) {
+      case OPC_SHRM:
+      case OPC_SHLM:
+      case OPC_SHRG:
+      case OPC_SHLG:
+      case OPC_ANDG: {
          valid_flags |= IR3_REG_IMMED;
-         /* shlg.b16 can be RELATIV+CONST but not CONST: */
+         /* Can be RELATIV+CONST but not CONST: */
          if (flags & IR3_REG_RELATIV)
             valid_flags |= IR3_REG_CONST;
-      } else {
+         break;
+      }
+      case OPC_WMM:
+      case OPC_WMM_ACCU: {
+         valid_flags = IR3_REG_SHARED;
+         if (n == 2)
+            valid_flags = IR3_REG_CONST;
+         break;
+      }
+      case OPC_DP2ACC:
+      case OPC_DP4ACC:
+         break;
+      default:
          valid_flags |= IR3_REG_CONST;
       }
 

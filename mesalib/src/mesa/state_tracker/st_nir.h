@@ -46,8 +46,6 @@ char *st_finalize_nir(struct st_context *st, struct gl_program *prog,
                       struct nir_shader *nir, bool finalize_by_driver,
                       bool is_before_variants);
 
-void st_nir_opts(struct nir_shader *nir);
-
 bool
 st_link_nir(struct gl_context *ctx,
             struct gl_shader_program *shader_program);

@@ -1,3 +1,23 @@
+# Missing 16-bit storage access at vktAmberTestCase.cpp:422 (InternalError)
+# Possibly fixed by VK-GL-CTS 54c075fd1cdb ("Fix amber vs cts device feature requirements")
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat3,Fail
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat4,Fail
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat3,Fail
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat4,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3505
+dEQP-VK.subgroups.multiple_dispatches.uniform_subgroup_size,Fail
+
+# CTS 1.3.1.0 uprev:
+dEQP-VK.image.sample_texture.128_bit_compressed_format_cubemap,Fail
+dEQP-VK.image.sample_texture.64_bit_compressed_format_cubemap,Fail
+
+spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies,Fail
+
 # Fails when TU_DEBUG=forcebin is set
-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
+gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
+gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
+
+# Looks like a segfault, not assertion failure
+spill-dEQP-VK.graphicsfuzz.cov-nested-loops-float-bits-to-int-increment-array,Crash
+spill-dEQP-VK.graphicsfuzz.cov-two-nested-loops-switch-case-matrix-array-increment,Crash

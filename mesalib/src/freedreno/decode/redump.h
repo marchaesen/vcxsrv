@@ -41,6 +41,7 @@ enum rd_sect_type {
    RD_FRAG_SHADER,
    RD_BUFFER_CONTENTS,
    RD_GPU_ID,
+   RD_CHIP_ID,
 };
 
 /* RD_PARAM types: */

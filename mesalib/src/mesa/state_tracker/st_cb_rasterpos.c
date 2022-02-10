@@ -40,16 +40,18 @@
 #include "main/macros.h"
 #include "main/arrayobj.h"
 #include "main/feedback.h"
+#include "main/framebuffer.h"
 #include "main/rastpos.h"
 #include "main/state.h"
 #include "main/varray.h"
+
+#include "util/u_memory.h"
 
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_draw.h"
 #include "st_program.h"
 #include "st_cb_rasterpos.h"
-#include "st_util.h"
 #include "draw/draw_context.h"
 #include "draw/draw_pipe.h"
 #include "vbo/vbo.h"
@@ -106,7 +108,7 @@ rastpos_destroy(struct draw_stage *stage)
 {
    struct rastpos_stage *rstage = (struct rastpos_stage*)stage;
    _mesa_reference_vao(rstage->ctx, &rstage->VAO, NULL);
-   free(stage);
+   FREE(stage);
 }
 
 
@@ -140,7 +142,7 @@ rastpos_point(struct draw_stage *stage, struct prim_header *prim)
    struct gl_context *ctx = rs->ctx;
    struct st_context *st = st_context(ctx);
    const GLfloat height = (GLfloat) ctx->DrawBuffer->Height;
-   struct st_vertex_program *stvp = (struct st_vertex_program *)st->vp;
+   struct gl_vertex_program *stvp = (struct gl_vertex_program *)st->vp;
    const ubyte *outputMapping = stvp->result_to_output;
    const GLfloat *pos;
    GLuint i;
@@ -153,7 +155,7 @@ rastpos_point(struct draw_stage *stage, struct prim_header *prim)
    /* update raster pos */
    pos = prim->v[0]->data[0];
    ctx->Current.RasterPos[0] = pos[0];
-   if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP)
+   if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_TOP)
       ctx->Current.RasterPos[1] = height - pos[1]; /* invert Y */
    else
       ctx->Current.RasterPos[1] = pos[1];
@@ -187,7 +189,7 @@ rastpos_point(struct draw_stage *stage, struct prim_header *prim)
 static struct rastpos_stage *
 new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
 {
-   struct rastpos_stage *rs = ST_CALLOC_STRUCT(rastpos_stage);
+   struct rastpos_stage *rs = CALLOC_STRUCT(rastpos_stage);
 
    rs->stage.draw = draw;
    rs->stage.next = NULL;

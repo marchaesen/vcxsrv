@@ -137,3 +137,81 @@ c0 01 00 00 00 c4 10 51    IADD_IMM.i32.reconverge r4, 0x0, #0x1
 3d 00 00 33 84 80 5d 08    LD_VAR_IMM_F16.v4.half.smooth.sample.store.slot0.wait0 @r0:r1, r61, index:0x0
 3d 00 08 33 44 80 5d 08    LD_VAR_IMM_F16.v4.half.smooth.centroid.store.slot0.wait0 @r0:r1, r61, index:0x8
 7c 7d 11 33 04 80 66 00    LD_ATTR_IMM.v4.f16.slot0 @r0:r1, `r60, `r61, index:0x1, table:0x1
+40 3c 03 23 04 84 78 00    LD_TILE.v3.f16.slot0 @r4:r5, `r0, r60, r3
+00 c9 00 20 10 81 a1 00    IADD.v2u16 r1.h1, r0.h10, 0x7060504.b11
+40 c0 00 08 10 41 a1 00    IADD.v2u16 r1.h0, `r0.h10, 0x0
+02 02 00 04 20 42 a1 00    IADD.v2u16 r2.h0, r2, r2.h10
+42 c0 05 00 00 c2 a1 00    MKVEC.v2i16 r2, `r2.h00, 0x0.h00
+77 c0 05 00 00 c2 a1 00    MKVEC.v2i16 r2, `r55.h00, 0x0.h00
+77 c0 05 10 00 c2 a1 00    MKVEC.v2i16 r2, `r55.h10, 0x0.h00
+c0 77 05 00 00 c2 a1 00    MKVEC.v2i16 r2, 0x0.h00, `r55.h00
+c0 77 05 04 00 c2 a1 00    MKVEC.v2i16 r2, 0x0.h00, `r55.h10
+77 00 14 00 00 c2 90 00    U16_TO_U32 r2, `r55.h00
+77 00 14 10 00 c2 90 00    U16_TO_U32 r2, `r55.h10
+77 00 15 00 00 c2 90 00    U16_TO_F32 r2, `r55.h00
+77 00 15 10 00 c2 90 00    U16_TO_F32 r2, `r55.h10
+77 00 04 00 00 c2 90 00    S16_TO_S32 r2, `r55.h00
+77 00 04 10 00 c2 90 00    S16_TO_S32 r2, `r55.h10
+c0 77 01 08 00 c2 a8 00    ISUB.s32 r2, 0x0, `r55.h0
+c0 77 01 0c 00 c2 a8 00    ISUB.s32 r2, 0x0, `r55.h1
+00 c0 c0 00 c0 c7 bd 00    MKVEC.v4i8 r7, r0.b3, 0x0.b0, 0x0
+00 c0 c0 00 80 c6 bd 00    MKVEC.v4i8 r6, r0.b2, 0x0.b0, 0x0
+00 c0 c0 00 00 c4 bd 00    MKVEC.v4i8 r4, r0.b0, 0x0.b0, 0x0
+40 c0 c0 00 40 c5 bd 00    MKVEC.v4i8 r5, `r0.b1, 0x0.b0, 0x0
+00 00 11 30 00 c7 90 00    U8_TO_F32 r7, r0.b3
+00 00 11 20 00 c6 90 00    U8_TO_F32 r6, r0.b2
+00 00 11 00 00 c4 90 00    U8_TO_F32 r4, r0.b0
+40 00 11 10 00 c5 90 00    U8_TO_F32 r5, `r0.b1
+00 00 01 30 00 c7 90 00    S8_TO_F32 r7, r0.b3
+00 00 01 20 00 c6 90 00    S8_TO_F32 r6, r0.b2
+00 00 01 00 00 c4 90 00    S8_TO_F32 r4, r0.b0
+40 00 01 10 00 c5 90 00    S8_TO_F32 r5, `r0.b1
+42 00 07 00 20 c2 90 00    V2S16_TO_V2F16 r2, `r2
+42 00 07 00 10 c2 90 00    V2S16_TO_V2F16 r2, `r2.h10
+42 00 07 00 00 c2 90 00    V2S16_TO_V2F16 r2, `r2.h00
+7d 00 07 00 00 c2 90 00    V2S16_TO_V2F16 r2, `r61.h00
+77 00 07 00 00 c2 90 00    V2S16_TO_V2F16 r2, `r55.h00
+77 00 07 00 30 c2 90 00    V2S16_TO_V2F16 r2, `r55.h11
+77 00 07 00 20 c2 90 00    V2S16_TO_V2F16 r2, `r55
+77 00 07 00 10 c2 90 00    V2S16_TO_V2F16 r2, `r55.h10
+42 00 07 00 c0 c2 90 00    V2S16_TO_V2F16 r2, `r2.b01
+42 00 03 00 40 c2 90 00    V2S8_TO_V2F16 r2, `r2.b01
+42 00 03 00 00 c2 90 00    V2S8_TO_V2F16 r2, `r2.b00
+00 00 03 00 40 c2 90 00    V2S8_TO_V2F16 r2, r0.b01
+40 00 03 00 e0 c3 90 00    V2S8_TO_V2F16 r3, `r0.b23
+00 00 03 00 20 c1 90 00    V2S8_TO_V2F16 r1, r0.b20
+40 00 03 00 60 c0 90 00    V2S8_TO_V2F16 r0, `r0.b21
+
+3d 00 00 b2 88 80 5c 68    LD_VAR_IMM_F32.v4.smooth.sample.store.slot2.td @r0:r1:r2:r3, r61, index:0x0
+3d 00 10 72 18 84 5c 00    LD_VAR_IMM_F32.v4.smooth.center.retrieve.slot1 @r4:r5:r6:r7, r61, index:0x10
+c0 00 00 00 00 c8 10 01    IADD_IMM.i32 r8, 0x0, #0x0
+c0 00 00 00 00 c9 10 01    IADD_IMM.i32 r9, 0x0, #0x0
+3d 00 14 00 00 ca 90 00    U16_TO_U32 r10, r61.h00
+3d 09 00 00 30 c0 1f 50    BRANCHZ.eq.reconverge r61.h0, offset:9
+0a 00 00 00 00 cb 91 50    MOV.i32.reconverge r11, r10
+00 00 00 00 00 c0 00 48    NOP.barrier 
+81 0b 80 33 04 8e 78 00    LD_TILE.v4.f16.slot0 @r14:r15, u1, r11, u0
+0b 00 04 00 00 cc 91 00    CLZ.u32 r12, r11
+82 4c c0 52 00 cc b4 00    RSHIFT_XOR.i32.not_result r12, u2, `r12.b00, 0x0
+4b c0 4c 10 01 cb b4 08    LSHIFT_AND.i32.wait0 r11, `r11, 0x0.b00, `r12
+4f 49 00 28 00 c9 a5 00    FADD.v2f16 r9, `r15, `r9
+4e 48 00 28 00 c8 a5 00    FADD.v2f16 r8, `r14, `r8
+0b f8 ff ff 07 c0 1f 50    BRANCHZ.reconverge r11, offset:-8
+4a 00 0c 00 00 fe 91 00    POPCOUNT.i32 r62, `r10
+7e 00 19 00 00 fe 90 00    U32_TO_F32 r62, `r62
+7e 7e 04 00 00 fe a5 00    V2F32_TO_V2F16 r62, `r62, `r62
+7e 00 01 00 00 fe 9c 00    FRCP.f16 r62, `r62.h00
+49 3e c0 22 04 c9 b3 30    FMA.v2f16.wait12 r9, `r9, r62.h00, 0x0.neg
+47 43 00 00 00 c3 a4 00    FADD.f32 r3, `r7, `r3
+43 09 00 08 00 c3 a4 40    FADD.f32.wait0126 r3, `r3, r9.h1
+3c 03 ea 00 02 bc 7d 68    ATEST.td @r60, r60, r3, atest_datum
+46 42 00 00 00 c2 a4 00    FADD.f32 r2, `r6, `r2
+44 40 00 00 00 c0 a4 00    FADD.f32 r0, `r4, `r0
+48 7e c0 22 04 ff b3 00    FMA.v2f16 r63, `r8, `r62.h00, 0x0.neg
+45 41 00 00 00 c1 a4 00    FADD.f32 r1, `r5, `r1
+41 3f 00 08 00 c1 a4 00    FADD.f32 r1, `r1, r63.h1
+40 7f 00 04 00 c0 a4 00    FADD.f32 r0, `r0, `r63.h0
+42 49 00 04 00 c2 a4 48    FADD.f32.barrier r2, `r2, `r9.h0
+f0 00 3c 32 08 40 7f 78    BLEND.slot0.v4.f32.return @r0:r1:r2:r3, @r60, blend_descriptor_0_x, target:0x0
+c0 00 00 00 00 f6 10 01    IADD_IMM.i32 r54, 0x0, #0x0
+c0 f1 00 00 10 c1 2f 08    BRANCHZI.eq.absolute.wait0 0x0, blend_descriptor_0_y

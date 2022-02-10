@@ -321,6 +321,9 @@ void ir_print_visitor::visit(ir_texture *ir)
 
       fprintf(f, " ");
 
+      if (ir->op != ir_lod && ir->op != ir_samples_identical)
+         fprintf(f, "%d ", ir->is_sparse);
+
       if (ir->offset != NULL) {
 	 ir->offset->accept(this);
       } else {
@@ -343,6 +346,15 @@ void ir_print_visitor::visit(ir_texture *ir)
 	 ir->shadow_comparator->accept(this);
       } else {
 	 fprintf(f, " ()");
+      }
+   }
+
+   if (ir->op == ir_tex || ir->op == ir_txb || ir->op == ir_txd) {
+      if (ir->clamp) {
+         fprintf(f, " ");
+         ir->clamp->accept(this);
+      } else {
+         fprintf(f, " ()");
       }
    }
 

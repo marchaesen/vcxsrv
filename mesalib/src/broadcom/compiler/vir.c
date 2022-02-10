@@ -1201,7 +1201,7 @@ v3d_nir_sort_constant_ubo_load(nir_block *block, nir_intrinsic_instr *ref)
                  * reference offset, since otherwise we would not be able to
                  * skip the unifa write for them. See ntq_emit_load_ubo_unifa.
                  */
-                if (abs(ref_offset - offset) > MAX_UNIFA_SKIP_DISTANCE)
+                if (abs((int)(ref_offset - offset)) > MAX_UNIFA_SKIP_DISTANCE)
                         continue;
 
                 /* We will move this load if its offset is smaller than ref's
@@ -1509,6 +1509,8 @@ v3d_attempt_compile(struct v3d_compile *c)
         }
 
         NIR_PASS_V(c->s, nir_lower_wrmasks, should_split_wrmask, c->s);
+
+        NIR_PASS_V(c->s, v3d_nir_lower_load_store_bitsize, c);
 
         NIR_PASS_V(c->s, v3d_nir_lower_subgroup_intrinsics, c);
 

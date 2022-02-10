@@ -837,6 +837,7 @@ vtn_get_builtin_location(struct vtn_builder *b,
       set_mode_system_value(b, mode);
       break;
    case SpvBuiltInLayer:
+   case SpvBuiltInLayerPerViewNV:
       *location = VARYING_SLOT_LAYER;
       if (b->shader->info.stage == MESA_SHADER_FRAGMENT)
          *mode = nir_var_shader_in;
@@ -863,6 +864,11 @@ vtn_get_builtin_location(struct vtn_builder *b,
          *mode = nir_var_shader_in;
       else
          vtn_fail("invalid stage for SpvBuiltInViewportIndex");
+      break;
+   case SpvBuiltInViewportMaskNV:
+   case SpvBuiltInViewportMaskPerViewNV:
+      *location = VARYING_SLOT_VIEWPORT_MASK;
+      *mode = nir_var_shader_out;
       break;
    case SpvBuiltInTessLevelOuter:
       *location = VARYING_SLOT_TESS_LEVEL_OUTER;
@@ -1136,6 +1142,14 @@ vtn_get_builtin_location(struct vtn_builder *b,
    case SpvBuiltInTaskCountNV:
       *location = VARYING_SLOT_TASK_COUNT;
       break;
+   case SpvBuiltInMeshViewCountNV:
+      *location = SYSTEM_VALUE_MESH_VIEW_COUNT;
+      set_mode_system_value(b, mode);
+      break;
+   case SpvBuiltInMeshViewIndicesNV:
+      *location = SYSTEM_VALUE_MESH_VIEW_INDICES;
+      set_mode_system_value(b, mode);
+      break;
    default:
       vtn_fail("Unsupported builtin: %s (%u)",
                spirv_builtin_to_string(builtin), builtin);
@@ -1208,7 +1222,9 @@ apply_var_decoration(struct vtn_builder *b,
       case SpvBuiltInTessLevelOuter:
       case SpvBuiltInTessLevelInner:
       case SpvBuiltInClipDistance:
+      case SpvBuiltInClipDistancePerViewNV:
       case SpvBuiltInCullDistance:
+      case SpvBuiltInCullDistancePerViewNV:
          var_data->compact = true;
          break;
       default:
@@ -1329,6 +1345,9 @@ gather_var_kind_cb(struct vtn_builder *b, struct vtn_value *val, int member,
       break;
    case SpvDecorationPerPrimitiveNV:
       vtn_var->var->data.per_primitive = true;
+      break;
+   case SpvDecorationPerViewNV:
+      vtn_var->var->data.per_view = true;
       break;
    default:
       /* Nothing to do. */

@@ -312,18 +312,22 @@ bi_allocate_registers(bi_context *ctx, bool *success, bool full_regs)
                 bi_foreach_dest(ins, d) {
                         unsigned dest = bi_get_node(ins->dest[d]);
 
-                        /* Blend shaders expect the src colour to be in r0-r3 */
-                        if (ins->op == BI_OPCODE_BLEND &&
-                            !ctx->inputs->is_blend) {
-                                unsigned node = bi_get_node(ins->src[0]);
-                                assert(node < node_count);
-                                l->solutions[node] = 0;
-                        }
-
                         if (dest < node_count)
                                 l->affinity[dest] = default_affinity;
                 }
 
+                /* Blend shaders expect the src colour to be in r0-r3 */
+                if (ins->op == BI_OPCODE_BLEND &&
+                    !ctx->inputs->is_blend) {
+                        unsigned node = bi_get_node(ins->src[0]);
+                        assert(node < node_count);
+                        l->solutions[node] = 0;
+
+                        /* Dual source blend input in r4-r7 */
+                        node = bi_get_node(ins->src[4]);
+                        if (node < node_count)
+                                l->solutions[node] = 4;
+                }
         }
 
         bi_compute_interference(ctx, l, full_regs);

@@ -671,7 +671,6 @@
     <field name="Viewport" size="64" start="24:0" type="address"/>
     <field name="Occlusion" size="64" start="26:0" type="address"/>
     <field name="Thread Storage" size="64" start="28:0" type="address"/>
-    <field name="FBD" size="64" start="28:0" type="address"/>
   </struct>
 
   <struct name="Surface" align="8">

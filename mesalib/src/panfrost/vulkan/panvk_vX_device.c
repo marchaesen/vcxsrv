@@ -157,7 +157,7 @@ panvk_add_wait_event_syncobjs(struct panvk_batch *batch, uint32_t *in_fences, un
          /* Nothing to do yet */
          break;
       case PANVK_EVENT_OP_WAIT:
-         in_fences[*nr_in_fences++] = op->event->syncobj;
+         in_fences[(*nr_in_fences)++] = op->event->syncobj;
          break;
       default:
          unreachable("bad panvk_event_op type\n");

@@ -636,8 +636,21 @@ enum pipe_error
 SVGA3D_vgpu10_SetVertexBuffers(struct svga_winsys_context *swc,
                                unsigned count,
                                uint32 startBuffer,
-                               const SVGA3dVertexBuffer *bufferInfo,
+                               const SVGA3dVertexBuffer_v2 *bufferInfo,
                                struct svga_winsys_surface **surfaces);
+
+enum pipe_error
+SVGA3D_vgpu10_SetVertexBuffers_v2(struct svga_winsys_context *swc,
+                               unsigned count,
+                               uint32 startBuffer,
+                               const SVGA3dVertexBuffer_v2 *bufferInfo,
+                               struct svga_winsys_surface **surfaces);
+
+enum pipe_error
+SVGA3D_vgpu10_SetVertexBuffersOffsetAndSize(struct svga_winsys_context *swc,
+                               unsigned count,
+                               uint32 startBuffer,
+                               const SVGA3dVertexBuffer_v2 *bufferInfo);
 
 enum pipe_error
 SVGA3D_vgpu10_SetTopology(struct svga_winsys_context *swc,
@@ -647,6 +660,17 @@ enum pipe_error
 SVGA3D_vgpu10_SetIndexBuffer(struct svga_winsys_context *swc,
                              struct svga_winsys_surface *indexes,
                              SVGA3dSurfaceFormat format, uint32 offset);
+
+enum pipe_error
+SVGA3D_vgpu10_SetIndexBuffer_v2(struct svga_winsys_context *swc,
+                                struct svga_winsys_surface *indexes,
+                                SVGA3dSurfaceFormat format, uint32 offset,
+                                uint32 sizeInBytes);
+
+enum pipe_error
+SVGA3D_vgpu10_SetIndexBufferOffsetAndSize(struct svga_winsys_context *swc,
+                             SVGA3dSurfaceFormat format, uint32 offset,
+                             uint32 sizeInBytes);
 
 enum pipe_error
 SVGA3D_vgpu10_SetSingleConstantBuffer(struct svga_winsys_context *swc,
@@ -714,6 +738,31 @@ SVGA3D_sm5_DrawInstancedIndirect(struct svga_winsys_context *swc,
                                  unsigned argOffset);
 
 enum pipe_error
+SVGA3D_sm5_DefineUAView(struct svga_winsys_context *swc,
+                        SVGA3dUAViewId uaViewId,
+                        struct svga_winsys_surface *surface,
+                        SVGA3dSurfaceFormat format,
+                        SVGA3dResourceType resourceDimension,
+                        const SVGA3dUAViewDesc *desc);
+
+enum pipe_error
+SVGA3D_sm5_DestroyUAView(struct svga_winsys_context *swc,
+                         SVGA3dUAViewId uaViewId);
+
+enum pipe_error
+SVGA3D_sm5_SetUAViews(struct svga_winsys_context *swc,
+                      uint32 uavSpliceIndex,
+                      unsigned count,
+                      const SVGA3dUAViewId ids[],
+                      struct svga_winsys_surface **uaViews);
+
+enum pipe_error
+SVGA3D_sm5_SetCSUAViews(struct svga_winsys_context *swc,
+                        unsigned count,
+                        const SVGA3dUAViewId ids[],
+                        struct svga_winsys_surface **uaViews);
+
+enum pipe_error
 SVGA3D_sm5_Dispatch(struct svga_winsys_context *swc,
                     const uint32 threadGroupCount[3]);
 
@@ -732,4 +781,23 @@ SVGA3D_sm5_DefineAndBindStreamOutput(struct svga_winsys_context *swc,
        uint32 rasterizedStream,
        uint32 sizeInBytes);
 
+enum pipe_error
+SVGA3D_sm5_DefineRasterizerState_v2(struct svga_winsys_context *swc,
+                                    SVGA3dRasterizerStateId rasterizerId,
+                                    uint8 fillMode,
+                                    SVGA3dCullMode cullMode,
+                                    uint8 frontCounterClockwise,
+                                    int32 depthBias,
+                                    float depthBiasClamp,
+                                    float slopeScaledDepthBias,
+                                    uint8 depthClipEnable,
+                                    uint8 scissorEnable,
+                                    uint8 multisampleEnable,
+                                    uint8 antialiasedLineEnable,
+                                    float lineWidth,
+                                    uint8 lineStippleEnable,
+                                    uint8 lineStippleFactor,
+                                    uint16 lineStipplePattern,
+                                    uint8 provokingVertexLast,
+                                    uint32 forcedSampleCount);
 #endif /* __SVGA3D_H__ */

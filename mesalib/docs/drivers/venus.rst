@@ -29,6 +29,8 @@ tested with
 - RADV 21.1 or later (the host kernel must have
   ``CONFIG_TRANSPARENT_HUGEPAGE`` disabled because of this `KVM issue
   <https://github.com/google/security-research/security/advisories/GHSA-7wq5-phmq-m584>`__)
+- TURNIP 22.0 or later
+- Mali r32p0 or later
 
 The Venus driver requires supports for
 
@@ -37,11 +39,12 @@ The Venus driver requires supports for
 - ``VIRTGPU_PARAM_CROSS_DEVICE``
 - ``VIRTGPU_PARAM_CONTEXT_INIT``
 
-from the virtio-gpu kernel driver, unless vtest is used.  Currently, this
-means the `context-init
-<https://gitlab.freedesktop.org/virgl/drm-misc-next/-/tree/context-init>`__
-kernel branch paired with `crosvm
-<https://chromium.googlesource.com/chromiumos/platform/crosvm>`__.
+from the virtio-gpu kernel driver, unless vtest is used.  That usually means
+the guest kernel should be at least 5.16 or have the parameters back ported,
+paired with hypervisors such as `crosvm
+<https://chromium.googlesource.com/chromiumos/platform/crosvm>`__, or `patched
+qemu
+<https://www.collabora.com/news-and-blog/blog/2021/11/26/venus-on-qemu-enabling-new-virtual-vulkan-driver/>`__.
 
 vtest
 -----
@@ -74,25 +77,19 @@ server finds the locally built host driver.
 Virtio-GPU
 ----------
 
-Because the driver requires ``VIRTGPU_PARAM_CONTEXT_INIT`` from the virtio-gpu
-kernel driver, one must make sure the guest kernel includes the changes from
-the `context-init
-<https://gitlab.freedesktop.org/virgl/drm-misc-next/-/tree/context-init>`__
-branch.
+The driver requires ``VIRTGPU_PARAM_CONTEXT_INIT`` from the virtio-gpu kernel
+driver, which was upstreamed in kernel 5.16.
 
-To build crosvm,
+crosvm is written in Rust.  To build crosvm, make sure Rust has been installed
+and
 
 .. code-block:: console
 
- $ mkdir crosvm
+ $ git clone --recurse-submodules \
+       https://chromium.googlesource.com/chromiumos/platform/crosvm
  $ cd crosvm
- $ wget https://storage.googleapis.com/git-repo-downloads/repo
- $ chmod +x repo
- $ ./repo init -g crosvm -u https://chromium.googlesource.com/chromiumos/manifest.git
- $ ./repo sync
- $ cd src/platform/crosvm
  $ RUSTFLAGS="-L<path-to-virglrenderer>/out/src" cargo build \
-       --features "x virgl_renderer virgl_renderer_next default-no-sandbox"
+       --features "x wl-dmabuf virgl_renderer virgl_renderer_next default-no-sandbox"
 
 Note that crosvm must be built with ``default-no-sandbox`` or started with
 ``--disable-sandbox`` in this setup.
@@ -108,11 +105,11 @@ This is how one might want to start crosvm
        --host_ip 192.168.0.1 \
        --netmask 255.255.255.0 \
        --mac 12:34:56:78:9a:bc \
-       --rwdisk disk.qcow2 \
+       --rwdisk disk.img \
        -p root=/dev/vda1 \
        <path-to-bzImage>
 
-assuming a working system is installed to partition 1 of ``disk.qcow2``.
+assuming a working system is installed to partition 1 of ``disk.img``.
 ``sudo`` or ``CAP_NET_ADMIN`` is needed to set up the TAP network device.
 
 Virtio-GPU and Virtio-WL
@@ -125,8 +122,7 @@ that should hopefully change over time.
 
 For now, the guest kernel must be built from the ``chromeos-5.10`` branch of
 the `Chrome OS kernel
-<https://chromium.googlesource.com/chromiumos/third_party/kernel>`__.  crosvm
-should also be built with ``wl-dmabuf`` feature rather than ``x`` feature.
+<https://chromium.googlesource.com/chromiumos/third_party/kernel>`__.
 
 To build minigbm and to enable minigbm support in virglrenderer,
 
@@ -156,10 +152,6 @@ In the guest, build and start sommelier, the special Wayland compositor,
        --xwayland-gl-driver-path=<path-to-locally-built-gl-driver> \
        sleep infinity
 
-sommelier requires ``xdg-shell-unstable-v6`` rather than the stable
-``xdg-shell`` from the host compositor.  One must make sure the host
-compositor still supports the older extension.
-
 Optional Requirements
 ---------------------
 
@@ -171,14 +163,6 @@ modifiers of the GBM BOs.
 In the future, if virglrenderer's ``virgl_renderer_export_fence`` is
 supported, the Venus renderer will require ``VK_KHR_external_fence_fd`` with
 ``VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT`` from the host driver.
-
-A WSI image of the Venus driver is an external image to the host driver.  When
-the WSI image is transitioned from ``VK_IMAGE_LAYOUT_UNDEFINED`` after image
-acquisition, the Venus driver does not request the Venus renderer to perform
-an ownership transfer on the external image.  It is unclear if the ownership
-transfer is required or not.  A specification issue has been filed for
-clarifications.  See the comment before ``vn_cmd_fix_image_memory_barrier``
-for more details.
 
 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 -----------------------------------
@@ -206,9 +190,6 @@ accesses to the device memory are via the guest mapping, and are assumed to be
 coherent when the device memory also has
 ``VK_MEMORY_PROPERTY_HOST_COHERENT_BIT``.
 
-When a ``VkImage`` or a ``VkBuffer`` is created, the Venus renderer does not
-know if the image or the buffer will be bound to such a device memory or not.
-As a result, the Venus renderer unconditionally chains
-``VkExternalMemoryImageCreateInfo`` to ``VkImageCreateInfo`` and chains
-``VkExternalMemoryBufferCreateInfo`` to ``VkBufferCreateInfo`` without
-checking for the host driver support.
+While the Venus renderer can force a ``VkDeviceMemory`` external, it does not
+force a ``VkImage`` or a ``VkBuffer`` external.  As a result, it can bind an
+external device memory to a non-external resource.

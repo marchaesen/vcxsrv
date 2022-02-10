@@ -98,6 +98,8 @@ pack_texture_shader_state_helper(struct v3dv_device *device,
       tex.swizzle_b = translate_swizzle(image_view->swizzle[2]);
       tex.swizzle_a = translate_swizzle(image_view->swizzle[3]);
 
+      tex.reverse_standard_border_color = image_view->channel_reverse;
+
       tex.texture_type = image_view->format->tex_type;
 
       if (image->vk.image_type == VK_IMAGE_TYPE_3D) {

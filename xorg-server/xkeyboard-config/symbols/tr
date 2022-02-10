@@ -139,6 +139,71 @@ xkb_symbols "f" {
     include "level3(ralt_switch)"
 };
 
+// Turkish E layout
+partial
+xkb_symbols "e" {
+
+    include "latin"
+
+    key <AE01>  { [         1,     exclam,   onesuperior,    exclamdown ] };
+    key <AE02>  { [         2,   quotedbl,   twosuperior,    VoidSymbol ] };
+    key <AE03>  { [         3,asciicircum,    numbersign, threesuperior ] };
+    key <AE04>  { [         4,     dollar,    onequarter,    VoidSymbol ] };
+    key <AE06>  { [         6,  ampersand, threequarters,    VoidSymbol ] };
+    key <AE07>  { [         7, apostrophe,     braceleft,    VoidSymbol ] };
+    key <AE08>  { [         8,  parenleft,   bracketleft,    VoidSymbol ] };
+    key <AE09>  { [         9, parenright,  bracketright,     plusminus ] };
+    key <AE10>  { [         0,      equal,    braceright,        degree ] };
+    key <AE11>  { [     slash,   question,     backslash,  questiondown ] };
+    key <AE12>  { [     minus, underscore,           bar,    VoidSymbol ] };
+
+    name[Group1]="Turkish (E)";
+    key <AD01>  { [         q,          Q,dead_diaeresis,dead_abovering ] };
+    key <AD02>  { [         j,          J, guillemotleft,    less ] };
+    key <AD03>  { [udiaeresis, Udiaeresis,   ucircumflex,   Ucircumflex ] };
+    key <AD04>  { [         o,          O,   ocircumflex,   Ocircumflex ] };
+    key <AD05>  { [         f,          F,            at,    VoidSymbol ] };
+    key <AD06>  { [         c,          C,          cent,     copyright ] };
+    key <AD07>  { [         t,          T,         U20BA,    VoidSymbol ] };
+    key <AD08>  { [         m,          M,            mu,    VoidSymbol ] };
+    key <AD09>  { [         k,          K,    VoidSymbol,    VoidSymbol ] };
+    key <AD10>  { [         b,          B,      multiply,  nobreakspace ] };
+    key <AD11>  { [         s,          S,       section,    VoidSymbol ] };
+    key <AD12>  { [         p,          P,      sterling,    VoidSymbol ] };
+    
+    key <AC01>  { [         e,          E,      EuroSign,    VoidSymbol ] };
+    key <AC02>  { [         a,          A,   acircumflex,   Acircumflex ] };
+    key <AC03>  { type[group1] = "FOUR_LEVEL_ALPHABETIC",
+                  [         i,  Iabovedot,   icircumflex,   Icircumflex ] };
+    key <AC04>  { type[group1] = "FOUR_LEVEL_SEMIALPHABETIC",
+                  [  idotless,          I,     paragraph,    VoidSymbol ] };
+
+    key <AC05>  { [         g,          G,    VoidSymbol,    VoidSymbol ] };
+    key <AC06>  { [    gbreve,     Gbreve,    VoidSymbol,    VoidSymbol ] };
+    key <AC07>  { [         l,          L,    VoidSymbol,    VoidSymbol ] };
+    key <AC08>  { [         n,          N,    VoidSymbol,    VoidSymbol ] };
+    key <AC09>  { [         r,          R,    registered,    VoidSymbol ] };
+    key <AC10>  { [         d,          D,           yen,    VoidSymbol ] };
+    key <AC11>  { [         v,          V, leftdoublequotemark, VoidSymbol ] };
+
+    key <TLDE>  { [      plus,   asterisk,       notsign,     plusminus ] };
+    key <BKSL>  { [     comma,  semicolon,periodcentered,    VoidSymbol ] };
+    key <AB01>  { [         x,          X,         grave,    dead_grave ] };
+    key <AB02>  { [         w,          W,    asciitilde,    dead_breve ] };
+    key <AB03>  { [odiaeresis, Odiaeresis, guillemotright,   greater ] };
+    key <AB04>  { [         u,          U,   ucircumflex,   Ucircumflex ] };
+    key <AB05>  { [         h,          H,        degree,    VoidSymbol ] };
+    key <AB06>  { [         z,          Z,    VoidSymbol,    VoidSymbol ] };
+    key <AB07>  { [  ccedilla,   Ccedilla,rightdoublequotemark, VoidSymbol ] };
+    key <AB08>  { [         y,          Y,         acute,    dead_acute ] };
+    key <AB09>  { [  scedilla,   Scedilla,    numbersign,    dead_caron ] };
+    key <AB10>  { [    period,      colon,      division, dead_abovedot ] };
+    key <LSGT>  { [     less,     greater,           bar,     brokenbar ] };
+
+    include "kpdl(comma)"
+    include "level3(ralt_switch)"
+};
+
 // Turkish Alt-Q layout
 partial
 xkb_symbols "alt" {

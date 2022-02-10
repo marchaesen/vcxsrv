@@ -12,8 +12,6 @@
 #include "security-api.h"
 #include "cryptoapi.h"
 
-#define AGENT_COPYDATA_ID 0x804e50ba   /* random goop */
-
 static bool wm_copydata_agent_exists(void)
 {
     HWND hwnd;
@@ -123,17 +121,6 @@ static void wm_copydata_agent_query(strbuf *query, void **out, int *outlen)
     sfree(mapname);
     if (psd)
         LocalFree(psd);
-}
-
-char *agent_named_pipe_name(void)
-{
-    char *username, *suffix, *pipename;
-    username = get_username();
-    suffix = capi_obfuscate_string("Pageant");
-    pipename = dupprintf("\\\\.\\pipe\\pageant.%s.%s", username, suffix);
-    sfree(username);
-    sfree(suffix);
-    return pipename;
 }
 
 Socket *agent_connect(Plug *plug)

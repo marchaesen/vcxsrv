@@ -54,8 +54,6 @@
 #include "st_atom_constbuf.h"
 #include "st_cb_bitmap.h"
 #include "st_cb_drawpixels.h"
-#include "st_cb_readpixels.h"
-#include "st_cb_fbo.h"
 #include "st_context.h"
 #include "st_debug.h"
 #include "st_draw.h"
@@ -907,7 +905,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
     * Recall that these coords are transformed by the current
     * vertex shader and viewport transformation.
     */
-   if (st_fb_orientation(ctx->DrawBuffer) == Y_0_BOTTOM) {
+   if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_BOTTOM) {
       y = fb_height - (int) (y + height * ctx->Pixel.ZoomY);
       invertTex = !invertTex;
    }
@@ -964,7 +962,7 @@ draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_renderbuffer *strb;
+   struct gl_renderbuffer *rb;
    enum pipe_map_flags usage;
    struct pipe_transfer *pt;
    const GLboolean zoom = ctx->Pixel.ZoomX != 1.0 || ctx->Pixel.ZoomY != 1.0;
@@ -973,15 +971,14 @@ draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
    GLubyte *sValues;
    GLuint *zValues;
 
-   strb = st_renderbuffer(ctx->DrawBuffer->
-                          Attachment[BUFFER_STENCIL].Renderbuffer);
+   rb = ctx->DrawBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
 
-   if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
+   if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
       y = ctx->DrawBuffer->Height - y - height;
    }
 
    if (format == GL_STENCIL_INDEX &&
-       _mesa_is_format_packed_depth_stencil(strb->Base.Format)) {
+       _mesa_is_format_packed_depth_stencil(rb->Format)) {
       /* writing stencil to a combined depth+stencil buffer */
       usage = PIPE_MAP_READ_WRITE;
    }
@@ -989,9 +986,9 @@ draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
       usage = PIPE_MAP_WRITE;
    }
 
-   stmap = pipe_texture_map(pipe, strb->texture,
-                             strb->surface->u.tex.level,
-                             strb->surface->u.tex.first_layer,
+   stmap = pipe_texture_map(pipe, rb->texture,
+                             rb->surface->u.tex.level,
+                             rb->surface->u.tex.first_layer,
                              usage, x, y,
                              width, height, &pt);
 
@@ -1032,7 +1029,7 @@ draw_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
          {
             GLint spanY;
 
-            if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
+            if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
                spanY = height - row - 1;
             }
             else {
@@ -1356,7 +1353,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       /* compiling a new fragment shader variant added new state constants
        * into the constant buffer, we need to update them
        */
-      st_upload_constants(st, &st->fp->Base, MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, st->fp, MESA_SHADER_FRAGMENT);
    }
 
    {
@@ -1418,7 +1415,7 @@ copy_stencil_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
                     GLsizei width, GLsizei height,
                     GLint dstx, GLint dsty)
 {
-   struct st_renderbuffer *rbDraw;
+   struct gl_renderbuffer *rbDraw;
    struct pipe_context *pipe = st_context(ctx)->pipe;
    enum pipe_map_flags usage;
    struct pipe_transfer *ptDraw;
@@ -1433,8 +1430,7 @@ copy_stencil_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    }
 
    /* Get the dest renderbuffer */
-   rbDraw = st_renderbuffer(ctx->DrawBuffer->
-                            Attachment[BUFFER_STENCIL].Renderbuffer);
+   rbDraw = ctx->DrawBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
 
    /* this will do stencil pixel transfer ops */
    _mesa_readpixels(ctx, srcx, srcy, width, height,
@@ -1453,13 +1449,13 @@ copy_stencil_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       }
    }
 
-   if (_mesa_is_format_packed_depth_stencil(rbDraw->Base.Format))
+   if (_mesa_is_format_packed_depth_stencil(rbDraw->Format))
       usage = PIPE_MAP_READ_WRITE;
    else
       usage = PIPE_MAP_WRITE;
 
-   if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
-      dsty = rbDraw->Base.Height - dsty - height;
+   if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
+      dsty = rbDraw->Height - dsty - height;
    }
 
    assert(util_format_get_blockwidth(rbDraw->texture->format) == 1);
@@ -1482,14 +1478,14 @@ copy_stencil_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
       y = i;
 
-      if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
+      if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
          y = height - y - 1;
       }
 
       dst = drawMap + y * ptDraw->stride;
       src = buffer + i * width;
 
-      _mesa_pack_ubyte_stencil_row(rbDraw->Base.Format, width, src, dst);
+      _mesa_pack_ubyte_stencil_row(rbDraw->Format, width, src, dst);
    }
 
    free(buffer);
@@ -1502,14 +1498,11 @@ copy_stencil_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 /**
  * Return renderbuffer to use for reading color pixels for glCopyPixels
  */
-static struct st_renderbuffer *
+static struct gl_renderbuffer *
 st_get_color_read_renderbuffer(struct gl_context *ctx)
 {
    struct gl_framebuffer *fb = ctx->ReadBuffer;
-   struct st_renderbuffer *strb =
-      st_renderbuffer(fb->_ColorReadBuffer);
-
-   return strb;
+   return fb->_ColorReadBuffer;
 }
 
 
@@ -1554,7 +1547,7 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          !_mesa_ati_fragment_shader_enabled(ctx) &&
          ctx->DrawBuffer->_NumColorDrawBuffers == 1)) &&
        !ctx->Query.CurrentOcclusionObject) {
-      struct st_renderbuffer *rbRead, *rbDraw;
+      struct gl_renderbuffer *rbRead, *rbDraw;
 
       /*
        * Clip the read region against the src buffer bounds.
@@ -1586,28 +1579,28 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
       if (type == GL_COLOR) {
          rbRead = st_get_color_read_renderbuffer(ctx);
-         rbDraw = st_renderbuffer(ctx->DrawBuffer->_ColorDrawBuffers[0]);
+         rbDraw = ctx->DrawBuffer->_ColorDrawBuffers[0];
       } else if (type == GL_DEPTH || type == GL_DEPTH_STENCIL) {
-         rbRead = st_renderbuffer(ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer);
-         rbDraw = st_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_DEPTH].Renderbuffer);
+         rbRead = ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
+         rbDraw = ctx->DrawBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
       } else if (type == GL_STENCIL) {
-         rbRead = st_renderbuffer(ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer);
-         rbDraw = st_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_STENCIL].Renderbuffer);
+         rbRead = ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
+         rbDraw = ctx->DrawBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
       } else {
          return false;
       }
 
       /* Flip src/dst position depending on the orientation of buffers. */
-      if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
-         readY = rbRead->Base.Height - readY;
+      if (_mesa_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
+         readY = rbRead->Height - readY;
          readH = -readH;
       }
 
-      if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
+      if (_mesa_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {
          /* We can't flip the destination for pipe->blit, so we only adjust
           * its position and flip the source.
           */
-         drawY = rbDraw->Base.Height - drawY - drawH;
+         drawY = rbDraw->Height - drawY - drawH;
          readY += readH;
          readH = -readH;
       }
@@ -1678,7 +1671,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->screen;
-   struct st_renderbuffer *rbRead;
+   struct gl_renderbuffer *rbRead;
    void *driver_fp;
    struct pipe_resource *pt;
    struct pipe_sampler_view *sv[2] = { NULL };
@@ -1745,23 +1738,19 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       /* compiling a new fragment shader variant added new state constants
        * into the constant buffer, we need to update them
        */
-      st_upload_constants(st, &st->fp->Base, MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, st->fp, MESA_SHADER_FRAGMENT);
    } else if (type == GL_DEPTH) {
-      rbRead = st_renderbuffer(ctx->ReadBuffer->
-                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      rbRead = ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
       driver_fp = get_drawpix_z_stencil_program(st, GL_TRUE, GL_FALSE);
    } else if (type == GL_STENCIL) {
-      rbRead = st_renderbuffer(ctx->ReadBuffer->
-                               Attachment[BUFFER_STENCIL].Renderbuffer);
+      rbRead = ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
       driver_fp = get_drawpix_z_stencil_program(st, GL_FALSE, GL_TRUE);
    } else if (type == GL_DEPTH_STENCIL) {
-      rbRead = st_renderbuffer(ctx->ReadBuffer->
-                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      rbRead = ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
       driver_fp = get_drawpix_z_stencil_program(st, GL_TRUE, GL_TRUE);
    } else {
       assert(type == GL_DEPTH_STENCIL_TO_RGBA_NV || type == GL_DEPTH_STENCIL_TO_BGRA_NV);
-      rbRead = st_renderbuffer(ctx->ReadBuffer->
-                               Attachment[BUFFER_DEPTH].Renderbuffer);
+      rbRead = ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
       if (type == GL_DEPTH_STENCIL_TO_RGBA_NV)
          driver_fp = get_drawpix_zs_to_color_program(st, GL_TRUE);
       else
@@ -1828,7 +1817,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    }
 
    /* Invert src region if needed */
-   if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
+   if (_mesa_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
       srcy = ctx->ReadBuffer->Height - srcy - height;
       invertTex = !invertTex;
    }

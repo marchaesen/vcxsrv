@@ -32,7 +32,6 @@
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "compiler/glsl_types.h"
-#include "main/context.h"
 #include "util/u_string.h"
 #include "util/format/u_format.h"
 

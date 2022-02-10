@@ -52,7 +52,6 @@
 #include "decode.h"
 
 #include "pan_context.h"
-#include "panfrost-quirks.h"
 
 static const struct debug_named_value panfrost_debug_options[] = {
         {"perf",      PAN_DBG_PERF,     "Enable performance warnings"},
@@ -75,7 +74,7 @@ static const struct debug_named_value panfrost_debug_options[] = {
 static const char *
 panfrost_get_name(struct pipe_screen *screen)
 {
-        return panfrost_model_name(pan_device(screen)->gpu_id);
+        return pan_device(screen)->model->name;
 }
 
 static const char *
@@ -98,8 +97,8 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
         /* Our GL 3.x implementation is WIP */
         bool is_gl3 = dev->debug & (PAN_DBG_GL3 | PAN_DBG_DEQP);
 
-        /* Don't expose MRT related CAPs on GPUs that don't implement them */
-        bool has_mrt = !(dev->quirks & MIDGARD_SFBD);
+        /* Native MRT is introduced with v5 */
+        bool has_mrt = (dev->arch >= 5);
 
         /* Only kernel drivers >= 1.1 can allocate HEAP BOs */
         bool has_heap = dev->kernel_version->version_major > 1 ||
@@ -137,7 +136,7 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
                 return true;
 
         case PIPE_CAP_ANISOTROPIC_FILTER:
-                return !!(dev->quirks & HAS_ANISOTROPIC);
+                return dev->revision >= dev->model->min_rev_anisotropic;
 
         /* Compile side is done for Bifrost, Midgard TODO. Needs some kernel
          * work to turn on, since CYCLE_COUNT_START needs to be issued. In
@@ -551,7 +550,7 @@ panfrost_is_format_supported( struct pipe_screen *screen,
                 return false;
 
         /* Z16 causes dEQP failures on t720 */
-        if (format == PIPE_FORMAT_Z16_UNORM && dev->quirks & MIDGARD_SFBD)
+        if (format == PIPE_FORMAT_Z16_UNORM && dev->arch <= 4)
                 return false;
 
         /* Check we support the format with the given bind */
@@ -854,26 +853,14 @@ panfrost_create_screen(int fd, struct renderonly *ro)
         if (dev->debug & PAN_DBG_NO_AFBC)
                 dev->has_afbc = false;
 
-        dev->ro = ro;
-
-        /* Check if we're loading against a supported GPU model. */
-
-        switch (dev->gpu_id) {
-        case 0x720: /* T720 */
-        case 0x750: /* T760 */
-        case 0x820: /* T820 */
-        case 0x860: /* T860 */
-        case 0x6221: /* G72 */
-        case 0x7093: /* G31 */
-        case 0x7212: /* G52 */
-        case 0x7402: /* G52r1 */
-                break;
-        default:
-                /* Fail to load against untested models */
+        /* Bail early on unsupported hardware */
+        if (dev->model == NULL) {
                 debug_printf("panfrost: Unsupported model %X", dev->gpu_id);
                 panfrost_destroy_screen(&(screen->base));
                 return NULL;
         }
+
+        dev->ro = ro;
 
         screen->base.destroy = panfrost_destroy_screen;
 

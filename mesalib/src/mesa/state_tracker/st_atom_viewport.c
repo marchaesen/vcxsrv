@@ -28,9 +28,9 @@
 
 #include "main/context.h"
 #include "main/viewport.h"
+#include "main/framebuffer.h"
 #include "st_context.h"
 #include "st_atom.h"
-#include "st_util.h"
 #include "pipe/p_context.h"
 #include "cso_cache/cso_context.h"
 

@@ -33,11 +33,11 @@ num_subpass_attachments(const VkSubpassDescription2 *desc)
 }
 
 static void
-set_use_tlb_resolve(struct v3dv_device *device,
+set_try_tlb_resolve(struct v3dv_device *device,
                     struct v3dv_render_pass_attachment *att)
 {
    const struct v3dv_format *format = v3dv_X(device, get_format)(att->desc.format);
-   att->use_tlb_resolve = v3dv_X(device, format_supports_tlb_resolve)(format);
+   att->try_tlb_resolve = v3dv_X(device, format_supports_tlb_resolve)(format);
 }
 
 static void
@@ -82,7 +82,7 @@ pass_find_subpass_range_for_attachments(struct v3dv_device *device,
 
          if (subpass->resolve_attachments &&
              subpass->resolve_attachments[j].attachment != VK_ATTACHMENT_UNUSED) {
-            set_use_tlb_resolve(device, att);
+            set_try_tlb_resolve(device, att);
          }
       }
 
@@ -92,6 +92,9 @@ pass_find_subpass_range_for_attachments(struct v3dv_device *device,
             pass->attachments[ds_attachment_idx].first_subpass = i;
          if (i > pass->attachments[ds_attachment_idx].last_subpass)
             pass->attachments[ds_attachment_idx].last_subpass = i;
+
+         if (subpass->ds_resolve_attachment.attachment != VK_ATTACHMENT_UNUSED)
+            set_try_tlb_resolve(device, &pass->attachments[ds_attachment_idx]);
       }
 
       for (uint32_t j = 0; j < subpass->input_count; j++) {
@@ -250,8 +253,37 @@ v3dv_CreateRenderPass2(VkDevice _device,
                }
             }
          }
+
+         /* VK_KHR_depth_stencil_resolve */
+         const VkSubpassDescriptionDepthStencilResolveKHR *resolve_desc =
+            vk_find_struct_const(desc->pNext, SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
+         const VkAttachmentReference2 *resolve_att =
+            resolve_desc && resolve_desc->pDepthStencilResolveAttachment &&
+            resolve_desc->pDepthStencilResolveAttachment->attachment != VK_ATTACHMENT_UNUSED ?
+               resolve_desc->pDepthStencilResolveAttachment : NULL;
+         if (resolve_att) {
+            subpass->ds_resolve_attachment = (struct v3dv_subpass_attachment) {
+               .attachment = resolve_att->attachment,
+               .layout = resolve_att->layout,
+            };
+            assert(resolve_desc->depthResolveMode == VK_RESOLVE_MODE_SAMPLE_ZERO_BIT ||
+                   resolve_desc->stencilResolveMode == VK_RESOLVE_MODE_SAMPLE_ZERO_BIT);
+            subpass->resolve_depth =
+               resolve_desc->depthResolveMode != VK_RESOLVE_MODE_NONE &&
+               resolve_att->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT;
+            subpass->resolve_stencil =
+               resolve_desc->stencilResolveMode != VK_RESOLVE_MODE_NONE &&
+               resolve_att->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT;
+         } else {
+            subpass->ds_resolve_attachment.attachment = VK_ATTACHMENT_UNUSED;
+            subpass->resolve_depth = false;
+            subpass->resolve_stencil = false;
+         }
       } else {
          subpass->ds_attachment.attachment = VK_ATTACHMENT_UNUSED;
+         subpass->ds_resolve_attachment.attachment = VK_ATTACHMENT_UNUSED;
+         subpass->resolve_depth = false;
+         subpass->resolve_stencil = false;
       }
    }
 
@@ -310,7 +342,9 @@ subpass_get_granularity(struct v3dv_device *device,
    }
 
    uint32_t width, height;
-   v3d_choose_tile_size(color_attachment_count, max_bpp, msaa, &width, &height);
+   bool double_buffer = (V3D_DEBUG & V3D_DEBUG_DOUBLE_BUFFER) && !msaa;
+   v3d_choose_tile_size(color_attachment_count, max_bpp, msaa,
+                        double_buffer, &width, &height);
    *granularity = (VkExtent2D) {
       .width = width,
       .height = height

@@ -35,7 +35,6 @@
 #include "pan_shader.h"
 #include "pan_scoreboard.h"
 #include "pan_texture.h"
-#include "panfrost-quirks.h"
 #include "compiler/nir/nir_builder.h"
 #include "util/u_math.h"
 

@@ -47,6 +47,7 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    assert(var->data.mode == nir_var_shader_in ||
           var->data.mode == nir_var_shader_out);
    assert(var->data.location >= 0);
+   assert(location < 64);
 
    const struct glsl_type *type = var->type;
    if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
@@ -55,7 +56,7 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    }
 
    unsigned slots = glsl_count_attribute_slots(type, false);
-   return ((1ull << slots) - 1) << location;
+   return BITFIELD64_MASK(slots) << location;
 }
 
 static bool

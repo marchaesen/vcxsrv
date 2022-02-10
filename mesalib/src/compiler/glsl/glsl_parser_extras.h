@@ -373,7 +373,10 @@ struct _mesa_glsl_parse_state {
    void process_version_directive(YYLTYPE *locp, int version,
                                   const char *ident);
 
-   struct gl_context *const ctx;
+   struct gl_context *const ctx; /* only to be used for debug callback. */
+   const struct gl_extensions *exts;
+   const struct gl_constants *consts;
+   gl_api api;
    void *scanner;
    exec_list translation_unit;
    glsl_symbol_table *symbols;
@@ -737,6 +740,10 @@ struct _mesa_glsl_parse_state {
    bool ARB_shading_language_include_warn;
    bool ARB_shading_language_packing_enable;
    bool ARB_shading_language_packing_warn;
+   bool ARB_sparse_texture2_enable;
+   bool ARB_sparse_texture2_warn;
+   bool ARB_sparse_texture_clamp_enable;
+   bool ARB_sparse_texture_clamp_warn;
    bool ARB_tessellation_shader_enable;
    bool ARB_tessellation_shader_warn;
    bool ARB_texture_cube_map_array_enable;

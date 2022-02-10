@@ -137,7 +137,8 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
          assert(deref->deref_type == nir_deref_type_var);
          assert(deref->var->data.location == SYSTEM_VALUE_SAMPLE_MASK_IN ||
                 deref->var->data.location == SYSTEM_VALUE_RAY_OBJECT_TO_WORLD ||
-                deref->var->data.location == SYSTEM_VALUE_RAY_WORLD_TO_OBJECT);
+                deref->var->data.location == SYSTEM_VALUE_RAY_WORLD_TO_OBJECT ||
+                deref->var->data.location == SYSTEM_VALUE_MESH_VIEW_INDICES);
       }
       nir_variable *var = deref->var;
 
@@ -206,6 +207,11 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
             return nir_is_helper_invocation(b, 1);
          break;
       }
+
+      case SYSTEM_VALUE_MESH_VIEW_INDICES:
+         return nir_load_mesh_view_indices(b, intrin->dest.ssa.num_components,
+               bit_size, column, .base = 0,
+               .range = intrin->dest.ssa.num_components * bit_size / 8);
 
       default:
          break;

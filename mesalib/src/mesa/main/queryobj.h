@@ -44,4 +44,11 @@ _mesa_init_queryobj(struct gl_context *ctx);
 extern void
 _mesa_free_queryobj_data(struct gl_context *ctx);
 
-#endif /* QUERYOBJ_H */
+void
+_mesa_wait_query(struct gl_context *ctx, struct gl_query_object *q);
+void
+_mesa_check_query(struct gl_context *ctx, struct gl_query_object *q);
+
+uint64_t
+_mesa_get_timestamp(struct gl_context *ctx);
+#endif

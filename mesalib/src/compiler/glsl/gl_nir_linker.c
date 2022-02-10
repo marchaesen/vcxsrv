@@ -22,10 +22,12 @@
  */
 
 #include "nir.h"
+#include "GL/gl.h"
 #include "gl_nir.h"
 #include "gl_nir_linker.h"
 #include "linker_util.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
+#include "main/consts_exts.h"
 #include "main/shaderobj.h"
 #include "ir_uniform.h" /* for gl_uniform_storage */
 
@@ -33,6 +35,87 @@
  * This file included general link methods, using NIR, instead of IR as
  * the counter-part glsl/linker.cpp
  */
+
+void
+gl_nir_opts(nir_shader *nir)
+{
+   bool progress;
+
+   do {
+      progress = false;
+
+      NIR_PASS_V(nir, nir_lower_vars_to_ssa);
+
+      /* Linking deals with unused inputs/outputs, but here we can remove
+       * things local to the shader in the hopes that we can cleanup other
+       * things. This pass will also remove variables with only stores, so we
+       * might be able to make progress after it.
+       */
+      NIR_PASS(progress, nir, nir_remove_dead_variables,
+               nir_var_function_temp | nir_var_shader_temp |
+               nir_var_mem_shared,
+               NULL);
+
+      NIR_PASS(progress, nir, nir_opt_copy_prop_vars);
+      NIR_PASS(progress, nir, nir_opt_dead_write_vars);
+
+      if (nir->options->lower_to_scalar) {
+         NIR_PASS_V(nir, nir_lower_alu_to_scalar,
+                    nir->options->lower_to_scalar_filter, NULL);
+         NIR_PASS_V(nir, nir_lower_phis_to_scalar, false);
+      }
+
+      NIR_PASS_V(nir, nir_lower_alu);
+      NIR_PASS_V(nir, nir_lower_pack);
+      NIR_PASS(progress, nir, nir_copy_prop);
+      NIR_PASS(progress, nir, nir_opt_remove_phis);
+      NIR_PASS(progress, nir, nir_opt_dce);
+      if (nir_opt_trivial_continues(nir)) {
+         progress = true;
+         NIR_PASS(progress, nir, nir_copy_prop);
+         NIR_PASS(progress, nir, nir_opt_dce);
+      }
+      NIR_PASS(progress, nir, nir_opt_if, false);
+      NIR_PASS(progress, nir, nir_opt_dead_cf);
+      NIR_PASS(progress, nir, nir_opt_cse);
+      NIR_PASS(progress, nir, nir_opt_peephole_select, 8, true, true);
+
+      NIR_PASS(progress, nir, nir_opt_phi_precision);
+      NIR_PASS(progress, nir, nir_opt_algebraic);
+      NIR_PASS(progress, nir, nir_opt_constant_folding);
+
+      if (!nir->info.flrp_lowered) {
+         unsigned lower_flrp =
+            (nir->options->lower_flrp16 ? 16 : 0) |
+            (nir->options->lower_flrp32 ? 32 : 0) |
+            (nir->options->lower_flrp64 ? 64 : 0);
+
+         if (lower_flrp) {
+            bool lower_flrp_progress = false;
+
+            NIR_PASS(lower_flrp_progress, nir, nir_lower_flrp,
+                     lower_flrp,
+                     false /* always_precise */);
+            if (lower_flrp_progress) {
+               NIR_PASS(progress, nir,
+                        nir_opt_constant_folding);
+               progress = true;
+            }
+         }
+
+         /* Nothing should rematerialize any flrps, so we only need to do this
+          * lowering once.
+          */
+         nir->info.flrp_lowered = true;
+      }
+
+      NIR_PASS(progress, nir, nir_opt_undef);
+      NIR_PASS(progress, nir, nir_opt_conditional_discard);
+      if (nir->options->max_unroll_iterations) {
+         NIR_PASS(progress, nir, nir_opt_loop_unroll);
+      }
+   } while (progress);
+}
 
 static bool
 can_remove_uniform(nir_variable *var, UNUSED void *data)
@@ -173,7 +256,7 @@ create_shader_variable(struct gl_shader_program *shProg,
 }
 
 static bool
-add_shader_variable(const struct gl_context *ctx,
+add_shader_variable(const struct gl_constants *consts,
                     struct gl_shader_program *shProg,
                     struct set *resource_set,
                     unsigned stage_mask,
@@ -243,7 +326,7 @@ add_shader_variable(const struct gl_context *ctx,
             glsl_get_struct_field_data(type, i);
 
          char *field_name = ralloc_asprintf(shProg, "%s.%s", name, field->name);
-         if (!add_shader_variable(ctx, shProg, resource_set,
+         if (!add_shader_variable(consts, shProg, resource_set,
                                   stage_mask, programInterface,
                                   var, field_name, field_type,
                                   use_implicit_location, field_location,
@@ -279,7 +362,7 @@ add_shader_variable(const struct gl_context *ctx,
                            glsl_count_attribute_slots(array_type, false);
          for (unsigned i = 0; i < glsl_get_length(type); i++) {
             char *elem = ralloc_asprintf(shProg, "%s[%d]", name, i);
-            if (!add_shader_variable(ctx, shProg, resource_set,
+            if (!add_shader_variable(consts, shProg, resource_set,
                                      stage_mask, programInterface,
                                      var, elem, array_type,
                                      use_implicit_location, elem_location,
@@ -313,7 +396,7 @@ add_shader_variable(const struct gl_context *ctx,
 }
 
 static bool
-add_vars_with_modes(const struct gl_context *ctx,
+add_vars_with_modes(const struct gl_constants *consts,
                     struct gl_shader_program *prog, struct set *resource_set,
                     nir_shader *nir, nir_variable_mode modes,
                     unsigned stage, GLenum programInterface)
@@ -379,7 +462,7 @@ add_vars_with_modes(const struct gl_context *ctx,
             (stage == MESA_SHADER_FRAGMENT &&
              var->data.mode == nir_var_shader_out);
 
-         if (!add_shader_variable(ctx, prog, resource_set,
+         if (!add_shader_variable(consts, prog, resource_set,
                                   1 << stage, programInterface,
                                   var, var->name, var->type,
                                   vs_input_or_fs_output,
@@ -394,7 +477,7 @@ add_vars_with_modes(const struct gl_context *ctx,
 }
 
 static bool
-add_interface_variables(const struct gl_context *ctx,
+add_interface_variables(const struct gl_constants *consts,
                         struct gl_shader_program *prog,
                         struct set *resource_set,
                         unsigned stage, GLenum programInterface)
@@ -408,12 +491,12 @@ add_interface_variables(const struct gl_context *ctx,
 
    switch (programInterface) {
    case GL_PROGRAM_INPUT: {
-      return add_vars_with_modes(ctx, prog, resource_set,
+      return add_vars_with_modes(consts, prog, resource_set,
                                  nir, nir_var_shader_in | nir_var_system_value,
                                  stage, programInterface);
    }
    case GL_PROGRAM_OUTPUT:
-      return add_vars_with_modes(ctx, prog, resource_set,
+      return add_vars_with_modes(consts, prog, resource_set,
                                  nir, nir_var_shader_out,
                                  stage, programInterface);
    default:
@@ -429,7 +512,7 @@ add_interface_variables(const struct gl_context *ctx,
  * to check if they could be refactored, and reduce code duplication somehow
  */
 void
-nir_build_program_resource_list(struct gl_context *ctx,
+nir_build_program_resource_list(const struct gl_constants *consts,
                                 struct gl_shader_program *prog,
                                 bool rebuild_resourse_list)
 {
@@ -461,12 +544,12 @@ nir_build_program_resource_list(struct gl_context *ctx,
    struct set *resource_set = _mesa_pointer_set_create(NULL);
 
    /* Add inputs and outputs to the resource list. */
-   if (!add_interface_variables(ctx, prog, resource_set, input_stage,
+   if (!add_interface_variables(consts, prog, resource_set, input_stage,
                                 GL_PROGRAM_INPUT)) {
       return;
    }
 
-   if (!add_interface_variables(ctx, prog, resource_set, output_stage,
+   if (!add_interface_variables(consts, prog, resource_set, output_stage,
                                 GL_PROGRAM_OUTPUT)) {
       return;
    }
@@ -487,7 +570,7 @@ nir_build_program_resource_list(struct gl_context *ctx,
       }
 
       /* Add buffers. */
-      for (unsigned i = 0; i < ctx->Const.MaxTransformFeedbackBuffers; i++) {
+      for (unsigned i = 0; i < consts->MaxTransformFeedbackBuffers; i++) {
          if ((linked_xfb->ActiveBuffers >> i) & 1) {
             linked_xfb->Buffers[i].Binding = i;
             if (!link_util_add_program_resource(prog, resource_set,
@@ -600,7 +683,8 @@ nir_build_program_resource_list(struct gl_context *ctx,
 }
 
 bool
-gl_nir_link_spirv(struct gl_context *ctx, struct gl_shader_program *prog,
+gl_nir_link_spirv(const struct gl_constants *consts,
+                  struct gl_shader_program *prog,
                   const struct gl_nir_linker_options *options)
 {
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -615,14 +699,14 @@ gl_nir_link_spirv(struct gl_context *ctx, struct gl_shader_program *prog,
       }
    }
 
-   if (!gl_nir_link_uniform_blocks(ctx, prog))
+   if (!gl_nir_link_uniform_blocks(prog))
       return false;
 
-   if (!gl_nir_link_uniforms(ctx, prog, options->fill_parameters))
+   if (!gl_nir_link_uniforms(consts, prog, options->fill_parameters))
       return false;
 
-   gl_nir_link_assign_atomic_counter_resources(ctx, prog);
-   gl_nir_link_assign_xfb_resources(ctx, prog);
+   gl_nir_link_assign_atomic_counter_resources(consts, prog);
+   gl_nir_link_assign_xfb_resources(consts, prog);
 
    return true;
 }
@@ -631,13 +715,15 @@ gl_nir_link_spirv(struct gl_context *ctx, struct gl_shader_program *prog,
  * Validate shader image resources.
  */
 static void
-check_image_resources(struct gl_context *ctx, struct gl_shader_program *prog)
+check_image_resources(const struct gl_constants *consts,
+                      const struct gl_extensions *exts,
+                      struct gl_shader_program *prog)
 {
    unsigned total_image_units = 0;
    unsigned fragment_outputs = 0;
    unsigned total_shader_storage_blocks = 0;
 
-   if (!ctx->Extensions.ARB_shader_image_load_store)
+   if (!exts->ARB_shader_image_load_store)
       return;
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -649,7 +735,7 @@ check_image_resources(struct gl_context *ctx, struct gl_shader_program *prog)
       total_shader_storage_blocks += sh->Program->info.num_ssbos;
    }
 
-   if (total_image_units > ctx->Const.MaxCombinedImageUniforms)
+   if (total_image_units > consts->MaxCombinedImageUniforms)
       linker_error(prog, "Too many combined image uniforms\n");
 
    struct gl_linked_shader *frag_sh =
@@ -660,13 +746,15 @@ check_image_resources(struct gl_context *ctx, struct gl_shader_program *prog)
    }
 
    if (total_image_units + fragment_outputs + total_shader_storage_blocks >
-       ctx->Const.MaxCombinedShaderOutputResources)
+       consts->MaxCombinedShaderOutputResources)
       linker_error(prog, "Too many combined image uniforms, shader storage "
                          " buffers and fragment outputs\n");
 }
 
 bool
-gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
+gl_nir_link_glsl(const struct gl_constants *consts,
+                 const struct gl_extensions *exts,
+                 struct gl_shader_program *prog)
 {
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
@@ -680,15 +768,15 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   if (!gl_nir_link_uniforms(ctx, prog, true))
+   if (!gl_nir_link_uniforms(consts, prog, true))
       return false;
 
    link_util_calculate_subroutine_compat(prog);
-   link_util_check_uniform_resources(ctx, prog);
+   link_util_check_uniform_resources(consts, prog);
    link_util_check_subroutine_resources(prog);
-   check_image_resources(ctx, prog);
-   gl_nir_link_assign_atomic_counter_resources(ctx, prog);
-   gl_nir_link_check_atomic_counter_resources(ctx, prog);
+   check_image_resources(consts, exts, prog);
+   gl_nir_link_assign_atomic_counter_resources(consts, prog);
+   gl_nir_link_check_atomic_counter_resources(consts, prog);
 
    if (prog->data->LinkStatus == LINKING_FAILURE)
       return false;

@@ -45,9 +45,9 @@ traces:
       #   checksum: 4b707f385256b380c936186db8c251cb
       # 1 minute
       - device: freedreno-a530
-        checksum: 130dbeac42683b46fed4b268c5aad984
+        checksum: a71d62bb2c0fabeca41468628777b441
       - device: freedreno-a630
-        checksum: 139861e52f9425b4adb7c0b90b885f91
+        checksum: 339dce29ae08569652438116829510c7
   - path: xonotic/xonotic-keybench-high.trace
     expectations:
       # Skipped since it's long on a530.
@@ -327,9 +327,9 @@ traces:
       #- device: freedreno-a306
       #  checksum: 0c57ccc3989b75a940b28ea1cc09cb0d
       - device: freedreno-a530
-        checksum: 4715d72a7958f2fd5a387c16b3a01579
+        checksum: bc19f0f58935fdb348f401396e6845e1
       - device: freedreno-a630
-        checksum: 1e397c5c34c9c50350a8db1a060a6bbb
+        checksum: f546f840e916ab0f11f8df0e4eee584d
   - path: glmark2/shading:shading=blinn-phong-inf.trace
     expectations:
       - device: freedreno-a306
@@ -422,7 +422,7 @@ traces:
   - path: gputest/gimark.trace
     expectations:
       - device: freedreno-a630
-        checksum: dd8fb768033d09f6edc98b4cfff02c6f
+        checksum: e58167bd8eeb8952facbc00ff0449135
   - path: gputest/pixmark-julia-fp32.trace
     expectations:
       - device: freedreno-a630
@@ -452,11 +452,11 @@ traces:
   - path: gputest/plot3d.trace
     expectations:
       - device: freedreno-a306
-        checksum: 302943895dbdd7730958fb0175f23b7f
+        checksum: f6ecd9b8afc692b0cdb459b9b30db8d4
       - device: freedreno-a530
-        checksum: 755aa5b521237ddf9fea3181d2ba2b75
+        checksum: 4faafe5fab0d8ec6d7b549c94f663c92
       - device: freedreno-a630
-        checksum: 302aec1ced68e22182460b617b0f2aef
+        checksum: 0a6a16c394a413f02ec2ebcc3251e366
 # Note: Requires GL4 for tess.
   - path: gputest/tessmark.trace
     expectations:
@@ -473,9 +473,9 @@ traces:
   - path: humus/AmbientAperture.trace
     expectations:
       - device: freedreno-a306
-        checksum: 3d9243cbd0659cb58b16cade2be3f2c2
+        checksum: 8d4c52f0af9c09710d358f24c73fae3c
       - device: freedreno-a530
-        checksum: c55c1ba5683306980956b5f89563f343
+        checksum: aab5c853e383e1cda56663d65f6925ad
       - device: freedreno-a630
         checksum: 83fd7bce0fc1e1f30bd143b7d30ca890
   - path: humus/CelShading.trace
@@ -532,19 +532,34 @@ traces:
 #    expectations:
 #      - device: freedreno-a630
 #        checksum: 9571117bf4eab6fe29b12f6c3d42d865
+  - path: paraview/pv-manyspheres.trace
+    expectations:
+      # a306/a530 would need higher GL version to run
+      - device: freedreno-a630
+        checksum: 5567434cd44c5deda19e7a9619e1c8fd
+  - path: paraview/pv-waveletcontour.trace
+    expectations:
+      # a306/a530 would need higher GL version to run
+      - device: freedreno-a630
+        checksum: 5ce2fde8189c8ef6665994fa9bed4cfc
+  - path: paraview/pv-waveletvolume.trace
+    expectations:
+      # a306/a530 would need higher GL version to run
+      - device: freedreno-a630
+        checksum: dd05d3e98eb93c0e520c1359de18e9fb
   - path: pathfinder/canvas_moire.trace
     expectations:
-      # a306/a630 would need higher GL version to run
+      # a306/a530 would need higher GL version to run
       - device: freedreno-a630
-        checksum: e93cf9682c9ca5ed6a6effe5b7fdd386
+        checksum: 0e32ca8fc815a7250f38a07faeafb21b
   - path: pathfinder/canvas_text_v2.trace
     expectations:
-      # a306/a630 would need higher GL version to run
+      # a306/a530 would need higher GL version to run
       - device: freedreno-a630
         checksum: c163253b33a93577600e2f1c0571737c
   - path: pathfinder/demo.trace
     expectations:
-      # a306/a630 would need higher GL version to run
+      # a306/a530 would need higher GL version to run
       - device: freedreno-a630
         checksum: f6661ed4de9e0a444c6338ebd0cd3768
 #  Throws "Invalid state in _mesa_program_state_string" and

@@ -66,6 +66,10 @@ extern struct gl_program *
 _mesa_init_gl_program(struct gl_program *prog, gl_shader_stage stage,
                       GLuint id, bool is_arb_asm);
 
+extern struct gl_program *
+_mesa_new_program(struct gl_context *ctx, gl_shader_stage stage, GLuint id,
+                  bool is_arb_asm);
+
 extern void
 _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog);
 

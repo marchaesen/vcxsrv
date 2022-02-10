@@ -61,8 +61,8 @@
 #include "api_exec_decl.h"
 
 #include "state_tracker/st_cb_texture.h"
-#include "state_tracker/st_cb_viewport.h"
-#include "state_tracker/st_context.h"
+#include "state_tracker/st_manager.h"
+#include "state_tracker/st_sampler_view.h"
 
 static inline bool
 copy_texture_attribs(struct gl_texture_object *dst,
@@ -595,8 +595,7 @@ pop_texture_group(struct gl_context *ctx, struct gl_texture_attrib_node *texstat
          if (!copy_texture_attribs(texObj, savedObj, tgt))
             continue;
 
-         /* GL_ALL_ATTRIB_BITS means all pnames. (internal) */
-         st_TexParameter(ctx, texObj, GL_ALL_ATTRIB_BITS);
+         st_texture_release_all_sampler_views(st_context(ctx), texObj);
       }
    }
 
@@ -935,13 +934,11 @@ _mesa_PopAttrib(void)
    if (mask & GL_POINT_BIT) {
       TEST_AND_CALL1(Point.Size, PointSize);
       TEST_AND_UPDATE(ctx->Point.SmoothFlag, attr->Point.SmoothFlag, GL_POINT_SMOOTH);
-      if (ctx->Extensions.EXT_point_parameters) {
-         _mesa_PointParameterfv(GL_DISTANCE_ATTENUATION_EXT,
-                                attr->Point.Params);
-         TEST_AND_CALL1_SEL(Point.MinSize, PointParameterf, GL_POINT_SIZE_MIN_EXT);
-         TEST_AND_CALL1_SEL(Point.MaxSize, PointParameterf, GL_POINT_SIZE_MAX_EXT);
-         TEST_AND_CALL1_SEL(Point.Threshold, PointParameterf, GL_POINT_FADE_THRESHOLD_SIZE_EXT);
-      }
+      _mesa_PointParameterfv(GL_DISTANCE_ATTENUATION_EXT, attr->Point.Params);
+      TEST_AND_CALL1_SEL(Point.MinSize, PointParameterf, GL_POINT_SIZE_MIN_EXT);
+      TEST_AND_CALL1_SEL(Point.MaxSize, PointParameterf, GL_POINT_SIZE_MAX_EXT);
+      TEST_AND_CALL1_SEL(Point.Threshold, PointParameterf, GL_POINT_FADE_THRESHOLD_SIZE_EXT);
+
       if (ctx->Extensions.ARB_point_sprite) {
          if (ctx->Point.CoordReplace != attr->Point.CoordReplace) {
             ctx->NewState |= _NEW_POINT | _NEW_FF_VERT_PROGRAM;
@@ -1095,7 +1092,8 @@ _mesa_PopAttrib(void)
 
             memcpy(&ctx->ViewportArray[i].X, &vp->X, sizeof(float) * 6);
 
-            st_viewport(ctx);
+            if (ctx->invalidate_on_gl_viewport)
+               st_manager_invalidate_drawables(ctx);
          }
       }
 
@@ -1490,7 +1488,7 @@ void
 _mesa_free_attrib_data(struct gl_context *ctx)
 {
    for (unsigned i = 0; i < ARRAY_SIZE(ctx->AttribStack); i++)
-      free(ctx->AttribStack[i]);
+      FREE(ctx->AttribStack[i]);
 }
 
 

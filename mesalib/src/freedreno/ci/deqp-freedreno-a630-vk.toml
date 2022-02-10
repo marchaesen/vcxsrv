@@ -3,22 +3,28 @@
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
-fraction = 3
+fraction = 13
 renderer_check = "Turnip Adreno .* 630"
-[deqp.env]
-# Force binning in the main run, which makes sure we render at
-# least 2 bins.  This is the path that impacts the most different
-# features.
-TU_DEBUG = "forcebin"
 
-# force-bypass testing
+# force-gmem testing
+# Autotuner forces sysmem on most CTS tests
+[[deqp]]
+deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp/mustpass/vk-master.txt"]
+skips = ["install/freedreno-a630-premerge-skips.txt"]
+prefix = "gmem-"
+fraction = 30
+[deqp.env]
+TU_DEBUG = "gmem,forcebin"
+
+# force-sysmem testing
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"
-fraction = 15
+fraction = 30
 [deqp.env]
 TU_DEBUG = "sysmem"
 

@@ -47,7 +47,7 @@
 #include "program/prog_statevars.h"
 #include "util/bitscan.h"
 
-#include "state_tracker/st_cb_program.h"
+#include "state_tracker/st_program.h"
 
 /** Max of number of lights and texture coord units */
 #define NUM_UNITS MAX2(MAX_TEXTURE_COORD_UNITS, MAX_LIGHTS)
@@ -919,19 +919,19 @@ static struct ureg get_scenecolor( struct tnl_program *p, GLuint side )
 
 
 static struct ureg get_lightprod( struct tnl_program *p, GLuint light,
-				  GLuint side, GLuint property )
+				  GLuint side, GLuint property, bool *is_state_light )
 {
    GLuint attrib = material_attrib(side, property);
    if (p->materials & (1<<attrib)) {
       struct ureg light_value =
 	 register_param3(p, STATE_LIGHT, light, property);
-      struct ureg material_value = get_material(p, side, property);
-      struct ureg tmp = get_temp(p);
-      emit_op2(p, OPCODE_MUL, tmp, 0, light_value, material_value);
-      return tmp;
+    *is_state_light = true;
+    return light_value;
    }
-   else
+   else {
+      *is_state_light = false;
       return register_param3(p, STATE_LIGHTPROD, light, attrib);
+   }
 }
 
 
@@ -1117,20 +1117,28 @@ static void build_lighting( struct tnl_program *p )
     */
    struct ureg lightprod_front[MAX_LIGHTS][3];
    struct ureg lightprod_back[MAX_LIGHTS][3];
+   bool lightprod_front_is_state_light[MAX_LIGHTS][3];
+   bool lightprod_back_is_state_light[MAX_LIGHTS][3];
 
    for (i = 0; i < MAX_LIGHTS; i++) {
       if (p->state->unit[i].light_enabled) {
-         lightprod_front[i][0] = get_lightprod(p, i, 0, STATE_AMBIENT);
+         lightprod_front[i][0] = get_lightprod(p, i, 0, STATE_AMBIENT,
+                                               &lightprod_front_is_state_light[i][0]);
          if (twoside)
-            lightprod_back[i][0] = get_lightprod(p, i, 1, STATE_AMBIENT);
+            lightprod_back[i][0] = get_lightprod(p, i, 1, STATE_AMBIENT,
+                                                 &lightprod_back_is_state_light[i][0]);
 
-         lightprod_front[i][1] = get_lightprod(p, i, 0, STATE_DIFFUSE);
+         lightprod_front[i][1] = get_lightprod(p, i, 0, STATE_DIFFUSE,
+                                               &lightprod_front_is_state_light[i][1]);
          if (twoside)
-            lightprod_back[i][1] = get_lightprod(p, i, 1, STATE_DIFFUSE);
+            lightprod_back[i][1] = get_lightprod(p, i, 1, STATE_DIFFUSE,
+                                                 &lightprod_back_is_state_light[i][1]);
 
-         lightprod_front[i][2] = get_lightprod(p, i, 0, STATE_SPECULAR);
+         lightprod_front[i][2] = get_lightprod(p, i, 0, STATE_SPECULAR,
+                                               &lightprod_front_is_state_light[i][2]);
          if (twoside)
-            lightprod_back[i][2] = get_lightprod(p, i, 1, STATE_SPECULAR);
+            lightprod_back[i][2] = get_lightprod(p, i, 1, STATE_SPECULAR,
+                                                 &lightprod_back_is_state_light[i][2]);
       }
    }
 
@@ -1217,6 +1225,18 @@ static void build_lighting( struct tnl_program *p )
 	 /* Front face lighting:
 	  */
 	 {
+      /* Transform STATE_LIGHT into STATE_LIGHTPROD if needed. This isn't done in
+       * get_lightprod to avoid using too many temps.
+       */
+      for (int j = 0; j < 3; j++) {
+         if (lightprod_front_is_state_light[i][j]) {
+            struct ureg material_value = get_material(p, 0, STATE_AMBIENT + j);
+            struct ureg tmp = get_temp(p);
+            emit_op2(p, OPCODE_MUL, tmp, 0, lightprod_front[i][j], material_value);
+            lightprod_front[i][j] = tmp;
+         }
+      }
+
 	    struct ureg ambient = lightprod_front[i][0];
 	    struct ureg diffuse = lightprod_front[i][1];
 	    struct ureg specular = lightprod_front[i][2];
@@ -1272,6 +1292,18 @@ static void build_lighting( struct tnl_program *p )
 	 /* Back face lighting:
 	  */
 	 if (twoside) {
+      /* Transform STATE_LIGHT into STATE_LIGHTPROD if needed. This isn't done in
+       * get_lightprod to avoid using too many temps.
+       */
+      for (int j = 0; j < 3; j++) {
+         if (lightprod_back_is_state_light[i][j]) {
+            struct ureg material_value = get_material(p, 1, STATE_AMBIENT + j);
+            struct ureg tmp = get_temp(p);
+            emit_op2(p, OPCODE_MUL, tmp, 1, lightprod_back[i][j], material_value);
+            lightprod_back[i][j] = tmp;
+         }
+      }
+
 	    struct ureg ambient = lightprod_back[i][0];
 	    struct ureg diffuse = lightprod_back[i][1];
 	    struct ureg specular = lightprod_back[i][2];

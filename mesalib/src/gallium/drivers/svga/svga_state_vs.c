@@ -214,6 +214,9 @@ make_vs_key(struct svga_context *svga, struct svga_compile_key *key)
     */
    key->last_vertex_stage = !(svga->curr.gs ||
                               svga->curr.tcs || svga->curr.tes);
+
+   if (svga_have_gl43(svga))
+      key->image_size_used = vs->base.info.opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
 }
 
 
@@ -434,6 +437,7 @@ struct svga_tracked_state svga_hw_vs =
     SVGA_NEW_RAST |
     SVGA_NEW_PRESCALE |
     SVGA_NEW_VELEMENT |
-    SVGA_NEW_NEED_SWTNL),
+    SVGA_NEW_NEED_SWTNL |
+    SVGA_NEW_VS_RAW_BUFFER),
    emit_hw_vs
 };

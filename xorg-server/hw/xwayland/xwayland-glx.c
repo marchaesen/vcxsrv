@@ -342,17 +342,18 @@ egl_mirror_configs(ScreenPtr pScreen, struct egl_screen *screen)
     for (i = nconfigs - 1; i > 0; i--)
         for (j = 0; j < 3; j++) /* direct_color */
             for (k = 0; k < 2; k++) /* double_buffer */ {
-                c = translate_eglconfig(screen, host_configs[i], c,
-                                        /* direct_color */ j == 1,
-                                        /* double_buffer */ k > 0,
-                                        /* duplicate_for_composite */ j == 0,
-                                        /* srgb_only */ false);
                 if (can_srgb)
                     c = translate_eglconfig(screen, host_configs[i], c,
                                             /* direct_color */ j == 1,
                                             /* double_buffer */ k > 0,
                                             /* duplicate_for_composite */ j == 0,
                                             /* srgb_only */ true);
+
+                c = translate_eglconfig(screen, host_configs[i], c,
+                                        /* direct_color */ j == 1,
+                                        /* double_buffer */ k > 0,
+                                        /* duplicate_for_composite */ j == 0,
+                                        /* srgb_only */ false);
             }
 
     screen->configs = host_configs;

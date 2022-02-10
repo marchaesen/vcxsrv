@@ -112,7 +112,7 @@ static struct proxy_info * get_proxy_info(struct state_and_proxies * sap,
 	if (file == RC_FILE_TEMPORARY) {
 		return &sap->Proxies->Temporary[index];
 	} else {
-		return 0;
+		return NULL;
 	}
 }
 

@@ -35,6 +35,7 @@
 #include "main/image.h"
 #include "main/bufferobj.h"
 #include "main/dlist.h"
+#include "main/framebuffer.h"
 #include "main/macros.h"
 #include "main/pbo.h"
 #include "program/program.h"
@@ -195,7 +196,7 @@ setup_render_state(struct gl_context *ctx,
       GLfloat colorSave[4];
       COPY_4V(colorSave, ctx->Current.Attrib[VERT_ATTRIB_COLOR0]);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], color);
-      st_upload_constants(st, &st->fp->Base, MESA_SHADER_FRAGMENT);
+      st_upload_constants(st, st->fp, MESA_SHADER_FRAGMENT);
       COPY_4V(ctx->Current.Attrib[VERT_ATTRIB_COLOR0], colorSave);
    }
 
@@ -648,7 +649,7 @@ st_DrawAtlasBitmaps(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_texture_object *stObj = st_texture_object(atlas->texObj);
+   struct gl_texture_object *stObj = atlas->texObj;
    struct pipe_sampler_view *sv;
    /* convert Z from [0,1] to [-1,-1] to match viewport Z scale/bias */
    const float z = ctx->Current.RasterPos[2] * 2.0f - 1.0f;

@@ -2452,6 +2452,46 @@ static VkResult overlay_QueueSubmit(
    return device_data->vtable.QueueSubmit(queue, submitCount, pSubmits, fence);
 }
 
+static VkResult overlay_QueueSubmit2KHR(
+    VkQueue                                     queue,
+    uint32_t                                    submitCount,
+    const VkSubmitInfo2KHR*                     pSubmits,
+    VkFence                                     fence)
+{
+   struct queue_data *queue_data = FIND(struct queue_data, queue);
+   struct device_data *device_data = queue_data->device;
+
+   device_data->frame_stats.stats[OVERLAY_PARAM_ENABLED_submit]++;
+
+   for (uint32_t s = 0; s < submitCount; s++) {
+      for (uint32_t c = 0; c < pSubmits[s].commandBufferInfoCount; c++) {
+         struct command_buffer_data *cmd_buffer_data =
+            FIND(struct command_buffer_data, pSubmits[s].pCommandBufferInfos[c].commandBuffer);
+
+         /* Merge the submitted command buffer stats into the device. */
+         for (uint32_t st = 0; st < OVERLAY_PARAM_ENABLED_MAX; st++)
+            device_data->frame_stats.stats[st] += cmd_buffer_data->stats.stats[st];
+
+         /* Attach the command buffer to the queue so we remember to read its
+         * pipeline statistics & timestamps at QueuePresent().
+         */
+         if (!cmd_buffer_data->pipeline_query_pool &&
+            !cmd_buffer_data->timestamp_query_pool)
+            continue;
+
+         if (list_is_empty(&cmd_buffer_data->link)) {
+            list_addtail(&cmd_buffer_data->link,
+                        &queue_data->running_command_buffer);
+         } else {
+            fprintf(stderr, "Command buffer submitted multiple times before present.\n"
+                  "This could lead to invalid data.\n");
+         }
+      }
+   }
+
+   return device_data->vtable.QueueSubmit2KHR(queue, submitCount, pSubmits, fence);
+}
+
 static VkResult overlay_CreateDevice(
     VkPhysicalDevice                            physicalDevice,
     const VkDeviceCreateInfo*                   pCreateInfo,
@@ -2626,6 +2666,7 @@ static const struct {
    ADD_HOOK(AcquireNextImage2KHR),
 
    ADD_HOOK(QueueSubmit),
+   ADD_HOOK(QueueSubmit2KHR),
 
    ADD_HOOK(CreateDevice),
    ADD_HOOK(DestroyDevice),

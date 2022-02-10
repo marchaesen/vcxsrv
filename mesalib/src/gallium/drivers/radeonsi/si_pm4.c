@@ -29,16 +29,21 @@
 
 static void si_pm4_cmd_begin(struct si_pm4_state *state, unsigned opcode)
 {
-   assert(state->ndw < SI_PM4_MAX_DW);
+   if (!state->max_dw)
+      state->max_dw = ARRAY_SIZE(state->pm4);
+   assert(state->ndw < state->max_dw);
+   assert(opcode <= 254);
    state->last_opcode = opcode;
    state->last_pm4 = state->ndw++;
 }
 
 void si_pm4_cmd_add(struct si_pm4_state *state, uint32_t dw)
 {
-   assert(state->ndw < SI_PM4_MAX_DW);
+   if (!state->max_dw)
+      state->max_dw = ARRAY_SIZE(state->pm4);
+   assert(state->ndw < state->max_dw);
    state->pm4[state->ndw++] = dw;
-   state->last_opcode = -1;
+   state->last_opcode = 255; /* invalid opcode */
 }
 
 static void si_pm4_cmd_end(struct si_pm4_state *state, bool predicate)
@@ -77,13 +82,17 @@ void si_pm4_set_reg(struct si_pm4_state *state, unsigned reg, uint32_t val)
 
    reg >>= 2;
 
-   assert(state->ndw + 2 <= SI_PM4_MAX_DW);
+   if (!state->max_dw)
+      state->max_dw = ARRAY_SIZE(state->pm4);
+
+   assert(state->ndw + 2 <= state->max_dw);
 
    if (opcode != state->last_opcode || reg != (state->last_reg + 1)) {
       si_pm4_cmd_begin(state, opcode);
       state->pm4[state->ndw++] = reg;
    }
 
+   assert(reg <= UINT16_MAX);
    state->last_reg = reg;
    state->pm4[state->ndw++] = val;
    si_pm4_cmd_end(state, false);

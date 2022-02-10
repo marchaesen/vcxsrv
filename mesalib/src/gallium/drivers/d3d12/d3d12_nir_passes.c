@@ -25,6 +25,7 @@
 #include "d3d12_compiler.h"
 #include "nir_builder.h"
 #include "nir_builtin_builder.h"
+#include "nir_deref.h"
 #include "nir_format_convert.h"
 #include "program/prog_instruction.h"
 #include "dxil_nir.h"
@@ -36,12 +37,12 @@
  * so we need to lower the flip into the NIR shader.
  */
 
-static nir_ssa_def *
-get_state_var(nir_builder *b,
-              enum d3d12_state_var var_enum,
-              const char *var_name,
-              const struct glsl_type *var_type,
-              nir_variable **out_var)
+nir_ssa_def *
+d3d12_get_state_var(nir_builder *b,
+                    enum d3d12_state_var var_enum,
+                    const char *var_name,
+                    const struct glsl_type *var_type,
+                    nir_variable **out_var)
 {
    const gl_state_index16 tokens[STATE_LENGTH] = { STATE_INTERNAL_DRIVER, var_enum };
    if (*out_var == NULL) {
@@ -79,8 +80,8 @@ lower_pos_write(nir_builder *b, struct nir_instr *instr, nir_variable **flip)
    b->cursor = nir_before_instr(&intr->instr);
 
    nir_ssa_def *pos = nir_ssa_for_src(b, intr->src[1], 4);
-   nir_ssa_def *flip_y = get_state_var(b, D3D12_STATE_VAR_Y_FLIP, "d3d12_FlipY",
-                                       glsl_float_type(), flip);
+   nir_ssa_def *flip_y = d3d12_get_state_var(b, D3D12_STATE_VAR_Y_FLIP, "d3d12_FlipY",
+                                             glsl_float_type(), flip);
    nir_ssa_def *def = nir_vec4(b,
                                nir_channel(b, pos, 0),
                                nir_fmul(b, nir_channel(b, pos, 1), flip_y),
@@ -95,6 +96,7 @@ d3d12_lower_yflip(nir_shader *nir)
    nir_variable *flip = NULL;
 
    if (nir->info.stage != MESA_SHADER_VERTEX &&
+       nir->info.stage != MESA_SHADER_TESS_EVAL &&
        nir->info.stage != MESA_SHADER_GEOMETRY)
       return;
 
@@ -184,10 +186,10 @@ lower_pos_read(nir_builder *b, struct nir_instr *instr,
    nir_ssa_def *depth = nir_channel(b, pos, 2);
 
    assert(depth_transform_var);
-   nir_ssa_def *depth_transform = get_state_var(b, D3D12_STATE_VAR_DEPTH_TRANSFORM,
-                                                "d3d12_DepthTransform",
-                                                glsl_vec_type(2),
-                                                depth_transform_var);
+   nir_ssa_def *depth_transform = d3d12_get_state_var(b, D3D12_STATE_VAR_DEPTH_TRANSFORM,
+                                                      "d3d12_DepthTransform",
+                                                      glsl_vec_type(2),
+                                                      depth_transform_var);
    depth = nir_fmad(b, depth, nir_channel(b, depth_transform, 0),
                               nir_channel(b, depth_transform, 1));
 
@@ -218,6 +220,43 @@ d3d12_lower_depth_range(nir_shader *nir)
                                                nir_metadata_dominance);
       }
    }
+}
+
+struct compute_state_vars {
+   nir_variable *num_workgroups;
+};
+
+static bool
+lower_compute_state_vars(nir_builder *b, nir_instr *instr, void *_state)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   b->cursor = nir_after_instr(instr);
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   struct compute_state_vars *vars = _state;
+   nir_ssa_def *result = NULL;
+   switch (intr->intrinsic) {
+   case nir_intrinsic_load_num_workgroups:
+      result = d3d12_get_state_var(b, D3D12_STATE_VAR_NUM_WORKGROUPS, "d3d12_NumWorkgroups",
+         glsl_vec_type(3), &vars->num_workgroups);
+      break;
+   default:
+      return false;
+   }
+
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, result);
+   nir_instr_remove(instr);
+   return true;
+}
+
+bool
+d3d12_lower_compute_state_vars(nir_shader *nir)
+{
+   assert(nir->info.stage == MESA_SHADER_COMPUTE);
+   struct compute_state_vars vars = { 0 };
+   return nir_shader_instructions_pass(nir, lower_compute_state_vars,
+      nir_metadata_block_index | nir_metadata_dominance, &vars);
 }
 
 static bool
@@ -281,77 +320,138 @@ d3d12_lower_uint_cast(nir_shader *nir, bool is_signed)
 }
 
 static bool
-lower_load_first_vertex(nir_builder *b, nir_instr *instr, nir_variable **first_vertex)
+lower_load_draw_params(nir_builder *b, nir_instr *instr, void *draw_params)
 {
    if (instr->type != nir_instr_type_intrinsic)
       return false;
 
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-   if (intr->intrinsic != nir_intrinsic_load_first_vertex)
+   if (intr->intrinsic != nir_intrinsic_load_first_vertex &&
+       intr->intrinsic != nir_intrinsic_load_base_instance &&
+       intr->intrinsic != nir_intrinsic_load_draw_id &&
+       intr->intrinsic != nir_intrinsic_load_is_indexed_draw)
       return false;
 
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_ssa_def *load = get_state_var(b, D3D12_STATE_VAR_FIRST_VERTEX, "d3d12_FirstVertex",
-                                     glsl_uint_type(), first_vertex);
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, load);
+   nir_ssa_def *load = d3d12_get_state_var(b, D3D12_STATE_VAR_DRAW_PARAMS, "d3d12_DrawParams",
+                                           glsl_uvec4_type(), draw_params);
+   unsigned channel = intr->intrinsic == nir_intrinsic_load_first_vertex ? 0 :
+      intr->intrinsic == nir_intrinsic_load_base_instance ? 1 :
+      intr->intrinsic == nir_intrinsic_load_draw_id ? 2 : 3;
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_channel(b, load, channel));
    nir_instr_remove(instr);
 
    return true;
 }
 
 bool
-d3d12_lower_load_first_vertex(struct nir_shader *nir)
+d3d12_lower_load_draw_params(struct nir_shader *nir)
 {
-   nir_variable *first_vertex = NULL;
-   bool progress = false;
-
+   nir_variable *draw_params = NULL;
    if (nir->info.stage != MESA_SHADER_VERTEX)
       return false;
 
-   nir_foreach_function(function, nir) {
-      if (function->impl) {
-         nir_builder b;
-         nir_builder_init(&b, function->impl);
-
-         nir_foreach_block(block, function->impl) {
-            nir_foreach_instr_safe(instr, block) {
-               progress |= lower_load_first_vertex(&b, instr, &first_vertex);
-            }
-         }
-
-         nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                               nir_metadata_dominance);
-      }
-   }
-   return progress;
+   return nir_shader_instructions_pass(nir, lower_load_draw_params,
+      nir_metadata_block_index | nir_metadata_dominance, &draw_params);
 }
 
-static void
-invert_depth(nir_builder *b, struct nir_instr *instr)
+static bool
+lower_load_patch_vertices_in(nir_builder *b, nir_instr *instr, void *_state)
 {
    if (instr->type != nir_instr_type_intrinsic)
-      return;
-
+      return false;
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-   if (intr->intrinsic != nir_intrinsic_store_deref)
-      return;
+   if (intr->intrinsic != nir_intrinsic_load_patch_vertices_in)
+      return false;
 
-   nir_variable *var = nir_intrinsic_get_var(intr, 0);
-   if (var->data.mode != nir_var_shader_out ||
-       var->data.location != VARYING_SLOT_POS)
-      return;
+   b->cursor = nir_before_instr(&intr->instr);
+   nir_ssa_def *load = b->shader->info.stage == MESA_SHADER_TESS_CTRL ?
+      d3d12_get_state_var(b, D3D12_STATE_VAR_PATCH_VERTICES_IN, "d3d12_FirstVertex", glsl_uint_type(), _state) :
+      nir_imm_int(b, b->shader->info.tess.tcs_vertices_out);
+   nir_ssa_def_rewrite_uses(&intr->dest.ssa, load);
+   nir_instr_remove(instr);
+   return true;
+}
+
+bool
+d3d12_lower_load_patch_vertices_in(struct nir_shader *nir)
+{
+   nir_variable *var = NULL;
+
+   if (nir->info.stage != MESA_SHADER_TESS_CTRL &&
+       nir->info.stage != MESA_SHADER_TESS_EVAL)
+      return false;
+
+   return nir_shader_instructions_pass(nir, lower_load_patch_vertices_in,
+      nir_metadata_block_index | nir_metadata_dominance, &var);
+}
+
+struct invert_depth_state
+{
+   unsigned viewport_mask;
+   nir_ssa_def *viewport_index;
+   nir_instr *store_pos_instr;
+};
+
+static void
+invert_depth_impl(nir_builder *b, struct invert_depth_state *state)
+{
+   assert(state->store_pos_instr);
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(state->store_pos_instr);
+   if (state->viewport_index) {
+      /* Cursor is assigned before calling. Make sure that storing pos comes
+       * after computing the viewport.
+       */
+      nir_instr_move(b->cursor, &intr->instr);
+   }
 
    b->cursor = nir_before_instr(&intr->instr);
 
    nir_ssa_def *pos = nir_ssa_for_src(b, intr->src[1], 4);
+
+   if (state->viewport_index) {
+      nir_push_if(b, nir_i2b1(b, nir_iand_imm(b,
+         nir_ishl(b, nir_imm_int(b, 1), state->viewport_index),
+         state->viewport_mask)));
+   }
    nir_ssa_def *def = nir_vec4(b,
                                nir_channel(b, pos, 0),
                                nir_channel(b, pos, 1),
                                nir_fneg(b, nir_channel(b, pos, 2)),
                                nir_channel(b, pos, 3));
+   if (state->viewport_index) {
+      nir_pop_if(b, NULL);
+      def = nir_if_phi(b, def, pos);
+   }
    nir_instr_rewrite_src(&intr->instr, intr->src + 1, nir_src_for_ssa(def));
+
+   state->viewport_index = NULL;
+   state->store_pos_instr = NULL;
+}
+
+static void
+invert_depth_instr(nir_builder *b, struct nir_instr *instr, struct invert_depth_state *state)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return;
+
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic == nir_intrinsic_store_deref) {
+      nir_variable *var = nir_intrinsic_get_var(intr, 0);
+      if (var->data.mode != nir_var_shader_out)
+         return;
+
+      if (var->data.location == VARYING_SLOT_VIEWPORT)
+         state->viewport_index = intr->src[1].ssa;
+      if (var->data.location == VARYING_SLOT_POS)
+         state->store_pos_instr = instr;
+   } else if (intr->intrinsic == nir_intrinsic_emit_vertex) {
+      b->cursor = nir_before_instr(instr);
+      invert_depth_impl(b, state);
+   }
 }
 
 /* In OpenGL the windows space depth value z_w is evaluated according to "s * z_d + b"
@@ -360,12 +460,14 @@ invert_depth(nir_builder *b, struct nir_instr *instr)
  * to compensate by inverting "z_d' = -z_d" with this lowering pass.
  */
 void
-d3d12_nir_invert_depth(nir_shader *shader)
+d3d12_nir_invert_depth(nir_shader *shader, unsigned viewport_mask)
 {
    if (shader->info.stage != MESA_SHADER_VERTEX &&
+       shader->info.stage != MESA_SHADER_TESS_EVAL &&
        shader->info.stage != MESA_SHADER_GEOMETRY)
       return;
 
+   struct invert_depth_state state = { viewport_mask };
    nir_foreach_function(function, shader) {
       if (function->impl) {
          nir_builder b;
@@ -373,8 +475,13 @@ d3d12_nir_invert_depth(nir_shader *shader)
 
          nir_foreach_block(block, function->impl) {
             nir_foreach_instr_safe(instr, block) {
-               invert_depth(&b, instr);
+               invert_depth_instr(&b, instr, &state);
             }
+         }
+
+         if (state.store_pos_instr) {
+            b.cursor = nir_after_block(function->impl->end_block);
+            invert_depth_impl(&b, &state);
          }
 
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
@@ -829,4 +936,267 @@ d3d12_lower_triangle_strip(nir_shader *shader)
 
    nir_metadata_preserve(impl, nir_metadata_none);
    NIR_PASS_V(shader, nir_lower_var_copies);
+}
+
+static bool
+is_sample_pos(const nir_instr *instr, const void *_data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   return intr->intrinsic == nir_intrinsic_load_sample_pos;
+}
+
+static nir_ssa_def *
+lower_sample_pos(nir_builder *b, nir_instr *instr, void *_data)
+{
+   return nir_load_sample_pos_from_id(b, 32, nir_load_sample_id(b));
+}
+
+bool
+d3d12_lower_sample_pos(nir_shader *s)
+{
+   return nir_shader_lower_instructions(s, is_sample_pos, lower_sample_pos, NULL);
+}
+
+static bool
+is_multisampling_instr(const nir_instr *instr, const void *_data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic == nir_intrinsic_store_output) {
+      nir_io_semantics semantics = nir_intrinsic_io_semantics(intr);
+      return semantics.location == FRAG_RESULT_SAMPLE_MASK;
+   } else if (intr->intrinsic == nir_intrinsic_store_deref) {
+      nir_variable *var = nir_deref_instr_get_variable(nir_src_as_deref(intr->src[0]));
+      return var->data.location == FRAG_RESULT_SAMPLE_MASK;
+   } else if (intr->intrinsic == nir_intrinsic_load_sample_id ||
+              intr->intrinsic == nir_intrinsic_load_sample_mask_in)
+      return true;
+   return false;
+}
+
+static nir_ssa_def *
+lower_multisampling_instr(nir_builder *b, nir_instr *instr, void *_data)
+{
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   switch (intr->intrinsic) {
+   case nir_intrinsic_store_output:
+   case nir_intrinsic_store_deref:
+      return NIR_LOWER_INSTR_PROGRESS_REPLACE;
+   case nir_intrinsic_load_sample_id:
+      return nir_imm_int(b, 0);
+   case nir_intrinsic_load_sample_mask_in:
+      return nir_imm_int(b, 1);
+   default:
+      unreachable("Invalid intrinsic");
+   }
+}
+
+bool
+d3d12_disable_multisampling(nir_shader *s)
+{
+   if (s->info.stage != MESA_SHADER_FRAGMENT)
+      return false;
+   bool progress = nir_shader_lower_instructions(s, is_multisampling_instr, lower_multisampling_instr, NULL);
+
+   nir_foreach_variable_with_modes_safe(var, s, nir_var_shader_out) {
+      if (var->data.location == FRAG_RESULT_SAMPLE_MASK) {
+         exec_node_remove(&var->node);
+         progress = true;
+      }
+   }
+   nir_foreach_variable_with_modes_safe(var, s, nir_var_system_value) {
+      if (var->data.location == SYSTEM_VALUE_SAMPLE_MASK_IN ||
+          var->data.location == SYSTEM_VALUE_SAMPLE_ID) {
+         exec_node_remove(&var->node);
+         progress = true;
+      }
+      var->data.sample = false;
+   }
+   BITSET_CLEAR(s->info.system_values_read, SYSTEM_VALUE_SAMPLE_ID);
+   return progress;
+}
+
+struct multistream_subvar_state {
+   nir_variable *var;
+   uint8_t stream;
+   uint8_t num_components;
+};
+struct multistream_var_state {
+   unsigned num_subvars;
+   struct multistream_subvar_state subvars[4];
+};
+struct multistream_state {
+   struct multistream_var_state vars[VARYING_SLOT_MAX];
+};
+
+static bool
+split_multistream_varying_stores(nir_builder *b, nir_instr *instr, void *_state)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_store_deref)
+      return false;
+
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   if (!nir_deref_mode_is(deref, nir_var_shader_out))
+      return false;
+
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+   assert(var);
+
+   struct multistream_state *state = _state;
+   struct multistream_var_state *var_state = &state->vars[var->data.location];
+   if (var_state->num_subvars <= 1)
+      return false;
+
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, b->shader);
+   assert(path.path[0]->deref_type == nir_deref_type_var && path.path[0]->var == var);
+   
+   unsigned first_channel = 0;
+   for (unsigned subvar = 0; subvar < var_state->num_subvars; ++subvar) {
+      b->cursor = nir_after_instr(&path.path[0]->instr);
+      nir_deref_instr *new_path = nir_build_deref_var(b, var_state->subvars[subvar].var);
+
+      for (unsigned i = 1; path.path[i]; ++i) {
+         b->cursor = nir_after_instr(&path.path[i]->instr);
+         new_path = nir_build_deref_follower(b, new_path, path.path[i]);
+      }
+
+      b->cursor = nir_before_instr(instr);
+      unsigned mask_num_channels = (1 << var_state->subvars[subvar].num_components) - 1;
+      unsigned orig_write_mask = nir_intrinsic_write_mask(intr);
+      nir_ssa_def *sub_value = nir_channels(b, intr->src[1].ssa, mask_num_channels << first_channel);
+
+      first_channel += var_state->subvars[subvar].num_components;
+
+      unsigned new_write_mask = (orig_write_mask >> first_channel) & mask_num_channels;
+      nir_build_store_deref(b, &new_path->dest.ssa, sub_value, new_write_mask, nir_intrinsic_access(intr));
+   }
+
+   nir_deref_path_finish(&path);
+   nir_instr_free_and_dce(instr);
+   return true;
+}
+
+bool
+d3d12_split_multistream_varyings(nir_shader *s)
+{
+   if (s->info.stage != MESA_SHADER_GEOMETRY)
+      return false;
+
+   struct multistream_state state;
+   memset(&state, 0, sizeof(state));
+
+   bool progress = false;
+   nir_foreach_variable_with_modes_safe(var, s, nir_var_shader_out) {
+      if ((var->data.stream & NIR_STREAM_PACKED) == 0)
+         continue;
+
+      struct multistream_var_state *var_state = &state.vars[var->data.location];
+      struct multistream_subvar_state *subvars = var_state->subvars;
+      for (unsigned i = 0; i < glsl_get_vector_elements(var->type); ++i) {
+         unsigned stream = (var->data.stream >> (2 * (i + var->data.location_frac))) & 0x3;
+         if (var_state->num_subvars == 0 || stream != subvars[var_state->num_subvars - 1].stream) {
+            subvars[var_state->num_subvars].stream = stream;
+            subvars[var_state->num_subvars].num_components = 1;
+            var_state->num_subvars++;
+         } else {
+            subvars[var_state->num_subvars - 1].num_components++;
+         }
+      }
+
+      var->data.stream = subvars[0].stream;
+      if (var_state->num_subvars == 1)
+         continue;
+
+      progress = true;
+
+      subvars[0].var = var;
+      var->type = glsl_vector_type(glsl_get_base_type(var->type), subvars[0].num_components);
+      unsigned location_frac = var->data.location_frac + subvars[0].num_components;
+      for (unsigned subvar = 1; subvar < var_state->num_subvars; ++subvar) {
+         char *name = ralloc_asprintf(s, "unpacked:%s_stream%d", var->name, subvars[subvar].stream);
+         nir_variable *new_var = nir_variable_create(s, nir_var_shader_out,
+            glsl_vector_type(glsl_get_base_type(var->type), subvars[subvar].num_components),
+            name);
+
+         new_var->data = var->data;
+         new_var->data.stream = subvars[subvar].stream;
+         new_var->data.location_frac = location_frac;
+         location_frac += subvars[subvar].num_components;
+         subvars[subvar].var = new_var;
+      }
+   }
+
+   if (progress) {
+      nir_shader_instructions_pass(s, split_multistream_varying_stores,
+         nir_metadata_block_index | nir_metadata_dominance, &state);
+   } else {
+      nir_shader_preserve_all_metadata(s);
+   }
+
+   return progress;
+}
+
+static void
+write_0(nir_builder *b, nir_deref_instr *deref)
+{
+   if (glsl_type_is_array_or_matrix(deref->type)) {
+      for (unsigned i = 0; i < glsl_get_length(deref->type); ++i)
+         write_0(b, nir_build_deref_array_imm(b, deref, i));
+   } else if (glsl_type_is_struct(deref->type)) {
+      for (unsigned i = 0; i < glsl_get_length(deref->type); ++i)
+         write_0(b, nir_build_deref_struct(b, deref, i));
+   } else {
+      nir_ssa_def *scalar = nir_imm_intN_t(b, 0, glsl_get_bit_size(deref->type));
+      nir_ssa_def *scalar_arr[NIR_MAX_VEC_COMPONENTS];
+      unsigned num_comps = glsl_get_components(deref->type);
+      unsigned writemask = (1 << num_comps) - 1;
+      for (unsigned i = 0; i < num_comps; ++i)
+         scalar_arr[i] = scalar;
+      nir_ssa_def *zero_val = nir_vec(b, scalar_arr, num_comps);
+      nir_store_deref(b, deref, zero_val, writemask);
+   }
+}
+
+void
+d3d12_write_0_to_new_varying(nir_shader *s, nir_variable *var)
+{
+   /* Skip per-vertex HS outputs */
+   if (s->info.stage == MESA_SHADER_TESS_CTRL && !var->data.patch)
+      return;
+
+   nir_foreach_function(func, s) {
+      if (!func->impl)
+         continue;
+
+      nir_builder b;
+      nir_builder_init(&b, func->impl);
+
+      nir_foreach_block(block, func->impl) {
+         b.cursor = nir_before_block(block);
+         if (s->info.stage != MESA_SHADER_GEOMETRY) {
+            write_0(&b, nir_build_deref_var(&b, var));
+            break;
+         }
+
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+            if (intr->intrinsic != nir_intrinsic_emit_vertex)
+               continue;
+
+            b.cursor = nir_before_instr(instr);
+            write_0(&b, nir_build_deref_var(&b, var));
+         }
+      }
+
+      nir_metadata_preserve(func->impl, nir_metadata_block_index | nir_metadata_dominance);
+   }
 }

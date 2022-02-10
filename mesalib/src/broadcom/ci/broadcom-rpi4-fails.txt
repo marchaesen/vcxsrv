@@ -1,3 +1,6 @@
+# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463 (Fail)
+KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
+
 glx@glx-make-current,Crash
 glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-buffer,Fail
@@ -348,3 +351,76 @@ spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_R32I,Fail
 spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_RG16F,Fail
 spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_RG16I,Fail
 spec@oes_texture_view@rendering-formats@clear GL_RGB10_A2 as GL_RGBA8I,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3504
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.b8g8r8a8_srgb.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_10x6_srgb_block.r8g8b8a8_srgb.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.b8g8r8a8_srgb.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_5x5_srgb_block.r8g8b8a8_srgb.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.b8g8r8a8_srgb.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.core.blit_image.all_formats.color.2d.astc_6x6_srgb_block.r8g8b8a8_srgb.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_10x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_5x5_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_general_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.general_optimal_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_general_linear,Fail
+dEQP-VK.api.copy_and_blit.dedicated_allocation.blit_image.all_formats.color.2d.astc_6x6_srgb_block.a8b8g8r8_srgb_pack32.optimal_optimal_linear,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3510
+dEQP-VK.api.external.semaphore.opaque_fd.info_timeline,Fail
+dEQP-VK.api.external.semaphore.sync_fd.info_timeline,Fail
+
+dEQP-VK.draw.renderpass.inverted_depth_ranges.nodepthclamp_deltazero,Fail
+
+dEQP-VK.graphicsfuzz.cov-dfdx-dfdy-after-nested-loops,Fail
+
+# Works if using V3D_DEBUG=noloopunroll
+dEQP-VK.graphicsfuzz.cov-loop-condition-clamp-vec-of-ones,Crash

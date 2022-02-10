@@ -28,7 +28,8 @@
 extern "C" {
 #endif
 
-struct gl_context;
+struct gl_constants;
+struct gl_extensions;
 struct gl_shader_program;
 
 struct gl_nir_linker_options {
@@ -41,34 +42,37 @@ struct gl_nir_linker_options {
                                                 nir_var_mem_ssbo | \
                                                 nir_var_image)
 
-bool gl_nir_link_spirv(struct gl_context *ctx,
+void gl_nir_opts(nir_shader *nir);
+
+bool gl_nir_link_spirv(const struct gl_constants *consts,
                        struct gl_shader_program *prog,
                        const struct gl_nir_linker_options *options);
 
-bool gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog);
+bool gl_nir_link_glsl(const struct gl_constants *consts,
+                      const struct gl_extensions *exts,
+                      struct gl_shader_program *prog);
 
-bool gl_nir_link_uniforms(struct gl_context *ctx,
+bool gl_nir_link_uniforms(const struct gl_constants *consts,
                           struct gl_shader_program *prog,
                           bool fill_parameters);
 
-void gl_nir_set_uniform_initializers(struct gl_context *ctx,
+void gl_nir_set_uniform_initializers(const struct gl_constants *consts,
                                      struct gl_shader_program *prog);
 
-void nir_build_program_resource_list(struct gl_context *ctx,
+void nir_build_program_resource_list(const struct gl_constants *consts,
                                      struct gl_shader_program *prog,
                                      bool rebuild_resourse_list);
 
-void gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
+void gl_nir_link_assign_atomic_counter_resources(const struct gl_constants *consts,
                                                  struct gl_shader_program *prog);
 
-void gl_nir_link_check_atomic_counter_resources(struct gl_context *ctx,
+void gl_nir_link_check_atomic_counter_resources(const struct gl_constants *consts,
                                                 struct gl_shader_program *prog);
 
-void gl_nir_link_assign_xfb_resources(struct gl_context *ctx,
+void gl_nir_link_assign_xfb_resources(const struct gl_constants *consts,
                                       struct gl_shader_program *prog);
 
-bool gl_nir_link_uniform_blocks(struct gl_context *ctx,
-                                struct gl_shader_program *prog);
+bool gl_nir_link_uniform_blocks(struct gl_shader_program *prog);
 
 #ifdef __cplusplus
 } /* extern "C" */

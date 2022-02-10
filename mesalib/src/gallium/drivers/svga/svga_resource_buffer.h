@@ -65,6 +65,7 @@ struct svga_buffer_surface
    unsigned bind_flags;
    struct svga_host_surface_cache_key key;
    struct svga_winsys_surface *handle;
+   enum svga_surface_state surface_state;
 };
 
 /**
@@ -119,6 +120,9 @@ struct svga_buffer
     * incompatible bind flags.
     */
    struct list_head surfaces;
+
+   /* Current surface structure */
+   struct svga_buffer_surface *bufsurf;
 
    /**
     * Information about ongoing and past map operations.
@@ -212,6 +216,7 @@ struct svga_buffer
    unsigned size;  /**< Approximate size in bytes */
 
    boolean dirty;  /**< Need to do a readback before mapping? */
+   boolean uav;    /* Set if the buffer is bound to a uav */
 
    /** In some cases we try to keep the results of the translate_indices()
     * function from svga_draw_elements.c
@@ -332,6 +337,24 @@ svga_buffer_hw_storage_unmap(struct svga_context *svga,
       }
    } else
       sws->buffer_unmap(sws, sbuf->hwbuf);
+
+   /* Mark the buffer surface as UPDATED */
+   assert(sbuf->bufsurf);
+   sbuf->bufsurf->surface_state = SVGA_SURFACE_STATE_UPDATED;
+}
+
+
+static inline void
+svga_set_buffer_rendered_to(struct svga_buffer_surface *bufsurf)
+{
+   bufsurf->surface_state = SVGA_SURFACE_STATE_RENDERED;
+}
+
+
+static inline boolean
+svga_was_buffer_rendered_to(const struct svga_buffer_surface *bufsurf)
+{
+   return (bufsurf->surface_state == SVGA_SURFACE_STATE_RENDERED);
 }
 
 

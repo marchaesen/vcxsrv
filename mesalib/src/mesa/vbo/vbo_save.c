@@ -29,6 +29,8 @@
 #include "main/arrayobj.h"
 #include "main/bufferobj.h"
 
+#include "util/u_memory.h"
+
 #include "vbo_private.h"
 
 
@@ -61,12 +63,12 @@ void vbo_save_destroy( struct gl_context *ctx )
 
    if (save->prim_store) {
       free(save->prim_store->prims);
-      free(save->prim_store);
+      FREE(save->prim_store);
       save->prim_store = NULL;
    }
    if (save->vertex_store) {
       free(save->vertex_store->buffer_in_ram);
-      free(save->vertex_store);
+      FREE(save->vertex_store);
       save->vertex_store = NULL;
    }
 

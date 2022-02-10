@@ -594,6 +594,27 @@ void si_emit_surface_sync(struct si_context *sctx, struct radeon_cmdbuf *cs, uns
       sctx->context_roll = true;
 }
 
+static struct si_resource* si_get_wait_mem_scratch_bo(struct si_context *ctx, bool is_secure)
+{
+   struct si_screen *sscreen = ctx->screen;
+
+   if (likely(!is_secure)) {
+      return ctx->wait_mem_scratch;
+   } else {
+      assert(sscreen->info.has_tmz_support);
+      if (!ctx->wait_mem_scratch_tmz)
+         ctx->wait_mem_scratch_tmz =
+            si_aligned_buffer_create(&sscreen->b,
+                                     SI_RESOURCE_FLAG_UNMAPPABLE |
+                                     SI_RESOURCE_FLAG_DRIVER_INTERNAL |
+                                     PIPE_RESOURCE_FLAG_ENCRYPTED,
+                                     PIPE_USAGE_DEFAULT, 8,
+                                     sscreen->info.tcc_cache_line_size);
+
+      return ctx->wait_mem_scratch_tmz;
+   }
+}
+
 void gfx10_emit_cache_flush(struct si_context *ctx, struct radeon_cmdbuf *cs)
 {
    uint32_t gcr_cntl = 0;
@@ -702,8 +723,8 @@ void gfx10_emit_cache_flush(struct si_context *ctx, struct radeon_cmdbuf *cs)
    radeon_end();
 
    if (cb_db_event) {
-      struct si_resource* wait_mem_scratch = unlikely(ctx->ws->cs_is_secure(cs)) ?
-        ctx->wait_mem_scratch_tmz : ctx->wait_mem_scratch;
+      struct si_resource* wait_mem_scratch =
+        si_get_wait_mem_scratch_bo(ctx, ctx->ws->cs_is_secure(cs));
       /* CB/DB flush and invalidate (or possibly just a wait for a
        * meta flush) via RELEASE_MEM.
        *
@@ -942,8 +963,9 @@ void si_emit_cache_flush(struct si_context *sctx, struct radeon_cmdbuf *cs)
       }
 
       /* Do the flush (enqueue the event and wait for it). */
-      struct si_resource* wait_mem_scratch = unlikely(sctx->ws->cs_is_secure(cs)) ?
-        sctx->wait_mem_scratch_tmz : sctx->wait_mem_scratch;
+      struct si_resource* wait_mem_scratch =
+        si_get_wait_mem_scratch_bo(sctx, sctx->ws->cs_is_secure(cs));
+
       va = wait_mem_scratch->gpu_address;
       sctx->wait_mem_number++;
 

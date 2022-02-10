@@ -903,13 +903,11 @@ XThaiTranslateKeySym(
     /* if X keysym, convert to ascii by grabbing low 7 bits */
     if (symbol == XK_KP_Space)
 	c = XK_space & 0x7F; /* patch encoding botch */
-/* not for Thai
-    else if (symbol == XK_hyphen)
-	c = XK_minus & 0xFF; */ /* map to equiv character */
     else if (hiBytes == 0xFF)
 	c = symbol & 0x7F;
     else
 	c = symbol & 0xFF;
+
     /* only apply Control key if it makes sense, else ignore it */
     if (modifiers & ControlMask) {
     if (!(IsKeypadKey(lsym) || lsym==XK_Return || lsym==XK_Tab)) {

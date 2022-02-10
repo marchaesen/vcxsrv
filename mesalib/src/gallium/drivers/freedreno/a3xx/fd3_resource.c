@@ -31,10 +31,6 @@ setup_slices(struct fd_resource *rsc, uint32_t alignment,
 {
    struct pipe_resource *prsc = &rsc->b.b;
    uint32_t level, size = 0;
-   uint32_t width0 = prsc->width0;
-
-   if (rsc->layout.tile_mode && prsc->target != PIPE_TEXTURE_CUBE)
-      width0 = util_next_power_of_two(width0);
 
    /* 32 pixel alignment */
    fdl_set_pitchalign(&rsc->layout, fdl_cpp_shift(&rsc->layout) + 5);

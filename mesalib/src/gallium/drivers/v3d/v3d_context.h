@@ -430,6 +430,9 @@ struct v3d_job {
         float clear_z;
         uint8_t clear_s;
 
+        /* If TLB double-buffering is enabled for this job */
+        bool double_buffer;
+
         /**
          * Set if some drawing (triangles, blits, or just a glClear()) has
          * been done to the FBO, meaning that we need to
@@ -777,6 +780,7 @@ void v3d_create_texture_shader_state_bo(struct v3d_context *v3d,
                                         struct v3d_sampler_view *so);
 
 void v3d_get_tile_buffer_size(bool is_msaa,
+                              bool double_buffer,
                               uint32_t nr_cbufs,
                               struct pipe_surface **cbufs,
                               struct pipe_surface *bbuf,

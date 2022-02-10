@@ -31,8 +31,6 @@
 extern "C" {
 #endif
 
-#define SI_PM4_MAX_DW 176
-
 // forward defines
 struct si_context;
 
@@ -45,17 +43,20 @@ struct si_atom {
 
 struct si_pm4_state {
    /* PKT3_SET_*_REG handling */
-   unsigned last_opcode;
-   unsigned last_reg;
-   unsigned last_pm4;
-
-   /* commands for the DE */
-   unsigned ndw;
-   uint32_t pm4[SI_PM4_MAX_DW];
+   uint16_t last_reg;   /* register offset in dwords */
+   uint16_t last_pm4;
+   uint16_t ndw;        /* number of dwords in pm4 */
+   uint8_t last_opcode;
 
    /* For shader states only */
    bool is_shader;
    struct si_atom atom;
+
+   /* commands for the DE */
+   uint16_t max_dw;
+
+   /* This must be the last field because the array can continue after the structure. */
+   uint32_t pm4[64];
 };
 
 void si_pm4_cmd_add(struct si_pm4_state *state, uint32_t dw);

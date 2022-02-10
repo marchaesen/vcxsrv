@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "vk_common_entrypoints.h"
 #include "radv_private.h"
 #include "radv_shader.h"
 
@@ -360,7 +361,7 @@ radv_handle_thread_trace(VkQueue _queue)
       thread_trace_enabled = false;
 
       /* TODO: Do something better than this whole sync. */
-      radv_QueueWaitIdle(_queue);
+      queue->device->vk.dispatch_table.QueueWaitIdle(_queue);
 
       if (radv_get_thread_trace(queue, &thread_trace)) {
          struct ac_spm_trace_data *spm_trace = NULL;
@@ -805,6 +806,35 @@ sqtt_DebugMarkerSetObjectTagEXT(VkDevice device, const VkDebugMarkerObjectTagInf
 {
    /* no-op */
    return VK_SUCCESS;
+}
+
+VKAPI_ATTR void VKAPI_CALL
+sqtt_CmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
+                                const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+   RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+   radv_write_user_event_marker(cmd_buffer, UserEventPush, pLabelInfo->pLabelName);
+
+   vk_common_CmdBeginDebugUtilsLabelEXT(commandBuffer, pLabelInfo);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+sqtt_CmdEndDebugUtilsLabelEXT(VkCommandBuffer commandBuffer)
+{
+   RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+   radv_write_user_event_marker(cmd_buffer, UserEventPop, NULL);
+
+   vk_common_CmdEndDebugUtilsLabelEXT(commandBuffer);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+sqtt_CmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
+                                 const VkDebugUtilsLabelEXT *pLabelInfo)
+{
+   RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+   radv_write_user_event_marker(cmd_buffer, UserEventTrigger, pLabelInfo->pLabelName);
+
+   vk_common_CmdInsertDebugUtilsLabelEXT(commandBuffer, pLabelInfo);
 }
 
 /* Pipelines */

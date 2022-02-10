@@ -51,6 +51,8 @@ get_shader_visibility(enum pipe_shader_type stage)
       return D3D12_SHADER_VISIBILITY_HULL;
    case PIPE_SHADER_TESS_EVAL:
       return D3D12_SHADER_VISIBILITY_DOMAIN;
+   case PIPE_SHADER_COMPUTE:
+      return D3D12_SHADER_VISIBILITY_ALL;
    default:
       unreachable("unknown shader stage");
    }
@@ -70,24 +72,35 @@ init_constant_root_param(D3D12_ROOT_PARAMETER1 *param,
 }
 
 static inline void
-init_range_root_param(D3D12_ROOT_PARAMETER1 *param,
-                      D3D12_DESCRIPTOR_RANGE1 *range,
-                      D3D12_DESCRIPTOR_RANGE_TYPE type,
-                      uint32_t num_descs,
-                      D3D12_SHADER_VISIBILITY visibility,
-                      uint32_t base_shader_register)
+init_range(D3D12_DESCRIPTOR_RANGE1 *range,
+           D3D12_DESCRIPTOR_RANGE_TYPE type,
+           uint32_t num_descs,
+           uint32_t base_shader_register,
+           uint32_t register_space,
+           uint32_t offset_from_start)
 {
    range->RangeType = type;
    range->NumDescriptors = num_descs;
    range->BaseShaderRegister = base_shader_register;
-   range->RegisterSpace = 0;
+   range->RegisterSpace = register_space;
    if (type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ||
        type == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
       range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
    else
       range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS;
-   range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+   range->OffsetInDescriptorsFromTableStart = offset_from_start;
+}
 
+static inline void
+init_range_root_param(D3D12_ROOT_PARAMETER1 *param,
+                      D3D12_DESCRIPTOR_RANGE1 *range,
+                      D3D12_DESCRIPTOR_RANGE_TYPE type,
+                      uint32_t num_descs,
+                      D3D12_SHADER_VISIBILITY visibility,
+                      uint32_t base_shader_register,
+                      uint32_t register_space)
+{
+   init_range(range, type, num_descs, base_shader_register, register_space, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
    param->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
    param->DescriptorTable.NumDescriptorRanges = 1;
    param->DescriptorTable.pDescriptorRanges = range;
@@ -99,60 +112,84 @@ create_root_signature(struct d3d12_context *ctx, struct d3d12_root_signature_key
 {
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
    D3D12_ROOT_PARAMETER1 root_params[D3D12_GFX_SHADER_STAGES * D3D12_NUM_BINDING_TYPES];
-   D3D12_DESCRIPTOR_RANGE1 desc_ranges[D3D12_GFX_SHADER_STAGES * D3D12_NUM_BINDING_TYPES];
+   D3D12_DESCRIPTOR_RANGE1 desc_ranges[D3D12_GFX_SHADER_STAGES * (D3D12_NUM_BINDING_TYPES + 1)];
    unsigned num_params = 0;
+   unsigned num_ranges = 0;
 
-   for (unsigned i = 0; i < D3D12_GFX_SHADER_STAGES; ++i) {
-      D3D12_SHADER_VISIBILITY visibility = get_shader_visibility((enum pipe_shader_type)i);
+   unsigned count = key->compute ? 1 : D3D12_GFX_SHADER_STAGES;
+   for (unsigned i = 0; i < count; ++i) {
+      unsigned stage = key->compute ? PIPE_SHADER_COMPUTE : i;
+      D3D12_SHADER_VISIBILITY visibility = get_shader_visibility((enum pipe_shader_type)stage);
 
       if (key->stages[i].num_cb_bindings > 0) {
-         assert(num_params < PIPE_SHADER_TYPES * D3D12_NUM_BINDING_TYPES);
-         init_range_root_param(&root_params[num_params],
-                               &desc_ranges[num_params],
+         init_range_root_param(&root_params[num_params++],
+                               &desc_ranges[num_ranges++],
                                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
                                key->stages[i].num_cb_bindings,
                                visibility,
-                               key->stages[i].has_default_ubo0 ? 0 : 1);
-         num_params++;
+                               key->stages[i].has_default_ubo0 ? 0 : 1,
+                               0);
       }
 
       if (key->stages[i].end_srv_binding > 0) {
-         init_range_root_param(&root_params[num_params],
-                               &desc_ranges[num_params],
+         init_range_root_param(&root_params[num_params++],
+                               &desc_ranges[num_ranges++],
                                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
                                key->stages[i].end_srv_binding - key->stages[i].begin_srv_binding,
                                visibility,
-            key->stages[i].begin_srv_binding);
-         num_params++;
-      }
+                               key->stages[i].begin_srv_binding,
+                               0);
 
-      if (key->stages[i].end_srv_binding > 0) {
-         init_range_root_param(&root_params[num_params],
-                               &desc_ranges[num_params],
+         init_range_root_param(&root_params[num_params++],
+                               &desc_ranges[num_ranges++],
                                D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
                                key->stages[i].end_srv_binding - key->stages[i].begin_srv_binding,
                                visibility,
-                               key->stages[i].begin_srv_binding);
-         num_params++;
+                               key->stages[i].begin_srv_binding,
+                               0);
+      }
+
+      if (key->stages[i].num_ssbos > 0) {
+         init_range_root_param(&root_params[num_params],
+                               &desc_ranges[num_ranges++],
+                               D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+                               key->stages[i].num_ssbos,
+                               visibility,
+                               0,
+                               0);
+
+         /* To work around a WARP bug, bind these descriptors a second time in descriptor
+          * space 2. Space 0 will be used for static indexing, while space 2 will be used
+          * for dynamic indexing. Space 0 will be individual SSBOs in the DXIL shader, while
+          * space 2 will be a single array.
+          */
+         root_params[num_params++].DescriptorTable.NumDescriptorRanges++;
+         init_range(&desc_ranges[num_ranges++],
+                    D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+                    key->stages[i].num_ssbos,
+                    0,
+                    2,
+                    0);
+      }
+
+      if (key->stages[i].num_images > 0) {
+         init_range_root_param(&root_params[num_params++],
+                               &desc_ranges[num_ranges++],
+                               D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+                               key->stages[i].num_images,
+                               visibility,
+                               0,
+                               1);
       }
 
       if (key->stages[i].state_vars_size > 0) {
-         init_constant_root_param(&root_params[num_params],
-                                  key->stages[i].num_cb_bindings + (key->stages[i].has_default_ubo0 ? 0 : 1),
-                                  key->stages[i].state_vars_size,
-                                  visibility);
-         num_params++;
+         init_constant_root_param(&root_params[num_params++],
+            key->stages[i].num_cb_bindings + (key->stages[i].has_default_ubo0 ? 0 : 1),
+            key->stages[i].state_vars_size,
+            visibility);
       }
-
-      if (key->stages[i].num_uavs > 0) {
-         init_range_root_param(&root_params[num_params],
-                               &desc_ranges[num_params],
-                               D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-                               key->stages[i].num_uavs,
-                               visibility,
-                               0);
-         num_params++;
-      }
+      assert(num_params < PIPE_SHADER_TYPES * D3D12_NUM_BINDING_TYPES);
+      assert(num_ranges < PIPE_SHADER_TYPES * (D3D12_NUM_BINDING_TYPES + 1));
    }
 
    D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_sig_desc;
@@ -164,7 +201,8 @@ create_root_signature(struct d3d12_context *ctx, struct d3d12_root_signature_key
    root_sig_desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
    /* TODO Only enable this flag when needed (optimization) */
-   root_sig_desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+   if (!key->compute)
+      root_sig_desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
    if (key->has_stream_output)
       root_sig_desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
@@ -188,12 +226,16 @@ create_root_signature(struct d3d12_context *ctx, struct d3d12_root_signature_key
 }
 
 static void
-fill_key(struct d3d12_context *ctx, struct d3d12_root_signature_key *key)
+fill_key(struct d3d12_context *ctx, struct d3d12_root_signature_key *key, bool compute)
 {
    memset(key, 0, sizeof(struct d3d12_root_signature_key));
 
-   for (unsigned i = 0; i < D3D12_GFX_SHADER_STAGES; ++i) {
-      struct d3d12_shader *shader = ctx->gfx_pipeline_state.stages[i];
+   key->compute = compute;
+   unsigned count = compute ? 1 : D3D12_GFX_SHADER_STAGES;
+   for (unsigned i = 0; i < count; ++i) {
+      struct d3d12_shader *shader = compute ?
+         ctx->compute_pipeline_state.stage :
+         ctx->gfx_pipeline_state.stages[i];
 
       if (shader) {
          key->stages[i].num_cb_bindings = shader->num_cb_bindings;
@@ -201,20 +243,21 @@ fill_key(struct d3d12_context *ctx, struct d3d12_root_signature_key *key)
          key->stages[i].begin_srv_binding = shader->begin_srv_binding;
          key->stages[i].state_vars_size = shader->state_vars_size;
          key->stages[i].has_default_ubo0 = shader->has_default_ubo0;
-         key->stages[i].num_uavs = shader->nir->info.num_ssbos;
+         key->stages[i].num_ssbos = shader->nir->info.num_ssbos;
+         key->stages[i].num_images = shader->nir->info.num_images;
 
-         if (ctx->gfx_stages[i]->so_info.num_outputs > 0)
+         if (!compute && ctx->gfx_stages[i]->so_info.num_outputs > 0)
             key->has_stream_output = true;
       }
    }
 }
 
 ID3D12RootSignature *
-d3d12_get_root_signature(struct d3d12_context *ctx)
+d3d12_get_root_signature(struct d3d12_context *ctx, bool compute)
 {
    struct d3d12_root_signature_key key;
 
-   fill_key(ctx, &key);
+   fill_key(ctx, &key, compute);
    struct hash_entry *entry = _mesa_hash_table_search(ctx->root_signature_cache, &key);
    if (!entry) {
       struct d3d12_root_signature *data =

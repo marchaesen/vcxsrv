@@ -147,14 +147,14 @@ overwrite_incomplete_primitives(struct state *state, unsigned stream)
    assert(state->count_vtx_per_prim);
 
    nir_builder *b = state->builder;
-   unsigned outprim = b->shader->info.gs.output_primitive;
+   enum shader_prim outprim = b->shader->info.gs.output_primitive;
    unsigned outprim_min_vertices;
 
-   if (outprim == GL_POINTS)
+   if (outprim == SHADER_PRIM_POINTS)
       outprim_min_vertices = 1;
-   else if (outprim == GL_LINE_STRIP)
+   else if (outprim == SHADER_PRIM_LINE_STRIP)
       outprim_min_vertices = 2;
-   else if (outprim == GL_TRIANGLE_STRIP)
+   else if (outprim == SHADER_PRIM_TRIANGLE_STRIP)
       outprim_min_vertices = 3;
    else
       unreachable("Invalid GS output primitive type.");

@@ -26,7 +26,7 @@
  */
 
 #include "main/macros.h"
-#include "main/mtypes.h"
+#include "main/consts_exts.h"
 #include "compiler/glsl_types.h"
 #include "ir.h"
 #include "ir_builder.h"

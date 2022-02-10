@@ -109,9 +109,8 @@ static void
 crocus_get_device_uuid(struct pipe_screen *pscreen, char *uuid)
 {
    struct crocus_screen *screen = (struct crocus_screen *)pscreen;
-   const struct isl_device *isldev = &screen->isl_dev;
 
-   intel_uuid_compute_device_id((uint8_t *)uuid, isldev, PIPE_UUID_SIZE);
+   intel_uuid_compute_device_id((uint8_t *)uuid, &screen->devinfo, PIPE_UUID_SIZE);
 }
 
 static void
@@ -283,6 +282,7 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return BRW_MAX_SOL_BINDINGS / CROCUS_MAX_SOL_BUFFERS;
    case PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS:
       return BRW_MAX_SOL_BINDINGS;
+   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
    case PIPE_CAP_GLSL_FEATURE_LEVEL: {
       if (devinfo->verx10 >= 75)
          return 460;
@@ -292,8 +292,6 @@ crocus_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
          return 330;
       return 140;
    }
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return 140;
    case PIPE_CAP_CLIP_PLANES:
       if (devinfo->verx10 < 45)
          return 6;
@@ -732,7 +730,7 @@ crocus_screen_create(int fd, const struct pipe_screen_config *config)
 
    if (!intel_get_device_info_from_fd(fd, &screen->devinfo))
       return NULL;
-   screen->pci_id = screen->devinfo.chipset_id;
+   screen->pci_id = screen->devinfo.pci_device_id;
 
    if (screen->devinfo.ver > 8)
       return NULL;

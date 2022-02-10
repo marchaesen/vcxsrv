@@ -39,6 +39,7 @@
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_math.h"
+#include "util/u_prim.h"
 #include "util/u_bitmask.h"
 #include "GL/gl.h"
 #include "compiler/shader_info.h"
@@ -2192,7 +2193,7 @@ const struct tgsi_token *ureg_get_tokens( struct ureg_program *ureg,
    if (nr_tokens)
       *nr_tokens = ureg->domain[DOMAIN_DECL].count;
 
-   ureg->domain[DOMAIN_DECL].tokens = 0;
+   ureg->domain[DOMAIN_DECL].tokens = NULL;
    ureg->domain[DOMAIN_DECL].size = 0;
    ureg->domain[DOMAIN_DECL].order = 0;
    ureg->domain[DOMAIN_DECL].count = 0;
@@ -2297,11 +2298,7 @@ static void
 ureg_setup_tess_eval_shader(struct ureg_program *ureg,
                             const struct shader_info *info)
 {
-   if (info->tess.primitive_mode == GL_ISOLINES)
-      ureg_property(ureg, TGSI_PROPERTY_TES_PRIM_MODE, GL_LINES);
-   else
-      ureg_property(ureg, TGSI_PROPERTY_TES_PRIM_MODE,
-                    info->tess.primitive_mode);
+   ureg_property(ureg, TGSI_PROPERTY_TES_PRIM_MODE, u_tess_prim_from_shader(info->tess._primitive_mode));
 
    STATIC_ASSERT((TESS_SPACING_EQUAL + 1) % 3 == PIPE_TESS_SPACING_EQUAL);
    STATIC_ASSERT((TESS_SPACING_FRACTIONAL_ODD + 1) % 3 ==

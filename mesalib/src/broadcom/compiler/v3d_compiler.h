@@ -720,6 +720,7 @@ struct v3d_compile {
         struct qblock *current_unifa_block;
         int32_t current_unifa_index;
         uint32_t current_unifa_offset;
+        bool current_unifa_is_ubo;
 
         /* State for whether we're executing on each channel currently.  0 if
          * yes, otherwise a block number + 1 that the channel jumped to.
@@ -1109,6 +1110,7 @@ void v3d_nir_lower_robust_buffer_access(nir_shader *shader, struct v3d_compile *
 void v3d_nir_lower_scratch(nir_shader *s);
 void v3d_nir_lower_txf_ms(nir_shader *s, struct v3d_compile *c);
 void v3d_nir_lower_image_load_store(nir_shader *s);
+void v3d_nir_lower_load_store_bitsize(nir_shader *s, struct v3d_compile *c);
 
 void v3d33_vir_vpm_read_setup(struct v3d_compile *c, int num_components);
 void v3d33_vir_vpm_write_setup(struct v3d_compile *c);
@@ -1125,7 +1127,7 @@ bool vir_init_reg_sets(struct v3d_compiler *compiler);
 
 int v3d_shaderdb_dump(struct v3d_compile *c, char **shaderdb_str);
 
-bool v3d_gl_format_is_return_32(GLenum format);
+bool v3d_gl_format_is_return_32(enum pipe_format format);
 
 uint32_t
 v3d_get_op_for_atomic_add(nir_intrinsic_instr *instr, unsigned src);

@@ -35,4 +35,7 @@ _mesa_query_internal_format_default(struct gl_context *ctx, GLenum target,
                                     GLenum internalFormat, GLenum pname,
                                     GLint *params);
 
+bool
+_mesa_is_multisample_target(GLenum target);
+
 #endif /* FORMATQUERY_H */

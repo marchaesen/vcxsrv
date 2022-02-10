@@ -3,7 +3,6 @@ KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_compo
 KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_short_depth_component16,Fail
 
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3133
-KHR-GLES2.texture_3d.copy_sub_image.negative,Fail
 KHR-GLES2.texture_3d.copy_sub_image.rgba,Fail
 
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_clamp,Fail
@@ -330,9 +329,6 @@ KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_mirror_repeat
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_clamp,Fail
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_mirror,Fail
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_repeat,Fail
-
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3134
-KHR-GLES2.texture_3d.filtering.combinations.negative,Fail
 
 KHR-GLES2.texture_3d.filtering.formats.rgba8_linear,Fail
 KHR-GLES2.texture_3d.filtering.formats.rgba8_linear_mipmap_linear,Fail
@@ -1247,6 +1243,7 @@ spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT24- swizzled,Fail
 spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT32,Fail
 spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT32- NPOT,Fail
 spec@arb_depth_texture@texwrap formats@GL_DEPTH_COMPONENT32- swizzled,Fail
+spec@arb_draw_buffers@fbo-mrt-alphatest,Fail
 spec@arb_draw_elements_base_vertex@arb_draw_elements_base_vertex-negative-index,Crash
 spec@arb_draw_elements_base_vertex@arb_draw_elements_base_vertex-negative-index-user_varrays,Crash
 spec@arb_es2_compatibility@texwrap formats,Fail
@@ -1318,6 +1315,7 @@ spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_WIDTH,
 spec@arb_occlusion_query2@render,Fail
 spec@arb_occlusion_query@occlusion_query,Fail
 spec@arb_occlusion_query@occlusion_query_conform,Fail
+spec@arb_occlusion_query@occlusion_query_conform@GetObjivAval_multi2,Fail
 spec@arb_occlusion_query@occlusion_query_meta_fragments,Fail
 spec@arb_occlusion_query@occlusion_query_meta_save,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
@@ -1334,7 +1332,9 @@ spec@arb_texture_rectangle@copyteximage rect samples=4,Crash
 spec@arb_texture_rectangle@texrect-many,Crash
 spec@arb_texture_storage@texture-storage,Fail
 spec@arb_texture_storage@texture-storage@3D mipmapped ,Fail
+spec@arb_texture_storage@texture-storage@3D mipmapped (EXT_dsa),Fail
 spec@arb_texture_storage@texture-storage@3D non-mipmapped ,Fail
+spec@arb_texture_storage@texture-storage@3D non-mipmapped (EXT_dsa),Fail
 spec@arb_vertex_program@minmax,Fail
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl 1.4@largest possible eglcreatepbuffersurface and then glclear,Fail

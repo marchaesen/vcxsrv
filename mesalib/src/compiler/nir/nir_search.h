@@ -142,8 +142,11 @@ typedef struct {
    /** In a replacement, requests that the instruction be marked exact. */
    bool exact : 1;
 
+   /** Don't make the replacement exact if the search expression is exact. */
+   bool ignore_exact : 1;
+
    /* One of nir_op or nir_search_op */
-   uint16_t opcode : 14;
+   uint16_t opcode : 13;
 
    /* Commutative expression index.  This is assigned by opt_algebraic.py when
     * search structures are constructed and is a unique (to this structure)
@@ -189,7 +192,7 @@ typedef union {
    nir_search_expression expression;
 } nir_search_value_union;
 
-typedef bool (*nir_search_expression_cond)(nir_alu_instr *instr);
+typedef bool (*nir_search_expression_cond)(const nir_alu_instr *instr);
 typedef bool (*nir_search_variable_cond)(struct hash_table *range_ht,
                                          const nir_alu_instr *instr,
                                          unsigned src, unsigned num_components,

@@ -547,8 +547,12 @@ compile_shader(struct tu_device *dev, struct nir_shader *nir,
 
    ir3_finalize_nir(dev->compiler, nir);
 
-   struct ir3_shader *sh = ir3_shader_from_nir(dev->compiler, nir,
-                                               align(consts, 4), NULL);
+   struct ir3_shader *sh =
+      ir3_shader_from_nir(dev->compiler, nir, &(struct ir3_shader_options) {
+                              .api_wavesize = IR3_SINGLE_OR_DOUBLE,
+                              .real_wavesize = IR3_SINGLE_OR_DOUBLE,
+                              .reserved_user_consts = align(consts, 4),
+                          }, NULL);
 
    struct ir3_shader_key key = {};
    bool created;
@@ -824,7 +828,6 @@ r3d_src_common(struct tu_cmd_buffer *cmd,
       A6XX_TEX_SAMP_0_WRAP_R(A6XX_TEX_CLAMP_TO_EDGE) |
       0x60000; /* XXX used by blob, doesn't seem necessary */
    texture.map[A6XX_TEX_CONST_DWORDS + 1] =
-      0x1 | /* XXX used by blob, doesn't seem necessary */
       A6XX_TEX_SAMP_1_UNNORM_COORDS |
       A6XX_TEX_SAMP_1_MIPFILTER_LINEAR_FAR;
    texture.map[A6XX_TEX_CONST_DWORDS + 2] = 0;
@@ -1221,7 +1224,7 @@ tu6_clear_lrz(struct tu_cmd_buffer *cmd,
               VK_SAMPLE_COUNT_1_BIT);
    ops->clear_value(cs, PIPE_FORMAT_Z16_UNORM, value);
    ops->dst_buffer(cs, PIPE_FORMAT_Z16_UNORM,
-                   image->bo->iova + image->bo_offset + image->lrz_offset,
+                   image->iova + image->lrz_offset,
                    image->lrz_pitch * 2);
    ops->coords(cs, &(VkOffset2D) {}, NULL, &(VkExtent2D) {image->lrz_pitch, image->lrz_height});
    ops->run(cmd, cs);
@@ -1249,7 +1252,7 @@ tu_image_view_copy_blit(struct fdl6_view *iview,
       &image->layout[tu6_plane_index(image->vk_format, aspect_mask)];
 
    fdl6_view_init(iview, &layout, &(struct fdl_view_args) {
-      .iova = image->bo->iova + image->bo_offset,
+      .iova = image->iova,
       .base_array_layer = subres->baseArrayLayer + layer,
       .layer_count = 1,
       .base_miplevel = subres->mipLevel,
@@ -1291,7 +1294,7 @@ static void
 tu6_blit_image(struct tu_cmd_buffer *cmd,
                struct tu_image *src_image,
                struct tu_image *dst_image,
-               const VkImageBlit *info,
+               const VkImageBlit2KHR *info,
                VkFilter filter)
 {
    const struct blit_ops *ops = &r2d_ops;
@@ -1424,35 +1427,30 @@ tu6_blit_image(struct tu_cmd_buffer *cmd,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_CmdBlitImage(VkCommandBuffer commandBuffer,
-                VkImage srcImage,
-                VkImageLayout srcImageLayout,
-                VkImage dstImage,
-                VkImageLayout dstImageLayout,
-                uint32_t regionCount,
-                const VkImageBlit *pRegions,
-                VkFilter filter)
+tu_CmdBlitImage2KHR(VkCommandBuffer commandBuffer,
+                    const VkBlitImageInfo2KHR* pBlitImageInfo)
 
 {
    TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_image, src_image, srcImage);
-   TU_FROM_HANDLE(tu_image, dst_image, dstImage);
+   TU_FROM_HANDLE(tu_image, src_image, pBlitImageInfo->srcImage);
+   TU_FROM_HANDLE(tu_image, dst_image, pBlitImageInfo->dstImage);
 
-   for (uint32_t i = 0; i < regionCount; ++i) {
+   for (uint32_t i = 0; i < pBlitImageInfo->regionCount; ++i) {
       /* can't blit both depth and stencil at once with D32_S8
        * TODO: more advanced 3D blit path to support it instead?
        */
       if (src_image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
           dst_image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
-         VkImageBlit region = pRegions[i];
-         u_foreach_bit(b, pRegions[i].dstSubresource.aspectMask) {
+         VkImageBlit2KHR region = pBlitImageInfo->pRegions[i];
+         u_foreach_bit(b, region.dstSubresource.aspectMask) {
             region.srcSubresource.aspectMask = BIT(b);
             region.dstSubresource.aspectMask = BIT(b);
-            tu6_blit_image(cmd, src_image, dst_image, &region, filter);
+            tu6_blit_image(cmd, src_image, dst_image, &region, pBlitImageInfo->filter);
          }
          continue;
       }
-      tu6_blit_image(cmd, src_image, dst_image, pRegions + i, filter);
+      tu6_blit_image(cmd, src_image, dst_image, pBlitImageInfo->pRegions + i,
+                     pBlitImageInfo->filter);
    }
 }
 
@@ -1486,7 +1484,7 @@ static void
 tu_copy_buffer_to_image(struct tu_cmd_buffer *cmd,
                         struct tu_buffer *src_buffer,
                         struct tu_image *dst_image,
-                        const VkBufferImageCopy *info)
+                        const VkBufferImageCopy2KHR *info)
 {
    struct tu_cs *cs = &cmd->cs;
    uint32_t layers = MAX2(info->imageExtent.depth, info->imageSubresource.layerCount);
@@ -1526,7 +1524,7 @@ tu_copy_buffer_to_image(struct tu_cmd_buffer *cmd,
    for (uint32_t i = 0; i < layers; i++) {
       ops->dst(cs, &dst, i);
 
-      uint64_t src_va = tu_buffer_iova(src_buffer) + info->bufferOffset + layer_size * i;
+      uint64_t src_va = src_buffer->iova + info->bufferOffset + layer_size * i;
       if ((src_va & 63) || (pitch & 63)) {
          for (uint32_t y = 0; y < extent.height; y++) {
             uint32_t x = (src_va & 63) / util_format_get_blocksize(src_format);
@@ -1548,26 +1546,23 @@ tu_copy_buffer_to_image(struct tu_cmd_buffer *cmd,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
-                        VkBuffer srcBuffer,
-                        VkImage dstImage,
-                        VkImageLayout dstImageLayout,
-                        uint32_t regionCount,
-                        const VkBufferImageCopy *pRegions)
+tu_CmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
+                            const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo)
 {
    TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_image, dst_image, dstImage);
-   TU_FROM_HANDLE(tu_buffer, src_buffer, srcBuffer);
+   TU_FROM_HANDLE(tu_image, dst_image, pCopyBufferToImageInfo->dstImage);
+   TU_FROM_HANDLE(tu_buffer, src_buffer, pCopyBufferToImageInfo->srcBuffer);
 
-   for (unsigned i = 0; i < regionCount; ++i)
-      tu_copy_buffer_to_image(cmd, src_buffer, dst_image, pRegions + i);
+   for (unsigned i = 0; i < pCopyBufferToImageInfo->regionCount; ++i)
+      tu_copy_buffer_to_image(cmd, src_buffer, dst_image,
+                              pCopyBufferToImageInfo->pRegions + i);
 }
 
 static void
 tu_copy_image_to_buffer(struct tu_cmd_buffer *cmd,
                         struct tu_image *src_image,
                         struct tu_buffer *dst_buffer,
-                        const VkBufferImageCopy *info)
+                        const VkBufferImageCopy2KHR *info)
 {
    struct tu_cs *cs = &cmd->cs;
    uint32_t layers = MAX2(info->imageExtent.depth, info->imageSubresource.layerCount);
@@ -1607,7 +1602,7 @@ tu_copy_image_to_buffer(struct tu_cmd_buffer *cmd,
    for (uint32_t i = 0; i < layers; i++) {
       ops->src(cmd, cs, &src, i, VK_FILTER_NEAREST);
 
-      uint64_t dst_va = tu_buffer_iova(dst_buffer) + info->bufferOffset + layer_size * i;
+      uint64_t dst_va = dst_buffer->iova + info->bufferOffset + layer_size * i;
       if ((dst_va & 63) || (pitch & 63)) {
          for (uint32_t y = 0; y < extent.height; y++) {
             uint32_t x = (dst_va & 63) / util_format_get_blocksize(dst_format);
@@ -1628,19 +1623,16 @@ tu_copy_image_to_buffer(struct tu_cmd_buffer *cmd,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_CmdCopyImageToBuffer(VkCommandBuffer commandBuffer,
-                        VkImage srcImage,
-                        VkImageLayout srcImageLayout,
-                        VkBuffer dstBuffer,
-                        uint32_t regionCount,
-                        const VkBufferImageCopy *pRegions)
+tu_CmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
+                            const VkCopyImageToBufferInfo2KHR* pCopyImageToBufferInfo)
 {
    TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_image, src_image, srcImage);
-   TU_FROM_HANDLE(tu_buffer, dst_buffer, dstBuffer);
+   TU_FROM_HANDLE(tu_image, src_image, pCopyImageToBufferInfo->srcImage);
+   TU_FROM_HANDLE(tu_buffer, dst_buffer, pCopyImageToBufferInfo->dstBuffer);
 
-   for (unsigned i = 0; i < regionCount; ++i)
-      tu_copy_image_to_buffer(cmd, src_image, dst_buffer, pRegions + i);
+   for (unsigned i = 0; i < pCopyImageToBufferInfo->regionCount; ++i)
+      tu_copy_image_to_buffer(cmd, src_image, dst_buffer,
+                              pCopyImageToBufferInfo->pRegions + i);
 }
 
 /* Tiled formats don't support swapping, which means that we can't support
@@ -1676,7 +1668,7 @@ static void
 tu_copy_image_to_image(struct tu_cmd_buffer *cmd,
                        struct tu_image *src_image,
                        struct tu_image *dst_image,
-                       const VkImageCopy *info)
+                       const VkImageCopy2KHR *info)
 {
    const struct blit_ops *ops = &r2d_ops;
    struct tu_cs *cs = &cmd->cs;
@@ -1856,22 +1848,17 @@ tu_copy_image_to_image(struct tu_cmd_buffer *cmd,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_CmdCopyImage(VkCommandBuffer commandBuffer,
-                VkImage srcImage,
-                VkImageLayout srcImageLayout,
-                VkImage destImage,
-                VkImageLayout destImageLayout,
-                uint32_t regionCount,
-                const VkImageCopy *pRegions)
+tu_CmdCopyImage2KHR(VkCommandBuffer commandBuffer,
+                    const VkCopyImageInfo2KHR* pCopyImageInfo)
 {
    TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_image, src_image, srcImage);
-   TU_FROM_HANDLE(tu_image, dst_image, destImage);
+   TU_FROM_HANDLE(tu_image, src_image, pCopyImageInfo->srcImage);
+   TU_FROM_HANDLE(tu_image, dst_image, pCopyImageInfo->dstImage);
 
-   for (uint32_t i = 0; i < regionCount; ++i) {
+   for (uint32_t i = 0; i < pCopyImageInfo->regionCount; ++i) {
       if (src_image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
-         VkImageCopy info = pRegions[i];
-         u_foreach_bit(b, pRegions[i].dstSubresource.aspectMask) {
+         VkImageCopy2KHR info = pCopyImageInfo->pRegions[i];
+         u_foreach_bit(b, info.dstSubresource.aspectMask) {
             info.srcSubresource.aspectMask = BIT(b);
             info.dstSubresource.aspectMask = BIT(b);
             tu_copy_image_to_image(cmd, src_image, dst_image, &info);
@@ -1879,7 +1866,8 @@ tu_CmdCopyImage(VkCommandBuffer commandBuffer,
          continue;
       }
 
-      tu_copy_image_to_image(cmd, src_image, dst_image, pRegions + i);
+      tu_copy_image_to_image(cmd, src_image, dst_image,
+                             pCopyImageInfo->pRegions + i);
    }
 }
 
@@ -1917,21 +1905,19 @@ copy_buffer(struct tu_cmd_buffer *cmd,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_CmdCopyBuffer(VkCommandBuffer commandBuffer,
-                 VkBuffer srcBuffer,
-                 VkBuffer dstBuffer,
-                 uint32_t regionCount,
-                 const VkBufferCopy *pRegions)
+tu_CmdCopyBuffer2KHR(VkCommandBuffer commandBuffer,
+                     const VkCopyBufferInfo2KHR *pCopyBufferInfo)
 {
    TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_buffer, src_buffer, srcBuffer);
-   TU_FROM_HANDLE(tu_buffer, dst_buffer, dstBuffer);
+   TU_FROM_HANDLE(tu_buffer, src_buffer, pCopyBufferInfo->srcBuffer);
+   TU_FROM_HANDLE(tu_buffer, dst_buffer, pCopyBufferInfo->dstBuffer);
 
-   for (unsigned i = 0; i < regionCount; ++i) {
+   for (unsigned i = 0; i < pCopyBufferInfo->regionCount; ++i) {
+      const VkBufferCopy2KHR *region = &pCopyBufferInfo->pRegions[i];
       copy_buffer(cmd,
-                  tu_buffer_iova(dst_buffer) + pRegions[i].dstOffset,
-                  tu_buffer_iova(src_buffer) + pRegions[i].srcOffset,
-                  pRegions[i].size, 1);
+                  dst_buffer->iova + region->dstOffset,
+                  src_buffer->iova + region->srcOffset,
+                  region->size, 1);
    }
 }
 
@@ -1953,7 +1939,7 @@ tu_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
    }
 
    memcpy(tmp.map, pData, dataSize);
-   copy_buffer(cmd, tu_buffer_iova(buffer) + dstOffset, tmp.iova, dataSize, 4);
+   copy_buffer(cmd, buffer->iova + dstOffset, tmp.iova, dataSize, 4);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -1971,7 +1957,7 @@ tu_CmdFillBuffer(VkCommandBuffer commandBuffer,
    if (fillSize == VK_WHOLE_SIZE)
       fillSize = buffer->size - dstOffset;
 
-   uint64_t dst_va = tu_buffer_iova(buffer) + dstOffset;
+   uint64_t dst_va = buffer->iova + dstOffset;
    uint32_t blocks = fillSize / 4;
 
    ops->setup(cmd, cs, PIPE_FORMAT_R32_UINT, VK_IMAGE_ASPECT_COLOR_BIT, 0, true, false,
@@ -1994,17 +1980,12 @@ tu_CmdFillBuffer(VkCommandBuffer commandBuffer,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-tu_CmdResolveImage(VkCommandBuffer commandBuffer,
-                   VkImage srcImage,
-                   VkImageLayout srcImageLayout,
-                   VkImage dstImage,
-                   VkImageLayout dstImageLayout,
-                   uint32_t regionCount,
-                   const VkImageResolve *pRegions)
+tu_CmdResolveImage2KHR(VkCommandBuffer commandBuffer,
+                       const VkResolveImageInfo2KHR* pResolveImageInfo)
 {
    TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_image, src_image, srcImage);
-   TU_FROM_HANDLE(tu_image, dst_image, dstImage);
+   TU_FROM_HANDLE(tu_image, src_image, pResolveImageInfo->srcImage);
+   TU_FROM_HANDLE(tu_image, dst_image, pResolveImageInfo->dstImage);
    const struct blit_ops *ops = &r2d_ops;
    struct tu_cs *cs = &cmd->cs;
 
@@ -2012,8 +1993,8 @@ tu_CmdResolveImage(VkCommandBuffer commandBuffer,
               VK_IMAGE_ASPECT_COLOR_BIT, 0, false, dst_image->layout[0].ubwc, 
               VK_SAMPLE_COUNT_1_BIT);
 
-   for (uint32_t i = 0; i < regionCount; ++i) {
-      const VkImageResolve *info = &pRegions[i];
+   for (uint32_t i = 0; i < pResolveImageInfo->regionCount; ++i) {
+      const VkImageResolve2KHR *info = &pResolveImageInfo->pRegions[i];
       uint32_t layers = MAX2(info->extent.depth, info->dstSubresource.layerCount);
 
       assert(info->srcSubresource.layerCount == info->dstSubresource.layerCount);

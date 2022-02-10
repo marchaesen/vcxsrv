@@ -184,7 +184,7 @@ tu_image_view_init(struct tu_image_view *iview,
    }
 
    struct fdl_view_args args = {};
-   args.iova = image->bo->iova + image->bo_offset;
+   args.iova = image->iova;
    args.base_array_layer = range->baseArrayLayer;
    args.base_miplevel = range->baseMipLevel;
    args.layer_count = tu_get_layerCount(image, range);
@@ -230,7 +230,7 @@ tu_image_view_init(struct tu_image_view *iview,
 
    if (image->vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
       struct fdl_layout *layout = &image->layout[1];
-      iview->stencil_base_addr = image->bo->iova + image->bo_offset +
+      iview->stencil_base_addr = image->iova +
          fdl_surface_offset(layout, range->baseMipLevel, range->baseArrayLayer);
       iview->stencil_layer_size = fdl_layer_stride(layout, range->baseMipLevel);
       iview->stencil_PITCH = A6XX_RB_STENCIL_BUFFER_PITCH(fdl_pitch(layout, range->baseMipLevel)).value;
@@ -662,7 +662,7 @@ tu_buffer_view_init(struct tu_buffer_view *view,
 
    fdl6_buffer_view_init(
       view->descriptor, tu_vk_format_to_pipe_format(pCreateInfo->format),
-      swiz, tu_buffer_iova(buffer) + pCreateInfo->offset, range);
+      swiz, buffer->iova + pCreateInfo->offset, range);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

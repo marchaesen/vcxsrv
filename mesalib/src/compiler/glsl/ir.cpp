@@ -1807,7 +1807,16 @@ ir_texture::set_sampler(ir_dereference *sampler, const glsl_type *type)
    assert(sampler != NULL);
    assert(type != NULL);
    this->sampler = sampler;
-   this->type = type;
+
+   if (this->is_sparse) {
+      /* code holds residency info */
+      glsl_struct_field fields[2] = {
+         glsl_struct_field(glsl_type::int_type, "code"),
+         glsl_struct_field(type, "texel"),
+      };
+      this->type = glsl_type::get_struct_instance(fields, 2, "struct");
+   } else
+      this->type = type;
 
    if (this->op == ir_txs || this->op == ir_query_levels ||
        this->op == ir_texture_samples) {

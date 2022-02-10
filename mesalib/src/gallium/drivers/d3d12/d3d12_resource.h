@@ -35,7 +35,8 @@ struct pipe_screen;
 enum d3d12_resource_binding_type {
    D3D12_RESOURCE_BINDING_TYPE_SRV,
    D3D12_RESOURCE_BINDING_TYPE_CBV,
-   D3D12_RESOURCE_BINDING_TYPE_UAV,
+   D3D12_RESOURCE_BINDING_TYPE_SSBO,
+   D3D12_RESOURCE_BINDING_TYPE_IMAGE,
    D3D12_RESOURCE_BINDING_TYPES
 };
 
@@ -119,10 +120,6 @@ void
 d3d12_resource_wait_idle(struct d3d12_context *ctx,
                          struct d3d12_resource *res,
                          bool want_to_write);
-
-void
-d3d12_resource_make_writeable(struct pipe_context *pctx,
-                              struct pipe_resource *pres);
 
 void
 d3d12_screen_resource_init(struct pipe_screen *pscreen);

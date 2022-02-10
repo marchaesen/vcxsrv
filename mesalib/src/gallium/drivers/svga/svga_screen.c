@@ -74,6 +74,9 @@ static const struct debug_named_value svga_debug_flags[] = {
    { "streamout",   DEBUG_STREAMOUT, NULL },
    { "query",       DEBUG_QUERY, NULL },
    { "samplers",    DEBUG_SAMPLERS, NULL },
+   { "image",       DEBUG_IMAGE, NULL },
+   { "uav",         DEBUG_UAV, NULL },
+   { "retry",       DEBUG_RETRY, NULL },
    DEBUG_NAMED_VALUE_END
 };
 #endif
@@ -220,6 +223,9 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
       return sws->have_vgpu10;
+   case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
+      return sws->have_vgpu10 ? 16 : 0;
+
    case PIPE_CAP_TEXTURE_SWIZZLE:
       return 1;
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
@@ -275,16 +281,16 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1; /* expected for GL_ARB_framebuffer_object */
 
    case PIPE_CAP_GLSL_FEATURE_LEVEL:
-      if (sws->have_sm5) {
+   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
+      if (sws->have_gl43) {
+         return 430;
+      } else if (sws->have_sm5) {
          return 410;
       } else if (sws->have_vgpu10) {
          return 330;
       } else {
          return 120;
       }
-
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return sws->have_sm5 ? 410 : (sws->have_vgpu10 ? 330 : 120);
 
    case PIPE_CAP_TEXTURE_TRANSFER_MODES:
       return 0;
@@ -368,12 +374,28 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MAX_VERTEX_STREAMS:
       return sws->have_sm5 ? 4 : 0;
    case PIPE_CAP_COMPUTE:
-      return 0;
+      return sws->have_gl43;
    case PIPE_CAP_MAX_VARYINGS:
-      return sws->have_vgpu10 ? VGPU10_MAX_FS_INPUTS : 10;
+      /* According to the spec, max varyings does not include the components
+       * for position, so remove one count from the max for position.
+       */
+      return sws->have_vgpu10 ? VGPU10_MAX_FS_INPUTS-1 : 10;
    case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
       return sws->have_coherent;
 
+   case PIPE_CAP_START_INSTANCE:
+      return sws->have_sm5;
+   case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
+      return sws->have_sm5;
+
+   case PIPE_CAP_SAMPLER_VIEW_TARGET:
+      return sws->have_gl43;
+
+   case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
+      return sws->have_gl43;
+
+   case PIPE_CAP_CLIP_HALFZ:
+      return sws->have_gl43;
    case PIPE_CAP_SHAREABLE_SHADERS:
       return 0;
 
@@ -382,6 +404,15 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_PCI_DEVICE:
    case PIPE_CAP_PCI_FUNCTION:
       return 0;
+   case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
+      return sws->have_gl43 ? 16 : 0;
+
+   case PIPE_CAP_MAX_COMBINED_SHADER_OUTPUT_RESOURCES:
+   case PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS:
+      return sws->have_gl43 ? SVGA_MAX_SHADER_BUFFERS : 0;
+   case PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTERS:
+   case PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTER_BUFFERS:
+      return sws->have_gl43 ? SVGA_MAX_ATOMIC_BUFFERS : 0;
    case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
       return 64;
    case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
@@ -426,6 +457,12 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
    /* Verify this once protocol is finalized. Setting it to minimum value. */
    case PIPE_CAP_MAX_SHADER_PATCH_VARYINGS:
       return sws->have_sm5 ? 30 : 0;
+   case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
+      return 1;
+   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
+      return 1;
+   case PIPE_CAP_IMAGE_STORE_FORMATTED:
+      return sws->have_gl43;
    default:
       return u_pipe_screen_get_param_defaults(screen, param);
    }
@@ -621,7 +658,7 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
        (shader == PIPE_SHADER_TESS_CTRL || shader == PIPE_SHADER_TESS_EVAL))
       return 0;
 
-   if (shader == PIPE_SHADER_COMPUTE)
+   if ((!sws->have_gl43) && (shader == PIPE_SHADER_COMPUTE))
       return 0;
 
    /* NOTE: we do not query the device for any caps/limits at this time */
@@ -639,13 +676,13 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
       if (shader == PIPE_SHADER_FRAGMENT)
          return VGPU10_MAX_FS_INPUTS;
       else if (shader == PIPE_SHADER_GEOMETRY)
-         return VGPU10_MAX_GS_INPUTS;
+         return svgascreen->max_gs_inputs;
       else if (shader == PIPE_SHADER_TESS_CTRL)
          return VGPU11_MAX_HS_INPUT_CONTROL_POINTS;
       else if (shader == PIPE_SHADER_TESS_EVAL)
          return VGPU11_MAX_DS_INPUT_CONTROL_POINTS;
       else
-         return VGPU10_MAX_VS_INPUTS;
+         return svgascreen->max_vs_inputs;
    case PIPE_SHADER_CAP_MAX_OUTPUTS:
       if (shader == PIPE_SHADER_FRAGMENT)
          return VGPU10_MAX_FS_OUTPUTS;
@@ -656,7 +693,8 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
       else if (shader == PIPE_SHADER_TESS_EVAL)
          return VGPU11_MAX_DS_OUTPUTS;
       else
-         return VGPU10_MAX_VS_OUTPUTS;
+         return svgascreen->max_vs_outputs;
+
    case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
       return VGPU10_MAX_CONSTANT_BUFFER_ELEMENT_COUNT * sizeof(float[4]);
    case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
@@ -681,23 +719,38 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
       return FALSE;
    case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
    case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return SVGA3D_DX_MAX_SAMPLERS;
+      return sws->have_gl43 ? PIPE_MAX_SAMPLERS : SVGA3D_DX_MAX_SAMPLERS;
    case PIPE_SHADER_CAP_PREFERRED_IR:
       return PIPE_SHADER_IR_TGSI;
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return 1 << PIPE_SHADER_IR_TGSI;
+      if (sws->have_gl43)
+         return 1 << PIPE_SHADER_IR_TGSI;
+      else
+         return 0;
    case PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_DFRACEXP_DLDEXP_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_LDEXP_SUPPORTED:
+      /* For the above cases, we rely on the GLSL compiler to translate/lower
+       * the TGIS instruction into other instructions we do support.
+       */
+      return 0;
    case PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED:
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
+      return sws->have_sm5;
+
    case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
+      return sws->have_gl43 ? SVGA_MAX_IMAGES : 0;
+
+   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
+      return sws->have_gl43 ? SVGA_MAX_SHADER_BUFFERS : 0;
+
+   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
+   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
+      return sws->have_gl43 ? SVGA_MAX_ATOMIC_BUFFERS : 0;
+
+   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
    case PIPE_SHADER_CAP_LOWER_IF_THRESHOLD:
    case PIPE_SHADER_CAP_TGSI_SKIP_MERGE_REGISTERS:
    case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
       return 0;
    case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
       return 32;
@@ -723,6 +776,45 @@ svga_get_shader_param(struct pipe_screen *screen, enum pipe_shader_type shader,
    }
 }
 
+
+static int
+svga_sm5_get_compute_param(struct pipe_screen *screen,
+                           enum pipe_shader_ir ir_type,
+                           enum pipe_compute_cap param,
+                           void *ret)
+{
+   ASSERTED struct svga_screen *svgascreen = svga_screen(screen);
+   ASSERTED struct svga_winsys_screen *sws = svgascreen->sws;
+   uint64_t *iret = (uint64_t *)ret;
+
+   assert(sws->have_gl43);
+   assert(ir_type == PIPE_SHADER_IR_TGSI);
+
+   switch (param) {
+   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
+      iret[0] = 65535;
+      iret[1] = 65535;
+      iret[2] = 65535;
+      return 3 * sizeof(uint64_t);
+   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
+      iret[0] = 1024;
+      iret[1] = 1024;
+      iret[2] = 64;
+      return 3 * sizeof(uint64_t);
+   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
+      *iret = 1024;
+      return sizeof(uint64_t);
+   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
+      *iret = 32768;
+      return sizeof(uint64_t);
+   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
+      *iret = 0;
+      return sizeof(uint64_t);
+   default:
+      debug_printf("Unexpected compute param %u\n", param);
+   }
+   return 0;
+}
 
 static void
 svga_fence_reference(struct pipe_screen *screen,
@@ -956,6 +1048,9 @@ svga_screen_create(struct svga_winsys_screen *sws)
    screen->fence_get_fd = svga_fence_get_fd;
 
    screen->get_driver_query_info = svga_get_driver_query_info;
+
+   screen->get_compute_param = svga_sm5_get_compute_param;
+
    svgascreen->sws = sws;
 
    svga_init_screen_resource_functions(svgascreen);
@@ -973,7 +1068,29 @@ svga_screen_create(struct svga_winsys_screen *sws)
       goto error2;
    }
 
+   if (sws->have_gl43) {
+      svgascreen->forcedSampleCount =
+         get_uint_cap(sws, SVGA3D_DEVCAP_MAX_FORCED_SAMPLE_COUNT, 0);
+
+      sws->have_gl43 = sws->have_gl43 && (svgascreen->forcedSampleCount >= 4);
+
+      /* Allow a temporary environment variable to enable/disable GL43 support.
+       */
+      sws->have_gl43 =
+         debug_get_bool_option("SVGA_GL43", sws->have_gl43);
+
+      svgascreen->debug.sampler_state_mapping =
+         debug_get_bool_option("SVGA_SAMPLER_STATE_MAPPING", FALSE);
+   }
+   else {
+      /* sampler state mapping code is only enabled with GL43
+       * due to the limitation in SW Renderer. (VMware bug 2825014)
+       */
+      svgascreen->debug.sampler_state_mapping = FALSE;
+   }
+
    debug_printf("%s enabled\n",
+                sws->have_gl43 ? "SM5+" :
                 sws->have_sm5 ? "SM5" :
                 sws->have_sm4_1 ? "SM4_1" :
                 sws->have_vgpu10 ? "VGPU10" : "VGPU9");
@@ -1049,10 +1166,15 @@ svga_screen_create(struct svga_winsys_screen *sws)
       }
 
       /* Maximum number of constant buffers */
-      svgascreen->max_const_buffers =
-         get_uint_cap(sws, SVGA3D_DEVCAP_DX_MAX_CONSTANT_BUFFERS, 1);
-      svgascreen->max_const_buffers = MIN2(svgascreen->max_const_buffers,
-                                           SVGA_MAX_CONST_BUFS);
+      if (sws->have_gl43) {
+         svgascreen->max_const_buffers = SVGA_MAX_CONST_BUFS;
+      }
+      else {
+         svgascreen->max_const_buffers =
+            get_uint_cap(sws, SVGA3D_DEVCAP_DX_MAX_CONSTANT_BUFFERS, 1);
+         svgascreen->max_const_buffers = MIN2(svgascreen->max_const_buffers,
+                                              SVGA_MAX_CONST_BUFS);
+      }
 
       svgascreen->haveBlendLogicops =
          get_bool_cap(sws, SVGA3D_DEVCAP_LOGIC_BLENDOPS, FALSE);
@@ -1060,6 +1182,18 @@ svga_screen_create(struct svga_winsys_screen *sws)
       screen->is_format_supported = svga_is_dx_format_supported;
 
       svgascreen->max_viewports = SVGA3D_DX_MAX_VIEWPORTS;
+
+      /* Shader limits */
+      if (sws->have_sm4_1) {
+         svgascreen->max_vs_inputs  = VGPU10_1_MAX_VS_INPUTS;
+         svgascreen->max_vs_outputs = VGPU10_1_MAX_VS_OUTPUTS;
+         svgascreen->max_gs_inputs  = VGPU10_1_MAX_GS_INPUTS;
+      }
+      else {
+         svgascreen->max_vs_inputs  = VGPU10_MAX_VS_INPUTS;
+         svgascreen->max_vs_outputs = VGPU10_MAX_VS_OUTPUTS;
+         svgascreen->max_gs_inputs  = VGPU10_MAX_GS_INPUTS;
+      }
    }
    else {
       /* VGPU9 */
@@ -1097,6 +1231,11 @@ svga_screen_create(struct svga_winsys_screen *sws)
 
       /* Only one viewport */
       svgascreen->max_viewports = 1;
+
+      /* Shader limits */
+      svgascreen->max_vs_inputs  = 16;
+      svgascreen->max_vs_outputs = 10;
+      svgascreen->max_gs_inputs  = 0;
    }
 
    /* common VGPU9 / VGPU10 caps */

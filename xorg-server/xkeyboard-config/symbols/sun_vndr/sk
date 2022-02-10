@@ -64,7 +64,6 @@ xkb_symbols "sun_type6" {
     key <AC09>  {	[	        l,         L,	Lstroke		                  ]	};
     key <AC10>  {	[     ocircumflex,  quotedbl,	dollar		                  ]	};
     key <AC11>  {	[         section,    exclam,	ssharp,  		   U1E9E  ]	};
-    key <AC12>  {	[          ncaron, parenright,	currency,               currency  ]	};
     key <BKSL>  {	[          ncaron, parenright,	backslash,                   bar  ]	};
 
     key <LSGT>  { 	[       backslash,       bar,	slash,                 brokenbar  ]     };

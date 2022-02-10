@@ -172,8 +172,9 @@ enum fd_dirty_3d_state {
     * from hw perspective:
     */
    FD_DIRTY_RASTERIZER_DISCARD = BIT(24),
-   FD_DIRTY_BLEND_DUAL = BIT(25),
-#define NUM_DIRTY_BITS 26
+   FD_DIRTY_RASTERIZER_CLIP_PLANE_ENABLE = BIT(25),
+   FD_DIRTY_BLEND_DUAL = BIT(26),
+#define NUM_DIRTY_BITS 27
 
    /* additional flag for state requires updated resource tracking: */
    FD_DIRTY_RESOURCE = BIT(31),

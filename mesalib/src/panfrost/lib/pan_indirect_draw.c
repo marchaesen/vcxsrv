@@ -30,7 +30,6 @@
 #include "pan_indirect_draw.h"
 #include "pan_pool.h"
 #include "pan_util.h"
-#include "panfrost-quirks.h"
 #include "compiler/nir/nir_builder.h"
 #include "util/u_memory.h"
 #include "util/macros.h"

@@ -93,6 +93,7 @@ xwl_present_free_timer(struct xwl_present_window *xwl_present_window)
 {
     TimerFree(xwl_present_window->frame_timer);
     xwl_present_window->frame_timer = NULL;
+    xwl_present_window->timer_armed = 0;
 }
 
 static CARD32
@@ -130,12 +131,28 @@ static void
 xwl_present_reset_timer(struct xwl_present_window *xwl_present_window)
 {
     if (xwl_present_has_pending_events(xwl_present_window)) {
+        CARD32 now = GetTimeInMillis();
         CARD32 timeout;
 
         if (!xorg_list_is_empty(&xwl_present_window->frame_callback_list))
             timeout = TIMER_LEN_FLIP;
         else
             timeout = TIMER_LEN_COPY;
+
+        /* Make sure the timer callback runs if at least a second has passed
+         * since we first armed the timer. This can happen e.g. if the Wayland
+         * compositor doesn't send a pending frame event, e.g. because the
+         * Wayland surface isn't visible anywhere.
+         */
+        if (xwl_present_window->timer_armed) {
+            if ((int)(now - xwl_present_window->timer_armed) > 1000) {
+                xwl_present_timer_callback(xwl_present_window->frame_timer, now,
+                                           xwl_present_window);
+                return;
+            }
+        } else {
+            xwl_present_window->timer_armed = now;
+        }
 
         xwl_present_window->frame_timer = TimerSet(xwl_present_window->frame_timer,
                                                    0, timeout,
@@ -385,6 +402,8 @@ xwl_present_msc_bump(struct xwl_present_window *xwl_present_window)
     present_vblank_ptr vblank, tmp;
 
     xwl_present_window->ust = GetTimeInMicros();
+
+    xwl_present_window->timer_armed = 0;
 
     if (flip_pending && flip_pending->sync_flip)
         xwl_present_flip_notify_vblank(flip_pending, xwl_present_window->ust, msc);
@@ -801,14 +820,14 @@ xwl_present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
         present_execute_copy(vblank, crtc_msc);
         assert(!vblank->queued);
 
+        /* Clear the pixmap field, so this will fall through to present_execute_post next time */
+        dixDestroyPixmap(vblank->pixmap, vblank->pixmap->drawable.id);
+        vblank->pixmap = NULL;
+
         if (xwl_present_queue_vblank(screen, window, vblank->crtc,
                                      vblank->event_id, crtc_msc + 1)
-            == Success) {
-            /* Clear the pixmap field, so this will fall through to present_execute_post next time */
-            dixDestroyPixmap(vblank->pixmap, vblank->pixmap->drawable.id);
-            vblank->pixmap = NULL;
+            == Success)
             return;
-        }
     }
 
     present_execute_post(vblank, ust, crtc_msc);

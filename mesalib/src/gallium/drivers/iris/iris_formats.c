@@ -121,6 +121,10 @@ iris_is_format_supported(struct pipe_screen *pscreen,
    if (pformat == PIPE_FORMAT_NONE)
       return true;
 
+   /* Rely on gallium fallbacks for better YUV format support. */
+   if (util_format_is_yuv(pformat))
+      return false;
+
    enum isl_format format = isl_format_for_pipe_format(pformat);
 
    if (format == ISL_FORMAT_UNSUPPORTED)

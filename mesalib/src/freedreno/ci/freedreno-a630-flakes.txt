@@ -126,6 +126,8 @@ bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.*
 #
 # test does a single point draw in a FS taking the length of the first 7 SSBOs and writing them to
 # ints in SSBO 7, then glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT), then mapping it.
+KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std140-struct
+KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std140-matR
 KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std430-matC-pad
 KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std430-vec
 

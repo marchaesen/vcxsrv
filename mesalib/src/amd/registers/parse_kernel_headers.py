@@ -676,7 +676,9 @@ def generate_json(gfx_version, amd_headers_path):
             if not old_gen and r.group('mm') == 'mm':
                 continue
         else:
-            assert name == r.group('name')[:-9]
+            if name != r.group('name')[:-9]:
+                print('Warning: "{0}" not preceded by {1} but by {2}'.format(r.group('name'), r.group('name')[:-9], name))
+                continue
             idx = int(r.group('value'))
             assert idx < len(base_offsets)
             offset += int(base_offsets[idx], 0) * 4

@@ -77,8 +77,9 @@ C_TEMPLATE = Template(textwrap.dedent(u"""\
         case ${v}:
             return "${enum.values[v]}";
     % endfor
+        case ${enum.max_enum_name}: return "${enum.max_enum_name}";
         default:
-            unreachable("Undefined enum value.");
+            return "Unknown ${enum.name} value.";
         }
     }
 
@@ -115,7 +116,7 @@ C_TEMPLATE = Template(textwrap.dedent(u"""\
             return "${object_types[0].enum_to_name[object_type]}";
     % endfor
         default:
-            unreachable("Undefined enum value.");
+            return "Unknown VkObjectType value.";
         }
     }
     """))
@@ -245,12 +246,24 @@ class VkExtension(object):
 def CamelCase_to_SHOUT_CASE(s):
    return (s[:1] + re.sub(r'(?<![A-Z])([A-Z])', r'_\1', s[1:])).upper()
 
+def compute_max_enum_name(s):
+    max_enum_name = CamelCase_to_SHOUT_CASE(s)
+    last_prefix = max_enum_name.rsplit('_', 1)[-1]
+    # Those special prefixes need to be always at the end
+    if last_prefix in ['AMD', 'EXT', 'INTEL', 'KHR', 'NV'] :
+        max_enum_name = "_".join(max_enum_name.split('_')[:-1])
+        max_enum_name = max_enum_name + "_MAX_ENUM_" + last_prefix
+    else:
+        max_enum_name = max_enum_name + "_MAX_ENUM"
+
+    return max_enum_name
 
 class VkEnum(object):
     """Simple struct-like class representing a single Vulkan Enum."""
 
     def __init__(self, name, bitwidth=32, values=None):
         self.name = name
+        self.max_enum_name = compute_max_enum_name(name)
         self.bitwidth = bitwidth
         self.extension = None
         # Maps numbers to names

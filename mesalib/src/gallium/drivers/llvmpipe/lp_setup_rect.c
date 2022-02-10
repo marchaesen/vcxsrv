@@ -93,14 +93,14 @@ lp_setup_alloc_rectangle(struct lp_scene *scene, unsigned nr_inputs)
 boolean
 lp_setup_whole_tile(struct lp_setup_context *setup,
                     const struct lp_rast_shader_inputs *inputs,
-                    int tx, int ty)
+                    int tx, int ty, boolean opaque)
 {
    struct lp_scene *scene = setup->scene;
 
    LP_COUNT(nr_fully_covered_64);
 
    /* if variant is opaque and scissor doesn't effect the tile */
-   if (inputs->opaque) {
+   if (opaque) {
       /* Several things prevent this optimization from working:
        * - For layered rendering we can't determine if this covers the same layer
        * as previous rendering (or in case of clears those actually always cover
@@ -207,6 +207,7 @@ lp_setup_is_blit(const struct lp_setup_context *setup,
 static inline void
 partial(struct lp_setup_context *setup,
         const struct lp_rast_rectangle *rect,
+        boolean opaque,
         unsigned ix, unsigned iy,
         unsigned mask)
 {
@@ -216,7 +217,7 @@ partial(struct lp_setup_context *setup,
       assert(rect->box.x1 >= (ix+1) * TILE_SIZE - 1);
       assert(rect->box.y1 >= (iy+1) * TILE_SIZE - 1);
 
-      lp_setup_whole_tile(setup, &rect->inputs, ix, iy);
+      lp_setup_whole_tile(setup, &rect->inputs, ix, iy, opaque);
    }
    else {
       LP_COUNT(nr_partially_covered_64);
@@ -353,18 +354,18 @@ try_rect_cw(struct lp_setup_context *setup,
    rect->inputs.frontfacing = frontfacing;
    rect->inputs.disable = FALSE;
    rect->inputs.is_blit = lp_setup_is_blit(setup, &rect->inputs);
-   rect->inputs.opaque = variant->opaque;
    rect->inputs.layer = layer;
    rect->inputs.viewport_index = viewport_index;
    rect->inputs.view_index = setup->view_index;
 
-   return lp_setup_bin_rectangle(setup, rect);
+   return lp_setup_bin_rectangle(setup, rect, variant->opaque);
 }
 
 
 boolean
 lp_setup_bin_rectangle(struct lp_setup_context *setup,
-                       struct lp_rast_rectangle *rect)
+                       struct lp_rast_rectangle *rect,
+                       boolean opaque)
 {
    struct lp_scene *scene = setup->scene;
    unsigned ix0, iy0, ix1, iy1;
@@ -409,48 +410,48 @@ lp_setup_bin_rectangle(struct lp_setup_context *setup,
    /* Determine which tile(s) intersect the rectangle's bounding box
     */
    if (iy0 == iy1 && ix0 == ix1) {
-      partial(setup, rect, ix0, iy0,
+      partial(setup, rect, opaque, ix0, iy0,
               (left_mask | right_mask | top_mask | bottom_mask));
    }
    else if (ix0 == ix1) {
       unsigned mask = left_mask | right_mask;
-      partial(setup, rect, ix0, iy0, mask | top_mask);
+      partial(setup, rect, opaque, ix0, iy0, mask | top_mask);
       for (i = iy0 + 1; i < iy1; i++)
-         partial(setup, rect, ix0, i, mask);
-      partial(setup, rect, ix0, iy1, mask | bottom_mask);
+         partial(setup, rect, opaque, ix0, i, mask);
+      partial(setup, rect, opaque, ix0, iy1, mask | bottom_mask);
    }
    else if (iy0 == iy1) {
       unsigned mask = top_mask | bottom_mask;
-      partial(setup, rect, ix0, iy0, mask | left_mask);
+      partial(setup, rect, opaque, ix0, iy0, mask | left_mask);
       for (i = ix0 + 1; i < ix1; i++)
-         partial(setup, rect, i, iy0, mask);
-      partial(setup, rect, ix1, iy0, mask | right_mask);
+         partial(setup, rect, opaque, i, iy0, mask);
+      partial(setup, rect, opaque, ix1, iy0, mask | right_mask);
    }
    else {
-      partial(setup, rect, ix0, iy0, left_mask  | top_mask);
-      partial(setup, rect, ix0, iy1, left_mask  | bottom_mask);
-      partial(setup, rect, ix1, iy0, right_mask | top_mask);
-      partial(setup, rect, ix1, iy1, right_mask | bottom_mask);
+      partial(setup, rect, opaque, ix0, iy0, left_mask  | top_mask);
+      partial(setup, rect, opaque, ix0, iy1, left_mask  | bottom_mask);
+      partial(setup, rect, opaque, ix1, iy0, right_mask | top_mask);
+      partial(setup, rect, opaque, ix1, iy1, right_mask | bottom_mask);
 
       /* Top/Bottom fringes
        */
       for (i = ix0 + 1; i < ix1; i++) {
-         partial(setup, rect, i, iy0, top_mask);
-         partial(setup, rect, i, iy1, bottom_mask);
+         partial(setup, rect, opaque, i, iy0, top_mask);
+         partial(setup, rect, opaque, i, iy1, bottom_mask);
       }
 
       /* Left/Right fringes
        */
       for (i = iy0 + 1; i < iy1; i++) {
-         partial(setup, rect, ix0, i, left_mask);
-         partial(setup, rect, ix1, i, right_mask);
+         partial(setup, rect, opaque, ix0, i, left_mask);
+         partial(setup, rect, opaque, ix1, i, right_mask);
       }
 
       /* Full interior tiles
        */
       for (j = iy0 + 1; j < iy1; j++) {
          for (i = ix0 + 1; i < ix1; i++) {
-            lp_setup_whole_tile(setup, &rect->inputs, i, j);
+            lp_setup_whole_tile(setup, &rect->inputs, i, j, opaque);
          }
       }
    }

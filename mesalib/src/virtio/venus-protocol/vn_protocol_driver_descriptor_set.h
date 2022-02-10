@@ -224,12 +224,94 @@ vn_encode_VkDescriptorBufferInfo(struct vn_cs_encoder *enc, const VkDescriptorBu
     vn_encode_VkDeviceSize(enc, &val->range);
 }
 
+/* struct VkWriteDescriptorSetInlineUniformBlock chain */
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_self(const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_uint32_t(&val->dataSize);
+    if (val->pData) {
+        size += vn_sizeof_array_size(val->dataSize);
+        size += vn_sizeof_blob_array(val->pData, val->dataSize);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSetInlineUniformBlock(const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_pnext(val->pNext);
+    size += vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSetInlineUniformBlock_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSetInlineUniformBlock_self(struct vn_cs_encoder *enc, const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_uint32_t(enc, &val->dataSize);
+    if (val->pData) {
+        vn_encode_array_size(enc, val->dataSize);
+        vn_encode_blob_array(enc, val->pData, val->dataSize);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSetInlineUniformBlock(struct vn_cs_encoder *enc, const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK });
+    vn_encode_VkWriteDescriptorSetInlineUniformBlock_pnext(enc, val->pNext);
+    vn_encode_VkWriteDescriptorSetInlineUniformBlock_self(enc, val);
+}
+
 /* struct VkWriteDescriptorSet chain */
 
 static inline size_t
 vn_sizeof_VkWriteDescriptorSet_pnext(const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK:
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkWriteDescriptorSet_pnext(pnext->pNext);
+            size += vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_self((const VkWriteDescriptorSetInlineUniformBlock *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     return vn_sizeof_simple_pointer(NULL);
 }
 
@@ -282,7 +364,23 @@ vn_sizeof_VkWriteDescriptorSet(const VkWriteDescriptorSet *val)
 static inline void
 vn_encode_VkWriteDescriptorSet_pnext(struct vn_cs_encoder *enc, const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK:
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkWriteDescriptorSet_pnext(enc, pnext->pNext);
+            vn_encode_VkWriteDescriptorSetInlineUniformBlock_self(enc, (const VkWriteDescriptorSetInlineUniformBlock *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     vn_encode_simple_pointer(enc, NULL);
 }
 

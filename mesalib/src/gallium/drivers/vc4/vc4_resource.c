@@ -187,19 +187,8 @@ vc4_resource_transfer_map(struct pipe_context *pctx,
                 if (usage & PIPE_MAP_DIRECTLY)
                         return NULL;
 
-                if (format == PIPE_FORMAT_ETC1_RGB8) {
-                        /* ETC1 is arranged as 64-bit blocks, where each block
-                         * is 4x4 pixels.  Texture tiling operates on the
-                         * 64-bit block the way it would an uncompressed
-                         * pixels.
-                         */
-                        assert(!(ptrans->box.x & 3));
-                        assert(!(ptrans->box.y & 3));
-                        ptrans->box.x >>= 2;
-                        ptrans->box.y >>= 2;
-                        ptrans->box.width = (ptrans->box.width + 3) >> 2;
-                        ptrans->box.height = (ptrans->box.height + 3) >> 2;
-                }
+                /* Our load/store routines work on entire compressed blocks. */
+                u_box_pixels_to_blocks(&ptrans->box, &ptrans->box, format);
 
                 ptrans->stride = ptrans->box.width * rsc->cpp;
                 ptrans->layer_stride = ptrans->stride * ptrans->box.height;

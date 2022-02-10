@@ -212,6 +212,7 @@ svga_screen_cache_shrink(struct svga_screen *svgascreen,
 static void
 svga_screen_cache_add(struct svga_screen *svgascreen,
                       const struct svga_host_surface_cache_key *key,
+                      boolean to_invalidate,
                       struct svga_winsys_surface **p_handle)
 {
    struct svga_host_surface_cache *cache = &svgascreen->cache;
@@ -293,8 +294,12 @@ svga_screen_cache_add(struct svga_screen *svgascreen,
                "cache sid %p\n", entry->handle);
 
       /* If we don't have gb objects, we don't need to invalidate. */
-      if (sws->have_gb_objects)
-         list_add(&entry->head, &cache->validated);
+      if (sws->have_gb_objects) {
+         if (to_invalidate)
+            list_add(&entry->head, &cache->validated);
+         else
+            list_add(&entry->head, &cache->invalidated);
+      }
       else
          list_add(&entry->head, &cache->invalidated);
 
@@ -603,6 +608,7 @@ svga_screen_surface_create(struct svga_screen *svgascreen,
 void
 svga_screen_surface_destroy(struct svga_screen *svgascreen,
                             const struct svga_host_surface_cache_key *key,
+                            boolean to_invalidate,
                             struct svga_winsys_surface **p_handle)
 {
    struct svga_winsys_screen *sws = svgascreen->sws;
@@ -612,7 +618,7 @@ svga_screen_surface_destroy(struct svga_screen *svgascreen,
     * that case.
     */
    if (SVGA_SURFACE_CACHE_ENABLED && key->cachable) {
-      svga_screen_cache_add(svgascreen, key, p_handle);
+      svga_screen_cache_add(svgascreen, key, to_invalidate, p_handle);
    }
    else {
       SVGA_DBG(DEBUG_DMA,

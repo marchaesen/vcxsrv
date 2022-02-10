@@ -37,7 +37,8 @@
 #include "util/ralloc.h"
 #include "api_exec_decl.h"
 
-#include "state_tracker/st_cb_perfquery.h"
+#include "pipe/p_context.h"
+
 #include "state_tracker/st_cb_flush.h"
 
 void
@@ -58,7 +59,7 @@ free_performance_query(void *data, void *user)
     */
    m->Active = false;
    m->Used = false;
-   st_DeletePerfQuery(ctx, m);
+   ctx->pipe->delete_intel_perf_query(ctx->pipe, (struct pipe_query *)m);
 }
 
 void
@@ -78,7 +79,7 @@ lookup_object(struct gl_context *ctx, GLuint id)
 static GLuint
 init_performance_query_info(struct gl_context *ctx)
 {
-   return st_InitPerfQueryInfo(ctx);
+   return ctx->pipe->init_intel_perf_query_info(ctx->pipe);
 }
 
 /* For INTEL_performance_query, query id 0 is reserved to be invalid. */
@@ -239,7 +240,8 @@ _mesa_GetPerfQueryIdByNameINTEL(char *queryName, GLuint *queryId)
       const GLchar *name;
       GLuint ignore;
 
-      st_GetPerfQueryInfo(ctx, i, &name, &ignore, &ignore, &ignore);
+      ctx->pipe->get_intel_perf_query_info(ctx->pipe, i, &name,
+                                           &ignore, &ignore, &ignore);
 
       if (strcmp(name, queryName) == 0) {
          *queryId = index_to_queryid(i);
@@ -279,11 +281,9 @@ _mesa_GetPerfQueryInfoINTEL(GLuint queryId,
       return;
    }
 
-   st_GetPerfQueryInfo(ctx, queryIndex,
-                       &queryName,
-                       &queryDataSize,
-                       &queryNumCounters,
-                       &queryNumActive);
+   ctx->pipe->get_intel_perf_query_info(ctx->pipe, queryIndex, &queryName,
+                                        &queryDataSize, &queryNumCounters,
+                                        &queryNumActive);
 
    output_clipped_string(name, nameLength, queryName);
 
@@ -308,6 +308,58 @@ _mesa_GetPerfQueryInfoINTEL(GLuint queryId,
    /* Assume for now that all queries are per-context */
    if (capsMask)
       *capsMask = GL_PERFQUERY_SINGLE_CONTEXT_INTEL;
+}
+
+static uint32_t
+pipe_counter_type_enum_to_gl_type(enum pipe_perf_counter_type type)
+{
+   switch (type) {
+   case PIPE_PERF_COUNTER_TYPE_EVENT: return GL_PERFQUERY_COUNTER_EVENT_INTEL;
+   case PIPE_PERF_COUNTER_TYPE_DURATION_NORM: return GL_PERFQUERY_COUNTER_DURATION_NORM_INTEL;
+   case PIPE_PERF_COUNTER_TYPE_DURATION_RAW: return GL_PERFQUERY_COUNTER_DURATION_RAW_INTEL;
+   case PIPE_PERF_COUNTER_TYPE_THROUGHPUT: return GL_PERFQUERY_COUNTER_THROUGHPUT_INTEL;
+   case PIPE_PERF_COUNTER_TYPE_RAW: return GL_PERFQUERY_COUNTER_RAW_INTEL;
+   case PIPE_PERF_COUNTER_TYPE_TIMESTAMP: return GL_PERFQUERY_COUNTER_TIMESTAMP_INTEL;
+   default:
+      unreachable("Unknown counter type");
+   }
+}
+
+static uint32_t
+pipe_counter_data_type_to_gl_type(enum pipe_perf_counter_data_type type)
+{
+   switch (type) {
+   case PIPE_PERF_COUNTER_DATA_TYPE_BOOL32: return GL_PERFQUERY_COUNTER_DATA_BOOL32_INTEL;
+   case PIPE_PERF_COUNTER_DATA_TYPE_UINT32: return GL_PERFQUERY_COUNTER_DATA_UINT32_INTEL;
+   case PIPE_PERF_COUNTER_DATA_TYPE_UINT64: return GL_PERFQUERY_COUNTER_DATA_UINT64_INTEL;
+   case PIPE_PERF_COUNTER_DATA_TYPE_FLOAT: return GL_PERFQUERY_COUNTER_DATA_FLOAT_INTEL;
+   case PIPE_PERF_COUNTER_DATA_TYPE_DOUBLE: return GL_PERFQUERY_COUNTER_DATA_DOUBLE_INTEL;
+   default:
+      unreachable("Unknown counter data type");
+   }
+}
+
+static void
+get_perf_counter_info(struct gl_context *ctx,
+                      unsigned query_index,
+                      unsigned counter_index,
+                      const char **name,
+                      const char **desc,
+                      GLuint *offset,
+                      GLuint *data_size,
+                      GLuint *type_enum,
+                      GLuint *data_type_enum,
+                      GLuint64 *raw_max)
+{
+   struct pipe_context *pipe = ctx->pipe;
+   uint32_t pipe_type_enum;
+   uint32_t pipe_data_type_enum;
+
+   pipe->get_intel_perf_query_counter_info(pipe, query_index, counter_index,
+                                           name, desc, offset, data_size,
+                                           &pipe_type_enum, &pipe_data_type_enum, raw_max);
+   *type_enum = pipe_counter_type_enum_to_gl_type(pipe_type_enum);
+   *data_type_enum = pipe_counter_data_type_to_gl_type(pipe_data_type_enum);
 }
 
 extern void GLAPIENTRY
@@ -348,11 +400,9 @@ _mesa_GetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
       return;
    }
 
-   st_GetPerfQueryInfo(ctx, queryIndex,
-                       &queryName,
-                       &queryDataSize,
-                       &queryNumCounters,
-                       &queryNumActive);
+   ctx->pipe->get_intel_perf_query_info(ctx->pipe, queryIndex, &queryName,
+                                        &queryDataSize, &queryNumCounters,
+                                        &queryNumActive);
 
    counterIndex = counterid_to_index(counterId);
 
@@ -362,7 +412,7 @@ _mesa_GetPerfCounterInfoINTEL(GLuint queryId, GLuint counterId,
       return;
    }
 
-   st_GetPerfCounterInfo(ctx, queryIndex, counterIndex,
+   get_perf_counter_info(ctx, queryIndex, counterIndex,
                          &counterName,
                          &counterDesc,
                          &counterOffset,
@@ -453,7 +503,8 @@ _mesa_CreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
       return;
    }
 
-   obj = st_NewPerfQueryObject(ctx, queryid_to_index(queryId));
+   obj = (struct gl_perf_query_object *)ctx->pipe->new_intel_perf_query_obj(ctx->pipe,
+                                                                            queryid_to_index(queryId));
    if (obj == NULL) {
       _mesa_error_no_memory(__func__);
       return;
@@ -494,12 +545,12 @@ _mesa_DeletePerfQueryINTEL(GLuint queryHandle)
       _mesa_EndPerfQueryINTEL(queryHandle);
 
    if (obj->Used && !obj->Ready) {
-      st_WaitPerfQuery(ctx, obj);
+      ctx->pipe->wait_intel_perf_query(ctx->pipe, (struct pipe_query *)obj);
       obj->Ready = true;
    }
 
    _mesa_HashRemove(ctx->PerfQuery.Objects, queryHandle);
-   st_DeletePerfQuery(ctx, obj);
+   ctx->pipe->delete_intel_perf_query(ctx->pipe, (struct pipe_query *)obj);
 }
 
 extern void GLAPIENTRY
@@ -541,11 +592,11 @@ _mesa_BeginPerfQueryINTEL(GLuint queryHandle)
     * waiting for data on that object.
     */
    if (obj->Used && !obj->Ready) {
-      st_WaitPerfQuery(ctx, obj);
+      ctx->pipe->wait_intel_perf_query(ctx->pipe, (struct pipe_query *)obj);
       obj->Ready = true;
    }
 
-   if (st_BeginPerfQuery(ctx, obj)) {
+   if (ctx->pipe->begin_intel_perf_query(ctx->pipe, (struct pipe_query *)obj)) {
       obj->Used = true;
       obj->Active = true;
       obj->Ready = false;
@@ -581,7 +632,7 @@ _mesa_EndPerfQueryINTEL(GLuint queryHandle)
       return;
    }
 
-   st_EndPerfQuery(ctx, obj);
+   ctx->pipe->end_intel_perf_query(ctx->pipe, (struct pipe_query *)obj);
 
    obj->Active = false;
    obj->Ready = false;
@@ -638,19 +689,22 @@ _mesa_GetPerfQueryDataINTEL(GLuint queryHandle, GLuint flags,
       return;
    }
 
-   obj->Ready = st_IsPerfQueryReady(ctx, obj);
+   if (!obj->Ready)
+      obj->Ready = ctx->pipe->is_intel_perf_query_ready(ctx->pipe,
+                                                        (struct pipe_query *)obj);
 
    if (!obj->Ready) {
       if (flags == GL_PERFQUERY_FLUSH_INTEL) {
          st_glFlush(ctx, 0);
       } else if (flags == GL_PERFQUERY_WAIT_INTEL) {
-         st_WaitPerfQuery(ctx, obj);
+         ctx->pipe->wait_intel_perf_query(ctx->pipe, (struct pipe_query *)obj);
          obj->Ready = true;
       }
    }
 
    if (obj->Ready) {
-      if (!st_GetPerfQueryData(ctx, obj, dataSize, data, bytesWritten)) {
+      if (!ctx->pipe->get_intel_perf_query_data(ctx->pipe, (struct pipe_query *)obj,
+                                                dataSize, data, bytesWritten)) {
          memset(data, 0, dataSize);
          *bytesWritten = 0;
 

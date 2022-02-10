@@ -79,6 +79,26 @@ svga_buffer_needs_hw_storage(const struct svga_screen *ss,
    return !!(template->bind & bind_mask);
 }
 
+
+static inline boolean
+need_buf_readback(struct svga_context *svga,
+                  struct pipe_transfer *st)
+{
+   struct svga_buffer *sbuf = svga_buffer(st->resource);
+
+   if (st->usage != PIPE_MAP_READ)
+      return FALSE;
+
+   /* No buffer surface has been created */
+   if (!sbuf->bufsurf)
+      return FALSE;
+
+   return  ((sbuf->dirty ||
+             sbuf->bufsurf->surface_state == SVGA_SURFACE_STATE_RENDERED) &&
+            !sbuf->key.coherent && !svga->swc->force_coherent);
+}
+
+
 /**
  * Create a buffer transfer.
  *
@@ -131,11 +151,12 @@ svga_buffer_transfer_map(struct pipe_context *pipe,
       pipe_resource_reference(&sbuf->translated_indices.buffer, NULL);
    }
 
-   if ((usage & PIPE_MAP_READ) && sbuf->dirty &&
-       !sbuf->key.coherent && !svga->swc->force_coherent) {
-
-      /* Host-side buffers can only be dirtied with vgpu10 features
-       * (streamout and buffer copy).
+   /* If it is a read transfer and the buffer is dirty or the buffer is bound
+    * to a uav, we will need to read the subresource content from the device.
+    */
+   if (need_buf_readback(svga, transfer)) {
+      /* Host-side buffers can be dirtied with vgpu10 features
+       * (streamout and buffer copy) and sm5 feature via uav.
        */
       assert(svga_have_vgpu10(svga));
 
@@ -150,13 +171,16 @@ svga_buffer_transfer_map(struct pipe_context *pipe,
 
       assert(sbuf->handle);
 
-      SVGA_RETRY(svga, SVGA3D_vgpu10_ReadbackSubResource(svga->swc,
-                                                         sbuf->handle, 0));
+      SVGA_RETRY(svga, SVGA3D_ReadbackGBSurface(svga->swc, sbuf->handle));
       svga->hud.num_readbacks++;
 
       svga_context_finish(svga);
 
       sbuf->dirty = FALSE;
+
+      /* Mark the buffer surface state as UPDATED */
+      assert(sbuf->bufsurf);
+      sbuf->bufsurf->surface_state = SVGA_SURFACE_STATE_UPDATED;
    }
 
    if (usage & PIPE_MAP_WRITE) {
@@ -434,11 +458,13 @@ svga_resource_destroy(struct pipe_screen *screen,
         DBG("%s deleting %p\n", __FUNCTION__, (void *) tex);
       */
       SVGA_DBG(DEBUG_DMA, "unref sid %p (texture)\n", tex->handle);
-      svga_screen_surface_destroy(ss, &tex->key, &tex->handle);
+
+      boolean to_invalidate = svga_was_texture_rendered_to(tex);
+      svga_screen_surface_destroy(ss, &tex->key, to_invalidate, &tex->handle);
 
       /* Destroy the backed surface handle if exists */
       if (tex->backed_handle)
-         svga_screen_surface_destroy(ss, &tex->backed_key, &tex->backed_handle);
+         svga_screen_surface_destroy(ss, &tex->backed_key, to_invalidate, &tex->backed_handle);
 
       ss->hud.total_resource_bytes -= tex->size;
 

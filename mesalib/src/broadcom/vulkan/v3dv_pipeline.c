@@ -180,6 +180,8 @@ static const struct spirv_to_nir_options default_spirv_options =  {
    .caps = {
       .device_group = true,
       .multiview = true,
+      .storage_8bit = true,
+      .storage_16bit = true,
       .subgroup_basic = true,
       .variable_pointers = true,
     },
@@ -215,6 +217,9 @@ const nir_shader_compiler_options v3dv_nir_options = {
    .lower_unpack_snorm_4x8 = true,
    .lower_pack_half_2x16 = true,
    .lower_unpack_half_2x16 = true,
+   .lower_pack_32_2x16 = true,
+   .lower_pack_32_2x16_split = true,
+   .lower_unpack_32_2x16_split = true,
    /* FIXME: see if we can avoid the uadd_carry and usub_borrow lowering and
     * get the tests to pass since it might produce slightly better code.
     */
@@ -2210,19 +2215,19 @@ write_creation_feedback(struct v3dv_pipeline *pipeline,
    }
 }
 
-static uint32_t
+static enum shader_prim
 multiview_gs_input_primitive_from_pipeline(struct v3dv_pipeline *pipeline)
 {
    switch (pipeline->topology) {
    case PIPE_PRIM_POINTS:
-      return GL_POINTS;
+      return SHADER_PRIM_POINTS;
    case PIPE_PRIM_LINES:
    case PIPE_PRIM_LINE_STRIP:
-      return GL_LINES;
+      return SHADER_PRIM_LINES;
    case PIPE_PRIM_TRIANGLES:
    case PIPE_PRIM_TRIANGLE_STRIP:
    case PIPE_PRIM_TRIANGLE_FAN:
-      return GL_TRIANGLES;
+      return SHADER_PRIM_TRIANGLES;
    default:
       /* Since we don't allow GS with multiview, we can only see non-adjacency
        * primitives.
@@ -2231,19 +2236,19 @@ multiview_gs_input_primitive_from_pipeline(struct v3dv_pipeline *pipeline)
    }
 }
 
-static uint32_t
+static enum shader_prim
 multiview_gs_output_primitive_from_pipeline(struct v3dv_pipeline *pipeline)
 {
    switch (pipeline->topology) {
    case PIPE_PRIM_POINTS:
-      return GL_POINTS;
+      return SHADER_PRIM_POINTS;
    case PIPE_PRIM_LINES:
    case PIPE_PRIM_LINE_STRIP:
-      return GL_LINE_STRIP;
+      return SHADER_PRIM_LINE_STRIP;
    case PIPE_PRIM_TRIANGLES:
    case PIPE_PRIM_TRIANGLE_STRIP:
    case PIPE_PRIM_TRIANGLE_FAN:
-      return GL_TRIANGLE_STRIP;
+      return SHADER_PRIM_TRIANGLE_STRIP;
    default:
       /* Since we don't allow GS with multiview, we can only see non-adjacency
        * primitives.

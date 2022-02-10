@@ -972,9 +972,9 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file, unsigned size,
       assert(!interval->frozen);
 
       /* Killed sources don't count because they go at the end and can
-       * overlap the register we're trying to add.
+       * overlap the register we're trying to add, unless it's a source.
        */
-      if (!interval->is_killed && !is_source) {
+      if (!interval->is_killed || is_source) {
          removed_size += interval->physreg_end - interval->physreg_start;
          if (interval->interval.reg->flags & IR3_REG_HALF) {
             removed_half_size += interval->physreg_end -
@@ -2212,6 +2212,54 @@ calc_min_limit_pressure(struct ir3_shader_variant *v,
    ralloc_free(ctx);
 }
 
+/*
+ * If barriers are used, it must be possible for all waves in the workgroup
+ * to execute concurrently. Thus we may have to reduce the registers limit.
+ */
+static void
+calc_limit_pressure_for_cs_with_barrier(struct ir3_shader_variant *v,
+                                        struct ir3_pressure *limit_pressure)
+{
+   const struct ir3_compiler *compiler = v->shader->compiler;
+
+   unsigned threads_per_wg;
+   if (v->local_size_variable) {
+      /* We have to expect the worst case. */
+      threads_per_wg = compiler->max_variable_workgroup_size;
+   } else {
+      threads_per_wg = v->local_size[0] * v->local_size[1] * v->local_size[2];
+   }
+
+   /* The register file is grouped into reg_size_vec4 number of parts.
+    * Each part has enough registers to add a single vec4 register to
+    * each thread of a single-sized wave-pair. With double threadsize
+    * each wave-pair would consume two parts of the register file to get
+    * a single vec4 for a thread. The more active wave-pairs the less
+    * parts each could get.
+    */
+
+   bool double_threadsize = ir3_should_double_threadsize(v, 0);
+   unsigned waves_per_wg = DIV_ROUND_UP(
+      threads_per_wg, compiler->threadsize_base * (double_threadsize ? 2 : 1) *
+                         compiler->wave_granularity);
+
+   uint32_t vec4_regs_per_thread =
+      compiler->reg_size_vec4 / (waves_per_wg * (double_threadsize ? 2 : 1));
+   assert(vec4_regs_per_thread > 0);
+
+   uint32_t half_regs_per_thread = vec4_regs_per_thread * 4 * 2;
+
+   if (limit_pressure->full > half_regs_per_thread) {
+      if (v->mergedregs) {
+         limit_pressure->full = half_regs_per_thread;
+      } else {
+         /* TODO: Handle !mergedregs case, probably we would have to do this
+          * after the first register pressure pass.
+          */
+      }
+   }
+}
+
 int
 ir3_ra(struct ir3_shader_variant *v)
 {
@@ -2238,11 +2286,23 @@ ir3_ra(struct ir3_shader_variant *v)
    d("\thalf: %u", max_pressure.half);
    d("\tshared: %u", max_pressure.shared);
 
-   /* TODO: calculate half/full limit correctly for CS with barrier */
    struct ir3_pressure limit_pressure;
    limit_pressure.full = RA_FULL_SIZE;
    limit_pressure.half = RA_HALF_SIZE;
    limit_pressure.shared = RA_SHARED_SIZE;
+
+   if (gl_shader_stage_is_compute(v->type) && v->has_barrier) {
+      calc_limit_pressure_for_cs_with_barrier(v, &limit_pressure);
+   }
+
+   /* If the user forces a doubled threadsize, we may have to lower the limit
+    * because on some gens the register file is not big enough to hold a
+    * double-size wave with all 48 registers in use.
+    */
+   if (v->shader->real_wavesize == IR3_DOUBLE_ONLY) {
+      limit_pressure.full =
+         MAX2(limit_pressure.full, ctx->compiler->reg_size_vec4 / 2 * 16);
+   }
 
    /* If requested, lower the limit so that spilling happens more often. */
    if (ir3_shader_debug & IR3_DBG_SPILLALL)

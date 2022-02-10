@@ -864,7 +864,8 @@ iris_resource_texture_aux_usage(struct iris_context *ice,
    case ISL_AUX_USAGE_HIZ_CCS:
    case ISL_AUX_USAGE_HIZ_CCS_WT:
       assert(res->surf.format == view_format);
-      return util_last_bit(res->aux.sampler_usages) - 1;
+      return iris_sample_with_depth_aux(devinfo, res) ?
+             res->aux.usage : ISL_AUX_USAGE_NONE;
 
    case ISL_AUX_USAGE_MCS:
    case ISL_AUX_USAGE_MCS_CCS:

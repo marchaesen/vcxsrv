@@ -665,6 +665,7 @@ struct pipe_screen {
     */
    int (*get_sparse_texture_virtual_page_size)(struct pipe_screen *screen,
                                                enum pipe_texture_target target,
+                                               bool multi_sample,
                                                enum pipe_format format,
                                                unsigned offset, unsigned size,
                                                int *x, int *y, int *z);

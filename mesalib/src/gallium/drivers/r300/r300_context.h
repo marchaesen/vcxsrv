@@ -576,6 +576,8 @@ struct r300_context {
     unsigned char blitter_saved_skip_rendering;
     /* Point sprites texcoord index,  1 bit per texcoord */
     int sprite_coord_enable;
+    /* Whether we are drawing points, to disable sprite coord if not */
+    boolean is_point;
     /* Whether two-sided color selection is enabled (AKA light_twoside). */
     boolean two_sided_color;
     boolean flatshade;

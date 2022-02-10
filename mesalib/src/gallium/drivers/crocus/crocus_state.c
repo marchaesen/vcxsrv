@@ -4689,6 +4689,10 @@ crocus_populate_vs_key(const struct crocus_context *ice,
        last_stage == MESA_SHADER_VERTEX)
       key->nr_userclip_plane_consts = cso_rast->num_clip_plane_consts;
 
+   if (last_stage == MESA_SHADER_VERTEX &&
+       info->outputs_written & (VARYING_BIT_PSIZ))
+      key->clamp_pointsize = 1;
+
 #if GFX_VER <= 5
    key->copy_edgeflag = (cso_rast->cso.fill_back != PIPE_POLYGON_MODE_FILL ||
                          cso_rast->cso.fill_front != PIPE_POLYGON_MODE_FILL);
@@ -4732,6 +4736,10 @@ crocus_populate_tes_key(const struct crocus_context *ice,
        (info->outputs_written & (VARYING_BIT_POS | VARYING_BIT_CLIP_VERTEX)) &&
        last_stage == MESA_SHADER_TESS_EVAL)
       key->nr_userclip_plane_consts = cso_rast->num_clip_plane_consts;
+
+   if (last_stage == MESA_SHADER_TESS_EVAL &&
+       info->outputs_written & (VARYING_BIT_PSIZ))
+      key->clamp_pointsize = 1;
 }
 
 /**
@@ -4749,22 +4757,10 @@ crocus_populate_gs_key(const struct crocus_context *ice,
        (info->outputs_written & (VARYING_BIT_POS | VARYING_BIT_CLIP_VERTEX)) &&
        last_stage == MESA_SHADER_GEOMETRY)
       key->nr_userclip_plane_consts = cso_rast->num_clip_plane_consts;
-}
 
-static inline GLenum
-compare_func_to_gl(enum pipe_compare_func pipe_func)
-{
-   static const unsigned map[] = {
-      [PIPE_FUNC_NEVER]    = GL_NEVER,
-      [PIPE_FUNC_LESS]     = GL_LESS,
-      [PIPE_FUNC_EQUAL]    = GL_EQUAL,
-      [PIPE_FUNC_LEQUAL]   = GL_LEQUAL,
-      [PIPE_FUNC_GREATER]  = GL_GREATER,
-      [PIPE_FUNC_NOTEQUAL] = GL_NOTEQUAL,
-      [PIPE_FUNC_GEQUAL]   = GL_GEQUAL,
-      [PIPE_FUNC_ALWAYS]   = GL_ALWAYS,
-   };
-   return map[pipe_func];
+   if (last_stage == MESA_SHADER_GEOMETRY &&
+       info->outputs_written & (VARYING_BIT_PSIZ))
+      key->clamp_pointsize = 1;
 }
 
 /**
@@ -4851,7 +4847,8 @@ crocus_populate_fs_key(const struct crocus_context *ice,
 
 #if GFX_VER <= 5
    if (fb->nr_cbufs > 1 && zsa->cso.alpha_enabled) {
-      key->alpha_test_func = compare_func_to_gl(zsa->cso.alpha_func);
+      key->emit_alpha_test = true;
+      key->alpha_test_func = zsa->cso.alpha_func;
       key->alpha_test_ref = zsa->cso.alpha_ref_value;
    }
 #endif
@@ -6467,7 +6464,8 @@ crocus_upload_dirty_render_state(struct crocus_context *ice,
          ps.BindingTableEntryCount = shader->bt.size_bytes / 4;
          ps.FloatingPointMode = prog_data->use_alt_mode;
 #if GFX_VER >= 8
-         ps.MaximumNumberofThreadsPerPSD = 64 - 2;
+         ps.MaximumNumberofThreadsPerPSD =
+            batch->screen->devinfo.max_threads_per_psd - 2;
 #else
          ps.MaximumNumberofThreads = batch->screen->devinfo.max_wm_threads - 1;
 #endif

@@ -34,20 +34,47 @@
 #include "util/macros.h"
 #include "util/u_debug.h"
 #include "util/u_dynarray.h"
-#include "util/hash_table.h"
 
 FILE *pandecode_dump_stream;
 
 /* Memory handling */
 
-static struct hash_table_u64 *mmap_table;
+static struct rb_tree mmap_tree;
 
 static struct util_dynarray ro_mappings;
+
+#define to_mapped_memory(x) \
+	rb_node_data(struct pandecode_mapped_memory, x, node)
+
+/*
+ * Compare a GPU VA to a node, considering a GPU VA to be equal to a node if it
+ * is contained in the interval the node represents. This lets us store
+ * intervals in our tree.
+ */
+static int
+pandecode_cmp_key(const struct rb_node *lhs, const void *key)
+{
+        struct pandecode_mapped_memory *mem = to_mapped_memory(lhs);
+        uint64_t *gpu_va = (uint64_t *) key;
+
+        if (mem->gpu_va <= *gpu_va && *gpu_va < (mem->gpu_va + mem->length))
+                return 0;
+        else
+                return mem->gpu_va - *gpu_va;
+}
+
+static int
+pandecode_cmp(const struct rb_node *lhs, const struct rb_node *rhs)
+{
+        return to_mapped_memory(lhs)->gpu_va - to_mapped_memory(rhs)->gpu_va;
+}
 
 static struct pandecode_mapped_memory *
 pandecode_find_mapped_gpu_mem_containing_rw(uint64_t addr)
 {
-        return _mesa_hash_table_u64_search(mmap_table, addr & ~(4096 - 1));
+        struct rb_node *node = rb_tree_search(&mmap_tree, &addr, pandecode_cmp_key);
+
+        return to_mapped_memory(node);
 }
 
 struct pandecode_mapped_memory *
@@ -112,11 +139,8 @@ pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name)
         mapped_mem->addr = cpu;
         pandecode_add_name(mapped_mem, gpu_va, name);
 
-        /* Add it to the table */
-        assert((gpu_va & 4095) == 0);
-
-        for (unsigned i = 0; i < sz; i += 4096)
-                _mesa_hash_table_u64_insert(mmap_table, gpu_va + i, mapped_mem);
+        /* Add it to the tree */
+        rb_tree_insert(&mmap_tree, &mapped_mem->node, pandecode_cmp);
 }
 
 void
@@ -131,10 +155,8 @@ pandecode_inject_free(uint64_t gpu_va, unsigned sz)
         assert(mem->gpu_va == gpu_va);
         assert(mem->length == sz);
 
+        rb_tree_remove(&mmap_tree, &mem->node);
         free(mem);
-
-        for (unsigned i = 0; i < sz; i += 4096)
-                _mesa_hash_table_u64_remove(mmap_table, gpu_va + i);
 }
 
 char *
@@ -202,7 +224,7 @@ void
 pandecode_initialize(bool to_stderr)
 {
         force_stderr = to_stderr;
-        mmap_table = _mesa_hash_table_u64_create(NULL);
+        rb_tree_init(&mmap_tree);
         util_dynarray_init(&ro_mappings, NULL);
 }
 
@@ -216,9 +238,29 @@ pandecode_next_frame(void)
 void
 pandecode_close(void)
 {
-        _mesa_hash_table_u64_destroy(mmap_table);
+        rb_tree_foreach_safe(struct pandecode_mapped_memory, it, &mmap_tree, node) {
+                free(it);
+        }
+
         util_dynarray_fini(&ro_mappings);
         pandecode_dump_file_close();
+}
+
+void
+pandecode_dump_mappings(void)
+{
+        pandecode_dump_file_open();
+
+        rb_tree_foreach(struct pandecode_mapped_memory, it, &mmap_tree, node) {
+                if (!it->addr || !it->length)
+                        continue;
+
+                fprintf(pandecode_dump_stream, "Buffer: %s gpu %" PRIx64 "\n\n",
+                        it->name, it->gpu_va);
+
+                pan_hexdump(pandecode_dump_stream, it->addr, it->length, false);
+                fprintf(pandecode_dump_stream, "\n");
+        }
 }
 
 void pandecode_abort_on_fault_v4(mali_ptr jc_gpu_va);

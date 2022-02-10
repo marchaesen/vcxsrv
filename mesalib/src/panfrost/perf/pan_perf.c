@@ -47,39 +47,29 @@ panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
    return ret;
 }
 
-static const struct panfrost_perf_config*
-get_perf_config(unsigned int gpu_id)
+static const struct panfrost_perf_config *
+panfrost_lookup_counters(const char *name)
 {
-   switch (gpu_id) {
-   case 0x720:
-      return &panfrost_perf_config_t72x;
-   case 0x750:
-      return &panfrost_perf_config_t76x;
-   case 0x820:
-      return &panfrost_perf_config_t82x;
-   case 0x830:
-      return &panfrost_perf_config_t83x;
-   case 0x860:
-      return &panfrost_perf_config_t86x;
-   case 0x880:
-      return &panfrost_perf_config_t88x;
-   case 0x6221:
-      return &panfrost_perf_config_thex;
-   case 0x7093:
-      return &panfrost_perf_config_tdvx;
-   case 0x7212:
-   case 0x7402:
-      return &panfrost_perf_config_tgox;
-   default:
-      unreachable("Invalid GPU ID");
-   }
+        for (unsigned i = 0; i < ARRAY_SIZE(panfrost_perf_configs); ++i) {
+                if (strcmp(panfrost_perf_configs[i]->name, name) == 0)
+                        return panfrost_perf_configs[i];
+        }
+
+        return NULL;
 }
 
 void
 panfrost_perf_init(struct panfrost_perf *perf, struct panfrost_device *dev)
 {
    perf->dev = dev;
-   perf->cfg = get_perf_config(dev->gpu_id);
+
+   if (dev->model == NULL)
+           unreachable("Invalid GPU ID");
+
+   perf->cfg = panfrost_lookup_counters(dev->model->performance_counters);
+
+   if (perf->cfg == NULL)
+           unreachable("Performance counters missing!");
 
    // Generally counter blocks are laid out in the following order:
    // Job manager, tiler, L2 cache, and one or more shader cores.

@@ -5,8 +5,6 @@ KHR-GLES2.core.internalformat.texture2d.rgb_float_rgb32f,Fail
 KHR-GLES2.core.internalformat.texture2d.rgb_float_rgb32f_linear,Fail
 KHR-GLES2.core.internalformat.texture2d.rgba_float_rgba32f,Fail
 KHR-GLES2.core.internalformat.texture2d.rgba_float_rgba32f_linear,Fail
-KHR-GLES2.texture_3d.copy_sub_image.negative,Fail
-KHR-GLES2.texture_3d.copy_sub_image.rgba,Fail
 
 # Missing the red triangle
 dEQP-GLES2.functional.clip_control.depth_mode_zero_to_one,Fail
@@ -192,8 +190,6 @@ spec@egl_khr_surfaceless_context@viewport,Fail
 # Regression from i965
 spec@ext_draw_buffers2@fbo-drawbuffers2-blend,Fail
 
-spec@ext_draw_instanced@ext_draw_instanced-drawarrays,Fail
-
 # "Failed blit src(0,0;1,1) - dst(0,0;2147483647,2147483647)
 #  Failed blit src(0,0;40,40) - dst(0,0;134217727,134217727)
 #  Failed blit src(0,0;40,40) - dst(0,0;2147483647,2147483647)
@@ -270,19 +266,3 @@ spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
-
-# Regression from i965
-# "primitive-restart: failure drawing with glDrawElements(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT), DISABLE_VBO
-#  primitive-restart: failure drawing with glDrawElements(GL_TRIANGLE_STRIP, GL_UNSIGNED_INT), DISABLE_VBO
-#  primitive-restart: failure drawing with glDrawElements(GL_LINE_STRIP, GL_UNSIGNED_SHORT), DISABLE_VBO
-#  primitive-restart: failure drawing with glDrawElements(GL_LINE_STRIP, GL_UNSIGNED_INT), DISABLE_VBO"
-spec@nv_primitive_restart@primitive-restart-disable_vbo,Fail
-
-# Regression from i965
-spec@nv_primitive_restart@primitive-restart-draw-mode-line_loop,Fail
-spec@nv_primitive_restart@primitive-restart-draw-mode-polygon,Fail
-spec@nv_primitive_restart@primitive-restart-draw-mode-quad_strip,Fail
-spec@nv_primitive_restart@primitive-restart-draw-mode-quads,Fail
-spec@nv_primitive_restart@primitive-restart-draw-mode-triangle_fan,Fail
-spec@nv_primitive_restart@primitive-restart-vbo_combined_vertex_and_index,Fail
-spec@nv_primitive_restart@primitive-restart-vbo_vertex_only,Fail

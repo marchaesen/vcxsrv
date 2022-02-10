@@ -56,13 +56,13 @@ void etna_cmd_stream_realloc(struct etna_cmd_stream *stream, size_t n)
 	void *buffer;
 
 	/*
-	 * Increase the command buffer size by 1 kiB. Here we pick 1 kiB
+	 * Increase the command buffer size by 4 kiB. Here we pick 4 kiB
 	 * increment to prevent it from growing too much too quickly.
 	 */
 	size = ALIGN(stream->size + n, 1024);
 
 	/* Command buffer is too big for older kernel versions */
-	if (size >= 32768)
+	if (size > 0x4000)
 		goto error;
 
 	buffer = realloc(stream->buffer, size * 4);
@@ -75,7 +75,7 @@ void etna_cmd_stream_realloc(struct etna_cmd_stream *stream, size_t n)
 	return;
 
 error:
-	WARN_MSG("command buffer too long, forcing flush.");
+	DEBUG_MSG("command buffer too long, forcing flush.");
 	etna_cmd_stream_force_flush(stream);
 }
 
@@ -208,7 +208,7 @@ static uint32_t bo2idx(struct etna_cmd_stream *stream, struct etna_bo *bo,
 }
 
 void etna_cmd_stream_flush(struct etna_cmd_stream *stream, int in_fence_fd,
-		int *out_fence_fd)
+		int *out_fence_fd, bool is_noop)
 {
 	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
 	int ret, id = priv->pipe->id;
@@ -238,8 +238,11 @@ void etna_cmd_stream_flush(struct etna_cmd_stream *stream, int in_fence_fd,
 	if (gpu->dev->use_softpin)
 		req.flags |= ETNA_SUBMIT_SOFTPIN;
 
-	ret = drmCommandWriteRead(gpu->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
-			&req, sizeof(req));
+	if (unlikely(is_noop))
+		ret = 0;
+	else
+		ret = drmCommandWriteRead(gpu->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
+				&req, sizeof(req));
 
 	if (ret)
 		ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));

@@ -270,11 +270,13 @@ enum ac_image_dim ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler
 
 unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
                                   signed char *face_vgpr_index_ptr,
-                                  signed char *ancillary_vgpr_index_ptr)
+                                  signed char *ancillary_vgpr_index_ptr,
+                                  signed char *sample_coverage_vgpr_index_ptr)
 {
    unsigned num_input_vgprs = 0;
    signed char face_vgpr_index = -1;
    signed char ancillary_vgpr_index = -1;
+   signed char sample_coverage_vgpr_index = -1;
 
    if (G_0286CC_PERSP_SAMPLE_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 2;
@@ -308,8 +310,10 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
       ancillary_vgpr_index = num_input_vgprs;
       num_input_vgprs += 1;
    }
-   if (G_0286CC_SAMPLE_COVERAGE_ENA(config->spi_ps_input_addr))
+   if (G_0286CC_SAMPLE_COVERAGE_ENA(config->spi_ps_input_addr)) {
+      sample_coverage_vgpr_index = num_input_vgprs;
       num_input_vgprs += 1;
+   }
    if (G_0286CC_POS_FIXED_PT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
 
@@ -317,6 +321,8 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
       *face_vgpr_index_ptr = face_vgpr_index;
    if (ancillary_vgpr_index_ptr)
       *ancillary_vgpr_index_ptr = ancillary_vgpr_index;
+   if (sample_coverage_vgpr_index_ptr)
+      *sample_coverage_vgpr_index_ptr = sample_coverage_vgpr_index;
 
    return num_input_vgprs;
 }
@@ -580,4 +586,22 @@ unsigned ac_compute_ngg_workgroup_size(unsigned es_verts, unsigned gs_inst_prims
    unsigned workgroup_size = MAX4(max_vtx_in, max_vtx_out, max_prim_in, max_prim_out);
 
    return CLAMP(workgroup_size, 1, 256);
+}
+
+void ac_set_reg_cu_en(void *cs, unsigned reg_offset, uint32_t value, uint32_t clear_mask,
+                      unsigned value_shift, const struct radeon_info *info,
+                      void set_sh_reg(void*, unsigned, uint32_t))
+{
+   /* Register field position and mask. */
+   uint32_t cu_en_mask = ~clear_mask;
+   unsigned cu_en_shift = ffs(cu_en_mask) - 1;
+   /* The value being set. */
+   uint32_t cu_en = (value & cu_en_mask) >> cu_en_shift;
+
+   /* AND the field by spi_cu_en. */
+   uint32_t spi_cu_en = info->spi_cu_en >> value_shift;
+   uint32_t new_value = (value & ~cu_en_mask) |
+                        (((cu_en & spi_cu_en) << cu_en_shift) & cu_en_mask);
+
+   set_sh_reg(cs, reg_offset, new_value);
 }

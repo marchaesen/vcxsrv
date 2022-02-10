@@ -135,11 +135,15 @@ main(int argc, char **argv)
    conf.runtime_data_cbv.register_space = 31;
    conf.zero_based_vertex_instance_id = true;
 
+   struct dxil_spirv_debug_options dbg_opts = {
+      .dump_nir = false,
+   };
+
    struct dxil_spirv_object obj;
    memset(&obj, 0, sizeof(obj));
    if (spirv_to_dxil((uint32_t *)file_contents, word_count, NULL, 0,
                      (dxil_spirv_shader_stage)shader_stage, entry_point,
-                     &conf, &obj)) {
+                     &dbg_opts, &conf, &obj)) {
 
       if (validate && !validate_dxil(&obj)) {
          fprintf(stderr, "Failed to validate DXIL\n");

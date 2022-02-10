@@ -28,6 +28,7 @@
 #include "wsi_common_entrypoints.h"
 #include "vk_util.h"
 #include "wsi_common.h"
+#include "wsi_common_drm.h"
 
 static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 v3dv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
@@ -41,24 +42,7 @@ v3dv_wsi_can_present_on_device(VkPhysicalDevice _pdevice, int fd)
 {
    V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, _pdevice);
 
-   drmDevicePtr fd_devinfo, display_devinfo;
-   int ret;
-
-   ret = drmGetDevice2(fd, 0, &fd_devinfo);
-   if (ret)
-      return false;
-
-   ret = drmGetDevice2(pdevice->display_fd, 0, &display_devinfo);
-   if (ret) {
-      drmFreeDevice(&fd_devinfo);
-      return false;
-   }
-
-   bool result = drmDevicesEqual(fd_devinfo, display_devinfo);
-
-   drmFreeDevice(&fd_devinfo);
-   drmFreeDevice(&display_devinfo);
-   return result;
+   return wsi_common_drm_devices_equal(fd, pdevice->display_fd);
 }
 
 VkResult
@@ -157,19 +141,8 @@ v3dv_CreateSwapchainKHR(
 struct v3dv_image *
 v3dv_wsi_get_image_from_swapchain(VkSwapchainKHR swapchain, uint32_t index)
 {
-   uint32_t n_images = index + 1;
-   VkImage *images = malloc(sizeof(*images) * n_images);
-   VkResult result = wsi_common_get_images(swapchain, &n_images, images);
-
-   if (result != VK_SUCCESS && result != VK_INCOMPLETE) {
-      free(images);
-      return NULL;
-   }
-
-   V3DV_FROM_HANDLE(v3dv_image, image, images[index]);
-   free(images);
-
-   return image;
+   VkImage image = wsi_common_get_image(swapchain, index);
+   return v3dv_image_from_handle(image);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

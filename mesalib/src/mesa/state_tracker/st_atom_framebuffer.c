@@ -36,7 +36,6 @@
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_cb_bitmap.h"
-#include "st_cb_fbo.h"
 #include "st_texture.h"
 #include "st_util.h"
 #include "pipe/p_context.h"
@@ -47,6 +46,7 @@
 #include "util/u_framebuffer.h"
 #include "main/framebuffer.h"
 
+#include "main/renderbuffer.h"
 
 /**
  * Update framebuffer size.
@@ -109,15 +109,16 @@ framebuffer_quantize_num_samples(struct st_context *st, unsigned num_samples)
 void
 st_update_framebuffer_state( struct st_context *st )
 {
+   struct gl_context *ctx = st->ctx;
    struct pipe_framebuffer_state framebuffer;
    struct gl_framebuffer *fb = st->ctx->DrawBuffer;
-   struct st_renderbuffer *strb;
+   struct gl_renderbuffer *rb;
    GLuint i;
 
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
 
-   st->state.fb_orientation = st_fb_orientation(fb);
+   st->state.fb_orientation = _mesa_fb_orientation(fb);
 
    /**
     * Quantize the derived default number of samples:
@@ -142,23 +143,24 @@ st_update_framebuffer_state( struct st_context *st )
 
    for (i = 0; i < fb->_NumColorDrawBuffers; i++) {
       framebuffer.cbufs[i] = NULL;
-      strb = st_renderbuffer(fb->_ColorDrawBuffers[i]);
+      rb = fb->_ColorDrawBuffers[i];
 
-      if (strb) {
-         if (strb->is_rtt || (strb->texture &&
-             _mesa_is_format_srgb(strb->Base.Format))) {
+      if (rb) {
+         if (rb->is_rtt || (rb->texture &&
+             _mesa_is_format_srgb(rb->Format))) {
             /* rendering to a GL texture, may have to update surface */
-            st_update_renderbuffer_surface(st, strb);
+
+            _mesa_update_renderbuffer_surface(ctx, rb);
          }
 
-         if (strb->surface) {
-            if (strb->surface->context != st->pipe) {
-               st_regen_renderbuffer_surface(st, strb);
+         if (rb->surface) {
+            if (rb->surface->context != st->pipe) {
+               _mesa_regen_renderbuffer_surface(ctx, rb);
             }
-            framebuffer.cbufs[i] = strb->surface;
-            update_framebuffer_size(&framebuffer, strb->surface);
+            framebuffer.cbufs[i] = rb->surface;
+            update_framebuffer_size(&framebuffer, rb->surface);
          }
-         strb->defined = GL_TRUE; /* we'll be drawing something */
+         rb->defined = GL_TRUE; /* we'll be drawing something */
       }
    }
 
@@ -175,21 +177,21 @@ st_update_framebuffer_state( struct st_context *st )
    /*
     * Depth/Stencil renderbuffer/surface.
     */
-   strb = st_renderbuffer(fb->Attachment[BUFFER_DEPTH].Renderbuffer);
-   if (!strb)
-      strb = st_renderbuffer(fb->Attachment[BUFFER_STENCIL].Renderbuffer);
+   rb = fb->Attachment[BUFFER_DEPTH].Renderbuffer;
+   if (!rb)
+      rb = fb->Attachment[BUFFER_STENCIL].Renderbuffer;
 
-   if (strb) {
-      if (strb->is_rtt) {
+   if (rb) {
+      if (rb->is_rtt) {
          /* rendering to a GL texture, may have to update surface */
-         st_update_renderbuffer_surface(st, strb);
+         _mesa_update_renderbuffer_surface(ctx, rb);
       }
-      if (strb->surface && strb->surface->context != st->pipe) {
-         st_regen_renderbuffer_surface(st, strb);
+      if (rb->surface && rb->surface->context != ctx->pipe) {
+         _mesa_regen_renderbuffer_surface(ctx, rb);
       }
-      framebuffer.zsbuf = strb->surface;
-      if (strb->surface)
-         update_framebuffer_size(&framebuffer, strb->surface);
+      framebuffer.zsbuf = rb->surface;
+      if (rb->surface)
+         update_framebuffer_size(&framebuffer, rb->surface);
    }
    else
       framebuffer.zsbuf = NULL;

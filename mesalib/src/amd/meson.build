@@ -34,3 +34,7 @@ if with_amd_vk
     subdir('compiler/tests')
   endif
 endif
+
+if with_tools.contains('drm-shim')
+  subdir('drm-shim')
+endif

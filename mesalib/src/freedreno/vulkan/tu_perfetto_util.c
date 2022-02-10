@@ -34,15 +34,8 @@ tu_device_get_perfetto_state(struct tu_device *dev)
     return &dev->perfetto;
 }
 
-int
-tu_device_get_timestamp(struct tu_device *dev,
-                     uint64_t *ts)
-{
-    return tu_drm_get_timestamp(dev->physical_device, ts);
-}
-
 uint32_t
-tu_u_trace_flush_data_get_submit_id(const struct tu_u_trace_flush_data *data)
+tu_u_trace_submission_data_get_submit_id(const struct tu_u_trace_submission_data *data)
 {
     return data->submission_id;
 }

@@ -676,6 +676,7 @@ extern void GestureEmitGestureEndToOwner(DeviceIntPtr dev, GestureInfoPtr gi);
 extern void ProcessGestureEvent(InternalEvent *ev, DeviceIntPtr dev);
 
 /* misc event helpers */
+extern void CopyPartialInternalEvent(InternalEvent* dst_event, const InternalEvent* src_event);
 extern Mask GetEventMask(DeviceIntPtr dev, xEvent *ev, InputClientsPtr clients);
 extern Mask GetEventFilter(DeviceIntPtr dev, xEvent *event);
 extern Bool WindowXI2MaskIsset(DeviceIntPtr dev, WindowPtr win, xEvent *ev);

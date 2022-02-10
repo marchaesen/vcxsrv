@@ -37,7 +37,7 @@
 #define MAX_SCISSORS                   16
 #define MAX_DISCARD_RECTANGLES         4
 #define MAX_SAMPLE_LOCATIONS           32
-#define MAX_PUSH_CONSTANTS_SIZE        128
+#define MAX_PUSH_CONSTANTS_SIZE        256
 #define MAX_PUSH_DESCRIPTORS           32
 #define MAX_DYNAMIC_UNIFORM_BUFFERS    16
 #define MAX_DYNAMIC_STORAGE_BUFFERS    8

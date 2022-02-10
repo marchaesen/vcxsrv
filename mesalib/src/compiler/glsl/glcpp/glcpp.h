@@ -103,6 +103,7 @@ do {								\
 } while (0)
 
 struct token {
+	bool expanding;
 	int type;
 	YYSTYPE value;
 	YYLTYPE location;

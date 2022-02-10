@@ -78,17 +78,9 @@ _mesa_lookup_semaphore_object_locked(struct gl_context *ctx, GLuint semaphore)
 }
 
 extern void
-_mesa_initialize_memory_object(struct gl_context *ctx,
-                               struct gl_memory_object *obj,
-                               GLuint name);
-extern void
 _mesa_delete_memory_object(struct gl_context *ctx,
                            struct gl_memory_object *semObj);
 
-extern void
-_mesa_initialize_semaphore_object(struct gl_context *ctx,
-                                  struct gl_semaphore_object *obj,
-                                  GLuint name);
 extern void
 _mesa_delete_semaphore_object(struct gl_context *ctx,
                               struct gl_semaphore_object *semObj);

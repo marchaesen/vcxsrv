@@ -118,8 +118,6 @@ static inline unsigned ac_get_load_intr_attribs(bool can_speculate)
    return can_speculate ? AC_FUNC_ATTR_READNONE : AC_FUNC_ATTR_READONLY;
 }
 
-unsigned ac_count_scratch_private_memory(LLVMValueRef function);
-
 LLVMTargetLibraryInfoRef ac_create_target_library_info(const char *triple);
 void ac_dispose_target_library_info(LLVMTargetLibraryInfoRef library_info);
 PUBLIC void ac_init_shared_llvm_once(void); /* Do not use directly, use ac_init_llvm_once */

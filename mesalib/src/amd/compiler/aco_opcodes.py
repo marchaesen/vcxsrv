@@ -74,8 +74,9 @@ class Format(Enum):
    VOPC = 1 << 10
    VOP3 = 1 << 11
    VINTRP = 1 << 12
-   DPP = 1 << 13
+   DPP16 = 1 << 13
    SDWA = 1 << 14
+   DPP8 = 1 << 15
 
    def get_builder_fields(self):
       if self == Format.SOPK:
@@ -147,7 +148,7 @@ class Format(Enum):
       elif self == Format.VINTRP:
          return [('unsigned', 'attribute', None),
                  ('unsigned', 'component', None)]
-      elif self == Format.DPP:
+      elif self == Format.DPP16:
          return [('uint16_t', 'dpp_ctrl', None),
                  ('uint8_t', 'row_mask', '0xF'),
                  ('uint8_t', 'bank_mask', '0xF'),
@@ -673,7 +674,8 @@ VOP2 = {
    (0x03, 0x03, 0x01, 0x01, 0x03, "v_add_f32", True),
    (0x04, 0x04, 0x02, 0x02, 0x04, "v_sub_f32", True),
    (0x05, 0x05, 0x03, 0x03, 0x05, "v_subrev_f32", True),
-   (0x06, 0x06,   -1,   -1, 0x06, "v_mac_legacy_f32", True),
+   (0x06, 0x06,   -1,   -1, 0x06, "v_mac_legacy_f32", True), #GFX6,7,10
+   (  -1,   -1,   -1,   -1, 0x06, "v_fmac_legacy_f32", True), #GFX10.3+
    (0x07, 0x07, 0x04, 0x04, 0x07, "v_mul_legacy_f32", True),
    (0x08, 0x08, 0x05, 0x05, 0x08, "v_mul_f32", True),
    (0x09, 0x09, 0x06, 0x06, 0x09, "v_mul_i32_i24", False),
@@ -1684,6 +1686,9 @@ for ver in ['gfx9', 'gfx10']:
                 continue
             # v_mad_legacy_f32 is replaced with v_fma_legacy_f32 on GFX10.3
             if ver == 'gfx10' and names == set(['v_mad_legacy_f32', 'v_fma_legacy_f32']):
+                continue
+            # v_mac_legacy_f32 is replaced with v_fmac_legacy_f32 on GFX10.3
+            if ver == 'gfx10' and names == set(['v_mac_legacy_f32', 'v_fmac_legacy_f32']):
                 continue
 
             print('%s and %s share the same opcode number (%s)' % (op_to_name[key], op.name, ver))

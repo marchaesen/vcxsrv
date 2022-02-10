@@ -82,12 +82,9 @@ tu_spirv_to_nir(struct tu_device *dev,
          .subgroup_ballot = true,
          .subgroup_vote = true,
          .subgroup_quad = true,
+         .subgroup_shuffle = true,
          .physical_storage_buffer_address = true,
       },
-   };
-
-   const struct nir_lower_compute_system_values_options compute_sysval_options = {
-      .has_base_workgroup_id = true,
    };
 
    const nir_shader_compiler_options *nir_options =
@@ -157,7 +154,6 @@ tu_spirv_to_nir(struct tu_device *dev,
    NIR_PASS_V(nir, nir_lower_is_helper_invocation);
 
    NIR_PASS_V(nir, nir_lower_system_values);
-   NIR_PASS_V(nir, nir_lower_compute_system_values, &compute_sysval_options);
 
    NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
 
@@ -705,6 +701,7 @@ tu_gather_xfb_info(nir_shader *nir, struct ir3_stream_output_info *info)
 struct tu_shader *
 tu_shader_create(struct tu_device *dev,
                  nir_shader *nir,
+                 const VkPipelineShaderStageCreateInfo *stage_info,
                  unsigned multiview_mask,
                  struct tu_pipeline_layout *layout,
                  const VkAllocationCallbacks *alloc)
@@ -761,6 +758,22 @@ tu_shader_create(struct tu_device *dev,
       NIR_PASS_V(nir, nir_lower_explicit_io,
                  nir_var_mem_shared,
                  nir_address_format_32bit_offset);
+
+      if (nir->info.zero_initialize_shared_memory && nir->info.shared_size > 0) {
+         const unsigned chunk_size = 16; /* max single store size */
+         /* Shared memory is allocated in 1024b chunks in HW, but the zero-init
+          * extension only requires us to initialize the memory that the shader
+          * is allocated at the API level, and it's up to the user to ensure
+          * that accesses are limited to those bounds.
+          */
+         const unsigned shared_size = ALIGN(nir->info.shared_size, chunk_size);
+         NIR_PASS_V(nir, nir_zero_initialize_shared_memory, shared_size, chunk_size);
+      }
+
+      const struct nir_lower_compute_system_values_options compute_sysval_options = {
+         .has_base_workgroup_id = true,
+      };
+      NIR_PASS_V(nir, nir_lower_compute_system_values, &compute_sysval_options);
    }
 
    nir_assign_io_var_locations(nir, nir_var_shader_in, &nir->num_inputs, nir->info.stage);
@@ -784,10 +797,47 @@ tu_shader_create(struct tu_device *dev,
 
    ir3_finalize_nir(dev->compiler, nir);
 
+   enum ir3_wavesize_option api_wavesize, real_wavesize;
+
+   if (stage_info) {
+      if (stage_info->flags &
+          VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT) {
+         api_wavesize = real_wavesize = IR3_SINGLE_OR_DOUBLE;
+      } else {
+         const VkPipelineShaderStageRequiredSubgroupSizeCreateInfoEXT *size_info =
+            vk_find_struct_const(stage_info->pNext,
+                                 PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO_EXT);
+
+         if (size_info) {
+            if (size_info->requiredSubgroupSize == dev->compiler->threadsize_base) {
+               api_wavesize = IR3_SINGLE_ONLY;
+            } else {
+               assert(size_info->requiredSubgroupSize == dev->compiler->threadsize_base * 2);
+               api_wavesize = IR3_DOUBLE_ONLY;
+            }
+         } else {
+            /* Match the exposed subgroupSize. */
+            api_wavesize = IR3_DOUBLE_ONLY;
+         }
+
+         if (stage_info->flags &
+             VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT)
+            real_wavesize = api_wavesize;
+         else if (api_wavesize == IR3_SINGLE_ONLY)
+            real_wavesize = IR3_SINGLE_ONLY;
+         else
+            real_wavesize = IR3_SINGLE_OR_DOUBLE;
+      }
+   } else {
+      api_wavesize = real_wavesize = IR3_SINGLE_OR_DOUBLE;
+   }
+
    shader->ir3_shader =
-      ir3_shader_from_nir(dev->compiler, nir,
-                          align(shader->push_consts.count, 4),
-                          &so_info);
+      ir3_shader_from_nir(dev->compiler, nir, &(struct ir3_shader_options) {
+                           .reserved_user_consts = align(shader->push_consts.count, 4),
+                           .api_wavesize = api_wavesize,
+                           .real_wavesize = real_wavesize,
+                          }, &so_info);
 
    return shader;
 }

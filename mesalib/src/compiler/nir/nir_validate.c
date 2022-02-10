@@ -1478,6 +1478,10 @@ validate_var_decl(nir_variable *var, nir_variable_mode valid_modes,
 
       const struct glsl_type *type = glsl_get_array_element(var->type);
       if (nir_is_arrayed_io(var, state->shader->info.stage)) {
+         if (var->data.per_view) {
+            assert(glsl_type_is_array(type));
+            type = glsl_get_array_element(type);
+         }
          assert(glsl_type_is_array(type));
          assert(glsl_type_is_scalar(glsl_get_array_element(type)));
       } else {

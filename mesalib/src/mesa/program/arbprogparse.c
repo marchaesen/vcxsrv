@@ -54,7 +54,6 @@ having three separate program parameter arrays.
 #include "main/glheader.h"
 
 #include "main/context.h"
-#include "main/mtypes.h"
 #include "arbprogparse.h"
 #include "programopt.h"
 #include "prog_parameter.h"

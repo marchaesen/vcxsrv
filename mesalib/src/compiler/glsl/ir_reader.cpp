@@ -936,12 +936,14 @@ ir_texture *
 ir_reader::read_texture(s_expression *expr)
 {
    s_symbol *tag = NULL;
+   s_expression *s_sparse = NULL;
    s_expression *s_type = NULL;
    s_expression *s_sampler = NULL;
    s_expression *s_coord = NULL;
    s_expression *s_offset = NULL;
    s_expression *s_proj = NULL;
    s_list *s_shadow = NULL;
+   s_list *s_clamp = NULL;
    s_expression *s_lod = NULL;
    s_expression *s_sample_index = NULL;
    s_expression *s_component = NULL;
@@ -949,28 +951,36 @@ ir_reader::read_texture(s_expression *expr)
    ir_texture_opcode op = ir_tex; /* silence warning */
 
    s_pattern tex_pattern[] =
-      { "tex", s_type, s_sampler, s_coord, s_offset, s_proj, s_shadow };
+      { "tex", s_type, s_sampler, s_coord, s_sparse, s_offset, s_proj, s_shadow, s_clamp };
+   s_pattern txb_pattern[] =
+      { "txb", s_type, s_sampler, s_coord, s_sparse, s_offset, s_proj, s_shadow, s_clamp, s_lod };
+   s_pattern txd_pattern[] =
+      { "txd", s_type, s_sampler, s_coord, s_sparse, s_offset, s_proj, s_shadow, s_clamp, s_lod };
    s_pattern lod_pattern[] =
       { "lod", s_type, s_sampler, s_coord };
    s_pattern txf_pattern[] =
-      { "txf", s_type, s_sampler, s_coord, s_offset, s_lod };
+      { "txf", s_type, s_sampler, s_coord, s_sparse, s_offset, s_lod };
    s_pattern txf_ms_pattern[] =
-      { "txf_ms", s_type, s_sampler, s_coord, s_sample_index };
+      { "txf_ms", s_type, s_sampler, s_coord, s_sparse, s_sample_index };
    s_pattern txs_pattern[] =
       { "txs", s_type, s_sampler, s_lod };
    s_pattern tg4_pattern[] =
-      { "tg4", s_type, s_sampler, s_coord, s_offset, s_component };
+      { "tg4", s_type, s_sampler, s_coord, s_sparse, s_offset, s_component };
    s_pattern query_levels_pattern[] =
       { "query_levels", s_type, s_sampler };
    s_pattern texture_samples_pattern[] =
       { "samples", s_type, s_sampler };
    s_pattern other_pattern[] =
-      { tag, s_type, s_sampler, s_coord, s_offset, s_proj, s_shadow, s_lod };
+      { tag, s_type, s_sampler, s_coord, s_sparse, s_offset, s_proj, s_shadow, s_lod };
 
    if (MATCH(expr, lod_pattern)) {
       op = ir_lod;
    } else if (MATCH(expr, tex_pattern)) {
       op = ir_tex;
+   } else if (MATCH(expr, txb_pattern)) {
+      op = ir_txb;
+   } else if (MATCH(expr, txd_pattern)) {
+      op = ir_txd;
    } else if (MATCH(expr, txf_pattern)) {
       op = ir_txf;
    } else if (MATCH(expr, txf_ms_pattern)) {
@@ -992,7 +1002,17 @@ ir_reader::read_texture(s_expression *expr)
       return NULL;
    }
 
-   ir_texture *tex = new(mem_ctx) ir_texture(op);
+   bool is_sparse = false;
+   if (s_sparse) {
+      s_int *sparse = SX_AS_INT(s_sparse);
+      if (sparse == NULL) {
+         ir_read_error(NULL, "when reading sparse");
+         return NULL;
+      }
+      is_sparse = sparse->value();
+   }
+
+   ir_texture *tex = new(mem_ctx) ir_texture(op, is_sparse);
 
    // Read return type
    const glsl_type *type = read_type(s_type);
@@ -1008,6 +1028,15 @@ ir_reader::read_texture(s_expression *expr)
       ir_read_error(NULL, "when reading sampler in (%s ...)",
 		    tex->opcode_string());
       return NULL;
+   }
+
+   if (is_sparse) {
+      const glsl_type *texel = type->field_type("texel");
+      if (texel == glsl_type::error_type) {
+         ir_read_error(NULL, "invalid type for sparse texture");
+         return NULL;
+      }
+      type = texel;
    }
    tex->set_sampler(sampler, type);
 
@@ -1057,6 +1086,19 @@ ir_reader::read_texture(s_expression *expr)
 			  tex->opcode_string());
 	    return NULL;
 	 }
+      }
+   }
+
+   if (op == ir_tex || op == ir_txb || op == ir_txd) {
+      if (s_clamp->subexpressions.is_empty()) {
+         tex->clamp = NULL;
+      } else {
+         tex->clamp = read_rvalue(s_clamp);
+         if (tex->clamp == NULL) {
+            ir_read_error(NULL, "when reading clamp in (%s ..)",
+                          tex->opcode_string());
+            return NULL;
+         }
       }
    }
 

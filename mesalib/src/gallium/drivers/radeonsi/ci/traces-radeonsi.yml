@@ -21,11 +21,11 @@ traces:
   - path: pathfinder/demo.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 8ff636268dfa0d54b6f15d70d15e354d
+        checksum: c81c85f9b247dd1b06c3dd5b669cc283
   - path: pathfinder/canvas_moire.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 505b9cad6e65c13463a0786944f8b679
+        checksum: 78dd2357ad6e5ffc049a75bfb11c5497
   - path: pathfinder/canvas_text_v2.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -129,7 +129,7 @@ traces:
   - path: glmark2/refract.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 41d105bdd10a354f6d161c67f715b7f9
+        checksum: 9d0a2d2fce0b80a265fbcee5107c9e82
   - path: glmark2/shading:shading=blinn-phong-inf.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -169,11 +169,11 @@ traces:
   - path: godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 4df1fbfc346851fe9e086a0708afde21
+        checksum: 02f654ad77c0c1106e1b31e1c86c93bb
   - path: gputest/gimark.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 52f76e6db877111845990ee128552082
+        checksum: 4442dbd44a9704c499da4817fffce306
   - path: gputest/pixmark-julia-fp32.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -189,7 +189,7 @@ traces:
   - path: gputest/plot3d.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: a62be186a3e0a33ecbd520edd3873eb1
+        checksum: 667078b0f51ac8e0469ef9a20326c616
   - path: gputest/tessmark.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -197,7 +197,7 @@ traces:
   - path: humus/AmbientAperture.trace
     expectations:
       - device: gl-radeonsi-stoney
-        checksum: 7ad498c94dcfbf22ef56f115648be86d
+        checksum: 664ea58a62b27737b7d0ae9e86ab85c0
   - path: humus/CelShading.trace
     expectations:
       - device: gl-radeonsi-stoney
@@ -214,6 +214,18 @@ traces:
     expectations:
       - device: gl-radeonsi-stoney
         checksum: 2e2e58e0b32329d6cf90ab0ec71108fd
+  - path: paraview/pv-manyspheres.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 7e405460c58557573bd9cc54035bb62a
+  - path: paraview/pv-waveletcontour.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: 961fb30a1a3756678662d1a9a45b1400
+  - path: paraview/pv-waveletvolume.trace
+    expectations:
+      - device: gl-radeonsi-stoney
+        checksum: f1093f472683a16dec0d5da4b599356f
   - path: humus/VolumetricFogging2.trace
     expectations:
       - device: gl-radeonsi-stoney

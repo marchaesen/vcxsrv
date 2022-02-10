@@ -8,9 +8,18 @@ dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 # "r300: Skipping a draw command. There is a buffer  which is too small to be used for rendering."
 dEQP-GLES2.functional.draw.draw_elements.points.single_attribute,Fail
 dEQP-GLES2.functional.draw.draw_elements.points.multiple_attributes,Fail
+dEQP-GLES2.functional.draw.draw_elements.indices.user_ptr.index_byte,Fail
 
 # "Framebuffer checked as complete, expected incomplete"
 dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgb_half_float_oes,Fail
+dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgba_half_float_oes,Fail
+
+dEQP-GLES2.functional.fbo.render.repeated_clear.tex2d_rgb,Fail
+dEQP-GLES2.functional.fbo.render.repeated_clear.tex2d_rgba,Fail
+
+dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_depth_funcs.stencil_never_depth_equal,Fail
+dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_depth_funcs.stencil_never_no_depth,Fail
+dEQP-GLES2.functional.fragment_ops.depth_stencil.write_mask.both,Fail
 
 dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.43,Fail
 dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.74,Fail
@@ -37,13 +46,6 @@ dEQP-GLES2.functional.rasterization.primitives.line_strip_wide,Fail,Fail
 dEQP-GLES2.functional.rasterization.primitives.line_loop_wide,Fail
 
 dEQP-GLES2.functional.shaders.functions.control_flow.mixed_return_break_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.functions.control_flow.mixed_return_break_continue_fragment,Fail
-
-# "No free temporary to use for predicate stack counter."
-dEQP-GLES2.functional.shaders.indexing.tmp_array.float_const_write_dynamic_loop_read_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec2_const_write_dynamic_loop_read_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_loop_read_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_const_write_dynamic_loop_read_vertex,Fail
 
 # "Rewrite of inst 0 failed Can't allocate source for Inst 4 src_type=1 new_index=1 new_mask=1"
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_component_read_fragment,Fail
@@ -53,13 +55,11 @@ dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_w
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec2_dynamic_subscript_write_static_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_component_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_direct_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_dynamic_loop_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_dynamic_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_static_loop_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec3_dynamic_subscript_write_static_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_component_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_direct_read_fragment,Fail
-dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_dynamic_loop_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_dynamic_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_static_loop_subscript_read_fragment,Fail
 dEQP-GLES2.functional.shaders.indexing.vector_subscript.vec4_dynamic_subscript_write_static_subscript_read_fragment,Fail
@@ -80,7 +80,10 @@ dEQP-GLES2.functional.shaders.return.return_in_dynamic_loop_dynamic_vertex,Fail
 
 dEQP-GLES2.functional.shaders.random.texture.fragment.141,Fail
 
+dEQP-GLES2.functional.shaders.return.return_in_dynamic_loop_dynamic_fragment,Fail
+
 dEQP-GLES2.functional.shaders.struct.local.dynamic_loop_nested_struct_array_fragment,Fail
+dEQP-GLES2.functional.shaders.struct.uniform.dynamic_loop_nested_struct_array_fragment,Fail
 
 dEQP-GLES2.functional.texture.format.a8_cube_npot,Fail
 dEQP-GLES2.functional.texture.format.l8_cube_npot,Fail
@@ -133,6 +136,8 @@ dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_2,
 dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_4,Fail
 dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_8,Fail
 
+dEQP-GLES2.functional.uniform_api.random.47,Fail
+
 dEQP-GLES2.functional.uniform_api.value.initial.render.basic_array.vec4_both,Fail
 dEQP-GLES2.functional.uniform_api.value.initial.render.array_in_struct.float_vec4_both,Fail
 
@@ -141,8 +146,7 @@ KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_compo
 KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_short_depth_component16,Fail
 KHR-GLES2.core.internalformat.texture2d.rgb_float_rgb32f,Fail
 KHR-GLES2.core.internalformat.texture2d.rgba_float_rgba32f,Fail
-KHR-GLES2.texture_3d.copy_sub_image.negative,Fail
-KHR-GLES2.texture_3d.copy_sub_image.rgba,Fail
+
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_clamp,Fail
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_mirror,Fail
 KHR-GLES2.texture_3d.filtering.combinations.linear_linear_clamp_clamp_repeat,Fail
@@ -413,7 +417,6 @@ KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_mirror_repeat
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_clamp,Fail
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_mirror,Fail
 KHR-GLES2.texture_3d.filtering.combinations.nearest_nearest_repeat_repeat_repeat,Fail
-KHR-GLES2.texture_3d.filtering.combinations.negative,Fail
 KHR-GLES2.texture_3d.filtering.sizes.3x7x5_linear,Fail
 KHR-GLES2.texture_3d.filtering.sizes.3x7x5_linear_mipmap_nearest,Fail
 KHR-GLES2.texture_3d.filtering.sizes.3x7x5_nearest,Fail

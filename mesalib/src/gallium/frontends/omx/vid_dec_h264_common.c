@@ -46,7 +46,7 @@ static void vid_dec_h264_BeginFrame(vid_dec_PrivateType *priv)
       templat.entrypoint = PIPE_VIDEO_ENTRYPOINT_BITSTREAM;
       templat.chroma_format = PIPE_VIDEO_CHROMA_FORMAT_420;
       templat.max_references = priv->picture.h264.num_ref_frames;
-      templat.expect_chunked_decode = true;
+      templat.expect_chunked_decode = false;
 #if ENABLE_ST_OMX_BELLAGIO
       omx_base_video_PortType *port;
       port = (omx_base_video_PortType *)priv->ports[OMX_BASE_FILTER_INPUTPORT_INDEX];

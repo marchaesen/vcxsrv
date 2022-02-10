@@ -33,6 +33,7 @@
 #include "pipe/p_defines.h"
 #include "util/compiler.h"
 #include "util/u_debug.h"
+#include "compiler/shader_enums.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -311,6 +312,21 @@ u_base_prim_type(enum pipe_prim_type prim_type)
          return PIPE_PRIM_QUADS;
       default:
          return prim_type;
+   }
+}
+
+static inline enum pipe_prim_type
+u_tess_prim_from_shader(enum tess_primitive_mode shader_mode)
+{
+   switch (shader_mode) {
+   case TESS_PRIMITIVE_TRIANGLES:
+      return PIPE_PRIM_TRIANGLES;
+   case TESS_PRIMITIVE_QUADS:
+      return PIPE_PRIM_QUADS;
+   case TESS_PRIMITIVE_ISOLINES:
+      return PIPE_PRIM_LINES;
+   default:
+      return PIPE_PRIM_POINTS;
    }
 }
 

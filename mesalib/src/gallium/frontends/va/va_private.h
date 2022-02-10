@@ -310,6 +310,7 @@ typedef struct {
       unsigned int slice_header_size;
    } mjpeg;
 
+   struct h264_private h264;
    struct vl_deint_filter *deint;
    vlVaBuffer *coded_buf;
    int target_id;
@@ -335,6 +336,7 @@ typedef struct {
    void *feedback;
    unsigned int frame_num_cnt;
    bool force_flushed;
+   struct pipe_video_buffer *obsolete_buf;
 } vlVaSurface;
 
 // Public functions:

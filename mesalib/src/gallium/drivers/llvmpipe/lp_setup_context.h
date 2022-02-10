@@ -229,7 +229,7 @@ boolean lp_setup_flush_and_restart(struct lp_setup_context *setup);
 boolean
 lp_setup_whole_tile(struct lp_setup_context *setup,
                     const struct lp_rast_shader_inputs *inputs,
-                    int tx, int ty);
+                    int tx, int ty, boolean opaque);
 
 boolean
 lp_setup_is_blit(const struct lp_setup_context *setup,
@@ -279,14 +279,16 @@ lp_setup_analyse_triangles(struct lp_setup_context *setup,
 boolean
 lp_setup_bin_triangle(struct lp_setup_context *setup,
                       struct lp_rast_triangle *tri,
-                      const struct u_rect *bboxorig,
+                      boolean use_32bits,
+                      boolean opaque,
                       const struct u_rect *bbox,
                       int nr_planes,
                       unsigned scissor_index);
 
 boolean
 lp_setup_bin_rectangle(struct lp_setup_context *setup,
-                       struct lp_rast_rectangle *rect);
+                       struct lp_rast_rectangle *rect,
+                       boolean opaque);
 
 
 #endif

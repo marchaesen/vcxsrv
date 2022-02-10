@@ -534,6 +534,26 @@ vn_decode_VkFlags_array(struct vn_cs_decoder *dec, VkFlags *val, uint32_t count)
     vn_decode_uint32_t_array(dec, val, count);
 }
 
+/* typedef uint64_t VkFlags64 */
+
+static inline size_t
+vn_sizeof_VkFlags64(const VkFlags64 *val)
+{
+    return vn_sizeof_uint64_t(val);
+}
+
+static inline void
+vn_encode_VkFlags64(struct vn_cs_encoder *enc, const VkFlags64 *val)
+{
+    vn_encode_uint64_t(enc, val);
+}
+
+static inline void
+vn_decode_VkFlags64(struct vn_cs_decoder *dec, VkFlags64 *val)
+{
+    vn_decode_uint64_t(dec, val);
+}
+
 /* typedef uint64_t VkDeviceSize */
 
 static inline size_t
@@ -690,6 +710,48 @@ vn_encode_VkPipelineCacheCreateFlagBits(struct vn_cs_encoder *enc, const VkPipel
 
 static inline void
 vn_decode_VkPipelineCacheCreateFlagBits(struct vn_cs_decoder *dec, VkPipelineCacheCreateFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+/* enum VkPipelineDepthStencilStateCreateFlagBits */
+
+static inline size_t
+vn_sizeof_VkPipelineDepthStencilStateCreateFlagBits(const VkPipelineDepthStencilStateCreateFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkPipelineDepthStencilStateCreateFlagBits(struct vn_cs_encoder *enc, const VkPipelineDepthStencilStateCreateFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkPipelineDepthStencilStateCreateFlagBits(struct vn_cs_decoder *dec, VkPipelineDepthStencilStateCreateFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+/* enum VkPipelineColorBlendStateCreateFlagBits */
+
+static inline size_t
+vn_sizeof_VkPipelineColorBlendStateCreateFlagBits(const VkPipelineColorBlendStateCreateFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkPipelineColorBlendStateCreateFlagBits(struct vn_cs_encoder *enc, const VkPipelineColorBlendStateCreateFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkPipelineColorBlendStateCreateFlagBits(struct vn_cs_decoder *dec, VkPipelineColorBlendStateCreateFlagBits *val)
 {
     vn_decode_int32_t(dec, (int32_t *)val);
 }
@@ -1345,6 +1407,24 @@ vn_decode_VkSampleCountFlagBits(struct vn_cs_decoder *dec, VkSampleCountFlagBits
     vn_decode_int32_t(dec, (int32_t *)val);
 }
 
+static inline size_t
+vn_sizeof_VkSampleCountFlagBits_array(const VkSampleCountFlagBits *val, uint32_t count)
+{
+    return vn_sizeof_int32_t_array((const int32_t *)val, count);
+}
+
+static inline void
+vn_encode_VkSampleCountFlagBits_array(struct vn_cs_encoder *enc, const VkSampleCountFlagBits *val, uint32_t count)
+{
+    vn_encode_int32_t_array(enc, (const int32_t *)val, count);
+}
+
+static inline void
+vn_decode_VkSampleCountFlagBits_array(struct vn_cs_decoder *dec, VkSampleCountFlagBits *val, uint32_t count)
+{
+    vn_decode_int32_t_array(dec, (int32_t *)val, count);
+}
+
 /* enum VkAttachmentDescriptionFlagBits */
 
 static inline size_t
@@ -1471,6 +1551,27 @@ vn_decode_VkSubgroupFeatureFlagBits(struct vn_cs_decoder *dec, VkSubgroupFeature
     vn_decode_int32_t(dec, (int32_t *)val);
 }
 
+/* enum VkPipelineCreationFeedbackFlagBits */
+
+static inline size_t
+vn_sizeof_VkPipelineCreationFeedbackFlagBits(const VkPipelineCreationFeedbackFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkPipelineCreationFeedbackFlagBits(struct vn_cs_encoder *enc, const VkPipelineCreationFeedbackFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkPipelineCreationFeedbackFlagBits(struct vn_cs_decoder *dec, VkPipelineCreationFeedbackFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
 /* enum VkSemaphoreWaitFlagBits */
 
 static inline size_t
@@ -1488,6 +1589,90 @@ vn_encode_VkSemaphoreWaitFlagBits(struct vn_cs_encoder *enc, const VkSemaphoreWa
 
 static inline void
 vn_decode_VkSemaphoreWaitFlagBits(struct vn_cs_decoder *dec, VkSemaphoreWaitFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+/* typedef VkFlags64 VkAccessFlagBits2 */
+
+static inline size_t
+vn_sizeof_VkAccessFlagBits2(const VkAccessFlagBits2 *val)
+{
+    assert(sizeof(*val) == sizeof(uint64_t));
+    return vn_sizeof_uint64_t((const uint64_t *)val);
+}
+
+static inline void
+vn_encode_VkAccessFlagBits2(struct vn_cs_encoder *enc, const VkAccessFlagBits2 *val)
+{
+    vn_encode_uint64_t(enc, (const uint64_t *)val);
+}
+
+static inline void
+vn_decode_VkAccessFlagBits2(struct vn_cs_decoder *dec, VkAccessFlagBits2 *val)
+{
+    vn_decode_uint64_t(dec, (uint64_t *)val);
+}
+
+/* typedef VkFlags64 VkPipelineStageFlagBits2 */
+
+static inline size_t
+vn_sizeof_VkPipelineStageFlagBits2(const VkPipelineStageFlagBits2 *val)
+{
+    assert(sizeof(*val) == sizeof(uint64_t));
+    return vn_sizeof_uint64_t((const uint64_t *)val);
+}
+
+static inline void
+vn_encode_VkPipelineStageFlagBits2(struct vn_cs_encoder *enc, const VkPipelineStageFlagBits2 *val)
+{
+    vn_encode_uint64_t(enc, (const uint64_t *)val);
+}
+
+static inline void
+vn_decode_VkPipelineStageFlagBits2(struct vn_cs_decoder *dec, VkPipelineStageFlagBits2 *val)
+{
+    vn_decode_uint64_t(dec, (uint64_t *)val);
+}
+
+/* typedef VkFlags64 VkFormatFeatureFlagBits2 */
+
+static inline size_t
+vn_sizeof_VkFormatFeatureFlagBits2(const VkFormatFeatureFlagBits2 *val)
+{
+    assert(sizeof(*val) == sizeof(uint64_t));
+    return vn_sizeof_uint64_t((const uint64_t *)val);
+}
+
+static inline void
+vn_encode_VkFormatFeatureFlagBits2(struct vn_cs_encoder *enc, const VkFormatFeatureFlagBits2 *val)
+{
+    vn_encode_uint64_t(enc, (const uint64_t *)val);
+}
+
+static inline void
+vn_decode_VkFormatFeatureFlagBits2(struct vn_cs_decoder *dec, VkFormatFeatureFlagBits2 *val)
+{
+    vn_decode_uint64_t(dec, (uint64_t *)val);
+}
+
+/* enum VkRenderingFlagBits */
+
+static inline size_t
+vn_sizeof_VkRenderingFlagBits(const VkRenderingFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkRenderingFlagBits(struct vn_cs_encoder *enc, const VkRenderingFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkRenderingFlagBits(struct vn_cs_decoder *dec, VkRenderingFlagBits *val)
 {
     vn_decode_int32_t(dec, (int32_t *)val);
 }
@@ -1740,6 +1925,48 @@ vn_encode_VkResolveModeFlagBits(struct vn_cs_encoder *enc, const VkResolveModeFl
 
 static inline void
 vn_decode_VkResolveModeFlagBits(struct vn_cs_decoder *dec, VkResolveModeFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+/* enum VkToolPurposeFlagBits */
+
+static inline size_t
+vn_sizeof_VkToolPurposeFlagBits(const VkToolPurposeFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkToolPurposeFlagBits(struct vn_cs_encoder *enc, const VkToolPurposeFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkToolPurposeFlagBits(struct vn_cs_decoder *dec, VkToolPurposeFlagBits *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+/* enum VkSubmitFlagBits */
+
+static inline size_t
+vn_sizeof_VkSubmitFlagBits(const VkSubmitFlagBits *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkSubmitFlagBits(struct vn_cs_encoder *enc, const VkSubmitFlagBits *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkSubmitFlagBits(struct vn_cs_decoder *dec, VkSubmitFlagBits *val)
 {
     vn_decode_int32_t(dec, (int32_t *)val);
 }

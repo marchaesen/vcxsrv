@@ -60,6 +60,8 @@ struct svga_screen;
 #define TF_XXXX             (1 << 10) /* swizzle <X, X, X, X> */
 #define TF_XXX1             (1 << 11) /* swizzle <X, X, X, 1> */
 #define TF_XXXY             (1 << 12) /* swizzle <X, X, X, Y> */
+#define TF_UAV              (1 << 13) /* supports uav */
+#define TF_SM5              (1 << 14) /* supported in SM5 */
 
 void
 svga_translate_vertex_format_vgpu10(enum pipe_format format,

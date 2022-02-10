@@ -85,7 +85,7 @@ dump_shader_info(struct ir3_shader_variant *v,
       "%s shader: %u inst, %u nops, %u non-nops, %u mov, %u cov, "
       "%u dwords, %u last-baryf, %u half, %u full, %u constlen, "
       "%u cat0, %u cat1, %u cat2, %u cat3, %u cat4, %u cat5, %u cat6, %u cat7, "
-      "%u stp, %u ldp, %u sstall, %u (ss), %u (sy), %d waves, %d max_sun, "
+      "%u stp, %u ldp, %u sstall, %u (ss), %u systall, %u (sy), %d waves, "
       "%d loops\n",
       ir3_shader_stage(v), v->info.instrs_count, v->info.nops_count,
       v->info.instrs_count - v->info.nops_count, v->info.mov_count,
@@ -96,7 +96,7 @@ dump_shader_info(struct ir3_shader_variant *v,
       v->info.instrs_per_cat[4], v->info.instrs_per_cat[5],
       v->info.instrs_per_cat[6], v->info.instrs_per_cat[7],
       v->info.stp_count, v->info.ldp_count, v->info.sstall,
-      v->info.ss, v->info.sy, v->info.max_waves, v->max_sun, v->loops);
+      v->info.ss, v->info.systall, v->info.sy, v->info.max_waves, v->loops);
 }
 
 static void
@@ -193,7 +193,7 @@ create_initial_variants(struct ir3_shader_state *hwcso,
 
    switch (nir->info.stage) {
    case MESA_SHADER_TESS_EVAL:
-      key.tessellation = ir3_tess_mode(nir->info.tess.primitive_mode);
+      key.tessellation = ir3_tess_mode(nir->info.tess._primitive_mode);
       break;
 
    case MESA_SHADER_TESS_CTRL:
@@ -307,7 +307,14 @@ ir3_shader_compute_state_create(struct pipe_context *pctx,
       nir = tgsi_to_nir(cso->prog, pctx->screen, false);
    }
 
-   struct ir3_shader *shader = ir3_shader_from_nir(compiler, nir, 0, NULL);
+   struct ir3_shader *shader =
+      ir3_shader_from_nir(compiler, nir, &(struct ir3_shader_options){
+                              /* TODO: force to single on a6xx with legacy
+                               * ballot extension that uses 64-bit masks
+                               */
+                              .api_wavesize = IR3_SINGLE_OR_DOUBLE,
+                              .real_wavesize = IR3_SINGLE_OR_DOUBLE,
+                          }, NULL);
    shader->cs.req_input_mem = align(cso->req_input_mem, 4) / 4;     /* byte->dword */
    shader->cs.req_local_mem = cso->req_local_mem;
 
@@ -367,7 +374,15 @@ ir3_shader_state_create(struct pipe_context *pctx,
    struct ir3_stream_output_info stream_output = {};
    copy_stream_out(&stream_output, &cso->stream_output);
 
-   hwcso->shader = ir3_shader_from_nir(compiler, nir, 0, &stream_output);
+   hwcso->shader =
+      ir3_shader_from_nir(compiler, nir, &(struct ir3_shader_options){
+                              /* TODO: force to single on a6xx with legacy
+                               * ballot extension that uses 64-bit masks
+                               */
+                              .api_wavesize = IR3_SINGLE_OR_DOUBLE,
+                              .real_wavesize = IR3_SINGLE_OR_DOUBLE,
+                          },
+                          &stream_output);
 
    /*
     * Create initial variants to avoid draw-time stalls.  This is

@@ -91,7 +91,9 @@ struct virtgpu {
 
    int fd;
    int version_minor;
-   drmPciBusInfo bus_info;
+
+   int bustype;
+   drmPciBusInfo pci_bus_info;
 
    uint32_t max_sync_queue_count;
 
@@ -1368,11 +1370,15 @@ virtgpu_get_info(struct vn_renderer *renderer, struct vn_renderer_info *info)
    info->pci.vendor_id = VIRTGPU_PCI_VENDOR_ID;
    info->pci.device_id = VIRTGPU_PCI_DEVICE_ID;
 
-   info->pci.has_bus_info = true;
-   info->pci.domain = gpu->bus_info.domain;
-   info->pci.bus = gpu->bus_info.bus;
-   info->pci.device = gpu->bus_info.dev;
-   info->pci.function = gpu->bus_info.func;
+   if (gpu->bustype == DRM_BUS_PCI) {
+      info->pci.has_bus_info = true;
+      info->pci.domain = gpu->pci_bus_info.domain;
+      info->pci.bus = gpu->pci_bus_info.bus;
+      info->pci.device = gpu->pci_bus_info.dev;
+      info->pci.function = gpu->pci_bus_info.func;
+   } else {
+      info->pci.has_bus_info = false;
+   }
 
    info->has_dma_buf_import = true;
    /* Kernel makes every mapping coherent.  We are better off filtering
@@ -1512,11 +1518,22 @@ virtgpu_init_params(struct virtgpu *gpu)
 static VkResult
 virtgpu_open_device(struct virtgpu *gpu, const drmDevicePtr dev)
 {
-   /* skip unless the device has our PCI vendor/device id and a render node */
-   if (!(dev->available_nodes & (1 << DRM_NODE_RENDER)) ||
-       dev->bustype != DRM_BUS_PCI ||
-       dev->deviceinfo.pci->vendor_id != VIRTGPU_PCI_VENDOR_ID ||
-       dev->deviceinfo.pci->device_id != VIRTGPU_PCI_DEVICE_ID) {
+   bool supported_bus = false;
+
+   switch (dev->bustype) {
+   case DRM_BUS_PCI:
+      if (dev->deviceinfo.pci->vendor_id == VIRTGPU_PCI_VENDOR_ID &&
+         dev->deviceinfo.pci->device_id == VIRTGPU_PCI_DEVICE_ID)
+         supported_bus = true;
+      break;
+   case DRM_BUS_PLATFORM:
+      supported_bus = true;
+      break;
+   default:
+      break;
+   }
+
+   if (!supported_bus || !(dev->available_nodes & (1 << DRM_NODE_RENDER))) {
       if (VN_DEBUG(INIT)) {
          const char *name = "unknown";
          for (uint32_t i = 0; i < DRM_NODE_MAX; i++) {
@@ -1558,7 +1575,9 @@ virtgpu_open_device(struct virtgpu *gpu, const drmDevicePtr dev)
 
    gpu->fd = fd;
    gpu->version_minor = version->version_minor;
-   gpu->bus_info = *dev->businfo.pci;
+   gpu->bustype = dev->bustype;
+   if (dev->bustype == DRM_BUS_PCI)
+      gpu->pci_bus_info = *dev->businfo.pci;
 
    drmFreeVersion(version);
 

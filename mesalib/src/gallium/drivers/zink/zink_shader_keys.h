@@ -60,6 +60,7 @@ struct zink_fs_key {
    bool coord_replace_yinvert;
    bool samples;
    bool force_dual_color_blend;
+   bool force_persample_interp;
 };
 
 struct zink_shader_key_base {

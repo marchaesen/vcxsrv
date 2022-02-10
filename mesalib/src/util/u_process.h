@@ -30,10 +30,18 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 const char *
 util_get_process_name(void);
 
 size_t
 util_get_process_exec_path(char* process_path, size_t len);
+
+#ifdef __cplusplus
+} /* extern C */
+#endif
 
 #endif

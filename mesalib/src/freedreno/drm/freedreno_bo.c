@@ -416,7 +416,8 @@ fd_bo_dmabuf(struct fd_bo *bo)
 {
    int ret, prime_fd;
 
-   ret = drmPrimeHandleToFD(bo->dev->fd, bo->handle, DRM_CLOEXEC, &prime_fd);
+   ret = drmPrimeHandleToFD(bo->dev->fd, bo->handle, DRM_CLOEXEC | DRM_RDWR,
+                            &prime_fd);
    if (ret) {
       ERROR_MSG("failed to get dmabuf fd: %d", ret);
       return ret;

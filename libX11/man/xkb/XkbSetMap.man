@@ -215,26 +215,28 @@ XkbKeyTypesMask	first_type,	map->type[first_type] ..
 XkbKeySymsMask	first_key_sym,	map->key_sym_map[first_key_sym] ..
 	num_key_syms	map->key_sym_map[first_key_sym +
 		num_key_syms - 1]
+.sp
 XkbModifierMapMask	first_modmap_key,	map->modmap[first_modmap_key] ..
 	num_modmap_keys	map->modmap[first_modmap_key +
-		num_modmap_keys-1]
-XkbExplicitComponentsMask	first_key_explicit,	
-server->explicit[first_key_explicit] ..
+		num_modmap_keys - 1]
+.sp
+XkbExplicitComponentsMask	first_key_explicit,	server->explicit[first_key_explicit] ..
 	num_key_explicit	server->explicit[first_key_explicit +
 		num_key_explicit - 1]
+.sp
 XkbKeyActionsMask	first_key_act,	server->key_acts[first_key_act] ..
 	num_key_acts	server->key_acts[first_key_act +
 		num_key_acts - 1]
-XkbKeyBehaviorsMask	first_key_behavior,	
-server->behaviors[first_key_behavior] ..
+.sp
+XkbKeyBehaviorsMask	first_key_behavior,	server->behaviors[first_key_behavior] ..
 	num_key_behaviors	server->behaviors[first_key_behavior +
 		num_key_behaviors - 1]
+.sp
 XkbVirtualModsMask	vmods	server->vmods[*]
-XkbVirtualModMapMask	first_vmodmap_key,	
-server->vmodmap[first_vmodmap_key]
-	num_vmodmap_keys	 ..
-		server->vmodmap[first_vmodmap_key
-		+ num_vmodmap_keys - 1]
+.sp
+XkbVirtualModMapMask	first_vmodmap_key,	server->vmodmap[first_vmodmap_key] ..
+	num_vmodmap_keys	server->vmodmap[first_vmodmap_key +
+		num_vmodmap_keys - 1]
 .TE
 .SH "RETURN VALUES"
 .TP 15

@@ -394,8 +394,10 @@ fd6_emit_tess_bos(struct fd_screen *screen, struct fd_ringbuffer *ring,
 static void
 setup_stateobj(struct fd_ringbuffer *ring, struct fd_context *ctx,
                struct fd6_program_state *state,
-               const struct ir3_shader_key *key, bool binning_pass) assert_dt
+               const struct ir3_cache_key *cache_key,
+               bool binning_pass) assert_dt
 {
+   const struct ir3_shader_key *key = &cache_key->key;
    uint32_t pos_regid, psize_regid, color_regid[8], posz_regid;
    uint32_t clip0_regid, clip1_regid;
    uint32_t face_regid, coord_regid, zwcoord_regid, samp_id_regid;
@@ -583,6 +585,8 @@ setup_stateobj(struct fd_ringbuffer *ring, struct fd_context *ctx,
            cull_mask = last_shader->cull_mask;
    uint8_t clip_cull_mask = clip_mask | cull_mask;
 
+   clip_mask &= cache_key->clip_plane_enable;
+
    /* If we have streamout, link against the real FS, rather than the
     * dummy FS used for binning pass state, to ensure the OUTLOC's
     * match.  Depending on whether we end up doing sysmem or gmem,
@@ -765,7 +769,7 @@ setup_stateobj(struct fd_ringbuffer *ring, struct fd_context *ctx,
       uint32_t output;
       if (ds_info->tess.point_mode)
          output = TESS_POINTS;
-      else if (ds_info->tess.primitive_mode == GL_ISOLINES)
+      else if (ds_info->tess._primitive_mode == TESS_PRIMITIVE_ISOLINES)
          output = TESS_LINES;
       else if (ds_info->tess.ccw)
          output = TESS_CCW_TRIS;
@@ -1004,13 +1008,13 @@ setup_stateobj(struct fd_ringbuffer *ring, struct fd_context *ctx,
 
       uint32_t output;
       switch (gs->shader->nir->info.gs.output_primitive) {
-      case GL_POINTS:
+      case SHADER_PRIM_POINTS:
          output = TESS_POINTS;
          break;
-      case GL_LINE_STRIP:
+      case SHADER_PRIM_LINE_STRIP:
          output = TESS_LINES;
          break;
-      case GL_TRIANGLE_STRIP:
+      case SHADER_PRIM_TRIANGLE_STRIP:
          output = TESS_CW_TRIS;
          break;
       default:
@@ -1233,7 +1237,7 @@ fd6_program_create(void *data, struct ir3_shader_variant *bs,
                    struct ir3_shader_variant *vs, struct ir3_shader_variant *hs,
                    struct ir3_shader_variant *ds, struct ir3_shader_variant *gs,
                    struct ir3_shader_variant *fs,
-                   const struct ir3_shader_key *key) in_dt
+                   const struct ir3_cache_key *key) in_dt
 {
    struct fd_context *ctx = fd_context(data);
    struct fd_screen *screen = ctx->screen;

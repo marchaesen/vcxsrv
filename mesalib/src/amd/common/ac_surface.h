@@ -465,7 +465,7 @@ uint64_t ac_surface_get_plane_offset(enum chip_class chip_class,
                                      unsigned plane, unsigned layer);
 uint64_t ac_surface_get_plane_stride(enum chip_class chip_class,
                                      const struct radeon_surf *surf,
-                                     unsigned plane);
+                                     unsigned plane, unsigned level);
 /* Of the whole miplevel, not an individual layer */
 uint64_t ac_surface_get_plane_size(const struct radeon_surf *surf,
                                    unsigned plane);

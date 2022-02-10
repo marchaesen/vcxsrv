@@ -228,8 +228,7 @@ set_combiner_source(struct gl_context *ctx,
    case GL_TEXTURE5:
    case GL_TEXTURE6:
    case GL_TEXTURE7:
-      legal = (ctx->Extensions.ARB_texture_env_crossbar &&
-               param - GL_TEXTURE0 < ctx->Const.MaxTextureUnits);
+      legal = (param - GL_TEXTURE0 < ctx->Const.MaxTextureUnits);
       break;
    case GL_ZERO:
       legal = (ctx->API == API_OPENGL_COMPAT &&

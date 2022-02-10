@@ -630,11 +630,11 @@ glsl_type::vec(unsigned components, const glsl_type *const ts[])
    unsigned n = components;
 
    if (components == 8)
-      n = 5;
-   else if (components == 16)
       n = 6;
+   else if (components == 16)
+      n = 7;
 
-   if (n == 0 || n > 6)
+   if (n == 0 || n > 7)
       return error_type;
 
    return ts[n - 1];
@@ -647,6 +647,7 @@ glsl_type:: vname (unsigned components)          \
    static const glsl_type *const ts[] = {        \
       sname ## _type, vname ## 2_type,           \
       vname ## 3_type, vname ## 4_type,          \
+      vname ## 5_type,                           \
       vname ## 8_type, vname ## 16_type,         \
    };                                            \
    return glsl_type::vec(components, ts);        \
@@ -3123,12 +3124,12 @@ encode_type_to_blob(struct blob *blob, const glsl_type *type)
    case GLSL_TYPE_BOOL:
       encoded.basic.interface_row_major = type->interface_row_major;
       assert(type->matrix_columns < 8);
-      if (type->vector_elements <= 4)
+      if (type->vector_elements <= 5)
          encoded.basic.vector_elements = type->vector_elements;
       else if (type->vector_elements == 8)
-         encoded.basic.vector_elements = 5;
-      else if (type->vector_elements == 16)
          encoded.basic.vector_elements = 6;
+      else if (type->vector_elements == 16)
+         encoded.basic.vector_elements = 7;
       encoded.basic.matrix_columns = type->matrix_columns;
       encoded.basic.explicit_stride = MIN2(type->explicit_stride, 0xffff);
       encoded.basic.explicit_alignment =
@@ -3241,9 +3242,9 @@ decode_type_from_blob(struct blob_reader *blob)
       else if (explicit_alignment > 0)
          explicit_alignment = 1 << (explicit_alignment - 1);
       uint32_t vector_elements = encoded.basic.vector_elements;
-      if (vector_elements == 5)
+      if (vector_elements == 6)
          vector_elements = 8;
-      else if (vector_elements == 6)
+      else if (vector_elements == 7)
          vector_elements = 16;
       return glsl_type::get_instance(base_type, vector_elements,
                                      encoded.basic.matrix_columns,

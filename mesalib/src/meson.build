@@ -79,6 +79,9 @@ endif
 if with_any_vk or with_gallium_zink
   subdir('vulkan')
 endif
+if with_any_intel
+  subdir('intel')
+endif
 if with_gallium_radeonsi or with_amd_vk
   subdir('amd')
 endif
@@ -96,9 +99,6 @@ if with_gallium_panfrost or with_gallium_lima or with_panfrost_vk or with_tools.
 endif
 if with_gallium_virgl or with_virtio_vk
   subdir('virtio')
-endif
-if with_any_intel
-  subdir('intel')
 endif
 if with_microsoft_clc or with_gallium_d3d12 or with_spirv_to_dxil
   subdir('microsoft')

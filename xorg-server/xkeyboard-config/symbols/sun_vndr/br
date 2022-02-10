@@ -55,7 +55,6 @@ xkb_symbols "sun_type6" {
 
     key <AC10> { [        ccedilla,        Ccedilla,	exclamdown		       ] };
     key <AC11> { [      dead_tilde, dead_circumflex,	asciitilde,        asciicircum ] };
-    key <AC12> { [    bracketright,      braceright,	masculine                      ] };
     key <BKSL> { [   bracketright,       braceright,    masculine                      ] };
 
     key <LSGT> { [          slash,              bar,    degree                         ] };

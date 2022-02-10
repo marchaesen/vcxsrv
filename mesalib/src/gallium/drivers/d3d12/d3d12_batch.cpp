@@ -136,6 +136,7 @@ d3d12_reset_batch(struct d3d12_context *ctx, struct d3d12_batch *batch, uint64_t
       return false;
    }
    batch->has_errors = false;
+   batch->pending_memory_barrier = false;
    return true;
 }
 
@@ -181,11 +182,13 @@ d3d12_start_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
 
    ctx->cmdlist->SetDescriptorHeaps(2, heaps);
    ctx->cmdlist_dirty = ~0;
-   for (int i = 0; i < D3D12_GFX_SHADER_STAGES; ++i)
+   for (int i = 0; i < PIPE_SHADER_TYPES; ++i)
       ctx->shader_dirty[i] = ~0;
 
    if (!ctx->queries_disabled)
       d3d12_resume_queries(ctx);
+   if (ctx->current_predication)
+      d3d12_enable_predication(ctx);
 }
 
 void

@@ -36,22 +36,47 @@ struct fd_dev_rec {
 
 #include "freedreno_devices.h"
 
+/**
+ * Compare device 'id' against reference id ('ref') from gpu table.
+ */
 static bool
-dev_id_compare(const struct fd_dev_id *a, const struct fd_dev_id *b)
+dev_id_compare(const struct fd_dev_id *ref, const struct fd_dev_id *id)
 {
-   if (a->gpu_id && b->gpu_id) {
-      return a->gpu_id == b->gpu_id;
+   if (ref->gpu_id && id->gpu_id) {
+      return ref->gpu_id == id->gpu_id;
    } else {
-      assert(a->chip_id && b->chip_id);
+      assert(ref->chip_id && id->chip_id);
       /* Match on either:
-       * (a) exact match
-       * (b) device table entry has 0xff wildcard patch_id and core/
-       *     major/minor match
+       * (a) exact match:
        */
-      return (a->chip_id == b->chip_id) ||
-             (((a->chip_id & 0xff) == 0xff) &&
-              ((a->chip_id & UINT64_C(0xffffff00)) ==
-               (b->chip_id & UINT64_C(0xffffff00))));
+      if (ref->chip_id == id->chip_id)
+         return true;
+      /* (b) device table entry has 0xff wildcard patch_id and core/
+       *     major/minor match:
+       */
+      if (((ref->chip_id & 0xff) == 0xff) &&
+            ((ref->chip_id & UINT64_C(0xffffff00)) ==
+             (id->chip_id & UINT64_C(0xffffff00))))
+         return true;
+#define WILDCARD_FUSE_ID UINT64_C(0x0000ffff00000000)
+      /* If the reference id has wildcard fuse-id value (ie. bits 47..32
+       * are all ones, then try matching ignoring the device fuse-id:
+       */
+      if ((ref->chip_id & WILDCARD_FUSE_ID) == WILDCARD_FUSE_ID) {
+         uint64_t chip_id = id->chip_id | WILDCARD_FUSE_ID;
+         /* (c) exact match (ignoring the fuse-id from kernel):
+          */
+         if (ref->chip_id == chip_id)
+            return true;
+         /* (d) device table entry has 0xff wildcard patch_id and core/
+          *     major/minor match (ignoring fuse-id from kernel):
+          */
+         if (((ref->chip_id & 0xff) == 0xff) &&
+               ((ref->chip_id & UINT64_C(0xffffff00)) ==
+                (chip_id & UINT64_C(0xffffff00))))
+            return true;
+      }
+      return false;
    }
 }
 

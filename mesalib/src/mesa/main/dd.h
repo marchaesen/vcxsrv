@@ -200,13 +200,6 @@ struct dd_function_table {
                                   uint32_t enabled_attribs);
 
    /**
-    * \name GREMEDY debug/marker functions
-    */
-   /*@{*/
-   void (*EmitStringMarker)(struct gl_context *ctx, const GLchar *string, GLsizei len);
-   /*@}*/
-
-   /**
     * \name Support for multiple T&L engines
     */
    /*@{*/
@@ -244,20 +237,6 @@ struct dd_function_table {
    /**@}*/
 
    /**
-    * \name NV_vdpau_interop interface
-    */
-   void (*VDPAUMapSurface)(struct gl_context *ctx, GLenum target,
-                           GLenum access, GLboolean output,
-                           struct gl_texture_object *texObj,
-                           struct gl_texture_image *texImage,
-                           const GLvoid *vdpSurface, GLuint index);
-   void (*VDPAUUnmapSurface)(struct gl_context *ctx, GLenum target,
-                             GLenum access, GLboolean output,
-                             struct gl_texture_object *texObj,
-                             struct gl_texture_image *texImage,
-                             const GLvoid *vdpSurface, GLuint index);
-
-   /**
     * Query reset status for GL_ARB_robustness
     *
     * Per \c glGetGraphicsResetStatusARB, this function should return a
@@ -273,8 +252,6 @@ struct dd_function_table {
    /**
     * Calls to retrieve/store a binary serialized copy of the current program.
     */
-   void (*GetProgramBinaryDriverSHA1)(struct gl_context *ctx, uint8_t *sha1);
-
    void (*ProgramBinarySerializeDriverBlob)(struct gl_context *ctx,
                                             struct gl_shader_program *shProg,
                                             struct gl_program *prog);
@@ -298,8 +275,6 @@ struct dd_function_table {
    void (*ShaderCacheSerializeDriverBlob)(struct gl_context *ctx,
                                           struct gl_program *prog);
    /*@}*/
-
-   void (*PinDriverToL3Cache)(struct gl_context *ctx, unsigned L3_cache);
 
    GLboolean (*ValidateEGLImage)(struct gl_context *ctx, GLeglImageOES image_handle);
 };

@@ -2520,8 +2520,11 @@
     <src start="0"/>
     <src start="3" mask="0xf7"/>
     <src start="6" mask="0xf7"/>
+    <!-- pseudo source for a dual source blend input -->
+    <src start="9" pseudo="true"/>
     <!-- not actually encoded, but used for IR -->
     <immediate name="sr_count" size="4" pseudo="true"/>
+    <immediate name="sr_count_2" size="4" pseudo="true"/>
   </ins>
 
   <ins name="+BRANCH.f16" mask="0xf8000" exact="0x68000" last="true" dests="0">

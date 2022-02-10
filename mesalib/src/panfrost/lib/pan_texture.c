@@ -28,7 +28,6 @@
 #include "util/macros.h"
 #include "util/u_math.h"
 #include "pan_texture.h"
-#include "panfrost-quirks.h"
 
 #ifndef PAN_ARCH
 

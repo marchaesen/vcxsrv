@@ -88,6 +88,15 @@ radv_mutable_descriptor_type_size_alignment(const VkMutableDescriptorTypeListVAL
    return true;
 }
 
+void
+radv_descriptor_set_layout_destroy(struct radv_device *device,
+                                   struct radv_descriptor_set_layout *set_layout)
+{
+   assert(set_layout->ref_cnt == 0);
+   vk_object_base_finish(&set_layout->base);
+   vk_free2(&device->vk.alloc, NULL, set_layout);
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
                                const VkAllocationCallbacks *pAllocator,
@@ -134,8 +143,12 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
       size += ycbcr_sampler_count * sizeof(struct radv_sampler_ycbcr_conversion);
    }
 
+   /* We need to allocate decriptor set layouts off the device allocator with DEVICE scope because
+    * they are reference counted and may not be destroyed when vkDestroyDescriptorSetLayout is
+    * called.
+    */
    set_layout =
-      vk_zalloc2(&device->vk.alloc, pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      vk_zalloc(&device->vk.alloc, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
    if (!set_layout)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -165,11 +178,11 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
    VkResult result =
       vk_create_sorted_bindings(pCreateInfo->pBindings, pCreateInfo->bindingCount, &bindings);
    if (result != VK_SUCCESS) {
-      vk_object_base_finish(&set_layout->base);
-      vk_free2(&device->vk.alloc, pAllocator, set_layout);
+      radv_descriptor_set_layout_destroy(device, set_layout);
       return vk_error(device, result);
    }
 
+   set_layout->ref_cnt = 1;
    set_layout->binding_count = num_bindings;
    set_layout->shader_stages = 0;
    set_layout->dynamic_shader_stages = 0;
@@ -346,8 +359,7 @@ radv_DestroyDescriptorSetLayout(VkDevice _device, VkDescriptorSetLayout _set_lay
    if (!set_layout)
       return;
 
-   vk_object_base_finish(&set_layout->base);
-   vk_free2(&device->vk.alloc, pAllocator, set_layout);
+   radv_descriptor_set_layout_unref(device, set_layout);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -494,24 +506,21 @@ radv_CreatePipelineLayout(VkDevice _device, const VkPipelineLayoutCreateInfo *pC
    for (uint32_t set = 0; set < pCreateInfo->setLayoutCount; set++) {
       RADV_FROM_HANDLE(radv_descriptor_set_layout, set_layout, pCreateInfo->pSetLayouts[set]);
       layout->set[set].layout = set_layout;
+      radv_descriptor_set_layout_ref(set_layout);
 
       layout->set[set].dynamic_offset_start = dynamic_offset_count;
-      layout->set[set].dynamic_offset_count = 0;
-      layout->set[set].dynamic_offset_stages = 0;
 
       for (uint32_t b = 0; b < set_layout->binding_count; b++) {
-         layout->set[set].dynamic_offset_count +=
-            set_layout->binding[b].array_size * set_layout->binding[b].dynamic_offset_count;
-         layout->set[set].dynamic_offset_stages |= set_layout->dynamic_shader_stages;
+         dynamic_offset_count += set_layout->binding[b].array_size * set_layout->binding[b].dynamic_offset_count;
+         dynamic_shader_stages |= set_layout->dynamic_shader_stages;
       }
-      dynamic_offset_count += layout->set[set].dynamic_offset_count;
-      dynamic_shader_stages |= layout->set[set].dynamic_offset_stages;
 
-      /* Hash the entire set layout except for the vk_object_base. The
-       * rest of the set layout is carefully constructed to not have
-       * pointers so a full hash instead of a per-field hash should be ok. */
-      _mesa_sha1_update(&ctx, (const char *)set_layout + sizeof(struct vk_object_base),
-                        set_layout->layout_size - sizeof(struct vk_object_base));
+      /* Hash the entire set layout except for the vk_object_base and the reference counter. The
+       * rest of the set layout is carefully constructed to not have pointers so a full hash instead
+       * of a per-field hash should be ok. */
+      uint32_t hash_offset = sizeof(struct vk_object_base) + sizeof(uint32_t);
+      _mesa_sha1_update(&ctx, (const char *)set_layout + hash_offset,
+                        set_layout->layout_size - hash_offset);
    }
 
    layout->dynamic_offset_count = dynamic_offset_count;
@@ -541,14 +550,17 @@ radv_DestroyPipelineLayout(VkDevice _device, VkPipelineLayout _pipelineLayout,
    if (!pipeline_layout)
       return;
 
+   for (uint32_t i = 0; i < pipeline_layout->num_sets; i++)
+      radv_descriptor_set_layout_unref(device, pipeline_layout->set[i].layout);
+
    vk_object_base_finish(&pipeline_layout->base);
    vk_free2(&device->vk.alloc, pAllocator, pipeline_layout);
 }
 
 static VkResult
 radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_pool *pool,
-                           const struct radv_descriptor_set_layout *layout,
-                           const uint32_t *variable_count, struct radv_descriptor_set **out_set)
+                           struct radv_descriptor_set_layout *layout, const uint32_t *variable_count,
+                           struct radv_descriptor_set **out_set)
 {
    struct radv_descriptor_set *set;
    uint32_t buffer_count = layout->buffer_count;
@@ -667,6 +679,8 @@ radv_descriptor_set_create(struct radv_device *device, struct radv_descriptor_po
          }
       }
    }
+
+   radv_descriptor_set_layout_ref(layout);
    *out_set = set;
    return VK_SUCCESS;
 }
@@ -676,6 +690,8 @@ radv_descriptor_set_destroy(struct radv_device *device, struct radv_descriptor_p
                             struct radv_descriptor_set *set, bool free_bo)
 {
    assert(!pool->host_memory_base);
+
+   radv_descriptor_set_layout_unref(device, set->header.layout);
 
    if (free_bo && !pool->host_memory_base) {
       for (int i = 0; i < pool->entry_count; ++i) {
@@ -726,9 +742,9 @@ radv_CreateDescriptorPool(VkDevice _device, const VkDescriptorPoolCreateInfo *pC
    vk_foreach_struct(ext, pCreateInfo->pNext)
    {
       switch (ext->sType) {
-      case VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT: {
-         const VkDescriptorPoolInlineUniformBlockCreateInfoEXT *info =
-            (const VkDescriptorPoolInlineUniformBlockCreateInfoEXT *)ext;
+      case VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO: {
+         const VkDescriptorPoolInlineUniformBlockCreateInfo *info =
+            (const VkDescriptorPoolInlineUniformBlockCreateInfo *)ext;
          /* the sizes are 4 aligned, and we need to align to at
           * most 32, which needs at most 28 bytes extra per
           * binding. */
@@ -1019,8 +1035,8 @@ static ALWAYS_INLINE void
 write_block_descriptor(struct radv_device *device, struct radv_cmd_buffer *cmd_buffer, void *dst,
                        const VkWriteDescriptorSet *writeset)
 {
-   const VkWriteDescriptorSetInlineUniformBlockEXT *inline_ub =
-      vk_find_struct_const(writeset->pNext, WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+   const VkWriteDescriptorSetInlineUniformBlock *inline_ub =
+      vk_find_struct_const(writeset->pNext, WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
 
    memcpy(dst, inline_ub->pData, inline_ub->dataSize);
 }
@@ -1283,8 +1299,10 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
          dst_ptr += dst_binding_layout->size / 4;
 
          if (src_binding_layout->type != VK_DESCRIPTOR_TYPE_SAMPLER &&
-             src_binding_layout->type != VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
-            /* Sampler descriptors don't have a buffer list. */
+             dst_binding_layout->type != VK_DESCRIPTOR_TYPE_SAMPLER &&
+             src_binding_layout->type != VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR &&
+             dst_binding_layout->type != VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
+            /* Sampler/acceleration structure descriptors don't have a buffer list. */
             dst_buffer_list[j] = src_buffer_list[j];
          }
       }

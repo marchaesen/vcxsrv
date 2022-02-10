@@ -165,8 +165,8 @@ SliceBlock(struct mem_block *p,
    p->next_free->prev_free = p->prev_free;
    p->prev_free->next_free = p->next_free;
 
-   p->next_free = 0;
-   p->prev_free = 0;
+   p->next_free = NULL;
+   p->prev_free = NULL;
 
    p->reserved = reserved;
    return p;

@@ -128,6 +128,8 @@ That's why, among other things, the HW VS is no longer used to execute the SW VS
 * GS = Geometry Shader
 * FS = Fragment Shader, equivalent to D3D PS = Pixel Shader
 * CS = Compute Shader
+* TS = Task Shader
+* MS = Mesh Shader
 
 #### Glossary of hardware stages
 
@@ -142,19 +144,19 @@ That's why, among other things, the HW VS is no longer used to execute the SW VS
 
 ##### Notes about HW VS and the "GS copy" shader
 
-HW PS reads its inputs from a special buffer that only HW VS can write to, using export instructions.
-However, GS store their output in VRAM (except GFX10/NGG).
+HW PS reads its inputs from a special ring buffer called Parameter Cache (PC) that only HW VS can write to, using export instructions.
+However, legacy GS store their output in VRAM (before GFX10/NGG).
 So in order for HW PS to be able to read the GS outputs, we must run something on the VS stage which reads the GS outputs
-from VRAM and exports them to this special buffer. This is what we call a "GS copy" shader.
+from VRAM and exports them to the PC. This is what we call a "GS copy" shader.
 From a HW perspective the "GS copy" shader is in fact VS (it runs on the HW VS stage),
 but from a SW perspective it's not part of the traditional pipeline,
 it's just some "glue code" that we need for outputs to play nicely.
 
-On GFX10/NGG this limitation no longer exists, as the HW NGG GS can now export directly where it needs to.
+On GFX10/NGG this limitation no longer exists, because NGG can export directly to the PC.
 
 ##### Notes about merged shaders
 
-The merged stages on GFX9 (and GFX10/legacy) are: LSHS and ESGS. On GFX10/NGG the ESGS is merged with HW VS into NGG GS.
+The merged stages on GFX9 (and GFX10/legacy) are: LSHS and ESGS. On GFX10/NGG the ESGS is merged with HW VS into NGG.
 
 This might be confusing due to a mismatch between the number of invocations of these shaders.
 For example, ES is per-vertex, but GS is per-primitive.
@@ -195,15 +197,28 @@ So, think about these as two independent shader programs slapped together.
 
 ##### NGG (GFX10+ only):
 
- * HW GS and VS stages are now merged, and NGG GS can export directly
+ * HW GS and VS stages are now merged, and NGG can export directly to PC
  * GS copy shaders are no longer needed
 
-| GFX10/NGG HW stages:    | LSHS      | NGG GS             | PS | ACO terminology |
+| GFX10/NGG HW stages:    | LSHS      | NGG                | PS | ACO terminology |
 | -----------------------:|:----------|:-------------------|:---|:----------------|
 | SW stages: only VS+PS:  |           | VS                 | FS | `vertex_ngg`, `fragment_fs` |
 |            with tess:   | VS + TCS  | TES                | FS | `vertex_tess_control_hs`, `tess_eval_ngg`, `fragment_fs` |
 |            with GS:     |           | VS + GS            | FS | `vertex_geometry_ngg`, `fragment_fs` |
 |            with both:   | VS + TCS  | TES + GS           | FS | `vertex_tess_control_hs`, `tess_eval_geometry_ngg`, `fragment_fs` |
+
+#### Mesh Shading Graphics Pipeline
+
+GFX10.3+:
+
+* TS will run as a CS and stores its output payload to VRAM
+* MS runs on NGG, loads its inputs from VRAM and stores outputs to LDS, then PC
+* Pixel Shaders work the same way as before
+
+| GFX10.3+ HW stages      | CS    | NGG   | PS | ACO terminology |
+| -----------------------:|:------|:------|:---|:----------------|
+| SW stages: only MS+PS:  |       | MS    | FS | `mesh_ngg`, `fragment_fs` |
+|            with task:   | TS    | MS    | FS | `task_cs`, `mesh_ngg`, `fragment_fs` |
 
 #### Compute pipeline
 

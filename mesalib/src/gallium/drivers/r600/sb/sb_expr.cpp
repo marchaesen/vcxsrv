@@ -1014,7 +1014,7 @@ bool expr_handler::fold_alu_op3(alu_node& n) {
 			value *mv0 = md->src[0]->gvalue();
 			value *mv1 = md->src[1]->gvalue();
 
-			int es0 = -1, es1;
+			int es0 = -1, es1 = -1;
 
 			if (v0 == mv0) {
 				es0 = 0;

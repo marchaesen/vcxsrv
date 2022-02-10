@@ -27,7 +27,7 @@
 #include "compiler/nir/nir_builder.h"
 #include "compiler/glsl/list.h"
 
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 #include "util/ralloc.h"
 
 #include "prog_to_nir.h"

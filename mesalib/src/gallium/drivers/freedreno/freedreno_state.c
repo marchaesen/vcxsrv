@@ -38,6 +38,8 @@
 #include "freedreno_texture.h"
 #include "freedreno_util.h"
 
+#define get_safe(ptr, field) ((ptr) ? (ptr)->field : 0)
+
 /* All the generic state handling.. In case of CSO's that are specific
  * to the GPU version, when the bind and the delete are common they can
  * go in here.
@@ -434,7 +436,8 @@ fd_rasterizer_state_bind(struct pipe_context *pctx, void *hwcso) in_dt
 {
    struct fd_context *ctx = fd_context(pctx);
    struct pipe_scissor_state *old_scissor = fd_context_get_scissor(ctx);
-   bool discard = ctx->rasterizer && ctx->rasterizer->rasterizer_discard;
+   bool discard = get_safe(ctx->rasterizer, rasterizer_discard);
+   unsigned clip_plane_enable = get_safe(ctx->rasterizer, clip_plane_enable);
 
    ctx->rasterizer = hwcso;
    fd_context_dirty(ctx, FD_DIRTY_RASTERIZER);
@@ -453,8 +456,11 @@ fd_rasterizer_state_bind(struct pipe_context *pctx, void *hwcso) in_dt
    if (old_scissor != fd_context_get_scissor(ctx))
       fd_context_dirty(ctx, FD_DIRTY_SCISSOR);
 
-   if (ctx->rasterizer && (discard != ctx->rasterizer->rasterizer_discard))
+   if (discard != get_safe(ctx->rasterizer, rasterizer_discard))
       fd_context_dirty(ctx, FD_DIRTY_RASTERIZER_DISCARD);
+
+   if (clip_plane_enable != get_safe(ctx->rasterizer, clip_plane_enable))
+      fd_context_dirty(ctx, FD_DIRTY_RASTERIZER_CLIP_PLANE_ENABLE);
 }
 
 static void

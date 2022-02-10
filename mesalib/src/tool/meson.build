@@ -6,3 +6,7 @@
 if with_perfetto
   subdir('pps')
 endif
+
+if with_tools.contains('dlclose-skip')
+  subdir('dlclose-skip')
+endif

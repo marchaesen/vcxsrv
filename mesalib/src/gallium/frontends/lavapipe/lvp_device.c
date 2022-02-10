@@ -706,6 +706,8 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceProperties(VkPhysicalDevice phys
                                        PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE,
                                        &max_local_size);
 
+   const uint64_t max_render_targets = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_RENDER_TARGETS);
+
    VkPhysicalDeviceLimits limits = {
       .maxImageDimension1D                      = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_TEXTURE_2D_SIZE),
       .maxImageDimension2D                      = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_TEXTURE_2D_SIZE),
@@ -757,11 +759,15 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceProperties(VkPhysicalDevice phys
       .maxFragmentInputComponents               = 128,
       .maxFragmentOutputAttachments             = 8,
       .maxFragmentDualSrcAttachments            = 2,
-      .maxFragmentCombinedOutputResources       = 8,
+      .maxFragmentCombinedOutputResources       = max_render_targets +
+                                                  pdevice->pscreen->get_shader_param(pdevice->pscreen, PIPE_SHADER_FRAGMENT,
+                                                     PIPE_SHADER_CAP_MAX_SHADER_BUFFERS) +
+                                                  pdevice->pscreen->get_shader_param(pdevice->pscreen, PIPE_SHADER_FRAGMENT,
+                                                     PIPE_SHADER_CAP_MAX_SHADER_IMAGES),
       .maxComputeSharedMemorySize               = max_local_size,
       .maxComputeWorkGroupCount                 = { grid_size[0], grid_size[1], grid_size[2] },
       .maxComputeWorkGroupInvocations           = max_threads_per_block,
-      .maxComputeWorkGroupSize = { block_size[0], block_size[1], block_size[2] },
+      .maxComputeWorkGroupSize                  = { block_size[0], block_size[1], block_size[2] },
       .subPixelPrecisionBits                    = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_RASTERIZER_SUBPIXEL_BITS),
       .subTexelPrecisionBits                    = 8,
       .mipmapPrecisionBits                      = 4,
@@ -791,7 +797,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceProperties(VkPhysicalDevice phys
       .framebufferDepthSampleCounts             = sample_counts,
       .framebufferStencilSampleCounts           = sample_counts,
       .framebufferNoAttachmentsSampleCounts     = sample_counts,
-      .maxColorAttachments                      = pdevice->pscreen->get_param(pdevice->pscreen, PIPE_CAP_MAX_RENDER_TARGETS),
+      .maxColorAttachments                      = max_render_targets,
       .sampledImageColorSampleCounts            = sample_counts,
       .sampledImageIntegerSampleCounts          = sample_counts,
       .sampledImageDepthSampleCounts            = sample_counts,
@@ -2554,8 +2560,14 @@ vk_icdNegotiateLoaderICDInterfaceVersion(uint32_t* pSupportedVersion)
     *
     *    - Loader interface v4 differs from v3 in:
     *        - The ICD must implement vk_icdGetPhysicalDeviceProcAddr().
+    * 
+    *    - Loader interface v5 differs from v4 in:
+    *        - The ICD must support Vulkan API version 1.1 and must not return 
+    *          VK_ERROR_INCOMPATIBLE_DRIVER from vkCreateInstance() unless a
+    *          Vulkan Loader with interface v4 or smaller is being used and the
+    *          application provides an API version that is greater than 1.0.
     */
-   *pSupportedVersion = MIN2(*pSupportedVersion, 4u);
+   *pSupportedVersion = MIN2(*pSupportedVersion, 5u);
    return VK_SUCCESS;
 }
 

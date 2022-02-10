@@ -504,11 +504,14 @@ bi_emit_load_blend_input(bi_builder *b, nir_intrinsic_instr *instr)
 }
 
 static void
-bi_emit_blend_op(bi_builder *b, bi_index rgba, nir_alu_type T, unsigned rt)
+bi_emit_blend_op(bi_builder *b, bi_index rgba, nir_alu_type T,
+                 bi_index rgba2, nir_alu_type T2, unsigned rt)
 {
         /* Reads 2 or 4 staging registers to cover the input */
         unsigned size = nir_alu_type_get_type_size(T);
+        unsigned size_2 = nir_alu_type_get_type_size(T2);
         unsigned sr_count = (size <= 16) ? 2 : 4;
+        unsigned sr_count_2 = (size_2 <= 16) ? 2 : 4;
         const struct panfrost_compile_inputs *inputs = b->shader->inputs;
         uint64_t blend_desc = inputs->blend.bifrost_blend_desc;
 
@@ -523,7 +526,8 @@ bi_emit_blend_op(bi_builder *b, bi_index rgba, nir_alu_type T, unsigned rt)
                 bi_blend_to(b, bi_register(0), rgba,
                                 bi_register(60),
                                 bi_imm_u32(blend_desc & 0xffffffff),
-                                bi_imm_u32(blend_desc >> 32), sr_count);
+                                bi_imm_u32(blend_desc >> 32),
+                                bi_null(), sr_count, 0);
         } else {
                 /* Blend descriptor comes from the FAU RAM. By convention, the
                  * return address is stored in r48 and will be used by the
@@ -531,11 +535,15 @@ bi_emit_blend_op(bi_builder *b, bi_index rgba, nir_alu_type T, unsigned rt)
                 bi_blend_to(b, bi_register(48), rgba,
                                 bi_register(60),
                                 bi_fau(BIR_FAU_BLEND_0 + rt, false),
-                                bi_fau(BIR_FAU_BLEND_0 + rt, true), sr_count);
+                                bi_fau(BIR_FAU_BLEND_0 + rt, true),
+                                rgba2, sr_count, sr_count_2);
         }
 
         assert(rt < 8);
         b->shader->info.bifrost->blend[rt].type = T;
+
+        if (T2)
+                b->shader->info.bifrost->blend_src1_type = T2;
 }
 
 /* Blend shaders do not need to run ATEST since they are dependent on a
@@ -574,12 +582,17 @@ bi_emit_fragment_out(bi_builder *b, nir_intrinsic_instr *instr)
         bool emit_blend = writeout & (PAN_WRITEOUT_C);
         bool emit_zs = writeout & (PAN_WRITEOUT_Z | PAN_WRITEOUT_S);
 
-        const nir_variable *var =
-                nir_find_variable_with_driver_location(b->shader->nir,
-                                nir_var_shader_out, nir_intrinsic_base(instr));
-        assert(var);
+        unsigned loc = ~0;
 
-        unsigned loc = var->data.location;
+        if (!combined) {
+                const nir_variable *var =
+                        nir_find_variable_with_driver_location(b->shader->nir,
+                                        nir_var_shader_out, nir_intrinsic_base(instr));
+                assert(var);
+
+                loc = var->data.location;
+        }
+
         bi_index src0 = bi_src_index(&instr->src[0]);
 
         /* By ISA convention, the coverage mask is stored in R60. The store
@@ -589,21 +602,6 @@ bi_emit_fragment_out(bi_builder *b, nir_intrinsic_instr *instr)
                 bi_index msaa = bi_load_sysval(b, PAN_SYSVAL_MULTISAMPLED, 1, 0);
                 bi_index new = bi_lshift_and_i32(b, orig, src0, bi_imm_u8(0));
                 bi_mux_i32_to(b, orig, orig, new, msaa, BI_MUX_INT_ZERO);
-                return;
-        }
-
-
-        /* Dual-source blending is implemented by putting the color in
-         * registers r4-r7. */
-        if (var->data.index) {
-                unsigned count = nir_src_num_components(instr->src[0]);
-
-                for (unsigned i = 0; i < count; ++i)
-                        bi_mov_i32_to(b, bi_register(4 + i), bi_word(src0, i));
-
-                b->shader->info.bifrost->blend_src1_type =
-                        nir_intrinsic_src_type(instr);
-
                 return;
         }
 
@@ -643,10 +641,11 @@ bi_emit_fragment_out(bi_builder *b, nir_intrinsic_instr *instr)
         }
 
         if (emit_blend) {
-                assert(loc >= FRAG_RESULT_DATA0);
-
-                unsigned rt = (loc - FRAG_RESULT_DATA0);
+                unsigned rt = combined ? 0 : (loc - FRAG_RESULT_DATA0);
+                bool dual = (writeout & PAN_WRITEOUT_2);
                 bi_index color = bi_src_index(&instr->src[0]);
+                bi_index color2 = dual ? bi_src_index(&instr->src[4]) : bi_null();
+                nir_alu_type T2 = dual ? nir_intrinsic_dest_type(instr) : 0;
 
                 /* Explicit copy since BLEND inputs are precoloured to R0-R3,
                  * TODO: maybe schedule around this or implement in RA as a
@@ -665,7 +664,8 @@ bi_emit_fragment_out(bi_builder *b, nir_intrinsic_instr *instr)
                                        nir_alu_type_get_type_size(nir_intrinsic_src_type(instr)));
                 }
 
-                bi_emit_blend_op(b, color, nir_intrinsic_src_type(instr), rt);
+                bi_emit_blend_op(b, color, nir_intrinsic_src_type(instr),
+                                    color2, T2, rt);
         }
 
         if (b->shader->inputs->is_blend) {
@@ -1458,7 +1458,9 @@ bi_emit_load_const(bi_builder *b, nir_load_const_instr *instr)
         uint32_t acc = 0;
 
         for (unsigned i = 0; i < instr->def.num_components; ++i) {
-                unsigned v = nir_const_value_as_uint(instr->value[i], instr->def.bit_size);
+                uint32_t v = nir_const_value_as_uint(instr->value[i], instr->def.bit_size);
+
+                v = bi_extend_constant(v, instr->def.bit_size);
                 acc |= (v << (i * instr->def.bit_size));
         }
 
@@ -3736,8 +3738,6 @@ bi_finalize_nir(nir_shader *nir, unsigned gpu_id, bool is_blend)
         }
 
         bi_optimize_nir(nir, gpu_id, is_blend);
-
-        NIR_PASS_V(nir, pan_nir_reorder_writeout);
 }
 
 static bi_context *

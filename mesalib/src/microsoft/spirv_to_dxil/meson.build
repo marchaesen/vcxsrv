@@ -34,6 +34,11 @@ libspirv_to_dxil = both_libraries(
   install : true,
 )
 
+idep_libspirv_to_dxil = declare_dependency(
+   link_with : libspirv_to_dxil.get_static_lib(),
+   include_directories : include_directories('.')
+)
+
 spirv_to_dxil = executable(
   'spirv2dxil',
   files(
@@ -41,9 +46,8 @@ spirv_to_dxil = executable(
     'dxil_validation.h',
     'dxil_validation.cpp',
   ),
-  dependencies : [idep_nir, idep_libdxil_compiler, idep_getopt],
+  dependencies : [idep_nir, idep_libdxil_compiler, idep_getopt, idep_libspirv_to_dxil],
   include_directories : [inc_include, inc_src, inc_compiler, inc_gallium],
-  link_with : libspirv_to_dxil.get_static_lib(),
   build_by_default : true,
   install : true,
 )

@@ -31,7 +31,6 @@
 #include "etnaviv_drmif.h"
 
 simple_mtx_t etna_drm_table_lock = _SIMPLE_MTX_INITIALIZER_NP;
-void _etna_bo_del(struct etna_bo *bo);
 
 /* set buffer name, and add to table, call w/ etna_drm_table_lock held: */
 static void set_name(struct etna_bo *bo, uint32_t name)
@@ -43,8 +42,16 @@ static void set_name(struct etna_bo *bo, uint32_t name)
 	_mesa_hash_table_insert(bo->dev->name_table, &bo->name, bo);
 }
 
+int etna_bo_is_idle(struct etna_bo *bo)
+{
+	return etna_bo_cpu_prep(bo,
+			DRM_ETNA_PREP_READ |
+			DRM_ETNA_PREP_WRITE |
+			DRM_ETNA_PREP_NOSYNC) == 0;
+}
+
 /* Called under etna_drm_table_lock */
-void _etna_bo_del(struct etna_bo *bo)
+static void _etna_bo_free(struct etna_bo *bo)
 {
 	DEBUG_BO("Del bo:", bo);
 	VG_BO_FREE(bo);
@@ -72,6 +79,51 @@ void _etna_bo_del(struct etna_bo *bo)
 	free(bo);
 }
 
+void etna_bo_kill_zombies(struct etna_device *dev)
+{
+	simple_mtx_assert_locked(&etna_drm_table_lock);
+
+	list_for_each_entry_safe(struct etna_bo, bo, &dev->zombie_list, list) {
+		VG_BO_OBTAIN(bo);
+		list_del(&bo->list);
+		_etna_bo_free(bo);
+	}
+}
+
+
+static void etna_bo_cleanup_zombies(struct etna_device *dev)
+{
+	simple_mtx_assert_locked(&etna_drm_table_lock);
+
+	list_for_each_entry_safe(struct etna_bo, bo, &dev->zombie_list, list) {
+		/* Stop once we reach a busy BO - all others past this point were
+		 * freed more recently so are likely also busy.
+		 */
+		if (!etna_bo_is_idle(bo))
+			break;
+
+		VG_BO_OBTAIN(bo);
+		list_del(&bo->list);
+		_etna_bo_free(bo);
+	}
+}
+
+void etna_bo_free(struct etna_bo *bo) {
+	struct etna_device *dev = bo->dev;
+
+	/* If the BO has a userspace managed address we don't free it immediately,
+	 * but keep it on a deferred destroy list until all submits with the buffer
+	 * have finished, at which point we can reuse the VMA space.
+	 */
+	if (dev->use_softpin) {
+		etna_bo_cleanup_zombies(dev);
+		VG_BO_RELEASE(bo);
+		list_addtail(&bo->list, &dev->zombie_list);
+	} else {
+		_etna_bo_free(bo);
+	}
+}
+
 /* lookup a buffer from it's handle, call w/ etna_drm_table_lock held: */
 static struct etna_bo *lookup_bo(void *tbl, uint32_t handle)
 {
@@ -87,7 +139,11 @@ static struct etna_bo *lookup_bo(void *tbl, uint32_t handle)
 		bo = etna_bo_ref(entry->data);
 
 		/* don't break the bucket if this bo was found in one */
-		list_delinit(&bo->list);
+		if (list_is_linked(&bo->list)) {
+			VG_BO_OBTAIN(bo);
+			etna_device_ref(bo->dev);
+			list_delinit(&bo->list);
+		}
 	}
 
 	return bo;
@@ -283,7 +339,7 @@ void etna_bo_del(struct etna_bo *bo)
 	if (bo->reuse && (etna_bo_cache_free(&dev->bo_cache, bo) == 0))
 		goto out;
 
-	_etna_bo_del(bo);
+	etna_bo_free(bo);
 	etna_device_del_locked(dev);
 out:
 	simple_mtx_unlock(&etna_drm_table_lock);

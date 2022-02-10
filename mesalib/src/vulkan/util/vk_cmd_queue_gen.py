@@ -40,6 +40,8 @@ MANUAL_COMMANDS = ['CmdPushDescriptorSetKHR',             # This script doesn't 
                    'CmdDrawMultiEXT',                     # The size of the elements is specified in a stride param
                    'CmdDrawMultiIndexedEXT',              # The size of the elements is specified in a stride param
                    'CmdBindDescriptorSets',               # The VkPipelineLayout object could be released before the command is executed
+                   'CmdBeginRendering',               # The VkPipelineLayout object could be released before the command is executed
+                   'CmdBeginRenderingKHR',               # The VkPipelineLayout object could be released before the command is executed
                   ]
 
 TEMPLATE_H = Template(COPYRIGHT + """\

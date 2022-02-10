@@ -36,6 +36,7 @@ destroy_fence(struct zink_screen *screen, struct zink_tc_fence *mfence)
 {
    mfence->fence = NULL;
    tc_unflushed_batch_token_reference(&mfence->tc_token, NULL);
+   VKSCR(DestroySemaphore)(screen->dev, mfence->sem, NULL);
    FREE(mfence);
 }
 
@@ -197,19 +198,73 @@ fence_finish(struct pipe_screen *pscreen, struct pipe_context *pctx,
 }
 
 void
+zink_fence_server_signal(struct pipe_context *pctx, struct pipe_fence_handle *pfence)
+{
+   struct zink_context *ctx = zink_context(pctx);
+   struct zink_tc_fence *mfence = (struct zink_tc_fence *)pfence;
+
+   assert(!ctx->batch.state->signal_semaphore);
+   /* this is a deferred flush to reduce overhead */
+   ctx->batch.state->signal_semaphore = mfence->sem;
+   ctx->batch.has_work = true;
+   pctx->flush(pctx, NULL, PIPE_FLUSH_ASYNC);
+}
+
+void
 zink_fence_server_sync(struct pipe_context *pctx, struct pipe_fence_handle *pfence)
 {
-   struct zink_tc_fence *mfence = zink_tc_fence(pfence);
+   struct zink_context *ctx = zink_context(pctx);
+   struct zink_tc_fence *mfence = (struct zink_tc_fence *)pfence;
 
-   if (mfence->deferred_ctx == pctx)
+   if (mfence->deferred_ctx == pctx || !mfence->sem)
       return;
 
-   if (mfence->deferred_ctx) {
-      zink_context(pctx)->batch.has_work = true;
-      /* this must be the current batch */
-      pctx->flush(pctx, NULL, 0);
+   mfence->deferred_ctx = pctx;
+   /* this will be applied on the next submit */
+   VkPipelineStageFlags flag = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+   util_dynarray_append(&ctx->batch.state->wait_semaphores, VkSemaphore, mfence->sem);
+   util_dynarray_append(&ctx->batch.state->wait_semaphore_stages, VkPipelineStageFlags, flag);
+}
+
+void
+zink_create_fence_fd(struct pipe_context *pctx, struct pipe_fence_handle **pfence, int fd, enum pipe_fd_type type)
+{
+   struct zink_screen *screen = zink_screen(pctx->screen);
+   VkResult ret = VK_ERROR_UNKNOWN;
+   VkSemaphoreCreateInfo sci = {
+      VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+      NULL,
+      0
+   };
+   struct zink_tc_fence *mfence = zink_create_tc_fence();
+   VkExternalSemaphoreHandleTypeFlagBits flags[] = {
+      [PIPE_FD_TYPE_NATIVE_SYNC] = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
+      [PIPE_FD_TYPE_SYNCOBJ] = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
+   };
+   VkImportSemaphoreFdInfoKHR sdi = {0};
+   assert(type < ARRAY_SIZE(flags));
+
+   *pfence = NULL;
+
+   if (VKSCR(CreateSemaphore)(screen->dev, &sci, NULL, &mfence->sem) != VK_SUCCESS) {
+      FREE(mfence);
+      return;
    }
-   zink_fence_finish(zink_screen(pctx->screen), pctx, mfence, PIPE_TIMEOUT_INFINITE);
+
+   sdi.sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR;
+   sdi.semaphore = mfence->sem;
+   sdi.handleType = flags[type];
+   sdi.fd = fd;
+   ret = VKSCR(ImportSemaphoreFdKHR)(screen->dev, &sdi);
+
+   if (!zink_screen_handle_vkresult(screen, ret))
+      goto fail;
+   *pfence = (struct pipe_fence_handle *)mfence;
+   return;
+
+fail:
+   VKSCR(DestroySemaphore)(screen->dev, mfence->sem, NULL);
+   FREE(mfence);
 }
 
 void

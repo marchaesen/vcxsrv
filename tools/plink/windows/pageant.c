@@ -30,8 +30,6 @@
 #define WM_SYSTRAY   (WM_APP + 6)
 #define WM_SYSTRAY2  (WM_APP + 7)
 
-#define AGENT_COPYDATA_ID 0x804e50ba   /* random goop */
-
 #define APPNAME "Pageant"
 
 /* Titles and class names for invisible windows. IPCWINTITLE and
@@ -189,7 +187,8 @@ static void end_passphrase_dialog(HWND hwnd, INT_PTR result)
     } else {
         /*
          * Destroy this passphrase dialog box before passing the
-         * results back to pageant.c, to avoid re-entrancy issues.
+         * results back to the main pageant.c, to avoid re-entrancy
+         * issues.
          *
          * If we successfully got a passphrase from the user, but it
          * was _wrong_, then pageant_passphrase_request_success will
@@ -830,7 +829,7 @@ static void update_sessions(void)
  * communications. For backwards compatibility, and more particularly
  * for compatibility with derived works of PuTTY still using the old
  * Pageant client code, we accept it as an alternative to the one
- * returned from get_user_sid() in winpgntc.c.
+ * returned from get_user_sid().
  */
 PSID get_default_sid(void)
 {
@@ -1271,6 +1270,9 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
         }
         break;
       }
+      case WM_NETEVENT:
+        winselgui_response(wParam, lParam);
+        return 0;
       case WM_DESTROY:
         quit_help(hwnd);
         PostQuitMessage(0);
@@ -1373,14 +1375,35 @@ static struct winpgnt_client wpc[1];
 
 HINSTANCE hinst;
 
+static NORETURN void opt_error(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char *msg = dupvprintf(fmt, ap);
+    va_end(ap);
+
+    MessageBox(NULL, msg, "Pageant command line error", MB_ICONERROR | MB_OK);
+
+    exit(1);
+}
+
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
     MSG msg;
     const char *command = NULL;
-    bool added_keys = false;
+    const char *unixsocket = NULL;
     bool show_keylist_on_startup = false;
-    int argc, i;
+    int argc;
     char **argv, **argstart;
+    const char *openssh_config_file = NULL;
+
+    typedef struct CommandLineKey {
+        Filename *fn;
+        bool add_encrypted;
+    } CommandLineKey;
+
+    CommandLineKey *clkeys = NULL;
+    size_t nclkeys = 0, clkeysize = 0;
 
     dll_hijacking_protection();
 
@@ -1433,81 +1456,240 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     }
 
     /*
+     * Process the command line, handling anything that can be done
+     * immediately, but deferring adding keys until after we've
+     * started up the main agent. Details of keys to be added are
+     * stored in the 'clkeys' array.
+     */
+    split_into_argv(cmdline, &argc, &argv, &argstart);
+    bool add_keys_encrypted = false;
+    AuxMatchOpt amo = aux_match_opt_init(argc, argv, 0, opt_error);
+    while (!aux_match_done(&amo)) {
+        char *val;
+        #define match_opt(...) aux_match_opt( \
+            &amo, NULL, __VA_ARGS__, (const char *)NULL)
+        #define match_optval(...) aux_match_opt( \
+            &amo, &val, __VA_ARGS__, (const char *)NULL)
+
+        if (aux_match_arg(&amo, &val)) {
+            /*
+             * Non-option arguments are expected to be key files, and
+             * added to clkeys.
+             */
+            sgrowarray(clkeys, clkeysize, nclkeys);
+            CommandLineKey *clkey = &clkeys[nclkeys++];
+            clkey->fn = filename_from_str(val);
+            clkey->add_encrypted = add_keys_encrypted;
+        } else if (match_opt("-pgpfp")) {
+            pgp_fingerprints_msgbox(NULL);
+            return 1;
+        } else if (match_opt("-restrict-acl", "-restrict_acl",
+                             "-restrictacl")) {
+            restrict_process_acl();
+        } else if (match_opt("-restrict-putty-acl", "-restrict_putty_acl")) {
+            restrict_putty_acl = true;
+        } else if (match_opt("-no-decrypt", "-no_decrypt",
+                             "-nodecrypt", "-encrypted")) {
+            add_keys_encrypted = true;
+        } else if (match_opt("-keylist")) {
+            show_keylist_on_startup = true;
+        } else if (match_optval("-openssh-config", "-openssh_config")) {
+            openssh_config_file = val;
+        } else if (match_optval("-unix")) {
+            unixsocket = val;
+        } else if (match_opt("-c")) {
+            /*
+             * If we see `-c', then the rest of the command line
+             * should be treated as a command to be spawned.
+             */
+            if (amo.index < amo.argc-1)
+                command = argstart[amo.index + 1];
+            else
+                command = "";
+            break;
+        } else {
+            opt_error("unrecognised option '%s'\n", amo.argv[amo.index]);
+        }
+    }
+
+    /*
+     * Create and lock an interprocess mutex while we figure out
+     * whether we're going to be the Pageant server or a client. That
+     * way, two Pageant processes started up simultaneously will be
+     * able to agree on which one becomes the server without a race
+     * condition.
+     */
+    HANDLE mutex;
+    {
+        char *err;
+        char *mutexname = agent_mutex_name();
+        mutex = lock_interprocess_mutex(mutexname, &err);
+        sfree(mutexname);
+        if (!mutex) {
+            MessageBox(NULL, err, "Pageant Error", MB_ICONERROR | MB_OK);
+            return 1;
+        }
+    }
+
+    /*
      * Find out if Pageant is already running.
      */
     already_running = agent_exists();
 
     /*
-     * Initialise the cross-platform Pageant code.
+     * If it isn't, we're going to be the primary Pageant that stays
+     * running, so set up all the machinery to answer requests.
      */
     if (!already_running) {
-        pageant_init();
-    }
+        /*
+         * Set up the window class for the hidden window that receives
+         * all the messages to do with our presence in the system tray.
+         */
 
-    /*
-     * Process the command line and add keys as listed on it.
-     */
-    split_into_argv(cmdline, &argc, &argv, &argstart);
-    bool doing_opts = true;
-    bool add_keys_encrypted = false;
-    for (i = 0; i < argc; i++) {
-        char *p = argv[i];
-        if (*p == '-' && doing_opts) {
-            if (!strcmp(p, "-pgpfp")) {
-                pgp_fingerprints_msgbox(NULL);
-                return 1;
-            } else if (!strcmp(p, "-restrict-acl") ||
-                       !strcmp(p, "-restrict_acl") ||
-                       !strcmp(p, "-restrictacl")) {
-                restrict_process_acl();
-            } else if (!strcmp(p, "-restrict-putty-acl") ||
-                       !strcmp(p, "-restrict_putty_acl")) {
-                restrict_putty_acl = true;
-            } else if (!strcmp(p, "--no-decrypt") ||
-                       !strcmp(p, "-no-decrypt") ||
-                       !strcmp(p, "--no_decrypt") ||
-                       !strcmp(p, "-no_decrypt") ||
-                       !strcmp(p, "--nodecrypt") ||
-                       !strcmp(p, "-nodecrypt") ||
-                       !strcmp(p, "--encrypted") ||
-                       !strcmp(p, "-encrypted")) {
-                add_keys_encrypted = true;
-            } else if (!strcmp(p, "-keylist") || !strcmp(p, "--keylist")) {
-                show_keylist_on_startup = true;
-            } else if (!strcmp(p, "-c")) {
-                /*
-                 * If we see `-c', then the rest of the
-                 * command line should be treated as a
-                 * command to be spawned.
-                 */
-                if (i < argc-1)
-                    command = argstart[i+1];
-                else
-                    command = "";
-                break;
-            } else if (!strcmp(p, "--")) {
-                doing_opts = false;
-            } else {
-                char *msg = dupprintf("unrecognised command-line option\n"
-                                      "'%s'", p);
-                MessageBox(NULL, msg, "Pageant command-line syntax error",
-                           MB_ICONERROR | MB_OK);
-                exit(1);
-            }
-        } else {
-            Filename *fn = filename_from_str(p);
-            win_add_keyfile(fn, add_keys_encrypted);
-            filename_free(fn);
-            added_keys = true;
+        if (!prev) {
+            WNDCLASS wndclass;
+
+            memset(&wndclass, 0, sizeof(wndclass));
+            wndclass.lpfnWndProc = TrayWndProc;
+            wndclass.hInstance = inst;
+            wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_MAINICON));
+            wndclass.lpszClassName = TRAYCLASSNAME;
+
+            RegisterClass(&wndclass);
         }
+
+        keylist = NULL;
+
+        traywindow = CreateWindow(TRAYCLASSNAME, TRAYWINTITLE,
+                                  WS_OVERLAPPEDWINDOW | WS_VSCROLL,
+                                  CW_USEDEFAULT, CW_USEDEFAULT,
+                                  100, 100, NULL, NULL, inst, NULL);
+        winselgui_set_hwnd(traywindow);
+
+        /*
+         * Initialise the cross-platform Pageant code.
+         */
+        pageant_init();
+
+        /*
+         * Set up a named-pipe listener.
+         */
+        wpc->plc.vt = &winpgnt_vtable;
+        wpc->plc.suppress_logging = true;
+        {
+            Plug *pl_plug;
+            struct pageant_listen_state *pl =
+                pageant_listener_new(&pl_plug, &wpc->plc);
+            char *pipename = agent_named_pipe_name();
+            Socket *sock = new_named_pipe_listener(pipename, pl_plug);
+            if (sk_socket_error(sock)) {
+                char *err = dupprintf("Unable to open named pipe at %s "
+                                      "for SSH agent:\n%s", pipename,
+                                      sk_socket_error(sock));
+                MessageBox(NULL, err, "Pageant Error", MB_ICONERROR | MB_OK);
+                return 1;
+            }
+            pageant_listener_got_socket(pl, sock);
+
+            /*
+             * If we've been asked to write out an OpenSSH config file
+             * pointing at the named pipe, do so.
+             */
+            if (openssh_config_file) {
+                FILE *fp = fopen(openssh_config_file, "w");
+                if (!fp) {
+                    char *err = dupprintf("Unable to write OpenSSH config "
+                                          "file to %s", openssh_config_file);
+                    MessageBox(NULL, err, "Pageant Error",
+                               MB_ICONERROR | MB_OK);
+                    return 1;
+                }
+                fprintf(fp, "IdentityAgent %s\n", pipename);
+                fclose(fp);
+            }
+
+            sfree(pipename);
+        }
+
+        /*
+         * Set up an AF_UNIX listener too, if we were asked to.
+         */
+        if (unixsocket) {
+            sk_init();
+
+            /* FIXME: diagnose any error except file-not-found. Also,
+             * check the file type if possible? */
+            remove(unixsocket);
+
+            Plug *pl_plug;
+            struct pageant_listen_state *pl =
+                pageant_listener_new(&pl_plug, &wpc->plc);
+            Socket *sock = sk_newlistener_unix(unixsocket, pl_plug);
+            if (sk_socket_error(sock)) {
+                char *err = dupprintf("Unable to open AF_UNIX socket at %s "
+                                      "for SSH agent:\n%s", unixsocket,
+                                      sk_socket_error(sock));
+                MessageBox(NULL, err, "Pageant Error", MB_ICONERROR | MB_OK);
+                return 1;
+            }
+            pageant_listener_got_socket(pl, sock);
+        }
+
+        /*
+         * Set up the window class for the hidden window that receives
+         * the WM_COPYDATA message used by the old-style Pageant IPC
+         * system.
+         */
+        if (!prev) {
+            WNDCLASS wndclass;
+
+            memset(&wndclass, 0, sizeof(wndclass));
+            wndclass.lpfnWndProc = wm_copydata_WndProc;
+            wndclass.hInstance = inst;
+            wndclass.lpszClassName = IPCCLASSNAME;
+
+            RegisterClass(&wndclass);
+        }
+
+        /*
+         * And launch the subthread which will open that hidden window and
+         * handle WM_COPYDATA messages on it.
+         */
+        wmcpc.vt = &wmcpc_vtable;
+        wmcpc.suppress_logging = true;
+        pageant_register_client(&wmcpc);
+        DWORD wm_copydata_threadid;
+        wmct.ev_msg_ready = CreateEvent(NULL, false, false, NULL);
+        wmct.ev_reply_ready = CreateEvent(NULL, false, false, NULL);
+        HANDLE hThread = CreateThread(NULL, 0, wm_copydata_threadfunc,
+                                      &inst, 0, &wm_copydata_threadid);
+        if (hThread)
+            CloseHandle(hThread); /* we don't need the thread handle */
+        add_handle_wait(wmct.ev_msg_ready, wm_copydata_got_msg, NULL);
     }
 
     /*
-     * Forget any passphrase that we retained while going over
-     * command line keyfiles.
+     * Now we're either a fully set up Pageant server, or we know one
+     * is running somewhere else. Either way, now it's safe to unlock
+     * the mutex.
      */
+    unlock_interprocess_mutex(mutex);
+
+    /*
+     * Add any keys provided on the command line.
+     */
+    for (size_t i = 0; i < nclkeys; i++) {
+        CommandLineKey *clkey = &clkeys[i];
+        win_add_keyfile(clkey->fn, clkey->add_encrypted);
+        filename_free(clkey->fn);
+    }
+    sfree(clkeys);
+    /* And forget any passphrases we stashed during that loop. */
     pageant_forget_passphrases();
 
+    /*
+     * Now our keys are present, spawn a command, if we were asked to.
+     */
     if (command) {
         char *args;
         if (command[0] == '"')
@@ -1527,68 +1709,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      * keys), complain.
      */
     if (already_running) {
-        if (!command && !added_keys) {
+        if (!command && !nclkeys) {
             MessageBox(NULL, "Pageant is already running", "Pageant Error",
                        MB_ICONERROR | MB_OK);
         }
         return 0;
     }
-
-    /*
-     * Set up a named-pipe listener.
-     */
-    {
-        Plug *pl_plug;
-        wpc->plc.vt = &winpgnt_vtable;
-        wpc->plc.suppress_logging = true;
-        struct pageant_listen_state *pl =
-            pageant_listener_new(&pl_plug, &wpc->plc);
-        char *pipename = agent_named_pipe_name();
-        Socket *sock = new_named_pipe_listener(pipename, pl_plug);
-        if (sk_socket_error(sock)) {
-            char *err = dupprintf("Unable to open named pipe at %s "
-                                  "for SSH agent:\n%s", pipename,
-                                  sk_socket_error(sock));
-            MessageBox(NULL, err, "Pageant Error", MB_ICONERROR | MB_OK);
-            return 1;
-        }
-        pageant_listener_got_socket(pl, sock);
-        sfree(pipename);
-    }
-
-    /*
-     * Set up window classes for two hidden windows: one that receives
-     * all the messages to do with our presence in the system tray,
-     * and one that receives the WM_COPYDATA message used by the
-     * old-style Pageant IPC system.
-     */
-
-    if (!prev) {
-        WNDCLASS wndclass;
-
-        memset(&wndclass, 0, sizeof(wndclass));
-        wndclass.lpfnWndProc = TrayWndProc;
-        wndclass.hInstance = inst;
-        wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(IDI_MAINICON));
-        wndclass.lpszClassName = TRAYCLASSNAME;
-
-        RegisterClass(&wndclass);
-
-        memset(&wndclass, 0, sizeof(wndclass));
-        wndclass.lpfnWndProc = wm_copydata_WndProc;
-        wndclass.hInstance = inst;
-        wndclass.lpszClassName = IPCCLASSNAME;
-
-        RegisterClass(&wndclass);
-    }
-
-    keylist = NULL;
-
-    traywindow = CreateWindow(TRAYCLASSNAME, TRAYWINTITLE,
-                              WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-                              CW_USEDEFAULT, CW_USEDEFAULT,
-                              100, 100, NULL, NULL, inst, NULL);
-    winselgui_set_hwnd(traywindow);
 
     /* Set up a system tray icon */
     AddTrayIcon(traywindow);
@@ -1625,18 +1751,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
     ShowWindow(traywindow, SW_HIDE);
 
-    wmcpc.vt = &wmcpc_vtable;
-    wmcpc.suppress_logging = true;
-    pageant_register_client(&wmcpc);
-    DWORD wm_copydata_threadid;
-    wmct.ev_msg_ready = CreateEvent(NULL, false, false, NULL);
-    wmct.ev_reply_ready = CreateEvent(NULL, false, false, NULL);
-    HANDLE hThread = CreateThread(NULL, 0, wm_copydata_threadfunc,
-                                  &inst, 0, &wm_copydata_threadid);
-    if (hThread)
-        CloseHandle(hThread);          /* we don't need the thread handle */
-    add_handle_wait(wmct.ev_msg_ready, wm_copydata_got_msg, NULL);
-
+    /* Open the visible key list window, if we've been asked to. */
     if (show_keylist_on_startup)
         create_keylist_window();
 
@@ -1690,6 +1805,16 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     }
 
     if (keypath) filereq_free(keypath);
+
+    if (openssh_config_file) {
+        /*
+         * Leave this file around, but empty it, so that it doesn't
+         * refer to a pipe we aren't listening on any more.
+         */
+        FILE *fp = fopen(openssh_config_file, "w");
+        if (fp)
+            fclose(fp);
+    }
 
     cleanup_exit(msg.wParam);
     return msg.wParam;                 /* just in case optimiser complains */

@@ -148,7 +148,7 @@ compile_shader(int stages, char **files)
         util_dynarray_init(&binary, NULL);
 
         for (unsigned i = 0; i < stages; ++i) {
-                nir[i] = glsl_to_nir(&local_ctx, prog, shader_types[i], &bifrost_nir_options);
+                nir[i] = glsl_to_nir(&local_ctx.Const, prog, shader_types[i], &bifrost_nir_options);
 
                 if (shader_types[i] == MESA_SHADER_VERTEX) {
                         nir_assign_var_locations(nir[i], nir_var_shader_in, &nir[i]->num_inputs,

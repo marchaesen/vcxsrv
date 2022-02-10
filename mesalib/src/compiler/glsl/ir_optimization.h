@@ -104,7 +104,8 @@ bool do_constant_variable(exec_list *instructions);
 bool do_constant_variable_unlinked(exec_list *instructions);
 bool do_copy_propagation_elements(exec_list *instructions);
 bool do_constant_propagation(exec_list *instructions);
-void do_dead_builtin_varyings(struct gl_context *ctx,
+void do_dead_builtin_varyings(const struct gl_constants *consts,
+                              gl_api api,
                               gl_linked_shader *producer,
                               gl_linked_shader *consumer,
                               unsigned num_tfeedback_decls,
@@ -142,7 +143,7 @@ ir_variable * lower_xfb_varying(void *mem_ctx,
                                 const char *old_var_name);
 void lower_output_reads(unsigned stage, exec_list *instructions);
 bool lower_packing_builtins(exec_list *instructions, int op_mask);
-void lower_shared_reference(struct gl_context *ctx,
+void lower_shared_reference(const struct gl_constants *consts,
                             struct gl_shader_program *prog,
                             struct gl_linked_shader *shader);
 void lower_ubo_reference(struct gl_linked_shader *shader,

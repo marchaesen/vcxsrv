@@ -55,7 +55,7 @@ extern struct ssa_result_range
 nir_analyze_range(struct hash_table *range_ht,
                   const nir_alu_instr *instr, unsigned src);
 
-uint64_t nir_ssa_def_bits_used(nir_ssa_def *def);
+uint64_t nir_ssa_def_bits_used(const nir_ssa_def *def);
 
 #ifdef __cplusplus
 }

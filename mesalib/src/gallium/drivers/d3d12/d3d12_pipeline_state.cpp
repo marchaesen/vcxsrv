@@ -33,17 +33,22 @@
 
 #include <dxguids/dxguids.h>
 
-struct d3d12_pso_entry {
+struct d3d12_gfx_pso_entry {
    struct d3d12_gfx_pipeline_state key;
    ID3D12PipelineState *pso;
 };
 
+struct d3d12_compute_pso_entry {
+   struct d3d12_compute_pipeline_state key;
+   ID3D12PipelineState *pso;
+};
+
 static const char *
-get_semantic_name(int slot, unsigned *index)
+get_semantic_name(int location, int driver_location, unsigned *index)
 {
    *index = 0; /* Default index */
 
-   switch (slot) {
+   switch (location) {
 
    case VARYING_SLOT_POS:
       return "SV_Position";
@@ -60,15 +65,34 @@ get_semantic_name(int slot, unsigned *index)
    case VARYING_SLOT_PRIMITIVE_ID:
       return "SV_PrimitiveID";
 
+   case VARYING_SLOT_VIEWPORT:
+      return "SV_ViewportArrayIndex";
+
    default: {
-         *index = slot - VARYING_SLOT_POS;
+         *index = driver_location;
          return "TEXCOORD";
       }
    }
 }
 
+static nir_variable *
+find_so_variable(nir_shader *s, int location, unsigned location_frac, unsigned num_components)
+{
+   nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
+      if (var->data.location != location || var->data.location_frac > location_frac)
+         continue;
+      unsigned var_num_components = var->data.compact ?
+         glsl_get_length(var->type) : glsl_get_components(var->type);
+      if (var->data.location_frac <= location_frac &&
+          var->data.location_frac + var_num_components >= location_frac + num_components)
+         return var;
+   }
+   return nullptr;
+}
+
 static void
 fill_so_declaration(const struct pipe_stream_output_info *info,
+                    nir_shader *last_vertex_stage,
                     D3D12_SO_DECLARATION_ENTRY *entries, UINT *num_entries,
                     UINT *strides, UINT *num_strides)
 {
@@ -100,9 +124,13 @@ fill_so_declaration(const struct pipe_stream_output_info *info,
       next_offset[buffer] = output->dst_offset + output->num_components;
 
       entries[*num_entries].Stream = output->stream;
-      entries[*num_entries].SemanticName = get_semantic_name(output->register_index, &index);
+      nir_variable *var = find_so_variable(last_vertex_stage,
+         output->register_index, output->start_component, output->num_components);
+      assert((var->data.stream & ~NIR_STREAM_PACKED) == output->stream);
+      entries[*num_entries].SemanticName = get_semantic_name(var->data.location,
+         var->data.driver_location, &index);
       entries[*num_entries].SemanticIndex = index;
-      entries[*num_entries].StartComponent = output->start_component;
+      entries[*num_entries].StartComponent = output->start_component - var->data.location_frac;
       entries[*num_entries].ComponentCount = output->num_components;
       entries[*num_entries].OutputSlot = buffer;
       (*num_entries)++;
@@ -187,7 +215,8 @@ create_gfx_pipeline_state(struct d3d12_context *ctx)
 {
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
    struct d3d12_gfx_pipeline_state *state = &ctx->gfx_pipeline_state;
-   enum pipe_prim_type reduced_prim = u_reduced_prim(state->prim_type);
+   enum pipe_prim_type reduced_prim = state->prim_type == PIPE_PRIM_PATCHES ?
+      PIPE_PRIM_PATCHES : u_reduced_prim(state->prim_type);
    D3D12_SO_DECLARATION_ENTRY entries[PIPE_MAX_SO_OUTPUTS] = {};
    UINT strides[PIPE_MAX_SO_OUTPUTS] = { 0 };
    UINT num_entries = 0, num_strides = 0;
@@ -195,22 +224,37 @@ create_gfx_pipeline_state(struct d3d12_context *ctx)
    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = { 0 };
    pso_desc.pRootSignature = state->root_signature;
 
-   bool last_vertex_stage_writes_pos = false;
+   nir_shader *last_vertex_stage_nir = NULL;
 
    if (state->stages[PIPE_SHADER_VERTEX]) {
       auto shader = state->stages[PIPE_SHADER_VERTEX];
       pso_desc.VS.BytecodeLength = shader->bytecode_length;
       pso_desc.VS.pShaderBytecode = shader->bytecode;
-      last_vertex_stage_writes_pos = (shader->nir->info.outputs_written & VARYING_BIT_POS) != 0;
+      last_vertex_stage_nir = shader->nir;
+   }
+
+   if (state->stages[PIPE_SHADER_TESS_CTRL]) {
+      auto shader = state->stages[PIPE_SHADER_TESS_CTRL];
+      pso_desc.HS.BytecodeLength = shader->bytecode_length;
+      pso_desc.HS.pShaderBytecode = shader->bytecode;
+      last_vertex_stage_nir = shader->nir;
+   }
+
+   if (state->stages[PIPE_SHADER_TESS_EVAL]) {
+      auto shader = state->stages[PIPE_SHADER_TESS_EVAL];
+      pso_desc.DS.BytecodeLength = shader->bytecode_length;
+      pso_desc.DS.pShaderBytecode = shader->bytecode;
+      last_vertex_stage_nir = shader->nir;
    }
 
    if (state->stages[PIPE_SHADER_GEOMETRY]) {
       auto shader = state->stages[PIPE_SHADER_GEOMETRY];
       pso_desc.GS.BytecodeLength = shader->bytecode_length;
       pso_desc.GS.pShaderBytecode = shader->bytecode;
-      last_vertex_stage_writes_pos = (shader->nir->info.outputs_written & VARYING_BIT_POS) != 0;
+      last_vertex_stage_nir = shader->nir;
    }
 
+   bool last_vertex_stage_writes_pos = (last_vertex_stage_nir->info.outputs_written & VARYING_BIT_POS) != 0;
    if (last_vertex_stage_writes_pos && state->stages[PIPE_SHADER_FRAGMENT] &&
        !state->rast->base.rasterizer_discard) {
       auto shader = state->stages[PIPE_SHADER_FRAGMENT];
@@ -219,8 +263,7 @@ create_gfx_pipeline_state(struct d3d12_context *ctx)
    }
 
    if (state->num_so_targets)
-      fill_so_declaration(&state->so_info, entries, &num_entries,
-                          strides, &num_strides);
+      fill_so_declaration(&state->so_info, last_vertex_stage_nir, entries, &num_entries, strides, &num_strides);
    pso_desc.StreamOutput.NumEntries = num_entries;
    pso_desc.StreamOutput.pSODeclaration = entries;
    pso_desc.StreamOutput.RasterizedStream = state->rast->base.rasterizer_discard ? D3D12_SO_NO_RASTERIZED_STREAM : 0;
@@ -256,7 +299,19 @@ create_gfx_pipeline_state(struct d3d12_context *ctx)
       pso_desc.RTVFormats[i] = d3d12_rtv_format(ctx, i);
    pso_desc.DSVFormat = state->dsv_format;
 
-   pso_desc.SampleDesc.Count = state->samples;
+   if (state->num_cbufs || state->dsv_format != DXGI_FORMAT_UNKNOWN) {
+      pso_desc.SampleDesc.Count = state->samples;
+      if (!state->zsa->desc.DepthEnable &&
+          !state->zsa->desc.StencilEnable &&
+          !state->rast->desc.MultisampleEnable &&
+          state->samples > 1) {
+         pso_desc.RasterizerState.ForcedSampleCount = 1;
+         pso_desc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+      }
+   } else if (state->samples > 1) {
+      pso_desc.SampleDesc.Count = 1;
+      pso_desc.RasterizerState.ForcedSampleCount = state->samples;
+   }
    pso_desc.SampleDesc.Quality = 0;
 
    pso_desc.NodeMask = 0;
@@ -295,7 +350,7 @@ d3d12_get_gfx_pipeline_state(struct d3d12_context *ctx)
    struct hash_entry *entry = _mesa_hash_table_search_pre_hashed(ctx->pso_cache, hash,
                                                                  &ctx->gfx_pipeline_state);
    if (!entry) {
-      struct d3d12_pso_entry *data = (struct d3d12_pso_entry *)MALLOC(sizeof(struct d3d12_pso_entry));
+      struct d3d12_gfx_pso_entry *data = (struct d3d12_gfx_pso_entry *)MALLOC(sizeof(struct d3d12_gfx_pso_entry));
       if (!data)
          return NULL;
 
@@ -310,7 +365,7 @@ d3d12_get_gfx_pipeline_state(struct d3d12_context *ctx)
       assert(entry);
    }
 
-   return ((struct d3d12_pso_entry *)(entry->data))->pso;
+   return ((struct d3d12_gfx_pso_entry *)(entry->data))->pso;
 }
 
 void
@@ -320,28 +375,28 @@ d3d12_gfx_pipeline_state_cache_init(struct d3d12_context *ctx)
 }
 
 static void
-delete_entry(struct hash_entry *entry)
+delete_gfx_entry(struct hash_entry *entry)
 {
-   struct d3d12_pso_entry *data = (struct d3d12_pso_entry *)entry->data;
+   struct d3d12_gfx_pso_entry *data = (struct d3d12_gfx_pso_entry *)entry->data;
    data->pso->Release();
    FREE(data);
 }
 
 static void
-remove_entry(struct d3d12_context *ctx, struct hash_entry *entry)
+remove_gfx_entry(struct d3d12_context *ctx, struct hash_entry *entry)
 {
-   struct d3d12_pso_entry *data = (struct d3d12_pso_entry *)entry->data;
+   struct d3d12_gfx_pso_entry *data = (struct d3d12_gfx_pso_entry *)entry->data;
 
-   if (ctx->current_pso == data->pso)
-      ctx->current_pso = NULL;
+   if (ctx->current_gfx_pso == data->pso)
+      ctx->current_gfx_pso = NULL;
    _mesa_hash_table_remove(ctx->pso_cache, entry);
-   delete_entry(entry);
+   delete_gfx_entry(entry);
 }
 
 void
 d3d12_gfx_pipeline_state_cache_destroy(struct d3d12_context *ctx)
 {
-   _mesa_hash_table_destroy(ctx->pso_cache, delete_entry);
+   _mesa_hash_table_destroy(ctx->pso_cache, delete_gfx_entry);
 }
 
 void
@@ -350,7 +405,7 @@ d3d12_gfx_pipeline_state_cache_invalidate(struct d3d12_context *ctx, const void 
    hash_table_foreach(ctx->pso_cache, entry) {
       const struct d3d12_gfx_pipeline_state *key = (struct d3d12_gfx_pipeline_state *)entry->key;
       if (key->blend == state || key->zsa == state || key->rast == state)
-         remove_entry(ctx, entry);
+         remove_gfx_entry(ctx, entry);
    }
 }
 
@@ -365,7 +420,123 @@ d3d12_gfx_pipeline_state_cache_invalidate_shader(struct d3d12_context *ctx,
       hash_table_foreach(ctx->pso_cache, entry) {
          const struct d3d12_gfx_pipeline_state *key = (struct d3d12_gfx_pipeline_state *)entry->key;
          if (key->stages[stage] == shader)
-            remove_entry(ctx, entry);
+            remove_gfx_entry(ctx, entry);
+      }
+      shader = shader->next_variant;
+   }
+}
+
+static ID3D12PipelineState *
+create_compute_pipeline_state(struct d3d12_context *ctx)
+{
+   struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
+   struct d3d12_compute_pipeline_state *state = &ctx->compute_pipeline_state;
+
+   D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc = { 0 };
+   pso_desc.pRootSignature = state->root_signature;
+
+   if (state->stage) {
+      auto shader = state->stage;
+      pso_desc.CS.BytecodeLength = shader->bytecode_length;
+      pso_desc.CS.pShaderBytecode = shader->bytecode;
+   }
+
+   pso_desc.NodeMask = 0;
+
+   pso_desc.CachedPSO.pCachedBlob = NULL;
+   pso_desc.CachedPSO.CachedBlobSizeInBytes = 0;
+
+   pso_desc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+   ID3D12PipelineState *ret;
+   if (FAILED(screen->dev->CreateComputePipelineState(&pso_desc,
+                                                      IID_PPV_ARGS(&ret)))) {
+      debug_printf("D3D12: CreateComputePipelineState failed!\n");
+      return NULL;
+   }
+
+   return ret;
+}
+
+static uint32_t
+hash_compute_pipeline_state(const void *key)
+{
+   return _mesa_hash_data(key, sizeof(struct d3d12_compute_pipeline_state));
+}
+
+static bool
+equals_compute_pipeline_state(const void *a, const void *b)
+{
+   return memcmp(a, b, sizeof(struct d3d12_compute_pipeline_state)) == 0;
+}
+
+ID3D12PipelineState *
+d3d12_get_compute_pipeline_state(struct d3d12_context *ctx)
+{
+   uint32_t hash = hash_compute_pipeline_state(&ctx->compute_pipeline_state);
+   struct hash_entry *entry = _mesa_hash_table_search_pre_hashed(ctx->compute_pso_cache, hash,
+                                                                 &ctx->compute_pipeline_state);
+   if (!entry) {
+      struct d3d12_compute_pso_entry *data = (struct d3d12_compute_pso_entry *)MALLOC(sizeof(struct d3d12_compute_pso_entry));
+      if (!data)
+         return NULL;
+
+      data->key = ctx->compute_pipeline_state;
+      data->pso = create_compute_pipeline_state(ctx);
+      if (!data->pso) {
+         FREE(data);
+         return NULL;
+      }
+
+      entry = _mesa_hash_table_insert_pre_hashed(ctx->compute_pso_cache, hash, &data->key, data);
+      assert(entry);
+   }
+
+   return ((struct d3d12_compute_pso_entry *)(entry->data))->pso;
+}
+
+void
+d3d12_compute_pipeline_state_cache_init(struct d3d12_context *ctx)
+{
+   ctx->compute_pso_cache = _mesa_hash_table_create(NULL, NULL, equals_compute_pipeline_state);
+}
+
+static void
+delete_compute_entry(struct hash_entry *entry)
+{
+   struct d3d12_compute_pso_entry *data = (struct d3d12_compute_pso_entry *)entry->data;
+   data->pso->Release();
+   FREE(data);
+}
+
+static void
+remove_compute_entry(struct d3d12_context *ctx, struct hash_entry *entry)
+{
+   struct d3d12_compute_pso_entry *data = (struct d3d12_compute_pso_entry *)entry->data;
+
+   if (ctx->current_compute_pso == data->pso)
+      ctx->current_compute_pso = NULL;
+   _mesa_hash_table_remove(ctx->compute_pso_cache, entry);
+   delete_compute_entry(entry);
+}
+
+void
+d3d12_compute_pipeline_state_cache_destroy(struct d3d12_context *ctx)
+{
+   _mesa_hash_table_destroy(ctx->compute_pso_cache, delete_compute_entry);
+}
+
+void
+d3d12_compute_pipeline_state_cache_invalidate_shader(struct d3d12_context *ctx,
+                                                     struct d3d12_shader_selector *selector)
+{
+   struct d3d12_shader *shader = selector->first;
+
+   while (shader) {
+      hash_table_foreach(ctx->compute_pso_cache, entry) {
+         const struct d3d12_compute_pipeline_state *key = (struct d3d12_compute_pipeline_state *)entry->key;
+         if (key->stage == shader)
+            remove_compute_entry(ctx, entry);
       }
       shader = shader->next_variant;
    }

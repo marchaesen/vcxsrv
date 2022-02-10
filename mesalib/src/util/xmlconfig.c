@@ -272,7 +272,7 @@ findOption(const driOptionCache *cache, const char *name)
    /* this is just the starting point of the linear search for the option */
    for (i = 0; i < size; ++i, hash = (hash+1) & mask) {
       /* if we hit an empty entry then the option is not defined (yet) */
-      if (cache->info[hash].name == 0)
+      if (cache->info[hash].name == NULL)
          break;
       else if (!strcmp(name, cache->info[hash].name))
          break;
@@ -1123,6 +1123,8 @@ parseStaticConfig(struct OptConfData *data)
          const char *appattr[] = {
             "name", a->name,
             "executable", a->executable,
+            "executable_regexp", a->executable_regexp,
+            "sha1", a->sha1,
             "application_name_match", a->application_name_match,
             "application_versions", a->application_versions,
             NULL

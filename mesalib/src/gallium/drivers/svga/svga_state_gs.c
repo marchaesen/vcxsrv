@@ -135,6 +135,9 @@ make_gs_key(struct svga_context *svga, struct svga_compile_key *key)
 
    /* Mark this as the last shader in the vertex processing stage */
    key->last_vertex_stage = 1;
+
+   if (svga_have_gl43(svga))
+      key->image_size_used = gs->base.info.opcode_count[TGSI_OPCODE_RESQ] ? 1 : 0;
 }
 
 
@@ -235,6 +238,7 @@ struct svga_tracked_state svga_hw_gs =
     SVGA_NEW_TEXTURE_BINDING |
     SVGA_NEW_SAMPLER |
     SVGA_NEW_RAST |
-    SVGA_NEW_NEED_SWTNL),
+    SVGA_NEW_NEED_SWTNL |
+    SVGA_NEW_GS_RAW_BUFFER),
    emit_hw_gs
 };

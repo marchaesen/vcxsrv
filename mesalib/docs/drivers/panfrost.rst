@@ -12,16 +12,17 @@ Product    Architecture OpenGL ES    OpenGL
 Mali T720  Midgard (v4) 2.0          2.1
 Mali T760  Midgard (v5) 3.1          3.1
 Mali T820  Midgard (v5) 3.1          3.1
+Mali T830  Midgard (v5) 3.1          3.1
 Mali T860  Midgard (v5) 3.1          3.1
+Mali T880  Midgard (v5) 3.1          3.1
 Mali G72   Bifrost (v6) 3.1          3.1
 Mali G31   Bifrost (v7) 3.1          3.1
+Mali G51   Bifrost (v7) 3.1          3.1
 Mali G52   Bifrost (v7) 3.1          3.1
+Mali G76   Bifrost (v7) 3.1          3.1
 =========  ============ ============ =======
 
-Other Midgard and Bifrost chips (T604, T620, T830, T880, G71, G51, G76) may
-work but may be buggy. End users are advised against using Panfrost on
-unsupported hardware. Developers interested in porting will need to allowlist
-the hardware (``src/gallium/drivers/panfrost/pan_screen.c``).
+Other Midgard and Bifrost chips (T604, T628, G71) are not yet supported.
 
 Older Mali chips based on the Utgard architecture (Mali 400, Mali 450) are
 supported in the Lima driver, not Panfrost. Lima is also available in Mesa.

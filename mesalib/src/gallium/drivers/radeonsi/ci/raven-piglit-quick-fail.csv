@@ -56,7 +56,6 @@ spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag,C
 spec@arb_bindless_texture@illegal,Fail
 spec@arb_bindless_texture@illegal@Call glCopyTexImage* when a texture handle is referenced,Fail
 spec@arb_bindless_texture@illegal@Call glTexImage* when a texture handle is referenced,Fail
-spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.frag,Fail
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.vert,Fail
 spec@arb_gl_spirv@execution@ssbo@aoa,Fail
@@ -204,7 +203,6 @@ spec@ext_framebuffer_multisample@turn-on-off 6,Fail
 spec@ext_framebuffer_multisample@turn-on-off 8,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_texture_snorm@multisample-formats 2 gl_ext_texture_snorm,Fail
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency ffs,Fail

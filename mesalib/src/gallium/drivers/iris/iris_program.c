@@ -114,7 +114,7 @@ iris_to_brw_tcs_key(const struct intel_device_info *devinfo,
 {
    return (struct brw_tcs_prog_key) {
       BRW_KEY_INIT(devinfo->ver, key->vue.base.program_string_id),
-      .tes_primitive_mode = key->tes_primitive_mode,
+      ._tes_primitive_mode = key->_tes_primitive_mode,
       .input_vertices = key->input_vertices,
       .patch_outputs_written = key->patch_outputs_written,
       .outputs_written = key->outputs_written,
@@ -1523,19 +1523,19 @@ iris_compile_tcs(struct iris_screen *screen,
       prog_data->param = rzalloc_array(mem_ctx, uint32_t, num_system_values);
       prog_data->nr_params = num_system_values;
 
-      if (key->tes_primitive_mode == GL_QUADS) {
+      if (key->_tes_primitive_mode == TESS_PRIMITIVE_QUADS) {
          for (int i = 0; i < 4; i++)
             system_values[7 - i] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
 
          system_values[3] = BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_X;
          system_values[2] = BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_Y;
-      } else if (key->tes_primitive_mode == GL_TRIANGLES) {
+      } else if (key->_tes_primitive_mode == TESS_PRIMITIVE_TRIANGLES) {
          for (int i = 0; i < 3; i++)
             system_values[7 - i] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
 
          system_values[4] = BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_X;
       } else {
-         assert(key->tes_primitive_mode == GL_ISOLINES);
+         assert(key->_tes_primitive_mode == TESS_PRIMITIVE_ISOLINES);
          system_values[7] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_Y;
          system_values[6] = BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X;
       }
@@ -1603,11 +1603,11 @@ iris_update_compiled_tcs(struct iris_context *ice)
       iris_get_shader_info(ice, MESA_SHADER_TESS_EVAL);
    struct iris_tcs_prog_key key = {
       .vue.base.program_string_id = tcs ? tcs->program_id : 0,
-      .tes_primitive_mode = tes_info->tess.primitive_mode,
+      ._tes_primitive_mode = tes_info->tess._primitive_mode,
       .input_vertices =
          !tcs || compiler->use_tcs_8_patch ? ice->state.vertices_per_patch : 0,
       .quads_workaround = devinfo->ver < 9 &&
-                          tes_info->tess.primitive_mode == GL_QUADS &&
+                          tes_info->tess._primitive_mode == TESS_PRIMITIVE_QUADS &&
                           tes_info->tess.spacing == TESS_SPACING_EQUAL,
    };
    get_unified_tess_slots(ice, &key.outputs_written,
@@ -2604,14 +2604,12 @@ iris_create_shader_state(struct pipe_context *ctx,
       break;
 
    case MESA_SHADER_TESS_CTRL: {
-      const unsigned _GL_TRIANGLES = 0x0004;
-
       key.tcs = (struct iris_tcs_prog_key) {
          KEY_ID(vue.base),
          // XXX: make sure the linker fills this out from the TES...
-         .tes_primitive_mode =
-         info->tess.primitive_mode ? info->tess.primitive_mode
-                                   : _GL_TRIANGLES,
+         ._tes_primitive_mode =
+         info->tess._primitive_mode ? info->tess._primitive_mode
+                                   : TESS_PRIMITIVE_TRIANGLES,
          .outputs_written = info->outputs_written,
          .patch_outputs_written = info->patch_outputs_written,
       };

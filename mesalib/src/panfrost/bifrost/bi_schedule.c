@@ -197,7 +197,7 @@ bi_is_sched_barrier(bi_instr *I)
 }
 
 static void
-bi_create_dependency_graph(struct bi_worklist st, bool inorder)
+bi_create_dependency_graph(struct bi_worklist st, bool inorder, bool is_blend)
 {
         struct util_dynarray last_read[64], last_write[64];
 
@@ -259,6 +259,17 @@ bi_create_dependency_graph(struct bi_worklist st, bool inorder)
                                 add_dependency(last_read, dest + c, i, st.dependents, st.dep_counts);
                                 add_dependency(last_write, dest + c, i, st.dependents, st.dep_counts);
                                 mark_access(last_write, dest + c, i);
+                        }
+                }
+
+                /* Blend shaders are allowed to clobber R0-R15. Treat these
+                 * registers like extra destinations for scheduling purposes.
+                 */
+                if (ins->op == BI_OPCODE_BLEND && !is_blend) {
+                        for (unsigned c = 0; c < 16; ++c) {
+                                add_dependency(last_read, c, i, st.dependents, st.dep_counts);
+                                add_dependency(last_write, c, i, st.dependents, st.dep_counts);
+                                mark_access(last_write, c, i);
                         }
                 }
 
@@ -414,7 +425,7 @@ bi_flatten_block(bi_block *block, unsigned *len)
  */
 
 static struct bi_worklist
-bi_initialize_worklist(bi_block *block, bool inorder)
+bi_initialize_worklist(bi_block *block, bool inorder, bool is_blend)
 {
         struct bi_worklist st = { };
         st.instructions = bi_flatten_block(block, &st.count);
@@ -425,7 +436,7 @@ bi_initialize_worklist(bi_block *block, bool inorder)
         st.dependents = calloc(st.count, sizeof(st.dependents[0]));
         st.dep_counts = calloc(st.count, sizeof(st.dep_counts[0]));
 
-        bi_create_dependency_graph(st, inorder);
+        bi_create_dependency_graph(st, inorder, is_blend);
         st.worklist = calloc(BITSET_WORDS(st.count), sizeof(BITSET_WORD));
 
         for (unsigned i = 0; i < st.count; ++i) {
@@ -671,7 +682,7 @@ bi_reads_t(bi_instr *ins, unsigned src)
 
         /* Staging register reads may happen before the succeeding register
          * block encodes a write, so effectively there is no passthrough */
-        if (src == 0 && bi_opcode_props[ins->op].sr_read)
+        if (bi_is_staging_src(ins, src))
                 return false;
 
         /* Bifrost cores newer than Mali G71 have restrictions on swizzles on
@@ -823,7 +834,7 @@ bi_tuple_is_new_src(bi_instr *instr, struct bi_reg_state *reg, unsigned src_idx)
                 return false;
 
         /* Staging register reads bypass the usual register file mechanism */
-        if (src_idx == 0 && bi_opcode_props[instr->op].sr_read)
+        if (bi_is_staging_src(instr, src_idx))
                 return false;
 
         /* If a source is already read in the tuple, it is already counted */
@@ -1199,21 +1210,21 @@ bi_take_instr(bi_context *ctx, struct bi_worklist st,
 }
 
 /* Variant of bi_rewrite_index_src_single that uses word-equivalence, rewriting
- * to a passthrough register. If except_zero is true, the zeroth (first) source
- * is skipped, so staging register reads are not accidentally encoded as
+ * to a passthrough register. If except_sr is true, the staging sources are
+ * skipped, so staging register reads are not accidentally encoded as
  * passthrough (which is impossible) */
 
 static void
 bi_use_passthrough(bi_instr *ins, bi_index old,
                 enum bifrost_packed_src new,
-                bool except_zero)
+                bool except_sr)
 {
         /* Optional for convenience */
         if (!ins || bi_is_null(old))
                 return;
 
         bi_foreach_src(ins, i) {
-                if (i == 0 && except_zero)
+                if ((i == 0 || i == 4) && except_sr)
                         continue;
 
                 if (bi_is_word_equiv(ins->src[i], old)) {
@@ -1801,7 +1812,8 @@ bi_schedule_block(bi_context *ctx, bi_block *block)
 
         /* Copy list to dynamic array */
         struct bi_worklist st = bi_initialize_worklist(block,
-                        bifrost_debug & BIFROST_DBG_INORDER);
+                        bifrost_debug & BIFROST_DBG_INORDER,
+                        ctx->inputs->is_blend);
 
         if (!st.count) {
                 bi_free_worklist(st);
@@ -1863,7 +1875,7 @@ bi_check_fau_src(bi_instr *ins, unsigned s, uint32_t *constants, unsigned *cword
         bi_index src = ins->src[s];
 
         /* Staging registers can't have FAU accesses */
-        if (s == 0 && bi_opcode_props[ins->op].sr_read)
+        if (bi_is_staging_src(ins, s))
                 return (src.type != BI_INDEX_CONSTANT) && (src.type != BI_INDEX_FAU);
 
         if (src.type == BI_INDEX_CONSTANT) {

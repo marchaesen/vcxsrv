@@ -115,20 +115,24 @@ struct svga_compile_key
    /* compute shader */
    struct {
       unsigned grid_size[3];
+      unsigned mem_size;
    } cs;
 
    /* any shader type */
    int8_t generic_remap_table[MAX_GENERIC_VARYING];
    unsigned num_textures:8;
+   unsigned num_samplers:8;
    unsigned num_unnormalized_coords:8;
    unsigned clip_plane_enable:PIPE_MAX_CLIP_PLANES;
    unsigned last_vertex_stage:1;
    unsigned clamp_vertex_color:1;
+   unsigned sampler_state_mapping:1;    /* Set if use sampler state mapping */
    unsigned sprite_origin_lower_left:1;
    uint16_t sprite_coord_enable;
    struct {
       unsigned compare_mode:1;
       unsigned compare_func:3;
+      unsigned compare_in_shader:1;
       unsigned unnormalized:1;
       unsigned texel_bias:1;
       unsigned width_height_idx:5; /**< texture unit */
@@ -141,10 +145,25 @@ struct svga_compile_key
       unsigned target:4;
       unsigned sampler_return_type:4;
       unsigned sampler_view:1;
+      unsigned sampler_index:5;
    } tex[PIPE_MAX_SAMPLERS];
-   /* Note: svga_compile_keys_equal() depends on the variable-size
-    * tex[] array being at the end of this structure.
-    */
+
+   unsigned uav_splice_index:4;      /* starting uav index */
+   unsigned srv_raw_buf_index:8;     /* start index for srv raw buffers */
+   unsigned image_size_used:1;
+
+   uint16_t raw_buffers;             /* bitmask of raw buffers */
+
+   struct {
+      enum tgsi_return_type return_type;
+      enum pipe_texture_target resource_target;
+      unsigned is_array:1;
+      unsigned is_single_layer:1;
+      unsigned uav_index;
+   } images[PIPE_MAX_SHADER_IMAGES];
+
+   uint32_t shader_buf_uav_index[PIPE_MAX_SHADER_BUFFERS];
+   uint32_t atomic_buf_uav_index[PIPE_MAX_HW_ATOMIC_BUFFERS];
 };
 
 /* A key for a variant of token string of a shader */
@@ -222,7 +241,8 @@ struct svga_fs_variant
    unsigned fs_shadow_compare_units;
 
    /** For FS-based polygon stipple */
-   unsigned pstipple_sampler_unit;
+   unsigned pstipple_sampler_unit:8;
+   unsigned pstipple_sampler_state_index:8;
 };
 
 
@@ -360,6 +380,7 @@ struct svga_tes_shader
 struct svga_compute_shader
 {
    struct svga_shader base;
+   unsigned shared_mem_size;
 };
 
 
@@ -367,8 +388,7 @@ static inline boolean
 svga_compile_keys_equal(const struct svga_compile_key *a,
                         const struct svga_compile_key *b)
 {
-   unsigned key_size =
-      (const char *) &a->tex[a->num_textures] - (const char *) a;
+   unsigned key_size = sizeof(*a);
 
    return memcmp(a, b, key_size) == 0;
 }

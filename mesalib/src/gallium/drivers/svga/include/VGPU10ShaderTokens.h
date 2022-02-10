@@ -1,5 +1,6 @@
-/**********************************************************
- * Copyright 2007-2015 VMware, Inc.  All rights reserved.
+/* SPDX-License-Identifier: GPL-2.0 OR MIT */
+/*
+ * Copyright 2012-2022 VMware, Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -21,19 +22,22 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- **********************************************************/
+ */
 
 /*
  * VGPU10ShaderTokens.h --
  *
  *    VGPU10 shader token definitions.
- *
  */
+
+
+
+
 
 #ifndef VGPU10SHADERTOKENS_H
 #define VGPU10SHADERTOKENS_H
 
-/* Shader limits */
+
 #define VGPU10_MAX_VS_INPUTS 16
 #define VGPU10_MAX_VS_OUTPUTS 16
 #define VGPU10_MAX_GS_INPUTS 16
@@ -49,22 +53,26 @@
 #define VGPU10_MIN_TEXEL_FETCH_OFFSET -8
 #define VGPU10_MAX_TEXEL_FETCH_OFFSET 7
 
-/* Shader Model 4.1 limits */
+
 #define VGPU10_1_MAX_VS_INPUTS   32
 #define VGPU10_1_MAX_VS_OUTPUTS  32
 #define VGPU10_1_MAX_GS_INPUTS   32
 
-/* Shader Model 5.0 limits */
-#define VGPU11_MAX_HS_INPUTS                    32
+
 #define VGPU11_MAX_HS_INPUT_CONTROL_POINTS      32
 #define VGPU11_MAX_HS_INPUT_PATCH_CONSTANTS     32
+#define VGPU11_MAX_HS_OUTPUT_CP_PHASE_ELEMENTS  32
+#define VGPU11_MAX_HS_OUTPUT_CONTROL_POINTS     32
 #define VGPU11_MAX_HS_OUTPUTS                   32
 #define VGPU11_MAX_DS_INPUT_CONTROL_POINTS      32
 #define VGPU11_MAX_DS_INPUT_PATCH_CONSTANTS     32
 #define VGPU11_MAX_DS_OUTPUTS                   32
 #define VGPU11_MAX_GS_STREAMS                   4
+#define VGPU11_MAX_FUNCTION_BODIES              256
+#define VGPU11_MAX_FUNCTION_TABLES              256
+#define VGPU11_MAX_INTERFACES                   253
 
-/* Maximums of limits for all stages */
+
 #define VGPU10_MAX_INPUTS                 32
 #define VGPU10_MAX_OUTPUTS                32
 #define VGPU10_MAX_INPUT_PATCH_CONSTANTS  32
@@ -74,7 +82,7 @@ typedef enum {
    VGPU10_VERTEX_SHADER    = 1,
    VGPU10_GEOMETRY_SHADER  = 2,
 
-   /* DX11 */
+
    VGPU10_HULL_SHADER      = 3,
    VGPU10_DOMAIN_SHADER    = 4,
    VGPU10_COMPUTE_SHADER   = 5
@@ -85,7 +93,7 @@ typedef union {
       unsigned int minorVersion  : 4;
       unsigned int majorVersion  : 4;
       unsigned int               : 8;
-      unsigned int programType   : 16; /* VGPU10_PROGRAM_TYPE */
+      unsigned int programType   : 16;
    };
    uint32 value;
 } VGPU10ProgramToken;
@@ -200,16 +208,16 @@ typedef enum {
    VGPU10_OPCODE_DCL_INDEXABLE_TEMP                = 105,
    VGPU10_OPCODE_DCL_GLOBAL_FLAGS                  = 106,
 
-   /* GL guest */
+
    VGPU10_OPCODE_VMWARE                            = 107,
 
-   /* DX10.1 */
+
    VGPU10_OPCODE_LOD                               = 108,
    VGPU10_OPCODE_GATHER4                           = 109,
    VGPU10_OPCODE_SAMPLE_POS                        = 110,
    VGPU10_OPCODE_SAMPLE_INFO                       = 111,
 
-   /* DX11 */
+
    VGPU10_OPCODE_RESERVED1                         = 112,
    VGPU10_OPCODE_HS_DECLS                          = 113,
    VGPU10_OPCODE_HS_CONTROL_POINT_PHASE            = 114,
@@ -308,7 +316,7 @@ typedef enum {
    VGPU10_OPCODE_ABORT                             = 207,
    VGPU10_OPCODE_DEBUG_BREAK                       = 208,
 
-   /* DX11.1 */
+
    VGPU10_OPCODE_RESERVED0                         = 209,
    VGPU10_OPCODE_DDIV                              = 210,
    VGPU10_OPCODE_DFMA                              = 211,
@@ -319,15 +327,15 @@ typedef enum {
    VGPU10_OPCODE_ITOD                              = 216,
    VGPU10_OPCODE_UTOD                              = 217,
 
-   VGPU10_NUM_OPCODES                  /* Should be the last entry. */
+   VGPU10_NUM_OPCODES
 } VGPU10_OPCODE_TYPE;
 
-/* Sub-opcode of VGPU10_OPCODE_VMWARE. */
+
 typedef enum {
    VGPU10_VMWARE_OPCODE_IDIV                       = 0,
    VGPU10_VMWARE_OPCODE_DFRC                       = 1,
    VGPU10_VMWARE_OPCODE_DRSQ                       = 2,
-   VGPU10_VMWARE_NUM_OPCODES           /* Should be the last entry. */
+   VGPU10_VMWARE_NUM_OPCODES
 } VGPU10_VMWARE_OPCODE_TYPE;
 
 typedef enum {
@@ -337,22 +345,27 @@ typedef enum {
    VGPU10_INTERPOLATION_LINEAR_CENTROID = 3,
    VGPU10_INTERPOLATION_LINEAR_NOPERSPECTIVE = 4,
    VGPU10_INTERPOLATION_LINEAR_NOPERSPECTIVE_CENTROID = 5,
-   VGPU10_INTERPOLATION_LINEAR_SAMPLE = 6,                  /* DX10.1 */
-   VGPU10_INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE = 7     /* DX10.1 */
+   VGPU10_INTERPOLATION_LINEAR_SAMPLE = 6,
+   VGPU10_INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE = 7
 } VGPU10_INTERPOLATION_MODE;
 
 typedef enum {
-   VGPU10_RESOURCE_DIMENSION_UNKNOWN = 0,
-   VGPU10_RESOURCE_DIMENSION_BUFFER = 1,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE1D = 2,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE2D = 3,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE2DMS = 4,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE3D = 5,
-   VGPU10_RESOURCE_DIMENSION_TEXTURECUBE = 6,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE1DARRAY = 7,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE2DARRAY = 8,
-   VGPU10_RESOURCE_DIMENSION_TEXTURE2DMSARRAY = 9,
-   VGPU10_RESOURCE_DIMENSION_TEXTURECUBEARRAY = 10
+   VGPU10_RESOURCE_DIMENSION_UNKNOWN            = 0,
+   VGPU10_RESOURCE_DIMENSION_BUFFER             = 1,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE1D          = 2,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE2D          = 3,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE2DMS        = 4,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE3D          = 5,
+   VGPU10_RESOURCE_DIMENSION_TEXTURECUBE        = 6,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE1DARRAY     = 7,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE2DARRAY     = 8,
+   VGPU10_RESOURCE_DIMENSION_TEXTURE2DMSARRAY   = 9,
+   VGPU10_RESOURCE_DIMENSION_TEXTURECUBEARRAY   = 10,
+
+
+   VGPU10_RESOURCE_DIMENSION_RAW_BUFFER         = 11,
+   VGPU10_RESOURCE_DIMENSION_STRUCTURED_BUFFER  = 12,
+   VGPU10_RESOURCE_DIMENSION_MAX                = 12
 } VGPU10_RESOURCE_DIMENSION;
 
 typedef enum {
@@ -380,7 +393,7 @@ typedef enum {
    VGPU10_PRIMITIVE_TRIANGLE_ADJ = 7,
    VGPU10_PRIMITIVE_SM40_MAX     = 7,
 
-   /* DX11 */
+
    VGPU10_PRIMITIVE_1_CONTROL_POINT_PATCH    = 8,
    VGPU10_PRIMITIVE_2_CONTROL_POINT_PATCH    = 9,
    VGPU10_PRIMITIVE_3_CONTROL_POINT_PATCH    = 10,
@@ -448,7 +461,7 @@ typedef enum {
    VGPU10_INSTRUCTION_RETURN_UINT   = 1
 } VGPU10_INSTRUCTION_RETURN_TYPE;
 
-/* DX11 */
+
 typedef enum {
     VGPU10_TESSELLATOR_DOMAIN_UNDEFINED   = 0,
     VGPU10_TESSELLATOR_DOMAIN_ISOLINE     = 1,
@@ -457,7 +470,7 @@ typedef enum {
     VGPU10_TESSELLATOR_DOMAIN_MAX         = 3
 } VGPU10_TESSELLATOR_DOMAIN;
 
-/* DX11 */
+
 typedef enum {
     VGPU10_TESSELLATOR_PARTITIONING_UNDEFINED         = 0,
     VGPU10_TESSELLATOR_PARTITIONING_INTEGER           = 1,
@@ -467,7 +480,7 @@ typedef enum {
     VGPU10_TESSELLATOR_PARTITIONING_MAX               = 4
 } VGPU10_TESSELLATOR_PARTITIONING;
 
-/* DX11 */
+
 typedef enum {
     VGPU10_TESSELLATOR_OUTPUT_UNDEFINED      = 0,
     VGPU10_TESSELLATOR_OUTPUT_POINT          = 1,
@@ -479,65 +492,65 @@ typedef enum {
 
 typedef union {
    struct {
-      unsigned int opcodeType          : 11; /* VGPU10_OPCODE_TYPE */
-      unsigned int interpolationMode   : 4;  /* VGPU10_INTERPOLATION_MODE */
+      unsigned int opcodeType          : 11;
+      unsigned int interpolationMode   : 4;
       unsigned int                     : 3;
-      unsigned int testBoolean         : 1;  /* VGPU10_INSTRUCTION_TEST_BOOLEAN */
-      unsigned int preciseValues       : 4;  /* DX11 VGPU10_OPERAND_4_COMPONENT_MASK_* */
+      unsigned int testBoolean         : 1;
+      unsigned int preciseValues       : 4;
       unsigned int                     : 1;
       unsigned int instructionLength   : 7;
       unsigned int extended            : 1;
    };
-   /* VGPU10_OPCODE_VMWARE */
+
    struct {
       unsigned int                     : 11;
-      unsigned int vmwareOpcodeType    : 4;  /* VGPU10_VMWARE_OPCODE_TYPE */
+      unsigned int vmwareOpcodeType    : 4;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int resourceDimension   : 5;  /* VGPU10_RESOURCE_DIMENSION */
+      unsigned int resourceDimension   : 5;
       unsigned int sampleCount         : 7;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int samplerMode         : 4;  /* VGPU10_SAMPLER_MODE */
+      unsigned int samplerMode         : 4;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int accessPattern       : 1;  /* VGPU10_CB_ACCESS_PATTERN */
+      unsigned int accessPattern       : 1;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int primitive           : 6;  /* VGPU10_PRIMITIVE */
+      unsigned int primitive           : 6;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int primitiveTopology   : 6;  /* VGPU10_PRIMITIVE_TOPOLOGY */
+      unsigned int primitiveTopology   : 7;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int customDataClass     : 21; /* VGPU10_CUSTOMDATA_CLASS */
+      unsigned int customDataClass     : 21;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int resinfoReturnType   : 2;  /* VGPU10_RESINFO_RETURN_TYPE */
+      unsigned int resinfoReturnType   : 2;
       unsigned int saturate            : 1;
    };
    struct {
       unsigned int                     : 11;
       unsigned int refactoringAllowed  : 1;
 
-      /* DX11 */
+
       unsigned int enableDoublePrecisionFloatOps   : 1;
       unsigned int forceEarlyDepthStencil          : 1;
       unsigned int enableRawAndStructuredBuffers   : 1;
    };
    struct {
       unsigned int                     : 11;
-      unsigned int instReturnType      : 2;  /* VGPU10_INSTRUCTION_RETURN_TYPE */
+      unsigned int instReturnType      : 2;
    };
 
-   /* DX11 */
+
    struct {
       unsigned int                        : 11;
       unsigned int syncThreadsInGroup     : 1;
@@ -546,29 +559,28 @@ typedef union {
       unsigned int syncUAVMemoryGlobal    : 1;
    };
    struct {
-      unsigned int                     : 11; /* VGPU10_OPCODE_DCL_INPUT_CONTROL_POINT_COUNT
-                                              * VGPU10_OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT */
+      unsigned int                     : 11;
       unsigned int controlPointCount   : 6;
    };
    struct {
-      unsigned int                     : 11; /* VGPU10_OPCODE_DCL_TESS_DOMAIN */
-      unsigned int tessDomain          : 2;  /* VGPU10_TESSELLATOR_DOMAIN */
+      unsigned int                     : 11;
+      unsigned int tessDomain          : 2;
    };
    struct {
-      unsigned int                     : 11; /* VGPU10_OPCODE_DCL_TESS_PARTITIONING */
-      unsigned int tessPartitioning    : 3;  /* VGPU10_TESSELLATOR_PARTITIONING */
+      unsigned int                     : 11;
+      unsigned int tessPartitioning    : 3;
    };
    struct {
-      unsigned int                     : 11; /* VGPU10_OPCODE_DCL_TESS_OUTPUT_PRIMITIVE */
-      unsigned int tessOutputPrimitive : 3;  /* VGPU10_TESSELLATOR_OUTPUT_PRIMITIVE */
+      unsigned int                     : 11;
+      unsigned int tessOutputPrimitive : 3;
    };
    struct {
-      unsigned int                              : 11; /* VGPU10_OPCODE_DCL_INTERFACE */
+      unsigned int                              : 11;
       unsigned int interfaceIndexedDynamically  : 1;
    };
    struct {
-      unsigned int                        : 11; /* VGPU10_OPCODE_DCL_UAV_* */
-      unsigned int uavResourceDimension   : 5;  /* VGPU10_RESOURCE_DIMENSION */
+      unsigned int                        : 11;
+      unsigned int uavResourceDimension   : 5;
       unsigned int globallyCoherent       : 1;
       unsigned int                        : 6;
       unsigned int uavHasCounter          : 1;
@@ -578,19 +590,36 @@ typedef union {
 
 
 typedef enum {
-   VGPU10_EXTENDED_OPCODE_EMPTY = 0,
-   VGPU10_EXTENDED_OPCODE_SAMPLE_CONTROLS
+   VGPU10_EXTENDED_OPCODE_EMPTY                 = 0,
+   VGPU10_EXTENDED_OPCODE_SAMPLE_CONTROLS       = 1,
+
+
+   VGPU10_EXTENDED_OPCODE_RESOURCE_DIM          = 2,
+   VGPU10_EXTENDED_OPCODE_RESOURCE_RETURN_TYPE  = 3
 } VGPU10_EXTENDED_OPCODE_TYPE;
 
 typedef union {
    struct {
-      unsigned int opcodeType : 6;  /* VGPU10_EXTENDED_OPCODE_TYPE */
+      unsigned int opcodeType : 6;
       unsigned int            : 3;
-      unsigned int offsetU    : 4;  /* Two's complement. */
-      unsigned int offsetV    : 4;  /* Two's complement. */
-      unsigned int offsetW    : 4;  /* Two's complement. */
+      unsigned int offsetU    : 4;
+      unsigned int offsetV    : 4;
+      unsigned int offsetW    : 4;
       unsigned int            : 10;
       unsigned int extended   : 1;
+   };
+
+
+   struct {
+      unsigned int                     : 6;
+      unsigned int resourceDimension   : 5;
+   };
+   struct {
+      unsigned int                     : 6;
+      unsigned int resourceReturnTypeX : 4;
+      unsigned int resourceReturnTypeY : 4;
+      unsigned int resourceReturnTypeZ : 4;
+      unsigned int resourceReturnTypeW : 4;
    };
    uint32 value;
 } VGPU10OpcodeToken1;
@@ -600,7 +629,7 @@ typedef enum {
    VGPU10_OPERAND_0_COMPONENT = 0,
    VGPU10_OPERAND_1_COMPONENT = 1,
    VGPU10_OPERAND_4_COMPONENT = 2,
-   VGPU10_OPERAND_N_COMPONENT = 3   /* Unused for now. */
+   VGPU10_OPERAND_N_COMPONENT = 3
 } VGPU10_OPERAND_NUM_COMPONENTS;
 
 typedef enum {
@@ -653,12 +682,12 @@ typedef enum {
    VGPU10_OPERAND_TYPE_NULL                                 = 13,
    VGPU10_OPERAND_TYPE_SM40_MAX                             = 13,
 
-   /* DX10.1 */
+
    VGPU10_OPERAND_TYPE_RASTERIZER                           = 14,
    VGPU10_OPERAND_TYPE_OUTPUT_COVERAGE_MASK                 = 15,
    VGPU10_OPERAND_TYPE_SM41_MAX                             = 15,
 
-   /* DX11 */
+
    VGPU10_OPERAND_TYPE_STREAM                               = 16,
    VGPU10_OPERAND_TYPE_FUNCTION_BODY                        = 17,
    VGPU10_OPERAND_TYPE_FUNCTION_TABLE                       = 18,
@@ -706,27 +735,27 @@ typedef enum {
 
 typedef union {
    struct {
-      unsigned int numComponents          : 2;  /* VGPU10_OPERAND_NUM_COMPONENTS */
-      unsigned int selectionMode          : 2;  /* VGPU10_OPERAND_4_COMPONENT_SELECTION_MODE */
-      unsigned int mask                   : 4;  /* D3D10_SB_OPERAND_4_COMPONENT_MASK_* */
+      unsigned int numComponents          : 2;
+      unsigned int selectionMode          : 2;
+      unsigned int mask                   : 4;
       unsigned int                        : 4;
-      unsigned int operandType            : 8;  /* VGPU10_OPERAND_TYPE */
-      unsigned int indexDimension         : 2;  /* VGPU10_OPERAND_INDEX_DIMENSION */
-      unsigned int index0Representation   : 3;  /* VGPU10_OPERAND_INDEX_REPRESENTATION */
-      unsigned int index1Representation   : 3;  /* VGPU10_OPERAND_INDEX_REPRESENTATION */
+      unsigned int operandType            : 8;
+      unsigned int indexDimension         : 2;
+      unsigned int index0Representation   : 3;
+      unsigned int index1Representation   : 3;
       unsigned int                        : 3;
       unsigned int extended               : 1;
    };
    struct {
       unsigned int                        : 4;
-      unsigned int swizzleX               : 2;  /* VGPU10_COMPONENT_NAME */
-      unsigned int swizzleY               : 2;  /* VGPU10_COMPONENT_NAME */
-      unsigned int swizzleZ               : 2;  /* VGPU10_COMPONENT_NAME */
-      unsigned int swizzleW               : 2;  /* VGPU10_COMPONENT_NAME */
+      unsigned int swizzleX               : 2;
+      unsigned int swizzleY               : 2;
+      unsigned int swizzleZ               : 2;
+      unsigned int swizzleW               : 2;
    };
    struct {
       unsigned int                        : 4;
-      unsigned int selectMask             : 2;  /* VGPU10_COMPONENT_NAME */
+      unsigned int selectMask             : 2;
    };
    uint32 value;
 } VGPU10OperandToken0;
@@ -746,8 +775,8 @@ typedef enum {
 
 typedef union {
    struct {
-      unsigned int extendedOperandType : 6;  /* VGPU10_EXTENDED_OPERAND_TYPE */
-      unsigned int operandModifier     : 8;  /* VGPU10_OPERAND_MODIFIER */
+      unsigned int extendedOperandType : 6;
+      unsigned int operandModifier     : 8;
       unsigned int                     : 17;
       unsigned int extended            : 1;
    };
@@ -757,21 +786,29 @@ typedef union {
 
 typedef enum {
    VGPU10_RETURN_TYPE_MIN     = 1,
+
    VGPU10_RETURN_TYPE_UNORM   = 1,
    VGPU10_RETURN_TYPE_SNORM   = 2,
    VGPU10_RETURN_TYPE_SINT    = 3,
    VGPU10_RETURN_TYPE_UINT    = 4,
    VGPU10_RETURN_TYPE_FLOAT   = 5,
    VGPU10_RETURN_TYPE_MIXED   = 6,
-   VGPU10_RETURN_TYPE_MAX     = 6
+   VGPU10_RETURN_TYPE_SM40_MAX = 6,
+
+
+   VGPU10_RETURN_TYPE_DOUBLE     = 7,
+   VGPU10_RETURN_TYPE_CONTINUED  = 8,
+   VGPU10_RETURN_TYPE_UNUSED     = 9,
+
+   VGPU10_RETURN_TYPE_MAX        = 9
 } VGPU10_RESOURCE_RETURN_TYPE;
 
 typedef union {
    struct {
-      unsigned int component0 : 4;  /* VGPU10_RESOURCE_RETURN_TYPE */
-      unsigned int component1 : 4;  /* VGPU10_RESOURCE_RETURN_TYPE */
-      unsigned int component2 : 4;  /* VGPU10_RESOURCE_RETURN_TYPE */
-      unsigned int component3 : 4;  /* VGPU10_RESOURCE_RETURN_TYPE */
+      unsigned int component0 : 4;
+      unsigned int component1 : 4;
+      unsigned int component2 : 4;
+      unsigned int component3 : 4;
    };
    uint32 value;
 } VGPU10ResourceReturnTypeToken;
@@ -779,6 +816,7 @@ typedef union {
 
 typedef enum {
    VGPU10_NAME_MIN                        = 0,
+
    VGPU10_NAME_UNDEFINED                  = 0,
    VGPU10_NAME_POSITION                   = 1,
    VGPU10_NAME_CLIP_DISTANCE              = 2,
@@ -792,7 +830,7 @@ typedef enum {
    VGPU10_NAME_SAMPLE_INDEX               = 10,
    VGPU10_NAME_SM40_MAX                   = 10,
 
-   /* DX11 */
+
    VGPU10_NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR   = 11,
    VGPU10_NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR   = 12,
    VGPU10_NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR   = 13,
@@ -811,7 +849,7 @@ typedef enum {
 
 typedef union {
    struct {
-      unsigned int name : 16; /* VGPU10_SYSTEM_NAME */
+      unsigned int name : 16;
    };
    uint32 value;
 } VGPU10NameToken;

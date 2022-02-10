@@ -258,7 +258,15 @@ static const struct opc_info {
    OPC(3, OPC_SEL_F32,      sel.f32),
    OPC(3, OPC_SAD_S16,      sad.s16),
    OPC(3, OPC_SAD_S32,      sad.s32),
-   OPC(3, OPC_SHLG_B16,     shlg.b16),
+   OPC(3, OPC_SHRM,         shrm),
+   OPC(3, OPC_SHLM,         shlm),
+   OPC(3, OPC_SHRG,         shrg),
+   OPC(3, OPC_SHLG,         shlg),
+   OPC(3, OPC_ANDG,         andg),
+   OPC(3, OPC_DP2ACC,       dp2acc),
+   OPC(3, OPC_DP4ACC,       dp4acc),
+   OPC(3, OPC_WMM,          wmm),
+   OPC(3, OPC_WMM_ACCU,     wmm.accu),
 
    /* category 4: */
    OPC(4, OPC_RCP,          rcp),

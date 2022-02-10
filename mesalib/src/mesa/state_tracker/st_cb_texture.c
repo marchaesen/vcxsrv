@@ -32,8 +32,10 @@
 #include "main/fbobject.h"
 #include "main/formats.h"
 #include "main/format_utils.h"
+#include "main/framebuffer.h"
 #include "main/glformats.h"
 #include "main/image.h"
+#include "main/formatquery.h"
 
 #include "main/macros.h"
 #include "main/mipmap.h"
@@ -52,10 +54,8 @@
 #include "state_tracker/st_context.h"
 #include "state_tracker/st_cb_bitmap.h"
 #include "state_tracker/st_cb_drawpixels.h"
-#include "state_tracker/st_cb_fbo.h"
 #include "state_tracker/st_cb_flush.h"
 #include "state_tracker/st_cb_texture.h"
-#include "state_tracker/st_cb_memoryobjects.h"
 #include "state_tracker/st_format.h"
 #include "state_tracker/st_pbo.h"
 #include "state_tracker/st_texture.h"
@@ -75,6 +75,7 @@
 #include "util/u_sampler.h"
 #include "util/u_math.h"
 #include "util/u_box.h"
+#include "util/u_memory.h"
 #include "util/u_simple_shaders.h"
 #include "cso_cache/cso_context.h"
 #include "tgsi/tgsi_ureg.h"
@@ -186,7 +187,7 @@ copy_to_staging_dest(struct gl_context * ctx, struct pipe_resource *dst,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct pipe_resource *src = stObj->pt;
    enum pipe_format dst_format = dst->format;
    mesa_format mesa_format;
@@ -385,91 +386,13 @@ st_pbo_get_dst_format(struct gl_context *ctx, enum pipe_texture_target target,
    return dst_format;
 }
 
-struct gl_texture_image *
-st_NewTextureImage(struct gl_context * ctx)
-{
-   DBG("%s\n", __func__);
-   (void) ctx;
-   return (struct gl_texture_image *) ST_CALLOC_STRUCT(st_texture_image);
-}
-
-
-void
-st_DeleteTextureImage(struct gl_context * ctx, struct gl_texture_image *img)
-{
-   /* nothing special (yet) for st_texture_image */
-   _mesa_delete_texture_image(ctx, img);
-}
-
-
-struct gl_texture_object *
-st_NewTextureObject(struct gl_context * ctx, GLuint name, GLenum target)
-{
-   struct st_texture_object *obj = ST_CALLOC_STRUCT(st_texture_object);
-   if (!obj)
-      return NULL;
-
-   obj->level_override = -1;
-   obj->layer_override = -1;
-
-   /* Pre-allocate a sampler views container to save a branch in the
-    * fast path.
-    */
-   obj->sampler_views = calloc(1, sizeof(struct st_sampler_views)
-                               + sizeof(struct st_sampler_view));
-   if (!obj->sampler_views) {
-      free(obj);
-      return NULL;
-   }
-   obj->sampler_views->max = 1;
-
-   DBG("%s\n", __func__);
-   _mesa_initialize_texture_object(ctx, &obj->base, name, target);
-
-   simple_mtx_init(&obj->validate_mutex, mtx_plain);
-   obj->needs_validation = true;
-
-   return &obj->base;
-}
-
-
-void
-st_DeleteTextureObject(struct gl_context *ctx,
-                       struct gl_texture_object *texObj)
-{
-   struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texObj);
-
-   pipe_resource_reference(&stObj->pt, NULL);
-   st_delete_texture_sampler_views(st, stObj);
-   simple_mtx_destroy(&stObj->validate_mutex);
-   _mesa_delete_texture_object(ctx, texObj);
-}
-
-/**
- * Called via ctx->Driver.TextureRemovedFromShared()
- * When texture is removed from ctx->Shared->TexObjects we lose
- * the ability to clean up views on context destruction, which may
- * lead to dangling pointers to destroyed contexts.
- * Release the views to prevent this.
- */
-void
-st_TextureReleaseAllSamplerViews(struct gl_context *ctx,
-                                 struct gl_texture_object *texObj)
-{
-   struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texObj);
-
-   st_texture_release_all_sampler_views(st, stObj);
-}
-
 void
 st_FreeTextureImageBuffer(struct gl_context *ctx,
                           struct gl_texture_image *texImage)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
-   struct st_texture_image *stImage = st_texture_image(texImage);
+   struct gl_texture_object *stObj = texImage->TexObject;
+   struct gl_texture_image *stImage = texImage;
 
    DBG("%s\n", __func__);
 
@@ -484,7 +407,7 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
    if (stImage->compressed_data &&
        pipe_reference(&stImage->compressed_data->reference, NULL)) {
       free(stImage->compressed_data->ptr);
-      free(stImage->compressed_data);
+      FREE(stImage->compressed_data);
       stImage->compressed_data = NULL;
    }
 
@@ -525,17 +448,15 @@ st_compressed_format_fallback(struct st_context *st, mesa_format format)
 
 static void
 compressed_tex_fallback_allocate(struct st_context *st,
-                                 struct st_texture_image *stImage)
+                                 struct gl_texture_image *texImage)
 {
-   struct gl_texture_image *texImage = &stImage->base;
-
    if (!st_compressed_format_fallback(st, texImage->TexFormat))
       return;
 
-   if (stImage->compressed_data &&
-       pipe_reference(&stImage->compressed_data->reference, NULL)) {
-      free(stImage->compressed_data->ptr);
-      free(stImage->compressed_data);
+   if (texImage->compressed_data &&
+       pipe_reference(&texImage->compressed_data->reference, NULL)) {
+      free(texImage->compressed_data->ptr);
+      FREE(texImage->compressed_data);
    }
 
    unsigned data_size = _mesa_format_image_size(texImage->TexFormat,
@@ -543,10 +464,10 @@ compressed_tex_fallback_allocate(struct st_context *st,
                                                 texImage->Height2,
                                                 texImage->Depth2);
 
-   stImage->compressed_data = ST_CALLOC_STRUCT(st_compressed_data);
-   stImage->compressed_data->ptr =
+   texImage->compressed_data = CALLOC_STRUCT(st_compressed_data);
+   texImage->compressed_data->ptr =
       malloc(data_size * _mesa_num_tex_faces(texImage->TexObject->Target));
-   pipe_reference_init(&stImage->compressed_data->reference, 1);
+   pipe_reference_init(&texImage->compressed_data->reference, 1);
 }
 
 
@@ -558,7 +479,6 @@ st_MapTextureImage(struct gl_context *ctx,
                    GLubyte **mapOut, GLint *rowStrideOut)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_image *stImage = st_texture_image(texImage);
    GLubyte *map;
    struct pipe_transfer *transfer;
 
@@ -570,7 +490,7 @@ st_MapTextureImage(struct gl_context *ctx,
    const enum pipe_map_flags transfer_flags =
       _mesa_access_flags_to_transfer_flags(mode, false);
 
-   map = st_texture_image_map(st, stImage, transfer_flags, x, y, slice, w, h, 1,
+   map = st_texture_image_map(st, texImage, transfer_flags, x, y, slice, w, h, 1,
                               &transfer);
    if (map) {
       if (st_compressed_format_fallback(st, texImage->TexFormat)) {
@@ -582,7 +502,7 @@ st_MapTextureImage(struct gl_context *ctx,
           * Image and image copies in OES_copy_image).
           */
          unsigned z = transfer->box.z;
-         struct st_texture_image_transfer *itransfer = &stImage->transfer[z];
+         struct st_texture_image_transfer *itransfer = &texImage->transfer[z];
 
          unsigned blk_w, blk_h;
          _mesa_get_format_block_size(texImage->TexFormat, &blk_w, &blk_h);
@@ -592,9 +512,9 @@ st_MapTextureImage(struct gl_context *ctx,
             _mesa_format_row_stride(texImage->TexFormat, texImage->Width2);
          unsigned block_size = _mesa_get_format_bytes(texImage->TexFormat);
 
-         assert(stImage->compressed_data);
+         assert(texImage->compressed_data);
          *mapOut = itransfer->temp_data =
-            stImage->compressed_data->ptr +
+            texImage->compressed_data->ptr +
             (z * y_blocks + (y / blk_h)) * stride +
             (x / blk_w) * block_size;
          itransfer->map = map;
@@ -618,19 +538,18 @@ st_UnmapTextureImage(struct gl_context *ctx,
                      GLuint slice)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_image *stImage  = st_texture_image(texImage);
 
    if (st_compressed_format_fallback(st, texImage->TexFormat)) {
       /* Decompress the compressed image on upload if the driver doesn't
        * support the compressed format. */
-      unsigned z = slice + stImage->base.Face;
-      struct st_texture_image_transfer *itransfer = &stImage->transfer[z];
+      unsigned z = slice + texImage->Face;
+      struct st_texture_image_transfer *itransfer = &texImage->transfer[z];
       struct pipe_transfer *transfer = itransfer->transfer;
 
       assert(z == transfer->box.z);
 
       if (transfer->usage & PIPE_MAP_WRITE) {
-         if (util_format_is_compressed(stImage->pt->format)) {
+         if (util_format_is_compressed(texImage->pt->format)) {
             /* Transcode into a different compressed format. */
             unsigned size =
                _mesa_format_image_size(PIPE_FORMAT_R8G8B8A8_UNORM,
@@ -646,7 +565,7 @@ st_UnmapTextureImage(struct gl_context *ctx,
                                           transfer->box.width,
                                           transfer->box.height);
             } else if (_mesa_is_format_etc2(texImage->TexFormat)) {
-               bool bgra = stImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
+               bool bgra = texImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
 
                _mesa_unpack_etc2_format(tmp, transfer->box.width * 4,
                                         itransfer->temp_data,
@@ -670,7 +589,7 @@ st_UnmapTextureImage(struct gl_context *ctx,
             struct gl_pixelstore_attrib pack = {0};
             pack.Alignment = 4;
 
-            _mesa_texstore(ctx, 2, GL_RGBA, stImage->pt->format,
+            _mesa_texstore(ctx, 2, GL_RGBA, texImage->pt->format,
                            transfer->stride, &itransfer->map,
                            transfer->box.width,
                            transfer->box.height, 1, GL_RGBA,
@@ -685,7 +604,7 @@ st_UnmapTextureImage(struct gl_context *ctx,
                                           transfer->box.width,
                                           transfer->box.height);
             } else if (_mesa_is_format_etc2(texImage->TexFormat)) {
-               bool bgra = stImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
+               bool bgra = texImage->pt->format == PIPE_FORMAT_B8G8R8A8_SRGB;
 
                _mesa_unpack_etc2_format(itransfer->map, transfer->stride,
                                         itransfer->temp_data,
@@ -707,10 +626,10 @@ st_UnmapTextureImage(struct gl_context *ctx,
 
       itransfer->temp_data = NULL;
       itransfer->temp_stride = 0;
-      itransfer->map = 0;
+      itransfer->map = NULL;
    }
 
-   st_texture_image_unmap(st, stImage, slice);
+   st_texture_image_unmap(st, texImage, slice);
 }
 
 
@@ -831,10 +750,10 @@ guess_base_level_size(GLenum target,
  * \param stImage  describes the incoming image which we need to store.
  */
 static boolean
-allocate_full_mipmap(const struct st_texture_object *stObj,
-                     const struct st_texture_image *stImage)
+allocate_full_mipmap(const struct gl_texture_object *stObj,
+                     const struct gl_texture_image *stImage)
 {
-   switch (stObj->base.Target) {
+   switch (stObj->Target) {
    case GL_TEXTURE_RECTANGLE_NV:
    case GL_TEXTURE_BUFFER:
    case GL_TEXTURE_EXTERNAL_OES:
@@ -844,7 +763,7 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
       return FALSE;
    }
 
-   if (stImage->base.Level > 0 || stObj->base.Attrib.GenerateMipmap)
+   if (stImage->Level > 0 || stObj->Attrib.GenerateMipmap)
       return TRUE;
 
    /* If the application has explicitly called glTextureParameter to set
@@ -854,20 +773,20 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
     * Core Mesa will initialize MaxLevel to value much larger than
     * MAX_TEXTURE_LEVELS, so we check that to see if it's been set at all.
     */
-   if (stObj->base.Attrib.MaxLevel < MAX_TEXTURE_LEVELS &&
-       stObj->base.Attrib.MaxLevel - stObj->base.Attrib.BaseLevel > 0)
+   if (stObj->Attrib.MaxLevel < MAX_TEXTURE_LEVELS &&
+       stObj->Attrib.MaxLevel - stObj->Attrib.BaseLevel > 0)
       return TRUE;
 
-   if (stImage->base._BaseFormat == GL_DEPTH_COMPONENT ||
-       stImage->base._BaseFormat == GL_DEPTH_STENCIL_EXT)
+   if (stImage->_BaseFormat == GL_DEPTH_COMPONENT ||
+       stImage->_BaseFormat == GL_DEPTH_STENCIL_EXT)
       /* depth/stencil textures are seldom mipmapped */
       return FALSE;
 
-   if (stObj->base.Attrib.BaseLevel == 0 && stObj->base.Attrib.MaxLevel == 0)
+   if (stObj->Attrib.BaseLevel == 0 && stObj->Attrib.MaxLevel == 0)
       return FALSE;
 
-   if (stObj->base.Sampler.Attrib.MinFilter == GL_NEAREST ||
-       stObj->base.Sampler.Attrib.MinFilter == GL_LINEAR)
+   if (stObj->Sampler.Attrib.MinFilter == GL_NEAREST ||
+       stObj->Sampler.Attrib.MinFilter == GL_LINEAR)
       /* not a mipmap minification filter */
       return FALSE;
 
@@ -880,10 +799,10 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
     * allocate a mipmapped texture by default. This may cause texture
     * reallocation later, but GL_NEAREST_MIPMAP_LINEAR is pretty rare.
     */
-   if (stObj->base.Sampler.Attrib.MinFilter == GL_NEAREST_MIPMAP_LINEAR)
+   if (stObj->Sampler.Attrib.MinFilter == GL_NEAREST_MIPMAP_LINEAR)
       return FALSE;
 
-   if (stObj->base.Target == GL_TEXTURE_3D)
+   if (stObj->Target == GL_TEXTURE_3D)
       /* 3D textures are seldom mipmapped */
       return FALSE;
 
@@ -892,7 +811,7 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
 
 
 /**
- * Try to allocate a pipe_resource object for the given st_texture_object.
+ * Try to allocate a pipe_resource object for the given gl_texture_object.
  *
  * We use the given st_texture_image as a clue to determine the size of the
  * mipmap image at level=0.
@@ -901,8 +820,8 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
  */
 static GLboolean
 guess_and_alloc_texture(struct st_context *st,
-                        struct st_texture_object *stObj,
-                        const struct st_texture_image *stImage)
+                        struct gl_texture_object *stObj,
+                        const struct gl_texture_image *stImage)
 {
    const struct gl_texture_image *firstImage;
    GLuint lastLevel, width, height, depth;
@@ -918,29 +837,29 @@ guess_and_alloc_texture(struct st_context *st,
 
    /* If a base level image with compatible size exists, use that as our guess.
     */
-   firstImage = _mesa_base_tex_image(&stObj->base);
+   firstImage = _mesa_base_tex_image(stObj);
    if (firstImage &&
        firstImage->Width2 > 0 &&
        firstImage->Height2 > 0 &&
        firstImage->Depth2 > 0 &&
-       guess_base_level_size(stObj->base.Target,
+       guess_base_level_size(stObj->Target,
                              firstImage->Width2,
                              firstImage->Height2,
                              firstImage->Depth2,
                              firstImage->Level,
                              &width, &height, &depth)) {
-      if (stImage->base.Width2 == u_minify(width, stImage->base.Level) &&
-          stImage->base.Height2 == u_minify(height, stImage->base.Level) &&
-          stImage->base.Depth2 == u_minify(depth, stImage->base.Level))
+      if (stImage->Width2 == u_minify(width, stImage->Level) &&
+          stImage->Height2 == u_minify(height, stImage->Level) &&
+          stImage->Depth2 == u_minify(depth, stImage->Level))
          guessed_box = true;
    }
 
    if (!guessed_box)
-      guessed_box = guess_base_level_size(stObj->base.Target,
-                                          stImage->base.Width2,
-                                          stImage->base.Height2,
-                                          stImage->base.Depth2,
-                                          stImage->base.Level,
+      guessed_box = guess_base_level_size(stObj->Target,
+                                          stImage->Width2,
+                                          stImage->Height2,
+                                          stImage->Depth2,
+                                          stImage->Level,
                                           &width, &height, &depth);
 
    if (!guessed_box) {
@@ -961,7 +880,7 @@ guess_and_alloc_texture(struct st_context *st,
     */
    if (allocate_full_mipmap(stObj, stImage)) {
       /* alloc space for a full mipmap */
-      lastLevel = _mesa_get_tex_max_num_levels(stObj->base.Target,
+      lastLevel = _mesa_get_tex_max_num_levels(stObj->Target,
                                                width, height, depth) - 1;
    }
    else {
@@ -969,16 +888,16 @@ guess_and_alloc_texture(struct st_context *st,
       lastLevel = 0;
    }
 
-   fmt = st_mesa_format_to_pipe_format(st, stImage->base.TexFormat);
+   fmt = st_mesa_format_to_pipe_format(st, stImage->TexFormat);
 
    bindings = default_bindings(st, fmt);
 
-   st_gl_texture_dims_to_pipe_dims(stObj->base.Target,
+   st_gl_texture_dims_to_pipe_dims(stObj->Target,
                                    width, height, depth,
                                    &ptWidth, &ptHeight, &ptDepth, &ptLayers);
 
    stObj->pt = st_texture_create(st,
-                                 gl_target_to_pipe(stObj->base.Target),
+                                 gl_target_to_pipe(stObj->Target),
                                  fmt,
                                  lastLevel,
                                  ptWidth,
@@ -1005,8 +924,8 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
                            struct gl_texture_image *texImage)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_image *stImage = texImage;
+   struct gl_texture_object *stObj = texImage->TexObject;
    GLuint width = texImage->Width;
    GLuint height = texImage->Height;
    GLuint depth = texImage->Depth;
@@ -1069,12 +988,12 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
       unsigned ptWidth;
       uint16_t ptHeight, ptDepth, ptLayers;
 
-      st_gl_texture_dims_to_pipe_dims(stObj->base.Target,
+      st_gl_texture_dims_to_pipe_dims(stObj->Target,
                                       width, height, depth,
                                       &ptWidth, &ptHeight, &ptDepth, &ptLayers);
 
       stImage->pt = st_texture_create(st,
-                                      gl_target_to_pipe(stObj->base.Target),
+                                      gl_target_to_pipe(stObj->Target),
                                       format,
                                       0, /* lastLevel */
                                       ptWidth,
@@ -1097,19 +1016,18 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
               GLenum format, GLenum type)
 {
    struct gl_texture_object *texObj = texImage->TexObject;
-   struct st_texture_object *stObj = st_texture_object(texObj);
 
    /* switch to "normal" */
-   if (stObj->surface_based) {
+   if (texObj->surface_based) {
       const GLenum target = texObj->Target;
       const GLuint level = texImage->Level;
       mesa_format texFormat;
 
-      assert(!st_texture_image(texImage)->pt);
+      assert(!texImage->pt);
       _mesa_clear_texture_object(ctx, texObj, texImage);
-      stObj->layer_override = -1;
-      stObj->level_override = -1;
-      pipe_resource_reference(&stObj->pt, NULL);
+      texObj->layer_override = -1;
+      texObj->level_override = -1;
+      pipe_resource_reference(&texObj->pt, NULL);
 
       /* oops, need to init this image again */
       texFormat = _mesa_choose_texture_format(ctx, texObj, target, level,
@@ -1121,7 +1039,7 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
                                  texImage->Depth, texImage->Border,
                                  texImage->InternalFormat, texFormat);
 
-      stObj->surface_based = GL_FALSE;
+      texObj->surface_based = GL_FALSE;
    }
 }
 
@@ -1675,8 +1593,8 @@ try_pbo_upload(struct gl_context *ctx, GLuint dims,
                const struct gl_pixelstore_attrib *unpack)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_image *stImage = texImage;
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct pipe_resource *texture = stImage->pt;
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->screen;
@@ -1787,10 +1705,9 @@ try_pbo_download(struct st_context *st,
                    GLint width, GLint height, GLint depth,
                    const struct gl_pixelstore_attrib *pack, void *pixels)
 {
-   struct st_texture_image *stImage = st_texture_image(texImage);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
-   struct pipe_resource *texture = stImage->pt;
+   struct pipe_resource *texture = texImage->pt;
    struct cso_context *cso = st->cso_context;
    const struct util_format_description *desc;
    struct st_pbo_addresses addr;
@@ -1965,11 +1882,10 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
                const struct gl_pixelstore_attrib *unpack)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->screen;
-   struct pipe_resource *dst = stImage->pt;
+   struct pipe_resource *dst = texImage->pt;
    struct pipe_resource *src = NULL;
    struct pipe_resource src_templ;
    struct pipe_transfer *transfer;
@@ -1986,7 +1902,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
 
-   if (stObj->pt == stImage->pt)
+   if (stObj->pt == texImage->pt)
       dst_level = texImage->TexObject->Attrib.MinLevel + texImage->Level;
 
    assert(!_mesa_is_format_etc2(texImage->TexFormat) &&
@@ -2297,8 +2213,8 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
                          GLenum format, GLsizei imageSize, const void *data)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_image *stImage = texImage;
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct pipe_resource *buf;
    struct pipe_resource *texture = stImage->pt;
    struct pipe_screen *screen = st->screen;
@@ -2487,8 +2403,8 @@ st_GetTexSubImage(struct gl_context * ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_screen *screen = st->screen;
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
+   struct gl_texture_image *stImage = texImage;
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct pipe_resource *src = stObj->pt;
    struct pipe_resource *dst = NULL;
    enum pipe_format dst_format, src_format;
@@ -2629,8 +2545,8 @@ cpu_transfer:
  */
 static void
 fallback_copy_texsubimage(struct gl_context *ctx,
-                          struct st_renderbuffer *strb,
-                          struct st_texture_image *stImage,
+                          struct gl_renderbuffer *rb,
+                          struct gl_texture_image *stImage,
                           GLenum baseFormat,
                           GLint destX, GLint destY, GLint slice,
                           GLint srcX, GLint srcY,
@@ -2650,14 +2566,14 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    if (ST_DEBUG & DEBUG_FALLBACK)
       debug_printf("%s: fallback processing\n", __func__);
 
-   if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
-      srcY = strb->Base.Height - srcY - height;
+   if (_mesa_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
+      srcY = rb->Height - srcY - height;
    }
 
    map = pipe_texture_map(pipe,
-                           strb->texture,
-                           strb->surface->u.tex.level,
-                           strb->surface->u.tex.first_layer,
+                           rb->texture,
+                           rb->surface->u.tex.level,
+                           rb->surface->u.tex.first_layer,
                            PIPE_MAP_READ,
                            srcX, srcY,
                            width, height, &src_trans);
@@ -2690,7 +2606,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
       uint *data;
 
       /* determine bottom-to-top vs. top-to-bottom order for src buffer */
-      if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
+      if (_mesa_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
          srcY = height - 1;
          yStep = -1;
       }
@@ -2706,7 +2622,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
                                 transfer->layer_stride : transfer->stride);
          /* To avoid a large temp memory allocation, do copy row by row */
          for (row = 0; row < height; row++, srcY += yStep) {
-            util_format_unpack_z_32unorm(strb->texture->format,
+            util_format_unpack_z_32unorm(rb->texture->format,
                                          data, (uint8_t *)map + src_trans->stride * srcY,
                                          width);
             if (scaleOrBias) {
@@ -2731,10 +2647,10 @@ fallback_copy_texsubimage(struct gl_context *ctx,
       if (tempSrc) {
          const GLint dims = 2;
          GLint dstRowStride;
-         struct gl_texture_image *texImage = &stImage->base;
+         struct gl_texture_image *texImage = stImage;
          struct gl_pixelstore_attrib unpack = ctx->DefaultPacking;
 
-         if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
+         if (_mesa_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
             unpack.Invert = GL_TRUE;
          }
 
@@ -2750,7 +2666,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
           * try to avoid that someday.
           */
          pipe_get_tile_rgba(src_trans, map, 0, 0, width, height,
-                            util_format_linear(strb->texture->format),
+                            util_format_linear(rb->texture->format),
                             tempSrc);
 
          /* Store into texture memory.
@@ -2822,15 +2738,14 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
                    struct gl_renderbuffer *rb,
                    GLint srcX, GLint srcY, GLsizei width, GLsizei height)
 {
-   struct st_texture_image *stImage = st_texture_image(texImage);
-   struct st_texture_object *stObj = st_texture_object(texImage->TexObject);
-   struct st_renderbuffer *strb = st_renderbuffer(rb);
+   struct gl_texture_image *stImage = texImage;
+   struct gl_texture_object *stObj = texImage->TexObject;
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = st->screen;
    struct pipe_blit_info blit;
    enum pipe_format dst_format;
-   GLboolean do_flip = (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP);
+   GLboolean do_flip = (_mesa_fb_orientation(ctx->ReadBuffer) == Y_0_TOP);
    unsigned bind;
    GLint srcY0, srcY1;
 
@@ -2841,8 +2756,8 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
           !_mesa_is_format_astc_2d(texImage->TexFormat) &&
           texImage->TexFormat != MESA_FORMAT_ETC1_RGB8);
 
-   if (!strb || !strb->surface || !stImage->pt) {
-      debug_printf("%s: null strb or stImage\n", __func__);
+   if (!rb || !rb->surface || !stImage->pt) {
+      debug_printf("%s: null rb or stImage\n", __func__);
       return;
    }
 
@@ -2878,7 +2793,7 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 
    /* Y flipping for the main framebuffer. */
    if (do_flip) {
-      srcY1 = strb->Base.Height - srcY - height;
+      srcY1 = rb->Height - srcY - height;
       srcY0 = srcY1 + height;
    }
    else {
@@ -2890,12 +2805,12 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
     * This supports flipping, format conversions, and downsampling.
     */
    memset(&blit, 0, sizeof(blit));
-   blit.src.resource = strb->texture;
-   blit.src.format = util_format_linear(strb->surface->format);
-   blit.src.level = strb->surface->u.tex.level;
+   blit.src.resource = rb->texture;
+   blit.src.format = util_format_linear(rb->surface->format);
+   blit.src.level = rb->surface->u.tex.level;
    blit.src.box.x = srcX;
    blit.src.box.y = srcY0;
-   blit.src.box.z = strb->surface->u.tex.first_layer;
+   blit.src.box.z = rb->surface->u.tex.first_layer;
    blit.src.box.width = width;
    blit.src.box.height = srcY1 - srcY0;
    blit.src.box.depth = 1;
@@ -2905,7 +2820,7 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
       ? 0 : texImage->Level + texImage->TexObject->Attrib.MinLevel;
    blit.dst.box.x = destX;
    blit.dst.box.y = destY;
-   blit.dst.box.z = stImage->base.Face + slice +
+   blit.dst.box.z = stImage->Face + slice +
                     texImage->TexObject->Attrib.MinLayer;
    blit.dst.box.width = width;
    blit.dst.box.height = height;
@@ -2918,7 +2833,7 @@ st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 fallback:
    /* software fallback */
    fallback_copy_texsubimage(ctx,
-                             strb, stImage, texImage->_BaseFormat,
+                             rb, stImage, texImage->_BaseFormat,
                              destX, destY, slice,
                              srcX, srcY, width, height);
 }
@@ -2930,18 +2845,18 @@ fallback:
  */
 static void
 copy_image_data_to_texture(struct st_context *st,
-                           struct st_texture_object *stObj,
+                           struct gl_texture_object *stObj,
                            GLuint dstLevel,
-                           struct st_texture_image *stImage)
+                           struct gl_texture_image *stImage)
 {
    /* debug checks */
    {
       ASSERTED const struct gl_texture_image *dstImage =
-         stObj->base.Image[stImage->base.Face][dstLevel];
+         stObj->Image[stImage->Face][dstLevel];
       assert(dstImage);
-      assert(dstImage->Width == stImage->base.Width);
-      assert(dstImage->Height == stImage->base.Height);
-      assert(dstImage->Depth == stImage->base.Depth);
+      assert(dstImage->Width == stImage->Width);
+      assert(dstImage->Height == stImage->Height);
+      assert(dstImage->Depth == stImage->Depth);
    }
 
    if (stImage->pt) {
@@ -2951,20 +2866,20 @@ copy_image_data_to_texture(struct st_context *st,
       if (stImage->pt->last_level == 0)
          src_level = 0;
       else
-         src_level = stImage->base.Level;
+         src_level = stImage->Level;
 
       assert(src_level <= stImage->pt->last_level);
-      assert(u_minify(stImage->pt->width0, src_level) == stImage->base.Width);
+      assert(u_minify(stImage->pt->width0, src_level) == stImage->Width);
       assert(stImage->pt->target == PIPE_TEXTURE_1D_ARRAY ||
-             u_minify(stImage->pt->height0, src_level) == stImage->base.Height);
+             u_minify(stImage->pt->height0, src_level) == stImage->Height);
       assert(stImage->pt->target == PIPE_TEXTURE_2D_ARRAY ||
              stImage->pt->target == PIPE_TEXTURE_CUBE_ARRAY ||
-             u_minify(stImage->pt->depth0, src_level) == stImage->base.Depth);
+             u_minify(stImage->pt->depth0, src_level) == stImage->Depth);
 
       st_texture_image_copy(st->pipe,
                             stObj->pt, dstLevel,  /* dest texture, level */
                             stImage->pt, src_level, /* src texture, level */
-                            stImage->base.Face);
+                            stImage->Face);
 
       pipe_resource_reference(&stImage->pt, NULL);
    }
@@ -2984,10 +2899,9 @@ st_finalize_texture(struct gl_context *ctx,
                     GLuint cubeMapFace)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(tObj);
-   const GLuint nr_faces = _mesa_num_tex_faces(stObj->base.Target);
+   const GLuint nr_faces = _mesa_num_tex_faces(tObj->Target);
    GLuint face;
-   const struct st_texture_image *firstImage;
+   const struct gl_texture_image *firstImage;
    enum pipe_format firstImageFormat;
    unsigned ptWidth;
    uint16_t ptHeight, ptDepth, ptLayers, ptNumSamples;
@@ -2996,84 +2910,84 @@ st_finalize_texture(struct gl_context *ctx,
       return GL_TRUE;
 
    if (tObj->_MipmapComplete)
-      stObj->lastLevel = stObj->base._MaxLevel;
+      tObj->lastLevel = tObj->_MaxLevel;
    else if (tObj->_BaseComplete)
-      stObj->lastLevel = stObj->base.Attrib.BaseLevel;
+      tObj->lastLevel = tObj->Attrib.BaseLevel;
 
    /* Skip the loop over images in the common case of no images having
     * changed.  But if the GL_BASE_LEVEL or GL_MAX_LEVEL change to something we
     * haven't looked at, then we do need to look at those new images.
     */
-   if (!stObj->needs_validation &&
-       stObj->base.Attrib.BaseLevel >= stObj->validated_first_level &&
-       stObj->lastLevel <= stObj->validated_last_level) {
+   if (!tObj->needs_validation &&
+       tObj->Attrib.BaseLevel >= tObj->validated_first_level &&
+       tObj->lastLevel <= tObj->validated_last_level) {
       return GL_TRUE;
    }
 
    /* If this texture comes from a window system, there is nothing else to do. */
-   if (stObj->surface_based) {
+   if (tObj->surface_based) {
       return GL_TRUE;
    }
 
-   firstImage = st_texture_image_const(stObj->base.Image[cubeMapFace]
-                                       [stObj->base.Attrib.BaseLevel]);
+   firstImage = st_texture_image_const(tObj->Image[cubeMapFace]
+                                       [tObj->Attrib.BaseLevel]);
    if (!firstImage)
       return false;
 
-   /* If both firstImage and stObj point to a texture which can contain
+   /* If both firstImage and tObj point to a texture which can contain
     * all active images, favour firstImage.  Note that because of the
     * completeness requirement, we know that the image dimensions
     * will match.
     */
    if (firstImage->pt &&
-       firstImage->pt != stObj->pt &&
-       (!stObj->pt || firstImage->pt->last_level >= stObj->pt->last_level)) {
-      pipe_resource_reference(&stObj->pt, firstImage->pt);
-      st_texture_release_all_sampler_views(st, stObj);
+       firstImage->pt != tObj->pt &&
+       (!tObj->pt || firstImage->pt->last_level >= tObj->pt->last_level)) {
+      pipe_resource_reference(&tObj->pt, firstImage->pt);
+      st_texture_release_all_sampler_views(st, tObj);
    }
 
    /* Find gallium format for the Mesa texture */
    firstImageFormat =
-      st_mesa_format_to_pipe_format(st, firstImage->base.TexFormat);
+      st_mesa_format_to_pipe_format(st, firstImage->TexFormat);
 
    /* Find size of level=0 Gallium mipmap image, plus number of texture layers */
    {
       unsigned width;
       uint16_t height, depth;
 
-      st_gl_texture_dims_to_pipe_dims(stObj->base.Target,
-                                      firstImage->base.Width2,
-                                      firstImage->base.Height2,
-                                      firstImage->base.Depth2,
+      st_gl_texture_dims_to_pipe_dims(tObj->Target,
+                                      firstImage->Width2,
+                                      firstImage->Height2,
+                                      firstImage->Depth2,
                                       &width, &height, &depth, &ptLayers);
 
       /* If we previously allocated a pipe texture and its sizes are
        * compatible, use them.
        */
-      if (stObj->pt &&
-          u_minify(stObj->pt->width0, firstImage->base.Level) == width &&
-          u_minify(stObj->pt->height0, firstImage->base.Level) == height &&
-          u_minify(stObj->pt->depth0, firstImage->base.Level) == depth) {
-         ptWidth = stObj->pt->width0;
-         ptHeight = stObj->pt->height0;
-         ptDepth = stObj->pt->depth0;
+      if (tObj->pt &&
+          u_minify(tObj->pt->width0, firstImage->Level) == width &&
+          u_minify(tObj->pt->height0, firstImage->Level) == height &&
+          u_minify(tObj->pt->depth0, firstImage->Level) == depth) {
+         ptWidth = tObj->pt->width0;
+         ptHeight = tObj->pt->height0;
+         ptDepth = tObj->pt->depth0;
       } else {
          /* Otherwise, compute a new level=0 size that is compatible with the
           * base level image.
           */
-         ptWidth = width > 1 ? width << firstImage->base.Level : 1;
-         ptHeight = height > 1 ? height << firstImage->base.Level : 1;
-         ptDepth = depth > 1 ? depth << firstImage->base.Level : 1;
+         ptWidth = width > 1 ? width << firstImage->Level : 1;
+         ptHeight = height > 1 ? height << firstImage->Level : 1;
+         ptDepth = depth > 1 ? depth << firstImage->Level : 1;
 
          /* If the base level image is 1x1x1, we still need to ensure that the
           * resulting pipe texture ends up with the required number of levels
           * in total.
           */
          if (ptWidth == 1 && ptHeight == 1 && ptDepth == 1) {
-            ptWidth <<= firstImage->base.Level;
+            ptWidth <<= firstImage->Level;
 
-            if (stObj->base.Target == GL_TEXTURE_CUBE_MAP ||
-                stObj->base.Target == GL_TEXTURE_CUBE_MAP_ARRAY)
+            if (tObj->Target == GL_TEXTURE_CUBE_MAP ||
+                tObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY)
                ptHeight = ptWidth;
          }
 
@@ -3082,48 +2996,48 @@ st_finalize_texture(struct gl_context *ctx,
           * don't return GL_FALSE as that would raise an incorrect
           * GL_OUT_OF_MEMORY error.  See Piglit fbo-incomplete-texture-03 test.
           */
-         if (!stObj->base._BaseComplete) {
-            _mesa_test_texobj_completeness(ctx, &stObj->base);
-            if (!stObj->base._BaseComplete) {
+         if (!tObj->_BaseComplete) {
+            _mesa_test_texobj_completeness(ctx, tObj);
+            if (!tObj->_BaseComplete) {
                return TRUE;
             }
          }
       }
 
-      ptNumSamples = firstImage->base.NumSamples;
+      ptNumSamples = firstImage->NumSamples;
    }
 
    /* If we already have a gallium texture, check that it matches the texture
     * object's format, target, size, num_levels, etc.
     */
-   if (stObj->pt) {
-      if (stObj->pt->target != gl_target_to_pipe(stObj->base.Target) ||
-          stObj->pt->format != firstImageFormat ||
-          stObj->pt->last_level < stObj->lastLevel ||
-          stObj->pt->width0 != ptWidth ||
-          stObj->pt->height0 != ptHeight ||
-          stObj->pt->depth0 != ptDepth ||
-          stObj->pt->nr_samples != ptNumSamples ||
-          stObj->pt->array_size != ptLayers)
+   if (tObj->pt) {
+      if (tObj->pt->target != gl_target_to_pipe(tObj->Target) ||
+          tObj->pt->format != firstImageFormat ||
+          tObj->pt->last_level < tObj->lastLevel ||
+          tObj->pt->width0 != ptWidth ||
+          tObj->pt->height0 != ptHeight ||
+          tObj->pt->depth0 != ptDepth ||
+          tObj->pt->nr_samples != ptNumSamples ||
+          tObj->pt->array_size != ptLayers)
       {
          /* The gallium texture does not match the Mesa texture so delete the
           * gallium texture now.  We'll make a new one below.
           */
-         pipe_resource_reference(&stObj->pt, NULL);
-         st_texture_release_all_sampler_views(st, stObj);
+         pipe_resource_reference(&tObj->pt, NULL);
+         st_texture_release_all_sampler_views(st, tObj);
          st->dirty |= ST_NEW_FRAMEBUFFER;
       }
    }
 
    /* May need to create a new gallium texture:
     */
-   if (!stObj->pt) {
+   if (!tObj->pt) {
       GLuint bindings = default_bindings(st, firstImageFormat);
 
-      stObj->pt = st_texture_create(st,
-                                    gl_target_to_pipe(stObj->base.Target),
+      tObj->pt = st_texture_create(st,
+                                    gl_target_to_pipe(tObj->Target),
                                     firstImageFormat,
-                                    stObj->lastLevel,
+                                    tObj->lastLevel,
                                     ptWidth,
                                     ptHeight,
                                     ptDepth,
@@ -3131,7 +3045,7 @@ st_finalize_texture(struct gl_context *ctx,
                                     bindings,
                                     false);
 
-      if (!stObj->pt) {
+      if (!tObj->pt) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage");
          return GL_FALSE;
       }
@@ -3141,42 +3055,42 @@ st_finalize_texture(struct gl_context *ctx,
     */
    for (face = 0; face < nr_faces; face++) {
       GLuint level;
-      for (level = stObj->base.Attrib.BaseLevel; level <= stObj->lastLevel; level++) {
-         struct st_texture_image *stImage =
-            st_texture_image(stObj->base.Image[face][level]);
+      for (level = tObj->Attrib.BaseLevel; level <= tObj->lastLevel; level++) {
+         struct gl_texture_image *stImage =
+            tObj->Image[face][level];
 
          /* Need to import images in main memory or held in other textures.
           */
-         if (stImage && stObj->pt != stImage->pt) {
+         if (stImage && tObj->pt != stImage->pt) {
             GLuint height;
             GLuint depth;
 
-            if (stObj->base.Target != GL_TEXTURE_1D_ARRAY)
+            if (tObj->Target != GL_TEXTURE_1D_ARRAY)
                height = u_minify(ptHeight, level);
             else
                height = ptLayers;
 
-            if (stObj->base.Target == GL_TEXTURE_3D)
+            if (tObj->Target == GL_TEXTURE_3D)
                depth = u_minify(ptDepth, level);
-            else if (stObj->base.Target == GL_TEXTURE_CUBE_MAP)
+            else if (tObj->Target == GL_TEXTURE_CUBE_MAP)
                depth = 1;
             else
                depth = ptLayers;
 
             if (level == 0 ||
-                (stImage->base.Width == u_minify(ptWidth, level) &&
-                 stImage->base.Height == height &&
-                 stImage->base.Depth == depth)) {
+                (stImage->Width == u_minify(ptWidth, level) &&
+                 stImage->Height == height &&
+                 stImage->Depth == depth)) {
                /* src image fits expected dest mipmap level size */
-               copy_image_data_to_texture(st, stObj, level, stImage);
+               copy_image_data_to_texture(st, tObj, level, stImage);
             }
          }
       }
    }
 
-   stObj->validated_first_level = stObj->base.Attrib.BaseLevel;
-   stObj->validated_last_level = stObj->lastLevel;
-   stObj->needs_validation = false;
+   tObj->validated_first_level = tObj->Attrib.BaseLevel;
+   tObj->validated_last_level = tObj->lastLevel;
+   tObj->needs_validation = false;
 
    return GL_TRUE;
 }
@@ -3190,7 +3104,7 @@ st_finalize_texture(struct gl_context *ctx,
  */
 static struct pipe_resource *
 st_texture_create_from_memory(struct st_context *st,
-                              struct st_memory_object *memObj,
+                              struct gl_memory_object *memObj,
                               GLuint64 offset,
                               enum pipe_texture_target target,
                               enum pipe_format format,
@@ -3261,8 +3175,6 @@ st_texture_storage(struct gl_context *ctx,
    const GLuint numFaces = _mesa_num_tex_faces(texObj->Target);
    struct gl_texture_image *texImage = texObj->Image[0][0];
    struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texObj);
-   struct st_memory_object *smObj = st_memory_object(memObj);
    struct pipe_screen *screen = st->screen;
    unsigned ptWidth, bindings;
    uint16_t ptHeight, ptDepth, ptLayers;
@@ -3272,14 +3184,14 @@ st_texture_storage(struct gl_context *ctx,
 
    assert(levels > 0);
 
-   stObj->lastLevel = levels - 1;
+   texObj->lastLevel = levels - 1;
 
    fmt = st_mesa_format_to_pipe_format(st, texImage->TexFormat);
 
    bindings = default_bindings(st, fmt);
 
-   if (smObj) {
-      smObj->TextureTiling = texObj->TextureTiling;
+   if (memObj) {
+      memObj->TextureTiling = texObj->TextureTiling;
       bindings |= PIPE_BIND_SHARED;
    }
 
@@ -3316,11 +3228,11 @@ st_texture_storage(struct gl_context *ctx,
                                    width, height, depth,
                                    &ptWidth, &ptHeight, &ptDepth, &ptLayers);
 
-   pipe_resource_reference(&stObj->pt, NULL);
+   pipe_resource_reference(&texObj->pt, NULL);
 
-   if (smObj) {
-      stObj->pt = st_texture_create_from_memory(st,
-                                                smObj,
+   if (memObj) {
+      texObj->pt = st_texture_create_from_memory(st,
+                                                memObj,
                                                 offset,
                                                 gl_target_to_pipe(texObj->Target),
                                                 fmt,
@@ -3332,7 +3244,7 @@ st_texture_storage(struct gl_context *ctx,
                                                 bindings);
    }
    else {
-      stObj->pt = st_texture_create(st,
+      texObj->pt = st_texture_create(st,
                                     gl_target_to_pipe(texObj->Target),
                                     fmt,
                                     levels - 1,
@@ -3344,28 +3256,28 @@ st_texture_storage(struct gl_context *ctx,
                                     texObj->IsSparse);
    }
 
-   if (!stObj->pt)
+   if (!texObj->pt)
       return GL_FALSE;
 
    /* Set image resource pointers */
    for (level = 0; level < levels; level++) {
       GLuint face;
       for (face = 0; face < numFaces; face++) {
-         struct st_texture_image *stImage =
-            st_texture_image(texObj->Image[face][level]);
-         pipe_resource_reference(&stImage->pt, stObj->pt);
+         struct gl_texture_image *stImage =
+            texObj->Image[face][level];
+         pipe_resource_reference(&stImage->pt, texObj->pt);
 
          compressed_tex_fallback_allocate(st, stImage);
       }
    }
 
    /* Update gl_texture_object for texture parameter query. */
-   texObj->NumSparseLevels = stObj->pt->nr_sparse_levels;
+   texObj->NumSparseLevels = texObj->pt->nr_sparse_levels;
 
    /* The texture is in a validated state, so no need to check later. */
-   stObj->needs_validation = false;
-   stObj->validated_first_level = 0;
-   stObj->validated_last_level = levels - 1;
+   texObj->needs_validation = false;
+   texObj->validated_first_level = 0;
+   texObj->validated_last_level = levels - 1;
 
    return GL_TRUE;
 }
@@ -3448,8 +3360,8 @@ st_TextureView(struct gl_context *ctx,
                struct gl_texture_object *origTexObj)
 {
    struct st_context *st = st_context(ctx);
-   struct st_texture_object *orig = st_texture_object(origTexObj);
-   struct st_texture_object *tex = st_texture_object(texObj);
+   struct gl_texture_object *orig = origTexObj;
+   struct gl_texture_object *tex = texObj;
    struct gl_texture_image *image = texObj->Image[0][0];
 
    const int numFaces = _mesa_num_tex_faces(texObj->Target);
@@ -3463,10 +3375,10 @@ st_TextureView(struct gl_context *ctx,
    /* Set image resource pointers */
    for (level = 0; level < numLevels; level++) {
       for (face = 0; face < numFaces; face++) {
-         struct st_texture_image *stImage =
-            st_texture_image(texObj->Image[face][level]);
-         struct st_texture_image *origImage =
-            st_texture_image(origTexObj->Image[face][level]);
+         struct gl_texture_image *stImage =
+            texObj->Image[face][level];
+         struct gl_texture_image *origImage =
+            origTexObj->Image[face][level];
          pipe_resource_reference(&stImage->pt, tex->pt);
          if (origImage &&
              origImage->compressed_data) {
@@ -3541,7 +3453,7 @@ st_ClearTexSubImage(struct gl_context *ctx,
 {
    static const char zeros[16] = {0};
    struct gl_texture_object *texObj = texImage->TexObject;
-   struct st_texture_image *stImage = st_texture_image(texImage);
+   struct gl_texture_image *stImage = texImage;
    struct pipe_resource *pt = stImage->pt;
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -3570,7 +3482,7 @@ st_ClearTexSubImage(struct gl_context *ctx,
        * texture, we have to apply the MinLevel/Layer offsets.  If this is
        * not a texture view, the offsets will be zero.
        */
-      assert(stImage->pt == st_texture_object(texObj)->pt);
+      assert(stImage->pt == texObj->pt);
       level = texImage->Level + texObj->Attrib.MinLevel;
       box.z += texObj->Attrib.MinLayer;
    }
@@ -3588,41 +3500,6 @@ st_ClearTexSubImage(struct gl_context *ctx,
 }
 
 
-/**
- * Called via the glTexParam*() function, but only when some texture object
- * state has actually changed.
- */
-void
-st_TexParameter(struct gl_context *ctx,
-                struct gl_texture_object *texObj, GLenum pname)
-{
-   struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texObj);
-
-   switch (pname) {
-   case GL_ALL_ATTRIB_BITS: /* meaning is all pnames, internal */
-   case GL_TEXTURE_BASE_LEVEL:
-   case GL_TEXTURE_MAX_LEVEL:
-   case GL_DEPTH_TEXTURE_MODE:
-   case GL_DEPTH_STENCIL_TEXTURE_MODE:
-   case GL_TEXTURE_SRGB_DECODE_EXT:
-   case GL_TEXTURE_SWIZZLE_R:
-   case GL_TEXTURE_SWIZZLE_G:
-   case GL_TEXTURE_SWIZZLE_B:
-   case GL_TEXTURE_SWIZZLE_A:
-   case GL_TEXTURE_SWIZZLE_RGBA:
-   case GL_TEXTURE_BUFFER_SIZE:
-   case GL_TEXTURE_BUFFER_OFFSET:
-      /* changing any of these texture parameters means we must create
-       * new sampler views.
-       */
-      st_texture_release_all_sampler_views(st, stObj);
-      break;
-   default:
-      ; /* nothing */
-   }
-}
-
 GLboolean
 st_SetTextureStorageForMemoryObject(struct gl_context *ctx,
                                     struct gl_texture_object *texObj,
@@ -3636,87 +3513,6 @@ st_SetTextureStorageForMemoryObject(struct gl_context *ctx,
                              memObj, offset);
 }
 
-GLuint64
-st_NewTextureHandle(struct gl_context *ctx, struct gl_texture_object *texObj,
-                    struct gl_sampler_object *sampObj)
-{
-   struct st_context *st = st_context(ctx);
-   struct st_texture_object *stObj = st_texture_object(texObj);
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_sampler_view *view;
-   struct pipe_sampler_state sampler = {0};
-
-   if (texObj->Target != GL_TEXTURE_BUFFER) {
-      if (!st_finalize_texture(ctx, pipe, texObj, 0))
-         return 0;
-
-      st_convert_sampler(st, texObj, sampObj, 0, &sampler, false);
-
-      /* TODO: Clarify the interaction of ARB_bindless_texture and EXT_texture_sRGB_decode */
-      view = st_get_texture_sampler_view_from_stobj(st, stObj, sampObj, 0,
-                                                    true, false);
-   } else {
-      view = st_get_buffer_sampler_view_from_stobj(st, stObj, false);
-   }
-
-   return pipe->create_texture_handle(pipe, view, &sampler);
-}
-
-
-void
-st_DeleteTextureHandle(struct gl_context *ctx, GLuint64 handle)
-{
-   struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-
-   pipe->delete_texture_handle(pipe, handle);
-}
-
-
-void
-st_MakeTextureHandleResident(struct gl_context *ctx, GLuint64 handle,
-                             bool resident)
-{
-   struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-
-   pipe->make_texture_handle_resident(pipe, handle, resident);
-}
-
-
-GLuint64
-st_NewImageHandle(struct gl_context *ctx, struct gl_image_unit *imgObj)
-{
-   struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-   struct pipe_image_view image;
-
-   st_convert_image(st, imgObj, &image, GL_READ_WRITE);
-
-   return pipe->create_image_handle(pipe, &image);
-}
-
-
-void
-st_DeleteImageHandle(struct gl_context *ctx, GLuint64 handle)
-{
-   struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-
-   pipe->delete_image_handle(pipe, handle);
-}
-
-
-void
-st_MakeImageHandleResident(struct gl_context *ctx, GLuint64 handle,
-                           GLenum access, bool resident)
-{
-   struct st_context *st = st_context(ctx);
-   struct pipe_context *pipe = st->pipe;
-
-   pipe->make_image_handle_resident(pipe, handle, access, resident);
-}
-
 GLboolean
 st_GetSparseTextureVirtualPageSize(struct gl_context *ctx,
                                    GLenum target, mesa_format format,
@@ -3726,10 +3522,11 @@ st_GetSparseTextureVirtualPageSize(struct gl_context *ctx,
    struct pipe_screen *screen = st->screen;
    enum pipe_texture_target ptarget = gl_target_to_pipe(target);
    enum pipe_format pformat = st_mesa_format_to_pipe_format(st, format);
+   bool multi_sample = _mesa_is_multisample_target(target);
 
    /* Get an XYZ page size combination specified by index. */
    return !!screen->get_sparse_texture_virtual_page_size(
-      screen, ptarget, pformat, index, 1, x, y, z);
+      screen, ptarget, multi_sample, pformat, index, 1, x, y, z);
 }
 
 void
@@ -3740,12 +3537,11 @@ st_TexturePageCommitment(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
-   struct st_texture_object *tex = st_texture_object(tex_obj);
    struct pipe_box box;
 
    u_box_3d(xoffset, yoffset, zoffset, width, height, depth, &box);
 
-   if (!pipe->resource_commit(pipe, tex->pt, level, &box, commit)) {
+   if (!pipe->resource_commit(pipe, tex_obj->pt, level, &box, commit)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexPageCommitmentARB(out of memory)");
       return;
    }

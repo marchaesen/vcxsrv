@@ -238,8 +238,6 @@ Intel driver environment variables
 
    ``ann``
       annotate IR in assembly dumps
-   ``aub``
-      dump batches into an AUB trace for use with simulation tools
    ``bat``
       emit batch information
    ``blit``
@@ -248,6 +246,8 @@ Intel driver environment variables
       emit messages about the blorp operations (blits & clears)
    ``buf``
       emit messages about buffer objects
+   ``bt``
+      emit messages binding tables
    ``clip``
       emit messages about the clip unit (for old gens, includes the CLIP
       program)
@@ -258,6 +258,8 @@ Intel driver environment variables
    ``do32``
       generate compute shader SIMD32 programs even if workgroup size
       doesn't exceed the SIMD16 limit
+   ``fall``
+      emit messages about performance issues (same as ``perf``)
    ``fs``
       dump shader assembly for fragment shaders
    ``gs``
@@ -266,11 +268,19 @@ Intel driver environment variables
       print instruction hex dump with the disassembly
    ``l3``
       emit messages about the new L3 state during transitions
+   ``mesh``
+      dump shader assembly for mesh shaders
    ``no8``
       don't generate SIMD8 fragment shader
    ``no16``
       suppress generation of 16-wide fragment shaders. useful for
       debugging broken shaders
+   ``no32``
+      suppress generation of 32-wide fragment shaders. useful for
+      debugging broken shaders
+   ``no-oaconfig``
+      disable HW performance metric configuration, and anything
+      related to i915-perf (useful when running on simulation)
    ``nocompact``
       disable instruction compaction
    ``nodualobj``
@@ -282,17 +292,21 @@ Intel driver environment variables
    ``optimizer``
       dump shader assembly to files at each optimization pass and
       iteration that make progress
+   ``pc``
+      emit messages about PIPE_CONTROL instruction usage
    ``perf``
       emit messages about performance issues
    ``perfmon``
       emit messages about ``AMD_performance_monitor``
    ``reemit``
       mark all state dirty on each draw call
+   ``rt``
+      dump shader assembly for ray tracing shaders
    ``sf``
       emit messages about the strips & fans unit (for old gens, includes
       the SF program)
-   ``shader_time``
-      record how much GPU time is spent in each shader
+   ``soft64``
+      enable implementation of software 64bit floating point support
    ``spill_fs``
       force spilling of all registers in the scalar backend (useful to
       debug spilling code)
@@ -304,8 +318,13 @@ Intel driver environment variables
    ``sync``
       after sending each batch, emit a message and wait for that batch
       to finish rendering
+   ``task``
+      dump shader assembly for task shaders
    ``tcs``
       dump shader assembly for tessellation control shaders
+   ``tcs8``
+      force usage of 8-patches tessellation control shaders (only
+      for gfx 9-11)
    ``tes``
       dump shader assembly for tessellation evaluation shaders
    ``tex``
@@ -314,6 +333,8 @@ Intel driver environment variables
       emit messages about URB setup
    ``vs``
       dump shader assembly for vertex shaders
+   ``wm``
+      dump shader assembly for fragment shaders (same as ``fs``)
 
 :envvar:`INTEL_MEASURE`
    Collects GPU timestamps over common intervals, and generates a CSV report
@@ -651,6 +672,8 @@ RADV driver environment variables
       dump shader statistics
    ``spirv``
       dump SPIR-V
+   ``splitfma``
+      split application-provided fused multiply-add in geometry stages
    ``startup``
       display info at startup
    ``syncshaders``
@@ -686,6 +709,8 @@ RADV driver environment variables
       enable local BOs
    ``nosam``
       disable optimizations that get enabled when all VRAM is CPU visible.
+   ``nv_ms``
+      enable unofficial experimental support for NV_mesh_shader.
    ``pswave32``
       enable wave32 for pixel shaders (GFX10+)
    ``nggc``
@@ -694,6 +719,8 @@ RADV driver environment variables
       enable rt extensions whose implementation is still experimental.
    ``sam``
       enable optimizations to move more driver internal objects to VRAM.
+   ``rtwave64``
+      enable wave64 for ray tracing shaders (GFX10+)
 
 :envvar:`RADV_TEX_ANISO`
    force anisotropy filter (up to 16)

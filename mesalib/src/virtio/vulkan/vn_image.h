@@ -36,15 +36,28 @@ struct vn_image {
 
    struct vn_image_memory_requirements requirements[4];
 
-   bool is_wsi;
-   bool is_prime_blit_src;
-
-   /* For VK_ANDROID_native_buffer, the WSI image owns the memory, */
-   VkDeviceMemory private_memory;
    /* For VK_ANDROID_external_memory_android_hardware_buffer, real image
     * creation is deferred until bind image memory.
     */
    struct vn_image_create_deferred_info *deferred_info;
+
+   struct {
+      /* True if this is a swapchain image and VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+       * is a valid layout.  A swapchain image can be created internally
+       * (wsi_image_create_info) or externally (VkNativeBufferANDROID and
+       * VkImageSwapchainCreateInfoKHR).
+       */
+      bool is_wsi;
+      bool is_prime_blit_src;
+      VkImageTiling tiling_override;
+      /* valid when tiling is VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT */
+      uint64_t drm_format_modifier;
+
+      struct vn_device_memory *memory;
+
+      /* For VK_ANDROID_native_buffer, the WSI image owns the memory. */
+      bool memory_owned;
+   } wsi;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_image,
                                base.base,

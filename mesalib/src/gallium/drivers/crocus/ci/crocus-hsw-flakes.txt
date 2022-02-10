@@ -1,0 +1,3 @@
+KHR-GL46.texture_barrier.overlapping-texels
+KHR-GL46.texture_barrier_ARB.overlapping-texels
+KHR-GL46.texture_barrier_ARB.same-texel-rw-multipass

@@ -76,7 +76,7 @@ delete_sampler_object(struct gl_context *ctx,
 {
    _mesa_delete_sampler_handles(ctx, sampObj);
    free(sampObj->Label);
-   free(sampObj);
+   FREE(sampObj);
 }
 
 /**
@@ -528,27 +528,6 @@ flush(struct gl_context *ctx)
    FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT, GL_TEXTURE_BIT);
 }
 
-void
-_mesa_set_sampler_wrap(struct gl_context *ctx, struct gl_sampler_object *samp,
-                       GLenum s, GLenum t, GLenum r)
-{
-   assert(validate_texture_wrap_mode(ctx, s));
-   assert(validate_texture_wrap_mode(ctx, t));
-   assert(validate_texture_wrap_mode(ctx, r));
-
-   if (samp->Attrib.WrapS == s && samp->Attrib.WrapT == t && samp->Attrib.WrapR == r)
-      return;
-
-   flush(ctx);
-   samp->Attrib.WrapS = s;
-   samp->Attrib.WrapT = t;
-   samp->Attrib.WrapR = r;
-   samp->Attrib.state.wrap_s = wrap_to_gallium(s);
-   samp->Attrib.state.wrap_t = wrap_to_gallium(t);
-   samp->Attrib.state.wrap_r = wrap_to_gallium(r);
-   _mesa_lower_gl_clamp(ctx, samp);
-}
-
 #define INVALID_PARAM 0x100
 #define INVALID_PNAME 0x101
 #define INVALID_VALUE 0x102
@@ -613,32 +592,6 @@ set_sampler_wrap_r(struct gl_context *ctx, struct gl_sampler_object *samp,
       return GL_TRUE;
    }
    return INVALID_PARAM;
-}
-
-void
-_mesa_set_sampler_filters(struct gl_context *ctx,
-                          struct gl_sampler_object *samp,
-                          GLenum min_filter, GLenum mag_filter)
-{
-   assert(min_filter == GL_NEAREST ||
-          min_filter == GL_LINEAR ||
-          min_filter == GL_NEAREST_MIPMAP_NEAREST ||
-          min_filter == GL_LINEAR_MIPMAP_NEAREST ||
-          min_filter == GL_NEAREST_MIPMAP_LINEAR ||
-          min_filter == GL_LINEAR_MIPMAP_LINEAR);
-   assert(mag_filter == GL_NEAREST ||
-          mag_filter == GL_LINEAR);
-
-   if (samp->Attrib.MinFilter == min_filter && samp->Attrib.MagFilter == mag_filter)
-      return;
-
-   flush(ctx);
-   samp->Attrib.MinFilter = min_filter;
-   samp->Attrib.MagFilter = mag_filter;
-   samp->Attrib.state.min_img_filter = filter_to_gallium(min_filter);
-   samp->Attrib.state.min_mip_filter = mipfilter_to_gallium(min_filter);
-   samp->Attrib.state.mag_img_filter = filter_to_gallium(mag_filter);
-   _mesa_lower_gl_clamp(ctx, samp);
 }
 
 static GLuint
@@ -866,16 +819,6 @@ set_sampler_cube_map_seamless(struct gl_context *ctx,
    samp->Attrib.CubeMapSeamless = param;
    samp->Attrib.state.seamless_cube_map = param;
    return GL_TRUE;
-}
-
-void
-_mesa_set_sampler_srgb_decode(struct gl_context *ctx,
-                              struct gl_sampler_object *samp, GLenum param)
-{
-   assert(param == GL_DECODE_EXT || param == GL_SKIP_DECODE_EXT);
-
-   flush(ctx);
-   samp->Attrib.sRGBDecode = param;
 }
 
 static GLuint

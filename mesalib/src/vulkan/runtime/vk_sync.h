@@ -51,7 +51,7 @@ enum vk_sync_features {
     * vk_sync types.  This is used to by the threaded submit mode to ensure
     * that everything gets submitted to the kernel driver in-order.
     *
-    * A vk_sync is operates in binary mode if VK_SYNC_IS_TIMELINE is not set
+    * A vk_sync operates in binary mode if VK_SYNC_IS_TIMELINE is not set
     * in vk_sync::flags.
     */
    VK_SYNC_FEATURE_BINARY              = (1 << 0),
@@ -72,7 +72,7 @@ enum vk_sync_features {
     * submit to re-order things so that the kernel requests happen in a valid
     * linear order.
     *
-    * A vk_sync is operates in binary mode if VK_SYNC_IS_TIMELINE is set in
+    * A vk_sync operates in timeline mode if VK_SYNC_IS_TIMELINE is set in
     * vk_sync::flags.
     */
    VK_SYNC_FEATURE_TIMELINE            = (1 << 1),

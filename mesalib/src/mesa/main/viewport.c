@@ -36,7 +36,7 @@
 #include "viewport.h"
 #include "api_exec_decl.h"
 
-#include "state_tracker/st_cb_viewport.h"
+#include "state_tracker/st_manager.h"
 #include "state_tracker/st_context.h"
 
 static void
@@ -116,7 +116,8 @@ viewport(struct gl_context *ctx, GLint x, GLint y, GLsizei width,
    for (unsigned i = 0; i < ctx->Const.MaxViewports; i++)
       set_viewport_no_notify(ctx, i, input.X, input.Y, input.Width, input.Height);
 
-   st_viewport(ctx);
+   if (ctx->invalidate_on_gl_viewport)
+      st_manager_invalidate_drawables(ctx);
 }
 
 /**
@@ -168,7 +169,8 @@ _mesa_set_viewport(struct gl_context *ctx, unsigned idx, GLfloat x, GLfloat y,
    clamp_viewport(ctx, &x, &y, &width, &height);
    set_viewport_no_notify(ctx, idx, x, y, width, height);
 
-   st_viewport(ctx);
+   if (ctx->invalidate_on_gl_viewport)
+      st_manager_invalidate_drawables(ctx);
 }
 
 static void
@@ -183,7 +185,8 @@ viewport_array(struct gl_context *ctx, GLuint first, GLsizei count,
                              inputs[i].Width, inputs[i].Height);
    }
 
-   st_viewport(ctx);
+   if (ctx->invalidate_on_gl_viewport)
+      st_manager_invalidate_drawables(ctx);
 }
 
 void GLAPIENTRY

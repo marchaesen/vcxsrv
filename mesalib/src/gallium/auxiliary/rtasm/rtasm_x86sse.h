@@ -270,6 +270,8 @@ void sse2_pshuflw( struct x86_function *p, struct x86_reg dst, struct x86_reg sr
 void sse2_pshufhw( struct x86_function *p, struct x86_reg dst, struct x86_reg src, uint8_t imm );
 void sse2_pshufd( struct x86_function *p, struct x86_reg dst, struct x86_reg src, uint8_t imm );
 
+void sse2_pcmpgtd( struct x86_function *p, struct x86_reg dst, struct x86_reg src );
+
 void sse_prefetchnta( struct x86_function *p, struct x86_reg ptr);
 void sse_prefetch0( struct x86_function *p, struct x86_reg ptr);
 void sse_prefetch1( struct x86_function *p, struct x86_reg ptr);

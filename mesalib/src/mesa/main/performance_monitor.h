@@ -41,5 +41,6 @@ _mesa_free_performance_monitors(struct gl_context *ctx);
 unsigned
 _mesa_perf_monitor_counter_size(const struct gl_perf_monitor_counter *);
 
-
+void
+_mesa_free_perfomance_monitor_groups(struct gl_context *ctx);
 #endif

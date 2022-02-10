@@ -201,6 +201,29 @@
     <reserved/>
   </enum>
 
+  <enum name="Half-swizzles (8-bit)">
+    <desc>
+      Used to select the 2 bytes to convert for conversions from 8-bit vectors
+      to 16-bit vectors
+    </desc>
+    <value>b00</value>
+    <value>b10</value>
+    <value>b20</value>
+    <value>b30</value>
+    <value>b01</value>
+    <value>b11</value>
+    <value>b21</value>
+    <value>b31</value>
+    <value>b02</value>
+    <value>b12</value>
+    <value>b22</value>
+    <value>b32</value>
+    <value>b03</value>
+    <value>b13</value>
+    <value>b23</value>
+    <value>b33</value>
+  </enum>
+
   <enum name="Swizzles (16-bit)">
     <value>h00</value> <!-- 0,2 -->
     <value>h10</value>
@@ -657,12 +680,13 @@
 
   <ins name="BRANCHZI" title="Compare to zero and branch indirect" opcode="0x2F" unit="CVT">
     <desc>
-      Jump to an indirectly specified address. Used to jump to blend shaders at
-      the end of a fragment shader.
+      Jump to an indirectly specified (absolute or relative) address. Used to
+      jump to blend shaders at the end of a fragment shader.
     </desc>
     <src>Value to compare against zero</src>
     <src>Branch target</src>
     <mod name="eq" start="36" size="1"/>
+    <mod name="absolute" start="40" size="1"/>
   </ins>
 
   <ins name="BARRIER" title="Execution and memory barrier" opcode="0x45" unit="NONE">
@@ -1080,6 +1104,8 @@
     </desc>
     <sr write="true"/>
     <sr_count/>
+    <vecsize/>
+    <regfmt/>
     <slot/>
     <src>Pixel indices descriptor</src>
     <src>Coverage mask</src>
@@ -1155,20 +1181,29 @@
       is specified where it makes sense.
     </desc>
 
-    <ins name="S16_TO_S32" opcode2="0x4"/>
-    <ins name="S16_TO_F32" opcode2="0x5"/>
     <ins name="V2S16_TO_V2F16" opcode2="0x7"/>
 
     <ins name="S32_TO_F32" opcode2="0x9"/>
 
-    <ins name="U16_TO_U32" opcode2="0x14"/>
-    <ins name="U16_TO_F32" opcode2="0x15"/>
     <ins name="V2U16_TO_V2F16" opcode2="0x17"/>
 
     <ins name="U32_TO_F32" opcode2="0x19"/>
 
     <roundmode/>
     <src widen="true">Value to convert</src>
+  </group>
+
+  <group name="CONVERT" title="16->32 integer data conversions" dests="1" opcode="0x90" unit="CVT">
+    <desc>
+      Performs the given data conversion.
+    </desc>
+
+    <ins name="S16_TO_S32" opcode2="0x4"/>
+    <ins name="S16_TO_F32" opcode2="0x5"/>
+    <ins name="U16_TO_U32" opcode2="0x14"/>
+    <ins name="U16_TO_F32" opcode2="0x15"/>
+
+    <src swizzle="true" size="16">Value to convert</src>
   </group>
 
   <group name="CONVERT" title="Float-to-int data conversions" dests="1" opcode="0x90" unit="CVT">
@@ -1195,22 +1230,32 @@
     <src lane="28" size="16" absneg="true">Value to convert</src>
   </ins>
 
-  <group name="CONVERT" title="8-bit data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="8-bit to 32-bit data conversions" dests="1" opcode="0x90" unit="CVT">
     <desc>
       Performs the given data conversion.
     </desc>
 
     <ins name="S8_TO_S32" opcode2="0x0"/>
     <ins name="S8_TO_F32" opcode2="0x1"/>
-    <ins name="S8_TO_S16" opcode2="0x2"/>
-    <ins name="S8_TO_F16" opcode2="0x3"/>
 
     <ins name="U8_TO_U32" opcode2="0x10"/>
     <ins name="U8_TO_F32" opcode2="0x11"/>
-    <ins name="U8_TO_U16" opcode2="0x12"/>
-    <ins name="U8_TO_F16" opcode2="0x13"/>
 
     <src lane="28" size="8">Value to convert</src>
+  </group>
+
+  <group name="CONVERT" title="8-bit to 16-bit data conversions" dests="1" opcode="0x90" unit="CVT">
+    <desc>
+      Performs the given data conversion.
+    </desc>
+
+    <ins name="V2S8_TO_V2S16" opcode2="0x2"/>
+    <ins name="V2S8_TO_V2F16" opcode2="0x3"/>
+
+    <ins name="V2U8_TO_V2U16" opcode2="0x12"/>
+    <ins name="V2U8_TO_V2F16" opcode2="0x13"/>
+
+    <src halfswizzle="true" size="8">Value to convert</src>
   </group>
 
   <group name="FROUND" title="Floating-point rounding" dests="1" opcode="0x90" unit="CVT">
@@ -1391,6 +1436,7 @@
       Given a pair of 32-bit floats, output a pair of 16-bit floats packed into
       a 32-bit destination.
     </desc>
+    <clamp/>
     <src>A</src>
     <src>B</src>
   </group>
@@ -1452,8 +1498,8 @@
 
   <ins name="MKVEC.v2i16" title="Make 16-bit vector" dests="1" opcode="0xA1" opcode2="0x5" unit="CVT">
     <desc>Calculates $A | (B \ll 16)$. Used to implement `(ushort2)(A, B)`</desc>
-    <src widen="true">A</src>
-    <src widen="true">B</src>
+    <src swizzle="true">A</src>
+    <src swizzle="true">B</src>
   </ins>
 
   <group name="ISUB" title="Integer subtract" dests="1" opcode2="1" unit="CVT">

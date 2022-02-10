@@ -45,7 +45,6 @@
 #include "st_atom.h"
 #include "st_cb_bitmap.h"
 #include "st_cb_clear.h"
-#include "st_cb_fbo.h"
 #include "st_draw.h"
 #include "st_format.h"
 #include "st_nir.h"
@@ -332,7 +331,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
 
    /* viewport state: viewport matching window dims */
    cso_set_viewport_dims(st->cso_context, fb_width, fb_height,
-                         st_fb_orientation(fb) == Y_0_TOP);
+                         _mesa_fb_orientation(fb) == Y_0_TOP);
 
    set_fragment_shader(st);
    cso_set_tessctrl_shader_handle(cso, NULL);
@@ -445,10 +444,9 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
          if (b != BUFFER_NONE && mask & (1 << b)) {
             struct gl_renderbuffer *rb
                = ctx->DrawBuffer->Attachment[b].Renderbuffer;
-            struct st_renderbuffer *strb = st_renderbuffer(rb);
             int colormask_index = ctx->Extensions.EXT_draw_buffers2 ? i : 0;
 
-            if (!strb || !strb->surface)
+            if (!rb || !rb->surface)
                continue;
 
             unsigned colormask =
@@ -458,7 +456,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
                continue;
 
             unsigned surf_colormask =
-               util_format_colormask(util_format_description(strb->surface->format));
+               util_format_colormask(util_format_description(rb->surface->format));
 
             bool scissor = is_scissor_enabled(ctx, rb);
             if ((scissor && !st->can_scissor_clear) ||
@@ -473,9 +471,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
    }
 
    if (mask & BUFFER_BIT_DEPTH) {
-      struct st_renderbuffer *strb = st_renderbuffer(depthRb);
-
-      if (strb->surface && ctx->Depth.Mask) {
+      if (depthRb->surface && ctx->Depth.Mask) {
          bool scissor = is_scissor_enabled(ctx, depthRb);
          if ((scissor && !st->can_scissor_clear) ||
              is_window_rectangle_enabled(ctx))
@@ -486,9 +482,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
       }
    }
    if (mask & BUFFER_BIT_STENCIL) {
-      struct st_renderbuffer *strb = st_renderbuffer(stencilRb);
-
-      if (strb->surface && !is_stencil_disabled(ctx, stencilRb)) {
+      if (stencilRb->surface && !is_stencil_disabled(ctx, stencilRb)) {
          bool scissor = is_scissor_enabled(ctx, stencilRb);
          if ((scissor && !st->can_scissor_clear) ||
              is_window_rectangle_enabled(ctx) ||

@@ -1,3 +1,6 @@
+# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463 (Fail)
+KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
+
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
@@ -28,14 +31,6 @@ shaders@point-vertex-id gl_vertexid,Fail
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Fail
 shaders@point-vertex-id gl_vertexid gl_instanceid,Fail
 spec@arb_base_instance@arb_base_instance-drawarrays,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-dual-src-blending-issue-1917_gles3,Crash
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-explicit,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-explicit_gles3,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend_gles3,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern_gles2,Crash
-spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern_gles3,Fail
 spec@arb_color_buffer_float@gl_rgba16f-render,Fail
 spec@arb_color_buffer_float@gl_rgba16f-render-fog,Fail
 spec@arb_color_buffer_float@gl_rgba16f-render-sanity,Fail
@@ -84,7 +79,7 @@ spec@arb_depth_texture@texwrap formats bordercolor-swizzled,Fail
 spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT16- swizzled- border color only,Fail
 spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT24- swizzled- border color only,Fail
 spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32- swizzled- border color only,Fail
-spec@arb_direct_state_access@gettextureimage-formats,Crash
+spec@arb_direct_state_access@gettextureimage-formats,Fail
 spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
 spec@arb_direct_state_access@texture-buffer,Fail
 spec@arb_draw_buffers@fbo-mrt-new-bind,Crash
@@ -102,14 +97,11 @@ spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl
 spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
 spec@arb_framebuffer_srgb@fbo-fast-clear,Fail
 spec@arb_get_program_binary@restore-sso-program,Fail
-spec@arb_get_texture_sub_image@arb_get_texture_sub_image-getcompressed,Fail
-spec@arb_get_texture_sub_image@arb_get_texture_sub_image-get,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_DEPTH_STENCIL,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_STENCIL_INDEX,Fail
 spec@arb_pixel_buffer_object@texsubimage array pbo,Fail
 spec@arb_pixel_buffer_object@texsubimage cube_map_array pbo,Fail
-spec@arb_pixel_buffer_object@texsubimage pbo,Fail
 spec@arb_point_sprite@arb_point_sprite-checkerboard,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 spec@arb_provoking_vertex@arb-provoking-vertex-render,Fail
@@ -403,7 +395,6 @@ spec@arb_uniform_buffer_object@rendering-dsa-offset,Fail
 spec@arb_uniform_buffer_object@rendering,Fail
 spec@arb_uniform_buffer_object@rendering-offset,Fail
 spec@arb_vertex_program@clip-plane-transformation arb,Fail
-spec@egl 1.4@egl-copy-buffers,Crash
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
 spec@egl_chromium_sync_control@conformance,Fail
@@ -414,8 +405,6 @@ spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
 spec@ext_base_instance@arb_base_instance-drawarrays_gles3,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 2,Fail
-spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 4,Fail
 spec@ext_framebuffer_multisample@alpha-to-one-dual-src-blend 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-one-dual-src-blend 4,Fail
 spec@ext_framebuffer_multisample@draw-buffers-alpha-to-one 2,Fail
@@ -424,10 +413,6 @@ spec@ext_framebuffer_multisample@fast-clear,Fail
 spec@ext_framebuffer_multisample@formats 2,Fail
 spec@ext_framebuffer_multisample@formats 4,Fail
 spec@ext_framebuffer_multisample@formats all_samples,Fail
-spec@ext_framebuffer_multisample@interpolation 2 centroid-disabled,Fail
-spec@ext_framebuffer_multisample@interpolation 2 centroid-edges,Fail
-spec@ext_framebuffer_multisample@interpolation 4 centroid-disabled,Fail
-spec@ext_framebuffer_multisample@interpolation 4 centroid-edges,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 2 depth,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-one 2,Fail
@@ -524,8 +509,6 @@ spec@ext_packed_float@texwrap formats bordercolor@GL_R11F_G11F_B10F- border colo
 spec@ext_packed_float@texwrap formats bordercolor-swizzled,Fail
 spec@ext_packed_float@texwrap formats bordercolor-swizzled@GL_R11F_G11F_B10F- swizzled- border color only,Fail
 spec@ext_texture_array@array-texture,Fail
-spec@ext_texture_array@compressed texsubimage,Fail
-spec@ext_texture_array@compressed texsubimage pbo,Fail
 spec@ext_texture_array@copyteximage 1d_array,Fail
 spec@ext_texture_array@copyteximage 1d_array samples=2,Fail
 spec@ext_texture_array@copyteximage 1d_array samples=4,Fail
@@ -544,10 +527,6 @@ spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRE
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RG_RGTC2- swizzled- border color only,Fail
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SIGNED_RED_RGTC1- swizzled- border color only,Fail
 spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_SIGNED_RG_RGTC2- swizzled- border color only,Fail
-spec@ext_texture_compression_s3tc@s3tc-errors,Fail
-spec@ext_texture_compression_s3tc@s3tc-errors_gles2,Fail
-spec@ext_texture_compression_s3tc@s3tc-texsubimage,Fail
-spec@ext_texture_compression_s3tc@s3tc-texsubimage_gles2,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_S3TC_DXT1_EXT- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- border color only,Fail
@@ -558,7 +537,6 @@ spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRE
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- swizzled- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT5_EXT- swizzled- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_texture_shared_exponent@texwrap formats bordercolor,Fail
 spec@ext_texture_shared_exponent@texwrap formats bordercolor@GL_RGB9_E5- border color only,Fail
 spec@ext_texture_shared_exponent@texwrap formats bordercolor-swizzled,Fail
@@ -648,6 +626,7 @@ spec@ext_transform_feedback@order elements lines,Fail
 spec@ext_transform_feedback@order elements points,Fail
 spec@ext_transform_feedback@order elements triangles,Fail
 spec@ext_transform_feedback@overflow-edge-cases,Fail
+spec@ext_transform_feedback@pipeline-basic-primgen,Fail
 spec@ext_transform_feedback@position-readback-bufferbase-discard,Fail
 spec@ext_transform_feedback@position-readback-bufferbase,Fail
 spec@ext_transform_feedback@position-readback-bufferoffset-discard,Fail
@@ -825,7 +804,6 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
-spec@nv_conditional_render@blitframebuffer,Crash
 spec@nv_copy_image@nv_copy_image-formats,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=2@Source: GL_ALPHA8/Destination: GL_ALPHA8,Fail
@@ -916,17 +894,9 @@ spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGBA/Destination
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RGB/Destination: GL_RGB,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=4@Source: GL_RG/Destination: GL_RG,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RED_RGTC1/Destination: GL_COMPRESSED_RED_RGTC1,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_RGB_S3TC_DXT1_EXT,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_RG_RGTC2/Destination: GL_COMPRESSED_RG_RGTC2,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RED_RGTC1/Destination: GL_COMPRESSED_SIGNED_RED_RGTC1,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SIGNED_RG_RGTC2/Destination: GL_COMPRESSED_SIGNED_RG_RGTC2,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT/Destination: GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,Fail
-spec@nv_copy_image@nv_copy_image-formats@Source: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT/Destination: GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Crash
 spec@oes_point_sprite@arb_point_sprite-checkerboard_gles1,Fail
 spec@oes_texture_view@sampling-2d-array-as-cubemap,Crash
@@ -1154,6 +1124,7 @@ spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glP
 spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right bottom PV: FIRST,Fail
 spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right middle PV: FIRST,Fail
 spec@!opengl 1.1@clipflat@glDrawElements(GL_QUAD_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
+spec@!opengl 1.1@dlist-fdo3129-01,Crash
 spec@!opengl 1.1@getteximage-formats,Fail
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
@@ -1161,7 +1132,6 @@ spec@!opengl 1.1@linestipple,Fail
 spec@!opengl 1.1@linestipple@Line loop,Fail
 spec@!opengl 1.1@linestipple@Line strip,Fail
 spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
-spec@!opengl 1.1@point-line-no-cull,Fail
 spec@!opengl 1.1@polygon-mode-facing,Fail
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on bottom edge,Fail
@@ -1190,7 +1160,6 @@ spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on right edg
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,Fail
 spec@!opengl 1.1@polygon-mode-offset,Fail
 spec@!opengl 1.1@streaming-texture-leak,Crash
-spec@!opengl 1.1@texsubimage,Fail
 spec@!opengl 1.1@texwrap 1d bordercolor,Fail
 spec@!opengl 1.1@texwrap 1d bordercolor@GL_RGBA8- border color only,Fail
 spec@!opengl 1.1@texwrap 1d proj bordercolor,Fail
@@ -1273,10 +1242,23 @@ spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl 3.0@gl-3.0-vertexattribipointer,Fail
 spec@!opengl 3.0@required-texture-attachment-formats,Fail
+spec@!opengl 3.0@viewport-clamp,Crash
 spec@!opengl 3.1@primitive-restart-xfb flush,Fail
 spec@!opengl 3.1@primitive-restart-xfb generated,Fail
 spec@!opengl 3.1@primitive-restart-xfb written,Fail
 spec@!opengl 3.1@required-texture-attachment-formats,Fail
 spec@!opengl 3.2@coord-replace-doesnt-eliminate-frag-tex-coords,Fail
-spec@!opengl es 3.0@ext_texture_array-compressed_gles3 texsubimage,Fail
 spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
+
+# VK-GL-CTS 1.3.1.0 uprev, aka when we dropped the custom caselist file.
+dEQP-VK.api.copy_and_blit.core.resolve_image.copy_with_regions_before_resolving.4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.dst_256_256_11_4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.dst_256_512_1_4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.dst_266_256_1_4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.src_256_256_11_4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.src_256_512_1_4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.diff_image_size.src_266_256_1_4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.partial.4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.whole.4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.whole_copy_before_resolving_no_cab.4_bit,Crash
+dEQP-VK.api.copy_and_blit.core.resolve_image.with_regions.4_bit,Crash

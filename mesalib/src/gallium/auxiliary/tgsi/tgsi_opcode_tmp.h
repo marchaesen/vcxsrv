@@ -210,6 +210,7 @@ OP12(INTERP_OFFSET)
 #undef OP11
 #undef OP12
 #undef OP13
+#undef OP14
 
 #undef OP00_LBL
 #undef OP01_LBL

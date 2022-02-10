@@ -148,7 +148,8 @@ is_zero_to_one(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
       return false;
 
    for (unsigned i = 0; i < num_components; i++) {
-      switch (nir_op_infos[instr->op].input_types[src]) {
+      nir_alu_type type = nir_op_infos[instr->op].input_types[src];
+      switch (nir_alu_type_get_base_type(type)) {
       case nir_type_float: {
          double val = nir_src_comp_as_float(instr->src[src].src, swizzle[i]);
          if (isnan(val) || val < 0.0f || val > 1.0f)
@@ -179,7 +180,8 @@ is_gt_0_and_lt_1(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
       return false;
 
    for (unsigned i = 0; i < num_components; i++) {
-      switch (nir_op_infos[instr->op].input_types[src]) {
+      nir_alu_type type = nir_op_infos[instr->op].input_types[src];
+      switch (nir_alu_type_get_base_type(type)) {
       case nir_type_float: {
          double val = nir_src_comp_as_float(instr->src[src].src, swizzle[i]);
          if (isnan(val) || val <= 0.0f || val >= 1.0f)
@@ -286,7 +288,7 @@ is_not_fmul(struct hash_table *ht, const nir_alu_instr *instr, unsigned src,
    if (src_alu->op == nir_op_fneg)
       return is_not_fmul(ht, src_alu, 0, 0, NULL);
 
-   return src_alu->op != nir_op_fmul;
+   return src_alu->op != nir_op_fmul && src_alu->op != nir_op_fmulz;
 }
 
 static inline bool
@@ -302,7 +304,7 @@ is_fmul(struct hash_table *ht, const nir_alu_instr *instr, unsigned src,
    if (src_alu->op == nir_op_fneg)
       return is_fmul(ht, src_alu, 0, 0, NULL);
 
-   return src_alu->op == nir_op_fmul;
+   return src_alu->op == nir_op_fmul || src_alu->op == nir_op_fmulz;
 }
 
 static inline bool
@@ -331,7 +333,7 @@ is_not_const_and_not_fsign(struct hash_table *ht, const nir_alu_instr *instr,
 }
 
 static inline bool
-is_used_once(nir_alu_instr *instr)
+is_used_once(const nir_alu_instr *instr)
 {
    bool zero_if_use = list_is_empty(&instr->dest.dest.ssa.if_uses);
    bool zero_use = list_is_empty(&instr->dest.dest.ssa.uses);
@@ -353,19 +355,19 @@ is_used_once(nir_alu_instr *instr)
 }
 
 static inline bool
-is_used_by_if(nir_alu_instr *instr)
+is_used_by_if(const nir_alu_instr *instr)
 {
    return !list_is_empty(&instr->dest.dest.ssa.if_uses);
 }
 
 static inline bool
-is_not_used_by_if(nir_alu_instr *instr)
+is_not_used_by_if(const nir_alu_instr *instr)
 {
    return list_is_empty(&instr->dest.dest.ssa.if_uses);
 }
 
 static inline bool
-is_used_by_non_fsat(nir_alu_instr *instr)
+is_used_by_non_fsat(const nir_alu_instr *instr)
 {
    nir_foreach_use(src, &instr->dest.dest.ssa) {
       const nir_instr *const user_instr = src->parent_instr;
@@ -384,7 +386,7 @@ is_used_by_non_fsat(nir_alu_instr *instr)
 }
 
 static inline bool
-is_only_used_as_float(nir_alu_instr *instr)
+is_only_used_as_float(const nir_alu_instr *instr)
 {
    nir_foreach_use(src, &instr->dest.dest.ssa) {
       const nir_instr *const user_instr = src->parent_instr;
@@ -395,7 +397,8 @@ is_only_used_as_float(nir_alu_instr *instr)
       assert(instr != user_alu);
 
       unsigned index = (nir_alu_src*)container_of(src, nir_alu_src, src) - user_alu->src;
-      if (nir_op_infos[user_alu->op].input_types[index] != nir_type_float)
+      nir_alu_type type = nir_op_infos[user_alu->op].input_types[index];
+      if (nir_alu_type_get_base_type(type) != nir_type_float)
          return false;
    }
 
@@ -403,13 +406,13 @@ is_only_used_as_float(nir_alu_instr *instr)
 }
 
 static inline bool
-only_lower_8_bits_used(nir_alu_instr *instr)
+only_lower_8_bits_used(const nir_alu_instr *instr)
 {
    return (nir_ssa_def_bits_used(&instr->dest.dest.ssa) & ~0xffull) == 0;
 }
 
 static inline bool
-only_lower_16_bits_used(nir_alu_instr *instr)
+only_lower_16_bits_used(const nir_alu_instr *instr)
 {
    return (nir_ssa_def_bits_used(&instr->dest.dest.ssa) & ~0xffffull) == 0;
 }
@@ -463,13 +466,13 @@ is_lower_half_zero(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
 }
 
 static inline bool
-no_signed_wrap(nir_alu_instr *instr)
+no_signed_wrap(const nir_alu_instr *instr)
 {
    return instr->no_signed_wrap;
 }
 
 static inline bool
-no_unsigned_wrap(nir_alu_instr *instr)
+no_unsigned_wrap(const nir_alu_instr *instr)
 {
    return instr->no_unsigned_wrap;
 }
@@ -494,6 +497,17 @@ is_finite(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
    const struct ssa_result_range v = nir_analyze_range(ht, instr, src);
 
    return v.is_finite;
+}
+
+static inline bool
+is_finite_not_zero(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
+                   unsigned src, UNUSED unsigned num_components,
+                   UNUSED const uint8_t *swizzle)
+{
+   const struct ssa_result_range v = nir_analyze_range(ht, instr, src);
+
+   return v.is_finite &&
+          (v.range == lt_zero || v.range == gt_zero || v.range == ne_zero);
 }
 
 

@@ -27,7 +27,7 @@
 #include "ir_uniform.h"
 
 #include "util/compiler.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 
 static nir_ssa_def *
 get_block_array_index(nir_builder *b, nir_deref_instr *deref,

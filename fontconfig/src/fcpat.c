@@ -142,27 +142,7 @@ FcValueListDestroy (FcValueListPtr l)
     FcValueListPtr next;
     for (; l; l = next)
     {
-	switch ((int) l->value.type) {
-	case FcTypeString:
-	    FcFree (l->value.u.s);
-	    break;
-	case FcTypeMatrix:
-	    FcMatrixFree ((FcMatrix *)l->value.u.m);
-	    break;
-	case FcTypeCharSet:
-	    FcCharSetDestroy
-		((FcCharSet *) (l->value.u.c));
-	    break;
-	case FcTypeLangSet:
-	    FcLangSetDestroy
-		((FcLangSet *) (l->value.u.l));
-	    break;
-	case FcTypeRange:
-	    FcRangeDestroy ((FcRange *) (l->value.u.r));
-	    break;
-	default:
-	    break;
-	}
+	FcValueDestroy (l->value);
 	next = FcValueListNext(l);
 	free(l);
     }
@@ -708,30 +688,29 @@ FcPatternObjectAddWithBinding  (FcPattern	*p,
     if (!new)
 	goto bail0;
 
-    value = FcValueSave (value);
-    if (value.type == FcTypeVoid)
+    new->value = FcValueSave (value);
+    new->binding = binding;
+    new->next = NULL;
+
+    if (new->value.type == FcTypeVoid)
 	goto bail1;
 
     /*
      * Make sure the stored type is valid for built-in objects
      */
-    if (!FcObjectValidType (object, value.type))
+    if (!FcObjectValidType (object, new->value.type))
     {
 	fprintf (stderr,
 		 "Fontconfig warning: FcPattern object %s does not accept value",
 		 FcObjectName (object));
-	FcValuePrintFile (stderr, value);
+	FcValuePrintFile (stderr, new->value);
 	fprintf (stderr, "\n");
 	goto bail1;
     }
 
-    new->value = value;
-    new->binding = binding;
-    new->next = NULL;
-
     e = FcPatternObjectInsertElt (p, object);
     if (!e)
-	goto bail2;
+	goto bail1;
 
     if (append)
     {
@@ -747,10 +726,8 @@ FcPatternObjectAddWithBinding  (FcPattern	*p,
 
     return FcTrue;
 
-bail2:
-    FcValueDestroy (value);
 bail1:
-    free (new);
+    FcValueListDestroy (new);
 bail0:
     return FcFalse;
 }

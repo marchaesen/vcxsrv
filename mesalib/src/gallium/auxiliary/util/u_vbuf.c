@@ -501,9 +501,10 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
              * themselves, meaning that if stride < element_size, the mapped size will
              * be too small and conversion will overrun the map buffer
              *
-             * instead, add the size of the largest possible attribute to ensure the map is large enough
+             * instead, add the size of the largest possible attribute to the final attribute's offset
+             * in order to ensure the map is large enough
              */
-            unsigned last_offset = offset + size - vb->stride;
+            unsigned last_offset = size - vb->stride;
             size = MAX2(size, last_offset + sizeof(double)*4);
          }
 
@@ -986,22 +987,24 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
    uint32_t incompatible_vb_mask = 0;
    /* which buffers have a non-zero stride */
    uint32_t nonzero_stride_vb_mask = 0;
-   const uint32_t mask =
+   /* which buffers are unaligned to 2/4 bytes */
+   uint32_t unaligned_vb_mask[2] = {0};
+   uint32_t mask =
       ~(((1ull << (count + unbind_num_trailing_slots)) - 1) << start_slot);
-
-   /* Zero out the bits we are going to rewrite completely. */
-   mgr->user_vb_mask &= mask;
-   mgr->incompatible_vb_mask &= mask;
-   mgr->nonzero_stride_vb_mask &= mask;
-   mgr->enabled_vb_mask &= mask;
-   mgr->unaligned_vb_mask[0] &= mask;
-   mgr->unaligned_vb_mask[1] &= mask;
 
    if (!bufs) {
       struct pipe_context *pipe = mgr->pipe;
       /* Unbind. */
       unsigned total_count = count + unbind_num_trailing_slots;
       mgr->dirty_real_vb_mask &= mask;
+
+      /* Zero out the bits we are going to rewrite completely. */
+      mgr->user_vb_mask &= mask;
+      mgr->incompatible_vb_mask &= mask;
+      mgr->nonzero_stride_vb_mask &= mask;
+      mgr->enabled_vb_mask &= mask;
+      mgr->unaligned_vb_mask[0] &= mask;
+      mgr->unaligned_vb_mask[1] &= mask;
 
       for (i = 0; i < total_count; i++) {
          unsigned dst_index = start_slot + i;
@@ -1024,6 +1027,21 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
       if (!vb->buffer.resource) {
          pipe_vertex_buffer_unreference(orig_vb);
          pipe_vertex_buffer_unreference(real_vb);
+         continue;
+      }
+
+      bool not_user = !vb->is_user_buffer && vb->is_user_buffer == orig_vb->is_user_buffer;
+      /* struct isn't tightly packed: do not use memcmp */
+      if (not_user && orig_vb->stride == vb->stride &&
+          orig_vb->buffer_offset == vb->buffer_offset && orig_vb->buffer.resource == vb->buffer.resource) {
+         mask |= BITFIELD_BIT(dst_index);
+         if (take_ownership) {
+             pipe_vertex_buffer_unreference(orig_vb);
+             /* the pointer was unset in the line above, so copy it back */
+             orig_vb->buffer.resource = vb->buffer.resource;
+         }
+         if (mask == UINT32_MAX)
+            return;
          continue;
       }
 
@@ -1051,9 +1069,9 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
 
       if (!mgr->caps.attrib_component_unaligned) {
          if (vb->buffer_offset % 2 != 0 || vb->stride % 2 != 0)
-            mgr->unaligned_vb_mask[0] |= BITFIELD_BIT(dst_index);
+            unaligned_vb_mask[0] |= BITFIELD_BIT(dst_index);
          if (vb->buffer_offset % 4 != 0 || vb->stride % 4 != 0)
-            mgr->unaligned_vb_mask[1] |= BITFIELD_BIT(dst_index);
+            unaligned_vb_mask[1] |= BITFIELD_BIT(dst_index);
       }
 
       if (!mgr->caps.user_vertex_buffers && vb->is_user_buffer) {
@@ -1075,10 +1093,21 @@ void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
       pipe_vertex_buffer_unreference(&mgr->real_vertex_buffer[dst_index]);
    }
 
+
+   /* Zero out the bits we are going to rewrite completely. */
+   mgr->user_vb_mask &= mask;
+   mgr->incompatible_vb_mask &= mask;
+   mgr->nonzero_stride_vb_mask &= mask;
+   mgr->enabled_vb_mask &= mask;
+   mgr->unaligned_vb_mask[0] &= mask;
+   mgr->unaligned_vb_mask[1] &= mask;
+
    mgr->user_vb_mask |= user_vb_mask;
    mgr->incompatible_vb_mask |= incompatible_vb_mask;
    mgr->nonzero_stride_vb_mask |= nonzero_stride_vb_mask;
    mgr->enabled_vb_mask |= enabled_vb_mask;
+   mgr->unaligned_vb_mask[0] |= unaligned_vb_mask[0];
+   mgr->unaligned_vb_mask[1] |= unaligned_vb_mask[1];
 
    /* All changed buffers are marked as dirty, even the NULL ones,
     * which will cause the NULL buffers to be unbound in the driver later. */

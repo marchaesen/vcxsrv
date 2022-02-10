@@ -90,6 +90,11 @@ ir3_disk_cache_init_shader_key(struct ir3_compiler *compiler,
    _mesa_sha1_update(&ctx, blob.data, blob.size);
    blob_finish(&blob);
 
+   _mesa_sha1_update(&ctx, &shader->api_wavesize,
+                     sizeof(shader->api_wavesize));
+   _mesa_sha1_update(&ctx, &shader->real_wavesize,
+                     sizeof(shader->real_wavesize));
+
    /* Note that on some gens stream-out is lowered in ir3 to stg.  For later
     * gens we maybe don't need to include stream-out in the cache key.
     */

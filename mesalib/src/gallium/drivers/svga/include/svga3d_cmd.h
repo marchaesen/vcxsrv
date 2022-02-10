@@ -1,5 +1,6 @@
-/**********************************************************
- * Copyright 1998-2017 VMware, Inc.  All rights reserved.
+/* SPDX-License-Identifier: GPL-2.0 OR MIT */
+/*
+ * Copyright 2012-2022 VMware, Inc.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -21,7 +22,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- **********************************************************/
+ */
 
 /*
  * svga3d_cmd.h --
@@ -321,20 +322,43 @@ typedef enum {
    SVGA_3D_CMD_DEFINE_GB_SURFACE_V4                       = 1267,
    SVGA_3D_CMD_DX_SET_CS_UA_VIEWS                         = 1268,
    SVGA_3D_CMD_DX_SET_MIN_LOD                             = 1269,
-   SVGA_3D_CMD_DX_CLEAR_RENDERTARGET_VIEW_BOX             = 1270,
-   SVGA_3D_CMD_DX_CLEAR_UA_VIEW_BOX                       = 1271,
+
+
+
    SVGA_3D_CMD_DX_DEFINE_DEPTHSTENCIL_VIEW_V2             = 1272,
    SVGA_3D_CMD_DX_DEFINE_STREAMOUTPUT_WITH_MOB            = 1273,
    SVGA_3D_CMD_DX_SET_SHADER_IFACE                        = 1274,
    SVGA_3D_CMD_DX_BIND_STREAMOUTPUT                       = 1275,
+   SVGA_3D_CMD_SURFACE_STRETCHBLT_NON_MS_TO_MS            = 1276,
+   SVGA_3D_CMD_DX_BIND_SHADER_IFACE                       = 1277,
 
-   SVGA_3D_CMD_MAX                                        = 1276,
+   SVGA_3D_CMD_UPDATE_GB_SCREENTARGET_MOVE                = 1278,
+
+
+
+   SVGA_3D_CMD_DX_PRED_STAGING_COPY                       = 1281,
+   SVGA_3D_CMD_DX_STAGING_COPY                            = 1282,
+   SVGA_3D_CMD_DX_PRED_STAGING_COPY_REGION                = 1283,
+   SVGA_3D_CMD_DX_SET_VERTEX_BUFFERS_V2                   = 1284,
+   SVGA_3D_CMD_DX_SET_INDEX_BUFFER_V2                     = 1285,
+   SVGA_3D_CMD_DX_SET_VERTEX_BUFFERS_OFFSET_AND_SIZE      = 1286,
+   SVGA_3D_CMD_DX_SET_INDEX_BUFFER_OFFSET_AND_SIZE        = 1287,
+   SVGA_3D_CMD_DX_DEFINE_RASTERIZER_STATE_V2              = 1288,
+   SVGA_3D_CMD_DX_PRED_STAGING_CONVERT_REGION             = 1289,
+   SVGA_3D_CMD_DX_PRED_STAGING_CONVERT                    = 1290,
+   SVGA_3D_CMD_DX_STAGING_BUFFER_COPY                     = 1291,
+
+
+
+
+
+   SVGA_3D_CMD_MAX                                        = 1303,
    SVGA_3D_CMD_FUTURE_MAX                                 = 3000
 } SVGAFifo3dCmdId;
 
-/*
- * FIFO command format definitions:
- */
+#define SVGA_NUM_3D_CMD (SVGA_3D_CMD_MAX - SVGA_3D_CMD_BASE)
+
+
 
 /*
  * The data size header following cmdNum for every 3d command

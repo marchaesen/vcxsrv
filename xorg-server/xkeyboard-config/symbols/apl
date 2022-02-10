@@ -418,7 +418,7 @@ xkb_symbols "dyalog_base" {
 	key <AB08> { [ U235d,		U236a	] };	// up shoe jot, comma bar
 	key <AB09> { [ U2340,		U2359	] };	// backslash bar, delta underbar
 	key <AB10> { [ U233f,		U2360	] };	// slash bar, quad colon
-	key <AC01> { [ U237a,		U2376	] };	// alpha, alpha underscore
+	key <AC01> { [ U237a,		U2376	] };	// alpha, alpha underbar
 	key <AC02> { [ U2308			] };	// left ceiling
 	key <AC03> { [ U230a			] };	// left floor
 	key <AC04> { [ underscore		] };	// low line
@@ -430,7 +430,7 @@ xkb_symbols "dyalog_base" {
 	key <AC10> { [ U234e,		U2261	] };	// up tack jot, identical to
 	key <AC11> { [ U2355,		U2262	] };	// down tack jot,  not identical to
 	key <AD01> { [ question,	U2370	] };	// ?, quad question
-	key <AD02> { [ U2375,		U2379	] };	// omega, omega underscore
+	key <AD02> { [ U2375,		U2379	] };	// omega, omega underbar
 	key <AD03> { [ U220a,		U2377	] };	// small element of, epsilon underbar
 	key <AD04> { [ U2374,		U233E	] };	// rho, circle jot
 	key <AD05> { [ asciitilde,	U2368	] };	// tilde, tilde diaeresis
@@ -646,7 +646,7 @@ xkb_symbols "level3" {
  key <AB08> { [ NoSymbol,	NoSymbol,	U235d,		U236a	] };	// up shoe jot, comma bar
  key <AB09> { [ NoSymbol,	NoSymbol,	U2340,		U2359	] };	// backslash bar, delta underbar
  key <AB10> { [ NoSymbol,	NoSymbol,	U233f,		U2360	] };	// slash bar, quad colon
- key <AC01> { [ NoSymbol,	NoSymbol,	U237a,		U2376	] };	// alpha, alpha underscore
+ key <AC01> { [ NoSymbol,	NoSymbol,	U237a,		U2376	] };	// alpha, alpha underbar
  key <AC02> { [ NoSymbol,	NoSymbol,	U2308			] };	// left ceiling
  key <AC03> { [ NoSymbol,	NoSymbol,	U230a			] };	// left floor
  key <AC04> { [ NoSymbol,	NoSymbol,	underscore		] };	// low line
@@ -658,7 +658,7 @@ xkb_symbols "level3" {
  key <AC10> { [ NoSymbol,	NoSymbol,	U234e,		U2261	] };	// up tack jot, identical to
  key <AC11> { [ NoSymbol,	NoSymbol,	U2355,		U2262	] };	// down tack jot,  not identical to
  key <AD01> { [ NoSymbol,	NoSymbol,	question,	U2370	] };	// ?, quad question
- key <AD02> { [ NoSymbol,	NoSymbol,	U2375,		U2379	] };	// omega, omega underscore
+ key <AD02> { [ NoSymbol,	NoSymbol,	U2375,		U2379	] };	// omega, omega underbar
  key <AD03> { [ NoSymbol,	NoSymbol,	U220a,		U2377	] };	// small element of, epsilon underbar
  key <AD04> { [ NoSymbol,	NoSymbol,	U2374,		U233E	] };	// rho, circle jot
  key <AD05> { [ NoSymbol,	NoSymbol,	asciitilde,	U2368	] };	// tilde, tilde diaeresis

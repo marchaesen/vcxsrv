@@ -158,6 +158,9 @@ present_scmd_get_crtc(present_screen_priv_ptr screen_priv, WindowPtr window)
     if (!screen_priv->info)
         return NULL;
 
+    if (!screen_priv->info->get_crtc)
+        return NULL;
+
     return (*screen_priv->info->get_crtc)(window);
 }
 
@@ -194,6 +197,9 @@ present_flush(WindowPtr window)
         return;
 
     if (!screen_priv->info)
+        return;
+
+    if (!screen_priv->info->flush)
         return;
 
     (*screen_priv->info->flush) (window);

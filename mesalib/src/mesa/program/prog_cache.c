@@ -27,7 +27,7 @@
 
 
 #include "main/glheader.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 
 #include "main/shaderobj.h"
 #include "program/prog_cache.h"
@@ -126,7 +126,7 @@ clear_cache(struct gl_context *ctx, struct gl_program_cache *cache,
 	 } else {
 	    _mesa_reference_program(ctx, &c->program, NULL);
 	 }
-	 free(c);
+	 FREE(c);
       }
       cache->items[i] = NULL;
    }
@@ -146,7 +146,7 @@ _mesa_new_program_cache(void)
       cache->items =
          calloc(cache->size, sizeof(struct cache_item *));
       if (!cache->items) {
-         free(cache);
+         FREE(cache);
          return NULL;
       }
    }
@@ -159,7 +159,7 @@ _mesa_delete_program_cache(struct gl_context *ctx, struct gl_program_cache *cach
 {
    clear_cache(ctx, cache, GL_FALSE);
    free(cache->items);
-   free(cache);
+   FREE(cache);
 }
 
 void
@@ -168,7 +168,7 @@ _mesa_delete_shader_cache(struct gl_context *ctx,
 {
    clear_cache(ctx, cache, GL_TRUE);
    free(cache->items);
-   free(cache);
+   FREE(cache);
 }
 
 

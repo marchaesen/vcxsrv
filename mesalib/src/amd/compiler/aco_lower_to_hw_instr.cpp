@@ -2036,8 +2036,6 @@ lower_to_hw_instr(Program* program)
                   bld.reset(&ctx.instructions);
                }
 
-               // TODO: exec can be zero here with block_kind_discard
-
                assert(instr->operands[0].physReg() == scc);
                bld.sopp(aco_opcode::s_cbranch_scc0, Definition(exec, s2), instr->operands[0],
                         discard_block->index);

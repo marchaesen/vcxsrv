@@ -40,6 +40,42 @@ v3dv_get_format_swizzle(struct v3dv_device *device, VkFormat f)
    return vf->swizzle;
 }
 
+bool
+v3dv_format_swizzle_needs_rb_swap(const uint8_t *swizzle)
+{
+   /* Normal case */
+   if (swizzle[0] == PIPE_SWIZZLE_Z)
+      return swizzle[2] == PIPE_SWIZZLE_X;
+
+   /* Format uses reverse flag */
+   if (swizzle[0] == PIPE_SWIZZLE_Y)
+      return swizzle[2] == PIPE_SWIZZLE_W;
+
+   return false;
+}
+
+bool
+v3dv_format_swizzle_needs_reverse(const uint8_t *swizzle)
+{
+   /* Normal case */
+   if (swizzle[0] == PIPE_SWIZZLE_W &&
+       swizzle[1] == PIPE_SWIZZLE_Z &&
+       swizzle[2] == PIPE_SWIZZLE_Y &&
+       swizzle[3] == PIPE_SWIZZLE_X) {
+      return true;
+   }
+
+   /* Format uses RB swap flag */
+   if (swizzle[0] == PIPE_SWIZZLE_Y &&
+       swizzle[1] == PIPE_SWIZZLE_Z &&
+       swizzle[2] == PIPE_SWIZZLE_W &&
+       swizzle[3] == PIPE_SWIZZLE_X) {
+      return true;
+   }
+
+   return false;
+}
+
 uint8_t
 v3dv_get_tex_return_size(const struct v3dv_format *vf,
                          bool compare_enable)

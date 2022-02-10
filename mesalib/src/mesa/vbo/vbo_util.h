@@ -30,8 +30,6 @@
 #ifndef VBO_UTIL_H
 #define VBO_UTIL_H
 
-#include "main/mtypes.h"
-
 static inline float conv_ui10_to_norm_float(unsigned ui10)
 {
    return ui10 / 1023.0f;

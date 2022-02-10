@@ -104,7 +104,7 @@ XkbIgnoreLockModsMask	ok		(1L<<29)
 XkbPerKeyRepeatMask	ok		(1L<<30)
 XkbControlsEnabledMask	ok		(1L<<31)
 XkbAccessXOptionsMask	ok	ok	(XkbStickyKeysMask | 
-XkbAccessXFeedbackMask)
+			XkbAccessXFeedbackMask)
 XkbAllBooleanCtrlsMask		ok	(0x00001FFF) 
 XkbAllControlsMask	ok		(0xF8001FFF)
 .TE
@@ -200,11 +200,9 @@ typedef struct {
     Time          time;          /\&* server time when event generated */
     int           xkb_type;      /\&* XkbCompatMapNotify */
     int           device;        /\&* Xkb device ID, will not be XkbUseCoreKbd */
-    unsigned int  changed_ctrls; /\&* bits indicating which controls data have 
-changed*/
+    unsigned int  changed_ctrls; /\&* bits indicating which controls data have changed*/
     unsigned int  enabled_ctrls; /\&* controls currently enabled in server */
-    unsigned int  enabled_ctrl_changes; /\&* bits indicating enabled/disabled 
-controls */
+    unsigned int  enabled_ctrl_changes; /\&* bits indicating enabled/disabled controls */
     int           num_groups;    /\&* current number of keyboard groups */
     KeyCode       keycode;       /\&* != 0 => keycode of key causing change */
     char          event_type;    /\&* Type of event causing change */

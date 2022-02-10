@@ -560,6 +560,7 @@ void *
 u_trace_append(struct u_trace *ut, void *cs, const struct u_tracepoint *tp)
 {
    struct u_trace_chunk *chunk = get_chunk(ut, tp->payload_sz);
+   unsigned tp_idx = chunk->num_traces++;
 
    assert(tp->payload_sz == ALIGN_NPOT(tp->payload_sz, 8));
 
@@ -571,14 +572,12 @@ u_trace_append(struct u_trace *ut, void *cs, const struct u_tracepoint *tp)
    }
 
    /* record a timestamp for the trace: */
-   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, chunk->num_traces, tp->end_of_pipe);
+   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, tp_idx, tp->end_of_pipe);
 
-   chunk->traces[chunk->num_traces] = (struct u_trace_event) {
+   chunk->traces[tp_idx] = (struct u_trace_event) {
          .tp = tp,
          .payload = payload,
    };
-
-   chunk->num_traces++;
 
    return payload;
 }

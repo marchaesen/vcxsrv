@@ -309,6 +309,8 @@ static void reg_count_callback(void * userdata, struct rc_instruction * inst,
 		(int)index > s->num_temp_regs ? s->num_temp_regs = index : 0;
 	if (file == RC_FILE_INLINE)
 		s->num_inline_literals++;
+	if (file == RC_FILE_CONSTANT)
+		s->num_consts = MAX2(s->num_consts, index + 1);
 }
 
 void rc_get_stats(struct radeon_compiler *c, struct rc_program_stats *s)
@@ -368,11 +370,11 @@ static void print_stats(struct radeon_compiler * c)
 	 * only the FS has, becasue shader-db's report.py wants all shaders to
 	 * have the same set.
 	 */
-	pipe_debug_message(c->debug, SHADER_INFO, "%s shader: %d inst, %d vinst, %d sinst, %d flowcontrol, %d tex, %d presub, %d omod, %d temps, %d lits",
+	pipe_debug_message(c->debug, SHADER_INFO, "%s shader: %d inst, %d vinst, %d sinst, %d flowcontrol, %d tex, %d presub, %d omod, %d temps, %d consts, %d lits",
 	                   c->type == RC_VERTEX_PROGRAM ? "VS" : "FS",
 	                   s.num_insts, s.num_rgb_insts, s.num_alpha_insts,
 	                   s.num_fc_insts, s.num_tex_insts, s.num_presub_ops,
-	                   s.num_omod_ops, s.num_temp_regs, s.num_inline_literals);
+	                   s.num_omod_ops, s.num_temp_regs, s.num_consts, s.num_inline_literals);
 }
 
 static const char *shader_name[RC_NUM_PROGRAM_TYPES] = {
@@ -400,10 +402,6 @@ void rc_run_compiler_passes(struct radeon_compiler *c, struct radeon_compiler_pa
 /* Executes a list of compiler passes given in the parameter 'list'. */
 void rc_run_compiler(struct radeon_compiler *c, struct radeon_compiler_pass *list)
 {
-	struct rc_program_stats s;
-
-	rc_get_stats(c, &s);
-
 	if (c->Debug & RC_DBG_LOG) {
 		fprintf(stderr, "%s: before compilation\n", shader_name[c->type]);
 		rc_print_program(&c->Program);

@@ -28,7 +28,6 @@
 #define __PAN_ENCODER_H
 
 #include "util/macros.h"
-#include "panfrost-quirks.h"
 
 #include <stdbool.h>
 #include "util/format/u_format.h"
@@ -58,7 +57,7 @@ panfrost_tiler_get_polygon_list_size(const struct panfrost_device *dev,
         if (!has_draws)
                 return MALI_MIDGARD_TILER_MINIMUM_HEADER_SIZE + 4;
 
-        bool hierarchy = !(dev->quirks & MIDGARD_NO_HIER_TILING);
+        bool hierarchy = !dev->model->quirks.no_hierarchical_tiling;
         unsigned hierarchy_mask =
                 panfrost_choose_hierarchy_mask(fb_width, fb_height, 1, hierarchy);
 
@@ -77,8 +76,6 @@ panfrost_get_total_stack_size(
                 unsigned thread_size,
                 unsigned threads_per_core,
                 unsigned core_count);
-
-const char * panfrost_model_name(unsigned gpu_id);
 
 /* Attributes / instancing */
 

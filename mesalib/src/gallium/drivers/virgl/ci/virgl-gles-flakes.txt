@@ -12,3 +12,5 @@ dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner
 dEQP-GLES3.functional.clipping.point.wide_point_clip
 dEQP-GLES3.functional.clipping.point.wide_point_clip_viewport_center
 dEQP-GLES3.functional.clipping.point.wide_point_clip_viewport_corner
+
+dEQP-GLES31.functional.ssbo.layout.random.arrays_of_arrays.1

@@ -327,6 +327,8 @@
 #define CIK_SDMA_COPY_MAX_SIZE    0x3fff00   /* almost 4 MB*/
 #define GFX103_SDMA_COPY_MAX_SIZE 0x3fffff00 /* almost 1 GB */
 
+#define SDMA_NOP_PAD CIK_SDMA_PACKET(CIK_SDMA_OPCODE_NOP, 0, 0) /* header-only version */
+
 enum amd_cmp_class_flags
 {
    S_NAN = 1 << 0,       // Signaling NaN

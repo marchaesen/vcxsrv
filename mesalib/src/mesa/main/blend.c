@@ -447,10 +447,9 @@ legal_simple_blend_equation(const struct gl_context *ctx, GLenum mode)
    case GL_FUNC_ADD:
    case GL_FUNC_SUBTRACT:
    case GL_FUNC_REVERSE_SUBTRACT:
-      return GL_TRUE;
    case GL_MIN:
    case GL_MAX:
-      return ctx->Extensions.EXT_blend_minmax;
+      return GL_TRUE;
    default:
       return GL_FALSE;
    }

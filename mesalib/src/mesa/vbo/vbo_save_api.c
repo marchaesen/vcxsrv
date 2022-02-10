@@ -117,6 +117,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "util/u_memory.h"
 #include "util/hash_table.h"
 #include "util/indices/u_indices.h"
+#include "util/u_prim.h"
 
 #include "gallium/include/pipe/p_state.h"
 
@@ -599,10 +600,8 @@ compile_vertex_list(struct gl_context *ctx)
    /* converting primitive types may result in many more indices */
    bool all_prims_supported = (ctx->Const.DriverSupportedPrimMask & BITFIELD_MASK(PIPE_PRIM_MAX)) == BITFIELD_MASK(PIPE_PRIM_MAX);
    int max_index_count = total_vert_count * (all_prims_supported ? 2 : 3);
-
-   int size = max_index_count * sizeof(uint32_t);
-   uint32_t* indices = (uint32_t*) malloc(size);
-   void *tmp_indices = all_prims_supported ? NULL : malloc(size);
+   uint32_t* indices = (uint32_t*) malloc(max_index_count * sizeof(uint32_t));
+   void *tmp_indices = all_prims_supported ? NULL : malloc(max_index_count * sizeof(uint32_t));
    struct _mesa_prim *merged_prims = NULL;
 
    int idx = 0;
@@ -632,6 +631,13 @@ compile_vertex_list(struct gl_context *ctx)
          continue;
       }
 
+      /* Increase indices storage if the original estimation was too small. */
+      if (idx + 3 * vertex_count > max_index_count) {
+         max_index_count = max_index_count + 3 * vertex_count;
+         indices = (uint32_t*) realloc(indices, max_index_count * sizeof(uint32_t));
+         tmp_indices = all_prims_supported ? NULL : realloc(tmp_indices, max_index_count * sizeof(uint32_t));
+      }
+
       /* Line strips may get converted to lines */
       if (mode == GL_LINE_STRIP)
          mode = GL_LINES;
@@ -645,12 +651,11 @@ compile_vertex_list(struct gl_context *ctx)
                            PV_LAST, PV_LAST,
                            &pmode, &index_size, &new_count,
                            &trans_func);
-         if (new_count > 0) {
+         if (new_count > 0)
             trans_func(original_prims[i].start, new_count, tmp_indices);
-            vertex_count = new_count;
-            mode = (GLubyte)pmode;
-            converted_prim = true;
-         }
+         vertex_count = new_count;
+         mode = (GLubyte)pmode;
+         converted_prim = true;
       }
 
       /* If 2 consecutive prims use the same mode => merge them. */
@@ -720,6 +725,16 @@ compile_vertex_list(struct gl_context *ctx)
                                         temp_vertices_buffer, &max_index);
          }
       }
+
+      /* Duplicate the last vertex for incomplete primitives */
+      unsigned min_vert = u_prim_vertex_count(mode)->min;
+      for (unsigned j = vertex_count; j < min_vert; j++) {
+         indices[idx++] = add_vertex(save, vertex_to_index,
+                                     converted_prim ? CAST_INDEX(tmp_indices, index_size, vertex_count - 1) :
+                                                      original_prims[i].start + vertex_count - 1,
+                                     temp_vertices_buffer, &max_index);
+      }
+
 #undef CAST_INDEX
       if (merge_prims) {
          /* Update vertex count. */
@@ -734,9 +749,10 @@ compile_vertex_list(struct gl_context *ctx)
          merged_prims[last_valid_prim].count = idx - start;
       }
       merged_prims[last_valid_prim].mode = mode;
-   }
 
-   assert(idx > 0 && idx <= max_index_count);
+      /* converted prims will filter incomplete primitives and may have no indices */
+      assert((idx > 0 || converted_prim) && idx <= max_index_count);
+   }
 
    unsigned merged_prim_count = last_valid_prim + 1;
    node->cold->ib.ptr = NULL;
@@ -834,12 +850,14 @@ compile_vertex_list(struct gl_context *ctx)
       free(temp_vertices_buffer);
    }
 
-   /* Since we're append the indices to an existing buffer, we need to adjust the start value of each
+   /* Since we append the indices to an existing buffer, we need to adjust the start value of each
     * primitive (not the indices themselves). */
-   save->current_bo_bytes_used += align(save->current_bo_bytes_used, 4) - save->current_bo_bytes_used;
-   int indices_offset = save->current_bo_bytes_used / 4;
-   for (int i = 0; i < merged_prim_count; i++) {
-      merged_prims[i].start += indices_offset;
+   if (!ctx->ListState.Current.UseLoopback) {
+      save->current_bo_bytes_used += align(save->current_bo_bytes_used, 4) - save->current_bo_bytes_used;
+      int indices_offset = save->current_bo_bytes_used / 4;
+      for (int i = 0; i < merged_prim_count; i++) {
+         merged_prims[i].start += indices_offset;
+      }
    }
 
    /* Then upload the indices. */
@@ -956,20 +974,16 @@ end:
       _glapi_set_dispatch(ctx->Exec);
 
       /* _vbo_loopback_vertex_list doesn't use the index buffer, so we have to
-       * use buffer_in_ram instead of current_bo which contains all vertices instead
-       * of the deduplicated vertices only in the !UseLoopback case.
+       * use buffer_in_ram (which contains all vertices) instead of current_bo
+       * (which contains deduplicated vertices *when* UseLoopback is false).
        *
        * The problem is that the VAO offset is based on current_bo's layout,
        * so we have to use a temp value.
        */
       struct gl_vertex_array_object *vao = node->cold->VAO[VP_MODE_SHADER];
       GLintptr original = vao->BufferBinding[0].Offset;
-      if (!ctx->ListState.Current.UseLoopback) {
-         GLintptr new_offset = 0;
-         /* 'start_offset' has been added to all primitives 'start', so undo it here. */
-         new_offset -= start_offset * stride;
-         vao->BufferBinding[0].Offset = new_offset;
-      }
+      /* 'start_offset' has been added to all primitives 'start', so undo it here. */
+      vao->BufferBinding[0].Offset = -(GLintptr)(start_offset * stride);
       _vbo_loopback_vertex_list(ctx, node, save->vertex_store->buffer_in_ram);
       vao->BufferBinding[0].Offset = original;
 

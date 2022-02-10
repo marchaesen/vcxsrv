@@ -14,7 +14,7 @@ traces:
   - path: golf-with-your-friends/GolfWithYourFriends-trim--f1070-v20201203.trace
     expectations:
       - device: freedreno-a630
-        checksum: 1531665cf86c7e7502dcd9701def5b17
+        checksum: 7b08782ff6a54a3d088729363080c5b6
   - path: hollow-knight/HollowKnight-trim--f2020-v20201203.trace
     expectations:
       - device: freedreno-a630
@@ -27,7 +27,7 @@ traces:
   - path: overcooked2/Overcooked2-trim--f3301-v20201203.trace
     expectations:
       - device: freedreno-a630
-        checksum: f5cf383154f328e626baf7c4515e170b
+        checksum: 358c723a5f1807fafea2d68bcd32040e
 # Crashes
 #  - path: plaugue-inc-evolved/PlagueIncEvolved-trim--f1200-v20201203.trace
 #    expectations:

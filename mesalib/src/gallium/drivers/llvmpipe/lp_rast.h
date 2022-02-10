@@ -110,14 +110,12 @@ struct lp_rast_blit {
 struct lp_rast_shader_inputs {
    unsigned frontfacing:1;      /** True for front-facing */
    unsigned disable:1;          /** Partially binned, disable this command */
-   unsigned opaque:1;           /** Is opaque */
    unsigned is_blit:1;          /* blit */
-   unsigned pad0:12;            /* wasted space */
-   unsigned view_index:16;
+   unsigned viewport_index:4;  /* viewport index */
+   unsigned layer:11;
+   unsigned view_index:14;
    unsigned stride;             /* how much to advance data between a0, dadx, dady */
-   unsigned layer;              /* the layer to render to (from gs, already clamped) */
-   unsigned viewport_index;     /* the active viewport index (from gs, already clamped) */
-
+   unsigned pad[2];
    /* followed by a0, dadx, dady and planes[] */
 };
 

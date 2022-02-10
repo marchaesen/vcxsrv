@@ -39,6 +39,7 @@ struct etna_pm_query
 
    struct etna_perfmon_signal *signal;
    unsigned sequence;
+   bool multiply_with_8;
 };
 
 static inline struct etna_pm_query *
@@ -116,6 +117,7 @@ perfmon_allocate(struct etna_context *ctx, unsigned query_type)
       return NULL;
 
    pm_add_signal(pq, ctx->screen->perfmon, cfg);
+   pq->multiply_with_8 = cfg->multiply_with_8;
 
    return &pq->base;
 }
@@ -154,6 +156,9 @@ perfmon_result(struct etna_acc_query *aq, void *buf,
       sum += *(ptr + i + 1) - *(ptr + i);
 
    result->u32 = sum;
+
+   if (pq->multiply_with_8)
+      result->u32 *= 8;
 
    return true;
 }

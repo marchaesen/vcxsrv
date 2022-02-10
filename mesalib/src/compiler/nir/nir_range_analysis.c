@@ -858,7 +858,8 @@ analyze_expression(const nir_alu_instr *instr, unsigned src,
       break;
    }
 
-   case nir_op_fmul: {
+   case nir_op_fmul:
+   case nir_op_fmulz: {
       const struct ssa_result_range left =
          analyze_expression(alu, 0, ht, nir_alu_src_type(alu, 0));
       const struct ssa_result_range right =
@@ -878,14 +879,19 @@ analyze_expression(const nir_alu_instr *instr, unsigned src,
       } else
          r.range = fmul_table[left.range][right.range];
 
-      /* Mulitpliation produces NaN for X * NaN and for 0 * ±Inf.  If both
-       * operands are numbers and either both are finite or one is finite and
-       * the other cannot be zero, then the result must be a number.
-       */
-      r.is_a_number = (left.is_a_number && right.is_a_number) &&
-         ((left.is_finite && right.is_finite) ||
-          (!is_not_zero(left.range) && right.is_finite) ||
-          (left.is_finite && !is_not_zero(right.range)));
+      if (alu->op == nir_op_fmul) {
+         /* Mulitpliation produces NaN for X * NaN and for 0 * ±Inf.  If both
+          * operands are numbers and either both are finite or one is finite and
+          * the other cannot be zero, then the result must be a number.
+          */
+         r.is_a_number = (left.is_a_number && right.is_a_number) &&
+            ((left.is_finite && right.is_finite) ||
+             (!is_not_zero(left.range) && right.is_finite) ||
+             (left.is_finite && !is_not_zero(right.range)));
+      } else {
+         /* nir_op_fmulz: unlike nir_op_fmul, 0 * ±Inf is a number. */
+         r.is_a_number = left.is_a_number && right.is_a_number;
+      }
 
       break;
    }
@@ -1465,8 +1471,8 @@ nir_unsigned_upper_bound(nir_shader *shader, struct hash_table *range_ht,
       case nir_op_b32csel:
       case nir_op_ubfe:
       case nir_op_bfm:
-      case nir_op_f2u32:
       case nir_op_fmul:
+      case nir_op_fmulz:
       case nir_op_extract_u8:
       case nir_op_extract_i8:
       case nir_op_extract_u16:
@@ -1476,6 +1482,7 @@ nir_unsigned_upper_bound(nir_shader *shader, struct hash_table *range_ht,
       case nir_op_u2u8:
       case nir_op_u2u16:
       case nir_op_u2u32:
+      case nir_op_f2u32:
          if (nir_ssa_scalar_chase_alu_src(scalar, 0).def->bit_size > 32) {
             /* If src is >32 bits, return max */
             return max;
@@ -1584,6 +1591,7 @@ nir_unsigned_upper_bound(nir_shader *shader, struct hash_table *range_ht,
          }
          break;
       case nir_op_fmul:
+      case nir_op_fmulz:
          /* infinity/NaN starts at 0x7f800000u, negative numbers at 0x80000000 */
          if (src0 < 0x7f800000u && src1 < 0x7f800000u) {
             float src0_f, src1_f;
@@ -1670,7 +1678,7 @@ nir_addition_might_overflow(nir_shader *shader, struct hash_table *range_ht,
 }
 
 static uint64_t
-ssa_def_bits_used(nir_ssa_def *def, int recur)
+ssa_def_bits_used(const nir_ssa_def *def, int recur)
 {
    uint64_t bits_used = 0;
    uint64_t all_bits = BITFIELD64_MASK(def->bit_size);
@@ -1863,7 +1871,7 @@ ssa_def_bits_used(nir_ssa_def *def, int recur)
 }
 
 uint64_t
-nir_ssa_def_bits_used(nir_ssa_def *def)
+nir_ssa_def_bits_used(const nir_ssa_def *def)
 {
    return ssa_def_bits_used(def, 2);
 }

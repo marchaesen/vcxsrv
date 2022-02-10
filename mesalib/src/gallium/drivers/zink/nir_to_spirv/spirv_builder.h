@@ -283,7 +283,9 @@ spirv_builder_emit_image_sample(struct spirv_builder *b,
                                 SpvId dx,
                                 SpvId dy,
                                 SpvId const_offset,
-                                SpvId offset);
+                                SpvId offset,
+                                SpvId min_lod,
+                                bool sparse);
 
 SpvId
 spirv_builder_emit_image(struct spirv_builder *b, SpvId result_type,
@@ -303,7 +305,8 @@ spirv_builder_emit_image_read(struct spirv_builder *b,
                               SpvId coordinate,
                               SpvId lod,
                               SpvId sample,
-                              SpvId offset);
+                              SpvId offset,
+                              bool sparse);
 
 void
 spirv_builder_emit_image_write(struct spirv_builder *b,
@@ -322,7 +325,8 @@ spirv_builder_emit_image_fetch(struct spirv_builder *b,
                                SpvId lod,
                                SpvId sample,
                                SpvId const_offset,
-                               SpvId offset);
+                               SpvId offset,
+                               bool sparse);
 SpvId
 spirv_builder_emit_image_gather(struct spirv_builder *b,
                                SpvId result_type,
@@ -333,7 +337,8 @@ spirv_builder_emit_image_gather(struct spirv_builder *b,
                                SpvId sample,
                                SpvId const_offset,
                                SpvId offset,
-                               SpvId dref);
+                               SpvId dref,
+                               bool sparse);
 
 SpvId
 spirv_builder_emit_image_query_size(struct spirv_builder *b,

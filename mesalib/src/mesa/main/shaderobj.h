@@ -71,8 +71,7 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
                                struct gl_shader_program *shProg);
 
 void
-_mesa_reference_shader_program_data(struct gl_context *ctx,
-                                    struct gl_shader_program_data **ptr,
+_mesa_reference_shader_program_data(struct gl_shader_program_data **ptr,
                                     struct gl_shader_program_data *data);
 
 static inline void

@@ -156,6 +156,7 @@ d3d12_create_dxcore_screen(struct sw_winsys *winsys, LUID *adapter_luid)
        FAILED(screen->adapter->GetProperty(DXCoreAdapterProperty::DedicatedAdapterMemory, &dedicated_video_memory)) ||
        FAILED(screen->adapter->GetProperty(DXCoreAdapterProperty::DedicatedSystemMemory, &dedicated_system_memory)) ||
        FAILED(screen->adapter->GetProperty(DXCoreAdapterProperty::SharedSystemMemory, &shared_system_memory)) ||
+       FAILED(screen->adapter->GetProperty(DXCoreAdapterProperty::DriverVersion, &screen->base.driver_version)) ||
        FAILED(screen->adapter->GetProperty(DXCoreAdapterProperty::DriverDescription,
                                            sizeof(screen->description),
                                            screen->description))) {

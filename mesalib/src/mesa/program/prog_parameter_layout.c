@@ -29,7 +29,7 @@
  */
 
 
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 #include "prog_parameter.h"
 #include "prog_parameter_layout.h"
 #include "prog_instruction.h"

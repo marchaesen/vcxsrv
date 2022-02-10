@@ -76,6 +76,7 @@ foreach d : [[with_gallium_kmsro, [
                'imx-dcss_dri.so',
                'ingenic-drm_dri.so',
                'kirin_dri.so',
+               'komeda_dri.so',
                'mali-dp_dri.so',
                'mcde_dri.so',
                'mediatek_dri.so',
@@ -83,6 +84,7 @@ foreach d : [[with_gallium_kmsro, [
                'mi0283qt_dri.so',
                'mxsfb-drm_dri.so',
                'pl111_dri.so',
+               'rcar-du_dri.so',
                'repaper_dri.so',
                'rockchip_dri.so',
                'st7586_dri.so',
@@ -115,6 +117,24 @@ foreach d : [[with_gallium_kmsro, [
     gallium_dri_drivers += d[1]
   endif
 endforeach
+
+if meson.version().version_compare('>= 0.58')
+  # This only works on Unix-like oses, which is probably fine for dri
+  prog_ln = find_program('ln', required : false)
+  if prog_ln.found()
+    devenv.set('LIBGL_DRIVERS_PATH', meson.current_build_dir())
+
+    foreach d : gallium_dri_drivers
+      custom_target(
+        'devenv_@0@'.format(d),
+        input : libgallium_dri,
+        output : d,
+        command : [prog_ln, '-f', '@INPUT@', '@OUTPUT@'],
+        build_by_default : true,
+      )
+    endforeach
+  endif
+endif
 
 meson.add_install_script(
   install_megadrivers_py.path(),

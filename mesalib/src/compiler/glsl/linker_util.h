@@ -25,8 +25,9 @@
 #define GLSL_LINKER_UTIL_H
 
 #include "util/bitset.h"
+#include "compiler/glsl/list.h"
 
-struct gl_context;
+struct gl_constants;
 struct gl_shader_program;
 struct gl_uniform_storage;
 
@@ -94,7 +95,7 @@ void
 link_util_check_subroutine_resources(struct gl_shader_program *prog);
 
 void
-link_util_check_uniform_resources(struct gl_context *ctx,
+link_util_check_uniform_resources(const struct gl_constants *consts,
                                   struct gl_shader_program *prog);
 
 void

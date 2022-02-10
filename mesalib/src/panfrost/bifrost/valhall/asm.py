@@ -260,6 +260,11 @@ def parse_asm(line):
             # Encode the modifier
             if mod in src.offset and src.bits[mod] == 1:
                 encoded |= (1 << src.offset[mod])
+            elif src.halfswizzle and mod in enums[f'half_swizzles_{src.size}_bit'].bare_values:
+                die_if(swizzled, "Multiple swizzles specified")
+                swizzled = True
+                val = enums[f'half_swizzles_{src.size}_bit'].bare_values.index(mod)
+                encoded |= (val << src.offset['widen'])
             elif mod in enums[f'swizzles_{src.size}_bit'].bare_values and (src.widen or src.lanes):
                 die_if(swizzled, "Multiple swizzles specified")
                 swizzled = True
@@ -288,6 +293,12 @@ def parse_asm(line):
                 swizzled = True
                 val = enums['lane_8_bit'].bare_values.index(mod)
                 encoded |= (val << src.lane)
+            elif mod in enums['lanes_8_bit'].bare_values:
+                die_if(not src.lanes, "Instruction doesn't take a lane")
+                die_if(swizzled, "Multiple swizzles specified")
+                swizzled = True
+                val = enums['lanes_8_bit'].bare_values.index(mod)
+                encoded |= (val << src.offset['widen'])
             else:
                 die(f"Unknown modifier {mod}")
 

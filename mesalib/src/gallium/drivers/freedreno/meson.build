@@ -295,7 +295,7 @@ driver_freedreno = declare_dependency(
 
 ir3_compiler = executable(
   'ir3_compiler',
-  'ir3/ir3_cmdline.c',
+  ['ir3/ir3_cmdline.c', freedreno_xml_header_files],
   include_directories : freedreno_includes,
   dependencies : [
     idep_nir,

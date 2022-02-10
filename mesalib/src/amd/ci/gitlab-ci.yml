@@ -78,7 +78,7 @@ radv_stoney_vkcts:amd64:
   tags:
     - mesa-ci-x86-64-lava-hp-11A-G6-EE-grunt
 
-radv-fossils:
+.radv-fossils:
   extends:
     - .fossilize-test
     - .test-radv

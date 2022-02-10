@@ -255,6 +255,11 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
       if (is_sfu(n))
          regmask_set(&state->needs_ss, n->dsts[0]);
 
+      foreach_dst (dst, n) {
+         if (dst->flags & IR3_REG_SHARED)
+            regmask_set(&state->needs_ss, dst);
+      }
+
       if (is_tex_or_prefetch(n)) {
          regmask_set(&state->needs_sy, n->dsts[0]);
          if (n->opc == OPC_META_TEX_PREFETCH)
@@ -264,11 +269,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
          ir3_NOP(block)->flags |= IR3_INSTR_SS;
          last_input_needs_ss = false;
       } else if (is_load(n)) {
-         /* seems like ldlv needs (ss) bit instead??  which is odd but
-          * makes a bunch of flat-varying tests start working on a4xx.
-          */
-         if ((n->opc == OPC_LDLV) || (n->opc == OPC_LDL) ||
-             (n->opc == OPC_LDLW))
+         if (is_local_mem_load(n))
             regmask_set(&state->needs_ss, n->dsts[0]);
          else
             regmask_set(&state->needs_sy, n->dsts[0]);
@@ -486,11 +487,56 @@ remove_unused_block(struct ir3_block *old_target)
 {
    list_delinit(&old_target->node);
 
+   /* If there are any physical predecessors due to fallthroughs, then they may
+    * fall through to any of the physical successors of this block. But we can
+    * only fit two, so just pick the "earliest" one, i.e. the fallthrough if
+    * possible.
+    *
+    * TODO: we really ought to have unlimited numbers of physical successors,
+    * both because of this and because we currently don't model some scenarios
+    * with nested break/continue correctly.
+    */
+   struct ir3_block *new_target;
+   if (old_target->physical_successors[1] &&
+       old_target->physical_successors[1]->start_ip <
+       old_target->physical_successors[0]->start_ip) {
+      new_target = old_target->physical_successors[1];
+   } else {
+      new_target = old_target->physical_successors[0];
+   }
+
+   for (unsigned i = 0; i < old_target->physical_predecessors_count; i++) {
+      struct ir3_block *pred = old_target->physical_predecessors[i];
+      if (pred->physical_successors[0] == old_target) {
+         if (!new_target) {
+            /* If we remove a physical successor, make sure the only physical
+             * successor is the first one.
+             */
+            pred->physical_successors[0] = pred->physical_successors[1];
+            pred->physical_successors[1] = NULL;
+         } else {
+            pred->physical_successors[0] = new_target;
+         }
+      } else {
+         assert(pred->physical_successors[1] == old_target);
+         pred->physical_successors[1] = new_target;
+      }
+      if (new_target)
+         ir3_block_add_physical_predecessor(new_target, pred);
+   }
+
    /* cleanup dangling predecessors: */
    for (unsigned i = 0; i < ARRAY_SIZE(old_target->successors); i++) {
       if (old_target->successors[i]) {
          struct ir3_block *succ = old_target->successors[i];
          ir3_block_remove_predecessor(succ, old_target);
+      }
+   }
+
+   for (unsigned i = 0; i < ARRAY_SIZE(old_target->physical_successors); i++) {
+      if (old_target->physical_successors[i]) {
+         struct ir3_block *succ = old_target->physical_successors[i];
+         ir3_block_remove_physical_predecessor(succ, old_target);
       }
    }
 }
@@ -509,9 +555,7 @@ retarget_jump(struct ir3_instruction *instr, struct ir3_block *new_target)
       cur_block->successors[1] = new_target;
    }
 
-   /* also update physical_successors.. we don't really need them at
-    * this stage, but it keeps ir3_validate happy:
-    */
+   /* also update physical_successors: */
    if (cur_block->physical_successors[0] == old_target) {
       cur_block->physical_successors[0] = new_target;
    } else {
@@ -521,9 +565,11 @@ retarget_jump(struct ir3_instruction *instr, struct ir3_block *new_target)
 
    /* update new target's predecessors: */
    ir3_block_add_predecessor(new_target, cur_block);
+   ir3_block_add_physical_predecessor(new_target, cur_block);
 
    /* and remove old_target's predecessor: */
    ir3_block_remove_predecessor(old_target, cur_block);
+   ir3_block_remove_physical_predecessor(old_target, cur_block);
 
    instr->cat0.target = new_target;
 
@@ -614,6 +660,12 @@ resolve_jumps(struct ir3 *ir)
 static void
 mark_jp(struct ir3_block *block)
 {
+   /* We only call this on the end block (in kill_sched) or after retargeting
+    * all jumps to empty blocks (in mark_xvergence_points) so there's no need to
+    * worry about empty blocks.
+    */
+   assert(!list_is_empty(&block->instr_list));
+
    struct ir3_instruction *target =
       list_first_entry(&block->instr_list, struct ir3_instruction, node);
    target->flags |= IR3_INSTR_JP;
@@ -630,19 +682,37 @@ static void
 mark_xvergence_points(struct ir3 *ir)
 {
    foreach_block (block, &ir->block_list) {
-      if (block->predecessors_count > 1) {
-         /* if a block has more than one possible predecessor, then
-          * the first instruction is a convergence point.
-          */
-         mark_jp(block);
-      } else if (block->predecessors_count == 1) {
-         /* If a block has one predecessor, which has multiple possible
-          * successors, it is a divergence point.
-          */
-         for (unsigned i = 0; i < block->predecessors_count; i++) {
-            struct ir3_block *predecessor = block->predecessors[i];
-            if (predecessor->successors[1]) {
+      /* We need to insert (jp) if an entry in the "branch stack" is created for
+       * our block. This happens if there is a predecessor to our block that may
+       * fallthrough to an earlier block in the physical CFG, either because it
+       * ends in a non-uniform conditional branch or because there's a
+       * fallthrough for an block in-between that also starts with (jp) and was
+       * pushed on the branch stack already.
+       */
+      for (unsigned i = 0; i < block->predecessors_count; i++) {
+         struct ir3_block *pred = block->predecessors[i];
+
+         for (unsigned j = 0; j < ARRAY_SIZE(pred->physical_successors); j++) {
+            if (pred->physical_successors[j] != NULL &&
+                pred->physical_successors[j]->start_ip < block->start_ip)
                mark_jp(block);
+
+            /* If the predecessor just falls through to this block, we still
+             * need to check if it "falls through" by jumping to the block. This
+             * can happen if opt_jump fails and the block ends in two branches,
+             * or if there's an empty if-statement (which currently can happen
+             * with binning shaders after dead-code elimination) and the block
+             * before ends with a conditional branch directly to this block.
+             */
+            if (pred->physical_successors[j] == block) {
+               foreach_instr_rev (instr, &pred->instr_list) {
+                  if (!is_flow(instr))
+                     break;
+                  if (instr->cat0.target == block) {
+                     mark_jp(block);
+                     break;
+                  }
+               }
             }
          }
       }

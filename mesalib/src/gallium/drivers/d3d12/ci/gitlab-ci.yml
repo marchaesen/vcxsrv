@@ -1,13 +1,14 @@
 .d3d12-test:
   extends:
     - .build-windows
-    - .use-windows_build_vs2019
+    - .use-windows_test_vs2019
     - .windows-test-rules
   stage: layered-backends
   dependencies:
     - windows-vs2019
   needs:
     - windows-vs2019
+    - windows_test_vs2019
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     GALLIUM_DRIVER: d3d12
@@ -30,7 +31,7 @@ test-d3d12-quick_gl:
   variables:
     PIGLIT_PROFILE: quick_gl
     PIGLIT_RESULTS: "d3d12-quick_gl"
-    PIGLIT_TESTS: -x nv_copy_depth_to_color
+    PIGLIT_TESTS: -x nv_copy_depth_to_color -x glsl-1.30.execution.tex-miplevel-selection -x arb_timer_query.timestamp-get
 
 test-d3d12-quick_shader:
   extends:
@@ -38,5 +39,5 @@ test-d3d12-quick_shader:
   variables:
     PIGLIT_PROFILE: quick_shader
     PIGLIT_RESULTS: "d3d12-quick_shader"
-    # These tests crash WARP causing the test suite to timeout
-    PIGLIT_TESTS: -x amd_texture_texture4 -x arb_texture_gather
+    # These tests crash WARP causing the test suite to timeout, or are flaky
+    PIGLIT_TESTS: -x amd_texture_texture4 -x arb_texture_gather -x isoline

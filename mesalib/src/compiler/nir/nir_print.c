@@ -1618,7 +1618,7 @@ destroy_print_state(print_state *state)
 static const char *
 primitive_name(unsigned primitive)
 {
-#define PRIM(X) case GL_ ## X : return #X
+#define PRIM(X) case SHADER_PRIM_ ## X : return #X
    switch (primitive) {
    PRIM(POINTS);
    PRIM(LINES);

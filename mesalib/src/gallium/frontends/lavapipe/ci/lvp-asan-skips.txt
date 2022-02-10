@@ -9,3 +9,6 @@ dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast.*
 dEQP-VK.ssbo.layout.3_level_unsized_array.scalar.*
 dEQP-VK.ssbo.layout.3_level_array.scalar.*
 dEQP-VK.ssbo.phys.layout.unsized_struct_array.per_block_buffer.*_instance_array_comp_access_store_cols
+
+# Leaky in VK-GL-cts
+dEQP-VK.binding_model

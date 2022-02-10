@@ -6,6 +6,8 @@ $registry_username = $args[1]
 $registry_password = $args[2]
 $registry_user_image = $args[3]
 $registry_central_image = $args[4]
+$build_dockerfile = $args[5]
+$registry_base_image = $args[6]
 
 Set-Location -Path ".\.gitlab-ci\windows"
 
@@ -39,7 +41,7 @@ if ($?) {
 }
 
 Write-Host "No image found at $registry_user_image or $registry_central_image; rebuilding"
-docker --config "windows-docker.conf" build --no-cache -t "$registry_user_image" .
+docker --config "windows-docker.conf" build --no-cache -t "$registry_user_image" -f "$build_dockerfile" --build-arg base_image="$registry_base_image" .
 if (!$?) {
   Write-Host "Container build failed"
   docker --config "windows-docker.conf" logout "$registry_uri"

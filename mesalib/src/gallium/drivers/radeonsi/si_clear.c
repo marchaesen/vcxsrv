@@ -352,7 +352,7 @@ bool vi_dcc_get_clear_info(struct si_context *sctx, struct si_texture *tex, unsi
          return false;
 
       dcc_offset += tex->surface.u.legacy.color.dcc_level[level].dcc_offset;
-      clear_size = tex->surface.u.legacy.color.dcc_level[level].dcc_fast_clear_size * num_layers;
+      clear_size = tex->surface.u.legacy.color.dcc_level[level].dcc_fast_clear_size;
    }
 
    si_init_buffer_clear(out, dcc_buffer, dcc_offset, clear_size, clear_value);

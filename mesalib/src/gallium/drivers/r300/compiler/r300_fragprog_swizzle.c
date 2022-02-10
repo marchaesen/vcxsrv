@@ -86,7 +86,7 @@ static const struct swizzle_data* lookup_native_swizzle(unsigned int swizzle)
 			return sd;
 	}
 
-	return 0;
+	return NULL;
 }
 
 /**

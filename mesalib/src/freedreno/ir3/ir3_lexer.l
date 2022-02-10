@@ -244,7 +244,15 @@ static int parse_reg(const char *str)
 "sel.f32"                         return TOKEN(T_OP_SEL_F32);
 "sad.s16"                         return TOKEN(T_OP_SAD_S16);
 "sad.s32"                         return TOKEN(T_OP_SAD_S32);
-"shlg.b16"                        return TOKEN(T_OP_SHLG_B16);
+"shrm"                            return TOKEN(T_OP_SHRM);
+"shlm"                            return TOKEN(T_OP_SHLM);
+"shrg"                            return TOKEN(T_OP_SHRG);
+"shlg"                            return TOKEN(T_OP_SHLG);
+"andg"                            return TOKEN(T_OP_ANDG);
+"dp2acc"                          return TOKEN(T_OP_DP2ACC);
+"dp4acc"                          return TOKEN(T_OP_DP4ACC);
+"wmm"                             return TOKEN(T_OP_WMM);
+"wmm.accu"                        return TOKEN(T_OP_WMM_ACCU);
 
                                   /* category 4: */
 "rcp"                             return TOKEN(T_OP_RCP);
@@ -382,6 +390,11 @@ static int parse_reg(const char *str)
 
 "untyped"                         return TOKEN(T_UNTYPED);
 "typed"                           return TOKEN(T_TYPED);
+
+"unsigned"                        return TOKEN(T_UNSIGNED);
+"mixed"                           return TOKEN(T_MIXED);
+"low"                             return TOKEN(T_LOW);
+"high"                            return TOKEN(T_HIGH);
 
 "1d"                              return TOKEN(T_1D);
 "2d"                              return TOKEN(T_2D);

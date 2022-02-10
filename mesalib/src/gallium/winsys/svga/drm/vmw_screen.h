@@ -82,6 +82,7 @@ struct vmw_winsys_screen
       boolean have_drm_2_17;
       boolean have_drm_2_18;
       boolean have_drm_2_19;
+      boolean have_drm_2_20;
    } ioctl;
 
    struct {

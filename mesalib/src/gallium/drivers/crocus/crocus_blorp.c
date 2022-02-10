@@ -401,6 +401,12 @@ blorp_measure_start(struct blorp_batch *blorp_batch,
 {
 }
 
+static void
+blorp_measure_end(struct blorp_batch *blorp_batch,
+                  const struct blorp_params *params)
+{
+}
+
 void
 genX(crocus_init_blorp)(struct crocus_context *ice)
 {

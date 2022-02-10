@@ -931,10 +931,6 @@ static void si_print_annotated_shader(struct si_shader *shader, struct ac_wave_i
       si_add_split_disasm(screen, &rtld_binaries[1], &shader->previous_stage->binary, &inst_addr,
                           &num_inst, instructions, stage, shader->wave_size);
    }
-   if (shader->prolog2) {
-      si_add_split_disasm(screen, &rtld_binaries[2], &shader->prolog2->binary, &inst_addr,
-                          &num_inst, instructions, stage, shader->wave_size);
-   }
    si_add_split_disasm(screen, &rtld_binaries[3], &shader->binary, &inst_addr, &num_inst,
                        instructions, stage, shader->wave_size);
    if (shader->epilog) {

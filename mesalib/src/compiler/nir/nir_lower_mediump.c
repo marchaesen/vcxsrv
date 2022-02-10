@@ -393,7 +393,8 @@ is_u16_to_u32_conversion(nir_instr *instr)
 static bool
 is_i32_to_i16_conversion(nir_instr *instr)
 {
-   return is_n_to_m_conversion(instr, 32, nir_op_i2i16);
+   return is_n_to_m_conversion(instr, 32, nir_op_i2i16) ||
+      is_n_to_m_conversion(instr, 32, nir_op_u2u16);
 }
 
 static void

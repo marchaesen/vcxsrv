@@ -26,7 +26,7 @@
 #include "si_shader_internal.h"
 #include "sid.h"
 #include "util/u_memory.h"
-#include "ac_exp_param.h"
+#include "ac_nir.h"
 
 static LLVMValueRef unpack_sint16(struct si_shader_context *ctx, LLVMValueRef i32, unsigned index)
 {
@@ -284,7 +284,7 @@ void si_llvm_streamout_store_output(struct si_shader_context *ctx, LLVMValueRef 
 
    /* Load the output as int. */
    for (int j = 0; j < num_comps; j++) {
-      assert(stream_out->stream == shader_out->vertex_stream[start + j]);
+      assert(stream_out->stream == ((shader_out->vertex_streams >> ((start + j) * 2)) & 0x3));
 
       out[j] = ac_to_integer(&ctx->ac, shader_out->values[start + j]);
    }
@@ -298,19 +298,12 @@ void si_llvm_streamout_store_output(struct si_shader_context *ctx, LLVMValueRef 
       break;
    case 2: /* as v2i32 */
    case 3: /* as v3i32 */
-      if (ac_has_vec3_support(ctx->screen->info.chip_class, false)) {
-         vdata = ac_build_gather_values(&ctx->ac, out, num_comps);
-         break;
-      }
-      /* as v4i32 (aligned to 4) */
-      out[3] = LLVMGetUndef(ctx->ac.i32);
-      FALLTHROUGH;
    case 4: /* as v4i32 */
-      vdata = ac_build_gather_values(&ctx->ac, out, util_next_power_of_two(num_comps));
+      vdata = ac_build_gather_values(&ctx->ac, out, num_comps);
       break;
    }
 
-   ac_build_buffer_store_dword(&ctx->ac, so_buffers[buf_idx], vdata, num_comps,
+   ac_build_buffer_store_dword(&ctx->ac, so_buffers[buf_idx], vdata, NULL,
                                so_write_offsets[buf_idx], ctx->ac.i32_0, stream_out->dst_offset * 4,
                                ac_glc | ac_slc);
 }
@@ -459,8 +452,11 @@ static void si_prepare_param_exports(struct si_shader_context *ctx,
    for (unsigned i = 0; i < noutput; i++) {
       unsigned semantic = outputs[i].semantic;
 
-      if (outputs[i].vertex_stream[0] != 0 && outputs[i].vertex_stream[1] != 0 &&
-          outputs[i].vertex_stream[2] != 0 && outputs[i].vertex_stream[3] != 0)
+      /* Skip if no channel writes to stream 0. */
+      if (outputs[i].vertex_streams & 0x03 &&
+          outputs[i].vertex_streams & 0x0c &&
+          outputs[i].vertex_streams & 0x30 &&
+          outputs[i].vertex_streams & 0xc0)
          continue;
 
       switch (semantic) {
@@ -775,7 +771,7 @@ void si_llvm_emit_vs_epilogue(struct ac_shader_abi *abi)
 
       for (j = 0; j < 4; j++) {
          outputs[i].values[j] = LLVMBuildLoad(ctx->ac.builder, addrs[4 * i + j], "");
-         outputs[i].vertex_stream[j] = (info->output_streams[i] >> (2 * j)) & 3;
+         outputs[i].vertex_streams = info->output_streams[i];
       }
    }
 
@@ -785,11 +781,10 @@ void si_llvm_emit_vs_epilogue(struct ac_shader_abi *abi)
    /* Export PrimitiveID. */
    if (ctx->shader->key.ge.mono.u.vs_export_prim_id) {
       outputs[i].semantic = VARYING_SLOT_PRIMITIVE_ID;
+      outputs[i].vertex_streams = 0;
       outputs[i].values[0] = ac_to_float(&ctx->ac, si_get_primitive_id(ctx, 0));
       for (j = 1; j < 4; j++)
          outputs[i].values[j] = LLVMConstReal(ctx->ac.f32, 0);
-
-      memset(outputs[i].vertex_stream, 0, sizeof(outputs[i].vertex_stream));
       i++;
    }
 

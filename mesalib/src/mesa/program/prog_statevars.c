@@ -36,7 +36,6 @@
 #include "main/blend.h"
 
 #include "main/macros.h"
-#include "main/mtypes.h"
 #include "main/fbobject.h"
 #include "prog_statevars.h"
 #include "prog_parameter.h"

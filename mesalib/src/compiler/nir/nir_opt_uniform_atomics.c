@@ -167,11 +167,16 @@ is_atomic_already_optimized(nir_shader *shader, nir_intrinsic_instr *instr)
       }
    }
 
-   unsigned dims_needed = 0;
-   for (unsigned i = 0; i < 3; i++)
-      dims_needed |= (shader->info.workgroup_size[i] > 1) << i;
+   if (gl_shader_stage_uses_workgroup(shader->info.stage)) {
+      unsigned dims_needed = 0;
+      for (unsigned i = 0; i < 3; i++)
+         dims_needed |= (shader->info.workgroup_size_variable ||
+                         shader->info.workgroup_size[i] > 1) << i;
+      if ((dims & dims_needed) == dims_needed)
+         return true;
+   }
 
-   return (dims & dims_needed) == dims_needed || dims & 0x8;
+   return dims & 0x8;
 }
 
 /* Perform a reduction and/or exclusive scan. */

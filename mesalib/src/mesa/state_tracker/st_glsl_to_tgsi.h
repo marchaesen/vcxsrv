@@ -25,9 +25,9 @@
 #ifndef ST_GLSL_TO_TGSI_H
 #define ST_GLSL_TO_TGSI_H
 
+#include "main/glheader.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_shader_tokens.h"
-#include "main/mtypes.h"
 
 #ifdef __cplusplus
 extern "C" {

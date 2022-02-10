@@ -1613,7 +1613,7 @@ xkb_symbols "tel-sarala"
     key <AE08> { [           KP_8,    KP_Multiply,          U0C6E,          U0C7F ] }; // 8 * ౮ ౿
     key <AE09> { [           KP_9,         U0028,           U0C6F,          U20B9 ] }; // 9 ( ౯ ₹
     key <AE10> { [           KP_0,         U0029,           U0C66,          U0C55 ] }; // 0 ) ౦ ౕ
-    key <AE11> { [    KP_Subtract,       underbar,       NoSymbol,          U0C56 ] }; // - _  ౖ
+    key <AE11> { [    KP_Subtract,     underscore,       NoSymbol,          U0C56 ] }; // - _  ౖ
     key <AE12> { [       KP_Equal,         KP_Add                                 ] }; // = +
     key <BKSL> { [          U0C4C,          U0C14,          U0964,          U0965 ] }; // ౌ ఔ । ॥
     key <TLDE> { [          U0C43,          U0C0B,      quoteleft,     asciitilde ] }; // ృ ఋ ` ~

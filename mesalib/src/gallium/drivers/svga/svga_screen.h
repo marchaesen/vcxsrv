@@ -58,14 +58,21 @@ struct svga_screen
    unsigned max_const_buffers;
    unsigned max_viewports;
    unsigned ms_samples;
+   unsigned forcedSampleCount; /* available with GL43 capable device only */
+   unsigned max_vs_inputs;
+   unsigned max_vs_outputs;
+   unsigned max_gs_inputs;
 
    struct {
-      boolean force_level_surface_view;
-      boolean force_surface_view;
-      boolean no_surface_view;
-      boolean force_sampler_view;
-      boolean no_sampler_view;
-      boolean no_cache_index_buffers;
+      unsigned force_level_surface_view:1;
+      unsigned force_surface_view:1;
+      unsigned no_surface_view:1;
+      unsigned force_sampler_view:1;
+      unsigned no_sampler_view:1;
+      unsigned no_cache_index_buffers:1;
+      unsigned tessellation:1;
+      unsigned sampler_state_mapping:1;
+      unsigned pad:24;
    } debug;
 
    unsigned texture_timestamp;

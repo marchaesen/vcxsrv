@@ -30,18 +30,18 @@ xkb_symbols "basic"  {
         key <AD08> { [              i,                 I,           idiaeresis,           Idiaeresis ] };
         key <AD09> { [              o,                 O,           odiaeresis,           Odiaeresis ] };
         key <AD10> { [              p,                 P,                   oe,                   OE ] };
-        key <AD11> { [    bracketleft,         braceleft,        guillemotleft,                U2039 ] };
-        key <AD12> { [   bracketright,        braceright,       guillemotright,                U203A ] };
+        key <AD11> { [    bracketleft,         braceleft,        guillemotleft,                U2039 ] }; // ‹
+        key <AD12> { [   bracketright,        braceright,       guillemotright,                U203A ] }; // ›
         key <BKSL> { [      backslash,               bar,              notsign,            brokenbar ] };
 
         key <AC01> { [              a,                 A,           adiaeresis,           Adiaeresis ] };
-        key <AC02> { [              s,                 S,               ssharp,                U1E9E ] };
+        key <AC02> { [              s,                 S,               ssharp,              section ] };
         key <AC03> { [              d,                 D,                  eth,                  Eth ] };
         key <AC04> { [              f,                 F,               egrave,               Egrave ] };
         key <AC05> { [              g,                 G,               eacute,               Eacute ] };
         key <AC06> { [              h,                 H,               ugrave,               Ugrave ] };
         key <AC07> { [              j,                 J,               uacute,               Uacute ] };
-        key <AC08> { [              k,                 K,                U0133,                U0132 ] };
+        key <AC08> { [              k,                 K,                U0133,                U0132 ] }; // ĳ, Ĳ
         key <AC09> { [              l,                 L,               oslash,               Oslash ] };
         key <AC10> { [      semicolon,             colon,               degree,       periodcentered ] };
         key <AC11> { [     apostrophe,          quotedbl,           dead_acute,       dead_diaeresis ] };
@@ -55,7 +55,7 @@ xkb_symbols "basic"  {
         key <AB07> { [              m,                 M,           dead_greek,            Multi_key ] };
         key <AB08> { [          comma,              less,               ograve,               Ograve ] };
         key <AB09> { [         period,           greater,               oacute,               Oacute ] };
-        key <AB10> { [          slash,          question,         questiondown,            0x1002026 ] };
+        key <AB10> { [          slash,          question,         questiondown,                U2026 ] }; // …
 
         include "level3(ralt_switch)"
 };

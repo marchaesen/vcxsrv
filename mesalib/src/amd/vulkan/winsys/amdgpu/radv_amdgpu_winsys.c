@@ -36,6 +36,7 @@
 #include "radv_amdgpu_surface.h"
 #include "radv_amdgpu_winsys_public.h"
 #include "radv_debug.h"
+#include "vk_drm_syncobj.h"
 #include "xf86drm.h"
 
 static bool
@@ -163,21 +164,30 @@ radv_amdgpu_winsys_destroy(struct radeon_winsys *rws)
    if (!destroy)
       return;
 
-   for (unsigned i = 0; i < ws->syncobj_count; ++i)
-      amdgpu_cs_destroy_syncobj(ws->dev, ws->syncobj[i]);
-   free(ws->syncobj);
-
    u_rwlock_destroy(&ws->global_bo_list.lock);
    free(ws->global_bo_list.bos);
 
    if (ws->reserve_vmid)
       amdgpu_vm_unreserve_vmid(ws->dev, 0);
 
-   pthread_mutex_destroy(&ws->syncobj_lock);
    u_rwlock_destroy(&ws->log_bo_list_lock);
    ac_addrlib_destroy(ws->addrlib);
    amdgpu_device_deinitialize(ws->dev);
    FREE(rws);
+}
+
+static int
+radv_amdgpu_winsys_get_fd(struct radeon_winsys *rws)
+{
+   struct radv_amdgpu_winsys *ws = (struct radv_amdgpu_winsys *)rws;
+   return amdgpu_device_get_fd(ws->dev);
+}
+
+static const struct vk_sync_type *const *
+radv_amdgpu_winsys_get_sync_types(struct radeon_winsys *rws)
+{
+   struct radv_amdgpu_winsys *ws = (struct radv_amdgpu_winsys *)rws;
+   return ws->sync_types;
 }
 
 struct radeon_winsys *
@@ -232,18 +242,32 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags,
       if (r)
          goto vmid_fail;
    }
+   int num_sync_types = 0;
+
+   ws->syncobj_sync_type = vk_drm_syncobj_get_type(amdgpu_device_get_fd(ws->dev));
+   if (ws->syncobj_sync_type.features) {
+      ws->sync_types[num_sync_types++] = &ws->syncobj_sync_type;
+      if (!(ws->syncobj_sync_type.features & VK_SYNC_FEATURE_TIMELINE)) {
+         ws->emulated_timeline_sync_type = vk_sync_timeline_get_type(&ws->syncobj_sync_type);
+         ws->sync_types[num_sync_types++] = &ws->emulated_timeline_sync_type.sync;
+      }
+   }
+
+   ws->sync_types[num_sync_types++] = NULL;
+   assert(num_sync_types <= ARRAY_SIZE(ws->sync_types));
 
    ws->perftest = perftest_flags;
    ws->zero_all_vram_allocs = debug_flags & RADV_DEBUG_ZERO_VRAM;
    u_rwlock_init(&ws->global_bo_list.lock);
    list_inithead(&ws->log_bo_list);
    u_rwlock_init(&ws->log_bo_list_lock);
-   pthread_mutex_init(&ws->syncobj_lock, NULL);
    ws->base.query_info = radv_amdgpu_winsys_query_info;
    ws->base.query_value = radv_amdgpu_winsys_query_value;
    ws->base.read_registers = radv_amdgpu_winsys_read_registers;
    ws->base.get_chip_name = radv_amdgpu_winsys_get_chip_name;
    ws->base.destroy = radv_amdgpu_winsys_destroy;
+   ws->base.get_fd = radv_amdgpu_winsys_get_fd;
+   ws->base.get_sync_types = radv_amdgpu_winsys_get_sync_types;
    radv_amdgpu_bo_init_functions(ws);
    radv_amdgpu_cs_init_functions(ws);
    radv_amdgpu_surface_init_functions(ws);

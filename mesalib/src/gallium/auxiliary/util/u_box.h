@@ -3,6 +3,7 @@
 
 #include "pipe/p_state.h"
 #include "util/u_math.h"
+#include "util/format/u_format.h"
 
 static inline void
 u_box_1d(unsigned x, unsigned w, struct pipe_box *box)
@@ -237,6 +238,24 @@ u_box_minify_3d(struct pipe_box *dst,
    dst->width = MAX2(src->width >> l, 1);
    dst->height = MAX2(src->height >> l, 1);
    dst->depth = MAX2(src->depth >> l, 1);
+}
+
+/* Converts a box specified in pixels to an equivalent box specified
+ * in blocks, where the boxes represent a region-of-interest of an image with
+ * the given format. This is trivial (a copy) for uncompressed formats.
+ */
+static inline void
+u_box_pixels_to_blocks(struct pipe_box *blocks,
+                       const struct pipe_box *pixels, enum pipe_format format)
+{
+   u_box_3d(
+         pixels->x / util_format_get_blockwidth(format),
+         pixels->y / util_format_get_blockheight(format),
+         pixels->z,
+         DIV_ROUND_UP(pixels->width, util_format_get_blockwidth(format)),
+         DIV_ROUND_UP(pixels->height, util_format_get_blockheight(format)),
+         pixels->depth,
+         blocks);
 }
 
 #endif

@@ -348,8 +348,7 @@ load_sbt_entry(nir_builder *b, const struct rt_variables *vars, nir_ssa_def *idx
    nir_ssa_def *load_addr = addr;
    if (offset)
       load_addr = nir_iadd(b, load_addr, nir_imm_int64(b, offset));
-   nir_ssa_def *v_idx =
-      nir_build_load_global(b, 1, 32, load_addr, .align_mul = 4, .align_offset = 0);
+   nir_ssa_def *v_idx = nir_build_load_global(b, 1, 32, load_addr);
 
    nir_store_var(b, vars->idx, v_idx, 1);
 
@@ -422,8 +421,7 @@ lower_rt_instructions(nir_shader *shader, struct rt_variables *vars, unsigned ca
                                       nir_imm_int(&b_shader, size)),
                              1);
                nir_store_scratch(&b_shader, nir_imm_int(&b_shader, ret),
-                                 nir_load_var(&b_shader, vars->stack_ptr), .align_mul = 16,
-                                 .write_mask = 1);
+                                 nir_load_var(&b_shader, vars->stack_ptr), .align_mul = 16);
 
                nir_store_var(&b_shader, vars->stack_ptr,
                              nir_iadd(&b_shader, nir_load_var(&b_shader, vars->stack_ptr),
@@ -449,8 +447,7 @@ lower_rt_instructions(nir_shader *shader, struct rt_variables *vars, unsigned ca
                                       nir_imm_int(&b_shader, size)),
                              1);
                nir_store_scratch(&b_shader, nir_imm_int(&b_shader, ret),
-                                 nir_load_var(&b_shader, vars->stack_ptr), .align_mul = 16,
-                                 .write_mask = 1);
+                                 nir_load_var(&b_shader, vars->stack_ptr), .align_mul = 16);
 
                nir_store_var(&b_shader, vars->stack_ptr,
                              nir_iadd(&b_shader, nir_load_var(&b_shader, vars->stack_ptr),
@@ -632,10 +629,9 @@ lower_rt_instructions(nir_shader *shader, struct rt_variables *vars, unsigned ca
 
                   val = nir_vec(&b_shader, vals, 3);
                } else {
-                  val = nir_build_load_global(
-                     &b_shader, 3, 32,
-                     nir_iadd(&b_shader, instance_node_addr, nir_imm_int64(&b_shader, 92 + c * 12)),
-                     .align_mul = 4, .align_offset = 0);
+                  val = nir_build_load_global(&b_shader, 3, 32,
+                                              nir_iadd(&b_shader, instance_node_addr,
+                                                       nir_imm_int64(&b_shader, 92 + c * 12)));
                }
                b_shader.cursor = nir_instr_remove(instr);
                nir_ssa_def_rewrite_uses(&intr->dest.ssa, val);
@@ -1263,8 +1259,7 @@ insert_traversal_triangle_case(struct radv_device *device,
       nir_ssa_def *triangle_info = nir_build_load_global(
          b, 2, 32,
          nir_iadd(b, build_node_to_addr(device, b, bvh_node),
-                  nir_imm_int64(b, offsetof(struct radv_bvh_triangle_node, triangle_id))),
-         .align_mul = 4, .align_offset = 0);
+                  nir_imm_int64(b, offsetof(struct radv_bvh_triangle_node, triangle_id))));
       nir_ssa_def *primitive_id = nir_channel(b, triangle_info, 0);
       nir_ssa_def *geometry_id_and_flags = nir_channel(b, triangle_info, 1);
       nir_ssa_def *geometry_id = nir_iand(b, geometry_id_and_flags, nir_imm_int(b, 0xfffffff));
@@ -1291,7 +1286,7 @@ insert_traversal_triangle_case(struct radv_device *device,
          nir_store_scratch(
             b, ij,
             nir_iadd(b, nir_load_var(b, vars->stack_ptr), nir_imm_int(b, RADV_HIT_ATTRIB_OFFSET)),
-            .align_mul = 16, .write_mask = 3);
+            .align_mul = 16);
 
          nir_store_var(b, vars->ahit_status, nir_imm_int(b, 0), 1);
 
@@ -1368,8 +1363,8 @@ insert_traversal_aabb_case(struct radv_device *device,
    RADV_FROM_HANDLE(radv_pipeline_layout, layout, pCreateInfo->layout);
 
    nir_ssa_def *node_addr = build_node_to_addr(device, b, bvh_node);
-   nir_ssa_def *triangle_info = nir_build_load_global(
-      b, 2, 32, nir_iadd(b, node_addr, nir_imm_int64(b, 24)), .align_mul = 4, .align_offset = 0);
+   nir_ssa_def *triangle_info =
+      nir_build_load_global(b, 2, 32, nir_iadd(b, node_addr, nir_imm_int64(b, 24)));
    nir_ssa_def *primitive_id = nir_channel(b, triangle_info, 0);
    nir_ssa_def *geometry_id_and_flags = nir_channel(b, triangle_info, 1);
    nir_ssa_def *geometry_id = nir_iand(b, geometry_id_and_flags, nir_imm_int(b, 0xfffffff));
@@ -1447,11 +1442,9 @@ insert_traversal_aabb_case(struct radv_device *device,
             nir_channels(b, nir_imm_vec4(b, INFINITY, INFINITY, INFINITY, 0), 0x7);
 
          nir_ssa_def *bvh_lo =
-            nir_build_load_global(b, 3, 32, nir_iadd(b, node_addr, nir_imm_int64(b, 0)),
-                                  .align_mul = 4, .align_offset = 0);
+            nir_build_load_global(b, 3, 32, nir_iadd(b, node_addr, nir_imm_int64(b, 0)));
          nir_ssa_def *bvh_hi =
-            nir_build_load_global(b, 3, 32, nir_iadd(b, node_addr, nir_imm_int64(b, 12)),
-                                  .align_mul = 4, .align_offset = 0);
+            nir_build_load_global(b, 3, 32, nir_iadd(b, node_addr, nir_imm_int64(b, 12)));
 
          bvh_lo = nir_fsub(b, bvh_lo, nir_load_var(b, trav_vars->origin));
          bvh_hi = nir_fsub(b, bvh_hi, nir_load_var(b, trav_vars->origin));
@@ -1800,7 +1793,7 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
    nir_ssa_def *stack_entry_stride_def = nir_imm_int(b, stack_entry_stride);
    nir_ssa_def *stack_base =
       nir_iadd(b, nir_imm_int(b, b->shader->info.shared_size),
-               nir_imul(b, nir_load_subgroup_invocation(b), nir_imm_int(b, stack_entry_size)));
+               nir_imul(b, nir_load_local_invocation_index(b), nir_imm_int(b, stack_entry_size)));
 
    /*
     * A top-level AS can contain 2^24 children and a bottom-level AS can contain 2^24 triangles. At
@@ -1825,9 +1818,8 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
    {
       nir_store_var(b, trav_vars.bvh_base, build_addr_to_node(b, accel_struct), 1);
 
-      nir_ssa_def *bvh_root =
-         nir_build_load_global(b, 1, 32, accel_struct, .access = ACCESS_NON_WRITEABLE,
-                               .align_mul = 64, .align_offset = 0);
+      nir_ssa_def *bvh_root = nir_build_load_global(
+         b, 1, 32, accel_struct, .access = ACCESS_NON_WRITEABLE, .align_mul = 64);
 
       /* We create a BVH descriptor that covers the entire memory range. That way we can always
        * use the same descriptor, which avoids divergence when different rays hit different
@@ -1845,8 +1837,7 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
       nir_store_var(b, trav_vars.instance_addr, nir_imm_int64(b, 0), 1);
 
       nir_store_var(b, trav_vars.stack, nir_iadd(b, stack_base, stack_entry_stride_def), 1);
-      nir_store_shared(b, bvh_root, stack_base, .base = 0, .write_mask = 0x1,
-                       .align_mul = stack_entry_size, .align_offset = 0);
+      nir_store_shared(b, bvh_root, stack_base, .base = 0, .align_mul = stack_entry_size);
 
       nir_store_var(b, trav_vars.top_stack, nir_imm_int(b, 0), 1);
 
@@ -1872,7 +1863,7 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
                     nir_isub(b, nir_load_var(b, trav_vars.stack), stack_entry_stride_def), 1);
 
       nir_ssa_def *bvh_node = nir_load_shared(b, 1, 32, nir_load_var(b, trav_vars.stack), .base = 0,
-                                              .align_mul = stack_entry_size, .align_offset = 0);
+                                              .align_mul = stack_entry_size);
       nir_ssa_def *bvh_node_type = nir_iand(b, bvh_node, nir_imm_int(b, 7));
 
       bvh_node = nir_iadd(b, nir_load_var(b, trav_vars.bvh_base), nir_u2u(b, bvh_node, 64));
@@ -1900,8 +1891,8 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
             {
                /* instance */
                nir_ssa_def *instance_node_addr = build_node_to_addr(device, b, bvh_node);
-               nir_ssa_def *instance_data = nir_build_load_global(
-                  b, 4, 32, instance_node_addr, .align_mul = 64, .align_offset = 0);
+               nir_ssa_def *instance_data =
+                  nir_build_load_global(b, 4, 32, instance_node_addr, .align_mul = 64);
                nir_ssa_def *wto_matrix[] = {
                   nir_build_load_global(b, 4, 32,
                                         nir_iadd(b, instance_node_addr, nir_imm_int64(b, 16)),
@@ -1913,8 +1904,7 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
                                         nir_iadd(b, instance_node_addr, nir_imm_int64(b, 48)),
                                         .align_mul = 64, .align_offset = 48)};
                nir_ssa_def *instance_id = nir_build_load_global(
-                  b, 1, 32, nir_iadd(b, instance_node_addr, nir_imm_int64(b, 88)), .align_mul = 4,
-                  .align_offset = 0);
+                  b, 1, 32, nir_iadd(b, instance_node_addr, nir_imm_int64(b, 88)));
                nir_ssa_def *instance_and_mask = nir_channel(b, instance_data, 2);
                nir_ssa_def *instance_mask = nir_ushr(b, instance_and_mask, nir_imm_int(b, 24));
 
@@ -1929,10 +1919,9 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
                              build_addr_to_node(
                                 b, nir_pack_64_2x32(b, nir_channels(b, instance_data, 0x3))),
                              1);
-               nir_store_shared(b,
-                                nir_iand(b, nir_channel(b, instance_data, 0), nir_imm_int(b, 63)),
-                                nir_load_var(b, trav_vars.stack), .base = 0, .write_mask = 0x1,
-                                .align_mul = stack_entry_size, .align_offset = 0);
+               nir_store_shared(
+                  b, nir_iand(b, nir_channel(b, instance_data, 0), nir_imm_int(b, 63)),
+                  nir_load_var(b, trav_vars.stack), .base = 0, .align_mul = stack_entry_size);
                nir_store_var(b, trav_vars.stack,
                              nir_iadd(b, nir_load_var(b, trav_vars.stack), stack_entry_stride_def),
                              1);
@@ -1971,8 +1960,7 @@ insert_traversal(struct radv_device *device, const VkRayTracingPipelineCreateInf
                nir_push_if(b, nir_ine(b, new_node, nir_imm_int(b, 0xffffffff)));
                {
                   nir_store_shared(b, new_node, nir_load_var(b, trav_vars.stack), .base = 0,
-                                   .write_mask = 0x1, .align_mul = stack_entry_size,
-                                   .align_offset = 0);
+                                   .align_mul = stack_entry_size);
                   nir_store_var(
                      b, trav_vars.stack,
                      nir_iadd(b, nir_load_var(b, trav_vars.stack), stack_entry_stride_def), 1);
@@ -2103,7 +2091,7 @@ create_rt_shader(struct radv_device *device, const VkRayTracingPipelineCreateInf
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "rt_combined");
 
    b.shader->info.workgroup_size[0] = 8;
-   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.workgroup_size[1] = device->physical_device->rt_wave_size == 64 ? 8 : 4;
    b.shader->info.workgroup_size[2] = 1;
 
    struct rt_variables vars = create_rt_variables(b.shader, stack_sizes);
@@ -2212,6 +2200,12 @@ radv_rt_pipeline_create(VkDevice _device, VkPipelineCache _cache,
    radv_hash_rt_shaders(hash, &local_create_info, radv_get_hash_flags(device, keep_statistic_info));
    struct vk_shader_module module = {.base.type = VK_OBJECT_TYPE_SHADER_MODULE};
 
+   VkPipelineShaderStageRequiredSubgroupSizeCreateInfoEXT subgroup_size = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO_EXT,
+      .pNext = NULL,
+      .requiredSubgroupSize = device->physical_device->rt_wave_size,
+   };
+
    VkComputePipelineCreateInfo compute_info = {
       .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
       .pNext = NULL,
@@ -2219,6 +2213,7 @@ radv_rt_pipeline_create(VkDevice _device, VkPipelineCache _cache,
       .stage =
          {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .pNext = &subgroup_size,
             .stage = VK_SHADER_STAGE_COMPUTE_BIT,
             .module = vk_shader_module_to_handle(&module),
             .pName = "main",

@@ -41,6 +41,8 @@ struct xwl_present_window {
     uint64_t ust;
 
     OsTimerPtr frame_timer;
+    /* Timestamp when the current timer was first armed */
+    CARD32 timer_armed;
 
     struct wl_callback *sync_callback;
 

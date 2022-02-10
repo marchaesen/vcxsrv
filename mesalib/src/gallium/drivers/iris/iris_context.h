@@ -25,6 +25,7 @@
 
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
+#include "util/perf/u_trace.h"
 #include "util/set.h"
 #include "util/slab.h"
 #include "util/u_debug.h"
@@ -33,6 +34,7 @@
 #include "intel/dev/intel_debug.h"
 #include "intel/common/intel_l3_config.h"
 #include "intel/compiler/brw_compiler.h"
+#include "intel/ds/intel_driver_ds.h"
 #include "iris_batch.h"
 #include "iris_binder.h"
 #include "iris_fence.h"
@@ -226,7 +228,7 @@ struct iris_vs_prog_key {
 struct iris_tcs_prog_key {
    struct iris_vue_prog_key vue;
 
-   uint16_t tes_primitive_mode;
+   enum tess_primitive_mode _tes_primitive_mode;
 
    uint8_t input_vertices;
 
@@ -339,6 +341,7 @@ enum pipe_control_flags
    PIPE_CONTROL_DEPTH_CACHE_FLUSH               = (1 << 24),
    PIPE_CONTROL_TILE_CACHE_FLUSH                = (1 << 25),
    PIPE_CONTROL_FLUSH_HDC                       = (1 << 26),
+   PIPE_CONTROL_PSS_STALL_SYNC                  = (1 << 27),
 };
 
 #define PIPE_CONTROL_CACHE_FLUSH_BITS \
@@ -613,6 +616,8 @@ struct iris_context {
 
    struct u_upload_mgr *query_buffer_uploader;
 
+   struct intel_ds_device ds;
+
    struct {
       struct {
          /**
@@ -837,6 +842,9 @@ struct iris_context {
 
       /** Last rendering scale argument provided to genX(emit_hashing_mode). */
       unsigned current_hash_scale;
+
+      /** Resource holding the pixel pipe hashing tables. */
+      struct pipe_resource *pixel_hashing_tables;
    } state;
 };
 
@@ -885,6 +893,18 @@ void iris_copy_region(struct blorp_context *blorp,
                       struct pipe_resource *src,
                       unsigned src_level,
                       const struct pipe_box *src_box);
+
+static inline enum blorp_batch_flags
+iris_blorp_flags_for_batch(struct iris_batch *batch)
+{
+   if (batch->name == IRIS_BATCH_COMPUTE)
+      return BLORP_BATCH_USE_COMPUTE;
+
+   if (batch->name == IRIS_BATCH_BLITTER)
+      return BLORP_BATCH_USE_BLITTER;
+
+   return 0;
+}
 
 /* iris_draw.c */
 

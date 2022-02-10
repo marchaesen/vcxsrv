@@ -50,6 +50,8 @@ dEQP-VK.memory.mapping.dedicated_alloc.image.full.variable.implicit_unmap
 dEQP-VK.memory.mapping.suballocation.full.variable.implicit_unmap
 dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_geom
 dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_vert
+dEQP-VK.ssbo.layout.random.16bit.all_shared_buffer.40
+dEQP-VK.ssbo.layout.random.8bit.nested_structs_arrays_instance_arrays.9
 dEQP-VK.ssbo.layout.random.all_shared_buffer.5
 dEQP-VK.ssbo.layout.random.arrays_of_arrays.13
 dEQP-VK.ssbo.layout.random.nested_structs_arrays.0

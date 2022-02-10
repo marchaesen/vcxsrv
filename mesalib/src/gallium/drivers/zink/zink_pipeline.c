@@ -49,6 +49,7 @@ VkPipeline
 zink_create_gfx_pipeline(struct zink_screen *screen,
                          struct zink_gfx_program *prog,
                          struct zink_gfx_pipeline_state *state,
+                         const uint8_t *binding_map,
                          VkPrimitiveTopology primitive_topology)
 {
    struct zink_rasterizer_hw_state *hw_rast_state = (void*)state;
@@ -60,6 +61,13 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
       vertex_input_state.vertexBindingDescriptionCount = state->element_state->num_bindings;
       vertex_input_state.pVertexAttributeDescriptions = state->element_state->attribs;
       vertex_input_state.vertexAttributeDescriptionCount = state->element_state->num_attribs;
+      if (!screen->info.have_EXT_extended_dynamic_state) {
+         for (int i = 0; i < state->element_state->num_bindings; ++i) {
+            const unsigned buffer_id = binding_map[i];
+            VkVertexInputBindingDescription *binding = &state->element_state->b.bindings[i];
+            binding->stride = state->vertex_strides[buffer_id];
+         }
+      }
    }
 
    VkPipelineVertexInputDivisorStateCreateInfoEXT vdiv_state;

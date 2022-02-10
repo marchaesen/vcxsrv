@@ -117,8 +117,8 @@ bo_from_cache(struct v3dv_device *device, uint32_t size, const char *name)
       }
 
       bo_remove_from_cache(cache, bo);
-
       bo->name = name;
+      p_atomic_set(&bo->refcnt, 1);
    }
    mtx_unlock(&cache->lock);
    return bo;
@@ -131,12 +131,21 @@ bo_free(struct v3dv_device *device,
    if (!bo)
       return true;
 
+   assert(p_atomic_read(&bo->refcnt) == 0);
+
    if (bo->map)
       v3dv_bo_unmap(device, bo);
 
+   /* Our BO structs are stored in a sparse array in the physical device,
+    * so we don't want to free the BO pointer, instead we want to reset it
+    * to 0, to signal that array entry as being free.
+    */
+   uint32_t handle = bo->handle;
+   memset(bo, 0, sizeof(*bo));
+
    struct drm_gem_close c;
    memset(&c, 0, sizeof(c));
-   c.handle = bo->handle;
+   c.handle = handle;
    int ret = v3dv_ioctl(device->pdevice->render_fd, DRM_IOCTL_GEM_CLOSE, &c);
    if (ret != 0)
       fprintf(stderr, "close object %d: %s\n", bo->handle, strerror(errno));
@@ -151,8 +160,6 @@ bo_free(struct v3dv_device *device,
               bo->size / 1024);
       bo_dump_stats(device);
    }
-
-   vk_free(&device->vk.alloc, bo);
 
    return ret == 0;
 }
@@ -183,6 +190,7 @@ v3dv_bo_init(struct v3dv_bo *bo,
              const char *name,
              bool private)
 {
+   p_atomic_set(&bo->refcnt, 1);
    bo->handle = handle;
    bo->handle_bit = 1ull << (handle % 64);
    bo->size = size;
@@ -218,14 +226,6 @@ v3dv_bo_alloc(struct v3dv_device *device,
       }
    }
 
-   bo = vk_alloc(&device->vk.alloc, sizeof(struct v3dv_bo), 8,
-                 VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
-
-   if (!bo) {
-      fprintf(stderr, "Failed to allocate host memory for BO\n");
-      return NULL;
-   }
-
  retry:
    ;
 
@@ -244,13 +244,15 @@ v3dv_bo_alloc(struct v3dv_device *device,
          goto retry;
       }
 
-      vk_free(&device->vk.alloc, bo);
       fprintf(stderr, "Failed to allocate device memory for BO\n");
       return NULL;
    }
 
    assert(create.offset % page_align == 0);
    assert((create.offset & 0xffffffff) == create.offset);
+
+   bo = v3dv_device_lookup_bo(device->pdevice, create.handle);
+   assert(bo && bo->handle == 0);
 
    v3dv_bo_init(bo, create.handle, size, create.offset, name, private);
 
@@ -453,6 +455,9 @@ v3dv_bo_free(struct v3dv_device *device,
              struct v3dv_bo *bo)
 {
    if (!bo)
+      return true;
+
+   if (!p_atomic_dec_zero(&bo->refcnt))
       return true;
 
    struct timespec time;

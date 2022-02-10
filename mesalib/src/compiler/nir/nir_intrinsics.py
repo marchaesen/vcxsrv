@@ -254,6 +254,9 @@ index("nir_rounding_mode", "rounding_mode")
 # Whether or not to saturate in conversions
 index("unsigned", "saturate")
 
+# Whether or not trace_ray_intel is synchronous
+index("bool", "synchronous")
+
 intrinsic("nop", flags=[CAN_ELIMINATE])
 
 intrinsic("convert_alu_types", dest_comp=0, src_comp=[0],
@@ -934,8 +937,8 @@ def load(name, src_comp, indices=[], flags=[]):
 load("uniform", [1], [BASE, RANGE, DEST_TYPE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { buffer_index, offset }.
 load("ubo", [-1, 1], [ACCESS, ALIGN_MUL, ALIGN_OFFSET, RANGE_BASE, RANGE], flags=[CAN_ELIMINATE, CAN_REORDER])
-# src[] = { buffer_index, offset in vec4 units }
-load("ubo_vec4", [-1, 1], [ACCESS, COMPONENT], flags=[CAN_ELIMINATE, CAN_REORDER])
+# src[] = { buffer_index, offset in vec4 units }.  base is also in vec4 units.
+load("ubo_vec4", [-1, 1], [ACCESS, BASE, COMPONENT], flags=[CAN_ELIMINATE, CAN_REORDER])
 # src[] = { offset }.
 load("input", [1], [BASE, COMPONENT, DEST_TYPE, IO_SEMANTICS], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { vertex_id, offset }.
@@ -1019,6 +1022,10 @@ intrinsic("printf", src_comp=[1, 1], dest_comp=1, bit_sizes=[32])
 # in a buffer, nir_lower_printf will do that, but requires
 # the driver to at least provide a base location
 system_value("printf_buffer_address", 1, bit_sizes=[32,64])
+
+# Mesh shading MultiView intrinsics
+system_value("mesh_view_count", 1)
+load("mesh_view_indices", [1], [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 
 # IR3-specific version of most SSBO intrinsics. The only different
 # compare to the originals is that they add an extra source to hold
@@ -1149,7 +1156,7 @@ intrinsic("shared_atomic_comp_swap_dxil", src_comp=[1, 1, 1], dest_comp=1)
 
 # src[] = { value }
 store("raw_output_pan", [], [])
-store("combined_output_pan", [1, 1, 1], [BASE, COMPONENT, SRC_TYPE])
+store("combined_output_pan", [1, 1, 1, 4], [COMPONENT, SRC_TYPE, DEST_TYPE])
 load("raw_output_pan", [1], [BASE], [CAN_ELIMINATE, CAN_REORDER])
 
 # Loads the sampler paramaters <min_lod, max_lod, lod_bias>
@@ -1346,10 +1353,11 @@ store("ssbo_block_intel", [-1, 1], [WRITE_MASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET]
 store("shared_block_intel", [1], [BASE, WRITE_MASK, ALIGN_MUL, ALIGN_OFFSET])
 
 # Intrinsics for Intel mesh shading
-system_value("mesh_global_arg_addr_intel", 1, bit_sizes=[64])
+system_value("mesh_inline_data_intel", 1, [ALIGN_OFFSET], bit_sizes=[32, 64])
 
 # Intrinsics for Intel bindless thread dispatch
-system_value("btd_dss_id_intel", 1)
+# BASE=brw_topoloy_id
+system_value("topology_id_intel", 1, indices=[BASE])
 system_value("btd_stack_id_intel", 1)
 system_value("btd_global_arg_addr_intel", 1, bit_sizes=[64])
 system_value("btd_local_arg_addr_intel", 1, bit_sizes=[64])
@@ -1361,10 +1369,9 @@ intrinsic("btd_stack_push_intel", indices=[STACK_SIZE])
 # src[] = { }
 intrinsic("btd_retire_intel")
 
-# Intel-specific ray-tracing intrinsics
-intrinsic("trace_ray_initial_intel")
-intrinsic("trace_ray_commit_intel")
-intrinsic("trace_ray_continue_intel")
+# Intel-specific ray-tracing intrinsic
+# src[] = { globals, level, operation } SYNCHRONOUS=synchronous
+intrinsic("trace_ray_intel", src_comp=[1, 1, 1], indices=[SYNCHRONOUS])
 
 # System values used for ray-tracing on Intel
 system_value("ray_base_mem_addr_intel", 1, bit_sizes=[64])
@@ -1379,3 +1386,10 @@ system_value("callable_sbt_addr_intel", 1, bit_sizes=[64])
 system_value("callable_sbt_stride_intel", 1, bit_sizes=[16])
 system_value("leaf_opaque_intel", 1, bit_sizes=[1])
 system_value("leaf_procedural_intel", 1, bit_sizes=[1])
+# Values :
+#  0: AnyHit
+#  1: ClosestHit
+#  2: Miss
+#  3: Intersection
+system_value("btd_shader_type_intel", 1)
+system_value("ray_query_global_intel", 1, bit_sizes=[64])

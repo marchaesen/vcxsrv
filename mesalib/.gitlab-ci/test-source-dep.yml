@@ -18,6 +18,7 @@
       - .gitlab-ci/**/*
       - include/**/*
       - meson.build
+      - .gitattributes
       - src/*
       - src/compiler/**/*
       - src/drm-shim/**/*
@@ -40,6 +41,7 @@
       - src/mesa/vbo/**/*
       - src/mesa/x86/**/*
       - src/mesa/x86-64/**/*
+      - src/tool/**/*
       - src/util/**/*
 
 .vulkan-rules:
@@ -126,6 +128,7 @@
       - .gitlab-ci.yml
       - .gitlab-ci/**/*
       - meson.build
+      - .gitattributes
       - include/**/*
       - src/compiler/**/*
       - src/include/**/*

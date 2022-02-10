@@ -45,7 +45,6 @@ STABLE_EPHEMERAL=" \
       patch \
       pkg-config \
       python3-distutils \
-      wget \
       xz-utils \
       "
 
@@ -66,7 +65,8 @@ apt-get install -y --no-remove \
       python3-renderdoc \
       python3-simplejson \
       spirv-tools \
-      sysvinit-core
+      sysvinit-core \
+      wget
 
 
 . .gitlab-ci/container/container_pre_build.sh
@@ -84,6 +84,7 @@ apt-get install -y --no-remove \
 . .gitlab-ci/container/build-rust.sh
 . .gitlab-ci/container/build-crosvm.sh
 rm -rf /root/.cargo
+rm -rf /root/.rustup
 
 ############### Build kernel
 

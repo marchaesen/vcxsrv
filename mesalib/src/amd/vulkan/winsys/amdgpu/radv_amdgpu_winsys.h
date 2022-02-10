@@ -35,6 +35,9 @@
 #include "ac_gpu_info.h"
 #include "radv_radeon_winsys.h"
 
+#include "vk_sync.h"
+#include "vk_sync_timeline.h"
+
 struct radv_amdgpu_winsys {
    struct radeon_winsys base;
    amdgpu_device_handle dev;
@@ -62,14 +65,13 @@ struct radv_amdgpu_winsys {
       struct u_rwlock lock;
    } global_bo_list;
 
-   /* syncobj cache */
-   pthread_mutex_t syncobj_lock;
-   uint32_t *syncobj;
-   uint32_t syncobj_count, syncobj_capacity;
-
    /* BO log */
    struct u_rwlock log_bo_list_lock;
    struct list_head log_bo_list;
+
+   const struct vk_sync_type *sync_types[3];
+   struct vk_sync_type syncobj_sync_type;
+   struct vk_sync_timeline_type emulated_timeline_sync_type;
 
    uint32_t refcount;
 };

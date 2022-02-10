@@ -35,7 +35,6 @@ lower_frexp_sig(nir_builder *b, nir_ssa_def *x)
    nir_ssa_def *abs_x = nir_fabs(b, x);
    nir_ssa_def *zero = nir_imm_floatN_t(b, 0, x->bit_size);
    nir_ssa_def *sign_mantissa_mask, *exponent_value;
-   nir_ssa_def *is_not_zero = nir_fneu(b, abs_x, zero);
 
    switch (x->bit_size) {
    case 16:
@@ -89,18 +88,31 @@ lower_frexp_sig(nir_builder *b, nir_ssa_def *x)
        * 32 bits using nir_unpack_64_2x32_split_y.
        */
       nir_ssa_def *upper_x = nir_unpack_64_2x32_split_y(b, x);
-      nir_ssa_def *zero32 = nir_imm_int(b, 0);
 
+      /* If x is ±0, ±Inf, or NaN, return x unmodified. */
       nir_ssa_def *new_upper =
-         nir_ior(b, nir_iand(b, upper_x, sign_mantissa_mask),
-                    nir_bcsel(b, is_not_zero, exponent_value, zero32));
+         nir_bcsel(b,
+                   nir_iand(b,
+                            nir_flt(b, zero, abs_x),
+                            nir_fisfinite(b, x)),
+                   nir_ior(b,
+                           nir_iand(b, upper_x, sign_mantissa_mask),
+                           exponent_value),
+                   upper_x);
 
       nir_ssa_def *lower_x = nir_unpack_64_2x32_split_x(b, x);
 
       return nir_pack_64_2x32_split(b, lower_x, new_upper);
    } else {
-      return nir_ior(b, nir_iand(b, x, sign_mantissa_mask),
-                        nir_bcsel(b, is_not_zero, exponent_value, zero));
+      /* If x is ±0, ±Inf, or NaN, return x unmodified. */
+      return nir_bcsel(b,
+                       nir_iand(b,
+                                nir_flt(b, zero, abs_x),
+                                nir_fisfinite(b, x)),
+                       nir_ior(b,
+                               nir_iand(b, x, sign_mantissa_mask),
+                               exponent_value),
+                       x);
    }
 }
 

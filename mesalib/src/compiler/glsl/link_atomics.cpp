@@ -27,7 +27,8 @@
 #include "linker.h"
 #include "main/errors.h"
 #include "main/macros.h"
-#include "main/mtypes.h"
+#include "main/consts_exts.h"
+#include "main/shader_types.h"
 
 namespace {
    /*
@@ -147,12 +148,12 @@ namespace {
    }
 
    active_atomic_buffer *
-   find_active_atomic_counters(struct gl_context *ctx,
+   find_active_atomic_counters(const struct gl_constants *consts,
                                struct gl_shader_program *prog,
                                unsigned *num_buffers)
    {
       active_atomic_buffer *const buffers =
-         new active_atomic_buffer[ctx->Const.MaxAtomicBufferBindings];
+         new active_atomic_buffer[consts->MaxAtomicBufferBindings];
 
       *num_buffers = 0;
 
@@ -173,7 +174,7 @@ namespace {
          }
       }
 
-      for (unsigned i = 0; i < ctx->Const.MaxAtomicBufferBindings; i++) {
+      for (unsigned i = 0; i < consts->MaxAtomicBufferBindings; i++) {
          if (buffers[i].size == 0)
             continue;
 
@@ -201,13 +202,13 @@ namespace {
 }
 
 void
-link_assign_atomic_counter_resources(struct gl_context *ctx,
+link_assign_atomic_counter_resources(const struct gl_constants *consts,
                                      struct gl_shader_program *prog)
 {
    unsigned num_buffers;
    unsigned num_atomic_buffers[MESA_SHADER_STAGES] = {};
    active_atomic_buffer *abs =
-      find_active_atomic_counters(ctx, prog, &num_buffers);
+      find_active_atomic_counters(consts, prog, &num_buffers);
 
    prog->data->AtomicBuffers = rzalloc_array(prog->data, gl_active_atomic_buffer,
                                              num_buffers);
@@ -215,7 +216,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
 
    unsigned i = 0;
    for (unsigned binding = 0;
-        binding < ctx->Const.MaxAtomicBufferBindings;
+        binding < consts->MaxAtomicBufferBindings;
         binding++) {
 
       /* If the binding was not used, skip.
@@ -300,12 +301,12 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
 }
 
 void
-link_check_atomic_counter_resources(struct gl_context *ctx,
+link_check_atomic_counter_resources(const struct gl_constants *consts,
                                     struct gl_shader_program *prog)
 {
    unsigned num_buffers;
    active_atomic_buffer *const abs =
-      find_active_atomic_counters(ctx, prog, &num_buffers);
+      find_active_atomic_counters(consts, prog, &num_buffers);
    unsigned atomic_counters[MESA_SHADER_STAGES] = {};
    unsigned atomic_buffers[MESA_SHADER_STAGES] = {};
    unsigned total_atomic_counters = 0;
@@ -316,7 +317,7 @@ link_check_atomic_counter_resources(struct gl_context *ctx,
     * against the combined limit -- That's the behavior the spec
     * requires.
     */
-   for (unsigned i = 0; i < ctx->Const.MaxAtomicBufferBindings; i++) {
+   for (unsigned i = 0; i < consts->MaxAtomicBufferBindings; i++) {
       if (abs[i].size == 0)
          continue;
 
@@ -334,19 +335,19 @@ link_check_atomic_counter_resources(struct gl_context *ctx,
 
    /* Check that they are within the supported limits. */
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (atomic_counters[i] > ctx->Const.Program[i].MaxAtomicCounters)
+      if (atomic_counters[i] > consts->Program[i].MaxAtomicCounters)
          linker_error(prog, "Too many %s shader atomic counters",
                       _mesa_shader_stage_to_string(i));
 
-      if (atomic_buffers[i] > ctx->Const.Program[i].MaxAtomicBuffers)
+      if (atomic_buffers[i] > consts->Program[i].MaxAtomicBuffers)
          linker_error(prog, "Too many %s shader atomic counter buffers",
                       _mesa_shader_stage_to_string(i));
    }
 
-   if (total_atomic_counters > ctx->Const.MaxCombinedAtomicCounters)
+   if (total_atomic_counters > consts->MaxCombinedAtomicCounters)
       linker_error(prog, "Too many combined atomic counters");
 
-   if (total_atomic_buffers > ctx->Const.MaxCombinedAtomicBuffers)
+   if (total_atomic_buffers > consts->MaxCombinedAtomicBuffers)
       linker_error(prog, "Too many combined atomic buffers");
 
    delete [] abs;

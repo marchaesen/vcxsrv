@@ -8,7 +8,6 @@ deqp_args = [
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
 ]
-fraction = 2
 version_check = "GL ES 3.2.*git"
 renderer_check = "CML"
 
@@ -21,7 +20,6 @@ deqp_args = [
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
 ]
-fraction = 2
 
 [[deqp]]
 deqp = "/deqp/modules/gles31/deqp-gles31"
@@ -32,7 +30,6 @@ deqp_args = [
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
     "--deqp-gl-config-name=rgba8888d24s8ms0",
 ]
-fraction = 2
 
 # Note that KHR-GL3* test sets include all tests from the previous
 # version, so we only need to run one test list (unlike dEQP-GLES,

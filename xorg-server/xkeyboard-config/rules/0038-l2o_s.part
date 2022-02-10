@@ -3,3 +3,4 @@
   *			lv3:ralt_alt	= +level3(ralt_alt):2
   *			misc:typo 	= +typo(base):2
   *			misc:apl	= +apl(level3):2
+  *			grp:win_space_toggle	= +group(win_space_toggle):2

@@ -29,13 +29,15 @@
 #define ST_MANAGER_H
 
 #include "main/menums.h"
+#include "main/fbobject.h"
 
 #include "pipe/p_compiler.h"
+
 
 struct st_context;
 struct st_framebuffer;
 struct st_framebuffer_interface;
-struct st_renderbuffer;
+struct gl_renderbuffer;
 struct pipe_surface;
 
 void
@@ -45,12 +47,8 @@ void
 st_manager_validate_framebuffers(struct st_context *st);
 
 bool
-st_manager_add_color_renderbuffer(struct st_context *st, struct gl_framebuffer *fb,
+st_manager_add_color_renderbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
                                   gl_buffer_index idx);
-
-void
-st_framebuffer_reference(struct st_framebuffer **ptr,
-                         struct st_framebuffer *stfb);
 
 void
 st_framebuffer_interface_destroy(struct st_framebuffer_interface *stfbi);
@@ -59,7 +57,8 @@ void
 st_manager_flush_swapbuffers(void);
 
 void
-st_set_ws_renderbuffer_surface(struct st_renderbuffer *strb,
+st_set_ws_renderbuffer_surface(struct gl_renderbuffer *rb,
                                struct pipe_surface *surf);
 
+void st_manager_invalidate_drawables(struct gl_context *ctx);
 #endif /* ST_MANAGER_H */

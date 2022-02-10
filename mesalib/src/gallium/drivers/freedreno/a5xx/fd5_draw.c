@@ -87,6 +87,7 @@ fd5_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
          .key = {
             .rasterflat = ctx->rasterizer->flatshade,
          },
+         .clip_plane_enable = ctx->rasterizer->clip_plane_enable,
       },
       .rasterflat = ctx->rasterizer->flatshade,
       .sprite_coord_enable = ctx->rasterizer->sprite_coord_enable,

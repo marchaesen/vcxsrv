@@ -53,6 +53,13 @@ struct radv_descriptor_set_binding_layout {
 struct radv_descriptor_set_layout {
    struct vk_object_base base;
 
+   /* Descriptor set layouts can be destroyed at almost any time */
+   uint32_t ref_cnt;
+
+   /* Everything below is hashed and shouldn't contain any pointers. Be careful when modifying this
+    * structure.
+    */
+
    /* The create flags for this descriptor set layout */
    VkDescriptorSetLayoutCreateFlags flags;
 
@@ -89,9 +96,7 @@ struct radv_pipeline_layout {
    struct {
       struct radv_descriptor_set_layout *layout;
       uint32_t size;
-      uint16_t dynamic_offset_start;
-      uint16_t dynamic_offset_count;
-      VkShaderStageFlags dynamic_offset_stages;
+      uint32_t dynamic_offset_start;
    } set[MAX_SETS];
 
    uint32_t num_sets;

@@ -250,8 +250,11 @@ fd5_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
    setup_stages(emit, s);
 
    bool do_streamout = (s[VS].v->shader->stream_output.num_outputs > 0);
-   uint8_t clip_mask = s[VS].v->clip_mask, cull_mask = s[VS].v->cull_mask;
+   uint8_t clip_mask = s[VS].v->clip_mask,
+           cull_mask = s[VS].v->cull_mask;
    uint8_t clip_cull_mask = clip_mask | cull_mask;
+
+   clip_mask &= ctx->rasterizer->clip_plane_enable;
 
    fssz = (s[FS].i->double_threadsize) ? FOUR_QUADS : TWO_QUADS;
 
@@ -713,7 +716,7 @@ fd5_program_create(void *data, struct ir3_shader_variant *bs,
                    struct ir3_shader_variant *vs, struct ir3_shader_variant *hs,
                    struct ir3_shader_variant *ds, struct ir3_shader_variant *gs,
                    struct ir3_shader_variant *fs,
-                   const struct ir3_shader_key *key) in_dt
+                   const struct ir3_cache_key *key) in_dt
 {
    struct fd_context *ctx = fd_context(data);
    struct fd5_program_state *state = CALLOC_STRUCT(fd5_program_state);

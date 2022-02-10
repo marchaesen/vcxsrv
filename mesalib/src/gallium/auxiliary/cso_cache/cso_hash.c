@@ -178,7 +178,7 @@ struct cso_hash_iter cso_hash_insert(struct cso_hash *hash,
    struct cso_node **nextNode = cso_hash_find_node(hash, key);
    struct cso_node *node = cso_hash_create_node(hash, key, data, nextNode);
    if (!node) {
-      struct cso_hash_iter null_iter = {hash, 0};
+      struct cso_hash_iter null_iter = {hash, NULL};
       return null_iter;
    }
 
@@ -188,8 +188,8 @@ struct cso_hash_iter cso_hash_insert(struct cso_hash *hash,
 
 void cso_hash_init(struct cso_hash *hash)
 {
-   hash->fakeNext = 0;
-   hash->buckets = 0;
+   hash->fakeNext = NULL;
+   hash->buckets = NULL;
    hash->size = 0;
    hash->userNumBits = (short)MinNumBits;
    hash->numBits = 0;

@@ -47,7 +47,6 @@
 #include "helpers.h"
 #include "compiler.h"
 #include "midgard_quirks.h"
-#include "panfrost-quirks.h"
 #include "panfrost/util/pan_lower_framebuffer.h"
 
 #include "disassemble.h"
@@ -135,9 +134,13 @@ M_LOAD(ld_vary_32, nir_type_uint32);
 M_LOAD(ld_ubo_32, nir_type_uint32);
 M_LOAD(ld_ubo_64, nir_type_uint32);
 M_LOAD(ld_ubo_128, nir_type_uint32);
+M_LOAD(ld_u8, nir_type_uint8);
+M_LOAD(ld_u16, nir_type_uint16);
 M_LOAD(ld_32, nir_type_uint32);
 M_LOAD(ld_64, nir_type_uint32);
 M_LOAD(ld_128, nir_type_uint32);
+M_STORE(st_u8, nir_type_uint8);
+M_STORE(st_u16, nir_type_uint16);
 M_STORE(st_32, nir_type_uint32);
 M_STORE(st_64, nir_type_uint32);
 M_STORE(st_128, nir_type_uint32);
@@ -242,6 +245,74 @@ midgard_nir_lower_fdot2(nir_shader *shader)
 {
         return nir_shader_instructions_pass(shader,
                                             midgard_nir_lower_fdot2_instr,
+                                            nir_metadata_block_index | nir_metadata_dominance,
+                                            NULL);
+}
+
+static bool
+midgard_nir_lower_global_load_instr(nir_builder *b, nir_instr *instr, void *data)
+{
+        if (instr->type != nir_instr_type_intrinsic)
+                return false;
+
+        nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+        if (intr->intrinsic != nir_intrinsic_load_global &&
+            intr->intrinsic != nir_intrinsic_load_shared)
+                return false;
+
+        unsigned compsz = nir_dest_bit_size(intr->dest);
+        unsigned totalsz = compsz * nir_dest_num_components(intr->dest);
+        /* 8, 16, 32, 64 and 128 bit loads don't need to be lowered */
+        if (util_bitcount(totalsz) < 2 && totalsz <= 128)
+                return false;
+
+        b->cursor = nir_before_instr(instr);
+
+        assert(intr->src[0].is_ssa);
+        nir_ssa_def *addr = intr->src[0].ssa;
+
+        nir_ssa_def *comps[MIR_VEC_COMPONENTS];
+        unsigned ncomps = 0;
+
+        while (totalsz) {
+                unsigned loadsz = MIN2(1 << (util_last_bit(totalsz) - 1), 128);
+                unsigned loadncomps = loadsz / compsz;
+
+                nir_ssa_def *load;
+                if (intr->intrinsic == nir_intrinsic_load_global) {
+                        load = nir_load_global(b, addr, compsz / 8, loadncomps, compsz);
+                } else {
+                        assert(intr->intrinsic == nir_intrinsic_load_shared);
+                        nir_intrinsic_instr *shared_load =
+                                nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_shared);
+                        shared_load->num_components = loadncomps;
+                        shared_load->src[0] = nir_src_for_ssa(addr);
+                        nir_intrinsic_set_align(shared_load, compsz / 8, 0);
+                        nir_intrinsic_set_base(shared_load, nir_intrinsic_base(intr));
+                        nir_ssa_dest_init(&shared_load->instr, &shared_load->dest,
+                                          shared_load->num_components, compsz, NULL);
+                        nir_builder_instr_insert(b, &shared_load->instr);
+                        load = &shared_load->dest.ssa;
+                }
+
+                for (unsigned i = 0; i < loadncomps; i++)
+                        comps[ncomps++] = nir_channel(b, load, i);
+
+                totalsz -= loadsz;
+                addr = nir_iadd(b, addr, nir_imm_intN_t(b, loadsz / 8, addr->bit_size));
+        }
+
+        assert(ncomps == nir_dest_num_components(intr->dest));
+        nir_ssa_def_rewrite_uses(&intr->dest.ssa, nir_vec(b, comps, ncomps));
+
+        return true;
+}
+
+static bool
+midgard_nir_lower_global_load(nir_shader *shader)
+{
+        return nir_shader_instructions_pass(shader,
+                                            midgard_nir_lower_global_load_instr,
                                             nir_metadata_block_index | nir_metadata_dominance,
                                             NULL);
 }
@@ -1131,7 +1202,8 @@ mir_set_intr_mask(nir_instr *instr, midgard_instruction *ins, bool is_read)
                 dsize = nir_dest_bit_size(intr->dest);
         } else {
                 nir_mask = nir_intrinsic_write_mask(intr);
-                dsize = 32;
+                dsize = OP_IS_COMMON_STORE(ins->op) ?
+                        nir_src_bit_size(intr->src[0]) : 32;
         }
 
         /* Once we have the NIR mask, we need to normalize to work in 32-bit space */
@@ -1216,19 +1288,55 @@ emit_global(
                 unsigned bitsize = nir_dest_bit_size(intr->dest) *
                         nir_dest_num_components(intr->dest);
 
-                if (bitsize <= 32)
-                        ins = m_ld_32(srcdest, 0);
-                else if (bitsize <= 64)
-                        ins = m_ld_64(srcdest, 0);
-                else if (bitsize <= 128)
-                        ins = m_ld_128(srcdest, 0);
-                else
-                        unreachable("Invalid global read size");
+                switch (bitsize) {
+                case 8: ins = m_ld_u8(srcdest, 0); break;
+                case 16: ins = m_ld_u16(srcdest, 0); break;
+                case 32: ins = m_ld_32(srcdest, 0); break;
+                case 64: ins = m_ld_64(srcdest, 0); break;
+                case 128: ins = m_ld_128(srcdest, 0); break;
+                default: unreachable("Invalid global read size");
+                }
+
+                mir_set_intr_mask(instr, &ins, is_read);
+
+                /* For anything not aligned on 32bit, make sure we write full
+                 * 32 bits registers. */
+                if (bitsize & 31) {
+                        unsigned comps_per_32b = 32 / nir_dest_bit_size(intr->dest);
+
+                        for (unsigned c = 0; c < 4 * comps_per_32b; c += comps_per_32b) {
+                                if (!(ins.mask & BITFIELD_RANGE(c, comps_per_32b)))
+                                        continue;
+
+                                unsigned base = ~0;
+                                for (unsigned i = 0; i < comps_per_32b; i++) {
+                                        if (ins.mask & BITFIELD_BIT(c + i)) {
+                                                base = ins.swizzle[0][c + i];
+                                                break;
+                                        }
+                                }
+
+                                assert(base != ~0);
+
+                                for (unsigned i = 0; i < comps_per_32b; i++) {
+                                        if (!(ins.mask & BITFIELD_BIT(c + i))) {
+                                                ins.swizzle[0][c + i] = base + i;
+                                                ins.mask |= BITFIELD_BIT(c + i);
+                                        }
+                                        assert(ins.swizzle[0][c + i] == base + i);
+                                }
+                        }
+
+                }
         } else {
                 unsigned bitsize = nir_src_bit_size(intr->src[0]) *
                         nir_src_num_components(intr->src[0]);
 
-                if (bitsize <= 32)
+                if (bitsize == 8)
+                        ins = m_st_u8(srcdest, 0);
+                else if (bitsize == 16)
+                        ins = m_st_u16(srcdest, 0);
+                else if (bitsize <= 32)
                         ins = m_st_32(srcdest, 0);
                 else if (bitsize <= 64)
                         ins = m_st_64(srcdest, 0);
@@ -1236,10 +1344,11 @@ emit_global(
                         ins = m_st_128(srcdest, 0);
                 else
                         unreachable("Invalid global store size");
+
+                mir_set_intr_mask(instr, &ins, is_read);
         }
 
         mir_set_offset(ctx, &ins, offset, seg);
-        mir_set_intr_mask(instr, &ins, is_read);
 
         /* Set a valid swizzle for masked out components */
         assert(ins.mask);
@@ -1867,54 +1976,55 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
         case nir_intrinsic_store_combined_output_pan:
                 assert(nir_src_is_const(instr->src[1]) && "no indirect outputs");
 
-                offset = nir_intrinsic_base(instr) + nir_src_as_uint(instr->src[1]);
-
                 reg = nir_src_index(ctx, &instr->src[0]);
 
                 if (ctx->stage == MESA_SHADER_FRAGMENT) {
                         bool combined = instr->intrinsic ==
                                 nir_intrinsic_store_combined_output_pan;
 
-                        const nir_variable *var;
-                        var = nir_find_variable_with_driver_location(ctx->nir, nir_var_shader_out,
-                                         nir_intrinsic_base(instr));
-                        assert(var);
-
-                        /* Dual-source blend writeout is done by leaving the
-                         * value in r2 for the blend shader to use. */
-                        if (var->data.index) {
-                                if (instr->src[0].is_ssa) {
-                                        emit_explicit_constant(ctx, reg, reg);
-
-                                        unsigned out = make_compiler_temp(ctx);
-
-                                        midgard_instruction ins = v_mov(reg, out);
-                                        emit_mir_instruction(ctx, ins);
-
-                                        ctx->blend_src1 = out;
-                                } else {
-                                        ctx->blend_src1 = reg;
-                                }
-
-                                break;
-                        }
-
                         enum midgard_rt_id rt;
-                        if (var->data.location >= FRAG_RESULT_DATA0)
-                                rt = MIDGARD_COLOR_RT0 + var->data.location -
-                                     FRAG_RESULT_DATA0;
-                        else if (combined)
-                                rt = MIDGARD_ZS_RT;
-                        else
-                                unreachable("bad rt");
 
-                        unsigned reg_z = ~0, reg_s = ~0;
+                        unsigned reg_z = ~0, reg_s = ~0, reg_2 = ~0;
                         if (combined) {
                                 unsigned writeout = nir_intrinsic_component(instr);
                                 if (writeout & PAN_WRITEOUT_Z)
                                         reg_z = nir_src_index(ctx, &instr->src[2]);
                                 if (writeout & PAN_WRITEOUT_S)
                                         reg_s = nir_src_index(ctx, &instr->src[3]);
+                                if (writeout & PAN_WRITEOUT_2)
+                                        reg_2 = nir_src_index(ctx, &instr->src[4]);
+
+                                if (writeout & PAN_WRITEOUT_C)
+                                        rt = MIDGARD_COLOR_RT0;
+                                else
+                                        rt = MIDGARD_ZS_RT;
+                        } else {
+                                const nir_variable *var =
+                                        nir_find_variable_with_driver_location(ctx->nir, nir_var_shader_out,
+                                                 nir_intrinsic_base(instr));
+
+                                assert(var != NULL);
+                                assert(var->data.location >= FRAG_RESULT_DATA0);
+
+                                rt = MIDGARD_COLOR_RT0 + var->data.location -
+                                     FRAG_RESULT_DATA0;
+                        }
+
+                        /* Dual-source blend writeout is done by leaving the
+                         * value in r2 for the blend shader to use. */
+                        if (~reg_2) {
+                                if (instr->src[4].is_ssa) {
+                                        emit_explicit_constant(ctx, reg_2, reg_2);
+
+                                        unsigned out = make_compiler_temp(ctx);
+
+                                        midgard_instruction ins = v_mov(reg_2, out);
+                                        emit_mir_instruction(ctx, ins);
+
+                                        ctx->blend_src1 = out;
+                                } else {
+                                        ctx->blend_src1 = reg_2;
+                                }
                         }
 
                         emit_fragment_store(ctx, reg, reg_z, reg_s, rt, 0);
@@ -1930,6 +2040,8 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                          * emit that explicitly. */
 
                         emit_explicit_constant(ctx, reg, reg);
+
+                        offset = nir_intrinsic_base(instr) + nir_src_as_uint(instr->src[1]);
 
                         unsigned dst_component = nir_intrinsic_component(instr);
                         unsigned nr_comp = nir_src_num_components(instr->src[0]);
@@ -3088,10 +3200,9 @@ midgard_compile_shader_nir(nir_shader *nir,
         NIR_PASS_V(nir, nir_lower_var_copies);
         NIR_PASS_V(nir, nir_lower_vars_to_ssa);
 
-        unsigned pan_quirks = panfrost_get_quirks(inputs->gpu_id, 0);
         NIR_PASS_V(nir, pan_lower_framebuffer,
                    inputs->rt_formats, inputs->raw_fmt_mask,
-                   inputs->is_blend, pan_quirks);
+                   inputs->is_blend, ctx->quirks & MIDGARD_BROKEN_BLEND_LOADS);
 
         NIR_PASS_V(nir, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
                         glsl_type_size, 0);
@@ -3100,11 +3211,11 @@ midgard_compile_shader_nir(nir_shader *nir,
 
         NIR_PASS_V(nir, pan_nir_lower_64bit_intrin);
 
+        NIR_PASS_V(nir, midgard_nir_lower_global_load);
+
         /* Optimisation passes */
 
         optimise_nir(nir, ctx->quirks, inputs->is_blend);
-
-        NIR_PASS_V(nir, pan_nir_reorder_writeout);
 
         if ((midgard_debug & MIDGARD_DBG_SHADERS) &&
             ((midgard_debug & MIDGARD_DBG_INTERNAL) || !nir->info.internal)) {

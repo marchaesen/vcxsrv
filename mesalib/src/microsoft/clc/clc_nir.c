@@ -68,22 +68,6 @@ lower_load_work_dim(nir_builder *b, nir_intrinsic_instr *intr,
 }
 
 static bool
-lower_load_local_group_size(nir_builder *b, nir_intrinsic_instr *intr)
-{
-   b->cursor = nir_after_instr(&intr->instr);
-
-   nir_const_value v[3] = {
-      nir_const_value_for_int(b->shader->info.workgroup_size[0], 32),
-      nir_const_value_for_int(b->shader->info.workgroup_size[1], 32),
-      nir_const_value_for_int(b->shader->info.workgroup_size[2], 32)
-   };
-   nir_ssa_def *size = nir_build_imm(b, 3, 32, v);
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, size);
-   nir_instr_remove(&intr->instr);
-   return true;
-}
-
-static bool
 lower_load_num_workgroups(nir_builder *b, nir_intrinsic_instr *intr,
                           nir_variable *var)
 {
@@ -145,9 +129,6 @@ clc_nir_lower_system_values(nir_shader *nir, nir_variable *var)
                break;
             case nir_intrinsic_load_work_dim:
                progress |= lower_load_work_dim(&b, intr, var);
-               break;
-            case nir_intrinsic_load_workgroup_size:
-               lower_load_local_group_size(&b, intr);
                break;
             case nir_intrinsic_load_num_workgroups:
                lower_load_num_workgroups(&b, intr, var);

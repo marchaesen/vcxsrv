@@ -391,20 +391,6 @@ dEQP-GLES31.functional.image_load_store.3d.store.rgba8i,Fail
 dEQP-GLES31.functional.image_load_store.3d.store.rgba8i_single_layer,Fail
 dEQP-GLES31.functional.image_load_store.3d.store.rgba8ui,Fail
 dEQP-GLES31.functional.image_load_store.3d.store.rgba8ui_single_layer,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_geometry_fragment.default_framebuffer_bbox_equal,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_geometry_fragment.default_framebuffer_bbox_larger,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_geometry_fragment.fbo_bbox_larger,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_equal,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_smaller,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_fragment.fbo_bbox_smaller,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_geometry_fragment.default_framebuffer_bbox_equal,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_geometry_fragment.default_framebuffer_bbox_larger,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_geometry_fragment.fbo_bbox_equal,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.global_state.vertex_tessellation_geometry_fragment.fbo_bbox_smaller,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.tessellation_set_per_draw.vertex_tessellation_fragment.default_framebuffer_bbox_smaller,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.tessellation_set_per_draw.vertex_tessellation_fragment.fbo_bbox_larger,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.tessellation_set_per_draw.vertex_tessellation_geometry_fragment.default_framebuffer_bbox_smaller,Fail
-dEQP-GLES31.functional.primitive_bounding_box.triangles.tessellation_set_per_draw.vertex_tessellation_geometry_fragment.fbo_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_equal,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.default_framebuffer_bbox_larger,Fail
 dEQP-GLES31.functional.primitive_bounding_box.wide_points.global_state.vertex_tessellation_fragment.fbo_bbox_equal,Fail
@@ -433,12 +419,9 @@ dEQP-GLES31.functional.shaders.multisample_interpolation.interpolate_at_sample.n
 dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_clear,Fail
 dEQP-GLES31.functional.stencil_texturing.render.depth32f_stencil8_clear,Fail
 dEQP-GLES31.functional.synchronization.in_invocation.ssbo_alias_write,Fail
-dEQP-GLES31.functional.synchronization.inter_call.with_memory_barrier.ssbo_atomic_write_read,Fail
-dEQP-GLES31.functional.synchronization.inter_call.with_memory_barrier.ssbo_write_read,Fail
 dEQP-GLES31.functional.synchronization.inter_invocation.image_alias_write,Fail
 dEQP-GLES31.functional.synchronization.inter_invocation.ssbo_alias_write,Fail
 dEQP-GLES31.functional.synchronization.inter_invocation.ssbo_write_read,Fail
-dEQP-GLES31.functional.tessellation.shader_input_output.gl_position_vs_to_tcs_to_tes,Fail
 dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth24_stencil8.gather_size_npot,Fail
 dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth24_stencil8.gather_size_pot,Fail
 dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth24_stencil8.linear_size_npot,Fail
@@ -511,7 +494,6 @@ dEQP-GLES31.functional.texture.specification.texstorage3d.format.depth24_stencil
 dEQP-GLES31.functional.texture.specification.texstorage3d.format.depth_component24_cube_array,Fail
 dEQP-GLES31.functional.texture.specification.texsubimage3d_depth.depth24_stencil8_cube_array,Fail
 dEQP-GLES31.functional.texture.specification.texsubimage3d_depth.depth_component24_cube_array,Fail
-KHR-GL46.CommonBugs.CommonBug_SparseBuffersWithCopyOps,Crash
 KHR-GL46.blend_equation_advanced.blend_all.GL_COLORBURN_KHR_all_qualifier,Fail
 KHR-GL46.blend_equation_advanced.blend_all.GL_COLORDODGE_KHR_all_qualifier,Fail
 KHR-GL46.blend_equation_advanced.blend_all.GL_DARKEN_KHR_all_qualifier,Fail
@@ -543,13 +525,10 @@ KHR-GL46.blend_equation_advanced.blend_specific.GL_OVERLAY_KHR,Fail
 KHR-GL46.blend_equation_advanced.blend_specific.GL_SCREEN_KHR,Fail
 KHR-GL46.blend_equation_advanced.blend_specific.GL_SOFTLIGHT_KHR,Fail
 KHR-GL46.clip_distance.functional,Fail
-KHR-GL46.compute_shader.built-in-variables,Fail
 KHR-GL46.compute_shader.conditional-dispatching,Fail
-KHR-GL46.compute_shader.shared-simple,Fail
 KHR-GL46.conditional_render_inverted.functional,Fail
 KHR-GL46.copy_image.functional,Timeout
 KHR-GL46.cull_distance.functional,Fail
-KHR-GL46.direct_state_access.queries_functional,Fail
 KHR-GL46.direct_state_access.vertex_arrays_attribute_format,Fail
 KHR-GL46.geometry_shader.adjacency.adjacency_indiced_triangle_strip,Fail
 KHR-GL46.gpu_shader_fp64.fp64.varyings,Fail
@@ -582,7 +561,12 @@ KHR-GL46.shader_image_load_store.non-layered_binding,Fail
 KHR-GL46.shader_storage_buffer_object.advanced-readWrite-case1-cs,Fail
 KHR-GL46.shader_storage_buffer_object.basic-operations-case1-cs,Fail
 KHR-GL46.shader_storage_buffer_object.basic-operations-case1-vs,Fail
-KHR-GL46.sparse_buffer_tests.BufferStorageTest,Crash
+
+# 3D isn't supported by radv yet
+KHR-GL46.sparse_texture_tests.InternalFormatQueries,Fail
+KHR-GL46.sparse_texture_tests.SparseTextureAllocation,Fail
+KHR-GL46.sparse_texture_tests.SparseTextureCommitment,Fail
+
 KHR-GL46.stencil_texturing.functional,Fail
 KHR-GL46.texture_filter_minmax_tests.TextureFilterMinmaxMagnificationFiltering,Fail
 KHR-GL46.texture_filter_minmax_tests.TextureFilterMinmaxMinificationFiltering,Fail
@@ -610,16 +594,6 @@ KHR-GL46.texture_swizzle.functional,Timeout
 KHR-GL46.texture_swizzle.smoke,Timeout
 KHR-GL46.texture_view.view_classes,Fail
 KHR-GL46.texture_view.view_sampling,Fail
-KHR-GL46.transform_feedback.capture_geometry_separate_test,Fail
-KHR-GL46.transform_feedback.capture_vertex_separate_test,Fail
-KHR-GL46.transform_feedback.query_geometry_separate_test,Fail
-KHR-GL46.transform_feedback.query_vertex_separate_test,Fail
-KHR-GL46.transform_feedback_overflow_query_ARB.advanced-single-stream-interleaved-attribs,Fail
-KHR-GL46.transform_feedback_overflow_query_ARB.advanced-single-stream-separate-attribs,Fail
-KHR-GL46.transform_feedback_overflow_query_ARB.basic-single-stream-interleaved-attribs,Fail
-KHR-GL46.transform_feedback_overflow_query_ARB.basic-single-stream-separate-attribs,Fail
-KHR-GL46.transform_feedback_overflow_query_ARB.multiple-streams-multiple-buffers-per-stream,Fail
-KHR-GL46.transform_feedback_overflow_query_ARB.multiple-streams-one-buffer-per-stream,Fail
 KHR-GL46.map_buffer_alignment.functional,Fail
 KHR-GL46.tessellation_shader.single.isolines_tessellation,Fail
 KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.data_pass_through,Fail
@@ -635,7 +609,6 @@ KHR-GL46.tessellation_shader.tessellation_shader_triangles_tessellation.identica
 KHR-GL46.tessellation_shader.tessellation_shader_triangles_tessellation.inner_tessellation_level_rounding,Fail
 KHR-GL46.tessellation_shader.vertex.vertex_spacing,Fail
 KHR-GL46.geometry_shader.adjacency.adjacency_non_indiced_triangle_strip,Fail
-KHR-GL46.texture_gather.plain-gather-float-2d-srgb,Fail
 
 glx@extension string sanity,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
@@ -1372,7 +1345,6 @@ spec@arb_depth_texture@texwrap formats offset@GL_DEPTH_COMPONENT24- swizzled,Fai
 spec@arb_depth_texture@texwrap formats offset@GL_DEPTH_COMPONENT32,Fail
 spec@arb_depth_texture@texwrap formats offset@GL_DEPTH_COMPONENT32- NPOT,Fail
 spec@arb_depth_texture@texwrap formats offset@GL_DEPTH_COMPONENT32- swizzled,Fail
-spec@arb_direct_state_access@gettextureimage-formats,Crash
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.frag,Fail
 spec@arb_enhanced_layouts@compiler@block-member-locations@arrayed-block-member-location.vert,Fail
 spec@arb_enhanced_layouts@execution@component-layout@vs-fs-array-dvec3,Crash
@@ -1597,9 +1569,6 @@ spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-08,Fail
 spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-cumulative,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
-spec@arb_sparse_buffer@basic,Crash
-spec@arb_sparse_buffer@buffer-data,Crash
-spec@arb_sparse_buffer@commit,Crash
 spec@arb_stencil_texturing@draw,Fail
 spec@arb_tessellation_shader@arb_tessellation_shader-tes-gs-max-output -small -scan 1 50,Crash
 spec@arb_tessellation_shader@execution@compatibility@tes-clip-vertex-different-from-position,Fail
@@ -2062,7 +2031,6 @@ spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRE
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- swizzled- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT5_EXT- swizzled- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_texture_integer@texwrap formats bordercolor-swizzled,Fail
 spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB16I- swizzled- border color only,Fail
 spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB16UI- swizzled- border color only,Fail
@@ -2131,8 +2099,6 @@ spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-clamp-z,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-shadow2dproj-bias,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-shadow2dproj,Fail
-spec@glsl-1.10@execution@temp-array-indexing@glsl-fs-giant-temp-array,Crash
-spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-giant-temp-array,Crash
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-primitives,Fail
 spec@glsl-1.30@execution@clipping@vs-clip-distance-primitives,Fail
@@ -2202,13 +2168,7 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl srgb-fp@sRGB decode full precision,Fail
-spec@nv_conditional_render@bitmap,Fail
-spec@nv_conditional_render@blitframebuffer,Fail
-spec@nv_conditional_render@clear,Fail
 spec@nv_conditional_render@copypixels,Fail
-spec@nv_conditional_render@dlist,Fail
-spec@nv_conditional_render@drawpixels,Fail
-spec@nv_conditional_render@vertex_array,Fail
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x223344ff,Fail
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color 0 0x76356278,Fail
 spec@nv_copy_depth_to_color@nv_copy_depth_to_color 1 0x223344ff,Fail

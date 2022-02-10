@@ -1,0 +1,2 @@
+# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463 (Fail)
+KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail

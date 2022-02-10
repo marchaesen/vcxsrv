@@ -1620,8 +1620,8 @@ get_texel_buffer_copy_gs()
    nir->info.inputs_read = 1ull << VARYING_SLOT_POS;
    nir->info.outputs_written = (1ull << VARYING_SLOT_POS) |
                                (1ull << VARYING_SLOT_LAYER);
-   nir->info.gs.input_primitive = GL_TRIANGLES;
-   nir->info.gs.output_primitive = GL_TRIANGLE_STRIP;
+   nir->info.gs.input_primitive = SHADER_PRIM_TRIANGLES;
+   nir->info.gs.output_primitive = SHADER_PRIM_TRIANGLE_STRIP;
    nir->info.gs.vertices_in = 3;
    nir->info.gs.vertices_out = 3;
    nir->info.gs.invocations = 1;

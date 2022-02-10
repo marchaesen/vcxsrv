@@ -562,7 +562,11 @@ vc4_nir_lower_blend_instr(struct vc4_compile *c, nir_builder *b,
 
         nir_instr_rewrite_src(&intr->instr, &intr->src[0],
                               nir_src_for_ssa(blend_output));
-        intr->num_components = blend_output->num_components;
+        if (intr->num_components != blend_output->num_components) {
+                unsigned component_mask = BITFIELD_MASK(blend_output->num_components);
+                nir_intrinsic_set_write_mask(intr, component_mask);
+                intr->num_components = blend_output->num_components;
+        }
 }
 
 static bool

@@ -24,7 +24,7 @@ libd3d12winsys = static_library(
   'd3d12winsys',
   files('d3d12_wgl_framebuffer.cpp', 'd3d12_wgl_winsys.c'),
   include_directories : [inc_src, inc_wgl, inc_include, inc_gallium, inc_gallium_aux, inc_gallium_drivers],
-  dependencies : [dep_dxheaders],
+  dependencies : [dep_dxheaders, idep_nir_headers],
   gnu_symbol_visibility : 'hidden',
 )
 

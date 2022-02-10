@@ -86,6 +86,19 @@ struct dxil_psv_runtime_info_0 {
       } vs;
 
       struct {
+         uint32_t input_control_point_count;
+         uint32_t output_control_point_count;
+         uint32_t tessellator_domain;
+         uint32_t tessellator_output_primitive;
+      } hs;
+
+      struct {
+         uint32_t input_control_point_count;
+         char output_position_present;
+         uint32_t tessellator_domain;
+      } ds;
+
+      struct {
          uint32_t input_primitive;
          uint32_t output_toplology;
          uint32_t output_stream_mask;
@@ -131,7 +144,7 @@ struct dxil_mdnode;
 struct dxil_module;
 
 const struct dxil_mdnode *
-get_signatures(struct dxil_module *mod, nir_shader *s, bool vulkan);
+get_signatures(struct dxil_module *mod, nir_shader *s, bool vulkan, unsigned input_clip_size);
 
 #ifdef __cplusplus
 }

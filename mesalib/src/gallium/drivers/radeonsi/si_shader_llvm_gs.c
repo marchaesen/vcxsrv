@@ -176,7 +176,7 @@ void si_llvm_emit_es_epilogue(struct ac_shader_abi *abi)
             continue;
          }
 
-         ac_build_buffer_store_dword(&ctx->ac, ctx->esgs_ring, out_val, 1, NULL,
+         ac_build_buffer_store_dword(&ctx->ac, ctx->esgs_ring, out_val, NULL, NULL,
                                      ac_get_arg(&ctx->ac, ctx->args.es2gs_offset),
                                      (4 * param + chan) * 4, ac_glc | ac_slc | ac_swizzled);
       }
@@ -277,8 +277,8 @@ static void si_llvm_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVM
 
          out_val = ac_to_integer(&ctx->ac, out_val);
 
-         ac_build_buffer_store_dword(&ctx->ac, ctx->gsvs_ring[stream], out_val, 1, voffset, soffset,
-                                     0, ac_glc | ac_slc | ac_swizzled);
+         ac_build_buffer_store_dword(&ctx->ac, ctx->gsvs_ring[stream], out_val, NULL,
+                                     voffset, soffset, 0, ac_glc | ac_slc | ac_swizzled);
       }
    }
 
@@ -312,12 +312,28 @@ static void si_llvm_emit_primitive(struct ac_shader_abi *abi, unsigned stream)
 
 void si_preload_esgs_ring(struct si_shader_context *ctx)
 {
+   LLVMBuilderRef builder = ctx->ac.builder;
+
    if (ctx->screen->info.chip_class <= GFX8) {
-      unsigned ring = ctx->stage == MESA_SHADER_GEOMETRY ? SI_GS_RING_ESGS : SI_ES_RING_ESGS;
-      LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, ring, 0);
+      LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, SI_RING_ESGS, 0);
       LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
 
       ctx->esgs_ring = ac_build_load_to_sgpr(&ctx->ac, buf_ptr, offset);
+
+      if (ctx->stage != MESA_SHADER_GEOMETRY) {
+         LLVMValueRef desc1 = LLVMBuildExtractElement(builder, ctx->esgs_ring, ctx->ac.i32_1, "");
+         LLVMValueRef desc3 = LLVMBuildExtractElement(builder, ctx->esgs_ring,
+                                                      LLVMConstInt(ctx->ac.i32, 3, 0), "");
+         desc1 = LLVMBuildOr(builder, desc1, LLVMConstInt(ctx->ac.i32,
+                                                          S_008F04_SWIZZLE_ENABLE(1), 0), "");
+         desc3 = LLVMBuildOr(builder, desc3, LLVMConstInt(ctx->ac.i32,
+                                                          S_008F0C_ELEMENT_SIZE(1) |
+                                                          S_008F0C_INDEX_STRIDE(3) |
+                                                          S_008F0C_ADD_TID_ENABLE(1), 0), "");
+         ctx->esgs_ring = LLVMBuildInsertElement(builder, ctx->esgs_ring, desc1, ctx->ac.i32_1, "");
+         ctx->esgs_ring = LLVMBuildInsertElement(builder, ctx->esgs_ring, desc3,
+                                                 LLVMConstInt(ctx->ac.i32, 3, 0), "");
+      }
    } else {
       if (USE_LDS_SYMBOLS) {
          /* Declare the ESGS ring as an explicit LDS symbol. */
@@ -453,10 +469,7 @@ struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
    /* Fill in output information. */
    for (i = 0; i < gsinfo->num_outputs; ++i) {
       outputs[i].semantic = gsinfo->output_semantic[i];
-
-      for (int chan = 0; chan < 4; chan++) {
-         outputs[i].vertex_stream[chan] = (gsinfo->output_streams[i] >> (2 * chan)) & 3;
-      }
+      outputs[i].vertex_streams = gsinfo->output_streams[i];
    }
 
    LLVMBasicBlockRef end_bb;
@@ -484,7 +497,7 @@ struct si_shader *si_generate_gs_copy_shader(struct si_screen *sscreen,
       for (i = 0; i < gsinfo->num_outputs; ++i) {
          for (unsigned chan = 0; chan < 4; chan++) {
             if (!(gsinfo->output_usagemask[i] & (1 << chan)) ||
-                outputs[i].vertex_stream[chan] != stream) {
+                ((outputs[i].vertex_streams >> (chan * 2)) & 0x3) != stream) {
                outputs[i].values[chan] = LLVMGetUndef(ctx.ac.f32);
                continue;
             }

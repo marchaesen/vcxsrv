@@ -55,6 +55,7 @@ files_libiris = files(
   'iris_screen.c',
   'iris_screen.h',
   'iris_disk_cache.c',
+  'iris_utrace.c',
 )
 
 iris_per_hw_ver_libs = []
@@ -68,7 +69,8 @@ foreach v : ['80', '90', '110', '120', '125']
       '-DGFX_VERx10=@0@'.format(v),
     ],
     gnu_symbol_visibility : 'hidden',
-    dependencies : [dep_libdrm, dep_valgrind, idep_genxml, idep_nir_headers],
+    dependencies : [dep_libdrm, dep_valgrind, idep_genxml, idep_nir_headers,
+                    idep_intel_driver_ds_headers, ],
   )
 endforeach
 
@@ -84,7 +86,8 @@ libiris = static_library(
   c_args : [c_sse2_args],
   cpp_args : [c_sse2_args],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [dep_libdrm, dep_valgrind, idep_genxml, idep_libintel_common, idep_nir_headers],
+  dependencies : [dep_libdrm, dep_valgrind, idep_genxml, idep_nir_headers,
+                  idep_libintel_common, idep_intel_driver_ds, ],
   link_with : [
     iris_per_hw_ver_libs, libintel_compiler, libintel_dev, libisl,
     libblorp, libintel_perf

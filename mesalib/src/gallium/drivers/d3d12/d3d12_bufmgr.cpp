@@ -95,7 +95,7 @@ d3d12_bo_new(ID3D12Device *dev, uint64_t size, const pb_desc *pb_desc)
    D3D12_RESOURCE_DESC res_desc;
    res_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
    res_desc.Format = DXGI_FORMAT_UNKNOWN;
-   res_desc.Alignment = pb_desc->alignment;
+   res_desc.Alignment = 0;
    res_desc.Width = size;
    res_desc.Height = 1;
    res_desc.DepthOrArraySize = 1;
@@ -170,9 +170,7 @@ d3d12_bo_map(struct d3d12_bo *bo, D3D12_RANGE *range)
 
    base_bo = d3d12_bo_get_base(bo, &offset);
 
-   if (!range || offset == 0) {
-      /* Nothing to do */
-   } else if (range->Begin >= range->End) {
+   if (!range || range->Begin >= range->End) {
       offset_range.Begin = offset;
       offset_range.End = offset + d3d12_bo_get_size(bo);
       range = &offset_range;
@@ -197,12 +195,9 @@ d3d12_bo_unmap(struct d3d12_bo *bo, D3D12_RANGE *range)
 
    base_bo = d3d12_bo_get_base(bo, &offset);
 
-   if (!range || bo == base_bo)
-   {
-      /* Nothing to do */
-   } else if (range->Begin >= range->End) {
+   if (!range || range->Begin >= range->End) {
       offset_range.Begin = offset;
-      offset_range.End = offset + base_bo->res->GetDesc().Width;
+      offset_range.End = offset + d3d12_bo_get_size(bo);
       range = &offset_range;
    } else {
       offset_range.Begin = range->Begin + offset;
@@ -325,6 +320,13 @@ d3d12_bufmgr_destroy(struct pb_manager *_mgr)
    FREE(mgr);
 }
 
+static boolean
+d3d12_bufmgr_is_buffer_busy(struct pb_manager *_mgr, struct pb_buffer *_buf)
+{
+   /* We're only asked this on buffers that are known not busy */
+   return false;
+}
+
 struct pb_manager *
 d3d12_bufmgr_create(struct d3d12_screen *screen)
 {
@@ -337,6 +339,7 @@ d3d12_bufmgr_create(struct d3d12_screen *screen)
    mgr->base.destroy = d3d12_bufmgr_destroy;
    mgr->base.create_buffer = d3d12_bufmgr_create_buffer;
    mgr->base.flush = d3d12_bufmgr_flush;
+   mgr->base.is_buffer_busy = d3d12_bufmgr_is_buffer_busy;
 
    mgr->dev = screen->dev;
 

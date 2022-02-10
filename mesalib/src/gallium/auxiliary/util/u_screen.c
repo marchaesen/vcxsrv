@@ -275,6 +275,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
    case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
    case PIPE_CAP_CULL_DISTANCE:
+   case PIPE_CAP_CULL_DISTANCE_NOCOMBINE:
    case PIPE_CAP_TGSI_VOTE:
    case PIPE_CAP_MAX_WINDOW_RECTANGLES: /* Enables EXT_window_rectangles */
    case PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED:
@@ -333,7 +334,6 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_QUERY_SO_OVERFLOW:
    case PIPE_CAP_MEMOBJ:
    case PIPE_CAP_LOAD_CONSTBUF:
-   case PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS:
    case PIPE_CAP_TILE_RASTER_ORDER:
       return 0;
 
@@ -484,6 +484,8 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_MAX_SPARSE_3D_TEXTURE_SIZE:
    case PIPE_CAP_MAX_SPARSE_ARRAY_TEXTURE_LAYERS:
    case PIPE_CAP_SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS:
+   case PIPE_CAP_QUERY_SPARSE_TEXTURE_RESIDENCY:
+   case PIPE_CAP_CLAMP_SPARSE_TEXTURE_LOD:
       return 0;
 
    default:

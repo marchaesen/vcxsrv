@@ -69,6 +69,123 @@ ir3_compiler_destroy(struct ir3_compiler *compiler)
    ralloc_free(compiler);
 }
 
+static const nir_shader_compiler_options options = {
+   .lower_fpow = true,
+   .lower_scmp = true,
+   .lower_flrp16 = true,
+   .lower_flrp32 = true,
+   .lower_flrp64 = true,
+   .lower_ffract = true,
+   .lower_fmod = true,
+   .lower_fdiv = true,
+   .lower_isign = true,
+   .lower_ldexp = true,
+   .lower_uadd_carry = true,
+   .lower_usub_borrow = true,
+   .lower_mul_high = true,
+   .lower_mul_2x32_64 = true,
+   .fuse_ffma16 = true,
+   .fuse_ffma32 = true,
+   .fuse_ffma64 = true,
+   .vertex_id_zero_based = true,
+   .lower_extract_byte = true,
+   .lower_extract_word = true,
+   .lower_insert_byte = true,
+   .lower_insert_word = true,
+   .lower_helper_invocation = true,
+   .lower_bitfield_insert_to_shifts = true,
+   .lower_bitfield_extract_to_shifts = true,
+   .lower_pack_half_2x16 = true,
+   .lower_pack_snorm_4x8 = true,
+   .lower_pack_snorm_2x16 = true,
+   .lower_pack_unorm_4x8 = true,
+   .lower_pack_unorm_2x16 = true,
+   .lower_unpack_half_2x16 = true,
+   .lower_unpack_snorm_4x8 = true,
+   .lower_unpack_snorm_2x16 = true,
+   .lower_unpack_unorm_4x8 = true,
+   .lower_unpack_unorm_2x16 = true,
+   .lower_pack_split = true,
+   .use_interpolated_input_intrinsics = true,
+   .lower_rotate = true,
+   .lower_to_scalar = true,
+   .has_imul24 = true,
+   .has_fsub = true,
+   .has_isub = true,
+   .lower_wpos_pntc = true,
+   .lower_cs_local_index_from_id = true,
+
+   /* Only needed for the spirv_to_nir() pass done in ir3_cmdline.c
+    * but that should be harmless for GL since 64b is not
+    * supported there.
+    */
+   .lower_int64_options = (nir_lower_int64_options)~0,
+   .lower_uniforms_to_ubo = true,
+   .use_scoped_barrier = true,
+};
+
+/* we don't want to lower vertex_id to _zero_based on newer gpus: */
+static const nir_shader_compiler_options options_a6xx = {
+   .lower_fpow = true,
+   .lower_scmp = true,
+   .lower_flrp16 = true,
+   .lower_flrp32 = true,
+   .lower_flrp64 = true,
+   .lower_ffract = true,
+   .lower_fmod = true,
+   .lower_fdiv = true,
+   .lower_isign = true,
+   .lower_ldexp = true,
+   .lower_uadd_carry = true,
+   .lower_usub_borrow = true,
+   .lower_mul_high = true,
+   .lower_mul_2x32_64 = true,
+   .fuse_ffma16 = true,
+   .fuse_ffma32 = true,
+   .fuse_ffma64 = true,
+   .vertex_id_zero_based = false,
+   .lower_extract_byte = true,
+   .lower_extract_word = true,
+   .lower_insert_byte = true,
+   .lower_insert_word = true,
+   .lower_helper_invocation = true,
+   .lower_bitfield_insert_to_shifts = true,
+   .lower_bitfield_extract_to_shifts = true,
+   .lower_pack_half_2x16 = true,
+   .lower_pack_snorm_4x8 = true,
+   .lower_pack_snorm_2x16 = true,
+   .lower_pack_unorm_4x8 = true,
+   .lower_pack_unorm_2x16 = true,
+   .lower_unpack_half_2x16 = true,
+   .lower_unpack_snorm_4x8 = true,
+   .lower_unpack_snorm_2x16 = true,
+   .lower_unpack_unorm_4x8 = true,
+   .lower_unpack_unorm_2x16 = true,
+   .lower_pack_split = true,
+   .use_interpolated_input_intrinsics = true,
+   .lower_rotate = true,
+   .vectorize_io = true,
+   .lower_to_scalar = true,
+   .has_imul24 = true,
+   .has_fsub = true,
+   .has_isub = true,
+   .max_unroll_iterations = 32,
+   .force_indirect_unrolling = nir_var_all,
+   .lower_wpos_pntc = true,
+   .lower_cs_local_index_from_id = true,
+
+   /* Only needed for the spirv_to_nir() pass done in ir3_cmdline.c
+    * but that should be harmless for GL since 64b is not
+    * supported there.
+    */
+   .lower_int64_options = (nir_lower_int64_options)~0,
+   .lower_uniforms_to_ubo = true,
+   .lower_device_index_to_zero = true,
+   .use_scoped_barrier = true,
+   .has_udot_4x8 = true,
+   .has_sudot_4x8 = true,
+};
+
 struct ir3_compiler *
 ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
                     bool robust_ubo_access)
@@ -94,6 +211,10 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    compiler->branchstack_size = 64;
    compiler->wave_granularity = 2;
    compiler->max_waves = 16;
+
+   compiler->max_variable_workgroup_size = 1024;
+
+   const struct fd_dev_info *dev_info = fd_dev_info(compiler->dev_id);
 
    if (compiler->gen >= 6) {
       compiler->samgq_workaround = true;
@@ -124,14 +245,14 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       /* TODO: implement private memory on earlier gen's */
       compiler->has_pvtmem = true;
 
-      compiler->tess_use_shared =
-            fd_dev_info(compiler->dev_id)->a6xx.tess_use_shared;
+      compiler->tess_use_shared = dev_info->a6xx.tess_use_shared;
 
-      compiler->storage_16bit =
-            fd_dev_info(compiler->dev_id)->a6xx.storage_16bit;
+      compiler->storage_16bit = dev_info->a6xx.storage_16bit;
 
-      compiler->has_getfiberid =
-            fd_dev_info(compiler->dev_id)->a6xx.has_getfiberid;
+      compiler->has_getfiberid = dev_info->a6xx.has_getfiberid;
+
+      compiler->has_dp2acc = dev_info->a6xx.has_dp2acc;
+      compiler->has_dp4acc = dev_info->a6xx.has_dp4acc;
    } else {
       compiler->max_const_pipeline = 512;
       compiler->max_const_geom = 512;
@@ -145,8 +266,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    }
 
    if (compiler->gen >= 6) {
-      compiler->reg_size_vec4 =
-            fd_dev_info(compiler->dev_id)->a6xx.reg_size_vec4;
+      compiler->reg_size_vec4 = dev_info->a6xx.reg_size_vec4;
    } else if (compiler->gen >= 4) {
       /* On a4xx-a5xx, using r24.x and above requires using the smallest
        * threadsize.
@@ -190,7 +310,21 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
    compiler->bool_type = (compiler->gen >= 5) ? TYPE_U16 : TYPE_U32;
 
+   if (compiler->gen >= 6) {
+      compiler->nir_options = options_a6xx;
+      compiler->nir_options.has_udot_4x8 = dev_info->a6xx.has_dp2acc;
+      compiler->nir_options.has_sudot_4x8 = dev_info->a6xx.has_dp2acc;
+   } else {
+      compiler->nir_options = options;
+   }
+
    ir3_disk_cache_init(compiler);
 
    return compiler;
+}
+
+const nir_shader_compiler_options *
+ir3_get_compiler_options(struct ir3_compiler *compiler)
+{
+   return &compiler->nir_options;
 }

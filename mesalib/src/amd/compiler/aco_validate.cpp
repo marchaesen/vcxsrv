@@ -116,7 +116,8 @@ validate_ir(Program* program)
          /* check base format */
          Format base_format = instr->format;
          base_format = (Format)((uint32_t)base_format & ~(uint32_t)Format::SDWA);
-         base_format = (Format)((uint32_t)base_format & ~(uint32_t)Format::DPP);
+         base_format = (Format)((uint32_t)base_format & ~(uint32_t)Format::DPP16);
+         base_format = (Format)((uint32_t)base_format & ~(uint32_t)Format::DPP8);
          if ((uint32_t)base_format & (uint32_t)Format::VOP1)
             base_format = Format::VOP1;
          else if ((uint32_t)base_format & (uint32_t)Format::VOP2)
@@ -235,6 +236,16 @@ validate_ir(Program* program)
             if (instr->definitions[0].regClass().is_subdword() && !instr->definitions[0].isFixed())
                check((vop3.opsel & (1 << 3)) == 0, "Unexpected opsel for sub-dword definition",
                      instr.get());
+         } else if (instr->isVOP3P()) {
+            VOP3P_instruction& vop3p = instr->vop3p();
+            for (unsigned i = 0; i < instr->operands.size(); i++) {
+               if (instr->operands[i].hasRegClass() &&
+                   instr->operands[i].regClass().is_subdword() && !instr->operands[i].isFixed())
+                  check((vop3p.opsel_lo & (1 << i)) == 0 && (vop3p.opsel_hi & (1 << i)) == 0,
+                        "Unexpected opsel for subdword operand", instr.get());
+            }
+            check(instr->definitions[0].regClass() == v1, "VOP3P must have v1 definition",
+                  instr.get());
          }
 
          /* check for undefs */
@@ -757,6 +768,9 @@ validate_subdword_operand(chip_class chip, const aco_ptr<Instruction>& instr, un
    if (instr->isSDWA())
       return byte + instr->sdwa().sel[index].offset() + instr->sdwa().sel[index].size() <= 4 &&
              byte % instr->sdwa().sel[index].size() == 0;
+   if (instr->isVOP3P())
+      return ((instr->vop3p().opsel_lo >> index) & 1) == (byte >> 1) &&
+             ((instr->vop3p().opsel_hi >> index) & 1) == (byte >> 1);
    if (byte == 2 && can_use_opsel(chip, instr->opcode, index, 1))
       return true;
 

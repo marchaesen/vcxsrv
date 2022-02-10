@@ -70,12 +70,12 @@ struct zink_rasterizer_hw_state {
    unsigned polygon_mode : 2; //VkPolygonMode
    unsigned cull_mode : 2; //VkCullModeFlags
    unsigned line_mode : 2; //VkLineRasterizationModeEXT
-   bool depth_clamp:1;
-   bool rasterizer_discard:1;
-   bool pv_last:1;
-   bool line_stipple_enable:1;
-   bool force_persample_interp:1;
-   bool clip_halfz:1;
+   unsigned depth_clamp:1;
+   unsigned rasterizer_discard:1;
+   unsigned pv_last:1;
+   unsigned line_stipple_enable:1;
+   unsigned force_persample_interp:1;
+   unsigned clip_halfz:1;
 };
 #define ZINK_RAST_HW_STATE_SIZE 12
 

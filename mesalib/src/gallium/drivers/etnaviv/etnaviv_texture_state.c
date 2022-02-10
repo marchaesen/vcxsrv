@@ -139,6 +139,16 @@ etna_create_sampler_state_state(struct pipe_context *pipe,
       COND(ss->compare_mode, VIVS_NTE_SAMPLER_BASELOD_COMPARE_ENABLE) |
       VIVS_NTE_SAMPLER_BASELOD_COMPARE_FUNC(translate_texture_compare(ss->compare_func));
 
+   /* force nearest filting for nir_lower_sample_tex_compare(..) */
+   if ((ctx->screen->specs.halti < 2) && ss->compare_mode) {
+      cs->config0 &= ~VIVS_TE_SAMPLER_CONFIG0_MIN__MASK;
+      cs->config0 &= ~VIVS_TE_SAMPLER_CONFIG0_MAG__MASK;
+
+      cs->config0 |=
+         VIVS_TE_SAMPLER_CONFIG0_MIN(TEXTURE_FILTER_NEAREST) |
+         VIVS_TE_SAMPLER_CONFIG0_MAG(TEXTURE_FILTER_NEAREST);
+   }
+
    return cs;
 }
 

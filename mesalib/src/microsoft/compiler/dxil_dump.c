@@ -97,7 +97,12 @@ dxil_dump_module(struct dxil_dumper *d, struct dxil_module *m)
    dump_funcs(d, &m->func_list);
    dump_attr_set_list(d, &m->attr_set_list);
    dump_constants(d, &m->const_list);
-   dump_instrs(d, &m->instr_list);
+
+   struct dxil_func_def *func_def;
+   LIST_FOR_EACH_ENTRY(func_def, &m->func_def_list, head) {
+      dump_instrs(d, &func_def->instr_list);
+   }
+
    dump_mdnodes(d, &m->mdnode_list);
    dump_named_nodes(d, &m->md_named_node_list);
    dump_io_signatures(d->buf, m);

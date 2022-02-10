@@ -97,7 +97,7 @@ _mesa_DeleteHashTable(struct _mesa_HashTable *table)
    }
 
    simple_mtx_destroy(&table->Mutex);
-   free(table);
+   FREE(table);
 }
 
 static void init_name_reuse(struct _mesa_HashTable *table)

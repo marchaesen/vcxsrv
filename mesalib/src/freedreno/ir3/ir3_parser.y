@@ -484,7 +484,15 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_OP_SEL_F32
 %token <tok> T_OP_SAD_S16
 %token <tok> T_OP_SAD_S32
-%token <tok> T_OP_SHLG_B16
+%token <tok> T_OP_SHRM
+%token <tok> T_OP_SHLM
+%token <tok> T_OP_SHRG
+%token <tok> T_OP_SHLG
+%token <tok> T_OP_ANDG
+%token <tok> T_OP_DP2ACC
+%token <tok> T_OP_DP4ACC
+%token <tok> T_OP_WMM
+%token <tok> T_OP_WMM_ACCU
 
 /* category 4: */
 %token <tok> T_OP_RCP
@@ -622,6 +630,11 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 
 %token <tok> T_UNTYPED
 %token <tok> T_TYPED
+
+%token <tok> T_MIXED
+%token <tok> T_UNSIGNED
+%token <tok> T_LOW
+%token <tok> T_HIGH
 
 %token <tok> T_1D
 %token <tok> T_2D
@@ -949,6 +962,12 @@ cat2_instr:        cat2_opc_1src dst_reg ',' src_reg_or_const_or_rel_or_imm
 |                  cat2_opc_2src_cnd '.' cond dst_reg ',' src_reg_or_const_or_rel_or_imm ',' src_reg_or_const_or_rel_or_imm
 |                  cat2_opc_2src dst_reg ',' src_reg_or_const_or_rel_or_imm ',' src_reg_or_const_or_rel_or_imm
 
+cat3_dp_signedness:'.' T_MIXED   { instr->cat3.signedness = IR3_SRC_MIXED; }
+|                  '.' T_UNSIGNED{ instr->cat3.signedness = IR3_SRC_UNSIGNED; }
+
+cat3_dp_pack:      '.' T_LOW     { instr->cat3.packed = IR3_SRC_PACKED_LOW; }
+|                  '.' T_HIGH    { instr->cat3.packed = IR3_SRC_PACKED_HIGH; }
+
 cat3_opc:          T_OP_MAD_U16   { new_instr(OPC_MAD_U16); }
 |                  T_OP_MADSH_U16 { new_instr(OPC_MADSH_U16); }
 |                  T_OP_MAD_S16   { new_instr(OPC_MAD_S16); }
@@ -966,8 +985,22 @@ cat3_opc:          T_OP_MAD_U16   { new_instr(OPC_MAD_U16); }
 |                  T_OP_SAD_S16   { new_instr(OPC_SAD_S16); }
 |                  T_OP_SAD_S32   { new_instr(OPC_SAD_S32); }
 
+cat3_imm_reg_opc:  T_OP_SHRM      { new_instr(OPC_SHRM); }
+|                  T_OP_SHLM      { new_instr(OPC_SHLM); }
+|                  T_OP_SHRG      { new_instr(OPC_SHRG); }
+|                  T_OP_SHLG      { new_instr(OPC_SHLG); }
+|                  T_OP_ANDG      { new_instr(OPC_ANDG); }
+
+cat3_wmm:          T_OP_WMM       { new_instr(OPC_WMM); }
+|                  T_OP_WMM_ACCU  { new_instr(OPC_WMM_ACCU); }
+
+cat3_dp:           T_OP_DP2ACC    { new_instr(OPC_DP2ACC); }
+|                  T_OP_DP4ACC    { new_instr(OPC_DP4ACC); }
+
 cat3_instr:        cat3_opc dst_reg ',' src_reg_or_const_or_rel ',' src_reg_or_const ',' src_reg_or_const_or_rel
-|                  T_OP_SHLG_B16 { new_instr(OPC_SHLG_B16); } dst_reg ',' src_reg_or_rel_or_imm ',' src_reg_or_const ',' src_reg_or_rel_or_imm
+|                  cat3_imm_reg_opc dst_reg ',' src_reg_or_rel_or_imm ',' src_reg_or_const ',' src_reg_or_rel_or_imm
+|                  cat3_wmm         dst_reg ',' src_reg_gpr ',' src_reg ',' immediate
+|                  cat3_dp cat3_dp_signedness cat3_dp_pack dst_reg ',' src_reg_or_rel_or_imm ',' src_reg_or_const ',' src_reg_or_rel_or_imm
 
 cat4_opc:          T_OP_RCP       { new_instr(OPC_RCP); }
 |                  T_OP_RSQ       { new_instr(OPC_RSQ); }
@@ -1266,6 +1299,9 @@ src_reg_flags:     src_reg_flag
 
 src_reg:           src
 |                  src_reg_flags src
+
+src_reg_gpr:       src_reg
+|                  relative_gpr_src
 
 src_const:         const
 |                  src_reg_flags const

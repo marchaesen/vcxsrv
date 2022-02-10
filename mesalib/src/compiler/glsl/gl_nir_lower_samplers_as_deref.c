@@ -62,7 +62,7 @@
 #include "ir_uniform.h"
 
 #include "util/compiler.h"
-#include "main/mtypes.h"
+#include "main/shader_types.h"
 
 struct lower_samplers_as_deref_state {
    nir_shader *shader;

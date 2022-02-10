@@ -10,3 +10,42 @@ dEQP-GLES31.functional.fbo.no_attachments.maximums.size
 KHR-GL33.texture_swizzle.smoke
 # Another slow one post NIR transition
 KHR-GL33.texture_swizzle.functional
+
+# piglit tests that would take too much memory on shared runners
+max-texture-size
+maxsize
+
+# Unreliable on shared runners due to timing
+ext_timer_query@time-elapsed
+
+# Too slow, fixed in https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/624
+longprim
+streaming-texture-leak
+
+# piglit tests that are too long for CI
+shader-mem-barrier
+fs-execution-ordering
+glsl-uniform-interstage-limits@subdivide 5
+arb_pipeline_statistics_query-comp
+gs-max-output
+spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
+fbo-depth-array
+
+# Slow, not obviously fixable test
+spec@arb_compute_shader@local-id-explosion
+
+# Manually skip some piglit tests since we don't have fast skipping in piglit-runner.
+glsl-4.00
+glsl-4.10
+glsl-4.20
+glsl-4.30
+glsl-4.40
+glsl-4.50
+gpu_shader4
+gpu_shader5
+arb_gpu_shader_fp64
+arb_gpu_shader_int64
+arb_tessellation_shader
+
+# Flakes due to using a time-based random seed, keep it from spamming IRC.
+spec@!opengl 1.4@triangle-rasterization

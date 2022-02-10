@@ -134,16 +134,16 @@ zink_bind_vertex_buffers(struct zink_batch *batch, struct zink_context *ctx)
       return;
 
    for (unsigned i = 0; i < elems->hw_state.num_bindings; i++) {
-      const unsigned buffer_id = ctx->element_state->binding_map[i];
-      struct pipe_vertex_buffer *vb = ctx->vertex_buffers + buffer_id;
+      struct pipe_vertex_buffer *vb = ctx->vertex_buffers + ctx->element_state->binding_map[i];
       assert(vb);
       if (vb->buffer.resource) {
-         buffers[i] = ctx->vbufs[buffer_id];
-         assert(buffers[i]);
+         struct zink_resource *res = zink_resource(vb->buffer.resource);
+         assert(res->obj->buffer);
+         buffers[i] = res->obj->buffer;
+         buffer_offsets[i] = vb->buffer_offset;
+         buffer_strides[i] = vb->stride;
          if (DYNAMIC_STATE == ZINK_DYNAMIC_VERTEX_INPUT)
             elems->hw_state.dynbindings[i].stride = vb->stride;
-         buffer_offsets[i] = ctx->vbuf_offsets[buffer_id];
-         buffer_strides[i] = vb->stride;
          zink_batch_resource_usage_set(&ctx->batch, zink_resource(vb->buffer.resource), false);
       } else {
          buffers[i] = zink_resource(ctx->dummy_vertex_buffer)->obj->buffer;
@@ -396,6 +396,8 @@ update_barriers(struct zink_context *ctx, bool is_compute)
                   access |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
                   pipeline |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
                   bind_count -= util_bitcount(res->vbo_bind_mask);
+                  if (res->write_bind_count[is_compute])
+                     pipeline |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
                }
                bind_count -= res->so_bind_count;
             }
@@ -485,6 +487,9 @@ zink_draw(struct pipe_context *pctx,
           struct pipe_vertex_state *vstate,
           uint32_t partial_velem_mask)
 {
+   if (!dindirect && (!draws[0].count || !dinfo->instance_count))
+      return;
+
    struct zink_context *ctx = zink_context(pctx);
    struct zink_screen *screen = zink_screen(pctx->screen);
    struct zink_rasterizer_state *rast_state = ctx->rast_state;
@@ -804,7 +809,7 @@ zink_draw(struct pipe_context *pctx,
          counter_buffers[i] = VK_NULL_HANDLE;
          if (t) {
             struct zink_resource *res = zink_resource(t->counter_buffer);
-            t->stride = ctx->last_vertex_stage->streamout.so_info.stride[i] * sizeof(uint32_t);
+            t->stride = ctx->last_vertex_stage->sinfo.so_info.stride[i] * sizeof(uint32_t);
             zink_batch_reference_resource_rw(batch, res, true);
             if (t->counter_buffer_valid) {
                counter_buffers[i] = res->obj->buffer;
@@ -840,13 +845,19 @@ zink_draw(struct pipe_context *pctx,
       }
    } else {
       if (so_target && screen->info.tf_props.transformFeedbackDraw) {
-         if (needs_drawid)
-            update_drawid(ctx, drawid_offset);
-         zink_batch_reference_resource_rw(batch, zink_resource(so_target->base.buffer), false);
-         zink_batch_reference_resource_rw(batch, zink_resource(so_target->counter_buffer), true);
-         VKCTX(CmdDrawIndirectByteCountEXT)(batch->state->cmdbuf, dinfo->instance_count, dinfo->start_instance,
-                                       zink_resource(so_target->counter_buffer)->obj->buffer, so_target->counter_buffer_offset, 0,
-                                       MIN2(so_target->stride, screen->info.tf_props.maxTransformFeedbackBufferDataStride));
+         /* GTF-GL46.gtf40.GL3Tests.transform_feedback2.transform_feedback2_api attempts a bogus xfb
+          * draw using a streamout target that has no data
+          * to avoid hanging the gpu, reject any such draws
+          */
+         if (so_target->counter_buffer_valid) {
+            if (needs_drawid)
+               update_drawid(ctx, drawid_offset);
+            zink_batch_reference_resource_rw(batch, zink_resource(so_target->base.buffer), false);
+            zink_batch_reference_resource_rw(batch, zink_resource(so_target->counter_buffer), true);
+            VKCTX(CmdDrawIndirectByteCountEXT)(batch->state->cmdbuf, dinfo->instance_count, dinfo->start_instance,
+                                          zink_resource(so_target->counter_buffer)->obj->buffer, so_target->counter_buffer_offset, 0,
+                                          MIN2(so_target->stride, screen->info.tf_props.maxTransformFeedbackBufferDataStride));
+         }
       } else if (dindirect && dindirect->buffer) {
          assert(num_draws == 1);
          if (needs_drawid)

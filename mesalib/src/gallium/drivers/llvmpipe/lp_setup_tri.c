@@ -69,7 +69,6 @@ struct fixed_position {
    int32_t dy01;
    int32_t dx20;
    int32_t dy20;
-   int64_t area;
 };
 
 
@@ -233,7 +232,6 @@ check_opaque(struct lp_setup_context *setup,
 {
    const struct lp_fragment_shader_variant *variant =
       setup->fs.current.variant;
-   const struct lp_tgsi_channel_info *alpha_info = &variant->shader->info.cbuf[0][3];
 
    if (variant->opaque)
       return TRUE;
@@ -241,6 +239,7 @@ check_opaque(struct lp_setup_context *setup,
    if (!variant->potentially_opaque)
       return FALSE;
 
+   const struct lp_tgsi_channel_info *alpha_info = &variant->shader->info.cbuf[0][3];
    if (alpha_info->file == TGSI_FILE_CONSTANT) {
       const float *constants = setup->fs.current.jit_context.constants[0];
       float alpha = constants[alpha_info->u.index*4 +
@@ -277,16 +276,13 @@ do_triangle_ccw(struct lp_setup_context *setup,
    struct lp_rast_triangle *tri;
    struct lp_rast_plane *plane;
    const struct u_rect *scissor = NULL;
-   struct u_rect bbox, bboxpos;
+   struct u_rect bbox;
    boolean s_planes[4];
    unsigned tri_bytes;
    int nr_planes = 3;
    unsigned viewport_index = 0;
    unsigned layer = 0;
    const float (*pv)[4];
-
-   /* Area should always be positive here */
-   assert(position->area > 0);
 
    if (0)
       lp_setup_print_triangle(setup, v0, v1, v2);
@@ -330,14 +326,20 @@ do_triangle_ccw(struct lp_setup_context *setup,
       return TRUE;
    }
 
-   bboxpos = bbox;
+   int max_szorig = ((bbox.x1 - (bbox.x0 & ~3)) |
+                     (bbox.y1 - (bbox.y0 & ~3)));
+   boolean use_32bits = max_szorig <= MAX_FIXED_LENGTH32;
+#if defined(_ARCH_PWR8) && UTIL_ARCH_LITTLE_ENDIAN
+   boolean pwr8_limit_check = (bbox.x1 - bbox.x0) <= MAX_FIXED_LENGTH32 &&
+      (bbox.y1 - bbox.y0) <= MAX_FIXED_LENGTH32;
+#endif
 
    /* Can safely discard negative regions, but need to keep hold of
     * information about when the triangle extends past screen
     * boundaries.  See trimmed_box in lp_setup_bin_triangle().
     */
-   bboxpos.x0 = MAX2(bboxpos.x0, 0);
-   bboxpos.y0 = MAX2(bboxpos.y0, 0);
+   bbox.x0 = MAX2(bbox.x0, 0);
+   bbox.y0 = MAX2(bbox.y0, 0);
 
    nr_planes = 3;
    /*
@@ -345,7 +347,7 @@ do_triangle_ccw(struct lp_setup_context *setup,
     * edges if the bounding box of the tri is fully inside that edge.
     */
    scissor = &setup->draw_regions[viewport_index];
-   scissor_planes_needed(s_planes, &bboxpos, scissor);
+   scissor_planes_needed(s_planes, &bbox, scissor);
    nr_planes += s_planes[0] + s_planes[1] + s_planes[2] + s_planes[3];
 
    tri = lp_setup_alloc_triangle(scene,
@@ -456,7 +458,6 @@ do_triangle_ccw(struct lp_setup_context *setup,
    tri->inputs.frontfacing = frontfacing;
    tri->inputs.disable = FALSE;
    tri->inputs.is_blit = FALSE;
-   tri->inputs.opaque = check_opaque(setup, v0, v1, v2);
    tri->inputs.layer = layer;
    tri->inputs.viewport_index = viewport_index;
    tri->inputs.view_index = setup->view_index;
@@ -570,8 +571,7 @@ do_triangle_ccw(struct lp_setup_context *setup,
     */
    if (setup->fb.width <= MAX_FIXED_LENGTH32 &&
        setup->fb.height <= MAX_FIXED_LENGTH32 &&
-       (bbox.x1 - bbox.x0) <= MAX_FIXED_LENGTH32 &&
-       (bbox.y1 - bbox.y0) <= MAX_FIXED_LENGTH32) {
+       pwr8_limit_check) {
       unsigned int bottom_edge;
       __m128i vertx, verty;
       __m128i shufx, shufy;
@@ -738,7 +738,9 @@ do_triangle_ccw(struct lp_setup_context *setup,
       lp_setup_add_scissor_planes(scissor, &plane[3], s_planes, setup->multisample);
    }
 
-   return lp_setup_bin_triangle(setup, tri, &bbox, &bboxpos, nr_planes, viewport_index);
+   return lp_setup_bin_triangle(setup, tri, use_32bits,
+                                check_opaque(setup, v0, v1, v2),
+                                &bbox, nr_planes, viewport_index);
 }
 
 /*
@@ -772,7 +774,8 @@ floor_pot(uint32_t n)
 boolean
 lp_setup_bin_triangle(struct lp_setup_context *setup,
                       struct lp_rast_triangle *tri,
-                      const struct u_rect *bboxorig,
+                      boolean use_32bits,
+                      boolean opaque,
                       const struct u_rect *bbox,
                       int nr_planes,
                       unsigned viewport_index)
@@ -800,9 +803,6 @@ lp_setup_bin_triangle(struct lp_setup_context *setup,
     * plane math may overflow or not with the 32bit rasterization
     * functions depends on the original extent of the triangle.
     */
-   int max_szorig = ((bboxorig->x1 - (bboxorig->x0 & ~3)) |
-                     (bboxorig->y1 - (bboxorig->y0 & ~3)));
-   boolean use_32bits = max_szorig <= MAX_FIXED_LENGTH32;
 
    /* Now apply scissor, etc to the bounding box.  Could do this
     * earlier, but it confuses the logic for tri-16 and would force
@@ -978,7 +978,7 @@ lp_setup_bin_triangle(struct lp_setup_context *setup,
                /* triangle covers the whole tile- shade whole tile */
                LP_COUNT(nr_fully_covered_64);
                in = TRUE;
-               if (!lp_setup_whole_tile(setup, &tri->inputs, x, y))
+               if (!lp_setup_whole_tile(setup, &tri->inputs, x, y, opaque))
                   goto fail;
             }
 
@@ -1008,7 +1008,7 @@ fail:
 /**
  * Try to draw the triangle, restart the scene on failure.
  */
-static void retry_triangle_ccw( struct lp_setup_context *setup,
+static inline void retry_triangle_ccw( struct lp_setup_context *setup,
                                 struct fixed_position* position,
                                 const float (*v0)[4],
                                 const float (*v1)[4],
@@ -1031,7 +1031,7 @@ static void retry_triangle_ccw( struct lp_setup_context *setup,
  * calculated in fixed point), as there's quite some code duplication
  * to what is done in the jit setup prog.
  */
-static inline void
+static inline int8_t
 calc_fixed_position(struct lp_setup_context *setup,
                     struct fixed_position* position,
                     const float (*v0)[4],
@@ -1093,8 +1093,9 @@ calc_fixed_position(struct lp_setup_context *setup,
    position->dy20 = position->y[2] - position->y[0];
 #endif
 
-   position->area = IMUL64(position->dx01, position->dy20) -
-         IMUL64(position->dx20, position->dy01);
+   uint64_t area = IMUL64(position->dx01, position->dy20) -
+      IMUL64(position->dx20, position->dy01);
+   return area == 0 ? 0 : (area & (1ULL << 63)) ? -1 : 1;
 }
 
 
@@ -1118,8 +1119,6 @@ rotate_fixed_position_01( struct fixed_position* position )
    position->dy01 = -position->dy01;
    position->dx20 = position->x[2] - position->x[0];
    position->dy20 = position->y[2] - position->y[0];
-
-   position->area = -position->area;
 }
 
 
@@ -1145,8 +1144,6 @@ rotate_fixed_position_12( struct fixed_position* position )
    position->dy01 = -position->dy20;
    position->dx20 = -x;
    position->dy20 = -y;
-
-   position->area = -position->area;
 }
 
 
@@ -1165,9 +1162,9 @@ static void triangle_cw(struct lp_setup_context *setup,
       lp_context->pipeline_statistics.c_primitives++;
    }
 
-   calc_fixed_position(setup, &position, v0, v1, v2);
+   int8_t area_sign = calc_fixed_position(setup, &position, v0, v1, v2);
 
-   if (position.area < 0) {
+   if (area_sign < 0) {
       if (setup->flatshade_first) {
          rotate_fixed_position_12(&position);
          retry_triangle_ccw(setup, &position, v0, v2, v1, !setup->ccw_is_frontface);
@@ -1191,9 +1188,9 @@ static void triangle_ccw(struct lp_setup_context *setup,
       lp_context->pipeline_statistics.c_primitives++;
    }
 
-   calc_fixed_position(setup, &position, v0, v1, v2);
+   int8_t area_sign = calc_fixed_position(setup, &position, v0, v1, v2);
 
-   if (position.area > 0)
+   if (area_sign > 0)
       retry_triangle_ccw(setup, &position, v0, v1, v2, setup->ccw_is_frontface);
 }
 
@@ -1212,7 +1209,7 @@ static void triangle_both(struct lp_setup_context *setup,
       lp_context->pipeline_statistics.c_primitives++;
    }
 
-   calc_fixed_position(setup, &position, v0, v1, v2);
+   int8_t area_sign = calc_fixed_position(setup, &position, v0, v1, v2);
 
    if (0) {
       assert(!util_is_inf_or_nan(v0[0][0]));
@@ -1223,9 +1220,9 @@ static void triangle_both(struct lp_setup_context *setup,
       assert(!util_is_inf_or_nan(v2[0][1]));
    }
 
-   if (position.area > 0)
+   if (area_sign > 0)
       retry_triangle_ccw( setup, &position, v0, v1, v2, setup->ccw_is_frontface );
-   else if (position.area < 0) {
+   else if (area_sign < 0) {
       if (setup->flatshade_first) {
          rotate_fixed_position_12( &position );
          retry_triangle_ccw( setup, &position, v0, v2, v1, !setup->ccw_is_frontface );

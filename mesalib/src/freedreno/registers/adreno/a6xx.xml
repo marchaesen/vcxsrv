@@ -3753,8 +3753,13 @@ to upconvert to 32b float internally?
 		<bitfield name="LOD_BIAS" low="19" high="31" type="fixed" radix="8"/><!-- no idea how many bits for real -->
 	</reg32>
 	<reg32 offset="1" name="1">
-		<!-- bit 0 always set with vulkan? -->
-		<bitfield name="UNK0" pos="0" type="boolean"/>
+		<bitfield name="CLAMPENABLE" pos="0" type="boolean">
+			<doc>
+				clamp result to [0, 1] if the format is unorm or
+				[-1, 1] if the format is snorm, *after*
+				filtering. Has no effect for other formats.
+			</doc>
+		</bitfield>
 		<bitfield name="COMPARE_FUNC" low="1" high="3" type="adreno_compare_func"/>
 		<bitfield name="CUBEMAPSEAMLESSFILTOFF" pos="4" type="boolean"/>
 		<bitfield name="UNNORM_COORDS" pos="5" type="boolean"/>

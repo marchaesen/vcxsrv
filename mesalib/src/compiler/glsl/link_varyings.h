@@ -32,7 +32,6 @@
  */
 
 
-#include "main/glheader.h"
 #include "program/prog_parameter.h"
 #include "util/bitset.h"
 
@@ -97,12 +96,15 @@ struct tfeedback_candidate
 class tfeedback_decl
 {
 public:
-   void init(struct gl_context *ctx, const void *mem_ctx, const char *input);
+   void init(const struct gl_constants *consts,
+             const struct gl_extensions *exts,
+             const void *mem_ctx, const char *input);
    static bool is_same(const tfeedback_decl &x, const tfeedback_decl &y);
-   bool assign_location(struct gl_context *ctx,
+   bool assign_location(const struct gl_constants *consts,
                         struct gl_shader_program *prog);
    unsigned get_num_outputs() const;
-   bool store(struct gl_context *ctx, struct gl_shader_program *prog,
+   bool store(const struct gl_constants *consts,
+              struct gl_shader_program *prog,
               struct gl_transform_feedback_info *info, unsigned buffer,
               unsigned buffer_index, const unsigned max_outputs,
               BITSET_WORD *used_components[MAX_FEEDBACK_BUFFERS],
@@ -285,18 +287,21 @@ private:
    unsigned stream_id;
 };
 
+
 bool
 link_varyings(struct gl_shader_program *prog, unsigned first, unsigned last,
-              struct gl_context *ctx, void *mem_ctx);
+              const struct gl_constants *consts,
+              const struct gl_extensions *exts,
+              gl_api api, void *mem_ctx);
 
 void
-validate_first_and_last_interface_explicit_locations(struct gl_context *ctx,
+validate_first_and_last_interface_explicit_locations(const struct gl_constants *consts,
                                                      struct gl_shader_program *prog,
                                                      gl_shader_stage first,
                                                      gl_shader_stage last);
 
 void
-cross_validate_outputs_to_inputs(struct gl_context *ctx,
+cross_validate_outputs_to_inputs(const struct gl_constants *consts,
                                  struct gl_shader_program *prog,
                                  gl_linked_shader *producer,
                                  gl_linked_shader *consumer);

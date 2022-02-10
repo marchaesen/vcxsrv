@@ -73,11 +73,6 @@ Tracepoint('start_binning_ib',
 Tracepoint('end_binning_ib',
     tp_perfetto='tu_end_binning_ib')
 
-Tracepoint('start_resolve',
-    tp_perfetto='tu_start_resolve')
-Tracepoint('end_resolve',
-    tp_perfetto='tu_end_resolve')
-
 Tracepoint('start_draw_ib_sysmem',
     tp_perfetto='tu_start_draw_ib_sysmem')
 Tracepoint('end_draw_ib_sysmem',

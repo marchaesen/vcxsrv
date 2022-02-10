@@ -1,3 +1,6 @@
+2.35	45 commits
+	Dropping autotools, only meson now
+	Translations updated
 2.34	19 commits
 	Translations updated (Hebrew added)
 2.33	38 commits

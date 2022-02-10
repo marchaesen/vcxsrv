@@ -415,7 +415,10 @@ print_vec_selectors_64(FILE *fp, unsigned swizzle,
                 unsigned a = (swizzle >> (i * 2)) & 3;
 
                 if (INPUT_EXPANDS(expand_mode)) {
-                        fprintf(fp, "%c", components[a]);
+                        if (expand_mode == midgard_src_expand_high)
+                                a += 2;
+
+                        fprintf(fp, "%c", components[a / 2]);
                         continue;
                 }
 
@@ -563,7 +566,11 @@ print_vector_constants(FILE *fp, unsigned src_binary,
         comp_mask = effective_writemask(alu->op, condense_writemask(alu->mask, bits));
         num_comp = util_bitcount(comp_mask);
 
-        fprintf(fp, "<");
+        if (num_comp > 1)
+                fprintf(fp, "<");
+        else
+                fprintf(fp, "#");
+
         bool first = true;
 
 	for (unsigned i = 0; i < max_comp; ++i) {
@@ -621,8 +628,6 @@ print_vector_constants(FILE *fp, unsigned src_binary,
                         /* We work on twos, actually */
                         if (i & 1)
                                 c++;
-                } else {
-                        printf(" (%u)", src->expand_mode);
                 }
 
                 if (first)

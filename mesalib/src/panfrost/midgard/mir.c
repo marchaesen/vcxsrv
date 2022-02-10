@@ -240,6 +240,12 @@ mir_upper_override(midgard_instruction *ins, unsigned inst_size)
 {
         unsigned type_size = nir_alu_type_get_type_size(ins->dest_type);
 
+        /* 8bit imovs are promoted to 16bit ones with .sext on the source and
+         * .keeplo on the destination to accomodate with non-identity swizzles.
+         */
+        if (ins->op == midgard_alu_op_imov && type_size == 8)
+                return 0;
+
         /* If the sizes are the same, there's nothing to override */
         if (type_size == inst_size)
                 return -1;

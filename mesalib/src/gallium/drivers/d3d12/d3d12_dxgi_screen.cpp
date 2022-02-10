@@ -135,6 +135,10 @@ d3d12_create_dxgi_screen(struct sw_winsys *winsys, LUID *adapter_luid)
       return nullptr;
    }
 
+   LARGE_INTEGER driver_version;
+   screen->adapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &driver_version);
+   screen->base.driver_version = driver_version.QuadPart;
+
    screen->base.vendor_id = adapter_desc.VendorId;
    // Note: memory sizes in bytes, but stored in size_t, so may be capped at 4GB.
    // In that case, adding before conversion to MB can easily overflow.

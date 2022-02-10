@@ -28,6 +28,7 @@ isa_depend_files = [
   'ir3-cat5.xml',
   'ir3-cat6.xml',
   'ir3-cat7.xml',
+  isaspec_py_deps
 ]
 
 ir3_isa = custom_target(

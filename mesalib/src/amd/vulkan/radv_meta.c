@@ -219,8 +219,10 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
    }
 
    if (state->flags & RADV_META_SAVE_COMPUTE_PIPELINE) {
-      radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
-                           radv_pipeline_to_handle(state->old_pipeline));
+      if (state->old_pipeline) {
+         radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
+                              radv_pipeline_to_handle(state->old_pipeline));
+      }
    }
 
    if (state->flags & RADV_META_SAVE_DESCRIPTORS) {

@@ -303,6 +303,22 @@ try_swap_mad_two_srcs(struct ir3_instruction *instr, unsigned new_flags)
    return valid_swap;
 }
 
+/* Values that are uniform inside a loop can become divergent outside
+ * it if the loop has a divergent trip count. This means that we can't
+ * propagate a copy of a shared to non-shared register if it would
+ * make the shared reg's live range extend outside of its loop. Users
+ * outside the loop would see the value for the thread(s) that last
+ * exited the loop, rather than for their own thread.
+ */
+static bool
+is_valid_shared_copy(struct ir3_instruction *dst_instr,
+                     struct ir3_instruction *src_instr,
+                     struct ir3_register *src_reg)
+{
+   return !(src_reg->flags & IR3_REG_SHARED) ||
+      dst_instr->block->loop_id == src_instr->block->loop_id;
+}
+
 /**
  * Handle cp for a given src register.  This additionally handles
  * the cases of collapsing immedate/const (which replace the src
@@ -316,21 +332,13 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 {
    struct ir3_instruction *src = ssa(reg);
 
-   /* Values that are uniform inside a loop can become divergent outside
-    * it if the loop has a divergent trip count. This means that we can't
-    * propagate a copy of a shared to non-shared register if it would
-    * make the shared reg's live range extend outside of its loop. Users
-    * outside the loop would see the value for the thread(s) that last
-    * exited the loop, rather than for their own thread.
-    */
-   if ((src->dsts[0]->flags & IR3_REG_SHARED) &&
-       src->block->loop_id != instr->block->loop_id)
-      return false;
-
    if (is_eligible_mov(src, instr, true)) {
       /* simple case, no immed/const/relativ, only mov's w/ ssa src: */
       struct ir3_register *src_reg = src->srcs[0];
       unsigned new_flags = reg->flags;
+
+      if (!is_valid_shared_copy(instr, src, src_reg))
+         return false;
 
       combine_flags(&new_flags, src);
 
@@ -356,6 +364,9 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
       /* immed/const/etc cases, which require some special handling: */
       struct ir3_register *src_reg = src->srcs[0];
       unsigned new_flags = reg->flags;
+
+      if (!is_valid_shared_copy(instr, src, src_reg))
+         return false;
 
       if (src_reg->flags & IR3_REG_ARRAY)
          return false;

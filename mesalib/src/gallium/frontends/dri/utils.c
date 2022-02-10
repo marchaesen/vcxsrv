@@ -502,6 +502,7 @@ driIndexConfigAttrib(const __DRIconfig *config, int index,
  *     - \c __DRI2_RENDERER_OPENGL_COMPATIBLITY_PROFILE_VERSION
  *     - \c __DRI2_RENDERER_ES_PROFILE_VERSION
  *     - \c __DRI2_RENDERER_ES2_PROFILE_VERSION
+ *     - \c __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT
  *
  * \returns
  * Zero if a recognized value of \c param is supplied, -1 otherwise.
@@ -551,6 +552,9 @@ driQueryRendererIntegerCommon(__DRIscreen *psp, int param, unsigned int *value)
    case __DRI2_RENDERER_OPENGL_ES2_PROFILE_VERSION:
       value[0] = psp->max_gl_es2_version / 10;
       value[1] = psp->max_gl_es2_version % 10;
+      return 0;
+   case __DRI2_RENDERER_HAS_NO_ERROR_CONTEXT:
+      value[0] = GL_TRUE;
       return 0;
    default:
       break;

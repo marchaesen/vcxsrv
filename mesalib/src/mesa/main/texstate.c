@@ -1007,10 +1007,10 @@ alloc_proxy_textures( struct gl_context *ctx )
 
    for (tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++) {
       if (!(ctx->Texture.ProxyTex[tgt]
-            = st_NewTextureObject(ctx, 0, targets[tgt]))) {
+            = _mesa_new_texture_object(ctx, 0, targets[tgt]))) {
          /* out of memory, free what we did allocate */
          while (--tgt >= 0) {
-            st_DeleteTextureObject(ctx, ctx->Texture.ProxyTex[tgt]);
+            _mesa_delete_texture_object(ctx, ctx->Texture.ProxyTex[tgt]);
          }
          return GL_FALSE;
       }
@@ -1134,7 +1134,7 @@ _mesa_free_texture_data(struct gl_context *ctx)
 
    /* Free proxy texture objects */
    for (tgt = 0; tgt < NUM_TEXTURE_TARGETS; tgt++)
-      st_DeleteTextureObject(ctx, ctx->Texture.ProxyTex[tgt]);
+      _mesa_delete_texture_object(ctx, ctx->Texture.ProxyTex[tgt]);
 
    /* GL_ARB_texture_buffer_object */
    _mesa_reference_buffer_object(ctx, &ctx->Texture.BufferObject, NULL);

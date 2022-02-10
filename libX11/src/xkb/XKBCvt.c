@@ -57,7 +57,6 @@ from The Open Group.
 static int
 _XkbHandleSpecialSym(KeySym keysym, char *buffer, int nbytes, int *extra_rtrn)
 {
-
     /* try to convert to Latin-1, handling ctrl */
     if (!(((keysym >= XK_BackSpace) && (keysym <= XK_Clear)) ||
           (keysym == XK_Return) || (keysym == XK_Escape) ||
@@ -75,8 +74,6 @@ _XkbHandleSpecialSym(KeySym keysym, char *buffer, int nbytes, int *extra_rtrn)
     /* if X keysym, convert to ascii by grabbing low 7 bits */
     if (keysym == XK_KP_Space)
         buffer[0] = XK_space & 0x7F;            /* patch encoding botch */
-    else if (keysym == XK_hyphen)
-        buffer[0] = (char) (XK_minus & 0xFF);   /* map to equiv character */
     else
         buffer[0] = (char) (keysym & 0x7F);
     return 1;

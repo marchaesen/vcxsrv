@@ -174,7 +174,7 @@ check_PROGRAMS += test-family-matching
 test_family_matching_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-family-matching
 
-EXTRA_DIST=run-test.sh run-test-conf.sh $(LOG_COMPILER) $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
+EXTRA_DIST=run-test.sh run-test-conf.sh wrapper-script.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
 CLEANFILES =		\
 	fonts.conf	\

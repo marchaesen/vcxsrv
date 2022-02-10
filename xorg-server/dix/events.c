@@ -467,6 +467,20 @@ WindowXI2MaskIsset(DeviceIntPtr dev, WindowPtr win, xEvent *ev)
     return xi2mask_isset(inputMasks->xi2mask, dev, evtype);
 }
 
+/**
+ * When processing events we operate on InternalEvent pointers. They may actually refer to a
+ * an instance of DeviceEvent, GestureEvent or any other event that comprises the InternalEvent
+ * union. This works well in practice because we always look into event type before doing anything,
+ * except in the case of copying the event. Any copying of InternalEvent should use this function
+ * instead of doing *dst_event = *src_event whenever it's not clear whether source event actually
+ * points to full InternalEvent instance.
+ */
+void
+CopyPartialInternalEvent(InternalEvent* dst_event, const InternalEvent* src_event)
+{
+    memcpy(dst_event, src_event, src_event->any.length);
+}
+
 Mask
 GetEventMask(DeviceIntPtr dev, xEvent *event, InputClients * other)
 {
@@ -3873,7 +3887,7 @@ void ActivateGrabNoDelivery(DeviceIntPtr dev, GrabPtr grab,
 
     if (grabinfo->sync.state == FROZEN_NO_EVENT)
         grabinfo->sync.state = FROZEN_WITH_EVENT;
-    *grabinfo->sync.event = *real_event;
+    CopyPartialInternalEvent(grabinfo->sync.event, real_event);
 }
 
 static BOOL
@@ -4455,7 +4469,7 @@ FreezeThisEventIfNeededForSyncGrab(DeviceIntPtr thisDev, InternalEvent *event)
     case FREEZE_NEXT_EVENT:
         grabinfo->sync.state = FROZEN_WITH_EVENT;
         FreezeThaw(thisDev, TRUE);
-        *grabinfo->sync.event = *event;
+        CopyPartialInternalEvent(grabinfo->sync.event, event);
         break;
     }
 }

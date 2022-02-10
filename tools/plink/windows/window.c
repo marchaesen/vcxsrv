@@ -151,12 +151,6 @@ static Conf *conf;
 static LogContext *logctx;
 static Terminal *term;
 
-struct wm_netevent_params {
-    /* Used to pass data to wm_netevent_callback */
-    WPARAM wParam;
-    LPARAM lParam;
-};
-
 static void conf_cache_data(void);
 static int cursor_type;
 static int vtmode;
@@ -1117,16 +1111,6 @@ void cmdline_error(const char *fmt, ...)
     exit(1);
 }
 
-/*
- * Actually do the job requested by a WM_NETEVENT
- */
-static void wm_netevent_callback(void *vctx)
-{
-    struct wm_netevent_params *params = (struct wm_netevent_params *)vctx;
-    select_result(params->wParam, params->lParam);
-    sfree(vctx);
-}
-
 static inline rgb rgb_from_colorref(COLORREF cr)
 {
     rgb toret;
@@ -1639,32 +1623,39 @@ static void wintw_request_resize(TermWin *tw, int w, int h)
         }
     }
 
-    /*
-     * We want to send exactly one term_size() to the terminal,
-     * telling it what size it ended up after this operation.
-     *
-     * If we don't get the size we asked for in SetWindowPos, then
-     * we'll be sent a WM_SIZE message, whose handler will make that
-     * call, all before SetWindowPos even returns to here.
-     *
-     * But if that _didn't_ happen, we'll need to call term_size
-     * ourselves afterwards.
-     */
-    sent_term_size = false;
-
     if (conf_get_int(conf, CONF_resize_action) != RESIZE_FONT &&
         !IsZoomed(wgs.term_hwnd)) {
+        /*
+         * We want to send exactly one term_size() to the terminal,
+         * telling it what size it ended up after this operation.
+         *
+         * If we don't get the size we asked for in SetWindowPos, then
+         * we'll be sent a WM_SIZE message, whose handler will make
+         * that call, all before SetWindowPos even returns to here.
+         *
+         * But if that _didn't_ happen, we'll need to call term_size
+         * ourselves afterwards.
+         */
+        sent_term_size = false;
+
         width = extra_width + font_width * w;
         height = extra_height + font_height * h;
 
         SetWindowPos(wgs.term_hwnd, NULL, 0, 0, width, height,
             SWP_NOACTIVATE | SWP_NOCOPYBITS |
             SWP_NOMOVE | SWP_NOZORDER);
-    } else
-        reset_window(0);
 
-    if (!sent_term_size)
+        if (!sent_term_size)
+            term_size(term, h, w, conf_get_int(conf, CONF_savelines));
+    } else {
+        /*
+         * If we're resizing by changing the font, we must tell the
+         * terminal the new size immediately, so that reset_window
+         * will know what to do.
+         */
         term_size(term, h, w, conf_get_int(conf, CONF_savelines));
+        reset_window(0);
+    }
 
     InvalidateRect(wgs.term_hwnd, NULL, true);
 }
@@ -2805,21 +2796,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
         ShowCaret(hwnd);
         return 0;
       }
-      case WM_NETEVENT: {
-        /*
-         * To protect against re-entrancy when Windows's recv()
-         * immediately triggers a new WSAAsyncSelect window
-         * message, we don't call select_result directly from this
-         * handler but instead wait until we're back out at the
-         * top level of the message loop.
-         */
-        struct wm_netevent_params *params =
-            snew(struct wm_netevent_params);
-        params->wParam = wParam;
-        params->lParam = lParam;
-        queue_toplevel_callback(wm_netevent_callback, params);
+      case WM_NETEVENT:
+        winselgui_response(wParam, lParam);
         return 0;
-      }
       case WM_SETFOCUS:
         term_set_focus(term, true);
         CreateCaret(hwnd, caretbm, font_width, font_height);
@@ -4178,7 +4157,7 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
         }
 
 
-        /* Nastyness with NUMLock - Shift-NUMLock is left alone though */
+        /* Nastiness with NUMLock - Shift-NUMLock is left alone though */
         if ((funky_type == FUNKY_VT400 ||
              (funky_type <= FUNKY_LINUX && term->app_keypad_keys &&
               !no_applic_k))

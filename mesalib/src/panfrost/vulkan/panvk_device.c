@@ -28,7 +28,6 @@
 
 #include "panvk_private.h"
 
-#include "panfrost-quirks.h"
 #include "pan_bo.h"
 #include "pan_encoder.h"
 #include "pan_util.h"
@@ -314,17 +313,17 @@ panvk_physical_device_init(struct panvk_physical_device *device,
    panfrost_open_device(NULL, fd, &device->pdev);
    fd = -1;
 
-   if (device->pdev.quirks & MIDGARD_SFBD) {
+   if (device->pdev.arch < 5) {
       result = vk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
                          "%s not supported",
-                         panfrost_model_name(device->pdev.gpu_id));
+                         device->pdev.model->name);
       goto fail;
    }
 
    panvk_arch_dispatch(device->pdev.arch, meta_init, device);
 
    memset(device->name, 0, sizeof(device->name));
-   sprintf(device->name, "%s", panfrost_model_name(device->pdev.gpu_id));
+   sprintf(device->name, "%s", device->pdev.model->name);
 
    if (panvk_device_get_cache_uuid(device->pdev.gpu_id, device->cache_uuid)) {
       result = vk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
@@ -773,7 +772,7 @@ panvk_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       .maxFragmentInputComponents = 128,
       .maxFragmentOutputAttachments = 8,
       .maxFragmentDualSrcAttachments = 1,
-      .maxFragmentCombinedOutputResources = 8,
+      .maxFragmentCombinedOutputResources = MAX_RTS + max_descriptor_set_size * 2,
       .maxComputeSharedMemorySize = 32768,
       .maxComputeWorkGroupCount = { 65535, 65535, 65535 },
       .maxComputeWorkGroupInvocations = 2048,
@@ -1118,6 +1117,23 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *pName)
 {
    return panvk_GetInstanceProcAddr(instance, pName);
+}
+
+/* With version 4+ of the loader interface the ICD should expose
+ * vk_icdGetPhysicalDeviceProcAddr()
+ */
+PUBLIC
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_icdGetPhysicalDeviceProcAddr(VkInstance  _instance,
+                                const char* pName);
+
+PFN_vkVoidFunction
+vk_icdGetPhysicalDeviceProcAddr(VkInstance  _instance,
+                                const char* pName)
+{
+   VK_FROM_HANDLE(panvk_instance, instance, _instance);
+
+   return vk_instance_get_physical_device_proc_addr(&instance->vk, pName);
 }
 
 VkResult
@@ -1657,8 +1673,17 @@ vk_icdNegotiateLoaderICDInterfaceVersion(uint32_t *pSupportedVersion)
     *        - The ICD must implement vkCreate{PLATFORM}SurfaceKHR(),
     *          vkDestroySurfaceKHR(), and other API which uses VKSurfaceKHR,
     *          because the loader no longer does so.
+    *
+    *    - Loader interface v4 differs from v3 in:
+    *        - The ICD must implement vk_icdGetPhysicalDeviceProcAddr().
+    * 
+    *    - Loader interface v5 differs from v4 in:
+    *        - The ICD must support 1.1 and must not return 
+    *          VK_ERROR_INCOMPATIBLE_DRIVER from vkCreateInstance() unless a
+    *          Vulkan Loader with interface v4 or smaller is being used and the
+    *          application provides an API version that is greater than 1.0.
     */
-   *pSupportedVersion = MIN2(*pSupportedVersion, 3u);
+   *pSupportedVersion = MIN2(*pSupportedVersion, 5u);
    return VK_SUCCESS;
 }
 

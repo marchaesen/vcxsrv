@@ -199,7 +199,7 @@ void
 zink_bo_unmap(struct zink_screen *screen, struct zink_bo *bo);
 
 bool
-zink_bo_commit(struct zink_screen *screen, struct zink_resource *res, uint32_t offset, uint32_t size, bool commit);
+zink_bo_commit(struct zink_screen *screen, struct zink_resource *res, unsigned level, struct pipe_box *box, bool commit);
 
 static inline bool
 zink_bo_has_unflushed_usage(const struct zink_bo *bo)

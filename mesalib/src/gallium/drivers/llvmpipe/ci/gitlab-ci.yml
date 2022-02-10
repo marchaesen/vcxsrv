@@ -5,6 +5,7 @@
     LIBGL_ALWAYS_SOFTWARE: "true"
     GALLIUM_DRIVER: "llvmpipe"
     FLAKES_CHANNEL: "#mesa-swrast-ci"
+    GPU_VERSION: llvmpipe
 
 llvmpipe-piglit-cl:
   extends:
@@ -22,49 +23,18 @@ llvmpipe-piglit-cl:
   script:
     - install/piglit/run_cl.sh
 
-llvmpipe-piglit-quick_gl:
+llvmpipe-piglit-gl:
   extends:
     - .test-gl
     - .piglit-test
     - .llvmpipe-test
+  parallel: 2
   variables:
     GALLIVM_PERF: "no_quad_lod"
     LP_NUM_THREADS: 0
-    PIGLIT_OPTIONS: >
-      --process-isolation false
-    # Can't run gl-2.0-edgeflag* because of assertion failures on loading from
-    # disk cache which flake depending on which one runs first
-    PIGLIT_TESTS: >
-      -x gl-2.0-edgeflag
-      -x egl_ext_device_
-      -x egl_ext_platform_device
-      -x ext_timer_query@time-elapsed
-      -x glx-multithread-clearbuffer
-      -x glx-multithread-shader-compile
-      -x max-texture-size
-      -x maxsize
-    PIGLIT_PROFILES: quick_gl
-    PIGLIT_RESULTS: "llvmpipe-quick_gl"
-
-llvmpipe-piglit-glslparser:
-  extends:
-    - .test-gl
-    - .piglit-test
-    - .llvmpipe-test
-  variables:
-    LP_NUM_THREADS: 0
-    PIGLIT_PROFILES: glslparser
-    PIGLIT_RESULTS: "llvmpipe-glslparser"
-
-llvmpipe-piglit-quick_shader:
-  extends:
-    - .test-gl
-    - .piglit-test
-    - .llvmpipe-test
-  variables:
-    LP_NUM_THREADS: 1
-    PIGLIT_PROFILES: quick_shader
-    PIGLIT_RESULTS: "llvmpipe-quick_shader"
+    PIGLIT_PROFILES: quick
+  script:
+    - LD_LIBRARY_PATH=`pwd`/install xvfb-run --server-args='-noreset' install/piglit/piglit-runner.sh
 
 llvmpipe-traces:
   extends:
@@ -83,7 +53,6 @@ llvmpipe-traces:
     # Don't use threads inside llvmpipe, we've already got all cores
     # busy at the deqp-runner level.
     LP_NUM_THREADS: 0
-    GPU_VERSION: llvmpipe
   extends:
     - .test-gl
     - .deqp-test

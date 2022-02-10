@@ -46,11 +46,8 @@ dEQP-GLES31.functional.separate_shader.random.68,Fail
 dEQP-GLES31.functional.separate_shader.random.79,Fail
 dEQP-GLES31.functional.separate_shader.random.80,Fail
 dEQP-GLES31.functional.separate_shader.random.89,Fail
-dEQP-GLES31.functional.shaders.builtin_functions.integer.findlsb.ivec3_lowp_compute,Fail
 dEQP-GLES31.functional.shaders.builtin_functions.integer.findmsb.ivec2_lowp_compute,Fail
-dEQP-GLES31.functional.shaders.builtin_functions.integer.findmsb.ivec3_lowp_compute,Fail
 dEQP-GLES31.functional.shaders.builtin_functions.integer.findmsb.uvec2_lowp_compute,Fail
-dEQP-GLES31.functional.shaders.builtin_functions.integer.findmsb.uvec3_lowp_compute,Fail
 dEQP-GLES31.functional.shaders.builtin_functions.integer.imulextended.ivec3_highp_fragment,Fail
 dEQP-GLES31.functional.shaders.builtin_functions.integer.umulextended.uvec3_highp_fragment,Fail
 dEQP-GLES31.functional.synchronization.in_invocation.image_alias_overwrite,Crash
@@ -90,5 +87,3 @@ dEQP-GLES31.functional.texture.multisample.samples_3.use_texture_uint_2d,Fail
 dEQP-GLES31.functional.texture.multisample.samples_3.use_texture_uint_2d_array,Fail
 dEQP-GLES31.functional.texture.multisample.samples_4.use_texture_int_2d,Fail
 dEQP-GLES31.functional.texture.multisample.samples_4.use_texture_int_2d_array,Fail
-dEQP-GLES31.functional.texture.multisample.samples_4.use_texture_uint_2d,Fail
-dEQP-GLES31.functional.texture.multisample.samples_4.use_texture_uint_2d_array,Fail

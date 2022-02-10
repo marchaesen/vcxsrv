@@ -242,6 +242,7 @@ v3d_create_texture_shader_state_bo(struct v3d_context *v3d,
 
 void
 v3d_get_tile_buffer_size(bool is_msaa,
+                         bool double_buffer,
                          uint32_t nr_cbufs,
                          struct pipe_surface **cbufs,
                          struct pipe_surface *bbuf,
@@ -249,6 +250,8 @@ v3d_get_tile_buffer_size(bool is_msaa,
                          uint32_t *tile_height,
                          uint32_t *max_bpp)
 {
+        assert(!is_msaa || !double_buffer);
+
         uint32_t max_cbuf_idx = 0;
         *max_bpp = 0;
         for (int i = 0; i < nr_cbufs; i++) {
@@ -265,7 +268,8 @@ v3d_get_tile_buffer_size(bool is_msaa,
                 *max_bpp = MAX2(*max_bpp, bsurf->internal_bpp);
         }
 
-        v3d_choose_tile_size(max_cbuf_idx + 1, *max_bpp, is_msaa,
+        v3d_choose_tile_size(max_cbuf_idx + 1, *max_bpp,
+                             is_msaa, double_buffer,
                              tile_width, tile_height);
 }
 

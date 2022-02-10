@@ -38,7 +38,7 @@ static LLVMValueRef get_tgsize(struct si_shader_context *ctx)
    return si_unpack_param(ctx, ctx->args.merged_wave_info, 28, 4);
 }
 
-static LLVMValueRef get_thread_id_in_tg(struct si_shader_context *ctx)
+LLVMValueRef gfx10_get_thread_id_in_tg(struct si_shader_context *ctx)
 {
    LLVMBuilderRef builder = ctx->ac.builder;
    LLVMValueRef tmp;
@@ -67,7 +67,7 @@ static LLVMValueRef ngg_get_query_buf(struct si_shader_context *ctx)
    LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
 
    return ac_build_load_to_sgpr(&ctx->ac, buf_ptr,
-                                LLVMConstInt(ctx->ac.i32, GFX10_GS_QUERY_BUF, false));
+                                LLVMConstInt(ctx->ac.i32, SI_GS_QUERY_BUF, false));
 }
 
 /**
@@ -105,7 +105,7 @@ static LLVMValueRef ngg_get_vertices_per_prim(struct si_shader_context *ctx, uns
 
       if (info->base.tess.point_mode)
          *num_vertices = 1;
-      else if (info->base.tess.primitive_mode == GL_LINES)
+      else if (info->base.tess._primitive_mode == TESS_PRIMITIVE_ISOLINES)
          *num_vertices = 2;
       else
          *num_vertices = 3;
@@ -244,7 +244,7 @@ static void build_streamout_vertex(struct si_shader_context *ctx, LLVMValueRef *
       for (unsigned comp = 0; comp < 4; comp++) {
          tmp = ac_build_gep0(&ctx->ac, vertexptr, LLVMConstInt(ctx->ac.i32, 4 * reg + comp, false));
          out.values[comp] = LLVMBuildLoad(builder, tmp, "");
-         out.vertex_stream[comp] = (info->output_streams[reg] >> (2 * comp)) & 3;
+         out.vertex_streams = info->output_streams[reg];
       }
 
       si_llvm_streamout_store_output(ctx, so_buffer, offset, &so->output[i], &out);
@@ -277,7 +277,7 @@ static void build_streamout(struct si_shader_context *ctx, struct ngg_streamout 
    struct pipe_stream_output_info *so = &ctx->shader->selector->so;
    LLVMBuilderRef builder = ctx->ac.builder;
    LLVMValueRef buf_ptr = ac_get_arg(&ctx->ac, ctx->internal_bindings);
-   LLVMValueRef tid = get_thread_id_in_tg(ctx);
+   LLVMValueRef tid = gfx10_get_thread_id_in_tg(ctx);
    LLVMValueRef tmp, tmp2;
    LLVMValueRef i32_2 = LLVMConstInt(ctx->ac.i32, 2, false);
    LLVMValueRef i32_4 = LLVMConstInt(ctx->ac.i32, 4, false);
@@ -929,7 +929,7 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
    assert(sel->info.stage == MESA_SHADER_VERTEX ||
           (sel->info.stage == MESA_SHADER_TESS_EVAL && !shader->key.ge.as_es));
 
-   LLVMValueRef es_vtxptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
+   LLVMValueRef es_vtxptr = ngg_nogs_vertex_ptr(ctx, gfx10_get_thread_id_in_tg(ctx));
    LLVMValueRef packed_data = ctx->ac.i32_0;
    LLVMValueRef position[4] = {};
    unsigned pos_index = 0;
@@ -1056,7 +1056,7 @@ void gfx10_emit_ngg_culling_epilogue(struct ac_shader_abi *abi)
    for (unsigned i = 0; i < num_vertices; i++)
       gs_vtxptr[i] = ngg_nogs_vertex_ptr(ctx, vtxindex[i]);
 
-   es_vtxptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
+   es_vtxptr = ngg_nogs_vertex_ptr(ctx, gfx10_get_thread_id_in_tg(ctx));
 
    /* Adding these optimization barriers improves the generated code as follows. Crazy right?
     *
@@ -1419,13 +1419,13 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
    LLVMValueRef vertex_ptr = NULL;
 
    if (sel->so.num_outputs || gfx10_ngg_writes_user_edgeflags(ctx->shader))
-      vertex_ptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
+      vertex_ptr = ngg_nogs_vertex_ptr(ctx, gfx10_get_thread_id_in_tg(ctx));
 
    for (unsigned i = 0; i < info->num_outputs; i++) {
       outputs[i].semantic = info->output_semantic[i];
 
       for (unsigned j = 0; j < 4; j++) {
-         outputs[i].vertex_stream[j] = (info->output_streams[i] >> (2 * j)) & 3;
+         outputs[i].vertex_streams = info->output_streams[i];
 
          /* TODO: we may store more outputs than streamout needs,
           * but streamout performance isn't that important.
@@ -1596,7 +1596,7 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
           */
          if (info->output_semantic[i] == VARYING_SLOT_POS &&
              ctx->shader->key.ge.opt.ngg_culling) {
-            vertex_ptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
+            vertex_ptr = ngg_nogs_vertex_ptr(ctx, gfx10_get_thread_id_in_tg(ctx));
 
             for (unsigned j = 0; j < 4; j++) {
                tmp = LLVMConstInt(ctx->ac.i32, lds_pos_x + j, 0);
@@ -1613,12 +1613,13 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
 
       if (ctx->shader->key.ge.mono.u.vs_export_prim_id) {
          outputs[i].semantic = VARYING_SLOT_PRIMITIVE_ID;
+         outputs[i].vertex_streams = 0;
 
          if (ctx->stage == MESA_SHADER_VERTEX) {
             /* Wait for GS stores to finish. */
             ac_build_s_barrier(&ctx->ac);
 
-            tmp = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
+            tmp = ngg_nogs_vertex_ptr(ctx, gfx10_get_thread_id_in_tg(ctx));
             tmp = ac_build_gep0(&ctx->ac, tmp, ctx->ac.i32_0);
             outputs[i].values[0] = LLVMBuildLoad(builder, tmp, "");
          } else {
@@ -1629,8 +1630,6 @@ void gfx10_emit_ngg_epilogue(struct ac_shader_abi *abi)
          outputs[i].values[0] = ac_to_float(&ctx->ac, outputs[i].values[0]);
          for (unsigned j = 1; j < 4; j++)
             outputs[i].values[j] = LLVMGetUndef(ctx->ac.f32);
-
-         memset(outputs[i].vertex_stream, 0, sizeof(outputs[i].vertex_stream));
          i++;
       }
 
@@ -1758,7 +1757,7 @@ void gfx10_ngg_gs_emit_vertex(struct si_shader_context *ctx, unsigned stream, LL
 
    ac_build_ifcc(&ctx->ac, can_emit, 9001);
 
-   const LLVMValueRef vertexptr = ngg_gs_emit_vertex_ptr(ctx, get_thread_id_in_tg(ctx), vertexidx);
+   const LLVMValueRef vertexptr = ngg_gs_emit_vertex_ptr(ctx, gfx10_get_thread_id_in_tg(ctx), vertexidx);
    unsigned out_idx = 0;
    for (unsigned i = 0; i < info->num_outputs; i++) {
       for (unsigned chan = 0; chan < 4; chan++, out_idx++) {
@@ -1816,7 +1815,7 @@ void gfx10_ngg_gs_emit_prologue(struct si_shader_context *ctx)
     */
    LLVMBuilderRef builder = ctx->ac.builder;
    LLVMValueRef scratchptr = ctx->gs_ngg_scratch;
-   LLVMValueRef tid = get_thread_id_in_tg(ctx);
+   LLVMValueRef tid = gfx10_get_thread_id_in_tg(ctx);
    LLVMValueRef tmp;
 
    tmp = LLVMBuildICmp(builder, LLVMIntULT, tid, LLVMConstInt(ctx->ac.i32, 4, false), "");
@@ -1850,7 +1849,7 @@ void gfx10_ngg_gs_emit_epilogue(struct si_shader_context *ctx)
       if (!info->num_stream_output_components[stream])
          continue;
 
-      const LLVMValueRef gsthread = get_thread_id_in_tg(ctx);
+      const LLVMValueRef gsthread = gfx10_get_thread_id_in_tg(ctx);
 
       ac_build_bgnloop(&ctx->ac, 5100);
 
@@ -1893,7 +1892,7 @@ void gfx10_ngg_gs_emit_epilogue(struct si_shader_context *ctx)
 
    ac_build_s_barrier(&ctx->ac);
 
-   const LLVMValueRef tid = get_thread_id_in_tg(ctx);
+   const LLVMValueRef tid = gfx10_get_thread_id_in_tg(ctx);
    LLVMValueRef num_emit_threads = ngg_get_prim_cnt(ctx);
 
    /* Streamout */
@@ -2148,7 +2147,7 @@ void gfx10_ngg_gs_emit_epilogue(struct si_shader_context *ctx)
             tmp = ngg_gs_get_emit_output_ptr(ctx, vertexptr, out_idx);
             tmp = LLVMBuildLoad(builder, tmp, "");
             outputs[i].values[j] = ac_to_float(&ctx->ac, tmp);
-            outputs[i].vertex_stream[j] = (info->output_streams[i] >> (2 * j)) & 3;
+            outputs[i].vertex_streams = info->output_streams[i];
          }
       }
 

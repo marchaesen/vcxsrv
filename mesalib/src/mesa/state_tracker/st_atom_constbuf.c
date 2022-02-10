@@ -122,12 +122,16 @@ st_upload_constants(struct st_context *st, struct gl_program *prog, gl_shader_st
       if (st->prefer_real_buffer_in_constbuf0) {
          struct pipe_context *pipe = st->pipe;
          uint32_t *ptr;
+
+         const unsigned alignment = MAX2(
+            st->ctx->Const.UniformBufferOffsetAlignment, 64);
+
          /* fetch_state always stores 4 components (16 bytes) per matrix row,
           * but matrix rows are sometimes allocated partially, so add 12
           * to compensate for the fetch_state defect.
           */
-         u_upload_alloc(pipe->const_uploader, 0, paramBytes + 12, 64,
-                        &cb.buffer_offset, &cb.buffer, (void**)&ptr);
+         u_upload_alloc(pipe->const_uploader, 0, paramBytes + 12,
+            alignment, &cb.buffer_offset, &cb.buffer, (void**)&ptr);
 
          int uniform_bytes = params->UniformBytes;
          if (uniform_bytes)
@@ -209,7 +213,7 @@ st_upload_constants(struct st_context *st, struct gl_program *prog, gl_shader_st
 void
 st_update_vs_constants(struct st_context *st)
 {
-   st_upload_constants(st, &st->vp->Base, MESA_SHADER_VERTEX);
+   st_upload_constants(st, st->vp, MESA_SHADER_VERTEX);
 }
 
 /**
@@ -218,7 +222,7 @@ st_update_vs_constants(struct st_context *st)
 void
 st_update_fs_constants(struct st_context *st)
 {
-   st_upload_constants(st, &st->fp->Base, MESA_SHADER_FRAGMENT);
+   st_upload_constants(st, st->fp, MESA_SHADER_FRAGMENT);
 }
 
 
@@ -227,7 +231,7 @@ st_update_fs_constants(struct st_context *st)
 void
 st_update_gs_constants(struct st_context *st)
 {
-   st_upload_constants(st, st->gp ? &st->gp->Base : NULL, MESA_SHADER_GEOMETRY);
+   st_upload_constants(st, st->gp, MESA_SHADER_GEOMETRY);
 }
 
 /* Tessellation control shader:
@@ -235,7 +239,7 @@ st_update_gs_constants(struct st_context *st)
 void
 st_update_tcs_constants(struct st_context *st)
 {
-   st_upload_constants(st, st->tcp ? &st->tcp->Base : NULL, MESA_SHADER_TESS_CTRL);
+   st_upload_constants(st, st->tcp, MESA_SHADER_TESS_CTRL);
 }
 
 /* Tessellation evaluation shader:
@@ -243,7 +247,7 @@ st_update_tcs_constants(struct st_context *st)
 void
 st_update_tes_constants(struct st_context *st)
 {
-   st_upload_constants(st, st->tep ? &st->tep->Base : NULL, MESA_SHADER_TESS_EVAL);
+   st_upload_constants(st, st->tep, MESA_SHADER_TESS_EVAL);
 }
 
 /* Compute shader:
@@ -251,7 +255,7 @@ st_update_tes_constants(struct st_context *st)
 void
 st_update_cs_constants(struct st_context *st)
 {
-   st_upload_constants(st, st->cp ? &st->cp->Base : NULL, MESA_SHADER_COMPUTE);
+   st_upload_constants(st, st->cp, MESA_SHADER_COMPUTE);
 }
 
 static void

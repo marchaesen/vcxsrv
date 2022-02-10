@@ -900,7 +900,7 @@ boolean r300_is_zs_format_supported(enum pipe_format format)
 
 boolean r300_is_sampler_format_supported(enum pipe_format format)
 {
-    return r300_translate_texformat(format, 0, TRUE, FALSE) != ~0;
+    return r300_translate_texformat(format, NULL, TRUE, FALSE) != ~0;
 }
 
 void r300_texture_setup_format_state(struct r300_screen *screen,

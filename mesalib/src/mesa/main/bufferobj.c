@@ -50,8 +50,6 @@
 #include "api_exec_decl.h"
 #include "util/set.h"
 
-#include "state_tracker/st_cb_memoryobjects.h"
-
 #include "state_tracker/st_debug.h"
 #include "state_tracker/st_atom.h"
 #include "frontend/api.h"
@@ -263,7 +261,6 @@ bufferobj_data(struct gl_context *ctx,
 {
    struct pipe_context *pipe = ctx->pipe;
    struct pipe_screen *screen = pipe->screen;
-   struct st_memory_object *st_mem_obj = st_memory_object(memObj);
    bool is_mapped = _mesa_bufferobj_mapped(obj, MAP_USER);
 
    if (size > UINT32_MAX || offset > UINT32_MAX) {
@@ -334,10 +331,10 @@ bufferobj_data(struct gl_context *ctx,
       buffer.depth0 = 1;
       buffer.array_size = 1;
 
-      if (st_mem_obj) {
+      if (memObj) {
          obj->buffer = screen->resource_from_memobj(screen, &buffer,
-                                                       st_mem_obj->memory,
-                                                       offset);
+                                                    memObj->memory,
+                                                    offset);
       }
       else if (target == GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD) {
          obj->buffer =
@@ -2369,7 +2366,7 @@ void GLAPIENTRY
 _mesa_NamedBufferStorageMemEXT(GLuint buffer, GLsizeiptr size,
                                GLuint memory, GLuint64 offset)
 {
-   inlined_buffer_storage(GL_NONE, buffer, size, GL_NONE, 0, memory, offset,
+   inlined_buffer_storage(GL_NONE, buffer, size, NULL, 0, memory, offset,
                           true, true, false, "glNamedBufferStorageMemEXT");
 }
 
@@ -2378,7 +2375,7 @@ void GLAPIENTRY
 _mesa_NamedBufferStorageMemEXT_no_error(GLuint buffer, GLsizeiptr size,
                                         GLuint memory, GLuint64 offset)
 {
-   inlined_buffer_storage(GL_NONE, buffer, size, GL_NONE, 0, memory, offset,
+   inlined_buffer_storage(GL_NONE, buffer, size, NULL, 0, memory, offset,
                           true, true, true, "glNamedBufferStorageMemEXT");
 }
 

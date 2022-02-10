@@ -61,13 +61,6 @@ svga_destroy(struct pipe_context *pipe)
    struct svga_context *svga = svga_context(pipe);
    unsigned shader, i;
 
-   /* free any alternate rasterizer states used for point sprite */
-   for (i = 0; i < ARRAY_SIZE(svga->rasterizer_no_cull); i++) {
-      if (svga->rasterizer_no_cull[i]) {
-         pipe->delete_rasterizer_state(pipe, svga->rasterizer_no_cull[i]);
-      }
-   }
-
    /* free depthstencil_disable state */
    if (svga->depthstencil_disable) {
       pipe->delete_depth_stencil_alpha_state(pipe, svga->depthstencil_disable);
@@ -98,6 +91,7 @@ svga_destroy(struct pipe_context *pipe)
    svga_cleanup_tss_binding(svga);
    svga_cleanup_vertex_state(svga);
    svga_cleanup_tcs_state(svga);
+   svga_cleanup_shader_image_state(svga);
 
    svga_destroy_swtnl(svga);
    svga_hwtnl_destroy(svga->hwtnl);
@@ -114,6 +108,9 @@ svga_destroy(struct pipe_context *pipe)
    util_bitmask_destroy(svga->surface_view_id_bm);
    util_bitmask_destroy(svga->stream_output_id_bm);
    util_bitmask_destroy(svga->query_id_bm);
+   util_bitmask_destroy(svga->uav_id_bm);
+   util_bitmask_destroy(svga->uav_to_free_id_bm);
+
    u_upload_destroy(svga->const0_upload);
    u_upload_destroy(svga->pipe.stream_uploader);
    u_upload_destroy(svga->pipe.const_uploader);
@@ -124,6 +121,15 @@ svga_destroy(struct pipe_context *pipe)
       for (i = 0; i < ARRAY_SIZE(svga->curr.constbufs[shader]); ++i) {
          pipe_resource_reference(&svga->curr.constbufs[shader][i].buffer, NULL);
       }
+   }
+
+   /* free any pending srvs that were created for rawbuf sr view for
+    * constant buf.
+    */
+   if (svga_have_gl43(svga)) {
+      svga_destroy_rawbuf_srv(svga);
+      util_bitmask_destroy(svga->sampler_view_to_free_id_bm);
+      pipe_resource_reference(&svga->dummy_resource, NULL);
    }
 
    FREE(svga);
@@ -189,6 +195,9 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
    svga_init_stream_output_functions(svga);
    svga_init_clear_functions(svga);
    svga_init_tracked_state(svga);
+   svga_init_shader_image_functions(svga);
+   svga_init_shader_buffer_functions(svga);
+   svga_init_cs_functions(svga);
 
    /* init misc state */
    svga->curr.sample_mask = ~0;
@@ -228,6 +237,15 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
       goto cleanup;
 
    if (!(svga->query_id_bm = util_bitmask_create()))
+      goto cleanup;
+
+   if (!(svga->uav_id_bm = util_bitmask_create()))
+      goto cleanup;
+
+   if (!(svga->uav_to_free_id_bm = util_bitmask_create()))
+      goto cleanup;
+
+   if (!(svga->sampler_view_to_free_id_bm = util_bitmask_create()))
       goto cleanup;
 
    svga->hwtnl = svga_hwtnl_create(svga);
@@ -275,6 +293,11 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
    svga->state.hw_draw.num_backed_views = 0;
    svga->state.hw_draw.rasterizer_discard = FALSE;
 
+   /* Initialize uavs */
+   svga->state.hw_draw.uavSpliceIndex = -1;
+   svga->state.hw_draw.num_uavs = 0;
+   svga->state.hw_draw.num_cs_uavs = 0;
+
    /* Initialize the shader pointers */
    svga->state.hw_draw.vs = NULL;
    svga->state.hw_draw.gs = NULL;
@@ -289,12 +312,27 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
           sizeof(svga->state.hw_draw.default_constbuf_size));
    memset(svga->state.hw_draw.enabled_constbufs, 0,
           sizeof(svga->state.hw_draw.enabled_constbufs));
+   memset(svga->state.hw_draw.enabled_rawbufs, 0,
+          sizeof(svga->state.hw_draw.enabled_rawbufs));
+   memset(svga->state.hw_draw.rawbufs, 0,
+          sizeof(svga->state.hw_draw.rawbufs));
    svga->state.hw_draw.ib = NULL;
    svga->state.hw_draw.num_vbuffers = 0;
    memset(svga->state.hw_draw.vbuffers, 0,
           sizeof(svga->state.hw_draw.vbuffers));
    svga->state.hw_draw.const0_buffer = NULL;
    svga->state.hw_draw.const0_handle = NULL;
+
+   if (svga_have_gl43(svga)) {
+      for (unsigned shader = 0; shader < PIPE_SHADER_TYPES; ++shader) {
+         for (unsigned i = 0;
+              i < ARRAY_SIZE(svga->state.hw_draw.rawbufs[shader]); i++) {
+            svga->state.hw_draw.rawbufs[shader][i].srvid = SVGA3D_INVALID_ID;
+         }
+      }
+      svga_uav_cache_init(svga);
+      svga->dummy_resource = NULL;
+   }
 
    /* Create a no-operation blend state which we will bind whenever the
     * requested blend state is impossible (e.g. due to having an integer
@@ -346,11 +384,15 @@ cleanup:
    util_bitmask_destroy(svga->input_element_object_id_bm);
    util_bitmask_destroy(svga->rast_object_id_bm);
    util_bitmask_destroy(svga->sampler_object_id_bm);
-   util_bitmask_destroy(svga->sampler_view_id_bm);
    util_bitmask_destroy(svga->shader_id_bm);
    util_bitmask_destroy(svga->surface_view_id_bm);
    util_bitmask_destroy(svga->stream_output_id_bm);
    util_bitmask_destroy(svga->query_id_bm);
+
+   util_bitmask_destroy(svga->uav_id_bm);
+   util_bitmask_destroy(svga->uav_to_free_id_bm);
+   util_bitmask_destroy(svga->sampler_view_id_bm);
+
    FREE(svga);
    svga = NULL;
 
@@ -423,6 +465,11 @@ svga_context_flush(struct svga_context *svga,
 
       if (svga_need_to_rebind_resources(svga)) {
          svga->rebind.flags.query = TRUE;
+      }
+
+      if (svga_sws(svga)->have_index_vertex_buffer_offset_cmd) {
+         svga->rebind.flags.vertexbufs = TRUE;
+         svga->rebind.flags.indexbuf = TRUE;
       }
    }
 

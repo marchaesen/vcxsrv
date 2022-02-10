@@ -111,6 +111,8 @@ lower_vs_vertex_conversion_impl(nir_builder *b, nir_instr *instr, void *options)
              fmt == PIPE_FORMAT_R8G8B8_UINT ||
              fmt == PIPE_FORMAT_R16G16B16_SINT ||
              fmt == PIPE_FORMAT_R16G16B16_UINT);
+      if (intr->dest.ssa.num_components == 3)
+         return NULL;
       return nir_vector_insert_imm(b, &intr->dest.ssa, nir_imm_int(b, 1), 3);
    } else {
       nir_ssa_def *src = nir_channel(b, &intr->dest.ssa, 0);

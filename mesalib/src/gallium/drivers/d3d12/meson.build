@@ -23,7 +23,9 @@ files_libd3d12 = files(
   'd3d12_batch.cpp',
   'd3d12_blit.cpp',
   'd3d12_bufmgr.cpp',
+  'd3d12_cmd_signature.cpp',
   'd3d12_compiler.cpp',
+  'd3d12_compute_transforms.cpp',
   'd3d12_context.cpp',
   'd3d12_descriptor_pool.cpp',
   'd3d12_draw.cpp',
@@ -31,9 +33,9 @@ files_libd3d12 = files(
   'd3d12_fence.cpp',
   'd3d12_format.c',
   'd3d12_gs_variant.cpp',
+  'd3d12_lower_image_casts.c',
   'd3d12_lower_int_cubemap_to_array.c',
   'd3d12_lower_point_sprite.c',
-  'd3d12_nir_lower_texcmp.c',
   'd3d12_nir_lower_vs_vertex_conversion.c',
   'd3d12_nir_passes.c',
   'd3d12_pipeline_state.cpp',
@@ -42,6 +44,7 @@ files_libd3d12 = files(
   'd3d12_root_signature.cpp',
   'd3d12_screen.cpp',
   'd3d12_surface.cpp',
+  'd3d12_tcs_variant.cpp',
 )
 
 if host_machine.system() == 'windows'

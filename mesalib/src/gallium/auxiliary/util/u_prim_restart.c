@@ -239,7 +239,7 @@ util_prim_restart_convert_to_direct(const void *index_map,
 #define SCAN_INDEXES(TYPE) \
    for (i = 0; i <= draw->count; i++) { \
       if (i == draw->count || \
-          ((const TYPE *) index_map)[draw->start + i] == info->restart_index) { \
+          ((const TYPE *) index_map)[i] == info->restart_index) { \
          /* cut / restart */ \
          if (count > 0) { \
             if (!add_range(info->mode, &ranges, draw->start + start, count, draw->index_bias)) { \

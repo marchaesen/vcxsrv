@@ -49,7 +49,6 @@ shaders/sso-user-varying-02: skip
 shaders/useshaderprogram-bad-program: skip
 shaders/useshaderprogram-bad-type: skip
 shaders/useshaderprogram-flushverts-1: skip
-shaders/zero-tex-coord texturegather: skip
 spec/!opengl 1.0/gl-1.0-beginend-coverage/glflush: fail
 spec/!opengl 1.0/gl-1.0-blend-func: fail
 spec/!opengl 1.0/gl-1.0-dlist-bitmap: fail
@@ -59,12 +58,8 @@ spec/!opengl 1.0/gl-1.0-simple-readbuffer: fail
 spec/!opengl 1.0/gl-1.0-spot-light: fail
 spec/!opengl 1.0/gl-1.0-texgen: fail
 spec/!opengl 1.0/rasterpos/glsl_vs_gs_linked: fail
-spec/!opengl 1.0/rasterpos/glsl_vs_gs_sso: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_image1d: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_image_bo: skip
 spec/!opengl 1.0/rasterpos/glsl_vs_ssbo: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_tes_linked: skip
-spec/!opengl 1.0/rasterpos/glsl_vs_tes_sso: skip
+spec/!opengl 1.0/rasterpos/glsl_vs_tes_linked: fail
 spec/!opengl 1.1/clear-accum: fail
 spec/!opengl 1.1/depthstencil-default_fb-blit samples=16: skip
 spec/!opengl 1.1/depthstencil-default_fb-blit samples=2: skip
@@ -203,106 +198,10 @@ spec/!opengl 1.4/triangle-rasterization-overdraw: fail
 spec/!opengl 2.0/gl-2.0-two-sided-stencil: fail
 spec/!opengl 2.0/max-samplers: fail
 spec/!opengl 2.0/max-samplers border: fail
-spec/!opengl 2.0/vertex-program-two-side back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled front/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side enabled/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front back/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2 back2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front2/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side front/vs, tcs, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/tcs-out, tes and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/tes-out and fs: skip
-spec/!opengl 2.0/vertex-program-two-side/vs, tcs, tes and fs: skip
 spec/!opengl 3.0/bound-resource-limits: fail
-spec/!opengl 3.0/clearbuffer-depth-cs-probe: skip
 spec/!opengl 3.0/required-sized-texture-formats: fail
 spec/!opengl 3.1/default-vao: fail
+spec/!opengl 3.1/draw-buffers-errors: skip
 spec/!opengl 3.1/genned-names: fail
 spec/!opengl 3.1/gl-3.1-enable-vertex-array: fail
 spec/!opengl 3.1/gl-3.1-link-empty-prog-core: fail
@@ -323,9 +222,7 @@ spec/!opengl 3.2/layered-rendering/gl-layer-render-clipped: fail
 spec/!opengl 3.2/layered-rendering/gl-layer-render-storage: fail
 spec/!opengl 3.3/required-sized-texture-formats: fail
 spec/!opengl 4.2/gl-max-vertex-attrib-stride: skip
-spec/!opengl 4.2/required-renderbuffer-attachment-formats: skip
-spec/!opengl 4.2/required-sized-texture-formats: skip
-spec/!opengl 4.2/required-texture-attachment-formats: skip
+spec/!opengl 4.2/required-sized-texture-formats: fail
 spec/!opengl 4.3/get_glsl_version: skip
 spec/!opengl 4.5/compare-framebuffer-parameter-with-get: skip
 spec/!opengl 4.5/named-framebuffer-draw-buffers-errors: skip
@@ -380,8 +277,6 @@ spec/apple_object_purgeable/object_purgeable-api-vbo: skip
 spec/apple_vertex_array_object/isvertexarray: skip
 spec/apple_vertex_array_object/vao-01: skip
 spec/apple_vertex_array_object/vao-02: skip
-spec/arb_base_instance/arb_base_instance-baseinstance-doesnt-affect-gl-instance-id: skip
-spec/arb_base_instance/arb_base_instance-drawarrays: skip
 spec/arb_bindless_texture/border-color: skip
 spec/arb_bindless_texture/conversions: skip
 spec/arb_bindless_texture/errors: skip
@@ -437,19 +332,7 @@ spec/arb_clear_texture/arb_clear_texture-texview: skip
 spec/arb_clip_control/arb_clip_control-clip-control: skip
 spec/arb_clip_control/arb_clip_control-depth-precision: skip
 spec/arb_clip_control/arb_clip_control-viewport: skip
-spec/arb_compute_shader/api_errors: skip
-spec/arb_compute_shader/built-in constants: skip
-spec/arb_compute_shader/compiler/work_group_size_too_large: skip
-spec/arb_compute_shader/compute-and-render-bug-109630: skip
-spec/arb_compute_shader/display-list: skip
-spec/arb_compute_shader/indirect-compute: skip
-spec/arb_compute_shader/local-id-explosion: skip
-spec/arb_compute_shader/minmax: skip
-spec/arb_compute_shader/render-and-compute: skip
-spec/arb_compute_shader/zero-dispatch-size: skip
-spec/arb_compute_variable_group_size/errors: skip
-spec/arb_compute_variable_group_size/local-size: skip
-spec/arb_compute_variable_group_size/minmax: skip
+spec/arb_compute_shader/compute-and-render-bug-109630: fail
 spec/arb_copy_image/arb_copy_image-api_errors: skip
 spec/arb_copy_image/arb_copy_image-format-swizzle: skip
 spec/arb_copy_image/arb_copy_image-formats: skip
@@ -550,30 +433,8 @@ spec/arb_depth_buffer_float/depthstencil-render-miplevels 585 d=z32f_s8_s=z24_s8
 spec/arb_depth_buffer_float/depthstencil-render-miplevels 585 d=z32f_s=z24_s8: skip
 spec/arb_depth_buffer_float/depthstencil-render-miplevels 585 s=z24_s8_d=z32f: skip
 spec/arb_depth_buffer_float/depthstencil-render-miplevels 585 s=z24_s8_d=z32f_s8: skip
-spec/arb_direct_state_access/create-programpipelines/default compute shader program == 0: skip
-spec/arb_direct_state_access/create-programpipelines/default tcs == 0: skip
-spec/arb_direct_state_access/create-programpipelines/default tes == 0: skip
-spec/arb_direct_state_access/create-transformfeedbacks: skip
 spec/arb_direct_state_access/getcompressedtextureimage: skip
 spec/arb_direct_state_access/gettextureimage-formats: crash
-spec/arb_direct_state_access/gettransformfeedback: skip
-spec/arb_direct_state_access/transformfeedback-bufferbase: skip
-spec/arb_direct_state_access/transformfeedback-bufferrange: skip
-spec/arb_draw_indirect/arb_draw_indirect-api-errors: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-arrays: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-arrays-base-instance: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-arrays-compat: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-arrays-instances: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-arrays-prim-restart: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-arrays-shared-binding: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-elements: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-elements-base-instance: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-elements-compat: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-elements-prim-restart: skip
-spec/arb_draw_indirect/arb_draw_indirect-draw-elements-prim-restart-ugly: skip
-spec/arb_draw_indirect/arb_draw_indirect-transform-feedback: skip
-spec/arb_draw_indirect/gl_vertexid used with gldrawarraysindirect: skip
-spec/arb_draw_indirect/gl_vertexid used with gldrawelementsindirect: skip
 spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_gs: skip
 spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_gs_max: skip
 spec/arb_enhanced_layouts/arb_enhanced_layouts-transform-feedback-layout-qualifiers_vs: skip
@@ -587,11 +448,20 @@ spec/arb_explicit_attrib_location/overlapping-locations-input-attribs api: crash
 spec/arb_explicit_attrib_location/overlapping-locations-input-attribs shader: crash
 spec/arb_fragment_program/fp-indirections: skip
 spec/arb_fragment_shader_interlock/arb_fragment_shader_interlock-image-load-store: skip
-spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-atomic: skip
-spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-minmax: skip
-spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-params: skip
-spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query: skip
-spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-roundup-samples: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-atomic/per-sample: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/basic: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/discard: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/fb resize: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/glscissor: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/glviewport: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms10: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms12: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms14: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms16: fail
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms2: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms4: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms6: skip
+spec/arb_framebuffer_no_attachments/arb_framebuffer_no_attachments-query/ms8: skip
 spec/arb_framebuffer_srgb/arb_framebuffer_srgb-srgb_conformance: fail
 spec/arb_geometry_shader4/arb_geometry_shader4-ignore-adjacent-vertices  gl_line_strip_adjacency: skip
 spec/arb_geometry_shader4/arb_geometry_shader4-ignore-adjacent-vertices  gl_lines_adjacency: skip
@@ -613,1241 +483,863 @@ spec/arb_get_program_binary/reset-uniform: skip
 spec/arb_get_program_binary/restore-implicit-use-program: skip
 spec/arb_get_program_binary/restore-sso-program: fail
 spec/arb_get_program_binary/xfb-varyings: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-emitstreamvertex_nodraw: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-emitstreamvertex_stream_too_large: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatcentroid: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatcentroid-centroid: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatcentroid-flat: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatcentroid-noperspective: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatcentroid-packing: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatoffset: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatoffset-nonconst: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample-different: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample-different uniform: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample-dynamically-nonuniform: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample-nonconst: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-invocation-id: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-invocations_count_too_large: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-minmax: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-stream_value_too_large: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-tf-wrong-stream-value: skip
-spec/arb_gpu_shader5/arb_gpu_shader5-xfb-streams: skip
+spec/arb_gpu_shader5/arb_gpu_shader5-emitstreamvertex_nodraw: fail
+spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample-different uniform: fail
+spec/arb_gpu_shader5/arb_gpu_shader5-interpolateatsample-dynamically-nonuniform: fail
 spec/arb_gpu_shader5/arb_gpu_shader5-xfb-streams-without-invocations: skip
 spec/arb_gpu_shader5/arb_gpu_shader5-xfb-streams-without-invocations spirv: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-1-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-2-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-float-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-float-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/fs-rgba-3-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-0-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-1-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-2-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-float-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-float-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-float-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-float-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-float-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-cubearray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-unorm-2d: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-unorm-cube: skip
-spec/arb_gpu_shader5/texturegather/vs-rgba-3-unorm-cubearray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-none-shadow-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-none-shadow-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-r-none-shadow-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-none-shadow-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-none-shadow-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-r-none-shadow-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-float-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-float-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-float-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-unorm-2d-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-unorm-2darray-const: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-unorm-2drect-const: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-none-shadow-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-none-shadow-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-r-none-shadow-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-none-shadow-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-none-shadow-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-r-none-shadow-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-unorm-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-float-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-float-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-float-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-int-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-int-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-int-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-uint-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-uint-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-uint-2drect: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-unorm-2d: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-unorm-2darray: skip
-spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-unorm-2drect: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-dlist-uniforms: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-double-gettransformfeedbackvarying: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-double_in_bool_uniform: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-getuniformdv: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-alu: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-const: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-packing: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-ssbo: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-ubo: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-gs-getuniformdv: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-tf-interleaved: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-tf-interleaved-aligned: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-tf-separate: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-uniform-invalid-operation: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-getuniformdv: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-alu: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-const: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-packing: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-ssbo: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-ubo: skip
-spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-wrong-type-setter: skip
-spec/arb_gpu_shader_fp64/shader_storage/layout-std140-fp64-mixed-shader: skip
-spec/arb_gpu_shader_fp64/shader_storage/layout-std140-fp64-shader: skip
-spec/arb_gpu_shader_fp64/shader_storage/layout-std430-fp64-mixed-shader: skip
-spec/arb_gpu_shader_fp64/shader_storage/layout-std430-fp64-shader: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2x3 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2x3 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2x3 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2x4 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2x4 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat2x4 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3x2 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3x2 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3x2 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3x4 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3x4 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat3x4 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4x2 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4x2 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4x2 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4x3 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4x3 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dmat4x3 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple double array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple double arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple double separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec2 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec2 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec2 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec3 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec3 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec3 separate: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec4 array: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec4 arrays_of_arrays: skip
-spec/arb_gpu_shader_fp64/varying-packing/simple dvec4 separate: skip
-spec/arb_indirect_parameters/conditional-render: skip
-spec/arb_indirect_parameters/tf-count-arrays: skip
-spec/arb_indirect_parameters/tf-count-elements: skip
+spec/arb_gpu_shader5/texturegather/fs-r-0-float-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-float-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-r-0-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-r-none-shadow-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-float-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-float-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-0-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-float-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-float-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rg-1-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-0-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-1-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/fs-rgb-2-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-3-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/fs-rgba-3-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-float-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-float-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-r-0-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-r-none-shadow-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-float-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-float-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-0-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-float-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-float-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rg-1-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-0-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-1-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-float-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-cube: fail
+spec/arb_gpu_shader5/texturegather/vs-rgb-2-unorm-cubearray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-3-int-2drect: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-2d: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-2darray: fail
+spec/arb_gpu_shader5/texturegather/vs-rgba-3-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-0-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-none-shadow-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-none-shadow-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-r-none-shadow-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-0-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rg-1-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-0-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-1-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgb-2-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-1-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-2-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/fs-rgba-3-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-0-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-none-shadow-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-none-shadow-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-r-none-shadow-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-0-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rg-1-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-0-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-1-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-float-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgb-2-unorm-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-0-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-1-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-2-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-int-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2d-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2darray-const: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffset/vs-rgba-3-uint-2drect-const: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-none-shadow-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-none-shadow-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-r-none-shadow-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rg-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgb-2-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/fs-rgba-3-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-none-shadow-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-none-shadow-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-r-none-shadow-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rg-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-0-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-1-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-float-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-float-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-float-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-unorm-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-unorm-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgb-2-unorm-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-0-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-1-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-2-uint-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-int-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-int-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-int-2drect: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-uint-2d: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-uint-2darray: fail
+spec/arb_gpu_shader5/texturegatheroffsets/vs-rgba-3-uint-2drect: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-alu: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-const: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-packing: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-ssbo: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-ubo: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-alu: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-const: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-packing: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-ssbo: fail
+spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-ubo: fail
+spec/arb_indirect_parameters/tf-count-arrays: fail
+spec/arb_indirect_parameters/tf-count-elements: fail
 spec/arb_internalformat_query/minmax: skip
 spec/arb_internalformat_query/misc. api error checks: skip
-spec/arb_multi_draw_indirect/arb_draw_elements_base_vertex-multidrawelements -indirect: skip
-spec/arb_multi_draw_indirect/gl-3.0-multidrawarrays-vertexid -indirect: skip
 spec/arb_pipeline_statistics_query/arb_pipeline_statistics_query-clip: skip
 spec/arb_pipeline_statistics_query/arb_pipeline_statistics_query-comp: skip
 spec/arb_pipeline_statistics_query/arb_pipeline_statistics_query-extra_prims: skip
@@ -1862,158 +1354,59 @@ spec/arb_post_depth_coverage/arb_post_depth_coverage-multisampling: skip
 spec/arb_post_depth_coverage/arb_post_depth_coverage-sample-shading: skip
 spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceindex/'vs_input2' on gl_program_input: fail
 spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceindex/'vs_input2[1][0]' on gl_program_input: fail
-spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceiv/compute on gl_compute_subroutine_uniform: skip
-spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceiv/tcs_patch on gl_program_output: skip
-spec/arb_program_interface_query/arb_program_interface_query-getprogramresourceiv/tess_control on gl_tess_control_subroutine_uniform: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-location/test_subroutine_stages_compute: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-location/test_subroutine_stages_tcs_tes: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_compute_subroutine: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_compute_subroutine_uniform: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_input(cs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_input(tcs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_input(tcs,tes): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_input(tes): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_input(vs,tcs,tes): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_output(cs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_output(tcs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_output(tcs,tes): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_output(tcs,tes,gs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_program_output(tes): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_tess_control_subroutine: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_tess_control_subroutine_uniform: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_tess_evaluation_subroutine: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_tess_evaluation_subroutine_uniform: skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_uniform(cs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_uniform(tes,tcs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_uniform_block(cs): skip
-spec/arb_program_interface_query/arb_program_interface_query-resource-query/gl_uniform_block(tcs,tes): skip
 spec/arb_query_buffer_object/coherency: skip
 spec/arb_query_buffer_object/qbo: skip
 spec/arb_sample_locations/test: skip
-spec/arb_sample_shading/arb_sample_shading-api: skip
-spec/arb_sample_shading/arb_sample_shading-builtin-gl-sample-mask-mrt-alpha: skip
-spec/arb_sample_shading/arb_sample_shading-builtin-gl-sample-mask-mrt-alpha-to-coverage-combinations: skip
-spec/arb_sample_shading/builtin-gl-num-samples 0: skip
-spec/arb_sample_shading/builtin-gl-num-samples 16: skip
-spec/arb_sample_shading/builtin-gl-num-samples 2: skip
+spec/arb_sample_shading/arb_sample_shading-builtin-gl-sample-mask-mrt-alpha-to-coverage-combinations: fail
 spec/arb_sample_shading/builtin-gl-num-samples 32: skip
-spec/arb_sample_shading/builtin-gl-num-samples 4: skip
-spec/arb_sample_shading/builtin-gl-num-samples 6: skip
-spec/arb_sample_shading/builtin-gl-num-samples 8: skip
-spec/arb_sample_shading/builtin-gl-sample-id 0: skip
-spec/arb_sample_shading/builtin-gl-sample-id 16: skip
-spec/arb_sample_shading/builtin-gl-sample-id 2: skip
 spec/arb_sample_shading/builtin-gl-sample-id 32: skip
-spec/arb_sample_shading/builtin-gl-sample-id 4: skip
-spec/arb_sample_shading/builtin-gl-sample-id 6: skip
-spec/arb_sample_shading/builtin-gl-sample-id 8: skip
-spec/arb_sample_shading/builtin-gl-sample-mask 0: skip
-spec/arb_sample_shading/builtin-gl-sample-mask 16: skip
-spec/arb_sample_shading/builtin-gl-sample-mask 2: skip
 spec/arb_sample_shading/builtin-gl-sample-mask 32: skip
-spec/arb_sample_shading/builtin-gl-sample-mask 4: skip
-spec/arb_sample_shading/builtin-gl-sample-mask 6: skip
-spec/arb_sample_shading/builtin-gl-sample-mask 8: skip
-spec/arb_sample_shading/builtin-gl-sample-mask-simple 0: skip
 spec/arb_sample_shading/builtin-gl-sample-mask-simple 16: skip
-spec/arb_sample_shading/builtin-gl-sample-mask-simple 2: skip
 spec/arb_sample_shading/builtin-gl-sample-mask-simple 32: skip
-spec/arb_sample_shading/builtin-gl-sample-mask-simple 4: skip
-spec/arb_sample_shading/builtin-gl-sample-mask-simple 6: skip
-spec/arb_sample_shading/builtin-gl-sample-mask-simple 8: skip
-spec/arb_sample_shading/builtin-gl-sample-position 0: skip
-spec/arb_sample_shading/builtin-gl-sample-position 16: skip
-spec/arb_sample_shading/builtin-gl-sample-position 2: skip
 spec/arb_sample_shading/builtin-gl-sample-position 32: skip
-spec/arb_sample_shading/builtin-gl-sample-position 4: skip
-spec/arb_sample_shading/builtin-gl-sample-position 6: skip
-spec/arb_sample_shading/builtin-gl-sample-position 8: skip
-spec/arb_sample_shading/ignore-centroid-qualifier 16: skip
-spec/arb_sample_shading/ignore-centroid-qualifier 2: skip
 spec/arb_sample_shading/ignore-centroid-qualifier 32: skip
-spec/arb_sample_shading/ignore-centroid-qualifier 4: skip
-spec/arb_sample_shading/ignore-centroid-qualifier 6: skip
-spec/arb_sample_shading/ignore-centroid-qualifier 8: skip
-spec/arb_sample_shading/interpolate-at-sample-position 16: skip
-spec/arb_sample_shading/interpolate-at-sample-position 2: skip
 spec/arb_sample_shading/interpolate-at-sample-position 32: skip
-spec/arb_sample_shading/interpolate-at-sample-position 4: skip
-spec/arb_sample_shading/interpolate-at-sample-position 6: skip
-spec/arb_sample_shading/interpolate-at-sample-position 8: skip
 spec/arb_sample_shading/samplemask 0 all: skip
-spec/arb_sample_shading/samplemask 16: skip
-spec/arb_sample_shading/samplemask 16 all: skip
-spec/arb_sample_shading/samplemask 2: skip
-spec/arb_sample_shading/samplemask 2 all: skip
 spec/arb_sample_shading/samplemask 32: skip
 spec/arb_sample_shading/samplemask 32 all: skip
-spec/arb_sample_shading/samplemask 4: skip
-spec/arb_sample_shading/samplemask 4 all: skip
-spec/arb_sample_shading/samplemask 6: skip
-spec/arb_sample_shading/samplemask 6 all: skip
-spec/arb_sample_shading/samplemask 8: skip
-spec/arb_sample_shading/samplemask 8 all: skip
 spec/arb_seamless_cube_map/arb_seamless_cubemap: fail
-spec/arb_separate_shader_objects/atomic counter: skip
-spec/arb_separate_shader_objects/mix-and-match-tcs-tes: skip
-spec/arb_separate_shader_objects/programuniform coverage/double matrices: skip
-spec/arb_separate_shader_objects/programuniform coverage/double scalar and vectors: skip
-spec/arb_separate_shader_objects/rendezvous by location (5 stages): skip
-spec/arb_separate_shader_objects/transform feedback with rendezvous by location: skip
-spec/arb_separate_shader_objects/validateprogrampipeline/only tes from tes/tcs program: skip
-spec/arb_separate_shader_objects/validateprogrampipeline/tcs splitting a vs/gs pipeline: skip
-spec/arb_separate_shader_objects/validateprogrampipeline/tes splitting a vs/gs program: skip
-spec/arb_separate_shader_objects/validateprogrampipeline/tes/tcs without vs: skip
 spec/arb_shader_atomic_counters/array-indexing: fail
 spec/arb_shader_atomic_counters/max-counters/combined test above maximum number of atomic counter buffers: skip
 spec/arb_shader_atomic_counters/semantics/fragment shader atomic built-in semantics: fail
 spec/arb_shader_atomic_counters/semantics/geometry shader atomic built-in semantics: fail
-spec/arb_shader_atomic_counters/semantics/tessellation control shader atomic built-in semantics: skip
-spec/arb_shader_atomic_counters/semantics/tessellation evaluation shader atomic built-in semantics: skip
+spec/arb_shader_atomic_counters/semantics/tessellation control shader atomic built-in semantics: fail
+spec/arb_shader_atomic_counters/semantics/tessellation evaluation shader atomic built-in semantics: fail
 spec/arb_shader_atomic_counters/semantics/vertex shader atomic built-in semantics: fail
 spec/arb_shader_atomic_counters/unused-result/fragment shader atomic built-in semantics: fail
 spec/arb_shader_atomic_counters/unused-result/geometry shader atomic built-in semantics: fail
-spec/arb_shader_atomic_counters/unused-result/tessellation control shader atomic built-in semantics: skip
-spec/arb_shader_atomic_counters/unused-result/tessellation evaluation shader atomic built-in semantics: skip
+spec/arb_shader_atomic_counters/unused-result/tessellation control shader atomic built-in semantics: fail
+spec/arb_shader_atomic_counters/unused-result/tessellation evaluation shader atomic built-in semantics: fail
 spec/arb_shader_atomic_counters/unused-result/vertex shader atomic built-in semantics: fail
-spec/arb_shader_draw_parameters/baseinstance: skip
-spec/arb_shader_draw_parameters/baseinstance-indirect: skip
-spec/arb_shader_draw_parameters/basevertex: skip
-spec/arb_shader_draw_parameters/basevertex-baseinstance: skip
-spec/arb_shader_draw_parameters/basevertex-baseinstance-indirect: skip
-spec/arb_shader_draw_parameters/basevertex-indirect: skip
-spec/arb_shader_draw_parameters/drawid: skip
-spec/arb_shader_draw_parameters/drawid-indirect: skip
-spec/arb_shader_draw_parameters/drawid-indirect-baseinstance: skip
-spec/arb_shader_draw_parameters/drawid-indirect-basevertex: skip
-spec/arb_shader_draw_parameters/drawid-indirect-vertexid: skip
-spec/arb_shader_draw_parameters/drawid-single-draw: skip
-spec/arb_shader_draw_parameters/drawid-single-draw-display-list: skip
-spec/arb_shader_draw_parameters/drawid-single-draw-primitive-restart: skip
-spec/arb_shader_draw_parameters/drawid-vertexid: skip
-spec/arb_shader_draw_parameters/vertexid-zerobased: skip
-spec/arb_shader_draw_parameters/vertexid-zerobased-indirect: skip
-spec/arb_shader_image_load_store/atomicity: skip
-spec/arb_shader_image_load_store/bitcast: skip
-spec/arb_shader_image_load_store/coherency: skip
-spec/arb_shader_image_load_store/dead-fragments: skip
-spec/arb_shader_image_load_store/early-z: skip
-spec/arb_shader_image_load_store/host-mem-barrier: skip
-spec/arb_shader_image_load_store/indexing: skip
-spec/arb_shader_image_load_store/invalid: skip
-spec/arb_shader_image_load_store/layer: skip
-spec/arb_shader_image_load_store/level: skip
-spec/arb_shader_image_load_store/max-images: skip
-spec/arb_shader_image_load_store/max-size: skip
-spec/arb_shader_image_load_store/minmax: skip
-spec/arb_shader_image_load_store/qualifiers: skip
-spec/arb_shader_image_load_store/restrict: skip
-spec/arb_shader_image_load_store/semantics: skip
-spec/arb_shader_image_load_store/shader-mem-barrier: skip
-spec/arb_shader_image_load_store/state: skip
-spec/arb_shader_image_load_store/unused: skip
-spec/arb_shader_image_size/builtin: skip
-spec/arb_shader_storage_buffer_object/minmax: skip
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image1d/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image1darray/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgb10_a2: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgb10_a2ui: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba16: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba16_snorm: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba16f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba16i: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba16ui: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba32i: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba32ui: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba8: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba8_snorm: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba8i: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2d/rgba8ui: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2darray/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image2drect/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/image3d/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/imagebuffer/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/imagecube/rgba32f: fail
+spec/arb_shader_image_load_store/invalid/imageload/address bounds test/imagecubearray/rgba32f: fail
+spec/arb_shader_image_load_store/max-size/imagecube max size test/16384x16384x6x1: skip
+spec/arb_shader_image_load_store/max-size/imagecubearray max size test/16384x16384x6x1: skip
+spec/arb_shader_image_load_store/semantics/imageatomicmax/vertex shader/r32ui/image1d test: fail
 spec/arb_shader_texture_image_samples/builtin-image: skip
 spec/arb_shader_texture_image_samples/texturesamples/fs-isampler2dms-16: skip
 spec/arb_shader_texture_image_samples/texturesamples/fs-isampler2dms-2: skip
@@ -2123,7 +1516,6 @@ spec/arb_shader_texture_image_samples/texturesamples/vs-usampler2dmsarray-32: sk
 spec/arb_shader_texture_image_samples/texturesamples/vs-usampler2dmsarray-4: skip
 spec/arb_shader_texture_image_samples/texturesamples/vs-usampler2dmsarray-6: skip
 spec/arb_shader_texture_image_samples/texturesamples/vs-usampler2dmsarray-8: skip
-spec/arb_shading_language_420pack/active sampler conflict: fail
 spec/arb_shading_language_420pack/binding layout: fail
 spec/arb_sparse_buffer/basic: skip
 spec/arb_sparse_buffer/buffer-data: skip
@@ -2131,17 +1523,7 @@ spec/arb_sparse_buffer/commit: skip
 spec/arb_sparse_buffer/minmax: skip
 spec/arb_stencil_texturing/draw: fail
 spec/arb_sync/clientwaitsync-timeout: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-get-tcs-params: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-get-tes-params: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-immediate-mode-draw-patches: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-invalid-get-program-params: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-invalid-patch-vertices-range: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-invalid-primitive: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-large-uniforms: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-layout-mismatch: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-minmax: skip
-spec/arb_tessellation_shader/arb_tessellation_shader-tes-gs-max-output -small -scan 1 50: skip
-spec/arb_tessellation_shader/built-in-constants: skip
+spec/arb_tessellation_shader/arb_tessellation_shader-tes-gs-max-output -small -scan 1 50: crash
 spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 32 1 1 128 1: skip
 spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 32 1 1 128 2: skip
 spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 32 1 1 128 3: skip
@@ -2287,22 +1669,10 @@ spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 512 42 8 8 4: sk
 spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 512 42 8 8 7: skip
 spec/arb_texture_barrier/arb_texture_barrier-blending-in-shader 512 42 8 8 8: skip
 spec/arb_texture_buffer_object/bufferstorage: skip
-spec/arb_texture_buffer_object/indexed: skip
 spec/arb_texture_buffer_object/negative-unsupported: skip
 spec/arb_texture_buffer_object/subdata-sync: fail
 spec/arb_texture_buffer_range/ranges-2: fail
 spec/arb_texture_buffer_range/ranges-2 compat: fail
-spec/arb_texture_compression_bptc/bptc-float-modes: skip
-spec/arb_texture_compression_bptc/bptc-modes: skip
-spec/arb_texture_compression_bptc/compressedteximage gl_compressed_rgb_bptc_signed_float: skip
-spec/arb_texture_compression_bptc/compressedteximage gl_compressed_rgb_bptc_unsigned_float: skip
-spec/arb_texture_compression_bptc/compressedteximage gl_compressed_rgba_bptc_unorm: skip
-spec/arb_texture_compression_bptc/compressedteximage gl_compressed_srgb_alpha_bptc_unorm: skip
-spec/arb_texture_compression_bptc/fbo-generatemipmap-formats float: skip
-spec/arb_texture_compression_bptc/fbo-generatemipmap-formats unorm: skip
-spec/arb_texture_compression_bptc/texwrap formats: skip
-spec/arb_texture_compression_bptc/texwrap formats bordercolor: skip
-spec/arb_texture_compression_bptc/texwrap formats bordercolor-swizzled: skip
 spec/arb_texture_cube_map/copyteximage cube samples=16: skip
 spec/arb_texture_cube_map/copyteximage cube samples=2: skip
 spec/arb_texture_cube_map/copyteximage cube samples=32: skip
@@ -2310,10 +1680,6 @@ spec/arb_texture_cube_map/copyteximage cube samples=4: skip
 spec/arb_texture_cube_map/copyteximage cube samples=6: skip
 spec/arb_texture_cube_map/copyteximage cube samples=8: skip
 spec/arb_texture_cube_map_array/arb_texture_cube_map_array-cubemap: fail
-spec/arb_texture_cube_map_array/texturesize/tes-texturesize-isamplercubearray: skip
-spec/arb_texture_cube_map_array/texturesize/tes-texturesize-samplercubearray: skip
-spec/arb_texture_cube_map_array/texturesize/tes-texturesize-samplercubearrayshadow: skip
-spec/arb_texture_cube_map_array/texturesize/tes-texturesize-usamplercubearray: skip
 spec/arb_texture_float/multisample-formats 32 gl_arb_texture_float: skip
 spec/arb_texture_gather/texturegather/fs-r-none-float-2d: fail
 spec/arb_texture_gather/texturegather/fs-r-none-float-2darray: fail
@@ -3039,12 +2405,6 @@ spec/arb_texture_multisample/texelfetch/32-vs-sampler2dms: skip
 spec/arb_texture_multisample/texelfetch/32-vs-sampler2dmsarray: skip
 spec/arb_texture_multisample/texelfetch/32-vs-usampler2dms: skip
 spec/arb_texture_multisample/texelfetch/32-vs-usampler2dmsarray: skip
-spec/arb_texture_multisample/texturesize/tes-texturesize-isampler2dms: skip
-spec/arb_texture_multisample/texturesize/tes-texturesize-isampler2dmsarray: skip
-spec/arb_texture_multisample/texturesize/tes-texturesize-sampler2dms: skip
-spec/arb_texture_multisample/texturesize/tes-texturesize-sampler2dmsarray: skip
-spec/arb_texture_multisample/texturesize/tes-texturesize-usampler2dms: skip
-spec/arb_texture_multisample/texturesize/tes-texturesize-usampler2dmsarray: skip
 spec/arb_texture_rectangle/copyteximage rect samples=16: skip
 spec/arb_texture_rectangle/copyteximage rect samples=2: skip
 spec/arb_texture_rectangle/copyteximage rect samples=32: skip
@@ -3169,57 +2529,16 @@ spec/arb_texture_view/texsubimage-layers: skip
 spec/arb_texture_view/texsubimage-layers pbo: skip
 spec/arb_texture_view/texsubimage-levels: skip
 spec/arb_texture_view/texsubimage-levels pbo: skip
-spec/arb_transform_feedback2/change objects while paused: skip
 spec/arb_transform_feedback2/change objects while paused (gles3): skip
-spec/arb_transform_feedback3/arb_transform_feedback3-begin_end: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-bind_buffer_invalid_index: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-draw_using_invalid_stream_index: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-end_query_with_name_zero: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-ext_interleaved_two_bufs_gs: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-ext_interleaved_two_bufs_gs_max: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-ext_interleaved_two_bufs_vs: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-query_with_invalid_index: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-set_invalid_varyings: skip
-spec/arb_transform_feedback3/arb_transform_feedback3-set_varyings_with_invalid_args: skip
-spec/arb_transform_feedback3/gl_nextbuffer-1: skip
-spec/arb_transform_feedback3/gl_nextbuffer-2: skip
-spec/arb_transform_feedback3/gl_nextbuffer-gl_nextbuffer: skip
-spec/arb_transform_feedback3/gl_nextbuffer-gl_skipcomponents1-gl_nextbuffer: skip
-spec/arb_transform_feedback3/gl_skipcomponents1-1: skip
-spec/arb_transform_feedback3/gl_skipcomponents1-2: skip
-spec/arb_transform_feedback3/gl_skipcomponents1-3: skip
-spec/arb_transform_feedback3/gl_skipcomponents1-gl_nextbuffer: skip
-spec/arb_transform_feedback3/gl_skipcomponents1234: skip
-spec/arb_transform_feedback3/gl_skipcomponents2: skip
-spec/arb_transform_feedback3/gl_skipcomponents3: skip
-spec/arb_transform_feedback3/gl_skipcomponents4: skip
-spec/arb_transform_feedback_instanced/draw-auto instanced: skip
+spec/arb_transform_feedback_instanced/draw-auto instanced: fail
 spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-basic: skip
 spec/arb_transform_feedback_overflow_query/arb_transform_feedback_overflow_query-errors: skip
 spec/arb_uniform_buffer_object/bufferstorage: skip
-spec/arb_vertex_attrib_64bit/arb_vertex_attrib_64bit-overlapping-locations api: skip
-spec/arb_vertex_attrib_64bit/arb_vertex_attrib_64bit-overlapping-locations shader: skip
-spec/arb_vertex_attrib_64bit/check-explicit-location: skip
-spec/arb_vertex_attrib_64bit/double_attribs: skip
-spec/arb_vertex_attrib_64bit/get_double_attribs-display-lists: skip
-spec/arb_vertex_attrib_64bit/getactiveattrib: skip
-spec/arb_vertex_attrib_64bit/max-vertex-attrib: skip
+spec/arb_vertex_attrib_64bit/arb_vertex_attrib_64bit-overlapping-locations api: crash
+spec/arb_vertex_attrib_64bit/arb_vertex_attrib_64bit-overlapping-locations shader: crash
 spec/arb_vertex_program/arb_vertex_program-matrix-property-bindings: fail
 spec/arb_vertex_program/vp-address-02: skip
 spec/arb_vertex_program/vp-address-04: skip
-spec/arb_viewport_array/bounds: skip
-spec/arb_viewport_array/clear: skip
-spec/arb_viewport_array/depthrange-indices: skip
-spec/arb_viewport_array/display-list: skip
-spec/arb_viewport_array/minmax: skip
-spec/arb_viewport_array/queries: skip
-spec/arb_viewport_array/render-depthrange: skip
-spec/arb_viewport_array/render-scissor: skip
-spec/arb_viewport_array/render-viewport: skip
-spec/arb_viewport_array/render-viewport-2: skip
-spec/arb_viewport_array/scissor-check: skip
-spec/arb_viewport_array/scissor-indices: skip
-spec/arb_viewport_array/viewport-indices: skip
 spec/ati_envmap_bumpmap/ati_envmap_bumpmap-bump: skip
 spec/ati_texture_compression_3dc/fbo-generatemipmap-formats: skip
 spec/ati_texture_compression_3dc/texwrap formats: skip
@@ -3302,8 +2621,6 @@ spec/ext_clear_texture/ext_clear_texture-stencil: skip
 spec/ext_clear_texture/ext_clear_texture-texview: skip
 spec/ext_color_buffer_float/ext_color_buffer_float-draw_gles3: skip
 spec/ext_depth_bounds_test/depth_bounds: skip
-spec/ext_direct_state_access/compressedmultiteximage gl_compressed_rgb_bptc_signed_float: skip
-spec/ext_direct_state_access/compressedtextureimage gl_compressed_rgb_bptc_signed_float: skip
 spec/ext_direct_state_access/indexed-state-queries 12/getdoublei_vext: skip
 spec/ext_direct_state_access/indexed-state-queries 12/getfloati_vext: skip
 spec/ext_direct_state_access/indexed-state-queries 12/getpointeri_vext: skip
@@ -3511,7 +2828,6 @@ spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 32: skip
 spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 4: fail
 spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 6: fail
 spec/ext_framebuffer_multisample/draw-buffers-alpha-to-one 8: fail
-spec/ext_framebuffer_multisample/enable-flag: fail
 spec/ext_framebuffer_multisample/formats 32: skip
 spec/ext_framebuffer_multisample/int-draw-buffers-alpha-to-coverage 16: fail
 spec/ext_framebuffer_multisample/int-draw-buffers-alpha-to-coverage 2: fail
@@ -3525,14 +2841,6 @@ spec/ext_framebuffer_multisample/int-draw-buffers-alpha-to-one 32: skip
 spec/ext_framebuffer_multisample/int-draw-buffers-alpha-to-one 4: fail
 spec/ext_framebuffer_multisample/int-draw-buffers-alpha-to-one 6: fail
 spec/ext_framebuffer_multisample/int-draw-buffers-alpha-to-one 8: fail
-spec/ext_framebuffer_multisample/interpolation 16 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 16 centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 16 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 16 non-centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 2 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 2 centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 2 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 2 non-centroid-disabled: fail
 spec/ext_framebuffer_multisample/interpolation 32 centroid-deriv: skip
 spec/ext_framebuffer_multisample/interpolation 32 centroid-deriv-disabled: skip
 spec/ext_framebuffer_multisample/interpolation 32 centroid-disabled: skip
@@ -3540,18 +2848,6 @@ spec/ext_framebuffer_multisample/interpolation 32 centroid-edges: skip
 spec/ext_framebuffer_multisample/interpolation 32 non-centroid-deriv: skip
 spec/ext_framebuffer_multisample/interpolation 32 non-centroid-deriv-disabled: skip
 spec/ext_framebuffer_multisample/interpolation 32 non-centroid-disabled: skip
-spec/ext_framebuffer_multisample/interpolation 4 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 4 centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 4 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 4 non-centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 6 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 6 centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 6 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 6 non-centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 8 centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 8 centroid-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 8 non-centroid-deriv-disabled: fail
-spec/ext_framebuffer_multisample/interpolation 8 non-centroid-disabled: fail
 spec/ext_framebuffer_multisample/line-smooth 32: skip
 spec/ext_framebuffer_multisample/multisample-blit 32 color: skip
 spec/ext_framebuffer_multisample/multisample-blit 32 color linear: skip
@@ -4034,14 +3330,7 @@ spec/ext_texture_integer/texwrap formats/gl_rgba8ui, swizzled: fail
 spec/ext_texture_norm16/render: skip
 spec/ext_texture_snorm/multisample-formats 32 gl_ext_texture_snorm: skip
 spec/ext_texture_srgb/multisample-formats 32 gl_ext_texture_srgb: skip
-spec/ext_transform_feedback2/cannot bind when another object is active: skip
-spec/ext_transform_feedback2/counting with pause: skip
-spec/ext_transform_feedback2/draw-auto: skip
-spec/ext_transform_feedback2/glgentransformfeedbacks names only: skip
-spec/ext_transform_feedback2/istranformfeedback: skip
-spec/ext_transform_feedback2/misc. api queries: skip
-spec/ext_transform_feedback/max-varyings/max-varying-arrays-of-arrays: notrun
-spec/ext_transform_feedback/max-varyings/max-varying-single-dimension-array: crash
+spec/ext_transform_feedback2/draw-auto: fail
 spec/ext_transform_feedback/points-large: fail
 spec/ext_transform_feedback/structs_gles3 basic-struct error: skip
 spec/ext_transform_feedback/structs_gles3 basic-struct get: skip
@@ -4059,108 +3348,14 @@ spec/ext_window_rectangles/errors_gles3: skip
 spec/ext_window_rectangles/render: skip
 spec/ext_window_rectangles/render_gles3: skip
 spec/glsl-1.10/execution/glsl-1.10-built-in-matrix-state: fail
-spec/glsl-1.10/execution/varying-packing/simple float array: crash
-spec/glsl-1.10/execution/varying-packing/simple float arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple float separate: crash
-spec/glsl-1.10/execution/varying-packing/simple int array: crash
-spec/glsl-1.10/execution/varying-packing/simple int arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple int separate: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec2 array: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec2 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec2 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec3 array: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec3 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec3 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec4 array: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec4 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple ivec4 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2x3 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2x3 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2x3 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2x4 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2x4 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat2x4 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3x2 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3x2 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3x2 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3x4 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3x4 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat3x4 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4x2 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4x2 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4x2 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4x3 array: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4x3 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple mat4x3 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple uint array: crash
-spec/glsl-1.10/execution/varying-packing/simple uint arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple uint separate: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec2 array: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec2 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec2 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec3 array: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec3 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec3 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec4 array: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec4 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple uvec4 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple vec2 array: crash
-spec/glsl-1.10/execution/varying-packing/simple vec2 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple vec2 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple vec3 array: crash
-spec/glsl-1.10/execution/varying-packing/simple vec3 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple vec3 separate: crash
-spec/glsl-1.10/execution/varying-packing/simple vec4 array: crash
-spec/glsl-1.10/execution/varying-packing/simple vec4 arrays_of_arrays: crash
-spec/glsl-1.10/execution/varying-packing/simple vec4 separate: crash
 spec/glsl-1.30/execution/fs-texelfetch-2d: fail
-spec/glsl-1.30/execution/tex-miplevel-selection textureoffset 2darrayshadow: skip
 spec/glsl-1.50/execution/geometry/primitive-types gl_triangle_strip: fail
 spec/glsl-1.50/execution/geometry/primitive-types gl_triangle_strip_adjacency: fail
 spec/glsl-1.50/execution/geometry/tri-strip-ordering-with-prim-restart gl_triangle_strip ffs: fail
 spec/glsl-1.50/execution/geometry/tri-strip-ordering-with-prim-restart gl_triangle_strip other: fail
 spec/glsl-1.50/execution/geometry/tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency ffs: fail
 spec/glsl-1.50/execution/geometry/tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency other: fail
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler1d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler1darray: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler2d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler2darray: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler2drect: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isampler3d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isamplerbuffer: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-isamplercube: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler1d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler1darray: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler1darrayshadow: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler1dshadow: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler2d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler2darray: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler2darrayshadow: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler2drect: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler2drectshadow: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler2dshadow: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-sampler3d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-samplerbuffer: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-samplercube: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-samplercubeshadow: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usampler1d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usampler1darray: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usampler2d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usampler2darray: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usampler3d: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usamplerbuffer: skip
-spec/glsl-1.50/execution/texturesize/tes-texturesize-usamplercube: skip
-spec/glsl-1.50/gs-emits-too-few-verts: fail
-spec/glsl-1.50/gs-max-output: skip
+spec/glsl-1.50/gs-max-output: fail
 spec/glsl-es-1.00/built-in constants: skip
 spec/glsl-es-1.00/linker/glsl-fface-invariant: skip
 spec/glsl-es-3.00/built-in constants: skip
@@ -4225,11 +3420,28 @@ spec/nv_alpha_to_coverage_dither_control/nv_alpha_to_coverage_dither_control 8 1
 spec/nv_alpha_to_coverage_dither_control/nv_alpha_to_coverage_dither_control 8 1 1: skip
 spec/nv_alpha_to_coverage_dither_control/nv_alpha_to_coverage_dither_control 9: skip
 spec/nv_alpha_to_coverage_dither_control/nv_alpha_to_coverage_dither_control-error: skip
-spec/nv_conditional_render/copypixels: fail
 spec/nv_conditional_render/generatemipmap: fail
-spec/nv_copy_image/nv_copy_image-formats --samples=2: skip
-spec/nv_copy_image/nv_copy_image-formats --samples=4: skip
-spec/nv_copy_image/nv_copy_image-formats --samples=8: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_depth32f_stencil8/destination: gl_depth32f_stencil8: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_depth_component/destination: gl_depth_component: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_depth_component16/destination: gl_depth_component16: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_depth_component24/destination: gl_depth_component24: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_depth_component32/destination: gl_depth_component32: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_depth_stencil/destination: gl_depth_stencil: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=2/source: gl_stencil_index8/destination: gl_stencil_index8: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_depth32f_stencil8/destination: gl_depth32f_stencil8: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_depth_component/destination: gl_depth_component: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_depth_component16/destination: gl_depth_component16: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_depth_component24/destination: gl_depth_component24: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_depth_component32/destination: gl_depth_component32: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_depth_stencil/destination: gl_depth_stencil: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=4/source: gl_stencil_index8/destination: gl_stencil_index8: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_depth32f_stencil8/destination: gl_depth32f_stencil8: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_depth_component/destination: gl_depth_component: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_depth_component16/destination: gl_depth_component16: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_depth_component24/destination: gl_depth_component24: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_depth_component32/destination: gl_depth_component32: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_depth_stencil/destination: gl_depth_stencil: skip
+spec/nv_copy_image/nv_copy_image-formats --samples=8/source: gl_stencil_index8/destination: gl_stencil_index8: skip
 spec/nv_fill_rectangle/invalid-draw-mode: skip
 spec/nv_fragment_program_option/fp-abs-02: skip
 spec/nv_fragment_program_option/fp-condition_codes-01: skip
@@ -4314,10 +3526,10 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    14720
-       fail:     1177
-      crash:       68
-       skip:     3048
+       pass:    17840
+       fail:     2047
+      crash:        7
+       skip:     1452
     timeout:        0
        warn:       10
  incomplete:        0
@@ -4326,4 +3538,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    19033
+      total:    21365

@@ -164,6 +164,7 @@ struct tgsi_shader_info
    bool uses_bindless_image_store;
    bool uses_bindless_image_atomic;
 
+   unsigned hw_atomic_declared; /**< bitmask of declared atomic_counter */
    /**
     * Bitmask indicating which register files are accessed with
     * indirect addressing.  The bits are (1 << TGSI_FILE_x), etc.

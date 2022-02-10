@@ -817,7 +817,7 @@ ENCODINGINFO
      n     STRING8      encoding info
      p                  unused, p=Pad(2+n)
 
-
+EXT
      1     CARD8        extension major-opcode
      1     CARD8        extension minor-opcode
      2     n            length of extension name

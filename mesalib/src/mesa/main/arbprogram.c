@@ -43,7 +43,7 @@
 #include "program/prog_print.h"
 #include "api_exec_decl.h"
 
-#include "state_tracker/st_cb_program.h"
+#include "state_tracker/st_program.h"
 
 static void
 flush_vertices_for_program_constants(struct gl_context *ctx, GLenum target)

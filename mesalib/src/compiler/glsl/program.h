@@ -45,7 +45,7 @@ extern void
 link_shaders(struct gl_context *ctx, struct gl_shader_program *prog);
 
 extern void
-build_program_resource_list(struct gl_context *ctx,
+build_program_resource_list(const struct gl_constants *consts,
                             struct gl_shader_program *shProg,
                             bool add_packed_varyings_only);
 

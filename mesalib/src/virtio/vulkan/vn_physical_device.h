@@ -41,6 +41,8 @@ struct vn_physical_device {
    VkPhysicalDeviceVulkan11Features vulkan_1_1_features;
    VkPhysicalDeviceVulkan12Features vulkan_1_2_features;
    VkPhysicalDeviceTransformFeedbackFeaturesEXT transform_feedback_features;
+   VkPhysicalDeviceExtendedDynamicStateFeaturesEXT
+      extended_dynamic_state_features;
 
    VkPhysicalDeviceProperties2 properties;
    VkPhysicalDeviceVulkan11Properties vulkan_1_1_properties;

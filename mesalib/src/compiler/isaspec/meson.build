@@ -22,3 +22,5 @@ prog_isaspec_decode = find_program('decode.py')
 idep_isaspec_decode = declare_dependency(sources : files('decode.c'), include_directories : include_directories('.'))
 
 prog_isaspec_encode = find_program('encode.py')
+
+isaspec_py_deps = files('isa.py')

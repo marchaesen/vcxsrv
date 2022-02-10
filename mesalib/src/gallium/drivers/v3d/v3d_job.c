@@ -358,6 +358,9 @@ v3d_get_job(struct v3d_context *v3d,
                 }
         }
 
+       job->double_buffer =
+               unlikely(V3D_DEBUG & V3D_DEBUG_DOUBLE_BUFFER) && !job->msaa;
+
         memcpy(&job->key, &local_key, sizeof(local_key));
         _mesa_hash_table_insert(v3d->jobs, &job->key, job);
 
@@ -375,13 +378,14 @@ v3d_get_job_for_fbo(struct v3d_context *v3d)
         struct pipe_surface *zsbuf = v3d->framebuffer.zsbuf;
         struct v3d_job *job = v3d_get_job(v3d, nr_cbufs, cbufs, zsbuf, NULL);
 
-        if (v3d->framebuffer.samples >= 1)
+        if (v3d->framebuffer.samples >= 1) {
                 job->msaa = true;
+                job->double_buffer = false;
+        }
 
-        v3d_get_tile_buffer_size(job->msaa, job->nr_cbufs,
-                                 job->cbufs, job->bbuf,
-                                 &job->tile_width,
-                                 &job->tile_height,
+        v3d_get_tile_buffer_size(job->msaa, job->double_buffer,
+                                 job->nr_cbufs, job->cbufs, job->bbuf,
+                                 &job->tile_width, &job->tile_height,
                                  &job->internal_bpp);
 
         /* The dirty flags are tracking what's been updated while v3d->job has

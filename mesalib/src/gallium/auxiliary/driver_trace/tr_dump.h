@@ -123,6 +123,13 @@ bool trace_dump_is_triggered(void);
       trace_dump_arg_end(); \
    } while(0)
 
+#define trace_dump_arg_enum(_arg, _value) \
+   do { \
+      trace_dump_arg_begin(#_arg); \
+      trace_dump_enum(_value); \
+      trace_dump_arg_end(); \
+   } while(0)
+
 #define trace_dump_arg_struct(_type, _arg) \
    do { \
       trace_dump_arg_begin(#_arg); \

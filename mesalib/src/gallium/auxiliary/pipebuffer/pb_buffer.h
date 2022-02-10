@@ -215,7 +215,7 @@ pb_get_base_buffer(struct pb_buffer *buf,
    assert(buf);
    if (!buf) {
       base_buf = NULL;
-      offset = 0;
+      offset = NULL;
       return;
    }
    assert(pipe_is_referenced(&buf->reference));

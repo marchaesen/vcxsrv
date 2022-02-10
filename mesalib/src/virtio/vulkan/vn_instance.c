@@ -267,17 +267,19 @@ vn_instance_init_renderer(struct vn_instance *instance)
       return VK_ERROR_INITIALIZATION_FAILED;
    }
 
-   version = vn_info_extension_spec_version("VK_EXT_command_serialization");
+   const struct vn_info_extension *ext =
+      vn_info_extension_get("VK_EXT_command_serialization");
    if (instance->renderer_info.vk_ext_command_serialization_spec_version >
-       version) {
+       ext->spec_version) {
       instance->renderer_info.vk_ext_command_serialization_spec_version =
-         version;
+         ext->spec_version;
    }
 
-   version = vn_info_extension_spec_version("VK_MESA_venus_protocol");
+   ext = vn_info_extension_get("VK_MESA_venus_protocol");
    if (instance->renderer_info.vk_mesa_venus_protocol_spec_version >
-       version) {
-      instance->renderer_info.vk_mesa_venus_protocol_spec_version = version;
+       ext->spec_version) {
+      instance->renderer_info.vk_mesa_venus_protocol_spec_version =
+         ext->spec_version;
    }
 
    if (VN_DEBUG(INIT)) {
@@ -778,8 +780,8 @@ vn_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
    driParseOptionInfo(&instance->available_dri_options, vn_dri_options,
                       ARRAY_SIZE(vn_dri_options));
    driParseConfigFiles(&instance->dri_options,
-                       &instance->available_dri_options, 0, "venus", NULL, NULL,
-                       instance->base.base.app_info.app_name,
+                       &instance->available_dri_options, 0, "venus", NULL,
+                       NULL, instance->base.base.app_info.app_name,
                        instance->base.base.app_info.app_version,
                        instance->base.base.app_info.engine_name,
                        instance->base.base.app_info.engine_version);

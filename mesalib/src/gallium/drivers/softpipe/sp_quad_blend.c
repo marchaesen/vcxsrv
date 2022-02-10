@@ -1005,7 +1005,7 @@ blend_fallback(struct quad_stage *qs,
             rebase_colors(bqs->base_format[cbuf], quadColor);
 
             if (blend->rt[blend_buf].colormask != 0xf)
-               colormask_quad( blend->rt[cbuf].colormask, quadColor, dest);
+               colormask_quad( blend->rt[blend_buf].colormask, quadColor, dest);
 
             /* Output color values
              */

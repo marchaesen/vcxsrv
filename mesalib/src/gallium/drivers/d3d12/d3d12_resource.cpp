@@ -147,7 +147,15 @@ init_buffer(struct d3d12_screen *screen,
    default:
       unreachable("Invalid pipe usage");
    }
-   buf_desc.alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+
+   /* We can't suballocate buffers that might be bound as a sampler view, *only*
+    * because in the case of R32G32B32 formats (12 bytes per pixel), it's not possible
+    * to guarantee the offset will be divisible.
+    */
+   if (templ->bind & PIPE_BIND_SAMPLER_VIEW)
+      bufmgr = screen->cache_bufmgr;
+
+   buf_desc.alignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
    res->dxgi_format = DXGI_FORMAT_UNKNOWN;
    buf = bufmgr->create_buffer(bufmgr, templ->width0, &buf_desc);
    if (!buf)
@@ -219,6 +227,19 @@ init_texture(struct d3d12_screen *screen,
        * prevent us from using the resource with u_blitter, which requires
        * sneaking in sampler-usage throught the back-door.
        */
+   }
+
+   if (screen->support_shader_images && templ->nr_samples <= 1) {
+      /* Ideally, we'd key off of PIPE_BIND_SHADER_IMAGE for this, but it doesn't
+       * seem to be set properly. So, all UAV-capable resources need the UAV flag.
+       */
+      D3D12_FEATURE_DATA_FORMAT_SUPPORT support = { desc.Format };
+      if (SUCCEEDED(screen->dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
+         (support.Support2 & (D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)) ==
+         (D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)) {
+         desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+         desc.Format = d3d12_get_typeless_format(templ->format);
+      }
    }
 
    desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -329,7 +350,9 @@ d3d12_resource_create(struct pipe_screen *pscreen,
    }
 
    init_valid_range(res);
-   threaded_resource_init(&res->base.b, false, 0);
+   threaded_resource_init(&res->base.b,
+      templ->usage == PIPE_USAGE_DEFAULT &&
+      templ->target == PIPE_BUFFER, 64);
 
    memset(&res->bind_counts, 0, sizeof(d3d12_resource::bind_counts));
 
@@ -686,7 +709,7 @@ copy_texture_region(struct d3d12_context *ctx,
    d3d12_batch_reference_resource(batch, info.dst, true);
    d3d12_transition_resource_state(ctx, info.src, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_BIND_INVALIDATE_FULL);
    d3d12_transition_resource_state(ctx, info.dst, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_BIND_INVALIDATE_FULL);
-   d3d12_apply_resource_states(ctx);
+   d3d12_apply_resource_states(ctx, false);
    ctx->cmdlist->CopyTextureRegion(&info.dst_loc, info.dst_x, info.dst_y, info.dst_z,
                                    &info.src_loc, info.src_box);
 }
@@ -711,7 +734,7 @@ transfer_buf_to_image_part(struct d3d12_context *ctx,
    struct copy_info copy_info;
    copy_info.src = staging_res;
    copy_info.src_loc = fill_buffer_location(ctx, res, staging_res, trans, depth, resid, z);
-   copy_info.src_loc.PlacedFootprint.Offset = (z  - start_z) * trans->base.b.layer_stride;
+   copy_info.src_loc.PlacedFootprint.Offset += (z  - start_z) * trans->base.b.layer_stride;
    copy_info.src_box = nullptr;
    copy_info.dst = res;
    copy_info.dst_loc = fill_texture_location(res, trans, resid, z);
@@ -771,7 +794,7 @@ transfer_image_part_to_buf(struct d3d12_context *ctx,
    copy_info.dst = staging_res;
    copy_info.dst_loc = fill_buffer_location(ctx, res, staging_res, trans,
                                             depth, resid, z);
-   copy_info.dst_loc.PlacedFootprint.Offset = (z  - start_layer) * trans->base.b.layer_stride;
+   copy_info.dst_loc.PlacedFootprint.Offset += (z  - start_layer) * trans->base.b.layer_stride;
    copy_info.dst_x = copy_info.dst_y = copy_info.dst_z = 0;
 
    bool whole_resource = util_texrange_covers_whole_level(&res->base.b, trans->base.b.level,
@@ -877,7 +900,7 @@ transfer_buf_to_buf(struct d3d12_context *ctx,
    assert(src_d3d12 != dst_d3d12);
    d3d12_transition_resource_state(ctx, src, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_BIND_INVALIDATE_FULL);
    d3d12_transition_resource_state(ctx, dst, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_BIND_INVALIDATE_FULL);
-   d3d12_apply_resource_states(ctx);
+   d3d12_apply_resource_states(ctx, false);
    ctx->cmdlist->CopyBufferRegion(dst_d3d12, dst_offset,
                                   src_d3d12, src_offset,
                                   width);
@@ -1295,8 +1318,8 @@ d3d12_transfer_map(struct pipe_context *pctx,
          range.Begin = aligned_x;
       }
 
-      pipe_resource_usage staging_usage = (usage & (PIPE_MAP_READ | PIPE_MAP_READ_WRITE)) ?
-         PIPE_USAGE_STAGING : PIPE_USAGE_STREAM;
+      pipe_resource_usage staging_usage = (usage & (PIPE_MAP_DISCARD_RANGE | PIPE_MAP_DISCARD_WHOLE_RESOURCE)) ?
+         PIPE_USAGE_STREAM : PIPE_USAGE_STAGING;
 
       trans->staging_res = pipe_buffer_create(pctx->screen, 0,
                                               staging_usage,
@@ -1306,7 +1329,7 @@ d3d12_transfer_map(struct pipe_context *pctx,
 
       struct d3d12_resource *staging_res = d3d12_resource(trans->staging_res);
 
-      if (usage & PIPE_MAP_READ) {
+      if ((usage & (PIPE_MAP_DISCARD_RANGE | PIPE_MAP_DISCARD_WHOLE_RESOURCE | TC_TRANSFER_MAP_THREADED_UNSYNC)) == 0) {
          bool ret = true;
          if (pres->target == PIPE_BUFFER) {
             uint64_t src_offset = box->x;
@@ -1372,43 +1395,6 @@ d3d12_transfer_unmap(struct pipe_context *pctx,
 
    pipe_resource_reference(&ptrans->resource, NULL);
    slab_free(&d3d12_context(pctx)->transfer_pool, ptrans);
-}
-
-void
-d3d12_resource_make_writeable(struct pipe_context *pctx,
-                              struct pipe_resource *pres)
-{
-   struct d3d12_context *ctx = d3d12_context(pctx);
-   struct d3d12_resource *res = d3d12_resource(pres);
-   struct d3d12_resource *dup_res;
-
-   if (!res->bo || !d3d12_bo_is_suballocated(res->bo))
-      return;
-
-   dup_res = d3d12_resource(pipe_buffer_create(pres->screen,
-                                               pres->bind & PIPE_BIND_STREAM_OUTPUT,
-                                               (pipe_resource_usage) pres->usage,
-                                               pres->width0));
-
-   if (res->valid_buffer_range.end > res->valid_buffer_range.start) {
-      struct pipe_box box;
-
-      box.x = res->valid_buffer_range.start;
-      box.y = 0;
-      box.z = 0;
-      box.width = res->valid_buffer_range.end - res->valid_buffer_range.start;
-      box.height = 1;
-      box.depth = 1;
-
-      d3d12_direct_copy(ctx, dup_res, 0, &box, res, 0, &box, PIPE_MASK_RGBAZS);
-   }
-
-   /* Move new BO to old resource */
-   d3d12_bo_unreference(res->bo);
-   res->bo = dup_res->bo;
-   d3d12_bo_reference(res->bo);
-
-   d3d12_resource_destroy(dup_res->base.b.screen, &dup_res->base.b);
 }
 
 void

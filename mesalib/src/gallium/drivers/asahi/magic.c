@@ -56,7 +56,7 @@ demo_cmdbuf(uint64_t *buf, size_t size,
             uint64_t encoder_ptr,
             uint64_t encoder_id,
             uint64_t scissor_ptr,
-            unsigned width, unsigned height,
+            unsigned width, unsigned height, unsigned bpp,
             uint32_t pipeline_null,
             uint32_t pipeline_clear,
             uint32_t pipeline_store,
@@ -141,9 +141,7 @@ demo_cmdbuf(uint64_t *buf, size_t size,
    agx_pack((map + (offset_attachments / 4) + 4), IOGPU_ATTACHMENT, cfg) {
       cfg.address = rt0;
       cfg.type = AGX_IOGPU_ATTACHMENT_TYPE_COLOUR;
-      cfg.unk_1 = 0x80000000;
-      cfg.unk_2 = 0x5;
-      cfg.bytes_per_pixel = 4;
+      cfg.size = width * height * 4;
       cfg.percent = 100;
    }
 

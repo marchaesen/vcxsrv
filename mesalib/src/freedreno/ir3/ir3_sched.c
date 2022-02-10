@@ -108,16 +108,16 @@ struct ir3_sched_ctx {
 
    unsigned ip;
 
-   int sfu_delay;
-   int tex_delay;
+   int sy_delay;
+   int ss_delay;
 
-   /* We order the scheduled tex/SFU instructions, and keep track of the
+   /* We order the scheduled (sy)/(ss) producers, and keep track of the
     * index of the last waited on instruction, so we can know which
     * instructions are still outstanding (and therefore would require us to
     * wait for all outstanding instructions before scheduling a use).
     */
-   int tex_index, first_outstanding_tex_index;
-   int sfu_index, first_outstanding_sfu_index;
+   int sy_index, first_outstanding_sy_index;
+   int ss_index, first_outstanding_ss_index;
 };
 
 struct ir3_sched_node {
@@ -127,8 +127,8 @@ struct ir3_sched_node {
    unsigned delay;
    unsigned max_delay;
 
-   unsigned tex_index;
-   unsigned sfu_index;
+   unsigned sy_index;
+   unsigned ss_index;
 
    /* For ready instructions, the earliest possible ip that it could be
     * scheduled.
@@ -206,13 +206,12 @@ sched_check_src_cond(struct ir3_instruction *instr,
    return false;
 }
 
-/* Is this a prefetch or tex that hasn't been waited on yet? */
+/* Is this a sy producer that hasn't been waited on yet? */
 
 static bool
-is_outstanding_tex_or_prefetch(struct ir3_instruction *instr,
-                               struct ir3_sched_ctx *ctx)
+is_outstanding_sy(struct ir3_instruction *instr, struct ir3_sched_ctx *ctx)
 {
-   if (!is_tex_or_prefetch(instr))
+   if (!is_sy_producer(instr))
       return false;
 
    /* The sched node is only valid within the same block, we cannot
@@ -222,13 +221,13 @@ is_outstanding_tex_or_prefetch(struct ir3_instruction *instr,
       return true;
 
    struct ir3_sched_node *n = instr->data;
-   return n->tex_index >= ctx->first_outstanding_tex_index;
+   return n->sy_index >= ctx->first_outstanding_sy_index;
 }
 
 static bool
-is_outstanding_sfu(struct ir3_instruction *instr, struct ir3_sched_ctx *ctx)
+is_outstanding_ss(struct ir3_instruction *instr, struct ir3_sched_ctx *ctx)
 {
-   if (!is_sfu(instr))
+   if (!is_ss_producer(instr))
       return false;
 
    /* The sched node is only valid within the same block, we cannot
@@ -238,7 +237,7 @@ is_outstanding_sfu(struct ir3_instruction *instr, struct ir3_sched_ctx *ctx)
       return true;
 
    struct ir3_sched_node *n = instr->data;
-   return n->sfu_index >= ctx->first_outstanding_sfu_index;
+   return n->ss_index >= ctx->first_outstanding_ss_index;
 }
 
 static unsigned
@@ -330,34 +329,33 @@ schedule(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 
    unsigned cycles = cycle_count(instr);
 
-   if (is_sfu(instr)) {
-      ctx->sfu_delay = 8;
-      n->sfu_index = ctx->sfu_index++;
+   if (is_ss_producer(instr)) {
+      ctx->ss_delay = soft_ss_delay(instr);
+      n->ss_index = ctx->ss_index++;
    } else if (!is_meta(instr) &&
-              sched_check_src_cond(instr, is_outstanding_sfu, ctx)) {
-      ctx->sfu_delay = 0;
-      ctx->first_outstanding_sfu_index = ctx->sfu_index;
-   } else if (ctx->sfu_delay > 0) {
-      ctx->sfu_delay -= MIN2(cycles, ctx->sfu_delay);
+              sched_check_src_cond(instr, is_outstanding_ss, ctx)) {
+      ctx->ss_delay = 0;
+      ctx->first_outstanding_ss_index = ctx->ss_index;
+   } else if (ctx->ss_delay > 0) {
+      ctx->ss_delay -= MIN2(cycles, ctx->ss_delay);
    }
 
-   if (is_tex_or_prefetch(instr)) {
+   if (is_sy_producer(instr)) {
       /* NOTE that this isn't an attempt to hide texture fetch latency,
        * but an attempt to hide the cost of switching to another warp.
        * If we can, we'd like to try to schedule another texture fetch
        * before scheduling something that would sync.
        */
-      ctx->tex_delay = 10;
+      ctx->sy_delay = soft_sy_delay(instr, ctx->block->shader);
       assert(ctx->remaining_tex > 0);
       ctx->remaining_tex--;
-      n->tex_index = ctx->tex_index++;
+      n->sy_index = ctx->sy_index++;
    } else if (!is_meta(instr) &&
-              sched_check_src_cond(instr, is_outstanding_tex_or_prefetch,
-                                   ctx)) {
-      ctx->tex_delay = 0;
-      ctx->first_outstanding_tex_index = ctx->tex_index;
-   } else if (ctx->tex_delay > 0) {
-      ctx->tex_delay -= MIN2(cycles, ctx->tex_delay);
+              sched_check_src_cond(instr, is_outstanding_sy, ctx)) {
+      ctx->sy_delay = 0;
+      ctx->first_outstanding_sy_index = ctx->sy_index;
+   } else if (ctx->sy_delay > 0) {
+      ctx->sy_delay -= MIN2(cycles, ctx->sy_delay);
    }
 
 }
@@ -579,15 +577,15 @@ live_effect(struct ir3_instruction *instr)
 
 /* Determine if this is an instruction that we'd prefer not to schedule
  * yet, in order to avoid an (ss)/(sy) sync.  This is limited by the
- * sfu_delay/tex_delay counters, ie. the more cycles it has been since
+ * ss_delay/sy_delay counters, ie. the more cycles it has been since
  * the last SFU/tex, the less costly a sync would be, and the number of
  * outstanding SFU/tex instructions to prevent a blowup in register pressure.
  */
 static bool
 should_defer(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 {
-   if (ctx->sfu_delay) {
-      if (sched_check_src_cond(instr, is_outstanding_sfu, ctx))
+   if (ctx->ss_delay) {
+      if (sched_check_src_cond(instr, is_outstanding_ss, ctx))
          return true;
    }
 
@@ -596,8 +594,8 @@ should_defer(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
     * limit this rule to cases where there are remaining texture
     * fetches
     */
-   if (ctx->tex_delay && ctx->remaining_tex) {
-      if (sched_check_src_cond(instr, is_outstanding_tex_or_prefetch, ctx))
+   if (ctx->sy_delay && ctx->remaining_tex) {
+      if (sched_check_src_cond(instr, is_outstanding_sy, ctx))
          return true;
    }
 
@@ -607,10 +605,10 @@ should_defer(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
     * and prevents unacceptably large increases in register pressure from too
     * many outstanding texture instructions.
     */
-   if (ctx->tex_index - ctx->first_outstanding_tex_index >= 8 && is_tex(instr))
+   if (ctx->sy_index - ctx->first_outstanding_sy_index >= 8 && is_sy_producer(instr))
       return true;
 
-   if (ctx->sfu_index - ctx->first_outstanding_sfu_index >= 8 && is_sfu(instr))
+   if (ctx->ss_index - ctx->first_outstanding_ss_index >= 8 && is_ss_producer(instr))
       return true;
 
    return false;
@@ -1160,10 +1158,10 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
    ctx->addr0 = NULL;
    ctx->addr1 = NULL;
    ctx->pred = NULL;
-   ctx->tex_delay = 0;
-   ctx->sfu_delay = 0;
-   ctx->tex_index = ctx->first_outstanding_tex_index = 0;
-   ctx->sfu_index = ctx->first_outstanding_sfu_index = 0;
+   ctx->sy_delay = 0;
+   ctx->ss_delay = 0;
+   ctx->sy_index = ctx->first_outstanding_sy_index = 0;
+   ctx->ss_index = ctx->first_outstanding_ss_index = 0;
 
    /* move all instructions to the unscheduled list, and
     * empty the block's instruction list (to which we will
@@ -1179,7 +1177,7 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
    foreach_instr_safe (instr, &ctx->unscheduled_list) {
       if (is_kill_or_demote(instr))
          ctx->remaining_kills++;
-      if (is_tex_or_prefetch(instr))
+      if (is_sy_producer(instr))
          ctx->remaining_tex++;
    }
 

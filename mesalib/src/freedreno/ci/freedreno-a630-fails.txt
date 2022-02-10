@@ -2,15 +2,8 @@
 # Broken in VK-GL-CTS e5c45899ed7e90fb616ccd1d3c66e6eded120684
 KHR-GL33.cull_distance.coverage,Fail
 
-# Framework bug, missing getProcAddress method.
-# https://gerrit.khronos.org/c/vk-gl-cts/+/8405
-KHR-GL33.transform_feedback.capture_vertex_interleaved_test,Fail
-KHR-GL33.transform_feedback.capture_vertex_separate_test,Fail
-KHR-GL33.transform_feedback.discard_vertex_test,Fail
-KHR-GL33.transform_feedback.draw_xfb_instanced_test,Crash
-KHR-GL33.transform_feedback.draw_xfb_stream_instanced_test,Crash
-KHR-GL33.transform_feedback.query_vertex_interleaved_test,Fail
-KHR-GL33.transform_feedback.query_vertex_separate_test,Fail
+# Got wrong error code: GL_INVALID_OPERATION, expected: GL_INVALID_VALUE after step 0 at glcCompressedFormatTests.cpp:1463
+KHR-GLES31.core.compressed_format.api.invalid_teximage_with_compressed_format,Fail
 
 # Lots of errors like "[279] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]"
 KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support,Fail
@@ -41,9 +34,25 @@ bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.overlay,Fail
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.screen,Fail
 bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.softlight,Fail
 
+# Missing 16-bit storage access at vktAmberTestCase.cpp:422 (InternalError)
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat3,Fail
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.determinant.compute.mat4,Fail
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat3,Fail
+dEQP-VK.glsl.builtin.precision_fp16_storage16b.inverse.compute.mat4,Fail
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3505
+dEQP-VK.subgroups.multiple_dispatches.uniform_subgroup_size,Fail
+
+# Showed up with VK-GL-CTS 1.3.1.0:
+spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies,Fail
+
 # Fails when TU_DEBUG=forcebin is set
-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
+gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
+gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
+
+# Looks like a segfault, not assertion failure
+spill-dEQP-VK.graphicsfuzz.cov-nested-loops-float-bits-to-int-increment-array,Crash
+spill-dEQP-VK.graphicsfuzz.cov-two-nested-loops-switch-case-matrix-array-increment,Crash
 
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
@@ -95,9 +104,6 @@ spec@arb_depth_texture@texwrap formats bordercolor-swizzled,Fail
 spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT16- swizzled- border color only,Fail
 spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT24- swizzled- border color only,Fail
 spec@arb_depth_texture@texwrap formats bordercolor-swizzled@GL_DEPTH_COMPONENT32- swizzled- border color only,Fail
-
-# "arb_direct_state_access-gettextureimage-formats: ../src/mesa/main/texstore.c:413: _mesa_texstore_s8_z24: Assertion `srcFormat == GL_DEPTH_STENCIL_EXT || srcFormat == GL_DEPTH_COMPONENT || srcFormat == GL_STENCIL_INDEX' failed."
-spec@arb_direct_state_access@gettextureimage-formats,Crash
 
 # "0 primitives generated:
 #  Incorrect number of prims generated.
@@ -299,7 +305,6 @@ spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRE
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT3_EXT- swizzled- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGBA_S3TC_DXT5_EXT- swizzled- border color only,Fail
 spec@ext_texture_compression_s3tc@texwrap formats bordercolor-swizzled@GL_COMPRESSED_RGB_S3TC_DXT1_EXT- swizzled- border color only,Fail
-spec@ext_texture_integer@fbo-integer,Fail
 spec@ext_texture_integer@multisample-formats 4 gl_ext_texture_integer,Fail
 spec@ext_texture_integer@texwrap formats bordercolor-swizzled,Fail
 spec@ext_texture_integer@texwrap formats bordercolor-swizzled@GL_RGB16I- swizzled- border color only,Fail

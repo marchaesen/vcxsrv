@@ -22,10 +22,12 @@
  */
 
 #include "nir.h"
+#include "GL/gl.h"
 #include "linker_util.h"
 #include "gl_nir_linker.h"
 #include "compiler/glsl/ir_uniform.h" /* for gl_uniform_storage */
-#include "main/context.h"
+#include "main/consts_exts.h"
+#include "main/shader_types.h"
 
 /**
  * This file do the common link for GLSL atomic counter uniforms, using NIR,
@@ -131,14 +133,14 @@ process_atomic_variable(const struct glsl_type *t,
 }
 
 static struct active_atomic_buffer *
-find_active_atomic_counters(struct gl_context *ctx,
+find_active_atomic_counters(const struct gl_constants *consts,
                             struct gl_shader_program *prog,
                             unsigned *num_buffers)
 {
    struct active_atomic_buffer *buffers =
       rzalloc_array(NULL, /* ctx */
                     struct active_atomic_buffer,
-                    ctx->Const.MaxAtomicBufferBindings);
+                    consts->MaxAtomicBufferBindings);
    *num_buffers = 0;
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
@@ -190,13 +192,13 @@ cmp_active_counter_offsets(const void *a, const void *b)
 }
 
 void
-gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
+gl_nir_link_assign_atomic_counter_resources(const struct gl_constants *consts,
                                             struct gl_shader_program *prog)
 {
    unsigned num_buffers;
    unsigned num_atomic_buffers[MESA_SHADER_STAGES] = {0};
    struct active_atomic_buffer *abs =
-      find_active_atomic_counters(ctx, prog, &num_buffers);
+      find_active_atomic_counters(consts, prog, &num_buffers);
 
    prog->data->AtomicBuffers =
       rzalloc_array(prog->data, struct gl_active_atomic_buffer, num_buffers);
@@ -204,7 +206,7 @@ gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
 
    unsigned buffer_idx = 0;
    for (unsigned binding = 0;
-        binding < ctx->Const.MaxAtomicBufferBindings;
+        binding < consts->MaxAtomicBufferBindings;
         binding++) {
 
       /* If the binding was not used, skip.
@@ -301,12 +303,12 @@ gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
 }
 
 void
-gl_nir_link_check_atomic_counter_resources(struct gl_context *ctx,
+gl_nir_link_check_atomic_counter_resources(const struct gl_constants *consts,
                                            struct gl_shader_program *prog)
 {
    unsigned num_buffers;
    struct active_atomic_buffer *abs =
-      find_active_atomic_counters(ctx, prog, &num_buffers);
+      find_active_atomic_counters(consts, prog, &num_buffers);
    unsigned atomic_counters[MESA_SHADER_STAGES] = {0};
    unsigned atomic_buffers[MESA_SHADER_STAGES] = {0};
    unsigned total_atomic_counters = 0;
@@ -317,7 +319,7 @@ gl_nir_link_check_atomic_counter_resources(struct gl_context *ctx,
     * against the combined limit -- That's the behavior the spec
     * requires.
     */
-   for (unsigned i = 0; i < ctx->Const.MaxAtomicBufferBindings; i++) {
+   for (unsigned i = 0; i < consts->MaxAtomicBufferBindings; i++) {
       if (abs[i].size == 0)
          continue;
 
@@ -354,19 +356,19 @@ gl_nir_link_check_atomic_counter_resources(struct gl_context *ctx,
 
    /* Check that they are within the supported limits. */
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (atomic_counters[i] > ctx->Const.Program[i].MaxAtomicCounters)
+      if (atomic_counters[i] > consts->Program[i].MaxAtomicCounters)
          linker_error(prog, "Too many %s shader atomic counters",
                       _mesa_shader_stage_to_string(i));
 
-      if (atomic_buffers[i] > ctx->Const.Program[i].MaxAtomicBuffers)
+      if (atomic_buffers[i] > consts->Program[i].MaxAtomicBuffers)
          linker_error(prog, "Too many %s shader atomic counter buffers",
                       _mesa_shader_stage_to_string(i));
    }
 
-   if (total_atomic_counters > ctx->Const.MaxCombinedAtomicCounters)
+   if (total_atomic_counters > consts->MaxCombinedAtomicCounters)
       linker_error(prog, "Too many combined atomic counters");
 
-   if (total_atomic_buffers > ctx->Const.MaxCombinedAtomicBuffers)
+   if (total_atomic_buffers > consts->MaxCombinedAtomicBuffers)
       linker_error(prog, "Too many combined atomic buffers");
 
    ralloc_free(abs);

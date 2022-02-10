@@ -46,6 +46,7 @@
 #include "util/os_time.h"
 
 #include "vk_device.h"
+#include "vk_fence.h"
 #include "vk_instance.h"
 #include "vk_physical_device.h"
 #include "vk_sync.h"
@@ -878,7 +879,8 @@ wsi_display_surface_get_capabilities(VkIcdSurfaceBase *surface_base,
       VK_IMAGE_USAGE_SAMPLED_BIT |
       VK_IMAGE_USAGE_TRANSFER_DST_BIT |
       VK_IMAGE_USAGE_STORAGE_BIT |
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+      VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
    return VK_SUCCESS;
 }
@@ -1054,9 +1056,8 @@ wsi_display_image_init(VkDevice device_h,
    if (drm_format == 0)
       return VK_ERROR_DEVICE_LOST;
 
-   VkResult result = wsi_create_native_image(&chain->base, create_info,
-                                             0, NULL, NULL, NULL,
-                                             &image->base);
+   VkResult result = wsi_create_image(&chain->base, &chain->base.image_info,
+                                      &image->base);
    if (result != VK_SUCCESS)
       return result;
 
@@ -1130,6 +1131,7 @@ wsi_display_swapchain_destroy(struct wsi_swapchain *drv_chain,
 
    for (uint32_t i = 0; i < chain->base.image_count; i++)
       wsi_display_image_finish(drv_chain, allocator, &chain->images[i]);
+   wsi_destroy_image_info(&chain->base, &chain->base.image_info);
 
    wsi_swapchain_finish(&chain->base);
    vk_free(allocator, chain);
@@ -1699,6 +1701,17 @@ wsi_register_vblank_event(struct wsi_display_fence *fence,
    if (wsi->fd < 0)
       return VK_ERROR_INITIALIZATION_FAILED;
 
+   /* A display event may be registered before the first page flip at which
+    * point crtc_id will be 0. If this is the case we setup the connector
+    * here to allow drmCrtcQueueSequence to succeed.
+    */
+   if (!connector->crtc_id) {
+      VkResult ret = wsi_display_setup_connector(connector,
+                                                 connector->current_mode);
+      if (ret != VK_SUCCESS)
+         return VK_ERROR_INITIALIZATION_FAILED;
+   }
+
    for (;;) {
       int ret = drmCrtcQueueSequence(wsi->fd, connector->crtc_id,
                                      flags,
@@ -1906,7 +1919,7 @@ wsi_display_surface_create_swapchain(
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    VkResult result = wsi_swapchain_init(wsi_device, &chain->base, device,
-                                        create_info, allocator);
+                                        create_info, allocator, false);
    if (result != VK_SUCCESS) {
       vk_free(allocator, chain);
       return result;
@@ -1924,6 +1937,15 @@ wsi_display_surface_create_swapchain(
 
    chain->surface = (VkIcdSurfaceDisplay *) icd_surface;
 
+   result = wsi_configure_native_image(&chain->base, create_info,
+                                       0, NULL, NULL,
+                                       NULL /* alloc_shm */,
+                                       &chain->base.image_info);
+   if (result != VK_SUCCESS) {
+      vk_free(allocator, chain);
+      goto fail_init_images;
+   }
+
    for (uint32_t image = 0; image < chain->base.image_count; image++) {
       result = wsi_display_image_init(device, &chain->base,
                                       create_info, allocator,
@@ -1934,6 +1956,7 @@ wsi_display_surface_create_swapchain(
             wsi_display_image_finish(&chain->base, allocator,
                                      &chain->images[image]);
          }
+         wsi_destroy_image_info(&chain->base, &chain->base.image_info);
          vk_free(allocator, chain);
          goto fail_init_images;
       }
@@ -2765,12 +2788,32 @@ wsi_register_device_event(VkDevice _device,
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
-wsi_RegisterDeviceEventEXT(VkDevice device,
-                           const VkDeviceEventInfoEXT *pDeviceEventInfo,
-                           const VkAllocationCallbacks *pAllocator,
-                           VkFence *pFence)
+wsi_RegisterDeviceEventEXT(VkDevice _device, const VkDeviceEventInfoEXT *device_event_info,
+                            const VkAllocationCallbacks *allocator, VkFence *_fence)
 {
-   unreachable("Not enough common infrastructure to implement this yet");
+   VK_FROM_HANDLE(vk_device, device, _device);
+   struct vk_fence *fence;
+   VkResult ret;
+
+   const VkFenceCreateInfo info = {
+      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+      .flags = 0,
+   };
+   ret = vk_fence_create(device, &info, allocator, &fence);
+   if (ret != VK_SUCCESS)
+      return ret;
+
+   ret = wsi_register_device_event(_device,
+                                   device->physical->wsi_device,
+                                   device_event_info,
+                                   allocator,
+                                   &fence->temporary,
+                                   -1);
+   if (ret == VK_SUCCESS)
+      *_fence = vk_fence_to_handle(fence);
+   else
+      vk_fence_destroy(device, fence, allocator);
+   return ret;
 }
 
 VkResult
@@ -2823,13 +2866,31 @@ wsi_register_display_event(VkDevice _device,
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
-wsi_RegisterDisplayEventEXT(VkDevice device,
-                            VkDisplayKHR display,
-                            const VkDisplayEventInfoEXT *pDisplayEventInfo,
-                            const VkAllocationCallbacks *pAllocator,
-                            VkFence *pFence)
+wsi_RegisterDisplayEventEXT(VkDevice _device, VkDisplayKHR display,
+                             const VkDisplayEventInfoEXT *display_event_info,
+                             const VkAllocationCallbacks *allocator, VkFence *_fence)
 {
-   unreachable("Not enough common infrastructure to implement this yet");
+   VK_FROM_HANDLE(vk_device, device, _device);
+   struct vk_fence *fence;
+   VkResult ret;
+
+   const VkFenceCreateInfo info = {
+      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+      .flags = 0,
+   };
+   ret = vk_fence_create(device, &info, allocator, &fence);
+   if (ret != VK_SUCCESS)
+      return ret;
+
+   ret = wsi_register_display_event(
+      _device, device->physical->wsi_device,
+      display, display_event_info, allocator, &fence->temporary, -1);
+
+   if (ret == VK_SUCCESS)
+      *_fence = vk_fence_to_handle(fence);
+   else
+      vk_fence_destroy(device, fence, allocator);
+   return ret;
 }
 
 void
