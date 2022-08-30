@@ -1,14 +1,14 @@
-Prerequisits:
-- Visual Studio 2019 Community Edition
+Prerequisites:
+- Visual Studio 2022 Community Edition
 - Strawberry perl portable edition installed in c:\perl
 - Cygwin (with the following packages: bison, flex, gawk, gperf, gzip, nasm, sed, python27, python38, python38-lxml)
 - Python39 with lxml and mako
 - To build the installer: nsis
 
-or make it easy on yourself and use the new Docker-based build environment.
+or make it easy on yourself and use the new Docker-based build environment:
 
 Run buildDocker.cmd and give it a couple hours to build the build environment.
-From inside the VcXSrv source directory, launch the bulid environment using
+From inside the VcXSrv source directory, launch the build environment using
 
 		runDocker.cmd
 
@@ -17,6 +17,8 @@ When the container is up, run the following to clone the source into the contain
 		git clone src vcx
 		cygwin
 		cd /cygdrive/c/vcx
+        export SHELLOPTS
+        set -o igncr
 
 Now you can build a 64-bit Debug build on an 8-core system...
 
